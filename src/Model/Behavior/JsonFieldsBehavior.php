@@ -25,8 +25,10 @@ class JsonFieldsBehavior extends Behavior
         $config = $this->getConfig();
 
         foreach ($config['fields'] as $field => $fieldConfig) {
-            if (!$entity->has($field) && array_key_exists('default', $fieldConfig)) {
+            if (!isset($data[$field]) && array_key_exists('default', $fieldConfig)) {
                 $entity->set($field, $fieldConfig['default']);
+            } else {
+                $entity->set($field, $data[$field] ?? []);
             }
         }
     }
@@ -41,6 +43,17 @@ class JsonFieldsBehavior extends Behavior
             }
             $value = $entity->get($field) ?? [];
             $entity->set($field, JsonTool::encode($value));
+        }
+    }
+
+    public function afterSave(EventInterface $event, EntityInterface $entity, ArrayObject $options)
+    {
+        $config = $this->getConfig();
+
+        foreach ($config['fields'] as $field => $fieldConfig) {
+            if ($entity[$field] !== null) {
+                $entity[$field] = JsonTool::decode($entity[$field]);
+            }
         }
     }
 

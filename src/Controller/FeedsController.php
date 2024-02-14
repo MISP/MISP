@@ -14,13 +14,10 @@ use Cake\Core\Configure;
 use Cake\Event\EventInterface;
 use Cake\Http\Exception\MethodNotAllowedException;
 use Cake\Http\Exception\NotFoundException;
-use Cake\ORM\Locator\LocatorAwareTrait;
 use Exception;
 
 class FeedsController extends AppController
 {
-    use LocatorAwareTrait;
-
     public $paginate = [
         'limit' => 60,
         'order' => [
@@ -525,7 +522,7 @@ class FeedsController extends AppController
 
             $this->Feeds->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_SERVER,
+                BackgroundJobsTool::CMD_FEEDS,
                 [
                     'fetchFeed',
                     $this->ACL->getUser()->id,
@@ -596,7 +593,7 @@ class FeedsController extends AppController
 
                 $this->Feeds->getBackgroundJobsTool()->enqueue(
                     BackgroundJobsTool::DEFAULT_QUEUE,
-                    BackgroundJobsTool::CMD_SERVER,
+                    BackgroundJobsTool::CMD_FEEDS,
                     [
                         'fetchFeed',
                         $this->Auth->user('id'),
@@ -972,7 +969,7 @@ class FeedsController extends AppController
 
             $this->Feeds->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_SERVER,
+                BackgroundJobsTool::CMD_FEEDS,
                 [
                     'cacheFeed',
                     $this->Auth->user('id'),

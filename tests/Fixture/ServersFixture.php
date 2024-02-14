@@ -12,12 +12,16 @@ class ServersFixture extends TestFixture
 
     public const SERVER_A_ID = 1000;
     public const SERVER_A_NAME = 'Server A';
+    public const SERVER_A_URL = 'http://aaa.local';
+    public const SERVER_A_AUTHKEY = '8843d7f92416211de9ebb963ff4ce28125932878';
 
     public const SERVER_B_ID = 2000;
     public const SERVER_B_NAME = 'Server B';
+    public const SERVER_B_URL = 'http://bbb.local';
 
     public const SERVER_C_ID = 3000;
     public const SERVER_C_NAME = 'Server C';
+    public const SERVER_C_URL = 'http://ccc.local';
 
     public function init(): void
     {
@@ -28,8 +32,8 @@ class ServersFixture extends TestFixture
                 'id' => self::SERVER_A_ID,
                 'org_id' => OrganisationsFixture::ORGANISATION_A_ID,
                 'name' => self::SERVER_A_NAME,
-                'url' => $faker->url,
-                'authkey' => $faker->sha1(),
+                'url' => self::SERVER_A_URL,
+                'authkey' => self::SERVER_A_AUTHKEY,
                 'push' => true,
                 'pull' => true,
                 'push_sightings' => true,
@@ -52,7 +56,7 @@ class ServersFixture extends TestFixture
                 'id' => self::SERVER_B_ID,
                 'org_id' => OrganisationsFixture::ORGANISATION_B_ID,
                 'name' => self::SERVER_B_NAME,
-                'url' => $faker->url,
+                'url' => self::SERVER_B_URL,
                 'authkey' => $faker->sha1(),
                 'push' => true,
                 'pull' => true,
@@ -76,7 +80,7 @@ class ServersFixture extends TestFixture
                 'id' => self::SERVER_C_ID,
                 'org_id' => OrganisationsFixture::ORGANISATION_C_ID,
                 'name' => self::SERVER_C_NAME,
-                'url' => $faker->url,
+                'url' => self::SERVER_C_URL,
                 'authkey' => $faker->sha1(),
                 'push' => true,
                 'pull' => true,

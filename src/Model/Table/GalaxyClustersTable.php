@@ -5,6 +5,7 @@ namespace App\Model\Table;
 use App\Http\Exception\HttpSocketHttpException;
 use App\Lib\Tools\BackgroundJobsTool;
 use App\Lib\Tools\HttpTool;
+use App\Lib\Tools\LogExtendedTrait;
 use App\Lib\Tools\ServerSyncTool;
 use App\Lib\Tools\TmpFileTool;
 use App\Model\Entity\Distribution;
@@ -37,6 +38,8 @@ use Exception;
  */
 class GalaxyClustersTable extends AppTable
 {
+    use LogExtendedTrait;
+
     private $__assetCache = [];
     private $__clusterCache = [];
     private $deletedClusterUUID;

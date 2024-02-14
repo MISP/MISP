@@ -4,6 +4,10 @@ namespace App\Model\Table;
 
 use App\Model\Entity\Distribution;
 use App\Model\Table\AppTable;
+use ArrayObject;
+use Cake\Collection\CollectionInterface;
+use Cake\Event\EventInterface;
+use Cake\ORM\Query;
 use Cake\Utility\Hash;
 use Cake\Validation\Validator;
 
@@ -88,17 +92,24 @@ class GalaxyClusterRelationsTable extends AppTable
         );
     }
 
-    public function afterFind($results, $primary = false)
+    public function beforeFind(EventInterface $event, Query $query, ArrayObject $options)
     {
-        foreach ($results as $k => $result) {
-            if (isset($result['TargetCluster']) && key_exists('id', $result['TargetCluster']) && is_null($result['TargetCluster']['id'])) {
-                $results[$k]['TargetCluster'] = [];
-            }
-            if (isset($result['GalaxyClusterRelation']['distribution']) && $result['GalaxyClusterRelation']['distribution'] != 4) {
-                unset($results[$k]['SharingGroup']);
-            }
-        }
-        return $results;
+        $query->formatResults(
+            function (CollectionInterface $results) {
+                return $results->map(
+                    function ($row) {
+                        if (isset($row['TargetCluster']) && key_exists('id', $row['TargetCluster']) && is_null($row['TargetCluster']['id'])) {
+                            $row['TargetCluster'] = [];
+                        }
+                        if (isset($row['GalaxyClusterRelation']['distribution']) && $row['GalaxyClusterRelation']['distribution'] != 4) {
+                            unset($row['SharingGroup']);
+                        }
+                        return $row;
+                    }
+                );
+            },
+            $query::APPEND
+        );
     }
 
     public function buildConditions($user, $clusterConditions = true)

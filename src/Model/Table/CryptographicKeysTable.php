@@ -56,44 +56,44 @@ class CryptographicKeysTable extends AppTable
                 'uuid',
                 'uuid',
                 [
-                'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID'
+                    'rule' => 'uuid',
+                    'message' => 'Please provide a valid RFC 4122 UUID'
                 ]
             )
             ->add(
                 'type',
                 'inList',
                 [
-                'rule' => ['inList', self::VALID_TYPES],
-                'message' => 'Invalid key type'
+                    'rule' => ['inList', self::VALID_TYPES],
+                    'message' => 'Invalid key type'
                 ]
             )
             ->add(
                 'key_data',
                 'notBlankKey',
                 [
-                'rule' => 'notBlank',
-                'message' => 'No key data received.'
+                    'rule' => 'notBlank',
+                    'message' => 'No key data received.'
                 ]
             )
             ->add(
                 'key_data',
                 'validKey',
                 [
-                'rule' => function ($value, $context) {
-                    return $this->validateKey($context['data']['type'], $value);
-                },
-                'message' => 'Invalid key.'
+                    'rule' => function ($value, $context) {
+                        return $this->validateKey($context['data']['type'], $value);
+                    },
+                    'message' => 'Invalid key.'
                 ]
             )
             ->add(
                 'key_data',
                 'uniqueKeyForElement',
                 [
-                'rule' => function ($value, $context) {
-                    return $this->uniqueKeyForElement($value, $context);
-                },
-                'message' => 'This key is already assigned to the target.'
+                    'rule' => function ($value, $context) {
+                        return $this->uniqueKeyForElement($value, $context);
+                    },
+                    'message' => 'This key is already assigned to the target.'
                 ]
             );
 
@@ -189,13 +189,13 @@ class CryptographicKeysTable extends AppTable
         return $this->find(
             'column',
             [
-            'conditions' => [
-                'CryptographicKey.parent_type' => 'Event',
-                'CryptographicKey.parent_id' => $eventIds,
-                'CryptographicKey.fingerprint' => $instanceKey,
-            ],
-            'fields' => ['CryptographicKey.parent_id'],
-            'recursive' => -1,
+                'conditions' => [
+                    'CryptographicKeys.parent_type' => 'Event',
+                    'CryptographicKeys.parent_id' => $eventIds,
+                    'CryptographicKeys.fingerprint' => $instanceKey,
+                ],
+                'fields' => ['CryptographicKeys.parent_id'],
+                'recursive' => -1,
             ]
         );
     }
@@ -299,10 +299,10 @@ class CryptographicKeysTable extends AppTable
     {
         return $this->find()->where(
             [
-            'parent_type' => $context['data']['parent_type'],
-            'parent_id' => $context['data']['parent_id'],
-            'key_data' => $value,
-            'type' => $context['data']['type'],
+                'parent_type' => $context['data']['parent_type'],
+                'parent_id' => $context['data']['parent_id'],
+                'key_data' => $value,
+                'type' => $context['data']['type'],
             ]
         )->all()->isEmpty();
     }
@@ -343,19 +343,19 @@ class CryptographicKeysTable extends AppTable
         $existingKeys = $this->find(
             'all',
             [
-            'recursive' => -1,
-            'conditions' => [
-                'parent_type' => $type,
-                'parent_id' => $parent_id,
-            ],
-            'fields' => [
-                'id',
-                'type',
-                'parent_type',
-                'parent_id',
-                'revoked',
-                'fingerprint',
-            ]
+                'recursive' => -1,
+                'conditions' => [
+                    'parent_type' => $type,
+                    'parent_id' => $parent_id,
+                ],
+                'fields' => [
+                    'id',
+                    'type',
+                    'parent_type',
+                    'parent_id',
+                    'revoked',
+                    'fingerprint',
+                ]
             ]
         )->first();
         $toRemove = [];
@@ -377,13 +377,13 @@ class CryptographicKeysTable extends AppTable
         foreach ($cryptographicKeys as $cryptographicKey) {
             $cryptoKeyEntity = $this->newEntity(
                 [
-                'uuid' => $cryptographicKey['uuid'],
-                'key_data' => $cryptographicKey['key_data'],
-                'fingerprint' => $cryptographicKey['fingerprint'],
-                'revoked' => $cryptographicKey['revoked'],
-                'parent_type' => $cryptographicKey['parent_type'],
-                'parent_id' => $parent_id,
-                'type' => $cryptographicKey['type']
+                    'uuid' => $cryptographicKey['uuid'],
+                    'key_data' => $cryptographicKey['key_data'],
+                    'fingerprint' => $cryptographicKey['fingerprint'],
+                    'revoked' => $cryptographicKey['revoked'],
+                    'parent_type' => $cryptographicKey['parent_type'],
+                    'parent_id' => $parent_id,
+                    'type' => $cryptographicKey['type']
                 ]
             );
 
@@ -399,7 +399,7 @@ class CryptographicKeysTable extends AppTable
             $cryptographicKey['parent_type'],
             $parent_id
         );
-        $this->deleteAll(['CryptographicKey.id' => $toRemove]);
+        $this->deleteAll(['CryptographicKeys.id' => $toRemove]);
         $this->loadLog()->createLogEntry($user, 'updateCryptoKeys', $cryptographicKey['parent_type'], $cryptographicKey['parent_id'], $message);
     }
 

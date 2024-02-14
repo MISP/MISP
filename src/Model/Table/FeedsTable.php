@@ -193,7 +193,7 @@ class FeedsTable extends AppTable
      * Gets the event UUIDs from the feed by ID
      * Returns an array with the UUIDs of events that are new or that need updating.
      *
-     * @param array $feed
+     * @param Feed $feed
      * @param HttpClient|null $HttpSocket
      * @return array
      * @throws Exception
@@ -228,12 +228,12 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param HttpClient|null $HttpSocket Null can be for local feed
      * @return Generator<string>
      * @throws Exception
      */
-    public function getCache(array $feed, HttpClient $HttpSocket = null)
+    public function getCache(Feed $feed, HttpClient $HttpSocket = null)
     {
         $uri = $feed['url'] . '/hashes.csv';
         $data = $this->feedGetUri($feed, $uri, $HttpSocket);
@@ -288,13 +288,13 @@ class FeedsTable extends AppTable
 
     /**
      * Get remote manifest for feed with etag checking.
-     * @param array $feed
+     * @param Feed $feed
      * @param HttpClient $HttpSocket
      * @return array
      * @throws HttpException
      * @throws JsonException
      */
-    private function getRemoteManifest(array $feed, HttpClient $HttpSocket)
+    private function getRemoteManifest(Feed $feed, HttpClient $HttpSocket)
     {
         $feedCache = Feed::CACHE_DIR . 'misp_feed_' . (int)$feed['id'] . '_manifest.cache.gz';
         $feedCacheEtag = Feed::CACHE_DIR . 'misp_feed_' . (int)$feed['id'] . '_manifest.etag';
@@ -350,12 +350,12 @@ class FeedsTable extends AppTable
 
     /**
      * Load remote file with cache support and etag checking.
-     * @param array $feed
+     * @param Feed $feed
      * @param HttpClient $HttpSocket
      * @return string
      * @throws HttpException
      */
-    private function getFreetextFeedRemote(array $feed, HttpClient $HttpSocket)
+    private function getFreetextFeedRemote(Feed $feed, HttpClient $HttpSocket)
     {
         $feedCache = Feed::CACHE_DIR . 'misp_feed_' . (int)$feed['id'] . '.cache.gz';
         $feedCacheEtag = Feed::CACHE_DIR . 'misp_feed_' . (int)$feed['id'] . '.etag';
@@ -403,7 +403,7 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param HttpClient|null $HttpSocket Null can be for local feed
      * @param string $type
      * @return array|bool
@@ -728,14 +728,14 @@ class FeedsTable extends AppTable
 
     /**
      * @param array $actions
-     * @param array $feed
+     * @param Feed $feed
      * @param HttpClient|null $HttpSocket
      * @param array $user
      * @param int|false $jobId
      * @return array
      * @throws Exception
      */
-    private function downloadFromFeed(array $actions, array $feed, HttpClient $HttpSocket = null, array $user, $jobId = false)
+    private function downloadFromFeed(array $actions, Feed $feed, HttpClient $HttpSocket = null, array $user, $jobId = false)
     {
         $total = count($actions['add']) + count($actions['edit']);
         $currentItem = 0;
@@ -1012,11 +1012,11 @@ class FeedsTable extends AppTable
 
     /**
      * @param array $event
-     * @param array $feed
+     * @param Feed $feed
      * @param array $filterRules
      * @return array|string
      */
-    private function __prepareEvent($event, array $feed, $filterRules)
+    private function __prepareEvent($event, Feed $feed, $filterRules)
     {
         if (isset($event['response'])) {
             $event = $event['response'];
@@ -1150,7 +1150,7 @@ class FeedsTable extends AppTable
 
     /**
      * @param HttpClient|null $HttpSocket
-     * @param array $feed
+     * @param Feed $feed
      * @param string $uuid
      * @param array $user
      * @param array|bool $filterRules
@@ -1236,7 +1236,7 @@ class FeedsTable extends AppTable
         if ($feed['source_format'] === 'misp') {
             $this->jobProgress($jobId, 'Fetching event manifest.');
             try {
-                $actions = $this->getNewEventUuids($feed->toArray(), $HttpSocket);
+                $actions = $this->getNewEventUuids($feed, $HttpSocket);
             } catch (Exception $e) {
                 $this->logException("Could not get new event uuids for feed $feedId.", $e);
                 $this->jobProgress($jobId, 'Could not fetch event manifest. See error log for more details.');
@@ -1249,12 +1249,12 @@ class FeedsTable extends AppTable
 
             $total = count($actions['add']) + count($actions['edit']);
             $this->jobProgress($jobId, __("Fetching %s events.", $total));
-            $result = $this->downloadFromFeed($actions, $feed->toArray(), $HttpSocket, $user->toArray(), $jobId);
+            $result = $this->downloadFromFeed($actions, $feed, $HttpSocket, $user->toArray(), $jobId);
             $this->__cleanupFile($feed, '/manifest.json');
         } else {
             $this->jobProgress($jobId, 'Fetching data.');
             try {
-                $temp = $this->getFreetextFeed($feed->toArray(), $HttpSocket, $feed['source_format']);
+                $temp = $this->getFreetextFeed($feed, $HttpSocket, $feed['source_format']);
             } catch (Exception $e) {
                 $this->logException("Could not get freetext feed $feedId", $e);
                 $this->jobProgress($jobId, 'Could not fetch freetext feed. See error log for more details.');
@@ -1511,7 +1511,7 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param Redis $redis
      * @param int|false $jobId
      * @return bool
@@ -1535,13 +1535,13 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param Redis $redis
      * @param HttpClient|null $HttpSocket
      * @param int|false $jobId
      * @return bool
      */
-    private function __cacheFreetextFeed(array $feed, $redis, HttpClient $HttpSocket = null, $jobId = false)
+    private function __cacheFreetextFeed(Feed $feed, $redis, HttpClient $HttpSocket = null, $jobId = false)
     {
         $feedId = $feed['id'];
 
@@ -2092,7 +2092,7 @@ class FeedsTable extends AppTable
     /**
      * Download and parse event from feed.
      *
-     * @param array $feed
+     * @param Feed $feed
      * @param string $eventUuid
      * @param HttpClient|null $HttpSocket Null can be for local feed
      * @return array
@@ -2115,7 +2115,7 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param string $uri
      * @param HttpClient|null $HttpSocket Null can be for local feed
      * @return string
@@ -2136,14 +2136,14 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param string $uri
      * @param HttpClient $HttpSocket
      * @param string|null $etag
      * @return false|HttpClientResponse
      * @throws HttpException
      */
-    private function feedGetUriRemote(array $feed, $uri, HttpClient $HttpSocket, $etag = null)
+    private function feedGetUriRemote(Feed $feed, $uri, HttpClient $HttpSocket, $etag = null)
     {
         $request = $this->__createFeedRequest($feed['headers']);
         if ($etag) {

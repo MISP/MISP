@@ -1,9 +1,9 @@
 {
-    "name": "cakephp/app",
-    "description": "CakePHP skeleton app",
+    "name": "misp/misp",
+    "description": "MISP: Open Source Threat Intelligence Platform & Open Standards For Threat Information Sharing",
     "homepage": "https://cakephp.org",
     "type": "project",
-    "license": "MIT",
+    "license": " AGPL-3.0",
     "require": {
         "php": ">=8.0",
         "admad/cakephp-social-auth": "^1.1",
@@ -19,7 +19,7 @@
         "pear/crypt_gpg": "^1.6",
         "php-http/message": "^1.16",
         "php-http/message-factory": "^1.1",
-        "supervisorphp/supervisor": "^4.0"
+        "supervisorphp/supervisor": "^5.0"
     },
     "require-dev": {
         "cakephp/bake": "^2.0.3",

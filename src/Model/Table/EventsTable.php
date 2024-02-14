@@ -2,6 +2,7 @@
 
 namespace App\Model\Table;
 
+use App\Lib\Tools\ServerSyncTool;
 use App\Model\Table\AppTable;
 use ArrayObject;
 use Cake\Core\Configure;
@@ -19,17 +20,92 @@ class EventsTable extends AppTable
         $this->addBehavior('AuditLog');
 
         $this->belongsTo(
+            'User',
+            [
+                'className' => 'Users',
+                'foreignKey' => 'user_id'
+            ]
+        );
+        $this->belongsTo(
+            'ThreatLevel',
+            [
+                'className' => 'ThreatLevels',
+                'foreignKey' => 'threat_level_id'
+            ]
+        );
+        $this->belongsTo(
+            'Org',
+            [
+                'className' => 'Organisations',
+                'foreignKey' => 'org_id'
+            ]
+        );
+        $this->belongsTo(
+            'Orgc',
+            [
+                'className' => 'Organisations',
+                'foreignKey' => 'orgc_id'
+            ]
+        );
+        $this->belongsTo(
             'SharingGroup',
             [
                 'className' => 'SharingGroups',
                 'foreignKey' => 'sharing_group_id'
             ]
         );
+
         $this->hasMany(
             'Attributes',
             [
                 'dependent' => true,
                 'propertyName' => 'Attribute'
+            ]
+        );
+        $this->hasMany(
+            'ShadowAttributes',
+            [
+                'dependent' => true,
+                'propertyName' => 'ShadowAttribute'
+            ]
+        );
+        $this->hasMany(
+            'Objects',
+            [
+                'dependent' => true,
+                'propertyName' => 'Object',
+            ]
+        );
+        $this->hasMany(
+            'EventTags',
+            [
+                'dependent' => true,
+                'propertyName' => 'EventTag',
+            ]
+        );
+        $this->hasMany(
+            'Sightings',
+            [
+                'dependent' => true,
+                'propertyName' => 'Sighting',
+            ]
+        );
+        $this->hasMany(
+            'EventReports',
+            [
+                'dependent' => true,
+                'propertyName' => 'EventReport',
+            ]
+        );
+        $this->hasMany(
+            'CryptographicKeys',
+            [
+                'dependent' => true,
+                'propertyName' => 'CryptographicKey',
+                'foreignKey' => 'parent_id',
+                'conditions' => [
+                    'parent_type' => 'Events'
+                ],
             ]
         );
         $this->setDisplayField('title');
@@ -124,6 +200,8 @@ class EventsTable extends AppTable
     public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = [])
     {
         // TODO: [3.x-MIGRATION] implement when events controller is migrated see #9391
+
+        // THIS IS A PLACEHOLDER !
         $data['Event']['user_id'] = $user['id'];
         if ($fromPull) {
             $data['Event']['org_id'] = $org_id;
@@ -143,6 +221,46 @@ class EventsTable extends AppTable
     public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false, $fast_update = false)
     {
         // TODO: [3.x-MIGRATION] implement when events controller is migrated see #9391
+
+        // THIS IS A PLACEHOLDER !
         return true;
+    }
+
+    public function fetchEvent($user, $options = [], $useCache = false)
+    {
+        // TODO: [3.x-MIGRATION] implement when events controller is migrated see #9391
+
+        // THIS IS A PLACEHOLDER !
+        if (isset($options['event_uuid'])) {
+            return $this->find(
+                'all',
+                [
+                    'conditions' => [
+                        'uuid' => $options['event_uuid']
+                    ]
+                ]
+            )->disableHydration()->toArray();
+        }
+
+        return [];
+    }
+
+    /**
+     * @param array $event
+     * @param array $server
+     * @param ServerSyncTool $serverSync
+     * @return false|string
+     * @throws HttpSocketJsonException
+     * @throws JsonException
+     * @throws Exception
+     */
+    public function uploadEventToServer(array $event, array $server, ServerSyncTool $serverSync)
+    {
+        // TODO: [3.x-MIGRATION] implement when events controller is migrated see #9391
+        // THIS IS A PLACEHOLDER !
+
+        $serverSync->pushEvent($event)->getJson();
+
+        return 'Success';
     }
 }

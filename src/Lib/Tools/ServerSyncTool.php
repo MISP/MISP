@@ -3,9 +3,16 @@
 namespace App\Lib\Tools;
 
 use App\Http\Exception\HttpSocketHttpException;
+use Cake\Core\Configure;
+use Cake\Http\Client\Response;
+use Cake\ORM\Locator\LocatorAwareTrait;
+use Exception;
+use InvalidArgumentException;
 
 class ServerSyncTool
 {
+    use LocatorAwareTrait;
+
     const FEATURE_BR = 'br',
         FEATURE_GZIP = 'gzip',
         FEATURE_ORG_RULE = 'org_rule',
@@ -24,7 +31,7 @@ class ServerSyncTool
     /** @var array */
     private $request;
 
-    /** @var HttpSocketExtended */
+    /** @var HttpTool */
     private $socket;
 
     /** @var CryptographicKey */
@@ -41,15 +48,17 @@ class ServerSyncTool
      */
     public function __construct(array $server, array $request)
     {
-        if (!isset($server['Server'])) {
+        if (!isset($server)) {
             throw new InvalidArgumentException("Invalid server provided.");
         }
 
         $this->server = $server;
         $this->request = $request;
 
-        $syncTool = new SyncTool();
-        $this->socket = $syncTool->setupHttpSocket($server);
+        $HttpTool = new HttpTool();
+        $HttpTool->configFromServer($server);
+
+        $this->socket = $HttpTool;
     }
 
     /**
@@ -60,14 +69,14 @@ class ServerSyncTool
      */
     public function eventExists(array $event)
     {
-        $url = $this->server['Server']['url'] . '/events/view/' . $event['Event']['uuid'];
+        $url = $this->server['url'] . '/events/view/' . $event['uuid'];
         $start = microtime(true);
         $exists = $this->socket->head($url, [], $this->request);
         $this->log($start, 'HEAD', $url, $exists);
-        if ($exists->code == '404') {
+        if ($exists->getStatusCode() == '404') {
             return false;
         }
-        if ($exists->code == '200') {
+        if ($exists->getStatusCode() == '200') {
             return true;
         }
         throw new HttpSocketHttpException($exists, $url);
@@ -135,7 +144,7 @@ class ServerSyncTool
 
                     // There is bug in MISP API, that returns response code 404 with Location if event already exists
                 } else if ($e->getResponse()->getHeader('Location')) {
-                    $urlPath = $e->getResponse()->getHeader('Location');
+                    $urlPath = $e->getResponse()->getHeader('Location')[0];
                     $pieces = explode('/', $urlPath);
                     $lastPart = end($pieces);
                     return $this->updateEvent($event, $lastPart);
@@ -153,7 +162,7 @@ class ServerSyncTool
      */
     public function createEvent(array $event)
     {
-        $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
+        $logMessage = "Pushing Event #{$event['id']} to Server #{$this->serverId()}";
         return $this->post("/events/add/metadata:1", $event, $logMessage);
     }
 
@@ -167,9 +176,9 @@ class ServerSyncTool
     public function updateEvent(array $event, $eventId = null)
     {
         if ($eventId === null) {
-            $eventId = $event['Event']['uuid'];
+            $eventId = $event['uuid'];
         }
-        $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
+        $logMessage = "Pushing Event #{$event['id']} to Server #{$this->serverId()}";
         return $this->post("/events/edit/$eventId/metadata:1", $event, $logMessage);
     }
 
@@ -239,12 +248,15 @@ class ServerSyncTool
      */
     public function fetchSightingsForEvents(array $eventUuids)
     {
-        return $this->post('/sightings/restSearch/event', [
-            'returnFormat' => 'json',
-            'last' => 0, // fetch all
-            'includeUuid' => true,
-            'uuid' => $eventUuids,
-        ])->json()['response'];
+        return $this->post(
+            '/sightings/restSearch/event',
+            [
+                'returnFormat' => 'json',
+                'last' => 0, // fetch all
+                'includeUuid' => true,
+                'uuid' => $eventUuids,
+            ]
+        )->getJson()['response'];
     }
 
     /**
@@ -260,8 +272,8 @@ class ServerSyncTool
             return [];
         }
 
-        $response = $this->post('/sightings/filterSightingUuidsForPush/' . $event['Event']['uuid'], $sightingUuids);
-        return $response->json();
+        $response = $this->post('/sightings/filterSightingUuidsForPush/' . $event['uuid'], $sightingUuids);
+        return $response->getJson();
     }
 
     /**
@@ -304,7 +316,7 @@ class ServerSyncTool
         }
 
         $response = $this->get('/servers/getVersion');
-        $info = $response->json();
+        $info = $response->getJson();
         if (!isset($info['version'])) {
             throw new Exception("Invalid response when fetching server version: `version` field missing.");
         }
@@ -354,7 +366,15 @@ class ServerSyncTool
      */
     public function serverId()
     {
-        return $this->server['Server']['id'];
+        return $this->server['id'];
+    }
+
+    /**
+     * @return string
+     */
+    public function serverName()
+    {
+        return $this->server['name'];
     }
 
     /**
@@ -362,7 +382,7 @@ class ServerSyncTool
      */
     public function pullRules()
     {
-        return $this->decodeRule('pull_rules');
+        return $this->server['pull_rules'];
     }
 
     /**
@@ -370,7 +390,7 @@ class ServerSyncTool
      */
     public function pushRules()
     {
-        return $this->decodeRule('push_rules');
+        return $this->server['push_rules'];
     }
 
     /**
@@ -431,7 +451,7 @@ class ServerSyncTool
      */
     private function get($url)
     {
-        $url = $this->server['Server']['url'] . $url;
+        $url = $this->server['url'] . $url;
         $start = microtime(true);
         $response = $this->socket->get($url, [], $this->request);
         $this->log($start, 'GET', $url, $response);
@@ -453,7 +473,7 @@ class ServerSyncTool
      */
     private function post($url, $data, $logMessage = null, $etag = null)
     {
-        $protectedMode = !empty($data['Event']['protected']);
+        $protectedMode = !empty($data['protected']);
         $data = JsonTool::encode($data);
 
         if ($logMessage && !empty(Configure::read('Security.sync_audit'))) {
@@ -491,11 +511,11 @@ class ServerSyncTool
                 $data = gzencode($data, 1);
             }
         }
-        $url = $this->server['Server']['url'] . $url;
+        $url = $this->server['url'] . $url;
         $start = microtime(true);
         $response = $this->socket->post($url, $data, $request);
         $this->log($start, 'POST', $url, $response);
-        if ($etag && $response->isNotModified()) {
+        if ($etag && $response->getStatusCode() === 304) {
             return $response; // if etag was provided and response code is 304, it is valid response
         }
         if (!$response->isOk()) {
@@ -516,23 +536,13 @@ class ServerSyncTool
         }
 
         if (!$this->cryptographicKey) {
-            $this->cryptographicKey = ClassRegistry::init('CryptographicKey');
+            $this->cryptographicKey = $this->fetchTable('CryptographicKeys');
         }
         $signature = $this->cryptographicKey->signWithInstanceKey($data);
         if (empty($signature)) {
             throw new Exception(__("Invalid signing key. This should never happen."));
         }
         return base64_encode($signature);
-    }
-
-    /**
-     * @param string $key
-     * @return array
-     */
-    private function decodeRule($key)
-    {
-        $rules = $this->server['Server'][$key];
-        return json_decode($rules, true);
     }
 
     /**
@@ -558,14 +568,17 @@ class ServerSyncTool
      * @param float $start Microtime when request was send
      * @param string $method HTTP method
      * @param string $url
-     * @param HttpSocketResponse $response
+     * @param Response $response
      */
-    private function log($start, $method, $url, HttpSocketResponse $response)
+    private function log($start, $method, $url, Response $response)
     {
         $duration = round(microtime(true) - $start, 3);
-        $responseSize = strlen($response->body);
-        $ce = $response->getHeader('Content-Encoding');
-        $logEntry = '[' . date('Y-m-d H:i:s', intval($start)) . "] \"$method $url\" {$response->code} $responseSize $duration $ce\n";
-        file_put_contents(APP . 'tmp/logs/server-sync.log', $logEntry, FILE_APPEND | LOCK_EX);
+        $responseSize = strlen($response->getBody());
+        $ce = '';
+        if ($response->getHeader('Content-Encoding')) {
+            $ce = $response->getHeader('Content-Encoding')[0];
+        }
+        $logEntry = '[' . date('Y-m-d H:i:s', intval($start)) . "] \"$method $url\" {$response->getStatusCode()} $responseSize $duration $ce\n";
+        file_put_contents(APP . '../logs/server-sync.log', $logEntry, FILE_APPEND | LOCK_EX);
     }
 }
