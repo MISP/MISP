@@ -4377,12 +4377,12 @@ class EventsController extends AppController
         $id = $event['Event']['id'];
         $exports = array(
             'json' => array(
-                'url' => $this->baseurl . '/events/restSearch/json/eventid:' . $id . '.json',
+                'url' => $this->baseurl . '/events/restSearch/json/includeAnalystData:1/eventid:' . $id . '.json',
                 'text' => __('MISP JSON (metadata + all attributes)'),
                 'requiresPublished' => false,
                 'checkbox' => true,
                 'checkbox_text' => __('Encode Attachments'),
-                'checkbox_set' => $this->baseurl . '/events/restSearch/json/withAttachments:1/eventid:' . $id . '.json',
+                'checkbox_set' => $this->baseurl . '/events/restSearch/json/withAttachments:1/includeAnalystData:1/eventid:' . $id . '.json',
                 'checkbox_default' => true,
             ),
             'xml' => array(

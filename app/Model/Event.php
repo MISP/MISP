@@ -1761,6 +1761,11 @@ class Event extends AppModel
         if (!isset($options['fetchFullClusterRelationship'])) {
             $options['fetchFullClusterRelationship'] = false;
         }
+        if (!isset($options['includeAnalystData'])) {
+            $options['includeAnalystData'] = false;
+        } else {
+            $options['includeAnalystData'] = !empty($options['includeAnalystData']);
+        }
         foreach ($this->possibleOptions as $opt) {
             if (!isset($options[$opt])) {
                 $options[$opt] = false;
@@ -2039,11 +2044,8 @@ class Event extends AppModel
         if (!empty($options['page'])) {
             $params['page'] = $options['page'];
         }
-        if (!empty($options['includeAnalystData'])) {
-            // $params['includeAnalystData'] = $options['includeAnalystData'];
-            $this->includeAnalystData = true;
-            $this->includeAnalystDataRecursive = true;
-        }
+        $this->includeAnalystData = $options['includeAnalystData'];
+        $this->includeAnalystDataRecursive = $options['includeAnalystData'];
         if (!empty($options['order'])) {
             $params['order'] = $this->findOrder(
                 $options['order'],
