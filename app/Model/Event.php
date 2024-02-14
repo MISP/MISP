@@ -3656,6 +3656,7 @@ class Event extends AppModel
             $created_id = 0;
             $event['Event']['locked'] = 1;
             $event['Event']['published'] = $publish;
+            $event = $this->updatedLockedFieldForAllAnalystData($event);
             $result = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
             $results[] = [
                 'info' => $event['Event']['info'],
@@ -3665,6 +3666,59 @@ class Event extends AppModel
             ];
         }
         return $results;
+    }
+
+    private function updatedLockedFieldForAllAnalystData(array $event): array
+    {
+        $event = $this->updatedLockedFieldForAnalystData($event, 'Event');
+        if (!empty($event['Event']['Attribute'])) {
+            for ($i=0; $i < count($event['Event']['Attribute']); $i++) { 
+                $event['Event']['Attribute'][$i] = $this->updatedLockedFieldForAnalystData($event['Event']['Attribute'][$i]);
+            }
+        }
+        if (!empty($event['Event']['Object'])) {
+            for ($i=0; $i < count($event['Event']['Object']); $i++) { 
+                $event['Event']['Object'][$i] = $this->updatedLockedFieldForAnalystData($event['Event']['Object'][$i]);
+                if (!empty($event['Event']['Object'][$i])) {
+                    for ($j=0; $j < count($event['Event']['Object'][$i]['Attribute']); $j++) { 
+                        $event['Event']['Object'][$i]['Attribute'][$j] = $this->updatedLockedFieldForAnalystData($event['Event']['Object'][$i]['Attribute'][$j]);
+                    }
+                }
+            }
+        }
+        if (!empty($event['Event']['EventReport'])) {
+            for ($i=0; $i < count($event['Event']['EventReport']); $i++) { 
+                $event['Event']['EventReport'][$i] = $this->updatedLockedFieldForAnalystData($event['Event']['EventReport'][$i]);
+            }
+        }
+        return $event;
+    }
+
+    private function updatedLockedFieldForAnalystData(array $data, $model=false): array
+    {
+        $this->AnalystData = ClassRegistry::init('AnalystData');
+        if (!empty($model)) {
+            $data = $data[$model];
+        }
+        foreach ($this->AnalystData::ANALYST_DATA_TYPES as $type) {
+            if (!empty($data[$type])) {
+                for ($i=0; $i < count($data[$type]); $i++) { 
+                    $data[$type][$i]['locked'] = true;
+                    foreach ($this->AnalystData::ANALYST_DATA_TYPES as $childType) {
+                        if (!empty($data[$type][$i][$childType])) {
+                            for ($j=0; $j < count($data[$type][$i][$childType]); $j++) {
+                                $data[$type][$i][$childType][$j]['locked'] = true;
+                                $data[$type][$i][$childType][$j] = $this->updatedLockedFieldForAnalystData($data[$type][$i][$childType][$j]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (!empty($model)) {
+            $data = [$model => $data];
+        }
+        return $data;
     }
 
     /**
@@ -4207,6 +4261,8 @@ class Event extends AppModel
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
                 $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
             }
+
+            $this->captureAnalystData($user, $data['Event']);
             // if published -> do the actual publishing
             if ($changed && (!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
                 // The edited event is from a remote server ?
@@ -7975,11 +8031,10 @@ class Event extends AppModel
 
     public function captureAnalystData($user, $data)
     {
-        $types = ['Note', 'Opinion', 'Relationship'];
         $this->Note = ClassRegistry::init('Note');
         $this->Opinion = ClassRegistry::init('Opinion');
         $this->Relationship = ClassRegistry::init('Relationship');
-        foreach ($types as $type) {
+        foreach ($this->Note::ANALYST_DATA_TYPES as $type) {
             if (!empty($data[$type])) {
                 foreach ($data[$type] as $analystData) {
                     $this->{$type}->captureAnalystData($user, $analystData);

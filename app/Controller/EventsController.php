@@ -2696,7 +2696,7 @@ class EventsController extends AppController
                 $this->request->data = $this->request->data['Event'];
             }
             $eventToSave = $event;
-            $capturedObjects = ['Attribute', 'Object', 'Tag', 'Galaxy', 'EventReport'];
+            $capturedObjects = ['Attribute', 'Object', 'Tag', 'Galaxy', 'EventReport', 'Note', 'Opinion', 'Relationship',];
             foreach ($capturedObjects as $objectType) {
                 if (!empty($this->request->data[$objectType])) {
                     if (!empty($regenerateUUIDs)) {

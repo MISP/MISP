@@ -414,6 +414,9 @@ class AnalystData extends AppModel
      */
     public function captureAnalystData(array $user, array $analystData, $fromPull=false, $orgUUId=false, $server=false): array
     {
+        $this->Note = ClassRegistry::init('Note');
+        $this->Opinion = ClassRegistry::init('Opinion');
+        $this->Relationship = ClassRegistry::init('Relationship');
         $results = ['success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => []];
         $type = $this->deduceAnalystDataType($analystData);
         if (!isset($analystData[$type])) {
@@ -468,6 +471,20 @@ class AnalystData extends AppModel
         if ($analystData[$type]['distribution'] != 4) {
             $analystData[$type]['sharing_group_id'] = null;
         }
+
+        // Start saving from the leaf since to make sure child elements get saved even if the parent should not be saved (or updated due to locked or timestamp)
+        foreach (self::ANALYST_DATA_TYPES as $childType) {
+            if (!empty($analystData[$type][$childType])) {
+                foreach ($analystData[$type][$childType] as $childAnalystData) {
+                    $captureResult = $this->{$childType}->captureAnalystData($user, $childAnalystData, $fromPull, $orgUUId, $server);
+                    $results['imported'] += $captureResult['imported'];
+                    $results['ignored'] += $captureResult['ignored'];
+                    $results['failed'] += $captureResult['failed'];
+                    $results['errors'] = array_merge($results['errors'], $captureResult['errors']);
+                }
+            }
+        }
+
         $existingAnalystData = $analystModel->find('first', [
             'conditions' => ["{$type}.uuid" => $analystData[$type]['uuid'],],
         ]);
@@ -493,17 +510,6 @@ class AnalystData extends AppModel
         }
         if ($saveSuccess) {
             $results['imported']++;
-            foreach (self::ANALYST_DATA_TYPES as $childType) {
-                if (!empty($analystData[$type][$childType])) {
-                    foreach ($analystData[$type][$childType] as $childAnalystData) {
-                        $captureResult = $this->captureAnalystData($user, $childAnalystData, $fromPull, $orgUUId, $server);
-                        $results['imported'] += $captureResult['imported'];
-                        $results['ignored'] += $captureResult['ignored'];
-                        $results['failed'] += $captureResult['failed'];
-                        $results['errors'] = array_merge($results['errors'], $captureResult['errors']);
-                    }
-                }
-            }
         } else {
             $results['failed']++;
             foreach ($analystModel->validationErrors as $validationError) {

@@ -1219,6 +1219,7 @@ class MispObject extends AppModel
             );
             return $this->validationErrors;
         }
+        $this->captureAnalystData($user, $object['Object']);
         if (!empty($object['Attribute'])) {
             $attributes = [];
             foreach ($object['Attribute'] as $attribute) {
