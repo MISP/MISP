@@ -119,6 +119,8 @@ class EventReport extends AppModel
                 __('Event Report dropped due to validation for Event report %s failed: %s', $this->data['EventReport']['uuid'], $this->data['EventReport']['name']),
                 __('Validation errors: %s.%sFull report: %s', json_encode($errors), PHP_EOL, json_encode($report['EventReport']))
             );
+        } else {
+            $this->Event->captureAnalystData($user, $report);
         }
         return $errors;
     }

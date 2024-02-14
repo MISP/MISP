@@ -19,6 +19,9 @@ App::uses('ProcessTool', 'Tools');
  * @property Organisation $Org
  * @property Organisation $Orgc
  * @property CryptographicKey $CryptographicKey
+ * @property Note $Note
+ * @property Opinion $Opinion
+ * @property Relationship $Relationship
  */
 class Event extends AppModel
 {
@@ -3901,6 +3904,8 @@ class Event extends AppModel
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
                 $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
             }
+
+            $this->captureAnalystData($user, $data['Event']);
             if ($fromXml) {
                 $created_id = $this->id;
             }
@@ -7965,6 +7970,21 @@ class Event extends AppModel
         if (!empty($fullEvent)) {
             $kafkaPubTool = $this->getKafkaPubTool();
             $kafkaPubTool->publishJson($kafkaTopic, $fullEvent[0], 'publish');
+        }
+    }
+
+    public function captureAnalystData($user, $data)
+    {
+        $types = ['Note', 'Opinion', 'Relationship'];
+        $this->Note = ClassRegistry::init('Note');
+        $this->Opinion = ClassRegistry::init('Opinion');
+        $this->Relationship = ClassRegistry::init('Relationship');
+        foreach ($types as $type) {
+            if (!empty($data[$type])) {
+                foreach ($data[$type] as $analystData) {
+                    $this->{$type}->captureAnalystData($user, $analystData);
+                }
+            }
         }
     }
 

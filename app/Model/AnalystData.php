@@ -256,6 +256,9 @@ class AnalystData extends AppModel
 
     public function deduceAnalystDataType(array $analystData)
     {
+        if (!empty($analystData['note_type_name']) && in_array($analystData['note_type_name'], self::ANALYST_DATA_TYPES)) {
+            return $analystData['note_type_name'];
+        }
         foreach (self::ANALYST_DATA_TYPES as $type) {
             if (isset($analystData[$type])) {
                 return $type;
@@ -413,6 +416,9 @@ class AnalystData extends AppModel
     {
         $results = ['success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => []];
         $type = $this->deduceAnalystDataType($analystData);
+        if (!isset($analystData[$type])) {
+            $analystData = [$type => $analystData];
+        }
         $analystModel = ClassRegistry::init($type);
 
         if ($fromPull && !empty($orgUUId)) {
@@ -447,13 +453,9 @@ class AnalystData extends AppModel
 
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
             $analystModel->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
-            if (!isset($analystData[$type]['Orgc']['uuid'])) {
-                $orgc = $analystModel->Orgc->find('first', ['conditions' => ['Orgc.uuid' => $analystData[$type]['orgc_uuid']], 'fields' => ['Orgc.uuid'], 'recursive' => -1]);
-            } else {
-                $orgc = ['Orgc' => ['uuid' => $analystData[$type]['Orgc']['uuid']]];
-            }
-            if ($analystData[$type]['orgc_uuid'] != 0 && $analystModel->OrgBlocklist->hasAny(array('OrgBlocklist.org_uuid' => $orgc['Orgc']['uuid']))) {
-                $results['errors'][] = __('Organisation blocklisted (%s)', $orgc['Orgc']['uuid']);
+            $orgcUUID = $analystData[$type]['Orgc']['uuid'];
+            if ($analystData[$type]['orgc_uuid'] != 0 && $analystModel->OrgBlocklist->hasAny(array('OrgBlocklist.org_uuid' => $orgcUUID))) {
+                $results['errors'][] = __('Organisation blocklisted (%s)', $orgcUUID);
                 $results['ignored']++;
                 return $results;
             }
@@ -473,6 +475,7 @@ class AnalystData extends AppModel
             unset($analystData[$type]['id']);
             $analystModel->create();
             $saveSuccess = $analystModel->save($analystData);
+            $saveSuccess = true;
         } else {
             if (!$existingAnalystData[$type]['locked'] && empty($server['Server']['internal'])) {
                 $results['errors'][] = __('Blocked an edit to an analyst data that was created locally. This can happen if a synchronised analyst data that was created on this instance was modified by an administrator on the remote side.');
@@ -490,6 +493,17 @@ class AnalystData extends AppModel
         }
         if ($saveSuccess) {
             $results['imported']++;
+            foreach (self::ANALYST_DATA_TYPES as $childType) {
+                if (!empty($analystData[$type][$childType])) {
+                    foreach ($analystData[$type][$childType] as $childAnalystData) {
+                        $captureResult = $this->captureAnalystData($user, $childAnalystData, $fromPull, $orgUUId, $server);
+                        $results['imported'] += $captureResult['imported'];
+                        $results['ignored'] += $captureResult['ignored'];
+                        $results['failed'] += $captureResult['failed'];
+                        $results['errors'] = array_merge($results['errors'], $captureResult['errors']);
+                    }
+                }
+            }
         } else {
             $results['failed']++;
             foreach ($analystModel->validationErrors as $validationError) {

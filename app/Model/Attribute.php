@@ -2655,6 +2655,7 @@ class Attribute extends AppModel
             if (!empty($attribute['Sighting'])) {
                 $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
             }
+            $this->Event->captureAnalystData($user, $attribute);
         }
         if (!empty($this->validationErrors)) {
             $validationErrors = $this->validationErrors;

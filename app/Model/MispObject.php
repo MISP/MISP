@@ -1139,6 +1139,7 @@ class MispObject extends AppModel
                 $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
             }
         }
+        $this->Event->captureAnalystData($user, $object['Object']);
         return true;
     }
 
