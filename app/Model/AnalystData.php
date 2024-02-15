@@ -907,6 +907,9 @@ class AnalystData extends AppModel
         }
 
         $allRemoteUUIDs = [];
+        if (empty($remoteData)) {
+            return 0;
+        }
         foreach (self::ANALYST_DATA_TYPES as $type) {
             $allRemoteUUIDs = array_merge($allRemoteUUIDs, array_keys($remoteData[$type]));
         }
