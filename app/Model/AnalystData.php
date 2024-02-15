@@ -267,6 +267,21 @@ class AnalystData extends AppModel
         throw new NotFoundException(__('Invalid or could not deduce analyst data type'));
     }
 
+    public function getIDFromUUID($type, $id): int
+    {
+        $tmpForID = $this->AnalystData->find('first', [
+            'conditions' => [
+                'uuid' => $id,
+            ],
+            'fields' => ['id', 'uuid',],
+        ]);
+        $id = -1;
+        if (!empty($tmpForID)) {
+            $id = $tmpForID[$type]['id'];
+        }
+        return $id;
+    }
+
     public function fetchSimple(array $user, $id): array
     {
         $conditions = [

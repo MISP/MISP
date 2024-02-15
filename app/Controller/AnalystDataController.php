@@ -74,7 +74,7 @@ class AnalystDataController extends AppController
         }
         $this->__typeSelector($type);
         if (!is_numeric($id) && Validation::uuid($id)) {
-            $id = $this->getIDFromUUID($type, $id);
+            $id = $this->AnalystData->getIDFromUUID($type, $id);
         }
 
         $this->set('id', $id);
@@ -113,7 +113,7 @@ class AnalystDataController extends AppController
         }
         $this->__typeSelector($type);
         if (!is_numeric($id) && Validation::uuid($id)) {
-            $id = $this->getIDFromUUID($type, $id);
+            $id = $this->AnalystData->getIDFromUUID($type, $id);
         }
 
         $params = [
@@ -170,7 +170,7 @@ class AnalystDataController extends AppController
         }
         $this->__typeSelector($type);
         if (!is_numeric($id) && Validation::uuid($id)) {
-            $id = $this->getIDFromUUID($type, $id);
+            $id = $this->AnalystData->getIDFromUUID($type, $id);
         }
 
         if (!$this->IndexFilter->isRest()) {
@@ -223,21 +223,6 @@ class AnalystDataController extends AppController
         }
         $this->_setViewElements();
         $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'index'));
-    }
-
-    private function getIDFromUUID($type, $id): int
-    {
-        $tmpForID = $this->AnalystData->find('first', [
-            'conditions' => [
-                'uuid' => $id,
-            ],
-            'fields' => ['id', 'uuid',],
-        ]);
-        $id = -1;
-        if (!empty($tmpForID)) {
-            $id = $tmpForID[$type]['id'];
-        }
-        return $id;
     }
 
     public function getRelatedElement($type, $uuid)
