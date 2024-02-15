@@ -1769,6 +1769,7 @@ class ServersController extends AppController
                 $perm_sighting = isset($result['info']['perm_sighting']) ? $result['info']['perm_sighting'] : false;
                 $local_version = $this->Server->checkMISPVersion();
                 $version = explode('.', $result['info']['version']);
+                $uuid = isset($result['info']['uuid']) ? $result['info']['uuid'] : '?';
                 $mismatch = false;
                 $newer = false;
                 $parts = array('major', 'minor', 'hotfix');
@@ -1804,6 +1805,7 @@ class ServersController extends AppController
                     'response_encoding' => isset($result['post']['content-encoding']) ? $result['post']['content-encoding'] : null,
                     'request_encoding' => isset($result['info']['request_encoding']) ? $result['info']['request_encoding'] : null,
                     'client_certificate' => $result['client_certificate'],
+                    'uuid' => $uuid,
                 ], 'json');
             } else {
                 $result['status'] = 3;
@@ -1887,6 +1889,7 @@ class ServersController extends AppController
             'perm_sync' => (bool) $user['Role']['perm_sync'],
             'perm_sighting' => (bool) $user['Role']['perm_sighting'],
             'perm_galaxy_editor' => (bool) $user['Role']['perm_galaxy_editor'],
+            'uuid' => $user['Role']['perm_sync'] ? Configure::read('MISP.uuid') : '-',
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
             'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
         ];

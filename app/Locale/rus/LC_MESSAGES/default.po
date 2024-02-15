@@ -14650,7 +14650,7 @@ msgstr "По-умолчанию (а также при значении 0) в п�
 
 #: View/Events/automation.ctp:67
 #: View/Events/legacy_automation.ctp:315
-msgid "If this parameter is set to 1, it will return soft-deleted attributes along with active ones. By using \"only\" as a parameter it will limit the returned data set to soft-deleted data only."
+msgid "Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes wil be returned."
 msgstr "По-умолчанию (а также при значении 0) в поиск попадают только активные атрибуты. Если параметр равен 1, то в поиск попадут дополнительно удаленные атрибуты. Если используется ключевое слово \"only\", то в результаты поиска попадут только удаленные атрибуты. "
 
 #: View/Events/automation.ctp:68

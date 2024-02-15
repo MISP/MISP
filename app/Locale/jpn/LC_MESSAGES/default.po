@@ -14608,7 +14608,7 @@ msgstr "デフォルトの (0) では、to_ids の設定に関係なく、他の
 
 #: View/Events/automation.ctp:67
 #: View/Events/legacy_automation.ctp:315
-msgid "If this parameter is set to 1, it will return soft-deleted attributes along with active ones. By using \"only\" as a parameter it will limit the returned data set to soft-deleted data only."
+msgid "Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes wil be returned."
 msgstr "このパラメーターを 1 に設定すると、ソフト削除されたアトリビュートがアクティなアトリビュートと共に返されます。\"only\"をパラメーターとして使用すると、返されるデータはソフト削除されたデータのみに制限されます。"
 
 #: View/Events/automation.ctp:68
