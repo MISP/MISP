@@ -84,6 +84,7 @@ app/Lib/EventWarning/Custom/*
 !/app/webroot/img/orgs/NCIRC.png
 /app/files/img/custom/*
 !/app/files/img/custom/empty
+!/app/files/img/orgs
 /app/files/img/orgs/*
 !/app/files/img/orgs/ADMIN.png
 !/app/files/img/orgs/MIL.be.png
