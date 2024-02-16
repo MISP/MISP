@@ -2432,7 +2432,7 @@ class Attribute extends AppModel
             $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
         } else {
             $timestamp = intval($this->resolveTimeDelta($timestamp)) * 1000000; // seen in stored in micro-seconds in the DB
-            if ($scope == 'Attribute.first_seen') {
+            if ($scope == 'Attribute.first_seen' || $scope == 'Object.first_seen') {
                 $conditions['AND'][] = array($scope . ' >=' => $timestamp);
             } else {
                 $conditions['AND'][] = array($scope . ' <=' => $timestamp);
