@@ -2403,11 +2403,15 @@ class Attribute extends AppModel
                 $timestamp[0] = $timestamp[1];
                 $timestamp[1] = $temp;
             }
-            $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
+            if ($timestamp[0] != 0) {
+                $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
+            }
             $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
         } else {
             $timestamp = $this->resolveTimeDelta($timestamp);
-            $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+            if ($timestamp !== 0) {
+                $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+            }
         }
         if ($returnRaw) {
             return $timestamp;
