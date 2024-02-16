@@ -127,7 +127,7 @@ class Relationship extends AnalystData
     private function rearrangeData(array $data, $objectType): array
     {
         $models = ['Event', 'Attribute', 'Object', 'Organisation', ];
-        if (!empty($data)) {
+        if (!empty($data) && !empty($data[$objectType])) {
             foreach ($models as $model) {
                 if ($model == $objectType) {
                     continue;
@@ -137,10 +137,10 @@ class Relationship extends AnalystData
                     unset($data[$model]);
                 }
             }
+            $data[$objectType]['Organisation'] = $data[$objectType]['Event']['Orgc'];
+            $data[$objectType]['orgc_uuid'] = $data[$objectType]['Event']['Orgc']['uuid'];
+            unset($data[$objectType]['Event']['Orgc']);
         }
-        $data[$objectType]['Organisation'] = $data[$objectType]['Event']['Orgc'];
-        $data[$objectType]['orgc_uuid'] = $data[$objectType]['Event']['Orgc']['uuid'];
-        unset($data[$objectType]['Event']['Orgc']);
         return $data;
     }
 }
