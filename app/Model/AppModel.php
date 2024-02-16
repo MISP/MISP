@@ -90,7 +90,7 @@ class AppModel extends Model
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
-        117 => false, 118 => false, 119 => false, 120 => false, 121 => false,
+        117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2016,7 +2016,7 @@ class AppModel extends Model
             case 119:
                 $sqlArray[] = "ALTER TABLE `access_logs` MODIFY `action` varchar(191) NOT NULL";
                 break;
-            case 120:
+            case 121:
                 $sqlArray[] = "CREATE TABLE `notes` (
                     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -2115,7 +2115,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `servers` ADD `push_analyst_data` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_galaxy_clusters`;";
                 $sqlArray[] = "ALTER TABLE `servers` ADD `pull_analyst_data` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_analyst_data`;";
                 break;
-            case 121:
+            case 122:
                 $sqlArray[] = "CREATE TABLE `collections` (
                     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
