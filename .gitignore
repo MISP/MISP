@@ -82,6 +82,15 @@ app/Lib/EventWarning/Custom/*
 !/app/webroot/img/orgs/MISP.png
 !/app/webroot/img/orgs/NATO.png
 !/app/webroot/img/orgs/NCIRC.png
+/app/files/img/custom/*
+!/app/files/img/custom/empty
+!/app/files/img/orgs
+/app/files/img/orgs/*
+!/app/files/img/orgs/ADMIN.png
+!/app/files/img/orgs/MIL.be.png
+!/app/files/img/orgs/MISP.png
+!/app/files/img/orgs/NATO.png
+!/app/files/img/orgs/NCIRC.png
 /app/Config/bootstrap.php
 /app/Config/database.php
 /app/Config/core.php

@@ -27,6 +27,7 @@ App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
 App::uses('RedisTool', 'Tools');
 App::uses('BetterCakeEventManager', 'Tools');
+App::uses('Folder', 'Utility');
 
 class AppModel extends Model
 {
@@ -86,7 +87,7 @@ class AppModel extends Model
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
-        117 => false, 118 => false, 119 => false,
+        117 => false, 118 => false, 119 => false, 120 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -271,6 +272,9 @@ class AppModel extends Model
             case 96:
                 $this->removeDuplicatedUUIDs();
                 $dbUpdateSuccess = $this->updateDatabase('createUUIDsConstraints');
+                break;
+            case 120:
+                $dbUpdateSuccess = $this->moveImages();
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -4075,5 +4079,33 @@ class AppModel extends Model
     private function checkParam($param)
     {
         return preg_match('/^[\w\_\-\. ]+$/', $param);
+    }
+
+    public function moveImages()
+    {
+        $oldImageDir = APP . 'webroot/img';
+        $newImageDir = APP . 'files/img';
+        $oldOrgDir = new Folder($oldImageDir . '/orgs');
+        $oldCustomDir = new Folder($oldImageDir . '/custom');
+        $result = false;
+        $result = $oldOrgDir->copy([
+            'from' => $oldImageDir . '/orgs',
+            'to' => $newImageDir . '/orgs',
+            'scheme' => Folder::OVERWRITE,
+            'recursive' => true
+        ]);
+        if ($result) {
+            $oldOrgDir->delete();
+        }
+        $result = $oldCustomDir->copy([
+            'from' => $oldImageDir . '/custom',
+            'to' => $newImageDir . '/custom',
+            'scheme' => Folder::OVERWRITE,
+            'recursive' => true
+        ]);
+        if ($result) {
+            $oldCustomDir->delete();
+        }
+        return true;
     }
 }
