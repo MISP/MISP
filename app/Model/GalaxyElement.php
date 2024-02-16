@@ -48,37 +48,6 @@ class GalaxyElement extends AppModel
         $this->saveMany($tempElements);
     }
 
-    public function update($galaxy_id, $oldClusters, $newClusters)
-    {
-        $elementsToSave = array();
-        // Since we are dealing with flat files as the end all be all content, we are safe to just drop all of the old clusters and recreate them.
-        foreach ($oldClusters as $oldCluster) {
-            $this->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $oldCluster['GalaxyCluster']['id']));
-        }
-        foreach ($newClusters as $newCluster) {
-            $tempCluster = array();
-            foreach ($newCluster as $key => $value) {
-                // Don't store the reserved fields as elements
-                if ($key == 'description' || $key == 'value') {
-                    continue;
-                }
-                if (is_array($value)) {
-                    foreach ($value as $arrayElement) {
-                        $tempCluster[] = array('key' => $key, 'value' => $arrayElement);
-                    }
-                } else {
-                    $tempCluster[] = array('key' => $key, 'value' => $value);
-                }
-            }
-
-            foreach ($tempCluster as $key => $value) {
-                $tempCluster[$key]['galaxy_cluster_id'] = $oldCluster['GalaxyCluster']['id'];
-            }
-            $elementsToSave = array_merge($elementsToSave, $tempCluster);
-        }
-        $this->saveMany($elementsToSave);
-    }
-
     public function captureElements($user, $elements, $clusterId)
     {
         $tempElements = array();

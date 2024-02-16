@@ -153,6 +153,8 @@ class MispObject extends AppModel
                     'object_name' => array('function' => 'set_filter_object_name'),
                     'object_template_uuid' => array('function' => 'set_filter_object_template_uuid'),
                     'object_template_version' => array('function' => 'set_filter_object_template_version'),
+                    'first_seen' => array('function' => 'set_filter_seen'),
+                    'last_seen' => array('function' => 'set_filter_seen'),
                     'deleted' => array('function' => 'set_filter_deleted')
                 ),
                 'Event' => array(
@@ -181,8 +183,8 @@ class MispObject extends AppModel
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'timestamp' => array('function' => 'set_filter_timestamp'),
                     'attribute_timestamp' => array('function' => 'set_filter_timestamp'),
-                    'first_seen' => array('function' => 'set_filter_seen'),
-                    'last_seen' => array('function' => 'set_filter_seen'),
+                    //'first_seen' => array('function' => 'set_filter_seen'),
+                    //'last_seen' => array('function' => 'set_filter_seen'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
                     'comment' => array('function' => 'set_filter_comment')
                 )
@@ -1678,7 +1680,9 @@ class MispObject extends AppModel
                 $results = $this->Sightingdb->attachToObjects($results, $user);
             }
             $params['page'] += 1;
-            $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
+            foreach ($results as $k => $result) {
+                $results[$k]['Attribute'] = $this->Allowedlist->removeAllowedlistedFromArray($result['Attribute'], true);
+            }
             $results = array_values($results);
             $i = 0;
             foreach ($results as $object) {

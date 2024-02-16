@@ -31,15 +31,13 @@ require_once dirname(__DIR__) . '/../Model/Attribute.php';   // FIXME workaround
  */
 abstract class AppShell extends Shell
 {
-    public $tasks = array('ConfigLoad');
-
     /** @var BackgroundJobsTool */
     private $BackgroundJobsTool;
 
     public function initialize()
     {
-        $this->ConfigLoad = $this->Tasks->load('ConfigLoad');
-        $this->ConfigLoad->execute();
+        $configLoad = $this->Tasks->load('ConfigLoad');
+        $configLoad->execute();
 
         parent::initialize();
     }
@@ -82,6 +80,15 @@ abstract class AppShell extends Shell
             default:
                 $this->error("Invalid state value `$value`, it must be `true`, `false`, `1`, or `0`.");
         }
+    }
+
+    /**
+     * @param string $newCommand
+     * @return void
+     */
+    protected function deprecated($newCommand)
+    {
+        $this->err("<warning>Warning: This method is deprecated. Next time please use `$newCommand`.</warning>");
     }
 
     /**

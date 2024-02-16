@@ -89,6 +89,9 @@ class Allowedlist extends AppModel
             if ($isAttributeArray) {
                 // loop through each attribute and unset the ones that are allowedlisted
                 foreach ($data as $k => $attribute) {
+                    if (empty($attribute['Attribute'])) {
+                        $attribute = ['Attribute' => $attribute];
+                    }
                     // loop through each allowedlist item and run a preg match against the attribute value. If it matches, unset the attribute
                     foreach ($allowedlists as $wlitem) {
                         if (preg_match($wlitem, $attribute['Attribute']['value'])) {

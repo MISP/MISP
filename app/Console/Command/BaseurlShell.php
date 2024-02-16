@@ -11,7 +11,7 @@ class BaseurlShell extends AppShell {
 
     public function main()
     {
-        $this->err('This method is deprecated. Next time please use `cake admin setSetting MISP.baseurl [baseurl]` command.');
+        $this->deprecated('cake admin setSetting MISP.baseurl [baseurl]');
 
         $baseurl = $this->args[0];
         $result = $this->Server->testBaseURL($baseurl);

@@ -356,6 +356,14 @@ class ServerSyncTool
     }
 
     /**
+     * @return string
+     */
+    public function serverName()
+    {
+        return $this->server['Server']['name'];
+    }
+
+    /**
      * @return array
      */
     public function pullRules()

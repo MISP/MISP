@@ -14619,7 +14619,7 @@ msgstr "默认情况下(0), 返回所有与其他过滤器参数匹配的属性,
 
 #: View/Events/automation.ctp:67
 #: View/Events/legacy_automation.ctp:315
-msgid "If this parameter is set to 1, it will return soft-deleted attributes along with active ones. By using \"only\" as a parameter it will limit the returned data set to soft-deleted data only."
+msgid "Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes wil be returned."
 msgstr "如果这个参数被设置为1, 它将返回软删除的属性和活动属性. 如果使用\"only\"作为参数, 则返回的数据集将只限于软删除的数据."
 
 #: View/Events/automation.ctp:68

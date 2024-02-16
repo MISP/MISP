@@ -1767,5 +1767,57 @@
       "exportable": true,
       "hide_tag": false
     }
+  },
+{
+    "Feed": {
+      "name": "Shreshta: Newly Registered domain names(NRD) - 1 week (Community policy feed)",
+      "provider": "shreshtait.com",
+      "url": "https://shreshtait.com/newly-registered-domains/nrd-1w",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": true,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "Shreshta: Newly Registered domain names (NRD) - 1 month (Community policy feed)",
+      "provider": "shreshtait.com",
+      "url": "https://shreshtait.com/newly-registered-domains/nrd-1m",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": true,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
   }
 ]

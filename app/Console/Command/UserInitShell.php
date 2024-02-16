@@ -1,7 +1,13 @@
 <?php
+
+/**
+ * @deprecated
+ */
 class UserInitShell extends AppShell {
 	public $uses = array('User', 'Role', 'Organisation', 'Server', 'ConnectionManager');
 	public function main() {
+        $this->deprecated('cake user init');
+
 		if (!Configure::read('Security.salt')) {
 			$this->loadModel('Server');
 			$this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));

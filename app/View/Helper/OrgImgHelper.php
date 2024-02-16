@@ -1,10 +1,11 @@
 <?php
 App::uses('AppHelper', 'View/Helper');
+App::uses('FileAccessTool', 'Lib/Tools');
 
 // Helper to retrieve org images with the given parameters
 class OrgImgHelper extends AppHelper
 {
-    const IMG_PATH = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS;
+    const IMG_PATH = APP . 'files' . DS . 'img' . DS . 'orgs' . DS;
 
     /** @var array */
     private $imageCache = [];
@@ -55,9 +56,9 @@ class OrgImgHelper extends AppHelper
         if ($orgImgName) {
             $size = !empty($options['size']) ? $options['size'] : 48;
             $result = sprintf(
-                '<img src="%s/img/orgs/%s" title="%s" width="%s" height="%s">',
-                $baseurl,
-                $orgImgName,
+                '<img src="data:image/%s;base64,%s" title="%s" width="%s" height="%s">',
+                'png',
+                base64_encode(FileAccessTool::readFromFile(self::IMG_PATH . $orgImgName)),
                 isset($options['name']) ? h($options['name']) : h($options['id']),
                 (int)$size,
                 (int)$size

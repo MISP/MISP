@@ -1244,8 +1244,6 @@ class UsersController extends AppController
             // login was successful, do everything that is needed such as logging and more:
             $this->_postlogin();
         } else {
-            $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-            $dataSource = $dataSourceConfig['datasource'];
             // don't display authError before first login attempt
             if (str_replace("//", "/", $this->webroot . $this->Session->read('Auth.redirect')) == $this->webroot && $this->Session->read('Message.auth.message') == $this->Auth->authError) {
                 $this->Session->delete('Message.auth');
@@ -1260,73 +1258,7 @@ class UsersController extends AppController
                 }
             }
 
-            //
-            // Actions needed for the first access, when the database is not populated yet.
-            // 
-
-            // populate the DB with the first role (site admin) if it's empty
-            if (!$this->User->Role->hasAny()) {
-                $siteAdmin = array('Role' => array(
-                    'id' => 1,
-                    'name' => 'Site Admin',
-                    'permission' => 3,
-                    'perm_add' => 1,
-                    'perm_modify' => 1,
-                    'perm_modify_org' => 1,
-                    'perm_publish' => 1,
-                    'perm_sync' => 1,
-                    'perm_admin' => 1,
-                    'perm_audit' => 1,
-                    'perm_auth' => 1,
-                    'perm_site_admin' => 1,
-                    'perm_regexp_access' => 1,
-                    'perm_sharing_group' => 1,
-                    'perm_template' => 1,
-                    'perm_tagger' => 1,
-                ));
-                $this->User->Role->save($siteAdmin);
-                // PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-                if ($dataSource === 'Database/Postgres') {
-                    $sql = "SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));";
-                    $this->User->Role->query($sql);
-                }
-            }
-            if (!$this->User->Organisation->hasAny(array('Organisation.local' => true))) {
-                $this->User->runUpdates();
-                $date = date('Y-m-d H:i:s');
-                $org = array('Organisation' => array(
-                        'id' => 1,
-                        'name' => !empty(Configure::read('MISP.org')) ? Configure::read('MISP.org') : 'ADMIN',
-                        'description' => 'Automatically generated admin organisation',
-                        'type' => 'ADMIN',
-                        'uuid' => CakeText::uuid(),
-                        'local' => 1,
-                        'date_created' => $date,
-                        'sector' => '',
-                        'nationality' => ''
-                ));
-                $this->User->Organisation->save($org);
-                // PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-                if ($dataSource === 'Database/Postgres') {
-                    $sql = "SELECT setval('organisations_id_seq', (SELECT MAX(id) FROM organisations));";
-                    $this->User->Organisation->query($sql);
-                }
-                $org_id = $this->User->Organisation->id;
-            }
-            // populate the DB with the first user if it's empty
-            if (!$this->User->hasAny()) {
-                if (!isset($org_id)) {
-                    $hostOrg = $this->User->Organisation->find('first', array('conditions' => array('Organisation.name' => Configure::read('MISP.org'), 'Organisation.local' => true), 'recursive' => -1));
-                    if (!empty($hostOrg)) {
-                        $org_id = $hostOrg['Organisation']['id'];
-                    } else {
-                        $firstOrg = $this->User->Organisation->find('first', array('conditions' => array('Organisation.local' => true), 'order' => 'Organisation.id ASC'));
-                        $org_id = $firstOrg['Organisation']['id'];
-                    }
-                }
-                $this->User->runUpdates();
-                $this->User->createInitialUser($org_id);
-            }
+            $this->User->init();
         }
     }
 

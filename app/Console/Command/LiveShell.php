@@ -1,8 +1,9 @@
 <?php
-/*
+/**
  * Enable/disable misp
  *
  * arg0 = [0|1]
+ * @deprecated Use AdminShell::live instead
  */
 class LiveShell extends AppShell {
 
@@ -10,6 +11,8 @@ class LiveShell extends AppShell {
 
     public function main()
     {
+        $this->deprecated('cake admin live [0|1]');
+
         $live = $this->args[0];
         if ($live != 0 && $live != 1) {
             echo 'Invalid parameters. Usage: /var/www/MISP/app/Console/cake Live [0|1]';
