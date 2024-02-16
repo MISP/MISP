@@ -27,6 +27,7 @@ App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
 App::uses('RedisTool', 'Tools');
 App::uses('BetterCakeEventManager', 'Tools');
+App::uses('Folder', 'Utility');
 
 class AppModel extends Model
 {
@@ -274,6 +275,9 @@ class AppModel extends Model
             case 96:
                 $this->removeDuplicatedUUIDs();
                 $dbUpdateSuccess = $this->updateDatabase('createUUIDsConstraints');
+                break;
+            case 120:
+                $dbUpdateSuccess = $this->moveImages();
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -4226,5 +4230,33 @@ class AppModel extends Model
     private function checkParam($param)
     {
         return preg_match('/^[\w\_\-\. ]+$/', $param);
+    }
+
+    public function moveImages()
+    {
+        $oldImageDir = APP . 'webroot/img';
+        $newImageDir = APP . 'files/img';
+        $oldOrgDir = new Folder($oldImageDir . '/orgs');
+        $oldCustomDir = new Folder($oldImageDir . '/custom');
+        $result = false;
+        $result = $oldOrgDir->copy([
+            'from' => $oldImageDir . '/orgs',
+            'to' => $newImageDir . '/orgs',
+            'scheme' => Folder::OVERWRITE,
+            'recursive' => true
+        ]);
+        if ($result) {
+            $oldOrgDir->delete();
+        }
+        $result = $oldCustomDir->copy([
+            'from' => $oldImageDir . '/custom',
+            'to' => $newImageDir . '/custom',
+            'scheme' => Folder::OVERWRITE,
+            'recursive' => true
+        ]);
+        if ($result) {
+            $oldCustomDir->delete();
+        }
+        return true;
     }
 }

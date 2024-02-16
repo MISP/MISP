@@ -506,7 +506,7 @@ class OrganisationsController extends AppController
             }
 
             if (!empty($logo['tmp_name']) && is_uploaded_file($logo['tmp_name'])) {
-                return move_uploaded_file($logo['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
+                return move_uploaded_file($logo['tmp_name'], APP . 'files/img/orgs/' . $filename);
             }
         }
 
