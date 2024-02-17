@@ -39,7 +39,6 @@ class Module_attribute_edition_operation extends WorkflowBaseActionModule
     protected function __saveAttributes(array $attributes, array $rData, array $params, array $user): array
     {
         $success = false;
-        $attributes = [];
         $newAttributes = [];
         foreach ($attributes as $k => $attribute) {
             $newAttribute = $this->_editAttribute($attribute, $rData, $params);
