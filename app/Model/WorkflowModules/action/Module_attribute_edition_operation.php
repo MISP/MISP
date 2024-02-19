@@ -44,12 +44,16 @@ class Module_attribute_edition_operation extends WorkflowBaseActionModule
             $newAttribute = $this->_editAttribute($attribute, $rData, $params);
             unset($newAttribute['timestamp']);
             $newAttributes[] = $newAttribute;
+            $result = $this->Attribute->editAttribute($newAttribute, $rData, $user, $newAttribute['object_id']);
+            if (is_array($result)) {
+                $attributes[] = $result;
+            }
         }
         $this->Attribute->editAttributeBulk($newAttributes, $rData, $user);
-        foreach ($attributes as $k => $attribute) {
+        foreach ($newAttributes as $k => $attribute) {
             $saveSuccess = empty($this->Attribute->validationErrors[$k]);
             if ($saveSuccess) {
-                $rData = $this->_overrideAttribute($attribute, $newAttributes[$k], $rData);
+                $rData = $this->_overrideAttribute($attribute, $attribute, $rData);
             }
             $success = $success || !empty($saveSuccess);
         }
