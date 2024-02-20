@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -54,6 +55,13 @@ class AppController extends Controller
      * @var \Model\Entity\AuditLog|null
      */
     protected $AuditLogs = null;
+
+    private $__queryVersion = '0';
+    public $pyMispVersion = '3.0.0';
+    public $phpmin = '8.0';
+    public $phprec = '8.4';
+    public $phptoonew = null;
+    private $isApiAuthed = false;
 
     /**
      * Initialization hook method.
@@ -317,9 +325,9 @@ class AppController extends Controller
      * isSiteAdmin
      * checks if the currently logged user is a site administrator (an admin that can manage any user or event on the instance and create / edit the roles).
      *
-     * @return void
+     * @return bool
      */
-    protected function isSiteAdmin()
+    protected function isSiteAdmin(): bool
     {
         return $this->ACL->getUser()->Role->perm_site_admin;
     }

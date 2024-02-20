@@ -1348,4 +1348,20 @@ class LogsTable extends AppTable
         }
         return $this->elasticSearchClient;
     }
+
+    /**
+     * @param $data
+     * @param $options
+     * @return array|bool|mixed
+     */
+    public function saveOrFailSilently($data, $options = [])
+    {
+        try {
+            $entity = $this->newEntity($data, $options);
+            return $this->save($entity, $options);
+        } catch (Exception $e) {
+            $this->logException('Could not save log to database', $e);
+            return false;
+        }
+    }
 }

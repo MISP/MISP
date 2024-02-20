@@ -3,6 +3,7 @@
 namespace App\Model\Table;
 
 use App\Lib\Tools\BackgroundJobsTool;
+use App\Lib\Tools\EncryptedValue;
 use App\Lib\Tools\FileAccessTool;
 use App\Lib\Tools\GitTool;
 use Cake\Collection\CollectionInterface;
@@ -357,5 +358,66 @@ class AppTable extends Table
         }
 
         return self::$loadedBackgroundJobsTool;
+    }
+
+    public function validateAuthkey($value)
+    {
+        if (empty($value)) {
+            return 'Empty authkey found. Make sure you set the 40 character long authkey.';
+        }
+        if (!preg_match('/[a-z0-9]{40}/i', $value)) {
+            return 'The authkey has to be exactly 40 characters long and consist of alphanumeric characters.';
+        }
+        return true;
+    }
+
+    public function valueIsID($value)
+    {
+        if (!is_numeric($value) || $value < 0) {
+            return 'Invalid ' . ucfirst($value) . ' ID';
+        }
+        return true;
+    }
+
+    /**
+     * @param array $server
+     * @param string $model
+     * @return array[]
+     * @throws JsonException
+     */
+    public function setupSyncRequest(array $server)
+    {
+        $version = implode('.', $this->checkMISPVersion());
+        $commit = $this->checkMISPCommit();
+
+        $authkey = $server['authkey'];
+        if (EncryptedValue::isEncrypted($authkey)) {
+            $authkey = (string)new EncryptedValue($authkey);
+        }
+
+        return [
+            'headers' => [
+                'Authorization' => $authkey,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+                'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
+            ]
+        ];
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    protected function pubToZmq($name)
+    {
+        static $zmqEnabled;
+        if ($zmqEnabled === null) {
+            $zmqEnabled = (bool)Configure::read('Plugin.ZeroMQ_enable');
+        }
+        if ($zmqEnabled) {
+            return Configure::read("Plugin.ZeroMQ_{$name}_notifications_enable");
+        }
+        return false;
     }
 }
