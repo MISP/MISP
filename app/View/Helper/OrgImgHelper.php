@@ -22,8 +22,8 @@ class OrgImgHelper extends AppHelper
             $link = $baseurl . '/organisations/view/' . (empty($organisation['Organisation']['id']) ? h($organisation['Organisation']['name']) : h($organisation['Organisation']['id']));
         }
         if ($orgImgName) {
-            $orgImgUrl = $baseurl . '/img/orgs/' . $orgImgName;
-            return sprintf('<a href="%s" style="background-image: url(\'%s\')" class="orgImg">%s</a>', $link, $orgImgUrl, h($organisation['Organisation']['name']));
+            $base64 = $this->_View->Image->base64(self::IMG_PATH . $orgImgName);
+            return sprintf('<a href="%s" style="background-image: url(\'%s\')" class="orgImg">%s</a>', $link, $base64, h($organisation['Organisation']['name']));
         } else {
             return sprintf('<a href="%s">%s</a>', $link, h($organisation['Organisation']['name']));
         }
@@ -56,9 +56,8 @@ class OrgImgHelper extends AppHelper
         if ($orgImgName) {
             $size = !empty($options['size']) ? $options['size'] : 48;
             $result = sprintf(
-                '<img src="data:image/%s;base64,%s" title="%s" width="%s" height="%s">',
-                'png',
-                base64_encode(FileAccessTool::readFromFile(self::IMG_PATH . $orgImgName)),
+                '<img src="%s" title="%s" width="%s" height="%s">',
+                $this->_View->Image->base64(self::IMG_PATH . $orgImgName),
                 isset($options['name']) ? h($options['name']) : h($options['id']),
                 (int)$size,
                 (int)$size
