@@ -2543,33 +2543,33 @@ class Server extends AppModel
 
     public function getFileRules()
     {
-        return array(
-            'orgs' => array(
+        return [
+            'orgs' => [
                 'name' => __('Organisation logos'),
                 'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
-                'expected' => array(),
+                'expected' => [],
                 'valid_format' => __('48x48 pixel .png files or .svg file'),
-                'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
+                'path' => APP . 'files' . DS . 'img' . DS . 'orgs',
                 'regex' => '.*\.(png|svg)$',
                 'regex_error' => __('Filename must be in the following format: *.png or *.svg'),
-                'files' => array(),
-            ),
-            'img' => array(
+                'files' => [],
+            ],
+            'img' => [
                 'name' => __('Additional image files'),
                 'description' => __('Image files uploaded into this directory can be used for various purposes, such as for the login page logos'),
-                'expected' => array(
+                'expected' => [
                     'MISP.footer_logo' => Configure::read('MISP.footer_logo'),
                     'MISP.home_logo' => Configure::read('MISP.home_logo'),
                     'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
                     'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
-                ),
+                ],
                 'valid_format' => __('PNG or SVG file'),
-                'path' => APP . 'webroot' . DS . 'img' . DS . 'custom',
+                'path' => APP . 'files' . DS . 'img' . DS . 'custom',
                 'regex' => '.*\.(png|svg)$',
                 'regex_error' => __('Filename must be in the following format: *.png or *.svg'),
                 'files' => array(),
-            ),
-        );
+            ],
+        ];
     }
 
     public function grabFiles()

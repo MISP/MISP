@@ -4087,7 +4087,6 @@ class AppModel extends Model
         $newImageDir = APP . 'files/img';
         $oldOrgDir = new Folder($oldImageDir . '/orgs');
         $oldCustomDir = new Folder($oldImageDir . '/custom');
-        $result = false;
         $result = $oldOrgDir->copy([
             'from' => $oldImageDir . '/orgs',
             'to' => $newImageDir . '/orgs',
