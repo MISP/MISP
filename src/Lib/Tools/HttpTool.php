@@ -182,11 +182,14 @@ class HttpTool extends CakeClient
      * @param array|null $feed Feed array
      * @return void
      */
-    public function configFromFeed(array $feed = null)
+    public function configFromFeed(array|null $feed = null)
     {
         $this->_defaultConfig['compress'] = 'true';
-        if ($feed) {
-            throw new NotImplementedException('configFromFeed() is not implemented'); // FIXME chri write configFromFeed
+        if (!empty($feed)) {
+            // if ($feed['url']) {
+            //     $this->_defaultConfig['']
+            // }
+            // throw new NotImplementedException('configFromFeed() is not implemented'); // FIXME chri write configFromFeed
         }
     }
 
