@@ -61,6 +61,8 @@ class EventReportsController extends AppController
 
     public function view($reportId, $ajax=false)
     {
+        $this->EventReport->includeAnalystData = true;
+        $this->EventReport->includeAnalystDataRecursive = true;
         $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($report, $this->response->type());
@@ -175,6 +177,7 @@ class EventReportsController extends AppController
         $filters = $this->IndexFilter->harvestParameters(['event_id', 'value', 'context', 'index_for_event', 'extended_event']);
         $filters['embedded_view']  = $this->request->is('ajax');
         $compiledConditions = $this->__generateIndexConditions($filters);
+        $this->EventReport->includeAnalystData = true;
         if ($this->_isRest()) {
             $reports = $this->EventReport->find('all', [
                 'recursive' => -1,
@@ -515,6 +518,7 @@ class EventReportsController extends AppController
     {
         $distributionLevels = $this->EventReport->Event->Attribute->distributionLevels;
         $this->set('distributionLevels', $distributionLevels);
+        $this->set('shortDist', $this->EventReport->Event->Attribute->shortDist);
         $this->set('initialDistribution', $this->EventReport->Event->Attribute->defaultDistribution());
     }
 

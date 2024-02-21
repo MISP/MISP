@@ -124,6 +124,7 @@ class RestSearchComponent extends Component
             'extended',
             'extensionList',
             'excludeGalaxy',
+            'includeAnalystData',
             'includeRelatedTags',
             'includeDecayScore',
             'includeScoresOnEvent',

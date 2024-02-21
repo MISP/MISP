@@ -14,6 +14,7 @@ class ServerSyncTool
         FEATURE_EDIT_OF_GALAXY_CLUSTER = 'edit_of_galaxy_cluster',
         PERM_SYNC = 'perm_sync',
         PERM_GALAXY_EDITOR = 'perm_galaxy_editor',
+        PERM_ANALYST_DATA = 'perm_analyst_data',
         FEATURE_SIGHTING_REST_SEARCH = 'sighting_rest';
 
     /** @var array */
@@ -216,6 +217,71 @@ class ServerSyncTool
     }
 
     /**
+     * @param array $rules
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function filterAnalystDataForPush(array $candidates)
+    {
+        if (!$this->isSupported(self::PERM_ANALYST_DATA)) {
+            return [];
+        }
+
+        return $this->post('/analyst_data/filterAnalystDataForPush', $candidates);
+    }
+
+    /**
+     * @param array $rules
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function fetchIndexMinimal(array $rules)
+    {
+        if (!$this->isSupported(self::PERM_ANALYST_DATA)) {
+            return [];
+        }
+
+        return $this->post('/analyst_data/indexMinimal', $rules);
+    }
+
+    /**
+     * @throws HttpSocketJsonException
+     * @throws HttpSocketHttpException
+     */
+    public function fetchAnalystData($type, array $uuids)
+    {
+        if (!$this->isSupported(self::PERM_ANALYST_DATA)) {
+            return [];
+        }
+
+        $params = [
+            'uuid' => $uuids,
+        ];
+
+        $url = '/analyst_data/index/' . $type;
+        $url .= $this->createParams($params);
+        $url .= '.json';
+        return $this->get($url);
+
+        // $response = $this->post('/analyst_data/restSearch' , $params);
+        // return $response->json();
+    }
+
+        /**
+     * @param array $analystData
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     * @throws HttpSocketJsonException
+     */
+    public function pushAnalystData($type, array $analystData)
+    {
+        $logMessage = "Pushing Analyst Data #{$analystData[$type]['uuid']} to Server #{$this->serverId()}";
+        return $this->post('/analyst_data/pushAnalystData', $analystData, $logMessage);
+    }
+
+    /**
      * @param array $params
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
@@ -414,6 +480,8 @@ class ServerSyncTool
                 return isset($info['perm_sync']) && $info['perm_sync'];
             case self::PERM_GALAXY_EDITOR:
                 return isset($info['perm_galaxy_editor']) && $info['perm_galaxy_editor'];
+            case self::PERM_ANALYST_DATA:
+                return isset($info['perm_analyst_data']) && $info['perm_analyst_data'];
             case self::FEATURE_SIGHTING_REST_SEARCH:
                 $version = explode('.', $info['version']);
                 return $version[0] == 2 && $version[1] == 4 && $version[2] > 164;

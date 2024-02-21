@@ -48,6 +48,9 @@ class AppModel extends Model
     /** @var Workflow|null */
     private $Workflow;
 
+    public $includeAnalystData;
+    public $includeAnalystDataRecursive;
+
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
     const OLD_DB_CHANGES = array(
@@ -87,7 +90,7 @@ class AppModel extends Model
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
-        117 => false, 118 => false, 119 => false, 120 => false
+        117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2012,6 +2015,145 @@ class AppModel extends Model
                 break;
             case 119:
                 $sqlArray[] = "ALTER TABLE `access_logs` MODIFY `action` varchar(191) NOT NULL";
+                break;
+            case 121:
+                $sqlArray[] = "CREATE TABLE `notes` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `object_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `authors` text,
+                    `org_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `orgc_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `created` datetime DEFAULT CURRENT_TIMESTAMP,
+                    `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
+                    `distribution` tinyint(4) NOT NULL,
+                    `sharing_group_id` int(10) unsigned,
+                    `locked` tinyint(1) NOT NULL DEFAULT 0,
+                    `note` mediumtext,
+                    `language` varchar(16) DEFAULT 'en',
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`),
+                    KEY `object_uuid` (`object_uuid`),
+                    KEY `object_type` (`object_type`),
+                    KEY `org_uuid` (`org_uuid`),
+                    KEY `orgc_uuid` (`orgc_uuid`),
+                    KEY `distribution` (`distribution`),
+                    KEY `sharing_group_id` (`sharing_group_id`)
+                  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
+                $sqlArray[] = "CREATE TABLE `opinions` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `object_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `authors` text,
+                    `org_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `orgc_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `created` datetime DEFAULT CURRENT_TIMESTAMP,
+                    `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
+                    `distribution` tinyint(4) NOT NULL,
+                    `sharing_group_id` int(10) unsigned,
+                    `locked` tinyint(1) NOT NULL DEFAULT 0,
+                    `opinion` int(10) unsigned,
+                    `comment` text,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`),
+                    KEY `object_uuid` (`object_uuid`),
+                    KEY `object_type` (`object_type`),
+                    KEY `org_uuid` (`org_uuid`),
+                    KEY `orgc_uuid` (`orgc_uuid`),
+                    KEY `distribution` (`distribution`),
+                    KEY `sharing_group_id` (`sharing_group_id`),
+                    KEY `opinion` (`opinion`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
+                $sqlArray[] = "CREATE TABLE `relationships` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) CHARACTER SET ascii NOT NULL,
+                    `object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `object_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `authors` text,
+                    `org_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `orgc_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `created` datetime DEFAULT CURRENT_TIMESTAMP,
+                    `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
+                    `distribution` tinyint(4) NOT NULL,
+                    `sharing_group_id` int(10) unsigned,
+                    `locked` tinyint(1) NOT NULL DEFAULT 0,
+                    `relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `related_object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `related_object_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`),
+                    KEY `object_uuid` (`object_uuid`),
+                    KEY `object_type` (`object_type`),
+                    KEY `org_uuid` (`org_uuid`),
+                    KEY `orgc_uuid` (`orgc_uuid`),
+                    KEY `distribution` (`distribution`),
+                    KEY `sharing_group_id` (`sharing_group_id`),
+                    KEY `relationship_type` (`relationship_type`),
+                    KEY `related_object_uuid` (`related_object_uuid`),
+                    KEY `related_object_type` (`related_object_type`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `analyst_data_blocklists` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `analyst_data_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+                    `created` datetime NOT NULL,
+                    `analyst_data_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+                    `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `analyst_data_orgc` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (`id`),
+                    KEY `analyst_data_uuid` (`analyst_data_uuid`),
+                    KEY `analyst_data_orgc` (`analyst_data_orgc`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_analyst_data` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "UPDATE `roles` SET `perm_analyst_data`=1 WHERE `perm_add` = 1;";
+
+                $sqlArray[] = "ALTER TABLE `servers` ADD `push_analyst_data` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_galaxy_clusters`;";
+                $sqlArray[] = "ALTER TABLE `servers` ADD `pull_analyst_data` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_analyst_data`;";
+                break;
+            case 122:
+                $sqlArray[] = "CREATE TABLE `collections` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `org_id` int(10) unsigned NOT NULL,
+                    `orgc_id` int(10) unsigned NOT NULL,
+                    `user_id` int(10) unsigned NOT NULL,
+                    `created` datetime DEFAULT CURRENT_TIMESTAMP,
+                    `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
+                    `distribution` tinyint(4) NOT NULL,
+                    `sharing_group_id` int(10) unsigned,
+                    `name` varchar(191) NOT NULL,
+                    `type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `description` mediumtext,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`),
+                    KEY `name` (`name`),
+                    KEY `type` (`type`),
+                    KEY `org_id` (`org_id`),
+                    KEY `orgc_id` (`orgc_id`),
+                    KEY `user_id` (`user_id`),
+                    KEY `distribution` (`distribution`),
+                    KEY `sharing_group_id` (`sharing_group_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
+                $sqlArray[] = "CREATE TABLE `collection_elements` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `element_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `element_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `collection_id` int(10) unsigned NOT NULL,
+                    `description` text,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`),
+                    KEY `element_uuid` (`element_uuid`),
+                    KEY `element_type` (`element_type`),
+                    KEY `collection_id` (`collection_id`),
+                    UNIQUE KEY `unique_element` (`element_uuid`, `collection_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -4051,8 +4193,17 @@ class AppModel extends Model
         if (!empty($query['order']) && $this->validOrderClause($query['order']) === false) {
             throw new InvalidArgumentException('Invalid order clause');
         }
-
-        return parent::find($type, $query);
+        $results = parent::find($type, $query);
+        if (!empty($query['includeAnalystData']) && $this->Behaviors->enabled('AnalystDataParent')) {
+            if ($type === 'first') {
+                $results[$this->alias] = array_merge($results[$this->alias], $this->attachAnalystData($results[$this->alias]));
+            } else if ($type === 'all') {
+                foreach ($results as $k => $result) {
+                    $results[$k][$this->alias] = array_merge($results[$k][$this->alias], $this->attachAnalystData($results[$k][$this->alias]));
+                }
+            }
+        }
+        return $results;
     }
 
     private function validOrderClause($order)
@@ -4087,7 +4238,6 @@ class AppModel extends Model
         $newImageDir = APP . 'files/img';
         $oldOrgDir = new Folder($oldImageDir . '/orgs');
         $oldCustomDir = new Folder($oldImageDir . '/custom');
-        $result = false;
         $result = $oldOrgDir->copy([
             'from' => $oldImageDir . '/orgs',
             'to' => $newImageDir . '/orgs',

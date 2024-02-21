@@ -755,7 +755,8 @@ class EventsController extends AppController
         if ($nothing) {
             $this->paginate['conditions']['AND'][] = ['Event.id' => -1]; // do not fetch any event
         }
-
+        $this->Event->includeAnalystData = true;
+        $this->paginate['includeAnalystData'] = true;
         $events = $this->paginate();
 
         if (count($events) === 1 && isset($this->passedArgs['searchall'])) {
@@ -811,6 +812,7 @@ class EventsController extends AppController
             $rules = [
                 'contain' => ['EventTag'],
                 'fields' => array_keys($fieldNames),
+                'includeAnalystData' => isset($passedArgs['includeAnalystData']) ? $passedArgs['includeAnalystData'] : true,
             ];
         }
         if (isset($passedArgs['sort']) && isset($fieldNames[$passedArgs['sort']])) {
@@ -1226,6 +1228,9 @@ class EventsController extends AppController
                 unset($filters[$filterName]);
             }
         }
+
+        $this->Event->Attribute->includeAnalystData = true;
+        $this->Event->Attribute->includeAnalystDataRecursive = true;
 
         if (isset($filters['focus'])) {
             $this->set('focus', $filters['focus']);
@@ -1691,7 +1696,7 @@ class EventsController extends AppController
         }
 
         $namedParams = $this->request->params['named'];
-
+        $conditions['includeAnalystData'] = true;
         if ($this->_isRest()) {
             $conditions['includeAttachments'] = isset($namedParams['includeAttachments']) ? $namedParams['includeAttachments'] : true;
         } else {
@@ -1786,7 +1791,6 @@ class EventsController extends AppController
         } else {
             $user = $this->Auth->user();
         }
-
         $results = $this->Event->fetchEvent($user, $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
@@ -2692,7 +2696,7 @@ class EventsController extends AppController
                 $this->request->data = $this->request->data['Event'];
             }
             $eventToSave = $event;
-            $capturedObjects = ['Attribute', 'Object', 'Tag', 'Galaxy', 'EventReport'];
+            $capturedObjects = ['Attribute', 'Object', 'Tag', 'Galaxy', 'EventReport', 'Note', 'Opinion', 'Relationship',];
             foreach ($capturedObjects as $objectType) {
                 if (!empty($this->request->data[$objectType])) {
                     if (!empty($regenerateUUIDs)) {
@@ -4373,12 +4377,12 @@ class EventsController extends AppController
         $id = $event['Event']['id'];
         $exports = array(
             'json' => array(
-                'url' => $this->baseurl . '/events/restSearch/json/eventid:' . $id . '.json',
+                'url' => $this->baseurl . '/events/restSearch/json/includeAnalystData:1/eventid:' . $id . '.json',
                 'text' => __('MISP JSON (metadata + all attributes)'),
                 'requiresPublished' => false,
                 'checkbox' => true,
                 'checkbox_text' => __('Encode Attachments'),
-                'checkbox_set' => $this->baseurl . '/events/restSearch/json/withAttachments:1/eventid:' . $id . '.json',
+                'checkbox_set' => $this->baseurl . '/events/restSearch/json/withAttachments:1/includeAnalystData:1/eventid:' . $id . '.json',
                 'checkbox_default' => true,
             ),
             'xml' => array(

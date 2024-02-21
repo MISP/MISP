@@ -529,7 +529,7 @@ class ServersController extends AppController
             
             if (!$fail) {
                 // say what fields are to be updated
-                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
+                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'push_analyst_data', 'pull_analyst_data', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
                 $this->request->data['Server']['id'] = $id;
                 if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
@@ -776,7 +776,7 @@ class ServersController extends AppController
             if (!Configure::read('MISP.background_jobs')) {
                 $result = $this->Server->pull($this->Auth->user(), $technique, $s);
                 if (is_array($result)) {
-                    $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
+                    $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled, %s analyst data pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4], $result[5]);
                 } else {
                     $error = $result;
                 }
@@ -784,6 +784,7 @@ class ServersController extends AppController
                 $this->set('fails', $result[1]);
                 $this->set('pulledProposals', $result[2]);
                 $this->set('pulledSightings', $result[3]);
+                $this->set('pulledAnalystData', $result[5]);
             } else {
                 $this->loadModel('Job');
                 $jobId = $this->Job->createJob(
@@ -1889,6 +1890,7 @@ class ServersController extends AppController
             'perm_sync' => (bool) $user['Role']['perm_sync'],
             'perm_sighting' => (bool) $user['Role']['perm_sighting'],
             'perm_galaxy_editor' => (bool) $user['Role']['perm_galaxy_editor'],
+            'perm_analyst_data' => (bool) $user['Role']['perm_analyst_data'],
             'uuid' => $user['Role']['perm_sync'] ? Configure::read('MISP.uuid') : '-',
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
             'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported

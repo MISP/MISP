@@ -683,21 +683,24 @@ class Server extends AppModel
                 $job->saveProgress($jobId, 'Pulling sightings.', 75);
             }
             $pulledSightings = $eventModel->Sighting->pullSightings($user, $serverSync);
+            $this->AnalystData = ClassRegistry::init('AnalystData');
+            $pulledAnalystData = $this->AnalystData->pull($user, $serverSync);
         }
         if ($jobId) {
             $job->saveStatus($jobId, true, 'Pull completed.');
         }
 
         $change = sprintf(
-            '%s events, %s proposals, %s sightings and %s galaxy clusters pulled or updated. %s events failed or didn\'t need an update.',
+            '%s events, %s proposals, %s sightings, %s galaxy clusters and %s analyst data pulled or updated. %s events failed or didn\'t need an update.',
             count($successes),
             $pulledProposals,
             $pulledSightings,
             $pulledClusters,
+            $pulledAnalystData,
             count($fails)
         );
         $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email, $change);
-        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters];
+        return [$successes, $fails, $pulledProposals, $pulledSightings, $pulledClusters, $pulledAnalystData];
     }
 
     public function filterRuleToParameter($filter_rules)
@@ -755,6 +758,41 @@ class Server extends AppModel
             $clusterArray = $clusterArray['response'];
         }
         return $clusterArray;
+    }
+
+    /**
+     * fetchUUIDsFromServer Fetch remote analyst datas' UUIDs and timestamp
+     *
+     * @param ServerSyncTool $serverSync
+     * @param array $conditions
+     * @return array The list of analyst data
+     * @throws JsonException|HttpSocketHttpException|HttpSocketJsonException
+     */
+    public function fetchUUIDsFromServer(ServerSyncTool $serverSync, array $conditions = [])
+    {
+        $filterRules = $conditions;
+        $dataArray = $serverSync->fetchIndexMinimal($filterRules)->json();
+        if (isset($dataArray['response'])) {
+            $dataArray = $dataArray['response'];
+        }
+        return $dataArray;
+    }
+
+    /**
+     * filterAnalystDataForPush Send a candidate data to be pushed and returns the list of accepted entries
+     *
+     * @param ServerSyncTool $serverSync
+     * @param array $conditions
+     * @return array The list of analyst data
+     * @throws JsonException|HttpSocketHttpException|HttpSocketJsonException
+     */
+    public function filterAnalystDataForPush(ServerSyncTool $serverSync, array $candidates = [])
+    {
+        $dataArray = $serverSync->filterAnalystDataForPush($candidates)->json();
+        if (isset($dataArray['response'])) {
+            $dataArray = $dataArray['response'];
+        }
+        return $dataArray;
     }
 
     /**
@@ -1239,6 +1277,20 @@ class Server extends AppModel
         } else {
             $successes = array_merge($successes, $sightingSuccesses);
         }
+
+        if ($push['canPush'] || $push['canEditAnalystData']) {
+            $this->AnalystData = ClassRegistry::init('AnalystData');
+            $analystDataSuccesses = $this->AnalystData->push($user, $serverSync);
+        } else {
+            $analystDataSuccesses = array();
+        }
+
+        if (!isset($successes)) {
+            $successes = $analystDataSuccesses;
+        } else {
+            $successes = array_merge($successes, $analystDataSuccesses);
+        }
+
         if (!isset($fails)) {
             $fails = array();
         }
@@ -2543,33 +2595,33 @@ class Server extends AppModel
 
     public function getFileRules()
     {
-        return array(
-            'orgs' => array(
+        return [
+            'orgs' => [
                 'name' => __('Organisation logos'),
                 'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
-                'expected' => array(),
+                'expected' => [],
                 'valid_format' => __('48x48 pixel .png files or .svg file'),
-                'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
+                'path' => APP . 'files' . DS . 'img' . DS . 'orgs',
                 'regex' => '.*\.(png|svg)$',
                 'regex_error' => __('Filename must be in the following format: *.png or *.svg'),
-                'files' => array(),
-            ),
-            'img' => array(
+                'files' => [],
+            ],
+            'img' => [
                 'name' => __('Additional image files'),
                 'description' => __('Image files uploaded into this directory can be used for various purposes, such as for the login page logos'),
-                'expected' => array(
+                'expected' => [
                     'MISP.footer_logo' => Configure::read('MISP.footer_logo'),
                     'MISP.home_logo' => Configure::read('MISP.home_logo'),
                     'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
                     'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
-                ),
+                ],
                 'valid_format' => __('PNG or SVG file'),
-                'path' => APP . 'webroot' . DS . 'img' . DS . 'custom',
+                'path' => APP . 'files' . DS . 'img' . DS . 'custom',
                 'regex' => '.*\.(png|svg)$',
                 'regex_error' => __('Filename must be in the following format: *.png or *.svg'),
                 'files' => array(),
-            ),
-        );
+            ],
+        ];
     }
 
     public function grabFiles()
@@ -2752,6 +2804,7 @@ class Server extends AppModel
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $canSight = isset($remoteVersion['perm_sighting']) ? $remoteVersion['perm_sighting'] : false;
         $canEditGalaxyCluster = isset($remoteVersion['perm_galaxy_editor']) ? $remoteVersion['perm_galaxy_editor'] : false;
+        $canEditAnalystData = isset($remoteVersion['perm_analyst_data']) ? $remoteVersion['perm_analyst_data'] : false;
         $remoteVersionString = $remoteVersion['version'];
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
@@ -2801,6 +2854,7 @@ class Server extends AppModel
             'response' => $response,
             'canPush' => $canPush,
             'canSight' => $canSight,
+            'canEditAnalystData' => $canEditAnalystData,
             'canEditGalaxyCluster' => $canEditGalaxyCluster,
             'version' => $remoteVersion,
             'protectedMode' => $protectedMode,
