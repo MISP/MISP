@@ -736,6 +736,7 @@ class CRUDComponent extends Component
                     empty($validationMessage) ? '' : PHP_EOL . __('Reason: {0}', $validationMessage)
                 );
                 if ($this->Controller->ParamHandler->isRest()) {
+                    $this->Controller->restResponsePayload = $this->RestResponse->viewData($data, 'json');
                 } else if ($this->Controller->ParamHandler->isAjax()) {
                     $this->Controller->ajaxResponsePayload = $this->RestResponse->ajaxFailResponse($this->ObjectAlias, 'edit', $data, $message, $validationErrors);
                 } else {
