@@ -60,7 +60,7 @@ def _process_stix_file(args: argparse.Namespace):
             arguments['sharing_group_id'] = args.sharing_group_id
         parser = globals()[f'{to_call}STIX2toMISPParser'](**arguments)
         parser.load_stix_bundle(bundle)
-        parser.parse_stix_bundle()
+        parser.parse_stix_bundle(single_event=True)
         with open(f'{args.input}.out', 'wt', encoding='utf-8') as f:
             f.write(parser.misp_event.to_json())
         print(
