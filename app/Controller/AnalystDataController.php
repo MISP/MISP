@@ -89,7 +89,7 @@ class AnalystDataController extends AppController
                 return $analystData;
             },
             'beforeSave' => function(array $analystData): array {
-                $analystData[$this->modelSelection]['modified'] = date ('Y-m-d H:i:s');
+                $analystData[$this->modelSelection]['modified'] = date('Y-m-d H:i:s');
                 return $analystData;
             }
         ];
