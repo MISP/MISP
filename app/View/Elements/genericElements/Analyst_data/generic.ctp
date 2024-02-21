@@ -43,7 +43,7 @@ $relationshipsCount = count($relationships);
 <?php if (empty($notesOpinions) && empty($relationshipsCount)): ?>
     <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer node-opener-<?= $seed ?>" title="<?= __('Notes and opinions for this UUID') ?>"></i>
 <?php else: ?>
-    <span class="label label-info useCursorPointer node-opener-<?= $seed ?>">
+    <span class="label label-info useCursorPointer node-opener-<?= $seed ?> highlight-on-hover">
         <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer" title="<?= __('Notes and opinions for this UUID') ?>"></i>
         <?= $notesOpinionCount; ?>
         <i class="<?= $this->FontAwesome->getClass('project-diagram') ?> useCursorPointer" title="<?= __('Relationships for this UUID') ?>"></i>
