@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Test\Helper;
@@ -23,28 +22,49 @@ trait ApiTestTrait
         IntegrationTestTrait::_sendRequest as _sendRequestOriginal;
     }
 
-    /** @var string */
+    /**
+     * @var string
+     */
     protected $_authToken = '';
 
-    /** @var ValidatorBuilder */
+    /**
+     * @var ValidatorBuilder
+     */
     private $_validator;
 
-    /** @var RequestValidator */
+    /**
+     * @var RequestValidator
+     */
     private $_requestValidator;
 
-    /** @var ResponseValidator */
+    /**
+     * @var ResponseValidator
+     */
     private $_responseValidator;
 
-    /** @var ServerRequest */
+    /**
+     * @var ServerRequest
+     */
     protected $_psrRequest;
 
-    /** @var boolean */
+    /**
+     * @var bool
+     */
     protected $_skipOpenApiValidations = false;
 
     public function setUp(): void
     {
         parent::setUp();
         $this->initializeOpenApiValidator();
+
+        $this->configRequest(
+            [
+                'headers' => [
+                    'Accept' => 'application/json',
+                    'Content-Type' => 'application/json',
+                ],
+            ]
+        );
     }
 
     public function setAuthToken(string $authToken): void
@@ -59,8 +79,8 @@ trait ApiTestTrait
                 'headers' => [
                     'Accept' => 'application/json',
                     'Authorization' => $this->_authToken,
-                    'Content-Type' => 'application/json'
-                ]
+                    'Content-Type' => 'application/json',
+                ],
             ]
         );
     }
@@ -89,7 +109,7 @@ trait ApiTestTrait
     public function initializeOpenApiValidator(): void
     {
         if (!$this->_skipOpenApiValidations) {
-            $this->_validator =  Configure::read('App.OpenAPIValidator');
+            $this->_validator = Configure::read('App.OpenAPIValidator');
             if ($this->_validator === null) {
                 throw new \Exception('OpenAPI validator is not configured');
             }
@@ -127,7 +147,6 @@ trait ApiTestTrait
      * @return void
      * @throws \Exception
      * @throws \Cake\Datasource\Exception\RecordNotFoundException
-     *
      * @see https://book.cakephp.org/4/en/orm-query-builder.html
      */
     public function assertDbRecordExists(string $table, array $conditions): void
@@ -147,7 +166,6 @@ trait ApiTestTrait
      * @return void
      * @throws \Exception
      * @throws \Cake\Datasource\Exception\RecordNotFoundException
-     *
      * @see https://book.cakephp.org/4/en/orm-query-builder.html
      */
     public function assertDbRecordNotExists(string $table, array $conditions): void
@@ -191,8 +209,8 @@ trait ApiTestTrait
      * This method intercepts IntegrationTestTrait::_buildRequest()
      * in the quest to get a PSR-7 request object and saves it for
      * later inspection, also validates it against the OpenAPI spec.
-     * @see \Cake\TestSuite\IntegrationTestTrait::_buildRequest()
      *
+     * @see \Cake\TestSuite\IntegrationTestTrait::_buildRequest()
      * @param string $url The URL
      * @param string $method The HTTP method
      * @param array|string $data The request data.
@@ -229,7 +247,6 @@ trait ApiTestTrait
      * and validates the response against the OpenAPI spec.
      *
      * @see \Cake\TestSuite\IntegrationTestTrait::_sendRequest()
-     *
      * @param array|string $url The URL
      * @param string $method The HTTP method
      * @param array|string $data The request data.
@@ -274,8 +291,8 @@ trait ApiTestTrait
 
     /**
      * Create a PSR-7 request from the request spec.
-     * @see \Cake\TestSuite\MiddlewareDispatcher::_createRequest()
      *
+     * @see \Cake\TestSuite\MiddlewareDispatcher::_createRequest()
      * @param array<string, mixed> $spec The request spec.
      * @return \Cake\Http\ServerRequest
      */
@@ -292,6 +309,7 @@ trait ApiTestTrait
         if (strpos($environment['PHP_SELF'], 'phpunit') !== false) {
             $environment['PHP_SELF'] = '/';
         }
+
         return ServerRequestFactory::fromGlobals(
             $environment,
             $spec['query'],
