@@ -89,9 +89,9 @@ function getURLFromRelationship(note) {
     if (note.related_object_type == 'Event') {
         return baseurl + '/events/view/' + note.related_object_uuid
     } else if (note.related_object_type == 'Attribute') {
-        return baseurl + '/events/view/' + note.attribute.event_id + '/focus:' + note.related_object_uuid
+        return note?.attribute?.event_id ? baseurl + '/events/view/' + note.attribute.event_id + '/focus:' + note.related_object_uuid : '#'
     } else if (note.related_object_type == 'Object') {
-        return baseurl + '/events/view/' + note.object.event_id + '/focus:' + note.related_object_uuid
+        return note?.object?.event_id ? baseurl + '/events/view/' + note.object.event_id + '/focus:' + note.related_object_uuid : '#'
     }
     return '#'
 }
