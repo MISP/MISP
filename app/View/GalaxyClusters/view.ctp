@@ -1,4 +1,9 @@
 <?php
+echo $this->element('genericElements/assetLoader', [
+    'js' => ['doT', 'moment.min'],
+    'css' => ['analyst-data',],
+]);
+
 $extendedFromHtml = '';
 if (!empty($cluster['GalaxyCluster']['extended_from'])) {
     $element = $this->element('genericElements/IndexTable/Fields/links', array(
@@ -174,10 +179,6 @@ $options = [
     'relationships' => $cluster['GalaxyCluster']['Relationship'] ?? [],
 ];
 
-echo $this->element('genericElements/assetLoader', [
-    'js' => ['doT', 'moment.min'],
-    'css' => ['analyst-data',],
-]);
 echo $this->element('genericElements/Analyst_data/thread', $options);
 
 ?>
