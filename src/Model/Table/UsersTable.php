@@ -536,4 +536,18 @@ class UsersTable extends AppTable
             // "Servers.*" // TODO: [3.x-MIGRATION]
         ];
     }
+
+    /**
+     * Get the current user and rearrange it to be in the same format as in the auth component.
+     * @param string $authkey
+     * @return array|null
+     */
+    public function getAuthUserByAuthkey($authkey)
+    {
+        if (empty($authkey)) {
+            throw new InvalidArgumentException('Invalid user auth key.');
+        }
+        $conditions = ['Users.authkey' => $authkey];
+        return $this->getAuthUserByConditions($conditions);
+    }
 }

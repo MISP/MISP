@@ -786,4 +786,25 @@ class ACLComponent extends Component
         }
         return false;
     }
+
+    /**
+     * Returns true if user can publish the given event.
+     *
+     * @param array $user
+     * @param array $event
+     * @return bool
+     */
+    public function canPublishEvent(array $user, array $event)
+    {
+        if (!isset($event['Event'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Event.');
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($user['Role']['perm_publish'] && $event['Event']['orgc_id'] == $user['org_id']) {
+            return true;
+        }
+        return false;
+    }
 }
