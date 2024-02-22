@@ -36,6 +36,15 @@ class AnalystData extends AppModel
         'Relationship',
     ];
 
+    protected const BASE_EDITABLE_FIELDS = [
+        'language',
+        'authors',
+        'modified',
+        'distribution',
+        'sharing_group_id',
+    ];
+    protected $EDITABLE_FIELDS = [];
+
     /** @var object|null */
     protected $Note;
     /** @var object|null */
@@ -154,6 +163,11 @@ class AnalystData extends AppModel
         $this->data[$this->current_type]['modified'] = (new DateTime($this->data[$this->current_type]['modified'], new DateTimeZone('UTC')))->format('c');
         $this->data[$this->current_type]['created'] = (new DateTime($this->data[$this->current_type]['created'], new DateTimeZone('UTC')))->format('c');
         return true;
+    }
+
+    public function getEditableFields(): array
+    {
+        return array_merge(self::BASE_EDITABLE_FIELDS, $this->EDITABLE_FIELDS);
     }
 
     /**

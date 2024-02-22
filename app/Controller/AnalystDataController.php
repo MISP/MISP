@@ -80,6 +80,7 @@ class AnalystDataController extends AppController
         $this->set('id', $id);
         $conditions = $this->AnalystData->buildConditions($this->Auth->user());
         $params = [
+            'fields' => $this->AnalystData->getEditableFields(),
             'conditions' => $conditions,
             'afterFind' => function(array $analystData): array {
                 $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);

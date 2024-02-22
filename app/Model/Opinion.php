@@ -15,8 +15,12 @@ class Opinion extends AnalystData
     public $current_type = 'Opinion';
     public $current_type_id = 1;
 
-    public $validate = array(
-    );
+    public const EDITABLE_FIELDS = [
+        'opinion',
+        'comment',
+    ];
+
+    public $validate = [];
 
     public function beforeValidate($options = array())
     {
