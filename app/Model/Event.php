@@ -5995,15 +5995,17 @@ class Event extends AppModel
      * @param int $distribution
      * @param int|null $sharingGroupId
      * @param bool $galaxiesAsTags
+     * @param int $clusterDistribution
+     * @param int|null $clusterSharingGroupId
      * @param bool $debug
      * @return int|string|array
      * @throws JsonException
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    public function upload_stix(array $user, $file, $stixVersion, $originalFile, $publish, $distribution, $sharingGroupId, $galaxiesAsTags, $debug = false)
+    public function upload_stix(array $user, $file, $stixVersion, $originalFile, $publish, $distribution, $sharingGroupId, $galaxiesAsTags, $clusterDistribution, $clusterSharingGroupId, $debug = false)
     {
-        $decoded = $this->convertStixToMisp($stixVersion, $file, $distribution, $sharingGroupId, $galaxiesAsTags, $debug);
+        $decoded = $this->convertStixToMisp($stixVersion, $file, $distribution, $sharingGroupId, $galaxiesAsTags, $clusterDistribution, $clusterSharingGroupId, $user['Organisation']['uuid'], $debug);
 
         if (!empty($decoded['success'])) {
             $data = JsonTool::decodeArray($decoded['converted']);
@@ -6067,11 +6069,14 @@ class Event extends AppModel
      * @param int $distribution
      * @param int|null $sharingGroupId
      * @param bool $galaxiesAsTags
+     * @param int $clusterDistribution
+     * @param int|null $clusterSharingGroupId
+     * @param string $orgUuid
      * @param bool $debug
      * @return array
      * @throws Exception
      */
-    private function convertStixToMisp($stixVersion, $file, $distribution, $sharingGroupId, $galaxiesAsTags, $debug)
+    private function convertStixToMisp($stixVersion, $file, $distribution, $sharingGroupId, $galaxiesAsTags, $clusterDistribution, $clusterSharingGroupId, $orgUuid, $debug)
     {
         $scriptDir = APP . 'files' . DS . 'scripts';
         if ($stixVersion === '2' || $stixVersion === '2.0' || $stixVersion === '2.1') {
@@ -6082,12 +6087,18 @@ class Event extends AppModel
                 $scriptFile,
                 '-i', $file,
                 '--distribution', $distribution,
+                '--org_uuid', $orgUuid
             ];
             if ($distribution == 4) {
                 array_push($shellCommand, '--sharing_group_id', $sharingGroupId);
             }
             if ($galaxiesAsTags) {
                 $shellCommand[] = '--galaxies_as_tags';
+            } else {
+                array_push($shell_command, '--cluster_distribution', $clusterDistribution);
+                if ($clusterDistribution == 4) {
+                    array_push($shell_command, '--cluster_sharing_group_id', $clusterSharingGroupId);
+                }
             }
             if ($debug) {
                 $shellCommand[] = '--debug';
