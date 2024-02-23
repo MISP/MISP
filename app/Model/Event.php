@@ -5996,7 +5996,7 @@ class Event extends AppModel
      * @param int|null $sharingGroupId
      * @param bool $galaxiesAsTags
      * @param int $clusterDistribution
-     * @param int $clusterSharingGroupId
+     * @param int|null $clusterSharingGroupId
      * @param bool $debug
      * @return int|string|array
      * @throws JsonException
@@ -6070,7 +6070,7 @@ class Event extends AppModel
      * @param int|null $sharingGroupId
      * @param bool $galaxiesAsTags
      * @param int $clusterDistribution
-     * @param int $clusterSharingGroupId
+     * @param int|null $clusterSharingGroupId
      * @param bool $debug
      * @return array
      * @throws Exception

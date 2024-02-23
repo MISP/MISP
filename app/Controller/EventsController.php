@@ -2491,7 +2491,7 @@ class EventsController extends AppController
                         $this->data['Event']['sharing_group_id'] ?? null,
                         $this->data['Event']['galaxies_handling'],
                         $this->data['Event']['cluster_distribution'],
-                        $this->data['Event']['cluster_sharing_group_id'],
+                        $this->data['Event']['cluster_sharing_group_id'] ?? null,
                         $debug
                     );
                     if (is_numeric($result)) {
