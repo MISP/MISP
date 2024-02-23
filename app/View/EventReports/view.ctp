@@ -1,4 +1,9 @@
 <?php
+    echo $this->element('genericElements/assetLoader', [
+        'js' => ['doT', 'moment.min'],
+        'css' => ['analyst-data',],
+    ]);
+
     $table_data = array();
     $table_data[] = array('key' => __('ID'), 'value' => $report['EventReport']['id']);
     $table_data[] = [
