@@ -89,10 +89,12 @@ if ($modelSelection === 'Note') {
                 'options' => $dropdownData['valid_targets'],
                 'type' => 'dropdown',
                 'stayInLine' => 1,
+                'disabled' => !empty($this->data[$modelSelection]['related_object_type']),
             ],
             [
                 'field' => 'related_object_uuid',
                 'class' => 'span4',
+                'disabled' => !empty($this->data[$modelSelection]['related_object_uuid']),
             ],
             sprintf('<div style="max-width: 960px;"><label>%s:</label><div id="related-object-container">%s</div></div>', __('Related Object'), __('- No UUID provided -'))
         ]

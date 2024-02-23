@@ -15,8 +15,11 @@ class Relationship extends AnalystData
     public $current_type = 'Relationship';
     public $current_type_id = 2;
 
-    public $validate = array(
-    );
+    protected $EDITABLE_FIELDS = [
+        'relationship_type',
+    ];
+
+    public $validate = [];
 
     /** @var object|null */
     protected $Event;

@@ -80,6 +80,7 @@ class AnalystDataController extends AppController
         $this->set('id', $id);
         $conditions = $this->AnalystData->buildConditions($this->Auth->user());
         $params = [
+            'fields' => $this->AnalystData->getEditableFields(),
             'conditions' => $conditions,
             'afterFind' => function(array $analystData): array {
                 $canEdit = $this->ACL->canEditAnalystData($this->Auth->user(), $analystData, $this->modelSelection);
@@ -89,7 +90,7 @@ class AnalystDataController extends AppController
                 return $analystData;
             },
             'beforeSave' => function(array $analystData): array {
-                $analystData[$this->modelSelection]['modified'] = date ('Y-m-d H:i:s');
+                $analystData[$this->modelSelection]['modified'] = date('Y-m-d H:i:s');
                 return $analystData;
             }
         ];

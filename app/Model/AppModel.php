@@ -91,6 +91,7 @@ class AppModel extends Model
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
         117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
+        123 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2154,6 +2155,14 @@ class AppModel extends Model
                     KEY `collection_id` (`collection_id`),
                     UNIQUE KEY `unique_element` (`element_uuid`, `collection_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 123:
+                $sqlArray[] = 'ALTER TABLE `notes` MODIFY `created` datetime NOT NULL';
+                $sqlArray[] = 'ALTER TABLE `opinions` MODIFY `created` datetime NOT NULL;';
+                $sqlArray[] = 'ALTER TABLE `relationships` MODIFY `created` datetime NOT NULL;';
+                $sqlArray[] = 'ALTER TABLE `notes` MODIFY `modified` datetime NOT NULL;';
+                $sqlArray[] = 'ALTER TABLE `opinions` MODIFY `modified` datetime NOT NULL;';
+                $sqlArray[] = 'ALTER TABLE `relationships` MODIFY `modified` datetime NOT NULL;';
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

@@ -89,9 +89,9 @@ function getURLFromRelationship(note) {
     if (note.related_object_type == 'Event') {
         return baseurl + '/events/view/' + note.related_object_uuid
     } else if (note.related_object_type == 'Attribute') {
-        return baseurl + '/events/view/' + note.attribute.event_id + '/focus:' + note.related_object_uuid
+        return note?.attribute?.event_id ? baseurl + '/events/view/' + note.attribute.event_id + '/focus:' + note.related_object_uuid : '#'
     } else if (note.related_object_type == 'Object') {
-        return baseurl + '/events/view/' + note.object.event_id + '/focus:' + note.related_object_uuid
+        return note?.object?.event_id ? baseurl + '/events/view/' + note.object.event_id + '/focus:' + note.related_object_uuid : '#'
     }
     return '#'
 }
@@ -100,9 +100,9 @@ function renderRelationshipEntryFromType(note, relationship_related_object) {
     var contentHtml = ''
     var template = doT.template('\
         <span style="border: 1px solid #ddd !important; border-radius: 3px; padding: 0.25rem;"> \
-            <span class="ellipsis-overflow" style="max-width: 12em;">{{=it.related_object_type}}</span> \
+            <span class="ellipsis-overflow" style="max-width: 12em;">{{!it.related_object_type}}</span> \
             :: \
-            <span class="ellipsis-overflow" style="max-width: 12em;">{{=it.related_object_uuid}}</span> \
+            <span class="ellipsis-overflow" style="max-width: 12em;">{{!it.related_object_uuid}}</span> \
         </span> \
     ')
     var templateEvent = doT.template('\
@@ -110,16 +110,16 @@ function renderRelationshipEntryFromType(note, relationship_related_object) {
                 <span class="bold"> \
                     <span class="attr-type"><span><i class="<?= $this->FontAwesome->getClass('envelope') ?>"></i></span></span> \
                     <span class=""><span class="attr-value"> \
-                        <span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.urlEvent}}" target="_blank">{{=it.content}}</a></span> \
+                        <span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{!it.urlEvent}}" target="_blank">{{!it.content}}</a></span> \
                     </span></span> \
                 </span> \
             </span> \
         ')
     if (note.related_object_type == 'Event' && relationship_related_object.Event[note.related_object_uuid]) {
         note.event = relationship_related_object.Event[note.related_object_uuid]
-        template = doT.template(templateEvent({content: '{{=it.event.info}}', urlEvent: '{{=it.url}}'}))
+        template = doT.template(templateEvent({content: '{{!it.event.info}}', urlEvent: '{{!it.url}}'}))
     } else if (note.related_object_type == 'Attribute' && relationship_related_object.Attribute[note.related_object_uuid]) {
-        var event = templateEvent({content: '{{=it.attribute.Event.info}}', urlEvent: baseurl + '/events/view/{{=it.attribute.event_id}}'})
+        var event = templateEvent({content: '{{!it.attribute.Event.info}}', urlEvent: baseurl + '/events/view/{{!it.attribute.event_id}}'})
         note.attribute = relationship_related_object.Attribute[note.related_object_uuid]
         if (note.attribute.object_relation !== undefined && note.attribute.object_relation !== null) {
             template = doT.template('\
@@ -128,27 +128,27 @@ function renderRelationshipEntryFromType(note, relationship_related_object) {
             <span class="misp-element-wrapper object"> \
                 <span class="bold"> \
                     <span class="obj-type"> \
-                        <span class="object-name" title="<?= __('Object') ?>">{{=it.attribute.Object.name}}</span> \
-                        ↦ <span class="object-attribute-type" title="<?= __('Object Relation') ?>">{{=it.attribute.object_relation}}</span> \
+                        <span class="object-name" title="<?= __('Object') ?>">{{!it.attribute.Object.name}}</span> \
+                        ↦ <span class="object-attribute-type" title="<?= __('Object Relation') ?>">{{!it.attribute.object_relation}}</span> \
                     </span> \
-                <span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}" target="_blank">{{=it.attribute.value}}</a></span></span> \
+                <span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{!it.url}}" target="_blank">{{!it.attribute.value}}</a></span></span> \
             </span> \
         ')
         } else if (relationship_related_object.Attribute[note.related_object_uuid]) {
-            var event = templateEvent({content: '{{=it.attribute.Event.info}}', urlEvent: baseurl + '/events/view/{{=it.attribute.event_id}}'})
+            var event = templateEvent({content: '{{!it.attribute.Event.info}}', urlEvent: baseurl + '/events/view/{{!it.attribute.event_id}}'})
             template = doT.template('\
                 ' + event + ' \
                 <b>↦</b> \
                 <span class="misp-element-wrapper attribute"> \
                     <span class="bold"> \
-                        <span class="attr-type"><span title="<?= __('Attribute') ?>">{{=it.attribute.type}}</span></span> \
-                        <span class="blue"><span class="attr-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}" target="_blank">{{=it.attribute.value}}</a></span></span></span> \
+                        <span class="attr-type"><span title="<?= __('Attribute') ?>">{{!it.attribute.type}}</span></span> \
+                        <span class="blue"><span class="attr-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{!it.url}}" target="_blank">{{!it.attribute.value}}</a></span></span></span> \
                     </span> \
                 </span> \
             ')
         }
     } else if (note.related_object_type == 'Object') {
-        var event = templateEvent({content: '{{=it.object.Event.info}}', urlEvent: baseurl + '/events/view/{{=it.object.event_id}}'})
+        var event = templateEvent({content: '{{!it.object.Event.info}}', urlEvent: baseurl + '/events/view/{{!it.object.event_id}}'})
         note.object = relationship_related_object.Object[note.related_object_uuid]
         template = doT.template('\
             ' + event + ' \
@@ -157,9 +157,9 @@ function renderRelationshipEntryFromType(note, relationship_related_object) {
                 <span class="bold"> \
                     <span class="obj-type"> \
                         <i class="<?= $this->FontAwesome->getClass('cubes') ?>" title="<?= __('Object') ?>" style="margin: 0 0 0 0.25rem;"></i> \
-                        <span>{{=it.object.name}}</span> \
+                        <span>{{!it.object.name}}</span> \
                     </span> \
-                    <span class="blue"><span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{=it.url}}" target="_blank">{{=it.object.id}}</a></span></span></span> \
+                    <span class="blue"><span class="obj-value"><span class="ellipsis-overflow" style="max-width: 12em;"><a href="{{!it.url}}" target="_blank">{{!it.object.id}}</a></span></span></span> \
                 </span> \
             </span> \
         ')
@@ -178,40 +178,40 @@ var noteFilteringTemplate = '\
 '
 
 var baseNoteTemplate = doT.template('\
-    <div id="{{=it.note_type_name}}-{{=it.id}}" \
+    <div id="{{!it.note_type_name}}-{{!it.id}}" \
         class="analyst-note" \
         style="display: flex; flex-direction: row; align-items: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 1px 5px -2px rgb(0 0 0 / 0.5); border-radius: 0.25rem; padding: 0.25rem; margin-bottom: 0.0rem; background-color: #fff; transition: ease-out opacity 0.5s;" \
-        data-org-uuid="{{=it.orgc_uuid}}" \
+        data-org-uuid="{{!it.orgc_uuid}}" \
     > \
         <div style="flex-grow: 1;"> \
             <div style="display: flex; flex-direction: column;"> \
                 <div style="display: flex; min-width: 250px; gap: 0.5rem;"> \
-                    <img src="<?= $baseurl ?>/img/orgs/{{=it.Orgc.id}}.png" width="20" height="20" class="orgImg" style="width: 20px; height: 20px;" onerror="this.remove()" alt="Organisation logo"></object> \
+                    <img src="<?= $baseurl ?>/img/orgs/{{!it.Orgc.id}}.png" width="20" height="20" class="orgImg" style="width: 20px; height: 20px;" onerror="this.remove()" alt="Organisation logo"></object> \
                     <span style="margin-left: 0rem; margin-right: 0.5rem;"> \
-                        <span>{{=it.Orgc.name}}</span> \
+                        <span>{{!it.Orgc.name}}</span> \
                         <i class="<?= $this->FontAwesome->getClass('angle-right') ?>" style="color: #999; margin: 0 0.25rem;"></i> \
-                        <b>{{=it.authors}}</b> \
+                        <b>{{!it.authors}}</b> \
                     </span> \
-                    <span style="display: inline-block; font-weight: lighter; color: #999">{{=it.modified_relative}} • {{=it.modified}}</span> \
-                    <span style="margin-left: 0.5rem; flex-grow: 1; text-align: right; color: {{=it.distribution_color}}"> \
+                    <span style="display: inline-block; font-weight: lighter; color: #999">{{!it.modified_relative}} • {{!it.modified}}</span> \
+                    <span style="margin-left: 0.5rem; flex-grow: 1; text-align: right; color: {{!it.distribution_color}}"> \
                         {{? it.distribution == 4 }} \
-                            <a href="<?= $baseurl ?>/sharingGroups/view/{{=it.SharingGroup.id}}" target="_blank">{{=it.distribution_text}}</a> \
+                            <a href="<?= $baseurl ?>/sharingGroups/view/{{!it.SharingGroup.id}}" target="_blank">{{!it.distribution_text}}</a> \
                         {{??}} \
-                            {{=it.distribution_text}} \
+                            {{!it.distribution_text}} \
                         {{?}} \
                     </span> \
                     <span class="action-button-container" style="margin-left: auto; display: flex; gap: 0.2rem;"> \
                         {{? 1 == <?= $me['Role']['perm_modify'] ? 1 : 0 ?> }} \
-                            <span role="button" onclick="addOpinion(this, \'{{=it.uuid}}\', \'{{=it.note_type_name}}\')" title="<?= __('Add an opinion to this note') ?>"><i class="<?= $this->FontAwesome->getClass('gavel') ?> useCursorPointer"></i></span> \
+                            <span role="button" onclick="addOpinion(this, \'{{!it.uuid}}\', \'{{!it.note_type_name}}\')" title="<?= __('Add an opinion to this note') ?>"><i class="<?= $this->FontAwesome->getClass('gavel') ?> useCursorPointer"></i></span> \
                         {{?}} \
                         {{? 1 == <?= $me['Role']['perm_modify'] ? 1 : 0 ?> }} \
-                        <span role="button" onclick="addNote(this, \'{{=it.uuid}}\', \'{{=it.note_type_name}}\')" title="<?= __('Add a note to this note') ?>"><i class="<?= $this->FontAwesome->getClass('comment-alt') ?> useCursorPointer"></i></span> \
+                        <span role="button" onclick="addNote(this, \'{{!it.uuid}}\', \'{{!it.note_type_name}}\')" title="<?= __('Add a note to this note') ?>"><i class="<?= $this->FontAwesome->getClass('comment-alt') ?> useCursorPointer"></i></span> \
                         {{?}} \
                         {{? it._canEdit }} \
-                        <span role="button" onclick="editNote(this, {{=it.id}}, \'{{=it.note_type_name}}\')" title="<?= __('Edit this note') ?>"><i class="<?= $this->FontAwesome->getClass('edit') ?> useCursorPointer"></i></span> \
+                        <span role="button" onclick="editNote(this, {{!it.id}}, \'{{!it.note_type_name}}\')" title="<?= __('Edit this note') ?>"><i class="<?= $this->FontAwesome->getClass('edit') ?> useCursorPointer"></i></span> \
                         {{?}} \
                         {{? it._canEdit }} \
-                        <span role="button" onclick="deleteNote(this, {{=it.id}})" title="<?= __('Delete this note') ?>" href="<?= $baseurl . $URL_DELETE ?>{{=it.note_type_name}}/{{=it.id}}"><i class="<?= $this->FontAwesome->getClass('trash') ?> useCursorPointer"></i></span> \
+                        <span role="button" onclick="deleteNote(this, {{!it.id}})" title="<?= __('Delete this note') ?>" href="<?= $baseurl . $URL_DELETE ?>{{!it.note_type_name}}/{{!it.id}}"><i class="<?= $this->FontAwesome->getClass('trash') ?> useCursorPointer"></i></span> \
                         {{?}} \
                     </span> \
                 </div> \
@@ -222,7 +222,7 @@ var baseNoteTemplate = doT.template('\
 ')
 var analystTemplate = doT.template('\
     <div style="max-width: 40vw; margin-top: 0.5rem; font-size:"> \
-        {{=it.note}} \
+        {{!it.note}} \
     </div> \
 ')
 var opinionGradient = '\
@@ -233,17 +233,17 @@ var opinionGradient = '\
     </div> \
 '
 var opinionTemplate = doT.template('\
-    <div style="margin: 0.75rem 0 0.25rem 0; display: flex; flex-direction: row;" title="<?= __('Opinion:') ?> {{=it.opinion}} /100"> \
+    <div style="margin: 0.75rem 0 0.25rem 0; display: flex; flex-direction: row;" title="<?= __('Opinion:') ?> {{!it.opinion}} /100"> \
         ' + opinionGradient + ' \
         <span style="line-height: 1em; margin-left: 0.25rem; margin-top: -3px;"> \
-            <b style="margin-left: 0.5rem; color: {{=it.opinion_color}}">{{=it.opinion_text}}</b> \
-            <b style="margin-left: 0.25rem; color: {{=it.opinion_color}}">{{=it.opinion}}</b> \
+            <b style="margin-left: 0.5rem; color: {{!it.opinion_color}}">{{!it.opinion_text}}</b> \
+            <b style="margin-left: 0.25rem; color: {{!it.opinion_color}}">{{!it.opinion}}</b> \
             <span style="font-size: 0.7em; font-weight: lighter; color: #999">/100</span> \
         </span> \
     </div> \
     {{? it.comment }} \
         <div style="max-width: 40vw; margin: 0.5rem 0 0 0.5rem; position: relative;" class="v-bar-text-opinion"> \
-            {{=it.comment}} \
+            {{!it.comment}} \
         </div> \
     {{?}} \
 ')
@@ -253,17 +253,17 @@ var relationshipDefaultEntryTemplate = doT.template('\
             <i class="<?= $this->FontAwesome->getClass('minus') ?>" style="font-size: 1.5em; color: #555"></i> \
             <span style="text-wrap: nowrap; padding: 0 0.25rem; border: 2px solid #555; border-radius: 0.25rem; max-width: 20rem; overflow-x: hidden; text-overflow: ellipsis;"> \
                 {{? it.relationship_type }} \
-                    {{=it.relationship_type}} \
+                    {{!it.relationship_type}} \
                 {{??}} \
                     <i style="font-weight: lighter; color: #999;"> - empty -</i> \
                 {{?}} \
             </span> \
             <i class="<?= $this->FontAwesome->getClass('long-arrow-alt-right') ?>" style="font-size: 1.5em; color: #555"></i> \
-            <div style="margin-left: 0.5rem;">{{=it.content}}</div> \
+            <div style="margin-left: 0.5rem;">{{!it.content}}</div> \
         </div> \
         {{? it.comment }} \
             <div style="max-width: 40vw; margin: 0.5rem 0 0 0.5rem; position: relative;" class="v-bar-text-opinion"> \
-                {{=it.comment}} \
+                {{!it.comment}} \
             </div> \
         {{?}} \
     </div> \
@@ -284,7 +284,7 @@ var maxDepthReachedTemplate = doT.template('\
         <div> \
             <span style="font-weight: lighter; color: #999;"> \
                 - Max depth reached, there is at least one entry remaining - \
-                <a href="<?= $baseurl ?>/analystData/view/{{=it.note.note_type_name}}/{{=it.note.id}}" target="_blank"> \
+                <a href="<?= $baseurl ?>/analystData/view/{{!it.note.note_type_name}}/{{!it.note.id}}" target="_blank"> \
                     <i class="<?= $this->FontAwesome->getClass('search') ?>"></i> \
                     <?= __('View entry') ?> \
                 </a> \
@@ -292,7 +292,7 @@ var maxDepthReachedTemplate = doT.template('\
         </div> \
         <div> \
             <span> \
-                <a onclick="fetchMoreNotes(this, \'{{=it.note.note_type_name}}\', \'{{=it.note.uuid}}\')" target="_blank" class="useCursorPointer"> \
+                <a onclick="fetchMoreNotes(this, \'{{!it.note.note_type_name}}\', \'{{!it.note.uuid}}\')" target="_blank" class="useCursorPointer"> \
                     <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> \
                     <?= __('Load more notes') ?> \
                 </a> \

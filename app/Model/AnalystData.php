@@ -36,6 +36,15 @@ class AnalystData extends AppModel
         'Relationship',
     ];
 
+    protected const BASE_EDITABLE_FIELDS = [
+        'language',
+        'authors',
+        'modified',
+        'distribution',
+        'sharing_group_id',
+    ];
+    protected $EDITABLE_FIELDS = [];
+
     /** @var object|null */
     protected $Note;
     /** @var object|null */
@@ -126,7 +135,7 @@ class AnalystData extends AppModel
 
     public function beforeValidate($options = array())
     {
-        parent::beforeValidate();
+        parent::beforeValidate($options);
         if (empty($this->id) && empty($this->data[$this->current_type]['uuid'])) {
             $this->data[$this->current_type]['uuid'] = CakeText::uuid();
         }
@@ -140,6 +149,25 @@ class AnalystData extends AppModel
             }
         }
         return true;
+    }
+
+    public function beforeSave($options = [])
+    {
+        parent::beforeSave($options);
+        if (empty($this->data[$this->current_type]['created'])) {
+            $this->data[$this->current_type]['created'] = (new DateTime())->format('Y-m-d H:i:s');
+        }
+        if (empty($this->data[$this->current_type]['modified'])) {
+            $this->data[$this->current_type]['modified'] = (new DateTime())->format('Y-m-d H:i:s');
+        }
+        $this->data[$this->current_type]['modified'] = (new DateTime($this->data[$this->current_type]['modified'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+        $this->data[$this->current_type]['created'] = (new DateTime($this->data[$this->current_type]['created'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+        return true;
+    }
+
+    public function getEditableFields(): array
+    {
+        return array_merge(self::BASE_EDITABLE_FIELDS, $this->EDITABLE_FIELDS);
     }
 
     /**

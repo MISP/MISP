@@ -1,16 +1,16 @@
-# Configure Azure AD to use SIngle SignOn for MISP
+# Configure Azure AD to use Single Sign-On (SSO) for MISP
 
-This plugin enables authentication with an Azure Active Directory server. Under the hood it uses oAuth2. There are still a number of rough edges but in general the plugin works.
+This plugin enables authentication with an Azure Active Directory (now called [Entra-ID](https://www.microsoft.com/en-us/security/business/identity-access/microsoft-entra-id)) server. Under the hood it uses oAuth2. There are still a number of rough edges but in general the plugin works.
 
 It supports verification if a user has the proper ‘MISP AD’ groups. Users should already exist in MISP. Future enhancement could include auto-create users
 
 ## Azure AD — App Registration Configuration
 
-In Azure, add a new App Registration. Select Web and set the Redirect URI to your MISP server login page `https://misp.yourdomain.com/users/login`. The MISP instance does not need to be publicly accessible if it is reachable by your browser. The redirect URI that you specify here must be the same as used in the MISP configuration.
+In Azure, add a new App Registration. Select Web and set the Redirect URI to your MISP server login page `https://misp.yourdomain.com/users/login`. The MISP instance does not need to be publicly accessible if it is reachable by your browser. The redirect URI that you specify here must be the same as used in the MISP configuration (including `/users/login`). You can add as many redirect URIs as needed, meaning you can have multiple MISP servers use the same Azure App.
 
 ![AppReg Configuration](.images/Picture29.png)
 
-On the Overview page of the new MISP App Registration capture the following inforamtion.
+On the Overview page of the new MISP App Registration capture the following information.
 
 - [x] Application (client) ID
 - [x] Directory (tenant) ID
@@ -44,7 +44,7 @@ Create the following groups in Azure AD, these can be called anything you like f
 Make a name of your groups, we'll need these later.
 
 - [x] Misp Users
-- [x] Misp ORG Admins
+- [x] Misp Org Admins
 - [x] Misp Site Admins
 
 ## Enable the AAD Plugin for MISP
@@ -122,7 +122,7 @@ Scroll down to near the bottom of the page and add in the following configuratio
   ),
 ```
 
-Add the information we made a note of earlier when creating the `App Registation` and optionally the Azure AD groups you created.
+Add the information we made a note of earlier when creating the `App Registration` and optionally the Azure AD groups you created.
 
 ![AadAuth.configuration](.images/Picture38.png)
 
@@ -140,3 +140,11 @@ Additionally, it is recommended to set the following settings in the MISP config
 * `MISP.disable_user_password_change => true`: Removes the ability of users to change their own password.
 
 This way users will not be able to change their passwords and by-pass the AAD login flow.
+
+# Create users via the MISP REST API
+
+Because users already need to exist in MISP before they can authenticate with AAD it can be useful to provision them in an automated fashion. This can be done by creating the users via the MISP REST API. The below `curl` command provides an example on how to do this. Note that you need an API key.
+
+```
+curl -k -d '{"email":"newuser@mycompany.com", "role_id":"3", "org_id":"1", "enable_password":"1", "change_pw":"0"}' -H "Authorization: API_KEY"  -H "Accept: application/json" -H "Content-type: application/json" -X POST htps://misp.mycompany.com/admin/users/add
+```
