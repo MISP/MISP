@@ -481,8 +481,8 @@ class OrganisationsController extends AppController
             $extension = pathinfo($logo['name'], PATHINFO_EXTENSION);
             $filename = $orgId . '.' . ($extension === 'svg' ? 'svg' : 'png');
 
-            if ($logo['size'] > 250*1024) {
-                $this->Flash->error(__('This organisation logo is too large, maximum file size allowed is 250kB.'));
+            if ($logo['size'] > 250 * 1024) {
+                $this->Flash->error(__('This organisation logo is too large, maximum file size allowed is 250 kB.'));
                 return false;
             }
 
@@ -492,10 +492,12 @@ class OrganisationsController extends AppController
             }
 
             $imgMime = mime_content_type($logo['tmp_name']);
-            if ($extension === 'png' && !exif_imagetype($logo['tmp_name'])) {
+            if ($extension === 'png' && (function_exists('exif_imagetype') && !exif_imagetype($logo['tmp_name']))) {
                 $this->Flash->error(__('This is not a valid PNG image.'));
                 return false;
-            } else if ($extension === 'svg' && !($imgMime === 'image/svg+xml' || $imgMime === 'image/svg')) {
+            }
+
+            if ($extension === 'svg' && !($imgMime === 'image/svg+xml' || $imgMime === 'image/svg')) {
                 $this->Flash->error(__('This is not a valid SVG image.'));
                 return false;
             }
