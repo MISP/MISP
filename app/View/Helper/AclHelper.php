@@ -115,4 +115,13 @@ class AclHelper extends Helper
     {
         return $this->ACL->canModifyGalaxyCluster($this->me, $cluster);
     }
+
+    /**
+     * @param array $cluster
+     * @return bool
+     */
+    public function canEditAnalystData(array $analystData, $modelType): bool
+    {
+        return $this->ACL->canEditAnalystData($this->me, $analystData, $modelType);
+    }
 }

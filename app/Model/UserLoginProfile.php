@@ -1,7 +1,9 @@
 <?php
-
 App::uses('AppModel', 'Model');
 
+/**
+ * @property User $User
+ */
 class UserLoginProfile extends AppModel
 {
     public $actsAs = array(
@@ -12,7 +14,6 @@ class UserLoginProfile extends AppModel
                 'userKey' => 'user_id',
                 'change' => 'full'
             ),
-            'Containable'
     );
 
     public $validate = [
@@ -20,34 +21,70 @@ class UserLoginProfile extends AppModel
             'rule' => '/^(trusted|malicious)$/',
             'message' => 'Must be one of: trusted, malicious'
         ],
-        
     ];
 
     public $order = array("UserLoginProfile.id" => "DESC");
 
     public $belongsTo = [
-    'User' => [
-        'className' => 'User',
-        'foreignKey' => 'user_id',
-        'conditions' => '',
-        'fields' => '',
-        'order' => ''
-    ]];
+        'User' => [
+            'className' => 'User',
+            'foreignKey' => 'user_id',
+            'conditions' => '',
+            'fields' => '',
+            'order' => ''
+        ]
+    ];
 
-    protected $browscapCacheDir = APP . DS . 'tmp' . DS . 'browscap';
-    protected $browscapIniFile = APP . DS . 'files' . DS . 'browscap'. DS . 'browscap.ini';       // Browscap file managed by MISP - https://browscap.org/stream?q=Lite_PHP_BrowsCapINI
-    protected $geoIpDbFile = APP . DS . 'files' . DS . 'geo-open' . DS . 'GeoOpen-Country.mmdb';  // GeoIP file managed by MISP - https://data.public.lu/en/datasets/geo-open-ip-address-geolocation-per-country-in-mmdb-format/
+    const BROWSER_CACHE_DIR = APP . DS . 'tmp' . DS . 'browscap';
+    const BROWSER_INI_FILE = APP . DS . 'files' . DS . 'browscap'. DS . 'browscap.ini.gz';       // Browscap file managed by MISP - https://browscap.org/stream?q=Lite_PHP_BrowsCapINI
+    const GEOIP_DB_FILE = APP . DS . 'files' . DS . 'geo-open' . DS . 'GeoOpen-Country.mmdb';  // GeoIP file managed by MISP - https://data.public.lu/en/datasets/geo-open-ip-address-geolocation-per-country-in-mmdb-format/
+
+    private $userProfile;
 
     private $knownUserProfiles = [];
 
-    public function _buildBrowscapCache() {
-        $this->log("Browscap - building new cache from browscap.ini file.", "info");
-        $fileCache = new \Doctrine\Common\Cache\FilesystemCache($this->browscapCacheDir);
-        $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
-
+    private function browscapGetBrowser()
+    {
         $logger = new \Monolog\Logger('name');
-        $bc = new \BrowscapPHP\BrowscapUpdater($cache, $logger);
-        $bc->convertFile($this->browscapIniFile);
+
+        if (function_exists('apcu_fetch')) {
+            App::uses('ApcuCacheTool', 'Tools');
+            $cache = new ApcuCacheTool('misp:browscap');
+        } else {
+            $fileCache = new \Doctrine\Common\Cache\FilesystemCache(UserLoginProfile::BROWSER_CACHE_DIR);
+            $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
+        }
+
+        try {
+            $bc = new \BrowscapPHP\Browscap($cache, $logger);
+            return $bc->getBrowser();
+        } catch (\BrowscapPHP\Exception $e) {
+            $this->log("Browscap - building new cache from browscap.ini file.", LOG_INFO);
+            $bcUpdater = new \BrowscapPHP\BrowscapUpdater($cache, $logger);
+            $bcUpdater->convertString(FileAccessTool::readCompressedFile(UserLoginProfile::BROWSER_INI_FILE));
+        }
+
+        $bc = new \BrowscapPHP\Browscap($cache, $logger);
+        return $bc->getBrowser();
+    }
+
+    /**
+     * @param string $ip
+     * @return string|null
+     */
+    public function countryByIp($ip)
+    {
+        if (class_exists('GeoIp2\Database\Reader')) {
+            $geoDbReader = new GeoIp2\Database\Reader(UserLoginProfile::GEOIP_DB_FILE);
+            try {
+                $record = $geoDbReader->country($ip);
+                return $record->country->isoCode;
+            } catch (InvalidArgumentException $e) {
+                $this->logException("Could not get country code for IP address", $e, LOG_NOTICE);
+                return null;
+            }
+        }
+        return null;
     }
 
     public function beforeSave($options = [])
@@ -56,7 +93,8 @@ class UserLoginProfile extends AppModel
         return true;
     }
 
-    public function hash($data) {
+    public function hash(array $data)
+    {
         unset($data['hash']);
         unset($data['created_at']);
         return md5(serialize($data));
@@ -66,23 +104,15 @@ class UserLoginProfile extends AppModel
      * slow function - don't call it too often 
      * @return array
      */
-    public function _getUserProfile() {
+    public function _getUserProfile()
+    {
         if (!$this->userProfile) {
             // below uses https://github.com/browscap/browscap-php 
             if (class_exists('\BrowscapPHP\Browscap')) {
-                try {
-                    $fileCache = new \Doctrine\Common\Cache\FilesystemCache($this->browscapCacheDir);
-                    $cache = new \Roave\DoctrineSimpleCache\SimpleCacheAdapter($fileCache);
-                    $logger = new \Monolog\Logger('name');
-                    $bc = new \BrowscapPHP\Browscap($cache, $logger);
-                    $browser = $bc->getBrowser();
-                } catch (\BrowscapPHP\Exception $e) {
-                    $this->_buildBrowscapCache();
-                    return $this->_getUserProfile();
-                }
+                $browser = $this->browscapGetBrowser();
             } else {
                 // a primitive OS & browser extraction capability
-                $ua = env('HTTP_USER_AGENT');
+                $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
                 $browser = new stdClass();
                 $browser->browser_name_pattern = $ua;
                 if (mb_strpos($ua, 'Linux') !== false)  $browser->platform = "Linux";
@@ -94,17 +124,11 @@ class UserLoginProfile extends AppModel
                 $browser->browser = "browser";
             }
             $ip = $this->_remoteIp();
-            if (class_exists('GeoIp2\Database\Reader')) {
-                $geoDbReader = new GeoIp2\Database\Reader($this->geoIpDbFile);
-                $record = $geoDbReader->country($ip);
-                $country = $record->country->isoCode;
-            } else {
-                $country = 'None';
-            }
+            $country = $this->countryByIp($ip) ?? 'None';
             $this->userProfile = [
-                'user_agent' => env('HTTP_USER_AGENT'),
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
                 'ip' => $ip,
-                'accept_lang' => env('HTTP_ACCEPT_LANGUAGE'),
+                'accept_lang' => $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? null,
                 'geoip' => $country,
                 'ua_pattern' => $browser->browser_name_pattern,
                 'ua_platform' => $browser->platform,
@@ -114,62 +138,82 @@ class UserLoginProfile extends AppModel
         return $this->userProfile;
     }
 
-    public function _fromLog($logEntry) {
-        $data = json_decode('{"user_agent": "", "ip": "", "accept_lang":"", "geoip":"", "ua_pattern":"", "ua_platform":"", "ua_browser":""}', true);
-        $data = array_merge($data, json_decode($logEntry['change'], true) ?? []);
+    /**
+     * @param array $logEntry
+     * @return array|false|string[]
+     * @throws JsonException
+     */
+    public function _fromLog(array $logEntry)
+    {
+        if (!$logEntry['change']) {
+            return false;
+        }
+
+        $data = ["user_agent" => "", "ip" => "", "accept_lang" => "", "geoip" => "", "ua_pattern" => "", "ua_platform" => "", "ua_browser" => ""];
+        $data = array_merge($data, JsonTool::decode($logEntry['change']));
+        if ($data['user_agent'] === "") {
+            return false;
+        }
         $data['ip'] = $logEntry['ip'];
         $data['timestamp'] = $logEntry['created'];
-        if ($data['user_agent'] == "") return false;
         return $data;
     }
 
-    public function _isSimilar($a, $b) {
+    public function _isSimilar($a, $b)
+    {
         // if one is not initialized
         if (!$a || !$b) return false;
         // transition for old logs where UA was not known
         if (!$a['ua_browser']) 
             return false;
         // really similar session, from same browser, region, but different IP
-        if ($a['ua_browser'] == $b['ua_browser'] && 
-            $a['ua_platform'] == $b['ua_platform'] &&
-            $a['accept_lang'] == $b['accept_lang'] &&
-            $a['geoip'] == $b['geoip']) {
+        if ($a['ua_browser'] === $b['ua_browser'] &&
+            $a['ua_platform'] === $b['ua_platform'] &&
+            $a['accept_lang'] === $b['accept_lang'] &&
+            $a['geoip'] === $b['geoip']) {
             return true;
         }
         // similar browser pattern, OS and region
-        if ($a['ua_pattern'] == $b['ua_pattern'] && 
-            $a['ua_platform'] == $b['ua_platform'] &&
-            $a['accept_lang'] == $b['accept_lang'] &&
-            $a['geoip'] == $b['geoip']) {
+        if ($a['ua_pattern'] === $b['ua_pattern'] &&
+            $a['ua_platform'] === $b['ua_platform'] &&
+            $a['accept_lang'] === $b['accept_lang'] &&
+            $a['geoip'] === $b['geoip']) {
             return true;
         }
         return false;
     }
 
-    public function _isIdentical($a, $b) {
-        if ($a['ip'] == $b['ip'] &&
-            $a['ua_browser'] == $b['ua_browser'] && 
-            $a['ua_platform'] == $b['ua_platform'] &&
-            $a['accept_lang'] == $b['accept_lang'] &&
-            $a['geoip'] == $b['geoip']) {
+    public function _isIdentical(array $a, array $b)
+    {
+        if ($a['ip'] === $b['ip'] &&
+            $a['ua_browser'] === $b['ua_browser'] &&
+            $a['ua_platform'] === $b['ua_platform'] &&
+            $a['accept_lang'] === $b['accept_lang'] &&
+            $a['geoip'] === $b['geoip']) {
             return true;
         }
         return false;
     }
 
-    public function _getTrustStatus($userProfileToCheck, $user_id = null) {
-        if (!$user_id) {
-            $user_id = AuthComponent::user('id');
+    /**
+     * @param array $userProfileToCheck
+     * @param int $userId
+     * @return mixed|string
+     */
+    public function _getTrustStatus(array $userProfileToCheck, $userId = null)
+    {
+        if (!$userId) {
+            $userId = AuthComponent::user('id');
         }
         // load Singleton / caching
-        if (!isset($this->knownUserProfiles[$user_id])) {
-            $this->knownUserProfiles[$user_id] = $this->find('all', [
-                'conditions' => ['UserLoginProfile.user_id' => $user_id],
-                'recursive' => 0]
-            );
+        if (!isset($this->knownUserProfiles[$userId])) {
+            $this->knownUserProfiles[$userId] = $this->find('all', [
+                'conditions' => ['UserLoginProfile.user_id' => $userId],
+                'recursive' => -1,
+            ]);
         }
         // perform check on all entries, and stop when check OK
-        foreach ($this->knownUserProfiles[$user_id] as $knownUserProfile) {
+        foreach ($this->knownUserProfiles[$userId] as $knownUserProfile) {
             // when it is the same
             if ($this->_isIdentical($knownUserProfile['UserLoginProfile'], $userProfileToCheck)) {
                 return $knownUserProfile['UserLoginProfile']['status'];
@@ -183,29 +227,28 @@ class UserLoginProfile extends AppModel
         return 'unknown';
     }
     
-    public function _isTrusted() {
+    public function _isTrusted()
+    {
         if (strpos($this->_getTrustStatus($this->_getUserProfile()), 'trusted') !== false) {
             return true;
         }
         return false;
     }
 
-    public function _isSuspicious() {
+    public function _isSuspicious()
+    {
         // previously marked loginuserprofile as malicious by the user
         if (strpos($this->_getTrustStatus($this->_getUserProfile()), 'malicious') !== false) {
-            return _('A user reported a similar login profile as malicious.');
+            return __('A user reported a similar login profile as malicious.');
         }
+
         // same IP as previous malicious user
-        $maliciousWithSameIP = $this->find('first', [
-            'conditions' => [
-                'UserLoginProfile.ip' => $this->_getUserProfile()['ip'],
-                'UserLoginProfile.status' => 'malicious'
-            ],
-            'recursive' => 0,
-            'fields' => array('UserLoginProfile.*')]
-        );
+        $maliciousWithSameIP = $this->hasAny([
+            'UserLoginProfile.ip' => $this->_getUserProfile()['ip'],
+            'UserLoginProfile.status' => 'malicious'
+        ]);
         if ($maliciousWithSameIP) {
-            return _('The source IP was reported as as malicious by a user.');
+            return __('The source IP was reported as as malicious by a user.');
         }
         // LATER - use other data to identify suspicious logins, such as:
         // - what with use-case where a user marks something as legitimate, but is marked by someone else as suspicious?
@@ -214,26 +257,23 @@ class UserLoginProfile extends AppModel
         return false;
     }
 
-    public function email_newlogin($user) {
+    public function emailNewLogin(array $user)
+    {
         if (!Configure::read('MISP.disable_emailing')) {
-            $date_time = date('c');
-
+            $user = $this->User->getUserById($user['id']); // fetch in database format
+            $datetime = date('c'); // ISO 8601 date
             $body = new SendEmailTemplate('userloginprofile_newlogin');
             $body->set('userLoginProfile', $this->User->UserLoginProfile->_getUserProfile());
             $body->set('baseurl', Configure::read('MISP.baseurl'));
             $body->set('misp_org', Configure::read('MISP.org'));
-            $body->set('date_time', $date_time);
+            $body->set('date_time', $datetime);
             // Fetch user that contains also PGP or S/MIME keys for e-mail encryption
-            $result = $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] New sign in.");
-            if ($result) {
-                // all is well, email sent to user
-            } else {
-                // email flow system already logs errors
-            }
+            $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] New sign in.");
         }
     }
 
-    public function email_report_malicious($user, $userLoginProfile) {
+    public function emailReportMalicious(array $user, array $userLoginProfile)
+    {
         // inform the org admin
         $date_time = $userLoginProfile['timestamp']; // LATER not ideal as timestamp is string without timezone info
         $body = new SendEmailTemplate('userloginprofile_report_malicious');
@@ -242,24 +282,23 @@ class UserLoginProfile extends AppModel
         $body->set('baseurl', Configure::read('MISP.baseurl'));
         $body->set('misp_org', Configure::read('MISP.org'));
         $body->set('date_time', $date_time);
-        $org_admins = $this->User->getOrgAdminsForOrg($user['User']['org_id']);
-        $admins = $this->User->getSiteAdmins();
-        $all_admins = array_unique(array_merge($org_admins, $admins));
-        foreach($all_admins as $admin_email) {
+
+        $orgAdmins = array_keys($this->User->getOrgAdminsForOrg($user['User']['org_id']));
+        $admins = array_keys($this->User->getSiteAdmins());
+        $allAdmins = array_unique(array_merge($orgAdmins, $admins));
+
+        $subject = __("[%s MISP] Suspicious login reported.", Configure::read('MISP.org'));
+        foreach ($allAdmins as $adminUserId) {
             $admin = $this->User->find('first', array(
                 'recursive' => -1,
-                'conditions' => ['User.email' => $admin_email]
+                'conditions' => ['User.id' => $adminUserId]
             ));
-            $result = $this->User->sendEmail($admin, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login reported.");
-            if ($result) {
-                // all is well, email sent to user
-            } else {
-                // email flow system already logs errors
-            }
+            $this->User->sendEmail($admin, $body, false, $subject);
         }
     }
 
-    public function email_suspicious($user, $suspiciousness_reason) {
+    public function email_suspicious(array $user, $suspiciousness_reason)
+    {
         if (!Configure::read('MISP.disable_emailing')) {
             $date_time = date('c');
             // inform the user
@@ -271,12 +310,8 @@ class UserLoginProfile extends AppModel
             $body->set('date_time', $date_time);
             $body->set('suspiciousness_reason', $suspiciousness_reason);
             // inform the user
-            $result = $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login with your account.");
-            if ($result) {
-                // all is well, email sent to user
-            } else {
-                // email flow system already logs errors
-            }
+            $this->User->sendEmail($user, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login with your account.");
+
             // inform the org admin
             $body = new SendEmailTemplate('userloginprofile_suspicious_orgadmin');
             $body->set('userLoginProfile', $this->_getUserProfile());
@@ -285,21 +320,15 @@ class UserLoginProfile extends AppModel
             $body->set('misp_org', Configure::read('MISP.org'));
             $body->set('date_time', $date_time);
             $body->set('suspiciousness_reason', $suspiciousness_reason);
-            $org_admins = $this->User->getOrgAdminsForOrg($user['User']['org_id']);
-            foreach($org_admins as $org_admin_email) {
+
+            $orgAdmins = array_keys($this->User->getOrgAdminsForOrg($user['User']['org_id']));
+            foreach ($orgAdmins as $orgAdminID) {
                 $org_admin = $this->User->find('first', array(
                     'recursive' => -1,
-                    'conditions' => ['User.email' => $org_admin_email]
+                    'conditions' => ['User.id' => $orgAdminID]
                 ));
-                $result = $this->User->sendEmail($org_admin, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login detected.");
-                if ($result) {
-                    // all is well, email sent to user
-                } else {
-                    // email flow system already logs errors
-                }
+                $this->User->sendEmail($org_admin, $body, false, "[" . Configure::read('MISP.org') . " MISP] Suspicious login detected.");
             }            
         }
     }
-
-
 }

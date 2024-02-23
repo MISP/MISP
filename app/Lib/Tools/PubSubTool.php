@@ -178,8 +178,12 @@ class PubSubTool
 
     public function killService()
     {
+        $settings = $this->getSetSettings();
+        if ($settings['supervisor_managed']) {
+            throw new RuntimeException('ZeroMQ server is managed by supervisor, it is not possible to restart it.');
+        }
+
         if ($this->checkIfRunning()) {
-            $settings = $this->getSetSettings();
             $redis = $this->createRedisConnection($settings);
             $redis->rPush('command', 'kill');
             sleep(1);
@@ -213,17 +217,27 @@ class PubSubTool
 
     public function restartServer()
     {
+        $settings = $this->getSetSettings();
+        if ($settings['supervisor_managed']) {
+            throw new RuntimeException('ZeroMQ server is managed by supervisor, it is not possible to restart it.');
+        }
+
         if (!$this->checkIfRunning()) {
             if (!$this->killService()) {
                 return 'Could not kill the previous instance of the ZeroMQ script.';
             }
         }
-        $settings = $this->getSetSettings();
         $this->setupPubServer($settings);
         if ($this->checkIfRunning() === false) {
             return 'Failed starting the ZeroMQ script.';
         }
         return true;
+    }
+
+    public function createConfigFile()
+    {
+        $settings = $this->getSetSettings();
+        $this->saveSettingToFile($settings);
     }
 
     /**
@@ -232,6 +246,10 @@ class PubSubTool
      */
     private function setupPubServer(array $settings)
     {
+        if ($settings['supervisor_managed']) {
+            return; // server is managed by supervisor, we don't need to check if is running or start it when not
+        }
+
         if ($this->checkIfRunning() === false) {
             if ($this->checkIfRunning(self::OLD_PID_LOCATION)) {
                 // Old version is running, kill it and start again new one.
@@ -250,6 +268,7 @@ class PubSubTool
      * @param string|array $data
      * @return bool
      * @throws JsonException
+     * @throws RedisException
      */
     private function pushToRedis($ns, $data)
     {
@@ -295,9 +314,12 @@ class PubSubTool
         FileAccessTool::writeToFile($settingFilePath, JsonTool::encode($settings));
     }
 
+    /**
+     * @return array
+     */
     private function getSetSettings()
     {
-        $settings = array(
+        $settings = [
             'redis_host' => 'localhost',
             'redis_port' => 6379,
             'redis_password' => '',
@@ -307,7 +329,8 @@ class PubSubTool
             'port' => '50000',
             'username' => null,
             'password' => null,
-        );
+            'supervisor_managed' => false,
+        ];
 
         $pluginConfig = Configure::read('Plugin');
         foreach ($settings as $key => $setting) {

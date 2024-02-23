@@ -46,7 +46,7 @@ class SystemSetting extends AppModel
     {
         /** @var self $systemSetting */
         $systemSetting = ClassRegistry::init('SystemSetting');
-        if (!$systemSetting->databaseExists()) {
+        if (!$systemSetting->tableExists()) {
             return;
         }
         $settings = $systemSetting->getSettings();
@@ -58,7 +58,7 @@ class SystemSetting extends AppModel
         }
     }
 
-    public function databaseExists()
+    private function tableExists()
     {
         $tables = ConnectionManager::getDataSource($this->useDbConfig)->listSources();
         return in_array('system_settings', $tables, true);
@@ -152,6 +152,32 @@ class SystemSetting extends AppModel
             return true;
         }
         return $this->saveMany($toSave);
+    }
+
+    /**
+     * Check if provided encryption key is valid for all encrypted settings
+     * @param string $encryptionKey
+     * @return bool
+     * @throws Exception
+     */
+    public function isEncryptionKeyValid($encryptionKey)
+    {
+        $settings = $this->find('list', [
+            'fields' => ['SystemSetting.setting', 'SystemSetting.value'],
+        ]);
+        foreach ($settings as $setting => $value) {
+            if (!self::isSensitive($setting)) {
+                continue;
+            }
+            if (EncryptedValue::isEncrypted($value)) {
+                try {
+                    BetterSecurity::decrypt(substr($value, 2), $encryptionKey);
+                } catch (Exception $e) {
+                    throw new Exception("Could not decrypt `$setting` setting.", 0, $e);
+                }
+            }
+        }
+        return true;
     }
 
     /**

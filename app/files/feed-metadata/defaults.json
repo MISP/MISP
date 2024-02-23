@@ -1737,5 +1737,87 @@
       "lookup_visible": true,
       "caching_enabled": true
     }
+  },
+  {
+    "Feed": {
+      "name": "List of malicious hashes",
+      "provider": "Banco do Brasil S.A",
+      "url": "https://cti.bb.com.br:8443/hash-list.csv",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+      "enabled": true,
+      "distribution": "0",
+      "default": false,
+      "source_format": "csv",
+      "fixed_event": true,
+      "delta_merge": false,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"disable_correlation\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false,
+      "headers": "",
+      "caching_enabled": true,
+      "force_to_ids": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004577",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+{
+    "Feed": {
+      "name": "Shreshta: Newly Registered domain names(NRD) - 1 week (Community policy feed)",
+      "provider": "shreshtait.com",
+      "url": "https://shreshtait.com/newly-registered-domains/nrd-1w",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": true,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "Shreshta: Newly Registered domain names (NRD) - 1 month (Community policy feed)",
+      "provider": "shreshtait.com",
+      "url": "https://shreshtait.com/newly-registered-domains/nrd-1m",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": true,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
   }
 ]

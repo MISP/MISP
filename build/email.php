@@ -1,7 +1,7 @@
 <?php
 class EmailConfig {
-    public $default = array(
+    public $default = [
 		'transport' => 'Debug',
-    'log' => true
-    );
+        'log' => true,
+    ];
 }

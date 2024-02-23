@@ -529,7 +529,7 @@ class ServersController extends AppController
             
             if (!$fail) {
                 // say what fields are to be updated
-                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
+                $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'push_analyst_data', 'pull_analyst_data', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
                 $this->request->data['Server']['id'] = $id;
                 if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
@@ -776,7 +776,7 @@ class ServersController extends AppController
             if (!Configure::read('MISP.background_jobs')) {
                 $result = $this->Server->pull($this->Auth->user(), $technique, $s);
                 if (is_array($result)) {
-                    $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
+                    $success = __('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled, %s sightings pulled, %s clusters pulled, %s analyst data pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4], $result[5]);
                 } else {
                     $error = $result;
                 }
@@ -784,6 +784,7 @@ class ServersController extends AppController
                 $this->set('fails', $result[1]);
                 $this->set('pulledProposals', $result[2]);
                 $this->set('pulledSightings', $result[3]);
+                $this->set('pulledAnalystData', $result[5]);
             } else {
                 $this->loadModel('Job');
                 $jobId = $this->Job->createJob(
@@ -1073,7 +1074,7 @@ class ServersController extends AppController
         );
         $dumpResults = array();
         $tempArray = array();
-        foreach ($finalSettings as $k => $result) {
+        foreach ($finalSettings as $result) {
             if ($result['level'] == 3) {
                 $issues['deprecated']++;
             }
@@ -1105,18 +1106,19 @@ class ServersController extends AppController
         $diagnostic_errors = 0;
         App::uses('File', 'Utility');
         App::uses('Folder', 'Utility');
+
         if ($tab === 'correlations') {
             $this->loadModel('Correlation');
             $correlation_metrics = $this->Correlation->collectMetrics();
             $this->set('correlation_metrics', $correlation_metrics);
-        }
-        if ($tab === 'files') {
+        } else if ($tab === 'files') {
             if (!empty(Configure::read('Security.disable_instance_file_uploads'))) {
                 throw new MethodNotAllowedException(__('This functionality is disabled.'));
             }
             $files = $this->Server->grabFiles();
             $this->set('files', $files);
         }
+
         // Only run this check on the diagnostics tab
         if ($tab === 'diagnostics' || $tab === 'download' || $this->_isRest()) {
             $php_ini = php_ini_loaded_file();
@@ -1279,12 +1281,10 @@ class ServersController extends AppController
         $this->set('workerIssueCount', $workerIssueCount);
         $priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
         $this->set('priorityErrorColours', $priorityErrorColours);
-        $this->set('phpversion', phpversion());
+        $this->set('phpversion', PHP_VERSION);
         $this->set('phpmin', $this->phpmin);
         $this->set('phprec', $this->phprec);
         $this->set('phptoonew', $this->phptoonew);
-        $this->set('pythonmin', $this->pythonmin);
-        $this->set('pythonrec', $this->pythonrec);
         $this->set('title_for_layout', __('Diagnostics'));
     }
 
@@ -1770,6 +1770,7 @@ class ServersController extends AppController
                 $perm_sighting = isset($result['info']['perm_sighting']) ? $result['info']['perm_sighting'] : false;
                 $local_version = $this->Server->checkMISPVersion();
                 $version = explode('.', $result['info']['version']);
+                $uuid = isset($result['info']['uuid']) ? $result['info']['uuid'] : '?';
                 $mismatch = false;
                 $newer = false;
                 $parts = array('major', 'minor', 'hotfix');
@@ -1805,6 +1806,7 @@ class ServersController extends AppController
                     'response_encoding' => isset($result['post']['content-encoding']) ? $result['post']['content-encoding'] : null,
                     'request_encoding' => isset($result['info']['request_encoding']) ? $result['info']['request_encoding'] : null,
                     'client_certificate' => $result['client_certificate'],
+                    'uuid' => $uuid,
                 ], 'json');
             } else {
                 $result['status'] = 3;
@@ -1863,7 +1865,7 @@ class ServersController extends AppController
         }
 
         if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            $this->Server->getBackgroundJobsTool()->purgeQueue($worker);
+            $this->Server->getBackgroundJobsTool()->clearQueue($worker);
         } else {
             // CakeResque
             $worker_array = array('cache', 'default', 'email', 'prio');
@@ -1888,6 +1890,8 @@ class ServersController extends AppController
             'perm_sync' => (bool) $user['Role']['perm_sync'],
             'perm_sighting' => (bool) $user['Role']['perm_sighting'],
             'perm_galaxy_editor' => (bool) $user['Role']['perm_galaxy_editor'],
+            'perm_analyst_data' => (bool) $user['Role']['perm_analyst_data'],
+            'uuid' => $user['Role']['perm_sync'] ? Configure::read('MISP.uuid') : '-',
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
             'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
         ];
@@ -2183,7 +2187,7 @@ class ServersController extends AppController
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'addFromJson', false, $this->Server->validationErrors, $this->response->type());
                 } else {
-                    $this->Flash->error(__('Could not save the server. Error: %s', json_encode($this->Server->validationErrors, true)));
+                    $this->Flash->error(__('Could not save the server. Error: %s', json_encode($this->Server->validationErrors)));
                     $this->redirect(array('action' => 'index'));
                 }
             }

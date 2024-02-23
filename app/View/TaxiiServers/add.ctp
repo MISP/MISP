@@ -1,5 +1,4 @@
 <?php
-$modelForForm = 'Cerebrates';
 $edit = $this->request->params['action'] === 'edit' ? true : false;
 $fields = [
     [

@@ -9,16 +9,15 @@ python ./../app/files/scripts/mispzmq/mispzmqtest.py
 python ./../app/files/scripts/generate_file_objects.py -c | python3 -c 'import sys, json; data = json.load(sys.stdin); print(data); sys.exit(0 if len([i for i in data.values() if i is not False]) == 0 else 1)'
 
 # Try to extract data from file
-python ./../app/files/scripts/generate_file_objects.py -p /bin/ls
 python ./../app/files/scripts/generate_file_objects.py -p /bin/ls | python3 -c 'import sys, json; data = json.load(sys.stdin); sys.exit(0 if "objects" in data else 1)'
 
 # Test converting stix1 to MISP format
-curl https://stixproject.github.io/documentation/idioms/c2-indicator/indicator-for-c2-ip-address.xml > ./../app/files/scripts/tmp/test-stix1.xml
+curl -sS --compressed https://stixproject.github.io/documentation/idioms/c2-indicator/indicator-for-c2-ip-address.xml > ./../app/files/scripts/tmp/test-stix1.xml
 python ./../app/files/scripts/stix2misp.py test-stix1.xml 1 1 ./../app/files/scripts/synonymsToTagNames.json | python3 -c 'import sys, json; data = json.load(sys.stdin); print(data); sys.exit(0 if data["success"] == 1 else 1)'
 rm -f ./../app/files/scripts/tmp/{test-stix1.xml,test-stix1.xml.json}
 
 # Test converting stix2 to MISP format
-curl https://raw.githubusercontent.com/oasis-open/cti-stix2-json-schemas/master/examples/indicator-for-c2-ip-address.json > ./../app/files/scripts/tmp/test-stix2.json
+curl -sS --compressed https://raw.githubusercontent.com/oasis-open/cti-stix2-json-schemas/master/examples/indicator-for-c2-ip-address.json > ./../app/files/scripts/tmp/test-stix2.json
 python ./../app/files/scripts/stix2/stix2misp.py -i ./../app/files/scripts/tmp/test-stix2.json --distribution 1 | python3 -c 'import sys, json; data = json.load(sys.stdin); print(data); sys.exit(0 if data["success"] == 1 else 1)'
 rm -f ./../app/files/scripts/tmp/{test-stix2.json,test-stix2.json.stix2}
 

@@ -1,23 +1,22 @@
 <?php
 class ProcessException extends Exception
 {
-    /** @var string|null */
+    /** @var string */
     private $stderr;
 
     /** @var string */
     private $stdout;
 
     /**
-     * @param string|array $command
+     * @param array $command
      * @param int $returnCode
-     * @param string|null $stderr
+     * @param string $stderr
      * @param string $stdout
      */
-    public function __construct($command, $returnCode, $stderr, $stdout)
+    public function __construct(array $command, $returnCode, $stderr, $stdout)
     {
-        $commandForException = is_array($command) ? implode(' ', $command) : $command;
-        $stderrToMessage = $stderr === null ? 'Logged to tmp/logs/exec-errors.log' : "'$stderr'";
-        $message = "Command '$commandForException' finished with error code $returnCode.\nSTDERR: $stderrToMessage\nSTDOUT: '$stdout'";
+        $commandForException = implode(' ', $command);
+        $message = "Command '$commandForException' finished with error code $returnCode.\nSTDERR: '$stderr'\nSTDOUT: '$stdout'";
         $this->stderr = $stderr;
         $this->stdout = $stdout;
         parent::__construct($message, $returnCode);
@@ -41,29 +40,34 @@ class ProcessTool
     /**
      * @param array $command If command is array, it is not necessary to escape arguments
      * @param string|null $cwd
-     * @param bool $stderrToFile IF true, log stderrr output to LOG_FILE
+     * @param bool $logToFile If true, log stderr output to LOG_FILE
      * @return string Stdout
      * @throws ProcessException
      * @throws Exception
      */
-    public static function execute(array $command, $cwd = null, $stderrToFile = false)
+    public static function execute(array $command, $cwd = null, $logToFile = false)
     {
         $descriptorSpec = [
             1 => ['pipe', 'w'], // stdout
             2 => ['pipe', 'w'], // stderr
         ];
 
-        if ($stderrToFile) {
+        if ($logToFile) {
             self::logMessage('Running command ' . implode(' ', $command));
-            $descriptorSpec[2] = ['file', self::LOG_FILE, 'a'];
         }
-
-        // PHP older than 7.4 do not support proc_open with array, so we need to convert values to string manually
-        if (PHP_VERSION_ID < 70400) {
-            $command = array_map('escapeshellarg', $command);
-            $command = implode(' ', $command);
+        if (version_compare(phpversion(), '7.4.0', '<')) {
+            $temp = [];
+            foreach ($command as $k => $part) {
+                if ($k >= 1) {
+                    $part = escapeshellarg($part);
+                }
+                $temp[] = $part;
+            }
+            $command_stringified = implode(' ', $temp);
+            $process = proc_open($command_stringified, $descriptorSpec, $pipes, $cwd);
+        } else {
+            $process = proc_open($command, $descriptorSpec, $pipes, $cwd);
         }
-        $process = proc_open($command, $descriptorSpec, $pipes, $cwd);
         if (!$process) {
             $commandForException = self::commandFormat($command);
             throw new Exception("Command '$commandForException' could be started.");
@@ -75,20 +79,24 @@ class ProcessTool
             throw new Exception("Could not get STDOUT of command '$commandForException'.");
         }
 
-        if ($stderrToFile) {
-            $stderr = null;
-        } else {
-            $stderr = stream_get_contents($pipes[2]);
+        $stderr = stream_get_contents($pipes[2]);
+        if ($stderr === false) {
+            $commandForException = self::commandFormat($command);
+            throw new Exception("Could not get STDERR of command '$commandForException'.");
         }
 
         $returnCode = proc_close($process);
 
-        if ($stderrToFile) {
-            self::logMessage("Process finished with return code $returnCode");
+        if ($logToFile) {
+            self::logMessage("Process finished with return code $returnCode", $stderr);
         }
 
         if ($returnCode !== 0) {
-            throw new ProcessException($command, $returnCode, $stderr, $stdout);
+            $exception = new ProcessException($command, $returnCode, $stderr, $stdout);
+            if ($logToFile && Configure::read('Security.ecs_log')) {
+                EcsLog::handleException($exception);
+            }
+            throw $exception;
         }
 
         return $stdout;
@@ -116,9 +124,17 @@ class ProcessTool
         return Configure::read('MISP.python_bin') ?: 'python3';
     }
 
-    private static function logMessage($message)
+    /**
+     * @param string $message
+     * @param string|null $stderr
+     * @return void
+     */
+    private static function logMessage($message, $stderr = null)
     {
         $logMessage = '[' . date("Y-m-d H:i:s") . ' ' . getmypid() . "] $message\n";
+        if ($stderr) {
+            $logMessage = rtrim($stderr) . "\n" . $logMessage;
+        }
         file_put_contents(self::LOG_FILE, $logMessage, FILE_APPEND | LOCK_EX);
     }
 
@@ -126,8 +142,8 @@ class ProcessTool
      * @param array|string $command
      * @return string
      */
-    private static function commandFormat($command)
+    private static function commandFormat(array $command)
     {
-        return  is_array($command) ? implode(' ', $command) : $command;
+        return implode(' ', $command);
     }
 }

@@ -27,6 +27,7 @@ App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
 App::uses('RedisTool', 'Tools');
 App::uses('BetterCakeEventManager', 'Tools');
+App::uses('Folder', 'Utility');
 
 class AppModel extends Model
 {
@@ -46,6 +47,9 @@ class AppModel extends Model
 
     /** @var Workflow|null */
     private $Workflow;
+
+    public $includeAnalystData;
+    public $includeAnalystDataRecursive;
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
@@ -86,7 +90,8 @@ class AppModel extends Model
         99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
-        117 => false, 118 => false
+        117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
+        123 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -271,6 +276,9 @@ class AppModel extends Model
             case 96:
                 $this->removeDuplicatedUUIDs();
                 $dbUpdateSuccess = $this->updateDatabase('createUUIDsConstraints');
+                break;
+            case 120:
+                $dbUpdateSuccess = $this->moveImages();
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -2006,6 +2014,156 @@ class AppModel extends Model
             case 118:
                 $sqlArray[] = "ALTER TABLE `event_reports` MODIFY `content` mediumtext;";
                 break;
+            case 119:
+                $sqlArray[] = "ALTER TABLE `access_logs` MODIFY `action` varchar(191) NOT NULL";
+                break;
+            case 121:
+                $sqlArray[] = "CREATE TABLE `notes` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `object_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `authors` text,
+                    `org_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `orgc_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `created` datetime DEFAULT CURRENT_TIMESTAMP,
+                    `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
+                    `distribution` tinyint(4) NOT NULL,
+                    `sharing_group_id` int(10) unsigned,
+                    `locked` tinyint(1) NOT NULL DEFAULT 0,
+                    `note` mediumtext,
+                    `language` varchar(16) DEFAULT 'en',
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`),
+                    KEY `object_uuid` (`object_uuid`),
+                    KEY `object_type` (`object_type`),
+                    KEY `org_uuid` (`org_uuid`),
+                    KEY `orgc_uuid` (`orgc_uuid`),
+                    KEY `distribution` (`distribution`),
+                    KEY `sharing_group_id` (`sharing_group_id`)
+                  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
+                $sqlArray[] = "CREATE TABLE `opinions` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `object_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `authors` text,
+                    `org_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `orgc_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `created` datetime DEFAULT CURRENT_TIMESTAMP,
+                    `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
+                    `distribution` tinyint(4) NOT NULL,
+                    `sharing_group_id` int(10) unsigned,
+                    `locked` tinyint(1) NOT NULL DEFAULT 0,
+                    `opinion` int(10) unsigned,
+                    `comment` text,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`),
+                    KEY `object_uuid` (`object_uuid`),
+                    KEY `object_type` (`object_type`),
+                    KEY `org_uuid` (`org_uuid`),
+                    KEY `orgc_uuid` (`orgc_uuid`),
+                    KEY `distribution` (`distribution`),
+                    KEY `sharing_group_id` (`sharing_group_id`),
+                    KEY `opinion` (`opinion`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
+                $sqlArray[] = "CREATE TABLE `relationships` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) CHARACTER SET ascii NOT NULL,
+                    `object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `object_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `authors` text,
+                    `org_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `orgc_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `created` datetime DEFAULT CURRENT_TIMESTAMP,
+                    `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
+                    `distribution` tinyint(4) NOT NULL,
+                    `sharing_group_id` int(10) unsigned,
+                    `locked` tinyint(1) NOT NULL DEFAULT 0,
+                    `relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `related_object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `related_object_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`),
+                    KEY `object_uuid` (`object_uuid`),
+                    KEY `object_type` (`object_type`),
+                    KEY `org_uuid` (`org_uuid`),
+                    KEY `orgc_uuid` (`orgc_uuid`),
+                    KEY `distribution` (`distribution`),
+                    KEY `sharing_group_id` (`sharing_group_id`),
+                    KEY `relationship_type` (`relationship_type`),
+                    KEY `related_object_uuid` (`related_object_uuid`),
+                    KEY `related_object_type` (`related_object_type`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `analyst_data_blocklists` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `analyst_data_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+                    `created` datetime NOT NULL,
+                    `analyst_data_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+                    `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `analyst_data_orgc` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (`id`),
+                    KEY `analyst_data_uuid` (`analyst_data_uuid`),
+                    KEY `analyst_data_orgc` (`analyst_data_orgc`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_analyst_data` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "UPDATE `roles` SET `perm_analyst_data`=1 WHERE `perm_add` = 1;";
+
+                $sqlArray[] = "ALTER TABLE `servers` ADD `push_analyst_data` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_galaxy_clusters`;";
+                $sqlArray[] = "ALTER TABLE `servers` ADD `pull_analyst_data` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_analyst_data`;";
+                break;
+            case 122:
+                $sqlArray[] = "CREATE TABLE `collections` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `org_id` int(10) unsigned NOT NULL,
+                    `orgc_id` int(10) unsigned NOT NULL,
+                    `user_id` int(10) unsigned NOT NULL,
+                    `created` datetime DEFAULT CURRENT_TIMESTAMP,
+                    `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
+                    `distribution` tinyint(4) NOT NULL,
+                    `sharing_group_id` int(10) unsigned,
+                    `name` varchar(191) NOT NULL,
+                    `type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `description` mediumtext,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`),
+                    KEY `name` (`name`),
+                    KEY `type` (`type`),
+                    KEY `org_id` (`org_id`),
+                    KEY `orgc_id` (`orgc_id`),
+                    KEY `user_id` (`user_id`),
+                    KEY `distribution` (`distribution`),
+                    KEY `sharing_group_id` (`sharing_group_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
+                $sqlArray[] = "CREATE TABLE `collection_elements` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `element_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `element_type` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+                    `collection_id` int(10) unsigned NOT NULL,
+                    `description` text,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`),
+                    KEY `element_uuid` (`element_uuid`),
+                    KEY `element_type` (`element_type`),
+                    KEY `collection_id` (`collection_id`),
+                    UNIQUE KEY `unique_element` (`element_uuid`, `collection_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                break;
+            case 123:
+                $sqlArray[] = 'ALTER TABLE `notes` MODIFY `created` datetime NOT NULL';
+                $sqlArray[] = 'ALTER TABLE `opinions` MODIFY `created` datetime NOT NULL;';
+                $sqlArray[] = 'ALTER TABLE `relationships` MODIFY `created` datetime NOT NULL;';
+                $sqlArray[] = 'ALTER TABLE `notes` MODIFY `modified` datetime NOT NULL;';
+                $sqlArray[] = 'ALTER TABLE `opinions` MODIFY `modified` datetime NOT NULL;';
+                $sqlArray[] = 'ALTER TABLE `relationships` MODIFY `modified` datetime NOT NULL;';
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2374,9 +2532,9 @@ class AppModel extends Model
     }
 
     // alternative to the build in notempty/notblank validation functions, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
-    public function valueNotEmpty($value)
+    public function valueNotEmpty(array $value)
     {
-        $field = array_keys($value)[0];
+        $field = array_key_first($value);
         $value = trim($value[$field]);
         if (!empty($value)) {
             return true;
@@ -2384,27 +2542,27 @@ class AppModel extends Model
         return ucfirst($field) . ' cannot be empty.';
     }
 
-    public function valueIsJson($value)
+    public function valueIsJson(array $value)
     {
-        $value = array_values($value)[0];
+        $value = current($value);
         if (!JsonTool::isValid($value)) {
             return __('Invalid JSON.');
         }
         return true;
     }
 
-    public function valueIsID($value)
+    public function valueIsID(array $value)
     {
-        $field = array_keys($value)[0];
+        $field = array_key_first($value);
         if (!is_numeric($value[$field]) || $value[$field] < 0) {
             return 'Invalid ' . ucfirst($field) . ' ID';
         }
         return true;
     }
 
-    public function stringNotEmpty($value)
+    public function stringNotEmpty(array $value)
     {
-        $field = array_keys($value)[0];
+        $field = array_key_first($value);
         $value = trim($value[$field]);
         if (!isset($value) || ($value == false && $value !== "0")) {
             return ucfirst($field) . ' cannot be empty.';
@@ -3267,14 +3425,13 @@ class AppModel extends Model
      * Returns MISP version from VERSION.json file as array with major, minor and hotfix keys.
      *
      * @return array
-     * @throws JsonException
+     * @throws Exception
      */
     public function checkMISPVersion()
     {
         static $versionArray;
         if ($versionArray === null) {
-            $content = FileAccessTool::readFromFile(ROOT . DS . 'VERSION.json');
-            $versionArray = JsonTool::decode($content);
+            $versionArray = FileAccessTool::readJsonFromFile(ROOT . DS . 'VERSION.json', true);
         }
         return $versionArray;
     }
@@ -3290,7 +3447,7 @@ class AppModel extends Model
         if ($commit === null) {
             App::uses('GitTool', 'Tools');
             try {
-                $commit = GitTool::currentCommit();
+                $commit = GitTool::currentCommit(ROOT);
             } catch (Exception $e) {
                 $this->logException('Could not get current git commit', $e, LOG_NOTICE);
                 $commit = false;
@@ -3657,13 +3814,11 @@ class AppModel extends Model
     {
         // If Sentry is installed, send exception to Sentry
         if (function_exists('\Sentry\captureException') && $type === LOG_ERR) {
-            \Sentry\captureException($exception);
+            \Sentry\captureException(new Exception($message, $type, $exception));
         }
 
-        $message .= "\n";
-
         do {
-            $message .= sprintf("[%s] %s", get_class($exception), $exception->getMessage());
+            $message .= sprintf("\n[%s] %s", get_class($exception), $exception->getMessage());
             $message .= "\nStack Trace:\n" . $exception->getTraceAsString();
             $exception = $exception->getPrevious();
         } while ($exception !== null);
@@ -3716,7 +3871,7 @@ class AppModel extends Model
             if (!$isRule) {
                 $args = func_get_args();
                 $fields = $args[1];
-                $or = isset($args[2]) ? $args[2] : true;
+                $or = $args[2] ?? true;
             }
         }
         if (!is_array($fields)) {
@@ -3861,8 +4016,7 @@ class AppModel extends Model
     protected function isMysql()
     {
         $dataSource = ConnectionManager::getDataSource('default');
-        $dataSourceName = $dataSource->config['datasource'];
-        return $dataSourceName === 'Database/Mysql' || $dataSourceName === 'Database/MysqlObserver' || $dataSourceName === 'Database/MysqlExtended' || $dataSource instanceof Mysql;
+        return $dataSource instanceof Mysql;
     }
 
     /**
@@ -3998,21 +4152,21 @@ class AppModel extends Model
         ");
     }
 
-    public function findOrder($order, $order_model, $valid_order_fields)
+    public function findOrder($order, $orderModel, $validOrderFields)
     {
         if (!is_array($order)) {
-            $order_rules = explode(' ', strtolower($order));
-            $order_field = explode('.', $order_rules[0]);
-            $order_field = end($order_field);
-            if (in_array($order_field, $valid_order_fields)) {
+            $orderRules = explode(' ', strtolower($order));
+            $orderField = explode('.', $orderRules[0]);
+            $orderField = end($orderField);
+            if (in_array($orderField, $validOrderFields, true)) {
                 $direction = 'asc';
-                if (!empty($order_rules[1]) && trim($order_rules[1]) === 'desc') {
+                if (!empty($orderRules[1]) && trim($orderRules[1]) === 'desc') {
                     $direction = 'desc';
                 }
             } else {
                 return null;
             }
-            return $order_model . '.' . $order_field . ' ' . $direction;
+            return $orderModel . '.' . $orderField . ' ' . $direction;
         }
         return null;
     }
@@ -4022,24 +4176,49 @@ class AppModel extends Model
      */
     public function _remoteIp()
     {
-        $ipHeader = Configure::read('MISP.log_client_ip_header') ?: null;
-        if ($ipHeader && isset($_SERVER[$ipHeader])) {
-            return trim($_SERVER[$ipHeader]);
+        static $remoteIp;
+
+        if ($remoteIp) {
+            return $remoteIp;
         }
-        return $_SERVER['REMOTE_ADDR'] ?? null;
+
+        $clientIpHeader = Configure::read('MISP.log_client_ip_header');
+        if ($clientIpHeader && isset($_SERVER[$clientIpHeader])) {
+            $headerValue = $_SERVER[$clientIpHeader];
+            // X-Forwarded-For can contain multiple IPs, see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For
+            if (($commaPos = strpos($headerValue, ',')) !== false) {
+                $headerValue = substr($headerValue, 0, $commaPos);
+            }
+            $remoteIp = trim($headerValue);
+        } else {
+            $remoteIp = $_SERVER['REMOTE_ADDR'] ?? null;
+        }
+
+        return $remoteIp;
     }
 
-    public function find($type = 'first', $query = array()) {
+    public function find($type = 'first', $query = array())
+    {
         if (!empty($query['order']) && $this->validOrderClause($query['order']) === false) {
             throw new InvalidArgumentException('Invalid order clause');
         }
-
-        return parent::find($type, $query);
+        $results = parent::find($type, $query);
+        if (!empty($query['includeAnalystData']) && $this->Behaviors->enabled('AnalystDataParent')) {
+            if ($type === 'first') {
+                $results[$this->alias] = array_merge($results[$this->alias], $this->attachAnalystData($results[$this->alias]));
+            } else if ($type === 'all') {
+                foreach ($results as $k => $result) {
+                    $results[$k][$this->alias] = array_merge($results[$k][$this->alias], $this->attachAnalystData($results[$k][$this->alias]));
+                }
+            }
+        }
+        return $results;
     }
 
-    private function validOrderClause($order){
+    private function validOrderClause($order)
+    {
         $pattern = '/^[\w\_\-\.\(\) ]+$/';
-        if(is_string($order) && preg_match($pattern, $order)){
+        if (is_string($order) && preg_match($pattern, $order)) {
             return true;
         }
 
@@ -4048,7 +4227,7 @@ class AppModel extends Model
                 if (is_string($key) && is_string($value) && preg_match($pattern, $key) && in_array(strtolower($value), ['asc', 'desc'])) {
                     return true;
                 }
-                if(is_numeric($key) && is_string($value) && preg_match($pattern, $value)){
+                if (is_numeric($key) && is_string($value) && preg_match($pattern, $value)) {
                     return true;
                 }
             }
@@ -4057,8 +4236,35 @@ class AppModel extends Model
         return false;
     }
 
-    public function checkParam($param)
+    private function checkParam($param)
     {
         return preg_match('/^[\w\_\-\. ]+$/', $param);
+    }
+
+    public function moveImages()
+    {
+        $oldImageDir = APP . 'webroot/img';
+        $newImageDir = APP . 'files/img';
+        $oldOrgDir = new Folder($oldImageDir . '/orgs');
+        $oldCustomDir = new Folder($oldImageDir . '/custom');
+        $result = $oldOrgDir->copy([
+            'from' => $oldImageDir . '/orgs',
+            'to' => $newImageDir . '/orgs',
+            'scheme' => Folder::OVERWRITE,
+            'recursive' => true
+        ]);
+        if ($result) {
+            $oldOrgDir->delete();
+        }
+        $result = $oldCustomDir->copy([
+            'from' => $oldImageDir . '/custom',
+            'to' => $newImageDir . '/custom',
+            'scheme' => Folder::OVERWRITE,
+            'recursive' => true
+        ]);
+        if ($result) {
+            $oldCustomDir->delete();
+        }
+        return true;
     }
 }

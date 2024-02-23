@@ -1,10 +1,11 @@
 <?php
 App::uses('AppHelper', 'View/Helper');
+App::uses('FileAccessTool', 'Lib/Tools');
 
 // Helper to retrieve org images with the given parameters
 class OrgImgHelper extends AppHelper
 {
-    const IMG_PATH = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS;
+    const IMG_PATH = APP . 'files' . DS . 'img' . DS . 'orgs' . DS;
 
     /** @var array */
     private $imageCache = [];
@@ -21,8 +22,8 @@ class OrgImgHelper extends AppHelper
             $link = $baseurl . '/organisations/view/' . (empty($organisation['Organisation']['id']) ? h($organisation['Organisation']['name']) : h($organisation['Organisation']['id']));
         }
         if ($orgImgName) {
-            $orgImgUrl = $baseurl . '/img/orgs/' . $orgImgName;
-            return sprintf('<a href="%s" style="background-image: url(\'%s\')" class="orgImg">%s</a>', $link, $orgImgUrl, h($organisation['Organisation']['name']));
+            $base64 = $this->_View->Image->base64(self::IMG_PATH . $orgImgName);
+            return sprintf('<a href="%s" style="background-image: url(\'%s\')" class="orgImg">%s</a>', $link, $base64, h($organisation['Organisation']['name']));
         } else {
             return sprintf('<a href="%s">%s</a>', $link, h($organisation['Organisation']['name']));
         }
@@ -55,9 +56,8 @@ class OrgImgHelper extends AppHelper
         if ($orgImgName) {
             $size = !empty($options['size']) ? $options['size'] : 48;
             $result = sprintf(
-                '<img src="%s/img/orgs/%s" title="%s" width="%s" height="%s">',
-                $baseurl,
-                $orgImgName,
+                '<img src="%s" title="%s" width="%s" height="%s">',
+                $this->_View->Image->base64(self::IMG_PATH . $orgImgName),
                 isset($options['name']) ? h($options['name']) : h($options['id']),
                 (int)$size,
                 (int)$size

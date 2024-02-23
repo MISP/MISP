@@ -11,16 +11,20 @@ class Stix2Export extends StixExport
     {
         return [
             ProcessTool::pythonBin(),
-            $this->__framing_script,
+            self::FRAMING_SCRIPT,
             'stix2',
             '-v', $this->__version,
             '--uuid', CakeText::uuid(),
         ];
     }
 
+    /**
+     * @return string
+     * @throws Exception
+     */
     protected function __parse_misp_data()
     {
-        $scriptFile = $this->__scripts_dir . 'stix2/misp2stix2.py';
+        $scriptFile = self::SCRIPTS_DIR . 'stix2/misp2stix2.py';
         $command = [
             ProcessTool::pythonBin(),
             $scriptFile,
@@ -28,7 +32,11 @@ class Stix2Export extends StixExport
             '-i',
         ];
         $command = array_merge($command, $this->__filenames);
-        $result = ProcessTool::execute($command, null, true);
+        try {
+            $result = ProcessTool::execute($command, null, true);
+        } catch (ProcessException $e) {
+            $result = $e->stdout();
+        }
         $result = preg_split("/\r\n|\n|\r/", trim($result));
         return end($result);
     }

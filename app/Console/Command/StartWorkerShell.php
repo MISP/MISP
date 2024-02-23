@@ -37,24 +37,32 @@ class StartWorkerShell extends AppShell
 
     public function main()
     {
+        $pid = getmypid();
+        if ($pid === false) {
+            throw new RuntimeException("Could not get current process ID");
+        }
+
         $this->worker = new Worker(
             [
-                'pid' => getmypid(),
+                'pid' => $pid,
                 'queue' => $this->args[0],
                 'user' => ProcessTool::whoami(),
             ]
         );
 
         $this->maxExecutionTime = (int)$this->params['maxExecutionTime'];
+        $queue = $this->worker->queue();
+        $backgroundJobTool = $this->getBackgroundJobsTool();
 
-        CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - starting to process background jobs...");
+        CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$queue}] - starting to process background jobs...");
 
         while (true) {
             $this->checkMaxExecutionTime();
 
-            $job = $this->getBackgroundJobsTool()->dequeue($this->worker->queue());
+            $job = $backgroundJobTool->dequeue($queue);
             if ($job) {
                 $this->runJob($job);
+                $backgroundJobTool->removeFromRunning($this->worker, $job);
             }
         }
     }
@@ -64,7 +72,7 @@ class StartWorkerShell extends AppShell
      */
     private function runJob(BackgroundJob $job)
     {
-        CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - launching job with ID: {$job->id()}...");
+        CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - launching job with ID: {$job->id()}");
 
         try {
             $job->setStatus(BackgroundJob::STATUS_RUNNING);
@@ -73,12 +81,16 @@ class StartWorkerShell extends AppShell
             CakeLog::info("[JOB ID: {$job->id()}] - started command `$command`.");
             $this->getBackgroundJobsTool()->update($job);
 
-            $job->run();
+            $start = microtime(true);
+            $job->run(function (array $status) use ($job) {
+                $this->getBackgroundJobsTool()->markAsRunning($this->worker, $job, $status['pid']);
+            });
+            $duration = number_format(microtime(true) - $start, 3, '.', '');
 
             if ($job->status() === BackgroundJob::STATUS_COMPLETED) {
-                CakeLog::info("[JOB ID: {$job->id()}] - completed.");
+                CakeLog::info("[JOB ID: {$job->id()}] - successfully completed in $duration seconds.");
             } else {
-                CakeLog::error("[JOB ID: {$job->id()}] - failed with error code {$job->returnCode()}. STDERR: {$job->error()}. STDOUT: {$job->output()}.");
+                CakeLog::error("[JOB ID: {$job->id()}] - failed with error code {$job->returnCode()} after $duration seconds. STDERR: {$job->error()}. STDOUT: {$job->output()}.");
             }
         } catch (Exception $exception) {
             CakeLog::error("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - job ID: {$job->id()} failed with exception: {$exception->getMessage()}");

@@ -24,7 +24,6 @@ tools/mkdocs
 /.idea
 .DS_Store
 /.htaccess
-/app/Vendor
 /README
 /app/tmp/GPG*
 /app/tmp/sessions/sess_*
@@ -40,6 +39,7 @@ tools/mkdocs
 /app/tmp/cache/feeds/*.etag
 app/Lib/EventWarning/Custom/*
 !app/Lib/EventWarning/Custom/empty
+!/app/files/certs/empty
 !/app/files/feed-metadata
 !/app/files/empty
 !/app/files/scripts/
@@ -69,7 +69,6 @@ app/Lib/EventWarning/Custom/*
 /app/files/scripts/stix2/*
 !/app/files/scripts/stix2/misp2stix2*.py
 !/app/files/scripts/stix2/stix2misp*.py
-!/app/files/empty
 /app/files/terms/*
 !/app/files/terms/empty
 !/app/files/browscap
@@ -83,6 +82,15 @@ app/Lib/EventWarning/Custom/*
 !/app/webroot/img/orgs/MISP.png
 !/app/webroot/img/orgs/NATO.png
 !/app/webroot/img/orgs/NCIRC.png
+/app/files/img/custom/*
+!/app/files/img/custom/empty
+!/app/files/img/orgs
+/app/files/img/orgs/*
+!/app/files/img/orgs/ADMIN.png
+!/app/files/img/orgs/MIL.be.png
+!/app/files/img/orgs/MISP.png
+!/app/files/img/orgs/NATO.png
+!/app/files/img/orgs/NCIRC.png
 /app/Config/bootstrap.php
 /app/Config/database.php
 /app/Config/core.php

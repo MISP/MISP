@@ -9,10 +9,7 @@ class JsonTool
      */
     public static function encode($value, $prettyPrint = false)
     {
-        $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
-        if (defined('JSON_THROW_ON_ERROR')) {
-            $flags |= JSON_THROW_ON_ERROR; // Throw exception on error if supported
-        }
+        $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR;
         if ($prettyPrint) {
             $flags |= JSON_PRETTY_PRINT;
         }
@@ -34,16 +31,8 @@ class JsonTool
             } catch (SimdJsonException $e) {
                 throw new JsonException($e->getMessage(), $e->getCode(), $e);
             }
-        } elseif (defined('JSON_THROW_ON_ERROR')) {
-            // JSON_THROW_ON_ERROR is supported since PHP 7.3
-            return json_decode($value, true, 512, JSON_THROW_ON_ERROR);
-        } else {
-            $decoded = json_decode($value, true);
-            if ($decoded === null) {
-                throw new UnexpectedValueException('Could not parse JSON: ' . json_last_error_msg(), json_last_error());
-            }
-            return $decoded;
         }
+        return json_decode($value, true, 512, JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -77,5 +66,40 @@ class JsonTool
         } catch (Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * @see https://www.php.net/manual/en/function.array-is-list.php
+     * @param array $array
+     * @return bool
+     */
+    public static function arrayIsList(array $array)
+    {
+        if (function_exists('array_is_list')) {
+            return array_is_list($array);
+        }
+
+        $i = -1;
+        foreach ($array as $k => $v) {
+            ++$i;
+            if ($k !== $i) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * JSON supports just unicode strings. This helper method converts non unicode chars to Unicode Replacement Character U+FFFD (UTF-8)
+     * @param string $string
+     * @return string
+     */
+    public static function escapeNonUnicode($string)
+    {
+        if (mb_check_encoding($string, 'UTF-8')) {
+            return $string; // string is valid unicode
+        }
+
+        return htmlspecialchars_decode(htmlspecialchars($string, ENT_SUBSTITUTE, 'UTF-8'));
     }
 }

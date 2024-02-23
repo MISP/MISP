@@ -1,3 +1,10 @@
+<?php
+$humanReadableFilesize = function ($bytes, $dec = 2) {
+    $size = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    $factor = floor((strlen($bytes) - 1) / 3);
+    return sprintf("%.{$dec}f&nbsp;%s", ($bytes / (1024 ** $factor)), $size[$factor]);
+};
+?>
 <div style="border:1px solid #dddddd; margin-top:1px; width:100%; padding:10px">
     <p><?php echo __('Below you will find a list of the uploaded files based on type.');?></p>
     <?php
@@ -5,13 +12,13 @@
     ?>
         <h3><?php echo h($file['name']); ?></h3>
         <div>
-            <b><?php echo __('Description');?></b>: <?php echo $file['description']; ?><br />
-            <b><?php echo __('Expected Format');?></b>: <?php echo h($file['valid_format']);?><br />
-            <b><?php echo __('Path');?></b>:  <?php echo h($file['path']);?><br />
+            <b><?php echo __('Description');?></b>: <?php echo $file['description']; ?><br>
+            <b><?php echo __('Expected Format');?></b>: <?php echo h($file['valid_format']);?><br>
+            <b><?php echo __('Path');?></b>:  <?php echo h($file['path']);?><br>
             <?php
                 if (!empty($file['expected'])):
             ?>
-                <b><?php echo __('Files set for each relevant setting');?>:</b><br />
+                <b><?php echo __('Files set for each relevant setting');?>:</b><br>
                 <ul>
                     <?php foreach ($file['expected'] as $expectedKey => $expectedValue):
                         $colour = 'red';
@@ -24,7 +31,7 @@
                 endif;
             ?>
         </div>
-        <table class="table table-striped table-hover table-condensed" style="width:600px;">
+        <table class="table table-striped table-hover table-condensed" style="width:700px">
             <tr>
                 <th><?php echo __('Filename');?></th>
                 <th><?php echo __('Used by');?></th>
@@ -35,19 +42,10 @@
                 <?php
                     foreach ($file['files'] as $f):
                         $permission = "";
+                        if ($f['link']) $permission .= "l";
                         if ($f['read']) $permission .= "r";
                         if ($f['write']) $permission .= "w";
                         if ($f['execute']) $permission .= "x";
-                        $sizeUnit = "B";
-                        if (($f['filesize'] / 1024) > 1) {
-                            $f['filesize'] = $f['filesize'] / 1024;
-                            $sizeUnit = "KB";
-                            if (($f['filesize'] / 1024) > 1) {
-                                $f['filesize'] = $f['filesize'] / 1024;
-                                $sizeUnit = "MB";
-                            }
-                            $f['filesize'] = round($f['filesize'], 1);
-                        }
                     ?>
                     <tr>
                         <td><?php echo h($f['filename']);?></td>
@@ -55,7 +53,7 @@
                             <?php
                                 if ($k != 'orgs'):
                                     foreach ($file['expected'] as $ek => $ev):
-                                        if ($f['filename'] == $ev) echo h($ek) . "<br />";
+                                        if ($f['filename'] == $ev) echo h($ek) . "<br>";
                                     endforeach;
                                 else:
                                     echo __('N/A');
@@ -63,7 +61,7 @@
                             ?>
                         </td>
                         <td width="75px;">
-                            <?php echo h($f['filesize']) . ' ' . $sizeUnit;?>
+                            <?= $humanReadableFilesize($f['filesize'], 1) ?>
                         </td>
                         <td class="short">
                             <?php echo $permission;?>
@@ -93,5 +91,4 @@
             echo $this->Form->end();
         endforeach;
     ?>
-
 </div>

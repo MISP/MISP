@@ -37,6 +37,10 @@ class MispAdminSyncTestWidget
                     $colour = 'orange';
                     $message .= ' ' . __('No sighting access.');
                 }
+                if (empty($result['info']['perm_analyst_data'])) {
+                    $colour = 'orange';
+                    $message .= ' ' . __('No analyst data sync access.');
+                }
             } else {
                 $colour = 'red';
                 $message = $syncTestErrorCodes[$result['status']];

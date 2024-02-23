@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.0
 
 info:
   title: MISP Automation API
@@ -2908,7 +2908,7 @@ components:
         to_ids:
           $ref: "#/components/schemas/ToIDSRestSearchFlag"
         deleted:
-          $ref: "#/components/schemas/SoftDeletedFlag"
+          $ref: "#/components/schemas/SoftDeletedFlagValuesToInclude"
         event_timestamp:
           $ref: "#/components/schemas/Timestamp"
         threat_level_id:
@@ -5433,6 +5433,11 @@ components:
       type: boolean
       default: false
 
+    SoftDeletedFlagValuesToInclude:
+      description: 'Whether to include soft-deleted attributes. Default value 0. If set to 1, only deleted attributes will be returned. If set to [0,1], both deleted and non-deleted attributes wil be returned.'
+      type: boolean
+      default: false
+
     PublishedFlag:
       type: boolean
       default: false
@@ -6469,7 +6474,7 @@ components:
               to_ids:
                 $ref: "#/components/schemas/ToIDS"
               deleted:
-                $ref: "#/components/schemas/SoftDeletedFlag"
+                $ref: "#/components/schemas/SoftDeletedFlagValuesToInclude"
               excludeLocalTags:
                 $ref: "#/components/schemas/ExcludeLocalTagsRestSearchFilter"
               date:

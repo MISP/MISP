@@ -51,7 +51,7 @@
         'label' => __('Include the original imported file as attachment')
     ));
     if ($me['Role']['perm_site_admin'] || $me['Role']['perm_galaxy_editor']) {
-        $galaxiesFormInfo = $this-> element(
+        $galaxiesFormInfo = $this->element(
             'genericElements/Form/formInfo',
             [
                 'field' => [
@@ -130,12 +130,9 @@
 <script>
 $(function(){
     $('#EventDistribution').change(function() {
-        if ($(this).val() == 4) {
-            $('#SGContainer').show();
-        } else {
-            $('#SGContainer').hide();
-        }
-    }).change();
+        checkSharingGroup('Event');
+    });
+    checkSharingGroup('Event');
 });
 $(function(){
     $('#EventGalaxiesHandling').change(function() {

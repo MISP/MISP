@@ -78,9 +78,13 @@ class StixExport:
             if self._parser.errors:
                 self._handle_errors()
             print(json.dumps(results))
+
         except Exception as e:
-            print(json.dumps({'error': e.__str__()}))
+            error = type(e).__name__ + ': ' + e.__str__()
+            print(json.dumps({'error': error}))
             traceback.print_tb(e.__traceback__)
+            print(error, file=sys.stderr)
+            sys.exit(1)
 
 
 class StixAttributesExport(StixExport):
@@ -157,19 +161,23 @@ class StixEventsExport(StixExport):
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description='Export MISP into STIX1.')
-    argparser.add_argument('-s', '--scope', default='Event', choices=['Attribute', 'Event'], help='Scope: which kind of data is exported.')
-    argparser.add_argument('-v', '--version', default='1.1.1', choices=['1.1.1', '1.2'], help='STIX version (1.1.1 or 1.2).')
-    argparser.add_argument('-f', '--format', default='xml', choices=['json', 'xml'], help='Output format (xml or json).')
+    argparser.add_argument('-s', '--scope', default='Event', choices=('Attribute', 'Event'), help='Scope: which kind of data is exported.')
+    argparser.add_argument('-v', '--version', default='1.1.1', choices=('1.1.1', '1.2'), help='STIX version (1.1.1 or 1.2).')
+    argparser.add_argument('-f', '--format', default='xml', choices=('json', 'xml'), help='Output format (xml or json).')
     argparser.add_argument('-i', '--input', nargs='+', help='Input file(s) containing MISP standard format.')
     argparser.add_argument('-o', '--orgname', default='MISP', help='Default Org name to use if no Orgc value is provided.')
     argparser.add_argument('-d', '--debug', action='store_true', help='Allow debug mode with warnings.')
     try:
         args = argparser.parse_args()
-        if args.input is None:
-            print(json.dumps({'error': 'No input file provided.'}))
-        else:
-            arguments = (args.orgname, args.format, args.version, args.debug)
-            exporter = globals()[f'Stix{args.scope}sExport'](*arguments)
-            exporter.parse_misp_files(args.input)
     except SystemExit:
         print(json.dumps({'error': 'Arguments error, please check you entered a valid version and provided input file names.'}))
+        sys.exit(1)
+
+    if args.input is None:
+        print(json.dumps({'error': 'No input file provided.'}))
+        sys.exit(1)
+
+    arguments = (args.orgname, args.format, args.version, args.debug)
+    exporter = globals()[f'Stix{args.scope}sExport'](*arguments)
+    exporter.parse_misp_files(args.input)
+    sys.exit(0)

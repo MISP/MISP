@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../Lib/Tools/JsonTool.php';
 require_once __DIR__ . '/../Lib/Tools/JSONConverterTool.php';
 
 use PHPUnit\Framework\TestCase;
@@ -57,11 +58,6 @@ class JSONConverterToolTest extends TestCase
         $jsonNormalWithoutSpaces = preg_replace("/\s+/", "", JSONConverterTool::convert($event));
         $this->assertEquals($jsonNormalWithoutSpaces, $jsonStreamWithoutSpaces);
 
-        if (defined('JSON_THROW_ON_ERROR')) {
-            json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-            $this->assertTrue(true);
-        } else {
-            $this->assertNotNull(json_decode($json));
-        }
+        $this->assertTrue(JsonTool::isValid($json));
     }
 }

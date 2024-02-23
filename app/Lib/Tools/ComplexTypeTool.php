@@ -308,14 +308,13 @@ class ComplexTypeTool
      */
     private function parseFreetext($input)
     {
-        $input = str_replace("\xc2\xa0", ' ', $input); // non breaking space to normal space
-        $input = preg_replace('/\p{C}+/u', ' ', $input);
-        $iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|\<|\>|;/", $input);
+        // convert non breaking space to normal space and all unicode chars from "other" category
+        $input = preg_replace("/\p{C}+|\xc2\xa0/u", ' ', $input);
+        $iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|<|>|;/", $input);
 
         preg_match_all('/\"([^\"]+)\"/', $input, $matches);
-        foreach ($matches[1] as $match) {
-            $iocArray[] = $match;
-        }
+        array_push($iocArray, ...$matches[1]);
+
         return $iocArray;
     }
 

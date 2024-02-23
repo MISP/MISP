@@ -11,7 +11,7 @@ class Stix1Export extends StixExport
     {
         return [
             ProcessTool::pythonBin(),
-            $this->__framing_script,
+            self::FRAMING_SCRIPT,
             'stix1',
             '-s', $this->__scope,
             '-v', $this->__version,
@@ -25,7 +25,7 @@ class Stix1Export extends StixExport
     {
         $command = [
             ProcessTool::pythonBin(),
-            $this->__scripts_dir . 'misp2stix.py',
+            self::SCRIPTS_DIR . 'misp2stix.py',
             '-s', $this->__scope,
             '-v', $this->__version,
             '-f', $this->__return_format,
@@ -33,6 +33,10 @@ class Stix1Export extends StixExport
             '-i',
         ];
         $command = array_merge($command, $this->__filenames);
-        return ProcessTool::execute($command, null, true);
+        try {
+            return ProcessTool::execute($command, null, true);
+        } catch (ProcessException $e) {
+            return $e->stdout();
+        }
     }
 }

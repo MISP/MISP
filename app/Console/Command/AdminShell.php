@@ -46,11 +46,11 @@ class AdminShell extends AppShell
             'help' => __('Update the JSON definition of taxonomies.'),
         ));
         $parser->addSubcommand('setSetting', [
-            'help' => __('Set setting in PHP config file.'),
+            'help' => __('Set setting in MISP config'),
             'parser' => [
                 'arguments' => [
                     'name' => ['help' => __('Setting name'), 'required' => true],
-                    'value' => ['help' => __('Setting value'), 'required' => true],
+                    'value' => ['help' => __('Setting value')],
                 ],
                 'options' => [
                     'force' => [
@@ -72,7 +72,7 @@ class AdminShell extends AppShell
             'help' => __('Set if MISP instance is live and accessible for users.'),
             'parser' => [
                 'arguments' => [
-                    'state' => ['help' => __('Set Live state')],
+                    'state' => ['help' => __('Set Live state (boolean). If not provided, current state will be printed.')],
                 ],
             ],
         ]);
@@ -82,6 +82,14 @@ class AdminShell extends AppShell
                 'options' => [
                     'old' => ['help' => __('Old key. If not provided, current key will be used.')],
                     'new' => ['help' => __('New key. If not provided, new key will be generated.')],
+                ],
+            ],
+        ]);
+        $parser->addSubcommand('isEncryptionKeyValid', [
+            'help' => __('Check if current encryption key is valid.'),
+            'parser' => [
+                'options' => [
+                    'encryptionKey' => ['help' => __('Encryption key to test. If not provided, current key will be used.')],
                 ],
             ],
         ]);
@@ -108,6 +116,20 @@ class AdminShell extends AppShell
         ]);
         $parser->addSubcommand('configLint', [
             'help' => __('Check if settings has correct value.'),
+        ]);
+        $parser->addSubcommand('createZmqConfig', [
+            'help' => __('Create config file for ZeroMQ server.'),
+        ]);
+        $parser->addSubcommand('scanAttachment', [
+            'help' => __('Scan attachments with AV.'),
+            'parser' => [
+                'arguments' => [
+                    'type' => ['help' => __('all, Attribute or ShadowAttribute'), 'required' => true],
+                    'attributeId' => ['help' => __('ID to scan.')],
+                    'jobId' => ['help' => __('Job ID')],
+
+                ],
+            ],
         ]);
         return $parser;
     }
@@ -485,32 +507,47 @@ class AdminShell extends AppShell
                 }
             }
         }
-        echo json_encode($result, JSON_PRETTY_PRINT) . PHP_EOL;
+        $this->out($this->json($result));
   }
 
     public function setSetting()
     {
-        list($setting_name, $value) = $this->args;
-        if ($value === 'false') {
-            $value = 0;
-        } elseif ($value === 'true') {
-            $value = 1;
-        }
-        if ($this->params['null']) {
+        list($settingName) = $this->args;
+
+        if ($this->params['null'] && isset($this->args[1])) {
+            $this->error(__('Trying to set setting to null value, but value was provided.'));
+        } else if ($this->params['null']) {
             $value = null;
+        } elseif (isset($this->args[1])) {
+            $value = $this->args[1];
+        } else {
+            $this->error(__('No setting value provided.'));
         }
-        $cli_user = array('id' => 0, 'email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'));
-        if (empty($setting_name) || ($value === null && !$this->params['null'])) {
-            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Set setting'] . PHP_EOL);
-        }
-        $setting = $this->Server->getSettingData($setting_name);
+
+        $setting = $this->Server->getSettingData($settingName);
         if (empty($setting)) {
-            $message =  'Invalid setting "' . $setting_name . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
+            $message = 'Invalid setting "' . $settingName . '". Please make sure that the setting that you are attempting to change exists and if a module parameter, the modules are running.' . PHP_EOL;
             $this->error(__('Setting change rejected.'), $message);
         }
-        $result = $this->Server->serverSettingsEditValue($cli_user, $setting, $value, $this->params['force']);
+
+        // Convert value to boolean or to int
+        if ($value !== null) {
+            if ($setting['type'] === 'boolean') {
+                $value = $this->toBoolean($value);
+            } else if ($setting['type'] === 'numeric') {
+                if (is_numeric($value)) {
+                    $value = (int)$value;
+                } elseif ($value === 'true' || $value === 'false') {
+                    $value = $value === 'true' ? 1 : 0; // special case for `debug` setting
+                } else {
+                    $this->error(__('Setting "%s" change rejected.', $settingName), __('Provided value %s is not a number.', $value));
+                }
+            }
+        }
+
+        $result = $this->Server->serverSettingsEditValue('SYSTEM', $setting, $value, $this->params['force']);
         if ($result === true) {
-            $this->out(__('Setting "%s" changed to %s', $setting_name, is_string($value) ? '"' . $value . '"' : (string)$value));
+            $this->out(__('Setting "%s" changed to %s', $settingName, is_string($value) ? '"' . $value . '"' : json_encode($value)));
         } else {
             $message = __("The setting change was rejected. MISP considers the requested setting value as invalid and would lead to the following error:\n\n\"%s\"\n\nIf you still want to force this change, please supply the --force argument.\n", $result);
             $this->error(__('Setting change rejected.'), $message);
@@ -648,6 +685,8 @@ class AdminShell extends AppShell
      */
     public function change_authkey()
     {
+        $this->deprecated('cake user change_authkey [user_id]');
+
         if (empty($this->args[0])) {
             echo 'MISP apikey command line tool' . PHP_EOL . 'To assign a new random API key for a user: ' . APP . 'Console/cake Admin change_authkey [user_email]' . PHP_EOL . 'To assign a fixed API key: ' . APP . 'Console/cake Admin change_authkey [user_email] [authkey]' . PHP_EOL;
             die();
@@ -787,6 +826,8 @@ class AdminShell extends AppShell
      */
     public function UserIP()
     {
+        $this->deprecated('cake user user_ips [user_id]');
+
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get IPs for user ID'] . PHP_EOL);
         }
@@ -814,6 +855,8 @@ class AdminShell extends AppShell
      */
     public function IPUser()
     {
+        $this->deprecated('cake user ip_user [ip]');
+
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get user ID for user IP'] . PHP_EOL);
         }
@@ -839,8 +882,8 @@ class AdminShell extends AppShell
     public function scanAttachment()
     {
         $input = $this->args[0];
-        $attributeId = isset($this->args[1]) ? $this->args[1] : null;
-        $jobId = isset($this->args[2]) ? $this->args[2] : null;
+        $attributeId = $this->args[1] ?? null;
+        $jobId = $this->args[2] ?? null;
 
         $this->loadModel('AttachmentScan');
         $result = $this->AttachmentScan->scan($input, $attributeId, $jobId);
@@ -951,7 +994,7 @@ class AdminShell extends AppShell
             $newStatus = $this->toBoolean($this->args[0]);
             $overallSuccess = false;
             try {
-                $redis = $this->Server->setupRedisWithException();
+                $redis = RedisTool::init();
                 if ($newStatus) {
                     $redis->del('misp:live');
                     $this->out('Set live status to True in Redis.');
@@ -980,7 +1023,7 @@ class AdminShell extends AppShell
         } else {
             $this->out('Current status:');
             $this->out('PHP Config file: ' . (Configure::read('MISP.live') ? 'True' : 'False'));
-            $newStatus = $this->Server->setupRedisWithException()->get('misp:live');
+            $newStatus = RedisTool::init()->get('misp:live');
             $this->out('Redis: ' . ($newStatus !== '0' ? 'True' : 'False'));
         }
     }
@@ -1029,6 +1072,27 @@ class AdminShell extends AppShell
         }
 
         $this->out(__('New encryption key "%s" saved into config file.', $new));
+    }
+
+    public function isEncryptionKeyValid()
+    {
+        $encryptionKey = $this->params['encryptionKey'] ?? null;
+        if ($encryptionKey === null) {
+            $encryptionKey = Configure::read('Security.encryption_key');
+        }
+        if (!$encryptionKey) {
+            $this->error('No encryption key provided');
+        }
+
+        /** @var SystemSetting $systemSetting */
+        $systemSetting = ClassRegistry::init('SystemSetting');
+
+        try {
+            $systemSetting->isEncryptionKeyValid($encryptionKey);
+            $this->Server->isEncryptionKeyValid($encryptionKey);
+        } catch (Exception $e) {
+            $this->error($e->getMessage(), __('Probably provided encryption key is invalid'));
+        }
     }
 
     public function redisMemoryUsage()
@@ -1239,5 +1303,11 @@ class AdminShell extends AppShell
             $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
             $this->Job->saveField('message', __('Database truncated: ' . $table));
         }
+    }
+
+    public function createZmqConfig()
+    {
+        $this->Server->getPubSubTool()->createConfigFile();
+        $this->err("Config file created in " . PubSubTool::SCRIPTS_TMP);
     }
 }

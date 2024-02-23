@@ -29,7 +29,7 @@ MISP is an open source software and it is also a large community of MISP users c
 
 ## Known Existing and Public MISP Communities
 
-Each community might have specific rules to join them. Below is a brief overview of existing communities, feel free to contact the respective communities that fit your organization. Some of existing public communities might be interconnected and some might be in an island mode. By running MISP, these communities usually allow their members to connect using the MISP API, MISP user-interface or even to synchronize your MISP instance with their communities. If you want to add your MISP community to the list, don't hesitate to [contact us](mailto:info@misp-project.org).
+Each community might have specific rules to join them. Below is a brief overview of existing communities, feel free to contact the respective communities that fit your organization. Some of existing public communities might be interconnected and some might be in an island mode. By running MISP, these communities usually allow their members to connect using the MISP API, MISP user-interface or even to synchronize your MISP instance with their communities. If you want to add your MISP community to the list, don't hesitate to [contact us](mailto:info@misp-project.org) or do a Pull Request on [this file](https://github.com/MISP/MISP/blob/develop/app/files/community-metadata/defaults.json).
 
 The <i class="far fa-check-circle" style="color:green;"></i> sign indicates the community is vetted by the MISP Project.
 

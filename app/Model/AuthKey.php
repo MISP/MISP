@@ -162,6 +162,7 @@ class AuthKey extends AppModel
      * @param string $authkey
      * @param bool $includeExpired
      * @return array|false
+     * @throws Exception
      */
     public function getAuthUserByAuthKey($authkey, $includeExpired = false)
     {
@@ -187,24 +188,8 @@ class AuthKey extends AppModel
         ]);
         $passwordHasher = $this->getHasher();
         foreach ($possibleAuthkeys as $possibleAuthkey) {
-            if ($passwordHasher->check($authkey, $possibleAuthkey['AuthKey']['authkey'])) {  // valid authkey
-                // store IP in db if not there yet
-                if (!Configure::read("MISP.disable_seen_ips_authkeys")) {
-                    $remote_ip = $this->_remoteIp();
-                    $update_db_ip = true;
-                    if (in_array($remote_ip, $possibleAuthkey['AuthKey']['unique_ips'])) {
-                        $update_db_ip = false;  // IP already seen, skip saving in DB
-                    } else {   // first time this IP is seen for this API key
-                        $possibleAuthkey['AuthKey']['unique_ips'][] = $remote_ip;
-                    }
-                    if ($update_db_ip) {
-                        // prevent double entries due to race condition
-                        $possibleAuthkey['AuthKey']['unique_ips'] = array_unique($possibleAuthkey['AuthKey']['unique_ips']);
-                        // save in db
-                        $this->save($possibleAuthkey, ['fieldList' => ['unique_ips']]);
-                    }
-                }
-                // fetch user
+            if ($passwordHasher->check($authkey, $possibleAuthkey['AuthKey']['authkey'])) {
+                $this->updateUniqueIp($possibleAuthkey);
                 $user = $this->User->getAuthUser($possibleAuthkey['AuthKey']['user_id']);
                 if ($user) {
                     $user = $this->setUserData($user, $possibleAuthkey);
@@ -213,6 +198,26 @@ class AuthKey extends AppModel
             }
         }
         return false;
+    }
+
+    /**
+     * @param array $authkey
+     * @return void
+     * @throws Exception
+     */
+    private function updateUniqueIp(array $authkey)
+    {
+        if (PHP_SAPI === 'cli' || Configure::read("MISP.disable_seen_ips_authkeys")) {
+            return;
+        }
+
+        $remoteIp = $this->_remoteIp();
+        if ($remoteIp === null || in_array($remoteIp, $authkey['AuthKey']['unique_ips'], true)) {
+            return;
+        }
+
+        $authkey['AuthKey']['unique_ips'][] = $remoteIp;
+        $this->save($authkey, ['fieldList' => ['unique_ips']]);
     }
 
     /**
