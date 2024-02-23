@@ -29,7 +29,8 @@ sys.path.insert(2, str(_scripts_path / 'python-cybox'))
 sys.path.insert(3, str(_scripts_path / 'mixbox'))
 sys.path.insert(4, str(_scripts_path / 'misp-stix'))
 from misp_stix_converter import (
-    ExternalSTIX2toMISPParser, InternalSTIX2toMISPParser, _from_misp)
+    ExternalSTIX2toMISPParser, InternalSTIX2toMISPParser,
+    MISP_org_uuid, _from_misp)
 from stix2.parsing import parse as stix2_parser
 
 
@@ -102,6 +103,10 @@ if __name__ == '__main__':
     argparser.add_argument(
         '-i', '--input', required=True, type=Path,
         help='Input file containing STIX 2 content.'
+    )
+    argparser.add_argument(
+        '--org_uuid', default=MISP_org_uuid,
+        help='Organisation UUID to use when creating custom Galaxy clusters.'
     )
     argparser.add_argument(
         '--distribution', type=int, default=0,
