@@ -6095,9 +6095,9 @@ class Event extends AppModel
             if ($galaxiesAsTags) {
                 $shellCommand[] = '--galaxies_as_tags';
             } else {
-                array_push($shell_command, '--cluster_distribution', $clusterDistribution);
+                array_push($shellCommand, '--cluster_distribution', $clusterDistribution);
                 if ($clusterDistribution == 4) {
-                    array_push($shell_command, '--cluster_sharing_group_id', $clusterSharingGroupId);
+                    array_push($shellCommand, '--cluster_sharing_group_id', $clusterSharingGroupId);
                 }
             }
             if ($debug) {
