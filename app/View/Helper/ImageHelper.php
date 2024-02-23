@@ -27,8 +27,15 @@ class ImageHelper extends AppHelper
             throw new InvalidArgumentException("Only SVG and PNG images are supported");
         }
 
-        $fileContent = base64_encode(FileAccessTool::readFromFile($imagePath));
-        $base64 = "data:$mime;base64,$fileContent";
+        try {
+            $fileContent = FileAccessTool::readFromFile($imagePath);
+        } catch (Exception $e) {
+            CakeLog::warning($e);
+            return 'data:null'; // in case file doesn't exists or is not readable
+        }
+
+        $fileContentEncoded = base64_encode($fileContent);
+        $base64 = "data:$mime;base64,$fileContentEncoded";
 
         return $this->imageCache[$imagePath] = $base64;
     }
