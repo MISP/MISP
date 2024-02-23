@@ -55,8 +55,19 @@ class ProcessTool
         if ($logToFile) {
             self::logMessage('Running command ' . implode(' ', $command));
         }
-
-        $process = proc_open($command, $descriptorSpec, $pipes, $cwd);
+        if (version_compare(phpversion(), '7.4.0', '<')) {
+            $temp = [];
+            foreach ($command as $k => $part) {
+                if ($k >= 1) {
+                    $part = escapeshellarg($part);
+                }
+                $temp[] = $part;
+            }
+            $command_stringified = implode(' ', $temp);
+            $process = proc_open($command_stringified, $descriptorSpec, $pipes, $cwd);
+        } else {
+            $process = proc_open($command, $descriptorSpec, $pipes, $cwd);
+        }
         if (!$process) {
             $commandForException = self::commandFormat($command);
             throw new Exception("Command '$commandForException' could be started.");
