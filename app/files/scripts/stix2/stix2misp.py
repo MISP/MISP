@@ -37,7 +37,8 @@ from stix2.parsing import parse as stix2_parser
 def _get_stix_parser(from_misp, args):
     arguments = {
         'distribution': args.distribution,
-        'galaxies_as_tags': args.galaxies_as_tags
+        'galaxies_as_tags': args.galaxies_as_tags,
+        'organisation_uuid': args.org_uuid
     }
     if args.distribution == 4 and args.sharing_group_id is not None:
         arguments['sharing_group_id'] = args.sharing_group_id
