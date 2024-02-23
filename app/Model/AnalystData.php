@@ -155,13 +155,13 @@ class AnalystData extends AppModel
     {
         parent::beforeSave($options);
         if (empty($this->data[$this->current_type]['created'])) {
-            $this->data[$this->current_type]['created'] = (new DateTime())->format('c');
+            $this->data[$this->current_type]['created'] = (new DateTime())->format('Y-m-d H:i:s');
         }
         if (empty($this->data[$this->current_type]['modified'])) {
-            $this->data[$this->current_type]['modified'] = (new DateTime())->format('c');
+            $this->data[$this->current_type]['modified'] = (new DateTime())->format('Y-m-d H:i:s');
         }
-        $this->data[$this->current_type]['modified'] = (new DateTime($this->data[$this->current_type]['modified'], new DateTimeZone('UTC')))->format('c');
-        $this->data[$this->current_type]['created'] = (new DateTime($this->data[$this->current_type]['created'], new DateTimeZone('UTC')))->format('c');
+        $this->data[$this->current_type]['modified'] = (new DateTime($this->data[$this->current_type]['modified'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+        $this->data[$this->current_type]['created'] = (new DateTime($this->data[$this->current_type]['created'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
         return true;
     }
 
