@@ -7,7 +7,7 @@ class Module_tag_replacement_generic extends Module_tag_operation
     public $blocking = false;
     public $id = 'tag_replacement_generic';
     public $name = 'Tag Replacement Generic';
-    public $description = 'Toggle or remove the IDS flag on selected attributes.';
+    public $description = 'Attach a tag, or substitue a tag by another';
     public $icon = 'tags';
     public $inputs = 1;
     public $outputs = 1;
