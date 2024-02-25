@@ -17,8 +17,7 @@ class Module_shadow_attribute_before_save extends WorkflowBaseTriggerModule
     public function __construct()
     {
         parent::__construct();
-        $this->trigger_overhead_message = __('This trigger is called each time a Shadow Attribute is about to be saved. This means that when a large quantity of Shadow Attributes are being saved (e.g. Feed pulling or synchronisatio
-    n), the workflow will be run for as many time as there are Shadow Attributes.');  
+        $this->trigger_overhead_message = __('This trigger is called each time a Shadow Attribute is about to be saved. This means that when a large quantity of Shadow Attributes are being saved (e.g. Feed pulling or synchronisation), the workflow will be run for as many time as there are Shadow Attributes.');  
     }
 
     public function normalizeData(array $data)
