@@ -259,7 +259,7 @@ var relationshipDefaultEntryTemplate = doT.template('\
                 {{?}} \
             </span> \
             <i class="<?= $this->FontAwesome->getClass('long-arrow-alt-right') ?>" style="font-size: 1.5em; color: #555"></i> \
-            <div style="margin-left: 0.5rem;">{{!it.content}}</div> \
+            <div style="margin-left: 0.5rem;">{{=it.content}}</div> \
         </div> \
         {{? it.comment }} \
             <div style="max-width: 40vw; margin: 0.5rem 0 0 0.5rem; position: relative;" class="v-bar-text-opinion"> \
