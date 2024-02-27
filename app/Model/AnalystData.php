@@ -148,6 +148,17 @@ class AnalystData extends AppModel
                 $this->data[$this->current_type]['authors'] = $this->current_user['email'];
             }
         }
+        if (isset($this->data[$this->current_type]['distribution'])) {
+            if (
+                $this->data[$this->current_type]['distribution'] != 4 &&
+                (
+                    isset($this->data[$this->current_type]['sharing_group_id']) &&
+                    $this->data[$this->current_type]['sharing_group_id'] != 0
+                )
+            ) {
+                $this->data[$this->current_type]['sharing_group_id'] = 0;
+            }
+        }
         return true;
     }
 
