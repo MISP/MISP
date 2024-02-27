@@ -178,7 +178,7 @@ class AnalystData extends AppModel
 
     public function getEditableFields(): array
     {
-        return array_merge(self::BASE_EDITABLE_FIELDS, $this->EDITABLE_FIELDS);
+        return array_merge(self::BASE_EDITABLE_FIELDS, static::EDITABLE_FIELDS);
     }
 
     /**
