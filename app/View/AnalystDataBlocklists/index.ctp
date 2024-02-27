@@ -63,14 +63,6 @@
             'description' => __('List all analyst data that will be prevented to be created (also via synchronization) on this instance'),
             'actions' => array(
                 array(
-                    'title' => 'Edit',
-                    'url' => '/analyst_data_blocklists/edit',
-                    'url_params_data_paths' => array(
-                        'AnalystDataBlocklist.id'
-                    ),
-                    'icon' => 'edit',
-                ),
-                array(
                     'title' => 'Delete',
                     'url' => $baseurl . '/analyst_data_blocklists/delete',
                     'url_params_data_paths' => array(

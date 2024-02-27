@@ -205,7 +205,7 @@ var baseNoteTemplate = doT.template('\
                             <span role="button" onclick="addOpinion(this, \'{{!it.uuid}}\', \'{{!it.note_type_name}}\')" title="<?= __('Add an opinion to this note') ?>"><i class="<?= $this->FontAwesome->getClass('gavel') ?> useCursorPointer"></i></span> \
                         {{?}} \
                         {{? 1 == <?= $me['Role']['perm_modify'] ? 1 : 0 ?> }} \
-                        <span role="button" onclick="addNote(this, \'{{!it.uuid}}\', \'{{!it.note_type_name}}\')" title="<?= __('Add a note to this note') ?>"><i class="<?= $this->FontAwesome->getClass('comment-alt') ?> useCursorPointer"></i></span> \
+                        <span role="button" onclick="addNote(this, \'{{!it.uuid}}\', \'{{!it.note_type_name}}\')" title="<?= __('Add a note to this ') ?>{{!it.note_type_name}}"><i class="<?= $this->FontAwesome->getClass('comment-alt') ?> useCursorPointer"></i></span> \
                         {{?}} \
                         {{? it._canEdit }} \
                         <span role="button" onclick="editNote(this, {{!it.id}}, \'{{!it.note_type_name}}\')" title="<?= __('Edit this note') ?>"><i class="<?= $this->FontAwesome->getClass('edit') ?> useCursorPointer"></i></span> \
@@ -259,7 +259,7 @@ var relationshipDefaultEntryTemplate = doT.template('\
                 {{?}} \
             </span> \
             <i class="<?= $this->FontAwesome->getClass('long-arrow-alt-right') ?>" style="font-size: 1.5em; color: #555"></i> \
-            <div style="margin-left: 0.5rem;">{{!it.content}}</div> \
+            <div style="margin-left: 0.5rem;">{{=it.content}}</div> \
         </div> \
         {{? it.comment }} \
             <div style="max-width: 40vw; margin: 0.5rem 0 0 0.5rem; position: relative;" class="v-bar-text-opinion"> \
