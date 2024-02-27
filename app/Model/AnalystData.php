@@ -80,6 +80,9 @@ class AnalystData extends AppModel
             'belongsTo' => [
                 'Org' => [
                     'className' => 'Organisation',
+                    'fields' => [
+                        'id', 'name', 'uuid', 'type', 'description', 'sector', 'nationality', 'local'
+                    ],
                     'foreignKey' => false,
                     'conditions' => [
                         sprintf('%s.org_uuid = Org.uuid', $this->alias)
@@ -87,6 +90,9 @@ class AnalystData extends AppModel
                 ],
                 'Orgc' => [
                     'className' => 'Organisation',
+                    'fields' => [
+                        'id', 'name', 'uuid','type', 'sector', 'nationality', 'local'
+                    ],
                     'foreignKey' => false,
                     'conditions' => [
                         sprintf('%s.orgc_uuid = Orgc.uuid', $this->alias)
@@ -94,6 +100,9 @@ class AnalystData extends AppModel
                 ],
                 'SharingGroup' => [
                     'className' => 'SharingGroup',
+                    'fields' => [
+                        'id', 'name', 'uuid', 'releasability', 'description', 'org_id', 'org_uuid', 'active', 'roaming', 'local'
+                    ],
                     'foreignKey' => false,
                     'conditions' => [
                         sprintf('%s.sharing_group_id = SharingGroup.id', $this->alias)
@@ -110,7 +119,6 @@ class AnalystData extends AppModel
         parent::afterFind($results, $primary);
 
         $this->setUser();
-
         foreach ($results as $i => $v) {
             $results[$i][$this->alias]['note_type'] = $this->current_type_id;
             $results[$i][$this->alias]['note_type_name'] = $this->current_type;
@@ -119,7 +127,6 @@ class AnalystData extends AppModel
             $results[$i] = $this->rearrangeSharingGroup($results[$i], $this->current_user);
 
             $results[$i][$this->alias]['_canEdit'] = $this->canEditAnalystData($this->current_user, $v, $this->alias);
-
             if (!empty($this->fetchRecursive) && !empty($results[$i][$this->alias]['uuid'])) {
                 $this->Note = ClassRegistry::init('Note');
                 $this->Opinion = ClassRegistry::init('Opinion');
@@ -267,7 +274,15 @@ class AnalystData extends AppModel
                 if (!isset($analystData['SharingGroup'])) {
                     $this->SharingGroup = ClassRegistry::init('SharingGroup');
                     $sg = $this->SharingGroup->fetchSG($analystData[$this->alias]['sharing_group_id'], $user, true);
-                    $analystData[$this->alias]['SharingGroup'] = $sg['SharingGroup'];
+                    $sgData = array_intersect_key(
+                        $sg['SharingGroup'], array_flip(
+                            [
+                                'id', 'name', 'uuid', 'releasability', 'description', 'org_id',
+                                'org_uuid', 'active', 'roaming', 'local'
+                            ]
+                        )
+                    );
+                    $analystData[$this->alias]['SharingGroup'] = $sgData;
                 } else {
                     $analystData[$this->alias]['SharingGroup'] = $analystData['SharingGroup'];
                 }
