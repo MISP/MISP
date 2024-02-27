@@ -101,7 +101,7 @@ class AnalystData extends AppModel
                 'SharingGroup' => [
                     'className' => 'SharingGroup',
                     'fields' => [
-                        'id', 'name', 'uuid', 'releasability', 'description', 'org_id', 'org_uuid', 'active', 'roaming', 'local'
+                        'id', 'name', 'uuid', 'releasability', 'description', 'org_id', 'active', 'roaming', 'local'
                     ],
                     'foreignKey' => false,
                     'conditions' => [
@@ -278,7 +278,7 @@ class AnalystData extends AppModel
                         $sg['SharingGroup'], array_flip(
                             [
                                 'id', 'name', 'uuid', 'releasability', 'description', 'org_id',
-                                'org_uuid', 'active', 'roaming', 'local'
+                                'active', 'roaming', 'local'
                             ]
                         )
                     );
