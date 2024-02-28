@@ -816,8 +816,8 @@ class FeedsController extends AppController
         $correlatingEventInfos = $AttributesTable->Event->find(
             'list',
             [
-                'fields' => ['Event.id', 'Event.info'],
-                'conditions' => ['Event.id' => $correlatingEvents]
+                'fields' => ['Events.id', 'Events.info'],
+                'conditions' => ['Events.id IN' => $correlatingEvents]
             ]
         );
         $this->set('correlatingEventInfos', $correlatingEventInfos);

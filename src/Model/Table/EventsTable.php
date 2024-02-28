@@ -9,6 +9,7 @@ use App\Lib\Tools\CustomPaginationTool;
 use App\Lib\Tools\FileAccessTool;
 use App\Lib\Tools\JSONConverterTool;
 use App\Lib\Tools\JsonTool;
+use App\Lib\Tools\LogExtendedTrait;
 use App\Lib\Tools\{ProcessTool, ProcessException};
 use App\Lib\Tools\SendEmailTemplate;
 use App\Lib\Tools\ServerSyncTool;
@@ -41,12 +42,57 @@ use InvalidArgumentException;
 
 class EventsTable extends AppTable
 {
+    use LogExtendedTrait;
+
     private $assetCache = [];
 
     /** @var array|null */
     private $eventBlockRule;
 
     private $__beforeSaveData = null;
+
+    public $possibleOptions = [
+        'eventid',
+        'idList',
+        'tags',
+        'from',
+        'to',
+        'last',
+        'to_ids',
+        'includeAllTags', // include also non exportable tags, default `false`
+        'includeAttachments',
+        'event_uuid',
+        'distribution',
+        'sharing_group_id',
+        'disableSiteAdmin',
+        'metadata',
+        'enforceWarninglist', // return just attributes that contains no warnings
+        'sgReferenceOnly', // do not fetch additional information about sharing groups
+        'flatten',
+        'blockedAttributeTags',
+        'eventsExtendingUuid',
+        'extended',
+        'extensionList',
+        'excludeGalaxy',
+        // 'includeCustomGalaxyCluster', // not used
+        'includeRelatedTags',
+        'excludeLocalTags',
+        'includeDecayScore',
+        'includeScoresOnEvent',
+        'includeSightingdb',
+        'includeFeedCorrelations',
+        'includeServerCorrelations',
+        'includeWarninglistHits',
+        'includeGranularCorrelations',
+        'noEventReports', // do not include event report in event data
+        'noShadowAttributes', // do not fetch proposals,
+        'limit',
+        'page',
+        'order',
+        'protected',
+        'published',
+        'orgc_id',
+    ];
 
     public function initialize(array $config): void
     {
@@ -179,7 +225,9 @@ class EventsTable extends AppTable
                 'sharing_group_id',
                 'sharingGroupRequired',
                 [
-                    'rule' => ['sharingGroupRequired'],
+                    'rule' => function ($value, $context) {
+                        return !($context['data']['distribution'] == Distribution::SHARING_GROUP && empty($value));
+                    },
                     'message' => 'If the distribution is set to "Sharing Group", a sharing group has to be selected.',
                 ]
             )
@@ -194,6 +242,7 @@ class EventsTable extends AppTable
             ->notEmptyString('info')
             ->numeric('user_id')
             ->boolean('published')
+            ->allowEmptyString('extends_uuid')
             ->add(
                 'uuid',
                 'uuid',
@@ -210,6 +259,16 @@ class EventsTable extends AppTable
                     'message' => 'Please provide a valid RFC 4122 UUID'
                 ]
             );
+
+        return $validator;
+    }
+
+    public function validationPublish(Validator $validator): Validator
+    {
+        $validator
+            ->requirePresence(['publish', 'timestamp'])
+            ->numeric('timestamp')
+            ->boolean('published');
 
         return $validator;
     }
@@ -251,7 +310,7 @@ class EventsTable extends AppTable
                 }
                 $kafkaPubTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
                 if (!empty($entity['published']) && Configure::read('Plugin.Kafka_event_publish_notifications_enable') && !empty($kafkaPubTopic)) {
-                    $hostOrg = $this->Org->find('first', ['conditions' => ['name' => Configure::read('MISP.org')], 'fields' => ['id']]);
+                    $hostOrg = $this->Org->find('all', ['conditions' => ['name' => Configure::read('MISP.org')], 'fields' => ['id']])->first();
                     if (!empty($hostOrg)) {
                         $user = ['org_id' => $hostOrg['Org']['id'], 'Role' => ['perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0], 'Organisation' => $hostOrg['Org']];
                         $params = ['eventid' => $entity['id']];
@@ -269,12 +328,12 @@ class EventsTable extends AppTable
         }
 
         try {
-            $this->loadAttachmentTool()->deleteAll($this->id);
+            $this->loadAttachmentTool()->deleteAll($entity->id);
         } catch (Exception $e) {
             $this->logException('Delete of event file directory failed.', $e);
             throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
         }
-        $this->CryptographicKey->deleteAll(['CryptographicKey.parent_type' => 'Event', 'CryptographicKey.parent_id' => $this->id]);
+        $this->CryptographicKey->deleteAll(['CryptographicKey.parent_type' => 'Event', 'CryptographicKey.parent_id' => $entity->id]);
     }
 
     public function beforeMarshal(EventInterface $appEvent, ArrayObject $event, ArrayObject $options)
@@ -309,13 +368,13 @@ class EventsTable extends AppTable
         if (!empty($event['extends_uuid'])) {
             if (is_numeric($event['extends_uuid'])) {
                 $extended_event = $this->find(
-                    'first',
+                    'all',
                     [
                         'recursive' => -1,
-                        'conditions' => ['Event.id' => $event['extends_uuid']],
-                        'fields' => ['Event.uuid']
+                        'conditions' => ['id' => $event['extends_uuid']],
+                        'fields' => ['uuid']
                     ]
-                );
+                )->first();
                 if (empty($extended_event)) {
                     $event['extends_uuid'] = '';
                     $this->invalidate('extends_uuid', 'Invalid event ID provided.');
@@ -361,7 +420,7 @@ class EventsTable extends AppTable
                 'model' => 'Event',
                 'action' => 'add',
                 'id' => 0,
-                'message' => __('The workflow `%s` prevented the saving of event (%s)', $trigger_id, $event['Event']['uuid']),
+                'message' => __('The workflow `%s` prevented the saving of event (%s)', $trigger_id, $event['uuid']),
             ];
             $triggerData = $event;
             $workflowSuccess = $this->executeTrigger($trigger_id, $triggerData, $workflowErrors, $logging);
@@ -373,10 +432,9 @@ class EventsTable extends AppTable
         return true;
     }
 
-    public function afterSave($created, $options = [])
+    public function afterSave(EventInterface $cakeEvent, EntityInterface $event, ArrayObject $options)
     {
-        $event = $this->data['Event'];
-        if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
+        if (!Configure::read('MISP.completely_disable_correlation') && !$event->isNew()) {
             if (
                 empty($this->__beforeSaveData) ||
                 (
@@ -396,19 +454,19 @@ class EventsTable extends AppTable
             $pubSubTool = $this->getPubSubTool();
             $eventForZmq = $this->quickFetchEvent($event['id']);
             if (!empty($event)) {
-                $pubSubTool->event_save($eventForZmq, $created ? 'add' : 'edit');
+                $pubSubTool->event_save($eventForZmq, $event->isNew() ? 'add' : 'edit');
             }
         }
         if (empty($event['unpublishAction']) && empty($event['skip_kafka'])) {
-            $this->publishKafkaNotification('event', $this->quickFetchEvent($event['id']), $created ? 'add' : 'edit');
+            $this->publishKafkaNotification('event', $this->quickFetchEvent($event['id']), $event->isNew() ? 'add' : 'edit');
         }
         if ($this->isTriggerCallable('event-after-save')) {
             $event = $this->quickFetchEvent($event['id']);
             $workflowErrors = [];
             $logging = [
                 'model' => 'Event',
-                'action' => $created ? 'add' : 'edit',
-                'id' => $event['Event']['id'],
+                'action' => $event->isNew() ? 'add' : 'edit',
+                'id' => $event['id'],
             ];
             $triggerData = $event;
             $this->executeTrigger('event-after-save', $triggerData, $workflowErrors, $logging);
@@ -519,7 +577,7 @@ class EventsTable extends AppTable
     {
         $sgids = $this->SharingGroup->authorizedIds($user);
         foreach ($events as &$event) {
-            $event['Event']['correlation_count'] = $this->getRelatedEventCount($user, $event['Event']['id'], $sgids);
+            $event['correlation_count'] = $this->getRelatedEventCount($user, $event['id'], $sgids);
         }
         return $events;
     }
@@ -537,7 +595,7 @@ class EventsTable extends AppTable
             ]
         );
         foreach ($events as $key => $event) {
-            $events[$key]['Event']['sightings_count'] = isset($sightings[$event['Event']['id']]) ? $sightings[$event['Event']['id']] : 0;
+            $events[$key]['Event']['sightings_count'] = isset($sightings[$event['id']]) ? $sightings[$event['id']] : 0;
         }
         return $events;
     }
@@ -548,15 +606,15 @@ class EventsTable extends AppTable
         $proposals = $this->ShadowAttribute->find(
             'all',
             [
-                'fields' => ['ShadowAttribute.event_id', 'count(distinct(ShadowAttribute.id)) as count'],
+                'fields' => ['ShadowAttributes.event_id', 'count(distinct(ShadowAttributes.id)) as count'],
                 'conditions' => ['event_id' => $eventIds, 'deleted' => 0],
                 'recursive' => -1,
                 'group' => ['event_id']
             ]
         );
-        $proposals = Hash::combine($proposals, '{n}.ShadowAttribute.event_id', '{n}.0.count');
+        $proposals = Hash::combine($proposals, '{n}.ShadowAttributes.event_id', '{n}.0.count');
         foreach ($events as $key => $event) {
-            $events[$key]['Event']['proposals_count'] = isset($proposals[$event['Event']['id']]) ? $proposals[$event['Event']['id']] : 0;
+            $events[$key]['Event']['proposals_count'] = isset($proposals[$event['id']]) ? $proposals[$event['id']] : 0;
         }
         return $events;
     }
@@ -612,7 +670,7 @@ class EventsTable extends AppTable
         if (!isset($sgids) || empty($sgids)) {
             $sgids = [-1];
         }
-        $relatedEventIds = $this->Attributes->Correlation->getRelatedEventIds($user, $eventId, $sgids);
+        $relatedEventIds = $this->Attributes->Correlations->getRelatedEventIds($user, $eventId, $sgids);
         if (empty($relatedEventIds)) {
             return [];
         }
@@ -621,7 +679,7 @@ class EventsTable extends AppTable
             'all',
             [
                 'conditions' => [
-                    'Event.id' => $relatedEventIds
+                    'id IN' => $relatedEventIds
                 ],
                 'recursive' => -1,
                 'order' => 'date DESC',
@@ -707,10 +765,10 @@ class EventsTable extends AppTable
                 'perm_sync' => 1,
                 'perm_audit' => 0,
             ],
-            'org_id' => $event['Event']['orgc_id']
+            'org_id' => $event['orgc_id']
         ];
         // Fetch event with details
-        $event = $this->fetchEvent($elevatedUser, ['eventid' => $event['Event']['id'], 'metadata' => true]);
+        $event = $this->fetchEvent($elevatedUser, ['eventid' => $event['id'], 'metadata' => true]);
         $event = $event[0];
 
         $ServersTable = $this->fetchTable('Servers');
@@ -759,7 +817,7 @@ class EventsTable extends AppTable
 
         // This check is probably redundant, because it should be checked in also in `checkDistributionForPush`
         // But keep it here just for sure
-        if (!$server['Server']['internal'] && $event['Event']['distribution'] < Distribution::CONNECTED_COMMUNITIES) {
+        if (!$server['Server']['internal'] && $event['distribution'] < Distribution::CONNECTED_COMMUNITIES) {
             $reason = Event::NO_PUSH_DISTRIBUTION;
             return false;
         }
@@ -804,7 +862,7 @@ class EventsTable extends AppTable
             return 'The remote user is not a sync user - the upload of the event has been blocked.';
         }
         if (!empty($server['Server']['unpublish_event'])) {
-            $event['Event']['published'] = 0;
+            $event['published'] = 0;
         }
         try {
             // TODO: Replace by __updateEventForSync method in future
@@ -817,7 +875,7 @@ class EventsTable extends AppTable
         } catch (\Crypt_GPG_KeyNotFoundException $e) {
             $errorMessage = sprintf(
                 'Could not push event %s to remote server #%s. Reason: %s',
-                $event['Event']['uuid'],
+                $event['uuid'],
                 $server['Server']['id'],
                 $e->getMessage()
             );
@@ -836,7 +894,7 @@ class EventsTable extends AppTable
                     }
                 }
             }
-            $this->logException("Could not push event '{$event['Event']['uuid']}' to remote server #{$server['Server']['id']}", $e);
+            $this->logException("Could not push event '{$event['uuid']}' to remote server #{$server['id']}", $e);
             $this->__logUploadResult($server, $event, $errorMessage);
             return false;
         }
@@ -845,19 +903,19 @@ class EventsTable extends AppTable
 
     private function __prepareForPushToServer($event, $server)
     {
-        $serverId = $server['Server']['id'];
-        if ($event['Event']['distribution'] == 4) {
-            if (empty($event['SharingGroup']['roaming']) && empty($server['Server']['internal'])) {
+        $serverId = $server['id'];
+        if ($event['distribution'] == 4) {
+            if (empty($event['SharingGroup']['roaming']) && empty($server['internal'])) {
                 $serverFound = false;
                 if (!empty($event['SharingGroup']['SharingGroupServer'])) {
                     foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
-                        if ($sgs['server_id'] == $server['Server']['id']) {
+                        if ($sgs['server_id'] == $server['id']) {
                             $serverFound = true;
                         }
                     }
                 }
                 if (!$serverFound) {
-                    $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$serverId}: server not found in sharing group.");
+                    $this->log("Error when pushing event {$event['uuid']} to remote server {$serverId}: server not found in sharing group.");
                     return 403;
                 }
             }
@@ -870,21 +928,21 @@ class EventsTable extends AppTable
                 }
             }
             if (!$orgFound) {
-                $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$serverId}: org not found in sharing group.");
+                $this->log("Error when pushing event {$event['uuid']} to remote server {$serverId}: org not found in sharing group.");
                 return 403;
             }
         }
         $ServersTable = $this->fetchTable('Servers');
         $server = $ServersTable->eventFilterPushableServers($event, [$server]);
         if (empty($server)) {
-            $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$serverId}: event doesn't match sever push rules.");
+            $this->log("Error when pushing event {$event['uuid']} to remote server {$serverId}: event doesn't match sever push rules.");
             return 403;
         }
         $server = $server[0];
         if ($this->checkDistributionForPush($event, $server, 'Event')) {
             $event = $this->__updateEventForSync($event, $server);
         } else {
-            $this->log("Error when pushing event {$event['Event']['uuid']} to remote server {$serverId}: event doesn't match distribution.");
+            $this->log("Error when pushing event {$event['uuid']} to remote server {$serverId}: event doesn't match distribution.");
             return 403;
         }
         return $event;
@@ -908,15 +966,15 @@ class EventsTable extends AppTable
         ];
         foreach ($objectsToRearrange as $o) {
             if (isset($event[$o])) {
-                $event['Event'][$o] = $event[$o];
+                $event[$o] = $event[$o];
                 unset($event[$o]);
             }
         }
         // cleanup the array from things we do not want to expose
         foreach (['Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc'] as $field) {
-            unset($event['Event'][$field]);
+            unset($event[$field]);
         }
-        return ['Event' => $event['Event']];
+        return ['Event' => $event];
     }
 
     // since we fetch the event and filter on tags after / server, we need to cull all of the non exportable tags
@@ -925,7 +983,7 @@ class EventsTable extends AppTable
         if (isset($data[$dataType . 'Tag'])) {
             if (!empty($data[$dataType . 'Tag'])) {
                 foreach ($data[$dataType . 'Tag'] as $k => $tag) {
-                    if (!$tag['Tag']['exportable'] || (!empty($tag['local']) && empty($server['Server']['internal']))) {
+                    if (!$tag['Tag']['exportable'] || (!empty($tag['local']) && empty($server['internal']))) {
                         unset($data[$dataType . 'Tag'][$k]);
                     } else {
                         unset($tag['org_id']);
@@ -1000,12 +1058,12 @@ class EventsTable extends AppTable
     private function __updateEventForSync($event, $server)
     {
         $event = $this->__rearrangeEventStructureForSync($event);
-        $event['Event'] = $this->__removeNonExportableTags($event['Event'], 'Event', $server);
+        $event = $this->__removeNonExportableTags($event, 'Event', $server);
         // Add the local server to the list of instances in the SG
-        if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
-            foreach ($event['Event']['SharingGroup']['SharingGroupServer'] as &$s) {
+        if (isset($event['SharingGroup']) && isset($event['SharingGroup']['SharingGroupServer'])) {
+            foreach ($event['SharingGroup']['SharingGroupServer'] as &$s) {
                 if ($s['server_id'] == 0) {
-                    $s['Server'] = [
+                    $s = [
                         'id' => 0,
                         'url' => $this->__getAnnounceBaseurl(),
                         'name' => $this->__getAnnounceBaseurl()
@@ -1014,14 +1072,13 @@ class EventsTable extends AppTable
             }
         }
 
-        $pushRules = $this->jsonDecode($server['Server']['push_rules']);
-        $event['Event'] = $this->__prepareAttributesForSync($event['Event'], $server, $pushRules);
-        $event['Event'] = $this->__prepareObjectsForSync($event['Event'], $server, $pushRules);
-        $event['Event'] = $this->__prepareEventReportForSync($event['Event'], $server, $pushRules);
+        $event = $this->__prepareAttributesForSync($event, $server, $server['push_rules']);
+        $event = $this->__prepareObjectsForSync($event, $server, $server['push_rules']);
+        $event = $this->__prepareEventReportForSync($event, $server, $server['push_rules']);
 
         // Downgrade the event from connected communities to community only
-        if (!$server['Server']['internal'] && $event['Event']['distribution'] == 2) {
-            $event['Event']['distribution'] = 1;
+        if (!$server['internal'] && $event['Event']['distribution'] == 2) {
+            $event['distribution'] = 1;
         }
 
         return $event;
@@ -1192,7 +1249,7 @@ class EventsTable extends AppTable
      */
     public function quickDelete(array $event)
     {
-        $event = $this->get((int)$event['Event']['id']);
+        $event = $this->get((int)$event['id']);
 
         $ThreadsTable = $this->fetchTable('Threads');
         $thread = $ThreadsTable->get($event->id);
@@ -1295,19 +1352,19 @@ class EventsTable extends AppTable
             $sgids = $this->SharingGroup->authorizedIds($user);
             $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $conditions['AND']['OR'] = [
-                'Event.org_id' => $user['org_id'],
+                'Events.org_id' => $user['org_id'],
                 [
                     'AND' => [
-                        'Event.distribution >' => 0,
-                        'Event.distribution <' => 4,
-                        $unpublishedPrivate ? ['Event.published' => 1] : [],
+                        'Events.distribution >' => 0,
+                        'Events.distribution <' => 4,
+                        $unpublishedPrivate ? ['Events.published' => 1] : [],
                     ],
                 ],
                 [
                     'AND' => [
-                        'Event.sharing_group_id' => $sgids,
-                        'Event.distribution' => 4,
-                        $unpublishedPrivate ? ['Event.published' => 1] : [],
+                        'Events.sharing_group_id' => $sgids,
+                        'Events.distribution' => 4,
+                        $unpublishedPrivate ? ['Events.published' => 1] : [],
                     ]
                 ]
             ];
@@ -1318,14 +1375,14 @@ class EventsTable extends AppTable
     public function set_filter_wildcard(&$params, $conditions, $options)
     {
         $tempConditions = [];
-        $tempConditions[] = ['Event.info LIKE' => $params['wildcard']];
+        $tempConditions[] = ['Events.info LIKE' => $params['wildcard']];
         $attributeParams = ['value1', 'value2', 'comment'];
         foreach ($attributeParams as $attributeParam) {
             $subQueryOptions = [
-                'conditions' => ['Attribute.' . $attributeParam . ' LIKE' => $params['wildcard']],
+                'conditions' => ['Attributes.' . $attributeParam . ' LIKE' => $params['wildcard']],
                 'fields' => ['event_id']
             ];
-            $tempConditions[] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
+            $tempConditions[] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'id');
         }
         $tagScopes = ['Event', 'Attribute'];
         $AttributeTagsTable = $this->fetchTable('AttributeTags');
@@ -1345,7 +1402,7 @@ class EventsTable extends AppTable
                     ],
                     'fields' => ['event_id']
                 ];
-                $tempConditions[] = $this->subQueryGenerator($this->{$tagScope . 'Tag'}, $subQueryOptions, 'Event.id');
+                $tempConditions[] = $this->subQueryGenerator($this->{$tagScope . 'Tag'}, $subQueryOptions, 'id');
             }
         }
         return $tempConditions;
@@ -1354,12 +1411,12 @@ class EventsTable extends AppTable
     public function set_filter_wildcard_attributes(&$params, $conditions, $options)
     {
         $tempConditions = [];
-        $tempConditions[] = ['Event.info LIKE' => $params['wildcard']];
+        $tempConditions[] = ['Events.info LIKE' => $params['wildcard']];
         $attributeParams = ['value1', 'value2', 'comment'];
         foreach ($attributeParams as $attributeParam) {
-            $tempConditions[] = ['Attribute.' . $attributeParam . ' LIKE' => $params['wildcard']];
+            $tempConditions[] = ['Attributes.' . $attributeParam . ' LIKE' => $params['wildcard']];
         }
-        $tagIds = $this->Attributes->AttributeTag->Tag->find(
+        $tagIds = $this->Attributes->AttributeTags->Tags->find(
             'column',
             [
                 'recursive' => -1,
@@ -1374,14 +1431,14 @@ class EventsTable extends AppTable
                 ],
                 'fields' => ['event_id']
             ];
-            $tempConditions[] = $this->subQueryGenerator($this->EventTag, $subQueryOptions, 'Attribute.event_id');
+            $tempConditions[] = $this->subQueryGenerator($this->EventTag, $subQueryOptions, 'Attributes.event_id');
             $subQueryOptions = [
                 'conditions' => [
                     'tag_id' => $tagIds,
                 ],
                 'fields' => ['attribute_id']
             ];
-            $tempConditions[] = $this->subQueryGenerator($this->Attributes->AttributeTag, $subQueryOptions, 'Attribute.id');
+            $tempConditions[] = $this->subQueryGenerator($this->Attributes->AttributeTag, $subQueryOptions, 'Attributes.id');
         }
         return $tempConditions;
     }
@@ -1466,7 +1523,7 @@ class EventsTable extends AppTable
                                         'event_id'
                                     ]
                                 ];
-                                $subQuery = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
+                                $subQuery = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'id');
                                 if ($param === 'value') {
                                     $subQuery[0] = explode('WHERE', $subQuery[0]);
                                     $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
@@ -1499,10 +1556,10 @@ class EventsTable extends AppTable
             }
         }
         if (!empty($params['include_attribute_count'])) {
-            $find_params['fields'] = ['Event.id', 'Event.attribute_count'];
+            $find_params['fields'] = ['id', 'Events.attribute_count'];
             $results = $this->find('list', $find_params);
         } else {
-            $find_params['fields'] = ['Event.id'];
+            $find_params['fields'] = ['id'];
             $results = $this->find('column', $find_params);
         }
         if (!isset($params['limit'])) {
@@ -1519,7 +1576,7 @@ class EventsTable extends AppTable
             'column',
             [
                 'conditions' => $conditions,
-                'fields' => ['Event.id']
+                'fields' => ['id']
             ]
         );
         return $results;
@@ -1536,9 +1593,9 @@ class EventsTable extends AppTable
         $conditions = $this->createEventConditions($user);
 
         if (is_numeric($id)) {
-            $conditions['AND'][]['Event.id'] = $id;
+            $conditions['AND'][]['id'] = $id;
         } else if (Validation::uuid($id)) {
-            $conditions['AND'][]['Event.uuid'] = $id;
+            $conditions['AND'][]['uuid'] = $id;
         } else {
             return null;
         }
@@ -1547,7 +1604,7 @@ class EventsTable extends AppTable
         }
         $params['conditions'] = $conditions;
         $params['recursive'] = -1;
-        return $this->find('first', $params);
+        return $this->find('all', $params)->first();
     }
 
     /**
@@ -1575,12 +1632,12 @@ class EventsTable extends AppTable
         // restricting to non-private or same org if the user is not a site-admin.
         $conditions = $this->createEventConditions($user);
         $paramMapping = [
-            'from' => 'Event.date >=',
-            'to' => 'Event.date <=',
-            'last' => 'Event.publish_timestamp >=',
-            'timestamp' => 'Event.timestamp >=',
-            'publish_timestamp' => 'Event.publish_timestamp >=',
-            'eventIdList' => 'Event.id',
+            'from' => 'Events.date >=',
+            'to' => 'Events.date <=',
+            'last' => 'Events.publish_timestamp >=',
+            'timestamp' => 'Events.timestamp >=',
+            'publish_timestamp' => 'Events.publish_timestamp >=',
+            'eventIdList' => 'id',
         ];
         foreach ($paramMapping as $paramName => $paramLookup) {
             if (isset($options[$paramName])) {
@@ -1590,14 +1647,14 @@ class EventsTable extends AppTable
         if (isset($options['list'])) {
             $params = [
                 'conditions' => $conditions,
-                'fields' => ['Event.id'],
+                'fields' => ['id'],
             ];
             $results = $this->find('column', $params);
         } else {
             $params = [
                 'conditions' => $conditions,
                 'recursive' => -1,
-                'fields' => ['Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'],
+                'fields' => ['id', 'Events.org_id', 'Events.distribution', 'Events.sharing_group_id'],
             ];
             $results = $this->find('all', $params);
         }
@@ -1612,20 +1669,20 @@ class EventsTable extends AppTable
     public function quickFetchEvent($id)
     {
         $event = $this->find(
-            'first',
+            'all',
             [
                 'recursive' => -1,
-                'conditions' => ['Event.id' => $id],
+                'conditions' => ['Events.id' => $id],
                 'contain' => [
                     'Orgc' => [
                         'fields' => ['Orgc.id', 'Orgc.uuid', 'Orgc.name']
                     ],
-                    'EventTag' => [
-                        'Tag' => ['fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable']]
+                    'EventTags' => [
+                        'Tags' => ['fields' => ['Tags.id', 'Tags.name', 'Tags.colour', 'Tags.exportable']]
                     ]
                 ]
             ]
-        );
+        )->first();
         return $event;
     }
 
@@ -1643,8 +1700,8 @@ class EventsTable extends AppTable
         if (!isset($user['org_id'])) {
             throw new InvalidArgumentException('There was an error with the user account (missing `org_id` field).');
         }
-        if (isset($options['Event.id'])) {
-            $options['eventid'] = $options['Event.id'];
+        if (isset($options['id'])) {
+            $options['eventid'] = $options['id'];
         }
         if (!isset($options['excludeLocalTags']) && !empty($user['Role']['perm_sync']) && empty($user['Role']['perm_site_admin'])) {
             $options['excludeLocalTags'] = 1;
@@ -1665,7 +1722,7 @@ class EventsTable extends AppTable
         }
         $conditions = $this->createEventConditions($user);
         if ($options['eventid']) {
-            $conditions['AND'][] = ["Event.id" => $options['eventid']];
+            $conditions['AND'][] = ["Events.id" => $options['eventid']];
         }
         if ($options['eventsExtendingUuid']) {
             if (!is_array($options['eventsExtendingUuid'])) {
@@ -1675,13 +1732,13 @@ class EventsTable extends AppTable
                 $extendedUuids = [];
                 if (!Validation::uuid($extendedEvent)) {
                     $eventUuid = $this->find(
-                        'first',
+                        'all',
                         [
                             'recursive' => -1,
-                            'conditions' => ['Event.id' => $extendedEvent],
-                            'fields' => ['Event.uuid']
+                            'conditions' => ['id' => $extendedEvent],
+                            'fields' => ['uuid']
                         ]
-                    );
+                    )->first();
                     if (!empty($eventUuid)) {
                         $extendedUuids[] = $eventUuid['Event']['uuid'];
                     }
@@ -1690,11 +1747,11 @@ class EventsTable extends AppTable
                 }
             }
             if (!empty($extendedUuids)) {
-                $conditions['AND'][] = ['Event.extends_uuid' => $extendedUuids];
+                $conditions['AND'][] = ['Events.extends_uuid' => $extendedUuids];
             } else {
                 // We've set as a search pattern any event that extends an event and didn't find anything
                 // valid, make sure we don't get everything thrown in our face that the user can see.
-                $conditions['AND'][] = ['Event.id' => -1];
+                $conditions['AND'][] = ['id' => -1];
             }
         }
         $isSiteAdmin = $user['Role']['perm_site_admin'];
@@ -1713,9 +1770,9 @@ class EventsTable extends AppTable
             // if delegations are enabled, check if there is an event that the current user might see because of the request itself
             if (Configure::read('MISP.delegation')) {
                 $delegatedEventIDs = $this->__cachedelegatedEventIDs($user, $useCache);
-                $conditions['AND']['OR']['Event.id'] = $delegatedEventIDs;
+                $conditions['AND']['OR']['id'] = $delegatedEventIDs;
             }
-            $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)';
+            $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attributes.event_id)';
             $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)';
             $eventReportCondSelect = '(SELECT events.org_id FROM events WHERE events.id = EventReport.event_id)';
             if (!$this->isMysql()) {
@@ -1727,15 +1784,15 @@ class EventsTable extends AppTable
             $conditionsAttributes['AND'][0]['OR'] = [
                 [
                     'AND' => [
-                        'Attribute.distribution >' => 0,
-                        'Attribute.distribution !=' => 4,
+                        'Attributes.distribution >' => 0,
+                        'Attributes.distribution !=' => 4,
                     ]
 
                 ],
                 [
                     'AND' => [
-                        'Attribute.distribution' => 4,
-                        'Attribute.sharing_group_id' => $sgids,
+                        'Attributes.distribution' => 4,
+                        'Attributes.sharing_group_id' => $sgids,
                     ]
 
                 ],
@@ -1779,44 +1836,44 @@ class EventsTable extends AppTable
             ];
         }
         if ($options['distribution']) {
-            $conditions['AND'][] = ['Event.distribution' => $options['distribution']];
-            $conditionsAttributes['AND'][] = ['Attribute.distribution' => $options['distribution']];
+            $conditions['AND'][] = ['Events.distribution' => $options['distribution']];
+            $conditionsAttributes['AND'][] = ['Attributes.distribution' => $options['distribution']];
             $conditionsObjects['AND'][] = ['Object.distribution' => $options['distribution']];
             $conditionsEventReport['AND'][] = ['EventReport.distribution' => $options['distribution']];
         }
         if ($options['sharing_group_id']) {
-            $conditions['AND'][] = ['Event.sharing_group_id' => $options['sharing_group_id']];
-            $conditionsAttributes['AND'][] = ['Attribute.sharing_group_id' => $options['sharing_group_id']];
+            $conditions['AND'][] = ['Events.sharing_group_id' => $options['sharing_group_id']];
+            $conditionsAttributes['AND'][] = ['Attributes.sharing_group_id' => $options['sharing_group_id']];
             $conditionsObjects['AND'][] = ['Object.sharing_group_id' => $options['sharing_group_id']];
             $conditionsEventReport['AND'][] = ['EventReport.sharing_group_id' => $options['sharing_group_id']];
         }
         if ($options['from']) {
-            $conditions['AND'][] = ['Event.date >=' => $options['from']];
+            $conditions['AND'][] = ['Events.date >=' => $options['from']];
         }
         if ($options['to']) {
-            $conditions['AND'][] = ['Event.date <=' => $options['to']];
+            $conditions['AND'][] = ['Events.date <=' => $options['to']];
         }
         if ($options['last']) {
-            $conditions['AND'][] = ['Event.publish_timestamp >=' => $options['last']];
+            $conditions['AND'][] = ['Events.publish_timestamp >=' => $options['last']];
         }
         if ($options['event_uuid']) {
-            $conditions['AND'][] = ['Event.uuid' => $options['event_uuid']];
+            $conditions['AND'][] = ['Events.uuid' => $options['event_uuid']];
         }
         if ($options['protected']) {
-            $conditions['AND'][] = ['Event.protected' => $options['protected']];
+            $conditions['AND'][] = ['Events.protected' => $options['protected']];
         }
         if ($options['published']) {
-            $conditions['AND'][] = ['Event.published' => $options['published']];
+            $conditions['AND'][] = ['Events.published' => $options['published']];
         }
         if ($options['orgc_id']) {
-            $conditions['AND'][] = ['Event.orgc_id' => $options['orgc_id']];
+            $conditions['AND'][] = ['Events.orgc_id' => $options['orgc_id']];
         }
         if (!empty($options['includeRelatedTags'])) {
             $options['includeGranularCorrelations'] = 1;
         }
         if (isset($options['ignore']) && empty($options['ignore'])) {
-            $conditions['AND'][] = ['Event.published' => 1];
-            $conditionsAttributes['AND'][] = ['Attribute.to_ids' => 1];
+            $conditions['AND'][] = ['Events.published' => 1];
+            $conditionsAttributes['AND'][] = ['Attributes.to_ids' => 1];
         }
         $softDeletables = ['Attribute', 'Object', 'EventReport'];
         if (isset($options['deleted'])) {
@@ -1866,16 +1923,16 @@ class EventsTable extends AppTable
                 ${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted'] = 0;
             }
         }
-        $proposal_conditions = ['OR' => ['ShadowAttribute.deleted' => 0]];
+        $proposal_conditions = ['OR' => ['ShadowAttributes.deleted' => 0]];
         if (isset($options['deleted_proposals'])) {
             if ($isSiteAdmin) {
-                $proposal_conditions = ['OR' => ['ShadowAttribute.deleted' => 1]];
+                $proposal_conditions = ['OR' => ['ShadowAttributes.deleted' => 1]];
             } else {
-                $proposal_conditions['OR'][] = ['(SELECT events.org_id FROM events WHERE events.id = ShadowAttribute.event_id)' => $user['org_id']];
+                $proposal_conditions['OR'][] = ['(SELECT events.org_id FROM events WHERE events.id = ShadowAttributes.event_id)' => $user['org_id']];
             }
         }
         if ($options['idList'] && !$options['tags']) {
-            $conditions['AND'][] = ['Event.id' => $options['idList']];
+            $conditions['AND'][] = ['Events.id IN' => $options['idList']];
         }
         // If we sent any tags along, load the associated tag names for each attribute
         if ($options['tags']) {
@@ -1885,18 +1942,18 @@ class EventsTable extends AppTable
             }
         }
         if (!empty($options['to_ids']) || $options['to_ids'] === 0) {
-            $conditionsAttributes['AND'][] = ['Attribute.to_ids' => $options['to_ids']];
+            $conditionsAttributes['AND'][] = ['Attributes.to_ids' => $options['to_ids']];
         }
 
         // removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
-        // $conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
+        // $conditionsAttributes['AND'] = array('Attributes.to_ids =' => 1);
         // Same idea for the published. Just adjust the tools to check for this
-        // $conditions['AND'][] = array('Event.published =' => 1);
+        // $conditions['AND'][] = array('Events.published =' => 1);
 
         // do not expose all the data ...
-        $fields = ['Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected'];
-        $fieldsAtt = ['Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen'];
-        $fieldsShadowAtt = ['ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen'];
+        $fields = ['Events.id', 'Events.orgc_id', 'Events.org_id', 'Events.date', 'Events.threat_level_id', 'Events.info', 'Events.published', 'Events.uuid', 'Events.attribute_count', 'Events.analysis', 'Events.timestamp', 'Events.distribution', 'Events.proposal_email_lock', 'Events.user_id', 'Events.locked', 'Events.publish_timestamp', 'Events.sharing_group_id', 'Events.disable_correlation', 'Events.extends_uuid', 'Events.protected'];
+        $fieldsAtt = ['Attributes.id', 'Attributes.type', 'Attributes.category', 'Attributes.value1', 'Attributes.value2', 'Attributes.to_ids', 'Attributes.uuid', 'Attributes.event_id', 'Attributes.distribution', 'Attributes.timestamp', 'Attributes.comment', 'Attributes.sharing_group_id', 'Attributes.deleted', 'Attributes.disable_correlation', 'Attributes.object_id', 'Attributes.object_relation', 'Attributes.first_seen', 'Attributes.last_seen'];
+        $fieldsShadowAtt = ['ShadowAttributes.id', 'ShadowAttributes.type', 'ShadowAttributes.category', 'ShadowAttributes.value1', 'ShadowAttributes.value2', 'ShadowAttributes.to_ids', 'ShadowAttributes.uuid', 'ShadowAttributes.event_uuid', 'ShadowAttributes.event_id', 'ShadowAttributes.old_id', 'ShadowAttributes.comment', 'ShadowAttributes.org_id', 'ShadowAttributes.proposal_to_delete', 'ShadowAttributes.timestamp', 'ShadowAttributes.first_seen', 'ShadowAttributes.last_seen'];
         $fieldsOrg = ['id', 'name', 'uuid', 'local'];
         $params = [
             'conditions' => $conditions,
@@ -1906,50 +1963,46 @@ class EventsTable extends AppTable
                 'ThreatLevel' => [
                     'fields' => ['ThreatLevel.name']
                 ],
-                'Attribute' => [
+                'Attributes' => [
                     'fields' => $fieldsAtt,
                     'conditions' => $conditionsAttributes,
-                    'order' => false
                 ],
-                'Object' => [
+                'Objects' => [
                     'conditions' => $conditionsObjects,
-                    'order' => false,
                 ],
-                'ShadowAttribute' => [
+                'ShadowAttributes' => [
                     'fields' => $fieldsShadowAtt,
                     'conditions' => $proposal_conditions,
                     'Org' => ['fields' => $fieldsOrg],
-                    'order' => false
                 ],
-                'EventTag' => [
-                    'order' => false
+                'EventTags' => [
+                    'Tags'
                 ],
-                'EventReport' => [
+                'EventReports' => [
                     'conditions' => $conditionsEventReport,
-                    'order' => false
                 ],
-                'CryptographicKey'
+                'CryptographicKeys'
             ]
         ];
         if (!empty($options['excludeLocalTags'])) {
-            $params['contain']['EventTag']['conditions'] = [
+            $params['contain']['EventTags']['conditions'] = [
                 'EventTag.local' => 0
             ];
         }
         if ($flatten) {
-            unset($params['contain']['Object']);
+            unset($params['contain']['Objects']);
         }
         if ($options['noEventReports']) {
-            unset($params['contain']['EventReport']);
+            unset($params['contain']['EventReports']);
         }
         if ($options['noShadowAttributes']) {
-            unset($params['contain']['ShadowAttribute']);
+            unset($params['contain']['ShadowAttributes']);
         }
         if ($options['metadata']) {
-            unset($params['contain']['Attribute']);
-            unset($params['contain']['ShadowAttribute']);
-            unset($params['contain']['Object']);
-            unset($params['contain']['EventReport']);
+            unset($params['contain']['Attributes']);
+            unset($params['contain']['ShadowAttributes']);
+            unset($params['contain']['Objects']);
+            unset($params['contain']['EventReports']);
         }
         if (!empty($options['limit'])) {
             $params['limit'] = $options['limit'];
@@ -2014,13 +2067,13 @@ class EventsTable extends AppTable
         foreach ($results as &$event) {
             /*
             // REMOVING THIS FOR NOW - users should see data they own, even if they're not in the sharing group.
-            if ($event['Event']['distribution'] == 4 && !in_array($event['Event']['sharing_group_id'], $sgids)) {
+            if ($event['distribution'] == 4 && !in_array($event['sharing_group_id'], $sgids)) {
                 $LogsTable = $this->fetchTable('Logs');
                 $LogsTable->create();
                 $LogsTable->saveOrFailSilently(array(
                     'org' => $user['Organisation']['name'],
                     'model' => 'Event',
-                    'model_id' => $event['Event']['id'],
+                    'model_id' => $event['id'],
                     'email' => $user['email'],
                     'action' => 'fetchEvent',
                     'user_id' => $user['id'],
@@ -2036,12 +2089,13 @@ class EventsTable extends AppTable
                 $WarninglistsTable->attachWarninglistToAttributes($event['ShadowAttribute']);
                 $event['warnings'] = $eventWarnings;
             }
+            $event = $event->toArray();
             $this->__attachTags($event, $justExportableTags);
             $this->__attachGalaxies($event, $user, $options['excludeGalaxy'], $options['fetchFullClusters'], $options['fetchFullClusterRelationship']);
             $event = $this->Orgc->attachOrgs($event, $fieldsOrg);
-            if (!$sharingGroupReferenceOnly && $event['Event']['sharing_group_id']) {
-                if (isset($sharingGroupData[$event['Event']['sharing_group_id']])) {
-                    $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']];
+            if (!$sharingGroupReferenceOnly && $event['sharing_group_id']) {
+                if (isset($sharingGroupData[$event['sharing_group_id']])) {
+                    $event['SharingGroup'] = $sharingGroupData[$event['sharing_group_id']];
                 }
             }
 
@@ -2049,29 +2103,29 @@ class EventsTable extends AppTable
             // - users from event creator org
             // - site admins
             // In export, this information will be included in `event_creator_email` field for auditors of event creator org and site admins.
-            $sameOrg = $event['Event']['orgc_id'] === $user['org_id'];
+            $sameOrg = $event['orgc_id'] === $user['org_id'];
             if ($sameOrg || $user['Role']['perm_site_admin']) {
-                if (!isset($userEmails[$event['Event']['user_id']])) {
-                    $userEmails[$event['Event']['user_id']] = $this->User->field('email', ['id' => $event['Event']['user_id']]);
+                if (!isset($userEmails[$event['user_id']])) {
+                    $userEmails[$event['user_id']] = $this->User->get($event['user_id'])->email;
                 }
 
-                $userEmail = $userEmails[$event['Event']['user_id']];
+                $userEmail = $userEmails[$event['user_id']];
                 if ($sameOrg && $user['Role']['perm_audit'] || $user['Role']['perm_site_admin']) {
-                    $event['Event']['event_creator_email'] = $userEmail;
+                    $event['event_creator_email'] = $userEmail;
                 }
                 $event['User']['email'] = $userEmail;
             }
             // Let's find all the related events and attach it to the event itself
             if ($options['includeEventCorrelations']) {
-                $event['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
+                $event['RelatedEvent'] = $this->getRelatedEvents($user, $event['id'], $sgids);
             }
             // Let's also find all the relations for the attributes - this won't be in the xml export though
             if (!empty($options['includeGranularCorrelations'])) {
-                $event['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id']);
+                $event['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['id']);
                 if (!empty($options['includeRelatedTags'])) {
                     $event = $this->includeRelatedTags($event, $options);
                 }
-                //$event['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
+                //$event['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['id'], true);
             }
             if (!empty($options['includeScoresOnEvent'])) {
                 // $event = $DecayingModelsTable->attachBaseScoresToEvent($user, $event);
@@ -2080,10 +2134,10 @@ class EventsTable extends AppTable
             $shadowAttributeByOldId = [];
             if (!empty($event['ShadowAttribute'])) {
                 if ($isSiteAdmin && $options['includeFeedCorrelations']) {
-                    $event['ShadowAttribute'] = $FeedsTable->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit);
+                    $event['ShadowAttribute'] = $FeedsTable->attachFeedCorrelations($event['ShadowAttribute'], $user, $event, $overrideLimit);
                 }
                 if ($options['includeServerCorrelations']) {
-                    $event['ShadowAttribute'] = $FeedsTable->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit, 'Server');
+                    $event['ShadowAttribute'] = $FeedsTable->attachFeedCorrelations($event['ShadowAttribute'], $user, $event, $overrideLimit, 'Server');
                 }
 
                 if ($options['includeAttachments']) {
@@ -2104,10 +2158,10 @@ class EventsTable extends AppTable
             }
             if (!empty($event['Attribute'])) {
                 if ($options['includeFeedCorrelations']) {
-                    $event['Attribute'] = $FeedsTable->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
+                    $event['Attribute'] = $FeedsTable->attachFeedCorrelations($event['Attribute'], $user, $event, $overrideLimit);
                 }
                 if ($options['includeServerCorrelations']) {
-                    $event['Attribute'] = $FeedsTable->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit, 'Server');
+                    $event['Attribute'] = $FeedsTable->attachFeedCorrelations($event['Attribute'], $user, $event, $overrideLimit, 'Server');
                 }
                 $event = $this->__filterBlockedAttributesByTags($event, $options, $user);
                 if (!$sharingGroupReferenceOnly) {
@@ -2174,7 +2228,7 @@ class EventsTable extends AppTable
                 $event['EventReport'] = $this->__attachSharingGroups($event['EventReport'], $sharingGroupData);
             }
             if (empty($options['metadata']) && empty($options['noSightings'])) {
-                $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+                $event['Sighting'] = $this->Sightings->attachToEvent($event, $user);
             }
             if ($options['includeSightingdb']) {
                 $SightingdbsTable = $this->fetchTable('Sightingdbs');
@@ -2343,13 +2397,13 @@ class EventsTable extends AppTable
                     ],
                     'recursive' => -1,
                     'conditions' => [
-                        'AttributeTag.attribute_id' => $relatedAttribute['attribute_id']
+                        'AttributeTags.attribute_id' => $relatedAttribute['attribute_id']
                     ]
                 ];
                 if ($excludeLocalTags) {
-                    $params['conditions']['AttributeTag.local'] = 0;
+                    $params['conditions']['AttributeTags.local'] = 0;
                 }
-                $attributeTags = $this->Attributes->AttributeTag->find('all', $params);
+                $attributeTags = $this->Attributes->AttributeTags->find('all', $params);
                 foreach ($attributeTags as $at) {
                     $tags[$at['Tag']['id']] = $at['Tag'];
                 }
@@ -2380,7 +2434,7 @@ class EventsTable extends AppTable
         $extensions = $this->fetchEvent(
             $user,
             [
-                'eventsExtendingUuid' => $event['Event']['uuid'],
+                'eventsExtendingUuid' => $event['uuid'],
                 'sgReferenceOnly' => $options['sgReferenceOnly'],
                 'metadata' => 1
             ]
@@ -2398,7 +2452,7 @@ class EventsTable extends AppTable
                 ]
             ];
         }
-        $event['Event']['ExtendedBy'] = $extensionList;
+        $event['ExtendedBy'] = $extensionList;
         return $event;
     }
 
@@ -2414,7 +2468,7 @@ class EventsTable extends AppTable
         $extensions = $this->fetchEvent(
             $user,
             [
-                'eventsExtendingUuid' => $event['Event']['uuid'],
+                'eventsExtendingUuid' => $event['uuid'],
                 'includeEventCorrelations' => $options['includeEventCorrelations'],
                 'includeWarninglistHits' => $options['includeWarninglistHits'],
                 'noShadowAttributes' => $options['noShadowAttributes'],
@@ -2435,7 +2489,7 @@ class EventsTable extends AppTable
                     'uuid' => $extensionEvent['Orgc']['uuid'],
                 ],
             ];
-            $event['Event']['extensionEvents'][$eventMeta['id']] = $eventMeta;
+            $event['extensionEvents'][$eventMeta['id']] = $eventMeta;
             $thingsToMerge = ['Attribute', 'Object', 'ShadowAttribute', 'Galaxy'];
             foreach ($thingsToMerge as $thingToMerge) {
                 if (!isset($event[$thingToMerge])) {
@@ -2546,9 +2600,9 @@ class EventsTable extends AppTable
         if (!empty($params['sharinggroup'])) {
             $params['sharinggroup'] = $this->convert_filters($params['sharinggroup']);
             if ($options['scope'] === 'Attribute') {
-                $conditions = $this->generic_add_filter($conditions, $params['sharinggroup'], ['Event.sharing_group_id', 'Attribute.sharing_group_id']);
+                $conditions = $this->generic_add_filter($conditions, $params['sharinggroup'], ['Events.sharing_group_id', 'Attributes.sharing_group_id']);
             } else {
-                $conditions = $this->generic_add_filter($conditions, $params['sharinggroup'], 'Event.sharing_group_id');
+                $conditions = $this->generic_add_filter($conditions, $params['sharinggroup'], 'Events.sharing_group_id');
             }
         }
         return $conditions;
@@ -2558,7 +2612,7 @@ class EventsTable extends AppTable
     {
         if (!empty($params['orgc_id'])) {
             $orgFilter = ['OR' => $params['orgc_id']];
-            $conditions = $this->generic_add_filter($conditions, $orgFilter, 'Event.orgc_id');
+            $conditions = $this->generic_add_filter($conditions, $orgFilter, 'Events.orgc_id');
         }
         return $conditions;
     }
@@ -2571,7 +2625,7 @@ class EventsTable extends AppTable
                 foreach ($params['org']['OR'] as $k => $org) {
                     if (!is_numeric($org)) {
                         $existingOrg = $this->Orgc->find(
-                            'first',
+                            'all',
                             [
                                 'recursive' => -1,
                                 'conditions' => [
@@ -2582,7 +2636,7 @@ class EventsTable extends AppTable
                                 ],
                                 'fields' => ['Orgc.id']
                             ]
-                        );
+                        )->first();
                         if (empty($existingOrg)) {
                             $params['org']['OR'][$k] = -1;
                         } else {
@@ -2596,7 +2650,7 @@ class EventsTable extends AppTable
                 foreach ($params['org']['NOT'] as $org) {
                     if (!is_numeric($org)) {
                         $existingOrg = $this->Orgc->find(
-                            'first',
+                            'all',
                             [
                                 'recursive' => -1,
                                 'conditions' => [
@@ -2607,7 +2661,7 @@ class EventsTable extends AppTable
                                 ],
                                 'fields' => ['Orgc.id']
                             ]
-                        );
+                        )->first();
                         if (!empty($existingOrg)) {
                             $temp[] = $existingOrg['Orgc']['id'];
                         }
@@ -2621,7 +2675,7 @@ class EventsTable extends AppTable
                     unset($params['org']['NOT']);
                 }
             }
-            $conditions = $this->generic_add_filter($conditions, $params['org'], 'Event.orgc_id');
+            $conditions = $this->generic_add_filter($conditions, $params['org'], 'Events.orgc_id');
         }
         return $conditions;
     }
@@ -2631,8 +2685,8 @@ class EventsTable extends AppTable
         if (!empty($params['eventid']) && $params['eventid'] !== 'all') {
             $params['eventid'] = $this->convert_filters($params['eventid']);
             $keys = [
-                'uuid' => 'Event.uuid',
-                'id' => 'Event.id'
+                'uuid' => 'uuid',
+                'id' => 'id'
             ];
             $id_params = [];
             foreach ($params['eventid'] as $operand => $list) {
@@ -2655,7 +2709,7 @@ class EventsTable extends AppTable
     {
         if (!empty($params['eventinfo'])) {
             $params['eventinfo'] = $this->convert_filters($params['eventinfo']);
-            $conditions = $this->generic_add_filter($conditions, $params['eventinfo'], 'Event.info');
+            $conditions = $this->generic_add_filter($conditions, $params['eventinfo'], 'Events.info');
         }
         return $conditions;
     }
@@ -2667,26 +2721,26 @@ class EventsTable extends AppTable
                 $params['uuid'] = $this->convert_filters($params['uuid']);
                 if (!empty($params['uuid']['OR'])) {
                     $subQueryOptions = [
-                        'conditions' => ['Attribute.uuid' => $params['uuid']['OR']],
+                        'conditions' => ['Attributes.uuid' => $params['uuid']['OR']],
                         'fields' => ['event_id']
                     ];
-                    $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
+                    $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'id');
                     $conditions['AND'][] = [
                         'OR' => [
-                            'Event.uuid' => $params['uuid']['OR'],
+                            'uuid' => $params['uuid']['OR'],
                             $attributeSubquery
                         ]
                     ];
                 }
                 if (!empty($params['uuid']['NOT'])) {
                     $subQueryOptions = [
-                        'conditions' => ['Attribute.uuid' => $params['uuid']['NOT']],
+                        'conditions' => ['Attributes.uuid' => $params['uuid']['NOT']],
                         'fields' => ['event_id']
                     ];
-                    $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
+                    $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'id');
                     $conditions['AND'][] = [
                         'NOT' => [
-                            'Event.uuid' => $params['uuid']['NOT'],
+                            'uuid' => $params['uuid']['NOT'],
                             $attributeSubquery
                         ]
                     ];
@@ -2703,10 +2757,10 @@ class EventsTable extends AppTable
         if (!empty($params['mixed_id'])) {
             $params['mixed_id'] = $this->convert_filters($params['mixed_id']);
             if (!empty($options['scope']) && $options['scope'] === 'Event') {
-                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Event.uuid');
+                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'uuid');
             }
             if (!empty($options['scope']) && $options['scope'] === 'Attribute') {
-                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Attribute.uuid');
+                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Attributes.uuid');
             }
         }
         return $conditions;
@@ -2733,7 +2787,7 @@ class EventsTable extends AppTable
             if ($params['to_ids'] === 'exclude') {
                 $params['to_ids'] = 0;
             }
-            $conditions['AND']['Attribute.to_ids'] = $params['to_ids'];
+            $conditions['AND']['Attributes.to_ids'] = $params['to_ids'];
         }
         return $conditions;
     }
@@ -2747,9 +2801,9 @@ class EventsTable extends AppTable
                 $scope = $options['scope'];
             }
             if ($scope === 'Attribute') {
-                $conditions['AND']['Attribute.to_ids'] = 1;
+                $conditions['AND']['Attributes.to_ids'] = 1;
             } else {
-                $conditions['AND']['Event.published'] = 1;
+                $conditions['AND']['Events.published'] = 1;
             }
         }
         return $conditions;
@@ -2758,7 +2812,7 @@ class EventsTable extends AppTable
     public function set_filter_published(&$params, $conditions, $options)
     {
         if (isset($params['published']) && $params['published'] !== [true, false]) {
-            $conditions['AND']['Event.published'] = $params['published'];
+            $conditions['AND']['Events.published'] = $params['published'];
         }
         return $conditions;
     }
@@ -2766,7 +2820,7 @@ class EventsTable extends AppTable
     public function set_filter_threat_level_id(&$params, $conditions, $options)
     {
         if (isset($params['threat_level_id'])) {
-            $conditions['AND']['Event.threat_level_id'] = $params['threat_level_id'];
+            $conditions['AND']['Events.threat_level_id'] = $params['threat_level_id'];
         }
         return $conditions;
     }
@@ -2803,7 +2857,7 @@ class EventsTable extends AppTable
                     }
                 }
             }
-            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], 'Attribute.' . $options['filter']);
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], 'Attributes.' . $options['filter']);
         }
         return $conditions;
     }
@@ -2818,7 +2872,7 @@ class EventsTable extends AppTable
                     unset($params[$options['filter']]['OR']);
                 }
             }
-            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], 'Attribute.' . $options['filter']);
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], 'Attributes.' . $options['filter']);
         }
         return $conditions;
     }
@@ -2827,7 +2881,7 @@ class EventsTable extends AppTable
     {
         if (!empty($params[$options['filter']])) {
             $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
-            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], 'Attribute.' . $options['filter']);
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], 'Attributes.' . $options['filter']);
         }
         return $conditions;
     }
@@ -2861,7 +2915,7 @@ class EventsTable extends AppTable
                     }
                 }
             }
-            $conditions = $this->generic_add_filter($conditions, $params['value'], ['Attribute.value1', 'Attribute.value2']);
+            $conditions = $this->generic_add_filter($conditions, $params['value'], ['Attributes.value1', 'Attributes.value2']);
         }
 
         return $conditions;
@@ -2898,7 +2952,7 @@ class EventsTable extends AppTable
     {
         if (!empty($params['comment'])) {
             $params['comment'] = $this->convert_filters($params['comment']);
-            $conditions = $this->generic_add_filter($conditions, $params['comment'], 'Attribute.comment');
+            $conditions = $this->generic_add_filter($conditions, $params['comment'], 'Attributes.comment');
         }
         return $conditions;
     }
@@ -2920,15 +2974,15 @@ class EventsTable extends AppTable
     {
         if ($options['filter'] === 'from') {
             if (is_numeric($params['from'])) {
-                $conditions['AND']['Event.date >='] = date('Y-m-d', $params['from']);
+                $conditions['AND']['Events.date >='] = date('Y-m-d', $params['from']);
             } else {
-                $conditions['AND']['Event.date >='] = $params['from'];
+                $conditions['AND']['Events.date >='] = $params['from'];
             }
         } elseif ($options['filter'] === 'to') {
             if (is_numeric($params['to'])) {
-                $conditions['AND']['Event.date <='] = date('Y-m-d', $params['to']);
+                $conditions['AND']['Events.date <='] = date('Y-m-d', $params['to']);
             } else {
-                $conditions['AND']['Event.date <='] = $params['to'];
+                $conditions['AND']['Events.date <='] = $params['to'];
             }
         } else {
             if (empty($options['scope'])) {
@@ -2941,16 +2995,16 @@ class EventsTable extends AppTable
                     $scope . '.timestamp'
                 ],
                 'publish_timestamp' => [
-                    'Event.publish_timestamp'
+                    'Events.publish_timestamp'
                 ],
                 'last' => [
-                    'Event.publish_timestamp'
+                    'Events.publish_timestamp'
                 ],
                 'event_timestamp' => [
-                    'Event.timestamp'
+                    'Events.timestamp'
                 ],
                 'attribute_timestamp' => [
-                    'Attribute.timestamp'
+                    'Attributes.timestamp'
                 ],
             ];
             foreach ($filters[$options['filter']] as $f) {
@@ -2965,12 +3019,12 @@ class EventsTable extends AppTable
 
     public function set_filter_date(&$params, $conditions, $options)
     {
-        $timestamp = $this->Attributes->setTimestampConditions($params[$options['filter']], $conditions, 'Event.date', true);
+        $timestamp = $this->Attributes->setTimestampConditions($params[$options['filter']], $conditions, 'Events.date', true);
         if (!is_array($timestamp)) {
-            $conditions['AND']['Event.date >='] = date('Y-m-d', $timestamp);
+            $conditions['AND']['Events.date >='] = date('Y-m-d', $timestamp);
         } else {
-            $conditions['AND']['Event.date >='] = date('Y-m-d', $timestamp[0]);
-            $conditions['AND']['Event.date <='] = date('Y-m-d', $timestamp[1]);
+            $conditions['AND']['Events.date >='] = date('Y-m-d', $timestamp[0]);
+            $conditions['AND']['Events.date <='] = date('Y-m-d', $timestamp[1]);
         }
         return $conditions;
     }
@@ -2981,23 +3035,23 @@ class EventsTable extends AppTable
             $oldest = time() - (Configure::read('MISP.block_old_event_alert_age') * 86400);
             $oldest_date = time() - (Configure::read('MISP.block_old_event_alert_by_date') * 86400);
             $event = $this->find(
-                'first',
+                'all',
                 [
-                    'conditions' => ['Event.id' => $id],
+                    'conditions' => ['id' => $id],
                     'recursive' => -1,
-                    'fields' => ['Event.timestamp', 'Event.date']
+                    'fields' => ['Events.timestamp', 'Events.date']
                 ]
-            );
+            )->first();
             if (empty($event)) {
                 return false;
             }
             if (!empty(Configure::read('MISP.block_old_event_alert_age')) && is_numeric(Configure::read('MISP.block_old_event_alert_age'))) {
-                if (intval($event['Event']['timestamp']) < $oldest) {
+                if (intval($event['timestamp']) < $oldest) {
                     return true;
                 }
             }
             if (!empty(Configure::read('MISP.block_old_event_alert_by_date')) && is_numeric(Configure::read('MISP.block_old_event_alert_by_date'))) {
-                if (strtotime($event['Event']['date']) < $oldest_date) {
+                if (strtotime($event['date']) < $oldest_date) {
                     return true;
                 }
             }
@@ -3089,14 +3143,14 @@ class EventsTable extends AppTable
     public function sendAlertEmail($id, array $senderUser, $oldpublish = null, $jobId = null)
     {
         $event = $this->find(
-            'first',
+            'all',
             [
-                'conditions' => ['Event.id' => $id],
+                'conditions' => ['id' => $id],
                 'recursive' => -1,
             ]
-        );
+        )->first();
         if (empty($event)) {
-            throw new NotFoundException('Invalid Event.');
+            throw new NotFoundException('Invalid Events.');
         }
 
         // Initialise the Job class if we have a background process ID
@@ -3106,7 +3160,7 @@ class EventsTable extends AppTable
         }
 
         $NotificationLogsTable = $this->fetchTable('NotificationLogs');
-        if (!$NotificationLogsTable->check($event['Event']['orgc_id'], 'publish')) {
+        if (!$NotificationLogsTable->check($event['orgc_id'], 'publish')) {
             if ($jobId) {
                 $JobsTable->saveStatus($jobId, true, __('Mails blocked by org alert threshold.'));
             }
@@ -3115,11 +3169,11 @@ class EventsTable extends AppTable
         $userConditions = ['autoalert' => 1];
         $usersWithAccess = $this->User->getUsersWithAccess(
             $owners = [
-                $event['Event']['orgc_id'],
-                $event['Event']['org_id']
+                $event['orgc_id'],
+                $event['org_id']
             ],
-            $event['Event']['distribution'],
-            $event['Event']['sharing_group_id'],
+            $event['distribution'],
+            $event['sharing_group_id'],
             $userConditions
         );
 
@@ -3140,7 +3194,7 @@ class EventsTable extends AppTable
             );
             if (empty($eventForUser)) {
                 $JobsTable->saveProgress($jobId, null, $k / $userCount * 100);
-                $this->loadLog()->createLogEntry($senderUser, 'alert', 'User', $user['id'], __('Something went wrong with alerting user #%s about event #%s. Sending was blocked due to insufficient access to the given event.'));
+                $this->loadLog()->createLogEntry($senderUser, 'alert', 'User', $user['id'], __('Something went wrong with alerting user #%s about event #%s. Sending was blocked due to insufficient access to the given Events.'));
                 continue;
             }
             $eventForUser = $eventForUser[0];
@@ -3169,7 +3223,7 @@ class EventsTable extends AppTable
     public function prepareAlertEmail(array $event, array $user, $oldpublish = null)
     {
         if (Configure::read('MISP.extended_alert_subject')) {
-            $subject = preg_replace("/\r|\n/", "", $event['Event']['info']);
+            $subject = preg_replace("/\r|\n/", "", $event['info']);
             if (mb_strlen($subject) > 58) {
                 $subject = mb_substr($subject, 0, 55) . '... - ';
             } else {
@@ -3186,7 +3240,7 @@ class EventsTable extends AppTable
         }
 
         $subjMarkingString = $this->getEmailSubjectMarkForEvent($event);
-        $subject = "[" . Configure::read('MISP.org') . " MISP] Event {$event['Event']['id']} - $subject$threatLevel" . strtoupper($subjMarkingString);
+        $subject = "[" . Configure::read('MISP.org') . " MISP] Event {$event['id']} - $subject$threatLevel" . strtoupper($subjMarkingString);
 
         $template = new SendEmailTemplate('alert');
         $template->set('event', $event);
@@ -3197,7 +3251,7 @@ class EventsTable extends AppTable
         $template->set('analysisLevels', $this->analysisLevels);
         $template->set('tlp', $subjMarkingString);
         $template->subject($subject);
-        $template->referenceId("event-alert|{$event['Event']['id']}");
+        $template->referenceId("event-alert|{$event['id']}");
 
         $unsubscribeLink = $this->__getAnnounceBaseurl() . '/users/unsubscribe/' . $this->User->unsubscribeCode($user);
         $template->set('unsubscribe', $unsubscribeLink);
@@ -3226,7 +3280,7 @@ class EventsTable extends AppTable
             ]
         );
         if (empty($event)) {
-            throw new NotFoundException('Invalid Event.');
+            throw new NotFoundException('Invalid Events.');
         }
         $event = $event[0];
 
@@ -3239,28 +3293,28 @@ class EventsTable extends AppTable
                 'all',
                 [
                     'fields' => ['email', 'gpgkey', 'certif_public', 'contactalert', 'id', 'org_id', 'disabled'],
-                    'conditions' => ['disabled' => 0, 'User.org_id' => $event['Event']['orgc_id']],
+                    'conditions' => ['disabled' => 0, 'User.org_id' => $event['orgc_id']],
                     'recursive' => -1
                 ]
             );
             foreach ($temp as $tempElement) {
-                if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['Event']['user_id']) {
+                if ($tempElement['User']['contactalert'] || $tempElement['User']['id'] == $event['user_id']) {
                     array_push($orgMembers, $tempElement);
                 }
             }
         } else {
             $temp = $this->User->find(
-                'first',
+                'all',
                 [
                     'conditions' => [
-                        'User.id' => $event['Event']['user_id'],
+                        'User.id' => $event['user_id'],
                         'User.disabled' => 0,
-                        'User.org_id' => $event['Event']['orgc_id'],
+                        'User.org_id' => $event['orgc_id'],
                     ],
                     'fields' => ['User.email', 'User.gpgkey', 'User.certif_public', 'User.id', 'User.disabled'],
                     'recursive' => -1
                 ]
-            );
+            )->first();
             if (!empty($temp)) {
                 $orgMembers = [$temp];
             }
@@ -3441,7 +3495,7 @@ class EventsTable extends AppTable
         if (isset($capturedTags[$tagName])) {
             $tagId = $capturedTags[$tagName];
         } else {
-            $tagId = $this->Attributes->AttributeTag->Tag->captureTag($tag, $user);
+            $tagId = $this->Attributes->AttributeTags->Tags->captureTag($tag, $user);
             if ($tagId) {
                 $tagId = (int)$tagId;
                 $capturedTags[$tagName] = $tagId;
@@ -3513,9 +3567,9 @@ class EventsTable extends AppTable
             if (!is_array($this->eventBlockRule['tags'])) {
                 $this->eventBlockRule['tags'] = [$this->eventBlockRule['tags']];
             }
-            $eventTags = Hash::extract($event, 'Event.Tag.{n}.name');
+            $eventTags = Hash::extract($event, 'Events.Tag.{n}.name');
             if (empty($eventTags)) {
-                $eventTags = Hash::extract($event, 'Event.EventTag.{n}.Tag.name');
+                $eventTags = Hash::extract($event, 'Events.EventTag.{n}.Tag.name');
             }
             if (!empty($eventTags)) {
                 foreach ($this->eventBlockRule['tags'] as $blockTag) {
@@ -3578,11 +3632,11 @@ class EventsTable extends AppTable
             }
             $event = ['Event' => $event];
             $created_id = 0;
-            $event['Event']['locked'] = 1;
-            $event['Event']['published'] = $publish;
+            $event['locked'] = 1;
+            $event['published'] = $publish;
             $result = $this->_add($event, true, $user, '', null, false, null, $created_id, $validationIssues);
             $results[] = [
-                'info' => $event['Event']['info'],
+                'info' => $event['info'],
                 'result' => $result,
                 'id' => $created_id,
                 'validationIssues' => $validationIssues,
@@ -3624,7 +3678,6 @@ class EventsTable extends AppTable
             $this->loadLog()->createLogEntry($user, 'add', 'Event', 0, $validationErrors['Event']);
             return json_encode($validationErrors);
         }
-        $this->create();
         // force check userid and orgname to be from yourself
         $data['Event']['user_id'] = $user['id'];
 
@@ -3661,33 +3714,29 @@ class EventsTable extends AppTable
         if ($passAlong) {
             $ServersTable = $this->fetchTable('Servers');
             $server = $ServersTable->find(
-                'first',
+                'all',
                 [
                     'conditions' => [
-                        'Server.id' => $passAlong
+                        'id' => $passAlong
                     ],
                     'recursive' => -1,
                     'fields' => [
-                        'Server.name',
-                        'Server.id',
-                        'Server.unpublish_event',
-                        'Server.publish_without_email',
-                        'Server.internal',
-                        'Server.url',
-                        'Server.remote_org_id',
+                        'name',
+                        'id',
+                        'unpublish_event',
+                        'publish_without_email',
+                        'internal',
+                        'url',
+                        'remote_org_id',
                     ]
                 ]
-            );
+            )->first();
         } else {
             $server['Server']['internal'] = false;
         }
         if ($fromXml) {
             // Workaround for different structure in XML/array than what CakePHP expects
             $data = $this->cleanupEventArrayFromXML($data);
-            // the event_id field is not set (normal) so make sure no validation errors are thrown
-            // LATER do this with   $this->validator()->remove('event_id');
-            unset($this->Attributes->validate['event_id']); // otherwise gives bugs because event_id is not set
-            unset($this->Attributes->validate['value']['uniqueValue']); // unset this - we are saving a new event, there are no values to compare against and event_id is not set in the attributes
         }
         unset($data['Event']['id']);
         if (
@@ -3699,13 +3748,13 @@ class EventsTable extends AppTable
         if (isset($data['Event']['uuid'])) {
             // check if the uuid already exists
             $existingEvent = $this->find(
-                'first',
+                'all',
                 [
-                    'conditions' => ['Event.uuid' => $data['Event']['uuid']],
-                    'fields' => ['Event.id'],
+                    'conditions' => ['uuid' => $data['Event']['uuid']],
+                    'fields' => ['id'],
                     'recursive' => -1,
                 ]
-            );
+            )->first();
             if ($existingEvent) {
                 // RESTful, set response location header so client can find right URL to edit
                 if ($fromPull) {
@@ -3741,52 +3790,53 @@ class EventsTable extends AppTable
 
         $eventEntity = $this->newEntity($data['Event'], ['fieldList' => $fieldList]);
 
-        $saveResult = $this->save($eventEntity);
+        $saveResult = $this->saveOrFail($eventEntity, ['associated' => []]);
         if ($saveResult) {
             if ($jobId) {
                 /** @var EventLocksTable $EventLocksTable */
                 $EventLocksTable = $this->fetchTable('EventLocks');
-                $EventLocksTable->insertLockBackgroundJob($this->id, $jobId);
+                $EventLocksTable->insertLockBackgroundJob($eventEntity->id, $jobId);
             }
 
             if ($passAlong) {
-                if ($server['Server']['publish_without_email'] == 0) {
+                if ($server['publish_without_email'] == 0) {
                     $st = "enabled";
                 } else {
                     $st = "disabled";
                 }
-                $logTitle = 'Event pulled from Server (' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st;
-                $this->loadLog()->createLogEntry($user, 'add', 'Event', $saveResult['Event']['id'], $logTitle);
+                $logTitle = 'Event pulled from Server (' . $server['id'] . ') - "' . $server['name'] . '" - Notification by mail ' . $st;
+                $this->loadLog()->createLogEntry($user, 'add', 'Event', $saveResult['id'], $logTitle);
             }
             if (!empty($data['Event']['EventTag'])) {
                 $toSave = [];
                 foreach ($data['Event']['EventTag'] as $et) {
-                    $et['event_id'] = $this->id;
+                    $et['event_id'] = $eventEntity->id;
                     $toSave[] = $et;
                 }
-                if (!$this->EventTag->saveMany($toSave, ['validate' => true])) {
-                    $this->log("Could not save tags when capturing event with ID {$this->id}.", LOG_WARNING);
+                $eventTagEntity = $this->EventTags->newEntities($toSave);
+                if (!$this->EventTags->saveMany($eventTagEntity, ['validate' => true])) {
+                    $this->log("Could not save tags when capturing event with ID {$eventEntity->id}.", LOG_WARNING);
                 } else if (!empty($this->EventTag->validationErrors)) {
-                    $this->log("Could not save some tags when capturing event with ID {$this->id}: " . json_encode($this->EventTag->validationErrors), LOG_WARNING);
+                    $this->log("Could not save some tags when capturing event with ID {$eventEntity->id}: " . json_encode($this->EventTag->validationErrors), LOG_WARNING);
                 }
             }
             $parentEvent = $this->find(
-                'first',
+                'all',
                 [
-                    'conditions' => ['Event.id' => $this->id],
+                    'conditions' => ['id' => $eventEntity->id],
                     'recursive' => -1
                 ]
-            );
+            )->first();
             if (!empty($data['Event']['Attribute'])) {
                 $attributeHashes = [];
                 foreach ($data['Event']['Attribute'] as $attribute) {
                     if (!empty($attribute['deleted'])) {
-                        $this->Attributes->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                        $this->Attributes->captureAttribute($attribute, $eventEntity->id, $user, 0, null, $parentEvent);
                     } else {
                         $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
                         if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
                             $attributeHashes[$attributeHash] = true;
-                            $this->Attributes->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                            $this->Attributes->captureAttribute($attribute, $eventEntity->id, $user, 0, null, $parentEvent);
                         }
                     }
                 }
@@ -3796,7 +3846,7 @@ class EventsTable extends AppTable
             if (!empty($data['Event']['Object'])) {
                 $referencesToCapture = [];
                 foreach ($data['Event']['Object'] as $object) {
-                    $result = $this->Objects->captureObject($object, $this->id, $user, false, $breakOnDuplicate, $parentEvent);
+                    $result = $this->Objects->captureObject($object, $eventEntity->id, $user, false, $breakOnDuplicate, $parentEvent);
                     if (isset($object['ObjectReference'])) {
                         foreach ($object['ObjectReference'] as $objectRef) {
                             $objectRef['source_uuid'] = $object['uuid'];
@@ -3807,17 +3857,17 @@ class EventsTable extends AppTable
                 foreach ($referencesToCapture as $referenceToCapture) {
                     $result = $this->Objects->ObjectReference->captureReference(
                         $referenceToCapture,
-                        $this->id
+                        $eventEntity->id
                     );
                     if ($result !== true) {
-                        $title = "Could not save object reference when capturing event with ID {$this->id}";
+                        $title = "Could not save object reference when capturing event with ID {$eventEntity->id}";
                         $this->loadLog()->validationError($user, 'add', 'ObjectReference', $title, $result, $referenceToCapture);
                     }
                 }
             }
             if (!empty($data['Event']['EventReport'])) {
                 foreach ($data['Event']['EventReport'] as $report) {
-                    $result = $this->EventReport->captureReport($user, $report, $this->id);
+                    $result = $this->EventReport->captureReport($user, $report, $eventEntity->id);
                 }
             }
 
@@ -3826,28 +3876,28 @@ class EventsTable extends AppTable
                 $this->CryptographicKey->captureCryptographicKeyUpdate(
                     $user,
                     $data['Event']['CryptographicKey'],
-                    $this->id,
+                    $eventEntity->id,
                     'Event'
                 );
             }
 
             // zeroq: check if sightings are attached and add to event
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
-                $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
+                $this->Sighting->captureSightings($data['Sighting'], null, $eventEntity->id, $user);
             }
             if ($fromXml) {
-                $created_id = $this->id;
+                $created_id = $eventEntity->id;
             }
-            $workflowResult = $this->afterAddWorkflow($this->id, $fromPull);
+            $workflowResult = $this->afterAddWorkflow($eventEntity->id, $fromPull);
             if (is_array($workflowResult)) {
                 return implode(', ', $workflowResult);
             }
             if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
                 // do the necessary actions to publish the event (email, upload,...)
                 if (('true' != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
-                    $this->sendAlertEmailRouter($this->id, $user);
+                    $this->sendAlertEmailRouter($eventEntity->id, $user);
                 }
-                $this->publish($this->id, $passAlong);
+                $this->publish($eventEntity->id, $passAlong);
             }
             if (empty($data['Event']['locked']) && !empty(Configure::read('MISP.default_event_tag_collection'))) {
                 $TagCollectionsTable = $this->fetchTable('TagCollections');
@@ -3859,28 +3909,28 @@ class EventsTable extends AppTable
                     }
                     foreach ($tag_id_list as $tag_id) {
                         $tag = $this->EventTag->Tag->find(
-                            'first',
+                            'all',
                             [
                                 'conditions' => ['Tag.id' => $tag_id],
                                 'recursive' => -1,
                                 'fields' => ['Tag.name']
                             ]
-                        );
+                        )->first();
                         if (!empty($tag)) {
                             $found = $this->EventTag->find(
-                                'first',
+                                'all',
                                 [
                                     'conditions' => [
-                                        'event_id' => $this->id,
+                                        'event_id' => $eventEntity->id,
                                         'tag_id' => $tag_id
                                     ],
                                     'recursive' => -1,
                                 ]
-                            );
+                            )->first();
                             if (empty($found)) {
                                 $this->EventTag->create();
-                                if ($this->EventTag->save(['event_id' => $this->id, 'tag_id' => $tag_id])) {
-                                    $this->loadLog()->createLogEntry($user, 'tag', 'Event', $this->id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $this->id . ')', 'Event (' . $this->id . ') tagged as Tag (' . $tag_id . ')');
+                                if ($this->EventTag->save(['event_id' => $eventEntity->id, 'tag_id' => $tag_id])) {
+                                    $this->loadLog()->createLogEntry($user, 'tag', 'Event', $eventEntity->id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $eventEntity->id . ')', 'Event (' . $eventEntity->id . ') tagged as Tag (' . $tag_id . ')');
                                 }
                             }
                         }
@@ -3888,12 +3938,12 @@ class EventsTable extends AppTable
                 }
             }
             if ($jobId) {
-                $this->EventLock->deleteBackgroundJobLock($this->id, $jobId);
+                $this->EventLock->deleteBackgroundJobLock($eventEntity->id, $jobId);
             }
 
             return true;
         } else {
-            $validationErrors['Event'] = $this->validationErrors;
+            $validationErrors['Event'] = $eventEntity->getErrors();
             return json_encode($validationErrors);
         }
     }
@@ -3936,13 +3986,11 @@ class EventsTable extends AppTable
     public function _edit(array &$data, array $user, $id = null, $jobId = null, $passAlong = null, $force = false, $fast_update = false)
     {
         $data = $this->cleanupEventArrayFromXML($data);
-        unset($this->Attributes->validate['event_id']);
-        unset($this->Attributes->validate['value']['unique']); // otherwise gives bugs because event_id is not set
-        // reposition to get the event.id with given uuid
+        // reposition to get the Events.id with given uuid
         if (isset($data['Event']['uuid'])) {
-            $conditions = ['Event.uuid' => $data['Event']['uuid']];
+            $conditions = ['uuid' => $data['Event']['uuid']];
         } elseif ($id) {
-            $conditions = ['Event.id' => $id];
+            $conditions = ['id' => $id];
         } else {
             throw new InvalidArgumentException("No event UUID or ID provided.");
         }
@@ -3950,7 +3998,7 @@ class EventsTable extends AppTable
         if ($passAlong) {
             $ServersTable = $this->fetchTable('Servers');
             $server = $ServersTable->find(
-                'first',
+                'all',
                 [
                     'conditions' => [
                         'Server.id' => $passAlong
@@ -3965,7 +4013,7 @@ class EventsTable extends AppTable
                         'Server.remove_missing_tags'
                     ]
                 ]
-            );
+            )->first();
         } else {
             $server['Server']['internal'] = false;
         }
@@ -3974,7 +4022,7 @@ class EventsTable extends AppTable
             $data['Event']['id'] = $existingEvent['id'];
             $id = $existingEvent['id'];
             // Conditions affecting all:
-            // user.org == event.org
+            // user.org == Events.org
             // edit timestamp newer than existing event timestamp
             if ($force || !isset($data['Event']['timestamp']) || $data['Event']['timestamp'] > $existingEvent['timestamp']) {
                 if (!isset($data['Event']['timestamp'])) {
@@ -4028,7 +4076,7 @@ class EventsTable extends AppTable
                 }
             }
         } else {
-            return ['error' => 'Event could not be saved: Could not find the local event.'];
+            return ['error' => 'Event could not be saved: Could not find the local Events.'];
         }
         if (
             (Configure::read('MISP.block_publishing_for_same_creator', false) && !$user['Role']['perm_sync'] && $user['id'] == $existingEvent['user_id']) ||
@@ -4053,7 +4101,7 @@ class EventsTable extends AppTable
             'extends_uuid'
         ];
 
-        $saveResult = $this->patchEntity($existingEvent, $data['Event'], ['fieldList' => $fieldList]);
+        $saveResult = $this->patchEntity($existingEvent, $data['Event'], ['fieldList' => $fieldList, 'validate' => 'update']);
         if ($saveResult) {
             if ($jobId) {
                 /** @var EventLock $eventLock */
@@ -4103,9 +4151,9 @@ class EventsTable extends AppTable
                         foreach ($object['ObjectReference'] as $objectRef) {
                             $nothingToChange = false;
                             $objectRef['source_uuid'] = $object['uuid'];
-                            $result = $this->Objects->ObjectReference->captureReference($objectRef, $this->id);
+                            $result = $this->Objects->ObjectReference->captureReference($objectRef, $existingEvent->id);
                             if ($result !== true) {
-                                $title = "Could not save object reference when capturing event with ID {$this->id}";
+                                $title = "Could not save object reference when capturing event with ID {$existingEvent->id}";
                                 $this->loadLog()->validationError($user, 'edit', 'ObjectReference', $title, $result, $objectRef);
                             }
                             if ($result && !$nothingToChange) {
@@ -4118,7 +4166,7 @@ class EventsTable extends AppTable
             if (isset($data['Event']['EventReport'])) {
                 foreach ($data['Event']['EventReport'] as $report) {
                     $nothingToChange = false;
-                    $result = $this->EventReport->editReport($user, ['EventReport' => $report], $this->id, true, $nothingToChange);
+                    $result = $this->EventReport->editReport($user, ['EventReport' => $report], $existingEvent->id, true, $nothingToChange);
                     if (!empty($result)) {
                         $validationErrors['EventReport'][] = $result;
                     }
@@ -4133,7 +4181,7 @@ class EventsTable extends AppTable
                     if ($tag_id) {
                         $nothingToChange = false;
                         $tag['id'] = $tag_id;
-                        $result = $this->EventTag->handleEventTag($this->id, $tag, $nothingToChange);
+                        $result = $this->EventTag->handleEventTag($existingEvent->id, $tag, $nothingToChange);
                         if ($result && !$nothingToChange) {
                             $changed = true;
                         }
@@ -4142,14 +4190,14 @@ class EventsTable extends AppTable
                         // However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
                         // In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
                         if ($user['Role']['perm_tag_editor']) {
-                            $this->loadLog()->createLogEntry($user, 'edit', 'Event', $this->id, "Failed create or attach Tag {$tag['name']} to the event.");
+                            $this->loadLog()->createLogEntry($user, 'edit', 'Event', $existingEvent->id, "Failed create or attach Tag {$tag['name']} to the Events.");
                         }
                     }
                 }
             }
             // zeroq: if sightings then attach to event
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
-                $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
+                $this->Sighting->captureSightings($data['Sighting'], null, $existingEvent->id, $user);
             }
             // if published -> do the actual publishing
             if ($changed && (!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
@@ -4179,10 +4227,10 @@ class EventsTable extends AppTable
     // array('Event' => array(), 'Attribute' => array('ShadowAttribute' => array()), 'EventTag' => array(), 'ShadowAttribute' => array());
     public function savePreparedEvent($event)
     {
-        unset($event['Event']['id']);
-        $this->create();
-        $this->save($event['Event']);
-        $event['Event']['id'] = $this->id;
+        unset($event['id']);
+        $eventEntity = $this->newEntity($event);
+        $this->save($eventEntity);
+        $event['id'] = $eventEntity->id;
         $objects = ['Attribute', 'ShadowAttribute', 'EventTag', 'Object'];
         foreach ($objects as $object_type) {
             if (!empty($event[$object_type])) {
@@ -4197,33 +4245,33 @@ class EventsTable extends AppTable
             foreach ($event['Object'] as $k => $object) {
                 foreach ($object['ObjectReference'] as $k2 => $objectRef) {
                     $savedObjectRef = $this->Objects->ObjectReference->find(
-                        'first',
+                        'all',
                         [
                             'recursive' => -1,
                             'conditions' => ['ObjectReference.uuid' => $objectRef['uuid']]
                         ]
-                    );
+                    )->first();
                     $objectRefType = intval($savedObjectRef['ObjectReference']['referenced_type']);
                     $element = $this->{$objectRefTypes[$objectRefType]}->find(
-                        'first',
+                        'all',
                         [
                             'conditions' => [$objectRefTypes[$objectRefType] . '.uuid' => $objectRef['referenced_uuid']],
                             'recursive' => -1,
                             'fields' => [$objectRefTypes[$objectRefType] . '.id']
                         ]
-                    );
+                    )->first();
                     $savedObjectRef['ObjectReference']['referenced_id'] = $element[$objectRefTypes[$objectRefType]]['id'];
                     $result = $this->Objects->ObjectReference->save($savedObjectRef);
                 }
             }
         }
-        return $event['Event']['id'];
+        return $event['id'];
     }
 
     private function __savePreparedAttribute(&$attribute, $event, $object_id = 0)
     {
         unset($attribute['id']);
-        $attribute['event_id'] = $event['Event']['id'];
+        $attribute['event_id'] = $event['id'];
         $attribute['object_id'] = $object_id;
         $this->Attributes->create();
         $this->Attributes->save($attribute);
@@ -4239,7 +4287,7 @@ class EventsTable extends AppTable
     private function __savePreparedObject(&$object, $event)
     {
         unset($object['id']);
-        $object['event_id'] = $event['Event']['id'];
+        $object['event_id'] = $event['id'];
         $this->Objects->create();
         $this->Objects->save($object);
         foreach ($object['Attribute'] as $k => $a) {
@@ -4255,7 +4303,7 @@ class EventsTable extends AppTable
     private function __savePreparedObjectReference($objectRef, $event, $object_id, $object_uuid)
     {
         unset($objectRef['id']);
-        $objectRef['event_id'] = $event['Event']['id'];
+        $objectRef['event_id'] = $event['id'];
         $objectRef['object_id'] = $object_id;
         $objectRef['object_uuid'] = $object_uuid;
         $this->Objects->ObjectReference->create();
@@ -4266,7 +4314,7 @@ class EventsTable extends AppTable
     private function __savePreparedShadowAttribute($shadow_attribute, $event, $old_id = 0)
     {
         unset($shadow_attribute['id']);
-        $shadow_attribute['event_id'] = $event['Event']['id'];
+        $shadow_attribute['event_id'] = $event['id'];
         $shadow_attribute['old_id'] = $old_id;
         $this->ShadowAttribute->create();
         $this->ShadowAttribute->save($shadow_attribute);
@@ -4276,7 +4324,7 @@ class EventsTable extends AppTable
     private function __savePreparedEventTag($event_tag, $event)
     {
         unset($event_tag['id']);
-        $event_tag['event_id'] = $event['Event']['id'];
+        $event_tag['event_id'] = $event['id'];
         $this->EventTag->create();
         $this->EventTag->save($event_tag);
         return true;
@@ -4285,10 +4333,10 @@ class EventsTable extends AppTable
     private function __savePreparedAttributeTag($attribute_tag, $event, $attribute_id)
     {
         unset($attribute_tag['id']);
-        $attribute_tag['event_id'] = $event['Event']['id'];
+        $attribute_tag['event_id'] = $event['id'];
         $attribute_tag['attribute_id'] = $attribute_id;
-        $this->Attributes->AttributeTag->create();
-        $this->Attributes->AttributeTag->save($attribute_tag);
+        $this->Attributes->AttributeTags->create();
+        $this->Attributes->AttributeTags->save($attribute_tag);
         return true;
     }
 
@@ -4302,12 +4350,12 @@ class EventsTable extends AppTable
         if ($context === 'Sighting') {
             $model = 'Event';
         }
-        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] || Configure::read('MISP.host_org_id') != $server['Server']['remote_org_id']) {
-            if ($context != 'Sighting' && $object[$model]['distribution'] < 2) {
+        if (empty(Configure::read('MISP.host_org_id')) || !$server['internal'] || Configure::read('MISP.host_org_id') != $server['remote_org_id']) {
+            if ($context != 'Sighting' && $object['distribution'] < 2) {
                 return false;
             }
         }
-        if ($object[$model]['distribution'] == 4) {
+        if ($object['distribution'] == 4) {
             if ($context === 'Event' || $context === 'Sighting') {
                 return $this->SharingGroup->checkIfServerInSG($object['SharingGroup'], $server);
             } else {
@@ -4368,8 +4416,8 @@ class EventsTable extends AppTable
 
                 $this->pushSightingsToServer($serverSync, $event, $sightingsUuidsToPush);
             } catch (Exception $e) {
-                $this->logException("Uploading sightings to server {$server['Server']['id']} failed.", $e);
-                $failedServers[] = $server['Server']['url'];
+                $this->logException("Uploading sightings to server {$server['id']} failed.", $e);
+                $failedServers[] = $server['url'];
             }
         }
         if (!empty($failedServers)) {
@@ -4405,7 +4453,7 @@ class EventsTable extends AppTable
 
             $conditions = ['Sighting.uuid' => $newSightings];
             $sightings = $this->Sighting->attachToEvent($event, $fakeSyncUser, null, $conditions, true);
-            $serverSync->uploadSightings($sightings, $event['Event']['uuid']);
+            $serverSync->uploadSightings($sightings, $event['uuid']);
         }
     }
 
@@ -4418,13 +4466,13 @@ class EventsTable extends AppTable
     private function uploadEventToServersRouter($id, $passAlong = null)
     {
         $eventOrgcId = $this->find(
-            'first',
+            'all',
             [
-                'conditions' => ['Event.id' => $id],
+                'conditions' => ['id' => $id],
                 'recursive' => -1,
-                'fields' => ['Event.orgc_id']
+                'fields' => ['Events.orgc_id']
             ]
-        );
+        )->first();
         // we create a fake site admin user object to fetch the event with everything included
         // This replaces the old method of manually just fetching everything, staying consistent
         // with the fetchEvent() output
@@ -4434,27 +4482,27 @@ class EventsTable extends AppTable
                 'perm_sync' => 1,
                 'perm_audit' => 0,
             ],
-            'org_id' => $eventOrgcId['Event']['orgc_id']
+            'org_id' => $eventOrgcId['orgc_id']
         ];
         $event = $this->fetchEvent($elevatedUser, ['eventid' => $id, 'metadata' => 1]);
         if (empty($event)) {
             return true;
         }
         $event = $event[0];
-        $event['Event']['locked'] = 1;
+        $event['locked'] = 1;
         // get a list of the servers
         $ServersTable = $this->fetchTable('Servers');
         $conditions = ['push' => 1];
         if ($passAlong) {
-            $conditions[] = ['Server.id !=' => $passAlong];
+            $conditions[] = ['Servers.id !=' => $passAlong];
         }
         $servers = $ServersTable->find(
             'all',
             [
                 'conditions' => $conditions,
                 'recursive' => -1,
-                'contain' => ['RemoteOrg', 'Organisation'],
-                'order' => ['Server.priority ASC', 'Server.id ASC'],
+                'contain' => ['RemoteOrg', 'Organisations'],
+                'order' => ['Servers.priority ASC', 'Servers.id ASC'],
             ]
         );
         // iterate over the servers and upload the event
@@ -4466,12 +4514,12 @@ class EventsTable extends AppTable
 
         foreach ($servers as $server) {
             if (
-                (!isset($server['Server']['internal']) || !$server['Server']['internal']) && $event['Event']['distribution'] < 2
+                (!isset($server['internal']) || !$server['internal']) && $event['distribution'] < 2
             ) {
                 continue;
             }
             // Skip servers where the event has come from.
-            if ($passAlong != $server['Server']['id']) {
+            if ($passAlong != $server['id']) {
                 $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
                 $params = [
                     'eventid' => $id,
@@ -4481,33 +4529,33 @@ class EventsTable extends AppTable
                     'excludeGalaxy' => 1,
                     'noSightings' => true, // sightings are pushed separately
                 ];
-                if (!empty($server['Server']['push_rules'])) {
-                    $pushRules = json_decode($server['Server']['push_rules'], true);
+                if (!empty($server['push_rules'])) {
+                    $pushRules = json_decode($server['push_rules'], true);
                     if (!empty($pushRules['tags']['NOT'])) {
                         $params['blockedAttributeTags'] = $pushRules['tags']['NOT'];
                     }
                 }
-                if (!empty($server['Server']['internal'])) {
+                if (!empty($server['internal'])) {
                     $params['excludeLocalTags'] = 0;
                 }
                 $event = $this->fetchEvent($elevatedUser, $params);
                 $event = $event[0];
-                $event['Event']['locked'] = 1;
+                $event['locked'] = 1;
 
                 $fakeSyncUser = [
-                    'org_id' => $server['Server']['remote_org_id'],
+                    'org_id' => $server['remote_org_id'],
                     'Role' => [
                         'perm_site_admin' => 0
                     ]
                 ];
                 // TODO: We are pushing galaxy clusters to remove server even if event is not pushable to that server
-                $ServersTable->syncGalaxyClusters($serverSync, $server, $fakeSyncUser, $technique = $event['Event']['id'], $event = $event);
+                $ServersTable->syncGalaxyClusters($serverSync, $server, $fakeSyncUser, $technique = $event['id'], $event = $event);
                 $thisUploaded = $this->uploadEventToServer($event, $server, $serverSync);
                 if ($thisUploaded === 'Success') {
                     try {
                         $this->pushSightingsToServer($serverSync, $event); // push sighting by method that check for duplicates
                     } catch (Exception $e) {
-                        $this->logException("Uploading sightings to server {$server['Server']['id']} failed.", $e);
+                        $this->logException("Uploading sightings to server {$server['id']} failed.", $e);
                     }
                 }
                 if (isset($this->data['ShadowAttribute'])) {
@@ -4515,7 +4563,7 @@ class EventsTable extends AppTable
                 }
                 if (!$thisUploaded) {
                     $uploaded = !$uploaded ? $uploaded : $thisUploaded;
-                    $failedServers[] = $server['Server']['url'];
+                    $failedServers[] = $server['url'];
                 }
             }
         }
@@ -4596,9 +4644,9 @@ class EventsTable extends AppTable
     public function publishSightings($id, $passAlong = null, array $sightingsUuidsToPush = [])
     {
         if (is_numeric($id)) {
-            $condition = ['Event.id' => $id];
+            $condition = ['id' => $id];
         } else {
-            $condition = ['Event.uuid' => $id];
+            $condition = ['uuid' => $id];
         }
         $event = $this->find(
             'all',
@@ -4633,7 +4681,7 @@ class EventsTable extends AppTable
             'all',
             [
                 'recursive' => -1,
-                'conditions' => ['Event.id' => $id]
+                'conditions' => ['id' => $id]
             ]
         )->first();
 
@@ -4641,28 +4689,28 @@ class EventsTable extends AppTable
             return false;
         }
         $hostOrg = $this->Org->find(
-            'first',
+            'all',
             [
                 'recursive' => -1,
                 'conditions' => [
                     'id' => Configure::read('MISP.host_org_id')
                 ],
             ]
-        );
+        )->first();
         if (empty($hostOrg)) {
             $hostOrg = $this->Org->find(
-                'first',
+                'all',
                 [
                     'recursive' => -1,
                     'order' => ['id ASC']
                 ]
-            );
+            )->first();
         }
         $userForPubSub = [
             'id' => 0,
-            'org_id' => $hostOrg['Org']['id'],
+            'org_id' => $hostOrg['id'],
             'Role' => ['perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 1],
-            'Organisation' => $hostOrg['Org']
+            'Organisation' => $hostOrg
         ];
         $allowZMQ = Configure::read('Plugin.ZeroMQ_enable');
         $kafkaTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
@@ -4711,7 +4759,7 @@ class EventsTable extends AppTable
             $event['skip_zmq'] = 1;
             $event['skip_kafka'] = 1;
 
-            $this->patchEntity($event, $data, ['fieldList' => $fieldList]);
+            $this->patchEntity($event, $data, ['fieldList' => $fieldList, 'validate' => 'publish']);
         }
         if ($allowZMQ) {
             $this->publishEventToZmq($id, $userForPubSub, $fullEvent);
@@ -4722,7 +4770,7 @@ class EventsTable extends AppTable
         return $this->uploadEventToServersRouter($id, $passAlong);
     }
 
-    // Sends out an email to all people within the same org with the request to be contacted about a specific event.
+    // Sends out an email to all people within the same org with the request to be contacted about a specific Events.
     public function sendContactEmailRouter($id, $message, $creator_only, $user)
     {
         if (Configure::read('MISP.background_jobs')) {
@@ -4770,7 +4818,7 @@ class EventsTable extends AppTable
             $this->set($event);
             if (!$this->validates()) {
                 $errors = $this->validationErrors;
-                $result[$i]['id'] = $event['Event']['id'];
+                $result[$i]['id'] = $event['id'];
                 $result[$i]['error'] = $errors;
                 $result[$i]['details'] = $event;
                 $i++;
@@ -4872,14 +4920,6 @@ class EventsTable extends AppTable
             }
         }
         return $xmlArray;
-    }
-
-    public function sharingGroupRequired($field)
-    {
-        if ($this->data[$this->alias]['distribution'] == 4) {
-            return (!empty($field));
-        }
-        return true;
     }
 
     // expects a date string in the YYYY-MM-DD format
@@ -5411,10 +5451,10 @@ class EventsTable extends AppTable
      */
     public function rearrangeEventForView(&$event, $passedArgs = [], $all = false, $sightingsData = [])
     {
-        foreach ($event['Event'] as $k => $v) {
+        foreach ($event as $k => $v) {
             if (is_array($v)) {
                 $event[$k] = $v;
-                unset($event['Event'][$k]);
+                unset($event[$k]);
             }
         }
         $filterType = [
@@ -5540,7 +5580,7 @@ class EventsTable extends AppTable
             }
         }
         $conditions = [];
-        $fields = ['events' => 'Event.id', 'orgs' => 'Event.orgc_id'];
+        $fields = ['events' => 'id', 'orgs' => 'Events.orgc_id'];
         foreach ($fields as $k => $field) {
             $temp = [];
             if (!empty($rules[$k]['OR'])) {
@@ -5557,7 +5597,7 @@ class EventsTable extends AppTable
     public function fetchInitialObject($event_id, $object_id)
     {
         $initial_object = $this->Objects->find(
-            'first',
+            'all',
             [
                 'conditions' => [
                     'Object.id' => $object_id,
@@ -5567,19 +5607,19 @@ class EventsTable extends AppTable
                 'recursive' => -1,
                 'fields' => ['Object.id', 'Object.uuid', 'Object.name', 'Object.distribution', 'Object.sharing_group_id']
             ]
-        );
+        )->first();
         if (!empty($initial_object)) {
             $initial_attributes = $this->Attributes->find(
                 'all',
                 [
                     'conditions' => [
-                        'Attribute.object_id' => $object_id,
-                        'Attribute.deleted' => 0
+                        'Attributes.object_id' => $object_id,
+                        'Attributes.deleted' => 0
                     ],
                     'recursive' => -1,
                     'fields' => [
-                        'Attribute.id', 'Attribute.uuid', 'Attribute.type',
-                        'Attribute.object_relation', 'Attribute.value'
+                        'Attributes.id', 'Attributes.uuid', 'Attributes.type',
+                        'Attributes.object_relation', 'Attributes.value'
                     ]
                 ]
             );
@@ -5801,7 +5841,7 @@ class EventsTable extends AppTable
         }
         $events = $this->fetchEvent($user, $options);
         if (empty($events)) {
-            throw new NotFoundException('Invalid event.');
+            throw new NotFoundException('Invalid Events.');
         }
         $modulePayload = ['module' => $module['name']];
         if (isset($module['meta']['config'])) {
@@ -5888,9 +5928,9 @@ class EventsTable extends AppTable
             $args = $this->Attributes->dissectArgs($tagRules);
             $tagArray = $this->EventTag->fetchEventTagIds($args[0], $args[1]);
             if (!empty($tagArray[0])) {
-                $filters[] = ['OR' => ['Event.id' => $tagArray[0]]];
+                $filters[] = ['OR' => ['id' => $tagArray[0]]];
             } else {
-                $filters[] = ['AND' => ['Event.id NOT IN' => $tagArray[1]]];
+                $filters[] = ['AND' => ['id NOT IN' => $tagArray[1]]];
             }
             if ($useCache) {
                 $this->assetCache['tagFilters'] = $filters;
@@ -5910,7 +5950,7 @@ class EventsTable extends AppTable
     {
         if (is_array($eventOrEventId)) {
             $event = $eventOrEventId;
-            if (!isset($event['Event']['id'])) {
+            if (!isset($event['id'])) {
                 throw new InvalidArgumentException('Invalid event array provided.');
             }
         } else {
@@ -5918,7 +5958,7 @@ class EventsTable extends AppTable
                 'all',
                 [
                     'recursive' => -1,
-                    'conditions' => ['Event.id' => $eventOrEventId],
+                    'conditions' => ['id' => $eventOrEventId],
                     'fields' => ['id', 'info'], // info is required because of SysLogLogableBehavior
                 ]
             )->first();
@@ -6165,7 +6205,7 @@ class EventsTable extends AppTable
                 Job::WORKER_PRIO,
                 'enrichment',
                 'Event ID: ' . $options['event_id'] . ' modules: ' . json_encode($options['modules']),
-                'Enriching event.'
+                'Enriching Events.'
             );
 
             $this->getBackgroundJobsTool()->enqueue(
@@ -6203,7 +6243,7 @@ class EventsTable extends AppTable
                 $params['user'],
                 [
                     'conditions' => [
-                        'Attribute.uuid' => $params['attribute_uuids'],
+                        'Attributes.uuid' => $params['attribute_uuids'],
                     ],
                     'withAttachments' => 1,
                 ]
@@ -6240,7 +6280,7 @@ class EventsTable extends AppTable
             }
         }
         if (empty($event)) {
-            throw new MethodNotAllowedException('Invalid event.');
+            throw new MethodNotAllowedException('Invalid Events.');
         }
         $attributes_added = 0;
         $initial_objects = [];
@@ -6384,10 +6424,10 @@ class EventsTable extends AppTable
             $newTextBody = JsonTool::encode($newTextBody);
         }
 
-        $title = 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')';
+        $title = 'Uploading Event (' . $event['id'] . ') to Server (' . $server['id'] . ')';
         $change = 'Returned message: ' . $newTextBody;
 
-        $this->loadLog()->createLogEntry('SYSTEM', 'warning', 'Server', $server['Server']['id'], $title, $change);
+        $this->loadLog()->createLogEntry('SYSTEM', 'warning', 'Server', $server['id'], $title, $change);
     }
 
     /**
@@ -6405,13 +6445,13 @@ class EventsTable extends AppTable
     public function processFreeTextData(array $user, $attributes, $id, $default_comment = '', $proposals = false, $adhereToWarninglists = false, $jobId = false, $returnRawResults = false)
     {
         $event = $this->find(
-            'first',
+            'all',
             [
                 'conditions' => ['id' => $id],
                 'recursive' => -1,
-                'fields' => ['Event.id', 'Event.uuid', 'Event.distribution', 'Event.org_id', 'Event.orgc_id', 'Event.sharing_group_id', 'Event.disable_correlation'],
+                'fields' => ['id', 'uuid', 'Events.distribution', 'Events.org_id', 'Events.orgc_id', 'Events.sharing_group_id', 'Events.disable_correlation'],
             ]
-        );
+        )->first();
         if (empty($event)) {
             return false;
         }
@@ -6431,7 +6471,7 @@ class EventsTable extends AppTable
         if ($jobId) {
             /** @var EventLock $eventLock */
             $EventLocksTable = $this->fetchTable('EventLocks');
-            $EventLocksTable->insertLockBackgroundJob($event['Event']['id'], $jobId);
+            $EventLocksTable->insertLockBackgroundJob($event['id'], $jobId);
 
             $JobsTable = $this->fetchTable('Jobs');
             $total = count($attributeSources);
@@ -6474,9 +6514,9 @@ class EventsTable extends AppTable
                     $attribute['event_id'] = $id;
                     if ($objectType === 'ShadowAttribute') {
                         $attribute['org_id'] = $user['org_id'];
-                        $attribute['event_org_id'] = $event['Event']['orgc_id'];
+                        $attribute['event_org_id'] = $event['orgc_id'];
                         $attribute['email'] = $user['email'];
-                        $attribute['event_uuid'] = $event['Event']['uuid'];
+                        $attribute['event_uuid'] = $event['uuid'];
                     }
                     // adhere to the warninglist
                     if ($adhereToWarninglists) {
@@ -6495,11 +6535,11 @@ class EventsTable extends AppTable
                         // If Tags, attach each tags to attribute
                         if (!empty($attribute['tags'])) {
                             foreach (explode(",", $attribute['tags']) as $tagName) {
-                                $tagId = $this->Attributes->AttributeTag->Tag->captureTag(['name' => trim($tagName)], $user);
+                                $tagId = $this->Attributes->AttributeTags->Tags->captureTag(['name' => trim($tagName)], $user);
                                 if ($tagId === false) {
                                     continue;  // user don't have permission to use that tag
                                 }
-                                if (!$this->Attributes->AttributeTag->attachTagToAttribute($saved_attribute['Attribute']['id'], $id, $tagId)) {
+                                if (!$this->Attributes->AttributeTags->attachTagToAttribute($saved_attribute['Attribute']['id'], $id, $tagId)) {
                                     throw new MethodNotAllowedException(__('Could not add tags.'));
                                 }
                             }
@@ -6540,7 +6580,7 @@ class EventsTable extends AppTable
             $message = $saved . ' ' . $messageScopeSaved . ' created' . $emailResult . '.';
         }
         if ($jobId) {
-            $EventLocksTable->deleteBackgroundJobLock($event['Event']['id'], $jobId);
+            $EventLocksTable->deleteBackgroundJobLock($event['id'], $jobId);
             $JobsTable->saveStatus($jobId, true, __('Processing complete. %s', $message));
         }
         if (!empty($returnRawResults)) {
@@ -6579,7 +6619,7 @@ class EventsTable extends AppTable
 
             /** @var EventLock $eventLock */
             $EventLocksTable = $this->fetchTable('EventLocks');
-            $EventLocksTable->insertLockBackgroundJob($event['Event']['id'], $jobId);
+            $EventLocksTable->insertLockBackgroundJob($event['id'], $jobId);
         }
         $failed_attributes = $failed_objects = $failed_object_attributes = $failed_reports = 0;
         $saved_attributes = $saved_objects = $saved_object_attributes = $saved_reports = 0;
@@ -6617,10 +6657,10 @@ class EventsTable extends AppTable
                     $saved_attributes++;
                     if (!empty($attribute['Tag'])) {
                         foreach ($attribute['Tag'] as $tag) {
-                            $tag_id = $this->Attributes->AttributeTag->Tag->captureTag($tag, $user);
+                            $tag_id = $this->Attributes->AttributeTags->Tags->captureTag($tag, $user);
                             if ($tag_id) {
                                 $relationship_type = empty($tag['relationship_type']) ? false : $tag['relationship_type'];
-                                $this->Attributes->AttributeTag->attachTagToAttribute($this->Attributes->id, $id, $tag_id, !empty($tag['local']), $relationship_type);
+                                $this->Attributes->AttributeTags->attachTagToAttribute($this->Attributes->id, $id, $tag_id, !empty($tag['local']), $relationship_type);
                             }
                         }
                     }
@@ -6705,7 +6745,7 @@ class EventsTable extends AppTable
                         $current_object_id = $this->__findCurrentObjectId($id, $object['Attribute']);
                         if ($current_object_id) {
                             $original_uuid = $this->Objects->find(
-                                'first',
+                                'all',
                                 [
                                     'conditions' => [
                                         'Object.id' => $current_object_id, 'Object.event_id' => $id,
@@ -6714,7 +6754,7 @@ class EventsTable extends AppTable
                                     'recursive' => -1,
                                     'fields' => ['Object.uuid']
                                 ]
-                            );
+                            )->first();
                             if (!empty($original_uuid)) {
                                 $recovered_uuids[$object['uuid']] = $original_uuid['Object']['uuid'];
                             }
@@ -6896,7 +6936,7 @@ class EventsTable extends AppTable
         }
         if ($jobId) {
             $JobsTable->saveStatus($jobId, true, 'Processing complete. ' . $message);
-            $EventLocksTable->deleteBackgroundJobLock($event['Event']['id'], $jobId);
+            $EventLocksTable->deleteBackgroundJobLock($event['id'], $jobId);
         }
         return $message;
     }
@@ -6912,9 +6952,9 @@ class EventsTable extends AppTable
         foreach ($attributes as $attribute) {
             $conditions[] = [
                 'AND' => [
-                    'Attribute.object_relation' => $attribute['object_relation'],
-                    'Attribute.value' => $attribute['value'],
-                    'Attribute.type' => $attribute['type']
+                    'Attributes.object_relation' => $attribute['object_relation'],
+                    'Attributes.value' => $attribute['value'],
+                    'Attributes.type' => $attribute['type']
                 ]
 
             ];
@@ -6925,13 +6965,13 @@ class EventsTable extends AppTable
                 'all',
                 [
                     'conditions' => [
-                        'Attribute.event_id' => $event_id,
-                        'Attribute.object_id !=' => 0,
-                        'Attribute.deleted' => 0,
+                        'Attributes.event_id' => $event_id,
+                        'Attributes.object_id !=' => 0,
+                        'Attributes.deleted' => 0,
                         'OR' => $conditions
                     ],
                     'recursive' => -1,
-                    'fields' => ['Attribute.object_id']
+                    'fields' => ['Attributes.object_id']
                 ]
             ) as $found_id
         ) {
@@ -6949,30 +6989,30 @@ class EventsTable extends AppTable
     private function __findOriginalUUID($attribute_type, $attribute_value, $event_id)
     {
         $original_uuid = $this->Objects->Attribute->find(
-            'first',
+            'all',
             [
                 'conditions' => [
-                    'Attribute.event_id' => $event_id,
-                    'Attribute.deleted' => 0,
-                    'Attribute.object_id' => 0,
-                    'Attribute.type' => $attribute_type,
-                    'Attribute.value' => $attribute_value
+                    'Attributes.event_id' => $event_id,
+                    'Attributes.deleted' => 0,
+                    'Attributes.object_id' => 0,
+                    'Attributes.type' => $attribute_type,
+                    'Attributes.value' => $attribute_value
                 ],
                 'recursive' => -1,
-                'fields' => ['Attribute.uuid']
+                'fields' => ['Attributes.uuid']
             ]
-        );
+        )->first();
         if (!empty($original_uuid)) {
             return $original_uuid['Attribute']['uuid'];
         }
         $original_uuid = $this->Objects->find(
-            'first',
+            'all',
             [
                 'conditions' => [
-                    'Attribute.event_id' => $event_id,
-                    'Attribute.deleted' => 0,
-                    'Attribute.type' => $attribute_type,
-                    'Attribute.value1' => $attribute_value,
+                    'Attributes.event_id' => $event_id,
+                    'Attributes.deleted' => 0,
+                    'Attributes.type' => $attribute_type,
+                    'Attributes.value1' => $attribute_value,
                     'Object.event_id' => $event_id
                 ],
                 'recursive' => -1,
@@ -6983,12 +7023,12 @@ class EventsTable extends AppTable
                         'alias' => 'Attribute',
                         'type' => 'inner',
                         'conditions' => [
-                            'Attribute.object_id = Object.id'
+                            'Attributes.object_id = Object.id'
                         ]
                     ]
                 ]
             ]
-        );
+        )->first();
         return (!empty($original_uuid)) ? $original_uuid['Object']['uuid'] : $original_uuid;
     }
 
@@ -7004,7 +7044,7 @@ class EventsTable extends AppTable
     private function __saveObjectAttribute(array $attribute, $default_comment, array $event, $object_id, array $user)
     {
         $attribute['object_id'] = $object_id;
-        $attribute['event_id'] = $event['Event']['id'];
+        $attribute['event_id'] = $event['id'];
         if (empty($attribute['comment']) && $default_comment) {
             $attribute['comment'] = $default_comment;
         }
@@ -7016,10 +7056,10 @@ class EventsTable extends AppTable
         if ($attribute_save) {
             if (!empty($attribute['Tag'])) {
                 foreach ($attribute['Tag'] as $tag) {
-                    $tag_id = $this->Attributes->AttributeTag->Tag->captureTag($tag, $user);
+                    $tag_id = $this->Attributes->AttributeTags->Tags->captureTag($tag, $user);
                     $relationship_type = empty($tag['relationship_type']) ? false : $tag['relationship_type'];
                     if ($tag_id) {
-                        $this->Attributes->AttributeTag->attachTagToAttribute($this->Attributes->id, $event['Event']['id'], $tag_id, !empty($tag['local']), $relationship_type);
+                        $this->Attributes->AttributeTags->attachTagToAttribute($this->Attributes->id, $event['id'], $tag_id, !empty($tag['local']), $relationship_type);
                     }
                 }
             }
@@ -7119,7 +7159,7 @@ class EventsTable extends AppTable
         $eventIds = [];
         foreach ($events as $event) {
             if (!empty($event['Object'])) {
-                $eventIds[] = $event['Event']['id']; // event contains objects
+                $eventIds[] = $event['id']; // event contains objects
             }
         }
         if (!empty($eventIds)) {
@@ -7160,7 +7200,7 @@ class EventsTable extends AppTable
             foreach ($event['Object'] as &$object) {
                 $objectReferences = $referencesForObject[$object['id']] ?? [];
                 foreach ($objectReferences as &$reference) {
-                    $reference['event_id'] = $event['Event']['id'];
+                    $reference['event_id'] = $event['id'];
                     $reference['source_uuid'] = $object['uuid'];
                     // find referenced object in current event
                     $type = $reference['referenced_type'] == 0 ? 'Attribute' : 'Object';
@@ -7201,16 +7241,16 @@ class EventsTable extends AppTable
      */
     private function __attachAttributeTags(array &$events, $excludeLocalTags = false)
     {
-        $eventIds = array_column(array_column($events, 'Event'), 'id');
-        $conditions = ['AttributeTag.event_id' => $eventIds];
+        $eventIds = array_column($events, 'id');
+        $conditions = ['AttributeTags.event_id IN' => $eventIds];
         if ($excludeLocalTags) {
-            $conditions['AttributeTag.local'] = false;
+            $conditions['AttributeTags.local'] = false;
         }
-        $ats = $this->Attributes->AttributeTag->find(
+        $ats = $this->Attributes->AttributeTags->find(
             'all',
             [
                 'conditions' => $conditions,
-                'fields' => ['AttributeTag.id', 'AttributeTag.attribute_id', 'AttributeTag.tag_id', 'AttributeTag.local', 'AttributeTag.relationship_type'], // we don't need id or event_id
+                'fields' => ['AttributeTags.id', 'AttributeTags.attribute_id', 'AttributeTags.tag_id', 'AttributeTags.local', 'AttributeTags.relationship_type'], // we don't need id or event_id
                 'recursive' => -1,
             ]
         );
@@ -7279,11 +7319,11 @@ class EventsTable extends AppTable
         if (empty($notCachedTags)) {
             return;
         }
-        $conditions = ['Tag.id' => array_keys($notCachedTags)];
+        $conditions = ['Tags.id IN' => array_keys($notCachedTags)];
         if ($justExportable) {
-            $conditions['Tag.exportable'] = 1;
+            $conditions['Tags.exportable'] = 1;
         }
-        $tags = $this->EventTag->Tag->find(
+        $tags = $this->EventTags->Tags->find(
             'all',
             [
                 'recursive' => -1,
@@ -7291,12 +7331,12 @@ class EventsTable extends AppTable
             ]
         );
         foreach ($tags as $tag) {
-            $this->assetCache['tags'][$tag['Tag']['id']] = $tag['Tag'];
+            $this->assetCache['tags'][$tag['id']] = $tag;
         }
     }
 
     /**
-     * Attach tags to attributes and event.
+     * Attach tags to attributes and Events.
      *
      * @param array $event
      * @param bool $justExportable If true, attach just exportable tags.
@@ -7810,7 +7850,7 @@ class EventsTable extends AppTable
                 $user,
                 [
                     'conditions' => [
-                        'extends_uuid' => $event['Event']['uuid']
+                        'extends_uuid' => $event['uuid']
                     ]
 
                 ]
@@ -7829,13 +7869,13 @@ class EventsTable extends AppTable
         ];
         if (Configure::read('MISP.event_alert_republish_ban')) {
             $event = $this->find(
-                'first',
+                'all',
                 [
-                    'conditions' => ['Event.id' => $eventID],
+                    'conditions' => ['id' => $eventID],
                     'recursive' => -1,
-                    'fields' => ['Event.uuid']
+                    'fields' => ['uuid']
                 ]
-            );
+            )->first();
             if (empty($event)) {
                 $banStatus['error'] = true;
                 $banStatus['active'] = true;
@@ -7851,7 +7891,7 @@ class EventsTable extends AppTable
                 $banStatus['message'] =  __('Reason: Could not reach redis to check republish emailing ban status.');
                 return $banStatus;
             }
-            $redisKey = "misp:event_alert_republish_ban:{$event['Event']['uuid']}";
+            $redisKey = "misp:event_alert_republish_ban:{$event['uuid']}";
             $banLiftTimestamp = $redis->get($redisKey);
             if (!empty($banLiftTimestamp)) {
                 $remainingMinutes = (intval($banLiftTimestamp) - time()) / 60;
@@ -8071,7 +8111,7 @@ class EventsTable extends AppTable
             $events,
             function ($event) use ($oldestTimestamp) {
                 // Filter out events having old modification compared to their publish_timestamp
-                return $event['Event']['timestamp'] >= $oldestTimestamp;
+                return $event['timestamp'] >= $oldestTimestamp;
             }
         );
         $trendingTool = new TrendingTool($this);

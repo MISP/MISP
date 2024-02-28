@@ -26,6 +26,9 @@ class AppTable extends Table
     /** @var LogsTable */
     public $Log = null;
 
+    /** @var WorkflowsTable $Workflow  */
+    private $Workflow;
+
     /** @var BackgroundJobsTool */
     private static $loadedBackgroundJobsTool;
 
@@ -419,5 +422,50 @@ class AppTable extends Table
             return Configure::read("Plugin.ZeroMQ_{$name}_notifications_enable");
         }
         return false;
+    }
+
+    protected function isTriggerCallable($trigger_id): bool
+    {
+        static $workflowEnabled;
+        if ($workflowEnabled === null) {
+            $workflowEnabled = (bool)Configure::read('Plugin.Workflow_enable');
+        }
+
+        if (!$workflowEnabled) {
+            return false;
+        }
+
+        if ($this->Workflow === null) {
+            $this->Workflow = $this->fetchTable('Workflows');
+        }
+        return $this->Workflow->checkTriggerEnabled($trigger_id) &&
+            $this->Workflow->checkTriggerListenedTo($trigger_id);
+    }
+
+    public function publishKafkaNotification($topicName, $data, $action = false)
+    {
+        $kafkaTopic = $this->kafkaTopic($topicName);
+        if ($kafkaTopic) {
+            $this->getKafkaPubTool()->publishJson($kafkaTopic, $data, $action);
+        }
+    }
+
+    /**
+     * @param string $name
+     * @return string|null Null when Kafka is not enabled, topic is not enabled or topic is not defined
+     */
+    protected function kafkaTopic($name)
+    {
+        static $kafkaEnabled;
+        if ($kafkaEnabled === null) {
+            $kafkaEnabled = (bool)Configure::read('Plugin.Kafka_enable');
+        }
+        if ($kafkaEnabled) {
+            if (!Configure::read("Plugin.Kafka_{$name}_notifications_enable")) {
+                return null;
+            }
+            return Configure::read("Plugin.Kafka_{$name}_notifications_topic") ?: null;
+        }
+        return null;
     }
 }
