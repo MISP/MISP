@@ -2928,12 +2928,15 @@ class Server extends AppModel
         return $result;
     }
 
+    /**
+     * @return array
+     */
     public function redisInfo()
     {
-        $output = array(
+        $output = [
             'extensionVersion' => phpversion('redis'),
             'connection' => false,
-        );
+        ];
 
         try {
             $redis = RedisTool::init();
