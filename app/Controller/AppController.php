@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '158';
-    public $pyMispVersion = '2.4.185';
+    private $__queryVersion = '159';
+    public $pyMispVersion = '2.4.186';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -306,6 +306,7 @@ class AppController extends Controller
             $this->set('isAclTagger', $role['perm_tagger']);
             $this->set('isAclGalaxyEditor', !empty($role['perm_galaxy_editor']));
             $this->set('isAclSighting', $role['perm_sighting'] ?? false);
+            $this->set('isAclAnalystDataCreator', $role['perm_analyst_data'] ?? false);
             $this->set('aclComponent', $this->ACL);
             $this->userRole = $role;
 

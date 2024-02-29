@@ -1,6 +1,6 @@
 <?php
     echo $this->element('genericElements/assetLoader', [
-        'css' => ['query-builder.default', 'attack_matrix'],
+        'css' => ['query-builder.default', 'attack_matrix', 'analyst-data'],
         'js' => ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph', 'd3', 'd3.custom', 'jquery-ui.min'],
     ]);
     echo $this->element(
@@ -16,8 +16,12 @@
                 [
                     'key' => 'UUID',
                     'path' => 'Event.uuid',
-                    'class' => 'quickSelect',
+                    'class' => '',
                     'type' => 'uuid',
+                    'object_type' => 'Event',
+                    'notes_path' => 'Note',
+                    'opinions_path' => 'Opinion',
+                    'relationship_path' => 'Relationship',
                     'action_buttons' => [
                         [
                             'url' => $baseurl . '/events/add/extends:' . h($event['Event']['uuid']),

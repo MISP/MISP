@@ -19,6 +19,25 @@ class ACLComponent extends Component
                 'queryACL' => array(),
                 'restSearch' => array('*'),
             ),
+            'analystData' => [
+                'add' => ['AND' => ['perm_add', 'perm_analyst_data']],
+                'delete' => ['AND' => ['perm_add', 'perm_analyst_data']],
+                'edit' => ['AND' => ['perm_add', 'perm_analyst_data']],
+                'filterAnalystDataForPush' => ['perm_sync'],
+                'getChildren' => ['*'],
+                'getRelatedElement' => ['*'],
+                'index' => ['*'],
+                'indexMinimal' => ['*'],
+                'pushAnalystData' => ['perm_sync'],
+                'view' => ['*'],
+            ],
+            'analystDataBlocklists' => array(
+                'add' => array(),
+                'delete' => array(),
+                'edit' => array(),
+                'index' => array(),
+                'massDelete' => array(),
+            ),
             'api' => [
                 'rest' => ['perm_auth'],
                 'viewDeprecatedFunctionUse' => [],
@@ -88,6 +107,19 @@ class ACLComponent extends Component
                 'pull_orgs' => [],
                 'pull_sgs' => [],
                 'view' => []
+            ],
+            'collections' => [
+                'add' => ['perm_modify'],
+                'delete' => ['perm_modify'],
+                'edit' => ['perm_modify'],
+                'index' => ['*'],
+                'view' => ['*']
+            ],
+            'collectionElements' => [
+                'add' => ['perm_modify'],
+                'addElementToCollection' => ['perm_modify'],
+                'delete' => ['perm_modify'],
+                'index' => ['*']
             ],
             'correlationExclusions' => [
                 'add' => [],
@@ -1077,6 +1109,27 @@ class ACLComponent extends Component
             return false;
         }
         return $cluster['GalaxyCluster']['orgc_id'] == $user['org_id'];
+    }
+
+    /**
+     * Checks if user can modify given analyst data
+     *
+     * @param array $user
+     * @param array $analystData
+     * @return bool
+     */
+    public function canEditAnalystData(array $user, array $analystData, $modelType): bool
+    {
+        if (!isset($analystData[$modelType])) {
+            throw new InvalidArgumentException('Passed object does not contain a(n) ' . $modelType);
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($analystData[$modelType]['orgc_uuid'] == $user['Organisation']['uuid']) {
+            return true;
+        }
+        return false;
     }
 
     /**

@@ -213,6 +213,7 @@ class RestResponseComponent extends Component
                     'perm_tag_editor',
                     'default_role',
                     'perm_sighting',
+                    'perm_analyst_data',
                     'permission'
                 )
             ),
@@ -234,6 +235,7 @@ class RestResponseComponent extends Component
                     'perm_tag_editor',
                     'default_role',
                     'perm_sighting',
+                    'perm_analyst_data',
                     'permission'
                 )
             )
@@ -1553,6 +1555,11 @@ class RestResponseComponent extends Component
                 'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_template' => array(
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => array(1 => 'True', 0 => 'False')
+            ),
+            'perm_analyst_data' => array(
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False')

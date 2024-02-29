@@ -87,7 +87,7 @@ assert event_preview["Event"]["uuid"] == event.uuid
 url = f'servers/pull/{remote_server["id"]}/disable_background_processing:1'
 pull_response = pymisp._check_response(pymisp._prepare_request('GET', url))
 check_response(pull_response)
-assert "Pull completed. 0 events pulled, 0 events could not be pulled, 0 proposals pulled, 0 sightings pulled, 0 clusters pulled." == pull_response["message"], pull_response["message"]
+assert "Pull completed. 0 events pulled, 0 events could not be pulled, 0 proposals pulled, 0 sightings pulled, 0 clusters pulled, 0 analyst data pulled." == pull_response["message"], pull_response["message"]
 
 # Test pull background
 check_response(pymisp.server_pull(remote_server))

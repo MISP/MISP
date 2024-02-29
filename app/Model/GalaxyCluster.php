@@ -22,6 +22,7 @@ class GalaxyCluster extends AppModel
             'userKey' => 'user_id',
             'change' => 'full'),
         'Containable',
+        'AnalystDataParent',
     );
 
     private $__assetCache = array();
@@ -196,7 +197,7 @@ class GalaxyCluster extends AppModel
      */
     public function arrangeData($cluster)
     {
-        $models = array('Galaxy', 'SharingGroup', 'GalaxyElement', 'GalaxyClusterRelation', 'Org', 'Orgc', 'TargetingClusterRelation');
+        $models = array('Galaxy', 'SharingGroup', 'GalaxyElement', 'GalaxyClusterRelation', 'Org', 'Orgc', 'TargetingClusterRelation', 'Note', 'Opinion', 'Relationship');
         foreach ($models as $model) {
             if (isset($cluster[$model])) {
                 $cluster['GalaxyCluster'][$model] = $cluster[$model];

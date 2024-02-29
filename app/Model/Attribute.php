@@ -36,7 +36,8 @@ class Attribute extends AppModel
         'Trim',
         'Containable',
         'Regexp' => array('fields' => array('value')),
-        'LightPaginator'
+        'LightPaginator',
+        'AnalystDataParent',
     );
 
     public $displayField = 'value';
@@ -2658,6 +2659,7 @@ class Attribute extends AppModel
             if (!empty($attribute['Sighting'])) {
                 $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
             }
+            $this->Event->captureAnalystData($user, $attribute);
         }
         if (!empty($this->validationErrors)) {
             $validationErrors = $this->validationErrors;
@@ -2798,6 +2800,7 @@ class Attribute extends AppModel
             if (!empty($attribute['Sighting'])) {
                 $this->Sighting->captureSightings($attribute['Sighting'], $attributeId, $eventId, $user);
             }
+            $this->Event->captureAnalystData($user, $attribute);
             if ($user['Role']['perm_tagger']) {
                 /*
                     We should unwrap the line below and remove the server option in the future once we have tag soft-delete

@@ -20,11 +20,12 @@ class MispObject extends AppModel
 
     public $actsAs = array(
         'AuditLog',
-            'Containable',
-            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
-                'userModel' => 'User',
-                'userKey' => 'user_id',
-                'change' => 'full'),
+        'Containable',
+        'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
+            'userModel' => 'User',
+            'userKey' => 'user_id',
+            'change' => 'full'),
+        'AnalystDataParent'
     );
 
     public $belongsTo = array(
@@ -571,11 +572,18 @@ class MispObject extends AppModel
         if (isset($options['fields'])) {
             $params['fields'] = $options['fields'];
         }
+        $contain = [];
+        if (isset($options['contain'])) {
+            $contain = $options['contain'];
+        }
+        if (empty($contain['Event'])) {
+            $contain = ['Event' => ['distribution', 'id', 'user_id', 'orgc_id', 'org_id']];
+        }
         $results = $this->find('all', array(
             'conditions' => $params['conditions'],
             'recursive' => -1,
             'fields' => $params['fields'],
-            'contain' => array('Event' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id')),
+            'contain' => $contain,
             'sort' => false
         ));
         return $results;
@@ -1131,6 +1139,7 @@ class MispObject extends AppModel
                 $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
             }
         }
+        $this->Event->captureAnalystData($user, $object['Object']);
         return true;
     }
 
@@ -1210,6 +1219,7 @@ class MispObject extends AppModel
             );
             return $this->validationErrors;
         }
+        $this->Event->captureAnalystData($user, $object);
         if (!empty($object['Attribute'])) {
             $attributes = [];
             foreach ($object['Attribute'] as $attribute) {

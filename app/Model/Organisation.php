@@ -196,7 +196,7 @@ class Organisation extends AppModel
      * @return int Organisation ID
      * @throws Exception
      */
-    public function captureOrg($org, array $user, $force = false)
+    public function captureOrg($org, array $user, $force = false, $returnUUID = false)
     {
         $fieldsToFetch = $force ?
             ['id', 'uuid', 'type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts'] :
@@ -238,7 +238,7 @@ class Organisation extends AppModel
             }
             $this->create();
             $this->save($organisation);
-            return $this->id;
+            return $returnUUID ? $organisation['uuid'] : $this->id;
         } else {
             $changed = false;
             if (isset($org['uuid']) && empty($existingOrg[$this->alias]['uuid'])) {
@@ -262,7 +262,7 @@ class Organisation extends AppModel
                 $this->save($existingOrg);
             }
         }
-        return $existingOrg[$this->alias]['id'];
+        return $returnUUID ? $existingOrg[$this->alias]['uuid']: $existingOrg[$this->alias]['id'];
     }
 
     /**

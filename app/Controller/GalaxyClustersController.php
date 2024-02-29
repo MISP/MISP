@@ -173,6 +173,8 @@ class GalaxyClustersController extends AppController
      */
     public function view($id)
     {
+        $this->GalaxyCluster->includeAnalystData = true;
+        $this->GalaxyCluster->includeAnalystDataRecursive = true;
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
         $tag = $this->GalaxyCluster->Tag->find('first', array(
             'conditions' => array(
@@ -208,6 +210,7 @@ class GalaxyClustersController extends AppController
         $this->loadModel('Attribute');
         $distributionLevels = $this->Attribute->distributionLevels;
         $this->set('distributionLevels', $distributionLevels);
+        $this->set('shortDist', $this->Attribute->shortDist);
         if (!$cluster['GalaxyCluster']['default'] && !$cluster['GalaxyCluster']['published'] && $cluster['GalaxyCluster']['orgc_id'] == $this->Auth->user()['org_id']) {
             $this->Flash->warning(__('This cluster is not published. Users will not be able to use it'));
         }

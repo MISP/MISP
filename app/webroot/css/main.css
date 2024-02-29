@@ -2936,6 +2936,10 @@ Query builder
     padding-right: 3px;
 }
 
+.highlight-on-hover:hover {
+    filter: brightness(1.1);
+}
+
 .special-tag {
     animation: special-tag-color 4s infinite linear;
 }

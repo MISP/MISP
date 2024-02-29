@@ -755,7 +755,8 @@ class EventsController extends AppController
         if ($nothing) {
             $this->paginate['conditions']['AND'][] = ['Event.id' => -1]; // do not fetch any event
         }
-
+        $this->Event->includeAnalystData = true;
+        $this->paginate['includeAnalystData'] = true;
         $events = $this->paginate();
 
         if (count($events) === 1 && isset($this->passedArgs['searchall'])) {
@@ -811,6 +812,7 @@ class EventsController extends AppController
             $rules = [
                 'contain' => ['EventTag'],
                 'fields' => array_keys($fieldNames),
+                'includeAnalystData' => isset($passedArgs['includeAnalystData']) ? $passedArgs['includeAnalystData'] : true,
             ];
         }
         if (isset($passedArgs['sort']) && isset($fieldNames[$passedArgs['sort']])) {
@@ -1226,6 +1228,9 @@ class EventsController extends AppController
                 unset($filters[$filterName]);
             }
         }
+
+        $this->Event->Attribute->includeAnalystData = true;
+        $this->Event->Attribute->includeAnalystDataRecursive = true;
 
         if (isset($filters['focus'])) {
             $this->set('focus', $filters['focus']);
@@ -1691,7 +1696,7 @@ class EventsController extends AppController
         }
 
         $namedParams = $this->request->params['named'];
-
+        $conditions['includeAnalystData'] = true;
         if ($this->_isRest()) {
             $conditions['includeAttachments'] = isset($namedParams['includeAttachments']) ? $namedParams['includeAttachments'] : true;
         } else {
@@ -1786,7 +1791,6 @@ class EventsController extends AppController
         } else {
             $user = $this->Auth->user();
         }
-
         $results = $this->Event->fetchEvent($user, $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
@@ -2404,14 +2408,14 @@ class EventsController extends AppController
                 }
                 if (isset($this->params['named']['distribution'])) {
                     $distribution = intval($this->params['named']['distribution']);
-                    if (array_key_exists($distribution, $distributionLevels)) {
-                        $initialDistribution = $distribution;
-                    } else {
+                    if (!array_key_exists($distribution, $distributionLevels)) {
                         throw new MethodNotAllowedException(__('Wrong distribution level'));
                     }
+                } else {
+                    $distribution = $initialDistribution;
                 }
                 $sharingGroupId = null;
-                if ($initialDistribution == 4) {
+                if ($distribution == 4) {
                     if (!isset($this->params['named']['sharing_group_id'])) {
                         throw new MethodNotAllowedException(__('The sharing group id is needed when the distribution is set to 4 ("Sharing group").'));
                     }
@@ -2420,8 +2424,25 @@ class EventsController extends AppController
                         throw new MethodNotAllowedException(__('Please select a valid sharing group id.'));
                     }
                 }
+                $clusterDistribution = $initialDistribution;
+                $clusterSharingGroupId = null;
                 if (isset($this->params['named']['galaxies_as_tags'])) {
                     $galaxies_as_tags = $this->params['named']['galaxies_as_tags'];
+                    if (isset($this->params['name']['cluster_distribution'])) {
+                        $clusterDistribution = intval($this->params['named']['cluster_distribution']);
+                        if (!array_key_exists($clusterDistribution, $distributionLevels)) {
+                            throw new MethodNotAllowedException(__('Wrong cluster distribution level'));
+                        }
+                        if ($clusterDistribution == 4) {
+                            if (!isset($this->params['named']['cluster_sharing_group_id'])) {
+                                throw new MethodNotAllowedException(__('The cluster sharing group id is needed when the cluster distribution is set to 4 ("Sharing group").'));
+                            }
+                            $clusterSharingGroupId = intval($this->params['named']['cluster_sharing_group_id']);
+                            if (!array_key_exists($clusterSharingGroupId, $sgs)) {
+                                throw new MethodNotAllowedException(__('Please select a valid cluster sharing group id.'));
+                            }
+                        }
+                    }
                 }
                 if (isset($this->params['named']['debugging'])) {
                     $debug = $this->params['named']['debugging'];
@@ -2433,9 +2454,11 @@ class EventsController extends AppController
                     $stix_version,
                     'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
                     $publish,
-                    $initialDistribution,
+                    $distribution,
                     $sharingGroupId,
                     $galaxies_as_tags,
+                    $clusterDistribution,
+                    $clusterSharingGroupId,
                     $debug
                 );
                 if (is_numeric($result)) {
@@ -2467,6 +2490,8 @@ class EventsController extends AppController
                         $this->data['Event']['distribution'],
                         $this->data['Event']['sharing_group_id'] ?? null,
                         $this->data['Event']['galaxies_handling'],
+                        $this->data['Event']['cluster_distribution'],
+                        $this->data['Event']['cluster_sharing_group_id'] ?? null,
                         $debug
                     );
                     if (is_numeric($result)) {
@@ -2692,7 +2717,7 @@ class EventsController extends AppController
                 $this->request->data = $this->request->data['Event'];
             }
             $eventToSave = $event;
-            $capturedObjects = ['Attribute', 'Object', 'Tag', 'Galaxy', 'EventReport'];
+            $capturedObjects = ['Attribute', 'Object', 'Tag', 'Galaxy', 'EventReport', 'Note', 'Opinion', 'Relationship',];
             foreach ($capturedObjects as $objectType) {
                 if (!empty($this->request->data[$objectType])) {
                     if (!empty($regenerateUUIDs)) {
@@ -4373,12 +4398,12 @@ class EventsController extends AppController
         $id = $event['Event']['id'];
         $exports = array(
             'json' => array(
-                'url' => $this->baseurl . '/events/restSearch/json/eventid:' . $id . '.json',
+                'url' => $this->baseurl . '/events/restSearch/json/includeAnalystData:1/eventid:' . $id . '.json',
                 'text' => __('MISP JSON (metadata + all attributes)'),
                 'requiresPublished' => false,
                 'checkbox' => true,
                 'checkbox_text' => __('Encode Attachments'),
-                'checkbox_set' => $this->baseurl . '/events/restSearch/json/withAttachments:1/eventid:' . $id . '.json',
+                'checkbox_set' => $this->baseurl . '/events/restSearch/json/withAttachments:1/includeAnalystData:1/eventid:' . $id . '.json',
                 'checkbox_default' => true,
             ),
             'xml' => array(

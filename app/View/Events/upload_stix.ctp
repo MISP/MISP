@@ -28,10 +28,13 @@
         'selected' => $initialDistribution,
     ));
     if (!empty($sharingGroups)) {
-        echo $this->Form->input('sharing_group_id', array(
-            'options' => array($sharingGroups),
-            'label' => __('Sharing Group'),
-        ));
+        $SGContainer = $this->Form->input(
+            'sharing_group_id', array(
+                'options' => array($sharingGroups),
+                'label' => __('Sharing Group'),
+            )
+        );
+        echo '<div id="SGContainer" style="display:none;">' . $SGContainer . '</div>';
     }
 ?>
 <div class="input clear"></div>
@@ -64,6 +67,36 @@
             'label' => __('How to handle Galaxies and Clusters') . $galaxiesFormInfo,
             'selected' => 0
         ));
+?>
+<div class="input clear"></div>
+<?php
+        $clusterDistributionFormInfo = $this->element(
+            'genericElements/Form/formInfo',
+            [
+                'field' => [
+                    'field' => 'cluster_distribution'
+                ],
+                'modelForForm' => 'Event',
+                'fieldDesc' => $fieldDesc['distribution'],
+            ]
+        );
+        $clusterDistribution = $this->Form->input(
+            'cluster_distribution', array(
+                'options' => $distributionLevels,
+                'label' => __('Cluster distribution ') . $clusterDistributionFormInfo,
+                'selected' => $initialDistribution,
+            )
+        );
+        echo '<div id="ClusterDistribution" style="display:none;">' . $clusterDistribution . '</div>';
+        if (!empty($sharingGroups)) {
+            $clusterSGContainer = $this->Form->input(
+                'cluster_sharing_group_id', array(
+                    'options' => array($sharingGroups),
+                    'label' => __('Cluster Sharing Group'),
+                )
+            );
+            echo '<div id="ClusterSGContainer" style="display:none;">' . $clusterSGContainer . '</div>';
+        }
     }
     if ($me['Role']['perm_site_admin'] && Configure::read('debug') > 0) {
         $debugFormInfo = $this->element(
@@ -100,5 +133,27 @@ $(function(){
         checkSharingGroup('Event');
     });
     checkSharingGroup('Event');
+});
+$(function(){
+    $('#EventGalaxiesHandling').change(function() {
+        if ($(this).val() == 0) {
+            $('#ClusterDistribution').show();
+            if ($('#EventClusterDistribution').val() == 4) {
+                $('#ClusterSGContainer').show();
+            }
+        } else {
+            $('#ClusterDistribution').hide();
+            $('#ClusterSGContainer').hide();
+        }
+    }).change();
+});
+$(function(){
+    $('#EventClusterDistribution').change(function() {
+        if ($(this).val() == 4 && $('#EventGalaxiesHandling').val() == 0) {
+            $('#ClusterSGContainer').show();
+        } else {
+            $('#ClusterSGContainer').hide();
+        }
+    }).change();
 });
 </script>
