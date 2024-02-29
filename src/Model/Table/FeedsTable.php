@@ -390,7 +390,7 @@ class FeedsTable extends AppTable
         $content = $response->getBody()->getContents();
 
         try {
-            FileAccessTool::writeCompressedFile($feedCache, $content);
+            FileAccessTool::writeCompressedFile($feedCache, $content, true);
             if ($response->getHeader('etag')) {
                 FileAccessTool::writeToFile($feedCacheEtag, $response->getHeader('etag')[0]);
             }
