@@ -2520,6 +2520,7 @@ class Event extends AppModel
             'noEventReports' => $options['noEventReports'],
             'noSightings' => isset($options['noSightings']) ? $options['noSightings'] : null,
             'sgReferenceOnly' => $options['sgReferenceOnly'],
+            'includeAnalystData' => $options['includeAnalystData'],
         ]);
         foreach ($extensions as $extensionEvent) {
             $eventMeta = array(
