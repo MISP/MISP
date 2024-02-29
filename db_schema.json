@@ -653,7 +653,7 @@
             },
             {
                 "column_name": "relationship_type",
-                "is_nullable": "NO",
+                "is_nullable": "YES",
                 "data_type": "varchar",
                 "character_maximum_length": "191",
                 "numeric_precision": null,
@@ -1500,28 +1500,6 @@
                 "numeric_precision": "10",
                 "collation_name": null,
                 "column_type": "int(11)",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "date",
-                "is_nullable": "NO",
-                "data_type": "date",
-                "character_maximum_length": null,
-                "numeric_precision": null,
-                "collation_name": null,
-                "column_type": "date",
-                "column_default": null,
-                "extra": ""
-            },
-            {
-                "column_name": "info",
-                "is_nullable": "NO",
-                "data_type": "text",
-                "character_maximum_length": "65535",
-                "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
-                "column_type": "text",
                 "column_default": null,
                 "extra": ""
             }
@@ -2919,7 +2897,7 @@
             },
             {
                 "column_name": "relationship_type",
-                "is_nullable": "NO",
+                "is_nullable": "YES",
                 "data_type": "varchar",
                 "character_maximum_length": "191",
                 "numeric_precision": null,
@@ -3401,6 +3379,17 @@
                 "extra": "auto_increment"
             },
             {
+                "column_name": "uuid",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8mb3_bin",
+                "column_type": "varchar(255)",
+                "column_default": "''",
+                "extra": ""
+            },
+            {
                 "column_name": "collection_uuid",
                 "is_nullable": "NO",
                 "data_type": "varchar",
@@ -3497,17 +3486,6 @@
                 "collation_name": null,
                 "column_type": "int(11)",
                 "column_default": "0",
-                "extra": ""
-            },
-            {
-                "column_name": "uuid",
-                "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
-                "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
-                "column_type": "varchar(255)",
-                "column_default": "''",
                 "extra": ""
             },
             {
@@ -4838,13 +4816,13 @@
             },
             {
                 "column_name": "comment",
-                "is_nullable": "YES",
+                "is_nullable": "NO",
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8mb3_unicode_ci",
                 "column_type": "text",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -5677,13 +5655,13 @@
             },
             {
                 "column_name": "comment",
-                "is_nullable": "NO",
+                "is_nullable": "YES",
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8mb3_unicode_ci",
                 "column_type": "text",
-                "column_default": null,
+                "column_default": "NULL",
                 "extra": ""
             }
         ],
@@ -7002,13 +6980,13 @@
             },
             {
                 "column_name": "comment",
-                "is_nullable": "YES",
+                "is_nullable": "NO",
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8mb3_unicode_ci",
                 "column_type": "text",
-                "column_default": "NULL",
+                "column_default": null,
                 "extra": ""
             },
             {
@@ -7795,6 +7773,30 @@
                 "collation_name": null,
                 "column_type": "int(11)",
                 "column_default": "0",
+                "extra": ""
+            }
+        ],
+        "system_settings": [
+            {
+                "column_name": "setting",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "value",
+                "is_nullable": "NO",
+                "data_type": "blob",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": null,
+                "column_type": "blob",
+                "column_default": null,
                 "extra": ""
             }
         ],
@@ -9965,7 +9967,8 @@
             "user_id": false
         },
         "admin_settings": {
-            "id": true
+            "id": true,
+            "setting": true
         },
         "allowedlist": {
             "id": true
@@ -9982,7 +9985,6 @@
         },
         "attributes": {
             "category": false,
-            "deleted": false,
             "event_id": false,
             "first_seen": false,
             "id": true,
@@ -10052,7 +10054,7 @@
         },
         "correlation_exclusions": {
             "id": true,
-            "value": false
+            "value": true
         },
         "correlation_values": {
             "id": true,
@@ -10108,7 +10110,7 @@
         },
         "event_blocklists": {
             "event_orgc": false,
-            "event_uuid": false,
+            "event_uuid": true,
             "id": true
         },
         "event_delegations": {
@@ -10160,7 +10162,7 @@
             "name": false,
             "namespace": false,
             "type": false,
-            "uuid": false
+            "uuid": true
         },
         "galaxy_clusters": {
             "collection_uuid": false,
@@ -10272,7 +10274,7 @@
             "id": true,
             "object_id": false,
             "referenced_id": false,
-            "uuid": false
+            "uuid": true
         },
         "object_relationships": {
             "id": true,
@@ -10305,11 +10307,13 @@
         },
         "organisations": {
             "id": true,
-            "name": false,
+            "name": true,
             "uuid": true
         },
         "org_blocklists": {
-            "id": true
+            "id": true,
+            "org_name": false,
+            "org_uuid": true
         },
         "over_correlating_values": {
             "id": true,
@@ -10378,6 +10382,7 @@
         },
         "sharing_groups": {
             "id": true,
+            "name": true,
             "organisation_uuid": false,
             "org_id": false,
             "sync_user_id": false,
@@ -10421,9 +10426,12 @@
             "type": false,
             "uuid": true
         },
+        "system_settings": {
+            "setting": true
+        },
         "tags": {
             "id": true,
-            "name": false,
+            "name": true,
             "numerical_value": false,
             "org_id": false,
             "user_id": false
@@ -10490,7 +10498,7 @@
             "id": true
         },
         "users": {
-            "email": false,
+            "email": true,
             "id": true,
             "org_id": false,
             "server_id": false,
