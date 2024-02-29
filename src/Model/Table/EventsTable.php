@@ -1875,7 +1875,7 @@ class EventsTable extends AppTable
             $conditions['AND'][] = ['Events.published' => 1];
             $conditionsAttributes['AND'][] = ['Attributes.to_ids' => 1];
         }
-        $softDeletables = ['Attribute', 'Object', 'EventReport'];
+        $softDeletables = ['Attributes', 'Objects', 'EventReports'];
         if (isset($options['deleted'])) {
             if (!is_array($options['deleted'])) {
                 $options['deleted'] = [$options['deleted']];
@@ -1897,7 +1897,7 @@ class EventsTable extends AppTable
                             '1=0'
                         ];
                     }
-                    ${'conditions' . $softDeletable . 's'}['AND'][] = [
+                    ${'conditions' . $softDeletable}['AND'][] = [
                         'OR' => [
                             'AND' => [
                                 sprintf('(SELECT events.org_id FROM events WHERE events.id = %s.event_id)', $softDeletable) => $user['org_id'],
@@ -1912,7 +1912,7 @@ class EventsTable extends AppTable
                 $both = in_array(0, $options['deleted']) && in_array(1, $options['deleted']);
                 if (!$both) {
                     foreach ($softDeletables as $softDeletable) {
-                        ${'conditions' . $softDeletable . 's'}['AND'][] = [
+                        ${'conditions' . $softDeletable}['AND'][] = [
                             "$softDeletable.deleted" => $options['deleted'],
                         ];
                     }
@@ -1920,7 +1920,7 @@ class EventsTable extends AppTable
             }
         } else {
             foreach ($softDeletables as $softDeletable) {
-                ${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted'] = 0;
+                ${'conditions' . $softDeletable}['AND'][$softDeletable . '.deleted'] = 0;
             }
         }
         $proposal_conditions = ['OR' => ['ShadowAttributes.deleted' => 0]];
