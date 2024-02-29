@@ -441,7 +441,7 @@ class AnalystData extends AppModel
         if (!empty($hasMoreNotes)) {
             return true;
         }
-        $hasMoreOpinions = $this->Note->find('first', [
+        $hasMoreOpinions = $this->Opinion->find('first', [
             'recursive' => -1,
             'conditions' => [
                 'AND' => [
