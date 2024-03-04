@@ -955,6 +955,17 @@
         ],
         "bruteforces": [
             {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(10) unsigned",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
                 "column_name": "ip",
                 "is_nullable": "NO",
                 "data_type": "varchar",

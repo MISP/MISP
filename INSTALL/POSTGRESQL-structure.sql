@@ -128,6 +128,7 @@ ALTER SEQUENCE public.attributes_id_seq OWNED BY public.attributes.id;
 --
 
 CREATE TABLE public.bruteforces (
+    id serial PRIMARY KEY,
     ip character varying(255) NOT NULL,
     username character varying(255) NOT NULL,
     expire timestamp with time zone NOT NULL

@@ -44,7 +44,7 @@ COPY public.attributes (id, event_id, object_id, object_relation, category, type
 -- Data for Name: bruteforces; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.bruteforces (ip, username, expire) FROM stdin;
+COPY public.bruteforces (id, ip, username, expire) FROM stdin;
 \.
 
 
