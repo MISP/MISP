@@ -214,6 +214,7 @@ if (!$ajax) {
                 $('#RelationshipRelationshipType').val($('#pickerRelationshipTypeSelect').val());
                 $(that).popover('hide')
             });
+            $('#genericModal').attr('tabindex', '')
         });
     }
 <?php endif; ?>
