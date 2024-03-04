@@ -146,6 +146,20 @@ class Log extends AppModel
             }
         }
         $this->logData($this->data);
+        $matches = null;
+        $regex = '/uuid.\([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\).=>/';
+        if (preg_match($regex, $this->data['Log']['change'])) {
+            $controller = Configure::check('CurrentController') ? Configure::read('CurrentController') : 'SYSTEM';
+            $action = Configure::check('CurrentAction') ? Configure::read('CurrentAction') : 'SYSTEM';
+            $payload = sprintf(
+                "%s\nController: %s\nAction: %s\n\nChange: %s\n\n",
+                date("Y-m-d H:i:s"),
+                $controller,
+                $action,
+                $this->data['Log']['change']
+            );
+            file_put_contents(APP . '/tmp/logs/uuid_debug_log.txt', $payload, FILE_APPEND);
+        }
         if ($this->data['Log']['action'] === 'request' && !empty(Configure::read('MISP.log_paranoid_skip_db'))) {
             return false;
         }
