@@ -146,7 +146,6 @@ class Log extends AppModel
             }
         }
         $this->logData($this->data);
-        $matches = null;
         $regex = '/uuid.\([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\).=>/';
         if (preg_match($regex, $this->data['Log']['change'])) {
             $controller = Configure::check('CurrentController') ? Configure::read('CurrentController') : 'SYSTEM';
