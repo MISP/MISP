@@ -55,9 +55,9 @@ class DecayingModelController extends AppController
             $json['org_id'] = $this->Auth->user()['org_id'];
 
             $attribute_types = array();
-            if (!empty($json['attribute_types'])) {
-                $attribute_types = $json['attribute_types'];
-                unset($json['attribute_types']);
+            if (!empty($json['DecayingModel']['attribute_types'])) {
+                $attribute_types = $json['DecayingModel']['attribute_types'];
+                unset($json['DecayingModel']['attribute_types']);
             }
 
             if ($this->DecayingModel->save($json)) {
