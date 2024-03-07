@@ -2257,6 +2257,7 @@ class Event extends AppModel
                     }
                 }
                 $event['Attribute'] = array_values($event['Attribute']);
+                unset($attribute);
             }
             if (!empty($event['Object'])) {
                 if (!$sharingGroupReferenceOnly) {
