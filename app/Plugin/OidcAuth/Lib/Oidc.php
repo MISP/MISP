@@ -101,7 +101,7 @@ class Oidc
                 $user['org_id'] = $organisationId;
             }
 
-            if ($user['role_id'] != $roleId) {
+            if ($user['role_id'] != $roleId && $this->getConfig('update_user_role', true)) {
                 $this->User->updateField($user, 'role_id', $roleId);
                 $this->log($mispUsername, "User role changed from {$user['role_id']} to $roleId.");
                 $user['role_id'] = $roleId;
@@ -232,7 +232,7 @@ class Oidc
             return false;
         }
 
-        if ($update && $user['role_id'] != $roleId) {
+        if ($update && $user['role_id'] != $roleId && $this->getConfig('update_user_role', true)) {
             $this->User->updateField($user, 'role_id', $roleId);
             $this->log($user['email'], "User role changed from {$user['role_id']} to $roleId.");
         }
@@ -458,7 +458,7 @@ class Oidc
     private function getConfig($config, $default = null)
     {
         $value = Configure::read("OidcAuth.$config");
-        if (empty($value)) {
+        if ($value === null) {
             if ($default === null) {
                 throw new RuntimeException("Config option `OidcAuth.$config` is not set.");
             }

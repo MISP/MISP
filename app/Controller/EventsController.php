@@ -2369,7 +2369,13 @@ class EventsController extends AppController
                     }
 
                     $isXml = $ext === 'xml';
-                    $data = FileAccessTool::readFromFile($file['tmp_name'], $file['size']);
+                    $matches = null;
+                    $tmp_name = $file['tmp_name'];
+                    if (preg_match_all('/[\w\/\-\.]*/', $tmp_name, $matches) && file_exists($file['tmp_name'])) {
+                        $data = FileAccessTool::readFromFile($matches[0][0], $file['size']);
+                    } else {
+                        throw new NotFoundException(__('Invalid file.'));    
+                    }
                 } else {
                     throw new MethodNotAllowedException(__('No file uploaded.'));
                 }
@@ -2378,7 +2384,6 @@ class EventsController extends AppController
                     && (isset($this->request->data['Event']['takeownership']) && $this->request->data['Event']['takeownership'] == 1);
 
                 $publish = $this->request->data['Event']['publish'] ?? false;
-
                 try {
                     $results = $this->Event->addMISPExportFile($this->Auth->user(), $data, $isXml, $takeOwnership, $publish);
                 } catch (Exception $e) {

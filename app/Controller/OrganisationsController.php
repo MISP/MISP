@@ -490,8 +490,14 @@ class OrganisationsController extends AppController
                 $this->Flash->error(__('Invalid file extension, Only PNG and SVG images are allowed.'));
                 return false;
             }
-
-            $imgMime = mime_content_type($logo['tmp_name']);
+            $matches = null;
+            $tmp_name = $logo['tmp_name'];
+            if (preg_match_all('/[\w\/\-\.]*/', $tmp_name, $matches) && file_exists($logo['tmp_name'])) {
+                $tmp_name = $matches[0][0];
+                $imgMime = mime_content_type($tmp_name);
+            } else {
+                throw new NotFoundException(__('Invalid file.'));    
+            }
             if ($extension === 'png' && (function_exists('exif_imagetype') && !exif_imagetype($logo['tmp_name']))) {
                 $this->Flash->error(__('This is not a valid PNG image.'));
                 return false;
@@ -507,8 +513,8 @@ class OrganisationsController extends AppController
                 return false;
             }
 
-            if (!empty($logo['tmp_name']) && is_uploaded_file($logo['tmp_name'])) {
-                return move_uploaded_file($logo['tmp_name'], APP . 'files/img/orgs/' . $filename);
+            if (!empty($tmp_name) && is_uploaded_file($tmp_name)) {
+                return move_uploaded_file($tmp_name, APP . 'files/img/orgs/' . $filename);
             }
         }
 

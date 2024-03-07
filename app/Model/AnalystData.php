@@ -1007,9 +1007,14 @@ class AnalystData extends AppModel
      *
      * @param array $user
      * @param ServerSyncTool $serverSync
+     * @return int Number of saved analysis
      */
     public function pull(array $user, ServerSyncTool $serverSync)
     {
+        if (!$serverSync->isSupported(ServerSyncTool::PERM_ANALYST_DATA)) {
+            return 0;
+        }
+
         $this->Server = ClassRegistry::init('Server');
         $this->AnalystData = ClassRegistry::init('AnalystData');
         try {
@@ -1051,14 +1056,11 @@ class AnalystData extends AppModel
             return 0;
         }
 
-        if ($serverSync->isSupported(ServerSyncTool::PERM_ANALYST_DATA)) {
-            return $this->pullInChunks($user, $remoteUUIDsToFetch, $serverSync);
-        }
+        return $this->pullInChunks($user, $remoteUUIDsToFetch, $serverSync);
     }
 
-    public function pullInChunks(array $user, array $analystDataUuids, ServerSyncTool $serverSync)
+    private function pullInChunks(array $user, array $analystDataUuids, ServerSyncTool $serverSync)
     {
-        $uuids = array_keys($analystDataUuids);
         $saved = 0;
         $serverOrgUUID = $this->Org->find('first', [
             'recursive' => -1,

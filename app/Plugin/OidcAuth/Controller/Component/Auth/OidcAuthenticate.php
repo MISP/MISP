@@ -17,6 +17,7 @@ App::uses('Oidc', 'OidcAuth.Lib');
  *  - OidcAuth.unblock (boolean, default: false)
  *  - OidcAuth.offline_access (boolean, default: false)
  *  - OidcAuth.check_user_validity (integer, default `0`)
+ *  - OidcAuth.update_user_role (boolean, default: true) - if disabled, manually modified role in MISP admin interface will be not changed from OIDC
  */
 class OidcAuthenticate extends BaseAuthenticate
 {

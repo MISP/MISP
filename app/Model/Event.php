@@ -2257,6 +2257,7 @@ class Event extends AppModel
                     }
                 }
                 $event['Attribute'] = array_values($event['Attribute']);
+                unset($attribute);
             }
             if (!empty($event['Object'])) {
                 if (!$sharingGroupReferenceOnly) {
@@ -3465,7 +3466,7 @@ class Event extends AppModel
                 if ($tagId && !in_array($tagId, $event_tag_ids)) {
                     $eventTags[] = array(
                         'tag_id' => $tagId,
-                        'local' => isset($tag['local']) ? $tag['local'] : 0,
+                        'local' => isset($tag['local']) ? $tag['local'] : false,
                         'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
                     );
                     $event_tag_ids[] = $tagId;
@@ -3481,7 +3482,7 @@ class Event extends AppModel
                 if ($tag_id && !in_array($tag_id, $event_tag_ids)) {
                     $eventTags[] = [
                         'tag_id' => $tag_id,
-                        'local' => isset($tag['local']) ? $tag['local'] : 0,
+                        'local' => isset($tag['local']) ? $tag['local'] : false,
                         'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
                     ];
                     $event_tag_ids[] = $tag_id;
@@ -3559,7 +3560,7 @@ class Event extends AppModel
                     if ($tagId) {
                         $attributeTags[] = [
                             'tag_id' => $tagId,
-                            'local' => isset($tag['local']) ? $tag['local'] : 0,
+                            'local' => isset($tag['local']) ? $tag['local'] : false,
                             'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
                         ];
                     }
@@ -5970,8 +5971,8 @@ class Event extends AppModel
         } else {
             $event = $this->find('first', array(
                 'recursive' => -1,
-                'conditions' => array('Event.id' => $eventOrEventId),
-                'fields' => ['id', 'info'], // info is required because of SysLogLogableBehavior
+                'conditions' => array('Event.id' => $eventOrEventId)
+                //'fields' => ['id', 'info'], // info is required because of SysLogLogableBehavior
             ));
             if (empty($event)) {
                 return false;
@@ -6376,7 +6377,7 @@ class Event extends AppModel
                     unset($data[$dataType . 'Tag'][$k]);
                     continue;
                 }
-                $dataTag['Tag']['local'] = empty($dataTag['local']) ? 0 : 1;
+                $dataTag['Tag']['local'] = empty($dataTag['local']) ? false : true;
                 if (!isset($excludeGalaxy) || !$excludeGalaxy) {
                     if (substr($dataTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
                         $cluster = $this->GalaxyCluster->getCluster($dataTag['Tag']['name'], $user);
@@ -7322,7 +7323,7 @@ class Event extends AppModel
             foreach ($event['EventTag'] as $etk => $eventTag) {
                 $tag = $this->__getCachedTag($eventTag['tag_id'], $justExportable);
                 if ($tag !== null) {
-                    $tag['local'] = empty($eventTag['local']) ? 0 : 1;
+                    $tag['local'] = empty($eventTag['local']) ? false : true;
                     $tag['relationship_type'] = empty($eventTag['relationship_type']) ? null : $eventTag['relationship_type'];
                     $event['EventTag'][$etk]['Tag'] = $tag;
                 } else {
@@ -7337,7 +7338,7 @@ class Event extends AppModel
                     foreach ($attribute['AttributeTag'] as $atk => $attributeTag) {
                         $tag = $this->__getCachedTag($attributeTag['tag_id'], $justExportable);
                         if ($tag !== null) {
-                            $tag['local'] = empty($attributeTag['local']) ? 0 : 1;
+                            $tag['local'] = empty($attributeTag['local']) ? false : true;
                             $tag['relationship_type'] = empty($attributeTag['relationship_type']) ? null : $attributeTag['relationship_type'];
                             $event['Attribute'][$ak]['AttributeTag'][$atk]['Tag'] = $tag;
                         } else {

@@ -580,7 +580,17 @@ class Server extends AppModel
             }
             return false;
         }
-        $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $response);
+        try {
+            $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $response);
+        } catch (Exception $e) {
+            $title = __('Pulling an event (#%s) from Server #%s has failed. The sync process was not interrupted.', $eventId, $serverSync->server()['id']);
+            $this->loadLog()->createLogEntry(
+                $user,
+                'error',
+                'Server',
+                $serverSync->serverId(),
+                $title, $e->getMessage());
+        }
         return true;
     }
 
