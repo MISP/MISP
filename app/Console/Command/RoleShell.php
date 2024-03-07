@@ -31,7 +31,7 @@ class RoleShell extends AppShell
         $filter = $this->args[0] ?? null;
         if ($filter) {
             $conditions = ['OR' => [
-                'Role.name LIKE' => "%$userId%"
+                'Role.name LIKE' => "%$filter%"
             ]];
         } else {
             $conditions = [];
@@ -51,5 +51,6 @@ class RoleShell extends AppShell
                 ));
             }
         }
+        $this->out(count($roles) . ' hits.');
     }
 }
