@@ -23,6 +23,20 @@ class UserShell extends AppShell
                 ],
             ]
         ]);
+        $parser->addSubcommand('create', [
+            'help' => __('Create a new user account.'),
+            'parser' => [
+                'arguments' => [
+                    'email' => ['help' => __('E-mail address (also used as the username.'), 'required' => true],
+                    'role_id' => ['help' => __('Role ID of the user. For a list of available roles, use `cake Roles list`.'), 'required' => true],
+                    'org_id' => ['help' => __('Organisation under which the user should be created'), 'required' => true],
+                    'password' => ['help' => __('Enter a password to assign to the user (optional) - if none is set, the user will receive a temporary password.')]
+                ],
+                'options' => [
+                    'json' => ['help' => __('Output as JSON.'), 'boolean' => true],
+                ],
+            ]
+        ]);
         $parser->addSubcommand('init', [
             'help' => __('Create default role, organisation and user when not exists.'),
         ]);
@@ -186,6 +200,48 @@ class UserShell extends AppShell
             foreach ($users as $user) {
                 $this->out($user);
             }
+        }
+    }
+
+    public function create()
+    {
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            $this->err('Invalid input. Usage: `User create [email] [role_id] [org_id] [password:optional]`');
+        }
+        $user = [
+            'email' => $this->args[0],
+            'role_id' => $this->args[1],
+            'org_id' => $this->args[2],
+            'change_pw' => true
+        ];
+        if (!empty($this->args[3])) {
+            $user['password'] = $this->args[3];
+            $user['confirm_password'] = $this->args[3];
+            $user['change_pw'] = true;
+        }
+        $this->User->create();
+        $result = $this->User->save($user);
+        // do not fetch sensitive or big values
+        $schema = $this->User->schema();
+        unset($schema['authkey']);
+        unset($schema['password']);
+        unset($schema['gpgkey']);
+        unset($schema['certif_public']);
+
+        $fields = array_keys($schema);
+        $fields[] = 'Role.*';
+        $fields[] = 'Organisation.*';
+
+        $user = $this->User->find('first', [
+            'recursive' => -1,
+            'fields' => $fields,
+            'conditions' => ['User.id' => $this->User->id],
+            'contain' => ['Organisation', 'Role', 'UserSetting'],
+        ]);
+        if ($this->params['json']) {
+            $this->out($this->json($user));
+        } else {
+            $this->out('User created.');
         }
     }
 
