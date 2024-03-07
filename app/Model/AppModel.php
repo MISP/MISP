@@ -1990,7 +1990,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `event_reports` modify `content` mediumtext";
                 break;
             case 117:
-                $sqlArray[] = "CREATE TABLE `user_login_profiles` (
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `user_login_profiles` (
                     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `user_id` int(11) NOT NULL,
@@ -2018,7 +2018,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `access_logs` MODIFY `action` varchar(191) NOT NULL";
                 break;
             case 121:
-                $sqlArray[] = "CREATE TABLE `notes` (
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `notes` (
                     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
                     `object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -2026,8 +2026,8 @@ class AppModel extends Model
                     `authors` text,
                     `org_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
                     `orgc_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-                    `created` datetime DEFAULT CURRENT_TIMESTAMP,
-                    `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
+                    `created` datetime NOT NULL,
+                    `modified` datetime NOT NULL,
                     `distribution` tinyint(4) NOT NULL,
                     `sharing_group_id` int(10) unsigned,
                     `locked` tinyint(1) NOT NULL DEFAULT 0,
@@ -2043,7 +2043,7 @@ class AppModel extends Model
                     KEY `sharing_group_id` (`sharing_group_id`)
                   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
-                $sqlArray[] = "CREATE TABLE `opinions` (
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `opinions` (
                     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
                     `object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -2051,8 +2051,8 @@ class AppModel extends Model
                     `authors` text,
                     `org_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
                     `orgc_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-                    `created` datetime DEFAULT CURRENT_TIMESTAMP,
-                    `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
+                    `created` datetime NOT NULL,
+                    `modified` datetime NOT NULL,
                     `distribution` tinyint(4) NOT NULL,
                     `sharing_group_id` int(10) unsigned,
                     `locked` tinyint(1) NOT NULL DEFAULT 0,
@@ -2069,7 +2069,7 @@ class AppModel extends Model
                     KEY `opinion` (`opinion`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
-                $sqlArray[] = "CREATE TABLE `relationships` (
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `relationships` (
                     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) CHARACTER SET ascii NOT NULL,
                     `object_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -2077,8 +2077,8 @@ class AppModel extends Model
                     `authors` text,
                     `org_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
                     `orgc_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-                    `created` datetime DEFAULT CURRENT_TIMESTAMP,
-                    `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
+                    `created` datetime NOT NULL,
+                    `modified` datetime NOT NULL,
                     `distribution` tinyint(4) NOT NULL,
                     `sharing_group_id` int(10) unsigned,
                     `locked` tinyint(1) NOT NULL DEFAULT 0,
@@ -2117,14 +2117,14 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `servers` ADD `pull_analyst_data` tinyint(1) NOT NULL DEFAULT 0 AFTER `push_analyst_data`;";
                 break;
             case 122:
-                $sqlArray[] = "CREATE TABLE `collections` (
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `collections` (
                     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
                     `org_id` int(10) unsigned NOT NULL,
                     `orgc_id` int(10) unsigned NOT NULL,
                     `user_id` int(10) unsigned NOT NULL,
-                    `created` datetime DEFAULT CURRENT_TIMESTAMP,
-                    `modified` datetime ON UPDATE CURRENT_TIMESTAMP,
+                    `created` datetime NOT NULL,
+                    `modified` datetime NOT NULL,
                     `distribution` tinyint(4) NOT NULL,
                     `sharing_group_id` int(10) unsigned,
                     `name` varchar(191) NOT NULL,
@@ -2141,7 +2141,7 @@ class AppModel extends Model
                     KEY `sharing_group_id` (`sharing_group_id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
-                $sqlArray[] = "CREATE TABLE `collection_elements` (
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `collection_elements` (
                     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
                     `element_uuid` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,

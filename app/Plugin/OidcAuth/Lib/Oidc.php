@@ -458,7 +458,7 @@ class Oidc
     private function getConfig($config, $default = null)
     {
         $value = Configure::read("OidcAuth.$config");
-        if (empty($value)) {
+        if ($value === null) {
             if ($default === null) {
                 throw new RuntimeException("Config option `OidcAuth.$config` is not set.");
             }

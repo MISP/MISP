@@ -16,7 +16,7 @@ class UserShell extends AppShell
             'help' => __('Get list of user accounts.'),
             'parser' => [
                 'arguments' => [
-                    'userId' => ['help' => __('User ID or e-mail address.'), 'required' => true],
+                    'userId' => ['help' => __('User ID or e-mail address to filter.'), 'required' => false],
                 ],
                 'options' => [
                     'json' => ['help' => __('Output as JSON.'), 'boolean' => true],
@@ -80,6 +80,15 @@ class UserShell extends AppShell
                 'options' => [
                     'no_password_change' => ['help' => __('Do not require password change.'), 'boolean' => true],
                 ],
+            ],
+        ]);
+        $parser->addSubcommand('change_role', [
+            'help' => __('Change user role.'),
+            'parser' => [
+                'arguments' => [
+                    'userId' => ['help' => __('User ID or e-mail address.'), 'required' => true],
+                    'new_role' => ['help' => __('Role ID or Role name.'), 'required' => true],
+                ]
             ],
         ]);
         $parser->addSubcommand('change_authkey', [
@@ -443,6 +452,35 @@ class UserShell extends AppShell
         }
     }
 
+    public function change_role()
+    {
+        list($userId, $newRole) = $this->args;
+        $user = $this->getUser($userId);
+
+        if (is_numeric($newRole)) {
+            $conditions = ['Role.id' => $newRole];
+        } else {
+            $conditions = ['Role.name' => $newRole];
+        }
+
+        $newRoleFromDb = $this->User->Role->find('first', [
+            'conditions' => $conditions,
+            'fields' => ['Role.id'],
+        ]);
+
+        if (empty($newRoleFromDb)) {
+            $this->error("Role `$newRole` not found.");
+        }
+
+        if ($newRoleFromDb['Role']['id'] == $user['role_id']) {
+            $this->error("Role `$newRole` is already assigned to {$user['email']}.");
+        }
+
+        $this->User->updateField($user, 'role_id', $newRoleFromDb['Role']['id']);
+
+        $this->out("Role changed from `{$user['role_id']}` to `{$newRoleFromDb['Role']['id']}`.");
+    }
+
     public function user_ips()
     {
         list($userId) = $this->args;
@@ -575,7 +613,7 @@ class UserShell extends AppShell
     }
 
     /**
-     * @param string|int $userId
+     * @param string|int $userId User ID or User e-mail
      * @return array
      */
     private function getUser($userId)
