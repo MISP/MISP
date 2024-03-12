@@ -274,7 +274,7 @@ class EventsController extends AppController
         }
 
         // if not admin or own org, check private as well..
-        if (!$this->isSiteAdmin() && in_array($this->request->getParam('action'), $this->paginationFunctions, true)) {
+        if ($this->ACL->getUser() && !$this->isSiteAdmin() && in_array($this->request->getParam('action'), $this->paginationFunctions, true)) {
             $conditions = $this->Events->createEventConditions($this->ACL->getUser()->toArray());
             if ($this->ACL->getUser()['Role']['perm_sync'] && $this->ACL->getUser()['Server']['push_rules']) {
                 $conditions['AND'][] = $this->Events->filterRulesToConditions($this->ACL->getUser()['Server']['push_rules']);

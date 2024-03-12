@@ -159,7 +159,7 @@ class AppController extends Controller
                 ]
             );
             $this->__accessMonitor($user->toArray());
-            if (!empty($user['disabled'])) {
+            if (empty($user) || !empty($user['disabled'])) {
                 $this->Authentication->logout();
                 $this->Flash->error(__('The user account is disabled.'));
 
@@ -191,11 +191,11 @@ class AppController extends Controller
 
         $this->ACL->checkAccess();
         $this->set('default_memory_limit', ini_get('memory_limit'));
-        if (isset($user['Role']['memory_limit']) && $user['Role']['memory_limit'] !== '') {
+        if (!empty($user) && isset($user['Role']['memory_limit']) && $user['Role']['memory_limit'] !== '') {
             ini_set('memory_limit', $user['Role']['memory_limit']);
         }
         $this->set('default_max_execution_time', ini_get('max_execution_time'));
-        if (isset($user['Role']['max_execution_time']) && $user['Role']['max_execution_time'] !== '') {
+        if (!empty($user) && isset($user['Role']['max_execution_time']) && $user['Role']['max_execution_time'] !== '') {
             ini_set('max_execution_time', $user['Role']['max_execution_time']);
         }
         if (!$this->ParamHandler->isRest()) {
@@ -332,7 +332,13 @@ class AppController extends Controller
      */
     protected function isSiteAdmin(): bool
     {
-        return $this->ACL->getUser()->Role->perm_site_admin;
+        $user = $this->ACL->getUser();
+
+        if (empty($user)) {
+            return false;
+        }
+
+        return $user->Role->perm_site_admin;
     }
 
     /**
