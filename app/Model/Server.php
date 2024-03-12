@@ -428,6 +428,10 @@ class Server extends AppModel
                 }
             }
         }
+	// Set published to false if unpublish_event is set for the server
+        if (!empty($server['Server']['unpublish_event'])) {
+            $event['Event']['published'] = 0;
+        }
 
         // Distribution, set reporter of the event, being the admin that initiated the pull
         $event['Event']['user_id'] = $user['id'];
