@@ -1901,7 +1901,7 @@ class EventsTable extends AppTable
                         'OR' => [
                             'AND' => [
                                 sprintf('(SELECT events.org_id FROM events WHERE events.id = %s.event_id)', $softDeletable) => $user['org_id'],
-                                "$softDeletable.deleted" => $options['deleted'],
+                                "$softDeletable.deleted IN" => $options['deleted'],
                             ],
                             $deletion_subconditions
                         ]
@@ -1913,7 +1913,7 @@ class EventsTable extends AppTable
                 if (!$both) {
                     foreach ($softDeletables as $softDeletable) {
                         ${'conditions' . $softDeletable}['AND'][] = [
-                            "$softDeletable.deleted" => $options['deleted'],
+                            "$softDeletable.deleted IN" => $options['deleted'],
                         ];
                     }
                 }
@@ -1957,7 +1957,7 @@ class EventsTable extends AppTable
         $fieldsOrg = ['id', 'name', 'uuid', 'local'];
         $params = [
             'conditions' => $conditions,
-            'recursive' => 0,
+            // 'recursive' => 0,
             'fields' => $fields,
             'contain' => [
                 'ThreatLevel' => [
@@ -1981,7 +1981,7 @@ class EventsTable extends AppTable
                 'EventReports' => [
                     'conditions' => $conditionsEventReport,
                 ],
-                'CryptographicKeys'
+                'CryptographicKeys' => []
             ]
         ];
         if (!empty($options['excludeLocalTags'])) {

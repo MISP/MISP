@@ -1935,7 +1935,7 @@ class EventsController extends AppController
             throw new NotFoundException(__('Invalid event'));
         }
 
-        $namedParams = $this->params['named'];
+        $namedParams = $this->request->getParam('named');
 
         if ($this->ParamHandler->isRest()) {
             $conditions['includeAttachments'] = isset($namedParams['includeAttachments']) ? $namedParams['includeAttachments'] : true;
@@ -2057,7 +2057,6 @@ class EventsController extends AppController
             }
         }
 
-        $this->Events->id = $event['Event']['id'];
         if (isset($namedParams['searchFor']) && $namedParams['searchFor'] !== '') {
             $this->__applyQueryString($event, $namedParams['searchFor']);
         }
