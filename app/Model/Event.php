@@ -3282,6 +3282,7 @@ class Event extends AppModel
         $template->set('distributionLevels', $this->distributionLevels);
         $template->set('analysisLevels', $this->analysisLevels);
         $template->set('tlp', $subjMarkingString);
+        $template->set('title', Configure::read('MISP.title_text'));
         $template->subject($subject);
         $template->referenceId("event-alert|{$event['Event']['id']}");
 

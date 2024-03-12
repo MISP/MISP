@@ -5400,6 +5400,13 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ],
+                'email_reply_to' => [
+                    'level' => 2,
+                    'description' => __('Reply to e-mail address for e-mails send from MISP instance.'),
+                    'value' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ],
                 'taxii_sync' => array(
                     'level' => 3,
                     'description' => __('This setting is deprecated and can be safely removed.'),
