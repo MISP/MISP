@@ -1944,6 +1944,9 @@ class Attribute extends AppModel
                     $attribute['Attribute']['data'] = $encodedFile;
                 }
                 if ($options['includeDecayScore']) {
+                    if (empty($attribute['Attribute']['to_ids'])) {
+                        continue; // It only makes sense to consider IoCs for the decaying
+                    }
                     $this->DecayingModel = ClassRegistry::init('DecayingModel');
                     $include_full_model = isset($options['includeFullModel']) && $options['includeFullModel'] ? 1 : 0;
                     if (empty($attribute['Attribute']['AttributeTag'])) {

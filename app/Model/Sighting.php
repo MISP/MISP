@@ -1010,6 +1010,23 @@ class Sighting extends AppModel
         return $sightings;
     }
 
+     /**
+     * @param int $id
+     * @return array
+     */
+    public function getLastSightingForAttribute($id): array
+    {
+        $sighting = $this->find('first', [
+            'conditions' => [
+                'Sighting.attribute_id' => $id,
+                'Sighting.type' => 0,
+            ],
+            'recursive' => -1,
+            'order' => ['Sighting.date_sighting DESC']
+        ]);
+        return empty($sighting) ? [] : $sighting;
+    }
+
     /**
      * @param array $user
      * @param string $returnFormat
