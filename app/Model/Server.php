@@ -5123,6 +5123,14 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'disable_sighting_loading' => [
+                    'level' => 1,
+                    'description' => __('If an instance has an extremely high number of sightings, including the sightings in the search algorithms can bring an instance to a grinding halt. Enable this setting to temporarily disable the search until the issue is remedied. This setting will also disable sightings from being attached via /events/view API calls.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'disable_event_locks' => [
                     'level' => 1,
                     'description' => __('Disable the event locks that are executed periodically when a user browses an event view. It can be useful to leave event locks enabled to warn users that someone else is editing the same event, but generally it\'s extremely verbose and can cause issues in certain setups, so it\'s recommended to disable this.'),

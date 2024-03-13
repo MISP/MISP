@@ -1406,14 +1406,13 @@ class Event extends AppModel
         return $this->delete(null, false);
     }
 
-    public function createEventConditions($user)
+    public function createEventConditions($user, $skip_own_event_rule = false)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
             $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $conditions['AND']['OR'] = [
-                'Event.org_id' => $user['org_id'],
                 [
                     'AND' => [
                         'Event.distribution >' => 0,
@@ -1429,6 +1428,9 @@ class Event extends AppModel
                     ]
                 ]
             ];
+            if (!$skip_own_event_rule) {
+                $conditions['AND']['OR'][] = ['Event.org_id' => $user['org_id']];
+            }
         }
         return $conditions;
     }
@@ -2279,7 +2281,9 @@ class Event extends AppModel
                 $event['EventReport'] = $this->__attachSharingGroups($event['EventReport'], $sharingGroupData);
             }
             if (empty($options['metadata']) && empty($options['noSightings'])) {
-                $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+                if (empty(Configure::read('MISP.disable_sighting_loading'))) {
+                    $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+                }
             }
             if ($options['includeSightingdb']) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
