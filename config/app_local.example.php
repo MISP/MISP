@@ -57,6 +57,9 @@ return [
         'log_paranoid_include_sql_queries' => false,
         'log_new_audit_compress' => false,
         'log_paranoid_include_post_body' => false,
+        'redis_host' => '127.0.0.1',
+        'redis_port' => 6379,
+        'correlation_engine' => 'Default',
     ],
     'BackgroundJobs' => [
         'enabled' => true,

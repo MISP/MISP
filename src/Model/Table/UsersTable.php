@@ -536,4 +536,128 @@ class UsersTable extends AppTable
             // "Servers.*" // TODO: [3.x-MIGRATION]
         ];
     }
+
+    /**
+     * Get the current user and rearrange it to be in the same format as in the auth component.
+     * @param string $authkey
+     * @return array|null
+     */
+    public function getAuthUserByAuthkey($authkey)
+    {
+        if (empty($authkey)) {
+            throw new InvalidArgumentException('Invalid user auth key.');
+        }
+        $conditions = ['Users.authkey' => $authkey];
+        return $this->getAuthUserByConditions($conditions);
+    }
+
+    public function checkNotificationBanStatus(array $user)
+    {
+        $banStatus = [
+            'error' => false,
+            'active' => false,
+            'message' => __('User is not banned to sent email notification')
+        ];
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return $banStatus;
+        }
+        if (Configure::read('MISP.user_email_notification_ban')) {
+            $banThresholdAmount = intval(Configure::read('MISP.user_email_notification_ban_amount_threshold'));
+            $banThresholdMinutes = intval(Configure::read('MISP.user_email_notification_ban_time_threshold'));
+            $banThresholdSeconds = 60 * $banThresholdMinutes;
+            $redis = $this->setupRedis();
+            if ($redis === false) {
+                $banStatus['error'] = true;
+                $banStatus['active'] = true;
+                $banStatus['message'] =  __('Reason: Could not reach redis to check user email notification ban status.');
+                return $banStatus;
+            }
+
+            $redisKeyAmountThreshold = "misp:user_email_notification_ban_amount:{$user['id']}";
+            $notificationAmount = $redis->get($redisKeyAmountThreshold);
+            if (!empty($notificationAmount)) {
+                $remainingAttempt = $banThresholdAmount - intval($notificationAmount);
+                if ($remainingAttempt <= 0) {
+                    $ttl = $redis->ttl($redisKeyAmountThreshold);
+                    $remainingMinutes = intval($ttl) / 60;
+                    $banStatus['active'] = true;
+                    $banStatus['message'] = __('Reason: User is banned from sending out emails (%s notification tried to be sent). Ban will be lifted in %smin %ssec.', $notificationAmount, floor($remainingMinutes), intval($ttl) % 60);
+                }
+            }
+            $pipe = $redis->multi(\Redis::PIPELINE)
+                ->incr($redisKeyAmountThreshold);
+            if (!$banStatus['active']) { // no need to refresh the ttl if the ban is active
+                $pipe->expire($redisKeyAmountThreshold, $banThresholdSeconds);
+            }
+            $pipe->exec();
+            return $banStatus;
+        }
+        $banStatus['message'] = __('User email notification ban setting is not enabled');
+        return $banStatus;
+    }
+
+    /**
+     * Fetch all users that have access to an event / discussion for e-mailing (or maybe something else in the future.
+     * parameters are an array of org IDs that are owners (for an event this would be orgc and org)
+     * @param array $owners Event owners
+     * @param int $distribution
+     * @param int $sharing_group_id
+     * @param array $userConditions
+     * @return array|int
+     */
+    public function getUsersWithAccess(array $owners, $distribution, $sharing_group_id = 0, array $userConditions = [])
+    {
+        $conditions = [];
+        $validOrgs = [];
+        $all = true;
+
+        // add owners to the conditions
+        if ($distribution == 0 || $distribution == 4) {
+            $all = false;
+            $validOrgs = $owners;
+        }
+
+        // add all orgs to the conditions that can see the SG
+        if ($distribution == 4) {
+            $SharingGroupsTable = $this->fetchTable('SharingGroups');
+            $sgOrgs = $SharingGroupsTable->getOrgsWithAccess($sharing_group_id);
+            if ($sgOrgs === true) {
+                $all = true;
+            } else {
+                $validOrgs = array_merge($validOrgs, $sgOrgs);
+            }
+        }
+        $validOrgs = array_unique($validOrgs);
+        $conditions['AND'][] = ['disabled' => 0];
+        if (!$all) {
+            $conditions['AND']['OR'][] = ['org_id IN' => $validOrgs];
+
+            // Add the site-admins to the list
+            $siteAdminRoleIds = $this->Roles->find(
+                'column',
+                [
+                    'conditions' => ['perm_site_admin' => 1],
+                    'fields' => ['id'],
+                ]
+            );
+            $conditions['AND']['OR'][] = ['role_id' => $siteAdminRoleIds];
+        }
+        $conditions['AND'][] = $userConditions;
+        $users = $this->find(
+            'all',
+            [
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'fields' => ['id', 'email', 'gpgkey', 'certif_public', 'org_id', 'disabled'],
+                'contain' => [
+                    'Roles' => ['fields' => ['perm_site_admin', 'perm_audit']],
+                    'Organisations' => ['fields' => ['id', 'name']]
+                ],
+            ]
+        )->toArray();
+        foreach ($users as $k => $user) {
+            $users[$k] = $this->rearrangeToAuthForm($user);
+        }
+        return $users;
+    }
 }

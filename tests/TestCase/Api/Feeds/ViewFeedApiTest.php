@@ -23,7 +23,7 @@ class ViewFeedApiTest extends TestCase
         'app.Feeds',
     ];
 
-    public function testDeleteFeed(): void
+    public function testViewFeed(): void
     {
         $this->skipOpenApiValidations();
 

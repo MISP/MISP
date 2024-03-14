@@ -605,7 +605,7 @@ class GalaxiesTable extends AppTable
     public function detachClusterByTagId(array $user, $targetId, $targetType, $tagId)
     {
         if ($targetType === 'attribute') {
-            $attribute = $this->GalaxyClusters->Tag->EventTag->Event->Attribute->find(
+            $attribute = $this->GalaxyClusters->Tag->EventTag->Event->Attributes->find(
                 'all',
                 [
                     'recursive' => -1,

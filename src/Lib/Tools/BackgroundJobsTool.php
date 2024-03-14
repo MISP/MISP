@@ -658,8 +658,8 @@ class BackgroundJobsTool
                 $host ?: $this->settings['supervisor_host'],
                 $this->settings['supervisor_port']
             ),
-            new \fXmlRpc\Transport\HttpAdapterTransport(
-                new \Http\Message\MessageFactory\GuzzleMessageFactory(),
+            new \fXmlRpc\Transport\PsrTransport(
+                new \GuzzleHttp\Psr7\HttpFactory(),
                 new \GuzzleHttp\Client($httpOptions)
             )
         );

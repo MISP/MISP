@@ -579,9 +579,9 @@ class LogsTable extends AppTable
             $event = $this->Event->find(
                 'all',
                 [
-                    'conditions' => ['Event.id' => $deletion_entry['model_id']],
+                    'conditions' => ['id' => $deletion_entry['model_id']],
                     'recursive' => -1,
-                    'fields' => ['Event.id']
+                    'fields' => ['id']
                 ]
             )->first();
             if (!empty($event)) {
@@ -982,7 +982,7 @@ class LogsTable extends AppTable
                     'all',
                     [
                         'recursive' => -1,
-                        'conditions' => ['Event.id' => $logEntry['model_id']]
+                        'conditions' => ['id' => $logEntry['model_id']]
                     ]
                 )->first();
                 if (!empty($event)) {

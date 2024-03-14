@@ -552,12 +552,12 @@ class AuditLogsController extends AppController
         if (!empty($eventIds)) {
             $EventsTable = $this->fetchTable('Events');
             $conditions = $EventsTable->createEventConditions($this->Auth->user());
-            $conditions['Event.id'] = array_unique($eventIds);
+            $conditions['id'] = array_unique($eventIds);
             $events = $EventsTable->find(
                 'list',
                 [
                     'conditions' => $conditions,
-                    'fields' => ['Event.id', 'Event.info'],
+                    'fields' => ['id', 'info'],
                 ]
             );
         }

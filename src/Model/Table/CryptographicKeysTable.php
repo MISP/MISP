@@ -170,8 +170,8 @@ class CryptographicKeysTable extends AppTable
     {
         $eventIds = [];
         foreach ($events as $event) {
-            if ($event['Event']['protected']) {
-                $eventIds[] = $event['Event']['id'];
+            if ($event['protected']) {
+                $eventIds[] = $event['id'];
             }
         }
 

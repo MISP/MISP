@@ -455,7 +455,7 @@ class RestResponseComponent extends Component
         return $this->viewData($response);
     }
 
-    private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = [])
+    private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = [], $deprecationWarnings = [])
     {
         if (strtolower($format) === 'application/xml' || strtolower($format) === 'xml') {
             if (!$raw) {
@@ -573,8 +573,8 @@ class RestResponseComponent extends Component
     public function sendFile($path, $format = false, $download = false, $name = 'download')
     {
         $cakeResponse = new \Cake\Http\Response();
-        $cakeResponse = $cakeResponse->withStatus = 200;
-        $cakeResponse = $cakeResponse->withType = $format;
+        $cakeResponse = $cakeResponse->withStatus(200);
+        $cakeResponse = $cakeResponse->withType($format);
         $cakeResponse = $cakeResponse->withDownload($path, ['download' => true, 'name' => $name]);
         return $cakeResponse;
     }
@@ -1835,5 +1835,18 @@ class RestResponseComponent extends Component
         if ($action == 'restSearch') {
             $field['help'] = __('Seen within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m)');
         }
+    }
+
+    /**
+     * Detect if request comes from automatic tool (like other MISP instance or PyMISP) or AJAX
+     * @return bool
+     */
+    public function isAutomaticTool()
+    {
+        if ($this->Controller->getRequest()->is('ajax')) {
+            return true;
+        }
+        $userAgent = $this->Controller->getRequest()->getHeader('User-Agent');
+        return count($userAgent) && (substr($userAgent[0], 0, 6) === 'PyMISP' || substr($userAgent[0], 0, 4) === 'MISP');
     }
 }

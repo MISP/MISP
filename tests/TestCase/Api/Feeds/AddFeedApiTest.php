@@ -28,8 +28,6 @@ class AddFeedApiTest extends TestCase
 
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
 
-        $faker = \Faker\Factory::create();
-
         $this->post(
             self::ENDPOINT,
             [

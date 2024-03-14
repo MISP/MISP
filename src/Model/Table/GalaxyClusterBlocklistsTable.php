@@ -3,6 +3,8 @@
 namespace App\Model\Table;
 
 use App\Model\Table\AppTable;
+use ArrayObject;
+use Cake\Event\EventInterface;
 
 class GalaxyClusterBlocklistsTable extends AppTable
 {
@@ -10,42 +12,40 @@ class GalaxyClusterBlocklistsTable extends AppTable
 
     public $recursive = -1;
 
-    public $actsAs = array(
+    public $actsAs = [
         'AuditLog',
-        'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
+        'SysLogLogable.SysLogLogable' => [ // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
             'change' => 'full'
-        ),
+        ],
         'Containable',
-    );
+    ];
 
-    public $blocklistFields = array('cluster_uuid', 'comment', 'cluster_info', 'cluster_orgc');
+    public $blocklistFields = ['cluster_uuid', 'comment', 'cluster_info', 'cluster_orgc'];
     public $blocklistTarget = 'cluster';
 
-    public $validate = array(
-        'cluster_uuid' => array(
-            'unique' => array(
+    public $validate = [
+        'cluster_uuid' => [
+            'unique' => [
                 'rule' => 'isUnique',
                 'message' => 'Galaxy Cluster already blocklisted.'
-            ),
-            'uuid' => array(
-                'rule' => array('uuid'),
+            ],
+            'uuid' => [
+                'rule' => ['uuid'],
                 'message' => 'Please provide a valid UUID'
-            ),
-        )
-    );
+            ],
+        ]
+    ];
 
-    public function beforeValidate($options = array())
+    public function beforeMarshal(EventInterface $event, ArrayObject $data, ArrayObject $options)
     {
-        parent::beforeValidate();
-        if (empty($this->data['GalaxyClusterBlocklist']['id'])) {
-            $this->getData()['GalaxyClusterBlocklist']['date_created'] = date('Y-m-d H:i:s');
+        if (empty($data['id'])) {
+            $data['date_created'] = date('Y-m-d H:i:s');
         }
-        if (empty($this->data['GalaxyClusterBlocklist']['comment'])) {
-            $this->getData()['GalaxyClusterBlocklist']['comment'] = '';
+        if (empty($data['comment'])) {
+            $data['comment'] = '';
         }
-        return true;
     }
 
     /**
@@ -54,8 +54,10 @@ class GalaxyClusterBlocklistsTable extends AppTable
      */
     public function checkIfBlocked($clusterUUID)
     {
-        return $this->exists([
-            'cluster_uuid' => $clusterUUID,
-        ]);
+        return $this->exists(
+            [
+                'cluster_uuid' => $clusterUUID,
+            ]
+        );
     }
 }

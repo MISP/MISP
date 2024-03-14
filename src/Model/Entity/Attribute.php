@@ -44,13 +44,13 @@ class Attribute extends AppModel
         'anonymised'
     ];
 
-    public const PRIMARY_ONLY_CORRELATING_TYPES = array(
+    public const PRIMARY_ONLY_CORRELATING_TYPES = [
         'ip-src|port',
         'ip-dst|port',
         'hostname|port',
-    );
+    ];
 
-    public const CAPTURE_FIELDS = array(
+    public const CAPTURE_FIELDS = [
         'event_id',
         'category',
         'type',
@@ -69,7 +69,14 @@ class Attribute extends AppModel
         'object_relation',
         'first_seen',
         'last_seen'
-    );
+    ];
+
+    public const FILE_HASH_TYPES = [
+        'md5' => 32,
+        'sha1' => 40,
+        'sha256' => 64,
+        'sha512' => 128,
+    ];
 
     // typeGroupings are a mapping to high level groups for attributes
     // for example, IP addresses, domain names, hostnames and e-mail addresses are network related attribute types

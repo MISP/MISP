@@ -336,12 +336,12 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param HttpClient|null $HttpSocket Null can be for local feed
      * @return array
      * @throws Exception
      */
-    public function getManifest(array $feed, HttpClient $HttpSocket = null)
+    public function getManifest(Feed $feed, HttpClient $HttpSocket = null)
     {
         $events = $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
         $events = $this->__filterEventsIndex($events, $feed);
@@ -390,7 +390,7 @@ class FeedsTable extends AppTable
         $content = $response->getBody()->getContents();
 
         try {
-            FileAccessTool::writeCompressedFile($feedCache, $content);
+            FileAccessTool::writeCompressedFile($feedCache, $content, true);
             if ($response->getHeader('etag')) {
                 FileAccessTool::writeToFile($feedCacheEtag, $response->getHeader('etag')[0]);
             }
@@ -858,7 +858,7 @@ class FeedsTable extends AppTable
         return true;
     }
 
-    private function __filterEventsIndex(array $events, array $feed)
+    private function __filterEventsIndex(array $events, Feed $feed)
     {
         $filterRules = $this->__prepareFilterRules($feed);
         if (!$filterRules) {
@@ -966,7 +966,7 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param string $uuid
      * @return bool|string|array
      * @throws Exception
@@ -990,9 +990,9 @@ class FeedsTable extends AppTable
         $existingEvent = $EventsTable->find(
             'first',
             [
-                'conditions' => ['Event.uuid' => $event['Event']['uuid']],
+                'conditions' => ['uuid' => $event['Event']['uuid']],
                 'recursive' => -1,
-                'fields' => ['Event.uuid', 'Event.id', 'Event.timestamp']
+                'fields' => ['uuid', 'id', 'timestamp']
             ]
         );
         $result = [];
@@ -1171,7 +1171,7 @@ class FeedsTable extends AppTable
 
     /**
      * @param HttpClient|null $HttpSocket Null can be for local feed
-     * @param array $feed
+     * @param Feed $feed
      * @param string $uuid
      * @param $user
      * @param array|bool $filterRules
@@ -1313,7 +1313,7 @@ class FeedsTable extends AppTable
         $EventsTable = $this->fetchTable('Events');
 
         if ($feed['fixed_event'] && $feed['event_id']) {
-            $event = $EventsTable->find('all', ['conditions' => ['Event.id' => $feed['event_id']], 'recursive' => -1])->first();
+            $event = $EventsTable->find('all', ['conditions' => ['id' => $feed['event_id']], 'recursive' => -1])->first();
             if (empty($event)) {
                 throw new Exception("The target event is no longer valid. Make sure that the target event {$feed['event_id']} exists.");
             }
@@ -1577,7 +1577,7 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param Redis $redis
      * @param HttpClient|null $HttpSocket
      * @param false $jobId
@@ -1638,7 +1638,7 @@ class FeedsTable extends AppTable
     }
 
     /**
-     * @param array $feed
+     * @param Feed $feed
      * @param Redis $redis
      * @param HttpClient|null $HttpSocket
      * @param false $jobId
@@ -2183,7 +2183,7 @@ class FeedsTable extends AppTable
      * @param HttpClient $HttpSocket
      * @param string $url
      * @param array $request
-     * @param array $feed
+     * @param Feed $feed
      * @param int $iterations
      * @return false|HttpClientResponse
      * @throws Exception
@@ -2249,13 +2249,13 @@ class FeedsTable extends AppTable
         if (empty($user)) {
             return __('Invalid user id.');
         }
-        $conditions = ['Event.info' => $feed['name'] . ' feed'];
+        $conditions = ['info' => $feed['name'] . ' feed'];
         $EventsTable = $this->fetchTable('Events');
         $events = $EventsTable->find(
             'list',
             [
                 'conditions' => $conditions,
-                'fields' => ['Event.id', 'Event.id']
+                'fields' => ['id', 'id']
             ]
         )->toArray();
         $count = count($events);
