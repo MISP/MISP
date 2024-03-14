@@ -759,6 +759,19 @@ class AppController extends Controller
     }
 
     /**
+     * Returns true if user can publish the given event.
+     *
+     * @param Event $event
+     * @param array|null $user If empty, currently logged user will be used
+     * @return bool
+     */
+    protected function canPublishEvent(Event $event, $user = null)
+    {
+        $user = $user ?: $this->ACL->getUser();
+        return $this->ACL->canPublishEvent($user, $event->toArray());
+    }
+
+    /**
      * Returns true if user can modify given event.
      *
      * @param Event $event

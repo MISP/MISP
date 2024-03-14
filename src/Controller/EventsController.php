@@ -94,6 +94,12 @@ class EventsController extends AppController
         ]
     ];
 
+    public function initialize(): void
+    {
+        $this->loadComponent('Toolbox');
+        parent::initialize();
+    }
+
     public function viewMock($id)
     {
         $data = json_decode($this->data1, true);
@@ -1606,8 +1612,8 @@ class EventsController extends AppController
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
-        $this->set('mayModify', $this->ACL->canModifyEvent($event, $user));
-        $this->set('mayPublish', $this->ACL->canPublishEvent($event, $user));
+        $this->set('mayModify', $this->canModifyEvent($event, $user));
+        $this->set('mayPublish', $this->canPublishEvent($event, $user));
         $this->response->withDisabledCache();
 
         // Remove `focus` attribute from URI
@@ -1752,7 +1758,7 @@ class EventsController extends AppController
             }
         }
 
-        if ($containsProposals && $this->ACL->canPublishEvent($event, $user)) {
+        if ($containsProposals && $this->canPublishEvent($event, $user)) {
             $mess = $this->Session->read('Message');
             if (empty($mess)) {
                 $this->Flash->info(__('This event has active proposals for you to accept or discard.'));
@@ -1868,8 +1874,8 @@ class EventsController extends AppController
         $this->set('object_count', $objectCount);
         $this->set('warnings', $this->Events->generateWarnings($event));
         $this->set('menuData', ['menuList' => 'event', 'menuItem' => 'viewEvent']);
-        $this->set('mayModify', $this->ACL->canModifyEvent($event, $user));
-        $this->set('mayPublish', $this->ACL->canPublishEvent($event, $user));
+        $this->set('mayModify', $this->canModifyEvent($event, $user));
+        $this->set('mayPublish', $this->canPublishEvent($event, $user));
         try {
             $instanceKey = $event['Event']['protected'] ? $this->Events->CryptographicKeys->ingestInstanceKey() : null;
         } catch (Exception $e) {
@@ -2805,7 +2811,7 @@ class EventsController extends AppController
             throw new ForbiddenException(__('You do not have permission to do that.'));
         }
         if ($this->request->is('post')) {
-            $source_id = $this->Toolbox->findIdByUuid($this->Event, $source_id);
+            $source_id = $this->Toolbox->findIdByUuid($this->Events, $source_id);
             $source_event = $this->Events->fetchEvent(
                 $this->ACL->getUser()->toArray(),
                 [
@@ -3231,17 +3237,15 @@ class EventsController extends AppController
 
     public function unpublish($id = null)
     {
-        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
-        $this->Events->id = $id;
-        $this->Events->recursive = -1;
-        $event = $this->Events->read(null, $id);
-        if (!$this->ACL->canModifyEvent($this->Events->data)) {
+        $id = $this->Toolbox->findIdByUuid($this->Events, $id);
+        $event = $this->Events->get($id);
+        if (!$this->canModifyEvent($event)) {
             throw new ForbiddenException(__('You do not have the permission to do that.'));
         }
         $this->Events->insertLock($this->ACL->getUser()->toArray(), $id);
         if ($this->request->is('post') || $this->request->is('put')) {
             $fieldList = ['published', 'id', 'info'];
-            $event['Event']['published'] = 0;
+            $event['published'] = 0;
             $result = $this->Events->save($event, ['fieldList' => $fieldList]);
             if ($result) {
                 $message = __('Event unpublished.');
@@ -3328,7 +3332,7 @@ class EventsController extends AppController
         if ($this->request->is('post') || $this->request->is('put')) {
             $errors = [];
             // Performs all the actions required to publish an event
-            $result = $this->Events->publishRouter($event['Event']['id'], null, $this->ACL->getUser()->toArray());
+            $result = $this->Events->publishRouter($event['id'], null, $this->ACL->getUser()->toArray());
             if (!Configure::read('MISP.background_jobs')) {
                 if (!is_array($result)) {
                     if ($result === true) {
@@ -3348,9 +3352,9 @@ class EventsController extends AppController
             }
             if ($this->ParamHandler->isRest()) {
                 if (!empty($errors)) {
-                    return $this->RestResponse->saveFailResponse('Events', 'publish', $event['Event']['id'], $errors);
+                    return $this->RestResponse->saveFailResponse('Events', 'publish', $event['id'], $errors);
                 } else {
-                    return $this->RestResponse->saveSuccessResponse('Events', 'publish', $event['Event']['id'], false, $message);
+                    return $this->RestResponse->saveSuccessResponse('Events', 'publish', $event['id'], false, $message);
                 }
             } else {
                 if (!empty($errors)) {
@@ -3358,11 +3362,11 @@ class EventsController extends AppController
                 } else {
                     $this->Flash->success($message);
                 }
-                $this->redirect(['action' => 'view', $event['Event']['id']]);
+                $this->redirect(['action' => 'view', $event['id']]);
             }
         } else {
             $servers = $this->Events->listServerToPush($event);
-            $this->set('id', $event['Event']['id']);
+            $this->set('id', $event['id']);
             $this->set('servers', $servers);
             $this->set('type', 'publish');
             $this->render('ajax/eventPublishConfirmationForm');
@@ -3462,7 +3466,7 @@ class EventsController extends AppController
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Events.'));
         }
-        if (!$this->ACL->canPublishEvent($event)) {
+        if (!$this->canPublishEvent($event)) {
             throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
         }
         if (!$this->ParamHandler->isRest()) {
@@ -5149,8 +5153,8 @@ class EventsController extends AppController
 
         $this->set('event', $event);
         $this->set('scope', 'event');
-        $this->set('mayModify', $this->ACL->canModifyEvent($event));
-        $this->set('mayPublish', $this->ACL->canPublishEvent($event));
+        $this->set('mayModify', $this->canModifyEvent($event));
+        $this->set('mayPublish', $this->canPublishEvent($event));
         $this->set('id', $event['Event']['id']);
     }
 
@@ -6151,7 +6155,7 @@ class EventsController extends AppController
     // #TODO i18n
     public function pushEventToZMQ($id)
     {
-        $id = $this->Toolbox->findIdByUuid($this->Event, $id);
+        $id = $this->Toolbox->findIdByUuid($this->Events, $id);
         if ($this->request->is('Post')) {
             if (Configure::read('Plugin.ZeroMQ_enable')) {
                 $pubSubTool = $this->Events->getPubSubTool();

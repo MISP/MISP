@@ -271,7 +271,7 @@ class EventsTable extends AppTable
     public function validationPublish(Validator $validator): Validator
     {
         $validator
-            ->requirePresence(['publish', 'timestamp'])
+            ->requirePresence(['published', 'timestamp'])
             ->numeric('timestamp')
             ->boolean('published');
 
@@ -4766,6 +4766,7 @@ class EventsTable extends AppTable
             $event['skip_kafka'] = 1;
 
             $this->patchEntity($event, $data, ['fieldList' => $fieldList, 'validate' => 'publish']);
+            $this->save($event);
         }
         if ($allowZMQ) {
             $this->publishEventToZmq($id, $userForPubSub, $fullEvent);
@@ -5984,8 +5985,8 @@ class EventsTable extends AppTable
         }
         $event['unpublishAction'] = true;
 
-
-        return $this->patchEntity($event, $data, $fields);
+        $this->patchEntity($event, $data, $fields);
+        return $this->save($event);
     }
 
     /**
