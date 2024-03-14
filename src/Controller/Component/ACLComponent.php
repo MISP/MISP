@@ -767,14 +767,11 @@ class ACLComponent extends Component
      * Returns true if user can modify given event.
      *
      * @param array $event
-     * @param array $user
+     * @param User $user
      * @return bool
      */
-    public function canModifyEvent(array $user, array $event)
+    public function canModifyEvent(User $user, array $event)
     {
-        if (!isset($event['Event'])) {
-            throw new InvalidArgumentException('Passed object does not contain an Event.');
-        }
         if ($user['Role']['perm_site_admin']) {
             return true;
         }

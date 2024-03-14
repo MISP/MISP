@@ -20,6 +20,7 @@ namespace App\Controller;
 
 use App\Lib\Tools\JsonTool;
 use App\Lib\Tools\RedisTool;
+use App\Model\Entity\Event;
 use Cake\Controller\Controller;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
@@ -626,7 +627,7 @@ class AppController extends Controller
 
         $filterData = [
             'request' => $this->request,
-            'named_params' => $this->request->params['named'],
+            'named_params' => $this->request->getParam('named'),
             'paramArray' => $this->RestSearch->paramArray[$scope],
             'ordered_url_params' => func_get_args()
         ];
@@ -755,5 +756,18 @@ class AppController extends Controller
         }
         $user['logged_by_authkey'] = true;
         return $user;
+    }
+
+    /**
+     * Returns true if user can modify given event.
+     *
+     * @param Event $event
+     * @param array|null $user If empty, currently logged user will be used
+     * @return bool
+     */
+    protected function canModifyEvent(Event $event, $user = null)
+    {
+        $user = $user ?: $this->ACL->getUser();
+        return $this->ACL->canModifyEvent($user, $event->toArray());
     }
 }

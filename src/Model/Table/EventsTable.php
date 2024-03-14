@@ -263,6 +263,11 @@ class EventsTable extends AppTable
         return $validator;
     }
 
+    public function validationUpdate(Validator $validator): Validator
+    {
+        return $this->validationDefault($validator);
+    }
+
     public function validationPublish(Validator $validator): Validator
     {
         $validator
@@ -1593,9 +1598,9 @@ class EventsTable extends AppTable
         $conditions = $this->createEventConditions($user);
 
         if (is_numeric($id)) {
-            $conditions['AND'][]['id'] = $id;
+            $conditions['AND'][]['Events.id'] = $id;
         } else if (Validation::uuid($id)) {
-            $conditions['AND'][]['uuid'] = $id;
+            $conditions['AND'][]['Events.uuid'] = $id;
         } else {
             return null;
         }
@@ -4019,27 +4024,27 @@ class EventsTable extends AppTable
         }
         // If the event exists...
         if (!empty($existingEvent)) {
-            $data['Event']['id'] = $existingEvent['id'];
+            $data['id'] = $existingEvent['id'];
             $id = $existingEvent['id'];
             // Conditions affecting all:
             // user.org == Events.org
             // edit timestamp newer than existing event timestamp
-            if ($force || !isset($data['Event']['timestamp']) || $data['Event']['timestamp'] > $existingEvent['timestamp']) {
-                if (!isset($data['Event']['timestamp'])) {
-                    $data['Event']['timestamp'] = time();
+            if ($force || !isset($data['timestamp']) || $data['timestamp'] > $existingEvent['timestamp']) {
+                if (!isset($data['timestamp'])) {
+                    $data['timestamp'] = time();
                 }
-                if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4) {
-                    if (!isset($data['Event']['SharingGroup'])) {
-                        if (!isset($data['Event']['sharing_group_id'])) {
+                if (isset($data['distribution']) && $data['distribution'] == 4) {
+                    if (!isset($data['SharingGroup'])) {
+                        if (!isset($data['sharing_group_id'])) {
                             return ['error' => 'Event could not be saved: Sharing group chosen as the distribution level, but no sharing group specified. Make sure that the event includes a valid sharing_group_id or change to a different distribution level.'];
                         }
-                        if (!$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) {
+                        if (!$this->SharingGroup->checkIfAuthorised($user, $data['sharing_group_id'])) {
                             return ['error' => 'Event could not be saved: Invalid sharing group or you don\'t have access to that sharing group.'];
                         }
                     } else {
-                        $data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user, $server);
-                        unset($data['Event']['SharingGroup']);
-                        if ($data['Event']['sharing_group_id'] === false) {
+                        $data['sharing_group_id'] = $this->SharingGroup->captureSG($data['SharingGroup'], $user, $server);
+                        unset($data['SharingGroup']);
+                        if ($data['sharing_group_id'] === false) {
                             return ['error' => 'Event could not be saved: User not authorised to create the associated sharing group.'];
                         }
                     }
@@ -4052,7 +4057,7 @@ class EventsTable extends AppTable
                     || ($user['Role']['perm_sync'] && $existingEvent['locked']) || $user['Role']['perm_site_admin']
                 ) {
                     if ($user['Role']['perm_sync']) {
-                        if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) {
+                        if (isset($data['distribution']) && $data['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $data['sharing_group_id'])) {
                             return ['error' => 'Event could not be saved: The sync user has to have access to the sharing group in order to be able to edit it.'];
                         }
                     }
@@ -4067,10 +4072,10 @@ class EventsTable extends AppTable
             // Also, compare the event to the existing event and see whether this is a meaningful change
             $recoverFields = ['analysis', 'threat_level_id', 'info', 'distribution', 'date', 'org_id'];
             foreach ($recoverFields as $rF) {
-                if (!isset($data['Event'][$rF])) {
-                    $data['Event'][$rF] = $existingEvent[$rF];
+                if (!isset($data[$rF])) {
+                    $data[$rF] = $existingEvent[$rF];
                 } else {
-                    if ($data['Event'][$rF] != $existingEvent[$rF]) {
+                    if ($data[$rF] != $existingEvent[$rF]) {
                         $changed = true;
                     }
                 }
@@ -4080,12 +4085,12 @@ class EventsTable extends AppTable
         }
         if (
             (Configure::read('MISP.block_publishing_for_same_creator', false) && !$user['Role']['perm_sync'] && $user['id'] == $existingEvent['user_id']) ||
-            (!empty($data['Event']['published']) && !$user['Role']['perm_publish'])
+            (!empty($data['published']) && !$user['Role']['perm_publish'])
         ) {
-            $data['Event']['published'] = 0;
+            $data['published'] = 0;
         }
-        if (!isset($data['Event']['published'])) {
-            $data['Event']['published'] = 0;
+        if (!isset($data['published'])) {
+            $data['published'] = 0;
         }
         $fieldList = [
             'date',
@@ -4101,28 +4106,29 @@ class EventsTable extends AppTable
             'extends_uuid'
         ];
 
-        $saveResult = $this->patchEntity($existingEvent, $data['Event'], ['fieldList' => $fieldList, 'validate' => 'update']);
-        if ($saveResult) {
+        $this->patchEntity($existingEvent, $data, ['fieldList' => $fieldList, 'validate' => 'update']);
+        $saveResult = $this->save($existingEvent);
+        if (empty($saveResult->getErrors())) {
             if ($jobId) {
                 /** @var EventLock $eventLock */
                 $EventLocksTable = $this->fetchTable('EventLocks');
-                $EventLocksTable->insertLockBackgroundJob($data['Event']['id'], $jobId);
+                $EventLocksTable->insertLockBackgroundJob($data['id'], $jobId);
             }
             $validationErrors = [];
 
             // capture new keys, update existing, remove those no longer in the pushed data
-            if (!empty($data['Event']['CryptographicKey'])) {
+            if (!empty($data['CryptographicKey'])) {
                 $this->CryptographicKey->captureCryptographicKeyUpdate(
                     $user,
-                    $data['Event']['CryptographicKey'],
+                    $data['CryptographicKey'],
                     $existingEvent['id'],
                     'Event'
                 );
             }
-            if (isset($data['Event']['Attribute'])) {
-                $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
+            if (isset($data['Attribute'])) {
+                $data['Attribute'] = array_values($data['Attribute']);
                 $attributes = [];
-                foreach ($data['Event']['Attribute'] as $k => $attribute) {
+                foreach ($data['Attribute'] as $k => $attribute) {
                     $nothingToChange = false;
                     $result = $this->Attributes->editAttribute($attribute, $saveResult, $user, 0, false, $force, $nothingToChange, $server);
                     if (is_array($result)) {
@@ -4134,9 +4140,9 @@ class EventsTable extends AppTable
                 }
                 $this->Attributes->editAttributeBulk($attributes, $saveResult, $user);
             }
-            if (isset($data['Event']['Object'])) {
-                $data['Event']['Object'] = array_values($data['Event']['Object']);
-                foreach ($data['Event']['Object'] as $object) {
+            if (isset($data['Object'])) {
+                $data['Object'] = array_values($data['Object']);
+                foreach ($data['Object'] as $object) {
                     $nothingToChange = false;
                     $result = $this->Objects->editObject($object, $saveResult, $user, false, $force, $nothingToChange);
                     if ($result !== true) {
@@ -4146,7 +4152,7 @@ class EventsTable extends AppTable
                         $changed = true;
                     }
                 }
-                foreach ($data['Event']['Object'] as $object) {
+                foreach ($data['Object'] as $object) {
                     if (isset($object['ObjectReference'])) {
                         foreach ($object['ObjectReference'] as $objectRef) {
                             $nothingToChange = false;
@@ -4163,8 +4169,8 @@ class EventsTable extends AppTable
                     }
                 }
             }
-            if (isset($data['Event']['EventReport'])) {
-                foreach ($data['Event']['EventReport'] as $report) {
+            if (isset($data['EventReport'])) {
+                foreach ($data['EventReport'] as $report) {
                     $nothingToChange = false;
                     $result = $this->EventReport->editReport($user, ['EventReport' => $report], $existingEvent->id, true, $nothingToChange);
                     if (!empty($result)) {
@@ -4175,8 +4181,8 @@ class EventsTable extends AppTable
                     }
                 }
             }
-            if (isset($data['Event']['Tag']) && $user['Role']['perm_tagger']) {
-                foreach ($data['Event']['Tag'] as $tag) {
+            if (isset($data['Tag']) && $user['Role']['perm_tagger']) {
+                foreach ($data['Tag'] as $tag) {
                     $tag_id = $this->EventTag->Tag->captureTag($tag, $user);
                     if ($tag_id) {
                         $nothingToChange = false;
@@ -4200,7 +4206,7 @@ class EventsTable extends AppTable
                 $this->Sighting->captureSightings($data['Sighting'], null, $existingEvent->id, $user);
             }
             // if published -> do the actual publishing
-            if ($changed && (!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
+            if ($changed && (!empty($data['published']) && 1 == $data['published'])) {
                 // The edited event is from a remote server ?
                 if ($passAlong) {
                     $st = $server['Server']['publish_without_email'] == 0 ? 'enabled' : 'disabled';
@@ -4208,7 +4214,7 @@ class EventsTable extends AppTable
                 } else {
                     $logTitle = 'Event edited (locally)';
                 }
-                $this->loadLog()->createLogEntry($user, 'add', 'Event', $saveResult['Event']['id'], $logTitle);
+                $this->loadLog()->createLogEntry($user, 'add', 'Event', $saveResult['id'], $logTitle);
                 // do the necessary actions to publish the event (email, upload,...)
                 if ((true != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($id, $user, $existingEvent['publish_timestamp']);
@@ -4216,11 +4222,11 @@ class EventsTable extends AppTable
                 $this->publish($existingEvent['id'], $passAlong);
             }
             if ($jobId) {
-                $EventLocksTable->deleteBackgroundJobLock($data['Event']['id'], $jobId);
+                $EventLocksTable->deleteBackgroundJobLock($data['id'], $jobId);
             }
             return true;
         }
-        return $this->validationErrors;
+        return $existingEvent->getErrors();
     }
 
     // format has to be:

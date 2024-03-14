@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Test\Fixture;
 
+use App\Model\Entity\Analysis;
 use App\Model\Entity\Distribution;
+use App\Model\Entity\ThreatLevel;
 use Cake\TestSuite\Fixture\TestFixture;
 
 class EventsFixture extends TestFixture
@@ -24,8 +26,8 @@ class EventsFixture extends TestFixture
                 'orgc_id' => OrganisationsFixture::ORGANISATION_A_ID,
                 'user_id' => UsersFixture::USER_ADMIN_ID,
                 'distribution' => Distribution::ALL_COMMUNITIES,
-                'analysis' => 0,
-                'threat_level_id' => 0,
+                'analysis' => Analysis::INITIAL,
+                'threat_level_id' => ThreatLevel::HIGH,
                 'date' => '2021-01-01 00:00:00',
                 'published' => 1,
                 'uuid' => self::EVENT_1_UUID,

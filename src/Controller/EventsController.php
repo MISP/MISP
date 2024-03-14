@@ -3007,9 +3007,9 @@ class EventsController extends AppController
         if (!$event) {
             throw new NotFoundException(__('Invalid event'));
         }
-        $id = $event['Event']['id']; // change possible event UUID with real ID
+        $id = $event['id']; // change possible event UUID with real ID
         // check if private and user not authorised to edit
-        if (!$this->ACL->canModifyEvent($event) && !($this->ACL->getUser()['Role']['perm_sync'] && $this->ParamHandler->isRest())) {
+        if (!$this->canModifyEvent($event) && !($this->ACL->getUser()['Role']['perm_sync'] && $this->ParamHandler->isRest())) {
             $message = __('You are not authorised to do that.');
             if ($this->ParamHandler->isRest()) {
                 throw new ForbiddenException($message);
@@ -3019,7 +3019,7 @@ class EventsController extends AppController
             }
         }
         if (
-            !empty($event['Event']['protected']) &&
+            !empty($event['protected']) &&
             $this->ACL->getUser()['Role']['perm_sync'] &&
             !$this->ACL->getUser()['Role']['perm_site_admin']
         ) {
@@ -3043,7 +3043,6 @@ class EventsController extends AppController
             $this->Events->insertLock($this->ACL->getUser()->toArray(), $id);
         }
         if ($this->request->is('post') || $this->request->is('put')) {
-            $this->Events->set($event);
             if ($this->ParamHandler->isRest()) {
                 $data = $this->request->getData();
                 if (isset($data['response'])) {
@@ -3055,12 +3054,12 @@ class EventsController extends AppController
                 if (isset($data['response'])) {
                     $data = $data['response'];
                 }
-                if (!isset($data['Event'])) {
+                if (!isset($data)) {
                     $data = ['Event' => $data];
                 }
-                $fast_update = $this->request->param('named.fast_update');
-                if (!empty($data['Event']['fast_update'])) {
-                    $fast_update = (bool)$data['Event']['fast_update'];
+                $fast_update = $this->request->getParam('named')['fast_update'] ?? false;
+                if (!empty($data['fast_update'])) {
+                    $fast_update = (bool)$data['fast_update'];
                 }
                 if ($fast_update) {
                     $this->Events->fast_update = true;
@@ -3069,7 +3068,7 @@ class EventsController extends AppController
                 $result = $this->Events->_edit($data, $this->ACL->getUser()->toArray(), $id, null, null, false);
                 if ($result === true) {
                     // REST users want to see the newly created event
-                    $metadata = $this->request->param('named.metadata');
+                    $metadata = $this->request->getParam('named')['metadata'] ?? [];
                     $results = $this->Events->fetchEvent($this->ACL->getUser()->toArray(), ['eventid' => $id, 'metadata' => $metadata]);
                     $event = $results[0];
                     return $this->__restResponse($event);
@@ -3095,11 +3094,11 @@ class EventsController extends AppController
             // always force the org, but do not force it for admins
             if (!$this->isSiteAdmin()) {
                 // set the same org as existed before
-                $data['Event']['org_id'] = $event['Event']['org_id'];
+                $data['org_id'] = $event['org_id'];
             }
             // we probably also want to remove the published flag
-            $data['Event']['published'] = 0;
-            $data['Event']['timestamp'] = time();
+            $data['published'] = 0;
+            $data['timestamp'] = time();
             if ($this->Events->save($data, true, $fieldList)) {
                 $this->Flash->success(__('The event has been saved'));
                 $this->redirect(['action' => 'view', $id]);
