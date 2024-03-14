@@ -212,5 +212,22 @@
     "misp_project_vetted": false,
     "scope_of_data_to_be_shared": "",
     "self_registration": false
-  }
+  },
+  {
+    "name": "ICS-CSIRT.io",
+    "logo": "https://www.ics-csirt.io/assets/ics-csirt/logo.png",
+    "uuid": "d02ef5aa-0fc8-4654-846d-c22f751108be",
+    "org_uuid": "019e8d5f-83da-4d59-982d-e94cdcc7dbc7",
+    "org_name": "ICS-CSIRT.io",
+    "description": "ICS-CSIRT.io is a community effort to disseminate security information on Industrial Control Systems. ICS-CSIRT.io is not affiliated or linked with a governmental or commercial partner. Membership of ICS-CSIRT.io is free and grants you access to a MISP and OpenCVE instance. In return for membership we ask you to submit content to the ICS threat data.",
+    "url": "https://misp.ics-csirt.io/",
+    "sector": " Industry",
+    "nationality": "International",
+    "type": "Information Sharing Community",
+    "email": "info@ics-csirt.io",
+    "pgp_key": null,
+    "misp_project_vetted": false,
+    "scope_of_data_to_be_shared": "",
+    "self_registration": false
+  }  
 ]
