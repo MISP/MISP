@@ -38,6 +38,44 @@ class AnalystDataParentBehavior extends ModelBehavior
         return $data;
     }
 
+    public function attachAnalystDataBulk(Model $model, array $objects, array $types = ['Note', 'Opinion', 'Relationship'])
+    {
+        $uuids = [];
+        $objects = array_chunk($objects, 10000);
+        if (empty($this->__currentUser)) {
+            $user_id = Configure::read('CurrentUserId');
+            $this->User = ClassRegistry::init('User');
+            if ($user_id) {
+                $this->__currentUser = $this->User->getAuthUser($user_id);
+            }
+        }
+        foreach ($objects as $chunk => $chunked_objects) {
+            foreach ($chunked_objects as $k => $object) {
+                if (!empty($object['uuid'])) {
+                    $uuids[] = $object['uuid'];
+                }
+            }
+            // No uuids, nothing to attach
+            if (empty($uuids)) {
+                continue;
+            }
+            foreach ($types as $type) {
+                $this->{$type} = ClassRegistry::init($type);
+                $this->{$type}->fetchRecursive = !empty($model->includeAnalystDataRecursive);
+                $temp = $this->{$type}->fetchForUuids($uuids, $this->__currentUser);
+                if (!empty($temp)) {
+                    foreach ($chunked_objects as $k => $object) {
+                        if (!empty($temp[$object['uuid']])) {
+                            $objects[$chunk][$k][$type][] = $temp[$object['uuid']][$type];
+                        }
+                    }
+                }
+            }
+        }
+        $objects = call_user_func_array('array_merge', $objects);
+        return $objects;
+    }
+
     public function afterFind(Model $model, $results, $primary = false)
     {
         if (!empty($model->includeAnalystData)) {
