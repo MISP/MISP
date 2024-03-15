@@ -2212,11 +2212,7 @@ class Event extends AppModel
                     $event['Attribute'] = $this->Attribute->Correlation->attachCorrelationExclusion($event['Attribute']);
                 }
                 if (!empty($options['includeAnalystData'])) {
-                    foreach ($event['Attribute'] as $k => $attribute) {
-                        $this->Attribute->includeAnalystDataRecursive = true;
-                        $analyst_data = $this->Attribute->attachAnalystData($attribute);
-                        $event['Attribute'][$k] = array_merge($event['Attribute'][$k], $analyst_data);
-                    }
+                    $event['Attribute'] = $this->Attribute->attachAnalystDataBulk($event['Attribute']);
                 }
 
                 // move all object attributes to a temporary container
@@ -2269,11 +2265,9 @@ class Event extends AppModel
                     if (isset($tempObjectAttributeContainer[$objectValue['id']])) {
                         $objectValue['Attribute'] = $tempObjectAttributeContainer[$objectValue['id']];
                     }
-                    if (!empty($options['includeAnalystData'])) {
-                        $this->Object->includeAnalystDataRecursive = true;
-                        $analyst_data = $this->Object->attachAnalystData($objectValue);
-                        $objectValue = array_merge($objectValue, $analyst_data);
-                    }
+                }
+                if (!empty($options['includeAnalystData'])) {
+                    $event['Object'] = $this->Object->attachAnalystDataBulk($event['Object']);
                 }
                 unset($tempObjectAttributeContainer);
             }
