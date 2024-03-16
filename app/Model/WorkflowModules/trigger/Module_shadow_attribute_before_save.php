@@ -4,7 +4,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 class Module_shadow_attribute_before_save extends WorkflowBaseTriggerModule
 {
     public $id = 'shadow-attribute-before-save';
-    public $scope = 'attribute';
+    public $scope = 'shadow-attribute';
     public $name = 'Shadow Attribute Before Save';
     public $description = 'This trigger is called just before a Shadow Attribute is saved in the database';
     public $icon = 'cube';
