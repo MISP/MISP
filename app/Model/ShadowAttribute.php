@@ -201,11 +201,12 @@ class ShadowAttribute extends AppModel
         $isTriggerCallable = $this->isTriggerCallable($trigger_id);
         if ($isTriggerCallable) {
             $triggerData = $this->data;
+            $shadowAttribute_id = $triggerData['ShadowAttribute']['id'] ?? 0;
             $workflowErrors = [];
             $logging = [
                 'model' => 'ShadowAttribute',
                 'action' => 'add',
-                'id' => $this->data['ShadowAttribute']['id'],
+                'id' => $shadowAttribute_id,
                 'message' => __('The workflow `%s` prevented the saving of this proposal.', $trigger_id)
             ];
             $workflowSuccess = $this->executeTrigger($trigger_id, $triggerData, $workflowErrors, $logging);
