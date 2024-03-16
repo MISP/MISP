@@ -7,7 +7,7 @@ class Module_shadow_attribute_before_save extends WorkflowBaseTriggerModule
     public $scope = 'shadow-attribute';
     public $name = 'Shadow Attribute Before Save';
     public $description = 'This trigger is called just before a Shadow Attribute is saved in the database';
-    public $icon = 'cube';
+    public $icon = 'comment';
     public $inputs = 0;
     public $outputs = 1;
     public $blocking = true;
