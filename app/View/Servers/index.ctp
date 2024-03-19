@@ -23,6 +23,8 @@
             <th><?php echo $this->Paginator->sort('push_sightings', 'Push Sightings');?></th>
             <th><?php echo $this->Paginator->sort('push_galaxy_clusters', 'Push Clusters');?></th>
             <th><?php echo $this->Paginator->sort('pull_galaxy_clusters', 'Pull Clusters');?></th>
+            <th><?php echo $this->Paginator->sort('push_analyst_data', 'Push Analyst Data');?></th>
+            <th><?php echo $this->Paginator->sort('pull_analyst_data', 'Pull Analyst Data');?></th>
             <th><?php echo $this->Paginator->sort('caching_enabled', 'Cache');?></th>
             <th><?php echo $this->Paginator->sort('unpublish_event');?></th>
             <th><?php echo $this->Paginator->sort('publish_without_email');?></th>
@@ -120,6 +122,8 @@ foreach ($servers as $server):
         <td class="short"><span class="<?= $server['Server']['push_sightings'] ? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['push_sightings'] ? __('Yes') : __('No'); ?>"></span></td>
         <td class="short"><span class="<?= $server['Server']['push_galaxy_clusters'] ? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['push_galaxy_clusters'] ? __('Yes') : __('No'); ?>"></span></td>
         <td class="short"><span class="<?= $server['Server']['pull_galaxy_clusters'] ? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['pull_galaxy_clusters'] ? __('Yes') : __('No'); ?>"></span></td>
+        <td class="short"><span class="<?= $server['Server']['push_analyst_data'] ? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['push_analyst_data'] ? __('Yes') : __('No'); ?>"></span></td>
+        <td class="short"><span class="<?= $server['Server']['pull_analyst_data'] ? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['pull_analyst_data'] ? __('Yes') : __('No'); ?>"></span></td>
         <td>
             <?php
                 if ($server['Server']['caching_enabled']) {

@@ -331,6 +331,12 @@ class Role extends AppModel
                 'readonlyenabled' => true,
                 'title' => __('Allow the viewing of feed correlations. Enabling this can come at a performance cost.'),
             ),
+            'perm_analyst_data' => array(
+                'id' => 'RolePermAnalystData',
+                'text' => 'Analyst Data Creator',
+                'readonlyenabled' => false,
+                'title' => __('Create or modify Analyst Data such as Analyst Notes or Opinions.'),
+            ),
         );
     }
 }

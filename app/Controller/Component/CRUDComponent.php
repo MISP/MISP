@@ -25,6 +25,7 @@ class CRUDComponent extends Component
             }
             $options['filters'][] = 'quickFilter';
         }
+        $this->Controller->{$this->Controller->modelClass}->includeAnalystData = true;
         $params = $this->Controller->IndexFilter->harvestParameters(empty($options['filters']) ? [] : $options['filters']);
         $query = [];
         $query = $this->setFilters($params, $query);
@@ -39,6 +40,7 @@ class CRUDComponent extends Component
             if (!empty($this->Controller->paginate['fields'])) {
                 $query['fields'] = $this->Controller->paginate['fields'];
             }
+            $query['includeAnalystData'] = true;
             $data = $this->Controller->{$this->Controller->modelClass}->find('all', $query);
             if (isset($options['afterFind'])) {
                 if (is_callable($options['afterFind'])) {
@@ -49,6 +51,7 @@ class CRUDComponent extends Component
             }
             $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
         } else {
+            $query['includeAnalystData'] = true;
             $this->Controller->paginate = $query;
             $data = $this->Controller->paginate();
             if (isset($options['afterFind'])) {
@@ -93,7 +96,7 @@ class CRUDComponent extends Component
             $savedData = $model->save($data);
             if ($savedData) {
                 if (isset($params['afterSave'])) {
-                    $params['afterSave']($data);
+                    $params['afterSave']($savedData);
                 }
                 $data = $model->find('first', [
                     'recursive' => -1,
@@ -200,7 +203,7 @@ class CRUDComponent extends Component
             if (isset($params['beforeSave'])) {
                 $data = $params['beforeSave']($data);
             }
-            if ($model->save($data)) {
+            if ($data = $model->save($data)) {
                 if (isset($params['afterSave'])) {
                     $params['afterSave']($data);
                 }
@@ -231,6 +234,8 @@ class CRUDComponent extends Component
         if (empty($id)) {
             throw new NotFoundException(__('Invalid %s.', $modelName));
         }
+        $this->Controller->{$modelName}->includeAnalystData = true;
+        $this->Controller->{$modelName}->includeAnalystDataRecursive = true;
         $query = [
             'recursive' => -1,
             'conditions' => [$modelName . '.id' => $id],
@@ -297,6 +302,9 @@ class CRUDComponent extends Component
                 $result = $this->Controller->{$modelName}->delete($id);
             }
             if ($result) {
+                if (isset($params['afterDelete']) && is_callable($params['afterDelete'])) {
+                    $params['afterDelete']($data);
+                }
                 $message = __('%s deleted.', $modelName);
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveSuccessResponse($modelName, 'delete', $id, 'json', $message);
@@ -336,7 +344,9 @@ class CRUDComponent extends Component
                 if ($filter === 'quickFilter') {
                     continue;
                 }
-                if (strlen(trim($filterValue, '%')) === strlen($filterValue)) {
+                if (is_array($filterValue)) {
+                    $query['conditions']['AND'][] = [$filter => $filterValue];
+                } else if (strlen(trim($filterValue, '%')) === strlen($filterValue)) {
                     $query['conditions']['AND'][] = [$filter => $filterValue];
                 } else {
                     $query['conditions']['AND'][] = [$filter . ' LIKE' => $filterValue];

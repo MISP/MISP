@@ -371,17 +371,23 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
         <b><?= __('PHP extension version') ?>:</b> <?= $redisInfo['extensionVersion'] ?: ('<span class="red bold">' . __('Not installed.') . '</span>') ?><br>
         <?php if ($redisInfo['connection']): ?>
         <b><?= __('Redis version') ?>:</b> <?= h($redisInfo['redis_version']) ?><br>
+        <?php if (isset($redisInfo['dfly_version']) || isset($redisInfo['dragonfly_version'])): ?>
+        <b><?= __('Dragonfly version') ?>:</b> <?= h($redisInfo['dfly_version'] ?? $redisInfo['dragonfly_version']) ?><br>
+        <?php endif; ?>
         <?php if (isset($redisInfo['mem_allocator'])): ?>
         <b><?= __('Memory allocator') ?>:</b> <?= h($redisInfo['mem_allocator']) ?><br>
         <?php endif; ?>
         <b><?= __('Memory usage') ?>:</b> <?= $humanReadableFilesize($redisInfo['used_memory']) ?><br>
-        <?php if (isset($redisInfo['mem_allocator'])): ?>
+        <?php if (isset($redisInfo['used_memory_peak'])): ?>
         <b><?= __('Peak memory usage') ?>:</b> <?= $humanReadableFilesize($redisInfo['used_memory_peak']) ?><br>
         <?php endif; ?>
         <?php if (isset($redisInfo['mem_fragmentation_ratio'])): ?>
         <b><?= __('Fragmentation ratio') ?>:</b> <?= h($redisInfo['mem_fragmentation_ratio']) ?><br>
         <?php endif; ?>
-        <?php if (isset($redisInfo['total_system_memory_human'])): ?>
+        <?php if (isset($redisInfo['maxmemory'])): ?>
+        <b><?= __('Maximum memory') ?>:</b> <?= $humanReadableFilesize($redisInfo['maxmemory']) ?><br>
+        <?php endif; ?>
+        <?php if (isset($redisInfo['total_system_memory'])): ?>
         <b><?= __('Total system memory') ?>:</b> <?= $humanReadableFilesize($redisInfo['total_system_memory']) ?>
         <?php endif; ?>
         <?php elseif ($redisInfo['extensionVersion']): ?>
@@ -390,23 +396,23 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     </div>
 
     <h3><?php echo __('Advanced attachment handler');?></h3>
-        <?php echo __('The advanced attachment tools are used by the add attachment functionality to extract additional data about the uploaded sample.');?>
-        <div class="diagnostics-box">
-            <?php
-                if (empty($advanced_attachments)):
-            ?>
-                    <b><?php echo __('PyMISP');?></b>:… <span class="red bold"><?php echo __('Not installed or version outdated.');?></span><br />
-            <?php
-                endif;
-                if (!empty($advanced_attachments)):
-                    foreach ($advanced_attachments as $k => $v):
-            ?>
-                        <b><?php echo h($k); ?></b>:… <?php echo $v === false ? '<span class="green bold">' . __('OK') . '</span>' : '<span class="red bold">' . h($v) . '</span>'; ?><br />
-            <?php
-                    endforeach;
-                endif;
-            ?>
-        </div>
+    <?php echo __('The advanced attachment tools are used by the add attachment functionality to extract additional data about the uploaded sample.');?>
+    <div class="diagnostics-box">
+        <?php
+            if (empty($advanced_attachments)):
+        ?>
+                <b><?php echo __('PyMISP');?></b>:… <span class="red bold"><?php echo __('Not installed or version outdated.');?></span><br>
+        <?php
+            endif;
+            if (!empty($advanced_attachments)):
+                foreach ($advanced_attachments as $k => $v):
+        ?>
+                    <b><?php echo h($k); ?></b>:… <?php echo $v === false ? '<span class="green bold">' . __('OK') . '</span>' : '<span class="red bold">' . h($v) . '</span>'; ?><br>
+        <?php
+                endforeach;
+            endif;
+        ?>
+    </div>
 
     <h3><?= __('Attachment scan module') ?></h3>
     <div class="diagnostics-box">

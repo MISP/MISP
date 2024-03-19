@@ -39,6 +39,20 @@ if (!empty($me)) {
                     'text' => __('Search Attributes'),
                     'url' => $baseurl . '/attributes/search'
                 ),
+                array(
+                    'type' => 'separator'
+                ),
+                array(
+                    'text' => __('List Collections'),
+                    'url' => $baseurl . '/collections/index'
+                ),
+                [
+                    'type' => 'separator'
+                ],
+                [
+                    'text' => __('List Analyst Data'),
+                    'url' => $baseurl . '/analyst_data/index'
+                ],
                 [
                     'type' => 'separator'
                 ],

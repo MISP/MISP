@@ -31,7 +31,10 @@ class EventDelegation extends AppModel
 
     public function transferEvent($delegation, $user)
     {
-        $event = $this->Event->fetchEvent($user, array('eventid' => $delegation['EventDelegation']['event_id']));
+        $event = $this->Event->fetchEvent($user, array(
+            'eventid' => $delegation['EventDelegation']['event_id'],
+            'includeAttachments' => 1
+        ));
         if (empty($event)) {
             throw new NotFoundException('Invalid event.');
         }

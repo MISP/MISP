@@ -17,6 +17,7 @@ class EventReport extends AppModel
             'change' => 'full'
         ),
         'Regexp' => array('fields' => array('value')),
+        'AnalystDataParent',
     );
 
     public $validate = array(
@@ -118,6 +119,8 @@ class EventReport extends AppModel
                 __('Event Report dropped due to validation for Event report %s failed: %s', $this->data['EventReport']['uuid'], $this->data['EventReport']['name']),
                 __('Validation errors: %s.%sFull report: %s', json_encode($errors), PHP_EOL, json_encode($report['EventReport']))
             );
+        } else {
+            $this->Event->captureAnalystData($user, $report);
         }
         return $errors;
     }
@@ -188,6 +191,7 @@ class EventReport extends AppModel
         }
         $errors = $this->saveAndReturnErrors($report, ['fieldList' => self::CAPTURE_FIELDS], $errors);
         if (empty($errors)) {
+            $this->Event->captureAnalystData($user, $report['EventReport']);
             $this->Event->unpublishEvent($eventId);
         }
         return $errors;

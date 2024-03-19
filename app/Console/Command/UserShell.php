@@ -16,7 +16,21 @@ class UserShell extends AppShell
             'help' => __('Get list of user accounts.'),
             'parser' => [
                 'arguments' => [
-                    'userId' => ['help' => __('User ID or e-mail address.'), 'required' => true],
+                    'userId' => ['help' => __('User ID or e-mail address to filter.'), 'required' => false],
+                ],
+                'options' => [
+                    'json' => ['help' => __('Output as JSON.'), 'boolean' => true],
+                ],
+            ]
+        ]);
+        $parser->addSubcommand('create', [
+            'help' => __('Create a new user account.'),
+            'parser' => [
+                'arguments' => [
+                    'email' => ['help' => __('E-mail address (also used as the username.'), 'required' => true],
+                    'role_id' => ['help' => __('Role ID of the user. For a list of available roles, use `cake Roles list`.'), 'required' => true],
+                    'org_id' => ['help' => __('Organisation under which the user should be created'), 'required' => true],
+                    'password' => ['help' => __('Enter a password to assign to the user (optional) - if none is set, the user will receive a temporary password.')]
                 ],
                 'options' => [
                     'json' => ['help' => __('Output as JSON.'), 'boolean' => true],
@@ -80,6 +94,15 @@ class UserShell extends AppShell
                 'options' => [
                     'no_password_change' => ['help' => __('Do not require password change.'), 'boolean' => true],
                 ],
+            ],
+        ]);
+        $parser->addSubcommand('change_role', [
+            'help' => __('Change user role.'),
+            'parser' => [
+                'arguments' => [
+                    'userId' => ['help' => __('User ID or e-mail address.'), 'required' => true],
+                    'new_role' => ['help' => __('Role ID or Role name.'), 'required' => true],
+                ]
             ],
         ]);
         $parser->addSubcommand('change_authkey', [
@@ -177,6 +200,48 @@ class UserShell extends AppShell
             foreach ($users as $user) {
                 $this->out($user);
             }
+        }
+    }
+
+    public function create()
+    {
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            $this->err('Invalid input. Usage: `User create [email] [role_id] [org_id] [password:optional]`');
+        }
+        $user = [
+            'email' => $this->args[0],
+            'role_id' => $this->args[1],
+            'org_id' => $this->args[2],
+            'change_pw' => true
+        ];
+        if (!empty($this->args[3])) {
+            $user['password'] = $this->args[3];
+            $user['confirm_password'] = $this->args[3];
+            $user['change_pw'] = true;
+        }
+        $this->User->create();
+        $result = $this->User->save($user);
+        // do not fetch sensitive or big values
+        $schema = $this->User->schema();
+        unset($schema['authkey']);
+        unset($schema['password']);
+        unset($schema['gpgkey']);
+        unset($schema['certif_public']);
+
+        $fields = array_keys($schema);
+        $fields[] = 'Role.*';
+        $fields[] = 'Organisation.*';
+
+        $user = $this->User->find('first', [
+            'recursive' => -1,
+            'fields' => $fields,
+            'conditions' => ['User.id' => $this->User->id],
+            'contain' => ['Organisation', 'Role', 'UserSetting'],
+        ]);
+        if ($this->params['json']) {
+            $this->out($this->json($user));
+        } else {
+            $this->out('User created.');
         }
     }
 
@@ -443,6 +508,35 @@ class UserShell extends AppShell
         }
     }
 
+    public function change_role()
+    {
+        list($userId, $newRole) = $this->args;
+        $user = $this->getUser($userId);
+
+        if (is_numeric($newRole)) {
+            $conditions = ['Role.id' => $newRole];
+        } else {
+            $conditions = ['Role.name' => $newRole];
+        }
+
+        $newRoleFromDb = $this->User->Role->find('first', [
+            'conditions' => $conditions,
+            'fields' => ['Role.id'],
+        ]);
+
+        if (empty($newRoleFromDb)) {
+            $this->error("Role `$newRole` not found.");
+        }
+
+        if ($newRoleFromDb['Role']['id'] == $user['role_id']) {
+            $this->error("Role `$newRole` is already assigned to {$user['email']}.");
+        }
+
+        $this->User->updateField($user, 'role_id', $newRoleFromDb['Role']['id']);
+
+        $this->out("Role changed from `{$user['role_id']}` to `{$newRoleFromDb['Role']['id']}`.");
+    }
+
     public function user_ips()
     {
         list($userId) = $this->args;
@@ -575,7 +669,7 @@ class UserShell extends AppShell
     }
 
     /**
-     * @param string|int $userId
+     * @param string|int $userId User ID or User e-mail
      * @return array
      */
     private function getUser($userId)

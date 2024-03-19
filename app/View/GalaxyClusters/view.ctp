@@ -1,4 +1,9 @@
 <?php
+echo $this->element('genericElements/assetLoader', [
+    'js' => ['doT', 'moment.min'],
+    'css' => ['analyst-data',],
+]);
+
 $extendedFromHtml = '';
 if (!empty($cluster['GalaxyCluster']['extended_from'])) {
     $element = $this->element('genericElements/IndexTable/Fields/links', array(
@@ -50,7 +55,20 @@ if (!$cluster['GalaxyCluster']['default']) {
 }
 $table_data[] = array('key' => __('Default'), 'boolean' => $cluster['GalaxyCluster']['default'], 'class' => 'black');
 $table_data[] = array('key' => __('Version'), 'value' => $cluster['GalaxyCluster']['version']);
-$table_data[] = array('key' => __('UUID'), 'value' => $cluster['GalaxyCluster']['uuid'], 'value_class' => 'quickSelect');
+$table_data[] = [
+    'key' => __('UUID'),
+    'element' => 'genericElements/SingleViews/Fields/uuidField',
+    'element_params' => [
+        'data' => $cluster,
+        'field' => [
+            'path' => 'GalaxyCluster.uuid',
+            'object_type' => 'GalaxyCluster',
+            'notes_path' => 'GalaxyCluster.Note',
+            'opinions_path' => 'GalaxyCluster.Opinion',
+            'relationships_path' => 'GalaxyCluster.Relationship',
+        ]
+    ],
+];
 $table_data[] = array('key' => __('Collection UUID'), 'value' => $cluster['GalaxyCluster']['collection_uuid'], 'value_class' => 'quickSelect');
 $table_data[] = array(
     'key' => __('Source'),
@@ -93,6 +111,9 @@ if (!empty($extendedByHtml)) {
                 <?= sprintf('%s :: %s', h($cluster['GalaxyCluster']['Galaxy']['name']), h($cluster['GalaxyCluster']['value'])); ?>
             </h2>
             <?php echo $this->element('genericElements/viewMetaTable', array('table_data' => $table_data)); ?>
+        </div>
+        <div class="span4">
+            <div id="analyst_data_thread" class="panel-container"></div>
         </div>
     </div>
     <div class="row-fuild">
@@ -143,4 +164,21 @@ md.disable(['image'])
 var $md = $('.md');
 $md.html(md.render($md.text()));
 </script>
-<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view_cluster'));
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view_cluster')); ?>
+
+<?php
+
+$object_uuid = $cluster['GalaxyCluster']['uuid'];
+$options = [
+    'container_id' => 'analyst_data_thread',
+    'object_type' => 'GalaxyCluster',
+    'object_uuid' => $object_uuid,
+    'shortDist' => $shortDist,
+    'notes' => $cluster['GalaxyCluster']['Note'] ?? [],
+    'opinions' => $cluster['GalaxyCluster']['Opinion'] ?? [],
+    'relationships' => $cluster['GalaxyCluster']['Relationship'] ?? [],
+];
+
+echo $this->element('genericElements/Analyst_data/thread', $options);
+
+?>
