@@ -58,6 +58,8 @@ info:
 servers:
   - url: https://misp.local
 tags:
+  - name: Analyst Data
+    description: "Analyst Data allows analysts to share and add their own analysis to any MISP data having an UUID. They can be one of these three type: Analyst Note, Analyst Opionion or Analyst Relationship."
   - name: Attributes
     description: "Attributes in MISP can be network indicators (e.g. IP address), system indicators (e.g. a string in memory) or even bank account details."
     externalDocs:
@@ -133,6 +135,99 @@ tags:
 
 
 paths:
+  /analystData/add/{analystType}/{objectUUID}/{ObjectType}:
+    post:
+      summary: "Add analyst data"
+      operationId: addAnalystData
+      tags:
+        - Analyst Data
+      parameters:
+        - $ref: "#/components/parameters/analystDataTypeParameter"
+        - $ref: "#/components/parameters/analystDataObjectUUIDParameter"
+        - $ref: "#/components/parameters/analystDataObjectTypeParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/AddAnalystDataRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AnalystDataResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analystData/edit/{analystType}/{analystDataID}:
+    post:
+      summary: "Edit analyst data"
+      operationId: editAnalystData
+      tags:
+        - Analyst Data
+      parameters:
+        - $ref: "#/components/parameters/analystDataTypeParameter"
+        - $ref: "#/components/parameters/analystDataIdParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/AddAnalystDataRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AnalystDataResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analystData/delete/{analystType}/{analystDataID}:
+    delete:
+      summary: "Delete Analyst data"
+      operationId: deleteAnalystData
+      tags:
+        - Analyst Data
+      parameters:
+        - $ref: "#/components/parameters/analystDataTypeParameter"
+        - $ref: "#/components/parameters/analystDataIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteAnalystDataResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analystData/index/{analystType}:
+    get:
+      summary: "List Analyst data"
+      operationId: indexAnalystData
+      tags:
+        - Analyst Data
+      parameters:
+        - $ref: "#/components/parameters/analystDataTypeParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/AnalystDataListResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analystData/view/{analystType}/{analystDataID}:
+    get:
+      summary: "Get Analyst Data by ID"
+      operationId: getEventById
+      tags:
+        - Analyst Data
+      parameters:
+        - $ref: "#/components/parameters/analystDataTypeParameter"
+        - $ref: "#/components/parameters/analystDataIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/AnalystDataResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /attributes/restSearch:
     post:
       summary: "[restSearch] Get a filtered and paginated list of attributes"
@@ -2620,6 +2715,129 @@ paths:
 
 components:
   schemas:
+    # Analyst Data
+    AnalystDataID:
+      type: string
+      pattern: '^\d+$'
+      maxLength: 10
+      example: "12345"
+
+    AnalystDataType:
+      type: string
+      enum:
+        - "Note"
+        - "Opinion"
+        - "Relationship"
+
+    AnalystObjectType:
+      type: string
+      enum:
+        - "Attribute"
+        - "Event"
+        - "EventReport"
+        - "GalaxyCluster"
+        - "Galaxy"
+        - "Object"
+        - "Note"
+        - "Opinion"
+        - "Relationship"
+        - "Organisation"
+        - "SharingGroup"
+
+    AnalystDataAuthors:
+      type: string
+      example: "john.doe@admin.test"
+
+    AnalystNoteNote:
+      type: string
+      example: "Provide more context"
+
+    AnalystNoteLanguage:
+      type: string
+      description: "RFC5646 Language code"
+      example: "fr-BE"
+
+    AnalystNoteOpinion:
+      type: number
+      description: "The opinion expressed on a scale from 0 to 100 where values < 50 are negatives, 50 is neutral and values > 50 are positives"
+      format: integer
+      minimum: 0
+      maximum: 100
+      example: 70
+
+    AnalystData:
+      type: object
+      properties:
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        object_uuid:
+          $ref: "#/components/schemas/UUID"
+        object_type:
+          $ref: "#/components/schemas/AnalystObjectType"
+        authors:
+          $ref: "#/components/schemas/AnalystDataAuthors"
+        org_uuid:
+          $ref: "#/components/schemas/UUID"
+        orgc_uuid:
+          $ref: "#/components/schemas/UUID"
+        created:
+          type: string
+          example: "2024-03-19 11:10:24"
+        modified:
+          type: string
+          example: "2024-03-19 11:10:24"
+        distribution:
+          $ref: "#/components/schemas/DistributionLevelId"
+        sharing_group_id:
+          $ref: "#/components/schemas/SharingGroupId"
+        locked:
+          $ref: "#/components/schemas/IsLocked"
+
+    AnalystNote:
+      allOf:
+        - type: object
+          properties:
+            note:
+              $ref: "#/components/schemas/AnalystNoteNote"
+            language:
+              $ref: "#/components/schemas/AnalystNoteLanguage"
+            note_type_name:
+              type: string
+              enum:
+                - "Note"
+        - $ref: "#/components/schemas/AnalystData"
+
+    AnalystOpinion:
+      allOf:
+        - type: object
+          properties:
+            comment:
+              $ref: "#/components/schemas/AnalystNoteNote"
+            opinion:
+              $ref: "#/components/schemas/AnalystNoteOpinion"
+            note_type_name:
+              type: string
+              enum:
+                - "Opinion"
+        - $ref: "#/components/schemas/AnalystData"
+
+    AnalystRelationship:
+      allOf:
+        - type: object
+          properties:
+            related_object_uuid:
+              $ref: "#/components/schemas/UUID"
+            related_object_type:
+              $ref: "#/components/schemas/AnalystObjectType"
+            relationship_type:
+              type: string
+              example: "related-to"
+            note_type_name:
+              type: string
+              enum:
+                - "Relationship"
+        - $ref: "#/components/schemas/AnalystData"
+
     # Attributes
     AttributeId:
       type: string
@@ -6431,6 +6649,40 @@ components:
           - $ref: "#/components/schemas/EventReportId"
           - $ref: "#/components/schemas/UUID"
 
+    analystDataIdParameter:
+      name: analystID
+      in: path
+      description: "UUID or numeric ID of the Analyst data"
+      required: true
+      schema:
+        oneOf:
+          - $ref: "#/components/schemas/AnalystDataID"
+          - $ref: "#/components/schemas/UUID"
+
+    analystDataTypeParameter:
+      name: analystType
+      in: path
+      description: "Type of the analyst data."
+      required: true
+      schema:
+        $ref: "#/components/schemas/AnalystDataType"
+
+    analystDataObjectUUIDParameter:
+      name: analystObjectUUID
+      in: path
+      description: "Object UUID that has an analyst data"
+      required: true
+      schema:
+        $ref: "#/components/schemas/UUID"
+
+    analystDataObjectTypeParameter:
+      name: analystObjectType
+      in: path
+      description: "Object type that has an analyst data"
+      required: true
+      schema:
+        $ref: "#/components/schemas/analystObjectType"
+
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
@@ -7249,6 +7501,39 @@ components:
                 example: "https://domain.example/blogpost/123.pdf"
 
   responses:
+    AnalystDataResponse:
+      description: "An analyst data. Could be a Note, Opinion or Relationship depending on the `analystType` parameter"
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/AnalystNote"
+              - $ref: "#/components/schemas/AnalystOpinion"
+              - $ref: "#/components/schemas/AnalystRelationship"
+
+    DeleteAnalystDataResponse:
+      description: "Delete analyst data response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Analyst Note deleted.
+
+    AnalystDataListResponse:
+      description: "A list of Analyst Data"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              oneOf:
+                - $ref: "#/components/schemas/AnalystNote"
+                - $ref: "#/components/schemas/AnalystOpinion"
+                - $ref: "#/components/schemas/AnalystRelationship"
+
     AttributeResponse:
       description: "An attribute"
       content:
