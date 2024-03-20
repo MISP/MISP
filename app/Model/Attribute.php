@@ -1548,7 +1548,6 @@
             $conditions = array();
             if (!$user['Role']['perm_site_admin']) {
                 $sgids = $this->SharingGroup->authorizedIds($user);
-                $eventConditions = $this->Event->createEventConditions($user, true);
                 $subQuery1 = [
                     'conditions' => ['org_id' => $user['org_id']],
                     'fields' => ['id']
