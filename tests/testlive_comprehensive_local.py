@@ -891,7 +891,7 @@ class TestComprehensive(unittest.TestCase):
 
     def test_etag(self):
         headers = {
-            'Authorization': key,
+            'Authorization': key.strip(),
             'Accept': 'application/json',
             'User-Agent': 'PyMISP',
             'If-None-Match': '',
