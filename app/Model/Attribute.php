@@ -1549,11 +1549,26 @@
             if (!$user['Role']['perm_site_admin']) {
                 $sgids = $this->SharingGroup->authorizedIds($user);
                 $eventConditions = $this->Event->createEventConditions($user, true);
+                $subQuery1 = [
+                    'conditions' => ['org_id' => $user['org_id']],
+                    'fields' => ['id']
+                ];
+                $subQuery2 = [
+                    'conditions' => ['distribution IN' => [1, 2, 3]],
+                    'fields' => ['id']
+                ];
+                $subQuery3 = [
+                    'conditions' => ['Event.distribution' => 4, 'Event.sharing_group_id IN' => $sgids],
+                    'fields' => ['id']
+                ];
                 $conditions = [
                     'OR' => [
-                        'Event.org_id' => $user['org_id'],
+                        $this->subQueryGenerator($this->Event, $subQuery1, 'Attribute.event_id'),
                         'AND' => [
-                            $eventConditions['AND'],
+                            'OR' => [
+                                $this->subQueryGenerator($this->Event, $subQuery2, 'Attribute.event_id'),
+                                $this->subQueryGenerator($this->Event, $subQuery3, 'Attribute.event_id')
+                            ],
                             [
                                 'OR' => [
                                     'Attribute.distribution' => [1, 2, 3, 5],
@@ -1886,8 +1901,8 @@
             }
             $eventTags = []; // tag cache
             $attributes = [];
+            $params['ignoreIndexHint'] = 'deleted';
             do {
-                $continue = true;
                 $results = $this->find('all', $params);
                 if (empty($results)) {
                     break;
