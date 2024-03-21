@@ -6,7 +6,7 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ '2.4', develop, misp-stix, taxii ]
+    branches: [ '2.4', develop, misp-stix, taxii, test_debug2 ]
   pull_request:
     branches: [ '2.4', develop, misp-stix ]
 
