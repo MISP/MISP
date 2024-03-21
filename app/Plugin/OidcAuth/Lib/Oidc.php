@@ -49,17 +49,22 @@ class Oidc
         }
 
         $organisationProperty = $this->getConfig('organisation_property', 'organization');
-        $organisationName = $claims->{$organisationProperty} ?? $this->getConfig('default_org');
+        $organisationName = $claims->{$organisationProperty} ?? null;
 
         $organisationUuidProperty = $this->getConfig('organisation_uuid_property', 'organization_uuid');
         $organisationUuid = $claims->{$organisationUuidProperty} ?? null;
 
         $organisationId = $this->checkOrganization($organisationName, $organisationUuid, $mispUsername);
         if (!$organisationId) {
-            if ($user) {
-                $this->block($user);
+            $defaultOrganisationId = $this->defaultOrganisationId();
+            if ($defaultOrganisationId) {
+                $organisationId = $defaultOrganisationId;
+            } else {
+                if ($user) {
+                    $this->block($user);
+                }
+                return false;
             }
-            return false;
         }
 
         $roleProperty = $this->getConfig('roles_property', 'roles');
@@ -123,7 +128,7 @@ class Oidc
             return $user;
         }
 
-        $this->log($mispUsername, 'User not found in database.');
+        $this->log($mispUsername, 'User not found in database, creating new one.');
 
         $time = time();
         $userData = [
@@ -320,6 +325,8 @@ class Oidc
     }
 
     /**
+     * Fetch organisation ID from database by provided name and UUID. If organisation is not found, it is created. If
+     * organisation with given UUID has different name, then is renamed.
      * @param string $orgName Organisation name or UUID
      * @param string|null $orgUuid Organisation UUID
      * @param string $mispUsername
@@ -374,6 +381,41 @@ class Oidc
             }
         }
         return $orgId;
+    }
+
+    /**
+     * @return false|int Organisation ID or false if org not found
+     */
+    private function defaultOrganisationId()
+    {
+        $defaultOrgName = $this->getConfig('default_org');
+        if (empty($defaultOrgName)) {
+            return false;
+        }
+
+        if (is_numeric($defaultOrgName)) {
+            $conditions = ['id' => $defaultOrgName];
+        } else if (Validation::uuid($defaultOrgName)) {
+            $conditions = ['uuid' => strtolower($defaultOrgName)];
+        } else {
+            $conditions = ['name' => $defaultOrgName];
+        }
+        $orgAux = $this->User->Organisation->find('first', [
+            'fields' => ['Organisation.id'],
+            'conditions' => $conditions,
+        ]);
+        if (empty($orgAux)) {
+            if (is_numeric($defaultOrgName)) {
+                $this->log(null, "Could not find default organisation with ID `$defaultOrgName`.");
+            } else if (Validation::uuid($defaultOrgName)) {
+                $this->log(null, "Could not find default organisation with UUID `$defaultOrgName`.");
+            } else {
+                $this->log(null, "Could not find default organisation with name `$defaultOrgName`.");
+            }
+            return false;
+        }
+
+        return $orgAux['Organisation']['id'];
     }
 
     /**
