@@ -941,6 +941,7 @@ class Event extends AppModel
             return false;
         } catch (Exception $e) {
             $errorMessage = $e->getMessage();
+            debug('__test__ : ' . json_encode($errorMessage));
             if ($e instanceof HttpSocketHttpException && $e->getCode() === 403) {
                 // Do not log errors that are expected
                 $errorJson = $e->getResponse()->json();

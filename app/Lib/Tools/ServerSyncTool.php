@@ -123,7 +123,7 @@ class ServerSyncTool
             // In case of failure consider that event doesn't exists
             $exists = false;
         }
-
+        debug('Event_exists: ' . ($exists ? 'yes' : 'no'));
         try {
             return $exists ? $this->updateEvent($event) : $this->createEvent($event);
         } catch (HttpSocketHttpException $e) {
