@@ -574,6 +574,7 @@ class ServerSyncTool
             return $response; // if etag was provided and response code is 304, it is valid response
         }
         if (!$response->isOk()) {
+            debug($response);
             throw new HttpSocketHttpException($response, $url);
         }
         return $response;
