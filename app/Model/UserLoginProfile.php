@@ -46,6 +46,8 @@ class UserLoginProfile extends AppModel
     private function browscapGetBrowser()
     {
         $logger = new \Monolog\Logger('name');
+        $streamHandler = new \Monolog\Handler\StreamHandler('php://stderr', \Monolog\Logger::INFO);
+        $logger->pushHandler($streamHandler);
 
         if (function_exists('apcu_fetch')) {
             App::uses('ApcuCacheTool', 'Tools');
