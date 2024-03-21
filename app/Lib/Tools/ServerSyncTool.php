@@ -123,7 +123,6 @@ class ServerSyncTool
             // In case of failure consider that event doesn't exists
             $exists = false;
         }
-        debug('Event_exists: ' . ($exists ? 'yes' : 'no'));
         try {
             return $exists ? $this->updateEvent($event) : $this->createEvent($event);
         } catch (HttpSocketHttpException $e) {
@@ -569,12 +568,12 @@ class ServerSyncTool
         $url = $this->server['Server']['url'] . $url;
         $start = microtime(true);
         $response = $this->socket->post($url, $data, $request);
+        debug($response);
         $this->log($start, 'POST', $url, $response);
         if ($etag && $response->isNotModified()) {
             return $response; // if etag was provided and response code is 304, it is valid response
         }
         if (!$response->isOk()) {
-            debug($response);
             throw new HttpSocketHttpException($response, $url);
         }
         return $response;
