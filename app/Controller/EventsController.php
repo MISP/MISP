@@ -3112,9 +3112,9 @@ class EventsController extends AppController
                         $errors['Module'] = 'Module failure.';
                     }
                 } else {
+                    $errors['failed_servers'] = $result;
                     $lastResult = array_pop($result);
                     $resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
-                    $errors['failed_servers'] = $result;
                     $message = __('Event published but not pushed to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString);
                 }
             } else {
