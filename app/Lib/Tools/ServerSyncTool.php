@@ -217,7 +217,7 @@ class ServerSyncTool
     }
 
     /**
-     * @param array $rules
+     * @param array $candidates
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
@@ -225,7 +225,7 @@ class ServerSyncTool
     public function filterAnalystDataForPush(array $candidates)
     {
         if (!$this->isSupported(self::PERM_ANALYST_DATA)) {
-            return [];
+            throw new RuntimeException("Remote server do not support analyst data");
         }
 
         return $this->post('/analyst_data/filterAnalystDataForPush', $candidates);
@@ -240,20 +240,23 @@ class ServerSyncTool
     public function fetchIndexMinimal(array $rules)
     {
         if (!$this->isSupported(self::PERM_ANALYST_DATA)) {
-            return [];
+            throw new RuntimeException("Remote server do not support analyst data");
         }
 
         return $this->post('/analyst_data/indexMinimal', $rules);
     }
 
     /**
+     * @param string $type
+     * @param array $uuids
+     * @return HttpSocketResponseExtended
      * @throws HttpSocketJsonException
      * @throws HttpSocketHttpException
      */
     public function fetchAnalystData($type, array $uuids)
     {
         if (!$this->isSupported(self::PERM_ANALYST_DATA)) {
-            return [];
+            throw new RuntimeException("Remote server do not support analyst data");
         }
 
         $params = [
@@ -264,12 +267,10 @@ class ServerSyncTool
         $url .= $this->createParams($params);
         $url .= '.json';
         return $this->get($url);
-
-        // $response = $this->post('/analyst_data/restSearch' , $params);
-        // return $response->json();
     }
 
-        /**
+    /**
+     * @param string $type
      * @param array $analystData
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException

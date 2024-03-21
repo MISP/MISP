@@ -820,6 +820,15 @@ class TagsController extends AppController
                     }
                     $message = 'Global tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
                 }
+                $this->loadModel('Log');
+                $this->Log->createLogEntry(
+                    $this->Auth->user(),
+                    'attachTagToObject',
+                    $objectType,
+                    $object[$objectType]['id'],
+                    $message,
+                    null
+                );
                 $successes++;
             } else {
                 $fails[] = __('Failed to attach tag to object.');
@@ -896,6 +905,17 @@ class TagsController extends AppController
         $result = $this->$objectType->$connectorObject->delete($existingAssociation[$connectorObject]['id']);
         if ($result) {
             $message = __('%s tag %s (%s) successfully removed from %s(%s).', $local ? __('Local') : __('Global'), $existingTag['Tag']['name'], $existingTag['Tag']['id'], $objectType, $object[$objectType]['id']);
+            $this->loadModel('Log');
+            $this->Log->createLogEntry(
+                $this->Auth->user(),
+                'removeTagFromObject',
+                $objectType,
+                $object[$objectType]['id'],
+                $message,
+                __(
+                    '',
+                )
+            );
             if (!$local) {
                 if ($objectType === 'Attribute') {
                     $this->Attribute->touch($object['Attribute']['id']);

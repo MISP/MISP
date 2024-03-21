@@ -616,9 +616,9 @@ class AdminShell extends AppShell
         try {
             $redis = RedisTool::init();
             for ($i = 0; $i < 10; $i++) {
-                $persistence = $redis->info('persistence');
-                if (isset($persistence['loading']) && $persistence['loading']) {
-                    $this->out('Redis is still loading...');
+                $pong = $redis->ping();
+                if ($pong !== true) {
+                    $this->out('Redis is still loading... ' . $pong);
                     sleep(1);
                 } else {
                     break;

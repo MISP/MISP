@@ -580,7 +580,17 @@ class Server extends AppModel
             }
             return false;
         }
-        $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $response);
+        try {
+            $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $response);
+        } catch (Exception $e) {
+            $title = __('Pulling an event (#%s) from Server #%s has failed. The sync process was not interrupted.', $eventId, $serverSync->server()['id']);
+            $this->loadLog()->createLogEntry(
+                $user,
+                'error',
+                'Server',
+                $serverSync->serverId(),
+                $title, $e->getMessage());
+        }
         return true;
     }
 
@@ -2928,12 +2938,15 @@ class Server extends AppModel
         return $result;
     }
 
+    /**
+     * @return array
+     */
     public function redisInfo()
     {
-        $output = array(
+        $output = [
             'extensionVersion' => phpversion('redis'),
             'connection' => false,
-        );
+        ];
 
         try {
             $redis = RedisTool::init();
@@ -5110,6 +5123,14 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'disable_sighting_loading' => [
+                    'level' => 1,
+                    'description' => __('If an instance has an extremely high number of sightings, including the sightings in the search algorithms can bring an instance to a grinding halt. Enable this setting to temporarily disable the search until the issue is remedied. This setting will also disable sightings from being attached via /events/view API calls.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'disable_event_locks' => [
                     'level' => 1,
                     'description' => __('Disable the event locks that are executed periodically when a user browses an event view. It can be useful to leave event locks enabled to warn users that someone else is editing the same event, but generally it\'s extremely verbose and can cause issues in certain setups, so it\'s recommended to disable this.'),
@@ -5383,6 +5404,13 @@ class Server extends AppModel
                 'email_from_name' => [
                     'level' => 2,
                     'description' => __('Notification e-mail sender name.'),
+                    'value' => '',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                ],
+                'email_reply_to' => [
+                    'level' => 2,
+                    'description' => __('Reply to e-mail address for e-mails send from MISP instance.'),
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',

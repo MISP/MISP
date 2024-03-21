@@ -16,6 +16,9 @@ class DecayingModel extends AppModel
         )
     );
 
+    private $modelCache = [];
+    private $modelCacheForType = [];
+
     private $__registered_model_classes = array(); // Proxy for already instantiated classes
     public $allowed_overrides = array('threshold' => 1, 'lifetime' => 1, 'decay_speed' => 1);
 
@@ -263,6 +266,10 @@ class DecayingModel extends AppModel
     // - full attach Attribute types associated to the requested model
     public function fetchModel($user, $id, $full=true, $conditions=array(), $attach_editable=0)
     {
+        $cacheKey = sprintf('%s', $id);
+        if (isset($this->modelCache[$cacheKey])) {
+            return $this->modelCache[$cacheKey];
+        }
         $conditions['id'] = $id;
         $searchOptions = array(
             'conditions' => $conditions,
@@ -290,6 +297,7 @@ class DecayingModel extends AppModel
             $decayingModel['DecayingModel']['attribute_types'] = $this->DecayingModelMapping->getAssociatedTypes($user, $decayingModel);
         }
         $decayingModel = $this->attachIsEditableByCurrentUser($user, $decayingModel);
+        $this->modelCache[$cacheKey] = $decayingModel;
         return $decayingModel;
     }
 
@@ -612,11 +620,15 @@ class DecayingModel extends AppModel
         if ($model_id === false) { // fetch all allowed and associated models
             $associated_model_ids = $this->DecayingModelMapping->getAssociatedModels($user, $attribute['type'], true);
             $associated_model_ids = isset($associated_model_ids[$attribute['type']]) ? array_values($associated_model_ids[$attribute['type']]) : array();
-            if (!empty($associated_model_ids)) {
+            if (isset($this->modelCacheForType[$attribute['type']])) {
+                $models = $this->modelCacheForType[$attribute['type']];
+            } else if (!empty($associated_model_ids)) {
                 $models = $this->fetchModels($user, $associated_model_ids, false, array('enabled' => true));
+                $this->modelCacheForType[$attribute['type']] = $models;
             }
         } else {
             $models = $this->fetchModels($user, $model_id, false, array());
+            $this->modelCacheForType[$attribute['type']] = $models;
         }
         foreach ($models as $model) {
             if (!empty($model_overrides)) {

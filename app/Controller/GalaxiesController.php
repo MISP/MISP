@@ -202,7 +202,7 @@ class GalaxiesController extends AppController
         }
         $result = $this->Galaxy->save($galaxy);
         if ($result) {
-            $message = __('Galaxy enabled');
+            $message = __('Galaxy %s', $enabled ? __('enabled') : __('disabled'));
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Galaxy', 'toggle', false, $this->response->type(), $message);
             } else {

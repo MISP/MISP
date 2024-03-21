@@ -1058,7 +1058,11 @@ class Event extends AppModel
         // prepare attribute for sync
         if (!empty($data['Attribute'])) {
             foreach ($data['Attribute'] as $key => $attribute) {
-                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($attribute['type'], $pushRules['type_attributes']['NOT'])) {
+                if (
+                    !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                    !empty($pushRules['type_attributes']['NOT']) &&
+                    in_array($attribute['type'], $pushRules['type_attributes']['NOT'])
+                ) {
                     unset($data['Attribute'][$key]);
                     continue;
                 }
@@ -1406,14 +1410,13 @@ class Event extends AppModel
         return $this->delete(null, false);
     }
 
-    public function createEventConditions($user)
+    public function createEventConditions($user, $skip_own_event_rule = false)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
             $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $conditions['AND']['OR'] = [
-                'Event.org_id' => $user['org_id'],
                 [
                     'AND' => [
                         'Event.distribution >' => 0,
@@ -1429,6 +1432,9 @@ class Event extends AppModel
                     ]
                 ]
             ];
+            if (!$skip_own_event_rule) {
+                $conditions['AND']['OR'][] = ['Event.org_id' => $user['org_id']];
+            }
         }
         return $conditions;
     }
@@ -2210,11 +2216,7 @@ class Event extends AppModel
                     $event['Attribute'] = $this->Attribute->Correlation->attachCorrelationExclusion($event['Attribute']);
                 }
                 if (!empty($options['includeAnalystData'])) {
-                    foreach ($event['Attribute'] as $k => $attribute) {
-                        $this->Attribute->includeAnalystDataRecursive = true;
-                        $analyst_data = $this->Attribute->attachAnalystData($attribute);
-                        $event['Attribute'][$k] = array_merge($event['Attribute'][$k], $analyst_data);
-                    }
+                    $event['Attribute'] = $this->Attribute->attachAnalystDataBulk($event['Attribute']);
                 }
 
                 // move all object attributes to a temporary container
@@ -2257,6 +2259,7 @@ class Event extends AppModel
                     }
                 }
                 $event['Attribute'] = array_values($event['Attribute']);
+                unset($attribute);
             }
             if (!empty($event['Object'])) {
                 if (!$sharingGroupReferenceOnly) {
@@ -2266,11 +2269,9 @@ class Event extends AppModel
                     if (isset($tempObjectAttributeContainer[$objectValue['id']])) {
                         $objectValue['Attribute'] = $tempObjectAttributeContainer[$objectValue['id']];
                     }
-                    if (!empty($options['includeAnalystData'])) {
-                        $this->Object->includeAnalystDataRecursive = true;
-                        $analyst_data = $this->Object->attachAnalystData($objectValue);
-                        $objectValue = array_merge($objectValue, $analyst_data);
-                    }
+                }
+                if (!empty($options['includeAnalystData'])) {
+                    $event['Object'] = $this->Object->attachAnalystDataBulk($event['Object']);
                 }
                 unset($tempObjectAttributeContainer);
             }
@@ -2278,7 +2279,9 @@ class Event extends AppModel
                 $event['EventReport'] = $this->__attachSharingGroups($event['EventReport'], $sharingGroupData);
             }
             if (empty($options['metadata']) && empty($options['noSightings'])) {
-                $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+                if (empty(Configure::read('MISP.disable_sighting_loading'))) {
+                    $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
+                }
             }
             if ($options['includeSightingdb']) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
@@ -2520,6 +2523,7 @@ class Event extends AppModel
             'noEventReports' => $options['noEventReports'],
             'noSightings' => isset($options['noSightings']) ? $options['noSightings'] : null,
             'sgReferenceOnly' => $options['sgReferenceOnly'],
+            'includeAnalystData' => $options['includeAnalystData'],
         ]);
         foreach ($extensions as $extensionEvent) {
             $eventMeta = array(
@@ -3280,6 +3284,7 @@ class Event extends AppModel
         $template->set('distributionLevels', $this->distributionLevels);
         $template->set('analysisLevels', $this->analysisLevels);
         $template->set('tlp', $subjMarkingString);
+        $template->set('title', Configure::read('MISP.title_text'));
         $template->subject($subject);
         $template->referenceId("event-alert|{$event['Event']['id']}");
 
@@ -3464,7 +3469,7 @@ class Event extends AppModel
                 if ($tagId && !in_array($tagId, $event_tag_ids)) {
                     $eventTags[] = array(
                         'tag_id' => $tagId,
-                        'local' => isset($tag['local']) ? $tag['local'] : 0,
+                        'local' => isset($tag['local']) ? $tag['local'] : false,
                         'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
                     );
                     $event_tag_ids[] = $tagId;
@@ -3480,7 +3485,7 @@ class Event extends AppModel
                 if ($tag_id && !in_array($tag_id, $event_tag_ids)) {
                     $eventTags[] = [
                         'tag_id' => $tag_id,
-                        'local' => isset($tag['local']) ? $tag['local'] : 0,
+                        'local' => isset($tag['local']) ? $tag['local'] : false,
                         'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
                     ];
                     $event_tag_ids[] = $tag_id;
@@ -3558,7 +3563,7 @@ class Event extends AppModel
                     if ($tagId) {
                         $attributeTags[] = [
                             'tag_id' => $tagId,
-                            'local' => isset($tag['local']) ? $tag['local'] : 0,
+                            'local' => isset($tag['local']) ? $tag['local'] : false,
                             'relationship_type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
                         ];
                     }
@@ -3678,7 +3683,9 @@ class Event extends AppModel
         }
         if (!empty($event['Event']['Object'])) {
             for ($i=0; $i < count($event['Event']['Object']); $i++) { 
-                $event['Event']['Object'][$i] = $this->updatedLockedFieldForAnalystData($event['Event']['Object'][$i]);
+                 if (isset($event['Event']['Object'][$i])) {
+                    $event['Event']['Object'][$i] = $this->updatedLockedFieldForAnalystData($event['Event']['Object'][$i]);
+                }
                 if (!empty($event['Event']['Object'][$i])) {
                     for ($j=0; $j < count($event['Event']['Object'][$i]['Attribute']); $j++) { 
                         $event['Event']['Object'][$i]['Attribute'][$j] = $this->updatedLockedFieldForAnalystData($event['Event']['Object'][$i]['Attribute'][$j]);
@@ -5967,8 +5974,8 @@ class Event extends AppModel
         } else {
             $event = $this->find('first', array(
                 'recursive' => -1,
-                'conditions' => array('Event.id' => $eventOrEventId),
-                'fields' => ['id', 'info'], // info is required because of SysLogLogableBehavior
+                'conditions' => array('Event.id' => $eventOrEventId)
+                //'fields' => ['id', 'info'], // info is required because of SysLogLogableBehavior
             ));
             if (empty($event)) {
                 return false;
@@ -6373,7 +6380,7 @@ class Event extends AppModel
                     unset($data[$dataType . 'Tag'][$k]);
                     continue;
                 }
-                $dataTag['Tag']['local'] = empty($dataTag['local']) ? 0 : 1;
+                $dataTag['Tag']['local'] = empty($dataTag['local']) ? false : true;
                 if (!isset($excludeGalaxy) || !$excludeGalaxy) {
                     if (substr($dataTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
                         $cluster = $this->GalaxyCluster->getCluster($dataTag['Tag']['name'], $user);
@@ -7319,7 +7326,7 @@ class Event extends AppModel
             foreach ($event['EventTag'] as $etk => $eventTag) {
                 $tag = $this->__getCachedTag($eventTag['tag_id'], $justExportable);
                 if ($tag !== null) {
-                    $tag['local'] = empty($eventTag['local']) ? 0 : 1;
+                    $tag['local'] = empty($eventTag['local']) ? false : true;
                     $tag['relationship_type'] = empty($eventTag['relationship_type']) ? null : $eventTag['relationship_type'];
                     $event['EventTag'][$etk]['Tag'] = $tag;
                 } else {
@@ -7334,7 +7341,7 @@ class Event extends AppModel
                     foreach ($attribute['AttributeTag'] as $atk => $attributeTag) {
                         $tag = $this->__getCachedTag($attributeTag['tag_id'], $justExportable);
                         if ($tag !== null) {
-                            $tag['local'] = empty($attributeTag['local']) ? 0 : 1;
+                            $tag['local'] = empty($attributeTag['local']) ? false : true;
                             $tag['relationship_type'] = empty($attributeTag['relationship_type']) ? null : $attributeTag['relationship_type'];
                             $event['Attribute'][$ak]['AttributeTag'][$atk]['Tag'] = $tag;
                         } else {

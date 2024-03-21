@@ -441,7 +441,7 @@ class AnalystData extends AppModel
         if (!empty($hasMoreNotes)) {
             return true;
         }
-        $hasMoreOpinions = $this->Note->find('first', [
+        $hasMoreOpinions = $this->Opinion->find('first', [
             'recursive' => -1,
             'conditions' => [
                 'AND' => [
@@ -707,15 +707,60 @@ class AnalystData extends AppModel
         ];
         $dataForPush = $this->getAllAnalystData('all', $options);
         $this->Event = ClassRegistry::init('Event');
+        $SGModel = ClassRegistry::init('SharingGroup');
+        $sgStore = [];
         foreach ($dataForPush as $type => $entries) {
             foreach ($entries as $i => $analystData) {
-                if (!$this->Event->checkDistributionForPush($analystData, $server, $type)) {
+                if (isset($analystData[$type]['SharingGroup'])) {
+                    $sg_id = $analystData[$type]['SharingGroup']['id'];
+                    if (!isset($sgStore[$sg_id])) {
+                        $sg = $SGModel->find('first', [
+                            'contain' => [
+                                'SharingGroupServer' => [
+                                    'Server' => [
+                                        'fields' => [
+                                            'Server.id',
+                                            'Server.url',
+                                            'Server.remote_org_id'
+                                        ]
+                                    ]
+                                ],
+                                'SharingGroupOrg' => [
+                                    'Organisation' => [
+                                        'fields' => [
+                                            'Organisation.id',
+                                            'Organisation.uuid'
+                                        ]
+                                    ]
+                                ],
+                                'Organisation' => [
+                                    'fields' => [
+                                        'Organisation.id',
+                                        'Organisation.uuid'
+                                    ]
+                                ]
+                            ],
+                            'conditions' => ['SharingGroup.id' => $sg_id]
+                        ]);
+                        $temp = $sg['SharingGroup'];
+                        $captureSGDataFields = ['Organisation', 'SharingGroupOrg', 'SharingGroupServer'];
+                        foreach ($captureSGDataFields as $field) {
+                            $temp[$field] = $sg[$field];
+                        }
+                        $sgStore[$sg_id] = $temp;
+                    }
+                    if (isset($sgStore[$analystData[$type]['SharingGroup']['id']])) {
+                        $dataForPush[$type][$i][$type]['SharingGroup'] = $sgStore[$sg_id];
+                    }
+                }
+                if (!$this->Event->checkDistributionForPush($dataForPush[$type][$i], $server, $type)) {
                     unset($dataForPush[$type][$i]);
                 }
                 if (!$this->isPushableForServerSyncRules($analystData[$type], $server)) {
                     unset($dataForPush[$type][$i]);
                 }
             }
+            $dataForPush[$type] = array_values($dataForPush[$type]);
         }
         return $dataForPush;
     }
@@ -962,9 +1007,14 @@ class AnalystData extends AppModel
      *
      * @param array $user
      * @param ServerSyncTool $serverSync
+     * @return int Number of saved analysis
      */
     public function pull(array $user, ServerSyncTool $serverSync)
     {
+        if (!$serverSync->isSupported(ServerSyncTool::PERM_ANALYST_DATA)) {
+            return 0;
+        }
+
         $this->Server = ClassRegistry::init('Server');
         $this->AnalystData = ClassRegistry::init('AnalystData');
         try {
@@ -980,7 +1030,9 @@ class AnalystData extends AppModel
             return 0;
         }
         foreach (self::ANALYST_DATA_TYPES as $type) {
-            $allRemoteUUIDs = array_merge($allRemoteUUIDs, array_keys($remoteData[$type]));
+            if (isset($remoteData[$type])) {
+                $allRemoteUUIDs = array_merge($allRemoteUUIDs, array_keys($remoteData[$type]));
+            }
         }
 
         $localAnalystData = $this->getAllAnalystData('list', [
@@ -1004,14 +1056,11 @@ class AnalystData extends AppModel
             return 0;
         }
 
-        if ($serverSync->isSupported(ServerSyncTool::PERM_ANALYST_DATA)) {
-            return $this->pullInChunks($user, $remoteUUIDsToFetch, $serverSync);
-        }
+        return $this->pullInChunks($user, $remoteUUIDsToFetch, $serverSync);
     }
 
-    public function pullInChunks(array $user, array $analystDataUuids, ServerSyncTool $serverSync)
+    private function pullInChunks(array $user, array $analystDataUuids, ServerSyncTool $serverSync)
     {
-        $uuids = array_keys($analystDataUuids);
         $saved = 0;
         $serverOrgUUID = $this->Org->find('first', [
             'recursive' => -1,

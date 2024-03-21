@@ -258,7 +258,7 @@ class AttachmentScan extends AppModel
                     $scanned++;
                 }
             } catch (Exception $e) {
-                $this->logException("Could not scan attachment for $type {$attribute['Attribute']['id']}", $e, LOG_WARNING);
+                $this->logException("Could not scan attachment for $type {$attribute[$type]['id']}", $e, LOG_WARNING);
                 $fails++;
             }
 
