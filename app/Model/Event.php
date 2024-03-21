@@ -1058,7 +1058,11 @@ class Event extends AppModel
         // prepare attribute for sync
         if (!empty($data['Attribute'])) {
             foreach ($data['Attribute'] as $key => $attribute) {
-                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($attribute['type'], $pushRules['type_attributes']['NOT'])) {
+                if (
+                    !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                    !empty($pushRules['type_attributes']['NOT']) &&
+                    in_array($attribute['type'], $pushRules['type_attributes']['NOT'])
+                ) {
                     unset($data['Attribute'][$key]);
                     continue;
                 }
