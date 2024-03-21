@@ -568,7 +568,7 @@ class ServerSyncTool
         $url = $this->server['Server']['url'] . $url;
         $start = microtime(true);
         $response = $this->socket->post($url, $data, $request);
-        debug($response);
+        file_put_contents(APP . '/tmp/logs/foobar.log', json_encode($response), FILE_APPEND);
         $this->log($start, 'POST', $url, $response);
         if ($etag && $response->isNotModified()) {
             return $response; // if etag was provided and response code is 304, it is valid response
