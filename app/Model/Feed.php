@@ -2285,12 +2285,12 @@ class Feed extends AppModel
      *
      * @param string $type Can be 'feed' or 'server'
      * @param int $sourceId Server or Feed ID
-     * @param Iterator|array $values Values can be array of binary MD5 hash when $withEventUuid is false or
+     * @param iterable $values Values can be array of binary MD5 hash when $withEventUuid is false or
      * array of arrays [binary MD5, eventUuid] when $withEventUuid is true.
      * @param bool $withEventUuid
      * @throws Exception
      */
-    public function insertToRedisCache(string $type, int $sourceId, Iterator $values, bool $withEventUuid = false)
+    public function insertToRedisCache(string $type, int $sourceId, iterable $values, bool $withEventUuid = false)
     {
         if (!in_array($type, ['server', 'feed'], true)) {
             throw new InvalidArgumentException("Type must be 'server' or 'feed', '$type' provided.");
@@ -2331,9 +2331,15 @@ class Feed extends AppModel
             $pipe->exec();
         } else {
             $pipe = $redis->pipeline();
+            $i = 0;
             foreach ($values as $hash) {
                 $pipe->sAdd(self::REDIS_CACHE_PREFIX . $source, $hash);
                 $pipe->hSet(self::REDIS_CACHE_PREFIX . $hash, $source, 0);
+                // Flush pipeline after every 1000 requests
+                if ($i++ % 1000 === 0) {
+                    $pipe->exec();
+                    $pipe = $redis->pipeline();
+                }
             }
             $pipe->exec();
         }
