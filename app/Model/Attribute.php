@@ -1553,13 +1553,22 @@
                     'fields' => ['id']
                 ];
                 $subQuery2 = [
-                    'conditions' => ['distribution IN' => [1, 2, 3]],
+                    'conditions' => [
+                        'distribution IN' => [1, 2, 3]
+                    ],
                     'fields' => ['id']
                 ];
                 $subQuery3 = [
-                    'conditions' => ['Event.distribution' => 4, 'Event.sharing_group_id IN' => $sgids],
+                    'conditions' => [
+                        'Event.distribution' => 4,
+                        'Event.sharing_group_id IN' => $sgids
+                    ],
                     'fields' => ['id']
                 ];
+                if (Configure::read('MISP.unpublishedprivate')) {
+                    $subQuery2['conditions']['Event.published'] = 1;
+                    $subQuery3['conditions']['Event.published'] = 1;
+                }
                 $conditions = [
                     'OR' => [
                         $this->subQueryGenerator($this->Event, $subQuery1, 'Attribute.event_id'),
