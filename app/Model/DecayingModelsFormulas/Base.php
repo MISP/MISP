@@ -133,9 +133,9 @@ abstract class DecayingModelBase
         }
         if ($last_sighting_timestamp === false) {
             $this->Sighting = ClassRegistry::init('Sighting');
-            $all_sightings = $this->Sighting->listSightings($user, $attribute['id'], 'attribute', false, 0, true);
-            if (!empty($all_sightings)) {
-                $last_sighting_timestamp = $all_sightings[0]['Sighting']['date_sighting'];
+            $last_sighting = $this->Sighting->getLastSightingForAttribute($user, $attribute['id']);
+            if (!empty($last_sighting)) {
+                $last_sighting_timestamp = $last_sighting['Sighting']['date_sighting'];
             } elseif (!is_null($attribute['last_seen'])) {
                 $last_sighting_timestamp = (new DateTime($attribute['last_seen']))->format('U');
             } else {

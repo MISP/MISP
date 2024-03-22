@@ -202,6 +202,10 @@ class CurlClient extends HttpSocketExtended
             $options[CURLOPT_POSTFIELDS] = $query;
         }
 
+        if ($method === 'HEAD') {
+            $options[CURLOPT_NOBODY] = true;
+        }
+
         if (!empty($request['header'])) {
             $headers = [];
             foreach ($request['header'] as $key => $value) {
@@ -231,7 +235,6 @@ class CurlClient extends HttpSocketExtended
             }
             return $len;
         };
-
         if (!curl_setopt_array($this->ch, $options)) {
             throw new \RuntimeException('curl error: Could not set options');
         }

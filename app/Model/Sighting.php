@@ -1010,6 +1010,33 @@ class Sighting extends AppModel
         return $sightings;
     }
 
+     /**
+     * @param int $id
+     * @return array
+     */
+    public function getLastSightingForAttribute(array $user, $id): array
+    {
+        $conditions = [
+            'Sighting.attribute_id' => $id,
+            'Sighting.type' => 0,
+        ];
+
+        $sightingsPolicy = $this->sightingsPolicy();
+        if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER || $sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
+            $conditions['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
+        } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+            $all_sightings = $this->listSightings($user, [$id], 'attribute', false, 0, true);
+            $sighting = $all_sightings[0]['Sighting']['date_sighting'];
+            return $sighting;
+        }
+        $sighting = $this->find('first', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'order' => ['Sighting.date_sighting DESC']
+        ]);
+        return empty($sighting) ? [] : $sighting;
+    }
+
     /**
      * @param array $user
      * @param string $returnFormat

@@ -25,6 +25,8 @@ class DecayingModelMapping extends AppModel
         )
     );
 
+    private $modelCache = [];
+
     public function resetMappingForModel($new_model, $user) {
         if (empty($new_model['model_id'])) {
             throw new NotFoundException(__('No Decaying Model with the provided ID exists'));
@@ -76,6 +78,10 @@ class DecayingModelMapping extends AppModel
     }
 
     public function getAssociatedModels($user, $attribute_type = false) {
+        $cacheKey = sprintf('%s', $attribute_type);
+        if (isset($this->modelCache[$cacheKey])) {
+            return $this->modelCache[$cacheKey];
+        }
         $conditions = array(
             'OR' => array(
                 'DecayingModel.org_id' => $user['org_id'],
@@ -111,6 +117,7 @@ class DecayingModelMapping extends AppModel
         }
         $associated_models = Hash::combine($associated_models, '{n}.DecayingModelMapping.model_id', '{n}.DecayingModelMapping.model_id', '{n}.DecayingModelMapping.attribute_type');
         $models = array_merge_recursive($associated_default_models, $associated_models);
+        $this->modelCache[$cacheKey] = $models;
         return $models;
     }
 

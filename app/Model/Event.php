@@ -1058,7 +1058,11 @@ class Event extends AppModel
         // prepare attribute for sync
         if (!empty($data['Attribute'])) {
             foreach ($data['Attribute'] as $key => $attribute) {
-                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($attribute['type'], $pushRules['type_attributes']['NOT'])) {
+                if (
+                    !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                    !empty($pushRules['type_attributes']['NOT']) &&
+                    in_array($attribute['type'], $pushRules['type_attributes']['NOT'])
+                ) {
                     unset($data['Attribute'][$key]);
                     continue;
                 }
@@ -3280,6 +3284,7 @@ class Event extends AppModel
         $template->set('distributionLevels', $this->distributionLevels);
         $template->set('analysisLevels', $this->analysisLevels);
         $template->set('tlp', $subjMarkingString);
+        $template->set('title', Configure::read('MISP.title_text'));
         $template->subject($subject);
         $template->referenceId("event-alert|{$event['Event']['id']}");
 

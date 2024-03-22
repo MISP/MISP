@@ -37,14 +37,17 @@ class CompressedRequestHandlerComponent extends Component
     private function decodeGzipEncodedContent(Controller $controller)
     {
         if (function_exists('gzdecode')) {
-            $decoded = gzdecode($controller->request->input());
+            $input = $controller->request->input();
+            if (empty($input)) {
+                throw new BadRequestException('Request data should be gzip encoded, but request is empty.');
+            }
+            $decoded = gzdecode($input);
             if ($decoded === false) {
                 throw new BadRequestException('Invalid compressed data.');
             }
             return $decoded;
-        } else {
-            throw new BadRequestException("This server doesn't support GZIP compressed requests.");
         }
+        throw new BadRequestException("This server doesn't support GZIP compressed requests.");
     }
 
     /**
