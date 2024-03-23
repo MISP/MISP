@@ -125,7 +125,7 @@ class Job extends AppModel
             $jobData['message'] = $message;
         }
         if ($progress !== null) {
-            $jobData['progress'] = $progress;
+            $jobData['progress'] = (int)$progress;
             if ($progress >= 100) {
                 $jobData['status'] = self::STATUS_COMPLETED;
             }

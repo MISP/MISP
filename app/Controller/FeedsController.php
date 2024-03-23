@@ -691,7 +691,7 @@ class FeedsController extends AppController
         }
     }
 
-    private function __previewIndex(array $feed, $filterParams = array())
+    private function __previewIndex(array $feed, array $filterParams = [])
     {
         $urlparams = '';
         App::uses('CustomPaginationTool', 'Tools');
@@ -1000,14 +1000,13 @@ class FeedsController extends AppController
         }
     }
 
-    public function compareFeeds($id = false)
+    public function compareFeeds()
     {
-        $feeds = $this->Feed->compareFeeds($id);
+        $feeds = $this->Feed->compareFeeds();
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($feeds, $this->response->type());
-        } else {
-            $this->set('feeds', $feeds);
         }
+        $this->set('feeds', $feeds);
     }
 
     public function toggleSelected($enable = false, $cache = false, $feedList = false)
