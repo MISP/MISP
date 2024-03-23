@@ -114,6 +114,10 @@ class HttpSocketResponseExtended extends HttpSocketResponse
      */
     public function json()
     {
+        if (strlen($this->body) === 0) {
+            throw new HttpSocketJsonException('Could not parse empty response as JSON.', $this);
+        }
+
         try {
             return JsonTool::decode($this->body);
         } catch (Exception $e) {
