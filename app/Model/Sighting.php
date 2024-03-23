@@ -1445,7 +1445,7 @@ class Sighting extends AppModel
             try {
                 $sightings = $serverSync->fetchSightingsForEvents($chunk);
             } catch (Exception $e) {
-                $this->logException("Failed to download sightings from {$serverSync->server()['Server']['name']}.", $e);
+                $this->logException("Failed to download sightings from remote server {$serverSync->server()['Server']['name']}.", $e);
                 continue;
             }
 
