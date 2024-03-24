@@ -583,7 +583,7 @@ class Server extends AppModel
         try {
             $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $response);
         } catch (Exception $e) {
-            $title = __('Pulling an event (#%s) from Server #%s has failed. The sync process was not interrupted.', $eventId, $serverSync->server()['id']);
+            $title = __('Pulling an event (#%s) from Server #%s has failed. The sync process was not interrupted.', $eventId, $serverSync->serverId());
             $this->loadLog()->createLogEntry(
                 $user,
                 'error',
