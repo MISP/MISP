@@ -177,6 +177,10 @@ class MysqlExtended extends Mysql
      */
     public function insertMulti($table, $fields, $values)
     {
+        if (empty($values)) {
+            return true;
+        }
+
         $table = $this->fullTableName($table);
         $holder = substr(str_repeat('?,', count($fields)), 0, -1);
         $fields = implode(',', array_map([$this, 'name'], $fields));
