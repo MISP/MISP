@@ -1441,11 +1441,12 @@ class Sighting extends AppModel
         $uuids = array_keys($eventUuids);
         $saved = 0;
         $savedEventUuids = [];
-        foreach (array_chunk($uuids, 100) as $chunk) {
+        foreach (array_chunk($uuids, 50) as $chunk) {
             try {
                 $sightings = $serverSync->fetchSightingsForEvents($chunk);
             } catch (Exception $e) {
-                $this->logException("Failed to download sightings from remote server {$serverSync->server()['Server']['name']}.", $e);
+                $chunkSize = count($chunk);
+                $this->logException("Failed to download sightings for $chunkSize events from remote server {$serverSync->serverName()}.", $e);
                 continue;
             }
 
