@@ -47,6 +47,19 @@ class OrgImgHelper extends AppHelper
     }
 
     /**
+     * @param array $organisation
+     * @return string|null
+     */
+    public function getOrgLogoAsBase64(array $organisation)
+    {
+        $orgImgName = $this->findOrgImage($organisation);
+        if ($orgImgName) {
+            return $this->_View->Image->base64(self::IMG_PATH . $orgImgName);
+        }
+        return null;
+    }
+
+    /**
      * @deprecated
      */
     public function getOrgImg($options, $returnData = false, $raw = false)
