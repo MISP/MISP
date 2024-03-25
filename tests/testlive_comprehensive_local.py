@@ -923,6 +923,9 @@ class TestComprehensive(unittest.TestCase):
             self.assertTrue(created_user.autoalert, created_user)
             self.admin_misp_connector.delete_user(created_user)
 
+    def test_attribute_search(self):
+        request(self.admin_misp_connector, "GET", "/attributes/search/value:8.8.8.8.json")
+
     def test_search_snort_suricata(self):
         event = create_simple_event()
         event.add_attribute('ip-src', '8.8.8.8', to_ids=True)
