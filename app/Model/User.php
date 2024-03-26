@@ -1714,7 +1714,7 @@ class User extends AppModel
                 'ShadowAttribute.event_org_id' => $user['org_id'],
                 'ShadowAttribute.deleted' => 0,
             ),
-            'fields' => 'distinct event_id'
+            'fields' => 'DISTINCT event_id'
         ]);
         return $results;
     }

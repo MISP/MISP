@@ -1987,8 +1987,12 @@ class ServersController extends AppController
         $updateProgress['update_fail_number_reached'] = $this->Server->UpdateFailNumberReached();
         $currentIndex = $updateProgress['current'];
         $currentCommand = !isset($updateProgress['commands'][$currentIndex]) ? '' : $updateProgress['commands'][$currentIndex];
-        $lookupString = preg_replace('/\s{2,}/', '', substr($currentCommand, 0, -1));
-        $sqlInfo = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST;");
+		$lookupString = preg_replace('/\s{2,}/', '', substr($currentCommand, 0, -1));
+		if (empty($this->Server->query("SELECT * FROM version() WHERE version LIKE 'PostgreS%';"))) {
+            $sqlInfo = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST;");
+		} else {
+			$this->Server->query("SELECT * FROM pg_stat_activity WHERE datname = 'misp';");
+		}
         if (empty($sqlInfo)) {
             $updateProgress['process_list'] = array();
         } else {

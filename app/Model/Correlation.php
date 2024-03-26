@@ -1082,9 +1082,16 @@ class Correlation extends AppModel
         $this->CorrelationExclusion = ClassRegistry::init('CorrelationExclusion');
         $results['excluded_correlations'] = $this->CorrelationExclusion->find('count');
         foreach ($results['db'] as &$result) {
-            foreach ($result['tables'] as $table_name => &$table_data) {
-                $size_metrics = $this->query(sprintf('show table status like \'%s\';', $table_name));
-                if (!empty($size_metrics)) {
+			foreach ($result['tables'] as $table_name => &$table_data) {
+				$row_count = 0;
+				if ($this->isMysql()){
+					$size_metrics = $this->query(sprintf('show table status like \'%s\';', $table_name));
+					$row_count = (empty($size_metrics)) ? 0 : $size_metrics[0]['TABLES']['Rows'];
+				} else {
+					$size_metrics = $this->query(sprintf("select reltuples as estimate from pg_class where relname='%s';", $table_name));
+					$row_count = (empty($size_metrics)) ? 0 : $size_metrics[0]['estimate'];
+				}
+                if ($row_count > 0) {
                     $table_data['size_on_disk'] = $this->query(
                         //'select FILE_SIZE from information_schema.innodb_sys_tablespaces where FILENAME like \'%/' . $table_name . '.ibd\';'
                         sprintf(
@@ -1094,7 +1101,7 @@ class Correlation extends AppModel
                         )
                     )[0][0]['size'];
                     $last_id = $this->query(sprintf('select max(id) as max_id from %s;', $table_name));
-                    $table_data['row_count'] = $size_metrics[0]['TABLES']['Rows'];
+                    $table_data['row_count'] = $row_count; 
                     $table_data['last_id'] = $last_id[0][0]['max_id'];
                     $table_data['id_saturation'] = round(100 * $table_data['last_id'] / $table_data['id_limit'], 2);
                 }
