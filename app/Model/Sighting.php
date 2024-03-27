@@ -1439,13 +1439,15 @@ class Sighting extends AppModel
     private function pullSightingNewWay(array $user, array $eventUuids, ServerSyncTool $serverSync)
     {
         $uuids = array_keys($eventUuids);
+        shuffle($uuids); // shuffle array to avoid keeping events with a lof ot sightings in same batch all the time
         $saved = 0;
         $savedEventUuids = [];
-        foreach (array_chunk($uuids, 100) as $chunk) {
+        foreach (array_chunk($uuids, 50) as $chunk) {
             try {
                 $sightings = $serverSync->fetchSightingsForEvents($chunk);
             } catch (Exception $e) {
-                $this->logException("Failed to download sightings from remote server {$serverSync->server()['Server']['name']}.", $e);
+                $chunkSize = count($chunk);
+                $this->logException("Failed to download sightings for $chunkSize events from remote server {$serverSync->serverName()}.", $e);
                 continue;
             }
 
