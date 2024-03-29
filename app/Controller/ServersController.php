@@ -1894,6 +1894,7 @@ class ServersController extends AppController
             'uuid' => $user['Role']['perm_sync'] ? Configure::read('MISP.uuid') : '-',
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
             'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
+            'max_execution_time' => $user['Role']['perm_sync'] ? ini_get('max_execution_time') : null,
         ];
         return $this->RestResponse->viewData($response, 'json');
     }
