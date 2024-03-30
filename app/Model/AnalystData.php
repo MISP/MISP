@@ -641,9 +641,8 @@ class AnalystData extends AppModel
             return [];
         }
         $this->Server = ClassRegistry::init('Server');
-        $this->AnalystData = ClassRegistry::init('AnalystData');
 
-        $this->log("Starting Analyst Data sync with server #{$server['Server']['id']}", LOG_INFO);
+        $serverSync->debug("Starting Analyst Data sync");
 
         $analystData = $this->collectDataForPush($serverSync->server());
         $keyedAnalystData = [];
@@ -1018,7 +1017,6 @@ class AnalystData extends AppModel
         }
 
         $this->Server = ClassRegistry::init('Server');
-        $this->AnalystData = ClassRegistry::init('AnalystData');
         try {
             $filterRules = $this->buildPullFilterRules($serverSync->server());
             $remoteData = $serverSync->fetchIndexMinimal($filterRules)->json();

@@ -507,6 +507,16 @@ class ServerSyncTool
     }
 
     /**
+     * @param string $message
+     * @return void
+     */
+    public function debug($message)
+    {
+        $memoryUsage = round(memory_get_usage() / 1024 / 1024, 2);
+        CakeLog::debug("[Server sync #{$this->serverId()}]: $message. Memory: $memoryUsage MB");
+    }
+
+    /**
      * @params string $url Relative URL
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
@@ -556,6 +566,7 @@ class ServerSyncTool
 
         if ($etag) {
             // Remove compression marks that adds Apache for compressed content
+            // This can be removed in future as this is already checked by MISP itself since 2024-03
             $etagWithoutQuotes = trim($etag, '"');
             $dashPos = strrpos($etagWithoutQuotes, '-');
             if ($dashPos && in_array(substr($etagWithoutQuotes, $dashPos + 1), ['br', 'gzip'], true)) {

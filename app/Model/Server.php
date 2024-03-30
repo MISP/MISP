@@ -604,6 +604,7 @@ class Server extends AppModel
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
+     * @throws Exception
      */
     public function pull(array $user, $technique, array $server, $jobId = false, $force = false)
     {
@@ -619,7 +620,7 @@ class Server extends AppModel
         try {
             $server['Server']['version'] = $serverSync->info()['version'];
         } catch (Exception $e) {
-            $this->logException("Could not get remote server `{$server['Server']['name']}` version.", $e);
+            $this->logException("Could not get remote server `{$serverSync->serverName()}` version.", $e);
             if ($e instanceof HttpSocketHttpException && $e->getCode() === 403) {
                 $message = __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.');
             } else {
@@ -648,6 +649,8 @@ class Server extends AppModel
             }
         }
 
+        $serverSync->debug("Pulling event list with technique $technique");
+
         try {
             $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $serverSync, $force);
         } catch (Exception $e) {
@@ -673,26 +676,29 @@ class Server extends AppModel
                 $job->saveProgress($jobId, __n('Pulling %s event.', 'Pulling %s events.', count($eventIds), count($eventIds)));
             }
             foreach ($eventIds as $k => $eventId) {
+                $serverSync->debug("Pulling event $eventId");
                 $this->__pullEvent($eventId, $successes, $fails, $eventModel, $serverSync, $user, $jobId, $force);
                 if ($jobId && $k % 10 === 0) {
                     $job->saveProgress($jobId, null, 10 + 40 * (($k + 1) / count($eventIds)));
                 }
             }
             foreach ($fails as $eventid => $message) {
-                $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], "Failed to pull event #$eventid.", 'Reason: ' . $message);
+                $this->loadLog()->createLogEntry($user, 'pull', 'Server', $serverSync->serverId(), "Failed to pull event #$eventid.", 'Reason: ' . $message);
             }
         }
         if ($jobId) {
             $job->saveProgress($jobId, 'Pulling proposals.', 50);
         }
-        $pulledProposals = $pulledSightings = 0;
+        $pulledProposals = $pulledSightings = $pulledAnalystData = 0;
         if ($technique === 'full' || $technique === 'update') {
             $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $serverSync);
 
             if ($jobId) {
                 $job->saveProgress($jobId, 'Pulling sightings.', 75);
             }
+
             $pulledSightings = $eventModel->Sighting->pullSightings($user, $serverSync);
+
             $this->AnalystData = ClassRegistry::init('AnalystData');
             $pulledAnalystData = $this->AnalystData->pull($user, $serverSync);
         }
@@ -819,7 +825,7 @@ class Server extends AppModel
      */
     public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
     {
-        $this->log("Fetching eligible clusters from server #{$serverSync->serverId()} for pull: " . JsonTool::encode($conditions), LOG_INFO);
+        $serverSync->debug("Fetching eligible clusters for pull: " . JsonTool::encode($conditions));
 
         if ($onlyUpdateLocalCluster && empty($eligibleClusters)) {
             return []; // no clusters for update
@@ -875,7 +881,7 @@ class Server extends AppModel
      */
     private function getElligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
     {
-        $this->log("Fetching eligible clusters from server #{$serverSync->serverId()} for push: " . JsonTool::encode($conditions), LOG_INFO);
+        $serverSync->debug("Fetching eligible clusters for push: " . JsonTool::encode($conditions));
         $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
         $keyedClusterArray = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid', '{n}.GalaxyCluster.version');
         if (!empty($localClusters)) {
@@ -1372,7 +1378,7 @@ class Server extends AppModel
             return []; // pushing clusters is not enabled
         }
 
-        $this->log("Starting $technique clusters sync with server #{$serverSync->serverId()}", LOG_INFO);
+        $serverSync->debug("Starting $technique clusters sync");
 
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $this->Event = ClassRegistry::init('Event');

@@ -1845,6 +1845,9 @@ class GalaxyCluster extends AppModel
         if (!$compatible) {
             return 0;
         }
+
+        $serverSync->debug("Pulling galaxy clusters with technique $technique");
+
         $clusterIds = $this->getClusterIdListBasedOnPullTechnique($user, $technique, $serverSync);
         $successes = 0;
         // now process the $clusterIds to pull each of the events sequentially

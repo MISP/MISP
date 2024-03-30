@@ -1418,6 +1418,8 @@ class Sighting extends AppModel
      */
     public function pullSightings(array $user, ServerSyncTool $serverSync)
     {
+        $serverSync->debug("Fetching event index for pulling sightings");
+
         $this->Server = ClassRegistry::init('Server');
         try {
             $remoteEvents = $this->Server->getEventIndexFromServer($serverSync);
@@ -1451,6 +1453,8 @@ class Sighting extends AppModel
         if (empty($eventUuids)) {
             return 0;
         }
+
+        $serverSync->debug("Pulling sightings for " . count($eventUuids) . " events");
 
         if ($serverSync->isSupported(ServerSyncTool::FEATURE_SIGHTING_REST_SEARCH)) {
             return $this->pullSightingNewWay($user, $eventUuids, $serverSync);
