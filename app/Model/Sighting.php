@@ -1442,7 +1442,7 @@ class Sighting extends AppModel
         shuffle($uuids); // shuffle array to avoid keeping events with a lof ot sightings in same batch all the time
         $saved = 0;
         $savedEventUuids = [];
-        foreach (array_chunk($uuids, 50) as $chunk) {
+        foreach (array_chunk($uuids, 20) as $chunk) {
             try {
                 $sightings = $serverSync->fetchSightingsForEvents($chunk);
             } catch (Exception $e) {
