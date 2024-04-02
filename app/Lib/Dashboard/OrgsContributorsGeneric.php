@@ -45,4 +45,3 @@ class OrgsContributorsGeneric
         return $result;
     }
 }
-?>

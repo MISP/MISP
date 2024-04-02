@@ -137,4 +137,3 @@ class OrgContributionToplistWidget
         return ['data' => $results];
     }
 }
-?>
