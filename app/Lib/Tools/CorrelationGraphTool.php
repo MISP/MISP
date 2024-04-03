@@ -1,4 +1,6 @@
 <?php
+App::uses('OrgImgHelper', 'View/Helper');
+
   class CorrelationGraphTool
   {
       private $__lookupTables = array();
@@ -9,20 +11,24 @@
       /** @var Taxonomy */
       private $__taxonomyModel;
       private $__galaxyClusterModel = false;
-      private $__user = false;
-      private $__json = array();
+      /** @var User */
+      private $__user;
+      /** @var array */
+      private $data;
+      private $orgImgHelper;
 
-      public function construct(Event $eventModel, $taxonomyModel, $galaxyClusterModel, $user, $json)
+      public function __construct(Event $eventModel, $taxonomyModel, $galaxyClusterModel, array $user, array $data)
       {
           $this->__eventModel = $eventModel;
           $this->__taxonomyModel = $taxonomyModel;
           $this->__galaxyClusterModel = $galaxyClusterModel;
           $this->__user = $user;
-          $this->__json = $json;
+          $this->data = $data;
           $this->__lookupTables = array(
-        'analysisLevels' => $this->__eventModel->analysisLevels,
-        'distributionLevels' => $this->__eventModel->Attribute->distributionLevels
-      );
+            'analysisLevels' => $eventModel->analysisLevels,
+            'distributionLevels' => $eventModel->Attribute->distributionLevels
+          );
+          $this->orgImgHelper = new OrgImgHelper(new View());
           return true;
       }
 
@@ -38,7 +44,7 @@
               'sgReferenceOnly' => true,
           ));
           if (empty($event)) {
-              return $this->__json;
+              return $this->data;
           }
           $this->cleanLinks();
           $event[0]['Event']['Orgc'] = $event[0]['Orgc'];
@@ -75,7 +81,7 @@
       public function buildGraphJson($id, $type = 'event', $action = 'create')
       {
           if ($action == 'delete') {
-              return $this->__json;
+              return $this->data;
           }
           switch ($type) {
         case 'event':
@@ -88,13 +94,13 @@
           $this->__expandTag($id);
           break;
       }
-          return $this->__json;
+          return $this->data;
       }
 
       private function __deleteObject($id)
       {
           $this->cleanLinks();
-          return $this->__json;
+          return $this->data;
       }
 
       private function __handleObjects($objects, $anchor_id, $full = false)
@@ -193,8 +199,8 @@
 
       private function __expandGalaxy($id)
       {
-          if (!empty($this->__json['nodes'])) {
-              foreach ($this->__json['nodes'] as $k => $node) {
+          if (!empty($this->data['nodes'])) {
+              foreach ($this->data['nodes'] as $k => $node) {
                   if ($node['type'] == 'galaxy' && $node['id'] == $id) {
                       $current_galaxy_id = $k;
                       $tag_name = $node['tag_name'];
@@ -205,7 +211,7 @@
               $current_galaxy_id = $this->__addGalaxy($id);
           }
           $this->cleanLinks();
-          $events = $this->__eventModel->EventTag->Tag->fetchSimpleEventsForTag($this->__json['nodes'][$current_galaxy_id]['tag_name'], $this->__user, true);
+          $events = $this->__eventModel->EventTag->Tag->fetchSimpleEventsForTag($this->data['nodes'][$current_galaxy_id]['tag_name'], $this->__user, true);
           foreach ($events as $event) {
               $current_event_id = $this->__createNode('event', $event);
               $this->__addLink($current_event_id, $current_galaxy_id);
@@ -229,7 +235,7 @@
       {
           $link = $this->graphJsonContainsLink($from_id, $to_id);
           if ($link === false) {
-              $this->__json['links'][] = array('source' => $from_id, 'target' => $to_id, 'linkDistance' => $linkDistance);
+              $this->data['links'][] = array('source' => $from_id, 'target' => $to_id, 'linkDistance' => $linkDistance);
           }
       }
 
@@ -240,7 +246,7 @@
           if ($from_uuid == $to_uuid) {
               return false;
           }
-          foreach ($this->__json['nodes'] as $k => $node) {
+          foreach ($this->data['nodes'] as $k => $node) {
               if ($node['uuid'] === $from_uuid) {
                   $from_id = $k;
               }
@@ -277,10 +283,9 @@
             );
             break;
           case 'event':
-            if ($this->orgImgExists($data['Orgc']['name'])) {
-                $image = Configure::read('MISP.baseurl') . '/img/orgs/' . h($data['Orgc']['name']) . '.png';
-            } else {
-                $image = Configure::read('MISP.baseurl') . '/img/orgs/MISP.png';
+            $orgImage = $this->orgImgHelper->getOrgLogoAsBase64($data['Orgc']);
+            if ($orgImage === null) {
+                $orgImage = Configure::read('MISP.baseurl') . '/img/misp-org.png';
             }
             $node = array(
               'unique_id' => 'event-' . $data['id'],
@@ -289,7 +294,7 @@
               'id' => $data['id'],
               'expanded' => $expand,
               'uuid' => $data['uuid'],
-              'image' => $image,
+              'image' => $orgImage,
               'info' => $data['info'],
               'org' => $data['Orgc']['name'],
               'analysis' => $this->__lookupTables['analysisLevels'][$data['analysis']],
@@ -345,11 +350,11 @@
             );
             break;
         }
-              $this->__json['nodes'][] = $node;
-              $current_id = count($this->__json['nodes'])-1;
+              $this->data['nodes'][] = $node;
+              $current_id = count($this->data['nodes'])-1;
           } else {
               if ($expand) {
-                  $this->__json['nodes'][$current_id]['expanded'] = 1;
+                  $this->data['nodes'][$current_id]['expanded'] = 1;
               }
           }
           return $current_id;
@@ -357,11 +362,11 @@
 
       public function cleanLinks()
       {
-          if (isset($this->__json['nodes']) && isset($this->__json['links'])) {
+          if (isset($this->data['nodes']) && isset($this->data['links'])) {
               $links = array();
-              foreach ($this->__json['links'] as $link) {
+              foreach ($this->data['links'] as $link) {
                   $temp = array();
-                  foreach ($this->__json['nodes'] as $k => $node) {
+                  foreach ($this->data['nodes'] as $k => $node) {
                       if ($link['source'] == $node) {
                           $temp['source'] = $k;
                       }
@@ -372,32 +377,24 @@
                   $temp['linkDistance'] = $link['linkDistance'];
                   $links[] = $temp;
               }
-              $this->__json['links'] = $links;
+              $this->data['links'] = $links;
           } else {
-              if (!isset($this->__json['links'])) {
-                  $this->__json['links'] = array();
+              if (!isset($this->data['links'])) {
+                  $this->data['links'] = array();
               }
-              if (!isset($this->__json['nodes'])) {
-                  $this->__json['nodes'] = array();
+              if (!isset($this->data['nodes'])) {
+                  $this->data['nodes'] = array();
               }
           }
           return true;
       }
 
-      public function orgImgExists($org)
-      {
-          if (file_exists(APP . 'webroot' . DS . 'img' . DS . 'orgs' . DS . $org . '.png')) {
-              return true;
-          }
-          return false;
-      }
-
       public function graphJsonContains($type, $element)
       {
-          if (!isset($this->__json['nodes'])) {
+          if (!isset($this->data['nodes'])) {
               return false;
           }
-          foreach ($this->__json['nodes'] as $k => $node) {
+          foreach ($this->data['nodes'] as $k => $node) {
               if ($type == 'event' && $node['type'] == 'event' && $node['id'] == $element['id']) {
                   return $k;
               }
@@ -418,10 +415,10 @@
       }
       public function graphJsonContainsLink($id1, $id2)
       {
-          if (!isset($this->__json['links'])) {
+          if (!isset($this->data['links'])) {
               return false;
           }
-          foreach ($this->__json['links'] as $k => $link) {
+          foreach ($this->data['links'] as $k => $link) {
               if (($link['source'] == $id1 && $link['target'] == $id2) || ($link['source'] == $id2 && $link['target'] == $id1)) {
                   return $k;
               }

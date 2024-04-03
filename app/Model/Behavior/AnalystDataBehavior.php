@@ -76,7 +76,7 @@ class AnalystDataBehavior extends ModelBehavior
             ]);
             $results = [];
             foreach ($temp as $result) {
-                $results[$result[$type]['object_uuid']] = $result;
+                $results[$result[$type]['object_uuid']][$type][] = $result[$type];
             }
             return $results;
         }

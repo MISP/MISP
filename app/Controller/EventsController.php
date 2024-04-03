@@ -1490,7 +1490,6 @@ class EventsController extends AppController
                 $containsProposals = true;
             }
         }
-
         foreach ($event['Object'] as $k => $object) {
             $modDate = date("Y-m-d", $object['timestamp']);
             $modificationMap[$modDate] = !isset($modificationMap[$modDate])? 1 : $modificationMap[$modDate] + 1;
@@ -1522,7 +1521,6 @@ class EventsController extends AppController
                 }
             }
         }
-
         if ($containsProposals && $this->__canPublishEvent($event, $user)) {
             $mess = $this->Session->read('Message');
             if (empty($mess)) {
@@ -1696,8 +1694,8 @@ class EventsController extends AppController
         }
 
         $namedParams = $this->request->params['named'];
-        $conditions['includeAnalystData'] = true;
         if ($this->_isRest()) {
+            $conditions['includeAnalystData'] = true;
             $conditions['includeAttachments'] = isset($namedParams['includeAttachments']) ? $namedParams['includeAttachments'] : true;
         } else {
             $conditions['includeAllTags'] = true;
@@ -3112,9 +3110,9 @@ class EventsController extends AppController
                         $errors['Module'] = 'Module failure.';
                     }
                 } else {
+                    $errors['failed_servers'] = $result;
                     $lastResult = array_pop($result);
                     $resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
-                    $errors['failed_servers'] = $result;
                     $message = __('Event published but not pushed to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString);
                 }
             } else {
@@ -4862,16 +4860,18 @@ class EventsController extends AppController
     public function updateGraph($id, $type = 'event')
     {
         $user = $this->_closeSession();
+
         $validTools = array('event', 'galaxy', 'tag');
         if (!in_array($type, $validTools, true)) {
             throw new MethodNotAllowedException(__('Invalid type.'));
         }
+
         $this->loadModel('Taxonomy');
         $this->loadModel('GalaxyCluster');
         App::uses('CorrelationGraphTool', 'Tools');
-        $grapher = new CorrelationGraphTool();
+
         $data = $this->request->is('post') ? $this->request->data : array();
-        $grapher->construct($this->Event, $this->Taxonomy, $this->GalaxyCluster, $user, $data);
+        $grapher = new CorrelationGraphTool($this->Event, $this->Taxonomy, $this->GalaxyCluster, $user, $data);
         $json = $grapher->buildGraphJson($id, $type);
         array_walk_recursive($json, function (&$item, $key) {
             if (!mb_detect_encoding($item, 'utf-8', true)) {

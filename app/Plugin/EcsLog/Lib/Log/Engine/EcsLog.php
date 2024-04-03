@@ -182,10 +182,10 @@ class EcsLog implements CakeLogInterface
     }
 
     /**
-     * @param Exception $exception
+     * @param Throwable $exception
      * @return void
      */
-    public static function handleException(Exception $exception)
+    public static function handleException(Throwable $exception)
     {
         $code = $exception->getCode();
         $code = ($code && is_int($code)) ? $code : 1;

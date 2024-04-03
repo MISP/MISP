@@ -41,10 +41,31 @@ class AnalystDataParentBehavior extends ModelBehavior
         return $data;
     }
 
+    public function fetchAnalystDataBulk(Model $model, array $uuids, array $types = ['Note', 'Opinion', 'Relationship']) {
+        $uuids = array_chunk($uuids, 10000);
+        if (empty($this->__currentUser)) {
+            $user_id = Configure::read('CurrentUserId');
+            $this->User = ClassRegistry::init('User');
+            if ($user_id) {
+                $this->__currentUser = $this->User->getAuthUser($user_id);
+            }
+        }
+        $results = [];
+        foreach ($uuids as $uuid_chunk) {
+            foreach ($types as $type) {
+                $this->{$type} = ClassRegistry::init($type);
+                $this->{$type}->fetchRecursive = !empty($model->includeAnalystDataRecursive);
+                $temp = $this->{$type}->fetchForUuids($uuid_chunk, $this->__currentUser);
+                $results = array_merge($results, $temp);
+            }
+        }
+        return $results;
+    }
+
     public function attachAnalystDataBulk(Model $model, array $objects, array $types = ['Note', 'Opinion', 'Relationship'])
     {
         $uuids = [];
-        $objects = array_chunk($objects, 10000);
+        $objects = array_chunk($objects, 10000, true);
         if (empty($this->__currentUser)) {
             $user_id = Configure::read('CurrentUserId');
             $this->User = ClassRegistry::init('User');

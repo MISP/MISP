@@ -85,4 +85,3 @@ class OrganisationMapWidget
         return $results;
     }
 }
-?>

@@ -891,7 +891,7 @@ class TestComprehensive(unittest.TestCase):
 
     def test_etag(self):
         headers = {
-            'Authorization': self.admin_misp_connector.key,
+            'Authorization': key.strip(),
             'Accept': 'application/json',
             'User-Agent': 'PyMISP',
             'If-None-Match': '',
@@ -922,6 +922,9 @@ class TestComprehensive(unittest.TestCase):
             created_user = check_response(self.admin_misp_connector.add_user(user))
             self.assertTrue(created_user.autoalert, created_user)
             self.admin_misp_connector.delete_user(created_user)
+
+    def test_attribute_search(self):
+        request(self.admin_misp_connector, "GET", "/attributes/search/value:8.8.8.8.json")
 
     def test_search_snort_suricata(self):
         event = create_simple_event()
