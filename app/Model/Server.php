@@ -5125,8 +5125,8 @@ class Server extends AppModel
                 ),
                 'curl_request_timeout' => [
                     'level' => 1,
-                    'description' => __('Control the timeout of curl requests issued by MISP (during synchronisation, feed fetching, etc.'),
-                    'value' => 10800,
+                    'description' => __('Control the default timeout in seconds of curl HTTP requests issued by MISP (during synchronisation, feed fetching, etc.)'),
+                    'value' => 300,
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => true
