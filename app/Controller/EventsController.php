@@ -1490,7 +1490,6 @@ class EventsController extends AppController
                 $containsProposals = true;
             }
         }
-
         foreach ($event['Object'] as $k => $object) {
             $modDate = date("Y-m-d", $object['timestamp']);
             $modificationMap[$modDate] = !isset($modificationMap[$modDate])? 1 : $modificationMap[$modDate] + 1;
@@ -1522,7 +1521,6 @@ class EventsController extends AppController
                 }
             }
         }
-
         if ($containsProposals && $this->__canPublishEvent($event, $user)) {
             $mess = $this->Session->read('Message');
             if (empty($mess)) {
@@ -1696,8 +1694,8 @@ class EventsController extends AppController
         }
 
         $namedParams = $this->request->params['named'];
-        $conditions['includeAnalystData'] = true;
         if ($this->_isRest()) {
+            $conditions['includeAnalystData'] = true;
             $conditions['includeAttachments'] = isset($namedParams['includeAttachments']) ? $namedParams['includeAttachments'] : true;
         } else {
             $conditions['includeAllTags'] = true;
