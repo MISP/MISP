@@ -13,6 +13,7 @@ $fields = [
         'notes_path' => $modelSelection . '.Note',
         'opinions_path' => $modelSelection . '.Opinion',
         'relationships_path' => $modelSelection . '.Relationship',
+        'relationshipsInbound_path' => $modelSelection . '.RelationshipInbound',
     ],
     [
         'key' => __('Note Type'),
@@ -126,7 +127,8 @@ $options = [
     'shortDist' => $shortDist,
     'notes' => $data[$modelSelection]['Note'] ?? [],
     'opinions' => $data[$modelSelection]['Opinion'] ?? [],
-    'relationships' => $data[$modelSelection]['Relationship'] ?? [],
+    'relationships_outbound' => $data[$modelSelection]['Relationship'] ?? [],
+    'relationships_inbound' => $data[$modelSelection]['RelationshipInbound'] ?? [],
 ];
 
 echo $this->element('genericElements/assetLoader', [

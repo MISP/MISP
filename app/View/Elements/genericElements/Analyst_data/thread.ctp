@@ -7,7 +7,8 @@
 
     $notes = !empty($notes) ? $notes : [];
     $opinions = !empty($opinions) ? $opinions : [];
-    $relationships = !empty($relationships) ? $relationships : [];
+    $relationshipsOutbound = !empty($relationships_outbound) ? $relationships_outbound : [];
+    $relationshipsInbound = !empty($relationships_inbound) ? $relationships_inbound : [];
 
     $related_objects = [
         'Attribute' => [],
@@ -20,14 +21,19 @@
         'Opinion' => [],
         'SharingGroup' => [],
     ];
-    foreach ($relationships as $relationship) {
+    foreach ($relationshipsOutbound as $relationship) {
         if (!empty($relationship['related_object'][$relationship['related_object_type']])) {
             $related_objects[$relationship['related_object_type']][$relationship['related_object_uuid']] = $relationship['related_object'][$relationship['related_object_type']];
         }
     }
+    foreach ($relationshipsInbound as $relationship) {
+        if (!empty($relationship['related_object'][$relationship['object_type']])) {
+            $related_objects[$relationship['object_type']][$relationship['object_uuid']] = $relationship['related_object'][$relationship['object_type']];
+        }
+    }
 
     $notesOpinions = array_merge($notes, $opinions);
-    $notesOpinionsRelationships = array_merge($notesOpinions, $relationships);
+    $notesOpinionsRelationships = array_merge($notesOpinions, $relationshipsOutbound, $relationshipsInbound);
 ?>
 
 <script>
@@ -37,14 +43,14 @@ if (!window.shortDist) {
 }
 var renderedNotes<?= $seed ?> = null
 
-function renderNotes(notes, relationship_related_object) {
+function renderNotes(notes, relationship_related_object, emptyMessage='<?= __('Empty') ?>', isInbound=false) {
     var renderedNotesArray = []
     if (notes.length == 0)  {
-        var emptyHtml = '<span style="text-align: center; color: #777;"><?= __('No notes for this UUID.') ?></span>'
+        var emptyHtml = '<span style="text-align: center; color: #777;">' + emptyMessage + '</span>'
         renderedNotesArray.push(emptyHtml)
     } else {
         notes.forEach(function(note) {
-            var noteHtml = renderNote(note, relationship_related_object)
+            var noteHtml = renderNote(note, relationship_related_object, isInbound)
 
             if (note.Opinion && note.Opinion.length > 0) { // The notes has more notes attached
                 noteHtml += replyNoteTemplate({notes_html: renderNotes(note.Opinion, relationship_related_object), })
@@ -62,7 +68,7 @@ function renderNotes(notes, relationship_related_object) {
     return renderedNotesArray.join('')
 }
 
-function renderNote(note, relationship_related_object) {
+function renderNote(note, relationship_related_object, isInbound=false) {
     note.modified_relative = note.modified ? moment(note.modified).fromNow() : note.modified
     note.created_relative = note.created ? moment(note.created).fromNow() : note.created
     note.modified = note.modified ? (new Date(note.modified)).toLocaleString() : note.modified
@@ -78,7 +84,10 @@ function renderNote(note, relationship_related_object) {
         note.opinion_text = (note.opinion  >= 81) ? '<?= __("Strongly Agree") ?>' : ((note.opinion  >= 61) ? '<?= __("Agree") ?>' : ((note.opinion  >= 41) ? '<?= __("Neutral") ?>' : ((note.opinion  >= 21) ? '<?= __("Disagree") ?>' : '<?= __("Strongly Disagree") ?>')))
         note.content = opinionTemplate(note)
     } else if (note.note_type == 2) {
-        note.content = renderRelationshipEntryFromType(note, relationship_related_object)
+        note.content = renderRelationshipEntryFromType(note, relationship_related_object, isInbound)
+    }
+    if (isInbound) {
+        note._canEdit = false;
     }
     var noteHtml = baseNoteTemplate(note)
     return noteHtml
@@ -96,7 +105,15 @@ function getURLFromRelationship(note) {
     return '#'
 }
 
-function renderRelationshipEntryFromType(note, relationship_related_object) {
+function renderRelationshipEntryFromType(note, relationship_related_object, isInbound=false) {
+    if (isInbound) { // reverse related_object_* with object_* to preserve the same code
+        var tmp_uuid = note.object_uuid
+        var tmp_type = note.object_type
+        note.object_uuid = note.related_object_uuid
+        note.related_object_uuid = tmp_uuid
+        note.object_type = note.related_object_type
+        note.related_object_type = tmp_type
+    }
     var contentHtml = ''
     var template = doT.template('\
         <span style="border: 1px solid #ddd !important; border-radius: 3px; padding: 0.25rem;"> \
@@ -166,7 +183,13 @@ function renderRelationshipEntryFromType(note, relationship_related_object) {
     }
     note.url = getURLFromRelationship(note)
     contentHtml = template(note)
-    return relationshipDefaultEntryTemplate({content: contentHtml, relationship_type: note.relationship_type, comment: note.comment})
+    var full = ''
+    if (isInbound) {
+        full = relationshipInboundDefaultEntryTemplate({content: contentHtml, relationship_type: note.relationship_type, comment: note.comment})
+    } else {
+        full = relationshipDefaultEntryTemplate({content: contentHtml, relationship_type: note.relationship_type, comment: note.comment})
+    }
+    return full
 }
 
 var noteFilteringTemplate = '\
@@ -250,6 +273,7 @@ var opinionTemplate = doT.template('\
 var relationshipDefaultEntryTemplate = doT.template('\
     <div style="max-width: 40vw; margin: 0.5rem 0 0.5rem 0.25rem;"> \
         <div style="display: flex; flex-direction: row; align-items: center; flex-wrap: nowrap;"> \
+            <i class="far fa-dot-circle" style="font-size: 1.25em; color: #555; margin-right: 0.25em;"></i> \
             <i class="<?= $this->FontAwesome->getClass('minus') ?>" style="font-size: 1.5em; color: #555"></i> \
             <span style="text-wrap: nowrap; padding: 0 0.25rem; border: 2px solid #555; border-radius: 0.25rem; max-width: 20rem; overflow-x: hidden; text-overflow: ellipsis;"> \
                 {{? it.relationship_type }} \
@@ -259,7 +283,29 @@ var relationshipDefaultEntryTemplate = doT.template('\
                 {{?}} \
             </span> \
             <i class="<?= $this->FontAwesome->getClass('long-arrow-alt-right') ?>" style="font-size: 1.5em; color: #555"></i> \
-            <div style="margin-left: 0.5rem;">{{=it.content}}</div> \
+            <div style="margin-left: 0.25rem;">{{=it.content}}</div> \
+        </div> \
+        {{? it.comment }} \
+            <div style="max-width: 40vw; margin: 0.5rem 0 0 0.5rem; position: relative;" class="v-bar-text-opinion"> \
+                {{!it.comment}} \
+            </div> \
+        {{?}} \
+    </div> \
+')
+var relationshipInboundDefaultEntryTemplate = doT.template('\
+    <div style="max-width: 40vw; margin: 0.5rem 0 0.5rem 0.25rem;"> \
+        <div style="display: flex; flex-direction: row; align-items: center; flex-wrap: nowrap;"> \
+            <div style="margin-right: 0.25rem;">{{=it.content}}</div> \
+            <i class="<?= $this->FontAwesome->getClass('minus') ?>" style="font-size: 1.5em; color: #555"></i> \
+            <span style="text-wrap: nowrap; padding: 0 0.25rem; border: 2px solid #555; border-radius: 0.25rem; max-width: 20rem; overflow-x: hidden; text-overflow: ellipsis;"> \
+                {{? it.relationship_type }} \
+                    {{!it.relationship_type}} \
+                {{??}} \
+                    <i style="font-weight: lighter; color: #999;"> - empty -</i> \
+                {{?}} \
+            </span> \
+            <i class="<?= $this->FontAwesome->getClass('long-arrow-alt-right') ?>" style="font-size: 1.5em; color: #555"></i> \
+            <i class="far fa-dot-circle" style="font-size: 1.25em; color: #555; margin-left: 0.25em;"></i> \
         </div> \
         {{? it.comment }} \
             <div style="max-width: 40vw; margin: 0.5rem 0 0 0.5rem; position: relative;" class="v-bar-text-opinion"> \
@@ -363,7 +409,8 @@ function fetchMoreNotes(clicked, noteType, uuid) {
 
 (function() {
     var notes = <?= json_encode($notesOpinions) ?>;
-    var relationships = <?= json_encode($relationships) ?>;
+    var relationships = <?= json_encode($relationshipsOutbound) ?>;
+    var relationships_inbound = <?= json_encode($relationshipsInbound) ?>;
     var relationship_related_object = <?= json_encode($related_objects) ?>;
     var container_id = false
     <?php if (isset($container_id)): ?>
@@ -373,16 +420,20 @@ function fetchMoreNotes(clicked, noteType, uuid) {
     var nodeContainerTemplate = doT.template('\
         <div> \
             <ul class="nav nav-tabs" style="margin-bottom: 10px;"> \
-                <li class="active"><a href="#notes-<?= $seed ?>" data-toggle="tab"><?= __('Notes & Opinions') ?></a></li> \
-                <li><a href="#relationships-<?= $seed ?>" data-toggle="tab"><?= __('Relationships') ?></a></li> \
+                <li class="active"><a href="#notes-<?= $seed ?>" data-toggle="tab"><i class="<?= $this->FontAwesome->getClass('sticky-note') ?>"></i> <?= __('Notes & Opinions') ?> <span class="label label-secondary"><?= $allCounts['notesOpinions'] ?></span></a></li> \
+                <li><a href="#relationships-outbound-<?= $seed ?>" data-toggle="tab"><i class="<?= $this->FontAwesome->getClass('arrow-up') ?>"></i> <?= __('Outbound Relationships') ?> <span class="label label-secondary"><?= $allCounts['relationships_outbound'] ?></span></a></li> \
+                <li><a href="#relationships-inbound-<?= $seed ?>" data-toggle="tab"><i class="<?= $this->FontAwesome->getClass('arrow-down') ?>"></i> <?= __('Inbound Relationships') ?> <span class="label label-secondary"><?= $allCounts['relationships_inbound'] ?></span></a></li> \
             </ul> \
             <div class="tab-content" style="padding: 0.25rem; max-width: 1200px; min-width: 400px;"> \
                 <div id="notes-<?= $seed ?>" class="tab-pane active"> \
                     ' + noteFilteringTemplate + ' \
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;" class="all-notes">{{=it.content_notes}}</div>\
                 </div> \
-                <div id="relationships-<?= $seed ?>" class="tab-pane"> \
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">{{=it.content_relationships}}</div>\
+                <div id="relationships-outbound-<?= $seed ?>" class="tab-pane"> \
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">{{=it.content_relationships_outbound}}</div>\
+                </div> \
+                <div id="relationships-inbound-<?= $seed ?>" class="tab-pane"> \
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">{{=it.content_relationships_inbound}}</div>\
                 </div> \
             </div> \
         </div> \
@@ -391,8 +442,9 @@ function fetchMoreNotes(clicked, noteType, uuid) {
     function renderAllNotesWithForm(relationship_related_object) {
         var buttonContainer = '<div id="add-button-container" style="margin-top: 0.5rem;">' + addNoteButton + addOpinionButton + '</div>'
         renderedNotes<?= $seed ?> = nodeContainerTemplate({
-            content_notes: renderNotes(notes.filter(function(note) { return note.note_type != 2}), relationship_related_object) + buttonContainer,
-            content_relationships: renderNotes(relationships, relationship_related_object) + addRelationshipButton,
+            content_notes: renderNotes(notes.filter(function(note) { return note.note_type != 2}), relationship_related_object, '<?= __('No notes for this UUID.') ?>') + buttonContainer,
+            content_relationships_outbound: renderNotes(relationships, relationship_related_object, '<?= __('No relationship from this UUID') ?>') + addRelationshipButton,
+            content_relationships_inbound: renderNotes(relationships_inbound, relationship_related_object, '<?= __('No element are referencing this UUID') ?>', true),
         })
         if (container_id) {
             $('#' + container_id).html(renderedNotes<?= $seed ?>)

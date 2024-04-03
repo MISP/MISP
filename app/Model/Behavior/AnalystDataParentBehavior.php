@@ -35,6 +35,9 @@ class AnalystDataParentBehavior extends ModelBehavior
                 }
             }
         }
+
+        // include inbound relationship
+        $data['RelationshipInbound'] = Hash::extract($this->Relationship->getInboundRelationships($this->__currentUser, $model->alias, $object['uuid']), '{n}.Relationship');
         return $data;
     }
 
