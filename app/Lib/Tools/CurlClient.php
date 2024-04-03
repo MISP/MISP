@@ -7,7 +7,7 @@ class CurlClient extends HttpSocketExtended
     private $ch;
 
     /** @var int */
-    private $timeout = 30;
+    private $timeout = 10800;
 
     /** @var string|null */
     private $caFile;
@@ -38,6 +38,8 @@ class CurlClient extends HttpSocketExtended
     {
         if (isset($params['timeout'])) {
             $this->timeout = $params['timeout'];
+        } else {
+            $this->timeout = Configure::check('MISP.curl_request_timeout') ? Configure::read('MISP.curl_request_timeout') : 10800;
         }
         if (isset($params['ssl_cafile'])) {
             $this->caFile = $params['ssl_cafile'];

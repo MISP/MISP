@@ -5123,6 +5123,14 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'curl_request_timeout' => [
+                    'level' => 1,
+                    'description' => __('Control the timeout of curl requests issued by MISP (during synchronisation, feed fetching, etc.'),
+                    'value' => 10800,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
                 'disable_sighting_loading' => [
                     'level' => 1,
                     'description' => __('If an instance has an extremely high number of sightings, including the sightings in the search algorithms can bring an instance to a grinding halt. Enable this setting to temporarily disable the search until the issue is remedied. This setting will also disable sightings from being attached via /events/view API calls.'),
