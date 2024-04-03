@@ -1241,6 +1241,8 @@ class Sighting extends AppModel
             if (!isset($attributes[$s['attribute_uuid']])) {
                 continue; // attribute doesn't exists or user don't have permission to access it
             }
+            $existingSighting[$s['uuid']] = true; // just to be sure that there are no sigthings with duplicated UUID
+
             list($attributeId, $eventId) = $attributes[$s['attribute_uuid']];
 
             if ($s['type'] === '2') {
@@ -1256,11 +1258,8 @@ class Sighting extends AppModel
             if ($user['Role']['perm_sync']) {
                 if (isset($s['org_id'])) {
                     if ($s['org_id'] != 0 && !empty($s['Organisation'])) {
-                        if (isset($existingOrganisations[$s['Organisation']['uuid']])) {
-                            $saveOnBehalfOf = $existingOrganisations[$s['Organisation']['uuid']];
-                        } else {
-                            $saveOnBehalfOf = $this->Organisation->captureOrg($s['Organisation'], $user);
-                        }
+                        $saveOnBehalfOf = $existingOrganisations[$s['Organisation']['uuid']] ??
+                            $this->Organisation->captureOrg($s['Organisation'], $user);
                     } else {
                         $saveOnBehalfOf = 0;
                     }
@@ -1282,8 +1281,8 @@ class Sighting extends AppModel
         }
 
         if ($this->saveMany($toSave)) {
-            $existingUuids = array_column($toSave, 'uuid');
-            $this->Event->publishSightingsRouter($event['Event']['id'], $user, $passAlong, $existingUuids);
+            $sightingsUuidsToPush = array_column($toSave, 'uuid');
+            $this->Event->publishSightingsRouter($event['Event']['id'], $user, $passAlong, $sightingsUuidsToPush);
             return count($toSave);
         }
 
