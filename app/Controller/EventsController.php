@@ -2414,7 +2414,7 @@ class EventsController extends AppController
                 if (isset($this->params['named']['distribution'])) {
                     $distribution = intval($this->params['named']['distribution']);
                     if (!array_key_exists($distribution, $distributionLevels)) {
-                        throw new MethodNotAllowedException(__('Wrong distribution level'));
+                        throw new BadRequestException(__('Wrong distribution level'));
                     }
                 } else {
                     $distribution = $initialDistribution;
@@ -2422,11 +2422,11 @@ class EventsController extends AppController
                 $sharingGroupId = null;
                 if ($distribution == 4) {
                     if (!isset($this->params['named']['sharing_group_id'])) {
-                        throw new MethodNotAllowedException(__('The sharing group id is needed when the distribution is set to 4 ("Sharing group").'));
+                        throw new BadRequestException(__('The sharing group id is needed when the distribution is set to 4 ("Sharing group").'));
                     }
                     $sharingGroupId = intval($this->params['named']['sharing_group_id']);
                     if (!array_key_exists($sharingGroupId, $sgs)) {
-                        throw new MethodNotAllowedException(__('Please select a valid sharing group id.'));
+                        throw new BadRequestException(__('Please select a valid sharing group id.'));
                     }
                 }
                 $clusterDistribution = $initialDistribution;
@@ -2436,15 +2436,15 @@ class EventsController extends AppController
                     if (isset($this->params['name']['cluster_distribution'])) {
                         $clusterDistribution = intval($this->params['named']['cluster_distribution']);
                         if (!array_key_exists($clusterDistribution, $distributionLevels)) {
-                            throw new MethodNotAllowedException(__('Wrong cluster distribution level'));
+                            throw new BadRequestException(__('Wrong cluster distribution level'));
                         }
                         if ($clusterDistribution == 4) {
                             if (!isset($this->params['named']['cluster_sharing_group_id'])) {
-                                throw new MethodNotAllowedException(__('The cluster sharing group id is needed when the cluster distribution is set to 4 ("Sharing group").'));
+                                throw new BadRequestException(__('The cluster sharing group id is needed when the cluster distribution is set to 4 ("Sharing group").'));
                             }
                             $clusterSharingGroupId = intval($this->params['named']['cluster_sharing_group_id']);
                             if (!array_key_exists($clusterSharingGroupId, $sgs)) {
-                                throw new MethodNotAllowedException(__('Please select a valid cluster sharing group id.'));
+                                throw new BadRequestException(__('Please select a valid cluster sharing group id.'));
                             }
                         }
                     }
@@ -2476,8 +2476,8 @@ class EventsController extends AppController
                 } else {
                     return $this->RestResponse->saveFailResponse('Events', 'upload_stix', false, $result, $this->response->type());
                 }
-            } else {
-                $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : '';
+            } else { // not REST request
+                $originalFile = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : '';
                 if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
                     $filePath = FileAccessTool::createTempFile();
                     if (!move_uploaded_file($this->data['Event']['stix']['tmp_name'], $filePath)) {
@@ -2490,12 +2490,12 @@ class EventsController extends AppController
                         $this->Auth->user(),
                         $filePath,
                         $stix_version,
-                        $original_file,
+                        $originalFile,
                         $this->data['Event']['publish'],
                         $this->data['Event']['distribution'],
                         $this->data['Event']['sharing_group_id'] ?? null,
-                        $this->data['Event']['galaxies_handling'],
-                        $this->data['Event']['cluster_distribution'],
+                        $this->data['Event']['galaxies_handling'] ?? false,
+                        $this->data['Event']['cluster_distribution'] ?? 0,
                         $this->data['Event']['cluster_sharing_group_id'] ?? null,
                         $debug
                     );
