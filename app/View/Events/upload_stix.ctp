@@ -133,8 +133,7 @@ $(function(){
         checkSharingGroup('Event');
     });
     checkSharingGroup('Event');
-});
-$(function(){
+
     $('#EventGalaxiesHandling').change(function() {
         if ($(this).val() == 0) {
             $('#ClusterDistribution').show();
@@ -146,8 +145,7 @@ $(function(){
             $('#ClusterSGContainer').hide();
         }
     }).change();
-});
-$(function(){
+
     $('#EventClusterDistribution').change(function() {
         if ($(this).val() == 4 && $('#EventGalaxiesHandling').val() == 0) {
             $('#ClusterSGContainer').show();

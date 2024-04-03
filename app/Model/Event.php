@@ -6111,7 +6111,7 @@ class Event extends AppModel
 
     /**
      * @param string $stixVersion
-     * @param string $file
+     * @param string $file Path to STIX file
      * @param int $distribution
      * @param int|null $sharingGroupId
      * @param bool $galaxiesAsTags
@@ -6169,6 +6169,7 @@ class Event extends AppModel
         try {
             $stdout = ProcessTool::execute($shellCommand, null, true);
         } catch (ProcessException $e) {
+            $this->logException("Could not import $stixVersion file $file", $e);
             $stdout = $e->stdout();
         }
 
