@@ -1424,7 +1424,7 @@ class Sighting extends AppModel
         try {
             $remoteEvents = $this->Server->getEventIndexFromServer($serverSync);
         } catch (Exception $e) {
-            $this->logException("Could not fetch event IDs from server {$serverSync->server()['Server']['name']}", $e);
+            $this->logException("Could not fetch event IDs from server {$serverSync->serverName()}", $e);
             return 0;
         }
         // Remove events from list that do not have published sightings.

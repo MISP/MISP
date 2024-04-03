@@ -924,13 +924,14 @@ class Server extends AppModel
         $indexFromCache = $redis->get("misp:event_index:{$serverSync->serverId()}");
         if ($indexFromCache) {
             list($etag, $eventIndex) = RedisTool::deserialize(RedisTool::decompress($indexFromCache));
+            unset($indexFromCache);
         } else {
             $etag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
         }
 
         $response = $serverSync->eventIndex($filterRules, $etag);
 
-        if ($response->isNotModified() && $indexFromCache) {
+        if ($response->isNotModified() && isset($eventIndex)) {
             return $eventIndex;
         }
 
@@ -946,7 +947,7 @@ class Server extends AppModel
         if ($etag) {
             $data = RedisTool::compress(RedisTool::serialize([$etag, $eventIndex]));
             $redis->setex("misp:event_index:{$serverSync->serverId()}", 3600 * 24, $data);
-        } elseif ($indexFromCache) {
+        } elseif (isset($eventIndex)) {
             RedisTool::unlink($redis, "misp:event_index:{$serverSync->serverId()}");
         }
 
