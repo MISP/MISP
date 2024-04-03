@@ -1416,7 +1416,8 @@ class EventsController extends AppController
         $exception = false;
         $warningTagConflicts = array();
         $filters = $this->_harvestParameters($filterData, $exception);
-
+        $analystData = $this->Event->attachAnalystData($event['Event']);
+        $event['Event'] = array_merge($event['Event'], $analystData); 
         $emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
         $this->set('emptyEvent', $emptyEvent);
 

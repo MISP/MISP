@@ -42,7 +42,7 @@ class AnalystDataParentBehavior extends ModelBehavior
     }
 
     public function fetchAnalystDataBulk(Model $model, array $uuids, array $types = ['Note', 'Opinion', 'Relationship']) {
-        $uuids = array_chunk($uuids, 10000);
+        $uuids = array_chunk($uuids, 100000);
         if (empty($this->__currentUser)) {
             $user_id = Configure::read('CurrentUserId');
             $this->User = ClassRegistry::init('User');
@@ -65,7 +65,7 @@ class AnalystDataParentBehavior extends ModelBehavior
     public function attachAnalystDataBulk(Model $model, array $objects, array $types = ['Note', 'Opinion', 'Relationship'])
     {
         $uuids = [];
-        $objects = array_chunk($objects, 10000, true);
+        $objects = array_chunk($objects, 100000, true);
         if (empty($this->__currentUser)) {
             $user_id = Configure::read('CurrentUserId');
             $this->User = ClassRegistry::init('User');
