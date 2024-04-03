@@ -377,6 +377,8 @@ class AnalystData extends AppModel
             return $analystData;
         }
         $this->fetchedUUIDFromRecursion[$analystData['uuid']] = true;
+        $this->Note = ClassRegistry::init('Note');
+        $this->Opinion = ClassRegistry::init('Opinion');
 
         $paramsNote = [
             'recursive' => -1,

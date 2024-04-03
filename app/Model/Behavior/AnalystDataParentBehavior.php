@@ -31,6 +31,9 @@ class AnalystDataParentBehavior extends ModelBehavior
             $temp = $this->{$type}->fetchForUuid($object['uuid'], $this->__currentUser);
             if (!empty($temp)) {
                 foreach ($temp as $k => $temp_element) {
+                    if (in_array($type, ['Note', 'Opinion', 'Relationship'])) {
+                        $temp_element[$type] = $this->{$type}->fetchChildNotesAndOpinions($this->__currentUser, $temp_element[$type], 1);
+                    }
                     $data[$type][] = $temp_element[$type];
                 }
             }
