@@ -118,6 +118,7 @@ class Attribute extends AppModel
         'aba-rtn',
         'gender',
         'counter',
+        'integer',
         'float',
         'port',
         'nationality',
@@ -3575,7 +3576,7 @@ class Attribute extends AppModel
             ),
             'Other' => array(
                 'desc' => __('Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future'),
-                'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float', 'hex', 'phone-number', 'boolean', 'anonymised', 'pgp-public-key', 'pgp-private-key')
+                'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'integer', 'datetime', 'cpe', 'port', 'float', 'hex', 'phone-number', 'boolean', 'anonymised', 'pgp-public-key', 'pgp-private-key')
             )
         );
     }
@@ -3728,6 +3729,7 @@ class Attribute extends AppModel
             'dns-soa-email' => array('desc' => __('RFC 1035 mandates that DNS zones should have a SOA (Statement Of Authority) record that contains an email address where a PoC for the domain could be contacted. This can sometimes be used for attribution/linkage between different domains even if protected by whois privacy'), 'default_category' => 'Attribution', 'to_ids' => 0),
             'size-in-bytes' => array('desc' => __('Size expressed in bytes'), 'default_category' => 'Other', 'to_ids' => 0),
             'counter' => array('desc' => __('An integer counter, generally to be used in objects'), 'default_category' => 'Other', 'to_ids' => 0),
+            'integer' => array('desc' => __('A generic integer generally to be used in objects'), 'default_category' => 'Other', 'to_ids' => 0),
             'datetime' => array('desc' => __('Datetime in the ISO 8601 format'), 'default_category' => 'Other', 'to_ids' => 0),
             'port' => array('desc' => __('Port number'), 'default_category' => 'Network activity', 'to_ids' => 0),
             'ip-dst|port' => array('desc' => __('IP destination and port number separated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
