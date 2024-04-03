@@ -58,8 +58,8 @@ $objectId = intval($object['id']);
             'object_type' => 'Attribute',
             'notes' => $notes,
             'opinions' => $opinions,
-            'relationships_outbound' => $relationships,
-            'relationships_inbound' => $relationshipsInbound,
+            'relationships' => $relationships,
+            'relationshipsInbound' => $relationshipsInbound,
         ]);
       ?>
       </td>
