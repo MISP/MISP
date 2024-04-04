@@ -1447,7 +1447,7 @@ class Sighting extends AppModel
             return 0;
         }
 
-        //$this->removeFetched($serverSync->serverId(), $eventUuids);
+        $this->removeFetched($serverSync->serverId(), $eventUuids);
         if (empty($eventUuids)) {
             return 0;
         }
