@@ -646,6 +646,12 @@ class ACLComponent extends Component
                 'removeOrg' => array('perm_sharing_group'),
                 'view' => array('*'),
             ),
+            'sightingBlocklists' => [
+                'index' => [],
+                'add' => [],
+                'delete' => [],
+                'edit' => []
+            ],
             'sightings' => array(
                 'add' => array('perm_sighting'),
                 'restSearch' => array('*'),
