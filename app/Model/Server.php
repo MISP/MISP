@@ -5722,6 +5722,13 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'test' => 'testBool'
                 ),
+                'enableSightingBlocklisting' => array(
+                    'level' => 1,
+                    'description' => __('Blocklisting organisation UUIDs to prevent the creation of any sightings created by the blocklisted organisation.'),
+                    'value' => true,
+                    'type' => 'boolean',
+                    'test' => 'testBool'
+                ),
                 'log_client_ip' => array(
                     'level' => 1,
                     'description' => __('If enabled, all log entries will include the IP address of the user.'),
