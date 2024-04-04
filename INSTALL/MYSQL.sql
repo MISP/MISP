@@ -1428,7 +1428,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- Table structure for table `user_login_profiles`
 --
 
-CREATE TABLE `user_login_profiles` (
+CREATE TABLE IF NOT EXISTS `user_login_profiles` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `user_id` int(11) NOT NULL,
