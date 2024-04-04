@@ -25,6 +25,8 @@ class Sighting extends AppModel
 
     public $recursive = -1;
 
+    private $__blockedOrgs = null;
+
     public $actsAs = array(
             'Containable',
     );
@@ -71,6 +73,16 @@ class Sighting extends AppModel
             $this->data['Sighting']['uuid'] = CakeText::uuid();
         } else {
             $this->data['Sighting']['uuid'] = strtolower($this->data['Sighting']['uuid']);
+        }
+        if ($this->__blockedOrgs === null) {
+            $SightingBlocklist = ClassRegistry::init('SightingBlocklist');
+            $this->__blockedOrgs = $SightingBlocklist->find('column', [
+                'recursive' => -1,
+                'fields' => ['org_uuid']
+            ]);
+        }
+        if (!empty($this->data['Sighting']['org_uuid']) && in_array($this->data['Sighting']['org_uuid'], $this->__blockedOrgs)) {
+            return false;
         }
         return true;
     }
@@ -1413,20 +1425,17 @@ class Sighting extends AppModel
             $this->logException("Could not fetch event IDs from server {$serverSync->server()['Server']['name']}", $e);
             return 0;
         }
-
         // Remove events from list that do not have published sightings.
         foreach ($remoteEvents as $k => $remoteEvent) {
             if ($remoteEvent['sighting_timestamp'] == 0) {
                 unset($remoteEvents[$k]);
             }
         }
-
         // Downloads sightings just from events that exists locally and remote sighting_timestamp is newer than local.
         $localEvents = $this->Event->find('list', [
             'fields' => ['Event.uuid', 'Event.sighting_timestamp'],
             'conditions' => (count($remoteEvents) > 10000) ? [] : ['Event.uuid' => array_column($remoteEvents, 'uuid')],
         ]);
-
         $eventUuids = [];
         foreach ($remoteEvents as $remoteEvent) {
             if (isset($localEvents[$remoteEvent['uuid']]) && $localEvents[$remoteEvent['uuid']] < $remoteEvent['sighting_timestamp']) {
@@ -1434,12 +1443,11 @@ class Sighting extends AppModel
             }
         }
         unset($remoteEvents, $localEvents);
-
         if (empty($eventUuids)) {
             return 0;
         }
 
-        $this->removeFetched($serverSync->serverId(), $eventUuids);
+        //$this->removeFetched($serverSync->serverId(), $eventUuids);
         if (empty($eventUuids)) {
             return 0;
         }
@@ -1472,7 +1480,6 @@ class Sighting extends AppModel
                 $this->logException("Failed to download sightings from remote server {$serverSync->server()['Server']['name']}.", $e);
                 continue;
             }
-
             $sightingsToSave = [];
             foreach ($sightings as $sighting) {
                 $sighting = $sighting['Sighting'];
