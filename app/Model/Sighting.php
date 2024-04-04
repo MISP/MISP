@@ -1101,20 +1101,30 @@ class Sighting extends AppModel
                 $filters['org_id'] = array($filters['org_id']);
             }
             foreach ($filters['org_id'] as $k => $org_id) {
+                $negation = false;
+                if (is_string($org_id) && $org_id[0] === '!') {
+                    $negation = true;
+                    $org_id = substr($org_id, 1);
+                }
                 if (Validation::uuid($org_id)) {
                     $org = $this->Organisation->find('first', array(
                         'conditions' => array('Organisation.uuid' => $org_id),
                         'recursive' => -1,
                         'fields' => array('Organisation.id'),
                     ));
-                    if (empty($org)) {
-                        $filters['org_id'][$k] = -1;
-                    } else {
-                        $filters['org_id'][$k] = $org['Organisation']['id'];
+                    if (!empty($org)) {
+                        $temp = $org['Organisation']['id'];
                     }
                 }
+                if ($negation) {
+                    $conditions['Sighting.org_id'][] = $temp;
+                } else {
+                    $conditions['Sighting.org_id NOT IN'][] = $temp;
+                }
+                if (empty($conditions['Sighting.org_id']) && empty($conditions['Sighting.org_id NOT IN'])) {
+                    $conditions['Sighting.org_id'] = -1;
+                }
             }
-            $conditions['Sighting.org_id'] = $filters['org_id'];
         }
 
         if (isset($filters['source'])) {
