@@ -304,12 +304,24 @@ class ServerSyncTool
      */
     public function fetchSightingsForEvents(array $eventUuids)
     {
-        return $this->post('/sightings/restSearch/event', [
+        $SightingBlocklist = ClassRegistry::init('SightingBlocklist');
+        $blocked_sightings = $SightingBlocklist->find('column', [
+            'recursive' => -1,
+            'fields' => ['org_uuid']
+        ]);
+        foreach ($blocked_sightings as $k => $uuid) {
+            $blocked_sightings[$k] = '!' . $uuid;
+        }
+        $postParams = [
             'returnFormat' => 'json',
             'last' => 0, // fetch all
             'includeUuid' => true,
             'uuid' => $eventUuids,
-        ])->json()['response'];
+        ];
+        if (!empty($blocked_sightings)) {
+            $postParams['org_id'] = $blocked_sightings;
+        }
+        return $this->post('/sightings/restSearch/event', $postParams)->json()['response'];
     }
 
     /**

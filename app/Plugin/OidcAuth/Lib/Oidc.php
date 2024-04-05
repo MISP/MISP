@@ -227,13 +227,13 @@ class Oidc
         $roleProperty = $this->getConfig('roles_property', 'roles');
         $roles = $claims->{$roleProperty} ?? $oidc->requestUserInfo($roleProperty);
         if ($roles === null) {
-            $this->log($user['email'], "Role property `$roleProperty` is missing in claims.");
+            $this->log($user['email'], "Role property `$roleProperty` is missing in claims.", LOG_ERR);
             return false;
         }
 
         $roleId = $this->getUserRole($roles, $user['email']);
         if ($roleId === null) {
-            $this->log($user['email'], 'No role was assigned.');
+            $this->log($user['email'], 'No role was assigned.', LOG_WARNING);
             return false;
         }
 
@@ -244,14 +244,20 @@ class Oidc
 
         // Check user org
         $organisationProperty = $this->getConfig('organisation_property', 'organization');
-        $organisationName = $claims->{$organisationProperty} ?? $this->getConfig('default_org');
+        $organisationName = $claims->{$organisationProperty} ?? null;
 
         $organisationUuidProperty = $this->getConfig('organisation_uuid_property', 'organization_uuid');
         $organisationUuid = $claims->{$organisationUuidProperty} ?? null;
 
         $organisationId = $this->checkOrganization($organisationName, $organisationUuid, $user['email']);
         if (!$organisationId) {
-            return false;
+            $defaultOrganisationId = $this->defaultOrganisationId();
+            if ($defaultOrganisationId) {
+                $organisationId = $defaultOrganisationId;
+            } else {
+                $this->log($user['email'], 'No organisation was assigned.', LOG_WARNING);
+                return false;
+            }
         }
 
         if ($update && $user['org_id'] != $organisationId) {
@@ -406,11 +412,11 @@ class Oidc
         ]);
         if (empty($orgAux)) {
             if (is_numeric($defaultOrgName)) {
-                $this->log(null, "Could not find default organisation with ID `$defaultOrgName`.");
+                $this->log(null, "Could not find default organisation with ID `$defaultOrgName`.", LOG_ERR);
             } else if (Validation::uuid($defaultOrgName)) {
-                $this->log(null, "Could not find default organisation with UUID `$defaultOrgName`.");
+                $this->log(null, "Could not find default organisation with UUID `$defaultOrgName`.", LOG_ERR);
             } else {
-                $this->log(null, "Could not find default organisation with name `$defaultOrgName`.");
+                $this->log(null, "Could not find default organisation with name `$defaultOrgName`.", LOG_ERR);
             }
             return false;
         }

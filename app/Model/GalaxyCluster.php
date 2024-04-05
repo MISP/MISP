@@ -197,7 +197,7 @@ class GalaxyCluster extends AppModel
      */
     public function arrangeData($cluster)
     {
-        $models = array('Galaxy', 'SharingGroup', 'GalaxyElement', 'GalaxyClusterRelation', 'Org', 'Orgc', 'TargetingClusterRelation', 'Note', 'Opinion', 'Relationship');
+        $models = array('Galaxy', 'SharingGroup', 'GalaxyElement', 'GalaxyClusterRelation', 'Org', 'Orgc', 'TargetingClusterRelation', 'Note', 'Opinion', 'Relationship', 'RelationshipInbound');
         foreach ($models as $model) {
             if (isset($cluster[$model])) {
                 $cluster['GalaxyCluster'][$model] = $cluster[$model];

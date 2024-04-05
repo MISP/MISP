@@ -7,7 +7,7 @@ class CurlClient extends HttpSocketExtended
     private $ch;
 
     /** @var int */
-    private $timeout = 30;
+    private $timeout = 10800;
 
     /** @var string|null */
     private $caFile;
@@ -38,6 +38,8 @@ class CurlClient extends HttpSocketExtended
     {
         if (isset($params['timeout'])) {
             $this->timeout = $params['timeout'];
+        } else {
+            $this->timeout = Configure::check('MISP.curl_request_timeout') ? Configure::read('MISP.curl_request_timeout') : 10800;
         }
         if (isset($params['ssl_cafile'])) {
             $this->caFile = $params['ssl_cafile'];
@@ -271,16 +273,6 @@ class CurlClient extends HttpSocketExtended
      */
     private function constructResponse($body, array $headers, $code)
     {
-        if (isset($responseHeaders['content-encoding']) && $responseHeaders['content-encoding'] === 'zstd') {
-            if (!function_exists('zstd_uncompress')) {
-                throw new SocketException('Response is zstd encoded, but PHP do not support zstd decoding.');
-            }
-            $body = zstd_uncompress($body);
-            if ($body === false) {
-                throw new SocketException('Could not decode zstd encoded response.');
-            }
-        }
-
         $response = new HttpSocketResponseExtended();
         $response->code = $code;
         $response->body = $body;
@@ -319,7 +311,7 @@ class CurlClient extends HttpSocketExtended
             CURLOPT_RETURNTRANSFER => true, // Should cURL return or print out the data? (true = return, false = print)
             CURLOPT_HEADER => false, // Include header in result?
             CURLOPT_TIMEOUT => $this->timeout, // Timeout in seconds
-            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP, // be sure that only HTTP and HTTPS protocols are enabled,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP, // be sure that only HTTP and HTTPS protocols are enabled
         ];
 
         if ($this->caFile) {
@@ -335,7 +327,7 @@ class CurlClient extends HttpSocketExtended
         }
 
         if ($this->compress) {
-            $options[CURLOPT_ACCEPT_ENCODING] = $this->supportedEncodings();
+            $options[CURLOPT_ACCEPT_ENCODING] = ''; // empty string means all encodings supported by curl
         }
 
         if ($this->allowSelfSigned) {
@@ -351,26 +343,5 @@ class CurlClient extends HttpSocketExtended
         }
 
         return $options;
-    }
-
-    /**
-     * @return string
-     */
-    private function supportedEncodings()
-    {
-        $encodings = [];
-        // zstd is not supported by curl itself, but add support if PHP zstd extension is installed
-        if (function_exists('zstd_uncompress')) {
-            $encodings[] = 'zstd';
-        }
-        // brotli and gzip is supported by curl itself if it is compiled with these features
-        $info = curl_version();
-        if (defined('CURL_VERSION_BROTLI') && $info['features'] & CURL_VERSION_BROTLI) {
-            $encodings[] = 'br';
-        }
-        if ($info['features'] & CURL_VERSION_LIBZ) {
-            $encodings[] = 'gzip, deflate';
-        }
-        return implode(', ', $encodings);
     }
 }

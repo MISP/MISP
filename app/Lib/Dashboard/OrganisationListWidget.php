@@ -78,4 +78,3 @@ class OrganisationListWidget
         return ['data' => $results];
     }
 }
-?>

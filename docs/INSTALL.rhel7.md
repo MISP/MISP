@@ -411,7 +411,9 @@ apacheConfig_RHEL7 () {
   #sudo sed -i "s/SetHandler/\#SetHandler/g" /etc/httpd/conf.d/misp.ssl.conf
   sudo rm /etc/httpd/conf.d/ssl.conf
   sudo chmod 644 /etc/httpd/conf.d/misp.ssl.conf
-  sudo sed -i '/Listen 443/!s/Listen 80/a Listen 443/' /etc/httpd/conf/httpd.conf
+  if ! grep -x "Listen 443" /etc/httpd/conf/httpd.conf; then
+  sudo sed -i '/Listen 80/a Listen 443' /etc/httpd/conf/httpd.conf
+  fi
 
   # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
   echo "The Common Name used below will be: ${OPENSSL_CN}"

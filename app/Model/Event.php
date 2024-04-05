@@ -5587,6 +5587,7 @@ class Event extends AppModel
             $passedArgs['page'] = 0;
         }
         $params = $customPagination->applyRulesOnArray($objects, $passedArgs, 'events', 'category');
+        $objects = $this->attachAnalystDataToViewObjects($objects);
         foreach ($objects as $k => $object) {
             if (isset($referencedByArray[$object['uuid']])) {
                 foreach ($referencedByArray[$object['uuid']] as $objectType => $references) {
@@ -5597,6 +5598,44 @@ class Event extends AppModel
         $event['objects'] = $objects;
         $params['total_elements'] = count($objects);
         return $params;
+    }
+
+    // take a list of paginated, rearranged objects from the event view generation's viewUI() function
+    // collect all attribute and object uuids from the object list
+    // fetch the related analyst data and inject them back into the object list
+    public function attachAnalystDataToViewObjects($objects)
+    {
+        $attribute_notes = [];
+        $object_notes = [];
+        foreach ($objects as $k => $object) {
+            if ($object['objectType'] === 'object') {
+                $object_notes[] = $object['uuid'];
+                foreach ($object['Attribute'] as $a) {
+                    $attribute_notes[] = $a['uuid'];
+                }
+            } else if ($object['objectType'] === 'attribute') {
+                $attribute_notes[] = $object['uuid'];
+            }
+        }
+        $attribute_notes = $this->Attribute->fetchAnalystDataBulk($attribute_notes);
+        $object_notes = $this->Object->fetchAnalystDataBulk($object_notes);
+        foreach ($objects as $k => $object) {
+            if ($object['objectType'] === 'object') {
+                if (!empty($object_notes[$object['uuid']])) {
+                    $objects[$k] = array_merge($object, $object_notes[$object['uuid']]);
+                }
+                foreach ($object['Attribute'] as $k2 => $a) {
+                    if (!empty($attribute_notes[$a['uuid']])) {
+                        $objects[$k]['Attribute'][$k2] = array_merge($a, $attribute_notes[$a['uuid']]);
+                    }
+                }
+            } else if ($object['objectType'] === 'attribute') {
+                if (!empty($attribute_notes[$object['uuid']])) {
+                    $objects[$k] = array_merge($object, $attribute_notes[$object['uuid']]);
+                }
+            }
+        }
+        return $objects;
     }
 
     // pass along a json from the server filter rules
@@ -6072,7 +6111,7 @@ class Event extends AppModel
 
     /**
      * @param string $stixVersion
-     * @param string $file
+     * @param string $file Path to STIX file
      * @param int $distribution
      * @param int|null $sharingGroupId
      * @param bool $galaxiesAsTags
@@ -6130,6 +6169,7 @@ class Event extends AppModel
         try {
             $stdout = ProcessTool::execute($shellCommand, null, true);
         } catch (ProcessException $e) {
+            $this->logException("Could not import $stixVersion file $file", $e);
             $stdout = $e->stdout();
         }
 

@@ -185,7 +185,7 @@ class AnalystData extends AppModel
 
     public function getEditableFields(): array
     {
-        return array_merge(self::BASE_EDITABLE_FIELDS, static::EDITABLE_FIELDS);
+        return array_merge(self::BASE_EDITABLE_FIELDS, $this->EDITABLE_FIELDS);
     }
 
     /**
@@ -377,6 +377,8 @@ class AnalystData extends AppModel
             return $analystData;
         }
         $this->fetchedUUIDFromRecursion[$analystData['uuid']] = true;
+        $this->Note = ClassRegistry::init('Note');
+        $this->Opinion = ClassRegistry::init('Opinion');
 
         $paramsNote = [
             'recursive' => -1,

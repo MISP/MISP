@@ -583,7 +583,7 @@ class Server extends AppModel
         try {
             $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $response);
         } catch (Exception $e) {
-            $title = __('Pulling an event (#%s) from Server #%s has failed. The sync process was not interrupted.', $eventId, $serverSync->server()['id']);
+            $title = __('Pulling an event (#%s) from Server #%s has failed. The sync process was not interrupted.', $eventId, $serverSync->serverId());
             $this->loadLog()->createLogEntry(
                 $user,
                 'error',
@@ -5123,6 +5123,14 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'curl_request_timeout' => [
+                    'level' => 1,
+                    'description' => __('Control the timeout of curl requests issued by MISP (during synchronisation, feed fetching, etc.'),
+                    'value' => 10800,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
                 'disable_sighting_loading' => [
                     'level' => 1,
                     'description' => __('If an instance has an extremely high number of sightings, including the sightings in the search algorithms can bring an instance to a grinding halt. Enable this setting to temporarily disable the search until the issue is remedied. This setting will also disable sightings from being attached via /events/view API calls.'),
@@ -5710,6 +5718,13 @@ class Server extends AppModel
                 'enableOrgBlocklisting' => array(
                     'level' => 1,
                     'description' => __('Blocklisting organisation UUIDs to prevent the creation of any event created by the blocklisted organisation.'),
+                    'value' => true,
+                    'type' => 'boolean',
+                    'test' => 'testBool'
+                ),
+                'enableSightingBlocklisting' => array(
+                    'level' => 1,
+                    'description' => __('Blocklisting organisation UUIDs to prevent the creation of any sightings created by the blocklisted organisation.'),
                     'value' => true,
                     'type' => 'boolean',
                     'test' => 'testBool'

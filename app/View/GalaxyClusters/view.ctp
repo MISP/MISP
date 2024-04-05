@@ -66,6 +66,7 @@ $table_data[] = [
             'notes_path' => 'GalaxyCluster.Note',
             'opinions_path' => 'GalaxyCluster.Opinion',
             'relationships_path' => 'GalaxyCluster.Relationship',
+            'relationshipsInbound_path' => 'GalaxyCluster.RelationshipInbound',
         ]
     ],
 ];
@@ -176,7 +177,8 @@ $options = [
     'shortDist' => $shortDist,
     'notes' => $cluster['GalaxyCluster']['Note'] ?? [],
     'opinions' => $cluster['GalaxyCluster']['Opinion'] ?? [],
-    'relationships' => $cluster['GalaxyCluster']['Relationship'] ?? [],
+    'relationships_outbound' => $cluster['GalaxyCluster']['Relationship'] ?? [],
+    'relationships_inbound' => $cluster['GalaxyCluster']['RelationshipInbound'] ?? [],
 ];
 
 echo $this->element('genericElements/Analyst_data/thread', $options);

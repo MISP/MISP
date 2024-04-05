@@ -32,4 +32,3 @@ class OrgsUsingMitreWidget extends OrgsContributorsGeneric
         return count($events) > 0;
     }
 }
-?>

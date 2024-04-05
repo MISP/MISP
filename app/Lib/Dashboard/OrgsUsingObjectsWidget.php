@@ -25,4 +25,3 @@ class OrgsUsingObjectsWidget extends OrgsContributorsGeneric
         return count($eventsIds) > 0;
     }
 }
-?>

@@ -7776,6 +7776,63 @@
                 "extra": ""
             }
         ],
+        "sighting_blocklists": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "org_uuid",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8mb3_bin",
+                "column_type": "varchar(40)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "created",
+                "is_nullable": "NO",
+                "data_type": "datetime",
+                "character_maximum_length": null,
+                "numeric_precision": null,
+                "collation_name": null,
+                "column_type": "datetime",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "org_name",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8mb3_bin",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "comment",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb3_unicode_ci",
+                "column_type": "text",
+                "column_default": "NULL",
+                "extra": ""
+            }
+        ],
         "system_settings": [
             {
                 "column_name": "setting",
@@ -10426,6 +10483,11 @@
             "type": false,
             "uuid": true
         },
+        "sighting_blocklists": {
+            "id": true,
+            "org_name": false,
+            "org_uuid": false
+        },
         "system_settings": {
             "setting": true
         },
@@ -10541,5 +10603,5 @@
             "uuid": false
         }
     },
-    "db_version": "123"
+    "db_version": "124"
 }

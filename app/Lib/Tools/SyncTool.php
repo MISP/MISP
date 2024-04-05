@@ -82,7 +82,9 @@ class SyncTool
             }
             $params['ssl_crypto_method'] = $version;
         }
-
+        if (!isset($params['timeout'])) {
+            $params['timeout'] = Configure::check('MISP.curl_request_timeout') ? Configure::read('MISP.curl_request_timeout') : 10800;
+        }
         if (function_exists('curl_init')) {
             App::uses('CurlClient', 'Tools');
             $HttpSocket = new CurlClient($params);
