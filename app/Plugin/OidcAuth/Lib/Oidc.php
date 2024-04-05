@@ -69,7 +69,12 @@ class Oidc
         }
 
         $roleProperty = $this->getConfig('roles_property', 'roles');
-        $roles = $claims->{$roleProperty} ?? $oidc->requestUserInfo($roleProperty);
+        try {
+            $roles = $claims->{$roleProperty} ?? $oidc->requestUserInfo($roleProperty);
+        } catch (JakubOnderka\OpenIDConnectClientException $e) {
+            $this->log(null, "Could not get roles from $$roleProperty , using default");
+            $roles = array($this->getConfig('default_role'));
+        }
         if ($roles === null) {
             $this->log($mispUsername, "Role property `$roleProperty` is missing in claims, access prohibited.", LOG_WARNING);
             return false;
