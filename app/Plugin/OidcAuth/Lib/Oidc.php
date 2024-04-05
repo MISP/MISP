@@ -50,7 +50,7 @@ class Oidc
         }
 
         $organisationProperty = $this->getConfig('organisation_property', 'organization');
-        $organisationName = $claims->{$organisationProperty} ?? null;
+        $organisationName = $claims->{$organisationProperty} ?? $this->getConfig('default_org');
 
         $organisationUuidProperty = $this->getConfig('organisation_uuid_property', 'organization_uuid');
         $organisationUuid = $claims->{$organisationUuidProperty} ?? null;
