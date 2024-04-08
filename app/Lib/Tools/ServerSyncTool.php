@@ -297,29 +297,24 @@ class ServerSyncTool
 
     /**
      * @param array $eventUuids
+     * @param array $blockedOrgs Blocked organisation UUIDs
      * @return array
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function fetchSightingsForEvents(array $eventUuids)
+    public function fetchSightingsForEvents(array $eventUuids, array $blockedOrgs = [])
     {
-        $SightingBlocklist = ClassRegistry::init('SightingBlocklist');
-        $blocked_sightings = $SightingBlocklist->find('column', [
-            'recursive' => -1,
-            'fields' => ['org_uuid']
-        ]);
-        foreach ($blocked_sightings as $k => $uuid) {
-            $blocked_sightings[$k] = '!' . $uuid;
-        }
         $postParams = [
             'returnFormat' => 'json',
             'last' => 0, // fetch all
             'includeUuid' => true,
             'uuid' => $eventUuids,
         ];
-        if (!empty($blocked_sightings)) {
-            $postParams['org_id'] = $blocked_sightings;
+        if (!empty($blockedOrgs)) {
+            $postParams['org_id'] = array_map(function ($uuid) {
+                return "!$uuid";
+            }, $blockedOrgs);
         }
         return $this->post('/sightings/restSearch/event', $postParams)->json()['response'];
     }
