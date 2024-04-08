@@ -755,8 +755,8 @@ class EventsController extends AppController
         if ($nothing) {
             $this->paginate['conditions']['AND'][] = ['Event.id' => -1]; // do not fetch any event
         }
-        $this->Event->includeAnalystData = true;
-        $this->paginate['includeAnalystData'] = true;
+        $this->Event->includeAnalystData = isset($passedArgs['includeAnalystData']) ? $passedArgs['includeAnalystData'] : false;
+        $this->paginate['includeAnalystData'] = isset($passedArgs['includeAnalystData']) ? $passedArgs['includeAnalystData'] : false;
         $events = $this->paginate();
 
         if (count($events) === 1 && isset($this->passedArgs['searchall'])) {
@@ -812,7 +812,7 @@ class EventsController extends AppController
             $rules = [
                 'contain' => ['EventTag'],
                 'fields' => array_keys($fieldNames),
-                'includeAnalystData' => isset($passedArgs['includeAnalystData']) ? $passedArgs['includeAnalystData'] : true,
+                'includeAnalystData' => isset($passedArgs['includeAnalystData']) ? $passedArgs['includeAnalystData'] : false,
             ];
         }
         if (isset($passedArgs['sort']) && isset($fieldNames[$passedArgs['sort']])) {
