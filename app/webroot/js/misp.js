@@ -5411,7 +5411,6 @@ function submitDashboardAddWidget() {
                 }
             );
             $('#widget_' + (k+1)).attr('config', config);
-            saveDashboardState();
             $('#last-element-counter').data('element-counter', (k+1));
         },
         complete: function(data) {
