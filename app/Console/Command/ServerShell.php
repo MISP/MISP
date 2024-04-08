@@ -145,6 +145,10 @@ class ServerShell extends AppShell
         if (!empty($this->args[4]) && $this->args[4] === 'force') {
             $force = true;
         }
+
+        // Try to enable garbage collector as pulling events can use a lot of memory
+        gc_enable();
+
         try {
             $result = $this->Server->pull($user, $technique, $server, $jobId, $force);
             if (is_array($result)) {
