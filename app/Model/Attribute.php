@@ -1142,29 +1142,36 @@ class Attribute extends AppModel
         }
         $temp = array();
         if (!empty($tagArray[1])) {
-            if ($options['scope'] == 'all' || $options['scope'] == 'Event') {
-                $subquery_options = array(
-                    'conditions' => array(
-                        'tag_id' => $tagArray[1]
-                    ),
-                    'fields' => array(
-                        'event_id'
-                    )
-                );
-                $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
-                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field, 1));
-            }
-            if ($options['scope'] == 'all' || $options['scope'] == 'Attribute') {
-                $subquery_options = array(
-                    'conditions' => array(
-                        'tag_id' => $tagArray[1]
-                    ),
-                    'fields' => array(
-                        $options['scope'] === 'Event' ? 'event.id' : 'attribute_id'
-                    )
-                );
-                $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
-                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field, 1));
+            /* 
+             * If we didn't find the given negation tag, no need to use the -1 trick,
+             * it is basically a hack to block the search from finding anything if no positive lookup was valid.
+             * However, if none of the negated tags exist, there's nothing to filter here
+             */
+            if (count($tagArray[1]) !== 1 || $tagArray[1][0] != -1) {
+                if ($options['scope'] == 'all' || $options['scope'] == 'Event') {
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $tagArray[1]
+                        ),
+                        'fields' => array(
+                            'event_id'
+                        )
+                    );
+                    $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
+                    $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field, 1));
+                }
+                if ($options['scope'] == 'all' || $options['scope'] == 'Attribute') {
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $tagArray[1]
+                        ),
+                        'fields' => array(
+                            $options['scope'] === 'Event' ? 'event.id' : 'attribute_id'
+                        )
+                    );
+                    $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+                    $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field, 1));
+                }
             }
         }
         $temp = array();
