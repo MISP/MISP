@@ -923,8 +923,10 @@ class Server extends AppModel
         $redis = RedisTool::init();
         $indexFromCache = $redis->get("misp:event_index:{$serverSync->serverId()}");
         if ($indexFromCache) {
-            list($etag, $eventIndex) = RedisTool::deserialize(RedisTool::decompress($indexFromCache));
+            $indexFromCache = RedisTool::decompress($indexFromCache);
+            list($etag, $eventIndex) = RedisTool::deserialize($indexFromCache);
             unset($indexFromCache);
+            $serverSync->debug("Event index loaded from Redis cache with etag $etag containing " . count($eventIndex) . ' events');
         } else {
             $etag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
         }
@@ -935,7 +937,9 @@ class Server extends AppModel
             return $eventIndex;
         }
 
+        unset($eventIndex);
         $eventIndex = $response->json();
+        unset($response->body); // remove response that can take a lot of memory
 
         // correct $eventArray if just one event, probably this response returns old MISP
         if (isset($eventIndex['id'])) {
@@ -945,6 +949,7 @@ class Server extends AppModel
         // Save to cache for 24 hours if ETag provided
         $etag = $response->getHeader('etag');
         if ($etag) {
+            $serverSync->debug("Event index from remote server has different etag $etag, saving to cache");
             $data = RedisTool::compress(RedisTool::serialize([$etag, $eventIndex]));
             $redis->setex("misp:event_index:{$serverSync->serverId()}", 3600 * 24, $data);
         } elseif (isset($eventIndex)) {
