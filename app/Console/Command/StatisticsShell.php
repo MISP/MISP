@@ -303,10 +303,10 @@ class StatisticsShell extends AppShell {
         $this->out(json_encode([
             'events' => $this->Event->find('count'),
             'attributes' => $this->Event->Attribute->find('count',
-                ['conditions' => ['Attribute.deleted' => 0], 'recursive' => -1]
+                ['recursive' => -1]
             ),
             'objects' => $this->Event->Object->find('count',
-                ['conditions' => ['Object.deleted' => 0], 'recursive' => -1]
+                ['recursive' => -1]
             ),
             'correlations' => $this->Correlation->find('count') / 2,
             'users' => $this->User->find('count',
