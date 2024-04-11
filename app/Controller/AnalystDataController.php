@@ -320,6 +320,11 @@ class AnalystDataController extends AppController
                 $this->AnalystData = $this->{$vt};
                 $this->modelClass = $vt;
                 $this->{$vt}->current_user = $this->Auth->user();
+                if (!empty($this->request->data)) {
+                    if (!isset($this->request->data[$type])) {
+                        $this->request->data = [$type => $this->request->data];
+                    }
+                }
                 return $vt;
             }
         }
