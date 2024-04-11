@@ -2071,7 +2071,7 @@ class UsersController extends AppController
 
         $stats['attribute_count'] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.deleted' => 0), 'recursive' => -1));
         $stats['attribute_count_month'] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => 0), 'recursive' => -1));
-        $stats['attributes_per_event'] = round($stats['attribute_count'] / $stats['event_count']);
+        $stats['attributes_per_event'] = $stats['event_count'] != 0 ? round($stats['attribute_count'] / $stats['event_count']) : 0;
 
         $stats['correlation_count'] = $this->User->Event->Attribute->Correlation->find('count', array('recursive' => -1));
 
@@ -2082,7 +2082,7 @@ class UsersController extends AppController
         $stats['org_count'] = count($orgs);
         $stats['local_org_count'] = $local_orgs_count;
         $stats['contributing_org_count'] = $this->User->Event->find('count', array('recursive' => -1, 'group' => array('Event.orgc_id')));
-        $stats['average_user_per_org'] = round($stats['user_count'] / $stats['local_org_count'], 1);
+        $stats['average_user_per_org'] = $stats['local_org_count'] != 0 ?  round($stats['user_count'] / $stats['local_org_count'], 1) : 0;
 
         $this->loadModel('Thread');
         $stats['thread_count'] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0), 'recursive' => -1));
