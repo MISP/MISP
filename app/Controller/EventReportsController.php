@@ -213,10 +213,13 @@ class EventReportsController extends AppController
 
     public function extractAllFromReport($reportId)
     {
-        if (!$this->request->is('ajax')) {
+        if (!$this->request->is('ajax') && !$this->_isRest()) {
             throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
         }
         if ($this->request->is('post')) {
+            if (!isset($this->data['EventReport'])) {
+                $this->data = ['EventReport' => $this->data];
+            }
             $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'edit', $throwErrors=true, $full=false);
             $results = $this->EventReport->getComplexTypeToolResultWithReplacements($this->Auth->user(), $report);
             $report['EventReport']['content'] = $results['replacementResult']['contentWithReplacements'];
