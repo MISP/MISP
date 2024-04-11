@@ -43,7 +43,7 @@ class AnalystData extends AppModel
         'distribution',
         'sharing_group_id',
     ];
-    protected $EDITABLE_FIELDS = [];
+    public const EDITABLE_FIELDS = [];
 
     /** @var object|null */
     protected $Note;
@@ -185,7 +185,7 @@ class AnalystData extends AppModel
 
     public function getEditableFields(): array
     {
-        return array_merge(self::BASE_EDITABLE_FIELDS, $this->EDITABLE_FIELDS);
+        return array_merge(static::BASE_EDITABLE_FIELDS, static::EDITABLE_FIELDS);
     }
 
     /**
