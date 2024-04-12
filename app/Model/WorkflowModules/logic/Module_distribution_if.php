@@ -5,7 +5,7 @@ class Module_distribution_if extends WorkflowBaseLogicModule
 {
     public $id = 'distribution-if';
     public $name = 'IF :: Distribution';
-    public $version = '0.2';
+    public $version = '0.3';
     public $description = 'Distribution IF / ELSE condition block. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used.';
     public $icon = 'code-branch';
     public $inputs = 1;
@@ -103,12 +103,15 @@ class Module_distribution_if extends WorkflowBaseLogicModule
             $final_sharing_group = $this->__extractSharingGroupIDs(
                 $data['Event'],
                 $data['Event']['Attribute'][0]['Object'] ?? [],
-                $data['Event']['Attribute'][0]
+                $data['Event']['Attribute'][0],
+                $scope
             );
             if ($operator == 'equals') {
-                return !array_diff($final_sharing_group, $selected_sharing_groups); // All sharing groups are in the selection
+                return empty($selected_sharing_groups) ? !empty($final_sharing_group) :
+                    !array_diff($final_sharing_group, $selected_sharing_groups); // All sharing groups are in the selection
             } else if ($operator == 'not_equals') {
-                return count(array_diff($final_sharing_group, $selected_sharing_groups)) == count($final_sharing_group); // All sharing groups are in the selection
+                return empty($selected_sharing_groups) ? empty($final_sharing_group) :
+                    count(array_diff($final_sharing_group, $selected_sharing_groups)) == count($final_sharing_group); // All sharing groups are in the selection
             }
             $errors[] = __('Condition operator not supported for that distribution level');
             return false;
@@ -159,9 +162,15 @@ class Module_distribution_if extends WorkflowBaseLogicModule
         return min($distri1, $distri2);
     }
 
-    private function __extractSharingGroupIDs(array $event, array $object=[], array $attribute=[]): array
+    private function __extractSharingGroupIDs(array $event, array $object=[], array $attribute=[], $scope='event'): array
     {
         $sgIDs = [];
+        if ($scope == 'event') {
+            if (!empty($event) && $event['distribution'] == 4) {
+                $sgIDs[] = $event['sharing_group_id'];
+            }
+            return $sgIDs;
+        }
         if (!empty($event) && $event['distribution'] == 4) {
             $sgIDs[] = $event['sharing_group_id'];
         }
