@@ -921,39 +921,41 @@ class Server extends AppModel
 
         // Fetch event index from cache if exists and is not modified
         $redis = RedisTool::init();
-        $indexFromCache = $redis->get("misp:event_index:{$serverSync->serverId()}");
+        $indexFromCache = $redis->get("misp:event_index_cache:{$serverSync->serverId()}");
         if ($indexFromCache) {
-            $indexFromCache = RedisTool::decompress($indexFromCache);
-            list($etag, $eventIndex) = RedisTool::deserialize($indexFromCache);
-            unset($indexFromCache);
-            $serverSync->debug("Event index loaded from Redis cache with etag $etag containing " . count($eventIndex) . ' events');
+            $etagPos = strpos($indexFromCache, "\n");
+            if ($etagPos === false) {
+                throw new RuntimeException("Could not find etag in cache fro server {$serverSync->serverId()}");
+            }
+            $etag = substr($indexFromCache, 0, $etagPos);
+            $serverSync->debug("Event index loaded from Redis cache with etag $etag containing");
         } else {
             $etag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
         }
 
         $response = $serverSync->eventIndex($filterRules, $etag);
 
-        if ($response->isNotModified() && isset($eventIndex)) {
-            return $eventIndex;
-        }
-
-        unset($eventIndex);
-        $eventIndex = $response->json();
-        unset($response->body); // remove response that can take a lot of memory
-
-        // correct $eventArray if just one event, probably this response returns old MISP
-        if (isset($eventIndex['id'])) {
-            $eventIndex = [$eventIndex];
+        if ($response->isNotModified() && $indexFromCache) {
+            return JsonTool::decode(RedisTool::decompress(substr($indexFromCache, $etagPos + 1)));
         }
 
         // Save to cache for 24 hours if ETag provided
         $etag = $response->getHeader('etag');
         if ($etag) {
             $serverSync->debug("Event index from remote server has different etag $etag, saving to cache");
-            $data = RedisTool::compress(RedisTool::serialize([$etag, $eventIndex]));
-            $redis->setex("misp:event_index:{$serverSync->serverId()}", 3600 * 24, $data);
-        } elseif (isset($eventIndex)) {
-            RedisTool::unlink($redis, "misp:event_index:{$serverSync->serverId()}");
+            $data = "$etag\n" . RedisTool::compress($response->body);
+            $redis->setex("misp:event_index_cache:{$serverSync->serverId()}", 3600 * 24, $data);
+        } elseif ($indexFromCache) {
+            RedisTool::unlink($redis, "misp:event_index_cache:{$serverSync->serverId()}");
+        }
+
+        unset($indexFromCache); // clean up memory
+
+        $eventIndex = $response->json();
+
+        // correct $eventArray if just one event, probably this response returns old MISP
+        if (isset($eventIndex['id'])) {
+            $eventIndex = [$eventIndex];
         }
 
         return $eventIndex;
