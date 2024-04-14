@@ -50,6 +50,8 @@ class RedisTool
         }
         // By default retry scan if empty results are returned
         $redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
+        // Set client name so it is possible to distinguish redis connections
+        $redis->client('setname', 'misp-' . PHP_SAPI);
         self::$connection = $redis;
         return $redis;
     }
