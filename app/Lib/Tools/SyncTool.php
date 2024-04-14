@@ -1,7 +1,6 @@
 <?php
 class SyncTool
 {
-
     const ALLOWED_CERT_FILE_EXTENSIONS = ['pem', 'crt'];
 
     /**

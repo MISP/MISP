@@ -24,7 +24,7 @@ class HttpSocketHttpException extends Exception
             $message .= " for URL $url";
         }
         if ($response->body) {
-            $message .= ': ' . substr($response->body, 0, 100);
+            $message .= ': ' . substr(ltrim($response->body), 0, 100);
         }
 
         parent::__construct($message, (int)$response->code);

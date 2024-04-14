@@ -706,6 +706,8 @@ class ShadowAttribute extends AppModel
             return 0;
         }
 
+        $serverSync->debug("Pulling proposals");
+
         $i = 1;
         $fetchedCount = 0;
         $chunkSize = 1000;
