@@ -49,7 +49,7 @@ class SyncTool
      * @return HttpSocketExtended
      * @throws Exception
      */
-    public function createHttpSocket($params = array())
+    public function createHttpSocket(array $params = [])
     {
         // Use own CA PEM file
         $caPath = Configure::read('MISP.ca_path');
@@ -81,10 +81,11 @@ class SyncTool
             }
             $params['ssl_crypto_method'] = $version;
         }
-        if (!isset($params['timeout'])) {
-            $params['timeout'] = Configure::check('MISP.curl_request_timeout') ? Configure::read('MISP.curl_request_timeout') : 10800;
-        }
+
         if (function_exists('curl_init')) {
+            if (!isset($params['timeout']) && Configure::check('MISP.curl_request_timeout')) {
+                $params['timeout'] = (int)Configure::read('MISP.curl_request_timeout');
+            }
             App::uses('CurlClient', 'Tools');
             $HttpSocket = new CurlClient($params);
         } else {
