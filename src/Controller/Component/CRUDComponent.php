@@ -424,7 +424,7 @@ class CRUDComponent extends Component
                     throw new NotFoundException(__('Could not save {0} due to the input failing to meet expectations. Your input is bad and you should feel bad.', $this->ObjectAlias));
                 }
             }
-            $savedData = $this->Table->save($data);
+            $savedData = $this->Table->save($data);   // FIXME catch exceptions thrown by DB constraints, as otherwise we get 500 Internal Server Errors
             if ($savedData !== false) {
                 if (isset($params['afterSave'])) {
                     $params['afterSave']($data);

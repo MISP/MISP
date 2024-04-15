@@ -42,7 +42,7 @@ class EditOrganisationsApiTest extends TestCase
         );
     }
 
-    private function editNotAllowed($org_id): void
+    private function editNotAllowed(int $org_id): void
     {
         $url = sprintf('%s/%d', self::ENDPOINT, $org_id);
         $this->put(

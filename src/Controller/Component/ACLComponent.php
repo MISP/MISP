@@ -506,7 +506,7 @@ class ACLComponent extends Component
             // we have to be in a publically allowed scope otherwise the Auth component will kick us out anyway.
             return true;
         }
-        if (!empty($this->user->Role->perm_admin)) {
+        if (!empty($this->user->Role->perm_site_admin)) {
             return true;
         }
         //$this->__checkLoggedActions($user, $controller, $action);
@@ -700,7 +700,7 @@ class ACLComponent extends Component
         }
         foreach ($this->aclList as $controller => $actions) {
             foreach ($actions as $action => $permissions) {
-                if ($role['perm_admin']) {
+                if ($role['perm_site_admin']) {
                     $results = $this->__formatControllerAction($results, $controller, $action, $url_mode);
                 } elseif (in_array('*', $permissions)) {
                     $results = $this->__formatControllerAction($results, $controller, $action, $url_mode);

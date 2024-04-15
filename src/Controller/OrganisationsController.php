@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Model\Entity\Organisation;
 use Cake\Http\Exception\MethodNotAllowedException;
 
 class OrganisationsController extends AppController
@@ -75,11 +76,18 @@ class OrganisationsController extends AppController
     /**
      * Add a new organization.
      *
-     * @return \Cake\Http\Response|null The response payload.
+     * @return \Cake\Http\Response|null Redirects on successful add, renders view otherwise.
      */
     public function add()
     {
-        $this->CRUD->add();
+        $params = [
+            'beforeSave' => function (Organisation $org) {
+                $org['created_by'] = $this->ACL->getUser()['id'];
+
+                return $org;
+            },
+        ];
+        $this->CRUD->add($params);
         $responsePayload = $this->CRUD->getResponsePayload();
         if (!empty($responsePayload)) {
             return $responsePayload;
@@ -104,7 +112,14 @@ class OrganisationsController extends AppController
      */
     public function view(int $id)
     {
-        $this->CRUD->view($id);
+        $params = [
+            'beforeSave' => function (Organisation $org) {
+                $org['created_by'] = $this->ACL->getUser()['id'];
+
+                return $org;
+            },
+        ];
+        $this->CRUD->view($id, $params);
         $responsePayload = $this->CRUD->getResponsePayload();
         if (!empty($responsePayload)) {
             return $responsePayload;

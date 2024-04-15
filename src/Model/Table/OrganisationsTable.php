@@ -43,6 +43,7 @@ class OrganisationsTable extends AppTable
             $entity->date_created = date('Y-m-d H:i:s');
         }
         $entity->date_modified = date('Y-m-d H:i:s');
+        // $entity->created_by = $this->ACL->getUser();   // FIXME force the value in the model, see also https://github.com/usemuffin/footprint
     }
 
     /**
@@ -59,6 +60,20 @@ class OrganisationsTable extends AppTable
             ->requirePresence(['name', 'uuid'], 'create')
             ->add(
                 'name',
+                [
+                    'unique' => [
+                        'rule' => 'validateUnique',
+                        'provider' => 'table',
+                        'message' => 'The organisation name must be unique.',
+                    ],
+                    'maxLength' => [
+                        'rule' => ['maxLength', 255],
+                        'message' => 'Names cannot be too long.',
+                    ],
+                ]
+            )
+            ->add(
+                'uuid',
                 'unique',
                 [
                     'rule' => 'validateUnique',
