@@ -928,7 +928,8 @@ class Event extends AppModel
                 throw new Exception("This should never happen.");
             }
 
-            $serverSync->pushEvent($event)->json();
+            $response = $serverSync->pushEvent($event)->json();
+            $serverSync->debug("Pushed event '{$event['Event']['uuid']}' to remote server as event with remote ID {$response['Event']['id']}");
         } catch (Crypt_GPG_KeyNotFoundException $e) {
             $errorMessage = sprintf(
                 'Could not push event %s to remote server #%s. Reason: %s',
