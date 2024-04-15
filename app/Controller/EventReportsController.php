@@ -302,13 +302,16 @@ class EventReportsController extends AppController
 
     public function importReportFromUrl($event_id)
     {
-        if (!$this->request->is('ajax')) {
-            throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
+        if (!$this->request->is('ajax') && !$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This function can only be reached via AJAX and via the API.'));
         }
         $fetcherModule = $this->EventReport->isFetchURLModuleEnabled();
         if ($this->request->is('post')) {
+            if (empty($this->data['EventReport'])) {
+                $this->data = ['EventReport' => $this->data];
+            }
             if (empty($this->data['EventReport']['url'])) {
-                throw new MethodNotAllowedException(__('An URL must be provided'));
+                throw new MethodNotAllowedException(__('A URL must be provided'));
             }
             $url = $this->data['EventReport']['url'];
             $format = 'html';
@@ -319,7 +322,6 @@ class EventReportsController extends AppController
                     $format = $parsed_format;
                 }
             }
-            
             $content = $this->EventReport->downloadMarkdownFromURL($event_id, $url, $format);
 
             $errors = [];
