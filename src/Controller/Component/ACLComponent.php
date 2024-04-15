@@ -158,15 +158,15 @@ class ACLComponent extends Component
             'view' => ['perm_admin'],
         ],
         'Organisations' => [
-            'add' => ['perm_admin'],
-            'delete' => ['perm_admin'],
-            'edit' => ['perm_admin'],
+            'add' => ['perm_site_admin'],
+            'delete' => ['perm_site_admin'],
+            'edit' => ['perm_site_admin', 'perm_admin'],
             'filtering' => ['*'],
             'index' => ['*'],
-            'tag' => ['perm_tagger'],
-            'untag' => ['perm_tagger'],
+            'tag' => ['AND' => ['perm_tagger', 'OR' => ['perm_site_admin', 'perm_admin']]],
+            'untag' => ['AND' => ['perm_tagger', 'OR' => ['perm_site_admin', 'perm_admin']]],
             'view' => ['*'],
-            'viewTags' => ['*']
+            'viewTags' => ['*'],
         ],
         'Outbox' => [
             'createEntry' => ['perm_admin'],

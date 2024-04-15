@@ -122,8 +122,10 @@ class OrganisationsController extends AppController
     {
         $currentUser = $this->ACL->getUser();
         if (
-            !($currentUser['Organisation']['id'] == $id && $currentUser['Role']['perm_org_admin']) &&
-            !$currentUser['Role']['perm_admin']
+            !(
+                $currentUser['Role']['perm_site_admin'] ||
+                ($currentUser['Organisation']['id'] == $id && $currentUser['Role']['perm_admin'])
+            )
         ) {
             throw new MethodNotAllowedException(__('You cannot modify that organisation.'));
         }
