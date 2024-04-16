@@ -56,7 +56,6 @@ class OrganisationsTable extends AppTable
     {
         $validator
             ->notEmptyString('name')
-            ->notEmptyString('uuid')
             ->requirePresence(['name', 'uuid'], 'create')
             ->add(
                 'name',
@@ -68,18 +67,33 @@ class OrganisationsTable extends AppTable
                     ],
                     'maxLength' => [
                         'rule' => ['maxLength', 255],
-                        'message' => 'Names cannot be too long.',
+                        'message' => 'Name cannot be more than 255 chars.',
                     ],
                 ]
             )
             ->add(
-                'uuid',
-                'unique',
+                'type',
+                'maxLength',
                 [
-                    'rule' => 'validateUnique',
-                    'provider' => 'table',
-                    'message' => 'The organisation name must be unique.',
-                ]
+                    'rule' => ['maxLength', 255],
+                    'message' => 'Type cannot be more than 255 chars.',
+                ],
+            )
+            ->add(
+                'nationality',
+                'maxLength',
+                [
+                    'rule' => ['maxLength', 255],
+                    'message' => 'Nationality cannot be more than 255 chars.',
+                ],
+            )
+            ->add(
+                'sector',
+                'maxLength',
+                [
+                    'rule' => ['maxLength', 255],
+                    'message' => 'Sector cannot be more than 255 chars.',
+                ],
             );
 
         return $validator;

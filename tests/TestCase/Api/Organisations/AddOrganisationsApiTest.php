@@ -185,6 +185,39 @@ class AddOrganisationsApiTest extends TestCase
         );
     }
 
+    public function testBadUuid(): void
+    {
+        $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
+        $faker = \Faker\Factory::create();
+        $org_data = [
+            'uuid' => '11111111-1111-1111-1111-111111111111',
+            'name' => $faker->text(10),
+            'description' => $faker->text(10),
+            'nationality' => $faker->countryCode,
+            'sector' => 'DUPLICATE ENTRY',
+            'type' => '',
+            'contacts' => '',
+            'local' => 1,
+            'restricted_to_domain' => '',
+            'landingpage' => '',
+            //'date_created' => $faker->dateTime()->getTimestamp(),
+            // 'date_modified' => $faker->dateTime()->getTimestamp(),
+            // 'created_by' => 0,
+        ];
+        $url = sprintf('%s', self::ENDPOINT);
+        $this->post(
+            $url,
+            $org_data
+        );
+        $this->assertResponseCode(200);
+        $this->assertDbRecordNotExists(
+            'Organisations',
+            [
+                'name' => $org_data['name'],
+            ]
+        );
+    }
+
     public function testAddLongName(): void
     {
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
