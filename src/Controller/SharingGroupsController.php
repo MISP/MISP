@@ -535,7 +535,7 @@ class SharingGroupsController extends AppController
         return $sg;
     }
 
-    private function __initialiseSGQuickEditObject($id, $request, $type = 'org')
+    private function __initialiseSGQuickEditObject(int $id, $request, $type = 'org')
     {
         $params = [
             'org' => [

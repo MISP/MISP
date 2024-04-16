@@ -46,7 +46,7 @@ class UsersFixture extends TestFixture
                 'disabled' => 0,
                 'org_id' => OrganisationsFixture::ORGANISATION_A_ID,
                 'date_created' => $faker->dateTime()->getTimestamp(),
-                'date_modified' => $faker->dateTime()->getTimestamp()
+                'date_modified' => $faker->dateTime()->getTimestamp(),
             ],
             [
                 'id' => self::USER_SYNC_ID,
@@ -57,7 +57,7 @@ class UsersFixture extends TestFixture
                 'disabled' => 0,
                 'org_id' => OrganisationsFixture::ORGANISATION_A_ID,
                 'date_created' => $faker->dateTime()->getTimestamp(),
-                'date_modified' => $faker->dateTime()->getTimestamp()
+                'date_modified' => $faker->dateTime()->getTimestamp(),
             ],
             [
                 'id' => self::USER_ORG_ADMIN_ID,
@@ -68,7 +68,7 @@ class UsersFixture extends TestFixture
                 'disabled' => 0,
                 'org_id' => OrganisationsFixture::ORGANISATION_A_ID,
                 'date_created' => $faker->dateTime()->getTimestamp(),
-                'date_modified' => $faker->dateTime()->getTimestamp()
+                'date_modified' => $faker->dateTime()->getTimestamp(),
             ],
             [
                 'id' => self::USER_REGULAR_USER_ID,
@@ -79,8 +79,8 @@ class UsersFixture extends TestFixture
                 'disabled' => 0,
                 'org_id' => OrganisationsFixture::ORGANISATION_A_ID,
                 'date_created' => $faker->dateTime()->getTimestamp(),
-                'date_modified' => $faker->dateTime()->getTimestamp()
-            ]
+                'date_modified' => $faker->dateTime()->getTimestamp(),
+            ],
         ];
         parent::init();
     }

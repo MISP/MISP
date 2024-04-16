@@ -158,15 +158,15 @@ class ACLComponent extends Component
             'view' => ['perm_admin'],
         ],
         'Organisations' => [
-            'add' => ['perm_admin'],
-            'delete' => ['perm_admin'],
-            'edit' => ['perm_admin'],
+            'add' => ['perm_site_admin'],
+            'delete' => ['perm_site_admin'],
+            'edit' => ['perm_site_admin', 'perm_admin'],
             'filtering' => ['*'],
             'index' => ['*'],
-            'tag' => ['perm_tagger'],
-            'untag' => ['perm_tagger'],
+            'tag' => ['AND' => ['perm_tagger', 'OR' => ['perm_site_admin', 'perm_admin']]],
+            'untag' => ['AND' => ['perm_tagger', 'OR' => ['perm_site_admin', 'perm_admin']]],
             'view' => ['*'],
-            'viewTags' => ['*']
+            'viewTags' => ['*'],
         ],
         'Outbox' => [
             'createEntry' => ['perm_admin'],
@@ -506,7 +506,7 @@ class ACLComponent extends Component
             // we have to be in a publically allowed scope otherwise the Auth component will kick us out anyway.
             return true;
         }
-        if (!empty($this->user->Role->perm_admin)) {
+        if (!empty($this->user->Role->perm_site_admin)) {
             return true;
         }
         //$this->__checkLoggedActions($user, $controller, $action);
@@ -700,7 +700,7 @@ class ACLComponent extends Component
         }
         foreach ($this->aclList as $controller => $actions) {
             foreach ($actions as $action => $permissions) {
-                if ($role['perm_admin']) {
+                if ($role['perm_site_admin']) {
                     $results = $this->__formatControllerAction($results, $controller, $action, $url_mode);
                 } elseif (in_array('*', $permissions)) {
                     $results = $this->__formatControllerAction($results, $controller, $action, $url_mode);

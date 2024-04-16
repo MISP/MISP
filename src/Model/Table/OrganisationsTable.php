@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Model\Table;
 
-use App\Model\Table\AppTable;
 use ArrayObject;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
@@ -11,6 +11,12 @@ use Cake\Validation\Validator;
 
 class OrganisationsTable extends AppTable
 {
+    /**
+     * Initialize method.
+     *
+     * @param array $config The configuration for the table.
+     * @return void
+     */
     public function initialize(array $config): void
     {
         parent::initialize($config);
@@ -23,42 +29,101 @@ class OrganisationsTable extends AppTable
         $this->setDisplayField('name');
     }
 
+    /**
+     * Callback method called before saving an entity.
+     *
+     * @param \Cake\Event\EventInterface $event The event instance.
+     * @param \Cake\Datasource\EntityInterface $entity The entity being saved.
+     * @param \ArrayObject $options The options passed to the save method.
+     * @return void
+     */
     public function beforeSave(EventInterface $event, EntityInterface $entity, ArrayObject $options)
     {
         if ($entity->isNew()) {
             $entity->date_created = date('Y-m-d H:i:s');
         }
         $entity->date_modified = date('Y-m-d H:i:s');
-        return;
+        // $entity->created_by = $this->ACL->getUser();   // FIXME force the value in the model, see also https://github.com/usemuffin/footprint
     }
 
+    /**
+     * Default validation rules for the table.
+     *
+     * @param \Cake\Validation\Validator $validator The validator instance.
+     * @return \Cake\Validation\Validator The updated validator instance.
+     */
     public function validationDefault(Validator $validator): Validator
     {
         $validator
             ->notEmptyString('name')
-            ->notEmptyString('uuid')
-            ->requirePresence(['name', 'uuid'], 'create');
+            ->requirePresence(['name', 'uuid'], 'create')
+            ->add(
+                'name',
+                [
+                    'unique' => [
+                        'rule' => 'validateUnique',
+                        'provider' => 'table',
+                        'message' => 'The organisation name must be unique.',
+                    ],
+                    'maxLength' => [
+                        'rule' => ['maxLength', 255],
+                        'message' => 'Name cannot be more than 255 chars.',
+                    ],
+                ]
+            )
+            ->add(
+                'type',
+                'maxLength',
+                [
+                    'rule' => ['maxLength', 255],
+                    'message' => 'Type cannot be more than 255 chars.',
+                ],
+            )
+            ->add(
+                'nationality',
+                'maxLength',
+                [
+                    'rule' => ['maxLength', 255],
+                    'message' => 'Nationality cannot be more than 255 chars.',
+                ],
+            )
+            ->add(
+                'sector',
+                'maxLength',
+                [
+                    'rule' => ['maxLength', 255],
+                    'message' => 'Sector cannot be more than 255 chars.',
+                ],
+            );
+
         return $validator;
     }
 
+    /**
+     * Capture the organization.
+     *
+     * @param mixed $org The organization to capture.
+     * @return int|null The captured organization ID, or null if capture failed.
+     */
     public function captureOrg($org): ?int
     {
         if (!empty($org['uuid'])) {
             $existingOrg = $this->find()->where(
                 [
-                'uuid' => $org['uuid']
+                    'uuid' => $org['uuid'],
                 ]
             )->first();
         } else {
             return null;
         }
         if (empty($existingOrg)) {
+            /** @var \App\Model\Entity\Organisation $entityToSave */
             $entityToSave = $this->newEmptyEntity();
             $this->patchEntity(
                 $entityToSave,
                 $org,
                 [
-                'accessibleFields' => $entityToSave->getAccessibleFieldForNew()
+                    'accessibleFields' => $entityToSave->getAccessibleFieldForNew(),
                 ]
             );
         } else {
@@ -70,10 +135,17 @@ class OrganisationsTable extends AppTable
         if (!$savedEntity) {
             return null;
         }
+
         return $savedEntity->id;
     }
 
-    public function fetchOrg($id)
+    /**
+     * Fetches an organization by its ID.
+     *
+     * @param int $id The ID of the organization to fetch.
+     * @return mixed
+     */
+    public function fetchOrg(int $id)
     {
         if (empty($id)) {
             return false;
@@ -87,10 +159,11 @@ class OrganisationsTable extends AppTable
         $org = $this->find(
             'all',
             [
-            'conditions' => $conditions,
-            'recursive' => -1
+                'conditions' => $conditions,
+                'recursive' => -1,
             ]
         )->disableHydration()->first();
-        return (empty($org)) ? false : $org;
+
+        return empty($org) ? false : $org;
     }
 }
