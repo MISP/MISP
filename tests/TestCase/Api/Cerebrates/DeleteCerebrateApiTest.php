@@ -43,4 +43,15 @@ class DeleteCerebrateApiTest extends TestCase
         $this->assertResponseCode(405);
         $this->assertDbRecordExists('Cerebrates', ['id' => CerebratesFixture::SERVER_A_ID]);
     }
+
+    public function testDeleteCerebrateNotAllowedAsOrgAdmin(): void
+    {
+        $this->skipOpenApiValidations();
+        $this->setAuthToken(AuthKeysFixture::ORG_ADMIN_API_KEY);
+        $url = sprintf('%s/%d', self::ENDPOINT, CerebratesFixture::SERVER_A_ID);
+        $this->delete($url);
+
+        $this->assertResponseCode(405);
+        $this->assertDbRecordExists('Cerebrates', ['id' => CerebratesFixture::SERVER_A_ID]);
+    }
 }
