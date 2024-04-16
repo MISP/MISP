@@ -8,5 +8,7 @@ parameters:
         path: %currentWorkingDirectory%/templates
       - message: '#Function brotli_compress not found.#'
         path: %currentWorkingDirectory%/*
+      - message: '#Function brotli_uncompress not found.#'
+        path: %currentWorkingDirectory%/*
       - message: '#Call to an undefined method [a-zA-Z0-9\\_]+::changeKey()#'
         path: %currentWorkingDirectory%/*

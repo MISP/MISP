@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Test\TestCase\Tool;
 
@@ -57,10 +58,10 @@ xWV4oBk=
 
     public function testSelfSigned()
     {
-        $this->markTestSkipped("This is not implemented yet. Need to figure out how to connect to a self signed server for the testing.");
+        $this->markTestSkipped('This is not implemented yet. Need to figure out how to connect to a self signed server for the testing.');
 
         $config = [
-            'self_signed' => true
+            'self_signed' => true,
         ];
         $client = new HttpTool($config);
         $response = $client->get(self::HTTPS_SELF_SIGNED_URI);
@@ -69,11 +70,11 @@ xWV4oBk=
 
     public function testSelfSignedFail()
     {
-        $this->markTestSkipped("This is not implemented yet. Need to figure out how to connect to a self signed server for the testing.");
+        $this->markTestSkipped('This is not implemented yet. Need to figure out how to connect to a self signed server for the testing.');
 
         $config = [
             'ssl_verify_peer' => true,
-            'ssl_verify_host' => false
+            'ssl_verify_host' => false,
 
         ];
 
@@ -88,11 +89,11 @@ xWV4oBk=
 
     public function testSelfSignedCustomCa()
     {
-        $this->markTestSkipped("This is not implemented yet. Need to figure out how to connect to a self signed server for the testing.");
+        $this->markTestSkipped('This is not implemented yet. Need to figure out how to connect to a self signed server for the testing.');
 
         // write CA file to disk, load it from there
         $fname = '/tmp/ca.pem';
-        $certfile = new \SplFileObject($fname, "w+");
+        $certfile = new \SplFileObject($fname, 'w+');
         $certfile->fwrite(self::HTTPS_SELF_SIGNED_CA);
         $config = ['ssl_cafile' => $fname];
         $client = new HttpTool($config);
@@ -103,11 +104,11 @@ xWV4oBk=
 
     public function testSelfSignedCustomSystemCa()
     {
-        $this->markTestSkipped("This is not implemented yet. Need to figure out how to connect to a self signed server for the testing.");
+        $this->markTestSkipped('This is not implemented yet. Need to figure out how to connect to a self signed server for the testing.');
 
         // write CA file to disk, load it from there
         $fname = '/tmp/ca.pem';
-        $certfile = new \SplFileObject($fname, "w+");
+        $certfile = new \SplFileObject($fname, 'w+');
         $certfile->fwrite(self::HTTPS_SELF_SIGNED_CA);
         Configure::write('MISP.ca_path', $fname);
         $client = new HttpTool();
@@ -118,7 +119,7 @@ xWV4oBk=
 
     public function testProxy()
     {
-        $this->markTestSkipped("This is not implemented yet. Requires local proxy installation (tinyproxy) on the testing system.");
+        $this->markTestSkipped('This is not implemented yet. Requires local proxy installation (tinyproxy) on the testing system.');
         Configure::write('Proxy.host', self::PROXY_SERVER);
         Configure::write('Proxy.port', self::PROXY_PORT);
         // Configure::write('Proxy.method', 'basic'); // auth: basic / digest
@@ -133,7 +134,7 @@ xWV4oBk=
     public function testSkipProxy()
     {
         Configure::write('Proxy.host', self::PROXY_SERVER);
-        Configure::write('Proxy.port', 1234);  // bad port
+        Configure::write('Proxy.port', 1234); // bad port
         $this->testGoogle(['skip_proxy' => true]);
     }
 
@@ -174,16 +175,16 @@ xWV4oBk=
         $this->assertEquals($result['issuer'], 'C=US, O=Google Trust Services LLC, CN=GTS CA 1C3');
         $this->assertEquals($result['public_key_size_ok'], true);
         $this->assertEquals($result['valid_from_ok'], true);
-        $this->assertEquals($result['valid_from'], new FrozenTime("2023-11-20 08:09:47.000000+00:00"));
-        $this->assertEquals($result['valid_to'], new FrozenTime("2024-02-12 08:09:46.000000+00:00"));
-        $this->assertEquals($result['signature_type'], "RSA-SHA256");
+        $this->assertEquals($result['valid_from'], new FrozenTime('2023-11-20 08:09:47.000000+00:00'));
+        $this->assertEquals($result['valid_to'], new FrozenTime('2024-02-12 08:09:46.000000+00:00'));
+        $this->assertEquals($result['signature_type'], 'RSA-SHA256');
         $this->assertEquals($result['public_key_size'], 256);
         $this->assertEquals($result['public_key_type'], 'EC (prime256v1)');
     }
 
     public function testFetchCertificate()
     {
-        $this->markTestSkipped("This is not very well implemented yet.");
+        $this->markTestSkipped('This is not very well implemented yet.');
         $client = new HttpTool();
         /** @var array $certificates */
         $certificates = $client->fetchCertificates('https://www.google.com');

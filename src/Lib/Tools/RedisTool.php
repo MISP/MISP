@@ -1,27 +1,32 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Lib\Tools;
 
-use Exception;
-use RuntimeException;
-use Redis;
 use Cake\Core\Configure;
+use Exception;
+use Redis;
+use RuntimeException;
 
 class RedisTool
 {
-    const COMPRESS_MIN_LENGTH = 256,
+    public const COMPRESS_MIN_LENGTH = 256,
         BROTLI_HEADER = "\xce\xb2\xcf\x81",
         ZSTD_HEADER = "\x28\xb5\x2f\xfd";
 
-    /** @var Redis|null */
+    /**
+     * @var \Redis|null
+     */
     private static $connection;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private static $serializer;
 
     /**
-     * @return Redis
-     * @throws Exception
+     * @return \Redis
+     * @throws \Exception
      */
     public static function init()
     {
@@ -38,13 +43,13 @@ class RedisTool
         if ($host[0] === '/') {
             $socket = $host;
         } else {
-            $port = Configure::read('MISP.redis_port') ?: 6379;
+            $port = (int)Configure::read('MISP.redis_port') ?: 6379;
         }
         $database = Configure::read('MISP.redis_database') ?: 13;
         $pass = Configure::read('MISP.redis_password');
 
         $redis = new Redis();
-        $connection = empty($socket) ? $redis->connect($host, (int) $port) : $redis->connect($host);
+        $connection = empty($socket) ? $redis->connect($host, $port) : $redis->connect($host);
         if (!$connection) {
             throw new Exception("Could not connect to Redis: {$redis->getLastError()}");
         }
@@ -59,14 +64,15 @@ class RedisTool
         // By default retry scan if empty results are returned
         $redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
         self::$connection = $redis;
+
         return $redis;
     }
 
     /**
-     * @param Redis $redis
-     * @param string|array $pattern
-     * @return int|Redis Number of deleted keys or instance of Redis if used in MULTI mode
-     * @throws RedisException
+     * @param \Redis $redis the instance
+     * @param string|array $pattern the pattern to match on
+     * @return int|\Redis Number of deleted keys or instance of Redis if used in MULTI mode
+     * @throws \RedisException
      */
     public static function deleteKeysByPattern(Redis $redis, $pattern)
     {
@@ -77,7 +83,7 @@ class RedisTool
         $allKeys = [];
         foreach ($pattern as $p) {
             $iterator = null;
-            while (false !== ($keys = $redis->scan($iterator, $p, 1000))) {
+            while (($keys = $redis->scan($iterator, $p, 1000)) !== false) {
                 foreach ($keys as $key) {
                     $allKeys[] = $key;
                 }
@@ -94,10 +100,10 @@ class RedisTool
     /**
      * Unlink is non blocking way how to delete keys from Redis, but it must be supported by PHP extension and Redis itself
      *
-     * @param Redis $redis
-     * @param string|array $keys
-     * @return int|Redis Number of deleted keys or instance of Redis if used in MULTI mode
-     * @throws RedisException
+     * @param \Redis $redis the instance
+     * @param string|array $keys the key to unlink
+     * @return int|\Redis Number of deleted keys or instance of Redis if used in MULTI mode
+     * @throws \RedisException
      */
     public static function unlink(Redis $redis, $keys)
     {
@@ -106,14 +112,15 @@ class RedisTool
             // Check if unlink is supported
             $unlinkSupported = method_exists($redis, 'unlink') && $redis->unlink(null) === 0;
         }
+
         return $unlinkSupported ? $redis->unlink($keys) : $redis->del($keys);
     }
 
     /**
-     * @param Redis $redis
-     * @param string $prefix
-     * @return array[int, int]
-     * @throws RedisException
+     * @param \Redis $redis the instance
+     * @param string $prefix the prefix to match on
+     * @return array[int, int] the size of keys and memory used
+     * @throws \RedisException
      */
     public static function sizeByPrefix(Redis $redis, $prefix)
     {
@@ -123,19 +130,20 @@ class RedisTool
         while ($keys = $redis->scan($it, $prefix, 1000)) {
             $redis->pipeline();
             foreach ($keys as $key) {
-                $redis->rawCommand("memory", "usage", $key);
+                $redis->rawCommand('memory', 'usage', $key);
             }
             $result = $redis->exec();
             $keyCount += count($keys);
             $size += array_sum($result);
         }
+
         return [$keyCount, $size];
     }
 
     /**
-     * @param mixed $data
+     * @param mixed $data data to serialize
      * @return string
-     * @throws JsonException
+     * @throws \JsonException
      */
     public static function serialize($data)
     {
@@ -151,9 +159,9 @@ class RedisTool
     }
 
     /**
-     * @param string $string
+     * @param string $string the data to deserialize
      * @return mixed
-     * @throws JsonException
+     * @throws \JsonException
      */
     public static function deserialize($string)
     {
@@ -173,7 +181,7 @@ class RedisTool
     }
 
     /**
-     * @param string $data
+     * @param string $data the data to compress
      * @return string
      */
     public static function compress($data)
@@ -185,11 +193,12 @@ class RedisTool
                 return self::BROTLI_HEADER . brotli_compress($data, 0);
             }
         }
+
         return $data;
     }
 
     /**
-     * @param string|false $data
+     * @param string|false $data the data to decompress
      * @return string
      */
     public static function decompress($data)
@@ -210,6 +219,7 @@ class RedisTool
                 throw new RuntimeException('Could not decompress');
             }
         }
+
         return $data;
     }
 }
