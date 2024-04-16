@@ -224,7 +224,7 @@ class AddOrganisationsApiTest extends TestCase
         $faker = \Faker\Factory::create();
         $org_data = [
             'uuid' => $faker->uuid(),
-            'name' => $faker->text(400),
+            'name' => 'This is a very long name that is longer than 255 characters and should not be allowed. aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             'description' => $faker->text(10),
             'nationality' => $faker->countryCode,
             'sector' => 'IT',
