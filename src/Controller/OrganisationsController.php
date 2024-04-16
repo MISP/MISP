@@ -112,14 +112,7 @@ class OrganisationsController extends AppController
      */
     public function view(int $id)
     {
-        $params = [
-            'beforeSave' => function (Organisation $org) {
-                $org['created_by'] = $this->ACL->getUser()['id'];
-
-                return $org;
-            },
-        ];
-        $this->CRUD->view($id, $params);
+        $this->CRUD->view($id);
         $responsePayload = $this->CRUD->getResponsePayload();
         if (!empty($responsePayload)) {
             return $responsePayload;
@@ -144,6 +137,7 @@ class OrganisationsController extends AppController
         ) {
             throw new MethodNotAllowedException(__('You cannot modify that organisation.'));
         }
+        // FIXME prevent change of the created_by field
         $this->CRUD->edit($id);
         $responsePayload = $this->CRUD->getResponsePayload();
         if (!empty($responsePayload)) {
@@ -169,48 +163,48 @@ class OrganisationsController extends AppController
         $this->set('metaGroup', 'ContactDB');
     }
 
-    /**
-     * Tag an organization.
-     *
-     * @param int $id The ID of the organization.
-     * @return \Cake\Http\Response|null The response payload.
-     */
-    public function tag(int $id)
-    {
-        $this->CRUD->tag($id);
-        $responsePayload = $this->CRUD->getResponsePayload();
-        if (!empty($responsePayload)) {
-            return $responsePayload;
-        }
-    }
+    // /**
+    //  * Tag an organization.
+    //  *
+    //  * @param int $id The ID of the organization.
+    //  * @return \Cake\Http\Response|null The response payload.
+    //  */
+    // public function tag(int $id)
+    // {
+    //     $this->CRUD->tag($id);
+    //     $responsePayload = $this->CRUD->getResponsePayload();
+    //     if (!empty($responsePayload)) {
+    //         return $responsePayload;
+    //     }
+    // }
 
-    /**
-     * Untag an organization.
-     *
-     * @param int $id The ID of the organization.
-     * @return \Cake\Http\Response|null The response payload.
-     */
-    public function untag(int $id)
-    {
-        $this->CRUD->untag($id);
-        $responsePayload = $this->CRUD->getResponsePayload();
-        if (!empty($responsePayload)) {
-            return $responsePayload;
-        }
-    }
+    // /**
+    //  * Untag an organization.
+    //  *
+    //  * @param int $id The ID of the organization.
+    //  * @return \Cake\Http\Response|null The response payload.
+    //  */
+    // public function untag(int $id)
+    // {
+    //     $this->CRUD->untag($id);
+    //     $responsePayload = $this->CRUD->getResponsePayload();
+    //     if (!empty($responsePayload)) {
+    //         return $responsePayload;
+    //     }
+    // }
 
-    /**
-     * View tags for an organization.
-     *
-     * @param int $id The ID of the organization.
-     * @return \Cake\Http\Response|null The response payload.
-     */
-    public function viewTags(int $id)
-    {
-        $this->CRUD->viewTags($id);
-        $responsePayload = $this->CRUD->getResponsePayload();
-        if (!empty($responsePayload)) {
-            return $responsePayload;
-        }
-    }
+    // /**
+    //  * View tags for an organization.
+    //  *
+    //  * @param int $id The ID of the organization.
+    //  * @return \Cake\Http\Response|null The response payload.
+    //  */
+    // public function viewTags(int $id)
+    // {
+    //     $this->CRUD->viewTags($id);
+    //     $responsePayload = $this->CRUD->getResponsePayload();
+    //     if (!empty($responsePayload)) {
+    //         return $responsePayload;
+    //     }
+    // }
 }
