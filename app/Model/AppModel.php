@@ -2177,7 +2177,7 @@ class AppModel extends Model
                   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
                 break;
             case 125:
-                $sqlArray[] = "ALTER TABLE `feeds` MODIFY `tag_id` VARCHAR(40) NOT NULL DEFAULT '0';";
+                $sqlArray[] = "ALTER TABLE `feeds` ADD COLUMN `tag_collection_id` INT(11) NOT NULL DEFAULT 0;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
