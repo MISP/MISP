@@ -3163,6 +3163,7 @@ class Attribute extends AppModel
             'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
             'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0
         );
+
         if (!empty($filters['attackGalaxy'])) {
             $params['attackGalaxy'] = $filters['attackGalaxy'];
         }
@@ -3388,20 +3389,60 @@ class Attribute extends AppModel
         if (!empty($params['uuid'])) {
             $params['uuid'] = $this->convert_filters($params['uuid']);
             if (!empty($params['uuid']['OR'])) {
-                $conditions['AND'][] = array(
-                    'OR' => array(
-                        'Event.uuid' => $params['uuid']['OR'],
-                        'Attribute.uuid' => $params['uuid']['OR']
-                    )
-                );
+                if ($options['scope'] == 'Attribute') {
+                    $subQuery = [
+                        'conditions' => ['uuid' => $params['uuid']['OR']],
+                        'fields' => ['id']
+                    ];
+                    $pre_lookup = $this->Event->find('first', [
+                        'conditions' => ['Event.uuid' => $params['uuid']['OR']],
+                        'recursive' => -1,
+                        'fields' => ['Event.id']
+                    ]);
+                    if (empty($pre_lookup)) {
+                        $conditions['AND'][] = array(
+                            'OR' => array(
+                                'Attribute.uuid' => $params['uuid']['OR']
+                            )
+                        );
+                    } else {
+                        $conditions['AND'][] = array(
+                            'OR' => array(
+                                $this->subQueryGenerator($this->Event, $subQuery, 'Attribute.event_id'),
+                                'Attribute.uuid' => $params['uuid']['OR']
+                            )
+                        );
+                    }
+                    
+                } else {
+                    $conditions['AND'][] = array(
+                        'OR' => array(
+                            'Event.uuid' => $params['uuid']['OR'],
+                            'Attribute.uuid' => $params['uuid']['OR']
+                        )
+                    );
+                }
             }
             if (!empty($params['uuid']['NOT'])) {
-                $conditions['AND'][] = array(
-                    'NOT' => array(
-                        'Event.uuid' => $params['uuid']['NOT'],
-                        'Attribute.uuid' =>  $params['uuid']['NOT']
-                    )
-                );
+                if ($options['scope'] == 'Attribute') {
+                    $subQuery = [
+                        'conditions' => ['uuid' => $params['uuid']['OR']],
+                        'fields' => ['id']
+                    ];
+                    $conditions['AND'][] = [
+                        'NOT' => [
+                            $this->subQueryGenerator($this->Event, $subQuery, 'Attribute.event_id'),
+                            'Attribute.uuid' =>  $params['uuid']['NOT']
+                        ]
+                    ];
+                } else {
+                    $conditions['AND'][] = array(
+                        'NOT' => array(
+                            'Event.uuid' => $params['uuid']['NOT'],
+                            'Attribute.uuid' =>  $params['uuid']['NOT']
+                        )
+                    );
+                }
             }
         }
         return $conditions;
