@@ -95,6 +95,9 @@ class ACLComponent extends Component
                 'index' => ['perm_auth'],
                 'view' => ['perm_auth'],
             ],
+            'benchmarks' => [
+                'index' => []
+            ],
             'cerebrates' => [
                 'add' => [],
                 'delete' => [],

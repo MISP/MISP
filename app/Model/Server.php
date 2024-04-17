@@ -7536,6 +7536,13 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
+                'Benchmarking_enable' => [
+                    'level' => 2,
+                    'description' => __('Enable the benchmarking functionalities to capture information about execution times, SQL query loads and more per user and per endpoint.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
                 'Enrichment_services_enable' => array(
                     'level' => 0,
                     'description' => __('Enable/disable the enrichment services'),
