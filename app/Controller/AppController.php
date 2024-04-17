@@ -33,7 +33,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '159';
+    private $__queryVersion = '161';
     public $pyMispVersion = '2.4.188';
     public $phpmin = '7.2';
     public $phprec = '7.4';
@@ -1063,7 +1063,19 @@ class AppController extends Controller
                     $data = array_merge($data, $temp);
                 } else {
                     foreach ($options['paramArray'] as $param) {
-                        if (isset($temp[$param])) {
+                        if (substr($param, -1) == '*') {
+                            $root = substr($param, 0, strlen($param)-1);
+                            foreach ($temp as $existingParamKey => $v) {
+                                $leftover = substr($existingParamKey, strlen($param)-1);
+                                if (
+                                    $root == substr($existingParamKey, 0, strlen($root)) &&
+                                    preg_match('/^[\w_-. ]+$/', $leftover) == 1
+                                ) {
+                                    $data[$existingParamKey] = $temp[$existingParamKey];
+                                    break;
+                                }
+                            }
+                        } else if (isset($temp[$param])) {
                             $data[$param] = $temp[$param];
                         }
                     }

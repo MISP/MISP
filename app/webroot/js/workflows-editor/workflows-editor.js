@@ -1836,10 +1836,9 @@ function genPicker(options, forNode = true) {
     var $container = genSelect(options)
     var $select = $container.find('select')
     $select.addClass('start-chosen')
-    if (options.picker_options) {
-        // $select.data('chosen_options', options.picker_options)
-        $select.attr('data-chosen_options', JSON.stringify(options.picker_options))
-    }
+    var pickerOptions = options.picker_options ?? {}
+    pickerOptions['max_shown_results'] = 100
+    $select.attr('data-chosen_options', JSON.stringify(pickerOptions))
     return $container
 }
 

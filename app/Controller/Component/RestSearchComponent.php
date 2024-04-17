@@ -144,7 +144,11 @@ class RestSearchComponent extends Component
             'retry',
             'expiry',
             'minimum_ttl',
-            'ttl'
+            'ttl',
+            'org.sector',
+            'org.local',
+            'org.nationality',
+            'galaxy.*',
         ],
         'Object' => [
             'returnFormat',

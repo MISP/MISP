@@ -27,6 +27,11 @@ echo $this->element('genericElements/Form/genericForm', [
                 'type' => 'checkbox'
             ],
             [
+                'field' => 'Feed.settings.unpublish_event',
+                'label' => __('Unpublish events'),
+                'type' => 'checkbox'
+            ],
+            [
                 'field' => 'name',
                 'label' => __('Name'),
                 'placeholder' => __('Feed name'),

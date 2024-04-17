@@ -1068,6 +1068,9 @@ class Feed extends AppModel
             if (!empty($feed['Feed']['settings']['disable_correlation'])) {
                 $event['Event']['disable_correlation'] = (bool) $feed['Feed']['settings']['disable_correlation'];
             }
+            if (!empty($feed['Feed']['settings']['unpublish_event'])) {
+                $event['Event']['published'] = (bool) $feed['Feed']['settings']['unpublish_event'];
+            }
         }
         return $event;
     }

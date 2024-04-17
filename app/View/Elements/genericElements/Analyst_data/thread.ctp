@@ -4,6 +4,7 @@
     $URL_DELETE = '/analystData/delete/';
 
     $seed = isset($seed) ? $seed : mt_rand();
+    $injectInPage = !empty($container_id) ? true : false;
 
     $notes = !empty($notes) ? $notes : [];
     $opinions = !empty($opinions) ? $opinions : [];
@@ -41,7 +42,28 @@
 if (!window.shortDist) {
     var shortDist = <?= json_encode($shortDist) ?>;
 }
-var renderedNotes<?= $seed ?> = null
+
+var container_id = false
+<?php if (isset($container_id)): ?>
+    container_id = '<?= h($container_id) ?>'
+<?php endif; ?>
+
+function adjustPopoverPosition() {
+    var $popover = $('.popover:last');
+    $popover.css('top', Math.max($popover.position().top, 50) + 'px')
+}
+
+function openNotes<?= $seed ?>(clicked) {
+    var notes = <?= json_encode($notesOpinions) ?>;
+    var relationships = <?= json_encode($relationshipsOutbound) ?>;
+    var relationships_inbound = <?= json_encode($relationshipsInbound) ?>;
+    var relationship_related_object = <?= json_encode($related_objects) ?>;
+    var renderedNotes = renderAllNotesWithForm<?= $seed ?>(notes, relationships, relationships_inbound, relationship_related_object)
+    openPopover(clicked, renderedNotes, undefined, undefined, function() {
+        adjustPopoverPosition()
+        $(clicked).removeClass('have-a-popover') // avoid closing the popover if a confirm popover (like the delete one) is called
+    })
+}
 
 function renderNotes(notes, relationship_related_object, emptyMessage='<?= __('Empty') ?>', isInbound=false) {
     var renderedNotesArray = []
@@ -406,18 +428,7 @@ function fetchMoreNotes(clicked, noteType, uuid) {
 
 }
 
-
-(function() {
-    var notes = <?= json_encode($notesOpinions) ?>;
-    var relationships = <?= json_encode($relationshipsOutbound) ?>;
-    var relationships_inbound = <?= json_encode($relationshipsInbound) ?>;
-    var relationship_related_object = <?= json_encode($related_objects) ?>;
-    var container_id = false
-    <?php if (isset($container_id)): ?>
-        container_id = '<?= h($container_id) ?>'
-    <?php endif; ?>
-
-    var nodeContainerTemplate = doT.template('\
+    var nodeContainerTemplate<?= $seed ?> = doT.template('\
         <div> \
             <ul class="nav nav-tabs" style="margin-bottom: 10px;"> \
                 <li class="active"><a href="#notes-<?= $seed ?>" data-toggle="tab"><i class="<?= $this->FontAwesome->getClass('sticky-note') ?>"></i> <?= __('Notes & Opinions') ?> <span class="label label-secondary"><?= $allCounts['notesOpinions'] ?></span></a></li> \
@@ -439,18 +450,6 @@ function fetchMoreNotes(clicked, noteType, uuid) {
         </div> \
     ')
 
-    function renderAllNotesWithForm(relationship_related_object) {
-        var buttonContainer = '<div id="add-button-container" style="margin-top: 0.5rem;">' + addNoteButton + addOpinionButton + '</div>'
-        renderedNotes<?= $seed ?> = nodeContainerTemplate({
-            content_notes: renderNotes(notes.filter(function(note) { return note.note_type != 2}), relationship_related_object, '<?= __('No notes for this UUID.') ?>') + buttonContainer,
-            content_relationships_outbound: renderNotes(relationships, relationship_related_object, '<?= __('No relationship from this UUID') ?>') + addRelationshipButton,
-            content_relationships_inbound: renderNotes(relationships_inbound, relationship_related_object, '<?= __('No element are referencing this UUID') ?>', true),
-        })
-        if (container_id) {
-            $('#' + container_id).html(renderedNotes<?= $seed ?>)
-        }
-    }
-
     var addNoteButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewNote(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
         <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a note') ?> \
     </button>'
@@ -461,10 +460,15 @@ function fetchMoreNotes(clicked, noteType, uuid) {
         <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a relationship') ?> \
     </button>'
 
-    $(document).ready(function() {
-        renderAllNotesWithForm(relationship_related_object)
-    })
-})()
+    function renderAllNotesWithForm<?= $seed ?>(notes, relationships, relationships_inbound, relationship_related_object) {
+        var buttonContainer = '<div id="add-button-container" style="margin-top: 0.5rem;">' + addNoteButton + addOpinionButton + '</div>'
+        var renderedNotes = nodeContainerTemplate<?= $seed ?>({
+            content_notes: renderNotes(notes.filter(function(note) { return note.note_type != 2}), relationship_related_object, '<?= __('No notes for this UUID.') ?>') + buttonContainer,
+            content_relationships_outbound: renderNotes(relationships, relationship_related_object, '<?= __('No relationship from this UUID') ?>') + addRelationshipButton,
+            content_relationships_inbound: renderNotes(relationships_inbound, relationship_related_object, '<?= __('No element are referencing this UUID') ?>', true),
+        })
+        return renderedNotes
+    }
 
     function createNewNote(clicked, object_type, object_uuid) {
         note_type = 'Note';
@@ -515,6 +519,19 @@ function fetchMoreNotes(clicked, noteType, uuid) {
             }, 750);
         }
     }
+
+<?php if(!empty($injectInPage)): ?>
+    $(document).ready(function() {
+        var notes = <?= json_encode($notesOpinions) ?>;
+        var relationships = <?= json_encode($relationshipsOutbound) ?>;
+        var relationships_inbound = <?= json_encode($relationshipsInbound) ?>;
+        var relationship_related_object = <?= json_encode($related_objects) ?>;
+        var renderedNotes = renderAllNotesWithForm<?= $seed ?>(notes, relationships, relationships_inbound, relationship_related_object)
+        if (container_id) {
+            $('#' + container_id).html(renderedNotes)
+        }
+    })
+<?php endif; ?>
 
 </script>
 

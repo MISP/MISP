@@ -24,7 +24,7 @@ class HttpSocketHttpException extends Exception
             $message .= " for URL $url";
         }
         if ($response->body) {
-            $message .= ': ' . substr($response->body, 0, 100);
+            $message .= ': ' . substr(ltrim($response->body), 0, 100);
         }
 
         parent::__construct($message, (int)$response->code);
@@ -121,7 +121,8 @@ class HttpSocketResponseExtended extends HttpSocketResponse
         try {
             return JsonTool::decode($this->body);
         } catch (Exception $e) {
-            throw new HttpSocketJsonException('Could not parse response as JSON.', $this, $e);
+            $contentType = $this->getHeader('content-type');
+            throw new HttpSocketJsonException("Could not parse HTTP response as JSON. Received Content-Type $contentType.", $this, $e);
         }
     }
 }

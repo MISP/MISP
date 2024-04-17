@@ -1418,11 +1418,13 @@ class Sighting extends AppModel
      */
     public function pullSightings(array $user, ServerSyncTool $serverSync)
     {
+        $serverSync->debug("Fetching event index for pulling sightings");
+
         $this->Server = ClassRegistry::init('Server');
         try {
             $remoteEvents = $this->Server->getEventIndexFromServer($serverSync);
         } catch (Exception $e) {
-            $this->logException("Could not fetch event IDs from server {$serverSync->server()['Server']['name']}", $e);
+            $this->logException("Could not fetch event IDs from server {$serverSync->serverName()}", $e);
             return 0;
         }
         // Remove events from list that do not have published sightings.
@@ -1451,6 +1453,8 @@ class Sighting extends AppModel
         if (empty($eventUuids)) {
             return 0;
         }
+
+        $serverSync->debug("Pulling sightings for " . count($eventUuids) . " events");
 
         if ($serverSync->isSupported(ServerSyncTool::FEATURE_SIGHTING_REST_SEARCH)) {
             return $this->pullSightingNewWay($user, $eventUuids, $serverSync);
