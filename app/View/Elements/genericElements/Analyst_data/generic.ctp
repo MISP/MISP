@@ -65,20 +65,8 @@ $allCounts = [
 
 $(document).ready(function() {
     $('.node-opener-<?= $seed ?>').click(function() {
-        openNotes(this)
+        openNotes<?= $seed ?>(this)
     })
-
-    function adjustPopoverPosition() {
-        var $popover = $('.popover:last');
-        $popover.css('top', Math.max($popover.position().top, 50) + 'px')
-    }
-
-    function openNotes(clicked) {
-        openPopover(clicked, renderedNotes<?= $seed ?>, undefined, undefined, function() {
-            adjustPopoverPosition()
-            $(clicked).removeClass('have-a-popover') // avoid closing the popover if a confirm popover (like the delete one) is called
-        })
-    }
 })
 </script>
 
