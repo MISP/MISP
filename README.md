@@ -46,6 +46,8 @@ The objective of MISP is to foster the sharing of structured information within 
 </tr>
 </table>
 
+[![CLA FREE initiative](https://raw.githubusercontent.com/ossbase-org/ossbase.org/main/logos/cla-free-small.png)](https://ossbase.org/initiatives/cla-free/)
+
 Core functions
 ------------------
 - An **efficient IOC and indicators** database, allowing to store technical and non-technical information about malware samples, incidents, attackers and intelligence.
