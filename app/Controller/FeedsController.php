@@ -109,17 +109,14 @@ class FeedsController extends AppController
                 }
 
                 foreach ($feeds as &$feed) {
-                    if (!empty($feed['Feed']['tag_id'])) {
-                        if (substr($feed['Feed']['tag_id'], 0, 11) == 'collection_') {
-                            $tagCollectionID = intval(substr($feed['Feed']['tag_id'], 11));
-                            $tagCollection = $this->TagCollection->fetchTagCollection($loggedUser, [
-                                'conditions' => [
-                                    'TagCollection.id' => $tagCollectionID,
-                                ]
-                            ]);
-                            if (!empty($tagCollection)) {
-                                $feed['TagCollection'] = $tagCollection;
-                            }
+                    if (!empty($feed['Feed']['tag_collection_id'])) {
+                        $tagCollection = $this->TagCollection->fetchTagCollection($loggedUser, [
+                            'conditions' => [
+                                'TagCollection.id' => $feed['Feed']['tag_collection_id'],
+                            ]
+                        ]);
+                        if (!empty($tagCollection)) {
+                            $feed['TagCollection'] = $tagCollection;
                         }
                     }
                 }
@@ -310,21 +307,12 @@ class FeedsController extends AppController
         if (empty(Configure::read('Security.disable_local_feed_access'))) {
             $inputSources['local'] = 'Local';
         }
-        $tags = $this->Event->EventTag->Tag->find('all', [
-            'recursive' => -1,
-            'fields' => ['Tag.name', 'Tag.id'],
-            'order' => ['lower(Tag.name) asc']
-        ]);
-        $tags = Hash::combine($tags, '{n}.Tag.id', '{n}.Tag.name');
+        $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
+        $tags[0] = 'None';
+        $this->loadModel('TagCollection');
         $tagCollections = $this->TagCollection->fetchTagCollection($this->Auth->user());
         $tagCollections = Hash::combine($tagCollections, '{n}.TagCollection.id', '{n}.TagCollection.name');
-        foreach ($tagCollections as $id => $name) {
-            $newID = "collection_{$id}";
-            $tagCollections[$newID] = sprintf('%s :: %s', __('Tag Collection'), $name);
-            unset($tagCollections[$id]);
-        }
-        $tags = array_merge($tags, $tagCollections);
-        $tags[0] = 'None';
+        $tagCollections[0] = 'None';
 
         $this->loadModel('Server');
         $allTypes = $this->Server->getAllTypes();
@@ -335,6 +323,7 @@ class FeedsController extends AppController
                 'order' => 'LOWER(name)'
             )),
             'tags' => $tags,
+            'tag_collections' => $tagCollections,
             'feedTypes' => $this->Feed->getFeedTypesOptions(),
             'sharingGroups' => $sharingGroups,
             'distributionLevels' => $distributionLevels,
@@ -371,6 +360,7 @@ class FeedsController extends AppController
                 'distribution',
                 'sharing_group_id',
                 'tag_id',
+                'tag_collection_id',
                 'event_id',
                 'publish',
                 'delta_merge',
@@ -478,16 +468,12 @@ class FeedsController extends AppController
             'fields' => ['Tag.name', 'Tag.id'],
             'order' => ['lower(Tag.name) asc']
         ]);
-        $tags = Hash::combine($tags, '{n}.Tag.id', '{n}.Tag.name');
+        $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
+        $tags[0] = 'None';
         $this->loadModel('TagCollection');
         $tagCollections = $this->TagCollection->fetchTagCollection($this->Auth->user());
         $tagCollections = Hash::combine($tagCollections, '{n}.TagCollection.id', '{n}.TagCollection.name');
-        foreach ($tagCollections as $id => $name) {
-            $newID = "collection_{$id}";
-            $tags[$newID] = sprintf('%s :: %s', __('Tag Collection'), $name);
-        }
-        unset($tagCollections);
-        $tags[0] = 'None';
+        $tagCollections[0] = 'None';
 
         $this->loadModel('Server');
         $allTypes = $this->Server->getAllTypes();
@@ -501,6 +487,7 @@ class FeedsController extends AppController
                 'order' => 'LOWER(name)'
             )),
             'tags' => $tags,
+            'tag_collections' => $tagCollections,
             'feedTypes' => $this->Feed->getFeedTypesOptions(),
             'sharingGroups' => $sharingGroups,
             'distributionLevels' => $distributionLevels,

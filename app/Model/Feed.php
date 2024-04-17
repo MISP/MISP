@@ -1032,7 +1032,7 @@ class Feed extends AppModel
                 }
             }
         }
-        if ($feed['Feed']['tag_id']) {
+        if ($feed['Feed']['tag_id'] || $feed['Feed']['tag_collection_id']) {
             if (empty($feed['Tag']['name'])) {
                 $feed_tag = $this->Tag->find('first', [
                     'conditions' => [
@@ -1049,9 +1049,9 @@ class Feed extends AppModel
                 $event['Event']['Tag'] = array();
             }
 
-            if (substr($feed['Feed']['tag_id'], 0, 11) == 'collection_') { // Tag is actually a tag collection
+            if (!empty($feed['Feed']['tag_collection_id'])) {
                 $this->TagCollection = ClassRegistry::init('TagCollection');
-                $tagCollectionID = intval(substr($feed['Feed']['tag_id'], 11));
+                $tagCollectionID = $feed['Feed']['tag_collection_id'];
                 $tagCollection = $this->TagCollection->find('first', [
                     'recursive' => -1,
                     'conditions' => [
@@ -1400,10 +1400,10 @@ class Feed extends AppModel
         if ($feed['Feed']['publish']) {
             $this->Event->publishRouter($event['Event']['id'], null, $user);
         }
-        if ($feed['Feed']['tag_id']) {
-            if (substr($feed['Feed']['tag_id'], 0, 11) == 'collection_') { // Tag is actually a tag collection
+        if ($feed['Feed']['tag_id'] || $feed['Feed']['tag_collection_id']) {
+            if (!empty($feed['Feed']['tag_collection_id'])) {
                 $this->TagCollection = ClassRegistry::init('TagCollection');
-                $tagCollectionID = intval(substr($feed['Feed']['tag_id'], 11));
+                $tagCollectionID = $feed['Feed']['tag_collection_id'];
                 $tagCollection = $this->TagCollection->find('first', [
                     'recursive' => -1,
                     'conditions' => [
