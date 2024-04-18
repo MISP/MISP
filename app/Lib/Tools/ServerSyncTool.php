@@ -297,29 +297,24 @@ class ServerSyncTool
 
     /**
      * @param array $eventUuids
+     * @param array $blockedOrgs Blocked organisation UUIDs
      * @return array
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function fetchSightingsForEvents(array $eventUuids)
+    public function fetchSightingsForEvents(array $eventUuids, array $blockedOrgs = [])
     {
-        $SightingBlocklist = ClassRegistry::init('SightingBlocklist');
-        $blocked_sightings = $SightingBlocklist->find('column', [
-            'recursive' => -1,
-            'fields' => ['org_uuid']
-        ]);
-        foreach ($blocked_sightings as $k => $uuid) {
-            $blocked_sightings[$k] = '!' . $uuid;
-        }
         $postParams = [
             'returnFormat' => 'json',
             'last' => 0, // fetch all
             'includeUuid' => true,
             'uuid' => $eventUuids,
         ];
-        if (!empty($blocked_sightings)) {
-            $postParams['org_id'] = $blocked_sightings;
+        if (!empty($blockedOrgs)) {
+            $postParams['org_id'] = array_map(function ($uuid) {
+                return "!$uuid";
+            }, $blockedOrgs);
         }
         return $this->post('/sightings/restSearch/event', $postParams)->json()['response'];
     }
@@ -512,6 +507,16 @@ class ServerSyncTool
     }
 
     /**
+     * @param string $message
+     * @return void
+     */
+    public function debug($message)
+    {
+        $memoryUsage = round(memory_get_usage() / 1024 / 1024, 2);
+        CakeLog::debug("[Server sync #{$this->serverId()}]: $message. Memory: $memoryUsage MB");
+    }
+
+    /**
      * @params string $url Relative URL
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
@@ -561,6 +566,7 @@ class ServerSyncTool
 
         if ($etag) {
             // Remove compression marks that adds Apache for compressed content
+            // This can be removed in future as this is already checked by MISP itself since 2024-03
             $etagWithoutQuotes = trim($etag, '"');
             $dashPos = strrpos($etagWithoutQuotes, '-');
             if ($dashPos && in_array(substr($etagWithoutQuotes, $dashPos + 1), ['br', 'gzip'], true)) {

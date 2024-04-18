@@ -1418,11 +1418,13 @@ class Sighting extends AppModel
      */
     public function pullSightings(array $user, ServerSyncTool $serverSync)
     {
+        $serverSync->debug("Fetching event index for pulling sightings");
+
         $this->Server = ClassRegistry::init('Server');
         try {
             $remoteEvents = $this->Server->getEventIndexFromServer($serverSync);
         } catch (Exception $e) {
-            $this->logException("Could not fetch event IDs from server {$serverSync->server()['Server']['name']}", $e);
+            $this->logException("Could not fetch event IDs from server {$serverSync->serverName()}", $e);
             return 0;
         }
         // Remove events from list that do not have published sightings.
@@ -1452,6 +1454,8 @@ class Sighting extends AppModel
             return 0;
         }
 
+        $serverSync->debug("Pulling sightings for " . count($eventUuids) . " events");
+
         if ($serverSync->isSupported(ServerSyncTool::FEATURE_SIGHTING_REST_SEARCH)) {
             return $this->pullSightingNewWay($user, $eventUuids, $serverSync);
         } else {
@@ -1470,12 +1474,19 @@ class Sighting extends AppModel
      */
     private function pullSightingNewWay(array $user, array $eventUuids, ServerSyncTool $serverSync)
     {
+        $SightingBlocklist = ClassRegistry::init('SightingBlocklist');
+        $blockedSightingsOrgs = $SightingBlocklist->find('column', [
+            'recursive' => -1,
+            'fields' => ['org_uuid']
+        ]);
+
         $uuids = array_keys($eventUuids);
+        shuffle($uuids); // shuffle array to avoid keeping events with a lof ot sightings in same batch all the time
         $saved = 0;
         $savedEventUuids = [];
-        foreach (array_chunk($uuids, 100) as $chunk) {
+        foreach (array_chunk($uuids, 20) as $chunk) {
             try {
-                $sightings = $serverSync->fetchSightingsForEvents($chunk);
+                $sightings = $serverSync->fetchSightingsForEvents($chunk, $blockedSightingsOrgs);
             } catch (Exception $e) {
                 $this->logException("Failed to download sightings from remote server {$serverSync->server()['Server']['name']}.", $e);
                 continue;

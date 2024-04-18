@@ -408,6 +408,11 @@ if (!empty($me)) {
                     'url' => $baseurl . '/servers/serverSettings',
                     'requirement' => $isSiteAdmin
                 ),
+                [
+                    'text' => __('Benchmarking'),
+                    'url' => $baseurl . '/benchmarks/index',
+                    'requirement' => $isSiteAdmin && Configure::read('Plugin.Benchmarking_enable')
+                ],
                 array(
                     'type' => 'separator',
                     'requirement' => $isSiteAdmin

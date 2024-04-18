@@ -1100,6 +1100,13 @@ $divider = '<li class="divider"></li>';
                             'url' => $baseurl . '/servers/updateProgress',
                             'text' => __('Update Progress')
                         ));
+                        if (Configure::read('Plugin.Benchmarking_enable')) {
+                            echo $divider;
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => $baseurl . '/benchmarks/index',
+                                'text' => __('Benchmarks')
+                            ));
+                        }
                         echo $divider;
                         if (Configure::read('MISP.background_jobs')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(

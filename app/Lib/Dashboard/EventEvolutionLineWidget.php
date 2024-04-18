@@ -58,9 +58,11 @@ class EventEvolutionLineWidget
             'recursive' => -1
         ];
         $eparams = [];
+        $filteringOnOrg = false;
         if (!empty($options['filter']) && is_array($options['filter'])) {
             foreach ($this->validFilterKeys as $filterKey) {
                 if (!empty($options['filter'][$filterKey])) {
+                    $filteringOnOrg = true;
                     if (!is_array($options['filter'][$filterKey])) {
                         $options['filter'][$filterKey] = [$options['filter'][$filterKey]];
                     }
@@ -87,6 +89,9 @@ class EventEvolutionLineWidget
             'conditions' => $oparams['conditions'],
             'fields' => ['id']
         ]);
+        if ($filteringOnOrg) {
+            $eparams['conditions']['AND']['Event.orgc_id IN'] = !empty($org_ids) ? $org_ids : [-1];
+        }
         $this->Event->virtualFields = [
             'published_date' => null
         ];

@@ -357,7 +357,7 @@ class TagCollectionsController extends AppController
             if (!$tagCollection) {
                 throw new NotFoundException(__('Invalid tag collection.'));
             }
-            if ($this->ACL->canModifyTagCollection($this->Auth->user(), $tagCollection)) {
+            if (!$this->ACL->canModifyTagCollection($this->Auth->user(), $tagCollection)) {
                 throw new ForbiddenException(__('You dont have a permission to do that'));
             }
             $tagCollectionTag = $this->TagCollection->TagCollectionTag->find('first', [

@@ -43,7 +43,7 @@ class AnalystData extends AppModel
         'distribution',
         'sharing_group_id',
     ];
-    protected $EDITABLE_FIELDS = [];
+    public const EDITABLE_FIELDS = [];
 
     /** @var object|null */
     protected $Note;
@@ -185,7 +185,7 @@ class AnalystData extends AppModel
 
     public function getEditableFields(): array
     {
-        return array_merge(self::BASE_EDITABLE_FIELDS, $this->EDITABLE_FIELDS);
+        return array_merge(static::BASE_EDITABLE_FIELDS, static::EDITABLE_FIELDS);
     }
 
     /**
@@ -641,9 +641,8 @@ class AnalystData extends AppModel
             return [];
         }
         $this->Server = ClassRegistry::init('Server');
-        $this->AnalystData = ClassRegistry::init('AnalystData');
 
-        $this->log("Starting Analyst Data sync with server #{$server['Server']['id']}", LOG_INFO);
+        $serverSync->debug("Starting Analyst Data sync");
 
         $analystData = $this->collectDataForPush($serverSync->server());
         $keyedAnalystData = [];
@@ -1018,7 +1017,6 @@ class AnalystData extends AppModel
         }
 
         $this->Server = ClassRegistry::init('Server');
-        $this->AnalystData = ClassRegistry::init('AnalystData');
         try {
             $filterRules = $this->buildPullFilterRules($serverSync->server());
             $remoteData = $serverSync->fetchIndexMinimal($filterRules)->json();

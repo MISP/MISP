@@ -710,7 +710,7 @@ class EventReport extends AppModel
                 'category' => $typeToCategoryMapping[$complexTypeToolEntry['default_type']][0],
                 'type' => $complexTypeToolEntry['default_type'],
                 'value' => $textToBeReplaced,
-                'to_ids' => $complexTypeToolEntry['to_ids'],
+                'to_ids' => $complexTypeToolEntry['to_ids'] ?? 0,
             ];
             $replacedContent = str_replace($complexTypeToolEntry['original_value'], $textToInject, $replacedContent);
         }

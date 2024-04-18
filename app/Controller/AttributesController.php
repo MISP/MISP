@@ -1580,6 +1580,7 @@ class AttributesController extends AppController
             }
 
             $this->paginate['conditions'] = $params['conditions'];
+            $this->paginate['ignoreIndexHint'] = 'deleted';
             $attributes = $this->paginate();
             $this->Attribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
 

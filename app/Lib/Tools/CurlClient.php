@@ -6,8 +6,12 @@ class CurlClient extends HttpSocketExtended
     /** @var resource */
     private $ch;
 
-    /** @var int */
-    private $timeout = 10800;
+    /**
+     * Maximum time the transfer is allowed to complete in seconds
+     * 300 seconds is recommended timeout for MISP servers
+     * @var int
+     */
+    private $timeout = 300;
 
     /** @var string|null */
     private $caFile;
@@ -30,6 +34,9 @@ class CurlClient extends HttpSocketExtended
     /** @var array */
     private $proxy = [];
 
+    /** @var array */
+    private $defaultOptions;
+
     /**
      * @param array $params
      * @noinspection PhpMissingParentConstructorInspection
@@ -38,8 +45,6 @@ class CurlClient extends HttpSocketExtended
     {
         if (isset($params['timeout'])) {
             $this->timeout = $params['timeout'];
-        } else {
-            $this->timeout = Configure::check('MISP.curl_request_timeout') ? Configure::read('MISP.curl_request_timeout') : 10800;
         }
         if (isset($params['ssl_cafile'])) {
             $this->caFile = $params['ssl_cafile'];
@@ -59,6 +64,7 @@ class CurlClient extends HttpSocketExtended
         if (isset($params['ssl_verify_peer'])) {
             $this->verifyPeer = $params['ssl_verify_peer'];
         }
+        $this->defaultOptions = $this->generateDefaultOptions();
     }
 
     /**
@@ -166,6 +172,7 @@ class CurlClient extends HttpSocketExtended
             return;
         }
         $this->proxy = compact('host', 'port', 'method', 'user', 'pass');
+        $this->defaultOptions = $this->generateDefaultOptions(); // regenerate default options in case proxy setting is changed
     }
 
     /**
@@ -196,7 +203,7 @@ class CurlClient extends HttpSocketExtended
             $url .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
         }
 
-        $options = $this->generateOptions();
+        $options = $this->defaultOptions; // this will copy default options
         $options[CURLOPT_URL] = $url;
         $options[CURLOPT_CUSTOMREQUEST] = $method;
 
@@ -303,7 +310,7 @@ class CurlClient extends HttpSocketExtended
     /**
      * @return array
      */
-    private function generateOptions()
+    private function generateDefaultOptions()
     {
         $options = [
             CURLOPT_FOLLOWLOCATION => true, // Allows to follow redirect

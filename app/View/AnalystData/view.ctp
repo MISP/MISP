@@ -120,15 +120,57 @@ echo $this->element(
 );
 
 $object_uuid = Hash::get($data, $modelSelection . '.uuid');
+
+$notes = $data[$modelSelection]['Note'] ?? [];
+$opinions = $data[$modelSelection]['Opinion'] ?? [];
+$relationships_outbound = $data[$modelSelection]['Relationship'] ?? [];
+$relationships_inbound = $data[$modelSelection]['RelationshipInbound'] ?? [];
+$notesOpinions = array_merge($notes, $opinions);
+if(!function_exists("countNotes")) {
+    function countNotes($notesOpinions) {
+        $notesTotalCount = count($notesOpinions);
+        $notesCount = 0;
+        $relationsCount = 0;
+        foreach ($notesOpinions as $notesOpinion) {
+            if ($notesOpinion['note_type'] == 2) { // relationship
+                $relationsCount += 1;
+            } else {
+                $notesCount += 1;
+            }
+            if (!empty($notesOpinion['Note'])) {
+                $nestedCounts = countNotes($notesOpinion['Note']);
+                $notesTotalCount += $nestedCounts['total'];
+                $notesCount += $nestedCounts['notesOpinions'];
+                $relationsCount += $nestedCounts['relations'];
+            }
+            if (!empty($notesOpinion['Opinion'])) {
+                $nestedCounts = countNotes($notesOpinion['Opinion']);
+                $notesTotalCount += $nestedCounts['total'];
+                $notesCount += $nestedCounts['notesOpinions'];
+                $relationsCount += $nestedCounts['relations'];
+            }
+        }
+        return ['total' => $notesTotalCount, 'notesOpinions' => $notesCount, 'relations' => $relationsCount];
+    }
+}
+$counts = countNotes($notesOpinions);
+$notesOpinionCount = $counts['notesOpinions'];
+$allCounts = [
+    'notesOpinions' => $counts['notesOpinions'],
+    'relationships_outbound' => count($relationships_outbound),
+    'relationships_inbound' => count($relationships_inbound),
+];
+
 $options = [
     'container_id' => 'analyst_data_thread',
     'object_type' => $modelSelection,
     'object_uuid' => $object_uuid,
     'shortDist' => $shortDist,
-    'notes' => $data[$modelSelection]['Note'] ?? [],
-    'opinions' => $data[$modelSelection]['Opinion'] ?? [],
-    'relationships_outbound' => $data[$modelSelection]['Relationship'] ?? [],
-    'relationships_inbound' => $data[$modelSelection]['RelationshipInbound'] ?? [],
+    'notes' => $notes,
+    'opinions' => $opinions,
+    'relationships_outbound' => $relationships_outbound,
+    'relationships_inbound' => $relationships_inbound,
+    'allCounts' => $allCounts,
 ];
 
 echo $this->element('genericElements/assetLoader', [

@@ -177,7 +177,7 @@ if ($isAdmin && $isTotp) {
         'js' => array('vis', 'jquery-ui.min', 'network-distribution-graph')
     ));
     echo sprintf(
-        '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s%s%s<div style="margin-top:20px;">%s%s</div></div>',
+        '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s%s%s<div style="margin-top:20px;">%s%s%s</div></div>',
         sprintf(
             '<h2>%s</h2>%s',
             __('User %s', h($user['User']['email'])),
@@ -210,6 +210,15 @@ if ($isAdmin && $isTotp) {
             __('Review user logins')
         ),
         $me['Role']['perm_auth'] ? $this->element('/genericElements/accordion', array('title' => __('Auth keys'), 'url' => '/auth_keys/index/' . h($user['User']['id']))) : '',
+        $me['Role']['perm_site_admin'] ?
+            $this->element(
+                '/genericElements/accordion',
+                [
+                    'title' => __('Benchmarks'),
+                    'url' => '/benchmarks/index/scope:user/average:1/aggregate:1/key:' . h($user['User']['id'])
+                ]
+            ) :
+            '',
         $this->element('/genericElements/accordion', array('title' => 'Events', 'url' => '/events/index/searchemail:' . urlencode(h($user['User']['email']))))
     );
     $current_menu = [

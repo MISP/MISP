@@ -33,12 +33,18 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '159';
-    public $pyMispVersion = '2.4.188';
+    private $__queryVersion = '161';
+    public $pyMispVersion = '2.4.190';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
     private $isApiAuthed = false;
+
+    /** @var redis */
+    private $redis = null;
+
+    /** @var benchmark_results */
+    private $benchmark_results = null;
 
     public $baseurl = '';
 
@@ -57,8 +63,13 @@ class AppController extends Controller
     /** @var ACLComponent */
     public $ACL;
 
+    /** @var BenchmarkComponent */
+    public $Benchmark;
+
     /** @var RestResponseComponent */
     public $RestResponse;
+
+    public $start_time;
 
     public function __construct($request = null, $response = null)
     {
@@ -97,6 +108,12 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        $this->User = ClassRegistry::init('User');
+        if (Configure::read('Plugin.Benchmarking_enable')) {
+            App::uses('BenchmarkTool', 'Tools');
+            $this->Benchmark = new BenchmarkTool($this->User);
+            $this->start_time = $this->Benchmark->startBenchmark();
+        }
         $controller = $this->request->params['controller'];
         $action = $this->request->params['action'];
 
@@ -146,8 +163,6 @@ class AppController extends Controller
         } else {
             Configure::write('Config.language', 'eng');
         }
-
-        $this->User = ClassRegistry::init('User');
 
         if (!empty($this->request->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
@@ -863,6 +878,21 @@ class AppController extends Controller
 
     public function afterFilter()
     {
+        // benchmarking
+        if (Configure::read('Plugin.Benchmarking_enable')) {
+            $this->Benchmark->stopBenchmark([
+                'user' => $this->Auth->user('id'),
+                'controller' => $this->request->params['controller'],
+                'action' => $this->request->params['action'],
+                'start_time' => $this->start_time
+            ]);
+
+            //if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $key)) {
+                //$redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
+                //return true;
+            //}
+            
+        }
         if ($this->isApiAuthed && $this->_isRest() && !Configure::read('Security.authkey_keep_session')) {
             $this->Session->destroy();
         }
@@ -1033,7 +1063,19 @@ class AppController extends Controller
                     $data = array_merge($data, $temp);
                 } else {
                     foreach ($options['paramArray'] as $param) {
-                        if (isset($temp[$param])) {
+                        if (substr($param, -1) == '*') {
+                            $root = substr($param, 0, strlen($param)-1);
+                            foreach ($temp as $existingParamKey => $v) {
+                                $leftover = substr($existingParamKey, strlen($param)-1);
+                                if (
+                                    $root == substr($existingParamKey, 0, strlen($root)) &&
+                                    preg_match('/^[\w_-. ]+$/', $leftover) == 1
+                                ) {
+                                    $data[$existingParamKey] = $temp[$existingParamKey];
+                                    break;
+                                }
+                            }
+                        } else if (isset($temp[$param])) {
                             $data[$param] = $temp[$param];
                         }
                     }
