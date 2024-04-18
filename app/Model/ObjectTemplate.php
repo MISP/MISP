@@ -308,20 +308,29 @@ class ObjectTemplate extends AppModel
         $to_return['invalidTypes'] = array();
         $to_return['invalidTypesMultiple'] = array();
         foreach ($template['ObjectTemplateElement'] as $templateElement) {
-            $valid_types[$templateElement['type']] = $templateElement['multiple'];
+            if ($templateElement['multiple']) {
+                $valid_types[$templateElement['type']] = true;
+            }
+            if (!isset($valid_types[$templateElement['type']])) {
+                $valid_types[$templateElement['type']] = 0;
+            }
+            if ($valid_types[$templateElement['type']] !== true) {
+                $valid_types[$templateElement['type']] += 1;
+            }
         }
         $check_for_multiple_type = array();
         foreach ($attributeTypes as $attributeType) {
             if (isset($valid_types[$attributeType])) {
-                if (!$valid_types[$attributeType]) { // is not multiple
-                    if (isset($check_for_multiple_type[$attributeType])) {
-                        $to_return['invalidTypesMultiple'][] = $attributeType;
-                    } else {
-                        $check_for_multiple_type[$attributeType] = 1;
-                    }
+                if ($valid_types[$attributeType] !== true) { // is not multiple
+                    $check_for_multiple_type[$attributeType] = 1;
                 }
             } else {
                 $to_return['invalidTypes'][] = $attributeType;
+            }
+        }
+        foreach ($check_for_multiple_type as $type => $count) {
+            if ($valid_types[$attributeType] < $count) {
+                $to_return['invalidTypesMultiple'][] = $attributeType;
             }
         }
         $to_return['invalidTypes'] = array_unique($to_return['invalidTypes'], SORT_REGULAR);
