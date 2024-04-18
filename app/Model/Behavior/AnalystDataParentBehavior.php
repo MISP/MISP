@@ -59,7 +59,7 @@ class AnalystDataParentBehavior extends ModelBehavior
                 $this->{$type} = ClassRegistry::init($type);
                 $this->{$type}->fetchRecursive = !empty($model->includeAnalystDataRecursive);
                 $temp = $this->{$type}->fetchForUuids($uuid_chunk, $this->__currentUser);
-                $results = array_merge($results, $temp);
+                $results = array_merge_recursive($results, $temp);
             }
         }
         return $results;
