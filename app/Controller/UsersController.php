@@ -1811,6 +1811,7 @@ class UsersController extends AppController
             $this->Flash->error(__("The required PHP libraries to support TOTP are not installed. Please contact your administrator to address this."));
             $this->redirect($this->referer());
         }
+
         // only allow the users themselves to generate a TOTP secret.
         // If TOTP is enforced they will be invited to generate it at first login
         $user = $this->User->find('first', array(
@@ -1880,7 +1881,8 @@ class UsersController extends AppController
         $this->set('secret', $secret);
     }
 
-    public function totp_delete($id) {
+    public function totp_delete($id)
+    {
         if ($this->request->is('post') || $this->request->is('delete')) {
             $user = $this->User->find('first', array(
                 'conditions' => $this->__adminFetchConditions($id),
@@ -1988,8 +1990,7 @@ class UsersController extends AppController
     // shows some statistics about the instance
     public function statistics($page = 'data')
     {
-        $user = $this->Auth->user();
-        @session_write_close(); // loading this page can take long time, so we can close session
+        $user = $this->_closeSession(true); // loading this page can take long time, so we can close session
 
         if (!$this->_isRest()) {
             $pages = [

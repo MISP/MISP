@@ -792,12 +792,12 @@ class ACLComponent extends Component
                 'discardRegistrations' => array(),
                 'downloadTerms' => array('*'),
                 'edit' => array('self_management_enabled'),
-                'email_otp' => array('*'),
+                'email_otp' => array('otp_enabled'),
                 'forgot' => array('*'),
-                'otp' => array('*'),
-                'hotp' => array('*'),
-                'totp_new' => array('*'),
-                'totp_delete' => array('perm_admin'),
+                'otp' => array('otp_enabled'),
+                'hotp' => array('otp_enabled'),
+                'totp_new' => array('otp_enabled'),
+                'totp_delete' => ['AND' => ['perm_admin', 'otp_enabled']],
                 'searchGpgKey' => array('*'),
                 'fetchGpgKey' => array('*'),
                 'histogram' => array('*'),
@@ -913,19 +913,25 @@ class ACLComponent extends Component
         };
         $this->dynamicChecks['self_management_enabled'] = function (array $user) {
             if (Configure::read('MISP.disableUserSelfManagement') && !$user['Role']['perm_admin'])  {
-                throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
+                throw new ForbiddenException('User self-management has been disabled on this instance.');
             }
             return true;
         };
         $this->dynamicChecks['password_change_enabled'] = function (array $user) {
             if (Configure::read('MISP.disable_user_password_change')) {
-                throw new MethodNotAllowedException('User password change has been disabled on this instance.');
+                throw new ForbiddenException('User password change has been disabled on this instance.');
+            }
+            return true;
+        };
+        $this->dynamicChecks['otp_enabled'] = function (array $user) {
+            if (Configure::read('Security.otp_disabled')) {
+                throw new ForbiddenException('OTP is disabled on this instance.');
             }
             return true;
         };
         $this->dynamicChecks['add_user_enabled'] = function (array $user) {
             if (Configure::read('MISP.disable_user_add')) {
-                throw new MethodNotAllowedException('Adding users has been disabled on this instance.');
+                throw new ForbiddenException('Adding users has been disabled on this instance.');
             }
             return true;
         };

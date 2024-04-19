@@ -1532,7 +1532,7 @@ class AppController extends Controller
      * Close session without writing changes to them and return current user.
      * @return array
      */
-    protected function _closeSession()
+    protected function _closeSession($saveSession = false)
     {
         $user = $this->Auth->user();
 
@@ -1541,7 +1541,11 @@ class AppController extends Controller
         AuthComponent::$sessionKey = null;
         $this->Auth->login($user);
 
-        session_abort();
+        if ($saveSession) {
+            @session_write_close();
+        } else {
+            session_abort();
+        }
         return $user;
     }
 
