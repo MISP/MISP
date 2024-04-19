@@ -32,6 +32,7 @@ $config = array(
     ...
     'OidcAuth' = [
         'provider_url' => '{{ OIDC_PROVIDER }}',
+        'issuer' => '{{ OIDC_ISSUER }}', // If omitted, it defaults to provider_url
         'client_id' => '{{ OIDC_CLIENT_ID }}',
         'client_secret' => '{{ OIDC_CLIENT_SECRET }}',
         'role_mapper' => [ // if user has multiple roles, first role that match will be assigned to user
