@@ -3187,10 +3187,6 @@ class UsersController extends AppController
 
     public function forgot()
     {
-        if (empty(Configure::read('Security.allow_password_forgotten'))) {
-            $this->Flash->error(__('This feature is disabled.'));
-            $this->redirect('/');
-        }
         if (!empty($this->Auth->user()) && !$this->_isRest()) {
             $this->Flash->info(__('You are already logged in, no need to ask for a password reset. Log out first.'));
             $this->redirect('/');
@@ -3216,10 +3212,6 @@ class UsersController extends AppController
 
     public function password_reset($token)
     {
-        if (empty(Configure::read('Security.allow_password_forgotten'))) {
-            $this->Flash->error(__('This feature is disabled.'));
-            $this->redirect('/');
-        }
         $this->loadModel('Server');
         $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
         $this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
@@ -3236,7 +3228,7 @@ class UsersController extends AppController
                 $this->redirect('/');
             }
         }
-        if ($this->request->is('post') || $this->request->is('put')) {
+        if ($this->request->is(['post', 'put'])) {
             $abortPost = false;
             return $this->__pw_change(['User' => $user], 'password_reset', $abortPost, $token, true);
         }

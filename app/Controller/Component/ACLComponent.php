@@ -793,10 +793,10 @@ class ACLComponent extends Component
                 'downloadTerms' => array('*'),
                 'edit' => array('self_management_enabled'),
                 'email_otp' => array('otp_enabled'),
-                'forgot' => array('*'),
-                'otp' => array('otp_enabled'),
-                'hotp' => array('otp_enabled'),
-                'totp_new' => array('otp_enabled'),
+                'forgot' => ['AND' => ['password_forgotten_enabled', 'password_change_enabled']],
+                'otp' => ['otp_enabled'],
+                'hotp' => ['otp_enabled'],
+                'totp_new' => ['otp_enabled'],
                 'totp_delete' => ['AND' => ['perm_admin', 'otp_enabled']],
                 'searchGpgKey' => array('*'),
                 'fetchGpgKey' => array('*'),
@@ -806,7 +806,7 @@ class ACLComponent extends Component
                 'logout' => array('*'),
                 'logout401' => array('*'),
                 'notificationSettings' => ['*'],
-                'password_reset' => array('*'),
+                'password_reset' => ['AND' => ['password_forgotten_enabled', 'password_change_enabled']],
                 'register' => array('*'),
                 'registrations' => array(),
                 'resetAllSyncAuthKeys' => array(),
@@ -925,7 +925,13 @@ class ACLComponent extends Component
         };
         $this->dynamicChecks['otp_enabled'] = function (array $user) {
             if (Configure::read('Security.otp_disabled')) {
-                throw new ForbiddenException('OTP is disabled on this instance.');
+                throw new ForbiddenException('OTP has been disabled on this instance.');
+            }
+            return true;
+        };
+        $this->dynamicChecks['password_forgotten_enabled'] = function (array $user) {
+            if (empty(Configure::read('Security.allow_password_forgotten'))) {
+                throw new ForbiddenException('Password reset has been disabled on this instance.');
             }
             return true;
         };
