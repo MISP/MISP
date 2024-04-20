@@ -799,6 +799,20 @@ class TestSecurity(unittest.TestCase):
         with self.assertRaises(Exception):
             send(logged_in, "GET", f"/users/password_reset/abcd")
 
+    def test_otp_disabled(self):
+        with self.__setting("Security.otp_disabled", True):
+            logged_in = PyMISP(url, self.test_usr.authkey)
+            logged_in.global_pythonify = True
+
+            with self.assertRaises(Exception):
+                send(logged_in, "GET", f"/users/email_otp")
+
+            with self.assertRaises(Exception):
+                send(logged_in, "GET", f"/users/totp_new")
+
+            with self.assertRaises(Exception):
+                send(logged_in, "GET", f"/users/totp_delete/1")
+
     def test_add_user_by_org_admin(self):
         user = MISPUser()
         user.email = 'testusr@user' + random() + '.local'  # make name always unique

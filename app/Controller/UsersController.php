@@ -1,5 +1,5 @@
 <?php
-App::uses('AppController', 'Controller', 'OTPHP\TOTP');
+App::uses('AppController', 'Controller');
 
 /**
  * @property User $User
@@ -1883,7 +1883,7 @@ class UsersController extends AppController
 
     public function totp_delete($id)
     {
-        if ($this->request->is('post') || $this->request->is('delete')) {
+        if ($this->request->is(['post', 'delete'])) {
             $user = $this->User->find('first', array(
                 'conditions' => $this->__adminFetchConditions($id),
                 'recursive' => -1,
