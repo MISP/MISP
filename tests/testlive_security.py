@@ -789,6 +789,16 @@ class TestSecurity(unittest.TestCase):
         # Password should be still the same
         self.assertIsInstance(login(url, self.test_usr.email, self.test_usr_password), requests.Session)
 
+    def test_forget_password_not_enabled(self):
+        logged_in = PyMISP(url, self.test_usr.authkey)
+        logged_in.global_pythonify = True
+
+        with self.assertRaises(Exception):
+            send(logged_in, "GET", f"/users/forget")
+
+        with self.assertRaises(Exception):
+            send(logged_in, "GET", f"/users/password_reset/abcd")
+
     def test_add_user_by_org_admin(self):
         user = MISPUser()
         user.email = 'testusr@user' + random() + '.local'  # make name always unique
