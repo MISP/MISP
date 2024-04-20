@@ -259,6 +259,11 @@ class Log extends AppModel
             $change = implode(", ", $output);
         }
 
+        // If Sentry is installed, send log breadcrumb to Sentry
+        if (function_exists('\Sentry\addBreadcrumb')) {
+            \Sentry\addBreadcrumb('log', $title, [], Sentry\Breadcrumb::LEVEL_INFO);
+        }
+
         $this->create();
         $result = $this->save(['Log' => [
             'org' => $user['Organisation']['name'],
