@@ -1137,6 +1137,7 @@ class ACLComponent extends Component
      *
      * @param array $user
      * @param array $analystData
+     * @param string $modelType
      * @return bool
      */
     public function canEditAnalystData(array $user, array $analystData, $modelType): bool
@@ -1251,7 +1252,7 @@ class ACLComponent extends Component
             $this->checkAccess($user, $controller, $action, false);
         } catch (NotFoundException $e) {
             throw new RuntimeException("Invalid controller '$controller' specified.", 0, $e);
-        } catch (MethodNotAllowedException $e) {
+        } catch (ForbiddenException $e) {
             return false;
         }
         return true;
@@ -1271,7 +1272,7 @@ class ACLComponent extends Component
      * @param bool $checkLoggedActions
      * @return true
      * @throws NotFoundException
-     * @throws MethodNotAllowedException
+     * @throws ForbiddenException
      */
     public function checkAccess($user, $controller, $action, $checkLoggedActions = true)
     {
@@ -1279,9 +1280,6 @@ class ACLComponent extends Component
         $action = strtolower($action);
         if ($checkLoggedActions) {
             $this->__checkLoggedActions($user, $controller, $action);
-        }
-        if ($user && $user['Role']['perm_site_admin']) {
-            return true;
         }
         if (!isset(self::ACL_LIST[$controller])) {
             throw new NotFoundException('Invalid controller.');
@@ -1328,7 +1326,12 @@ class ACLComponent extends Component
                 return true;
             }
         }
-        throw new MethodNotAllowedException('You do not have permission to use this functionality.');
+        // Dynamic checks can raise forbidden exception even for site admins, so we have to check permission for site
+        // admin as last thing.
+        if ($user && $user['Role']['perm_site_admin']) {
+            return true;
+        }
+        throw new ForbiddenException('You do not have permission to use this functionality.');
     }
 
     private function __findAllFunctions()
