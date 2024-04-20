@@ -74,6 +74,7 @@ class Oidc
             return false;
         }
 
+        $roles = is_string($roles) ? explode($this->getConfig('roles_delimiter', ','), $roles) : $roles;
         $roleId = $this->getUserRole($roles, $mispUsername);
         if ($roleId === null) {
             $this->log($mispUsername, 'No role was assigned, access prohibited.', LOG_WARNING);
@@ -231,6 +232,7 @@ class Oidc
             return false;
         }
 
+        $roles = is_string($roles) ? explode($this->getConfig('roles_delimiter', ','), $roles) : $roles;
         $roleId = $this->getUserRole($roles, $user['email']);
         if ($roleId === null) {
             $this->log($user['email'], 'No role was assigned.', LOG_WARNING);
