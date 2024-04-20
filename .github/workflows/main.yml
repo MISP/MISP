@@ -184,14 +184,14 @@ jobs:
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1
 
+      - name: Check if Redis is ready
+        run: app/Console/cake Admin redisReady
+
       - name: Update JSON
         run: app/Console/cake Admin updateJSON
 
       - name: Turn MISP live
         run: app/Console/cake Admin live 1
-
-      - name: Check if Redis is ready
-        run: app/Console/cake Admin redisReady
 
       - name: Start workers
         run: |
