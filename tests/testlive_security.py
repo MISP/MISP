@@ -19,6 +19,7 @@ from enum import Enum
 try:
     from pymisp import PyMISP, MISPOrganisation, MISPUser, MISPRole, MISPSharingGroup, MISPEvent, MISPLog, MISPSighting, Distribution
     from pymisp.exceptions import PyMISPError, NoKey, MISPServerError
+    from pymisp.api import get_uuid_or_id_from_abstract_misp
 except ImportError:
     if sys.version_info < (3, 6):
         print('This test suite requires Python 3.6+, breaking.')
@@ -124,6 +125,12 @@ def send(api: PyMISP, request_type: str, url: str, data=None, check_errors: bool
 
 def random() -> str:
     return str(uuid.uuid4()).split("-")[0]
+
+
+def publish_immediately(pymisp: PyMISP, event: Union[MISPEvent, int, str, uuid.UUID], with_email: bool = False):
+    event_id = get_uuid_or_id_from_abstract_misp(event)
+    action = "alert" if with_email else "publish"
+    return send(pymisp, 'POST', f'events/{action}/{event_id}/disable_background_processing:1')
 
 
 class TestSecurity(unittest.TestCase):
@@ -1253,8 +1260,7 @@ class TestSecurity(unittest.TestCase):
             self.assertEqual(len(attributes["Attribute"]), 0, attributes)
 
             # Publish
-            self.assertSuccessfulResponse(self.admin_misp_connector.publish(created_event))
-            time.sleep(6);
+            self.assertSuccessfulResponse(publish_immediately(self.admin_misp_connector, created_event))
 
             # Event is published, so normal user should see that event
             self.assertTrue(logged_in.event_exists(created_event.uuid))
