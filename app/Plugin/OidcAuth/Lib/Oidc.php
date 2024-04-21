@@ -74,7 +74,6 @@ class Oidc
             return false;
         }
 
-        $roles = is_string($roles) ? explode($this->getConfig('roles_delimiter', ','), $roles) : $roles;
         $roleId = $this->getUserRole($roles, $mispUsername);
         if ($roleId === null) {
             $this->log($mispUsername, 'No role was assigned, access prohibited.', LOG_WARNING);
@@ -232,7 +231,6 @@ class Oidc
             return false;
         }
 
-        $roles = is_string($roles) ? explode($this->getConfig('roles_delimiter', ','), $roles) : $roles;
         $roleId = $this->getUserRole($roles, $user['email']);
         if ($roleId === null) {
             $this->log($user['email'], 'No role was assigned.', LOG_WARNING);
@@ -304,9 +302,10 @@ class Oidc
         $providerUrl = $this->getConfig('provider_url');
         $clientId = $this->getConfig('client_id');
         $clientSecret = $this->getConfig('client_secret');
+        $issuer = $this->getConfig('issuer', $providerUrl);
 
         if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
-            $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret);
+            $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret, $issuer);
         } else if (class_exists("\Jumbojett\OpenIDConnectClient")) {
             throw new Exception("Jumbojett OIDC implementation is not supported anymore, please use JakubOnderka's client");
         } else {
@@ -444,12 +443,13 @@ class Oidc
     }
 
     /**
-     * @param array $roles Role list provided by OIDC
+     * @param array|string $roles Role list provided by OIDC
      * @param string $mispUsername
      * @return int|null Role ID or null if no role matches
      */
-    private function getUserRole(array $roles, $mispUsername)
+    private function getUserRole($roles, $mispUsername)
     {
+        $roles = is_string($roles) ? explode($this->getConfig('roles_delimiter', ','), $roles) : $roles;
         $this->log($mispUsername, 'Provided roles: ' . implode(', ', $roles));
         $roleMapper = $this->getConfig('role_mapper');
         if (!is_array($roleMapper)) {
