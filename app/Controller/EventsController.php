@@ -466,8 +466,8 @@ class EventsController extends AppController
                     }
                     $pieces = is_array($v) ? $v : explode('|', $v);
                     $isANDed = false;
-                    if (count($pieces) == 1 && strpos($pieces[0], '&') !== -1) {
-                        $pieces = explode('&', $v);
+                    if (count($pieces) == 1 && strpos($pieces[0], '&') !== false) {
+                        $pieces = explode('&', $pieces[0]);
                         $isANDed = count($pieces) > 1;
                     }
                     $filterString = "";
