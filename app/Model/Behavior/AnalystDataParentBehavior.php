@@ -93,7 +93,8 @@ class AnalystDataParentBehavior extends ModelBehavior
                 if (!empty($temp)) {
                     foreach ($chunked_objects as $k => $object) {
                         if (!empty($temp[$object['uuid']])) {
-                            $objects[$chunk][$k][$type][] = $temp[$object['uuid']][$type];
+                            $objects[$chunk][$k][$type] = !empty($objects[$chunk][$k][$type]) ? $objects[$chunk][$k][$type] : [];
+                            $objects[$chunk][$k][$type] = array_merge($objects[$chunk][$k][$type], $temp[$object['uuid']][$type]);
                         }
                     }
                 }
