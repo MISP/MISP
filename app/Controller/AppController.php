@@ -34,7 +34,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '161';
-    public $pyMispVersion = '2.4.188';
+    public $pyMispVersion = '2.4.190';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -991,31 +991,6 @@ class AppController extends Controller
         return $this->userRole['perm_site_admin'];
     }
 
-    protected function _getApiAuthUser($key, &$exception)
-    {
-        if (strlen($key) === 40) {
-            // check if the key is valid -> search for users based on key
-            $user = $this->_checkAuthUser($key);
-            if (!$user) {
-                $exception = $this->RestResponse->throwException(
-                    401,
-                    __('This authentication key is not authorized to be used for exports. Contact your administrator.')
-                );
-                return false;
-            }
-        } else {
-            $user = $this->Auth->user();
-            if (!$user) {
-                $exception = $this->RestResponse->throwException(
-                    401,
-                    __('You have to be logged in to do that.')
-                );
-                return false;
-            }
-        }
-        return $user;
-    }
-
     private function __captureParam($data, $param, $value)
     {
         if ($this->modelClass->checkParam($param)) {
@@ -1369,13 +1344,8 @@ class AppController extends Controller
         if ($filters === false) {
             return $exception;
         }
-        $key = empty($filters['key']) ? $filters['returnFormat'] : $filters['key'];
-        $user = $this->_getApiAuthUser($key, $exception);
-        if ($user === false) {
-            return $exception;
-        }
 
-        session_write_close(); // Rest search can be longer, so close session to allow concurrent requests
+        $user = $this->_closeSession();
 
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
@@ -1565,6 +1535,12 @@ class AppController extends Controller
     protected function _closeSession()
     {
         $user = $this->Auth->user();
+
+        // Hack to store user info in static AuthComponent::$_user variable to avoid starting session again by calling
+        // $this->Auth->user()
+        AuthComponent::$sessionKey = null;
+        $this->Auth->login($user);
+
         session_abort();
         return $user;
     }

@@ -3206,6 +3206,17 @@
                 "column_type": "int(11)",
                 "column_default": "0",
                 "extra": ""
+            },
+            {
+                "column_name": "tag_collection_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0",
+                "extra": ""
             }
         ],
         "fuzzy_correlate_ssdeep": [
@@ -10603,5 +10614,5 @@
             "uuid": false
         }
     },
-    "db_version": "124"
+    "db_version": "125"
 }

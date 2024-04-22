@@ -91,7 +91,7 @@ class AppModel extends Model
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
         117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
-        123 => false, 124 => false,
+        123 => false, 124 => false, 125 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2176,6 +2176,9 @@ class AppModel extends Model
                     INDEX `org_name` (`org_name`)
                   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
                 break;
+            case 125:
+                $sqlArray[] = "ALTER TABLE `feeds` ADD COLUMN `tag_collection_id` INT(11) NOT NULL DEFAULT 0;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -3825,7 +3828,7 @@ class AppModel extends Model
     protected function logException($message, Exception $exception, $type = LOG_ERR)
     {
         // If Sentry is installed, send exception to Sentry
-        if (function_exists('\Sentry\captureException') && $type === LOG_ERR) {
+        if (function_exists('\Sentry\captureException') && $type <= LOG_ERR) {
             \Sentry\captureException(new Exception($message, $type, $exception));
         }
 

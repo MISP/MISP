@@ -4746,15 +4746,18 @@ class Server extends AppModel
         return $servers;
     }
 
+    /**
+     * @return Generator[string, array]
+     */
     public function updateJSON()
     {
-        $results = array();
         foreach (['Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate', 'ObjectRelationship'] as $target) {
             $model = ClassRegistry::init($target);
+            $start = microtime(true);
             $result = $model->update();
-            $results[$target] = $result === false ? false : true;
+            $duration = microtime(true) - $start;
+            yield $target => ['success' => $result !== false, 'result' => $result, 'duration' => $duration];
         }
-        return $results;
     }
 
     public function resetRemoteAuthKey($id)

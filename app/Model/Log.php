@@ -259,6 +259,11 @@ class Log extends AppModel
             $change = implode(", ", $output);
         }
 
+        // If Sentry is installed, send log breadcrumb to Sentry
+        if (function_exists('\Sentry\addBreadcrumb')) {
+            \Sentry\addBreadcrumb('log', $title, [], Sentry\Breadcrumb::LEVEL_INFO);
+        }
+
         $this->create();
         $result = $this->save(['Log' => [
             'org' => $user['Organisation']['name'],
@@ -431,15 +436,14 @@ class Log extends AppModel
                 }
             }
 
-            $entry = $data['Log']['action'];
-            if (!empty($data['Log']['title'])) {
-                $entry .= " -- {$data['Log']['title']}";
-            }
-            if (!empty($data['Log']['description'])) {
-                $entry .= " -- {$data['Log']['description']}";
-            } else if (!empty($data['Log']['change'])) {
-                $entry .= " -- " . JsonTool::encode($data['Log']['change']);
-            }
+            $entry = sprintf(
+                '%s -- %s -- %s',
+                $data['Log']['action'],
+                empty($data['Log']['title']) ? '' : $formatted_title = preg_replace('/\s+/', " ", $data['Log']['title']),
+                empty($data['Log']['description']) ? 
+                    (empty($data['Log']['change']) ? '' : preg_replace('/\s+/', " ", $data['Log']['change'])) :
+                    preg_replace('/\s+/', " ", $data['Log']['description'])
+            );
             $this->syslog->write($action, $entry);
         }
     }

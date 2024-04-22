@@ -193,7 +193,8 @@
                     'class' => 'short',
                     'data_path' => 'Tag',
                     'element' => 'tags',
-                    'scope' => 'feeds'
+                    'scope' => 'feeds',
+                    'includeTagCollection' => true,
                 ),
                 array(
                     'name' => __('Visible'),

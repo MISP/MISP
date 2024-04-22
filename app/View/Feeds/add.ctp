@@ -167,6 +167,14 @@ echo $this->element('genericElements/Form/genericForm', [
                 'searchable' => 1
             ],
             [
+                'field' => 'tag_collection_id',
+                'label' => __('Default Tag Collection'),
+                'options' => $dropdownData['tag_collections'],
+                'selected' => isset($entity['Feed']['tag_collection_id']) ? $entity['Feed']['tag_collection_id'] : '0',
+                'type' => 'dropdown',
+                'searchable' => 1
+            ],
+            [
                 'field' => 'rules',
                 'label' => __('Filter rules'),
                 'type' => 'pullRules',
