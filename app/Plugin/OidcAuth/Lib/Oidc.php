@@ -302,9 +302,10 @@ class Oidc
         $providerUrl = $this->getConfig('provider_url');
         $clientId = $this->getConfig('client_id');
         $clientSecret = $this->getConfig('client_secret');
+        $issuer = $this->getConfig('issuer', $providerUrl);
 
         if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
-            $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret);
+            $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret, $issuer);
         } else if (class_exists("\Jumbojett\OpenIDConnectClient")) {
             throw new Exception("Jumbojett OIDC implementation is not supported anymore, please use JakubOnderka's client");
         } else {

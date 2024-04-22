@@ -465,11 +465,6 @@ class EventsController extends AppController
                         continue 2;
                     }
                     $pieces = is_array($v) ? $v : explode('|', $v);
-                    $isANDed = false;
-                    if (count($pieces) == 1 && strpos($pieces[0], '&') !== -1) {
-                        $pieces = explode('&', $v);
-                        $isANDed = count($pieces) > 1;
-                    }
                     $filterString = "";
                     $expectOR = false;
                     $tagRules = [];
@@ -536,19 +531,10 @@ class EventsController extends AppController
                     }
 
                     if (!empty($tagRules['include'])) {
-                        if ($isANDed) {
-                            $include = $this->Event->EventTag->find('column', array(
-                                'conditions' => ['EventTag.tag_id' => $tagRules['include']],
-                                'fields' => ['EventTag.event_id'],
-                                'group' => ['EventTag.event_id'],
-                                'having' => ['COUNT(*) =' => count($tagRules['include'])],
-                            ));
-                        } else {
-                            $include = $this->Event->EventTag->find('column', array(
-                                'conditions' => array('EventTag.tag_id' => $tagRules['include']),
-                                'fields' => ['EventTag.event_id'],
-                            ));
-                        }
+                        $include = $this->Event->EventTag->find('column', array(
+                            'conditions' => array('EventTag.tag_id' => $tagRules['include']),
+                            'fields' => ['EventTag.event_id'],
+                        ));
                         if (!empty($include)) {
                             $this->paginate['conditions']['AND'][] = 'Event.id IN (' . implode(",", $include) . ')';
                         } else {
