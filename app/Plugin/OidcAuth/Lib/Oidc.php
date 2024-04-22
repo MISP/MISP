@@ -443,12 +443,13 @@ class Oidc
     }
 
     /**
-     * @param array $roles Role list provided by OIDC
+     * @param array|string $roles Role list provided by OIDC
      * @param string $mispUsername
      * @return int|null Role ID or null if no role matches
      */
-    private function getUserRole(array $roles, $mispUsername)
+    private function getUserRole($roles, $mispUsername)
     {
+        $roles = is_string($roles) ? explode($this->getConfig('roles_delimiter', ','), $roles) : $roles;
         $this->log($mispUsername, 'Provided roles: ' . implode(', ', $roles));
         $roleMapper = $this->getConfig('role_mapper');
         if (!is_array($roleMapper)) {
