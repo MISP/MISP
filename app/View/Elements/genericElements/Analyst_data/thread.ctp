@@ -450,21 +450,21 @@ function fetchMoreNotes(clicked, noteType, uuid) {
         </div> \
     ')
 
-    var addNoteButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewNote(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
+    var addNoteButton<?= $seed ?> = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewNote(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
         <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a note') ?> \
     </button>'
-    var addOpinionButton = '<button class="btn btn-small btn-block btn-primary" style="margin-top: 2px;" type="button" onclick="createNewOpinion(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
+    var addOpinionButton<?= $seed ?> = '<button class="btn btn-small btn-block btn-primary" style="margin-top: 2px;" type="button" onclick="createNewOpinion(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
         <i class="<?= $this->FontAwesome->getClass('gavel') ?>"></i> <?= __('Add an opinion') ?> \
     </button>'
-    var addRelationshipButton = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewRelationship(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
+    var addRelationshipButton<?= $seed ?> = '<button class="btn btn-small btn-block btn-primary" type="button" onclick="createNewRelationship(this, \'<?= $object_type ?>\', \'<?= $object_uuid ?>\')"> \
         <i class="<?= $this->FontAwesome->getClass('plus') ?>"></i> <?= __('Add a relationship') ?> \
     </button>'
 
     function renderAllNotesWithForm<?= $seed ?>(notes, relationships, relationships_inbound, relationship_related_object) {
-        var buttonContainer = '<div id="add-button-container" style="margin-top: 0.5rem;">' + addNoteButton + addOpinionButton + '</div>'
+        var buttonContainer = '<div id="add-button-container" style="margin-top: 0.5rem;">' + addNoteButton<?= $seed ?> + addOpinionButton<?= $seed ?> + '</div>'
         var renderedNotes = nodeContainerTemplate<?= $seed ?>({
             content_notes: renderNotes(notes.filter(function(note) { return note.note_type != 2}), relationship_related_object, '<?= __('No notes for this UUID.') ?>') + buttonContainer,
-            content_relationships_outbound: renderNotes(relationships, relationship_related_object, '<?= __('No relationship from this UUID') ?>') + addRelationshipButton,
+            content_relationships_outbound: renderNotes(relationships, relationship_related_object, '<?= __('No relationship from this UUID') ?>') + addRelationshipButton<?= $seed ?>,
             content_relationships_inbound: renderNotes(relationships_inbound, relationship_related_object, '<?= __('No element are referencing this UUID') ?>', true),
         })
         return renderedNotes
