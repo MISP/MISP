@@ -15,9 +15,6 @@ class BenchmarkTool
     /** @var retention */
     private $retention = 0;
 
-    /** @var start_time */
-    public $start_timexxx;
-
     const BENCHMARK_SCOPES = ['user', 'endpoint', 'user_agent'];
     const BENCHMARK_FIELDS = ['time', 'sql_time', 'sql_queries', 'memory'];
     const BENCHMARK_UNITS = [

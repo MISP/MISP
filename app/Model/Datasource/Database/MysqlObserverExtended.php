@@ -144,6 +144,9 @@ class MysqlObserverExtended extends Mysql
     public function execute($sql, $options = [], $params = [])
     {
         $log = $options['log'] ?? $this->fullDebug;
+        if (Configure::read('Plugin.Benchmarking_enable')) {
+            $log = true;
+        }
         $comment = sprintf(
             '%s%s%s',
             empty(Configure::read('CurrentUserId')) ? '' : sprintf(
