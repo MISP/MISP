@@ -95,6 +95,7 @@ app/Lib/EventWarning/Custom/*
 /app/Config/database.php
 /app/Config/core.php
 /app/Config/config.php
+/app/Config/hmac_key.php
 /app/Console/Command/training.json
 /app/Lib/cakephp
 /app/webroot/gpg.asc
