@@ -57,5 +57,5 @@
         '%s<a href="#" onclick="event.preventDefault(); %s">%s</a>',
         $form,
         $onclick,
-        $text
+        h($text)
     );
