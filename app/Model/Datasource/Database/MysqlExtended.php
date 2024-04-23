@@ -152,7 +152,9 @@ class MysqlExtended extends Mysql
     public function execute($sql, $options = [], $params = [])
     {
         $log = $options['log'] ?? $this->fullDebug;
-
+        if (Configure::read('Plugin.Benchmarking_enable')) {
+            $log = true;
+        }
         if ($log) {
             $t = microtime(true);
             $this->_result = $this->_execute($sql, $params);
