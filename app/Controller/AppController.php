@@ -241,6 +241,7 @@ class AppController extends Controller
         ) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
+                
                 // disable CSRF for REST access
                 $this->Security->csrfCheck = false;
                 $loginByAuthKeyResult = $this->__loginByAuthKey();
@@ -1143,6 +1144,23 @@ class AppController extends Controller
 
     protected function _checkAuthUser($authkey)
     {
+        if (Configure::read('Security.api_key_quick_lookup')) {
+            $redis = RedisTool::init();
+            if (file_exists(APP . 'Config/hmac_key.php')) {
+                include(APP . 'Config/hmac_key.php');
+                $hashed_authkey = hash_hmac('sha512', $authkey, $hmac_key);
+                if ($redis && $redis->exists('misp:fast_authkey_lookup:' . $hashed_authkey)) {
+                    $user = RedisTool::deserialize($redis->get('misp:fast_authkey_lookup:' . $hashed_authkey));
+                    if ($user) {
+                        return $user;
+                    }
+                }
+            } else {
+                App::uses('RandomTool', 'Tools');
+                $hmac_key = RandomTool::random_str(true, 40);
+                file_put_contents(APP . 'Config/hmac_key.php', sprintf('<?php%s$hmac_key = \'%s\';', PHP_EOL, $hmac_key));
+            }
+        }
         if (Configure::read('Security.advanced_authkeys')) {
             $user = $this->User->AuthKey->getAuthUserByAuthKey($authkey);
         } else {
@@ -1156,6 +1174,13 @@ class AppController extends Controller
             return false;
         }
         $user['logged_by_authkey'] = true;
+        if (Configure::read('Security.api_key_quick_lookup') && !empty($hmac_key) && $redis) {
+            $expiration = Configure::read('Security.api_key_quick_lookup_expiration') ? Configure::read('Security.api_key_quick_lookup_expiration') : 180;
+            if ($redis) {
+                $hashed_authkey = hash_hmac('sha512', $authkey, $hmac_key);
+                $redis->setex('misp:fast_authkey_lookup:' . $hashed_authkey, $expiration, RedisTool::serialize($user));
+            }
+        }
         return $user;
     }
 

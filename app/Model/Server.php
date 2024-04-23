@@ -6484,6 +6484,22 @@ class Server extends AppModel
                     'editable' => false,
                     'redacted' => true
                 ),
+                'api_key_quick_lookup' => [
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('Allow for the temporary storing of hashed API keys in redis for a short period of time, to allow for faster authentication of consecutive API requests. This is a massive speed-up for tools unable to continue the session, querying fast endpoints of MISP in rapid succession, at the cost of storing HMAC hashed api keys in redis.'),
+                    'value' => false,
+                    'null' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
+                'api_key_quick_lookup_expiration' => [
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('If the api key quick lookup is enabled, this setting will allow you to tune the expiration of the keys in redis. A longer expiration means fewer costly lookups during high frequency queries, at the cost of longer persistence. When an API key is revoked, they stay valid until this expiration kicks in. The value is specified in seconds.'),
+                    'value' => 180,
+                    'null' => true,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                ],
                 'alert_on_suspicious_logins' => [
                     'level' => 1,
                     'description' => __('When enabled, MISP will alert users of logins from new devices / suspicious logins. Please make sure that your logs table has additional indexes (on the user_id and action fields) for this not to be a performance bottleneck for now (expected to be resolved soon).'),
