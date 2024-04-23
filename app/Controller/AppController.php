@@ -108,6 +108,11 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        if (Configure::read('MISP.system_setting_db')) {
+            App::uses('SystemSetting', 'Model');
+            SystemSetting::setGlobalSetting();
+        }
+        
         $this->User = ClassRegistry::init('User');
         if (Configure::read('Plugin.Benchmarking_enable')) {
             App::uses('BenchmarkTool', 'Tools');
@@ -116,11 +121,6 @@ class AppController extends Controller
         }
         $controller = $this->request->params['controller'];
         $action = $this->request->params['action'];
-
-        if (Configure::read('MISP.system_setting_db')) {
-            App::uses('SystemSetting', 'Model');
-            SystemSetting::setGlobalSetting();
-        }
 
         $this->_setupBaseurl();
         $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
@@ -879,7 +879,7 @@ class AppController extends Controller
     public function afterFilter()
     {
         // benchmarking
-        if (Configure::read('Plugin.Benchmarking_enable')) {
+        if (Configure::read('Plugin.Benchmarking_enable') && isset($this->Benchmark)) {
             $this->Benchmark->stopBenchmark([
                 'user' => $this->Auth->user('id'),
                 'controller' => $this->request->params['controller'],
