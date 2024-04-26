@@ -302,7 +302,7 @@ class Oidc
         $providerUrl = $this->getConfig('provider_url');
         $clientId = $this->getConfig('client_id');
         $clientSecret = $this->getConfig('client_secret');
-        $issuer = $this->getConfig('issuer', $providerUrl);
+        $issuer = $this->getConfig('issuer', null, false);
 
         if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
             $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret, $issuer);
@@ -503,13 +503,15 @@ class Oidc
     /**
      * @param string $config
      * @param mixed|null $default
+     * @param bool $required When true and variable is not set, RuntimeException will be thrown
      * @return mixed
+     * @throws RuntimeException when config option is not set
      */
-    private function getConfig($config, $default = null)
+    private function getConfig($config, $default = null, $required = true)
     {
         $value = Configure::read("OidcAuth.$config");
         if ($value === null) {
-            if ($default === null) {
+            if ($default === null && $required) {
                 throw new RuntimeException("Config option `OidcAuth.$config` is not set.");
             }
             return $default;
