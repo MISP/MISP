@@ -4142,7 +4142,13 @@ class EventsController extends AppController
                 }
             }
             $this->Event->Attribute->fetchRelated($this->Auth->user(), $resultArray);
-            $typeCategoryMapping = array();
+            $typeCategoryMapping = [
+                'ip-src/ip-dst' => [
+                    'Network activity' => 'Network activity',
+                    'Payload delivery' => 'Payload delivery',
+                    'External analysis' => 'External analysis'
+                ],
+            ];
             foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
                 foreach ($cat['types'] as $type) {
                     $typeCategoryMapping[$type][$k] = $k;

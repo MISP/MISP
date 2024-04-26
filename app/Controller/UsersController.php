@@ -2603,6 +2603,7 @@ class UsersController extends AppController
                 'org_name',
                 'org_uuid',
                 'message',
+                'pgp',
                 'custom_perms',
                 'perm_sync',
                 'perm_publish',
