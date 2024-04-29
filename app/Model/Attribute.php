@@ -118,6 +118,7 @@ class Attribute extends AppModel
         'aba-rtn',
         'gender',
         'counter',
+        'integer',
         'float',
         'port',
         'nationality',
@@ -969,7 +970,7 @@ class Attribute extends AppModel
         $maxWidth = $maxWidth ?: $defaultMaxSize;
         $maxHeight = $maxHeight ?: $defaultMaxSize;
         $suffix = null;
-        
+
         if ($maxWidth == $defaultMaxSize && $maxHeight == $defaultMaxSize) {
             $thumbnailInRedis = Configure::read('MISP.thumbnail_in_redis');
             if ($thumbnailInRedis) {
@@ -1141,29 +1142,36 @@ class Attribute extends AppModel
         }
         $temp = array();
         if (!empty($tagArray[1])) {
-            if ($options['scope'] == 'all' || $options['scope'] == 'Event') {
-                $subquery_options = array(
-                    'conditions' => array(
-                        'tag_id' => $tagArray[1]
-                    ),
-                    'fields' => array(
-                        'event_id'
-                    )
-                );
-                $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
-                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field, 1));
-            }
-            if ($options['scope'] == 'all' || $options['scope'] == 'Attribute') {
-                $subquery_options = array(
-                    'conditions' => array(
-                        'tag_id' => $tagArray[1]
-                    ),
-                    'fields' => array(
-                        $options['scope'] === 'Event' ? 'event.id' : 'attribute_id'
-                    )
-                );
-                $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
-                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field, 1));
+            /* 
+             * If we didn't find the given negation tag, no need to use the -1 trick,
+             * it is basically a hack to block the search from finding anything if no positive lookup was valid.
+             * However, if none of the negated tags exist, there's nothing to filter here
+             */
+            if (count($tagArray[1]) !== 1 || $tagArray[1][0] != -1) {
+                if ($options['scope'] == 'all' || $options['scope'] == 'Event') {
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $tagArray[1]
+                        ),
+                        'fields' => array(
+                            'event_id'
+                        )
+                    );
+                    $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
+                    $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field, 1));
+                }
+                if ($options['scope'] == 'all' || $options['scope'] == 'Attribute') {
+                    $subquery_options = array(
+                        'conditions' => array(
+                            'tag_id' => $tagArray[1]
+                        ),
+                        'fields' => array(
+                            $options['scope'] === 'Event' ? 'event.id' : 'attribute_id'
+                        )
+                    );
+                    $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+                    $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field, 1));
+                }
             }
         }
         $temp = array();
@@ -1548,33 +1556,57 @@ class Attribute extends AppModel
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
-            $eventConditions = $this->Event->createEventConditions($user);
-            $conditions = array(
-                'AND' => array(
-                    $eventConditions['AND'],
-                    array(
-                        'OR' => array(
-                            'Event.org_id' => $user['org_id'],
-                            'Attribute.distribution' => array(1, 2, 3, 5),
-                            'AND '=> array(
-                                'Attribute.distribution' => 4,
-                                'Attribute.sharing_group_id' => $sgids,
-                            )
-                        )
-                    ),
-                    array(
-                        'OR' => array(
-                            'Attribute.object_id' => 0,
-                            'Event.org_id' => $user['org_id'],
-                            'Object.distribution' => array(1, 2, 3, 5),
-                            'AND' => array(
-                                'Object.distribution' => 4,
-                                'Object.sharing_group_id' => $sgids,
-                            )
-                        )
-                    )
-                )
-            );
+            $subQuery1 = [
+                'conditions' => ['org_id' => $user['org_id']],
+                'fields' => ['id']
+            ];
+            $subQuery2 = [
+                'conditions' => [
+                    'distribution IN' => [1, 2, 3]
+                ],
+                'fields' => ['id']
+            ];
+            $subQuery3 = [
+                'conditions' => [
+                    'Event.distribution' => 4,
+                    'Event.sharing_group_id IN' => $sgids
+                ],
+                'fields' => ['id']
+            ];
+            if (Configure::read('MISP.unpublishedprivate')) {
+                $subQuery2['conditions']['Event.published'] = 1;
+                $subQuery3['conditions']['Event.published'] = 1;
+            }
+            $conditions = [
+                'OR' => [
+                    $this->subQueryGenerator($this->Event, $subQuery1, 'Attribute.event_id'),
+                    'AND' => [
+                        'OR' => [
+                            $this->subQueryGenerator($this->Event, $subQuery2, 'Attribute.event_id'),
+                            $this->subQueryGenerator($this->Event, $subQuery3, 'Attribute.event_id')
+                        ],
+                        [
+                            'OR' => [
+                                'Attribute.distribution' => [1, 2, 3, 5],
+                                'AND '=> [
+                                    'Attribute.distribution' => 4,
+                                    'Attribute.sharing_group_id' => $sgids,
+                                ]
+                            ]
+                        ],
+                        [
+                            'OR' => [
+                                'Attribute.object_id' => 0,
+                                'Object.distribution' => [1, 2, 3, 5],
+                                'AND' => [
+                                    'Object.distribution' => 4,
+                                    'Object.sharing_group_id' => $sgids,
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ];
         }
         return $conditions;
     }
@@ -1787,7 +1819,7 @@ class Attribute extends AppModel
         if (isset($options['fields'])) {
             $params['fields'] = $options['fields'];
         }
-        if (isset($options['conditions'])) {
+        if (!empty($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
         }
         if (empty($options['flatten'])) {
@@ -1883,11 +1915,10 @@ class Attribute extends AppModel
                 return [];
             }
         }
-
         $eventTags = []; // tag cache
         $attributes = [];
+        $params['ignoreIndexHint'] = 'deleted';
         do {
-            $continue = true;
             $results = $this->find('all', $params);
             if (empty($results)) {
                 break;
@@ -1944,9 +1975,6 @@ class Attribute extends AppModel
                     $attribute['Attribute']['data'] = $encodedFile;
                 }
                 if ($options['includeDecayScore']) {
-                    if (empty($attribute['Attribute']['to_ids'])) {
-                        continue; // It only makes sense to consider IoCs for the decaying
-                    }
                     $this->DecayingModel = ClassRegistry::init('DecayingModel');
                     $include_full_model = isset($options['includeFullModel']) && $options['includeFullModel'] ? 1 : 0;
                     if (empty($attribute['Attribute']['AttributeTag'])) {
@@ -2869,7 +2897,7 @@ class Attribute extends AppModel
             if (!empty($tagActions['attach'])) {
                 $this->AttributeTag->saveMany($tagActions['attach']);
             }
-            
+
         }
         if (!empty($tagActions['detach'])) {
             foreach ($tagActions['detach'] as $detach) {
@@ -2887,7 +2915,7 @@ class Attribute extends AppModel
                     $this->Correlation->generateCorrelation(false, $event['Event']['id'], $attributeId);
                 }
             }
-            // Instead of incrementing / decrementing the event 
+            // Instead of incrementing / decrementing the event
             $attribute_count = $this->find('count', [
                 'conditions' => [
                     'Attribute.event_id' => $event['Event']['id'],
@@ -2904,7 +2932,7 @@ class Attribute extends AppModel
         }
         return true;
     }
-    
+
 
     /**
      * @param int $id Attribute ID
@@ -2984,9 +3012,15 @@ class Attribute extends AppModel
         return $adata;
     }
 
-    public function buildFilterConditions(array $user, array &$params)
+    public function buildFilterConditions(array $user, array &$params, $skipBuildConditions = false)
     {
-        $conditions = $this->buildConditions($user);
+        // in some cases we'll build the user ACL conditions elsewhere,
+        // for example when calling this function via restsearch
+        if ($skipBuildConditions) {
+            $conditions = [];
+        } else {
+            $conditions = $this->buildConditions($user);
+        }
         if (isset($params['wildcard'])) {
             $temp = array();
             $options = array(
@@ -3110,7 +3144,7 @@ class Attribute extends AppModel
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
-        $conditions = $this->buildFilterConditions($user, $filters);
+        $conditions = $this->buildFilterConditions($user, $filters, true);
         $params = array(
             'conditions' => $conditions,
             'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
@@ -3130,6 +3164,7 @@ class Attribute extends AppModel
             'includeFullModel' => !empty($filters['includeFullModel']) ? $filters['includeFullModel'] : 0,
             'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0
         );
+
         if (!empty($filters['attackGalaxy'])) {
             $params['attackGalaxy'] = $filters['attackGalaxy'];
         }
@@ -3355,20 +3390,60 @@ class Attribute extends AppModel
         if (!empty($params['uuid'])) {
             $params['uuid'] = $this->convert_filters($params['uuid']);
             if (!empty($params['uuid']['OR'])) {
-                $conditions['AND'][] = array(
-                    'OR' => array(
-                        'Event.uuid' => $params['uuid']['OR'],
-                        'Attribute.uuid' => $params['uuid']['OR']
-                    )
-                );
+                if ($options['scope'] == 'Attribute') {
+                    $subQuery = [
+                        'conditions' => ['uuid' => $params['uuid']['OR']],
+                        'fields' => ['id']
+                    ];
+                    $pre_lookup = $this->Event->find('first', [
+                        'conditions' => ['Event.uuid' => $params['uuid']['OR']],
+                        'recursive' => -1,
+                        'fields' => ['Event.id']
+                    ]);
+                    if (empty($pre_lookup)) {
+                        $conditions['AND'][] = array(
+                            'OR' => array(
+                                'Attribute.uuid' => $params['uuid']['OR']
+                            )
+                        );
+                    } else {
+                        $conditions['AND'][] = array(
+                            'OR' => array(
+                                $this->subQueryGenerator($this->Event, $subQuery, 'Attribute.event_id'),
+                                'Attribute.uuid' => $params['uuid']['OR']
+                            )
+                        );
+                    }
+                    
+                } else {
+                    $conditions['AND'][] = array(
+                        'OR' => array(
+                            'Event.uuid' => $params['uuid']['OR'],
+                            'Attribute.uuid' => $params['uuid']['OR']
+                        )
+                    );
+                }
             }
             if (!empty($params['uuid']['NOT'])) {
-                $conditions['AND'][] = array(
-                    'NOT' => array(
-                        'Event.uuid' => $params['uuid']['NOT'],
-                        'Attribute.uuid' =>  $params['uuid']['NOT']
-                    )
-                );
+                if ($options['scope'] == 'Attribute') {
+                    $subQuery = [
+                        'conditions' => ['uuid' => $params['uuid']['OR']],
+                        'fields' => ['id']
+                    ];
+                    $conditions['AND'][] = [
+                        'NOT' => [
+                            $this->subQueryGenerator($this->Event, $subQuery, 'Attribute.event_id'),
+                            'Attribute.uuid' =>  $params['uuid']['NOT']
+                        ]
+                    ];
+                } else {
+                    $conditions['AND'][] = array(
+                        'NOT' => array(
+                            'Event.uuid' => $params['uuid']['NOT'],
+                            'Attribute.uuid' =>  $params['uuid']['NOT']
+                        )
+                    );
+                }
             }
         }
         return $conditions;
@@ -3550,7 +3625,7 @@ class Attribute extends AppModel
             ),
             'Other' => array(
                 'desc' => __('Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future'),
-                'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float', 'hex', 'phone-number', 'boolean', 'anonymised', 'pgp-public-key', 'pgp-private-key')
+                'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'integer', 'datetime', 'cpe', 'port', 'float', 'hex', 'phone-number', 'boolean', 'anonymised', 'pgp-public-key', 'pgp-private-key')
             )
         );
     }
@@ -3703,6 +3778,7 @@ class Attribute extends AppModel
             'dns-soa-email' => array('desc' => __('RFC 1035 mandates that DNS zones should have a SOA (Statement Of Authority) record that contains an email address where a PoC for the domain could be contacted. This can sometimes be used for attribution/linkage between different domains even if protected by whois privacy'), 'default_category' => 'Attribution', 'to_ids' => 0),
             'size-in-bytes' => array('desc' => __('Size expressed in bytes'), 'default_category' => 'Other', 'to_ids' => 0),
             'counter' => array('desc' => __('An integer counter, generally to be used in objects'), 'default_category' => 'Other', 'to_ids' => 0),
+            'integer' => array('desc' => __('A generic integer generally to be used in objects'), 'default_category' => 'Other', 'to_ids' => 0),
             'datetime' => array('desc' => __('Datetime in the ISO 8601 format'), 'default_category' => 'Other', 'to_ids' => 0),
             'port' => array('desc' => __('Port number'), 'default_category' => 'Network activity', 'to_ids' => 0),
             'ip-dst|port' => array('desc' => __('IP destination and port number separated by a |'), 'default_category' => 'Network activity', 'to_ids' => 1),
@@ -3788,7 +3864,7 @@ class Attribute extends AppModel
         if (isset($attribute['id'])) {
             $conditions['Attribute.id !='] = $attribute['id'];
         }
-        
+
         return $this->find('first', [
             'recursive' => -1,
             'conditions' => $conditions,

@@ -1032,7 +1032,7 @@ class Feed extends AppModel
                 }
             }
         }
-        if ($feed['Feed']['tag_id']) {
+        if ($feed['Feed']['tag_id'] || $feed['Feed']['tag_collection_id']) {
             if (empty($feed['Tag']['name'])) {
                 $feed_tag = $this->Tag->find('first', [
                     'conditions' => [
@@ -1041,23 +1041,42 @@ class Feed extends AppModel
                     'recursive' => -1,
                     'fields' => ['Tag.name', 'Tag.colour', 'Tag.id']
                 ]);
-                $feed['Tag'] = $feed_tag['Tag'];
+                if (!empty($feed_tag)) {
+                    $feed['Tag'] = $feed_tag['Tag'];
+                }
             }
             if (!isset($event['Event']['Tag'])) {
                 $event['Event']['Tag'] = array();
             }
 
-            $feedTag = $this->Tag->find('first', array('conditions' => array('Tag.id' => $feed['Feed']['tag_id']), 'recursive' => -1, 'fields' => array('Tag.name', 'Tag.colour', 'Tag.exportable')));
-            if (!empty($feedTag)) {
-                $found = false;
-                foreach ($event['Event']['Tag'] as $tag) {
-                    if (strtolower($tag['name']) === strtolower($feedTag['Tag']['name'])) {
-                        $found = true;
-                        break;
-                    }
+            if (!empty($feed['Feed']['tag_collection_id'])) {
+                $this->TagCollection = ClassRegistry::init('TagCollection');
+                $tagCollectionID = $feed['Feed']['tag_collection_id'];
+                $tagCollection = $this->TagCollection->find('first', [
+                    'recursive' => -1,
+                    'conditions' => [
+                        'TagCollection.id' => $tagCollectionID,
+                    ],
+                    'contain' => [
+                        'TagCollectionTag' => ['Tag'],
+                    ]
+                ]);
+                foreach ($tagCollection['TagCollectionTag'] as $collectionTag) {
+                    $event['Event']['Tag'][] = $collectionTag['Tag'];
                 }
-                if (!$found) {
-                    $event['Event']['Tag'][] = $feedTag['Tag'];
+            } else {
+                $feedTag = $this->Tag->find('first', array('conditions' => array('Tag.id' => $feed['Feed']['tag_id']), 'recursive' => -1, 'fields' => array('Tag.name', 'Tag.colour', 'Tag.exportable')));
+                if (!empty($feedTag)) {
+                    $found = false;
+                    foreach ($event['Event']['Tag'] as $tag) {
+                        if (strtolower($tag['name']) === strtolower($feedTag['Tag']['name'])) {
+                            $found = true;
+                            break;
+                        }
+                    }
+                    if (!$found) {
+                        $event['Event']['Tag'][] = $feedTag['Tag'];
+                    }
                 }
             }
         }
@@ -1067,6 +1086,9 @@ class Feed extends AppModel
         if (!empty($feed['Feed']['settings'])) {
             if (!empty($feed['Feed']['settings']['disable_correlation'])) {
                 $event['Event']['disable_correlation'] = (bool) $feed['Feed']['settings']['disable_correlation'];
+            }
+            if (!empty($feed['Feed']['settings']['unpublish_event'])) {
+                $event['Event']['published'] = (bool) $feed['Feed']['settings']['unpublish_event'];
             }
         }
         return $event;
@@ -1128,9 +1150,13 @@ class Feed extends AppModel
      */
     private function __updateEventFromFeed(HttpSocket $HttpSocket = null, $feed, $uuid, $user, $filterRules)
     {
-        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
+         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         $event = $this->__prepareEvent($event, $feed, $filterRules);
-        return $this->Event->_edit($event, $user, $uuid, $jobId = null);
+        if (is_array($event)) {
+            return $this->Event->_edit($event, $user, $uuid, $jobId = null);
+        } else {
+            return $event;
+        }
     }
 
     public function addDefaultFeeds($newFeeds)
@@ -1374,8 +1400,25 @@ class Feed extends AppModel
         if ($feed['Feed']['publish']) {
             $this->Event->publishRouter($event['Event']['id'], null, $user);
         }
-        if ($feed['Feed']['tag_id']) {
-            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $feed['Feed']['tag_id']]);
+        if ($feed['Feed']['tag_id'] || $feed['Feed']['tag_collection_id']) {
+            if (!empty($feed['Feed']['tag_collection_id'])) {
+                $this->TagCollection = ClassRegistry::init('TagCollection');
+                $tagCollectionID = $feed['Feed']['tag_collection_id'];
+                $tagCollection = $this->TagCollection->find('first', [
+                    'recursive' => -1,
+                    'conditions' => [
+                        'TagCollection.id' => $tagCollectionID,
+                    ],
+                    'contain' => [
+                        'TagCollectionTag',
+                    ]
+                ]);
+                foreach ($tagCollection['TagCollectionTag'] as $collectionTag) {
+                    $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $collectionTag['tag_id']]);
+                }
+            } else {
+                $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $feed['Feed']['tag_id']]);
+            }
         }
         return true;
     }

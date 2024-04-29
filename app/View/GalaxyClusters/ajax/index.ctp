@@ -34,7 +34,7 @@
                             ),
                             array(
                                 'active' => $context === 'org',
-                                'url' => sprintf('%s/galaxies/view/%s/context:org', $baseurl, $galaxy_id),
+                                'url' => sprintf('%s/galaxies/view/%s/context:orgc', $baseurl, $galaxy_id),
                                 'text' => __('My Clusters'),
                             ),
                             array(

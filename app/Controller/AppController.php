@@ -33,12 +33,18 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '159';
-    public $pyMispVersion = '2.4.187';
+    private $__queryVersion = '162';
+    public $pyMispVersion = '2.4.190';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
     private $isApiAuthed = false;
+
+    /** @var redis */
+    private $redis = null;
+
+    /** @var benchmark_results */
+    private $benchmark_results = null;
 
     public $baseurl = '';
 
@@ -57,8 +63,13 @@ class AppController extends Controller
     /** @var ACLComponent */
     public $ACL;
 
+    /** @var BenchmarkComponent */
+    public $Benchmark;
+
     /** @var RestResponseComponent */
     public $RestResponse;
+
+    public $start_time;
 
     public function __construct($request = null, $response = null)
     {
@@ -97,13 +108,19 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
-        $controller = $this->request->params['controller'];
-        $action = $this->request->params['action'];
-
         if (Configure::read('MISP.system_setting_db')) {
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
         }
+        
+        $this->User = ClassRegistry::init('User');
+        if (Configure::read('Plugin.Benchmarking_enable')) {
+            App::uses('BenchmarkTool', 'Tools');
+            $this->Benchmark = new BenchmarkTool($this->User);
+            $this->start_time = $this->Benchmark->startBenchmark();
+        }
+        $controller = $this->request->params['controller'];
+        $action = $this->request->params['action'];
 
         $this->_setupBaseurl();
         $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
@@ -146,8 +163,6 @@ class AppController extends Controller
         } else {
             Configure::write('Config.language', 'eng');
         }
-
-        $this->User = ClassRegistry::init('User');
 
         if (!empty($this->request->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);
@@ -226,6 +241,7 @@ class AppController extends Controller
         ) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
+                
                 // disable CSRF for REST access
                 $this->Security->csrfCheck = false;
                 $loginByAuthKeyResult = $this->__loginByAuthKey();
@@ -863,6 +879,21 @@ class AppController extends Controller
 
     public function afterFilter()
     {
+        // benchmarking
+        if (Configure::read('Plugin.Benchmarking_enable') && isset($this->Benchmark)) {
+            $this->Benchmark->stopBenchmark([
+                'user' => $this->Auth->user('id'),
+                'controller' => $this->request->params['controller'],
+                'action' => $this->request->params['action'],
+                'start_time' => $this->start_time
+            ]);
+
+            //if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $key)) {
+                //$redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
+                //return true;
+            //}
+            
+        }
         if ($this->isApiAuthed && $this->_isRest() && !Configure::read('Security.authkey_keep_session')) {
             $this->Session->destroy();
         }
@@ -961,31 +992,6 @@ class AppController extends Controller
         return $this->userRole['perm_site_admin'];
     }
 
-    protected function _getApiAuthUser($key, &$exception)
-    {
-        if (strlen($key) === 40) {
-            // check if the key is valid -> search for users based on key
-            $user = $this->_checkAuthUser($key);
-            if (!$user) {
-                $exception = $this->RestResponse->throwException(
-                    401,
-                    __('This authentication key is not authorized to be used for exports. Contact your administrator.')
-                );
-                return false;
-            }
-        } else {
-            $user = $this->Auth->user();
-            if (!$user) {
-                $exception = $this->RestResponse->throwException(
-                    401,
-                    __('You have to be logged in to do that.')
-                );
-                return false;
-            }
-        }
-        return $user;
-    }
-
     private function __captureParam($data, $param, $value)
     {
         if ($this->modelClass->checkParam($param)) {
@@ -1033,7 +1039,19 @@ class AppController extends Controller
                     $data = array_merge($data, $temp);
                 } else {
                     foreach ($options['paramArray'] as $param) {
-                        if (isset($temp[$param])) {
+                        if (substr($param, -1) == '*') {
+                            $root = substr($param, 0, strlen($param)-1);
+                            foreach ($temp as $existingParamKey => $v) {
+                                $leftover = substr($existingParamKey, strlen($param)-1);
+                                if (
+                                    $root == substr($existingParamKey, 0, strlen($root)) &&
+                                    preg_match('/^[\w_-. ]+$/', $leftover) == 1
+                                ) {
+                                    $data[$existingParamKey] = $temp[$existingParamKey];
+                                    break;
+                                }
+                            }
+                        } else if (isset($temp[$param])) {
                             $data[$param] = $temp[$param];
                         }
                     }
@@ -1101,6 +1119,23 @@ class AppController extends Controller
 
     protected function _checkAuthUser($authkey)
     {
+        if (Configure::read('Security.api_key_quick_lookup')) {
+            $redis = RedisTool::init();
+            if (file_exists(APP . 'Config/hmac_key.php')) {
+                include(APP . 'Config/hmac_key.php');
+                $hashed_authkey = hash_hmac('sha512', $authkey, $hmac_key);
+                if ($redis && $redis->exists('misp:fast_authkey_lookup:' . $hashed_authkey)) {
+                    $user = RedisTool::deserialize($redis->get('misp:fast_authkey_lookup:' . $hashed_authkey));
+                    if ($user) {
+                        return $user;
+                    }
+                }
+            } else {
+                App::uses('RandomTool', 'Tools');
+                $hmac_key = RandomTool::random_str(true, 40);
+                file_put_contents(APP . 'Config/hmac_key.php', sprintf('<?php%s$hmac_key = \'%s\';', PHP_EOL, $hmac_key));
+            }
+        }
         if (Configure::read('Security.advanced_authkeys')) {
             $user = $this->User->AuthKey->getAuthUserByAuthKey($authkey);
         } else {
@@ -1114,6 +1149,13 @@ class AppController extends Controller
             return false;
         }
         $user['logged_by_authkey'] = true;
+        if (Configure::read('Security.api_key_quick_lookup') && !empty($hmac_key) && $redis) {
+            $expiration = Configure::read('Security.api_key_quick_lookup_expiration') ? Configure::read('Security.api_key_quick_lookup_expiration') : 180;
+            if ($redis) {
+                $hashed_authkey = hash_hmac('sha512', $authkey, $hmac_key);
+                $redis->setex('misp:fast_authkey_lookup:' . $hashed_authkey, $expiration, RedisTool::serialize($user));
+            }
+        }
         return $user;
     }
 
@@ -1327,13 +1369,8 @@ class AppController extends Controller
         if ($filters === false) {
             return $exception;
         }
-        $key = empty($filters['key']) ? $filters['returnFormat'] : $filters['key'];
-        $user = $this->_getApiAuthUser($key, $exception);
-        if ($user === false) {
-            return $exception;
-        }
 
-        session_write_close(); // Rest search can be longer, so close session to allow concurrent requests
+        $user = $this->_closeSession();
 
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
@@ -1520,10 +1557,20 @@ class AppController extends Controller
      * Close session without writing changes to them and return current user.
      * @return array
      */
-    protected function _closeSession()
+    protected function _closeSession($saveSession = false)
     {
         $user = $this->Auth->user();
-        session_abort();
+
+        // Hack to store user info in static AuthComponent::$_user variable to avoid starting session again by calling
+        // $this->Auth->user()
+        AuthComponent::$sessionKey = null;
+        $this->Auth->login($user);
+
+        if ($saveSession) {
+            @session_write_close();
+        } else {
+            session_abort();
+        }
         return $user;
     }
 

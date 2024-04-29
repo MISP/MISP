@@ -583,7 +583,7 @@ class Server extends AppModel
         try {
             $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $serverSync->server(), $user, $jobId, $force, $response);
         } catch (Exception $e) {
-            $title = __('Pulling an event (#%s) from Server #%s has failed. The sync process was not interrupted.', $eventId, $serverSync->server()['id']);
+            $title = __('Pulling an event (#%s) from Server #%s has failed. The sync process was not interrupted.', $eventId, $serverSync->serverId());
             $this->loadLog()->createLogEntry(
                 $user,
                 'error',
@@ -604,6 +604,7 @@ class Server extends AppModel
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
+     * @throws Exception
      */
     public function pull(array $user, $technique, array $server, $jobId = false, $force = false)
     {
@@ -619,7 +620,7 @@ class Server extends AppModel
         try {
             $server['Server']['version'] = $serverSync->info()['version'];
         } catch (Exception $e) {
-            $this->logException("Could not get remote server `{$server['Server']['name']}` version.", $e);
+            $this->logException("Could not get remote server `{$serverSync->serverName()}` version.", $e);
             if ($e instanceof HttpSocketHttpException && $e->getCode() === 403) {
                 $message = __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.');
             } else {
@@ -648,6 +649,8 @@ class Server extends AppModel
             }
         }
 
+        $serverSync->debug("Pulling event list with technique $technique");
+
         try {
             $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $serverSync, $force);
         } catch (Exception $e) {
@@ -673,26 +676,29 @@ class Server extends AppModel
                 $job->saveProgress($jobId, __n('Pulling %s event.', 'Pulling %s events.', count($eventIds), count($eventIds)));
             }
             foreach ($eventIds as $k => $eventId) {
+                $serverSync->debug("Pulling event $eventId");
                 $this->__pullEvent($eventId, $successes, $fails, $eventModel, $serverSync, $user, $jobId, $force);
                 if ($jobId && $k % 10 === 0) {
                     $job->saveProgress($jobId, null, 10 + 40 * (($k + 1) / count($eventIds)));
                 }
             }
             foreach ($fails as $eventid => $message) {
-                $this->loadLog()->createLogEntry($user, 'pull', 'Server', $server['Server']['id'], "Failed to pull event #$eventid.", 'Reason: ' . $message);
+                $this->loadLog()->createLogEntry($user, 'pull', 'Server', $serverSync->serverId(), "Failed to pull event #$eventid.", 'Reason: ' . $message);
             }
         }
         if ($jobId) {
             $job->saveProgress($jobId, 'Pulling proposals.', 50);
         }
-        $pulledProposals = $pulledSightings = 0;
+        $pulledProposals = $pulledSightings = $pulledAnalystData = 0;
         if ($technique === 'full' || $technique === 'update') {
             $pulledProposals = $eventModel->ShadowAttribute->pullProposals($user, $serverSync);
 
             if ($jobId) {
                 $job->saveProgress($jobId, 'Pulling sightings.', 75);
             }
+
             $pulledSightings = $eventModel->Sighting->pullSightings($user, $serverSync);
+
             $this->AnalystData = ClassRegistry::init('AnalystData');
             $pulledAnalystData = $this->AnalystData->pull($user, $serverSync);
         }
@@ -819,7 +825,7 @@ class Server extends AppModel
      */
     public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
     {
-        $this->log("Fetching eligible clusters from server #{$serverSync->serverId()} for pull: " . JsonTool::encode($conditions), LOG_INFO);
+        $serverSync->debug("Fetching eligible clusters for pull: " . JsonTool::encode($conditions));
 
         if ($onlyUpdateLocalCluster && empty($eligibleClusters)) {
             return []; // no clusters for update
@@ -875,7 +881,7 @@ class Server extends AppModel
      */
     private function getElligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
     {
-        $this->log("Fetching eligible clusters from server #{$serverSync->serverId()} for push: " . JsonTool::encode($conditions), LOG_INFO);
+        $serverSync->debug("Fetching eligible clusters for push: " . JsonTool::encode($conditions));
         $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
         $keyedClusterArray = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid', '{n}.GalaxyCluster.version');
         if (!empty($localClusters)) {
@@ -915,9 +921,14 @@ class Server extends AppModel
 
         // Fetch event index from cache if exists and is not modified
         $redis = RedisTool::init();
-        $indexFromCache = $redis->get("misp:event_index:{$serverSync->serverId()}");
+        $indexFromCache = $redis->get("misp:event_index_cache:{$serverSync->serverId()}");
         if ($indexFromCache) {
-            list($etag, $eventIndex) = RedisTool::deserialize(RedisTool::decompress($indexFromCache));
+            $etagPos = strpos($indexFromCache, "\n");
+            if ($etagPos === false) {
+                throw new RuntimeException("Could not find etag in cache fro server {$serverSync->serverId()}");
+            }
+            $etag = substr($indexFromCache, 0, $etagPos);
+            $serverSync->debug("Event index loaded from Redis cache with etag $etag containing");
         } else {
             $etag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
         }
@@ -925,23 +936,26 @@ class Server extends AppModel
         $response = $serverSync->eventIndex($filterRules, $etag);
 
         if ($response->isNotModified() && $indexFromCache) {
-            return $eventIndex;
+            return JsonTool::decode(RedisTool::decompress(substr($indexFromCache, $etagPos + 1)));
         }
+
+        // Save to cache for 24 hours if ETag provided
+        $etag = $response->getHeader('etag');
+        if ($etag) {
+            $serverSync->debug("Event index from remote server has different etag $etag, saving to cache");
+            $data = "$etag\n" . RedisTool::compress($response->body);
+            $redis->setex("misp:event_index_cache:{$serverSync->serverId()}", 3600 * 24, $data);
+        } elseif ($indexFromCache) {
+            RedisTool::unlink($redis, "misp:event_index_cache:{$serverSync->serverId()}");
+        }
+
+        unset($indexFromCache); // clean up memory
 
         $eventIndex = $response->json();
 
         // correct $eventArray if just one event, probably this response returns old MISP
         if (isset($eventIndex['id'])) {
             $eventIndex = [$eventIndex];
-        }
-
-        // Save to cache for 24 hours if ETag provided
-        $etag = $response->getHeader('etag');
-        if ($etag) {
-            $data = RedisTool::compress(RedisTool::serialize([$etag, $eventIndex]));
-            $redis->setex("misp:event_index:{$serverSync->serverId()}", 3600 * 24, $data);
-        } elseif ($indexFromCache) {
-            RedisTool::unlink($redis, "misp:event_index:{$serverSync->serverId()}");
         }
 
         return $eventIndex;
@@ -1372,7 +1386,7 @@ class Server extends AppModel
             return []; // pushing clusters is not enabled
         }
 
-        $this->log("Starting $technique clusters sync with server #{$serverSync->serverId()}", LOG_INFO);
+        $serverSync->debug("Starting $technique clusters sync");
 
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $this->Event = ClassRegistry::init('Event');
@@ -4732,15 +4746,18 @@ class Server extends AppModel
         return $servers;
     }
 
+    /**
+     * @return Generator[string, array]
+     */
     public function updateJSON()
     {
-        $results = array();
         foreach (['Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate', 'ObjectRelationship'] as $target) {
             $model = ClassRegistry::init($target);
+            $start = microtime(true);
             $result = $model->update();
-            $results[$target] = $result === false ? false : true;
+            $duration = microtime(true) - $start;
+            yield $target => ['success' => $result !== false, 'result' => $result, 'duration' => $duration];
         }
-        return $results;
     }
 
     public function resetRemoteAuthKey($id)
@@ -5123,6 +5140,22 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'curl_request_timeout' => [
+                    'level' => 1,
+                    'description' => __('Control the default timeout in seconds of curl HTTP requests issued by MISP (during synchronisation, feed fetching, etc.)'),
+                    'value' => 300,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
+                'disable_sighting_loading' => [
+                    'level' => 1,
+                    'description' => __('If an instance has an extremely high number of sightings, including the sightings in the search algorithms can bring an instance to a grinding halt. Enable this setting to temporarily disable the search until the issue is remedied. This setting will also disable sightings from being attached via /events/view API calls.'),
+                    'value' => false,
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'disable_event_locks' => [
                     'level' => 1,
                     'description' => __('Disable the event locks that are executed periodically when a user browses an event view. It can be useful to leave event locks enabled to warn users that someone else is editing the same event, but generally it\'s extremely verbose and can cause issues in certain setups, so it\'s recommended to disable this.'),
@@ -5702,6 +5735,13 @@ class Server extends AppModel
                 'enableOrgBlocklisting' => array(
                     'level' => 1,
                     'description' => __('Blocklisting organisation UUIDs to prevent the creation of any event created by the blocklisted organisation.'),
+                    'value' => true,
+                    'type' => 'boolean',
+                    'test' => 'testBool'
+                ),
+                'enableSightingBlocklisting' => array(
+                    'level' => 1,
+                    'description' => __('Blocklisting organisation UUIDs to prevent the creation of any sightings created by the blocklisted organisation.'),
                     'value' => true,
                     'type' => 'boolean',
                     'test' => 'testBool'
@@ -6447,6 +6487,22 @@ class Server extends AppModel
                     'editable' => false,
                     'redacted' => true
                 ),
+                'api_key_quick_lookup' => [
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('Allow for the temporary storing of hashed API keys in redis for a short period of time, to allow for faster authentication of consecutive API requests. This is a massive speed-up for tools unable to continue the session, querying fast endpoints of MISP in rapid succession, at the cost of storing HMAC hashed api keys in redis.'),
+                    'value' => false,
+                    'null' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
+                'api_key_quick_lookup_expiration' => [
+                    'level' => self::SETTING_CRITICAL,
+                    'description' => __('If the api key quick lookup is enabled, this setting will allow you to tune the expiration of the keys in redis. A longer expiration means fewer costly lookups during high frequency queries, at the cost of longer persistence. When an API key is revoked, they stay valid until this expiration kicks in. The value is specified in seconds.'),
+                    'value' => 180,
+                    'null' => true,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                ],
                 'alert_on_suspicious_logins' => [
                     'level' => 1,
                     'description' => __('When enabled, MISP will alert users of logins from new devices / suspicious logins. Please make sure that your logs table has additional indexes (on the user_id and action fields) for this not to be a performance bottleneck for now (expected to be resolved soon).'),
@@ -6575,6 +6631,14 @@ class Server extends AppModel
                 'force_https' => [
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('If enabled, MISP server will consider all requests as secure. This is usually useful when you run MISP behind reverse proxy that terminates HTTPS.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
+                'otp_disabled' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Disable TOTP on this instance.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -7513,6 +7577,13 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
+                'Benchmarking_enable' => [
+                    'level' => 2,
+                    'description' => __('Enable the benchmarking functionalities to capture information about execution times, SQL query loads and more per user and per endpoint.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
                 'Enrichment_services_enable' => array(
                     'level' => 0,
                     'description' => __('Enable/disable the enrichment services'),

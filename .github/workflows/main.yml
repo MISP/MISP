@@ -184,20 +184,8 @@ jobs:
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1
 
-      - name: Update Galaxies
-        run: app/Console/cake Admin updateGalaxies
-
-      - name: Update Taxonomies
-        run: app/Console/cake Admin updateTaxonomies
-
-      - name: Update Warninglists
-        run: app/Console/cake Admin updateWarningLists --verbose
-
-      - name: Update Noticelists
-        run: app/Console/cake Admin updateNoticeLists
-
-      - name: Update Object Templates
-        run: app/Console/cake Admin updateObjectTemplates 1
+      - name: Update JSON
+        run: app/Console/cake Admin updateJSON
 
       - name: Turn MISP live
         run: app/Console/cake Admin live 1
@@ -269,13 +257,16 @@ jobs:
       - name: Check requirements.txt
         run: python tests/check_requirements.py
 
-      - name: Logs
+      - name: System logs
         if: ${{ always() }}
         # update logs_test.sh when adding more logsources here
         run: |
           tail -n +1 `pwd`/app/tmp/logs/*
           tail -n +1 /var/log/apache2/*.log
 
+      - name: Application logs
+        if: ${{ always() }}
+        run: |
           app/Console/cake Log export /tmp/logs.json.gz --without-changes
           zcat /tmp/logs.json.gz
 

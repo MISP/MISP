@@ -145,4 +145,3 @@ class UserContributionToplistWidget
         return true;
     }
 }
-?>

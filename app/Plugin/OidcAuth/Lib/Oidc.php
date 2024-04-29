@@ -49,17 +49,22 @@ class Oidc
         }
 
         $organisationProperty = $this->getConfig('organisation_property', 'organization');
-        $organisationName = $claims->{$organisationProperty} ?? $this->getConfig('default_org');
+        $organisationName = $claims->{$organisationProperty} ?? null;
 
         $organisationUuidProperty = $this->getConfig('organisation_uuid_property', 'organization_uuid');
         $organisationUuid = $claims->{$organisationUuidProperty} ?? null;
 
         $organisationId = $this->checkOrganization($organisationName, $organisationUuid, $mispUsername);
         if (!$organisationId) {
-            if ($user) {
-                $this->block($user);
+            $defaultOrganisationId = $this->defaultOrganisationId();
+            if ($defaultOrganisationId) {
+                $organisationId = $defaultOrganisationId;
+            } else {
+                if ($user) {
+                    $this->block($user);
+                }
+                return false;
             }
-            return false;
         }
 
         $roleProperty = $this->getConfig('roles_property', 'roles');
@@ -123,7 +128,7 @@ class Oidc
             return $user;
         }
 
-        $this->log($mispUsername, 'User not found in database.');
+        $this->log($mispUsername, 'User not found in database, creating new one.');
 
         $time = time();
         $userData = [
@@ -222,13 +227,13 @@ class Oidc
         $roleProperty = $this->getConfig('roles_property', 'roles');
         $roles = $claims->{$roleProperty} ?? $oidc->requestUserInfo($roleProperty);
         if ($roles === null) {
-            $this->log($user['email'], "Role property `$roleProperty` is missing in claims.");
+            $this->log($user['email'], "Role property `$roleProperty` is missing in claims.", LOG_ERR);
             return false;
         }
 
         $roleId = $this->getUserRole($roles, $user['email']);
         if ($roleId === null) {
-            $this->log($user['email'], 'No role was assigned.');
+            $this->log($user['email'], 'No role was assigned.', LOG_WARNING);
             return false;
         }
 
@@ -239,14 +244,20 @@ class Oidc
 
         // Check user org
         $organisationProperty = $this->getConfig('organisation_property', 'organization');
-        $organisationName = $claims->{$organisationProperty} ?? $this->getConfig('default_org');
+        $organisationName = $claims->{$organisationProperty} ?? null;
 
         $organisationUuidProperty = $this->getConfig('organisation_uuid_property', 'organization_uuid');
         $organisationUuid = $claims->{$organisationUuidProperty} ?? null;
 
         $organisationId = $this->checkOrganization($organisationName, $organisationUuid, $user['email']);
         if (!$organisationId) {
-            return false;
+            $defaultOrganisationId = $this->defaultOrganisationId();
+            if ($defaultOrganisationId) {
+                $organisationId = $defaultOrganisationId;
+            } else {
+                $this->log($user['email'], 'No organisation was assigned.', LOG_WARNING);
+                return false;
+            }
         }
 
         if ($update && $user['org_id'] != $organisationId) {
@@ -291,9 +302,10 @@ class Oidc
         $providerUrl = $this->getConfig('provider_url');
         $clientId = $this->getConfig('client_id');
         $clientSecret = $this->getConfig('client_secret');
+        $issuer = $this->getConfig('issuer', null, false);
 
         if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
-            $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret);
+            $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret, $issuer);
         } else if (class_exists("\Jumbojett\OpenIDConnectClient")) {
             throw new Exception("Jumbojett OIDC implementation is not supported anymore, please use JakubOnderka's client");
         } else {
@@ -320,6 +332,8 @@ class Oidc
     }
 
     /**
+     * Fetch organisation ID from database by provided name and UUID. If organisation is not found, it is created. If
+     * organisation with given UUID has different name, then is renamed.
      * @param string $orgName Organisation name or UUID
      * @param string|null $orgUuid Organisation UUID
      * @param string $mispUsername
@@ -377,6 +391,41 @@ class Oidc
     }
 
     /**
+     * @return false|int Organisation ID or false if org not found
+     */
+    private function defaultOrganisationId()
+    {
+        $defaultOrgName = $this->getConfig('default_org');
+        if (empty($defaultOrgName)) {
+            return false;
+        }
+
+        if (is_numeric($defaultOrgName)) {
+            $conditions = ['id' => $defaultOrgName];
+        } else if (Validation::uuid($defaultOrgName)) {
+            $conditions = ['uuid' => strtolower($defaultOrgName)];
+        } else {
+            $conditions = ['name' => $defaultOrgName];
+        }
+        $orgAux = $this->User->Organisation->find('first', [
+            'fields' => ['Organisation.id'],
+            'conditions' => $conditions,
+        ]);
+        if (empty($orgAux)) {
+            if (is_numeric($defaultOrgName)) {
+                $this->log(null, "Could not find default organisation with ID `$defaultOrgName`.", LOG_ERR);
+            } else if (Validation::uuid($defaultOrgName)) {
+                $this->log(null, "Could not find default organisation with UUID `$defaultOrgName`.", LOG_ERR);
+            } else {
+                $this->log(null, "Could not find default organisation with name `$defaultOrgName`.", LOG_ERR);
+            }
+            return false;
+        }
+
+        return $orgAux['Organisation']['id'];
+    }
+
+    /**
      * @param int $orgId
      * @param string $newName
      * @return void
@@ -394,12 +443,13 @@ class Oidc
     }
 
     /**
-     * @param array $roles Role list provided by OIDC
+     * @param array|string $roles Role list provided by OIDC
      * @param string $mispUsername
      * @return int|null Role ID or null if no role matches
      */
-    private function getUserRole(array $roles, $mispUsername)
+    private function getUserRole($roles, $mispUsername)
     {
+        $roles = is_string($roles) ? explode($this->getConfig('roles_delimiter', ','), $roles) : $roles;
         $this->log($mispUsername, 'Provided roles: ' . implode(', ', $roles));
         $roleMapper = $this->getConfig('role_mapper');
         if (!is_array($roleMapper)) {
@@ -453,13 +503,15 @@ class Oidc
     /**
      * @param string $config
      * @param mixed|null $default
+     * @param bool $required When true and variable is not set, RuntimeException will be thrown
      * @return mixed
+     * @throws RuntimeException when config option is not set
      */
-    private function getConfig($config, $default = null)
+    private function getConfig($config, $default = null, $required = true)
     {
         $value = Configure::read("OidcAuth.$config");
         if ($value === null) {
-            if ($default === null) {
+            if ($default === null && $required) {
                 throw new RuntimeException("Config option `OidcAuth.$config` is not set.");
             }
             return $default;

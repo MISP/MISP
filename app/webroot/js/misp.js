@@ -5385,6 +5385,18 @@ function submitDashboardAddWidget() {
     var height = $('#DashboardHeight').val();
     var el = null;
     var k = $('#last-element-counter').data('element-counter');
+
+    if (config === '') {
+        config = '[]'
+    }
+    try {
+        config = JSON.parse(config);
+    } catch (error) {
+        showMessage('fail', error.message)
+        return
+    }
+    config = JSON.stringify(config);
+
     $.ajax({
         url: baseurl + '/dashboards/getEmptyWidget/' + widget + '/' + (k+1),
         type: 'GET',
@@ -5398,14 +5410,7 @@ function submitDashboardAddWidget() {
                     "autoposition": 1
                 }
             );
-            if (config !== '') {
-                config = JSON.parse(config);
-                config = JSON.stringify(config);
-            } else {
-                config = '[]';
-            }
             $('#widget_' + (k+1)).attr('config', config);
-            saveDashboardState();
             $('#last-element-counter').data('element-counter', (k+1));
         },
         complete: function(data) {

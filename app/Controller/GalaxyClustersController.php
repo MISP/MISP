@@ -59,6 +59,8 @@ class GalaxyClustersController extends AppController
             $contextConditions['GalaxyCluster.default'] = true;
         } elseif ($filters['context'] == 'custom') {
             $contextConditions['GalaxyCluster.default'] = false;
+        } elseif ($filters['context'] == 'orgc') {
+            $contextConditions['GalaxyCluster.orgc_id'] = $this->Auth->user('org_id');
         } elseif ($filters['context'] == 'org') {
             $contextConditions['GalaxyCluster.org_id'] = $this->Auth->user('org_id');
         } elseif ($filters['context'] == 'deleted') {

@@ -3,10 +3,11 @@ $seed = mt_rand();
 
 $notes = $analyst_data['notes'] ?? [];
 $opinions = $analyst_data['opinions'] ?? [];
-$relationships = $analyst_data['relationships'] ?? [];
+$relationships_outbound = $analyst_data['relationships_outbound'] ?? [];
+$relationships_inbound = $analyst_data['relationships_inbound'] ?? [];
 
 $notesOpinions = array_merge($notes, $opinions);
-$notesOpinionsRelationships = array_merge($notesOpinions, $relationships);
+$notesOpinionsRelationships = array_merge($notesOpinions, $relationships_outbound);
 
 if(!function_exists("countNotes")) {
     function countNotes($notesOpinions) {
@@ -37,17 +38,25 @@ if(!function_exists("countNotes")) {
 }
 $counts = countNotes($notesOpinions);
 $notesOpinionCount = $counts['notesOpinions'];
-$relationshipsCount = count($relationships);
+$relationshipsOutboundCount = count($relationships_outbound);
+$relationshipsInboundCount = count($relationships_inbound);
+$allCounts = [
+    'notesOpinions' => $counts['notesOpinions'],
+    'relationships_outbound' => $relationshipsOutboundCount,
+    'relationships_inbound' => $relationshipsInboundCount,
+]
 ?>
 
-<?php if (empty($notesOpinions) && empty($relationshipsCount)): ?>
+<?php if (empty($notesOpinions) && empty($relationshipsOutboundCount) && empty($relationshipsInboundCount)): ?>
     <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer node-opener-<?= $seed ?>" title="<?= __('Notes and opinions for this UUID') ?>"></i>
 <?php else: ?>
     <span class="label label-info useCursorPointer node-opener-<?= $seed ?> highlight-on-hover">
         <i class="<?= $this->FontAwesome->getClass('sticky-note') ?> useCursorPointer" title="<?= __('Notes and opinions for this UUID') ?>"></i>
         <?= $notesOpinionCount; ?>
-        <i class="<?= $this->FontAwesome->getClass('project-diagram') ?> useCursorPointer" title="<?= __('Relationships for this UUID') ?>"></i>
-        <?= $relationshipsCount; ?>
+        <i class="<?= $this->FontAwesome->getClass('arrow-up') ?> useCursorPointer" title="<?= __('Outbound Relationships from this UUID') ?>"></i>
+        <?= $relationshipsOutboundCount; ?>
+        <i class="<?= $this->FontAwesome->getClass('arrow-down') ?> useCursorPointer" title="<?= __('Inbound Relationships to this UUID') ?>"></i>
+        <?= $relationshipsInboundCount; ?>
     </span>
 <?php endif; ?>
 
@@ -56,20 +65,8 @@ $relationshipsCount = count($relationships);
 
 $(document).ready(function() {
     $('.node-opener-<?= $seed ?>').click(function() {
-        openNotes(this)
+        openNotes<?= $seed ?>(this)
     })
-
-    function adjustPopoverPosition() {
-        var $popover = $('.popover:last');
-        $popover.css('top', Math.max($popover.position().top, 50) + 'px')
-    }
-
-    function openNotes(clicked) {
-        openPopover(clicked, renderedNotes<?= $seed ?>, undefined, undefined, function() {
-            adjustPopoverPosition()
-            $(clicked).removeClass('have-a-popover') // avoid closing the popover if a confirm popover (like the delete one) is called
-        })
-    }
 })
 </script>
 
@@ -78,9 +75,11 @@ $(document).ready(function() {
         'seed' => $seed,
         'notes' => $notes,
         'opinions' => $opinions,
-        'relationships' => $relationships,
+        'relationships_outbound' => $relationships_outbound,
+        'relationships_inbound' => $relationships_inbound,
         'object_type' => $object_type,
         'object_uuid' => $object_uuid,
         'shortDist' => $shortDist,
+        'allCounts' => $allCounts,
     ]);
 ?>

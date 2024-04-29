@@ -2084,7 +2084,10 @@ class ServersController extends AppController
 
     public function updateJSON()
     {
-        $results = $this->Server->updateJSON();
+        $results = [];
+        foreach ($this->Server->updateJSON() as $type => $result) {
+            $results[$type] = $results['success'];
+        }
         return $this->RestResponse->viewData($results, $this->response->type());
     }
 

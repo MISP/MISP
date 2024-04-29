@@ -196,6 +196,24 @@ class ShadowAttribute extends AppModel
 
         // convert into utc and micro sec
         $this->data = $this->Attribute->ISODatetimeToUTC($this->data, $this->alias);
+
+        $trigger_id = 'shadow-attribute-before-save';
+        $isTriggerCallable = $this->isTriggerCallable($trigger_id);
+        if ($isTriggerCallable) {
+            $triggerData = $this->data;
+            $shadowAttribute_id = $triggerData['ShadowAttribute']['id'] ?? 0;
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'ShadowAttribute',
+                'action' => 'add',
+                'id' => $shadowAttribute_id,
+                'message' => __('The workflow `%s` prevented the saving of this proposal.', $trigger_id)
+            ];
+            $workflowSuccess = $this->executeTrigger($trigger_id, $triggerData, $workflowErrors, $logging);
+            if (!$workflowSuccess) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -687,6 +705,8 @@ class ShadowAttribute extends AppModel
         if (!$serverSync->isSupported(ServerSyncTool::FEATURE_PROPOSALS)) {
             return 0;
         }
+
+        $serverSync->debug("Pulling proposals");
 
         $i = 1;
         $fetchedCount = 0;

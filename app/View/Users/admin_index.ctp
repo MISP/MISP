@@ -152,6 +152,7 @@
                         'class' => 'short',
                         'data_path' => 'User.totp',
                         'colors' => true,
+                        'requirement' => empty(Configure::read('Security.otp_disabled')),
                     ),
                     array(
                         'name' => '',

@@ -74,8 +74,9 @@
           $notes = !empty($object['Note']) ? $object['Note'] : [];
           $opinions = !empty($object['Opinion']) ? $object['Opinion'] : [];
           $relationships = !empty($object['Relationship']) ? $object['Relationship'] : [];
+          $relationshipsInbound = !empty($object['RelationshipInbound']) ? $object['RelationshipInbound'] : [];
           echo $this->element('genericElements/Analyst_data/generic', [
-              'analyst_data' => ['notes' => $notes, 'opinions' => $opinions, 'relationships' => $relationships],
+              'analyst_data' => ['notes' => $notes, 'opinions' => $opinions, 'relationships_outbound' => $relationships, 'relationships_inbound' => $relationshipsInbound],
               'object_uuid' => $object['uuid'],
               'object_type' => 'Attribute'
           ]);
@@ -90,12 +91,14 @@
           $notes = !empty($object['Note']) ? $object['Note'] : [];
           $opinions = !empty($object['Opinion']) ? $object['Opinion'] : [];
           $relationships = !empty($object['Relationship']) ? $object['Relationship'] : [];
+          $relationshipsInbound = !empty($object['RelationshipInbound']) ? $object['RelationshipInbound'] : [];
           echo $this->element('genericElements/shortUuidWithNotes', [
               'uuid' => $object['uuid'],
               'object_type' => 'Attribute',
               'notes' => $notes,
               'opinions' => $opinions,
               'relationships' => $relationships,
+              'relationshipsInbound' => $relationshipsInbound,
           ]);
         ?>
       </td>
@@ -143,7 +146,7 @@
               if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) {
                   $commonDataFields = sprintf('data-object-type="Attribute" data-object-id="%s"', $objectId);
                   $spanExtra = Configure::read('Plugin.Enrichment_hover_popover_only') ? '' : sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
-                  $popupButton = sprintf('<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup noPrint" title="%s" %s></i>', __('Show hover enrichment'), $commonDataFields);
+                  $popupButton = sprintf('<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup noPrint" role="button" tabindex="0" title="%s" %s></i>', __('Show hover enrichment'), $commonDataFields);
                   echo sprintf(
                       '<span%s>%s</span> %s',
                       $spanExtra,

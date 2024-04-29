@@ -302,16 +302,22 @@ class AdminShell extends AppShell
     public function updateJSON()
     {
         $this->out('Updating all JSON structures.');
-        $results = $this->Server->updateJSON();
-        foreach ($results as $type => $result) {
+        $overallSuccess = true;
+        foreach ($this->Server->updateJSON() as $type => $result) {
             $type = Inflector::pluralize(Inflector::humanize($type));
-            if ($result !== false) {
-                $this->out(__('%s updated.', $type));
+            if ($result['success']) {
+                $this->out(__('%s updated in %.2f seconds.', $type, $result['duration']));
             } else {
                 $this->out(__('Could not update %s.', $type));
+                $this->out($result['result']);
+                $overallSuccess = false;
             }
         }
-        $this->out('All JSON structures updated. Thank you and have a very safe and productive day.');
+        if ($overallSuccess) {
+            $this->out('All JSON structures updated. Thank you and have a very safe and productive day.');
+        } else {
+            $this->error('Some structure could no be updated');
+        }
     }
 
     public function updateGalaxies()
@@ -616,9 +622,9 @@ class AdminShell extends AppShell
         try {
             $redis = RedisTool::init();
             for ($i = 0; $i < 10; $i++) {
-                $persistence = $redis->info('persistence');
-                if (isset($persistence['loading']) && $persistence['loading']) {
-                    $this->out('Redis is still loading...');
+                $pong = $redis->ping();
+                if ($pong !== true) {
+                    $this->out('Redis is still loading... ' . $pong);
                     sleep(1);
                 } else {
                     break;

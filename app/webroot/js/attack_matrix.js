@@ -17,6 +17,8 @@
 		});
 
 		adapt_position_from_viewport();
+		var firstTabId = $('#attack-matrix-tabscontroller span[data-toggle="tab"]:first').attr('href');
+		resizeHeader(firstTabId);
 
 		$('.ajax_popover_form .btn-matrix-submit').click(function() {
 			makeTagging(pickedGalaxies);
