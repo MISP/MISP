@@ -10,3 +10,6 @@
 [submodule "libraries/misp-taxonomies"]
 	path = libraries/misp-taxonomies
 	url = https://github.com/MISP/misp-taxonomies
+[submodule "libraries/misp-warninglists"]
+	path = libraries/misp-warninglists
+	url = https://github.com/MISP/misp-warninglists

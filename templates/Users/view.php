@@ -64,7 +64,7 @@ $fields = [
         'type' => 'boolean',
         'pill' => true
     ],
-    
+
 ];
 echo $this->element(
     '/genericElements/SingleViews/single_view',
