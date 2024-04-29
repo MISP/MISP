@@ -3,6 +3,10 @@ parameters:
     fileExtensions:
       - php
       - ctp
+    paths:
+      - src
+      - tests
+      - templates
     ignoreErrors:
       - message: '#Undefined variable: \$this#'
         path: %currentWorkingDirectory%/templates

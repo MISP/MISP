@@ -279,6 +279,20 @@ class ACLComponent extends Component
             'view' => ['*'],
             'preview_entries' => ['*']
         ],
+        'Warninglists' => [
+            'checkValue' => ['*'],
+            'delete' => ['perm_warninglist'],
+            'enableWarninglist' => ['perm_warninglist'],
+            'getToggleField' => ['perm_warninglist'],
+            'index' => ['*'],
+            'toggleEnable' => ['perm_warninglist'],
+            'update' => [], // TODO shouldn't perm_warninglist be allowed to update?
+            'view' => ['*'],
+            'edit' => ['perm_warninglist'],
+            'add' => ['perm_warninglist'],
+            'export' => ['*'],
+            'import' => ['perm_warninglist'],
+        ],
         'ObjectTemplates' => [
             'activate' => [],
             'add' => ['perm_object_template'],

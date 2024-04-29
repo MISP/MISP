@@ -1,13 +1,15 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Model\Entity;
 
+use Cake\Datasource\ConnectionManager;
 use Cake\ORM\Entity;
 
 class AppModel extends Entity
 {
-    const BROTLI_HEADER = "\xce\xb2\xcf\x81";
-    const BROTLI_MIN_LENGTH = 200;
+    public const BROTLI_HEADER = "\xce\xb2\xcf\x81";
+    public const BROTLI_MIN_LENGTH = 200;
 
     public const ACTION_ADD = 'add',
         ACTION_EDIT = 'edit',
@@ -22,12 +24,22 @@ class AppModel extends Entity
         ACTION_LOGIN_FAIL = 'login_fail',
         ACTION_LOGOUT = 'logout';
 
-
+    /**
+     * getConstant
+     *
+     * @param  mixed $name Name of the constant to get
+     * @return mixed the value of the constant
+     */
     public function getConstant($name)
     {
         return constant('self::' . $name);
     }
 
+    /**
+     * getAccessibleFieldForNew
+     *
+     * @return array
+     */
     public function getAccessibleFieldForNew(): array
     {
         return $this->_accessibleOnNew ?? [];
@@ -64,9 +76,10 @@ class AppModel extends Entity
             $tag = [
                 'id' => $tag['id'],
                 'name' => $tag['name'],
-                'colour' => $tag['colour']
+                'colour' => $tag['colour'],
             ];
         }
+
         return $tags;
     }
 
@@ -77,13 +90,13 @@ class AppModel extends Entity
         $alignmentDataToKeep = [
             'individual' => [
                 'id',
-                'email'
+                'email',
             ],
             'organisation' => [
                 'id',
                 'uuid',
-                'name'
-            ]
+                'name',
+            ],
         ];
         foreach ($alignments as $alignment) {
             foreach (array_keys($alignmentDataToKeep) as $type) {
@@ -97,6 +110,7 @@ class AppModel extends Entity
                 }
             }
         }
+
         return $rearrangedAlignments;
     }
 
@@ -106,15 +120,35 @@ class AppModel extends Entity
             $this->organisation = [
                 'id' => $this->organisation['id'],
                 'name' => $this->organisation['name'],
-                'uuid' => $this->organisation['uuid']
+                'uuid' => $this->organisation['uuid'],
             ];
         }
         if (in_array('individual', $typesToRearrange) && isset($this->individual)) {
             $this->individual = [
                 'id' => $this->individual['id'],
                 'email' => $this->individual['email'],
-                'uuid' => $this->individual['uuid']
+                'uuid' => $this->individual['uuid'],
             ];
         }
+    }
+
+    /**
+     * @param string $field The field name to add
+     * @param \App\Model\Entity\AppModel $model The model to use
+     * @param array $conditions The conditions for the query
+     */
+    public function addCountField($field, AppModel $model, array $conditions)
+    {
+        $dataSource = ConnectionManager::get('default')->config['datasource'];
+        $subQuery = $dataSource->buildStatement(
+            [
+                'fields' => ['COUNT(*)'],
+                'table' => $dataSource->fullTableName($model),
+                'alias' => $model->alias,
+                'conditions' => $conditions,
+            ],
+            $model
+        );
+        $this->virtualFields[$field] = $subQuery;
     }
 }

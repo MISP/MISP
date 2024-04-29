@@ -5,7 +5,7 @@ namespace App\Model\Table;
 
 use Cake\Validation\Validator;
 
-class WarninglistEntriesTable extends AppTable
+class WarninglistTypesTable extends AppTable
 {
     /**
      * initialize
@@ -30,14 +30,14 @@ class WarninglistEntriesTable extends AppTable
     /**
      * validationDefault
      *
-     * @param  mixed $validator  Validator
+     * @param  mixed $validator Validator
      * @return \Cake\Validation\Validator
      */
     public function validationDefault(Validator $validator): Validator
     {
         $validator
-            ->notEmptyString('value')
-            ->requirePresence(['value', 'warninglist_id'], 'create');
+            ->notEmptyString('type')
+            ->requirePresence(['type', 'warninglist_id'], 'create');
 
         return $validator;
     }

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\Model\Entity;
 
-class WarninglistEntry extends AppModel
+class WarninglistType extends AppModel
 {
     public $virtualFields = [];
 }
