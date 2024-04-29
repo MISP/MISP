@@ -120,6 +120,9 @@ class LogsController extends AppController
             if ($key === 'created') {
                 $key = 'created >=';
             }
+            if ($key == 'page' || $key == 'limit') {
+                continue;
+            }
             $this->paginate['conditions']["Log.$key"] = $value;
         }
         $this->set('validFilters', $validFilters);
