@@ -2624,7 +2624,8 @@ class Attribute extends AppModel
                 $this->id = $attribute['id'];
             }
         }
-        if (!$this->save(['Attribute' => $attribute], $params)) {
+        $savedAttribute = $this->save(['Attribute' => $attribute], $params);
+        if (!$savedAttribute) {
             $this->logDropped($user, $attribute);
         } else {
             if (!empty($attribute['AttributeTag'])) {
@@ -2662,7 +2663,7 @@ class Attribute extends AppModel
             if (!empty($attribute['Sighting'])) {
                 $this->Sighting->captureSightings($attribute['Sighting'], $this->id, $eventId, $user);
             }
-            $this->Event->captureAnalystData($user, $attribute);
+            $this->Event->captureAnalystData($user, $attribute, 'Attribute', $savedAttribute['Attribute']['uuid']);
         }
         if (!empty($this->validationErrors)) {
             $validationErrors = $this->validationErrors;
@@ -2803,7 +2804,7 @@ class Attribute extends AppModel
             if (!empty($attribute['Sighting'])) {
                 $this->Sighting->captureSightings($attribute['Sighting'], $attributeId, $eventId, $user);
             }
-            $this->Event->captureAnalystData($user, $attribute);
+            $this->Event->captureAnalystData($user, $attribute, 'Attribute', $attribute['uuid']);
             if ($user['Role']['perm_tagger']) {
                 /*
                     We should unwrap the line below and remove the server option in the future once we have tag soft-delete

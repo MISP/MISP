@@ -514,6 +514,10 @@ class AnalystData extends AppModel
             $analystData[$type]['org_uuid'] = $user['Organisation']['uuid'];
         }
 
+        if (!isset($analystData[$type]['uuid'])) {
+            $analystData[$type]['uuid'] = CakeText::uuid();
+        }
+
         $this->AnalystDataBlocklist = ClassRegistry::init('AnalystDataBlocklist');
         if ($this->AnalystDataBlocklist->checkIfBlocked($analystData[$type]['uuid'])) {
             $results['errors'][] = __('Blocked by blocklist');
@@ -540,8 +544,8 @@ class AnalystData extends AppModel
 
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
             $analystModel->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
-            $orgcUUID = $analystData[$type]['Orgc']['uuid'];
-            if ($analystData[$type]['orgc_uuid'] != 0 && $analystModel->OrgBlocklist->hasAny(array('OrgBlocklist.org_uuid' => $orgcUUID))) {
+            $orgcUUID = $analystData[$type]['orgc_uuid'];
+            if ($orgcUUID != 0 && $analystModel->OrgBlocklist->hasAny(array('OrgBlocklist.org_uuid' => $orgcUUID))) {
                 $results['errors'][] = __('Organisation blocklisted (%s)', $orgcUUID);
                 $results['ignored']++;
                 return $results;

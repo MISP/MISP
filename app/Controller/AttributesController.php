@@ -793,12 +793,14 @@ class AttributesController extends AppController
                 $result = $this->Attribute->save($this->request->data, array('fieldList' => Attribute::EDITABLE_FIELDS));
                 if ($result) {
                     $this->Attribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $attribute['Event']['id'], $capture=true);
+                    $this->Attribute->Event->captureAnalystData($this->Auth->user(), $this->request->data['Attribute'], 'Attribute', $existingAttribute['Attribute']['uuid']);
                 }
                 $this->Attribute->Object->updateTimestamp($existingAttribute['Attribute']['object_id']);
             } else {
                 $result = $this->Attribute->save($this->request->data, array('fieldList' => Attribute::EDITABLE_FIELDS));
                 if ($result) {
                     $this->Attribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $attribute['Event']['id'], $capture=true);
+                    $this->Attribute->Event->captureAnalystData($this->Auth->user(), $this->request->data['Attribute'], 'Attribute', $existingAttribute['Attribute']['uuid']);
                 }
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
