@@ -87,7 +87,7 @@ API tests can assert the API response matches the OpenAPI specification, after t
 $this->assertResponseMatchesOpenApiSpec(self::ENDPOINT);
 ``` 
 
-The default OpenAPI spec path is set in `phpunit.xml` as a environment variablea:
+The default OpenAPI spec path is set in `phpunit.xml` as a environment variable:
 ```xml
 <php>
     ...
