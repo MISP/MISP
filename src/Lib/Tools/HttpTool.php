@@ -1,8 +1,8 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Lib\Tools;
 
-use App\Lib\Tools\CurlAdvanced;
 use Cake\Core\Configure;
 use Cake\Core\Exception\CakeException;
 use Cake\Http\Client as CakeClient;
@@ -10,7 +10,6 @@ use Cake\Http\Client\Request;
 use Cake\Http\Client\Response;
 use Cake\Http\Exception\NotImplementedException;
 use Cake\I18n\FrozenTime;
-
 
 class HttpTool extends CakeClient
 {
@@ -29,7 +28,8 @@ class HttpTool extends CakeClient
      *   - Proxy.host, port, user, pass, method
      *   - Security.min_tls_version
      *
-     * @param  mixed $server Server array with custom settings for a specific server, cerebrate, ...
+     * @param array $config configuration parameters of CakeClient
+     * @param array $server Server array with custom settings for a specific server, cerebrate, ...
      */
     public function __construct(array $config = [], array $server = [])
     {
@@ -40,10 +40,10 @@ class HttpTool extends CakeClient
         parent::__construct($config);
     }
 
-
     /**
      * buildDefaultConfigFromSettings
      *
+     * @return void
      */
     public function buildDefaultConfigFromSettings()
     {
@@ -76,7 +76,6 @@ class HttpTool extends CakeClient
         - skip_proxy -
         */
 
-
         // proxy settings
         $proxy = Configure::read('Proxy');
         // proxy array as CakeClient likes it
@@ -85,7 +84,7 @@ class HttpTool extends CakeClient
         //  'proxy' => '127.0.0.1:8080']
 
         if (isset($proxy['host'])) {
-            $this->_defaultConfig['proxy'] = ['proxy' => $proxy['host'] . ":" . (empty($proxy['port']) ? 3128 : $proxy['port'])];
+            $this->_defaultConfig['proxy'] = ['proxy' => $proxy['host'] . ':' . (empty($proxy['port']) ? 3128 : $proxy['port'])];
 
             if (isset($proxy['user']) && isset($proxy['password']) && !isset($proxy['method'])) {
                 $proxy['method'] = 'basic';
@@ -111,7 +110,8 @@ class HttpTool extends CakeClient
         }
 
         // min TLS version
-        if ($minTlsVersion = Configure::read('Security.min_tls_version')) {
+        $minTlsVersion = Configure::read('Security.min_tls_version');
+        if ($minTlsVersion) {
             $version = 0;
             switch ($minTlsVersion) {
                 case 'tlsv1_0':
@@ -126,8 +126,8 @@ class HttpTool extends CakeClient
                 case 'tlsv1_3':
                     if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
                         $version |= STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
-                    } else if ($minTlsVersion === 'tlsv1_3') {
-                        throw new CakeException("TLSv1.3 is not supported by PHP.");
+                    } elseif ($minTlsVersion === 'tlsv1_3') {
+                        throw new CakeException('TLSv1.3 is not supported by PHP.');
                     }
                     break;
                 default:
@@ -137,7 +137,7 @@ class HttpTool extends CakeClient
         }
 
         // Add user-agent
-        $this->_defaultConfig['headers']['User-Agent'] = "MISP - Threat Intelligence & Sharing Platform";
+        $this->_defaultConfig['headers']['User-Agent'] = 'MISP - Threat Intelligence & Sharing Platform';
         // TODO add MISP version? or only do it for server to server communication? (see configFromServer())
     }
 
@@ -145,18 +145,19 @@ class HttpTool extends CakeClient
      * Set HttpTool configuration from Server data, such as Certificate Authority and other
      *
      * @param array $server Server array
+     * @return void
      */
     public function configFromServer(array $server)
     {
         if (!empty($server)) {
             if ($server['cert_file']) {
-                $this->_defaultConfig['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server['id'] . '.pem';
+                $this->_defaultConfig['ssl_cafile'] = APP . 'files' . DS . 'certs' . DS . $server['id'] . '.pem';
             }
             if ($server['client_cert_file']) {
                 if (!isset($this->_defaultConfig['curl'])) {
                     $this->_defaultConfig['curl'] = [];
                 }
-                $this->_defaultConfig['curl'][CURLOPT_SSLKEY] = APP . "files" . DS . "certs" . DS . $server['id'] . '_client.pem';
+                $this->_defaultConfig['curl'][CURLOPT_SSLKEY] = APP . 'files' . DS . 'certs' . DS . $server['id'] . '_client.pem';
             }
             if ($server['self_signed']) {
                 $this->_defaultConfig['ssl_verify_peer_name'] = false;
@@ -181,10 +182,17 @@ class HttpTool extends CakeClient
      * Set HttpTool configuration from Feed data
      *
      * @param array|null $feed Feed array
+     * @return void
      */
-    public function configFromFeed(array $feed = null)
+    public function configFromFeed(array|null $feed = null)
     {
         $this->_defaultConfig['compress'] = 'true';
+        if (!empty($feed)) {
+            // if ($feed['url']) {
+            //     $this->_defaultConfig['']
+            // }
+            // throw new NotImplementedException('configFromFeed() is not implemented'); // FIXME chri write configFromFeed
+        }
     }
 
     /**
@@ -199,7 +207,6 @@ class HttpTool extends CakeClient
         $this->_defaultConfig['headers']['MISP-version'] = $misp_version;
         $this->_defaultConfig['headers']['MISP-uuid'] = Configure::read('MISP.uuid');
     }
-
 
     /**
      * Helper method for doing requests. This method is there to provide us a wrapper implementing custom MISP options.
@@ -217,31 +224,33 @@ class HttpTool extends CakeClient
                 $options,
                 [
                     'ssl_verify_peer' => false,
-                    'ssl_verify_host' => false
+                    'ssl_verify_host' => false,
                 ]
             );
         }
         if (isset($options['skip_proxy']) && $options['skip_proxy'] === true) {
             unset($options['proxy']);
         }
+
         return parent::_doRequest($method, $url, $data, $options);
     }
 
     /**
      * @deprecated createRequest - return an instance of HttpTool with automatic configuration
      * @deprecated do not use this function, but use the HttpTool directly instead
-     * @param  mixed $config
-     * @return HttpTool
+     * @param array $config HttpTool configuration
+     * @return self
      */
     public function createRequest(array $config = []): HttpTool
     {
         return new HttpTool($config);
     }
 
-
     /**
      * fetchCertificate - download the SSL certificate from the remote server
      *
+     * @param string $url the url where the certificate is hosted
+     * @param array $options HttpTool options
      * @return array the list of certificates including pem
      */
     public function fetchCertificates(string $url, array $options = []): array
@@ -261,14 +270,15 @@ class HttpTool extends CakeClient
         );
         $curl = new CurlAdvanced();
         $certificates = $curl->getCertificateChain($request, $options);
+
         return $certificates;
     }
 
     /**
      * getServerClientCertificateInfo - extract certificate info from a Client certificate from a $server.
-     * @param array $server
+     *
+     * @param array $server the Server array from MISP datamodel
      * @return array|void
-     * @throws Exception
      */
     public static function getServerClientCertificateInfo(array $server): mixed
     {
@@ -276,7 +286,7 @@ class HttpTool extends CakeClient
             return null;
         }
         $fileAccessTool = new FileAccessTool();
-        $path = APP . "files" . DS . "certs" . DS . $server['id'] . '_client.pem';
+        $path = APP . 'files' . DS . 'certs' . DS . $server['id'] . '_client.pem';
         $clientCertificate = $fileAccessTool->readFromFile($path); //readFromFile throws an exception if the file is not found or could not be read, along with the reason.
 
         return self::getClientCertificateInfo($clientCertificate);
@@ -284,9 +294,10 @@ class HttpTool extends CakeClient
 
     /**
      * getServerCaCertificateInfo - extract certificate info from a certificate from a $server.
-     * @param array $server
+     *
+     * @param array $server the Server array from MISP datamodel
      * @return array|void
-     * @throws Exception
+     * @throws \Cake\Core\Exception\CakeException
      */
     public static function getServerCaCertificateInfo(array $server): mixed
     {
@@ -295,7 +306,7 @@ class HttpTool extends CakeClient
         }
 
         $fileAccessTool = new FileAccessTool();
-        $path = APP . "files" . DS . "certs" . DS . $server['Server']['id'] . '.pem';
+        $path = APP . 'files' . DS . 'certs' . DS . $server['Server']['id'] . '.pem';
         $caCertificate = $fileAccessTool->readFromFile($path); //readFromFile throws an exception if the file is not found or could not be read, along with the reason.
         $certificate = openssl_x509_read($caCertificate);
         if (!$certificate) {
@@ -307,9 +318,10 @@ class HttpTool extends CakeClient
 
     /**
      * getClientCertificateInfo - extract client certificate info from a PEM encoded cert + key, only if the cert+key are valid
+     *
      * @param string $certificateContent PEM encoded certificate and private key.
      * @return array
-     * @throws Exception
+     * @throws \Cake\Core\Exception\CakeException
      */
     public static function getClientCertificateInfo(string $certificateContent): array
     {
@@ -325,14 +337,16 @@ class HttpTool extends CakeClient
         if (!$verify) {
             throw new CakeException('Public and private key do not match.');
         }
+
         return self::parseCertificate($certificate);
     }
 
     /**
      * parseCertificate - extract certificate info from a PEM encoded certificate
-     * @param mixed $certificate
+     *
+     * @param mixed $certificate the certificate as returned by `openssl_x509_read()`
      * @return array
-     * @throws Exception
+     * @throws \Cake\Core\Exception\CakeException
      */
     public static function parseCertificate(mixed $certificate): array
     {

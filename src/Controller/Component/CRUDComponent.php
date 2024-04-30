@@ -424,7 +424,7 @@ class CRUDComponent extends Component
                     throw new NotFoundException(__('Could not save {0} due to the input failing to meet expectations. Your input is bad and you should feel bad.', $this->ObjectAlias));
                 }
             }
-            $savedData = $this->Table->save($data);
+            $savedData = $this->Table->save($data);   // FIXME catch exceptions thrown by DB constraints, as otherwise we get 500 Internal Server Errors
             if ($savedData !== false) {
                 if (isset($params['afterSave'])) {
                     $params['afterSave']($data);
@@ -458,7 +458,7 @@ class CRUDComponent extends Component
                 );
                 if ($this->Controller->ParamHandler->isRest()) {
                     $this->Controller->restResponsePayload = $this->RestResponse->viewData($message, 'json');
-                } else if ($this->Controller->ParamHandler->isAjax()) {
+                } elseif ($this->Controller->ParamHandler->isAjax()) {
                     $this->Controller->ajaxResponsePayload = $this->RestResponse->ajaxFailResponse($this->ObjectAlias, 'add', $data, $message, $validationErrors);
                 } else {
                     $this->Controller->Flash->error($message);
@@ -715,32 +715,16 @@ class CRUDComponent extends Component
                     $params['afterSave']($data);
                 }
                 $message = __('{0} `{1}` updated.', $this->ObjectAlias, $savedData->{$this->Table->getDisplayField()});
-                if ($this->Controller->ParamHandler->isRest()) {
-                    $this->Controller->restResponsePayload = $this->RestResponse->viewData($savedData, 'json');
-                } else if ($this->Controller->ParamHandler->isAjax()) {
-                    $this->Controller->ajaxResponsePayload = $this->RestResponse->ajaxSuccessResponse($this->ObjectAlias, 'edit', $savedData, $message);
-                } else {
-                    $this->Controller->Flash->success($message);
-                    if (empty($params['redirect'])) {
-                        $this->Controller->redirect(['action' => 'view', $id]);
-                    } else {
-                        $this->Controller->redirect($params['redirect']);
-                    }
-                }
+                $this->setResponseForController('edit', true, $message, $data, null, $params);
             } else {
                 $validationErrors = $data->getErrors();
-                $validationMessage = $this->prepareValidationError($data);
+                $validationMessage = $this->prepareValidationMessage($validationErrors);
                 $message = __(
                     '{0} could not be modified.{1}',
                     $this->ObjectAlias,
                     empty($validationMessage) ? '' : PHP_EOL . __('Reason: {0}', $validationMessage)
                 );
-                if ($this->Controller->ParamHandler->isRest()) {
-                } else if ($this->Controller->ParamHandler->isAjax()) {
-                    $this->Controller->ajaxResponsePayload = $this->RestResponse->ajaxFailResponse($this->ObjectAlias, 'edit', $data, $message, $validationErrors);
-                } else {
-                    $this->Controller->Flash->error($message);
-                }
+                $this->setResponseForController('edit', false, $message, $data, null, $params);
             }
         }
         if (!empty($params['fields'])) {
@@ -1187,6 +1171,7 @@ class CRUDComponent extends Component
         } else {
             if ($this->Controller->ParamHandler->isRest()) {
                 $data = $data ?? $message;
+                // FIXME show error in the JSON response, and return with an HTTP error code
                 $this->Controller->restResponsePayload = $this->RestResponse->viewData($data, 'json');
             } elseif ($this->Controller->ParamHandler->isAjax()) {
                 if (!empty($additionalData['redirect'])) { // If a redirection occurs, we need to make sure the flash message gets displayed
