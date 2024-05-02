@@ -1204,12 +1204,11 @@ class AppController extends Controller
                         null);
                     $this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
                 }
-                $temp = $this->_checkExternalAuthUser($server[$headerNamespace . $header]);
-                $user['User'] = $temp;
-                if ($user['User']) {
-                    $this->User->updateLoginTimes($user['User']);
+                $user = $this->_checkExternalAuthUser($server[$headerNamespace . $header]);
+                if ($user) {
+                    $this->User->updateLoginTimes($user);
                     //$this->Session->renew();
-                    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+                    $this->Session->write(AuthComponent::$sessionKey, $user);
                     if (Configure::read('MISP.log_auth')) {
                         $this->Log = ClassRegistry::init('Log');
                         $change = $this->User->UserLoginProfile->_getUserProfile();
@@ -1219,7 +1218,7 @@ class AppController extends Controller
                             $user,
                             'auth',
                             'User',
-                            $user['User']['id'],
+                            $user['id'],
                             'Successful authentication using ' . $authName . ' key',
                             json_encode($change));
                     }
