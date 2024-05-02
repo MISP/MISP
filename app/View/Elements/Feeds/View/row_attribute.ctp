@@ -45,7 +45,7 @@
     </td>
     <td id="Attribute_<?php echo h($object['uuid']); ?>_container" class="showspaces limitedWidth shortish">
       <div id="Attribute_<?php echo $object['uuid']; ?>_value_solid" class="inline-field-solid">
-        <span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="Attribute" data-object-id="' . h($object['uuid']) . '"'?>>
+        <span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="attributes" data-object-id="' . h($object['uuid']) . '"'?>>
           <?php
             echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
           ?>

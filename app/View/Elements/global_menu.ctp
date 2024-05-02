@@ -540,7 +540,7 @@ if (!empty($me)) {
         ],
         array(
             'type' => 'root',
-            'url' => $baseurl . '/dashboards',
+            'url' => $baseurl . '/users/view/me',
             'html' => sprintf(
                 '<span class="white" title="%s">%s%s&nbsp;&nbsp;&nbsp;%s</span>',
                 h($me['email']),

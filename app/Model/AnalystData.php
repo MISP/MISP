@@ -180,6 +180,15 @@ class AnalystData extends AppModel
         }
         $this->data[$this->current_type]['modified'] = (new DateTime($this->data[$this->current_type]['modified'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
         $this->data[$this->current_type]['created'] = (new DateTime($this->data[$this->current_type]['created'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+
+        if (empty($this->data[$this->current_type]['id'])) {
+            if (!isset($this->data[$this->current_type]['distribution'])) {
+                $this->data[$this->current_type]['distribution'] = Configure::read('MISP.default_event_distribution'); // use default event distribution
+            }
+            if ($this->data[$this->current_type]['distribution'] != 4) {
+                $this->data[$this->current_type]['sharing_group_id'] = null;
+            }
+        }
         return true;
     }
 
@@ -516,6 +525,10 @@ class AnalystData extends AppModel
             $analystData[$type]['org_uuid'] = $user['Organisation']['uuid'];
         }
 
+        if (!isset($analystData[$type]['uuid'])) {
+            $analystData[$type]['uuid'] = CakeText::uuid();
+        }
+
         $this->AnalystDataBlocklist = ClassRegistry::init('AnalystDataBlocklist');
         if ($this->AnalystDataBlocklist->checkIfBlocked($analystData[$type]['uuid'])) {
             $results['errors'][] = __('Blocked by blocklist');
@@ -542,8 +555,8 @@ class AnalystData extends AppModel
 
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
             $analystModel->OrgBlocklist = ClassRegistry::init('OrgBlocklist');
-            $orgcUUID = $analystData[$type]['Orgc']['uuid'];
-            if ($analystData[$type]['orgc_uuid'] != 0 && $analystModel->OrgBlocklist->hasAny(array('OrgBlocklist.org_uuid' => $orgcUUID))) {
+            $orgcUUID = $analystData[$type]['orgc_uuid'];
+            if ($orgcUUID != 0 && $analystModel->OrgBlocklist->hasAny(array('OrgBlocklist.org_uuid' => $orgcUUID))) {
                 $results['errors'][] = __('Organisation blocklisted (%s)', $orgcUUID);
                 $results['ignored']++;
                 return $results;
@@ -551,12 +564,6 @@ class AnalystData extends AppModel
         }
 
         $analystData = $analystModel->captureOrganisationAndSG($analystData, $type, $user);
-        if (!isset($analystData[$type]['distribution'])) {
-            $analystData[$type]['distribution'] = Configure::read('MISP.default_event_distribution'); // use default event distribution
-        }
-        if ($analystData[$type]['distribution'] != 4) {
-            $analystData[$type]['sharing_group_id'] = null;
-        }
 
         // Start saving from the leaf since to make sure child elements get saved even if the parent should not be saved (or updated due to locked or timestamp)
         foreach (self::ANALYST_DATA_TYPES as $childType) {

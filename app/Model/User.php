@@ -2124,11 +2124,11 @@ class User extends AppModel
 
             return true;
         } else {
-            return $this->forgot($email);
+            return $this->forgot($email, $ip);
         }
     }
 
-    public function forgot($email, $ip, $jobId = null)
+    public function forgot($email, $ip)
     {
         $user = $this->find('first', [
             'recursive' => -1,
@@ -2140,9 +2140,8 @@ class User extends AppModel
         if (empty($user)) {
             return false;
         }
-        $redis = $this->setupRedis();
         $token = RandomTool::random_str(true, 40, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
-        $redis->set('misp:forgot:' . $token, $user['User']['id'], ['nx', 'ex' => 600]);
+        RedisTool::init()->set('misp:forgot:' . $token, $user['User']['id'], ['nx', 'ex' => 600]);
         $baseurl = Configure::check('MISP.external_baseurl') ? Configure::read('MISP.external_baseurl') : Configure::read('MISP.baseurl');
         $body = __(
             "Dear MISP user,\n\nyou have requested a password reset on the MISP instance at %s. Click the link below to change your password.\n\n%s\n\nThe link above is only valid for 10 minutes, feel free to request a new one if it has expired.\n\nIf you haven't requested a password reset, reach out to your admin team and let them know that someone has attempted it in your stead.\n\nMake sure you keep the contents of this e-mail confidential, do NOT ever forward it as it contains a reset token that is equivalent of a password if acted upon. The IP used to trigger the request was: %s\n\nBest regards,\nYour MISP admin team",

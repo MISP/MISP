@@ -33,6 +33,7 @@
                     'field' => 'threat_level_id',
                     'class' => 'input',
                     'options' => $threatLevels,
+                    'default' => Configure::check('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : '4',
                     'label' => __("Threat Level"),
                     'stayInLine' => 1,
                     'type' => 'dropdown'

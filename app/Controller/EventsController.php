@@ -14,16 +14,16 @@ class EventsController extends AppController
     );
 
     public $paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
-            'order' => array(
-                    'Event.timestamp' => 'DESC'
-            ),
-            'contain' => array(
-                    'Org' => array('fields' => array('id', 'name', 'uuid')),
-                    'Orgc' => array('fields' => array('id', 'name', 'uuid')),
-                    'SharingGroup' => array('fields' => array('id', 'name', 'uuid'))
-            )
+        'limit' => 60,
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+        'order' => array(
+            'Event.timestamp' => 'DESC'
+        ),
+        'contain' => array(
+            'Org' => array('fields' => array('id', 'name', 'uuid')),
+            'Orgc' => array('fields' => array('id', 'name', 'uuid')),
+            'SharingGroup' => array('fields' => array('id', 'name', 'uuid'))
+        )
     );
 
     // private
@@ -61,46 +61,14 @@ class EventsController extends AppController
         'publish_timestamp'
     ];
 
-    public $paginationFunctions = array('index', 'proposalEventIndex');
-
     public function beforeFilter()
     {
         parent::beforeFilter();
 
-        // what pages are allowed for non-logged-in users
-        $this->Auth->allow('xml');
-        $this->Auth->allow('csv');
-        $this->Auth->allow('nids');
-        $this->Auth->allow('hids_md5');
-        $this->Auth->allow('hids_sha1');
-        $this->Auth->allow('text');
-        $this->Auth->allow('restSearch');
-        $this->Auth->allow('stix');
-        $this->Auth->allow('stix2');
-
         $this->Security->unlockedActions[] = 'viewEventAttributes';
 
-        // TODO Audit, activate logable in a Controller
-        if (count($this->uses) && $this->{$this->modelClass}->Behaviors->attached('SysLogLogable')) {
-            $this->{$this->modelClass}->setUserData($this->activeUser);
-        }
-
-        // convert uuid to id if present in the url, and overwrite id field
-        if (isset($this->request->params->query['uuid'])) {
-            $params = array(
-                    'conditions' => array('Event.uuid' => $this->params->query['uuid']),
-                    'recursive' => 0,
-                    'fields' => 'Event.id'
-            );
-            $result = $this->Event->find('first', $params);
-            if (isset($result['Event']) && isset($result['Event']['id'])) {
-                $id = $result['Event']['id'];
-                $this->params->addParams(array('pass' => array($id))); // FIXME find better way to change id variable if uuid is found. params->url and params->here is not modified accordingly now
-            }
-        }
-
         // if not admin or own org, check private as well..
-        if (!$this->_isSiteAdmin() && in_array($this->request->action, $this->paginationFunctions, true)) {
+        if (!$this->_isSiteAdmin() && in_array($this->request->action, ['index', 'proposalEventIndex'], true)) {
             $conditions = $this->Event->createEventConditions($this->Auth->user());
             if ($this->userRole['perm_sync'] && $this->Auth->user('Server')['push_rules']) {
                 $conditions['AND'][] = $this->Event->filterRulesToConditions($this->Auth->user('Server')['push_rules']);
@@ -497,6 +465,11 @@ class EventsController extends AppController
                         continue 2;
                     }
                     $pieces = is_array($v) ? $v : explode('|', $v);
+                    $isANDed = false;
+                    if (count($pieces) == 1 && strpos($pieces[0], '&') !== false) {
+                        $pieces = explode('&', $pieces[0]);
+                        $isANDed = count($pieces) > 1;
+                    }
                     $filterString = "";
                     $expectOR = false;
                     $tagRules = [];
@@ -563,10 +536,19 @@ class EventsController extends AppController
                     }
 
                     if (!empty($tagRules['include'])) {
-                        $include = $this->Event->EventTag->find('column', array(
-                            'conditions' => array('EventTag.tag_id' => $tagRules['include']),
-                            'fields' => ['EventTag.event_id'],
-                        ));
+                        if ($isANDed) {
+                            $include = $this->Event->EventTag->find('column', array(
+                                'conditions' => ['EventTag.tag_id' => $tagRules['include']],
+                                'fields' => ['EventTag.event_id'],
+                                'group' => ['EventTag.event_id'],
+                                'having' => ['COUNT(*) =' => count($tagRules['include'])],
+                            ));
+                        } else {
+                            $include = $this->Event->EventTag->find('column', array(
+                                'conditions' => array('EventTag.tag_id' => $tagRules['include']),
+                                'fields' => ['EventTag.event_id'],
+                            ));
+                        }
                         if (!empty($include)) {
                             $this->paginate['conditions']['AND'][] = 'Event.id IN (' . implode(",", $include) . ')';
                         } else {

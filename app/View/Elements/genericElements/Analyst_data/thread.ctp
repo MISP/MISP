@@ -65,6 +65,14 @@ function openNotes<?= $seed ?>(clicked) {
     })
 }
 
+function getNotes<?= $seed ?>() {
+    var notes = <?= json_encode($notesOpinions) ?>;
+    var relationships = <?= json_encode($relationshipsOutbound) ?>;
+    var relationships_inbound = <?= json_encode($relationshipsInbound) ?>;
+    var relationship_related_object = <?= json_encode($related_objects) ?>;
+    return renderedNotes = renderAllNotesWithForm<?= $seed ?>(notes, relationships, relationships_inbound, relationship_related_object)
+}
+
 function renderNotes(notes, relationship_related_object, emptyMessage='<?= __('Empty') ?>', isInbound=false) {
     var renderedNotesArray = []
     if (notes.length == 0)  {
