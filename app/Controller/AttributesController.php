@@ -3022,9 +3022,6 @@ class AttributesController extends AppController
 
     public function viewAnalystData($id, $seed = null)
     {
-        if (!$this->request->is('ajax') && !$this->_isRest()) {
-            throw new MethodNotAllowedException(__('This endpoint can only be used via the API or AJAX calls.'));
-        }
         $this->Attribute->includeAnalystDataRecursive = true;
         $attribute = $this->Attribute->fetchAttributes(
             $this->Auth->user(),
