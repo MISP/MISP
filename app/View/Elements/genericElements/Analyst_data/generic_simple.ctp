@@ -1,8 +1,4 @@
 <?php
-    echo $this->element('genericElements/assetLoader', [
-        'css' => ['query-builder.default', 'attack_matrix', 'analyst-data'],
-        'js' => ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph', 'd3', 'd3.custom', 'jquery-ui.min'],
-    ]);
 if (empty($seed)) {
     $seed = mt_rand();
 }
