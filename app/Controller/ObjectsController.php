@@ -1410,4 +1410,30 @@ class ObjectsController extends AppController
         }
         return $conditions;
     }
+
+    public function viewAnalystData($id, $seed = null)
+    {
+        if (!$this->request->is('ajax') && !$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This endpoint can only be used via the API or AJAX calls.'));
+        }
+        $this->MispObject->includeAnalystDataRecursive = true;
+        $object = $this->MispObject->fetchObjects(
+            $this->Auth->user(),
+            [
+                'conditions' => $this->__objectIdToConditions($id)
+            ]
+        );
+        if(empty($object)) {
+            throw new NotFoundException(__('Invalid Object.'));
+        } else {
+            $object[0]['Object'] = array_merge_recursive($object[0]['Object'], $this->MispObject->attachAnalystData($object[0]['Object']));
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($object[0], $this->response->type());
+        }
+        $this->layout = null;
+        $this->set('shortDist', $this->MispObject->Attribute->shortDist);
+        $this->set('object', $object[0]['Object']);
+        $this->set('seed', $seed);
+    }
 }

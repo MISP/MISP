@@ -69,6 +69,7 @@
         if (!isset($attributeFilter)) $attributeFilter = 'all';
     ?>
 </div>
+<div id="tempnotecontainer"></div>
 <div id="attributeList">
     <?php
         echo $this->element('eventattributetoolbar', [
@@ -205,6 +206,23 @@ attributes or the appropriate distribution level. If you think there is a mistak
     var lastSelected = false;
     var deleted = <?php echo (!empty($deleted)) ? '1' : '0';?>;
     var includeRelatedTags = <?php echo (!empty($includeRelatedTags)) ? '1' : '0';?>;
+    $(document).ready(function() {
+        $('.analyst-data-fetcher').click(function() {
+            var $seed = $(this).data('seed');
+            var $object_uuid = $(this).data('object-uuid');
+            var $object_type = $(this).data('object-type');
+            var $that = this;
+            $.ajax({
+                type: 'GET',
+                url: baseurl + '/' + $object_type + '/viewAnalystData' + '/' + $object_uuid + '/' + $seed,
+                success:function (data) {
+                    $('#tempnotecontainer').html(data);
+                    window['openNotes' + $seed]($that);
+                }
+            });
+            
+        });
+    });
     $(function() {
         <?php
             if (isset($focus)):

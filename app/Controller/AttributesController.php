@@ -3017,4 +3017,31 @@ class AttributesController extends AppController
             ];
         }
     }
+
+    public function viewAnalystData($id, $seed = null)
+    {
+        if (!$this->request->is('ajax') && !$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This endpoint can only be used via the API or AJAX calls.'));
+        }
+        $this->Attribute->includeAnalystDataRecursive = true;
+        $attribute = $this->Attribute->fetchAttributes(
+            $this->Auth->user(),
+            [
+                'conditions' => $this->__idToConditions($id),
+                'flatten' => true
+            ]
+        );
+        if(empty($attribute)) {
+            throw new NotFoundException(__('Invalid Attribute.'));
+        } else {
+            $attribute[0]['Attribute'] = array_merge_recursive($attribute[0]['Attribute'], $this->Attribute->attachAnalystData($attribute[0]['Attribute']));
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($attribute[0], $this->response->type());
+        }
+        $this->layout = null;
+        $this->set('shortDist', $this->Attribute->shortDist);
+        $this->set('object', $attribute[0]['Attribute']);
+        $this->set('seed', $seed);
+    }
 }
