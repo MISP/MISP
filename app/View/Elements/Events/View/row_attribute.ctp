@@ -133,7 +133,7 @@
           <?php
               $value = $this->element('/Events/View/value_field', array('object' => $object));
               if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) {
-                  $commonDataFields = sprintf('data-object-type="Attribute" data-object-id="%s"', $objectId);
+                  $commonDataFields = sprintf('data-object-type="attributes" data-object-id="%s"', $objectId);
                   $spanExtra = Configure::read('Plugin.Enrichment_hover_popover_only') ? '' : sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
                   $popupButton = sprintf('<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup noPrint" role="button" tabindex="0" title="%s" %s></i>', __('Show hover enrichment'), $commonDataFields);
                   echo sprintf(

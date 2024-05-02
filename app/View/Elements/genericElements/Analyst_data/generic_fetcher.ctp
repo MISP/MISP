@@ -54,7 +54,7 @@ $allCounts = [
             $this->FontAwesome->getClass('sticky-note'),
             h($seed),
             h($object_uuid),
-            h($object_type),
+            Inflector::tableize(h($object_type)),
             __('Notes and opinions for this UUID')
         );
     } else {
