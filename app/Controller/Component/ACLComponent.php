@@ -794,12 +794,12 @@ class ACLComponent extends Component
             'discardRegistrations' => array(),
             'downloadTerms' => array('*'),
             'edit' => array('self_management_enabled'),
-            'email_otp' => array('*'),
-            'forgot' => array('*'),
-            'otp' => array('*'),
-            'hotp' => array('*'),
-            'totp_new' => array('*'),
-            'totp_delete' => array('perm_admin'),
+            'email_otp' => array('otp_enabled'),
+            'forgot' => ['AND' => ['password_forgotten_enabled', 'password_change_enabled']],
+            'otp' => ['otp_enabled'],
+            'hotp' => ['otp_enabled'],
+            'totp_new' => ['otp_enabled'],
+            'totp_delete' => ['AND' => ['perm_admin', 'otp_enabled']],
             'searchGpgKey' => array('*'),
             'fetchGpgKey' => array('*'),
             'histogram' => array('*'),
@@ -808,7 +808,7 @@ class ACLComponent extends Component
             'logout' => array('*'),
             'logout401' => array('*'),
             'notificationSettings' => ['*'],
-            'password_reset' => array('*'),
+            'password_reset' => ['AND' => ['password_forgotten_enabled', 'password_change_enabled']],
             'register' => array('*'),
             'registrations' => array(),
             'resetAllSyncAuthKeys' => array(),
@@ -915,19 +915,31 @@ class ACLComponent extends Component
         };
         $this->dynamicChecks['self_management_enabled'] = function (array $user) {
             if (Configure::read('MISP.disableUserSelfManagement') && !$user['Role']['perm_admin']) {
-                throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
+                throw new ForbiddenException('User self-management has been disabled on this instance.');
             }
             return true;
         };
         $this->dynamicChecks['password_change_enabled'] = function (array $user) {
             if (Configure::read('MISP.disable_user_password_change')) {
-                throw new MethodNotAllowedException('User password change has been disabled on this instance.');
+                throw new ForbiddenException('User password change has been disabled on this instance.');
+            }
+            return true;
+        };
+        $this->dynamicChecks['otp_enabled'] = function (array $user) {
+            if (Configure::read('Security.otp_disabled')) {
+                throw new ForbiddenException('OTP has been disabled on this instance.');
+            }
+            return true;
+        };
+        $this->dynamicChecks['password_forgotten_enabled'] = function (array $user) {
+            if (empty(Configure::read('Security.allow_password_forgotten'))) {
+                throw new ForbiddenException('Password reset has been disabled on this instance.');
             }
             return true;
         };
         $this->dynamicChecks['add_user_enabled'] = function (array $user) {
             if (Configure::read('MISP.disable_user_add')) {
-                throw new MethodNotAllowedException('Adding users has been disabled on this instance.');
+                throw new ForbiddenException('Adding users has been disabled on this instance.');
             }
             return true;
         };
@@ -1127,6 +1139,7 @@ class ACLComponent extends Component
      *
      * @param array $user
      * @param array $analystData
+     * @param string $modelType
      * @return bool
      */
     public function canEditAnalystData(array $user, array $analystData, $modelType): bool
@@ -1241,7 +1254,7 @@ class ACLComponent extends Component
             $this->checkAccess($user, $controller, $action, false);
         } catch (NotFoundException $e) {
             throw new RuntimeException("Invalid controller '$controller' specified.", 0, $e);
-        } catch (MethodNotAllowedException $e) {
+        } catch (ForbiddenException $e) {
             return false;
         }
         return true;
@@ -1261,7 +1274,7 @@ class ACLComponent extends Component
      * @param bool $checkLoggedActions
      * @return true
      * @throws NotFoundException
-     * @throws MethodNotAllowedException
+     * @throws ForbiddenException
      */
     public function checkAccess($user, $controller, $action, $checkLoggedActions = true)
     {
@@ -1269,9 +1282,6 @@ class ACLComponent extends Component
         $action = strtolower($action);
         if ($checkLoggedActions) {
             $this->__checkLoggedActions($user, $controller, $action);
-        }
-        if ($user && $user['Role']['perm_site_admin']) {
-            return true;
         }
         if (!isset(self::ACL_LIST[$controller])) {
             throw new NotFoundException('Invalid controller.');
@@ -1318,7 +1328,12 @@ class ACLComponent extends Component
                 return true;
             }
         }
-        throw new MethodNotAllowedException('You do not have permission to use this functionality.');
+        // Dynamic checks can raise forbidden exception even for site admins, so we have to check permission for site
+        // admin as last thing.
+        if ($user && $user['Role']['perm_site_admin']) {
+            return true;
+        }
+        throw new ForbiddenException('You do not have permission to use this functionality.');
     }
 
     private function __findAllFunctions()

@@ -568,6 +568,12 @@ class EventReportsController extends AppController
                 $savedReport['EventReport'][$field] = $newReport['EventReport'][$field];
             }
         }
+        $this->loadModel('AnalystData');
+        foreach ($this->AnalystData::ANALYST_DATA_TYPES as $type) {
+            if (!empty($newReport['EventReport'][$type])) {
+                $savedReport['EventReport'][$type] = $newReport['EventReport'][$type];
+            }
+        }
         return $savedReport;
     }
 }

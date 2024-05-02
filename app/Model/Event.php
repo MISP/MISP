@@ -3966,7 +3966,7 @@ class Event extends AppModel
                 $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
             }
 
-            $this->captureAnalystData($user, $data['Event']);
+            $this->captureAnalystData($user, $data['Event'], 'Event', $saveResult['Event']['uuid']);
             if ($fromXml) {
                 $created_id = $this->id;
             }
@@ -4269,7 +4269,7 @@ class Event extends AppModel
                 $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
             }
 
-            $this->captureAnalystData($user, $data['Event']);
+            $this->captureAnalystData($user, $data['Event'], 'Event', $saveResult['Event']['uuid']);
             // if published -> do the actual publishing
             if ($changed && (!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
                 // The edited event is from a remote server ?
@@ -8087,7 +8087,7 @@ class Event extends AppModel
         }
     }
 
-    public function captureAnalystData($user, $data)
+    public function captureAnalystData($user, $data, $parentObjectType, $parentObjectUUID)
     {
         $this->Note = ClassRegistry::init('Note');
         $this->Opinion = ClassRegistry::init('Opinion');
@@ -8095,6 +8095,9 @@ class Event extends AppModel
         foreach ($this->Note::ANALYST_DATA_TYPES as $type) {
             if (!empty($data[$type])) {
                 foreach ($data[$type] as $analystData) {
+                    $analystData['note_type_name'] = $type;
+                    $analystData['object_type'] = $parentObjectType;
+                    $analystData['object_uuid'] = $parentObjectUUID;
                     $this->{$type}->captureAnalystData($user, $analystData);
                 }
             }

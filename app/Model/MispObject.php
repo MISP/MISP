@@ -510,7 +510,8 @@ class MispObject extends AppModel
             }
         }
         $this->create();
-        if ($this->save($object)) {
+        $saveResult = $this->save($object);
+        if ($saveResult) {
             $result = $this->id;
             foreach ($object['Attribute'] as $k => $attribute) {
                 $object['Attribute'][$k]['object_id'] = $this->id;
@@ -528,6 +529,7 @@ class MispObject extends AppModel
                 }
             }
             $this->Attribute->saveAttributes($object['Attribute'], $user);
+            $this->Event->captureAnalystData($user, $object['Object'], 'Object', $saveResult['Object']['uuid']);
         } else {
             $result = $this->validationErrors;
         }
@@ -1001,6 +1003,8 @@ class MispObject extends AppModel
             return $this->validationErrors;
         }
 
+        $this->Event->captureAnalystData($user, $objectToSave['Object'], 'Object', $saveResult['Object']['uuid']);
+
         if (!$onlyAddNewAttribute) {
             $checkFields = array('category', 'value', 'to_ids', 'distribution', 'sharing_group_id', 'comment', 'disable_correlation', 'first_seen', 'last_seen');
             if (!empty($objectToSave['Attribute'])) {
@@ -1139,7 +1143,7 @@ class MispObject extends AppModel
                 $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
             }
         }
-        $this->Event->captureAnalystData($user, $object['Object']);
+        $this->Event->captureAnalystData($user, $object['Object'], 'Object', $object['Object']['uuid']);
         return true;
     }
 
@@ -1219,7 +1223,7 @@ class MispObject extends AppModel
             );
             return $this->validationErrors;
         }
-        $this->Event->captureAnalystData($user, $object);
+        $this->Event->captureAnalystData($user, $object, 'Object', $object['uuid']);
         if (!empty($object['Attribute'])) {
             $attributes = [];
             foreach ($object['Attribute'] as $attribute) {
