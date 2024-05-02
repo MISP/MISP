@@ -180,6 +180,15 @@ class AnalystData extends AppModel
         }
         $this->data[$this->current_type]['modified'] = (new DateTime($this->data[$this->current_type]['modified'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
         $this->data[$this->current_type]['created'] = (new DateTime($this->data[$this->current_type]['created'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+
+        if (empty($this->data[$this->current_type]['id'])) {
+            if (!isset($this->data[$this->current_type]['distribution'])) {
+                $this->data[$this->current_type]['distribution'] = Configure::read('MISP.default_event_distribution'); // use default event distribution
+            }
+            if ($this->data[$this->current_type]['distribution'] != 4) {
+                $this->data[$this->current_type]['sharing_group_id'] = null;
+            }
+        }
         return true;
     }
 
@@ -555,12 +564,6 @@ class AnalystData extends AppModel
         }
 
         $analystData = $analystModel->captureOrganisationAndSG($analystData, $type, $user);
-        if (!isset($analystData[$type]['distribution'])) {
-            $analystData[$type]['distribution'] = Configure::read('MISP.default_event_distribution'); // use default event distribution
-        }
-        if ($analystData[$type]['distribution'] != 4) {
-            $analystData[$type]['sharing_group_id'] = null;
-        }
 
         // Start saving from the leaf since to make sure child elements get saved even if the parent should not be saved (or updated due to locked or timestamp)
         foreach (self::ANALYST_DATA_TYPES as $childType) {
