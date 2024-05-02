@@ -3036,7 +3036,14 @@ class AttributesController extends AppController
             $attribute[0]['Attribute'] = array_merge_recursive($attribute[0]['Attribute'], $this->Attribute->attachAnalystData($attribute[0]['Attribute']));
         }
         if ($this->_isRest()) {
-            return $this->RestResponse->viewData($attribute[0], $this->response->type());
+            $validFields = ['Note', 'Opinion', 'Relationship'];
+            $results = [];
+            foreach ($validFields as $field) {
+                if (!empty($attribute[0]['Attribute'][$field])) {
+                    $results[$field] = $attribute[0]['Attribute'][$field];
+                }
+            }
+            return $this->RestResponse->viewData($results, $this->response->type());
         }
         $this->layout = null;
         $this->set('shortDist', $this->Attribute->shortDist);
