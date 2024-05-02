@@ -9,11 +9,6 @@ $fields = [
         'path' => $modelSelection . '.uuid',
         'class' => '',
         'type' => 'uuid',
-        'object_type' => $modelSelection,
-        'notes_path' => $modelSelection . '.Note',
-        'opinions_path' => $modelSelection . '.Opinion',
-        'relationships_path' => $modelSelection . '.Relationship',
-        'relationshipsInbound_path' => $modelSelection . '.RelationshipInbound',
     ],
     [
         'key' => __('Note Type'),
