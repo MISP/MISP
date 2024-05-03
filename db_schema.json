@@ -1237,25 +1237,25 @@
             },
             {
                 "column_name": "created",
-                "is_nullable": "YES",
+                "is_nullable": "NO",
                 "data_type": "datetime",
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
                 "column_type": "datetime",
-                "column_default": "current_timestamp()",
+                "column_default": null,
                 "extra": ""
             },
             {
                 "column_name": "modified",
-                "is_nullable": "YES",
+                "is_nullable": "NO",
                 "data_type": "datetime",
                 "character_maximum_length": null,
                 "numeric_precision": null,
                 "collation_name": null,
                 "column_type": "datetime",
-                "column_default": "NULL",
-                "extra": "on update current_timestamp()"
+                "column_default": null,
+                "extra": ""
             },
             {
                 "column_name": "distribution",
