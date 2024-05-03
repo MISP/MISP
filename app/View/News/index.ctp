@@ -1,10 +1,9 @@
 <div class="index">
     <h2><?= __("Latest news") ?></h2>
-
     <?php if ($hasUnreadNews): ?>
     <div class="alert alert-success">
         <p><?= __('You have unread news.') ?></p>
-        <a class="btn btn-success" href="<?= $homepage ?>"><?= __('Continue to homepage') ?></a>
+        <a class="btn btn-success" href="<?= isset($homepage['path']) ? $homepage['path'] : $homepage ?>"><?= __('Continue to homepage') ?></a>
     </div>
     <?php endif; ?>
 
