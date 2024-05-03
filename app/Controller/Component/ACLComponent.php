@@ -794,7 +794,7 @@ class ACLComponent extends Component
             'discardRegistrations' => array(),
             'downloadTerms' => array('*'),
             'edit' => array('self_management_enabled'),
-            'email_otp' => array('otp_enabled'),
+            'email_otp' => array('*'),
             'forgot' => ['AND' => ['password_forgotten_enabled', 'password_change_enabled']],
             'otp' => ['otp_enabled'],
             'hotp' => ['otp_enabled'],
