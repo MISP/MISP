@@ -185,9 +185,7 @@ class AnalystDataController extends AppController
             $id = $this->AnalystData->getIDFromUUID($type, $id);
         }
 
-        if (!$this->IndexFilter->isRest()) {
-            $this->AnalystData->fetchRecursive = true;
-        }
+        $this->AnalystData->fetchRecursive = true;
         $conditions = $this->AnalystData->buildConditions($this->Auth->user());
         $this->CRUD->view($id, [
             'conditions' => $conditions,
