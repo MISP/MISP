@@ -925,7 +925,7 @@ class ACLComponent extends Component
             }
             return true;
         };
-        $this->dynamicChecks['otp_enabled'] = function (array $user) {
+        $this->dynamicChecks['otp_enabled'] = function ($user) {
             if (Configure::read('Security.otp_disabled')) {
                 throw new ForbiddenException('OTP has been disabled on this instance.');
             }

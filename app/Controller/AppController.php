@@ -649,21 +649,21 @@ class AppController extends Controller
         }
 
         // Check if user accepted terms and conditions
-        if (!$user['termsaccepted'] && !empty(Configure::read('MISP.terms_file')) && !$this->_isControllerAction(['users' => ['terms', 'logout', 'login', 'downloadTerms']])) {
+        if (!$user['termsaccepted'] && !empty(Configure::read('MISP.terms_file')) && !$this->_isControllerAction(['users' => ['terms', 'logout', 'login', 'downloadTerms', 'totp_new', 'email_otp']])) {
             //if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
             $this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
             return false;
         }
 
         // Check if user must change password
-        if ($user['change_pw'] && !$this->_isControllerAction(['users' => ['terms', 'change_pw', 'logout', 'login']])) {
+        if ($user['change_pw'] && !$this->_isControllerAction(['users' => ['terms', 'change_pw', 'logout', 'login', 'totp_new', 'email_otp']])) {
             //if ($this->_isRest()) throw new MethodNotAllowedException('Your user account is expecting a password change, please log in via the web interface and change it before proceeding.');
             $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
             return false;
         }
 
         // Check if user must read news
-        if (!$this->_isControllerAction(['news' => ['index'], 'users' => ['terms', 'change_pw', 'login', 'logout']])) {
+        if (!$this->_isControllerAction(['news' => ['index'], 'users' => ['terms', 'change_pw', 'login', 'logout', 'totp_new', 'email_otp']])) {
             $this->loadModel('News');
             $latestNewsCreated = $this->News->latestNewsTimestamp();
             if ($latestNewsCreated && $user['newsread'] < $latestNewsCreated) {

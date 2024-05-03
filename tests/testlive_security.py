@@ -805,9 +805,6 @@ class TestSecurity(unittest.TestCase):
             logged_in.global_pythonify = True
 
             with self.assertRaises(Exception):
-                send(logged_in, "GET", f"/users/email_otp")
-
-            with self.assertRaises(Exception):
                 send(logged_in, "GET", f"/users/totp_new")
 
             with self.assertRaises(Exception):
