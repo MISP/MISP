@@ -5006,6 +5006,9 @@ class Event extends AppModel
                 $include = $include && ($filterType['correlation'] == 1);
             } else { // `exclude`
                 $include = $include && ($filterType['correlation'] == 2);
+                if (!empty($attribute['over_correlation'])) {
+                    $include = false;
+                }
             }
 
             if ($filterType['correlationId'] && $include) {
