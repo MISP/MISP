@@ -289,6 +289,9 @@ class CRUDComponent extends Component
                 }
             }
         }
+        if (isset($params['afterFind'])) {
+            $data = $params['afterFind']($data);
+        }
         if (isset($params['beforeDelete'])) {
             $data = $params['beforeDelete']($data);
             if (empty($data)) {
