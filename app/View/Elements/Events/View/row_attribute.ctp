@@ -231,8 +231,13 @@
                             $relatedData[__('Event UUIDs')] = implode('<br>', array_map('h', $feed['event_uuids']));
                         }
                         $popover = '';
-                        foreach ($relatedData as $k => $v) {
-                            $popover .= '<span class="bold black">' . $k . '</span>: <span class="blue">' . $v . '</span><br>';
+                        $event_count = count($relatedData);
+                        if ($event_count > 20) {
+                                $popover = '<span class="bold black">' . __('Events') . '</span>: <span class="blue">' . __('Zounds... of events (%d)', $event_count) . '</span><br>';
+                        } else {
+                            foreach ($relatedData as $k => $v) {
+                                $popover .= '<span class="bold black">' . h($k) . '</span>: <span class="blue">' . $v . '</span><br>';
+                            }
                         }
                         if ($isSiteAdmin || $hostOrgUser) {
                             if ($feed['source_format'] === 'misp') {
@@ -271,7 +276,6 @@
                 }
                 if (isset($object['Server'])) {
                     foreach ($object['Server'] as $server) {
-                        $popover = '';
                         foreach ($server as $k => $v) {
                             if ($k == 'id') continue;
                             if (is_array($v)) {
@@ -282,21 +286,37 @@
                             } else {
                                 $v = h($v);
                             }
-                            $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
                         }
                         if (empty($server['event_uuids'])) {
                             $server['event_uuids'] = [0 => 1]; // Make sure to print the content once
                         }
-                        foreach ($server['event_uuids'] as $k => $event_uuid) {
+                        $event_count = count($server['event_uuids']);
+                        $popover = '';
+                        if ($event_count > 20) {
                             $liContents = '';
-                            $url = $isSiteAdmin ? sprintf('%s/servers/previewEvent/%s/%s', $baseurl, h($server['id']), h($event_uuid)) : '#';
+                            $message = __('Zounds... of events (%d)', $event_count);
+                            $url = $isSiteAdmin ? sprintf('%s/servers/previewIndex', $baseurl, h($server['id'])) : '#';
+                            $popover = '<span class=\'bold black\'>' . __('Event uuid') . '</span>: <span class="blue">' . $message . '</span><br />';
                             $liContents .= sprintf(
                                 '<a href="%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
                                 $url,
                                 h($popover),
-                                'S' . h($server['id']) . ':' . ($k + 1)
+                                'S' . h($server['id']) . ':' . $message
                             );
                             echo "<li>$liContents</li>";
+                        } else {
+                            foreach ($server['event_uuids'] as $k => $event_uuid) {
+                                $popover = '<span class=\'bold black\'>' . __('Event uuid') . '</span>: <span class="blue">' . h($event_uuid) . '</span><br />';
+                                $liContents = '';
+                                $url = $isSiteAdmin ? sprintf('%s/servers/previewEvent/%s/%s', $baseurl, h($server['id']), h($event_uuid)) : '#';
+                                $liContents .= sprintf(
+                                    '<a href="%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
+                                    $url,
+                                    h($popover),
+                                    'S' . h($server['id']) . ':' . ($k + 1)
+                                );
+                                echo "<li>$liContents</li>";
+                            }
                         }
                     }
                 }
