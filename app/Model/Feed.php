@@ -158,6 +158,51 @@ class Feed extends AppModel
         return $result;
     }
 
+    private function checkEventAgainstRules(array $event, array $rules): bool
+    {
+        $tags = [];
+        if (!empty($event['Tag'])) {
+            $tags = Hash::extract($event, 'Tag.{n}.name');
+        }
+        
+        // Check the tag rules
+        if (!empty($rules['tags']['OR'])) {
+            if (empty(array_intersect($rules['tags']['OR'], $tags))) {
+                return false;
+            }
+        }
+        if (!empty($rules['tags']['NOT'])) {
+            if (!empty(array_intersect($rules['tags']['NOT'], $tags))) {
+                return false;
+            }
+        }
+
+        // check the org rules
+        if (!empty($rules['orgs']['OR'])) {
+            if (!in_array($event['Orgc']['uuid'], $rules['orgs']['OR']) && !in_array($event['Orgc']['name'], $rules['orgs']['OR'])) {
+                return false;
+            }
+        }
+
+        if (!empty($rules['orgs']['NOT'])) {
+            if (in_array($event['Orgc']['uuid'], $rules['orgs']['NOT']) || in_array($event['Orgc']['name'], $rules['orgs']['NOT'])) {
+                return false;
+            }
+        }
+
+        //check misc rules
+        $url_params = empty($rules['url_params']) ? null : json_decode($rules['url_params'], true);
+        if ($url_params) {
+            if (isset($url_params['timestamp'])) {
+                $timestamp = $this->resolveTimeDelta($url_params['timestamp']);
+                if ($event['timestamp'] < $timestamp) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     /**
      * Gets the event UUIDs from the feed by ID
      * Returns an array with the UUIDs of events that are new or that need updating.
@@ -171,6 +216,12 @@ class Feed extends AppModel
     {
         $manifest = $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
         $this->Event = ClassRegistry::init('Event');
+        $rules = json_decode($feed['Feed']['rules'], true);
+        foreach ($manifest as $k => $event) {
+            if (!$this->checkEventAgainstRules($event, $rules)) {
+                unset($manifest[$k]);
+            }
+        }
         $events = $this->Event->find('all', array(
             'conditions' => array(
                 'Event.uuid' => array_keys($manifest),
