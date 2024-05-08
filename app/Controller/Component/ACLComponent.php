@@ -919,7 +919,7 @@ class ACLComponent extends Component
             }
             return true;
         };
-        $this->dynamicChecks['password_change_enabled'] = function (array $user) {
+        $this->dynamicChecks['password_change_enabled'] = function ($user) {
             if (Configure::read('MISP.disable_user_password_change')) {
                 throw new ForbiddenException('User password change has been disabled on this instance.');
             }
