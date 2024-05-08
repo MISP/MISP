@@ -931,7 +931,7 @@ class ACLComponent extends Component
             }
             return true;
         };
-        $this->dynamicChecks['password_forgotten_enabled'] = function (array $user) {
+        $this->dynamicChecks['password_forgotten_enabled'] = function ($user) {
             if (empty(Configure::read('Security.allow_password_forgotten'))) {
                 throw new ForbiddenException('Password reset has been disabled on this instance.');
             }
