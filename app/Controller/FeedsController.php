@@ -707,7 +707,7 @@ class FeedsController extends AppController
             'recursive' => -1,
         ]);
 
-        if (empty($feed) || !$this->canViewFeed($feed)) {
+        if (empty($feed) || !$this->__canViewFeed($feed)) {
             throw new NotFoundException(__('Invalid feed.'));
         }
 
@@ -878,7 +878,7 @@ class FeedsController extends AppController
             'conditions' => ['id' => $feedId],
             'recursive' => -1,
         ]);
-        if (empty($feed) || !$this->canViewFeed($feed)) {
+        if (empty($feed) || !$this->__canViewFeed($feed)) {
             throw new NotFoundException(__('Invalid feed.'));
         }
         try {
