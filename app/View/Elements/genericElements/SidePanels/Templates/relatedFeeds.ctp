@@ -8,6 +8,7 @@
                 __('Provider') => $relatedFeed['provider'],
             ];
             $popover = '';
+            $canPivot = $relatedFeed['lookup_visible'] || $isSiteAdmin || $me['org_id'] == Configure::read('MISP.Host_org_id');
             foreach ($relatedData as $k => $v) {
                 $popover .= sprintf(
                     '<span class="bold">%s</span>: <span class="blue">%s</span><br>',
@@ -15,28 +16,49 @@
                     h($v)
                 );
             }
-            if ($relatedFeed ['source_format'] === 'misp') {
-                $htmlElements[] = sprintf(
-                    '<form action="%s/feeds/previewIndex/%s" method="post" style="margin:0px;">%s</form>',
-                    h($baseurl),
-                    h($relatedFeed['id']),
-                    sprintf(
-                        '<input type="hidden" name="data[Feed][eventid]" value="%s">
-                        <input type="submit" class="linkButton useCursorPointer" value="%s" data-toggle="popover" data-content="%s" data-trigger="hover">',
-                        h(json_encode($relatedFeed['event_uuids'] ?? [])),
-                        h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')',
-                        h($popover)
-                    )
+            
+            if (!$canPivot) {
+                $popover .= sprintf(
+                    '<span class="bold">%s</span>: <span class="blue">%s</span><br />',
+                    __('Note'),
+                    __('You don\'t have the required permissions to pivot to the details.')
                 );
+                if ($relatedFeed ['source_format'] === 'misp') {
+                    $htmlElements[] = sprintf(
+                        '<span data-toggle="popover" data-content="%s" data-trigger="hover">%s</span>',
+                        h($popover),
+                        h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'
+                    );
+                } else {
+                    $htmlElements[] = sprintf(
+                        '<span data-toggle="popover" data-content="%s" data-trigger="hover">%s</span><br>',
+                        h($popover),
+                        h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'
+                    );
+                }
             } else {
-                $htmlElements[] = sprintf(
-                    '<a href="%s/feeds/previewIndex/%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a><br>',
-                    h($baseurl),
-                    h($relatedFeed['id']),
-                    h($popover),
-                    h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'
-                );
-
+                if ($relatedFeed ['source_format'] === 'misp') {
+                    $htmlElements[] = sprintf(
+                        '<form action="%s/feeds/previewIndex/%s" method="post" style="margin:0px;">%s</form>',
+                        h($baseurl),
+                        h($relatedFeed['id']),
+                        sprintf(
+                            '<input type="hidden" name="data[Feed][eventid]" value="%s">
+                            <input type="submit" class="linkButton useCursorPointer" value="%s" data-toggle="popover" data-content="%s" data-trigger="hover">',
+                            h(json_encode($relatedFeed['event_uuids'] ?? [])),
+                            h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')',
+                            h($popover)
+                        )
+                    );
+                } else {
+                    $htmlElements[] = sprintf(
+                        '<a href="%s/feeds/previewIndex/%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a><br>',
+                        h($baseurl),
+                        h($relatedFeed['id']),
+                        h($popover),
+                        h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'
+                    );
+                }
             }
         }
     } else {
