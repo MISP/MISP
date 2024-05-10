@@ -295,7 +295,7 @@
                         if ($event_count > 20) {
                             $liContents = '';
                             $message = __('Zounds... of events (%d)', $event_count);
-                            $url = $isSiteAdmin ? sprintf('%s/servers/previewIndex', $baseurl, h($server['id'])) : '#';
+                            $url = $isSiteAdmin ? sprintf('%s/servers/previewIndex/%s', $baseurl, h($server['id'])) : '#';
                             $popover = '<span class=\'bold black\'>' . __('Event uuid') . '</span>: <span class="blue">' . $message . '</span><br />';
                             $liContents .= sprintf(
                                 '<a href="%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
