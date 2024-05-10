@@ -331,7 +331,7 @@ class ACLComponent extends Component
         'feeds' => array(
             'add' => array(),
             'cacheFeeds' => array(),
-            'compareFeeds' => ['host_org_user'],
+            'compareFeeds' => ['*'],
             'delete' => array(),
             'disable' => array(),
             'edit' => array(),
@@ -342,11 +342,11 @@ class ACLComponent extends Component
             'fetchSelectedFromFreetextIndex' => array(),
             'getEvent' => array(),
             'importFeeds' => array(),
-            'index' => ['host_org_user'],
+            'index' => ['*'],
             'loadDefaultFeeds' => array(),
-            'previewEvent' => ['host_org_user'],
-            'previewIndex' => ['host_org_user'],
-            'searchCaches' => ['host_org_user'],
+            'previewEvent' => ['*'],
+            'previewIndex' => ['*'],
+            'searchCaches' => ['*'],
             'toggleSelected' => array(),
             'view' => ['host_org_user'],
         ),
@@ -919,7 +919,7 @@ class ACLComponent extends Component
             }
             return true;
         };
-        $this->dynamicChecks['password_change_enabled'] = function (array $user) {
+        $this->dynamicChecks['password_change_enabled'] = function ($user) {
             if (Configure::read('MISP.disable_user_password_change')) {
                 throw new ForbiddenException('User password change has been disabled on this instance.');
             }
@@ -931,7 +931,7 @@ class ACLComponent extends Component
             }
             return true;
         };
-        $this->dynamicChecks['password_forgotten_enabled'] = function (array $user) {
+        $this->dynamicChecks['password_forgotten_enabled'] = function ($user) {
             if (empty(Configure::read('Security.allow_password_forgotten'))) {
                 throw new ForbiddenException('Password reset has been disabled on this instance.');
             }
