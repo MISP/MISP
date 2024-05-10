@@ -863,7 +863,7 @@ class FeedsController extends AppController
         $this->render('freetext_index');
     }
 
-    private function canViewFeed($feed)
+    private function __canViewFeed($feed)
     {
         $host_org_id = (int)Configure::read('MISP.host_org_id');
         if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $host_org_id && !$feed['Feed']['lookup_visible']) {
