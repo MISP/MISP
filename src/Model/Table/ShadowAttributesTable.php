@@ -52,4 +52,28 @@ class ShadowAttributesTable extends AppTable
 
         return 0;
     }
+
+    /**
+     * @param int $eventId
+     * @return array Key is organisation ID, value is an organisation name
+     */
+    public function getEventContributors($eventId)
+    {
+        $orgIds = $this->find('column', array(
+            'fields' => array('ShadowAttribute.org_id'),
+            'conditions' => array('event_id IN' => $eventId),
+            'unique' => true,
+            'order' => false
+        ));
+        if (empty($orgIds)) {
+            return [];
+        }
+
+        $OrganisationsTable = $this->fetchTable('Organisations');
+        $OrganisationsTable->find('list', array(
+            'recursive' => -1,
+            'fields' => array('id', 'name'),
+            'conditions' => array('id IN' => $orgIds)
+        ));
+    }
 }

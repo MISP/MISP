@@ -774,13 +774,13 @@ class AppController extends Controller
     /**
      * Returns true if user can modify given event.
      *
-     * @param Event $event
+     * @param Event|array $event
      * @param array|null $user If empty, currently logged user will be used
      * @return bool
      */
-    protected function canModifyEvent(Event $event, $user = null)
+    protected function canModifyEvent(array $event, $user = null)
     {
         $user = $user ?: $this->ACL->getUser();
-        return $this->ACL->canModifyEvent($user, $event->toArray());
+        return $this->ACL->canModifyEvent($user, $event);
     }
 }

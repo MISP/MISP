@@ -204,4 +204,131 @@ class SightingsTable extends AppTable
         $this->orgCache = []; // clear org cache
         return $sightings;
     }
+
+    /**
+     * @param array $events
+     * @param array $user
+     * @param bool $csvWithFalsePositive
+     * @return array
+     */
+    public function eventsStatistic(array $events, array $user, $csvWithFalsePositive = false)
+    {
+        if (empty($events)) {
+            return ['data' => [], 'csv' => []];
+        }
+
+        $sightingsPolicy = $this->sightingsPolicy();
+
+        $conditions = [];
+        foreach ($events as $event) {
+            $eventCondition = ['Sighting.event_id' => $event['id']];
+            $ownEvent = $user['Role']['perm_site_admin'] || $event['org_id'] == $user['org_id'];
+            if (!$ownEvent) {
+                if ($sightingsPolicy === Sighting::SIGHTING_POLICY_EVENT_OWNER) {
+                    $eventCondition['Sighting.org_id'] = $user['org_id'];
+                } else if ($sightingsPolicy === Sighting::SIGHTING_POLICY_SIGHTING_REPORTER) {
+                    if (!$this->isReporter($event['id'], $user['org_id'])) {
+                        continue;
+                    }
+                } else if ($sightingsPolicy === Sighting::SIGHTING_POLICY_HOST_ORG) {
+                    $eventCondition['Sighting.org_id'] = [$user['org_id'], Configure::read('MISP.host_org_id')];
+                }
+            }
+            $conditions['OR'][] = $eventCondition;
+        }
+
+        // TODO: [3.x-MIGRATION] review this, relies on virtual fields in a way that is not compatible with cakephp4
+        // $groupedSightings = $this->fetchGroupedSightings($conditions, $user);
+        $groupedSightings = [];
+
+        return $this->generateStatistics($groupedSightings, $csvWithFalsePositive);
+    }
+
+    /**
+     * @param array $groupedSightings
+     * @param bool $csvWithFalsePositive
+     * @return array[]
+     */
+    private function generateStatistics(array $groupedSightings, $csvWithFalsePositive = false)
+    {
+        $sightingsData = [];
+        $sparklineData = [];
+        $range = $this->getMaximumRange();
+        foreach ($groupedSightings as $sighting) {
+            $type = Sighting::TYPE[$sighting['type']];
+            $orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : __('Others');
+            $count = (int)$sighting['sighting_count'];
+            $inRange = strtotime($sighting['date']) >= $range;
+
+            foreach ([$sighting['attribute_id'], 'all'] as $needle) {
+                if (!isset($sightingsData[$needle][$type])) {
+                    $sightingsData[$needle][$type] = ['count' => 0, 'orgs' => []];
+                }
+
+                $ref = &$sightingsData[$needle][$type];
+                $ref['count'] += $count;
+
+                if (!isset($ref['orgs'][$orgName])) {
+                    $ref['orgs'][$orgName] = ['count' => $count, 'date' => $sighting['last_timestamp']];
+                } else {
+                    $ref['orgs'][$orgName]['count'] += $count;
+                    $ref['orgs'][$orgName]['date'] = $sighting['last_timestamp'];
+                }
+
+                if ($inRange) {
+                    if (isset($sparklineData[$needle][$sighting['date']][$type])) {
+                        $sparklineData[$needle][$sighting['date']][$type] += $count;
+                    } else {
+                        $sparklineData[$needle][$sighting['date']][$type] = $count;
+                    }
+                }
+            }
+        }
+        return ['data' => $sightingsData, 'csv' => $this->generateSparkline($sparklineData, $csvWithFalsePositive)];
+    }
+
+    /**
+     * @return int Timestamp
+     */
+    public function getMaximumRange()
+    {
+        $rangeInDays = Configure::read('MISP.Sightings_range');
+        $rangeInDays = (!empty($rangeInDays) && is_numeric($rangeInDays)) ? $rangeInDays : 365;
+        return strtotime("-$rangeInDays days");
+    }
+
+    /**
+     * @param array $sparklineData
+     * @param bool $csvWithFalsePositive
+     * @return array
+     */
+    private function generateSparkline(array $sparklineData, $csvWithFalsePositive)
+    {
+        $todayString = date('Y-m-d');
+        $today = strtotime($todayString);
+
+        // If nothing found, generate default "empty" CSV for 'all'
+        if (!isset($sparklineData['all'])) {
+            $sparklineData['all'][$todayString] = null;
+        }
+
+        $csv = [];
+        foreach ($sparklineData as $object => $data) {
+            $startDate = key($data); // oldest date for sparkline
+            $startDate = strtotime($startDate) - (Sighting::ONE_DAY * 3);
+            $csvForObject = $csvWithFalsePositive ? 'Date,Sighting,False-positive\n' : 'Date,Close\n';
+            for ($date = $startDate; $date <= $today; $date += Sighting::ONE_DAY) {
+                $dateAsString = date('Y-m-d', $date);
+                $csvForObject .= $dateAsString . ',' . (isset($data[$dateAsString]['sighting']) ? $data[$dateAsString]['sighting'] : '0');
+
+                if ($csvWithFalsePositive) {
+                    $csvForObject .= ',' . (isset($data[$dateAsString]['false-positive']) ? $data[$dateAsString]['false-positive'] : '0');
+                }
+
+                $csvForObject .= '\n';
+            }
+            $csv[$object] = $csvForObject;
+        }
+        return $csv;
+    }
 }

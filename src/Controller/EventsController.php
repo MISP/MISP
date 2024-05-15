@@ -24,6 +24,7 @@ use App\Model\Entity\Analysis;
 use App\Model\Entity\Attribute;
 use App\Model\Entity\Distribution;
 use App\Model\Entity\Module;
+use App\Model\Entity\Event;
 use Cake\Chronos\Chronos;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
@@ -987,7 +988,7 @@ class EventsController extends AppController
 
         $events = $this->paginate();
 
-        if (count($events) === 1 && isset($this->passedArgs['searchall'])) {
+        if (count($events) === 1 && isset($this->request->getQueryParams()['searchall'])) {
             $this->redirect(['controller' => 'events', 'action' => 'view', $events[0]['Event']['id']]);
         }
 
@@ -1642,7 +1643,7 @@ class EventsController extends AppController
 
     /**
      * @param array $user
-     * @param array $event
+     * @param Event $event
      * @param bool $continue
      * @param int $fromEvent
      */
@@ -1652,30 +1653,31 @@ class EventsController extends AppController
         $filterData = [
             'request' => $this->request,
             'paramArray' => self::ACCEPTED_FILTERING_NAMED_PARAMS,
-            'named_params' => $this->params['named']
+            'named_params' => $this->request->getParam('named')
         ];
         $exception = false;
         $warningTagConflicts = [];
         $filters = $this->harvestParameters($filterData, $exception);
+        $Session = $this->request->getSession();
 
         $emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
         $this->set('emptyEvent', $emptyEvent);
 
         // set the data for the contributors / history field
-        $contributors = $this->Events->ShadowAttribute->getEventContributors($event['Event']['id']);
+        $contributors = $this->Events->ShadowAttributes->getEventContributors($event['id']);
         $this->set('contributors', $contributors);
 
         // set the pivot data
         $this->helpers[] = 'Pivot';
         if ($continue) {
-            $this->__continuePivoting($event['Event']['id'], $event['Event']['info'], $event['Event']['date'], $fromEvent);
+            $this->__continuePivoting($event['id'], $event['info'], $event['date'], $fromEvent);
         } else {
-            $this->__startPivoting($event['Event']['id'], $event['Event']['info'], $event['Event']['date']);
+            $this->__startPivoting($event['id'], $event['info'], $event['date']);
         }
-        $pivot = $this->Session->read('pivot_thread');
+        $pivot = $Session->read('pivot_thread');
         $this->__arrangePivotVertical($pivot);
-        $this->__setDeletable($pivot, $event['Event']['id'], true);
-        $this->set('allPivots', $this->Session->read('pivot_thread'));
+        $this->__setDeletable($pivot, $event['id'], true);
+        $this->set('allPivots', $Session->read('pivot_thread'));
         $this->set('pivot', $pivot);
 
         // workaround to get number of correlation per related event
@@ -1706,7 +1708,7 @@ class EventsController extends AppController
         $objectCount = isset($event['Object']) ? count($event['Object']) : 0;
         $oldestTimestamp = PHP_INT_MAX;
         $containsProposals = !empty($event['ShadowAttribute']);
-        $modDate = date("Y-m-d", $event['Event']['timestamp']);
+        $modDate = date("Y-m-d", $event['timestamp']);
         $modificationMap = [$modDate => 1];
         foreach ($event['Attribute'] as $k => $attribute) {
             if ($oldestTimestamp > $attribute['timestamp']) {
@@ -1765,13 +1767,14 @@ class EventsController extends AppController
         }
 
         if ($containsProposals && $this->canPublishEvent($event, $user)) {
-            $mess = $this->Session->read('Message');
+            $Session = $this->request->getSession();
+            $mess = $Session->read('Message');
             if (empty($mess)) {
                 $this->Flash->info(__('This event has active proposals for you to accept or discard.'));
             }
         }
 
-        $attributeTagsName = $this->Events->Attributes->AttributeTag->extractAttributeTagsNameFromEvent($event);
+        $attributeTagsName = $this->Events->Attributes->AttributeTags->extractAttributeTagsNameFromEvent($event);
         $this->set('attributeTags', array_values($attributeTagsName['tags']));
         $this->set('attributeClusters', array_values($attributeTagsName['clusters']));
 
@@ -1808,27 +1811,27 @@ class EventsController extends AppController
         $params = $this->Events->rearrangeEventForView($event, $filters, false, $sightingsData);
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $SightingdbsTable = $this->fetchTable('Sightingdbs');
-            $event = $this->Sightingdb->attachToEvent($event, $user);
+            $event = $SightingdbsTable->attachToEvent($event, $user);
         }
-        $this->params->params['paging'] = [$this->modelClass => $params];
+        $this->paginate = [$this->modelClass => $params];
         $this->set('event', $event);
         $extensionParams = [
             'conditions' => [
-                'Events.extends_uuid' => $event['Event']['uuid']
+                'Events.extends_uuid' => $event['uuid']
             ]
         ];
         $extensions = $this->Events->fetchSimpleEvents($user, $extensionParams);
         $this->set('extensions', $extensions);
-        if (!empty($event['Event']['extends_uuid'])) {
-            $extendedEvent = $this->Events->fetchSimpleEvents($user, ['conditions' => ['Events.uuid' => $event['Event']['extends_uuid']]]);
+        if (!empty($event['extends_uuid'])) {
+            $extendedEvent = $this->Events->fetchSimpleEvents($user, ['conditions' => ['Events.uuid' => $event['extends_uuid']]]);
             if (empty($extendedEvent)) {
-                $extendedEvent = $event['Event']['extends_uuid'];
+                $extendedEvent = $event['extends_uuid'];
             }
             $this->set('extendedEvent', $extendedEvent);
         }
         if (Configure::read('MISP.delegation')) {
             $EventDelegationsTable = $this->fetchTable('EventDelegations');
-            $delegationConditions = ['EventDelegation.event_id' => $event['Event']['id']];
+            $delegationConditions = ['EventDelegation.event_id' => $event['id']];
             if (!$this->isSiteAdmin() && $this->ACL->getUser()['Role']['perm_publish']) {
                 $delegationConditions['OR'] = [
                     'EventDelegation.org_id' => $user['org_id'],
@@ -1837,7 +1840,7 @@ class EventsController extends AppController
             }
             $this->set(
                 'delegationRequest',
-                $this->EventDelegation->find(
+                $EventDelegationsTable->find(
                     'all',
                     [
                         'conditions' => $delegationConditions,
@@ -1848,8 +1851,8 @@ class EventsController extends AppController
             );
         }
 
-        $attributeUri = $this->baseurl . '/events/viewEventAttributes/' . $event['Event']['id'];
-        foreach ($this->params->named as $k => $v) {
+        $attributeUri = $this->baseurl . '/events/viewEventAttributes/' . $event['id'];
+        foreach ($this->request->getParam('named') as $k => $v) {
             if (!is_numeric($k)) {
                 if (is_array($v)) {
                     foreach ($v as $value) {
@@ -1875,7 +1878,7 @@ class EventsController extends AppController
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
         $this->set('modificationMapCSV', $modificationMapCSV);
-        $this->set('title_for_layout', __('Event #%s', $event['Event']['id']));
+        $this->set('title_for_layout', __('Event #%s', $event['id']));
         $this->set('attribute_count', $attributeCount);
         $this->set('object_count', $objectCount);
         $this->set('warnings', $this->Events->generateWarnings($event));
@@ -1883,7 +1886,7 @@ class EventsController extends AppController
         $this->set('mayModify', $this->canModifyEvent($event, $user));
         $this->set('mayPublish', $this->canPublishEvent($event, $user));
         try {
-            $instanceKey = $event['Event']['protected'] ? $this->Events->CryptographicKeys->ingestInstanceKey() : null;
+            $instanceKey = $event['protected'] ? $this->Events->CryptographicKeys->ingestInstanceKey() : null;
         } catch (Exception $e) {
             $instanceKey = null;
         }
@@ -2091,7 +2094,7 @@ class EventsController extends AppController
 
         $this->__setHighlightedTags($event);
 
-        if ($this->isSiteAdmin() && $event['Event']['orgc_id'] !== $this->ACL->getUser()['org_id']) {
+        if ($this->isSiteAdmin() && $event['orgc_id'] !== $this->ACL->getUser()['org_id']) {
             $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
         }
         $this->__viewUI($user, $event, $continue, $fromEvent);
@@ -2104,6 +2107,7 @@ class EventsController extends AppController
      */
     private function __startPivoting($id, $info, $date)
     {
+        $Session = $this->request->getSession();
         $initialPivot = [
             'id' => $id,
             'info' => $info,
@@ -2113,7 +2117,7 @@ class EventsController extends AppController
             'children' => [],
             'deletable' => true,
         ];
-        $this->Session->write('pivot_thread', $initialPivot);
+        $Session->write('pivot_thread', $initialPivot);
     }
 
     /**
@@ -2124,7 +2128,8 @@ class EventsController extends AppController
      */
     private function __continuePivoting($id, $info, $date, $fromEvent)
     {
-        $pivot = $this->Session->read('pivot_thread');
+        $Session = $this->request->getSession();
+        $pivot = $Session->read('pivot_thread');
         if (!is_array($pivot)) {
             $this->__startPivoting($id, $info, $date);
             return;
@@ -2141,7 +2146,7 @@ class EventsController extends AppController
         if (!$this->__checkForPivot($pivot, $id)) {
             $pivot = $this->__insertPivot($pivot, $fromEvent, $newPivot, 0);
         }
-        $this->Session->write('pivot_thread', $pivot);
+        $Session->write('pivot_thread', $pivot);
     }
 
     /**
@@ -2208,15 +2213,17 @@ class EventsController extends AppController
 
     public function removePivot($id, $eventId, $self = false)
     {
-        $pivot = $this->Session->read('pivot_thread');
+        $Session = $this->request->getSession();
+
+        $pivot = $Session->read('pivot_thread');
         if ($pivot['id'] == $id) {
             $pivot = null;
-            $this->Session->write('pivot_thread', null);
+            $Session->write('pivot_thread', null);
             $this->redirect(['controller' => 'events', 'action' => 'view', $eventId]);
         } else {
             $pivot = $this->__doRemove($pivot, $id);
         }
-        $this->Session->write('pivot_thread', $pivot);
+        $Session->write('pivot_thread', $pivot);
         $pivot = $this->__arrangePivotVertical($pivot);
         $this->redirect(['controller' => 'events', 'action' => 'view', $eventId, true, $eventId]);
     }

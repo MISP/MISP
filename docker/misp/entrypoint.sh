@@ -26,6 +26,10 @@ user=$MISP_DB_USER
 password=$MYSQL_PWD
 EOF
 
+# create tmp directory
+mkdir -p /var/www/html/tmp/cache
+chown -R www-data:www-data /var/www/html/tmp
+
 run_all_migrations() {
 	./bin/cake migrations migrate
 	./bin/cake migrations migrate -p tags

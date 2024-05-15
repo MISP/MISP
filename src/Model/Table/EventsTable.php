@@ -106,6 +106,7 @@ class EventsTable extends AppTable
     {
         parent::initialize($config);
         $this->addBehavior('AuditLog');
+        $this->addBehavior('EventWarning');
 
         $this->belongsTo(
             'User',
@@ -729,11 +730,14 @@ class EventsTable extends AppTable
      */
     public function getRelatedAttributes(array $user, $eventIds)
     {
-        $CorrelationsTable = $this->fetchTable('Correlations');
+        // TODO: [3.x-MIGRATION]
+        // $CorrelationsTable = $this->fetchTable('Correlations');
 
-        $sgids = $this->SharingGroup->authorizedIds($user);
-        $relatedAttributes = $CorrelationsTable->getAttributesRelatedToEvent($user, $eventIds, $sgids);
-        return $relatedAttributes;
+        // $sgids = $this->SharingGroup->authorizedIds($user);
+        // $relatedAttributes = $CorrelationsTable->getAttributesRelatedToEvent($user, $eventIds, $sgids);
+        // return $relatedAttributes;
+
+        return [];
     }
 
     /**
@@ -5466,12 +5470,6 @@ class EventsTable extends AppTable
      */
     public function rearrangeEventForView(&$event, $passedArgs = [], $all = false, $sightingsData = [])
     {
-        foreach ($event as $k => $v) {
-            if (is_array($v)) {
-                $event[$k] = $v;
-                unset($event[$k]);
-            }
-        }
         $filterType = [
             'attributeFilter' => isset($passedArgs['attributeFilter']) ? $passedArgs['attributeFilter'] : 'all',
             'proposal' => isset($passedArgs['proposal']) ? $passedArgs['proposal'] : 0,
