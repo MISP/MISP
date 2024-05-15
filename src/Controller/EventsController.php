@@ -24,7 +24,6 @@ use App\Model\Entity\Analysis;
 use App\Model\Entity\Attribute;
 use App\Model\Entity\Distribution;
 use App\Model\Entity\Module;
-use App\Model\Entity\Event;
 use Cake\Chronos\Chronos;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
@@ -3027,7 +3026,7 @@ class EventsController extends AppController
         }
         $id = $event['id']; // change possible event UUID with real ID
         // check if private and user not authorised to edit
-        if (!$this->canModifyEvent($event) && !($this->ACL->getUser()['Role']['perm_sync'] && $this->ParamHandler->isRest())) {
+        if (!$this->canModifyEvent($event->toArray()) && !($this->ACL->getUser()['Role']['perm_sync'] && $this->ParamHandler->isRest())) {
             $message = __('You are not authorised to do that.');
             if ($this->ParamHandler->isRest()) {
                 throw new ForbiddenException($message);
@@ -3251,7 +3250,7 @@ class EventsController extends AppController
     {
         $id = $this->Toolbox->findIdByUuid($this->Events, $id);
         $event = $this->Events->get($id);
-        if (!$this->canModifyEvent($event)) {
+        if (!$this->canModifyEvent($event->toArray())) {
             throw new ForbiddenException(__('You do not have the permission to do that.'));
         }
         $this->Events->insertLock($this->ACL->getUser()->toArray(), $id);
