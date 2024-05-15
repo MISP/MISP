@@ -27,7 +27,7 @@ password=$MYSQL_PWD
 EOF
 
 # create tmp directory
-mkdir -p /var/www/html/tmp/cache
+mkdir -p /var/www/html/tmp/cache/feeds
 chown -R www-data:www-data /var/www/html/tmp
 
 run_all_migrations() {
