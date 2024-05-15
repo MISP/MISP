@@ -94,6 +94,14 @@ class EventsTable extends AppTable
         'orgc_id',
     ];
 
+    public $fieldDescriptions = [
+        'threat_level_id' => ['desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'],
+        'classification' => ['desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'],
+        'submittedioc' => ['desc' => '', 'formdesc' => ''],
+        'analysis' => ['desc' => 'Analysis Levels: *Initial* means the event has just been created, *Ongoing* means that the event is being populated, *Complete* means that the event\'s creation is complete', 'formdesc' => 'Analysis levels: Initial: event has been started Ongoing: event population is in progress Complete: event creation has finished'],
+        'distribution' => ['desc' => 'Describes who will have access to the event.']
+    ];
+
     public function initialize(array $config): void
     {
         parent::initialize($config);
@@ -3252,7 +3260,7 @@ class EventsTable extends AppTable
         $template->set('user', $user);
         $template->set('oldPublishTimestamp', $oldpublish);
         $template->set('baseurl', $this->__getAnnounceBaseurl());
-        $template->set('distributionLevels', $this->distributionLevels);
+        $template->set('distributionLevels', Distribution::DESCRIPTIONS);
         $template->set('analysisLevels', $this->analysisLevels);
         $template->set('tlp', $subjMarkingString);
         $template->subject($subject);
@@ -3354,7 +3362,7 @@ class EventsTable extends AppTable
         $template->set('message', $message);
         $template->set('user', $eventReporter);
         $template->set('baseurl', $this->__getAnnounceBaseurl());
-        $template->set('distributionLevels', $this->distributionLevels);
+        $template->set('distributionLevels', Distribution::DESCRIPTIONS);
         $template->set('analysisLevels', $this->analysisLevels);
         $template->set('contactAlert', true);
         $template->set('tlp', $this->getEmailSubjectMarkForEvent($event));

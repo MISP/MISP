@@ -2,13 +2,14 @@
 
 namespace App\Lib\Tools;
 
+use App\Model\Entity\Distribution;
 use App\Model\Table\EventsTable;
 
 class DistributionGraphTool
 {
     /** @var array */
     private $__user;
-    private $__json = array();
+    private $__json = [];
     /** @var Event */
     private $__eventModel;
     /** @var Organisation */
@@ -28,18 +29,18 @@ class DistributionGraphTool
         $this->__serverList = $servers;
         $this->__organisationModel = $eventModel->Orgc;
         $this->__user = $user;
-        $this->__json = array();
+        $this->__json = [];
         $this->__extended_view = $extended_view;
 
         // construct distribution info
         $sgs = $this->__eventModel->SharingGroup->fetchAllAuthorised($this->__user, 'distribution_graph', true);
         $this->__json['allSharingGroup'] = h($sgs);
 
-        $this->__json['distributionInfo'] = array();
-        foreach ($this->__eventModel->distributionLevels as $key => $value) {
+        $this->__json['distributionInfo'] = [];
+        foreach (Distribution::ALL as $key => $value) {
             $this->__json['distributionInfo'][$key] = [
                 'key' => h($value),
-                'desc' => h($this->__eventModel->distributionDescriptions[$key]['formdesc']),
+                'desc' => h(Distribution::FORM_DESCRIPTIONS[$key]),
                 'value' => h($key)
             ];
         }
@@ -70,7 +71,7 @@ class DistributionGraphTool
     private function __addAdditionalDistributionInfo($distributionLevel, $data)
     {
         if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
-            $this->__json['additionalDistributionInfo'][$distributionLevel] = array();
+            $this->__json['additionalDistributionInfo'][$distributionLevel] = [];
         }
         $this->__json['additionalDistributionInfo'][$distributionLevel][h($data)] = 0; // set-alike
         if ($distributionLevel == 4) {
@@ -97,10 +98,13 @@ class DistributionGraphTool
         $orgConditions = $this->__organisationModel->createConditions($this->__user);
         $orgConditions['local'] = true;
         $orgConditions['id !='] = $this->__user['Organisation']['id'];
-        $orgs = $this->__organisationModel->find('column', array(
-            'fields' => ['name'],
-            'conditions' => $orgConditions,
-        ));
+        $orgs = $this->__organisationModel->find(
+            'column',
+            [
+                'fields' => ['name'],
+                'conditions' => $orgConditions,
+            ]
+        );
         $thisOrg = $this->__user['Organisation']['name'];
         $this->__addAdditionalDistributionInfo(1, $thisOrg); // add current community
         foreach ($orgs as $orgName) {
@@ -119,17 +123,20 @@ class DistributionGraphTool
      */
     private function __get_event($id)
     {
-        $fullevent = $this->__eventModel->fetchEvent($this->__user, array(
-            'eventid' => $id,
-            'flatten' => 0,
-            'noShadowAttributes' => true,
-            'noEventReports' => true,
-            'noSightings' => true,
-            'excludeGalaxy' => true,
-            'includeEventCorrelations' => false,
-            'extended' => $this->__extended_view,
-        ));
-        $event = array();
+        $fullevent = $this->__eventModel->fetchEvent(
+            $this->__user,
+            [
+                'eventid' => $id,
+                'flatten' => 0,
+                'noShadowAttributes' => true,
+                'noEventReports' => true,
+                'noSightings' => true,
+                'excludeGalaxy' => true,
+                'includeEventCorrelations' => false,
+                'extended' => $this->__extended_view,
+            ]
+        );
+        $event = [];
         if (empty($fullevent)) {
             return $event;
         }
@@ -138,13 +145,13 @@ class DistributionGraphTool
         if (isset($fullevent['Object'])) {
             $event['Object'] = $fullevent['Object'];
         } else {
-            $event['Object'] = array();
+            $event['Object'] = [];
         }
 
         if (isset($fullevent['Attribute'])) {
             $event['Attribute'] = $fullevent['Attribute'];
         } else {
-            $event['Attribute'] = array();
+            $event['Attribute'] = [];
         }
         $event['distribution'] = $fullevent['Event']['distribution'];
 
@@ -163,8 +170,8 @@ class DistributionGraphTool
         $this->__json['attribute'] = $this->init_array_distri();
         $this->__json['object'] = $this->init_array_distri();
         $this->__json['obj_attr'] = $this->init_array_distri();
-        $this->__json['additionalDistributionInfo'] = $this->init_array_distri(array());
-        $this->__json['sharingGroupRepartition'] = array();
+        $this->__json['additionalDistributionInfo'] = $this->init_array_distri([]);
+        $this->__json['sharingGroupRepartition'] = [];
 
         $this->__addOtherDistributionInfo();
 
@@ -229,7 +236,7 @@ class DistributionGraphTool
 
     public function init_array_distri($default = 0)
     {
-        $ret = array();
+        $ret = [];
         foreach ($this->__json['distributionInfo'] as $d => $v) {
             $ret[h($d)] = $default;
         }

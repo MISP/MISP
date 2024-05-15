@@ -11,6 +11,7 @@ use App\Lib\Tools\HttpTool;
 use App\Lib\Tools\JsonTool;
 use App\Lib\Tools\RedisTool;
 use App\Lib\Tools\SecurityAudit;
+use App\Model\Entity\Distribution;
 use App\Model\Entity\Job;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
@@ -187,7 +188,7 @@ class ServersController extends AppController
         $this->set('events', $events);
         $this->set('eventDescriptions', $EventsTable->fieldDescriptions);
         $this->set('analysisLevels', $EventsTable->analysisLevels);
-        $this->set('distributionLevels', $EventsTable->distributionLevels);
+        $this->set('distributionLevels', Distribution::DESCRIPTIONS);
 
         $shortDist = [0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group'];
         $this->set('shortDist', $shortDist);

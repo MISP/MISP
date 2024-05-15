@@ -2,16 +2,18 @@
 
 namespace App\Lib\Tools;
 
+use App\Model\Entity\Distribution;
+
 class EventTimelineTool
 {
-    private $__lookupTables = array();
+    private $__lookupTables = [];
     private $__user = false;
-    private $__json = array();
+    private $__json = [];
     private $__eventModel;
     private $__refModel = false;
     # Will be use latter on
-    private $__related_events = array();
-    private $__related_attributes = array();
+    private $__related_events = [];
+    private $__related_attributes = [];
     # Feature not implemented yet.
     # This is to let user configure a polling frequency. The idea is that it's not because we don't have data during a specific period that it means it should be considered as positive (or fp).
     # For example, if we poll every Monday. If it was positive on week 1 and negative on week 2, the timeline will show that it was positive until monday on week 2, which is most probably incorrect as it might be actually negative on Wednesday.
@@ -26,12 +28,12 @@ class EventTimelineTool
         $this->__objectTemplateModel = $eventModel->Object->ObjectTemplate;
         $this->__user = $user;
         $this->__filterRules = $filterRules;
-        $this->__json = array();
+        $this->__json = [];
         $this->__extended_view = $extended_view;
-        $this->__lookupTables = array(
+        $this->__lookupTables = [
             'analysisLevels' => $this->__eventModel->analysisLevels,
-            'distributionLevels' => $this->__eventModel->Attribute->distributionLevels
-        );
+            'distributionLevels' => Distribution::DESCRIPTIONS
+        ];
         return true;
     }
 
@@ -39,14 +41,14 @@ class EventTimelineTool
     {
         $this->__refModel = $refModel;
         $this->__user = $user;
-        $this->__json = array();
+        $this->__json = [];
         return true;
     }
 
     private function __get_event($id)
     {
-        $fullevent = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'extended' => $this->__extended_view));
-        $event = array();
+        $fullevent = $this->__eventModel->fetchEvent($this->__user, ['eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'extended' => $this->__extended_view]);
+        $event = [];
         if (empty($fullevent)) {
             return $event;
         }
@@ -54,19 +56,19 @@ class EventTimelineTool
         if (!empty($fullevent[0]['Object'])) {
             $event['Object'] = $fullevent[0]['Object'];
         } else {
-            $event['Object'] = array();
+            $event['Object'] = [];
         }
 
         if (!empty($fullevent[0]['Attribute'])) {
             $event['Attribute'] = $fullevent[0]['Attribute'];
         } else {
-            $event['Attribute'] = array();
+            $event['Attribute'] = [];
         }
 
         if (!empty($fullevent[0]['Sighting'])) {
             $event['Sighting'] = $fullevent[0]['Sighting'];
         } else {
-            $event['Sighting'] = array();
+            $event['Sighting'] = [];
         }
 
         return $event;
@@ -75,7 +77,7 @@ class EventTimelineTool
     public function get_timeline($id)
     {
         $event = $this->__get_event($id);
-        $this->__json['items'] = array();
+        $this->__json['items'] = [];
 
         if (empty($event)) {
             return $this->__json;
@@ -84,13 +86,13 @@ class EventTimelineTool
         if (!empty($event['Object'])) {
             $object = $event['Object'];
         } else {
-            $object = array();
+            $object = [];
         }
 
         if (!empty($event['Attribute'])) {
             $attribute = $event['Attribute'];
         } else {
-            $attribute = array();
+            $attribute = [];
         }
 
         $sightingsAttributeMap = [];
@@ -100,7 +102,7 @@ class EventTimelineTool
 
         // extract links and node type
         foreach ($attribute as $attr) {
-            $toPush = array(
+            $toPush = [
                 'id' => $attr['id'],
                 'uuid' => $attr['uuid'],
                 'content' => h($attr['value']),
@@ -112,12 +114,12 @@ class EventTimelineTool
                 'attribute_type' => $attr['type'],
                 'date_sighting' => $sightingsAttributeMap[$attr['id']] ?? [],
                 'is_image' => $this->__eventModel->Attribute->isImage($attr),
-            );
+            ];
             $this->__json['items'][] = $toPush;
         }
 
         foreach ($object as $obj) {
-            $toPush_obj = array(
+            $toPush_obj = [
                 'id' => $obj['id'],
                 'uuid' => $obj['uuid'],
                 'content' => h($obj['name']),
@@ -126,8 +128,8 @@ class EventTimelineTool
                 'template_uuid' => $obj['template_uuid'],
                 'event_id' => $obj['event_id'],
                 'timestamp' => $obj['timestamp'],
-                'Attribute' => array(),
-            );
+                'Attribute' => [],
+            ];
 
             $toPush_obj['first_seen'] = $obj['first_seen'];
             $toPush_obj['last_seen'] = $obj['last_seen'];
@@ -143,7 +145,7 @@ class EventTimelineTool
                     $toPush_obj['last_seen'] = $obj_attr['value']; // replace last_seen of the object to seen of the element
                     $toPush_obj['last_seen_overwrite'] = true;
                 }
-                $toPush_attr = array(
+                $toPush_attr = [
                     'id' => $obj_attr['id'],
                     'uuid' => $obj_attr['uuid'],
                     'content' => h($obj_attr['value']),
@@ -154,7 +156,7 @@ class EventTimelineTool
                     'attribute_type' => $obj_attr['type'],
                     'date_sighting' => $sightingsAttributeMap[$obj_attr['id']] ?? [],
                     'is_image' => $this->__eventModel->Attribute->isImage($obj_attr),
-                );
+                ];
                 $toPush_obj['Attribute'][] = $toPush_attr;
             }
             $this->__json['items'][] = $toPush_obj;
@@ -170,13 +172,16 @@ class EventTimelineTool
         */
     public function get_sighting_timeline($id)
     {
-        $event = $this->__eventModel->fetchEvent($this->__user, array(
-            'eventid' => $id,
-            'flatten' => 1,
-            'includeTagRelations' => 1,
-            'extended' => $this->__extended_view
-        ));
-        $this->__json['items'] = array();
+        $event = $this->__eventModel->fetchEvent(
+            $this->__user,
+            [
+                'eventid' => $id,
+                'flatten' => 1,
+                'includeTagRelations' => 1,
+                'extended' => $this->__extended_view
+            ]
+        );
+        $this->__json['items'] = [];
 
         if (empty($event)) {
             return $this->__json;
@@ -184,13 +189,13 @@ class EventTimelineTool
             $event = $event[0];
         }
 
-        $lookupAttribute = array();
+        $lookupAttribute = [];
         foreach ($event['Attribute'] as $k => $attribute) {
             $lookupAttribute[$attribute['id']] = &$event['Attribute'][$k];
         }
 
         // regroup sightings per attribute
-        $regroupedSightings = array();
+        $regroupedSightings = [];
         foreach ($event['Sighting'] as $k => $sighting) {
             $event['Sighting'][$k]['date_sighting'] *= 1000; // adapt to use micro
             $regroupedSightings[$sighting['attribute_id']][] = &$event['Sighting'][$k];
@@ -198,9 +203,13 @@ class EventTimelineTool
         // generate extrapolation
         $now = time() * 1000;
         foreach ($regroupedSightings as $attributeId => $sightings) {
-            usort($sightings, function ($a, $b) { // make sure sightings are ordered
-                return $a['date_sighting'] > $b['date_sighting'];
-            });
+            usort(
+                $sightings,
+                function ($a, $b) {
+                // make sure sightings are ordered
+                    return $a['date_sighting'] > $b['date_sighting'];
+                }
+            );
             $i = 0;
             while ($i < count($sightings)) {
                 $sighting = $sightings[$i];
@@ -208,7 +217,7 @@ class EventTimelineTool
                 $fpSightingIndex = $this->getNextFalsePositiveSightingIndex($sightings, $i + 1);
                 $group = $sighting['type'] == '1' ? 'sighting_negative' : 'sighting_positive';
                 if ($fpSightingIndex === false) { // No next FP, extrapolate to now
-                    $this->__json['items'][] = array(
+                    $this->__json['items'][] = [
                         'attribute_id' => $attributeId,
                         'id' => sprintf('%s-%s', $attributeId, $sighting['id']),
                         'uuid' => $sighting['uuid'],
@@ -218,7 +227,7 @@ class EventTimelineTool
                         'timestamp' => $attribute['timestamp'],
                         'first_seen' => $sighting['date_sighting'],
                         'last_seen' => $now,
-                    );
+                    ];
                     break;
                 } else {
                     // set up until last positive
@@ -237,7 +246,7 @@ class EventTimelineTool
                     } else {
                         $lastSeenPositive = $sightings[$i + 1]['date_sighting'];
                     }
-                    $this->__json['items'][] = array(
+                    $this->__json['items'][] = [
                         'attribute_id' => $attributeId,
                         'id' => sprintf('%s-%s', $attributeId, $sighting['id']),
                         'uuid' => $sighting['uuid'],
@@ -247,7 +256,7 @@ class EventTimelineTool
                         'timestamp' => $attribute['timestamp'],
                         'first_seen' => $sighting['date_sighting'],
                         'last_seen' => $lastSeenPositive,
-                    );
+                    ];
                     // No next FP, extrapolate to now
                     $fpSighting = $sightings[$fpSightingIndex];
                     $secondNextPSightingIndex = $this->getNextPositiveSightingIndex($sightings, $fpSightingIndex + 1);
@@ -257,7 +266,7 @@ class EventTimelineTool
                         } else {
                             $firstSeenNegative = $fpSighting['date_sighting'];
                         }
-                        $this->__json['items'][] = array(
+                        $this->__json['items'][] = [
                             'attribute_id' => $attributeId,
                             'id' => sprintf('%s-%s', $attributeId, $sighting['id']),
                             'uuid' => $fpSighting['uuid'],
@@ -267,7 +276,7 @@ class EventTimelineTool
                             'timestamp' => $attribute['timestamp'],
                             'first_seen' => $firstSeenNegative,
                             'last_seen' => $now,
-                        );
+                        ];
                         break;
                     } else {
                         if ($halfTime > 0) { // We need to fake a previous P
@@ -281,7 +290,7 @@ class EventTimelineTool
                         }
                         // set down until next postive
                         $secondNextPSighting = $sightings[$secondNextPSightingIndex];
-                        $this->__json['items'][] = array(
+                        $this->__json['items'][] = [
                             'attribute_id' => $attributeId,
                             'id' => sprintf('%s-%s', $attributeId, $sighting['id']),
                             'uuid' => $fpSighting['uuid'],
@@ -291,7 +300,7 @@ class EventTimelineTool
                             'timestamp' => $attribute['timestamp'],
                             'first_seen' => $firstSeenNegative,
                             'last_seen' => $secondNextPSighting['date_sighting'],
-                        );
+                        ];
                         $i = $secondNextPSightingIndex;
                     }
                 }

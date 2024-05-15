@@ -20,7 +20,9 @@ use App\Lib\Tools\JsonTool;
 use App\Lib\Tools\RequestRearrangeTool;
 use App\Lib\Tools\TmpFileTool;
 use App\Lib\Tools\XMLConverterTool;
+use App\Model\Entity\Analysis;
 use App\Model\Entity\Attribute;
+use App\Model\Entity\Distribution;
 use App\Model\Entity\Module;
 use Cake\Chronos\Chronos;
 use Cake\Core\Configure;
@@ -863,7 +865,7 @@ class EventsController extends AppController
                     } elseif ($searchTerm === 'analysis') {
                         $terms = $this->Events->analysisLevels;
                     } else {
-                        $terms = $this->Events->distributionLevels;
+                        $terms = Distribution::DESCRIPTIONS;
                     }
                     $pieces = is_array($v) ? $v : explode('|', $v);
                     $test = [];
@@ -970,11 +972,13 @@ class EventsController extends AppController
         $this->paginate['contain']['ThreatLevel'] = [
             'fields' => ['ThreatLevel.name']
         ];
-        $this->paginate['contain']['EventTag'] = [
-            'fields' => ['EventTag.event_id', 'EventTag.tag_id', 'EventTag.local', 'EventTag.relationship_type'],
+        $this->paginate['contain']['EventTags'] = [
+            'fields' => ['event_id', 'tag_id', 'local', 'relationship_type'],
         ];
         if ($this->isSiteAdmin()) {
-            $this->paginate['contain'][] = 'User.email';
+            $this->paginate['contain']['User'] = [
+                'fields' => ['email'],
+            ];
         }
 
         if ($nothing) {
@@ -991,13 +995,14 @@ class EventsController extends AppController
         $events = $this->__attachInfoToEvents($enabledColumns, $events->toArray());
 
         $this->__noKeyNotification();
+        $this->set('me', $this->ACL->getUser()->toArray());
         $this->set('events', $events);
         $this->set('possibleColumns', $possibleColumns);
         $this->set('columns', $enabledColumns);
         $this->set('eventDescriptions', $this->Events->fieldDescriptions);
-        $this->set('analysisLevels', $this->Events->analysisLevels);
-        $this->set('distributionLevels', $this->Events->distributionLevels);
-        $this->set('shortDist', $this->Events->shortDist);
+        $this->set('analysisLevels', Analysis::DESCRIPTIONS);
+        $this->set('distributionLevels', Distribution::DESCRIPTIONS);
+        $this->set('shortDist', Distribution::SHORT_DESCRIPTIONS);
         $this->set('distributionData', $this->__genDistributionGraph(-1));
         $this->set('urlparams', $urlparams);
         $this->set('passedArgsArray', $passedArgsArray);
@@ -1253,9 +1258,10 @@ class EventsController extends AppController
         $possibleColumns[] = 'timestamp';
         $possibleColumns[] = 'publish_timestamp';
 
-        $userDisabledColumns = $this->User->UserSetting->getValueForUser($this->ACL->getUser()->toArray()['id'], 'event_index_hide_columns');
-        if ($userDisabledColumns === null) {
+        if (empty($this->ACL->getUser()->user_settings_by_name_with_fallback['event_index_hide_columns'])) {
             $userDisabledColumns = self::DEFAULT_HIDDEN_INDEX_COLUMNS;
+        } else {
+            $userDisabledColumns = $this->ACL->getUser()->user_settings_by_name_with_fallback['event_index_hide_columns']['value'];
         }
 
         $enabledColumns = array_diff($possibleColumns, $userDisabledColumns);
@@ -2535,13 +2541,13 @@ class EventsController extends AppController
         $this->set('distributions', $distributions);
         // tooltip for distribution
         $fieldDesc = [];
-        $distributionLevels = $this->Events->distributionLevels;
+        $distributionLevels = Distribution::ALL;
         if (empty($sgs)) {
             unset($distributionLevels[4]);
         }
         $this->set('distributionLevels', $distributionLevels);
         foreach ($distributionLevels as $key => $value) {
-            $fieldDesc['distribution'][$key] = $this->Events->distributionDescriptions[$key]['formdesc'];
+            $fieldDesc['distribution'][$key] = Distribution::FORM_DESCRIPTIONS[$key];
         }
 
         // combobox for risks
@@ -2552,10 +2558,10 @@ class EventsController extends AppController
         // combobox for analysis
         $this->set('sharingGroups', $sgs);
         // tooltip for analysis
-        $analysisLevels = $this->Events->analysisLevels;
+        $analysisLevels = Analysis::ALL;
         $this->set('analysisLevels', $analysisLevels);
         foreach ($analysisLevels as $key => $value) {
-            $fieldDesc['analysis'][$key] = $this->Events->analysisDescriptions[$key]['formdesc'];
+            $fieldDesc['analysis'][$key] = Analysis::FORM_DESCRIPTIONS[$key];
         }
 
         if (Configure::read('MISP.unpublishedprivate')) {
@@ -2652,7 +2658,7 @@ class EventsController extends AppController
         if (Configure::read('MISP.default_event_distribution') != null) {
             $initialDistribution = Configure::read('MISP.default_event_distribution');
         }
-        $distributionLevels = $this->Events->distributionLevels;
+        $distributionLevels = Distribution::DESCRIPTIONS;
         if ($this->request->is('post')) {
             if ($this->ParamHandler->isRest()) {
                 if (isset($this->params['named']['publish'])) {
@@ -2742,8 +2748,7 @@ class EventsController extends AppController
         }
         $this->set('stix_version', $stix_version == 2 ? '2.x JSON' : '1.x XML');
         $this->set('initialDistribution', $initialDistribution);
-        $distributions = array_keys($this->Events->distributionDescriptions);
-        $distributions = $this->_arrayToValuesIndexArray($distributions);
+        $distributions = $this->_arrayToValuesIndexArray(Distribution::ALL);
         $this->set('distributions', $distributions);
         $fieldDesc = [];
         if (empty($sgs)) {
@@ -2751,7 +2756,7 @@ class EventsController extends AppController
         }
         $this->set('distributionLevels', $distributionLevels);
         foreach ($distributionLevels as $key => $value) {
-            $fieldDesc['distribution'][$key] = $this->Events->distributionDescriptions[$key]['formdesc'];
+            $fieldDesc['distribution'][$key] = Distribution::FORM_DESCRIPTIONS[$key];
         }
 
         $debugOptions = [
@@ -2899,7 +2904,7 @@ class EventsController extends AppController
             }
             $event = $this->Events->handleMispFormatFromModuleResult($results);
             $event['Event'] = $target_event['Event'];
-            $distributions = $this->Events->Attributes->distributionLevels;
+            $distributions = Distribution::DESCRIPTIONS;
             $sgs = $this->Events->SharingGroup->fetchAllAuthorised($this->ACL->getUser()->toArray(), 'name', 1);
             if (empty($sgs)) {
                 unset($distributions[4]);
@@ -3126,13 +3131,13 @@ class EventsController extends AppController
 
         // tooltip for distribution
         $fieldDesc = [];
-        $distributionLevels = $this->Events->distributionLevels;
+        $distributionLevels = Distribution::DESCRIPTIONS;
         if (empty($sgs)) {
             unset($distributionLevels[4]);
         }
         $this->set('distributionLevels', $distributionLevels);
         foreach ($distributionLevels as $key => $value) {
-            $fieldDesc['distribution'][$key] = $this->Events->distributionDescriptions[$key]['formdesc'];
+            $fieldDesc['distribution'][$key] = Distribution::FORM_DESCRIPTIONS[$key];
         }
 
         // combobox for risks
@@ -3145,7 +3150,7 @@ class EventsController extends AppController
         // tooltip for analysis
         $analysisLevels = $this->Events->analysisLevels;
         foreach ($analysisLevels as $key => $value) {
-            $fieldDesc['analysis'][$key] = $this->Events->analysisDescriptions[$key]['formdesc'];
+            $fieldDesc['analysis'][$key] = Analysis::FORM_DESCRIPTIONS[$key];
         }
         $this->set('analysisLevels', $analysisLevels);
         $this->set('fieldDesc', $fieldDesc);
@@ -4086,7 +4091,7 @@ class EventsController extends AppController
         $this->set('events', $events);
         $this->set('eventDescriptions', $this->Events->fieldDescriptions);
         $this->set('analysisLevels', $this->Events->analysisLevels);
-        $this->set('distributionLevels', $this->Events->distributionLevels);
+        $this->set('distributionLevels', Distribution::DESCRIPTIONS);
     }
 
     public function reportValidationIssuesEvents()
@@ -4456,7 +4461,7 @@ class EventsController extends AppController
                     $typeCategoryMapping[$type][$k] = $k;
                 }
             }
-            $distributions = $this->Events->Attributes->distributionLevels;
+            $distributions = Distribution::DESCRIPTIONS;
             $sgs = $this->Events->SharingGroup->fetchAllAuthorised($this->ACL->getUser()->toArray(), 'name', 1);
             if (empty($sgs)) {
                 unset($distributions[4]);
@@ -5208,7 +5213,7 @@ class EventsController extends AppController
         )->toArray();
 
         $user = $user ?: $this->ACL->getUser()->toArray();
-        $grapher = new DistributionGraphTool($this->Event, $servers, $user, $extended);
+        $grapher = new DistributionGraphTool($this->Events, $servers, $user, $extended);
         $json = $grapher->get_distributions_graph($id);
 
         array_walk_recursive(
@@ -5570,7 +5575,7 @@ class EventsController extends AppController
             return $this->RestResponse->viewData($relations, $this->response->getType());
         }
         $this->set('relations', $relations);
-        $this->set('distributionLevels', $this->Events->distributionLevels);
+        $this->set('distributionLevels', Distribution::DESCRIPTIONS);
     }
 
     public function delegation_index()
@@ -5610,7 +5615,7 @@ class EventsController extends AppController
         $this->set('threatLevels', $this->Events->ThreatLevel->listThreatLevels());
         $this->set('eventDescriptions', $this->Events->fieldDescriptions);
         $this->set('analysisLevels', $this->Events->analysisLevels);
-        $this->set('distributionLevels', $this->Events->distributionLevels);
+        $this->set('distributionLevels', Distribution::DESCRIPTIONS);
 
         $shortDist = [0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group'];
         $this->set('shortDist', $shortDist);
@@ -5719,7 +5724,7 @@ class EventsController extends AppController
                     break;
                 }
             }
-            $distributions = $this->Events->Attributes->distributionLevels;
+            $distributions = Distribution::DESCRIPTIONS;
             $sgs = $this->Events->SharingGroup->fetchAllAuthorised($this->ACL->getUser()->toArray(), 'name', 1);
             if (empty($sgs)) {
                 unset($distributions[4]);

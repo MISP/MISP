@@ -40,6 +40,7 @@
         <exclude-pattern>*/src/Controller/*</exclude-pattern>
         <exclude-pattern>*/src/Command/*</exclude-pattern>
         <exclude-pattern>*/src/Shell/*</exclude-pattern>
+        <exclude-pattern>*/src/Lib/*</exclude-pattern>
         <exclude-pattern>*/tests/*</exclude-pattern>
     </rule>
 

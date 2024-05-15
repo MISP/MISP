@@ -2,21 +2,22 @@
 
 namespace App\Lib\Tools;
 
+use App\Model\Entity\Distribution;
 use App\Model\Table\EventsTable;
 use Cake\Core\Configure;
 
 class CorrelationGraphTool
 {
-    private $__lookupTables = array();
-    private $__related_events = array();
-    private $__related_attributes = array();
+    private $__lookupTables = [];
+    private $__related_events = [];
+    private $__related_attributes = [];
     /** @var Event */
     private $__eventModel;
     /** @var Taxonomy */
     private $__taxonomyModel;
     private $__galaxyClusterModel;
     private $__user = false;
-    private $__json = array();
+    private $__json = [];
 
     public function construct(EventsTable $eventModel, $taxonomyModel, $galaxyClusterModel, $user, $json)
     {
@@ -25,24 +26,27 @@ class CorrelationGraphTool
         $this->__galaxyClusterModel = $galaxyClusterModel;
         $this->__user = $user;
         $this->__json = $json;
-        $this->__lookupTables = array(
+        $this->__lookupTables = [
             'analysisLevels' => $this->__eventModel->analysisLevels,
-            'distributionLevels' => $this->__eventModel->Attribute->distributionLevels
-        );
+            'distributionLevels' => Distribution::DESCRIPTIONS
+        ];
         return true;
     }
 
     private function __expandEvent($id)
     {
-        $event = $this->__eventModel->fetchEvent($this->__user, array(
-            'eventid' => $id,
-            'flatten' => 0,
-            'includeTagRelations' => 1,
-            'includeGalaxy' => 1,
-            'includeGranularCorrelations' => 1,
-            'noSightings' => true,
-            'sgReferenceOnly' => true,
-        ));
+        $event = $this->__eventModel->fetchEvent(
+            $this->__user,
+            [
+                'eventid' => $id,
+                'flatten' => 0,
+                'includeTagRelations' => 1,
+                'includeGalaxy' => 1,
+                'includeGranularCorrelations' => 1,
+                'noSightings' => true,
+                'sgReferenceOnly' => true,
+            ]
+        );
         if (empty($event)) {
             return $this->__json;
         }
@@ -58,7 +62,7 @@ class CorrelationGraphTool
             $this->__related_attributes = $event[0]['RelatedAttribute'];
         }
         if (!empty($event[0]['EventTag'])) {
-            $tags = array();
+            $tags = [];
             foreach ($event[0]['EventTag'] as $et) {
                 $tags[] = $et['Tag'];
             }
@@ -146,10 +150,13 @@ class CorrelationGraphTool
 
     private function __addTag($id)
     {
-        $tag = $this->__eventModel->EventTag->Tag->find('first', array(
-            'conditions' => array('Tag.id' => $id),
-            'recursive' => -1
-        ));
+        $tag = $this->__eventModel->EventTag->Tag->find(
+            'first',
+            [
+                'conditions' => ['Tag.id' => $id],
+                'recursive' => -1
+            ]
+        );
         return $this->__createNode('tag', $tag['Tag']);
     }
 
@@ -176,7 +183,7 @@ class CorrelationGraphTool
 
     private function __expandTag($id)
     {
-        $current_tag_id = $this->graphJsonContains('tag', array('id' => $id));
+        $current_tag_id = $this->graphJsonContains('tag', ['id' => $id]);
         if (empty($current_tag_id)) {
             $current_tag_id = $this->__addTag($id);
         }
@@ -235,7 +242,7 @@ class CorrelationGraphTool
     {
         $link = $this->graphJsonContainsLink($from_id, $to_id);
         if ($link === false) {
-            $this->__json['links'][] = array('source' => $from_id, 'target' => $to_id, 'linkDistance' => $linkDistance);
+            $this->__json['links'][] = ['source' => $from_id, 'target' => $to_id, 'linkDistance' => $linkDistance];
         }
     }
 
@@ -267,7 +274,7 @@ class CorrelationGraphTool
             $node = false;
             switch ($type) {
                 case 'galaxy':
-                    $node = array(
+                    $node = [
                         'unique_id' => 'galaxy-' . $data['GalaxyCluster'][0]['id'],
                         'name' => $data['GalaxyCluster'][0]['value'],
                         'galaxy' => $data['name'],
@@ -280,7 +287,7 @@ class CorrelationGraphTool
                         'imgClass' => empty($data['icon']) ? 'globe' : $data['icon'],
                         'authors' => !empty($data['GalaxyCluster'][0]['authors']) ? implode(',', $data['GalaxyCluster'][0]['authors']) : '',
                         'synonyms' => !empty($data['GalaxyCluster'][0]['meta']['synonyms']) ? implode(',', $data['GalaxyCluster'][0]['meta']['synonyms']) : ''
-                    );
+                    ];
                     break;
                 case 'event':
                     if ($this->orgImgExists($data['Orgc']['name'])) {
@@ -288,7 +295,7 @@ class CorrelationGraphTool
                     } else {
                         $image = Configure::read('MISP.baseurl') . '/img/orgs/MISP.png';
                     }
-                    $node = array(
+                    $node = [
                         'unique_id' => 'event-' . $data['id'],
                         'name' => '(' . $data['id'] . ') ' . (strlen($data['info']) > 32 ? substr($data['info'], 0, 31) . '...' : $data['info']),
                         'type' => 'event',
@@ -301,10 +308,10 @@ class CorrelationGraphTool
                         'analysis' => $this->__lookupTables['analysisLevels'][$data['analysis']],
                         'distribution' => $this->__lookupTables['distributionLevels'][$data['distribution']],
                         'date' => $data['date']
-                    );
+                    ];
                     break;
                 case 'tag':
-                    $node = array(
+                    $node = [
                         'unique_id' => 'tag-' . $data['id'],
                         'name' => $data['name'],
                         'type' => 'tag',
@@ -312,7 +319,7 @@ class CorrelationGraphTool
                         'id' => $data['id'],
                         'colour' => $data['colour'],
                         'imgClass' => empty($data['taxonomy']) ? 'tag' : 'tags',
-                    );
+                    ];
                     if (!empty($data['taxonomy'])) {
                         $node['taxonomy'] = $data['taxonomy'];
                     }
@@ -324,7 +331,7 @@ class CorrelationGraphTool
                     }
                     break;
                 case 'attribute':
-                    $node = array(
+                    $node = [
                         'unique_id' => 'attribute-' . $data['id'],
                         'name' => $data['value'],
                         'type' => 'attribute',
@@ -335,10 +342,10 @@ class CorrelationGraphTool
                         'image' => '/img/indicator.png',
                         'att_ids' => $data['to_ids'],
                         'comment' => $data['comment']
-                    );
+                    ];
                     break;
                 case 'object':
-                    $node = array(
+                    $node = [
                         'unique_id' => 'object-' . $data['id'],
                         'name' => $data['name'],
                         'type' => 'object',
@@ -348,7 +355,7 @@ class CorrelationGraphTool
                         'description' => $data['description'],
                         'comment' => $data['comment'],
                         'imgClass' => 'th-list',
-                    );
+                    ];
                     break;
             }
             $this->__json['nodes'][] = $node;
@@ -364,9 +371,9 @@ class CorrelationGraphTool
     public function cleanLinks()
     {
         if (isset($this->__json['nodes']) && isset($this->__json['links'])) {
-            $links = array();
+            $links = [];
             foreach ($this->__json['links'] as $link) {
-                $temp = array();
+                $temp = [];
                 foreach ($this->__json['nodes'] as $k => $node) {
                     if ($link['source'] == $node) {
                         $temp['source'] = $k;
@@ -381,10 +388,10 @@ class CorrelationGraphTool
             $this->__json['links'] = $links;
         } else {
             if (!isset($this->__json['links'])) {
-                $this->__json['links'] = array();
+                $this->__json['links'] = [];
             }
             if (!isset($this->__json['nodes'])) {
-                $this->__json['nodes'] = array();
+                $this->__json['nodes'] = [];
             }
         }
         return true;

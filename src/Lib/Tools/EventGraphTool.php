@@ -2,22 +2,23 @@
 
 namespace App\Lib\Tools;
 
+use App\Model\Entity\Distribution;
 use Cake\Http\Exception\NotFoundException;
 
 class EventGraphTool
 {
-    private $__lookupTables = array();
+    private $__lookupTables = [];
     private $__user = false;
-    private $__json = array();
+    private $__json = [];
     private $__eventModel;
     private $__refModel;
     # Will be use latter on
-    private $__related_events = array();
-    private $__related_attributes = array();
+    private $__related_events = [];
+    private $__related_attributes = [];
     private $__Tag;
     private $__filterRules;
     private $__extended_view = 0;
-    private $__extendedEventUUIDMapping = array();
+    private $__extendedEventUUIDMapping = [];
     private $__paletteTool;
     private $__authorized_JSON_key;
 
@@ -27,18 +28,21 @@ class EventGraphTool
         $this->__Tag = $tagModel;
         $this->__user = $user;
         $this->__filterRules = $filterRules;
-        $this->__json = array();
-        $this->__json['existing_tags'] = $this->__Tag->find('list', array(
-            'fields' => array('Tag.id', 'Tag.name'),
-            'sort' => array('lower(Tag.name) asc'),
-        ));
-        $this->__extendedEventUUIDMapping = array();
-        $this->__extended_view = $extended_view;
-        $this->__lookupTables = array(
-            'analysisLevels' => $this->__eventModel->analysisLevels,
-            'distributionLevels' => $this->__eventModel->Attribute->distributionLevels
+        $this->__json = [];
+        $this->__json['existing_tags'] = $this->__Tag->find(
+            'list',
+            [
+                'fields' => ['Tag.id', 'Tag.name'],
+                'sort' => ['lower(Tag.name) asc'],
+            ]
         );
-        $this->__authorized_JSON_key = array('event_id', 'distribution', 'category', 'type', 'value', 'comment', 'uuid', 'to_ids', 'timestamp', 'id');
+        $this->__extendedEventUUIDMapping = [];
+        $this->__extended_view = $extended_view;
+        $this->__lookupTables = [
+            'analysisLevels' => $this->__eventModel->analysisLevels,
+            'distributionLevels' => Distribution::DESCRIPTIONS
+        ];
+        $this->__authorized_JSON_key = ['event_id', 'distribution', 'category', 'type', 'value', 'comment', 'uuid', 'to_ids', 'timestamp', 'id'];
 
         $this->__paletteTool = new ColourPaletteTool();
         return true;
@@ -48,7 +52,7 @@ class EventGraphTool
     {
         $this->__refModel = $refModel;
         $this->__user = $user;
-        $this->__json = array();
+        $this->__json = [];
         return true;
     }
 
@@ -56,8 +60,8 @@ class EventGraphTool
     {
         $this->__json['available_pivot_key'] = $this->__authorized_JSON_key;
 
-        $fullevent = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'extended' => $this->__extended_view));
-        $event = array();
+        $fullevent = $this->__eventModel->fetchEvent($this->__user, ['eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'extended' => $this->__extended_view]);
+        $event = [];
         if (empty($fullevent)) {
             return $event;
         }
@@ -65,13 +69,13 @@ class EventGraphTool
         if (!empty($fullevent[0]['Object'])) {
             $event['Object'] = $fullevent[0]['Object'];
         } else {
-            $event['Object'] = array();
+            $event['Object'] = [];
         }
 
         if (!empty($fullevent[0]['Attribute'])) {
             $event['Attribute'] = $fullevent[0]['Attribute'];
         } else {
-            $event['Attribute'] = array();
+            $event['Attribute'] = [];
         }
 
         return $event;
@@ -199,9 +203,9 @@ class EventGraphTool
             $relation = $rule[0];
             $tagName = $rule[1];
             if ($relation === "Contains") {
-                $presenceMatch = $this->__contain_tag(array($attr), $tagName);
+                $presenceMatch = $this->__contain_tag([$attr], $tagName);
             } elseif ($relation === "Do not contain") {
-                $presenceMatch = !$this->__contain_tag(array($attr), $tagName);
+                $presenceMatch = !$this->__contain_tag([$attr], $tagName);
             }
             if (!$presenceMatch) { // Does not match, can stop filtering
                 return false;
@@ -249,10 +253,10 @@ class EventGraphTool
     public function get_references($id)
     {
         $event = $this->__get_filtered_event($id);
-        $this->__json['items'] = array();
-        $this->__json['relations'] = array();
+        $this->__json['items'] = [];
+        $this->__json['relations'] = [];
 
-        $this->__json['existing_object_relation'] = array();
+        $this->__json['existing_object_relation'] = [];
         if (empty($event)) {
             return $this->__json;
         }
@@ -260,18 +264,18 @@ class EventGraphTool
         if (!empty($event['Object'])) {
             $object = $event['Object'];
         } else {
-            $object = array();
+            $object = [];
         }
 
         if (!empty($event['Attribute'])) {
             $attribute = $event['Attribute'];
         } else {
-            $attribute = array();
+            $attribute = [];
         }
 
         // extract links and node type
         foreach ($attribute as $attr) {
-            $toPush = array(
+            $toPush = [
                 'id' => $attr['id'],
                 'uuid' => $attr['uuid'],
                 'type' => $attr['type'],
@@ -279,14 +283,14 @@ class EventGraphTool
                 'event_id' => $attr['event_id'],
                 'node_type' => 'attribute',
                 'comment' => $attr['comment'],
-            );
+            ];
             array_push($this->__json['items'], $toPush);
             $this->__extendedEventUUIDMapping[$toPush['event_id']] = '';
         }
 
         $templatesCount = [];
         foreach ($object as $obj) {
-            $toPush = array(
+            $toPush = [
                 'id' => sprintf('o-%s', $obj['id']),
                 'uuid' => $obj['uuid'],
                 'type' => $obj['name'],
@@ -297,7 +301,7 @@ class EventGraphTool
                 'template_uuid' => $obj['template_uuid'],
                 'event_id' => $obj['event_id'],
                 'comment' => $obj['comment'],
-            );
+            ];
             if (isset($obj['Attribute'])) {
                 $toPush['Attribute'] = $obj['Attribute'];
 
@@ -315,7 +319,7 @@ class EventGraphTool
             $this->__extendedEventUUIDMapping[$toPush['event_id']] = '';
 
             foreach ($obj['ObjectReference'] as $rel) {
-                $toPush = array(
+                $toPush = [
                     'id' => $rel['id'],
                     'uuid' => $rel['uuid'],
                     'from' => sprintf('o-%s', $obj['id']),
@@ -323,7 +327,7 @@ class EventGraphTool
                     'type' => $rel['relationship_type'],
                     'comment' => $rel['comment'],
                     'event_id' => $rel['event_id'],
-                );
+                ];
                 array_push($this->__json['relations'], $toPush);
             }
         }
@@ -340,9 +344,9 @@ class EventGraphTool
     public function get_tags($id)
     {
         $event = $this->__get_filtered_event($id);
-        $this->__json['items'] = array();
-        $this->__json['relations'] = array();
-        $this->__json['existing_object_relation'] = array();
+        $this->__json['items'] = [];
+        $this->__json['relations'] = [];
+        $this->__json['existing_object_relation'] = [];
         if (empty($event)) {
             return $this->__json;
         }
@@ -350,22 +354,22 @@ class EventGraphTool
         if (!empty($event['Object'])) {
             $object = $event['Object'];
         } else {
-            $object = array();
+            $object = [];
         }
 
         if (!empty($event['Attribute'])) {
             $attribute = $event['Attribute'];
         } else {
-            $attribute = array();
+            $attribute = [];
         }
 
-        $tagSet = array();
+        $tagSet = [];
         $i = 0;
 
         // extract links and node type
         foreach ($attribute as $attr) {
             $Tags = $attr['AttributeTag'];
-            $toPush = array(
+            $toPush = [
                 'id' => $attr['id'],
                 'uuid' => $attr['uuid'],
                 'type' => $attr['type'],
@@ -373,18 +377,18 @@ class EventGraphTool
                 'event_id' => $attr['event_id'],
                 'node_type' => 'attribute',
                 'comment' => $attr['comment'],
-            );
+            ];
             array_push($this->__json['items'], $toPush);
 
             foreach ($Tags as $tag) {
                 $tag = $tag['Tag'];
-                $toPush = array(
+                $toPush = [
                     'id' => 'tag_edge_id_' . $i,
                     'from' => $attr['id'],
                     'to' => $tag['name'],
                     'type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
                     'comment' => '',
-                );
+                ];
                 $tagSet[$tag['name']] = $tag;
                 array_push($this->__json['relations'], $toPush);
                 $i = $i + 1;
@@ -393,7 +397,7 @@ class EventGraphTool
 
         $j = 0;
         foreach ($object as $obj) {
-            $toPush = array(
+            $toPush = [
                 'id' => sprintf('o-%s', $obj['id']),
                 'uuid' => $obj['uuid'],
                 'type' => $obj['name'],
@@ -404,12 +408,12 @@ class EventGraphTool
                 'template_uuid' => $obj['template_uuid'],
                 'event_id' => $obj['event_id'],
                 'comment' => $obj['comment'],
-            );
+            ];
             array_push($this->__json['items'], $toPush);
 
 
             // get all  attributes and tags in the Object's Attributes
-            $added_value = array();
+            $added_value = [];
             foreach ($obj['Attribute'] as $ObjAttr) {
                 // Record existing object_relation
                 $this->__json['existing_object_relation'][$attr['object_relation']] = 0; // set-alike
@@ -417,7 +421,7 @@ class EventGraphTool
                 foreach ($Tags as $tag) {
                     $tag = $tag['Tag'];
                     if (!in_array($tag['name'], $added_value)) {
-                        $toPush = array(
+                        $toPush = [
                             'id' => $ObjAttr['id'],
                             'uuid' => $ObjAttr['uuid'],
                             'type' => $ObjAttr['type'],
@@ -425,26 +429,26 @@ class EventGraphTool
                             'event_id' => $ObjAttr['event_id'],
                             'node_type' => 'attribute',
                             'comment' => $ObjAttr['comment'],
-                        );
+                        ];
                         array_push($this->__json['items'], $toPush);
 
-                        $toPush = array(
+                        $toPush = [
                             'id' => 'obj_edge_id_' . $j,
                             'from' => sprintf('o-%s', $obj['id']),
                             'to' => $ObjAttr['id'],
                             'type' => '',
                             'comment' => '',
-                        );
+                        ];
                         $j = $j + 1;
                         array_push($this->__json['relations'], $toPush);
 
-                        $toPush = array(
+                        $toPush = [
                             'id' => "tag_edge_id_" . $i,
                             'from' => $ObjAttr['id'],
                             'to' => $tag['name'],
                             'type' => isset($tag['relationship_type']) ? $tag['relationship_type'] : '',
                             'comment' => '',
-                        );
+                        ];
                         $tagSet[$tag['name']] = $tag;
                         array_push($added_value, $tag['name']);
                         array_push($this->__json['relations'], $toPush);
@@ -456,14 +460,14 @@ class EventGraphTool
 
         // Add tags as nodes
         foreach ($tagSet as $tag) {
-            $toPush = array(
+            $toPush = [
                 'id' => $tag['name'],
                 'uuid' => $tag['id'], // id is used for linking edges in vis.js, this uuid (which is not the tag uuid) is used to store the real tag id
                 'type' => 'tag',
                 'label' => $tag['name'],
                 'node_type' => 'tag',
                 'tagContent' => $tag,
-            );
+            ];
             array_push($this->__json['items'], $toPush);
         }
 
@@ -473,9 +477,9 @@ class EventGraphTool
     public function get_generic_from_key($id, $keyType)
     {
         $event = $this->__get_filtered_event($id);
-        $this->__json['items'] = array();
-        $this->__json['relations'] = array();
-        $this->__json['existing_object_relation'] = array();
+        $this->__json['items'] = [];
+        $this->__json['relations'] = [];
+        $this->__json['existing_object_relation'] = [];
         if (empty($event)) {
             return $this->__json;
         }
@@ -483,25 +487,25 @@ class EventGraphTool
         if (!empty($event['Object'])) {
             $object = $event['Object'];
         } else {
-            $object = array();
+            $object = [];
         }
 
         if (!empty($event['Attribute'])) {
             $attribute = $event['Attribute'];
         } else {
-            $attribute = array();
+            $attribute = [];
         }
 
         if (!in_array($keyType, $this->__authorized_JSON_key)) { // not valid key
             return $this->__json;
         }
 
-        $keySet = array();
+        $keySet = [];
         $i = 0;
 
         // extract links and node type
         foreach ($attribute as $attr) {
-            $toPush = array(
+            $toPush = [
                 'id' => $attr['id'],
                 'uuid' => $attr['uuid'],
                 'type' => $attr['type'],
@@ -509,24 +513,24 @@ class EventGraphTool
                 'event_id' => $attr['event_id'],
                 'node_type' => 'attribute',
                 'comment' => $attr['comment'],
-            );
+            ];
             array_push($this->__json['items'], $toPush);
 
             // Add edge
             $keyVal = $attr[$keyType];
             $keyVal = json_encode($keyVal); // in case the value is false...
-            $toPush = array(
+            $toPush = [
                 'id' => "keyval_edge_id_" . $i,
                 'from' => $attr['id'],
                 'to' => "keyType_" . $keyVal,
-            );
+            ];
             $keySet[$keyVal] = 0; // set-alike
             array_push($this->__json['relations'], $toPush);
             $i = $i + 1;
         }
 
         foreach ($object as $obj) {
-            $toPush = array(
+            $toPush = [
                 'id' => sprintf('o-%s', $obj['id']),
                 'uuid' => $obj['uuid'],
                 'type' => $obj['name'],
@@ -537,7 +541,7 @@ class EventGraphTool
                 'template_uuid' => $obj['template_uuid'],
                 'event_id' => $obj['event_id'],
                 'comment' => $obj['comment'],
-            );
+            ];
             array_push($this->__json['items'], $toPush);
 
             // Record existing object_relation
@@ -546,16 +550,16 @@ class EventGraphTool
             }
 
             // get all values in the Object's Attributes
-            $added_value = array();
+            $added_value = [];
             foreach ($obj['Attribute'] as $ObjAttr) {
                 $keyVal = $ObjAttr[$keyType];
                 $keyVal = json_encode($keyVal); // in case the value is false...
                 if (!in_array($keyVal, $added_value)) {
-                    $toPush = array(
+                    $toPush = [
                         'id' => "keyType_edge_id_" . $i,
                         'from' => sprintf('o-%s', $obj['id']),
                         'to' => "keyType_" . $keyVal,
-                    );
+                    ];
                     array_push($added_value, $keyVal);
                     $keySet[$keyVal] = 42; // set-alike
                     array_push($this->__json['relations'], $toPush);
@@ -564,7 +568,7 @@ class EventGraphTool
             }
 
             foreach ($obj['ObjectReference'] as $rel) {
-                $toPush = array(
+                $toPush = [
                     'id' => $rel['id'],
                     'uuid' => $rel['uuid'],
                     'from' => sprintf('o-%s', $obj['id']),
@@ -572,19 +576,19 @@ class EventGraphTool
                     'type' => $rel['relationship_type'],
                     'comment' => $rel['comment'],
                     'event_id' => $rel['event_id'],
-                );
+                ];
                 array_push($this->__json['relations'], $toPush);
             }
         }
 
         // Add KeyType as nodes
         foreach ($keySet as $keyVal => $useless) {
-            $toPush = array(
+            $toPush = [
                 'id' => "keyType_" . $keyVal,
                 'type' => 'keyType',
                 'label' => $keyVal,
                 'node_type' => 'keyType',
-            );
+            ];
             array_push($this->__json['items'], $toPush);
         }
 
@@ -593,11 +597,14 @@ class EventGraphTool
 
     public function get_reference_data($uuid)
     {
-        $objectReference = $this->__refModel->ObjectReference->find('all', array(
-            'conditions' => array('ObjectReference.uuid' => $uuid, 'ObjectReference.deleted' => false),
-            'recursive' => -1,
+        $objectReference = $this->__refModel->ObjectReference->find(
+            'all',
+            [
+                'conditions' => ['ObjectReference.uuid' => $uuid, 'ObjectReference.deleted' => false],
+                'recursive' => -1,
             //'fields' => array('ObjectReference.id', 'relationship_type', 'comment', 'referenced_uuid')
-        ));
+            ]
+        );
         if (empty($objectReference)) {
             throw new NotFoundException('Invalid object reference');
         }
@@ -606,12 +613,15 @@ class EventGraphTool
 
     public function get_object_templates()
     {
-        $templates = $this->__refModel->ObjectTemplate->find('all', array(
-            'recursive' => -1,
-            'contain' => array(
-                'ObjectTemplateElement'
-            )
-        ));
+        $templates = $this->__refModel->ObjectTemplate->find(
+            'all',
+            [
+                'recursive' => -1,
+                'contain' => [
+                    'ObjectTemplateElement'
+                ]
+            ]
+        );
         if (empty($templates)) {
             throw new NotFoundException('No templates');
         }
@@ -620,10 +630,13 @@ class EventGraphTool
 
     public function fetchEventUUIDFromId()
     {
-        $eventUUIDs = $this->__eventModel->find('list', [
-            'conditions' => ['id' => array_keys($this->__extendedEventUUIDMapping)],
-            'fields' => ['uuid']
-        ]);
+        $eventUUIDs = $this->__eventModel->find(
+            'list',
+            [
+                'conditions' => ['id' => array_keys($this->__extendedEventUUIDMapping)],
+                'fields' => ['uuid']
+            ]
+        );
         $this->__extendedEventUUIDMapping = $eventUUIDs;
     }
 
