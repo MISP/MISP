@@ -145,13 +145,13 @@ class SharingGroupsTable extends AppTable
      *  - name: array in ID => name format
      *  - uuid: array in ID => uuid format
      *
-     * @param array $user
+     * @param User $user
      * @param string|false $scope
      * @param bool $active If true, return only active sharing groups
      * @param int|array|false $id
      * @return array
      */
-    public function fetchAllAuthorised(array $user, $scope = false, $active = false, $id = false)
+    public function fetchAllAuthorised(User $user, $scope = false, $active = false, $id = false)
     {
         $authorizedIds = $this->authorizedIds($user);
         if ($authorizedIds === [-1]) { // hack
@@ -530,11 +530,11 @@ class SharingGroupsTable extends AppTable
 
     /**
      * Returns sharing groups IDs that the user is allowed to see it
-     * @param array $user
+     * @param User $user
      * @param bool $useCache
      * @return int[]
      */
-    public function authorizedIds(array $user, $useCache = true)
+    public function authorizedIds(User $user, $useCache = true)
     {
         $cacheKey = "{$user['Role']['perm_site_admin']}-{$user['org_id']}";
         if ($useCache && isset($this->authorizedIds[$cacheKey])) {

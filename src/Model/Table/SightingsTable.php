@@ -4,6 +4,7 @@ namespace App\Model\Table;
 
 use App\Lib\Tools\ServerSyncTool;
 use App\Model\Entity\Sighting;
+use App\Model\Entity\User;
 use App\Model\Table\AppTable;
 use Cake\Core\Configure;
 
@@ -66,15 +67,15 @@ class SightingsTable extends AppTable
 
     /**
      * @param array $event Just 'Event' object is enough
-     * @param array $user
+     * @param User $user
      * @param array|int|null $attribute Attribute model or attribute ID
      * @param array|bool $extraConditions
      * @param bool $forSync
      * @return array|int
      */
-    public function attachToEvent(array $event, array $user, $attribute = null, $extraConditions = false, $forSync = false)
+    public function attachToEvent(array $event, User $user, $attribute = null, $extraConditions = false, $forSync = false)
     {
-        $conditions = $this->createConditions($user, $event);
+        $conditions = $this->createConditions($user->toArray(), $event);
         if ($conditions === false) {
             return [];
         }
@@ -170,11 +171,11 @@ class SightingsTable extends AppTable
 
     /**
      * @param array $sightings
-     * @param array $user
+     * @param User $user
      * @param false $forSync
      * @return array
      */
-    private function attachOrgToSightings(array $sightings, array $user, $forSync = false)
+    private function attachOrgToSightings(array $sightings, User $user, $forSync = false)
     {
         $showOrg = Configure::read('MISP.showorg');
         $anonymise = Configure::read('Plugin.Sightings_anonymise');

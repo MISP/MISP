@@ -66,6 +66,7 @@ class AppController extends Controller
     public $phprec = '8.4';
     public $phptoonew = null;
     private $isApiAuthed = false;
+    protected $_legacyParams = [];
 
     /**
      * Initialization hook method.
@@ -81,6 +82,7 @@ class AppController extends Controller
         parent::initialize();
         $this->loadComponent('RequestHandler');
         $this->loadComponent('Flash');
+        $this->loadComponent('RestSearch');
         $this->loadComponent('RestResponse');
         $this->loadComponent('Security');
         $this->loadComponent(
@@ -644,12 +646,13 @@ class AppController extends Controller
             return $exception;
         }
         $key = empty($filters['key']) ? $filters['returnFormat'] : $filters['key'];
-        $user = $this->_getApiAuthUser($key, $exception);
+        $user = $this->ACL->getUser();
         if ($user === false) {
             return $exception;
         }
 
-        session_write_close(); // Rest search can be longer, so close session to allow concurrent requests
+        // TODO: [3.x-MIGRATION]
+        // session_write_close(); // Rest search can be longer, so close session to allow concurrent requests
 
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
@@ -727,7 +730,7 @@ class AppController extends Controller
                 return false;
             }
         } else {
-            $user = $this->Auth->user();
+            $user = $this->ACL->getUser()->toArray();
             if (!$user) {
                 $exception = $this->RestResponse->throwException(
                     401,

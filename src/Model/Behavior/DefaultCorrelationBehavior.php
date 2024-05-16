@@ -2,10 +2,11 @@
 
 namespace App\Model\Behavior;
 
-use Cake\ORM\Behavior;
+use App\Model\Entity\User;
 use App\Model\Table\AppTable;
-use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\Core\Configure;
+use Cake\ORM\Behavior;
+use Cake\ORM\Locator\LocatorAwareTrait;
 
 /**
  * Default correlation behaviour
@@ -157,13 +158,16 @@ class DefaultCorrelationBehavior extends Behavior
         $this->Correlation->CorrelationValue->replaceValueWithId($correlations, $this->deadlockAvoidance ? 'value_id' : 0);
 
         if ($this->deadlockAvoidance) {
-            return $this->Correlation->saveMany($correlations, [
-                'atomic' => false,
-                'callbacks' => false,
-                'deep' => false,
-                'validate' => false,
-                'fieldList' => $fields,
-            ]);
+            return $this->Correlation->saveMany(
+                $correlations,
+                [
+                    'atomic' => false,
+                    'callbacks' => false,
+                    'deep' => false,
+                    'validate' => false,
+                    'fieldList' => $fields,
+                ]
+            );
         } else {
             $db = $this->Correlation->getDataSource();
             // Split to chunks datasource is is enabled
@@ -184,12 +188,15 @@ class DefaultCorrelationBehavior extends Behavior
         // ==> DELETE FROM default_correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id; */
         // first check if it's an update
         if (isset($attribute['id'])) {
-            $Model->deleteAll([
-                'OR' => [
-                    '1_attribute_id' => $attribute['id'],
-                    'attribute_id' => $attribute['id']
+            $Model->deleteAll(
+                [
+                    'OR' => [
+                        '1_attribute_id' => $attribute['id'],
+                        'attribute_id' => $attribute['id']
+                    ],
                 ],
-            ], false);
+                false
+            );
         }
         if ($attribute['type'] === 'ssdeep') {
             $this->FuzzyCorrelateSsdeep = $this->fetchTable('FuzzyCorrelateSsdeeps');
@@ -224,44 +231,47 @@ class DefaultCorrelationBehavior extends Behavior
         $maxCorrelations = Configure::read('MISP.max_correlations_per_event') ?: 5000;
         $source = $primary ? '' : '1_';
         $prefix = $primary ? '1_' : '';
-        $correlations = $this->Correlation->find('all', array(
-            'fields' => [
-                $source . 'attribute_id',
-                $prefix . 'attribute_id',
-                $prefix . 'org_id',
-                $prefix . 'event_id',
-                $prefix . 'event_distribution',
-                $prefix . 'event_sharing_group_id',
-                $prefix . 'object_id',
-                $prefix . 'object_distribution',
-                $prefix . 'object_sharing_group_id',
-                $prefix . 'distribution',
-                $prefix . 'sharing_group_id'
-            ],
-            'conditions' => [
-                'OR' => [
-                    $source . 'event_id' => $eventId
+        $correlations = $this->Correlation->find(
+            'all',
+            [
+                'fields' => [
+                    $source . 'attribute_id',
+                    $prefix . 'attribute_id',
+                    $prefix . 'org_id',
+                    $prefix . 'event_id',
+                    $prefix . 'event_distribution',
+                    $prefix . 'event_sharing_group_id',
+                    $prefix . 'object_id',
+                    $prefix . 'object_distribution',
+                    $prefix . 'object_sharing_group_id',
+                    $prefix . 'distribution',
+                    $prefix . 'sharing_group_id'
                 ],
-                'AND' => [
-                    [
-                        'CorrelationValues.value NOT IN (select value from correlation_exclusions)'
+                'conditions' => [
+                    'OR' => [
+                        $source . 'event_id' => $eventId
                     ],
-                    [
-                        'CorrelationValues.value NOT IN (select value from over_correlating_values)'
+                    'AND' => [
+                        [
+                            'CorrelationValues.value NOT IN (select value from correlation_exclusions)'
+                        ],
+                        [
+                            'CorrelationValues.value NOT IN (select value from over_correlating_values)'
+                        ]
                     ]
-                ]
-            ],
-            'recursive' => -1,
-            'contain' => [
-                'CorrelationValue' => [
-                    'fields' => [
-                        'CorrelationValues.value'
+                ],
+                'recursive' => -1,
+                'contain' => [
+                    'CorrelationValue' => [
+                        'fields' => [
+                            'CorrelationValues.value'
+                        ]
                     ]
-                ]
-            ],
-            'order' => false,
-            'limit' => $maxCorrelations
-        ));
+                ],
+                'order' => false,
+                'limit' => $maxCorrelations
+            ]
+        );
         foreach ($correlations as $k => $correlation) {
             if (!$this->checkCorrelationACL($user, $correlation['Correlation'], $sgids, $prefix)) {
                 unset($correlations[$k]);
@@ -304,11 +314,14 @@ class DefaultCorrelationBehavior extends Behavior
         }
         $conditions = $Model->Event->createEventConditions($user);
         $conditions['Events.id'] = array_keys($eventIds);
-        $events = $Model->Event->find('all', [
-            'recursive' => -1,
-            'conditions' => $conditions,
-            'fields' => ['Events.id', 'Events.orgc_id', 'Events.info', 'Events.date'],
-        ]);
+        $events = $Model->Event->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => $conditions,
+                'fields' => ['Events.id', 'Events.orgc_id', 'Events.info', 'Events.date'],
+            ]
+        );
 
         $events = array_column(array_column($events, 'Event'), null, 'id');
         $relatedAttributes = [];
@@ -369,11 +382,14 @@ class DefaultCorrelationBehavior extends Behavior
         $prefixes = ['1_', ''];
         $correlatedAttributeIds = [];
         foreach ($conditions as $k => $condition) {
-            $temp_correlations = $Model->find('all', [
-                'recursive' => -1,
-                'conditions' => $condition,
-                'fields' => $corr_fields[$k]
-            ]);
+            $temp_correlations = $Model->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'conditions' => $condition,
+                    'fields' => $corr_fields[$k]
+                ]
+            );
             if (!empty($temp_correlations)) {
                 foreach ($temp_correlations as $temp_correlation) {
                     if (empty($user['Role']['perm_site_admin'])) {
@@ -409,14 +425,17 @@ class DefaultCorrelationBehavior extends Behavior
                 ]
             ];
         }
-        $relatedAttributes = $Model->Attribute->find('all', [
-            'recursive' => -1,
-            'conditions' => [
-                'Attributes.id' => $correlatedAttributeIds
-            ],
-            'fields' => $fields,
-            'contain' => $contain
-        ]);
+        $relatedAttributes = $Model->Attribute->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => [
+                    'Attributes.id' => $correlatedAttributeIds
+                ],
+                'fields' => $fields,
+                'contain' => $contain
+            ]
+        );
         if (!empty($includeEventData)) {
             $results = [];
             foreach ($relatedAttributes as $attribute) {
@@ -430,7 +449,7 @@ class DefaultCorrelationBehavior extends Behavior
         }
     }
 
-    public function fetchRelatedEventIds(AppTable $Model, array $user, int $eventId, array $sgids)
+    public function fetchRelatedEventIds(AppTable $Model, User $user, int $eventId, array $sgids)
     {
         // search the correlation table for the event ids of the related events
         // Rules:
@@ -450,35 +469,38 @@ class DefaultCorrelationBehavior extends Behavior
 
     /**
      * @param Model $Model
-     * @param array $user
+     * @param User $user
      * @param int $eventId
      * @param array $sgids
      * @param bool $primary
      * @return array|int[]
      */
-    private function __filterRelatedEvents(AppTable $Model, array $user, int $eventId, array $sgids, bool $primary)
+    private function __filterRelatedEvents(AppTable $Model, User $user, int $eventId, array $sgids, bool $primary)
     {
         $current = $primary ? '' : '1_';
         $prefix = $primary ? '1_' : '';
 
         if (empty($user['Role']['perm_site_admin'])) {
-            $correlations = $Model->find('all', [
-                'recursive' => -1,
-                'fields' => [
-                    $prefix . 'org_id',
-                    $prefix . 'event_id',
-                    $prefix . 'event_distribution',
-                    $prefix . 'event_sharing_group_id',
-                    $prefix . 'object_id',
-                    $prefix . 'object_distribution',
-                    $prefix . 'object_sharing_group_id',
-                    $prefix . 'distribution',
-                    $prefix . 'sharing_group_id'
-                ],
-                'conditions' => [
-                    $current . 'event_id' => $eventId
-                ],
-            ]);
+            $correlations = $Model->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'fields' => [
+                        $prefix . 'org_id',
+                        $prefix . 'event_id',
+                        $prefix . 'event_distribution',
+                        $prefix . 'event_sharing_group_id',
+                        $prefix . 'object_id',
+                        $prefix . 'object_distribution',
+                        $prefix . 'object_sharing_group_id',
+                        $prefix . 'distribution',
+                        $prefix . 'sharing_group_id'
+                    ],
+                    'conditions' => [
+                        $current . 'event_id' => $eventId
+                    ],
+                ]
+            );
 
             $eventIds = [];
             foreach ($correlations as $correlation) {
@@ -494,13 +516,16 @@ class DefaultCorrelationBehavior extends Behavior
             return array_keys($eventIds);
         }
 
-        return $Model->find('column', [
-            'fields' => [$prefix . 'event_id'],
-            'conditions' => [
-                $current . 'event_id' => $eventId
-            ],
-            'unique' => true,
-        ])->toArray();
+        return $Model->find(
+            'column',
+            [
+                'fields' => [$prefix . 'event_id'],
+                'conditions' => [
+                    $current . 'event_id' => $eventId
+                ],
+                'unique' => true,
+            ]
+        )->toArray();
     }
 
     /**
@@ -610,31 +635,43 @@ class DefaultCorrelationBehavior extends Behavior
             //$Model->query('TRUNCATE TABLE correlation_values;');
             //$Model->query('TRUNCATE TABLE over_correlating_values;');
         } else {
-            $Model->deleteAll([
-                'OR' => array(
-                    'Correlations.1_event_id' => $eventId,
-                    'Correlations.event_id' => $eventId,
-                )
-            ], false);
+            $Model->deleteAll(
+                [
+                    'OR' => [
+                        'Correlations.1_event_id' => $eventId,
+                        'Correlations.event_id' => $eventId,
+                    ]
+                ],
+                false
+            );
         }
     }
 
     public function purgeByValue(AppTable $Model, string $value)
     {
-        $valueIds = $Model->CorrelationValue->find('column', [
-            'recursive' => -1,
-            'conditions' => [
-                'OR' => [
-                    'CorrelationValues.value LIKE' => '%' . $value,
-                    'CorrelationValues.value LIKE' => $value . '%'
+        $valueIds = $Model->CorrelationValue->find(
+            'column',
+            [
+                'recursive' => -1,
+                'conditions' => [
+                    'OR' => [
+                        [
+                            'CorrelationValues.value LIKE' => '%' . $value,
+                        ], [
+                            'CorrelationValues.value LIKE' => $value . '%'
+                        ]
+                    ]
+                ],
+                'fields' => [
+                    'CorrelationValues.id'
                 ]
-            ],
-            'fields' => [
-                'CorrelationValues.id'
             ]
-        ]);
-        $Model->deleteAll([
-            'Correlations.value_id' => $valueIds
-        ], false);
+        );
+        $Model->deleteAll(
+            [
+                'Correlations.value_id' => $valueIds
+            ],
+            false
+        );
     }
 }

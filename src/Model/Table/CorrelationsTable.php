@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Model\Table;
 
+use App\Model\Entity\User;
 use Cake\Core\Configure;
 
 class CorrelationsTable extends AppTable
@@ -11,24 +12,24 @@ class CorrelationsTable extends AppTable
     private const CACHE_NAME = 'misp:top_correlations',
         CACHE_AGE = 'misp:top_correlations_age';
 
-    public $belongsTo = array(
+    public $belongsTo = [
         'Attribute' => [
             'className' => 'Attribute',
             'foreignKey' => 'attribute_id'
         ],
-        'Event' => array(
+        'Event' => [
             'className' => 'Event',
             'foreignKey' => 'event_id'
-        ),
-        'Object' => array(
+        ],
+        'Object' => [
             'className' => 'Object',
             'foreignKey' => 'object_id'
-        ),
+        ],
         'CorrelationValue' => [
             'className' => 'CorrelationValue',
             'foreignKey' => 'value_id'
         ]
-    );
+    ];
 
     public $validEngines = [
         'Default' => 'default_correlations',
@@ -36,9 +37,9 @@ class CorrelationsTable extends AppTable
         'Legacy' => 'correlations'
     ];
 
-    public $actsAs = array(
+    public $actsAs = [
         'Containable'
-    );
+    ];
 
     /** @var array */
     private $exclusions;
@@ -69,12 +70,12 @@ class CorrelationsTable extends AppTable
     }
 
     /**
-     * @param array $user User array
+     * @param User $user User array
      * @param int $eventId Event ID
      * @param array $sgids List of sharing group IDs
      * @return array
      */
-    public function getRelatedEventIds(array $user, int $eventId, array $sgids)
+    public function getRelatedEventIds(User $user, int $eventId, array $sgids)
     {
         $relatedEventIds = $this->fetchRelatedEventIds($this, $user, $eventId, $sgids);
         if (empty($relatedEventIds)) {

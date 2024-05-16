@@ -1,12 +1,8 @@
 <?php
 
-namespace App\Settings\SettingsProvider;
+namespace App\Model\Table\SettingProviders;
 
 use Cake\ORM\TableRegistry;
-
-require_once(APP . 'Model' . DS . 'Table' . DS . 'SettingProviders' . DS . 'BaseSettingsProvider.php');
-
-use App\Settings\SettingsProvider\BaseSettingsProvider;
 
 class UserSettingsProvider extends BaseSettingsProvider
 {
@@ -43,7 +39,15 @@ class UserSettingsProvider extends BaseSettingsProvider
                     ],
                 ]
             ],
-            __('Account Security') => [
+            __('Account Security') => [],
+            __('Rest Search') => [
+                'default_restsearch_parameters' => [
+                    'name' => __('Default restSearch parameters'),
+                    'type' => 'boolean',
+                    'description' => __('Default restSearch parameters.'),
+                    'default' => [],
+                    'severity' => 'info',
+                ]
             ]
         ];
     }

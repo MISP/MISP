@@ -20,6 +20,7 @@ use App\Model\Entity\AttachmentScan;
 use App\Model\Entity\Attribute;
 use App\Model\Entity\Distribution;
 use App\Model\Entity\Event;
+use App\Model\Entity\User;
 use App\Model\Entity\Job;
 use App\Model\Entity\ThreatLevel;
 use App\Model\Table\AppTable;
@@ -100,6 +101,32 @@ class EventsTable extends AppTable
         'submittedioc' => ['desc' => '', 'formdesc' => ''],
         'analysis' => ['desc' => 'Analysis Levels: *Initial* means the event has just been created, *Ongoing* means that the event is being populated, *Complete* means that the event\'s creation is complete', 'formdesc' => 'Analysis levels: Initial: event has been started Ongoing: event population is in progress Complete: event creation has finished'],
         'distribution' => ['desc' => 'Describes who will have access to the event.']
+    ];
+
+    public $validFormats = [
+        'attack' => ['html', 'AttackExport', 'html'],
+        'attack-sightings' => ['json', 'AttackSightingsExport', 'json'],
+        'cache' => ['txt', 'CacheExport', 'cache'],
+        'context' => ['html', 'ContextExport', 'html'],
+        'context-markdown' => ['txt', 'ContextMarkdownExport', 'md'],
+        'count' => ['txt', 'CountExport', 'txt'],
+        'csv' => ['csv', 'CsvExport', 'csv'],
+        'hashes' => ['txt', 'HashesExport', 'txt'],
+        'hosts' => ['txt', 'HostsExport', 'txt'],
+        'json' => ['json', 'JsonExport', 'json'],
+        'netfilter' => ['txt', 'NetfilterExport', 'sh'],
+        'opendata' => ['txt', 'OpendataExport', 'txt'],
+        'openioc' => ['xml', 'OpeniocExport', 'ioc'],
+        'rpz' => ['txt', 'RPZExport', 'rpz'],
+        'snort' => ['txt', 'NidsSnortExport', 'rules'],
+        'stix' => ['xml', 'Stix1Export', 'xml'],
+        'stix-json' => ['json', 'Stix1Export', 'json'],
+        'stix2' => ['json', 'Stix2Export', 'json'],
+        'suricata' => ['txt', 'NidsSuricataExport', 'rules'],
+        'text' => ['text', 'TextExport', 'txt'],
+        'xml' => ['xml', 'XmlExport', 'xml'],
+        'yara' => ['txt', 'YaraExport', 'yara'],
+        'yara-json' => ['json', 'YaraExport', 'json']
     ];
 
     public function initialize(array $config): void
@@ -1461,7 +1488,7 @@ class EventsTable extends AppTable
     }
 
     /**
-     * @param array $user
+     * @param User $user
      * @param array $params
      * @param int $result_count
      * @return array Event IDs, when `include_attribute_count` is enabled, then it is Event ID => Attribute count
@@ -1739,7 +1766,7 @@ class EventsTable extends AppTable
         }
         $conditions = $this->createEventConditions($user);
         if ($options['eventid']) {
-            $conditions['AND'][] = ["Events.id" => $options['eventid']];
+            $conditions['AND'][] = ["Events.id IN" => $options['eventid']];
         }
         if ($options['eventsExtendingUuid']) {
             if (!is_array($options['eventsExtendingUuid'])) {
@@ -2268,11 +2295,11 @@ class EventsTable extends AppTable
     /**
      * Attach galaxy clusters to event and attributes.
      * @param array $event
-     * @param array $user
+     * @param User $user
      * @param bool $excludeGalaxy
      * @param bool $fetchFullCluster
      */
-    private function __attachGalaxies(array &$event, array $user, $excludeGalaxy, $fetchFullCluster, $fetchFullRelationship = false)
+    private function __attachGalaxies(array &$event, User $user, $excludeGalaxy, $fetchFullCluster, $fetchFullRelationship = false)
     {
         $galaxyTags = [];
         $event['Galaxy'] = [];
@@ -4494,14 +4521,16 @@ class EventsTable extends AppTable
         // we create a fake site admin user object to fetch the event with everything included
         // This replaces the old method of manually just fetching everything, staying consistent
         // with the fetchEvent() output
-        $elevatedUser = [
-            'Role' => [
-                'perm_site_admin' => 1,
-                'perm_sync' => 1,
-                'perm_audit' => 0,
-            ],
-            'org_id' => $eventOrgcId['orgc_id']
-        ];
+        $elevatedUser = new User(
+            [
+                'Role' => [
+                    'perm_site_admin' => 1,
+                    'perm_sync' => 1,
+                    'perm_audit' => 0,
+                ],
+                'org_id' => $eventOrgcId['orgc_id']
+            ]
+        );
         $event = $this->fetchEvent($elevatedUser, ['eventid' => $id, 'metadata' => 1]);
         if (empty($event)) {
             return true;
@@ -7432,7 +7461,7 @@ class EventsTable extends AppTable
     }
 
     /**
-     * @param array $user
+     * @param User $user
      * @param string $returnFormat
      * @param array $filters
      * @param bool $paramsOnly
@@ -7442,12 +7471,15 @@ class EventsTable extends AppTable
      * @return TmpFileTool
      * @throws Exception
      */
-    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
+    public function restSearch(User $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
         }
-        $exportTool = new $this->validFormats[$returnFormat][1]();
+
+        require_once(APP . 'Lib/Export/' . $this->validFormats[$returnFormat][1] . '.php');
+        $className = 'App\Lib\Export\\' . $this->validFormats[$returnFormat][1];
+        $exportTool = new $className();
 
         if ($jobId) {
             $JobsTable = $this->fetchTable('Jobs');
@@ -7466,7 +7498,7 @@ class EventsTable extends AppTable
         $filters = $this->addFiltersFromUserSettings($user, $filters);
         if (empty($exportTool->mock_query_only)) {
             $filters['include_attribute_count'] = 1;
-            $eventid = $this->filterEventIds($user, $filters, $elementCounter);
+            $eventid = $this->filterEventIds($user, $filters, $elementCounter)->toArray();
             $eventCount = count($eventid);
             $eventids_chunked = $this->clusterEventIds($exportTool, $eventid);
             unset($eventid);
@@ -7758,8 +7790,7 @@ class EventsTable extends AppTable
 
     public function addFiltersFromUserSettings($user, $filters)
     {
-        $UserSettingsTable = $this->fetchTable('UserSettings');
-        $defaultParameters = $UserSettingsTable->getDefaultRestSearchParameters($user);
+        $defaultParameters = $user->user_settings_by_name_with_fallback['default_restsearch_parameters']['value'];
         $filters = array_replace_recursive($defaultParameters, $filters);
         return $filters;
     }
