@@ -369,12 +369,8 @@ class AppController extends Controller
     {
         $request = $options['request'] ?? $this->request;
         if ($request->is('post')) {
-            if (!empty($request->data)) {
-                if (isset($request->data['request'])) {
-                    $temp = $request->data['request'];
-                } else {
-                    $temp = $request->data;
-                }
+            if (!empty($request->getData())) {
+                $temp = $request->getData();
                 if (empty($options['paramArray'])) {
                     foreach ($options['paramArray'] as $param => $value) {
                         $data = $this->captureParam($data, $param, $value);

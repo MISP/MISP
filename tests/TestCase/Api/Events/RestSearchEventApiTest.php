@@ -23,7 +23,7 @@ class RestSearchEventApiTest extends TestCase
         'app.Events',
     ];
 
-    public function testRestSearchByInfo(): void
+    public function testRestSearchByUuid(): void
     {
         $this->skipOpenApiValidations();
 
@@ -34,7 +34,7 @@ class RestSearchEventApiTest extends TestCase
         $this->post(
             self::ENDPOINT,
             [
-                'info' => 'Event 1'
+                'uuid' => EventsFixture::EVENT_1_UUID
             ]
         );
         $this->assertResponseOk();
@@ -42,5 +42,7 @@ class RestSearchEventApiTest extends TestCase
         $results = $this->getJsonResponseAsArray();
 
         $this->assertEquals(EventsFixture::EVENT_1_ID, $results['response'][0]['Event']['id']);
+        $this->assertEquals(EventsFixture::EVENT_1_UUID, $results['response'][0]['Event']['uuid']);
+        $this->assertEquals(1, count($results['response']));
     }
 }

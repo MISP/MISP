@@ -495,4 +495,88 @@ class AppTable extends Table
         }
         return $val / (1024 * 1024);
     }
+
+    /*
+     * Get filters in one of the following formats:
+     * [foo, bar]
+     * ["OR" => [foo, bar], "NOT" => [baz]]
+     * "foo"
+     * "foo&&bar&&!baz"
+     * and convert it into the same format ["OR" => [foo, bar], "NOT" => [baz]]
+     */
+    public function convert_filters($filter)
+    {
+        if (!is_array($filter)) {
+            $temp = explode('&&', $filter);
+            $filter = [];
+            foreach ($temp as $f) {
+                $f = strval($f);
+                if ($f !== '') {
+                    if ($f[0] === '!') {
+                        $filter['NOT'][] = substr($f, 1);
+                    } else {
+                        $filter['OR'][] = $f;
+                    }
+                }
+            }
+            return $filter;
+        }
+        if (!isset($filter['OR']) && !isset($filter['NOT']) && !isset($filter['AND'])) {
+            $temp = [];
+            foreach ($filter as $param) {
+                $param = strval($param);
+                if (!empty($param)) {
+                    if ($param[0] === '!') {
+                        $temp['NOT'][] = substr($param, 1);
+                    } else {
+                        $temp['OR'][] = $param;
+                    }
+                }
+            }
+            $filter = $temp;
+        }
+        return $filter;
+    }
+
+    /**
+     * Generate a generic subquery - options needs to include conditions
+     *
+     * @param AppTable $model
+     * @param array $options
+     * @param string $lookupKey
+     * @param bool $negation
+     * @return string[]
+     */
+    protected function subQueryGenerator(AppTable $model, array $options, $lookupKey, $negation = false)
+    {
+        $defaults = [
+            'fields' => ['*'],
+            'table' => $model->getTable(),
+            'alias' => $model->getAlias(),
+            // 'limit' => null,
+            // 'offset' => null,
+            'joins' => [],
+            'conditions' => [],
+            // 'group' => false,
+            'recursive' => -1
+        ];
+
+        $params = [];
+        foreach ($defaults as $key => $defaultValue) {
+            if (isset($options[$key])) {
+                $params[$key] = $options[$key];
+            } else {
+                $params[$key] = $defaultValue;
+            }
+        }
+        // FIXME: [3.x-MIGRATION] nested queries dont have the paramaters interpolated, the placeholders instead
+        $subQuery = $model->find()->select($params['fields'])->where($params['conditions'])->sql();
+
+        if ($negation) {
+            $subQuery = $lookupKey . ' NOT IN (' . $subQuery . ') ';
+        } else {
+            $subQuery = $lookupKey . ' IN (' . $subQuery . ') ';
+        }
+        return [$subQuery];
+    }
 }

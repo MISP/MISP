@@ -1426,7 +1426,7 @@ class EventsTable extends AppTable
                 'conditions' => ['Attributes.' . $attributeParam . ' LIKE' => $params['wildcard']],
                 'fields' => ['event_id']
             ];
-            $tempConditions[] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'id');
+            $tempConditions[] = $this->subQueryGenerator($this->fetchTable('Attributes'), $subQueryOptions, 'id');
         }
         $tagScopes = ['Event', 'Attribute'];
         $AttributeTagsTable = $this->fetchTable('AttributeTags');
@@ -2765,26 +2765,26 @@ class EventsTable extends AppTable
                 $params['uuid'] = $this->convert_filters($params['uuid']);
                 if (!empty($params['uuid']['OR'])) {
                     $subQueryOptions = [
-                        'conditions' => ['Attributes.uuid' => $params['uuid']['OR']],
+                        'conditions' => ['Attributes.uuid IN' => $params['uuid']['OR']],
                         'fields' => ['event_id']
                     ];
-                    $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'id');
+                    $attributeSubquery = $this->subQueryGenerator($this->fetchTable('Attributes'), $subQueryOptions, 'id');
                     $conditions['AND'][] = [
                         'OR' => [
-                            'uuid' => $params['uuid']['OR'],
+                            'uuid IN' => $params['uuid']['OR'],
                             $attributeSubquery
                         ]
                     ];
                 }
                 if (!empty($params['uuid']['NOT'])) {
                     $subQueryOptions = [
-                        'conditions' => ['Attributes.uuid' => $params['uuid']['NOT']],
+                        'conditions' => ['Attributes.uuid IN' => $params['uuid']['NOT']],
                         'fields' => ['event_id']
                     ];
-                    $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'id');
+                    $attributeSubquery = $this->subQueryGenerator($this->Attributes, $subQueryOptions, 'id');
                     $conditions['AND'][] = [
                         'NOT' => [
-                            'uuid' => $params['uuid']['NOT'],
+                            'uuid IN' => $params['uuid']['NOT'],
                             $attributeSubquery
                         ]
                     ];
