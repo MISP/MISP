@@ -180,3 +180,7 @@ CakeLog::config('error', array(
 CakePlugin::loadAll(array(
 	'CakeResque' => array('bootstrap' => true)
 ));
+
+
+// Enable the additional exception logging for certain failures (timeouts, out of memory, etc)
+Configure::write('Exception.renderer', 'AppExceptionRenderer');
