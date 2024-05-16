@@ -2485,7 +2485,7 @@ class EventsController extends AppController
                 }
                 $validationErrors = [];
                 $created_id = 0;
-                $add = $this->Events->_add($data, $this->ParamHandler->isRest(), $this->ACL->getUser()->toArray(), '', null, false, null, $created_id, $validationErrors);
+                $add = $this->Events->_add($data, $this->ParamHandler->isRest(), $this->ACL->getUser(), '', null, false, null, $created_id, $validationErrors);
                 if ($add === true) {
                     if ($this->ParamHandler->isRest()) {
                         // REST users want to see the newly created event

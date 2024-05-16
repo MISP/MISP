@@ -262,7 +262,7 @@ class GalaxiesController extends AppController
                     throw new BadRequestException(__('Error while decoding JSON'));
                 }
             }
-            $saveResult = $this->Galaxies->importGalaxyAndClusters($this->ACL->getUser()->toArray(), $clusters);
+            $saveResult = $this->Galaxies->importGalaxyAndClusters($this->ACL->getUser(), $clusters);
             if ($saveResult['success']) {
                 $message = __('Galaxy clusters imported. {0} imported, {1} ignored, {2} failed. {3}', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
                 if ($this->ParamHandler->isRest()) {
@@ -294,7 +294,7 @@ class GalaxiesController extends AppController
         }
         if ($this->request->is('post')) {
             $clusters = $this->request->getData();
-            $saveResult = $this->Galaxies->importGalaxyAndClusters($this->ACL->getUser()->toArray(), $clusters);
+            $saveResult = $this->Galaxies->importGalaxyAndClusters($this->ACL->getUser(), $clusters);
             $messageInfo = __('{0} imported, {1} ignored, {2} failed. {3}', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
             if ($saveResult['success']) {
                 $message = __('Galaxy clusters imported. ') . $messageInfo;
@@ -334,15 +334,15 @@ class GalaxiesController extends AppController
                     'GalaxyClusters.distribution' => $requestData['distribution'],
                 ]
             ];
-            if(!empty($clusterType)){
+            if (!empty($clusterType)) {
                 $options['conditions']['GalaxyClusters.default in'] = $clusterType;
             }
 
-            $clusters = $this->Galaxies->GalaxyClusters->fetchGalaxyClusters($this->ACL->getUser()->toArray(), $options, $full = true);
-            if(empty($clusters)) {
+            $clusters = $this->Galaxies->GalaxyClusters->fetchGalaxyClusters($this->ACL->getUser(), $options, $full = true);
+            if (empty($clusters)) {
                 throw new NotFoundException('No clusters found.');
             }
-            
+
             $clusters = $this->Galaxies->GalaxyClusters->unsetFieldsForExport($clusters);
             if ($requestData['format'] == 'misp-galaxy') {
                 $clusters = $this->Galaxies->convertToMISPGalaxyFormat($galaxy, $clusters);

@@ -3178,13 +3178,13 @@ class EventsTable extends AppTable
 
     /**
      * @param int $id
-     * @param array $senderUser Not used anymore.
+     * @param User $senderUser Not used anymore.
      * @param int|null $oldpublish Timestamp of old publishing.
      * @param int|null $jobId
      * @return bool
      * @throws Exception
      */
-    public function sendAlertEmail($id, array $senderUser, $oldpublish = null, $jobId = null)
+    public function sendAlertEmail($id, User $senderUser, $oldpublish = null, $jobId = null)
     {
         $event = $this->find(
             'all',
@@ -3428,12 +3428,12 @@ class EventsTable extends AppTable
      * When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
      * or which we need to update. All of that is controlled in this method.
      * @param array $event
-     * @param array $user
+     * @param User $user
      * @param array|false $server
      * @return array
      * @throws Exception
      */
-    private function __captureObjects(array $event, array $user, $server = false)
+    private function __captureObjects(array $event, User $user, $server = false)
     {
         // First we need to check whether the event or any attributes are tied to a sharing group and whether the user is even allowed to create the sharing group / is part of it
         if (isset($event['distribution']) && $event['distribution'] == 4) {
@@ -3528,12 +3528,12 @@ class EventsTable extends AppTable
 
     /**
      * @param array $tag
-     * @param array $user
+     * @param User $user
      * @param array $capturedTags
      * @return false|int
      * @throws Exception
      */
-    public function captureTagWithCache(array $tag, array $user, array &$capturedTags)
+    public function captureTagWithCache(array $tag, User $user, array &$capturedTags)
     {
         $tagName = $tag['name'];
         if (isset($capturedTags[$tagName])) {
@@ -3551,12 +3551,12 @@ class EventsTable extends AppTable
     /**
      * Capture tags for attributes and replace tags just by IDs
      * @param array $attributes
-     * @param array $user
+     * @param User $user
      * @param array $capturedTags
      * @return array
      * @throws Exception
      */
-    private function __captureAttributeTags(array $attributes, array $user, array &$capturedTags)
+    private function __captureAttributeTags(array $attributes, User $user, array &$capturedTags)
     {
         foreach ($attributes as $k => $a) {
             $attributeTags = [];
@@ -3694,7 +3694,7 @@ class EventsTable extends AppTable
      *
      * @param array $data
      * @param bool $fromXml
-     * @param array $user
+     * @param User $user
      * @param int $org_id
      * @param int|null $passAlong Server ID or null
      * @param bool $fromPull
@@ -3704,7 +3704,7 @@ class EventsTable extends AppTable
      * @return bool|int|string True when new event was created, int when event with the same uuid already exists, string when validation errors
      * @throws Exception
      */
-    public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = [])
+    public function _add(array &$data, $fromXml, User $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = [])
     {
         if (Configure::read('MISP.enableEventBlocklisting') !== false && isset($data['Event']['uuid'])) {
             $EventBlocklistsTable = $this->fetchTable('EventBlocklists');

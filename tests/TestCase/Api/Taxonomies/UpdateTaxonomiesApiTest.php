@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Test\TestCase\Api\Galaxies;
+namespace App\Test\TestCase\Api\Taxonomies;
 
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Helper\ApiTestTrait;

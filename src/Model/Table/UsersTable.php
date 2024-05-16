@@ -6,6 +6,7 @@ use App\Lib\Tools\GpgTool;
 use App\Lib\Tools\LogExtendedTrait;
 use App\Lib\Tools\SendEmail;
 use App\Lib\Tools\SendEmailException;
+use App\Model\Entity\User;
 use App\Model\Table\AppTable;
 use ArrayObject;
 use Cake\Core\Configure;
@@ -551,7 +552,7 @@ class UsersTable extends AppTable
         return $this->getAuthUserByConditions($conditions);
     }
 
-    public function checkNotificationBanStatus(array $user)
+    public function checkNotificationBanStatus(User $user)
     {
         $banStatus = [
             'error' => false,

@@ -11,6 +11,7 @@ use App\Lib\Tools\TmpFileTool;
 use App\Model\Entity\Distribution;
 use App\Model\Entity\Job;
 use App\Model\Entity\Organisation;
+use App\Model\Entity\User;
 use App\Model\Table\AppTable;
 use ArrayObject;
 use Cake\Collection\CollectionInterface;
@@ -734,14 +735,16 @@ class GalaxyClustersTable extends AppTable
                 'fields' => ['orgc_id']
             ]
         )->first();
-        $elevatedUser = [
-            'Role' => [
-                'perm_site_admin' => 1,
-                'perm_sync' => 1,
-                'perm_audit' => 0,
-            ],
-            'org_id' => $clusterOrgcId['orgc_id']
-        ];
+        $elevatedUser = new User(
+            [
+                'Role' => [
+                    'perm_site_admin' => 1,
+                    'perm_sync' => 1,
+                    'perm_audit' => 0,
+                ],
+                'org_id' => $clusterOrgcId['orgc_id']
+            ]
+        );
         $cluster = $this->fetchGalaxyClusters($elevatedUser, ['minimal' => true, 'conditions' => ['id' => $clusterId]], $full = false);
         if (empty($cluster)) {
             return true;
@@ -832,14 +835,14 @@ class GalaxyClustersTable extends AppTable
     /**
      * Gets a cluster then save it.
      *
-     * @param array $user
+     * @param User $user
      * @param array $cluster Cluster to be saved
      * @param bool  $fromPull If the current capture is performed from a PULL sync
      * @param int   $orgId The organisation id that should own the cluster
      * @param array $server The server for which to capture is ongoing
      * @return array Result of the capture including successes, fails and errors
      */
-    public function captureCluster(array $user, $cluster, $fromPull = false, $orgId = 0, $server = false)
+    public function captureCluster(User $user, $cluster, $fromPull = false, $orgId = 0, $server = false)
     {
         $results = ['success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => []];
 
@@ -1165,12 +1168,12 @@ class GalaxyClustersTable extends AppTable
     /**
      * fetchGalaxyClusters Very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
      *
-     * @param  mixed $user
+     * @param  User $user
      * @param  mixed $options
      * @param  bool  $full
      * @return array
      */
-    public function fetchGalaxyClusters(array $user, array $options, $full = false, $includeFullClusterRelationship = false)
+    public function fetchGalaxyClusters(User $user, array $options, $full = false, $includeFullClusterRelationship = false)
     {
         $params = [
             'conditions' => $this->buildConditions($user),
@@ -1569,13 +1572,13 @@ class GalaxyClustersTable extends AppTable
     /**
      * Simple ACL-aware method to fetch a cluster by Id or UUID
      *
-     * @param array $user
+     * @param User $user
      * @param int|string $clusterId Cluster ID or UUID
      * @param bool $throwErrors
      * @param bool $full
      * @return array
      */
-    public function fetchClusterById(array $user, $clusterId, $throwErrors = true, $full = false)
+    public function fetchClusterById(User $user, $clusterId, $throwErrors = true, $full = false)
     {
         $alias = $this->getAlias();
         if (Validation::uuid($clusterId)) {
@@ -1596,14 +1599,14 @@ class GalaxyClustersTable extends AppTable
     /**
      * Fetches a cluster and checks if the user has the authorization to perform the requested operation
      *
-     * @param  array $user
+     * @param  User $user
      * @param  int|string|array $cluster
      * @param  mixed $authorizations the requested actions to be performed on the cluster
      * @param  bool  $throwErrors Should the function throws exception if users is not allowed to perform the action
      * @param  bool  $full
      * @return array The cluster or an error message
      */
-    public function fetchIfAuthorized(array $user, $cluster, $authorizations, $throwErrors = true, $full = false)
+    public function fetchIfAuthorized(User $user, $cluster, $authorizations, $throwErrors = true, $full = false)
     {
         $authorizations = is_array($authorizations) ? $authorizations : [$authorizations];
         $possibleAuthorizations = ['view', 'edit', 'delete', 'publish'];
@@ -1999,7 +2002,7 @@ class GalaxyClustersTable extends AppTable
     /**
      * pullGalaxyClusters
      *
-     * @param array $user
+     * @param User $user
      * @param ServerSyncTool $serverSync
      * @param string|int $technique The technique startegy used for pulling
      *      allowed:
@@ -2011,7 +2014,7 @@ class GalaxyClustersTable extends AppTable
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      */
-    public function pullGalaxyClusters(array $user, ServerSyncTool $serverSync, $technique = 'full')
+    public function pullGalaxyClusters(User $user, ServerSyncTool $serverSync, $technique = 'full')
     {
         $compatible = $serverSync->isSupported(ServerSyncTool::FEATURE_EDIT_OF_GALAXY_CLUSTER);
         if (!$compatible) {
@@ -2034,12 +2037,12 @@ class GalaxyClustersTable extends AppTable
     /**
      * Collect the list of remote cluster IDs to be pulled based on the technique
      *
-     * @param  array $user
+     * @param  User $user
      * @param  string|int $technique
      * @param  ServerSyncTool $serverSync
      * @return array cluster ID list to be pulled
      */
-    private function getClusterIdListBasedOnPullTechnique(array $user, $technique, ServerSyncTool $serverSync)
+    private function getClusterIdListBasedOnPullTechnique(User $user, $technique, ServerSyncTool $serverSync)
     {
         $ServersTable = $this->fetchTable('Servers');
         try {
@@ -2086,7 +2089,7 @@ class GalaxyClustersTable extends AppTable
         return $clusterIds;
     }
 
-    private function __pullGalaxyCluster($clusterId, ServerSyncTool $serverSync, array $user)
+    private function __pullGalaxyCluster($clusterId, ServerSyncTool $serverSync, User $user)
     {
         try {
             $cluster = $serverSync->fetchGalaxyCluster($clusterId)->json();

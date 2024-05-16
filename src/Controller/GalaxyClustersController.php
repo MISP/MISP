@@ -204,7 +204,7 @@ class GalaxyClustersController extends AppController
      */
     public function view($id)
     {
-        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $id, 'view', $throwErrors = true, $full = true);
+        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $id, 'view', $throwErrors = true, $full = true);
         $tag = $this->GalaxyClusters->Tag->find(
             'all',
             [
@@ -276,7 +276,7 @@ class GalaxyClustersController extends AppController
             $initialDistribution = $configuredDistribution;
         }
         $SharingGroupsTable = $this->fetchTable('SharingGroups');
-        $sgs = $SharingGroupsTable->fetchAllAuthorised($this->ACL->getUser()->toArray(), 'name', 1);
+        $sgs = $SharingGroupsTable->fetchAllAuthorised($this->ACL->getUser(), 'name', 1);
 
         if (isset($this->request->getParam('named')['forkUuid'])) {
             $forkUuid = $this->request->getParam('named')['forkUuid'];
@@ -367,7 +367,7 @@ class GalaxyClustersController extends AppController
                 if ($this->request->is('ajax')) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'add', $galaxyClusterEntity->id, $this->response->getType());
                 } else if ($this->ParamHandler->isRest()) {
-                    $saved_cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $galaxyClusterEntity->id, 'view', $throwErrors = true, $full = true);
+                    $saved_cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $galaxyClusterEntity->id, 'view', $throwErrors = true, $full = true);
                     return $this->RestResponse->viewData($saved_cluster);
                 } else {
                     $this->Flash->success($message);
@@ -388,7 +388,7 @@ class GalaxyClustersController extends AppController
      */
     public function edit($id)
     {
-        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $id, 'edit', $throwErrors = true, $full = true);
+        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $id, 'edit', $throwErrors = true, $full = true);
         $data = ['GalaxyCluster' => $cluster, 'GalaxyElement' => $cluster['GalaxyElement'] ?? []];
 
         $distributionLevels = Distribution::ALL;
@@ -399,7 +399,7 @@ class GalaxyClustersController extends AppController
             $initialDistribution = $configuredDistribution;
         }
         $SharingGroupsTable = $this->fetchTable('SharingGroups');
-        $sgs = $SharingGroupsTable->fetchAllAuthorised($this->ACL->getUser()->toArray(), 'name', 1);
+        $sgs = $SharingGroupsTable->fetchAllAuthorised($this->ACL->getUser(), 'name', 1);
 
         if (!empty($cluster['extends_uuid'])) {
             $forkedCluster = $this->GalaxyClusters->fetchGalaxyClusters(
@@ -487,7 +487,7 @@ class GalaxyClustersController extends AppController
                     if ($this->request->is('ajax')) {
                         return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'edit', $cluster['GalaxyCluster']['id'], $this->response->getType());
                     } else if ($this->ParamHandler->isRest()) {
-                        $saved_cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $id, 'view', $throwErrors = true, $full = true);
+                        $saved_cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $id, 'view', $throwErrors = true, $full = true);
                         return $this->RestResponse->viewData($saved_cluster);
                     } else {
                         $this->Flash->success($message);
@@ -523,7 +523,7 @@ class GalaxyClustersController extends AppController
      */
     public function publish($id)
     {
-        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $id, 'publish', $throwErrors = true, $full = false);
+        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $id, 'publish', $throwErrors = true, $full = false);
         if ($cluster['published']) {
             throw new MethodNotAllowedException(__('You can\'t publish a galaxy cluster that is already published'));
         }
@@ -570,7 +570,7 @@ class GalaxyClustersController extends AppController
      */
     public function unpublish($id)
     {
-        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $id, 'publish', $throwErrors = true, $full = false);
+        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $id, 'publish', $throwErrors = true, $full = false);
         if (!$cluster['published']) {
             throw new MethodNotAllowedException(__('You can\'t unpublish a galaxy cluster that is not published'));
         }
@@ -637,7 +637,7 @@ class GalaxyClustersController extends AppController
      */
     public function delete($id, $hard = false)
     {
-        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $id, 'delete', $throwErrors = true, $full = false);
+        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $id, 'delete', $throwErrors = true, $full = false);
         if ($this->request->is('post')) {
             if (!empty($this->request->getData()['hard'])) {
                 $hard = true;
@@ -678,7 +678,7 @@ class GalaxyClustersController extends AppController
 
     public function restore($id)
     {
-        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $id, 'delete', $throwErrors = true, $full = false);
+        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $id, 'delete', $throwErrors = true, $full = false);
         if ($this->request->is('post')) {
             $result = $this->GalaxyClusters->restoreCluster($cluster['id']);
             $galaxyId = $cluster['galaxy_id'];
@@ -706,7 +706,7 @@ class GalaxyClustersController extends AppController
 
     public function viewCyCatRelations($id)
     {
-        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $id, 'view', true, false);
+        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $id, 'view', true, false);
         $CyCatRelations = $this->GalaxyClusters->getCyCatRelations($cluster);
         $this->set('cluster', $cluster);
         $this->set('CyCatRelations', $CyCatRelations);
@@ -859,7 +859,7 @@ class GalaxyClustersController extends AppController
      */
     public function updateCluster($id)
     {
-        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $id, 'edit', $throwErrors = true, $full = true);
+        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $id, 'edit', $throwErrors = true, $full = true);
         if ($cluster['GalaxyCluster']['default']) {
             throw new MethodNotAllowedException(__('Default galaxy cluster cannot be updated'));
         }
@@ -935,7 +935,7 @@ class GalaxyClustersController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This function can only be reached via AJAX.');
         }
-        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $id, 'view', true, true);
+        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $id, 'view', true, true);
         $existingRelations = $this->GalaxyClusters->GalaxyClusterRelation->getExistingRelationships();
         $cluster = $this->GalaxyClusters->attachClusterToRelations($this->ACL->getUser()->toArray(), $cluster, $includeInbound);
 
@@ -967,7 +967,7 @@ class GalaxyClustersController extends AppController
      */
     public function viewRelationTree($id, $includeInbound = 1)
     {
-        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $id, 'view', $throwErrors = true, $full = true);
+        $cluster = $this->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $id, 'view', $throwErrors = true, $full = true);
         $cluster = $this->GalaxyClusters->attachClusterToRelations($this->ACL->getUser()->toArray(), $cluster, $includeInbound);
         $grapher = new ClusterRelationsTreeTool();
         $grapher->construct($this->ACL->getUser()->toArray(), $this->GalaxyCluster);

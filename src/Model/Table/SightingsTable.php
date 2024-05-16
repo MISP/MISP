@@ -39,12 +39,12 @@ class SightingsTable extends AppTable
     }
 
     /**
-     * @param array $user
+     * @param User $user
      * @param ServerSyncTool $serverSync
      * @return int Number of saved Sightings.
      * @throws Exception
      */
-    public function pullSightings(array $user, ServerSyncTool $serverSync)
+    public function pullSightings(User $user, ServerSyncTool $serverSync)
     {
         // TODO: [3.x-MIGRATION] Implement pullSightings() method.
 
@@ -53,12 +53,12 @@ class SightingsTable extends AppTable
 
     /**
      * Push sightings to remote server.
-     * @param array $user
+     * @param User $user
      * @param ServerSyncTool $serverSync
      * @return array
      * @throws Exception
      */
-    public function pushSightings(array $user, ServerSyncTool $serverSync)
+    public function pushSightings(User $user, ServerSyncTool $serverSync)
     {
         // TODO: [3.x-MIGRATION] Implement pushSightings() method.
 

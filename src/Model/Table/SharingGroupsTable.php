@@ -356,11 +356,11 @@ class SharingGroupsTable extends AppTable
      * 3. Sync users
      *  a. as long as they are at least users of the SG (they can circumvent the extend rule to
      *     avoid situations where no one can create / edit an SG on an instance after a push)
-     * @param array $user
+     * @param User $user
      * @param array $sg
      * @return bool
      */
-    private function checkIfAuthorisedToSave(array $user, array $sg)
+    private function checkIfAuthorisedToSave(User $user, array $sg)
     {
         if (isset($sg[0])) {
             $sg = $sg[0];
@@ -429,7 +429,7 @@ class SharingGroupsTable extends AppTable
     //    a. Belong to the organisation that created the SG
     //    b. Have an organisation entry in the SG with the extend flag set
     // 3. Sync users that have synced the SG to the local instance
-    public function checkIfAuthorisedExtend(array $user, $id)
+    public function checkIfAuthorisedExtend(User $user, $id)
     {
         if ($user['Role']['perm_site_admin']) {
             return true;
@@ -568,11 +568,11 @@ class SharingGroupsTable extends AppTable
     }
 
     /**
-     * @param array $user
+     * @param User $user
      * @param string|int $id Sharing group ID or UUID
      * @return bool False if sharing group doesn't exists or user org is not sharing group owner
      */
-    public function checkIfOwner(array $user, $id)
+    public function checkIfOwner(User $user, $id)
     {
         if (!isset($user['id'])) {
             throw new MethodNotAllowedException('Invalid user.');
@@ -692,11 +692,11 @@ class SharingGroupsTable extends AppTable
      * Return an integer with the sharing group's ID, irregardless of the need to update or not
      *
      * @param array $sg
-     * @param array $user
+     * @param User $user
      * @param array $server
      * @return int || false
      */
-    public function captureSG(array $sg, array $user, $server = false)
+    public function captureSG(array $sg, User $user, $server = false)
     {
         $syncLocal = false;
         if (!empty($server) && !empty($server['Server']['local'])) {
@@ -749,12 +749,12 @@ class SharingGroupsTable extends AppTable
      * Return false if something goes wrong
      * Return an integer if no update is done but the sharing group can be attached
      *
-     * @param array $user
+     * @param User $user
      * @param array $existingSG
      * @param array $sg
      * @return int || false || true
      */
-    private function captureSGExisting(array $user, SharingGroup $existingSG, array $sg)
+    private function captureSGExisting(User $user, SharingGroup $existingSG, array $sg)
     {
         if (!$this->checkIfAuthorised($user, $existingSG['id']) && !$user['Role']['perm_sync']) {
             return false;
@@ -781,13 +781,13 @@ class SharingGroupsTable extends AppTable
     /**
      * Capture a new sharing group, rather than update an existing one
      *
-     * @param array $user
+     * @param User $user
      * @param array $sg
      * @param boolean $syncLocal
      * @return int|false
      * @throws Exception
      */
-    private function captureSGNew(array $user, array $sg, $syncLocal)
+    private function captureSGNew(User $user, array $sg, $syncLocal)
     {
         // check if current user is contained in the SG and we are in a local sync setup
         if (!empty($sg['uuid'])) {
@@ -889,7 +889,7 @@ class SharingGroupsTable extends AppTable
      * @param int $sg_id
      * @return void
      */
-    public function captureCreatorOrg(array $user, int $sg_id)
+    public function captureCreatorOrg(User $user, int $sg_id)
     {
         $sharingGroupOrgEntity = $this->SharingGroupOrgs->newEntity(
             [
@@ -905,13 +905,13 @@ class SharingGroupsTable extends AppTable
      * Capture orgs of a sharing group. If the creator org is contained in the list, return true
      * Otherwise return false
      *
-     * @param array $user
+     * @param User $user
      * @param array $sg
      * @param int $sg_id
      * @param bool $force
      * @return void
      */
-    public function captureSGOrgs(array $user, array $sg, int $sg_id, bool $force)
+    public function captureSGOrgs(User $user, array $sg, int $sg_id, bool $force)
     {
         $creatorOrgFound = false;
         if (!empty($sg['SharingGroupOrg'])) {
@@ -974,7 +974,7 @@ class SharingGroupsTable extends AppTable
         return $creatorOrgFound;
     }
 
-    public function captureSGServers(array $user, array $sg, int $sg_id, bool $force)
+    public function captureSGServers(User $user, array $sg, int $sg_id, bool $force)
     {
         $creatorOrgFound = false;
         if (!empty($sg['SharingGroupServer'])) {

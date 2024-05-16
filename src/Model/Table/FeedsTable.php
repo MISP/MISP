@@ -730,12 +730,12 @@ class FeedsTable extends AppTable
      * @param array $actions
      * @param Feed $feed
      * @param HttpClient|null $HttpSocket
-     * @param array $user
+     * @param User $user
      * @param int|false $jobId
      * @return array
      * @throws Exception
      */
-    private function downloadFromFeed(array $actions, Feed $feed, HttpClient $HttpSocket = null, array $user, $jobId = false)
+    private function downloadFromFeed(array $actions, Feed $feed, HttpClient $HttpSocket = null, User $user, $jobId = false)
     {
         $total = count($actions['add']) + count($actions['edit']);
         $currentItem = 0;
@@ -1152,7 +1152,7 @@ class FeedsTable extends AppTable
      * @param HttpClient|null $HttpSocket
      * @param Feed $feed
      * @param string $uuid
-     * @param array $user
+     * @param User $user
      * @param array|bool $filterRules
      * @return array|bool|string
      * @throws Exception
@@ -1249,7 +1249,7 @@ class FeedsTable extends AppTable
 
             $total = count($actions['add']) + count($actions['edit']);
             $this->jobProgress($jobId, __("Fetching %s events.", $total));
-            $result = $this->downloadFromFeed($actions, $feed, $HttpSocket, $user->toArray(), $jobId);
+            $result = $this->downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId);
             $this->__cleanupFile($feed, '/manifest.json');
         } else {
             $this->jobProgress($jobId, 'Fetching data.');
@@ -1826,7 +1826,7 @@ class FeedsTable extends AppTable
 
     public function load_default_feeds()
     {
-        $user = ['Role' => ['perm_tag_editor' => 1, 'perm_site_admin' => 1]];
+        $user = new User(['Role' => ['perm_tag_editor' => 1, 'perm_site_admin' => 1]]);
         $json = file_get_contents(APP . '../libraries/feed-metadata/defaults.json');
         $this->importFeeds($json, $user, true);
         return true;

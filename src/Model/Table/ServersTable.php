@@ -19,6 +19,7 @@ use App\Lib\Tools\ServerSyncTool;
 use App\Model\Entity\Event;
 use App\Model\Entity\Job;
 use App\Model\Entity\SystemSetting;
+use App\Model\Entity\User;
 use App\Model\Table\AppTable;
 use ArrayObject;
 use Cake\Chronos\Chronos;
@@ -278,11 +279,11 @@ class ServersTable extends AppTable
     /**
      * @param array $event
      * @param array $server
-     * @param array $user
+     * @param User $user
      * @param array $pullRules
      * @return bool Return true if event was emptied by pull rules
      */
-    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules)
+    private function __updatePulledEventBeforeInsert(array &$event, array $server, User $user, array $pullRules)
     {
         $pullRulesEmptiedEvent = false;
         // we have an Event array
@@ -460,7 +461,7 @@ class ServersTable extends AppTable
      * @param array $fails
      * @param EventsTable $EventsTable
      * @param array $server
-     * @param array $user
+     * @param User $user
      * @param int $jobId
      * @param bool $force
      * @param Response $response
@@ -531,7 +532,7 @@ class ServersTable extends AppTable
      * @param array $fails
      * @param EventsTable $EventsTable
      * @param ServerSyncTool $serverSync
-     * @param array $user
+     * @param User $user
      * @param int $jobId
      * @param bool $force
      * @return bool
@@ -571,7 +572,7 @@ class ServersTable extends AppTable
     }
 
     /**
-     * @param array $user
+     * @param User $user
      * @param string $technique
      * @param array $server
      * @param int|false $jobId
@@ -581,7 +582,7 @@ class ServersTable extends AppTable
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function pull(array $user, $technique, array $server, $jobId = false, $force = false)
+    public function pull(User $user, $technique, array $server, $jobId = false, $force = false)
     {
         if ($jobId) {
             Configure::write('CurrentUserId', $user['id']);
@@ -1058,11 +1059,11 @@ class ServersTable extends AppTable
      * @param string|int $technique Can be 'full', 'incremental' or event ID
      * @param int|false $jobId
      * @param HttpSocket $HttpSocket
-     * @param array $user
+     * @param User $user
      * @return array|bool
      * @throws Exception
      */
-    public function push($id, $technique, $jobId, $HttpSocket, array $user)
+    public function push($id, $technique, $jobId, $HttpSocket, User $user)
     {
         $jobId = $jobId ?? false;
 
@@ -1314,12 +1315,12 @@ class ServersTable extends AppTable
      *
      * @param  ServerSyncTool $serverSync
      * @param  array $server
-     * @param  array $user
+     * @param  User $user
      * @param  string|int $technique Either the 'full' string or the event id
      * @param  array|bool  $event
      * @return array List of successfully pushed clusters
      */
-    public function syncGalaxyClusters(ServerSyncTool $serverSync, array $server, array $user, $technique = 'full', $event = false)
+    public function syncGalaxyClusters(ServerSyncTool $serverSync, array $server, User $user, $technique = 'full', $event = false)
     {
         if (!$server['push_galaxy_clusters']) {
             return []; // pushing clusters is not enabled
@@ -2754,12 +2755,12 @@ class ServersTable extends AppTable
 
     /**
      * @param array $server
-     * @param array $user
+     * @param User $user
      * @param ServerSyncTool|null $serverSync
      * @return array|string
      * @throws JsonException
      */
-    public function checkVersionCompatibility(array $server, $user = [], ServerSyncTool $serverSync = null)
+    public function checkVersionCompatibility(array $server, $user, ServerSyncTool $serverSync = null)
     {
         // for event publishing when we don't have a user.
         if (empty($user)) {

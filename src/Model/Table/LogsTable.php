@@ -5,6 +5,7 @@ namespace App\Model\Table;
 use App\Lib\Tools\BackgroundJobsTool;
 use App\Lib\Tools\ElasticSearchClient;
 use App\Model\Entity\Job;
+use App\Model\Entity\User;
 use App\Model\Table\AppTable;
 use ArrayObject;
 use Cake\Core\Configure;
@@ -276,7 +277,7 @@ class LogsTable extends AppTable
     }
 
     /**
-     * @param string|array $user
+     * @param string|User $user
      * @param string $action
      * @param string $model
      * @param int $modelId
@@ -293,7 +294,7 @@ class LogsTable extends AppTable
         }
         if ($user === 'SYSTEM') {
             $user = ['Organisation' => ['name' => 'SYSTEM'], 'email' => 'SYSTEM', 'id' => 0];
-        } else if (!is_array($user)) {
+        } else if (!($user instanceof User)) {
             throw new InvalidArgumentException("User must be array or 'SYSTEM' string.");
         }
 

@@ -3,6 +3,7 @@
 namespace App\Model\Table;
 
 use App\Lib\Tools\ServerSyncTool;
+use App\Model\Entity\User;
 use App\Model\Table\AppTable;
 
 class ShadowAttributesTable extends AppTable
@@ -40,13 +41,13 @@ class ShadowAttributesTable extends AppTable
     }
 
     /**
-     * @param array $user
+     * @param User $user
      * @param ServerSyncTool $serverSync
      * @return int
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      */
-    public function pullProposals(array $user, ServerSyncTool $serverSync)
+    public function pullProposals(User $user, ServerSyncTool $serverSync)
     {
         // TODO: [3.x-MIGRATION] Implement pullProposals() method.
 

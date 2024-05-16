@@ -76,7 +76,7 @@ class GalaxyElementsController extends AppController
         }
         $this->set('element', $element);
         $clusterId = $element['GalaxyElement']['galaxy_cluster_id'];
-        $cluster = $this->GalaxyElements->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $clusterId, ['edit'], true, false);
+        $cluster = $this->GalaxyElements->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $clusterId, ['edit'], true, false);
         if ($this->request->is('post')) {
             $deleteResult = $this->GalaxyElements->delete($elementId);
             if ($deleteResult) {
@@ -101,7 +101,7 @@ class GalaxyElementsController extends AppController
 
     public function flattenJson($clusterId)
     {
-        $cluster = $this->GalaxyElements->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser()->toArray(), $clusterId, ['edit'], true, false);
+        $cluster = $this->GalaxyElements->GalaxyClusters->fetchIfAuthorized($this->ACL->getUser(), $clusterId, ['edit'], true, false);
         if ($this->request->is('post') || $this->request->is('put')) {
             $json = $this->_jsonDecode($this->request->getData()['GalaxyElement']['jsonData']);
             $flattened = Hash::flatten($json);

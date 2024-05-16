@@ -2,6 +2,7 @@
 
 namespace App\Model\Table;
 
+use App\Model\Entity\User;
 use App\Model\Table\AppTable;
 use Cake\Validation\Validator;
 
@@ -45,13 +46,13 @@ class GalaxyClusterRelationTagsTable extends AppTable
     /**
      * attachTags
      *
-     * @param  array $user
+     * @param  User $user
      * @param  int   $galaxyClusterRelationId
      * @param  array $tags list of tag names to be saved
      * @param  bool  $capture
      * @return bool
      */
-    public function attachTags(array $user, $galaxyClusterRelationId, array $tags, $capture = false)
+    public function attachTags(User $user, $galaxyClusterRelationId, array $tags, $capture = false)
     {
         $allSaved = true;
         $saveResult = false;
