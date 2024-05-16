@@ -531,7 +531,7 @@ class Cerebrate extends AppModel
             if (!empty($existingSg)) {
                 $edit = true;
             }
-            $captureResult = $sharingGroupTable->captureSG($sg, $user->toArray(), false);
+            $captureResult = $sharingGroupTable->captureSG($sg, $user, false);
             if (!empty($captureResult)) {
                 $savedSg = $sharingGroupTable->findById($captureResult)
                 ->contain(['SharingGroupOrgs' => 'Organisations', 'Organisations'])

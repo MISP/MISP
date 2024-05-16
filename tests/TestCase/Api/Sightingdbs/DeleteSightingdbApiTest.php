@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Test\TestCase\Api\Allowedlists\Admin;
+namespace App\Test\TestCase\Api\Sightingdbs;
 
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\SightingdbsFixture;

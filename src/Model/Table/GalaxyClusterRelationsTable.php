@@ -314,13 +314,13 @@ class GalaxyClusterRelationsTable extends AppTable
      * editRelation Respecting ACL edits a relation and set correct fields where applicable.
      * Contrary to its capture equivalent, trying to save a relation for a unknown target cluster will fail.
      *
-     * @param  array $user
+     * @param  User $user
      * @param  array $relation      The relation to be saved
      * @param  array $fieldList     Only edit the fields provided
      * @param  bool  $captureTag    Should the tag be captured if it doesn't exists
      * @return array List of errors if any
      */
-    public function editRelation(array $user, array $relation, array $fieldList = [], $captureTag = false)
+    public function editRelation(User $user, array $relation, array $fieldList = [], $captureTag = false)
     {
         $SharingGroupsTable = $this->fetchTable('SharingGroups');
         $errors = [];

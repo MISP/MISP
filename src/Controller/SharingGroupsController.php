@@ -201,7 +201,7 @@ class SharingGroupsController extends AppController
                     $data = $this->request->getData();
                 }
                 $data['uuid'] = $sharingGroup->uuid;
-                $id = $this->SharingGroups->captureSG($data, $this->ACL->getUser()->toArray());
+                $id = $this->SharingGroups->captureSG($data, $this->ACL->getUser());
                 if ($id) {
                     $sg = $this->SharingGroups->fetchAllAuthorised($this->ACL->getUser(), 'simplified', false, $id);
                     return $this->RestResponse->viewData($sg[0]);

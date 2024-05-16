@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Test\TestCase\Api\GalaxyClusters;
+namespace App\Test\TestCase\Api\GalaxyClusterRelations;
 
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\GalaxyClusterRelationsFixture;

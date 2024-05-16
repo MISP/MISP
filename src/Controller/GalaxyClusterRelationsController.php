@@ -88,7 +88,7 @@ class GalaxyClusterRelationsController extends AppController
                     'contain' => ['SharingGroup', 'SourceCluster', 'TargetCluster', 'GalaxyClusterRelationTags' => ['Tags']]
                 ]
             );
-            $relations = $GalaxyClusterRelationsTable->removeNonAccessibleTargetCluster($this->ACL->getUser()->toArray(), $relations);
+            $relations = $GalaxyClusterRelationsTable->removeNonAccessibleTargetCluster($this->ACL->getUser(), $relations);
             return $this->RestResponse->viewData($relations->toArray(), $this->response->getType());
         } else {
             $this->paginate['conditions']['AND'][] = $contextConditions;
@@ -266,7 +266,7 @@ class GalaxyClusterRelationsController extends AppController
             }
 
             if (empty($errors)) {
-                $errors = $GalaxyClusterRelationsTable->editRelation($this->ACL->getUser()->toArray(), $relation);
+                $errors = $GalaxyClusterRelationsTable->editRelation($this->ACL->getUser(), $relation);
             }
 
             if (empty($errors)) {
