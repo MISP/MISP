@@ -1824,7 +1824,7 @@
     "Feed": {
       "name": "Infoblox-Threat-Intelligence",
       "provider": "infoblox.com",
-      "url": "https:\/\/github.com\/infobloxopen\/threat-intelligence\/tree\/main\/indicators\/misp",
+      "url": "https:\/\/raw.githubusercontent.com\/infobloxopen\/threat-intelligence\/main\/indicators\/misp",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": true,
       "distribution": "0",
