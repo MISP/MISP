@@ -67,13 +67,14 @@ if (isset($interpolation) && !empty($interpolation)) {
 <ul id="attack-matrix-tabscontroller" class="nav nav-tabs" style="margin-bottom: 2px;">
 <?php
 if (!isset($defaultTabName)) {
-    reset($tabs);
-    $defaultTabName = key($tabs); // get first key
+    reset($columnOrders);
+    $defaultTabName = key($columnOrders); // get first key
 }
 
 if (empty($static)):
-foreach($tabs as $tabName => $column):
+foreach(array_keys($columnOrders) as $tabName):
 ?>
+<?php $column = $tabs[$tabName]; ?>
     <li class="tactic <?php echo $tabName==$defaultTabName ? "active" : ""; ?>"><span href="#tabMatrix-<?php echo h($tabName); ?>" data-toggle="tab" style="padding-top: 3px; padding-bottom: 3px;"><?php echo h($tabName); ?></span></li>
 <?php endforeach; ?>
 <?php endif; ?>
@@ -125,7 +126,8 @@ foreach($tabs as $tabName => $column):
 
 <div id="matrix_container" class="fixed-table-container-inner" style="" data-picking-mode="<?php echo $pickingMode ? 'true' : 'false'; ?>">
     <div class="tab-content">
-    <?php foreach($tabs as $tabName => $column): ?>
+    <?php foreach(array_keys($columnOrders) as $tabName): ?>
+        <?php $column = $tabs[$tabName]; ?>
         <?php
         if (!empty($static) && $tabName != $defaultTabName) {
             // We cannot hide other tabs without JS. Only releave the default one for now.

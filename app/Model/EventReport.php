@@ -199,7 +199,9 @@ class EventReport extends AppModel
         $errors = $this->saveAndReturnErrors($report, ['fieldList' => self::CAPTURE_FIELDS], $errors);
         if (empty($errors)) {
             $this->Event->captureAnalystData($user, $report['EventReport'], 'EventReport', $report['EventReport']['uuid']);
-            $this->Event->unpublishEvent($eventId);
+            if (!$fromPull) {
+                $this->Event->unpublishEvent($eventId);
+            }
         }
         return $errors;
     }
