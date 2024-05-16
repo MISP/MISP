@@ -13,7 +13,7 @@ class EditSightingdbsApiTest extends TestCase
 {
     use ApiTestTrait;
 
-    protected const ENDPOINT = '/sightingdbs/index';
+    protected const ENDPOINT = '/sightingdbs/edit';
 
     protected $fixtures = [
         'app.Sightingdbs',
@@ -23,7 +23,7 @@ class EditSightingdbsApiTest extends TestCase
         'app.AuthKeys'
     ];
 
-    public function editSightingdb(): void
+    public function testEditSightingdb(): void
     {
         $this->skipOpenApiValidations();
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
