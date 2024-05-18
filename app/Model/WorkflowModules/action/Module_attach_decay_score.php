@@ -15,6 +15,7 @@ class Module_attach_decay_score extends WorkflowBaseActionModule
     public $params = [];
 
     private $Attribute;
+    private $DecayingModel;
 
     public function __construct()
     {
