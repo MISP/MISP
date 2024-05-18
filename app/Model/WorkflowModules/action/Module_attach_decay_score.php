@@ -6,7 +6,7 @@ class Module_attach_decay_score extends WorkflowBaseActionModule
     public $version = '0.1';
     public $id = 'attach-decay-score';
     public $name = 'Attach decay score';
-    public $description = 'Attach selected decaying model score.';
+    public $description = 'Attach selected decaying model score to Attributes.';
     public $icon = 'chart-line';
     public $inputs = 1;
     public $outputs = 1;
@@ -19,14 +19,14 @@ class Module_attach_decay_score extends WorkflowBaseActionModule
     public function __construct()
     {
         parent::__construct();
-	$this->Attribute = ClassRegistry::init('Attribute');
-	$this->DecayingModel = ClassRegistry::init('DecayingModel');
-	$this->decayingmodels = $this->DecayingModel->find('all', [
-		'recursive' => -1,
-		'fields' => ['DecayingModel.id', 'DecayingModel.name'],
-		'conditions' => array('DecayingModel.enabled' => 1)
-	]);
-	$models = array_column(array_column($this->decayingmodels, 'DecayingModel'), 'name', 'id');
+        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->DecayingModel = ClassRegistry::init('DecayingModel');
+        $this->decayingmodels = $this->DecayingModel->find('all', [
+            'recursive' => -1,
+            'fields' => ['DecayingModel.id', 'DecayingModel.name'],
+            'conditions' => array('DecayingModel.enabled' => 1)
+        ]);
+        $models = array_column(array_column($this->decayingmodels, 'DecayingModel'), 'name', 'id');
         $this->params = [
             [
                 'id' => 'decayingmodels',
