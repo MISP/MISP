@@ -579,4 +579,69 @@ class AppTable extends Table
         }
         return [$subQuery];
     }
+
+    // take filters in the {"OR" => [foo], "NOT" => [bar]} format along with conditions and set the conditions
+    public function generic_add_filter($conditions, &$filter, $keys)
+    {
+        $operator_composition = [
+            'NOT' => 'AND',
+            'OR' => 'OR',
+            'AND' => 'AND'
+        ];
+        if (!is_array($keys)) {
+            $keys = [$keys];
+        }
+        if (!isset($filter['OR']) && !isset($filter['AND']) && !isset($filter['NOT'])) {
+            return $conditions;
+        }
+        foreach ($filter as $operator => $filters) {
+            $temp = [];
+            if (!is_array($filters)) {
+                $filters = [$filters];
+            }
+            foreach ($filters as $f) {
+                if ($f === -1) {
+                    foreach ($keys as $key) {
+                        if ($this->checkParam($key)) {
+                            $temp['OR'][$key][] = -1;
+                        }
+                    }
+                    continue;
+                }
+                // split the filter params into two lists, one for substring searches one for exact ones
+                if (is_string($f) && ($f[strlen($f) - 1] === '%' || $f[0] === '%')) {
+                    foreach ($keys as $key) {
+                        if ($this->checkParam($key)) {
+                            if ($operator === 'NOT') {
+                                $temp[] = [$key . ' NOT LIKE' => $f];
+                            } else {
+                                $temp[] = [$key . ' LIKE' => $f];
+                                $temp[] = [$key => $f];
+                            }
+                        }
+                    }
+                } else {
+                    foreach ($keys as $key) {
+                        if ($this->checkParam($key)) {
+                            if ($operator === 'NOT') {
+                                $temp[$key . ' !='][] = $f;
+                            } else {
+                                $temp['OR'][$key][] = $f;
+                            }
+                        }
+                    }
+                }
+            }
+            $conditions['AND'][] = [$operator_composition[$operator] => $temp];
+            if ($operator !== 'NOT') {
+                unset($filter[$operator]);
+            }
+        }
+        return $conditions;
+    }
+
+    private function checkParam($param)
+    {
+        return preg_match('/^[\w\_\-\. ]+$/', $param);
+    }
 }

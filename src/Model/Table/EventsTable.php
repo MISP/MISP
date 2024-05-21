@@ -2753,7 +2753,7 @@ class EventsTable extends AppTable
     {
         if (!empty($params['eventinfo'])) {
             $params['eventinfo'] = $this->convert_filters($params['eventinfo']);
-            $conditions = $this->generic_add_filter($conditions, $params['eventinfo'], 'Events.info');
+            $conditions = $this->generic_add_filter($conditions, $params['eventinfo'], 'Events.info IN');
         }
         return $conditions;
     }

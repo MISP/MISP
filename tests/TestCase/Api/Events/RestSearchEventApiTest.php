@@ -45,4 +45,27 @@ class RestSearchEventApiTest extends TestCase
         $this->assertEquals(EventsFixture::EVENT_1_UUID, $results['response'][0]['Event']['uuid']);
         $this->assertEquals(1, count($results['response']));
     }
+
+    public function testRestSearchByInfo(): void
+    {
+        $this->skipOpenApiValidations();
+
+        $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);
+
+        $url = sprintf('%s/%d', self::ENDPOINT, EventsFixture::EVENT_1_ID);
+
+        $this->post(
+            self::ENDPOINT,
+            [
+                'eventinfo' => 'Event 1'
+            ]
+        );
+        $this->assertResponseOk();
+
+        $results = $this->getJsonResponseAsArray();
+
+        $this->assertEquals(EventsFixture::EVENT_1_ID, $results['response'][0]['Event']['id']);
+        $this->assertEquals(EventsFixture::EVENT_1_UUID, $results['response'][0]['Event']['uuid']);
+        $this->assertEquals(1, count($results['response']));
+    }
 }
