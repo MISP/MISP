@@ -7,6 +7,7 @@
   } else {
       $objectEvent = $event;
   }
+  $attributeInObjectCollapsed = is_null(Configure::read('MISP.collapse_attribute_in_object')) ? false : !empty(Configure::read('MISP.collapse_attribute_in_object'));
   $isNew = $object['timestamp'] > $event['Event']['publish_timestamp'];
   if ($object['deleted']) $tr_class .= ' lightBlueRow';
   else $tr_class .= ' blueRow';
@@ -83,28 +84,47 @@ $objectId = intval($object['id']);
   </td>
   <?php endif; ?>
   <td colspan="<?= $includeRelatedTags ? 6 : 5 ?>">
-    <span class="bold"><?php echo __('Object name: ');?></span><?php echo h($object['name']);?>
-    <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $objectId ?>_collapsible"></span>
-    <br>
-    <div id="Object_<?= $objectId ?>_collapsible" class="collapse">
-        <span class="bold"><?php echo __('UUID');?>: </span><?php echo h($object['uuid']);?><br />
-        <span class="bold"><?php echo __('Meta-category: ');?></span><?php echo h($object['meta-category']);?><br />
-        <span class="bold"><?php echo __('Description: ');?></span><?php echo h($object['description']);?><br />
-        <span class="bold"><?php echo __('Template: ');?></span><?php echo h($object['name']) . ' v' . h($object['template_version']) . ' (' . h($object['template_uuid']) . ')'; ?>
+    <div style="display: flex">
+      <div style="width: 25%;">
+        <span class="bold"><?php echo __('Object name: ');?></span><?php echo h($object['name']);?>
+        <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $objectId ?>_collapsible"></span>
+        <br>
+        <div id="Object_<?= $objectId ?>_collapsible" class="collapse">
+            <span class="bold"><?php echo __('UUID');?>: </span><?php echo h($object['uuid']);?><br />
+            <span class="bold"><?php echo __('Meta-category: ');?></span><?php echo h($object['meta-category']);?><br />
+            <span class="bold"><?php echo __('Description: ');?></span><?php echo h($object['description']);?><br />
+            <span class="bold"><?php echo __('Template: ');?></span><?php echo h($object['name']) . ' v' . h($object['template_version']) . ' (' . h($object['template_uuid']) . ')'; ?>
+        </div>
+        <?php
+          echo $this->element('/Events/View/row_object_reference', array(
+            'deleted' => $deleted,
+            'object' => $object,
+            'mayModify' => $mayModify
+          ));
+          if (!empty($object['referenced_by'])) {
+            echo $this->element('/Events/View/row_object_referenced_by', array(
+              'deleted' => $deleted,
+              'object' => $object
+            ));
+          }
+        ?>
+      </div>
+      <div style="margin-left: 2em; flex-grow: 1;">
+          <?php if (!empty($object['Attribute'])): ?>
+            <?php $firstAttr = $object['Attribute'][0]; ?>
+            <strong><?= h($firstAttr['object_relation']) ?></strong> :: <span><?= h($firstAttr['type']) ?></span>
+            <span><pre style="margin-bottom: 0; padding: 0.25em 0.5em;"><?= h($firstAttr['value']) ?></pre></span>
+            <div style="margin-top: 0.25em;">
+              <button class="btn btn-mini btn-primary <?= $attributeInObjectCollapsed ? 'content-hidden' : '' ?>" title="<?php echo __('Toggle Attributes visibility');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Attributes visibility');?>" data-toggle="quickcollapse" data-target=".Object_<?php echo $objectId ?>_collapsible_attr">
+                <span class="fa fa-angle-double-<?= $attributeInObjectCollapsed ? 'down' : 'up' ?>" data-text-show="fa-angle-double-down" data-class-hide="fa-angle-double-up"></span>
+                <span class="text" data-text-hide="<?php echo __n('Hide the Attribute', 'Hide %s Attributes', count($object['Attribute']), count($object['Attribute']));?>" data-text-show="<?php echo __n('Show 1 Attribute', 'Show %s Attributes', count($object['Attribute']), count($object['Attribute']));?>">
+                  <?php echo $attributeInObjectCollapsed ? __n('Show 1 Attribute', 'Show %s Attributes', count($object['Attribute']), count($object['Attribute'])) : __n('Hide the Attribute', 'Hide %s Attributes', count($object['Attribute']), count($object['Attribute']));?>
+                </span>
+              </button>
+            </div>
+          <?php endif; ?>
+      </div>
     </div>
-    <?php
-      echo $this->element('/Events/View/row_object_reference', array(
-        'deleted' => $deleted,
-        'object' => $object,
-        'mayModify' => $mayModify
-      ));
-      if (!empty($object['referenced_by'])) {
-        echo $this->element('/Events/View/row_object_referenced_by', array(
-          'deleted' => $deleted,
-          'object' => $object
-        ));
-      }
-    ?>
   </td>
   <td class="showspaces bitwider"<?= $quickEdit('comment') ?>>
     <div class="inline-field-solid">
@@ -188,6 +208,7 @@ if (!empty($object['Attribute'])) {
     $lastElement = key($object['Attribute']);
     foreach ($object['Attribute'] as $attrKey => $attribute) {
         echo $this->element('/Events/View/row_' . $attribute['objectType'], array(
+            'trClass' => ($attributeInObjectCollapsed ? 'd-none ' : '') . sprintf('Object_%s_collapsible_attr', $objectId),
             'object' => $attribute,
             'mayModify' => $mayModify,
             'mayChangeCorrelation' => $mayChangeCorrelation,
@@ -195,7 +216,11 @@ if (!empty($object['Attribute'])) {
             'child' => $attrKey === $lastElement ? 'last' : true,
         ));
     }
+    ?>
+    <?php
     if ($mayModify) {
         echo '<tr class="objectAddFieldTr"><td><span class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') . '" data-popover-popup="' . $baseurl . '/objects/quickFetchTemplateWithValidObjectAttributes/' . $objectId . '"></span></td></tr>';
     }
-}
+  }
+  ?>
+</div>
