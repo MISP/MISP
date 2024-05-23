@@ -86,8 +86,11 @@ $objectId = intval($object['id']);
   <td colspan="<?= $includeRelatedTags ? 6 : 5 ?>">
     <div style="display: flex">
       <div style="width: 25%;">
-        <span class="bold"><?php echo __('Object name: ');?></span><?php echo h($object['name']);?>
-        <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $objectId ?>_collapsible"></span>
+        <span class="bold"><?php echo __('Object name: ');?></span>
+        <span style="white-space: nowrap;">
+          <?php echo h($object['name']);?>
+          <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $objectId ?>_collapsible"></span>
+        </span>
         <br>
         <div id="Object_<?= $objectId ?>_collapsible" class="collapse">
             <span class="bold"><?php echo __('UUID');?>: </span><?php echo h($object['uuid']);?><br />
@@ -111,7 +114,9 @@ $objectId = intval($object['id']);
       </div>
       <div style="margin-left: 2em; flex-grow: 1;">
           <?php if (!empty($object['Attribute'])): ?>
-            <?php $firstAttr = $object['Attribute'][0]; ?>
+            <?php
+              $firstAttr = $object['Attribute'][0]; // Attributes are already ordered based on their UI priority
+            ?>
             <strong><?= h($firstAttr['object_relation']) ?></strong> :: <span><?= h($firstAttr['type']) ?></span>
             <span><pre style="margin-bottom: 0; padding: 0.25em 0.5em;"><?= h($firstAttr['value']) ?></pre></span>
             <div style="margin-top: 0.25em;">
