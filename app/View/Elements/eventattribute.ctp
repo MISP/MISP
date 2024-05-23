@@ -234,7 +234,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
         var $targetElement = $(targetClass)
         var $textElement = $button.find('.text')
         var $iconElement = $button.find('.fa')
-        var shouldShow = show !== undefined ? show : $targetElement[0].style.display === 'none'
+        var shouldShow = show !== undefined ? show : ($targetElement[0].style.display !== 'table-row')
         if (shouldShow) {
             $targetElement.show()
             $textElement.text($textElement.data('text-hide'))
