@@ -117,8 +117,10 @@ $objectId = intval($object['id']);
             <?php
               $firstAttr = $object['Attribute'][0]; // Attributes are already ordered based on their UI priority
             ?>
-            <strong><?= h($firstAttr['object_relation']) ?></strong> :: <span><?= h($firstAttr['type']) ?></span>
-            <span><pre style="margin-bottom: 0; padding: 0.25em 0.5em;"><?= h($firstAttr['value']) ?></pre></span>
+            <span style="border: 1px solid #2f5a93; background-color: #5184c8; border-radius: 5px 5px 0 0; padding: 2px 4px; margin-left: -1px;">
+              <strong><?= h($firstAttr['object_relation']) ?></strong> :: <span><?= h($firstAttr['type']) ?></span>
+            </span>
+            <span><pre style="margin-bottom: 0; padding: 0.25em 0.5em; border-radius: 0 5px 5px 5px;"><?= h($firstAttr['value']) ?></pre></span>
             <div style="margin-top: 0.25em;">
               <button class="btn btn-mini btn-primary <?= $attributeInObjectCollapsed ? 'content-hidden' : '' ?>" title="<?php echo __('Toggle Attributes visibility');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Attributes visibility');?>" data-toggle="quickcollapse" data-target=".Object_<?php echo $objectId ?>_collapsible_attr">
                 <span class="fa fa-angle-double-<?= $attributeInObjectCollapsed ? 'down' : 'up' ?>" data-text-show="fa-angle-double-down" data-class-hide="fa-angle-double-up"></span>
