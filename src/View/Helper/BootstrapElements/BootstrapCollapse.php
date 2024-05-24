@@ -46,6 +46,9 @@ class BootstrapCollapse extends BootstrapGeneric
         'attrs' => [],
     ];
 
+    private $content;
+    private $btHelper;
+
     function __construct(array $options, string $content, BootstrapHelper $btHelper)
     {
         $this->allowedOptionValues = [];

@@ -101,6 +101,11 @@ class BootstrapListTable extends BootstrapGeneric
         'elementsRootPath' => '/genericElements/SingleViews/Fields/',
     ];
 
+    private $fields;
+    private $item;
+    private $caption;
+    private $btHelper;
+
     function __construct(array $options, array $data, BootstrapHelper $btHelper)
     {
         $this->allowedOptionValues = [

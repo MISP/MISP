@@ -5,10 +5,32 @@ class EventsNavigation extends BaseNavigation
 {
     function addRoutes()
     {
+        $this->bcf->addRoute('Events', 'index', $this->bcf->defaultCRUD('Events', 'index',[
+            'url_vars' => ['id' => 'Event.id', ],
+        ]));
+        $this->bcf->addRoute('Events', 'view', $this->bcf->defaultCRUD('Events', 'view',[
+            'url_vars' => ['id' => 'Event.id', ],
+            'textGetter' => 'Event.info',
+        ]));
+        $this->bcf->addRoute('Events', 'add', $this->bcf->defaultCRUD('Events', 'add',[
+            'url_vars' => ['id' => 'Event.id', ],
+        ]));
+        $this->bcf->addRoute('Events', 'edit', $this->bcf->defaultCRUD('Events', 'edit',[
+            'url_vars' => ['id' => 'Event.id', ],
+            'textGetter' => 'Event.info',
+        ]));
+        $this->bcf->addRoute('Events', 'delete', $this->bcf->defaultCRUD('Events', 'delete',[
+            'url_vars' => ['id' => 'Event.id', ],
+            'textGetter' => 'Event.info',
+        ]));
     }
     
     public function addParents()
     {
+        $this->bcf->addParent('Events', 'view', 'Events', 'index');
+        $this->bcf->addParent('Events', 'add', 'Events', 'index');
+        $this->bcf->addParent('Events', 'edit', 'Events', 'index');
+        $this->bcf->addParent('Events', 'delete', 'Events', 'index');
     }
     
     public function addLinks()

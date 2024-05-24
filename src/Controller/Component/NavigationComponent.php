@@ -83,7 +83,7 @@ class NavigationComponent extends Component
         'Users',
         'Tags',
         'UserSettings',
-        'Events',
+        // 'Events',
         'Noticelists',
         'ObjectTemplates',
         'Cerebrates'

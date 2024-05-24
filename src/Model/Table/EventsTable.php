@@ -108,7 +108,7 @@ class EventsTable extends AppTable
                 ],
             ]
         );
-        $this->setDisplayField('title');
+        $this->setDisplayField('info');
     }
 
     public function beforeSave(EventInterface $event, EntityInterface $entity, ArrayObject $options)
