@@ -243,7 +243,7 @@
     "type": "Information Sharing Community",
     "email": "info@misp-lea.org",
     "pgp_key": null,
-    "misp_project_vetted": false,
+    "misp_project_vetted": true,
     "scope_of_data_to_be_shared": "",
     "self_registration": false
   }
