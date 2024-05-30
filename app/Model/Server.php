@@ -6253,6 +6253,7 @@ class Server extends AppModel
                     'value' => null,
                     'type' => 'string',
                     'null' => true,
+                    'cli_only' => true,
                 ],
                 'enable_synchronisation_filtering_on_type' => [
                     'level' => self::SETTING_OPTIONAL,
