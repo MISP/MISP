@@ -22,9 +22,6 @@ class ModulesController extends AppController
         if (!Configure::read('Plugin.Enrichment_' . $modname . '_enabled')) {
             throw new MethodNotAllowedException('Module not found or not available.');
         }
-        if (!$this->Module->canUse($this->Auth->user(), 'Enrichment', $modname)) {
-            throw new MethodNotAllowedException('Module not found or not available.');
-        }
         $options = array();
 
         // Check module
