@@ -16,7 +16,6 @@ use Cake\Utility\Hash;
  */
 class GalaxyClusterRelationsController extends AppController
 {
-
     use LocatorAwareTrait;
 
     public function initialize(): void
@@ -89,7 +88,7 @@ class GalaxyClusterRelationsController extends AppController
                     'contain' => ['SharingGroup', 'SourceCluster', 'TargetCluster', 'GalaxyClusterRelationTags' => ['Tags']]
                 ]
             );
-            $relations = $GalaxyClusterRelationsTable->removeNonAccessibleTargetCluster($this->ACL->getUser()->toArray(), $relations);
+            $relations = $GalaxyClusterRelationsTable->removeNonAccessibleTargetCluster($this->ACL->getUser(), $relations);
             return $this->RestResponse->viewData($relations->toArray(), $this->response->getType());
         } else {
             $this->paginate['conditions']['AND'][] = $contextConditions;
@@ -143,7 +142,7 @@ class GalaxyClusterRelationsController extends AppController
             $initialDistribution = $configuredDistribution;
         }
         $SharingGroupsTable = $this->fetchTable('SharingGroups');
-        $sgs = $SharingGroupsTable->fetchAllAuthorised($this->ACL->getUser()->toArray(), 'name', 1);
+        $sgs = $SharingGroupsTable->fetchAllAuthorised($this->ACL->getUser(), 'name', 1);
 
         if ($this->request->is('post')) {
             $errors = [];
@@ -157,7 +156,7 @@ class GalaxyClusterRelationsController extends AppController
             }
 
             $GalaxyClusterRelationsTable = $this->fetchTable('GalaxyClusterRelations');
-            $clusterSource = $GalaxyClusterRelationsTable->SourceCluster->fetchIfAuthorized($this->ACL->getUser()->toArray(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], ['edit', 'publish'], $throwErrors = false, $full = false);
+            $clusterSource = $GalaxyClusterRelationsTable->SourceCluster->fetchIfAuthorized($this->ACL->getUser(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], ['edit', 'publish'], $throwErrors = false, $full = false);
             if (isset($clusterSource['authorized']) && !$clusterSource['authorized']) {
                 $errors = [$clusterSource['error']];
             }
@@ -171,7 +170,7 @@ class GalaxyClusterRelationsController extends AppController
             }
 
             if (empty($errors)) {
-                $errors = $GalaxyClusterRelationsTable->saveRelation($this->ACL->getUser()->toArray(), $clusterSource, $relation);
+                $errors = $GalaxyClusterRelationsTable->saveRelation($this->ACL->getUser(), $clusterSource, $relation);
             }
 
             if (empty($errors)) {
@@ -238,7 +237,7 @@ class GalaxyClusterRelationsController extends AppController
             $initialDistribution = $configuredDistribution;
         }
         $SharingGroupsTable = $this->fetchTable('SharingGroups');
-        $sgs = $SharingGroupsTable->fetchAllAuthorised($this->ACL->getUser()->toArray(), 'name', 1);
+        $sgs = $SharingGroupsTable->fetchAllAuthorised($this->ACL->getUser(), 'name', 1);
 
         if ($this->request->is('post') || $this->request->is('put')) {
             $errors = [];
@@ -252,7 +251,7 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation']['sharing_group_id'] = null;
             }
 
-            $clusterSource = $GalaxyClusterRelationsTable->SourceCluster->fetchIfAuthorized($this->ACL->getUser()->toArray(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], ['edit', 'publish'], $throwErrors = false, $full = false);
+            $clusterSource = $GalaxyClusterRelationsTable->SourceCluster->fetchIfAuthorized($this->ACL->getUser(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], ['edit', 'publish'], $throwErrors = false, $full = false);
             if (isset($clusterSource['authorized']) && !$clusterSource['authorized']) {
                 $errors = [$clusterSource['error']];
             }
@@ -267,7 +266,7 @@ class GalaxyClusterRelationsController extends AppController
             }
 
             if (empty($errors)) {
-                $errors = $GalaxyClusterRelationsTable->editRelation($this->ACL->getUser()->toArray(), $relation);
+                $errors = $GalaxyClusterRelationsTable->editRelation($this->ACL->getUser(), $relation);
             }
 
             if (empty($errors)) {
@@ -314,7 +313,7 @@ class GalaxyClusterRelationsController extends AppController
                 throw new NotFoundException(__('Relation not found.'));
             }
             $relation = $relation[0];
-            $clusterSource = $GalaxyClusterRelationsTable->SourceCluster->fetchIfAuthorized($this->ACL->getUser()->toArray(), $relation['galaxy_cluster_uuid'], ['edit', 'publish'], $throwErrors = true, $full = false);
+            $clusterSource = $GalaxyClusterRelationsTable->SourceCluster->fetchIfAuthorized($this->ACL->getUser(), $relation['galaxy_cluster_uuid'], ['edit', 'publish'], $throwErrors = true, $full = false);
 
             $result = $GalaxyClusterRelationsTable->delete($relation, true);
             if ($result) {

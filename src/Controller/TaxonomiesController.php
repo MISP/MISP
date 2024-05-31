@@ -582,7 +582,7 @@ class TaxonomiesController extends AppController
     {
         /** @var LogsTable $LogsTable */
         $LogsTable = $this->fetchTable('Logs');
-        $LogsTable->createLogEntry($this->ACL->getUser()->toArray(), $action, 'Taxonomy', $modelId, $title, $change);
+        $LogsTable->createLogEntry($this->ACL->getUser(), $action, 'Taxonomy', $modelId, $title, $change);
     }
 
     /**

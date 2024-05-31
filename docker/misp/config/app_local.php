@@ -49,6 +49,7 @@ return [
         ],
     ],
     'MISP' => [
+        'host_org_id' => 1000,
         'dark' => 0,
         'email' => 'email@example.com',
         'default_event_distribution' => '1',
@@ -58,6 +59,7 @@ return [
         'log_paranoid_include_post_body' => false,
         'redis_host' => 'redis',
         'redis_port' => 6379,
+        'correlation_engine' => 'Default',
     ],
     'BackgroundJobs' => [
         'enabled' => true,

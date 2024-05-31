@@ -69,7 +69,7 @@ class ServerSyncTool
      */
     public function eventExists(array $event)
     {
-        $url = $this->server['url'] . '/events/view/' . $event['uuid'];
+        $url = $this->server['url'] . '/events/view/' . $event['Event']['uuid'];
         $start = microtime(true);
         $exists = $this->socket->head($url, [], $this->request);
         $this->log($start, 'HEAD', $url, $exists);
@@ -162,7 +162,7 @@ class ServerSyncTool
      */
     public function createEvent(array $event)
     {
-        $logMessage = "Pushing Event #{$event['id']} to Server #{$this->serverId()}";
+        $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
         return $this->post("/events/add/metadata:1", $event, $logMessage);
     }
 

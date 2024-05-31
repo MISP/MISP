@@ -2,6 +2,7 @@
 
 namespace App\Model\Table;
 
+use App\Model\Entity\User;
 use App\Model\Table\AppTable;
 use Cake\Core\Configure;
 
@@ -66,12 +67,12 @@ class TagsTable extends AppTable
 
     /**
      * @param array $tag
-     * @param array $user
+     * @param User $user
      * @param bool $force
      * @return false|int
      * @throws Exception
      */
-    public function captureTag(array $tag, array $user, $force = false)
+    public function captureTag(array $tag, User $user, $force = false)
     {
         $existingTag = $this->find(
             'all',

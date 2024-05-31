@@ -3,6 +3,7 @@
 namespace App\Model\Table;
 
 use App\Model\Entity\Distribution;
+use App\Model\Entity\User;
 use App\Model\Table\AppTable;
 use ArrayObject;
 use Cake\Collection\CollectionInterface;
@@ -218,14 +219,14 @@ class GalaxyClusterRelationsTable extends AppTable
      * saveRelation Respecting ACL saves a relation and set correct fields where applicable.
      * Contrary to its capture equivalent, trying to save a relation for a unknown target cluster will fail.
      *
-     * @param  array $user
+     * @param  User $user
      * @param  array $cluster       The cluster from which the relation is originating
      * @param  array $relation      The relation to save
      * @param  bool  $captureTag    Should the tag be captured if it doesn't exists
      * @param  bool  $force         Should the relation be edited if it exists
      * @return array List errors if any
      */
-    public function saveRelation(array $user, array $cluster, array $relation, $captureTag = false, $force = false)
+    public function saveRelation(User $user, array $cluster, array $relation, $captureTag = false, $force = false)
     {
         $errors = [];
         if (!isset($relation['GalaxyClusterRelation']) && !empty($relation)) {
@@ -313,13 +314,13 @@ class GalaxyClusterRelationsTable extends AppTable
      * editRelation Respecting ACL edits a relation and set correct fields where applicable.
      * Contrary to its capture equivalent, trying to save a relation for a unknown target cluster will fail.
      *
-     * @param  array $user
+     * @param  User $user
      * @param  array $relation      The relation to be saved
      * @param  array $fieldList     Only edit the fields provided
      * @param  bool  $captureTag    Should the tag be captured if it doesn't exists
      * @return array List of errors if any
      */
-    public function editRelation(array $user, array $relation, array $fieldList = [], $captureTag = false)
+    public function editRelation(User $user, array $relation, array $fieldList = [], $captureTag = false)
     {
         $SharingGroupsTable = $this->fetchTable('SharingGroups');
         $errors = [];
@@ -461,13 +462,13 @@ class GalaxyClusterRelationsTable extends AppTable
     /**
      * Gets a relation then save it.
      *
-     * @param array $user
+     * @param User $user
      * @param array $cluster    The cluster for which the relation is being saved
      * @param array $relation   The relation to be saved
      * @param bool  $fromPull   If the current capture is performed from a PULL sync. If set, it allows edition of existing relations
      * @return array The capture success results
      */
-    public function captureRelations(array $user, array $cluster, array $relations, $fromPull = false)
+    public function captureRelations(User $user, array $cluster, array $relations, $fromPull = false)
     {
         $results = ['success' => false, 'imported' => 0, 'failed' => 0];
         $LogsTable = $this->fetchTable('Logs');
@@ -576,11 +577,11 @@ class GalaxyClusterRelationsTable extends AppTable
     /**
      * syncUUIDsAndIDs Adapt IDs of source and target cluster inside the relation based on the provided two UUIDs
      *
-     * @param  array $user
+     * @param  User $user
      * @param  array $relation
      * @return array The adpated relation
      */
-    private function syncUUIDsAndIDs(array $user, array $relation)
+    private function syncUUIDsAndIDs(User $user, array $relation)
     {
         $options = [
             'conditions' => [

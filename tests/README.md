@@ -15,6 +15,7 @@ If running locally:
 
 Add a `misp3_test` database to the database:
 ```mysql
+$ mysql -u root -h 127.0.0.1 -p # default pwd is root for test env
 CREATE DATABASE misp3_test;
 GRANT ALL PRIVILEGES ON misp3_test.* to misp@'%';
 FLUSH PRIVILEGES;
@@ -87,7 +88,7 @@ API tests can assert the API response matches the OpenAPI specification, after t
 $this->assertResponseMatchesOpenApiSpec(self::ENDPOINT);
 ``` 
 
-The default OpenAPI spec path is set in `phpunit.xml` as a environment variablea:
+The default OpenAPI spec path is set in `phpunit.xml` as a environment variable:
 ```xml
 <php>
     ...

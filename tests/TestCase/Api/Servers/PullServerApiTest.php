@@ -84,7 +84,6 @@ class PullServerApiTest extends TestCase
             $this->newClientResponse(200, $headers, $eventsIndexBody)
         );
 
-
         // mock the /events/view/[uuid] request
         $eventBody = json_encode(
             [
@@ -141,6 +140,12 @@ class PullServerApiTest extends TestCase
         $this->mockClientGet(
             'http://aaa.local/events/view/56bf399d-c46c-4fdb-a9cf-d9bb02de0b81/deleted%5B%5D:0/deleted%5B%5D:1/excludeGalaxy:1/includeEventCorrelations:0/includeFeedCorrelations:0/includeWarninglistHits:0/excludeLocalTags:1',
             $this->newClientResponse(200, $headers, $eventBody)
+        );
+
+        // mock the /galaxy_clusters/restSearch request
+        $this->mockClientPost(
+            ServersFixture::SERVER_A_URL . '/galaxy_clusters/restSearch',
+            $this->newClientResponse(200, $headers, '[]')
         );
 
         $this->post($url);

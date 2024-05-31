@@ -64,7 +64,7 @@ class SharingGroupsController extends AppController
                     $data = $this->request->getData();
                 }
                 $sg = $data;
-                $id = $this->SharingGroups->captureSG($sg, $this->ACL->getUser()->toArray());
+                $id = $this->SharingGroups->captureSG($sg, $this->ACL->getUser());
                 if ($id) {
                     if (empty($sg['roaming']) && empty($sg['SharingGroupServer'])) {
                         $sharingGroupServerEntity = $this->SharingGroups->SharingGroupServers->newEntity(
@@ -76,7 +76,7 @@ class SharingGroupsController extends AppController
                         );
                         $this->SharingGroups->SharingGroupServers->save($sharingGroupServerEntity);
                     }
-                    $sg = $this->SharingGroups->fetchAllAuthorised($this->ACL->getUser()->toArray(), 'simplified', false, $id);
+                    $sg = $this->SharingGroups->fetchAllAuthorised($this->ACL->getUser(), 'simplified', false, $id);
                     if (!empty($sg)) {
                         $sg = empty($sg) ? [] : $sg[0];
                     }
@@ -190,7 +190,7 @@ class SharingGroupsController extends AppController
             throw new NotFoundException('Invalid sharing group.');
         }
 
-        if (!$this->SharingGroups->checkIfAuthorisedExtend($this->ACL->getUser()->toArray(), $sharingGroup->id)) {
+        if (!$this->SharingGroups->checkIfAuthorisedExtend($this->ACL->getUser(), $sharingGroup->id)) {
             throw new MethodNotAllowedException('Action not allowed.');
         }
         if ($this->request->is('post') || $this->request->is('put')) {
@@ -201,9 +201,9 @@ class SharingGroupsController extends AppController
                     $data = $this->request->getData();
                 }
                 $data['uuid'] = $sharingGroup->uuid;
-                $id = $this->SharingGroups->captureSG($data, $this->ACL->getUser()->toArray());
+                $id = $this->SharingGroups->captureSG($data, $this->ACL->getUser());
                 if ($id) {
-                    $sg = $this->SharingGroups->fetchAllAuthorised($this->ACL->getUser()->toArray(), 'simplified', false, $id);
+                    $sg = $this->SharingGroups->fetchAllAuthorised($this->ACL->getUser(), 'simplified', false, $id);
                     return $this->RestResponse->viewData($sg[0]);
                 } else {
                     return $this->RestResponse->saveFailResponse('SharingGroup', 'edit', false, 'Could not save sharing group.');
@@ -528,7 +528,7 @@ class SharingGroupsController extends AppController
                 throw new MethodNotAllowedException('No valid sharing group ID provided.');
             }
         }
-        $sg = $this->SharingGroups->fetchSG($id, $this->ACL->getUser()->toArray(), false);
+        $sg = $this->SharingGroups->fetchSG($id, $this->ACL->getUser(), false);
         if (empty($sg)) {
             throw new MethodNotAllowedException('Invalid sharing group or no editing rights.');
         }

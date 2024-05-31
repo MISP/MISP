@@ -11,6 +11,7 @@ use App\Lib\Tools\HttpTool;
 use App\Lib\Tools\JsonTool;
 use App\Lib\Tools\RedisTool;
 use App\Lib\Tools\SecurityAudit;
+use App\Model\Entity\Distribution;
 use App\Model\Entity\Job;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
@@ -187,7 +188,7 @@ class ServersController extends AppController
         $this->set('events', $events);
         $this->set('eventDescriptions', $EventsTable->fieldDescriptions);
         $this->set('analysisLevels', $EventsTable->analysisLevels);
-        $this->set('distributionLevels', $EventsTable->distributionLevels);
+        $this->set('distributionLevels', Distribution::DESCRIPTIONS);
 
         $shortDist = [0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group'];
         $this->set('shortDist', $shortDist);
@@ -765,7 +766,7 @@ class ServersController extends AppController
         }
         if (empty($error)) {
             if (!Configure::read('BackgroundJobs.enabled')) {
-                $result = $this->Servers->pull($this->ACL->getUser()->toArray(), $technique, $s->toArray());
+                $result = $this->Servers->pull($this->ACL->getUser(), $technique, $s->toArray());
                 if (is_array($result)) {
                     $success = __('Pull completed. {0} events pulled, {1} events could not be pulled, {2} proposals pulled, {3} sightings pulled, {4} clusters pulled.', count($result[0]), count($result[1]), $result[2], $result[3], $result[4]);
                 } else {
@@ -831,7 +832,7 @@ class ServersController extends AppController
         if (!Configure::read('BackgroundJobs.enabled')) {
             $HttpSocket = new HttpTool();
             $HttpSocket->configFromServer($server);
-            $result = $this->Servers->push($id, $technique, false, $HttpSocket, $this->ACL->getUser()->toArray());
+            $result = $this->Servers->push($id, $technique, false, $HttpSocket, $this->ACL->getUser());
             if ($result === false) {
                 $error = __('The remote server is too outdated to initiate a push towards it. Please notify the hosting organisation of the remote instance.');
             } elseif (!is_array($result)) {

@@ -3,28 +3,68 @@ namespace App\Controller\Component\Navigation;
 
 class EventsNavigation extends BaseNavigation
 {
-    function addRoutes()
+    public function addRoutes()
     {
-        $this->bcf->addRoute('Events', 'index', $this->bcf->defaultCRUD('Events', 'index',[
-            'url_vars' => ['id' => 'Event.id', ],
-        ]));
-        $this->bcf->addRoute('Events', 'view', $this->bcf->defaultCRUD('Events', 'view',[
-            'url_vars' => ['id' => 'Event.id', ],
-            'textGetter' => 'Event.info',
-        ]));
-        $this->bcf->addRoute('Events', 'add', $this->bcf->defaultCRUD('Events', 'add',[
-            'url_vars' => ['id' => 'Event.id', ],
-        ]));
-        $this->bcf->addRoute('Events', 'edit', $this->bcf->defaultCRUD('Events', 'edit',[
-            'url_vars' => ['id' => 'Event.id', ],
-            'textGetter' => 'Event.info',
-        ]));
-        $this->bcf->addRoute('Events', 'delete', $this->bcf->defaultCRUD('Events', 'delete',[
-            'url_vars' => ['id' => 'Event.id', ],
-            'textGetter' => 'Event.info',
-        ]));
+        $this->bcf->addRoute(
+            'Events',
+            'index',
+            $this->bcf->defaultCRUD(
+                'Events',
+                'index',
+                [
+                    'url_vars' => ['id' => 'Event.id',],
+                ]
+            )
+        );
+        $this->bcf->addRoute(
+            'Events',
+            'view',
+            $this->bcf->defaultCRUD(
+                'Events',
+                'view',
+                [
+                    'url_vars' => ['id' => 'Event.id',],
+                    'textGetter' => 'Event.info',
+                ]
+            )
+        );
+        $this->bcf->addRoute(
+            'Events',
+            'add',
+            $this->bcf->defaultCRUD(
+                'Events',
+                'add',
+                [
+                    'url_vars' => ['id' => 'Event.id',],
+                ]
+            )
+        );
+        $this->bcf->addRoute(
+            'Events',
+            'edit',
+            $this->bcf->defaultCRUD(
+                'Events',
+                'edit',
+                [
+                    'url_vars' => ['id' => 'Event.id',],
+                    'textGetter' => 'Event.info',
+                ]
+            )
+        );
+        $this->bcf->addRoute(
+            'Events',
+            'delete',
+            $this->bcf->defaultCRUD(
+                'Events',
+                'delete',
+                [
+                    'url_vars' => ['id' => 'Event.id',],
+                    'textGetter' => 'Event.info',
+                ]
+            )
+        );
     }
-    
+
     public function addParents()
     {
         $this->bcf->addParent('Events', 'view', 'Events', 'index');
@@ -32,7 +72,7 @@ class EventsNavigation extends BaseNavigation
         $this->bcf->addParent('Events', 'edit', 'Events', 'index');
         $this->bcf->addParent('Events', 'delete', 'Events', 'index');
     }
-    
+
     public function addLinks()
     {
         $passedData = $this->request->getParam('pass');
@@ -46,8 +86,8 @@ class EventsNavigation extends BaseNavigation
             '/logs/event_index',
             __('View history'),
             [
-            'url' => sprintf('/logs/event_index/%s', h($eventID)),
-            'icon' => 'clock-rotate-left',
+                'url' => sprintf('/logs/event_index/%s', h($eventID)),
+                'icon' => 'clock-rotate-left',
             ]
         );
         $this->bcf->addCustomLink(
@@ -56,12 +96,12 @@ class EventsNavigation extends BaseNavigation
             '/events/viewgraph',
             __('Explore'),
             [
-            'url' => sprintf('/events/viewgraph/%s', h($eventID)),
-            'icon' => 'binoculars',
+                'url' => sprintf('/events/viewgraph/%s', h($eventID)),
+                'icon' => 'binoculars',
             ]
         );
     }
-    
+
     public function addActions()
     {
         /* Add */
@@ -71,9 +111,9 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Add Object',
             [
-            'menu' => 'add',
-            'menu_primary' => true,
-            'icon' => $this->bcf->iconToTableMapping['Objects'],
+                'menu' => 'add',
+                'menu_primary' => true,
+                'icon' => $this->bcf->iconToTableMapping['Objects'],
             ]
         );
         $this->bcf->addCustomAction(
@@ -82,8 +122,8 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Add Attribute',
             [
-            'menu' => 'add',
-            'icon' => $this->bcf->iconToTableMapping['Attributes'],
+                'menu' => 'add',
+                'icon' => $this->bcf->iconToTableMapping['Attributes'],
             ]
         );
         $this->bcf->addCustomAction(
@@ -92,8 +132,8 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Add Report',
             [
-            'menu' => 'add',
-            'icon' => $this->bcf->iconToTableMapping['EventReports'],
+                'menu' => 'add',
+                'icon' => $this->bcf->iconToTableMapping['EventReports'],
             ]
         );
 
@@ -104,8 +144,8 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Publish',
             [
-            'menu' => 'publish',
-            'icon' => 'paper-plane',
+                'menu' => 'publish',
+                'icon' => 'paper-plane',
             ]
         );
         $this->bcf->addCustomAction(
@@ -114,12 +154,15 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Unpublish',
             [
-            'menu' => 'publish',
-            'icon' => ['stacked' => [
-                ['icon' => 'ban', 'class' => 'text-muted',],
-                ['icon' => 'paper-plane', 'class' => 'text-body',]
-            ]],
-            'variant' => 'warning',
+                'menu' => 'publish',
+                'icon' => [
+                    'stacked' => [
+                        ['icon' => 'ban', 'class' => 'text-muted',],
+                        ['icon' => 'paper-plane', 'class' => 'text-body',]
+                    ]
+
+                ],
+                'variant' => 'warning',
             ]
         );
         $this->bcf->addCustomAction(
@@ -128,11 +171,14 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Publish no email',
             [
-            'menu' => 'publish',
-            'icon' => ['stacked' => [
-                ['icon' => 'ban', 'class' => 'text-muted',],
-                ['icon' => 'envelope', 'class' => 'text-body',]
-            ]],
+                'menu' => 'publish',
+                'icon' => [
+                    'stacked' => [
+                        ['icon' => 'ban', 'class' => 'text-muted',],
+                        ['icon' => 'envelope', 'class' => 'text-body',]
+                    ]
+
+                ],
             ]
         );
         $this->bcf->addCustomAction(
@@ -141,7 +187,7 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Publish to ZMQ',
             [
-            'menu' => 'publish',
+                'menu' => 'publish',
             ]
         );
 
@@ -151,7 +197,7 @@ class EventsNavigation extends BaseNavigation
             'view',
             'event-actions',
             [
-            'label' => 'Event Actions',
+                'label' => 'Event Actions',
             ]
         );
         $this->bcf->addCustomAction(
@@ -160,8 +206,8 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Enrich event',
             [
-            'menu' => 'event-actions',
-            'icon' => 'brain',
+                'menu' => 'event-actions',
+                'icon' => 'brain',
             ]
         );
         $this->bcf->addCustomAction(
@@ -170,8 +216,8 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Extend event',
             [
-            'menu' => 'event-actions',
-            'icon' => 'expand',
+                'menu' => 'event-actions',
+                'icon' => 'expand',
             ]
         );
         $this->bcf->addCustomAction(
@@ -180,8 +226,8 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Contact Org',
             [
-            'menu' => 'event-actions',
-            'icon' => 'comment-dots',
+                'menu' => 'event-actions',
+                'icon' => 'comment-dots',
             ]
         );
         $this->bcf->addCustomAction(
@@ -190,9 +236,9 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Delete Event',
             [
-            'menu' => 'event-actions',
-            'icon' => 'trash',
-            'variant' => 'danger',
+                'menu' => 'event-actions',
+                'icon' => 'trash',
+                'variant' => 'danger',
             ]
         );
 
@@ -202,11 +248,11 @@ class EventsNavigation extends BaseNavigation
             'view',
             'import-export',
             [
-            'label' => 'Import/Export',
-            'icon' => [
-                'icon' => 'arrow-right-arrow-left',
-                'class' => 'fa-rotate-90 me-1',
-            ],
+                'label' => 'Import/Export',
+                'icon' => [
+                    'icon' => 'arrow-right-arrow-left',
+                    'class' => 'fa-rotate-90 me-1',
+                ],
             ]
         );
         $this->bcf->addCustomAction(
@@ -215,8 +261,8 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Populate from',
             [
-            'menu' => 'import-export',
-            'icon' => 'puzzle-piece',
+                'menu' => 'import-export',
+                'icon' => 'puzzle-piece',
             ]
         );
         $this->bcf->addCustomAction(
@@ -225,8 +271,8 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Merge from',
             [
-            'menu' => 'import-export',
-            'icon' => 'object-group',
+                'menu' => 'import-export',
+                'icon' => 'object-group',
             ]
         );
         $this->bcf->addCustomAction(
@@ -235,8 +281,8 @@ class EventsNavigation extends BaseNavigation
             '/link',
             'Download as',
             [
-            'menu' => 'import-export',
-            'icon' => 'download',
+                'menu' => 'import-export',
+                'icon' => 'download',
             ]
         );
     }

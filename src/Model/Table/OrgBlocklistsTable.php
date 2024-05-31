@@ -3,15 +3,16 @@
 
 namespace App\Model\Table;
 
+use App\Lib\Tools\RedisTool;
 use App\Model\Table\AppTable;
 use ArrayObject;
+use Cake\Collection\CollectionInterface;
 use Cake\Datasource\EntityInterface;
+use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Event\EventInterface;
+use Cake\ORM\Query;
 use Cake\ORM\RulesChecker;
 use Cake\Validation\Validator;
-use App\Lib\Tools\RedisTool;
-use Cake\ORM\Query;
-use Cake\Collection\CollectionInterface;
 
 class OrgBlocklistsTable extends AppTable
 {
@@ -53,7 +54,6 @@ class OrgBlocklistsTable extends AppTable
 
     public function afterDelete(EventInterface $event, EntityInterface $entity, ArrayObject $options)
     {
-        parent::afterDelete();
         if (!empty($entity['org_uuid'])) {
             $this->cleanupBlockedCount($entity['org_uuid']);
         }
@@ -129,9 +129,16 @@ class OrgBlocklistsTable extends AppTable
     private function getUUIDFromID($orgID)
     {
         $OrganisationsTable = $this->fetchTable('Organisations');
-        $orgUuid = $OrganisationsTable->get($orgID, [
-            'fields' => ['Organisation.uuid'],
-        ]);
+        try {
+            $orgUuid = $OrganisationsTable->get(
+                $orgID,
+                [
+                    'fields' => ['Organisations.uuid'],
+                ]
+            );
+        } catch (RecordNotFoundException $e) {
+            return false;
+        }
         if (empty($orgUuid)) {
             return false; // org not found by ID, so it is not blocked
         }
@@ -152,7 +159,7 @@ class OrgBlocklistsTable extends AppTable
         $redisKeyBlockLastTime = "misp:blocklist_blocked_last_time:{$orgcUUID}";
         $redis = RedisTool::init();
         if ($redis !== false) {
-            $pipe = $redis->multi(Redis::PIPELINE)
+            $pipe = $redis->multi(\Redis::PIPELINE)
                 ->incr($redisKeyBlockAmount)
                 ->set($redisKeyBlockLastTime, $lastBlockTime);
             $pipe->exec();
@@ -165,7 +172,7 @@ class OrgBlocklistsTable extends AppTable
         $redisKeyBlockLastTime = "misp:blocklist_blocked_last_time:{$orgcUUID}";
         $redis = RedisTool::init();
         if ($redis !== false) {
-            $pipe = $redis->multi(Redis::PIPELINE)
+            $pipe = $redis->multi(\Redis::PIPELINE)
                 ->del($redisKeyBlockAmount)
                 ->del($redisKeyBlockLastTime);
             $pipe->exec();

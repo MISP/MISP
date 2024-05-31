@@ -51,7 +51,7 @@ class IndexOrganisationsApiTest extends TestCase
     public function testIndexOrganisationsWithNoAuthToken(): void
     {
         $this->skipOpenApiValidations();
-        $this->get(self::ENDPOINT);
+        $this->get(self::ENDPOINT, ['headers' => ['Authorization' => '']]);
         $this->assertResponseCode(405);
     }
 }

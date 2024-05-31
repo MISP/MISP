@@ -3,6 +3,7 @@
 namespace App\Model\Table;
 
 use App\Lib\Tools\FileAccessTool;
+use App\Model\Entity\User;
 use App\Model\Table\AppTable;
 use ArrayObject;
 use Cake\Core\Configure;
@@ -305,11 +306,11 @@ class GalaxiesTable extends AppTable
     /**
      * Capture the Galaxy
      *
-     * @param array $user
+     * @param User $user
      * @param array $galaxy The galaxy to be captured
      * @return array|false the captured galaxy or false on error
      */
-    public function captureGalaxy(array $user, array $galaxy)
+    public function captureGalaxy(User $user, array $galaxy)
     {
         if (empty($galaxy['uuid'])) {
             return false;
@@ -346,11 +347,11 @@ class GalaxiesTable extends AppTable
      * Import all clusters into the Galaxy they are shipped with, creating the galaxy if not existant.
      *
      * This function is meant to be used with manual import or push from remote instance
-     * @param array $user
+     * @param User $user
      * @param array $clusters clusters to import
      * @return array The import result with errors if any
      */
-    public function importGalaxyAndClusters(array $user, array $clusters)
+    public function importGalaxyAndClusters(User $user, array $clusters)
     {
         $results = ['success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => []];
         foreach ($clusters as $cluster) {
@@ -605,7 +606,7 @@ class GalaxiesTable extends AppTable
     public function detachClusterByTagId(array $user, $targetId, $targetType, $tagId)
     {
         if ($targetType === 'attribute') {
-            $attribute = $this->GalaxyClusters->Tag->EventTag->Event->Attribute->find(
+            $attribute = $this->GalaxyClusters->Tag->EventTag->Event->Attributes->find(
                 'all',
                 [
                     'recursive' => -1,

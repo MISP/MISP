@@ -2,6 +2,7 @@
 
 namespace App\Model\Table;
 
+use App\Model\Entity\Attribute;
 use App\Model\Table\AppTable;
 use ArrayObject;
 use Cake\Datasource\EntityInterface;
@@ -14,7 +15,6 @@ class AttributesTable extends AppTable
     public $_typeDefinitions = null;
     public $_categoryDefinitions = null;
 
-
     public function initialize(array $config): void
     {
         parent::initialize($config);
@@ -22,6 +22,42 @@ class AttributesTable extends AppTable
             'Events',
             [
                 'propertyName' => 'Event'
+            ]
+        );
+        $this->belongsTo(
+            'SharingGroups',
+            [
+                'className' => 'SharingGroups',
+                'foreignKey' => 'sharing_group_id'
+            ]
+        );
+        $this->belongsTo(
+            'Objects',
+            [
+                'propertyName' => 'MispObject',
+                'foreignKey' => 'object_id'
+            ]
+        );
+
+        $this->hasMany(
+            'AttributeTags',
+            [
+                'dependent' => true,
+                'propertyName' => 'AttributeTag',
+            ]
+        );
+        $this->hasMany(
+            'Correlations',
+            [
+                'dependent' => false,
+                'propertyName' => 'Correlation',
+            ]
+        );
+        $this->hasMany(
+            'Sightings',
+            [
+                'dependent' => true,
+                'propertyName' => 'Sighting',
             ]
         );
     }
@@ -375,5 +411,22 @@ class AttributesTable extends AppTable
             // Not convinced about this.
             //'url-regex' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
         ];
+    }
+
+    // gets an attribute, saves it
+    // handles encryption, attaching to event/object, logging of issues, tag capturing
+    public function captureAttribute($attribute, $eventId, $user, $objectId = false, $log = false, $parentEvent = false, &$validationErrors = false, $params = [])
+    {
+        // TODO: [3.x-MIGRATION] this is a placeholder for the migration of the captureAttribute method
+        $attribute['event_id'] = $eventId;
+        $attribute['org_id'] = $user['org_id'];
+        $attributeEntity = $this->newEntity($attribute);
+
+        $this->save($attributeEntity, ['associated' => []]);
+    }
+
+    public function typeIsAttachment($type)
+    {
+        return in_array($type, Attribute::ZIPPED_DEFINITION, true) || in_array($type, Attribute::UPLOAD_DEFINITIONS, true);
     }
 }

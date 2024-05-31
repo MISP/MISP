@@ -26,6 +26,9 @@ class AppTable extends Table
     /** @var LogsTable */
     public $Log = null;
 
+    /** @var WorkflowsTable $Workflow  */
+    private $Workflow;
+
     /** @var BackgroundJobsTool */
     private static $loadedBackgroundJobsTool;
 
@@ -419,5 +422,226 @@ class AppTable extends Table
             return Configure::read("Plugin.ZeroMQ_{$name}_notifications_enable");
         }
         return false;
+    }
+
+    protected function isTriggerCallable($trigger_id): bool
+    {
+        static $workflowEnabled;
+        if ($workflowEnabled === null) {
+            $workflowEnabled = (bool)Configure::read('Plugin.Workflow_enable');
+        }
+
+        if (!$workflowEnabled) {
+            return false;
+        }
+
+        if ($this->Workflow === null) {
+            $this->Workflow = $this->fetchTable('Workflows');
+        }
+        return $this->Workflow->checkTriggerEnabled($trigger_id) &&
+            $this->Workflow->checkTriggerListenedTo($trigger_id);
+    }
+
+    public function publishKafkaNotification($topicName, $data, $action = false)
+    {
+        $kafkaTopic = $this->kafkaTopic($topicName);
+        if ($kafkaTopic) {
+            $this->getKafkaPubTool()->publishJson($kafkaTopic, $data, $action);
+        }
+    }
+
+    /**
+     * @param string $name
+     * @return string|null Null when Kafka is not enabled, topic is not enabled or topic is not defined
+     */
+    protected function kafkaTopic($name)
+    {
+        static $kafkaEnabled;
+        if ($kafkaEnabled === null) {
+            $kafkaEnabled = (bool)Configure::read('Plugin.Kafka_enable');
+        }
+        if ($kafkaEnabled) {
+            if (!Configure::read("Plugin.Kafka_{$name}_notifications_enable")) {
+                return null;
+            }
+            return Configure::read("Plugin.Kafka_{$name}_notifications_topic") ?: null;
+        }
+        return null;
+    }
+
+    protected function convert_to_memory_limit_to_mb($val)
+    {
+        $val = trim($val);
+        if ($val == -1) {
+            // default to 8GB if no limit is set
+            return 8 * 1024;
+        }
+        $unit = $val[strlen($val) - 1];
+        if (is_numeric($unit)) {
+            $unit = 'b';
+        } else {
+            $val = intval($val);
+        }
+        $unit = strtolower($unit);
+        switch ($unit) {
+            case 'g':
+                $val *= 1024;
+                // no break
+            case 'm':
+                $val *= 1024;
+                // no break
+            case 'k':
+                $val *= 1024;
+        }
+        return $val / (1024 * 1024);
+    }
+
+    /*
+     * Get filters in one of the following formats:
+     * [foo, bar]
+     * ["OR" => [foo, bar], "NOT" => [baz]]
+     * "foo"
+     * "foo&&bar&&!baz"
+     * and convert it into the same format ["OR" => [foo, bar], "NOT" => [baz]]
+     */
+    public function convert_filters($filter)
+    {
+        if (!is_array($filter)) {
+            $temp = explode('&&', $filter);
+            $filter = [];
+            foreach ($temp as $f) {
+                $f = strval($f);
+                if ($f !== '') {
+                    if ($f[0] === '!') {
+                        $filter['NOT'][] = substr($f, 1);
+                    } else {
+                        $filter['OR'][] = $f;
+                    }
+                }
+            }
+            return $filter;
+        }
+        if (!isset($filter['OR']) && !isset($filter['NOT']) && !isset($filter['AND'])) {
+            $temp = [];
+            foreach ($filter as $param) {
+                $param = strval($param);
+                if (!empty($param)) {
+                    if ($param[0] === '!') {
+                        $temp['NOT'][] = substr($param, 1);
+                    } else {
+                        $temp['OR'][] = $param;
+                    }
+                }
+            }
+            $filter = $temp;
+        }
+        return $filter;
+    }
+
+    /**
+     * Generate a generic subquery - options needs to include conditions
+     *
+     * @param AppTable $model
+     * @param array $options
+     * @param string $lookupKey
+     * @param bool $negation
+     * @return string[]
+     */
+    protected function subQueryGenerator(AppTable $model, array $options, $lookupKey, $negation = false)
+    {
+        $defaults = [
+            'fields' => ['*'],
+            'table' => $model->getTable(),
+            'alias' => $model->getAlias(),
+            // 'limit' => null,
+            // 'offset' => null,
+            'joins' => [],
+            'conditions' => [],
+            // 'group' => false,
+            'recursive' => -1
+        ];
+
+        $params = [];
+        foreach ($defaults as $key => $defaultValue) {
+            if (isset($options[$key])) {
+                $params[$key] = $options[$key];
+            } else {
+                $params[$key] = $defaultValue;
+            }
+        }
+        // FIXME: [3.x-MIGRATION] nested queries dont have the paramaters interpolated, the placeholders instead
+        $subQuery = $model->find()->select($params['fields'])->where($params['conditions'])->sql();
+
+        if ($negation) {
+            $subQuery = $lookupKey . ' NOT IN (' . $subQuery . ') ';
+        } else {
+            $subQuery = $lookupKey . ' IN (' . $subQuery . ') ';
+        }
+        return [$subQuery];
+    }
+
+    // take filters in the {"OR" => [foo], "NOT" => [bar]} format along with conditions and set the conditions
+    public function generic_add_filter($conditions, &$filter, $keys)
+    {
+        $operator_composition = [
+            'NOT' => 'AND',
+            'OR' => 'OR',
+            'AND' => 'AND'
+        ];
+        if (!is_array($keys)) {
+            $keys = [$keys];
+        }
+        if (!isset($filter['OR']) && !isset($filter['AND']) && !isset($filter['NOT'])) {
+            return $conditions;
+        }
+        foreach ($filter as $operator => $filters) {
+            $temp = [];
+            if (!is_array($filters)) {
+                $filters = [$filters];
+            }
+            foreach ($filters as $f) {
+                if ($f === -1) {
+                    foreach ($keys as $key) {
+                        if ($this->checkParam($key)) {
+                            $temp['OR'][$key][] = -1;
+                        }
+                    }
+                    continue;
+                }
+                // split the filter params into two lists, one for substring searches one for exact ones
+                if (is_string($f) && ($f[strlen($f) - 1] === '%' || $f[0] === '%')) {
+                    foreach ($keys as $key) {
+                        if ($this->checkParam($key)) {
+                            if ($operator === 'NOT') {
+                                $temp[] = [$key . ' NOT LIKE' => $f];
+                            } else {
+                                $temp[] = [$key . ' LIKE' => $f];
+                                $temp[] = [$key => $f];
+                            }
+                        }
+                    }
+                } else {
+                    foreach ($keys as $key) {
+                        if ($this->checkParam($key)) {
+                            if ($operator === 'NOT') {
+                                $temp[$key . ' !='][] = $f;
+                            } else {
+                                $temp['OR'][$key][] = $f;
+                            }
+                        }
+                    }
+                }
+            }
+            $conditions['AND'][] = [$operator_composition[$operator] => $temp];
+            if ($operator !== 'NOT') {
+                unset($filter[$operator]);
+            }
+        }
+        return $conditions;
+    }
+
+    private function checkParam($param)
+    {
+        return preg_match('/^[\w\_\-\. ]+$/', $param);
     }
 }

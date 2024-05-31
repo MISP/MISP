@@ -147,8 +147,15 @@ class FileAccessTool
      * @param mixed $content
      * @throws Exception
      */
-    public static function writeCompressedFile(string $file, mixed $content): int
+    public static function writeCompressedFile(string $file, mixed $content, bool $createFolder = false): int
     {
+        $dir = dirname($file);
+        if ($createFolder && !is_dir($dir)) {
+            if (!mkdir($dir, 0766, true)) {
+                throw new Exception("An error has occurred while attempt to create directory `$dir`.");
+            }
+        }
+
         $res = gzopen($file, 'wb1');
         if ($res === false) {
             throw new Exception("An error has occurred while attempt to open file `$file` for writing.");
@@ -222,7 +229,8 @@ class FileAccessTool
             $file = new \SplFileObject($submittedFile['tmp_name']);
             $file_content = $file->fread($file->getSize());
             $file = null; // closing a file in SplFileObject
-            if ((isset($submittedFile['error']) && $submittedFile['error'] == 0) ||
+            if (
+                (isset($submittedFile['error']) && $submittedFile['error'] == 0) ||
                 (!empty($submittedFile['tmp_name']) && $submittedFile['tmp_name'] != '')
             ) {
                 if (!$file_content) {

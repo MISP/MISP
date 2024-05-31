@@ -1,16 +1,16 @@
 <?php
-namespace App\Settings\SettingsProvider;
 
-use App\Model\Table\AppTable;
+namespace App\Model\Table\SettingProviders;
+
 use Cake\Validation\Validator;
-use Cake\ORM\TableRegistry;
 
 class BaseSettingsProvider
 {
     protected $settingsConfiguration = [];
-    protected $error_critical = '',
-            $error_warning = '',
-            $error_info = '';
+    protected $error_critical = '';
+    protected $error_warning = '';
+    protected $info = '';
+    protected $error_info = '';
     protected $severities = ['info', 'warning', 'critical'];
     protected $settingValidator;
 
@@ -58,7 +58,8 @@ class BaseSettingsProvider
      * @param  null|array $settings - Settings to be merged in the provided setting configuration
      * @return array
      */
-    public function getSettingsConfiguration($settings = null) {
+    public function getSettingsConfiguration($settings = null)
+    {
         $settingConf = $this->settingsConfiguration;
         if (!is_null($settings)) {
             $settingConf = $this->mergeSettingsIntoSettingConfiguration($settingConf, $settings);
@@ -73,7 +74,7 @@ class BaseSettingsProvider
      * @param  array $settings the settings
      * @return void
      */
-    protected function mergeSettingsIntoSettingConfiguration(array $settingConf, array $settings, string $path=''): array
+    protected function mergeSettingsIntoSettingConfiguration(array $settingConf, array $settings, string $path = ''): array
     {
         foreach ($settingConf as $key => $value) {
             if ($this->isSettingMetaKey($key)) {
@@ -94,7 +95,7 @@ class BaseSettingsProvider
         return $settingConf;
     }
 
-    public function flattenSettingsConfiguration(array $settingsProvider, $flattenedSettings=[]): array
+    public function flattenSettingsConfiguration(array $settingsProvider, $flattenedSettings = []): array
     {
         foreach ($settingsProvider as $key => $value) {
             if ($this->isSettingMetaKey($key)) {
@@ -206,35 +207,8 @@ class BaseSettingsProvider
         return $functionResult;
     }
 
-    function isSettingMetaKey($key)
+    protected function isSettingMetaKey($key)
     {
         return substr($key, 0, 1) == '_';
-    }
-}
-
-class SettingValidator
-{
-
-    public function testEmptyBecomesDefault($value, &$setting)
-    {
-        if (!empty($value)) {
-            return true;
-        } else if (isset($setting['default'])) {
-            $setting['value'] = $setting['default'];
-            $setting['severity'] = $setting['severity'] ?? 'info';
-            if ($setting['type'] == 'boolean') {
-                return __('Setting is not set, fallback to default value: {0}', empty($setting['default']) ? 'false' : 'true');
-            } else {
-                return __('Setting is not set, fallback to default value: {0}', $setting['default']);
-            }
-        } else {
-            $setting['severity'] = $setting['severity'] ?? 'critical';
-            return __('Cannot be empty. Setting does not have a default value.');
-        }
-    }
-
-    public function testForEmpty($value, &$setting)
-    {
-        return !empty($value) ? true : __('Cannot be empty');
     }
 }

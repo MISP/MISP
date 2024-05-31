@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace App\Test\TestCase\Api\Users;
+namespace App\Test\TestCase\Api\Sightingdbs;
 
-use Cake\TestSuite\TestCase;
 use App\Test\Fixture\AuthKeysFixture;
 use App\Test\Fixture\SightingdbsFixture;
 use App\Test\Helper\ApiTestTrait;
+use Cake\TestSuite\TestCase;
 
 class EditSightingdbsApiTest extends TestCase
 {
     use ApiTestTrait;
 
-    protected const ENDPOINT = '/sightingdbs/index';
+    protected const ENDPOINT = '/sightingdbs/edit';
 
     protected $fixtures = [
         'app.Sightingdbs',
@@ -23,7 +23,7 @@ class EditSightingdbsApiTest extends TestCase
         'app.AuthKeys'
     ];
 
-    public function editSightingdb(): void
+    public function testEditSightingdb(): void
     {
         $this->skipOpenApiValidations();
         $this->setAuthToken(AuthKeysFixture::ADMIN_API_KEY);

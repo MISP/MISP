@@ -6,8 +6,8 @@ use App\Controller\AppController;
 use App\Lib\Tools\BackgroundJobsTool;
 use App\Lib\Tools\CustomPaginationTool;
 use App\Lib\Tools\SyncTool;
+use App\Model\Entity\Analysis;
 use App\Model\Entity\Distribution;
-use App\Model\Entity\Event;
 use App\Model\Entity\Feed;
 use App\Model\Entity\Job;
 use Cake\Core\Configure;
@@ -755,7 +755,7 @@ class FeedsController extends AppController
         $EventsTable = $this->fetchTable('Events');
         $this->set('threatLevels', $EventsTable->ThreatLevel->listThreatLevels());
         $this->set('eventDescriptions', Distribution::DESCRIPTIONS);
-        $this->set('analysisLevels', Event::ANALYSIS_LEVELS);
+        $this->set('analysisLevels', Analysis::ALL);
         $this->set('distributionLevels', Distribution::ALL);
         $shortDist = [0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group'];
         $this->set('shortDist', $shortDist);
@@ -816,8 +816,8 @@ class FeedsController extends AppController
         $correlatingEventInfos = $AttributesTable->Event->find(
             'list',
             [
-                'fields' => ['Event.id', 'Event.info'],
-                'conditions' => ['Event.id' => $correlatingEvents]
+                'fields' => ['Events.id', 'Events.info'],
+                'conditions' => ['Events.id IN' => $correlatingEvents]
             ]
         );
         $this->set('correlatingEventInfos', $correlatingEventInfos);

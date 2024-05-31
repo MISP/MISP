@@ -3,11 +3,8 @@
 namespace App\Model\Entity;
 
 use App\Model\Entity\AppModel;
-use Cake\ORM\Entity;
+use App\Model\Table\SettingProviders\UserSettingsProvider;
 use Authentication\PasswordHasher\DefaultPasswordHasher;
-
-require_once(APP . 'Model' . DS . 'Table' . DS . 'SettingProviders' . DS . 'UserSettingsProvider.php');
-use App\Settings\SettingsProvider\UserSettingsProvider;
 
 class User extends AppModel
 {
@@ -42,11 +39,13 @@ class User extends AppModel
         return $settingsFlattened;
     }
 
-    protected function _setPassword(string $password) : ?string
+    protected function _setPassword(string $password): ?string
     {
         if (strlen($password) > 0) {
             return (new DefaultPasswordHasher())->hash($password);
         }
+
+        return null;
     }
 
     public function rearrangeForAPI(): void

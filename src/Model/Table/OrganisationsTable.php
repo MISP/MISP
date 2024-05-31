@@ -1,9 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Model\Table;
 
 use ArrayObject;
+use Cake\Core\Configure;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Cake\Validation\Validation;
@@ -11,6 +13,8 @@ use Cake\Validation\Validator;
 
 class OrganisationsTable extends AppTable
 {
+    private $__orgCache = [];
+
     /**
      * Initialize method.
      *
@@ -165,5 +169,79 @@ class OrganisationsTable extends AppTable
         )->disableHydration()->first();
 
         return empty($org) ? false : $org;
+    }
+
+    /**
+     * Attach organisations to evnet
+     * @param array $data
+     * @param array $fields
+     * @return array
+     */
+    public function attachOrgs($event, $fields)
+    {
+        $toFetch = [];
+        if (!isset($this->__orgCache[$event['orgc_id']])) {
+            $toFetch[] = $event['orgc_id'];
+        }
+        if (!isset($this->__orgCache[$event['org_id']]) && $event['org_id'] != $event['orgc_id']) {
+            $toFetch[] = $event['org_id'];
+        }
+        if (!empty($toFetch)) {
+            $orgs = $this->find(
+                'all',
+                [
+                    'conditions' => ['id IN' => $toFetch],
+                    'recursive' => -1,
+                    'fields' => $fields,
+                ]
+            );
+            foreach ($orgs as $org) {
+                $this->__orgCache[$org['id']] = $org;
+            }
+        }
+        $event['Orgc'] = $this->__orgCache[$event['orgc_id']];
+        $event['Org'] = $this->__orgCache[$event['org_id']];
+        return $event;
+    }
+
+    /**
+     * Create conditions for fetching orgs based on user permission.
+     * @see Organisation::canSee if you want to check just one org
+     * @param array $user
+     * @return array|array[]
+     */
+    public function createConditions(array $user)
+    {
+        if (!$user['Role']['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
+            $eventConditions = $this->Events->createEventConditions($user);
+            $allowedOrgs = $this->Events->find(
+                'column',
+                [
+                    'fields' => ['orgc_id'],
+                    'conditions' => $eventConditions,
+                    'unique' => true,
+                ]
+            );
+            $allowedOrgs[] = $user['org_id'];
+
+            $proposalConditions = $this->Events->ShadowAttributes->buildConditions($user);
+            // Do not check orgs that we already can see
+            $proposalConditions['AND'][]['NOT'] = ['ShadowAttributes.org_id' => $allowedOrgs];
+            $orgsWithProposal = $this->Events->ShadowAttributes->find(
+                'column',
+                [
+                    'fields' => ['ShadowAttributes.org_id'],
+                    'conditions' => $proposalConditions,
+                    'contain' => ['Events', 'Attributes'],
+                    'unique' => true,
+                    'order' => false,
+                ]
+            );
+
+            $allowedOrgs = array_merge($allowedOrgs, $orgsWithProposal);
+            return ['AND' => ['id' => $allowedOrgs]];
+        }
+
+        return [];
     }
 }

@@ -3,17 +3,12 @@
 namespace App\Model\Table;
 
 use App\Model\Table\AppTable;
-use Cake\ORM\Table;
-use Cake\Validation\Validator;
+use ArrayObject;
+use Cake\Core\Configure;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\Event;
 use Cake\Event\EventInterface;
-use Cake\Auth\DefaultPasswordHasher;
-use Cake\Utility\Security;
-use Cake\Core\Configure;
-use Cake\Routing\Router;
-use Cake\Http\Exception\MethodNotAllowedException;
-use ArrayObject;
+use Cake\Validation\Validator;
 
 class EventTagsTable extends AppTable
 {
@@ -51,17 +46,19 @@ class EventTagsTable extends AppTable
 
     public function afterSave(Event $event, EntityInterface $entity, ArrayObject $options)
     {
-        parent::afterSave($event, $entity, $options);
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
         $kafkaTopic = $this->kafkaTopic('tag');
         if ($pubToZmq || $kafkaTopic) {
-            $tag = $this->find('all', array(
-                'recursive' => -1,
-                'conditions' => array('EventTag.id' => $entity->id),
-                'contain' => array('Tag')
-            ))->first();
+            $tag = $this->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'conditions' => ['EventTag.id' => $entity->id],
+                    'contain' => ['Tag']
+                ]
+            )->first();
             $tag['event_id'] = $tag['EventTag']['event_id'];
-            $tag = array('Tag' => $tag);
+            $tag = ['Tag' => $tag];
             if ($pubToZmq) {
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->tag_save($tag, 'attached to event');
@@ -78,13 +75,16 @@ class EventTagsTable extends AppTable
         $kafkaTopic = $this->kafkaTopic('tag');
         if ($pubToZmq || $kafkaTopic) {
             if (!empty($event->id)) {
-                $tag = $this->find('all', array(
-                    'recursive' => -1,
-                    'conditions' => array('EventTag.id' => $event->id),
-                    'contain' => array('Tag')
-                ))->first();
+                $tag = $this->find(
+                    'all',
+                    [
+                        'recursive' => -1,
+                        'conditions' => ['EventTag.id' => $event->id],
+                        'contain' => ['Tag']
+                    ]
+                )->first();
                 $tag['event_id'] = $tag['EventTag']['event_id'];
-                $tag = array('Tag' => $tag);
+                $tag = ['Tag' => $tag];
                 if ($pubToZmq) {
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->tag_save($tag, 'detached from event');
@@ -121,20 +121,25 @@ class EventTagsTable extends AppTable
      */
     public function attachTagToEvent($event_id, array $tag, &$nothingToChange = false)
     {
-        $existingAssociation = $this->find('all', [
-            'conditions' => [
-                'tag_id' => $tag['id'],
-                'event_id' => $event_id,
-            ],
-            'recursive' => -1
-        ])->first();
+        $existingAssociation = $this->find(
+            'all',
+            [
+                'conditions' => [
+                    'tag_id' => $tag['id'],
+                    'event_id' => $event_id,
+                ],
+                'recursive' => -1
+            ]
+        )->first();
         if (!$existingAssociation) {
-            $entity = $this->newEntity([
-                'event_id' => $event_id,
-                'tag_id' => $tag['id'],
-                'relationship_type' => !empty($tag['relationship_type']) ? $tag['relationship_type'] : null,
-                'local' => !empty($tag['local'])
-            ]);
+            $entity = $this->newEntity(
+                [
+                    'event_id' => $event_id,
+                    'tag_id' => $tag['id'],
+                    'relationship_type' => !empty($tag['relationship_type']) ? $tag['relationship_type'] : null,
+                    'local' => !empty($tag['local'])
+                ]
+            );
             if (!$this->save($entity)) {
                 return false;
             }
@@ -163,11 +168,14 @@ class EventTagsTable extends AppTable
         if (!is_null($local)) {
             $conditions['local'] = !empty($local);
         }
-        $existingAssociation = $this->find('first', array(
-            'recursive' => -1,
-            'fields' => ['id'],
-            'conditions' => $conditions,
-        ));
+        $existingAssociation = $this->find(
+            'first',
+            [
+                'recursive' => -1,
+                'fields' => ['id'],
+                'conditions' => $conditions,
+            ]
+        );
 
         if ($existingAssociation) {
             $result = $this->delete($existingAssociation['EventTag']['id']);
@@ -186,10 +194,10 @@ class EventTagsTable extends AppTable
      * @param array $reject
      * @return array[]
      */
-    public function fetchEventTagIds(array $accept = array(), array $reject = array())
+    public function fetchEventTagIds(array $accept = [], array $reject = [])
     {
-        $acceptIds = array();
-        $rejectIds = array();
+        $acceptIds = [];
+        $rejectIds = [];
         if (!empty($accept)) {
             $acceptIds = $this->findEventIdsByTagNames($accept);
             if (empty($acceptIds)) {
@@ -199,7 +207,7 @@ class EventTagsTable extends AppTable
         if (!empty($reject)) {
             $rejectIds = $this->findEventIdsByTagNames($reject);
         }
-        return array($acceptIds, $rejectIds);
+        return [$acceptIds, $rejectIds];
     }
 
     /**
@@ -211,35 +219,41 @@ class EventTagsTable extends AppTable
         $conditions = [];
         foreach ($tagIdsOrNames as $tagIdOrName) {
             if (is_numeric($tagIdOrName)) {
-                $conditions[] = array('Tag.id' => $tagIdOrName);
+                $conditions[] = ['Tag.id' => $tagIdOrName];
             } else {
-                $conditions[] = array('LOWER(Tag.name)' => mb_strtolower($tagIdOrName));
+                $conditions[] = ['LOWER(Tag.name)' => mb_strtolower($tagIdOrName)];
             }
         }
-        return $this->find('column', array(
-            'recursive' => -1,
-            'contain' => 'Tag',
-            'conditions' => ['OR' => $conditions],
-            'fields' => ['EventTag.event_id'],
-        ));
+        return $this->find(
+            'column',
+            [
+                'recursive' => -1,
+                'contain' => 'Tag',
+                'conditions' => ['OR' => $conditions],
+                'fields' => ['EventTag.event_id'],
+            ]
+        );
     }
 
     public function getSortedTagList($context = false)
     {
-        $tag_counts = $this->find('all', array(
-            'recursive' => -1,
-            'fields' => array('tag_id', 'count(*)'),
-            'group' => array('tag_id'),
-            'contain' => array('Tag.name')
-        ));
-        $temp = array();
-        $tags = array();
+        $tag_counts = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'fields' => ['tag_id', 'count(*)'],
+                'group' => ['tag_id'],
+                'contain' => ['Tag.name']
+            ]
+        );
+        $temp = [];
+        $tags = [];
         foreach ($tag_counts as $tag_count) {
-            $temp[$tag_count['Tag']['name']] = array(
+            $temp[$tag_count['Tag']['name']] = [
                 'tag_id' => $tag_count['Tag']['id'],
                 'eventCount' => $tag_count[0]['count(*)'],
                 'name' => $tag_count['Tag']['name'],
-            );
+            ];
             $tags[$tag_count['Tag']['name']] = $tag_count[0]['count(*)'];
         }
         arsort($tags);
@@ -272,50 +286,59 @@ class EventTagsTable extends AppTable
         }
         $conditions = $this->Event->createEventConditions($user);
         $conditions['AND']['EventTag.tag_id'] = $tagIds;
-        $counts = $this->find('list', [
-            'recursive' => -1,
-            'contain' => ['Event'],
-            'fields' => ['EventTag.tag_id', 'event_count'],
-            'conditions' => $conditions,
-            'group' => ['EventTag.tag_id'],
-        ]);
+        $counts = $this->find(
+            'list',
+            [
+                'recursive' => -1,
+                'contain' => ['Event'],
+                'fields' => ['EventTag.tag_id', 'event_count'],
+                'conditions' => $conditions,
+                'group' => ['EventTag.tag_id'],
+            ]
+        );
         return $counts;
     }
 
-    public function getTagScores($eventId = 0, $allowedTags = array(), $propagateToAttribute = false)
+    public function getTagScores($eventId = 0, $allowedTags = [], $propagateToAttribute = false)
     {
         if ($propagateToAttribute) {
-            $eventTagScores = $this->find('all', array(
-                'recursive' => -1,
-                'conditions' => array('Tag.id !=' => null),
-                'contain' => array(
-                    'Event',
-                    'Tag' => array(
-                        'conditions' => array('name' => $allowedTags)
-                    )
-                ),
-                'fields' => array('Tag.name', 'Event.attribute_count')
-            ));
+            $eventTagScores = $this->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'conditions' => ['Tag.id !=' => null],
+                    'contain' => [
+                        'Event',
+                        'Tag' => [
+                            'conditions' => ['name' => $allowedTags]
+                        ]
+                    ],
+                    'fields' => ['Tag.name', 'Event.attribute_count']
+                ]
+            );
         } else {
-            $conditions = array('Tag.id !=' => null);
+            $conditions = ['Tag.id !=' => null];
             if ($eventId != 0) {
                 $conditions['event_id'] = $eventId;
             }
-            $eventTagScores = $this->find('all', array(
-                'recursive' => -1,
-                'conditions' => $conditions,
-                'contain' => array(
-                    'Tag' => array(
-                        'conditions' => array('name' => $allowedTags)
-                    )
-                ),
-                'group' => array('tag_id', 'Tag.name', 'Tag.id'),
-                'fields' => array('Tag.name', 'EventTag.tag_id', 'count(EventTag.tag_id) as score')
-            ));
+            $eventTagScores = $this->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'conditions' => $conditions,
+                    'contain' => [
+                        'Tag' => [
+                            'conditions' => ['name' => $allowedTags]
+                        ]
+                    ],
+                    'group' => ['tag_id', 'Tag.name', 'Tag.id'],
+                    'fields' => ['Tag.name', 'EventTag.tag_id', 'count(EventTag.tag_id) as score']
+                ]
+            );
         }
 
         // arrange data
-        $scores = array();
+        $scores = [];
         $maxScore = 0;
         foreach ($eventTagScores as $item) {
             $score = isset($item['Event']) ? $item['Event']['attribute_count'] : $item[0]['score'];
@@ -328,45 +351,51 @@ class EventTagsTable extends AppTable
                 $scores[$name] += $score;
             }
         }
-        return array('scores' => $scores, 'maxScore' => $maxScore);
+        return ['scores' => $scores, 'maxScore' => $maxScore];
     }
 
     // Fetch all tags contained in an event (both event and attributes) ignoring the occurrence. No ACL
-    public function getTagScoresUniform($eventId = 0, $allowedTags = array())
+    public function getTagScoresUniform($eventId = 0, $allowedTags = [])
     {
-        $conditions = array('Tag.id !=' => null);
+        $conditions = ['Tag.id !=' => null];
         if ($eventId != 0) {
             $conditions['event_id'] = $eventId;
         }
-        $event_tag_scores = $this->find('all', array(
-            'recursive' => -1,
-            'conditions' => $conditions,
-            'contain' => array(
-                'Tag' => array(
-                    'conditions' => array('name' => $allowedTags)
-                )
-            ),
-            'fields' => array('Tag.name', 'EventTag.event_id')
-        ));
-        $attribute_tag_scores = $this->Event->Attribute->AttributeTag->find('all', array(
-            'recursive' => -1,
-            'conditions' => $conditions,
-            'contain' => array(
-                'Tag' => array(
-                    'conditions' => array('name' => $allowedTags)
-                )
-            ),
-            'fields' => array('Tag.name', 'AttributeTag.event_id')
-        ));
+        $event_tag_scores = $this->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => $conditions,
+                'contain' => [
+                    'Tag' => [
+                        'conditions' => ['name' => $allowedTags]
+                    ]
+                ],
+                'fields' => ['Tag.name', 'EventTag.event_id']
+            ]
+        );
+        $attribute_tag_scores = $this->Event->Attributes->AttributeTag->find(
+            'all',
+            [
+                'recursive' => -1,
+                'conditions' => $conditions,
+                'contain' => [
+                    'Tag' => [
+                        'conditions' => ['name' => $allowedTags]
+                    ]
+                ],
+                'fields' => ['Tag.name', 'AttributeTag.event_id']
+            ]
+        );
 
-        $score_aggregation = array();
+        $score_aggregation = [];
         foreach ($event_tag_scores as $event_tag_score) {
             $score_aggregation[$event_tag_score['Tag']['name']][$event_tag_score['EventTag']['event_id']] = 1;
         }
         foreach ($attribute_tag_scores as $attribute_tag_score) {
             $score_aggregation[$attribute_tag_score['Tag']['name']][$attribute_tag_score['AttributeTag']['event_id']] = 1;
         }
-        $scores = array('scores' => array(), 'maxScore' => 0);
+        $scores = ['scores' => [], 'maxScore' => 0];
         foreach ($score_aggregation as $name => $array_ids) {
             $event_count = count($array_ids);
             $scores['scores'][$name] = $event_count;
