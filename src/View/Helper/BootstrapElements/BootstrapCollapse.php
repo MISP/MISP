@@ -2,14 +2,13 @@
 
 namespace App\View\Helper\BootstrapElements;
 
-use Cake\Utility\Security;
-
 use App\View\Helper\BootstrapGeneric;
 use App\View\Helper\BootstrapHelper;
+use Cake\Utility\Security;
 
 /**
  * Creates a Bootstrap collapsible component
- * 
+ *
  * # Options:
  * - text: The text of the control element
  * - html: The HTML content of the control element
@@ -19,7 +18,7 @@ use App\View\Helper\BootstrapHelper;
  * - id: Optional ID to link the collapsible element with its control button
  * - button: Configuration object to make the control element into a button. Accepts BootstrapElements\BootstrapButton parameters
  * - card: Configuration object to adjust the content container based on configuration. Accepts BootstrapElements\BootstrapCard parameters
- * 
+ *
  * # Usage:
  * $this->Bootstrap->collapse([
  *     'button' => [
@@ -46,7 +45,10 @@ class BootstrapCollapse extends BootstrapGeneric
         'attrs' => [],
     ];
 
-    function __construct(array $options, string $content, BootstrapHelper $btHelper)
+    private $content;
+    private $btHelper;
+
+    private function __construct(array $options, string $content, BootstrapHelper $btHelper)
     {
         $this->allowedOptionValues = [];
         $this->processOptions($options);
@@ -111,10 +113,14 @@ class BootstrapCollapse extends BootstrapGeneric
         } else {
             $content = $this->content;
         }
-        $container = $this->node('div', [
-            'class' => $this->options['class'],
-            'id' => $this->options['id'],
-        ], $content);
+        $container = $this->node(
+            'div',
+            [
+                'class' => $this->options['class'],
+                'id' => $this->options['id'],
+            ],
+            $content
+        );
         return $container;
     }
 

@@ -111,12 +111,12 @@ CMD ["php-fpm", "-F"]
 FROM base AS prod
 USER root
 
-# Install additional packages
-RUN apt-get update \
-    && apt-get install -y \
-    git \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# # Install additional packages
+# RUN apt-get update \
+#     && apt-get install -y \
+#     && git \
+#     && apt-get clean \
+#     && rm -rf /var/lib/apt/lists/*
 
 # Clone MISP repository
 RUN git clone --branch ${MISP_TAG_OR_BRANCH} --depth 1 https://github.com/MISP/MISP.git /var/www/html

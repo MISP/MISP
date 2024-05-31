@@ -553,7 +553,7 @@ class EventsTable extends AppTable
         return $this->unpublishEvent($event_id);
     }
 
-    public function attachTagsToEventAndTouch($event_id, array $options, array $user)
+    public function attachTagsToEventAndTouch($event_id, array $options, User $user)
     {
         $tags = $options['tags'];
         $local = $options['local'];
@@ -3627,7 +3627,7 @@ class EventsTable extends AppTable
     }
 
     /**
-     * @param array $user
+     * @param User $user
      * @param string $data
      * @param bool $isXml
      * @param bool $takeOwnership
@@ -6025,7 +6025,7 @@ class EventsTable extends AppTable
     }
 
     /**
-     * @param array $user
+     * @param User $user
      * @param string $file Path
      * @param string $stixVersion
      * @param string $originalFile
