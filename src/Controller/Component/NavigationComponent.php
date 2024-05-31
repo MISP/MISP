@@ -2,7 +2,7 @@
 
 namespace App\Controller\Component;
 
-use App\Controller\Component\Navigation\BreadcrumbFactory;
+use App\Controller\Component\BreadcrumbFactory;
 use App\Controller\Component\Navigation\SidemenuNavigation;
 use Cake\Controller\Component;
 use Cake\ORM\TableRegistry;

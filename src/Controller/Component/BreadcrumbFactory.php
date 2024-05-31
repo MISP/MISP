@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\Component\Navigation;
+namespace App\Controller\Component;
 
 use Cake\ORM\TableRegistry;
 use Cake\Utility\Inflector;
