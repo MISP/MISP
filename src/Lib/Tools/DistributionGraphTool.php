@@ -3,11 +3,12 @@
 namespace App\Lib\Tools;
 
 use App\Model\Entity\Distribution;
+use App\Model\Entity\User;
 use App\Model\Table\EventsTable;
 
 class DistributionGraphTool
 {
-    /** @var array */
+    /** @var User */
     private $__user;
     private $__json = [];
     /** @var Event */
@@ -23,7 +24,7 @@ class DistributionGraphTool
 
     private $__extended_view = 0;
 
-    public function __construct(EventsTable $eventModel, array $servers, array $user, $extended_view = 0)
+    public function __construct(EventsTable $eventModel, array $servers, User $user, $extended_view = 0)
     {
         $this->__eventModel = $eventModel;
         $this->__serverList = $servers;
@@ -95,7 +96,7 @@ class DistributionGraphTool
         }
 
         // community
-        $orgConditions = $this->__organisationModel->createConditions($this->__user);
+        $orgConditions = $this->__organisationModel->createConditions($this->__user->toArray());
         $orgConditions['local'] = true;
         $orgConditions['id !='] = $this->__user['Organisation']['id'];
         $orgs = $this->__organisationModel->find(

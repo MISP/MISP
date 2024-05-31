@@ -63,7 +63,7 @@ class ShadowAttributesTable extends AppTable
         $orgIds = $this->find(
             'column',
             [
-                'fields' => ['ShadowAttribute.org_id'],
+                'fields' => ['ShadowAttributes.org_id'],
                 'conditions' => ['event_id IN' => $eventId],
                 'unique' => true,
                 'order' => false

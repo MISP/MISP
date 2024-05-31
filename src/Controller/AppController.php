@@ -20,7 +20,6 @@ namespace App\Controller;
 
 use App\Lib\Tools\JsonTool;
 use App\Lib\Tools\RedisTool;
-use App\Model\Entity\Event;
 use Cake\Controller\Controller;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
@@ -760,14 +759,14 @@ class AppController extends Controller
     /**
      * Returns true if user can publish the given event.
      *
-     * @param Event $event
+     * @param array $event
      * @param array|null $user If empty, currently logged user will be used
      * @return bool
      */
-    protected function canPublishEvent(Event $event, $user = null)
+    protected function canPublishEvent(array $event, $user = null)
     {
         $user = $user ?: $this->ACL->getUser();
-        return $this->ACL->canPublishEvent($user, $event->toArray());
+        return $this->ACL->canPublishEvent($user, $event);
     }
 
     /**

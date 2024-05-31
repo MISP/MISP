@@ -751,11 +751,11 @@ class EventsTable extends AppTable
 
     /**
      * Get related attributes for event
-     * @param array $user
+     * @param User $user
      * @param int|array $eventIds Event IDs
      * @return array
      */
-    public function getRelatedAttributes(array $user, $eventIds)
+    public function getRelatedAttributes(User $user, $eventIds)
     {
         // TODO: [3.x-MIGRATION]
         // $CorrelationsTable = $this->fetchTable('Correlations');
@@ -1652,12 +1652,12 @@ class EventsTable extends AppTable
     }
 
     /**
-     * @param array $user
+     * @param User $user
      * @param array $params
      * @param bool $includeOrgc
      * @return array
      */
-    public function fetchSimpleEvents(array $user, array $params, $includeOrgc = false)
+    public function fetchSimpleEvents(User $user, array $params, $includeOrgc = false)
     {
         $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = $params['conditions'];

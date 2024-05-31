@@ -208,11 +208,11 @@ class SightingsTable extends AppTable
 
     /**
      * @param array $events
-     * @param array $user
+     * @param User $user
      * @param bool $csvWithFalsePositive
      * @return array
      */
-    public function eventsStatistic(array $events, array $user, $csvWithFalsePositive = false)
+    public function eventsStatistic(array $events, User $user, $csvWithFalsePositive = false)
     {
         if (empty($events)) {
             return ['data' => [], 'csv' => []];
