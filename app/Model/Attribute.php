@@ -1101,6 +1101,12 @@ class Attribute extends AppModel
         $params[$tag_key] = $this->dissectArgs($params[$tag_key]);
         foreach (array(0, 1, 2) as $tag_operator) {
             $tagArray[$tag_operator] = $tag->fetchTagIdsSimple($params[$tag_key][$tag_operator]);
+            // If at least one of the ANDed tags is not found, invalidate the entire query by setting the lookup equal -1
+            if ($tag_operator === 2) {
+                if (count($params[$tag_key][2]) !== count($tagArray[2])) {
+                    $tagArray[2] = [-1];
+                }
+            }
         }
         $temp = array();
         if (!empty($tagArray[0])) {
@@ -1200,7 +1206,7 @@ class Attribute extends AppModel
                                 'tag_id' => $anded_tag
                             ),
                             'fields' => array(
-                                $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+                                $options['scope'] === 'Event' ? 'event_id' : 'attribute_id'
                             )
                         );
                         $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
