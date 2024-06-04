@@ -6246,6 +6246,7 @@ class Server extends AppModel
                     'value' => null,
                     'type' => 'string',
                     'null' => true,
+                    'cli_only' => true,
                 ],
                 'menu_custom_right_link_html' => [
                     'level' => self::SETTING_OPTIONAL,
