@@ -648,7 +648,7 @@ class RestResponseComponent extends Component
                 } else {
                     $prettyPrint = !$this->isAutomaticTool(); // Do not pretty print response for automatic tools
                     $response = JsonTool::encode($response, $prettyPrint);
-                    if ($format !== 'json') {
+                    if ($format !== 'json' && $format !== 'application/json') {
                         $response = h($response);
                     }
                 }
