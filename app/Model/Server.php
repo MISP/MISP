@@ -5930,6 +5930,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'collapse_attribute_in_object' => array(
+                    'level' => 1,
+                    'description' => __('When enabled, all Attributes contained inside an object will be automatically collapsed when viewing an Event.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'disableUserSelfManagement' => array(
                     'level' => 1,
                     'description' => __('When enabled only Org and Site admins can edit a user\'s profile.'),

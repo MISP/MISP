@@ -85,6 +85,10 @@ pre {
     font-size: 12px;
 }
 
+.d-none {
+    display: none;
+}
+
 .ellipsis-overflow {
     white-space: nowrap;
     text-overflow: ellipsis;

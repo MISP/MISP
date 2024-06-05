@@ -1,5 +1,5 @@
 <?php
-  $tr_class = '';
+  $tr_class = empty($trClass) ? '' : ($trClass . ' ') ;
   if (empty($context)) {
       $context = 'event';
   }
