@@ -1139,7 +1139,7 @@ class Feed extends AppModel
                 $event['Event']['disable_correlation'] = (bool) $feed['Feed']['settings']['disable_correlation'];
             }
             if (!empty($feed['Feed']['settings']['unpublish_event'])) {
-                $event['Event']['published'] = (bool) $feed['Feed']['settings']['unpublish_event'];
+                $event['Event']['published'] = false;
             }
         }
         return $event;
