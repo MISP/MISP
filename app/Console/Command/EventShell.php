@@ -501,6 +501,57 @@ class EventShell extends AppShell
         $log->createLogEntry($user, 'publish', 'GalaxyCluster', $clusterId, 'GalaxyCluster (' . $clusterId . '): published.', 'published () => (1)');
     }
 
+    public function attribute_enrichment()
+    {
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run attribute enrichment'] . PHP_EOL);
+        }
+
+        $userId = $this->args[0];
+        $user = $this->getUser($userId);
+        $id = $this->args[1];
+        $modulesRaw = $this->args[2];
+        try {
+            $modules = json_decode($modulesRaw, true);
+        } catch (Exception $e) {
+            die('Invalid module JSON');
+        }
+        if (!empty($this->args[3])) {
+            $jobId = $this->args[3];
+        } else {
+            $this->Job->create();
+            $data = [
+                    'worker' => 'default',
+                    'job_type' => 'enrichment',
+                    'job_input' => 'Attribute: ' . $id . ' modules: ' . $modulesRaw,
+                    'status' => 0,
+                    'retries' => 0,
+                    'org' => $user['Organisation']['name'],
+                    'message' => 'Enriching event.',
+            ];
+            $this->Job->save($data);
+            $jobId = $this->Job->id;
+        }
+        $job = $this->Job->read(null, $jobId);
+        $options = array(
+            'user' => $user,
+            'id' => $id,
+            'modules' => $modules
+        );
+        $result = $this->Attribute->enrichment($options);
+        $job['Job']['progress'] = 100;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        if ($result) {
+            $job['Job']['message'] = 'Added ' . $result . ' attribute' . ($result > 1 ? 's.' : '.');
+        } else {
+            $job['Job']['message'] = 'Enrichment finished, but no attributes added.';
+        }
+        echo $job['Job']['message'] . PHP_EOL;
+        $this->Job->save($job);
+        $log = ClassRegistry::init('Log');
+        $log->createLogEntry($user, 'enrichment', 'Attribute', $id, 'Attribute (' . $id . '): enriched.', 'enriched () => (1)');
+    }
+
     public function enrichment()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
@@ -546,7 +597,7 @@ class EventShell extends AppShell
         } else {
             $job['Job']['message'] = 'Enrichment finished, but no attributes added.';
         }
-	echo $job['Job']['message'] . PHP_EOL;
+        echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
         $log->createLogEntry($user, 'enrichment', 'Event', $eventId, 'Event (' . $eventId . '): enriched.', 'enriched () => (1)');

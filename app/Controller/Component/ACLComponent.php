@@ -65,6 +65,7 @@ class ACLComponent extends Component
             'edit' => array('perm_add'),
             'editField' => array('perm_add'),
             'editSelected' => array('perm_add'),
+            'enrich' => ['perm_add'],
             'exportSearch' => array('*'),
             'fetchEditForm' => array('perm_add'),
             'fetchViewValue' => array('*'),

@@ -3050,4 +3050,29 @@ class AttributesController extends AppController
         $this->set('object', $attribute[0]['Attribute']);
         $this->set('seed', $seed);
     }
+
+    public function enrich($id)
+    {
+        $conditions = $this->__idToConditions($id);
+        $attributes = $this->Attribute->fetchAttributes($this->Auth->user(), ['conditions' => $conditions, 'flatten' => true]);
+        if (empty($attributes)) {
+            throw new MethodNotAllowedException(__('Invalid Attribute'));
+        }
+        $attribute = $attributes[0];
+        if (!$this->request->is('post') || !$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This endpoint allows for API POST requests only.'));
+        }
+        $modules = [];
+        foreach ($this->request->data as $module => $enabled) {
+            if ($enabled) {
+                $modules[] = $module;
+            }
+        }
+        $result = $this->Attribute->enrichmentRouter([
+            'user' => $this->Auth->user(),
+            'id' => $attribute['Attribute']['id'],
+            'modules' => $modules
+        ]);
+        return $this->RestResponse->successResponse(0, $result);
+    }
 }

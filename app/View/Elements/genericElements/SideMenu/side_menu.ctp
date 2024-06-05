@@ -366,7 +366,7 @@ $divider = '<li class="divider"></li>';
                         'url' => $baseurl . '/collections/index',
                         'text' => __('List Collections')
                     ));
-                    if ($this->Acl->canAccess('collection', 'add')) {
+                    if ($this->Acl->canAccess('collections', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
                             'url' => $baseurl . '/collections/add',
