@@ -1132,7 +1132,7 @@ class Attribute extends AppModel
                             'tag_id' => $tagArray[0]
                         ),
                         'fields' => array(
-                            $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+                            $options['scope'] === 'Event' ? 'event_id' : 'attribute_id'
                         )
                     );
                     $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
