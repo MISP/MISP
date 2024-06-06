@@ -74,9 +74,12 @@ class FeedsController extends AppController
                 );
             }
         }
+        $host_org_id = (int)Configure::read('MISP.host_org_id');
+        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $host_org_id) {
+            $conditions[] =  ['Feed.lookup_visible' => 1];
+        }
         $loggedUser = $this->Auth->user();
         $this->loadModel('TagCollection');
-
         $this->CRUD->index([
             'filters' => [
                 'Feed.name',
@@ -703,9 +706,11 @@ class FeedsController extends AppController
             'conditions' => ['id' => $feedId],
             'recursive' => -1,
         ]);
-        if (empty($feed)) {
+
+        if (empty($feed) || !$this->__canViewFeed($feed)) {
             throw new NotFoundException(__('Invalid feed.'));
         }
+
         if (!empty($feed['Feed']['settings'])) {
             $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
         }
@@ -858,13 +863,22 @@ class FeedsController extends AppController
         $this->render('freetext_index');
     }
 
+    private function __canViewFeed($feed)
+    {
+        $host_org_id = (int)Configure::read('MISP.host_org_id');
+        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $host_org_id && !$feed['Feed']['lookup_visible']) {
+            return false;
+        }
+        return true;
+    }
+
     public function previewEvent($feedId, $eventUuid, $all = false)
     {
         $feed = $this->Feed->find('first', [
             'conditions' => ['id' => $feedId],
             'recursive' => -1,
         ]);
-        if (empty($feed)) {
+        if (empty($feed) || !$this->__canViewFeed($feed)) {
             throw new NotFoundException(__('Invalid feed.'));
         }
         try {
@@ -1033,7 +1047,8 @@ class FeedsController extends AppController
 
     public function compareFeeds($id = false)
     {
-        $feeds = $this->Feed->compareFeeds($id);
+        $limited = !$this->_isSiteAdmin() && $this->Auth->user('org_id') !== (int)Configure::read('MISP.host_org_id');
+        $feeds = $this->Feed->compareFeeds($limited);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($feeds, $this->response->type());
         } else {
@@ -1106,7 +1121,9 @@ class FeedsController extends AppController
         if (!empty($this->params['named']['value'])) {
             $value = $this->params['named']['value'];
         }
-        $hits = $this->Feed->searchCaches($value);
+        $host_org_id = (int)Configure::read('MISP.host_org_id');
+        $limited = !$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $host_org_id;
+        $hits = $this->Feed->searchCaches($value, $limited);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($hits, $this->response->type());
         } else {

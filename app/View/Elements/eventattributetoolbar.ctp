@@ -259,6 +259,26 @@
                     )
                 )
             ),
+            [
+                'children' => [
+                    [
+                        'id' => 'expand-all-objects',
+                        'text' => _('Expand all Objects'),
+                        'title' => __('Show all Attribute contained in Objects'),
+                        'fa-icon' => 'angle-double-down',
+                        'onClick' => 'showAllAttributeInObjects',
+                        'onClickParams' => [],
+                    ],
+                    [
+                        'id' => 'collapse-all-objects',
+                        'text' => _('Collapse all Attributes'),
+                        'title' => __('Hide all Attribute contained in Objects'),
+                        'fa-icon' => 'angle-double-up',
+                        'onClick' => 'hideAllAttributeInObjects',
+                        'onClickParams' => [],
+                    ],
+                ],
+            ],
             array(
                 'type' => 'search',
                 'fa-icon' => 'search',

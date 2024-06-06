@@ -12,6 +12,7 @@
                 $relatedData['url'] = $relatedServer['url'];
             }
             $popover = '';
+            $canPivot = $isSiteAdmin || $me['org_id'] == Configure::read('MISP.Host_org_id');
             foreach ($relatedData as $k => $v) {
                 $popover .= sprintf(
                     '<span class="bold">%s</span>: <span class="blue">%s</span><br />',
@@ -19,16 +20,32 @@
                     h($v)
                 );
             }
-            $serverHtml[] = sprintf(
-                '<span style="white-space: nowrap; display: inline-block">%s</span>',
-                sprintf(
-                    '<a href="%s/servers/previewIndex/%s" class="linkButton useCursorPointer" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
-                    $baseurl,
-                    h($relatedServer['id']),
-                    h($popover),
-                    h($relatedServer['name']) . ' (' . $relatedServer['id'] . ')'
-                )
-            );
+            if (!$canPivot) {
+                $popover .= sprintf(
+                    '<span class="bold">%s</span>: <span class="blue">%s</span><br />',
+                    __('Note'),
+                    __('You don\'t have the required permissions to pivot to the details.')
+                );
+$serverHtml[] = sprintf(
+                    '<span style="white-space: nowrap; display: inline-block">%s</span>',
+                    sprintf(
+                        '<span data-toggle="popover" data-content="%s" data-trigger="hover">%s</span>',
+                        h($popover),
+                        h($relatedServer['name']) . ' (' . $relatedServer['id'] . ')'
+                    )
+                );
+            } else {
+                $serverHtml[] = sprintf(
+                    '<span style="white-space: nowrap; display: inline-block">%s</span>',
+                    sprintf(
+                        '<a href="%s/servers/previewIndex/%s" class="linkButton useCursorPointer" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
+                        $baseurl,
+                        h($relatedServer['id']),
+                        h($popover),
+                        h($relatedServer['name']) . ' (' . $relatedServer['id'] . ')'
+                    )
+                );
+            }
         }
     } else {
         $relatedData[] = __(
@@ -44,7 +61,15 @@
             )
         );
     }
+
     echo sprintf(
-        '<div class="correlation-container" style="margin-bottom: 15px;">%s</div>',
+        '<h3>%s %s</h3><div class="inline correlation-container" style="margin-bottom: 15px;">%s</div>',
+        __('Related Servers'),
+        sprintf(
+            '<a href="#attributeList" title="%s" onclick="%s">%s</a>',
+            __('Show just attributes that have server hits'),
+            "toggleBoolFilter('server')",
+            __('(show)')
+        ),
         implode(PHP_EOL, $serverHtml)
     );

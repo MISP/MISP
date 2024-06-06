@@ -38,6 +38,17 @@ class Relationship extends AnalystData
     /** @var array|null */
     private $__currentUser;
 
+    public function beforeValidate($options = array())
+    {
+        parent::beforeValidate($options);
+        // Prevent self-referencing relationships
+        if ($this->data[$this->current_type]['object_uuid'] == $this->data[$this->current_type]['related_object_uuid']) {
+            return false;
+        }
+        return true;
+
+    }
+
     public function afterFind($results, $primary = false)
     {
         $results = parent::afterFind($results, $primary);

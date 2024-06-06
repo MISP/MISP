@@ -5930,6 +5930,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'collapse_attribute_in_object' => array(
+                    'level' => 1,
+                    'description' => __('When enabled, all Attributes contained inside an object will be automatically collapsed when viewing an Event.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'disableUserSelfManagement' => array(
                     'level' => 1,
                     'description' => __('When enabled only Org and Site admins can edit a user\'s profile.'),
@@ -6246,6 +6254,7 @@ class Server extends AppModel
                     'value' => null,
                     'type' => 'string',
                     'null' => true,
+                    'cli_only' => true,
                 ],
                 'menu_custom_right_link_html' => [
                     'level' => self::SETTING_OPTIONAL,
@@ -6253,6 +6262,7 @@ class Server extends AppModel
                     'value' => null,
                     'type' => 'string',
                     'null' => true,
+                    'cli_only' => true,
                 ],
                 'enable_synchronisation_filtering_on_type' => [
                     'level' => self::SETTING_OPTIONAL,

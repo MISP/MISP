@@ -222,7 +222,41 @@ attributes or the appropriate distribution level. If you think there is a mistak
             });
             
         });
+
+        $('[data-toggle="quickcollapse"').click(function() {
+            var $clicked = $(this)
+            toggleVisibilityForAttributes($clicked)
+        })
     });
+
+    function toggleVisibilityForAttributes($button, show) {
+        var targetClass = $button.data('target')
+        var $targetElement = $(targetClass)
+        var $textElement = $button.find('.text')
+        var $iconElement = $button.find('.fa')
+        var shouldShow = show !== undefined ? show : ($targetElement[0].style.display)
+        if (shouldShow) {
+            $targetElement.show()
+            $textElement.text($textElement.data('text-hide'))
+            $iconElement.addClass($iconElement.data('class-hide')).removeClass($iconElement.data('class-show'))
+        } else {
+            $targetElement.hide()
+            $textElement.text($textElement.data('text-show'))
+            $iconElement.addClass($iconElement.data('class-show')).removeClass($iconElement.data('class-hide'))
+        }
+    }
+
+    function showAllAttributeInObjects() {
+        $('[data-toggle="quickcollapse"').each(function() {
+            toggleVisibilityForAttributes($(this), true)
+        })
+    }
+    function hideAllAttributeInObjects() {
+        $('[data-toggle="quickcollapse"').each(function() {
+            toggleVisibilityForAttributes($(this), false)
+        })
+    }
+
     $(function() {
         <?php
             if (isset($focus)):

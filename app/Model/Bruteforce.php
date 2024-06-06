@@ -32,8 +32,8 @@ class Bruteforce extends AppModel
             'conditions' => array('User.email' => $username),
             'fields' => array('User.id', 'Organisation.name', 'User.email'),
             'recursive' => 0));
-        $user = array_merge($user, $user['User']);
         if ($user) {
+            $user = array_merge($user, $user['User']);
             $userId = $user['User']['id'];
         } else {
             $user = 'SYSTEM';

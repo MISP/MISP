@@ -34,7 +34,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '162';
-    public $pyMispVersion = '2.4.190';
+    public $pyMispVersion = '2.4.193';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -112,7 +112,7 @@ class AppController extends Controller
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
         }
-        
+
         $this->User = ClassRegistry::init('User');
         if (Configure::read('Plugin.Benchmarking_enable')) {
             App::uses('BenchmarkTool', 'Tools');
@@ -241,7 +241,7 @@ class AppController extends Controller
         ) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
-                
+
                 // disable CSRF for REST access
                 $this->Security->csrfCheck = false;
                 $loginByAuthKeyResult = $this->__loginByAuthKey();
@@ -892,7 +892,7 @@ class AppController extends Controller
                 //$redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
                 //return true;
             //}
-            
+
         }
         if ($this->isApiAuthed && $this->_isRest() && !Configure::read('Security.authkey_keep_session')) {
             $this->Session->destroy();

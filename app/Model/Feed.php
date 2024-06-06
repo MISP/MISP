@@ -158,6 +158,51 @@ class Feed extends AppModel
         return $result;
     }
 
+    private function checkEventAgainstRules(array $event, array $rules): bool
+    {
+        $tags = [];
+        if (!empty($event['Tag'])) {
+            $tags = Hash::extract($event, 'Tag.{n}.name');
+        }
+        
+        // Check the tag rules
+        if (!empty($rules['tags']['OR'])) {
+            if (empty(array_intersect($rules['tags']['OR'], $tags))) {
+                return false;
+            }
+        }
+        if (!empty($rules['tags']['NOT'])) {
+            if (!empty(array_intersect($rules['tags']['NOT'], $tags))) {
+                return false;
+            }
+        }
+
+        // check the org rules
+        if (!empty($rules['orgs']['OR'])) {
+            if (!in_array($event['Orgc']['uuid'], $rules['orgs']['OR']) && !in_array($event['Orgc']['name'], $rules['orgs']['OR'])) {
+                return false;
+            }
+        }
+
+        if (!empty($rules['orgs']['NOT'])) {
+            if (in_array($event['Orgc']['uuid'], $rules['orgs']['NOT']) || in_array($event['Orgc']['name'], $rules['orgs']['NOT'])) {
+                return false;
+            }
+        }
+
+        //check misc rules
+        $url_params = empty($rules['url_params']) ? null : json_decode($rules['url_params'], true);
+        if ($url_params) {
+            if (isset($url_params['timestamp'])) {
+                $timestamp = $this->resolveTimeDelta($url_params['timestamp']);
+                if ($event['timestamp'] < $timestamp) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     /**
      * Gets the event UUIDs from the feed by ID
      * Returns an array with the UUIDs of events that are new or that need updating.
@@ -171,6 +216,12 @@ class Feed extends AppModel
     {
         $manifest = $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
         $this->Event = ClassRegistry::init('Event');
+        $rules = json_decode($feed['Feed']['rules'], true);
+        foreach ($manifest as $k => $event) {
+            if (!$this->checkEventAgainstRules($event, $rules)) {
+                unset($manifest[$k]);
+            }
+        }
         $events = $this->Event->find('all', array(
             'conditions' => array(
                 'Event.uuid' => array_keys($manifest),
@@ -650,7 +701,7 @@ class Feed extends AppModel
         if ($scope === 'Feed') {
             $params = array(
                 'recursive' => -1,
-                'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+                'fields' => array('id', 'name', 'url', 'provider', 'source_format', 'lookup_visible')
             );
             if (!$user['Role']['perm_site_admin']) {
                 $params['conditions'] = array('Feed.lookup_visible' => 1);
@@ -1088,7 +1139,7 @@ class Feed extends AppModel
                 $event['Event']['disable_correlation'] = (bool) $feed['Feed']['settings']['disable_correlation'];
             }
             if (!empty($feed['Feed']['settings']['unpublish_event'])) {
-                $event['Event']['published'] = (bool) $feed['Feed']['settings']['unpublish_event'];
+                $event['Event']['published'] = false;
             }
         }
         return $event;
@@ -1651,17 +1702,21 @@ class Feed extends AppModel
         return true;
     }
 
-    public function compareFeeds($id = false)
+    public function compareFeeds($limited = false)
     {
         $redis = $this->setupRedis();
         if ($redis === false) {
             return array();
         }
         $fields = array('id', 'input_source', 'source_format', 'url', 'provider', 'name', 'default');
+        $conditions = ['Feed.caching_enabled' => 1];
+        if ($limited) {
+            $conditions['Feed.lookup_visible'] = 1;
+        }
         $feeds = $this->find('all', array(
             'recursive' => -1,
             'fields' => $fields,
-            'conditions' => array('Feed.caching_enabled' => 1)
+            'conditions' => $conditions
         ));
         // we'll use this later for the intersect
         $fields[] = 'values';
@@ -1675,24 +1730,27 @@ class Feed extends AppModel
             $feeds[$k]['Feed']['values'] = $redis->sCard('misp:feed_cache:' . $feed['Feed']['id']);
         }
         $feeds = array_values($feeds);
-        $this->Server = ClassRegistry::init('Server');
-        $servers = $this->Server->find('all', array(
-            'recursive' => -1,
-            'fields' => array('id', 'url', 'name'),
-            'contain' => array('RemoteOrg' => array('fields' => array('RemoteOrg.id', 'RemoteOrg.name'))),
-            'conditions' => array('Server.caching_enabled' => 1)
-        ));
-        foreach ($servers as $k => $server) {
-            if (!$redis->exists('misp:server_cache:' . $server['Server']['id'])) {
-                unset($servers[$k]);
-                continue;
+        $servers = [];
+        if (!$limited) {
+            $this->Server = ClassRegistry::init('Server');
+            $servers = $this->Server->find('all', array(
+                'recursive' => -1,
+                'fields' => array('id', 'url', 'name'),
+                'contain' => array('RemoteOrg' => array('fields' => array('RemoteOrg.id', 'RemoteOrg.name'))),
+                'conditions' => array('Server.caching_enabled' => 1)
+            ));
+            foreach ($servers as $k => $server) {
+                if (!$redis->exists('misp:server_cache:' . $server['Server']['id'])) {
+                    unset($servers[$k]);
+                    continue;
+                }
+                $servers[$k]['Server']['input_source'] = 'network';
+                $servers[$k]['Server']['source_format'] = 'misp';
+                $servers[$k]['Server']['provider'] = $servers[$k]['RemoteOrg']['name'];
+                $servers[$k]['Server']['default'] = false;
+                $servers[$k]['Server']['is_misp_server'] = true;
+                $servers[$k]['Server']['values'] = $redis->sCard('misp:server_cache:' . $server['Server']['id']);
             }
-            $servers[$k]['Server']['input_source'] = 'network';
-            $servers[$k]['Server']['source_format'] = 'misp';
-            $servers[$k]['Server']['provider'] = $servers[$k]['RemoteOrg']['name'];
-            $servers[$k]['Server']['default'] = false;
-            $servers[$k]['Server']['is_misp_server'] = true;
-            $servers[$k]['Server']['values'] = $redis->sCard('misp:server_cache:' . $server['Server']['id']);
         }
         foreach ($feeds as $k => $feed) {
             foreach ($feeds as $k2 => $feed2) {
@@ -1922,7 +1980,7 @@ class Feed extends AppModel
         return $result;
     }
 
-    public function searchCaches($value)
+    public function searchCaches($value, bool $limited = false)
     {
         $hits = array();
         $this->Server = ClassRegistry::init('Server');
@@ -1942,10 +2000,12 @@ class Feed extends AppModel
                 $v = strtolower(trim($v));
             }
             if ($v === false || $redis->sismember('misp:feed_cache:combined', md5($v))) {
+                $conditions = ['caching_enabled' => 1];
+                if ($limited) {
+                    $conditions['lookup_visible'] = 1;
+                }
                 $feeds = $this->find('all', array(
-                    'conditions' => array(
-                        'caching_enabled' => 1
-                    ),
+                    'conditions' => $conditions,
                     'recursive' => -1,
                     'fields' => array('Feed.id', 'Feed.name', 'Feed.url', 'Feed.source_format')
                 ));
@@ -1992,7 +2052,7 @@ class Feed extends AppModel
                     }
                 }
             }
-            if ($v === false || $redis->sismember('misp:server_cache:combined', md5($v))) {
+            if (!$limited && ($v === false || $redis->sismember('misp:server_cache:combined', md5($v)))) {
                 $servers = $this->Server->find('all', array(
                     'conditions' => array(
                         'caching_enabled' => 1

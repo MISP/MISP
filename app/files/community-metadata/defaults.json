@@ -229,5 +229,22 @@
     "misp_project_vetted": false,
     "scope_of_data_to_be_shared": "",
     "self_registration": false
-  }  
+  },
+  {
+    "name": "misp-lea.org",
+    "logo": "https://www.misp-lea.org/assets/img/misp-lea.png",
+    "uuid": "3848ab01-e06f-4f91-a516-05e550dbc659",
+    "org_uuid": "89ed13e7-d560-4d48-8ee7-a3aadad5e0ae",
+    "org_name": "misp-lea.org",
+    "description": "MISP-LEA project consists in an law enforcement agency information sharing community. It’s powered by MISP and AIL project, two leading open source projects led by CIRCL. The community is only accessible to law enforcement agencies.",
+    "url": "https://www.misp-lea.org/",
+    "sector": "Law Enforcement",
+    "nationality": "International",
+    "type": "Information Sharing Community",
+    "email": "info@misp-lea.org",
+    "pgp_key": null,
+    "misp_project_vetted": true,
+    "scope_of_data_to_be_shared": "",
+    "self_registration": false
+  }
 ]
