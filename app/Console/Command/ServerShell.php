@@ -125,7 +125,6 @@ class ServerShell extends AppShell
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Pull'] . PHP_EOL);
         }
-
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $serverId = $this->args[1];
@@ -145,6 +144,10 @@ class ServerShell extends AppShell
         if (!empty($this->args[4]) && $this->args[4] === 'force') {
             $force = true;
         }
+
+        // Try to enable garbage collector as pulling events can use a lot of memory
+        gc_enable();
+
         try {
             $result = $this->Server->pull($user, $technique, $server, $jobId, $force);
             if (is_array($result)) {
@@ -166,7 +169,7 @@ class ServerShell extends AppShell
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Push'] . PHP_EOL);
         }
-
+        
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $serverId = $this->args[1];
@@ -370,7 +373,7 @@ class ServerShell extends AppShell
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Fetch feeds as local data'] . PHP_EOL);
         }
-
+        
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $feedId = $this->args[1];
@@ -426,7 +429,7 @@ class ServerShell extends AppShell
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Cache server'] . PHP_EOL);
         }
-
+        
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $scope = $this->args[1];
@@ -489,7 +492,7 @@ class ServerShell extends AppShell
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Cache feeds for quick lookups'] . PHP_EOL);
         }
-
+        
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $scope = $this->args[1];
@@ -735,6 +738,7 @@ class ServerShell extends AppShell
 
     public function sendPeriodicSummaryToUsers()
     {
+        
         $periods = $this->__getPeriodsForToday();
         $start_time = time();
         echo __n('Started periodic summary generation for the %s period', 'Started periodic summary generation for periods: %s', count($periods), implode(', ', $periods)) . PHP_EOL;
@@ -800,7 +804,7 @@ class ServerShell extends AppShell
         if (empty($this->args[0]) || empty($this->args[1])) {
             die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['Push Taxii'] . PHP_EOL);
         }
-
+        
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $serverId = $this->args[1];

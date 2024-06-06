@@ -408,6 +408,11 @@ if (!empty($me)) {
                     'url' => $baseurl . '/servers/serverSettings',
                     'requirement' => $isSiteAdmin
                 ),
+                [
+                    'text' => __('Benchmarking'),
+                    'url' => $baseurl . '/benchmarks/index',
+                    'requirement' => $isSiteAdmin && Configure::read('Plugin.Benchmarking_enable')
+                ],
                 array(
                     'type' => 'separator',
                     'requirement' => $isSiteAdmin
@@ -535,7 +540,7 @@ if (!empty($me)) {
         ],
         array(
             'type' => 'root',
-            'url' => $baseurl . '/dashboards',
+            'url' => $baseurl . '/users/view/me',
             'html' => sprintf(
                 '<span class="white" title="%s">%s%s&nbsp;&nbsp;&nbsp;%s</span>',
                 h($me['email']),

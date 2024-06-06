@@ -461,7 +461,8 @@ class Workflow extends AppModel
                     $trigger_id,
                     JsonTool::encode($data),
                     JsonTool::encode($logging),
-                    $jobId
+                    $jobId,
+                    Configure::check('CurrentUserId') ? JsonTool::encode(Configure::read('CurrentUserId')) : null,
                 ],
                 true,
                 $jobId

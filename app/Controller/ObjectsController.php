@@ -1410,4 +1410,34 @@ class ObjectsController extends AppController
         }
         return $conditions;
     }
+
+    public function viewAnalystData($id, $seed = null)
+    {
+        $this->MispObject->includeAnalystDataRecursive = true;
+        $object = $this->MispObject->fetchObjects(
+            $this->Auth->user(),
+            [
+                'conditions' => $this->__objectIdToConditions($id)
+            ]
+        );
+        if(empty($object)) {
+            throw new NotFoundException(__('Invalid Object.'));
+        } else {
+            $object[0]['Object'] = array_merge_recursive($object[0]['Object'], $this->MispObject->attachAnalystData($object[0]['Object']));
+        }
+        if ($this->_isRest()) {
+            $validFields = ['Note', 'Opinion', 'Relationship'];
+            $results = [];
+            foreach ($validFields as $field) {
+                if (!empty($object[0]['Object'][$field])) {
+                    $results[$field] = $object[0]['Object'][$field];
+                }
+            }
+            return $this->RestResponse->viewData($results, $this->response->type());
+        }
+        $this->layout = null;
+        $this->set('shortDist', $this->MispObject->Attribute->shortDist);
+        $this->set('object', $object[0]['Object']);
+        $this->set('seed', $seed);
+    }
 }

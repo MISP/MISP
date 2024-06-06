@@ -9,7 +9,7 @@ class AnalystDataBehavior extends ModelBehavior
 
     private $__current_type = null;
 
-    private $__valid_sharing_groups = null;
+    protected $__valid_sharing_groups = null;
 
     public function setup(Model $Model, $settings = array()) {
         // We want to know whether we're a Note, Opinion or Relationship
@@ -76,7 +76,7 @@ class AnalystDataBehavior extends ModelBehavior
             ]);
             $results = [];
             foreach ($temp as $result) {
-                $results[$result[$type]['object_uuid']] = $result;
+                $results[$result[$type]['object_uuid']][$type][] = $result[$type];
             }
             return $results;
         }

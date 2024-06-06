@@ -20,7 +20,8 @@ class Ls22Shell extends AppShell
                 $this->__servers[] = [
                     'Server' => [
                         'url' => trim($fields[0]),
-                        'authkey' => trim($fields[2])
+                        'authkey' => trim($fields[2]),
+                        'self_signed' => true,
                     ]
                 ];
             }
@@ -30,6 +31,7 @@ class Ls22Shell extends AppShell
     public function getOptionParser()
     {
         $this->stdout->styles('green', array('text' => 'green'));
+        $this->stdout->styles('black', array('text' => 'black'));
 
         $parser = parent::getOptionParser();
         $parser->addSubcommand('enableTaxonomy', [
@@ -414,6 +416,13 @@ class Ls22Shell extends AppShell
 
     public function scores()
     {
+        $MITIGATION_DETECTION_OBJECT_UUIDs = [
+            'b5acf82e-ecca-4868-82fe-9dbdf4d808c3', # yara
+            '3c177337-fb80-405a-a6c1-1b2ddea8684a', # suricata
+            'aa21a3cd-ab2c-442a-9999-a5e6626591ec', # sigma
+            '6bce7d01-dbec-4054-b3c2-3655a19382e2', # script
+            '35b4dd03-4fa9-4e0e-97d8-a2867b11c956', # yabin
+        ];
         $results = [];
         $this->__getInstances($this->param('instances'));
         $server = null;
@@ -464,6 +473,7 @@ class Ls22Shell extends AppShell
             $params = [
                 'org' => $org_id,
                 'includeWarninglistHits' => true,
+                // 'includeAnalystData' => true,
             ];
             if (!empty($time_range)) {
                 $params['publish_timestamp'] = $time_range;
@@ -486,6 +496,8 @@ class Ls22Shell extends AppShell
                 'warnings' => 0,
                 'events_extended' => 0,
                 'extending_events' => 0,
+                'mitigation_detection_rules_count' => 0,
+                'analyst_data_count' => 0,
             ];
             foreach ($events['response'] as $event) {
                 $event_uuid_per_org[$event['Event']['uuid']] = $event['Event']['Orgc']['name'];
@@ -511,6 +523,11 @@ class Ls22Shell extends AppShell
                         }
                     }
                 }
+
+                #  ['Note' => 0, 'Opinion' => 0, 'Relationship' => 0,]
+                $analystDataCount = $this->countAnalystData($event['Event'], $org_name);
+                $results[$org_name]['analyst_data_count'] = $analystDataCount['Note'] + $analystDataCount['Opinion'] + $analystDataCount['Relationship'];
+
                 foreach ($event['Event']['Attribute'] as $attribute) {
                     if (!empty($attribute['referenced_by'])) {
                         $results[$org_name]['connected_elements'] +=1;
@@ -533,6 +550,9 @@ class Ls22Shell extends AppShell
                     foreach ($event['Event']['Object'] as $object) {
                         $results[$org_name]['attribute_count'] += count($object['Attribute']);
                         $results[$org_name]['object_count'] += 1;
+                        if (in_array($object['template_uuid'], $MITIGATION_DETECTION_OBJECT_UUIDs)) {
+                            $results[$org_name]['mitigation_detection_rules_count'] += 1;
+                        }
                         if (!empty($object['ObjectReference'])) {
                             $results[$org_name]['connected_elements'] += 1;
                         }
@@ -546,6 +566,9 @@ class Ls22Shell extends AppShell
                                     }
                                 }
                             }
+                        }
+                        if (!empty($attribute['warnings'])) {
+                            $results[$org_name]['warnings'] += 1;
                         }
                     }
                 }
@@ -579,13 +602,24 @@ class Ls22Shell extends AppShell
                 } else {
                     $results[$k]['metrics']['warnings'] = 0;
                 }
+                $results[$k]['metrics']['mitigation_detection_rules'] = 100 * ($result['mitigation_detection_rules_count'] / ($result['event_count']));
                 $results[$k]['metrics']['connectedness'] = 100 * ($result['connected_elements'] / ($result['attribute_count'] + $result['object_count']));
                 $results[$k]['metrics']['attack_weight'] = 100 * (2*($result['attack']) + $result['attribute_attack']) / ($result['attribute_count'] + $result['object_count']);
                 $results[$k]['metrics']['other_weight'] = 100 * (2*($result['other']) + $result['attribute_other']) / ($result['attribute_count'] + $result['object_count']);
-                $results[$k]['metrics']['collaboration'] = 100 * ((2*$result['events_extended'] + $result['extending_events']) / $result['event_count']);
-                $results[$k]['metrics']['collaboration'] = 100 * (2*(2*$result['events_extended'] + $result['extending_events']) / $result['event_count']);
+                // $results[$k]['metrics']['collaboration'] = 100 * ((2*$result['events_extended'] + $result['extending_events']) / $result['event_count']);
+                // $results[$k]['metrics']['collaboration'] = 100 * (2*(2*$result['events_extended'] + $result['extending_events']) / $result['event_count']);
+                $results[$k]['metrics']['collaboration'] = 100 * (($result['events_extended'] + $result['extending_events']));
+                
+                # Math magic to give lots of points of you extend or have your events extended. You quickly get point, but it slows down very quick
+                if (($result['events_extended'] + $result['extending_events']) == 0) {
+                    $results[$k]['metrics']['collaboration'] = 0;
+                } else {
+                    $results[$k]['metrics']['collaboration'] = min(5*log(($result['events_extended'] + $result['extending_events']), 1.17), 100);
+                }
+
+                $results[$k]['metrics']['collaboration_analyst'] = $result['analyst_data_count'] > 0 ? 100 : 0;
             }
-            foreach (['connectedness', 'attack_weight', 'other_weight', 'warnings', 'collaboration'] as $metric) {
+            foreach (['connectedness',  'mitigation_detection_rules', 'attack_weight', 'other_weight', 'warnings', 'collaboration', 'collaboration_analyst'] as $metric) {
                 if (empty($results[$k]['metrics'][$metric])) {
                     $results[$k]['metrics'][$metric] = 0;
                 }
@@ -594,18 +628,21 @@ class Ls22Shell extends AppShell
                 }
             }
             $results[$k]['score'] = round(
-                    20 * $results[$k]['metrics']['warnings'] +
-                    20 * $results[$k]['metrics']['connectedness'] +
+                    15 * $results[$k]['metrics']['warnings'] +
+                    15 * $results[$k]['metrics']['mitigation_detection_rules'] +
+                    10 * $results[$k]['metrics']['connectedness'] +
                     40 * $results[$k]['metrics']['attack_weight'] +
                     10 * $results[$k]['metrics']['other_weight'] +
+                    // 7 * $results[$k]['metrics']['collaboration'] + 3 * $results[$k]['metrics']['collaboration_analyst']
                     10 * $results[$k]['metrics']['collaboration']
                 ) / 100;
             $scores[$k]['total'] = $results[$k]['score'];
-            $scores[$k]['warnings'] = round(20 * $results[$k]['metrics']['warnings']);
-            $scores[$k]['connectedness'] = round(20 * $results[$k]['metrics']['connectedness']);
+            $scores[$k]['warnings'] = round(15 * $results[$k]['metrics']['warnings']);
+            $scores[$k]['mitigation_detection_rules'] = round(15 * $results[$k]['metrics']['mitigation_detection_rules']);
+            $scores[$k]['connectedness'] = round(10 * $results[$k]['metrics']['connectedness']);
             $scores[$k]['attack_weight'] = round(40 * $results[$k]['metrics']['attack_weight']);
             $scores[$k]['other_weight'] = round(10 * $results[$k]['metrics']['other_weight']);
-            $scores[$k]['collaboration'] = round(10 * $results[$k]['metrics']['collaboration']);
+            $scores[$k]['collaboration'] = round(7 * $results[$k]['metrics']['collaboration']) + round(3 * $results[$k]['metrics']['collaboration_analyst']);
         }
         arsort($scores, SORT_DESC);
         $this->out(str_repeat('=', 128), 1, Shell::NORMAL);
@@ -618,20 +655,22 @@ class Ls22Shell extends AppShell
         $this->out(str_repeat('=', 128), 1, Shell::NORMAL);
         foreach ($scores as $org => $score) {
             $score_string[0] = str_repeat('█', round($score['warnings']/100));
-            $score_string[1] = str_repeat('█', round($score['connectedness']/100));
-            $score_string[2] = str_repeat('█', round($score['attack_weight']/100));
-            $score_string[3] = str_repeat('█', round($score['other_weight']/100));
-            $score_string[4] = str_repeat('█', round($score['collaboration']/100));
+            $score_string[1] = str_repeat('█', round($score['mitigation_detection_rules']/100));
+            $score_string[2] = str_repeat('█', round($score['connectedness']/100));
+            $score_string[3] = str_repeat('█', round($score['attack_weight']/100));
+            $score_string[4] = str_repeat('█', round($score['other_weight']/100));
+            $score_string[5] = str_repeat('█', round($score['collaboration']/100));
             $this->out(sprintf(
                 '| %s | %s | %s |',
                 str_pad($org, 10, ' ', STR_PAD_RIGHT),
                 sprintf(
-                    '<error>%s</error><warning>%s</warning><question>%s</question><info>%s</info><green>%s</green>%s',
+                    '<error>%s</error><black>%s</black><warning>%s</warning><question>%s</question><info>%s</info><green>%s</green>%s',
                     $score_string[0],
                     $score_string[1],
                     $score_string[2],
                     $score_string[3],
                     $score_string[4],
+                    $score_string[5],
                     str_repeat(' ', 100 - mb_strlen(implode('', $score_string)))
                 ),
                 str_pad($score['total'] . '%', 8, ' ', STR_PAD_RIGHT)
@@ -639,8 +678,9 @@ class Ls22Shell extends AppShell
         }
         $this->out(str_repeat('=', 128), 1, Shell::NORMAL);
         $this->out(sprintf(
-            '| Legend: %s %s %s %s %s |',
+            '| Legend: %s %s %s %s %s %s |',
             '<error>█: Warnings</error>',
+            '<black>█: Detection/Mitigation Rules</black>',
             '<warning>█: Connectedness</warning>',
             '<question>█: ATT&CK context</question>',
             '<info>█: Other Context</info>',
@@ -649,5 +689,31 @@ class Ls22Shell extends AppShell
         ), 1, Shell::NORMAL);
         $this->out(str_repeat('=', 128), 1, Shell::NORMAL);
         file_put_contents(APP . 'tmp/report.json', json_encode($results, JSON_PRETTY_PRINT));
+    }
+
+    private function countAnalystData($data, $orgc_name): array {
+        $analystTypes = ['Note', 'Opinion', 'Relationship'];
+        $counts = [
+            'Note' => 0,
+            'Opinion' => 0,
+            'Relationship' => 0,
+        ];
+
+        foreach ($analystTypes as $type) {
+            if (!empty($data[$type])) {
+                foreach ($data[$type] as $entry) {
+                    if ($entry['Orgc']['name'] == $orgc_name) {
+                        $counts[$type] += 1;
+                    }
+                }
+                foreach ($data[$type] as $child) {
+                    $nestedCounts = $this->countAnalystData($child, $orgc_name);
+                    $counts['Note'] += $nestedCounts['Note'];
+                    $counts['Opinion'] += $nestedCounts['Opinion'];
+                    $counts['Relationship'] += $nestedCounts['Relationship'];
+                }
+            }
+        }
+        return $counts;
     }
 }

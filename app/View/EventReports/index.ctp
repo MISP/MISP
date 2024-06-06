@@ -60,6 +60,7 @@
                     'notes_data_path' => 'Note',
                     'opinions_data_path' => 'Opinion',
                     'relationships_data_path' => 'Relationship',
+                    'relationships_inbound_data_path' => 'RelationshipInbound',
                     'element' => 'shortUUIDWithNotes',
                     'object_type' => 'EventReport',
                 ),

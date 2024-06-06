@@ -197,7 +197,7 @@ class GalaxyCluster extends AppModel
      */
     public function arrangeData($cluster)
     {
-        $models = array('Galaxy', 'SharingGroup', 'GalaxyElement', 'GalaxyClusterRelation', 'Org', 'Orgc', 'TargetingClusterRelation', 'Note', 'Opinion', 'Relationship');
+        $models = array('Galaxy', 'SharingGroup', 'GalaxyElement', 'GalaxyClusterRelation', 'Org', 'Orgc', 'TargetingClusterRelation', 'Note', 'Opinion', 'Relationship', 'RelationshipInbound');
         foreach ($models as $model) {
             if (isset($cluster[$model])) {
                 $cluster['GalaxyCluster'][$model] = $cluster[$model];
@@ -1845,6 +1845,9 @@ class GalaxyCluster extends AppModel
         if (!$compatible) {
             return 0;
         }
+
+        $serverSync->debug("Pulling galaxy clusters with technique $technique");
+
         $clusterIds = $this->getClusterIdListBasedOnPullTechnique($user, $technique, $serverSync);
         $successes = 0;
         // now process the $clusterIds to pull each of the events sequentially

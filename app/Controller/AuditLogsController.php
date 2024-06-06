@@ -155,8 +155,14 @@ class AuditLogsController extends AppController
         $this->set('title_for_layout', __('Audit logs'));
     }
 
-    public function eventIndex($eventId, $org = null)
+    public function eventIndex($eventId = null, $org = null)
     {
+        $params = $this->IndexFilter->harvestParameters(['created', 'org', 'eventId']);
+        if (!empty($params['eventId'])) {
+            $eventId = $params['eventId'];
+        } else if (empty($eventId)) {
+            $eventId = -1;
+        }
         $event = $this->AuditLog->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
         if (empty($event)) {
             throw new NotFoundException('Invalid event.');
@@ -164,7 +170,6 @@ class AuditLogsController extends AppController
         $this->paginate['conditions'] = $this->__createEventIndexConditions($event);
         $this->set('passedArgsArray', ['eventId' => $eventId, 'org' => $org]);
 
-        $params = $this->IndexFilter->harvestParameters(['created', 'org']);
         if ($org) {
             $params['org'] = $org;
         }

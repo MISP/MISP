@@ -120,7 +120,14 @@ class EventReport extends AppModel
                 __('Validation errors: %s.%sFull report: %s', json_encode($errors), PHP_EOL, json_encode($report['EventReport']))
             );
         } else {
-            $this->Event->captureAnalystData($user, $report);
+            $savedReport = $this->find('first', [
+                'recursive' => -1,
+                'fields' => ['id', 'uuid'],
+                'conditions' => ['id' => $this->id],
+            ]);
+            if ($savedReport) {
+                $this->Event->captureAnalystData($user, $report, 'EventReport', $savedReport['EventReport']['uuid']);
+            }
         }
         return $errors;
     }
@@ -191,8 +198,10 @@ class EventReport extends AppModel
         }
         $errors = $this->saveAndReturnErrors($report, ['fieldList' => self::CAPTURE_FIELDS], $errors);
         if (empty($errors)) {
-            $this->Event->captureAnalystData($user, $report['EventReport']);
-            $this->Event->unpublishEvent($eventId);
+            $this->Event->captureAnalystData($user, $report['EventReport'], 'EventReport', $report['EventReport']['uuid']);
+            if (!$fromPull) {
+                $this->Event->unpublishEvent($eventId);
+            }
         }
         return $errors;
     }
@@ -710,7 +719,7 @@ class EventReport extends AppModel
                 'category' => $typeToCategoryMapping[$complexTypeToolEntry['default_type']][0],
                 'type' => $complexTypeToolEntry['default_type'],
                 'value' => $textToBeReplaced,
-                'to_ids' => $complexTypeToolEntry['to_ids'],
+                'to_ids' => $complexTypeToolEntry['to_ids'] ?? 0,
             ];
             $replacedContent = str_replace($complexTypeToolEntry['original_value'], $textToInject, $replacedContent);
         }

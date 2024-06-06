@@ -8,6 +8,7 @@ body {
     width:100%;
     min-width:1300px;
     z-index: 20;
+    margin-bottom: 0;
 }
 
 input[type="file"] {
@@ -82,6 +83,10 @@ code {
 
 pre {
     font-size: 12px;
+}
+
+.d-none {
+    display: none;
 }
 
 .ellipsis-overflow {
@@ -229,13 +234,14 @@ div.index,
 div.view {
   float:right;
   width:calc(100% - 216px);
-  border-left:1px solid #666;
-  padding:0px 10px;
+  border-left:1px solid silver;
+  padding:0 10px;
   padding-bottom:40px;
 }
 div.actions {
   float:left;
   width:170px;
+    margin-top: 10px;
 }
 
 div.menuless-form {
@@ -244,7 +250,6 @@ div.menuless-form {
     margin: 0 auto;
     width:550px;
 }
-
 
 div.actions h3 {
   padding-top:0;

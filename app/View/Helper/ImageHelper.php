@@ -8,6 +8,7 @@ class ImageHelper extends AppHelper
     private $imageCache = [];
 
     /**
+     * Converts image file to data format
      * @param string $imagePath Path to file
      * @return string
      * @throws Exception
@@ -18,13 +19,13 @@ class ImageHelper extends AppHelper
             return $this->imageCache[$imagePath];
         }
 
-        $ext = pathinfo($imagePath, PATHINFO_EXTENSION);
+        $ext = strtolower(pathinfo($imagePath, PATHINFO_EXTENSION));
         if ($ext === 'svg') {
             $mime = 'image/svg+xml';
         } else if ($ext === 'png') {
             $mime = 'image/png';
         } else {
-            throw new InvalidArgumentException("Only SVG and PNG images are supported");
+            throw new InvalidArgumentException("Only SVG and PNG images are supported, '$ext' file provided.");
         }
 
         try {

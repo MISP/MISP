@@ -66,6 +66,7 @@ $table_data[] = [
             'notes_path' => 'GalaxyCluster.Note',
             'opinions_path' => 'GalaxyCluster.Opinion',
             'relationships_path' => 'GalaxyCluster.Relationship',
+            'relationshipsInbound_path' => 'GalaxyCluster.RelationshipInbound',
         ]
     ],
 ];
@@ -169,14 +170,57 @@ $md.html(md.render($md.text()));
 <?php
 
 $object_uuid = $cluster['GalaxyCluster']['uuid'];
+
+$notes = $cluster['GalaxyCluster']['Note'] ?? [];
+$opinions = $cluster['GalaxyCluster']['Opinion'] ?? [];
+$relationships_outbound = $cluster['GalaxyCluster']['Relationship'] ?? [];
+$relationships_inbound = $cluster['GalaxyCluster']['RelationshipInbound'] ?? [];
+$notesOpinions = array_merge($notes, $opinions);
+if(!function_exists("countNotes")) {
+    function countNotes($notesOpinions) {
+        $notesTotalCount = count($notesOpinions);
+        $notesCount = 0;
+        $relationsCount = 0;
+        foreach ($notesOpinions as $notesOpinion) {
+            if ($notesOpinion['note_type'] == 2) { // relationship
+                $relationsCount += 1;
+            } else {
+                $notesCount += 1;
+            }
+            if (!empty($notesOpinion['Note'])) {
+                $nestedCounts = countNotes($notesOpinion['Note']);
+                $notesTotalCount += $nestedCounts['total'];
+                $notesCount += $nestedCounts['notesOpinions'];
+                $relationsCount += $nestedCounts['relations'];
+            }
+            if (!empty($notesOpinion['Opinion'])) {
+                $nestedCounts = countNotes($notesOpinion['Opinion']);
+                $notesTotalCount += $nestedCounts['total'];
+                $notesCount += $nestedCounts['notesOpinions'];
+                $relationsCount += $nestedCounts['relations'];
+            }
+        }
+        return ['total' => $notesTotalCount, 'notesOpinions' => $notesCount, 'relations' => $relationsCount];
+    }
+}
+$counts = countNotes($notesOpinions);
+$notesOpinionCount = $counts['notesOpinions'];
+$allCounts = [
+    'notesOpinions' => $counts['notesOpinions'],
+    'relationships_outbound' => count($relationships_outbound),
+    'relationships_inbound' => count($relationships_inbound),
+];
+
 $options = [
     'container_id' => 'analyst_data_thread',
     'object_type' => 'GalaxyCluster',
     'object_uuid' => $object_uuid,
     'shortDist' => $shortDist,
-    'notes' => $cluster['GalaxyCluster']['Note'] ?? [],
-    'opinions' => $cluster['GalaxyCluster']['Opinion'] ?? [],
-    'relationships' => $cluster['GalaxyCluster']['Relationship'] ?? [],
+    'notes' => $notes,
+    'opinions' => $opinions,
+    'relationships_outbound' => $relationships_outbound,
+    'relationships_inbound' => $relationships_inbound,
+    'allCounts' => $allCounts,
 ];
 
 echo $this->element('genericElements/Analyst_data/thread', $options);

@@ -648,6 +648,9 @@ class RestResponseComponent extends Component
                 } else {
                     $prettyPrint = !$this->isAutomaticTool(); // Do not pretty print response for automatic tools
                     $response = JsonTool::encode($response, $prettyPrint);
+                    if ($format !== 'json' && $format !== 'application/json') {
+                        $response = h($response);
+                    }
                 }
             } else {
                 if ($dumpSql) {
@@ -669,11 +672,11 @@ class RestResponseComponent extends Component
             $tmpFile->writeWithSeparator($response, null);
             $response = $tmpFile;
         }
-
         if ($response instanceof TmpFileTool) {
-            if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+            $requestEtag = $this->requestEtag();
+            if ($requestEtag !== null) {
                 $etag = '"' . $response->hash('sha1') . '"';
-                if ($_SERVER['HTTP_IF_NONE_MATCH'] === $etag) {
+                if ($requestEtag === $etag) {
                     return new CakeResponse(['status' => 304]);
                 }
                 $headers['ETag'] = $etag;
@@ -689,9 +692,10 @@ class RestResponseComponent extends Component
             }
         } else {
             // Check if resource was changed when `If-None-Match` header is send and return 304 Not Modified
-            if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+            $requestEtag = $this->requestEtag();
+            if ($requestEtag !== null) {
                 $etag = '"' . sha1($response) . '"';
-                if ($_SERVER['HTTP_IF_NONE_MATCH'] === $etag) {
+                if ($requestEtag === $etag) {
                     return new CakeResponse(['status' => 304]);
                 }
                 // Generate etag just when HTTP_IF_NONE_MATCH is set
@@ -722,6 +726,25 @@ class RestResponseComponent extends Component
             $cakeResponse->download($download);
         }
         return $cakeResponse;
+    }
+
+    /**
+     * Return etag from If-None-Match HTTP request header without compression marks added by Apache
+     * @return string|null
+     */
+    private function requestEtag()
+    {
+        if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+            // Remove compression marks that adds Apache for compressed content
+            $requestEtag = $_SERVER['HTTP_IF_NONE_MATCH'];
+            $etagWithoutQuotes = trim($requestEtag, '"');
+            $dashPos = strrpos($etagWithoutQuotes, '-');
+            if ($dashPos && in_array(substr($etagWithoutQuotes, $dashPos + 1), ['br', 'gzip'], true)) {
+                return '"' . substr($etagWithoutQuotes, 0, $dashPos) . '"';
+            }
+            return $requestEtag;
+        }
+        return null;
     }
 
     /**

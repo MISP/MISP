@@ -366,7 +366,7 @@ $divider = '<li class="divider"></li>';
                         'url' => $baseurl . '/collections/index',
                         'text' => __('List Collections')
                     ));
-                    if ($this->Acl->canAccess('collection', 'add')) {
+                    if ($this->Acl->canAccess('collections', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
                             'url' => $baseurl . '/collections/add',
@@ -1100,6 +1100,13 @@ $divider = '<li class="divider"></li>';
                             'url' => $baseurl . '/servers/updateProgress',
                             'text' => __('Update Progress')
                         ));
+                        if (Configure::read('Plugin.Benchmarking_enable')) {
+                            echo $divider;
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => $baseurl . '/benchmarks/index',
+                                'text' => __('Benchmarks')
+                            ));
+                        }
                         echo $divider;
                         if (Configure::read('MISP.background_jobs')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -1119,6 +1126,7 @@ $divider = '<li class="divider"></li>';
                             'url' => $baseurl . '/servers/eventBlockRule',
                             'text' => __('Event Block Rules')
                         ));
+                        echo $divider;
                         if (Configure::read('MISP.enableEventBlocklisting') !== false) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'eventBlocklistsAdd',
@@ -1130,6 +1138,7 @@ $divider = '<li class="divider"></li>';
                                 'url' => $baseurl . '/eventBlocklists',
                                 'text' => __('Manage Event Blocklists')
                             ));
+                            echo $divider;
                         }
                         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -1142,6 +1151,20 @@ $divider = '<li class="divider"></li>';
                                 'url' => $baseurl . '/orgBlocklists',
                                 'text' => __('Manage Org Blocklists')
                             ));
+                            echo $divider;
+                        }
+                        if (!Configure::check('MISP.enableSightingBlocklisting') || Configure::read('MISP.enableSightingBlocklisting') !== false) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'sightingBlocklistsAdd',
+                                'url' => $baseurl . '/sightingBlocklists/add',
+                                'text' => __('Blocklists Sightings')
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'sightingBlocklists',
+                                'url' => $baseurl . '/sightingBlocklists',
+                                'text' => __('Manage Sighting Blocklists')
+                            ));
+                            echo $divider;
                         }
                     }
                     break;

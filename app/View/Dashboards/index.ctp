@@ -23,7 +23,7 @@ $(function () {
         saveDashboardState();
     });
     grid.on('added', function(event, items) {
-        resetDashboardGrid(grid);
+        resetDashboardGrid(grid, false);
     });
     grid.on('gsresizestop', function(event, element) {
         $(element).find('.widgetContentInner').trigger('widget-resized')

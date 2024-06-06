@@ -53,7 +53,13 @@ class AnalystDataController extends AppController
         if (empty($this->request->data[$this->modelSelection]['object_type']) && !empty($this->request->data[$this->modelSelection]['object_uuid'])) {
             $this->request->data[$this->modelSelection]['object_type'] = $this->AnalystData->deduceType($object_uuid);
         }
-        $params = [];
+        $this->loadModel('Event');
+        $currentUser = $this->Auth->user();
+        $params = [
+            'afterSave' => function (array $analystData) use ($currentUser) {
+                $this->Event->captureAnalystData($currentUser, $this->request->data[$this->modelSelection], $this->modelSelection, $analystData[$this->modelSelection]['uuid']);
+            }
+        ];
         $this->CRUD->add($params);
         if ($this->restResponsePayload) {
             return $this->restResponsePayload;
@@ -79,6 +85,8 @@ class AnalystDataController extends AppController
 
         $this->set('id', $id);
         $conditions = $this->AnalystData->buildConditions($this->Auth->user());
+        $this->loadModel('Event');
+        $currentUser = $this->Auth->user();
         $params = [
             'fields' => $this->AnalystData->getEditableFields(),
             'conditions' => $conditions,
@@ -92,6 +100,9 @@ class AnalystDataController extends AppController
             'beforeSave' => function(array $analystData): array {
                 $analystData[$this->modelSelection]['modified'] = date('Y-m-d H:i:s');
                 return $analystData;
+            },
+            'afterSave' => function (array $analystData) use ($currentUser) {
+                $this->Event->captureAnalystData($currentUser, $this->request->data[$this->modelSelection], $this->modelSelection, $analystData[$this->modelSelection]['uuid']);
             }
         ];
         $this->CRUD->edit($id, $params);
@@ -174,9 +185,7 @@ class AnalystDataController extends AppController
             $id = $this->AnalystData->getIDFromUUID($type, $id);
         }
 
-        if (!$this->IndexFilter->isRest()) {
-            $this->AnalystData->fetchRecursive = true;
-        }
+        $this->AnalystData->fetchRecursive = true;
         $conditions = $this->AnalystData->buildConditions($this->Auth->user());
         $this->CRUD->view($id, [
             'conditions' => $conditions,
@@ -320,6 +329,11 @@ class AnalystDataController extends AppController
                 $this->AnalystData = $this->{$vt};
                 $this->modelClass = $vt;
                 $this->{$vt}->current_user = $this->Auth->user();
+                if (!empty($this->request->data)) {
+                    if (!isset($this->request->data[$type])) {
+                        $this->request->data = [$type => $this->request->data];
+                    }
+                }
                 return $vt;
             }
         }

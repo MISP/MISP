@@ -152,7 +152,9 @@ class MysqlExtended extends Mysql
     public function execute($sql, $options = [], $params = [])
     {
         $log = $options['log'] ?? $this->fullDebug;
-
+        if (Configure::read('Plugin.Benchmarking_enable')) {
+            $log = true;
+        }
         if ($log) {
             $t = microtime(true);
             $this->_result = $this->_execute($sql, $params);
@@ -177,6 +179,10 @@ class MysqlExtended extends Mysql
      */
     public function insertMulti($table, $fields, $values)
     {
+        if (empty($values)) {
+            return true;
+        }
+
         $table = $this->fullTableName($table);
         $holder = substr(str_repeat('?,', count($fields)), 0, -1);
         $fields = implode(',', array_map([$this, 'name'], $fields));

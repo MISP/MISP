@@ -556,7 +556,12 @@ class AttributeValidationTool
                   if (!is_numeric($value) || $value < 0 || $value > 10) {
                       return __('The value has to be a number between 0 and 10.');
                   }
-                  return true;*/
+                return true;*/
+            case 'integer':
+                if (is_int($value)) {
+                    return true;
+                }
+                return __('The value has to be an integer value.');
             case 'iban':
             case 'bic':
             case 'btc':

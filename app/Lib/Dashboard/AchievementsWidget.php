@@ -191,4 +191,3 @@ class AchievementsWidget
         return $result;
     }
 }
-?>

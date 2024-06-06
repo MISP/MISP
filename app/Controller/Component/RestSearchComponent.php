@@ -144,7 +144,11 @@ class RestSearchComponent extends Component
             'retry',
             'expiry',
             'minimum_ttl',
-            'ttl'
+            'ttl',
+            'org.sector',
+            'org.local',
+            'org.nationality',
+            'galaxy.*',
         ],
         'Object' => [
             'returnFormat',
@@ -210,8 +214,8 @@ class RestSearchComponent extends Component
             'galaxy_uuid',
             'version',
             'distribution',
-            'org',
-            'orgc',
+            'org_id',
+            'orgc_id',
             'tag_name',
             'custom',
             'sgReferenceOnly',

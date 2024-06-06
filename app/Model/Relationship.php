@@ -38,6 +38,17 @@ class Relationship extends AnalystData
     /** @var array|null */
     private $__currentUser;
 
+    public function beforeValidate($options = array())
+    {
+        parent::beforeValidate($options);
+        // Prevent self-referencing relationships
+        if ($this->data[$this->current_type]['object_uuid'] == $this->data[$this->current_type]['related_object_uuid']) {
+            return false;
+        }
+        return true;
+
+    }
+
     public function afterFind($results, $primary = false)
     {
         $results = parent::afterFind($results, $primary);
@@ -49,7 +60,7 @@ class Relationship extends AnalystData
             }
         }
         foreach ($results as $i => $v) {
-            if (!empty($v[$this->alias]['related_object_type']) && !empty($v[$this->alias]['related_object_uuid'])) {
+            if (!empty($v[$this->alias]['related_object_type']) && !empty($v[$this->alias]['related_object_uuid']) && empty($results[$i][$this->alias]['related_object'])) {
                 $results[$i][$this->alias]['related_object'] = $this->getRelatedElement($this->__currentUser, $v[$this->alias]['related_object_type'], $v[$this->alias]['related_object_uuid']);
             }
         }
@@ -145,5 +156,42 @@ class Relationship extends AnalystData
             unset($data[$objectType]['Event']['Orgc']);
         }
         return $data;
+    }
+
+    public function getInboundRelationships(array $user, $object_type, $object_uuid): array
+    {
+        $conditions = [
+            'related_object_type' => $object_type,
+            'related_object_uuid' => $object_uuid,
+        ];
+        $type = 'Relationship';
+        if (empty($user['Role']['perm_site_admin'])) {
+            if ($this->__valid_sharing_groups === null) {
+                $this->__valid_sharing_groups = $this->SharingGroup->authorizedIds($user, true);
+            }
+            $conditions['AND'][] = [
+                'OR' => [
+                    $type . '.orgc_uuid' => $user['Organisation']['uuid'],
+                    $type . '.org_uuid' => $user['Organisation']['uuid'],
+                    $type . '.distribution IN' => [1, 2, 3],
+                    'AND' => [
+                        $type . '.distribution' => 4,
+                        $type . '.sharing_group_id IN' => $this->__valid_sharing_groups
+                    ]
+                ]
+            ];
+        }
+        $inboundRelations = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'contain' => ['Org', 'Orgc', 'SharingGroup'],
+        ]);
+
+        foreach ($inboundRelations as $i => $relationship) {
+            $relationship = $relationship['Relationship'];
+            $inboundRelations[$i]['Relationship']['related_object'] = $this->getRelatedElement($this->__currentUser, $relationship['object_type'], $relationship['object_uuid']);
+        }
+
+        return $inboundRelations;
     }
 }

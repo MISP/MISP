@@ -18,6 +18,7 @@
 
 App::uses('AppModel', 'Model');
 App::uses('BackgroundJobsTool', 'Tools');
+App::uses('BenchmarkTool', 'Tools');
 
 require_once dirname(__DIR__) . '/../Model/Attribute.php';   // FIXME workaround bug where Vendor/symfony/polyfill-php80/Resources/stubs/Attribute.php is loaded instead
 
@@ -38,7 +39,18 @@ abstract class AppShell extends Shell
     {
         $configLoad = $this->Tasks->load('ConfigLoad');
         $configLoad->execute();
-
+        if (Configure::read('Plugin.Benchmarking_enable')) {
+            $Benchmark = new BenchmarkTool(ClassRegistry::init('User'));
+            $start_time = $Benchmark->startBenchmark();
+            register_shutdown_function(function () use ($start_time, $Benchmark) {
+                $Benchmark->stopBenchmark([
+                    'user' => 0,
+                    'controller' => 'Shell::' . $this->modelClass,
+                    'action' => $this->command,
+                    'start_time' => $start_time
+                ]);
+            });
+        }
         parent::initialize();
     }
 

@@ -1083,7 +1083,11 @@ class Event extends AppModel
         // prepare Object for sync
         if (!empty($data['Object'])) {
             foreach ($data['Object'] as $key => $object) {
-                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['template_uuid'], $pushRules['type_objects']['NOT'])) {
+                if (
+                    !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                    !empty($pushRules['type_objects']['NOT']) &&
+                    in_array($object['template_uuid'], $pushRules['type_objects']['NOT'])
+                ) {
                     unset($data['Object'][$key]);
                     continue;
                 }
@@ -1528,7 +1532,7 @@ class Event extends AppModel
                     'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
                     'eventinfo' => array('function' => 'set_filter_eventinfo'),
                     'ignore' => array('function' => 'set_filter_ignore'),
-                    'tags' => array('function' => 'set_filter_tags'),
+                    'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'event_tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
@@ -3966,7 +3970,7 @@ class Event extends AppModel
                 $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
             }
 
-            $this->captureAnalystData($user, $data['Event']);
+            $this->captureAnalystData($user, $data['Event'], 'Event', $saveResult['Event']['uuid']);
             if ($fromXml) {
                 $created_id = $this->id;
             }
@@ -4269,7 +4273,7 @@ class Event extends AppModel
                 $this->Sighting->captureSightings($data['Sighting'], null, $this->id, $user);
             }
 
-            $this->captureAnalystData($user, $data['Event']);
+            $this->captureAnalystData($user, $data['Event'], 'Event', $saveResult['Event']['uuid']);
             // if published -> do the actual publishing
             if ($changed && (!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
                 // The edited event is from a remote server ?
@@ -5006,6 +5010,9 @@ class Event extends AppModel
                 $include = $include && ($filterType['correlation'] == 1);
             } else { // `exclude`
                 $include = $include && ($filterType['correlation'] == 2);
+                if (!empty($attribute['over_correlation'])) {
+                    $include = false;
+                }
             }
 
             if ($filterType['correlationId'] && $include) {
@@ -5587,6 +5594,7 @@ class Event extends AppModel
             $passedArgs['page'] = 0;
         }
         $params = $customPagination->applyRulesOnArray($objects, $passedArgs, 'events', 'category');
+        $objects = $this->attachAnalystDataToViewObjects($objects);
         foreach ($objects as $k => $object) {
             if (isset($referencedByArray[$object['uuid']])) {
                 foreach ($referencedByArray[$object['uuid']] as $objectType => $references) {
@@ -5597,6 +5605,44 @@ class Event extends AppModel
         $event['objects'] = $objects;
         $params['total_elements'] = count($objects);
         return $params;
+    }
+
+    // take a list of paginated, rearranged objects from the event view generation's viewUI() function
+    // collect all attribute and object uuids from the object list
+    // fetch the related analyst data and inject them back into the object list
+    public function attachAnalystDataToViewObjects($objects)
+    {
+        $attribute_notes = [];
+        $object_notes = [];
+        foreach ($objects as $k => $object) {
+            if ($object['objectType'] === 'object') {
+                $object_notes[] = $object['uuid'];
+                foreach ($object['Attribute'] as $a) {
+                    $attribute_notes[] = $a['uuid'];
+                }
+            } else if ($object['objectType'] === 'attribute') {
+                $attribute_notes[] = $object['uuid'];
+            }
+        }
+        $attribute_notes = $this->Attribute->fetchAnalystDataBulk($attribute_notes);
+        $object_notes = $this->Object->fetchAnalystDataBulk($object_notes);
+        foreach ($objects as $k => $object) {
+            if ($object['objectType'] === 'object') {
+                if (!empty($object_notes[$object['uuid']])) {
+                    $objects[$k] = array_merge($object, $object_notes[$object['uuid']]);
+                }
+                foreach ($object['Attribute'] as $k2 => $a) {
+                    if (!empty($attribute_notes[$a['uuid']])) {
+                        $objects[$k]['Attribute'][$k2] = array_merge($a, $attribute_notes[$a['uuid']]);
+                    }
+                }
+            } else if ($object['objectType'] === 'attribute') {
+                if (!empty($attribute_notes[$object['uuid']])) {
+                    $objects[$k] = array_merge($object, $attribute_notes[$object['uuid']]);
+                }
+            }
+        }
+        return $objects;
     }
 
     // pass along a json from the server filter rules
@@ -6072,7 +6118,7 @@ class Event extends AppModel
 
     /**
      * @param string $stixVersion
-     * @param string $file
+     * @param string $file Path to STIX file
      * @param int $distribution
      * @param int|null $sharingGroupId
      * @param bool $galaxiesAsTags
@@ -6130,6 +6176,7 @@ class Event extends AppModel
         try {
             $stdout = ProcessTool::execute($shellCommand, null, true);
         } catch (ProcessException $e) {
+            $this->logException("Could not import $stixVersion file $file", $e);
             $stdout = $e->stdout();
         }
 
@@ -8047,7 +8094,7 @@ class Event extends AppModel
         }
     }
 
-    public function captureAnalystData($user, $data)
+    public function captureAnalystData($user, $data, $parentObjectType, $parentObjectUUID)
     {
         $this->Note = ClassRegistry::init('Note');
         $this->Opinion = ClassRegistry::init('Opinion');
@@ -8055,6 +8102,9 @@ class Event extends AppModel
         foreach ($this->Note::ANALYST_DATA_TYPES as $type) {
             if (!empty($data[$type])) {
                 foreach ($data[$type] as $analystData) {
+                    $analystData['note_type_name'] = $type;
+                    $analystData['object_type'] = $parentObjectType;
+                    $analystData['object_uuid'] = $parentObjectUUID;
                     $this->{$type}->captureAnalystData($user, $analystData);
                 }
             }

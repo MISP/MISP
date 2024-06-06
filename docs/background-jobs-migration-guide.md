@@ -5,18 +5,24 @@ For the time being both background jobs backends will be supported, but we plan 
 
 The new backend requires [Supervisor](http://supervisord.org/) and some extra PHP packages.
 
-**This guide is intended for Ubuntu/Debian systems**
+**This guide is intended for Ubuntu/Debian and RHEL systems, make sure you execute the version for your distribution**
 
 ## Install requirements
 Run on your MISP instance the following commands.
 
 1. Install **Supervisord**:
+    - Ubuntu / Debian
     ```
     sudo apt install supervisor -y
+    ```
+    - RHEL
+    ```
+    sudo dnf install -y supervisor
     ```
 
 
 2. Install required PHP packages:
+    - Ubuntu / Debian
     ```
     cd /var/www/MISP/app
     sudo -u www-data php composer.phar require --with-all-dependencies supervisorphp/supervisor:^4.0 \
@@ -25,9 +31,14 @@ Run on your MISP instance the following commands.
         php-http/message-factory \
         lstrojny/fxmlrpc
     ```
+    - RHEL
+    ```
+    sudo -u apache sh -c "cd /var/www/MISP/app;php composer.phar require --with-all-dependencies supervisorphp/supervisor:^4.0 guzzlehttp/guzzle php-http/message php-http/message-factory lstrojny/fxmlrpc"
+    ```
 
 3. Add the following settings at the bottom of the **Supervisord** conf file, usually located in:
 
+    - Ubuntu / Debian
     `/etc/supervisor/supervisord.conf`
     ```
     [inet_http_server]
@@ -35,9 +46,11 @@ Run on your MISP instance the following commands.
     username=supervisor
     password=PWD_CHANGE_ME
     ```
+   - RHEL (same content as above, just different config file path)
+   `/etc/supervisord.conf`
 
 4. Use the following configuration as a template for the services, usually located in:
-
+    - Ubuntu / Debian
     `/etc/supervisor/conf.d/misp-workers.conf`
     ```
     [group:misp-workers]
@@ -107,6 +120,42 @@ Run on your MISP instance the following commands.
     stdout_logfile=/var/www/MISP/app/tmp/logs/misp-workers.log
     user=www-data
     ```
+   - RHEL. Same file content as above except for user which should be apache, find and replace www-data -> apache. Filepath is also different, see below:
+   `/etc/supervisord.d/misp-workers.ini`
+
+## Make SELinux happy
+***These steps are only relevant for systems with SELinux enabled (typically RHEL)!!!*** Create and install an SELinux module to run new misp-workers as httpd_t, this will make sure the workers diagnostics page works. If you get some message there saying you are not running the workers with correct user, so it can't get the status, SELinux is potentially the cause:
+
+1. Install required packages
+    ```
+    sudo dnf install -y selinux-policy-devel setools-console
+    ```
+2. Create and move to temp dir where we will create the required files
+    ```
+    mkdir /tmp/misp-modules-supervisord
+    cd /tmp/misp-modules-supervisord
+    ```
+3. Create file and add content to
+   `misp-modules-supervisord.te`
+    ```
+    policy_module(misp-workers-httpd, 1.0)
+    require{
+        type unconfined_service_t, httpd_sys_script_exec_t, httpd_t;
+    }
+    
+    domtrans_pattern(unconfined_service_t, httpd_sys_script_exec_t, httpd_t);
+    allow httpd_t httpd_sys_script_exec_t:file entrypoint;
+    ```
+4. Make and install module
+    ```
+    make -f /usr/share/selinux/devel/Makefile misp-modules-supervisord.pp
+    sudo semodule -i misp-modules-supervisord.pp
+    ```
+
+5. Restart **Supervisord** to load the changes:
+    ```
+    sudo systemctl restart supervisord
+    ```
 
 ## MISP Config
 1. Go to your **MISP** instances `Server Settings & Maintenance` page, and then to the new [SimpleBackgroundJobs]((https://localhost/servers/serverSettings/SimpleBackgroundJobs)) tab.
@@ -118,8 +167,13 @@ Run on your MISP instance the following commands.
 4. Verify Redis and other settings are correct and then set `SimpleBackgroundJobs.enabled` to `true`.
 
 5. Restart **Supervisord** to load the changes:
+    - Ubuntu / Debian
     ```
     sudo service supervisor restart
+    ```
+    - RHEL
+    ```
+    sudo systemctl restart supervisord
     ```
 
 6. Check **Supervisord** workers are running:

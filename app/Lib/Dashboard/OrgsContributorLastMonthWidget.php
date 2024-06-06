@@ -19,4 +19,3 @@ class OrgsContributorLastMonthWidget extends OrgsContributorsGeneric
         return count($results) > 0;
     }
 }
- ?>

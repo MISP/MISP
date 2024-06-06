@@ -213,10 +213,13 @@ class EventReportsController extends AppController
 
     public function extractAllFromReport($reportId)
     {
-        if (!$this->request->is('ajax')) {
+        if (!$this->request->is('ajax') && !$this->_isRest()) {
             throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
         }
         if ($this->request->is('post')) {
+            if (!isset($this->data['EventReport'])) {
+                $this->data = ['EventReport' => $this->data];
+            }
             $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $reportId, 'edit', $throwErrors=true, $full=false);
             $results = $this->EventReport->getComplexTypeToolResultWithReplacements($this->Auth->user(), $report);
             $report['EventReport']['content'] = $results['replacementResult']['contentWithReplacements'];
@@ -299,13 +302,16 @@ class EventReportsController extends AppController
 
     public function importReportFromUrl($event_id)
     {
-        if (!$this->request->is('ajax')) {
-            throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
+        if (!$this->request->is('ajax') && !$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This function can only be reached via AJAX and via the API.'));
         }
         $fetcherModule = $this->EventReport->isFetchURLModuleEnabled();
         if ($this->request->is('post')) {
+            if (empty($this->data['EventReport'])) {
+                $this->data = ['EventReport' => $this->data];
+            }
             if (empty($this->data['EventReport']['url'])) {
-                throw new MethodNotAllowedException(__('An URL must be provided'));
+                throw new MethodNotAllowedException(__('A URL must be provided'));
             }
             $url = $this->data['EventReport']['url'];
             $format = 'html';
@@ -316,7 +322,6 @@ class EventReportsController extends AppController
                     $format = $parsed_format;
                 }
             }
-            
             $content = $this->EventReport->downloadMarkdownFromURL($event_id, $url, $format);
 
             $errors = [];
@@ -561,6 +566,12 @@ class EventReportsController extends AppController
         foreach (EventReport::CAPTURE_FIELDS as $field) {
             if (!in_array($field, $ignoreFieldList) && isset($newReport['EventReport'][$field])) {
                 $savedReport['EventReport'][$field] = $newReport['EventReport'][$field];
+            }
+        }
+        $this->loadModel('AnalystData');
+        foreach ($this->AnalystData::ANALYST_DATA_TYPES as $type) {
+            if (!empty($newReport['EventReport'][$type])) {
+                $savedReport['EventReport'][$type] = $newReport['EventReport'][$type];
             }
         }
         return $savedReport;

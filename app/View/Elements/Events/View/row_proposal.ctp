@@ -47,16 +47,6 @@
   </td>
   <td class="short context hidden uuid">
         <span class="quickSelect"><?php echo h($object['uuid']); ?></span>
-        <?php
-          $notes = !empty($object['Note']) ? $object['Note'] : [];
-          $opinions = !empty($object['Opinion']) ? $object['Opinion'] : [];
-          $relationships = !empty($object['Relationship']) ? $object['Relationship'] : [];
-          echo $this->element('genericElements/Analyst_data/generic', [
-              'analyst_data' => ['notes' => $notes, 'opinions' => $opinions, 'relationships' => $relationships],
-              'object_uuid' => $object['uuid'],
-              'object_type' => 'Attribute'
-          ]);
-        ?>
       </td>
   <td class="short context hidden">
       <?php echo $this->element('/Events/View/seen_field', array('object' => $object)); ?>
@@ -72,12 +62,9 @@
             $notes = !empty($object['Note']) ? $object['Note'] : [];
             $opinions = !empty($object['Opinion']) ? $object['Opinion'] : [];
             $relationships = !empty($object['Relationship']) ? $object['Relationship'] : [];
-            echo $this->element('genericElements/shortUuidWithNotes', [
-                'uuid' => $object['uuid'],
-                'object_type' => 'Attribute',
-                'notes' => $notes,
-                'opinions' => $opinions,
-                'relationships' => $relationships,
+            $relationshipsInbound = !empty($object['RelationshipInbound']) ? $object['RelationshipInbound'] : [];
+            echo $this->element('genericElements/shortUuid', [
+                'uuid' => $object['uuid']
             ]);
           ?>
       </td>

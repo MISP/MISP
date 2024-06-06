@@ -1819,5 +1819,25 @@
       "exportable": true,
       "hide_tag": false
     }
+  },
+  {
+    "Feed": {
+      "name": "Infoblox-Threat-Intelligence",
+      "provider": "infoblox.com",
+      "url": "https:\/\/raw.githubusercontent.com\/infobloxopen\/threat-intelligence\/main\/indicators\/misp",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "0",
+      "default": false,
+      "source_format": "misp",
+      "fixed_event": false,
+      "delta_merge": false,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    }
   }
 ]

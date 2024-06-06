@@ -17,6 +17,9 @@ class WorkflowShell extends AppShell {
         $data = JsonTool::decode($this->args[1]);
         $logging = JsonTool::decode($this->args[2]);
         $jobId = $this->args[3];
+        if (!empty($this->args[4])) {
+            Configure::write('CurrentUserId', JsonTool::decode($this->args[4]));
+        }
 
         $blockingErrors = [];
         $executionSuccess = $this->Workflow->executeWorkflowForTrigger($trigger_id, $data, $blockingErrors);
