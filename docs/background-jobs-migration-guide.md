@@ -136,7 +136,7 @@ Run on your MISP instance the following commands.
     cd /tmp/misp-modules-supervisord
     ```
 3. Create file and add content to
-   `misp-modules-supervisord.te`
+   `misp-workers-httpd.te`
     ```
     policy_module(misp-workers-httpd, 1.0)
     require{
@@ -148,8 +148,8 @@ Run on your MISP instance the following commands.
     ```
 4. Make and install module
     ```
-    make -f /usr/share/selinux/devel/Makefile misp-modules-supervisord.pp
-    sudo semodule -i misp-modules-supervisord.pp
+    make -f /usr/share/selinux/devel/Makefile misp-workers-httpd.pp
+    sudo semodule -i misp-workers-httpd.pp
     ```
 
 5. Restart **Supervisord** to load the changes:
