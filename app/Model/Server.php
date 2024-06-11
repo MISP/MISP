@@ -5184,6 +5184,14 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ],
+                'correlation_chunk_size' => [
+                    'level' => 0,
+                    'description' => __('When correlating large events, set a number of attributes that MISP will fetch per round when recorrelating. Large chunk sizes will speed the iteration up on systems with plenty of available memory, at the cost of memory usage.'),
+                    'value' => 5000,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
                 'enable_advanced_correlations' => [
                     'level' => 0,
                     'description' => __('Enable some performance heavy correlations (currently CIDR correlation)'),
