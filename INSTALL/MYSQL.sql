@@ -121,9 +121,11 @@ CREATE TABLE IF NOT EXISTS `auth_keys` (
 --
 
 CREATE TABLE IF NOT EXISTS `bruteforces` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `ip` varchar(255) COLLATE utf8_bin NOT NULL,
   `username` varchar(255) COLLATE utf8_bin NOT NULL,
-  `expire` datetime NOT NULL
+  `expire` datetime NOT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
