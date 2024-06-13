@@ -91,7 +91,7 @@ class AppModel extends Model
         105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
         117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
-        123 => false, 124 => false, 125 => false,
+        123 => false, 124 => false, 125 => false, 126 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2178,6 +2178,9 @@ class AppModel extends Model
                 break;
             case 125:
                 $sqlArray[] = "ALTER TABLE `feeds` ADD COLUMN `tag_collection_id` INT(11) NOT NULL DEFAULT 0;";
+                break;
+            case 126:
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_skip_otp` tinyint(1) NOT NULL DEFAULT 0;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
