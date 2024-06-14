@@ -121,7 +121,9 @@ class AppController extends Controller
         }
         $controller = $this->request->params['controller'];
         $action = $this->request->params['action'];
-
+        if ($action === 'heartbeat') {
+            return;
+        }
         $this->_setupBaseurl();
         $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
 

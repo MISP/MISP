@@ -29,7 +29,7 @@ class UsersController extends AppController
         parent::beforeFilter();
 
         // what pages are allowed for non-logged-in users
-        $allowedActions = array('login', 'logout', 'getGpgPublicKey', 'logout401', 'otp');
+        $allowedActions = array('login', 'logout', 'getGpgPublicKey', 'logout401', 'otp', 'heartbeat');
         if (!empty(Configure::read('Security.allow_password_forgotten'))) {
             $allowedActions[] = 'forgot';
             $allowedActions[] = 'password_reset';
@@ -3241,5 +3241,11 @@ class UsersController extends AppController
             $abortPost = false;
             return $this->__pw_change(['User' => $user], 'password_reset', $abortPost, $token, true);
         }
+    }
+
+    public function heartbeat()
+    {
+        $payload = $this->User::HEARTBEAT_MESSAGES[rand(0, count($this->User::HEARTBEAT_MESSAGES)-1)];
+        return $this->RestResponse->viewData($payload, 'json');
     }
 }
