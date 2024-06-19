@@ -1657,25 +1657,10 @@ class Feed extends AppModel
         return true;
     }
 
-    private function __cacheMISPFeed($feed, $redis, HttpSocket $HttpSocket = null, $jobId = false)
-    {
-        $result = true;
-        if (!$this->__cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId)) {
-            $result = $this->__cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId);
-            if ($result) {
-                $this->insertToRedisCache('feed', $feed['Feed']['id'], $result, true);
-            }
-        }
-        return $result;
-    }
-
     public function compareFeeds(bool $limited = false)
     {
-        $redis = $this->setupRedis();
-        if ($redis === false) {
-            return array();
-        }
-        $fields = array('id', 'input_source', 'source_format', 'url', 'provider', 'name', 'default');
+        $redis = RedisTool::init();
+        $fields = ['id', 'input_source', 'source_format', 'url', 'provider', 'name', 'default'];
         $conditions = ['Feed.caching_enabled' => 1];
         if ($limited) {
             $conditions['Feed.lookup_visible'] = 1;
@@ -1944,18 +1929,31 @@ class Feed extends AppModel
         return $result;
     }
 
+    /**
+     * @param string|array $value
+     * @param bool $limited
+     * @return array
+     * @throws RedisException
+     */
     public function searchCaches($value, bool $limited = false)
     {
         $sources = [];
-        $feeds = $this->find('all', array(
-            'conditions' => array('caching_enabled' => 1),
+
+        // Fetch feeds
+        $feedConditions = ['caching_enabled' => 1];
+        if ($limited) {
+            $feedConditions['lookup_visible'] = 1;
+        }
+        $feeds = $this->find('all', [
+            'conditions' => $feedConditions,
             'recursive' => -1,
-            'fields' => array('Feed.id', 'Feed.name', 'Feed.url', 'Feed.source_format')
-        ));
+            'fields' => ['Feed.id', 'Feed.name', 'Feed.url', 'Feed.source_format'],
+        ]);
         foreach ($feeds as $feed) {
             $sources['F' . $feed['Feed']['id']] = $feed['Feed'];
         }
 
+        // Fetch servers
         $this->Server = ClassRegistry::init('Server');
         $servers = $this->Server->find('all', array(
             'conditions' => array('caching_enabled' => 1),
@@ -1980,7 +1978,7 @@ class Feed extends AppModel
 
             foreach ($results as $sourceId => $uuids) {
                 if (!isset($sources[$sourceId])) {
-                    continue;
+                    continue; // user don't have access to given source
                 }
                 $hit = $sources[$sourceId];
                 if ($uuids) {
