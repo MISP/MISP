@@ -47,7 +47,7 @@ class BookmarksController extends AppController
         }
         $params = [
             'filters' => ['name', 'url', ],
-            'quickFilters' => ['name', 'url', ],
+            'quickFilters' => ['Bookmark.name', 'Bookmark.url', ],
             'conditions' => $conditions,
         ];
         $this->CRUD->index($params);
