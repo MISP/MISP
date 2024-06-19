@@ -67,7 +67,7 @@
                 ],
                 'fields' => $fields,
                 'title' => __('Bookmarks'),
-                'description' => __('You can create bookmarks that will be aded in the navigation top bar. Each bookmarks can be expose to all users from the organisation.'),
+                'description' => __('You can create bookmarks that will be added in the navigation top bar. Each bookmark can be exposed to all users from the organisation.'),
                 'actions' => [
                     [
                         'url' => $baseurl . '/bookmarks/view',
