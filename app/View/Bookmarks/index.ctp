@@ -28,6 +28,7 @@
         ],
         [
             'name' => __('Exposed to Organsation'),
+            'title' => __('Is this bookmark exposed to all users belonging to the bookmark\'s organisation'),
             'sort' => 'Bookmark.exposed_to_org',
             'data_path' => 'Bookmark.exposed_to_org',
             'element' => 'boolean',
