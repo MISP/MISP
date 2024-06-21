@@ -100,6 +100,13 @@ class ACLComponent extends Component
         'benchmarks' => [
             'index' => []
         ],
+        'bookmarks' => [
+            'add' => ['*'],
+            'delete' => ['*'],
+            'edit' => ['*'],
+            'index' => ['*'],
+            'view' => ['*'],
+        ],
         'cerebrates' => [
             'add' => [],
             'delete' => [],
@@ -797,6 +804,7 @@ class ACLComponent extends Component
             'edit' => array('self_management_enabled'),
             'email_otp' => array('*'),
             'forgot' => ['AND' => ['password_forgotten_enabled', 'password_change_enabled']],
+            'heartbeat' => ['*'],
             'otp' => ['otp_enabled'],
             'hotp' => ['otp_enabled'],
             'totp_new' => ['otp_enabled'],

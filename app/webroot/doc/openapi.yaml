@@ -6333,7 +6333,7 @@ components:
       in: path
       description: "Whether the object should be attached locally or not to the target"
       schema:
-        $ref: "#/components/schemas/Local"
+        $ref: "#/components/schemas/IsLocal"
 
     tagSearchTermParameter:
       name: tagSearchTerm

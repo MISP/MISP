@@ -15,7 +15,7 @@
         'html' => sprintf(
             '%s %s',
             h($decaying_model['DecayingModel']['name']),
-            $decaying_model['DecayingModel']['default'] ? '<img src="' . $baseurl . '/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" title="' . __('Default Model from MISP Project') . '" />' : ''
+            $decaying_model['DecayingModel']['default'] ? '<img src="' . $baseurl . '/img/MISP.png" width="24" height="24" style="padding-bottom:3px;" title="' . __('Default Model from MISP Project') . '" />' : ''
         )
     );
     $table_data[] = array('key' => __('Description'), 'value' => $decaying_model['DecayingModel']['description']);

@@ -337,6 +337,13 @@ class Role extends AppModel
                 'readonlyenabled' => false,
                 'title' => __('Create or modify Analyst Data such as Analyst Notes or Opinions.'),
             ),
+            'perm_skip_otp' => [
+                'id' => 'RolePermSkipOtp',
+                'text' => 'Skip OTP Reqs',
+                'readonlyenabled' => false,
+                'title' => __('Users using a role with this permission enabled will be able to skip creating/using OTP. This can be useful for internal service accounts for example, though use it with care. The permission has no effect on instances where otp_required is disabled.'),
+                'site_admin_optional' => true
+            ],
         );
     }
 }

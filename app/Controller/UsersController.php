@@ -29,7 +29,7 @@ class UsersController extends AppController
         parent::beforeFilter();
 
         // what pages are allowed for non-logged-in users
-        $allowedActions = array('login', 'logout', 'getGpgPublicKey', 'logout401', 'otp');
+        $allowedActions = array('login', 'logout', 'getGpgPublicKey', 'logout401', 'otp', 'heartbeat');
         if (!empty(Configure::read('Security.allow_password_forgotten'))) {
             $allowedActions[] = 'forgot';
             $allowedActions[] = 'password_reset';
@@ -92,6 +92,7 @@ class UsersController extends AppController
             unset($user['User']['authkey']);
         }
         $user['User']['password'] = '*****';
+        $user['User']['totp_is_set'] = !empty($user['User']['totp']);
         $user['User']['totp'] = '*****';
         $temp = [];
         $objectsToInclude = array('User', 'Role', 'UserSetting', 'Organisation');
@@ -476,7 +477,8 @@ class UsersController extends AppController
                     'force_logout',
                     'date_created',
                     'date_modified',
-                    'last_pw_change'
+                    'last_pw_change',
+                    'totp'
                 ),
                 'contain' => array(
                     'Organisation' => array('id', 'name'),
@@ -489,6 +491,10 @@ class UsersController extends AppController
                         $users[$key]['User']['authkey'] = __('Redacted');
                     }
                 }
+            }
+            foreach ($users as $key => $user) {
+                $users[$key]['User']['totp_is_set'] = !empty($user['User']['totp']);
+                unset($users[$key]['User']['totp']);
             }
             $users = $this->User->attachIsUserMonitored($users);
             return $this->RestResponse->viewData($users, $this->response->type());
@@ -3235,5 +3241,11 @@ class UsersController extends AppController
             $abortPost = false;
             return $this->__pw_change(['User' => $user], 'password_reset', $abortPost, $token, true);
         }
+    }
+
+    public function heartbeat()
+    {
+        $payload = $this->User::HEARTBEAT_MESSAGES[rand(0, count($this->User::HEARTBEAT_MESSAGES)-1)];
+        return $this->RestResponse->viewData($payload, 'json');
     }
 }
