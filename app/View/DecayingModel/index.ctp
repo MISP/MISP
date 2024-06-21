@@ -104,7 +104,7 @@ foreach ($decayingModels as $item): ?>
         <td>
             <a href="<?php echo $baseurl."/decayingModel/view/" . h($item['DecayingModel']['id']); ?>"><?php echo h($item['DecayingModel']['name']); ?>&nbsp;</a>
             <?php if ($item['DecayingModel']['default']): ?>
-                <img src="<?php echo $baseurl;?>/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" title="<?php echo __('Default Model from MISP Project'); ?>" />
+                <img src="<?php echo $baseurl;?>/img/MISP.png" width="24" height="24" style="padding-bottom:3px;" title="<?php echo __('Default Model from MISP Project'); ?>" />
             <?php endif; ?>
         </td>
         <td><?php echo h($item['DecayingModel']['description']); ?>&nbsp;</td>
