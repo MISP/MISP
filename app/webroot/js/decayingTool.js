@@ -435,7 +435,6 @@
                             }
                         },
                         success: function(data, textStatus) {
-                            data = JSON.parse(data);
                             if (baseurl.includes('decayingModelMapping')) {
                                 showMessage('success', 'Mapping has been saved');
                                 that.refreshTypeMappingTable(model_id);

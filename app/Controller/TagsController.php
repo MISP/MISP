@@ -1025,7 +1025,7 @@ class TagsController extends AppController
                 unset($tags[$k]);
             }
         }
-        return $this->RestResponse->viewData($tags, $this->response->type());
+        return $this->RestResponse->viewData($tags, 'application/json');
     }
 
     public function modifyTagRelationship($scope, $id)

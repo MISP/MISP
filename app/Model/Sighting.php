@@ -1225,7 +1225,7 @@ class Sighting extends AppModel
                 ]);
             }
             
-            foreach (array_chunk($sightingIds, 500) as $chunk) {
+            foreach (array_chunk($sightingIds, 10000) as $chunk) {
                 // fetch sightings with ACL checks and sighting policies
                 $sightings = $this->getSightings($user, $chunk, $includeEvent, $includeAttribute, $includeUuid);
                 foreach ($sightings as $sighting) {

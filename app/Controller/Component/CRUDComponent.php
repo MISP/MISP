@@ -314,7 +314,7 @@ class CRUDComponent extends Component
                     return;
                 } else {
                     $this->Controller->Flash->success($message);
-                    $this->Controller->redirect($this->Controller->referer());
+                    $this->Controller->redirect($this->Controller->referer(['action' => 'index']));
                 }
             }
         }

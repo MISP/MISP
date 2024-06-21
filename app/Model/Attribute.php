@@ -1265,14 +1265,15 @@ class Attribute extends AppModel
      * @param array $conditions
      * @param array $fields
      * @param bool|string $callbacks
+     * @param int $chunk_size
      * @return Generator<array>|void
      */
-    public function fetchAttributesInChunks(array $conditions = [], array $fields = [], $callbacks = true)
+    public function fetchAttributesInChunks(array $conditions = [], array $fields = [], $callbacks = true, $chunk_size = 500)
     {
         $query = [
             'recursive' => -1,
             'conditions' => $conditions,
-            'limit' => 500,
+            'limit' => $chunk_size,
             'order' => ['Attribute.id'],
             'fields' => $fields,
             'callbacks' => $callbacks,
@@ -1284,12 +1285,43 @@ class Attribute extends AppModel
                 yield $attribute;
             }
             $count = count($attributes);
-            if ($count < 500) {
+            if ($count < $chunk_size) {
                 return;
             }
             $lastAttribute = $attributes[$count - 1];
             $query['conditions']['Attribute.id >'] = $lastAttribute['Attribute']['id'];
         }
+    }
+
+        /**
+     * This method is useful if you want something semi compatible to fetchAttributesInChunks, but with single iterations
+     * @param array $conditions
+     * @param array $fields
+     * @param bool|string $callbacks
+     * @param int $chunk_size
+     * @param int $last_id
+     * @param bool $continue
+     * @return array
+     */
+    public function fetchAttributesInChunksSingle(array $conditions = [], array $fields = [], $callbacks = true, $chunk_size = 500, &$last_id = 0, &$continue = false)
+    {
+        $conditions['Attribute.id > '] = $last_id;
+        $query = [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'limit' => $chunk_size,
+            'order' => ['Attribute.id'],
+            'fields' => $fields,
+            'callbacks' => $callbacks,
+        ];
+        $attributes = $this->find('all', $query);
+        if (empty($attributes)) {
+            $continue = false;
+            return [];
+        }
+        $lastAttribute = $attributes[count($attributes) - 1];
+        $last_id = $lastAttribute['Attribute']['id'];
+        return $attributes;
     }
 
     /**

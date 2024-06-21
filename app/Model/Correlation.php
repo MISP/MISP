@@ -216,14 +216,17 @@ class Correlation extends AppModel
             $attributeConditions['Attribute.id'] = $attributeId;
         }
 
-        $attributes = $this->Attribute->fetchAttributesInChunks($attributeConditions, $this->getFieldRules(), false);
-
+        $chunk_size = Configure::check('MISP.correlation_chunk_size') ? Configure::read('MISP.correlation_chunk_size') : 5000;
+        $continue = true;
+        $last_id = 0;
         $attributeCount = 0;
-        foreach ($attributes as $attribute) {
-            $this->afterSaveCorrelation($attribute['Attribute'], $full, $event);
-            ++$attributeCount;
+        while ($continue) {
+            $attributes = $this->Attribute->fetchAttributesInChunksSingle($attributeConditions, $this->getFieldRules(), false, $chunk_size, $last_id, $continue);
+            $attributeCount += count($attributes);
+            foreach ($attributes as $attribute) {
+                $this->afterSaveCorrelation($attribute['Attribute'], $full, $event);
+            }
         }
-
         // Generating correlations can take long time, so clear caches after each event to refresh them
         $this->cidrListCache = null;
         $this->OverCorrelatingValue->cleanCache();
