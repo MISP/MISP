@@ -59,7 +59,7 @@
   }
 
   ?>
-  <tr id="Attribute_<?= $objectId ?>_tr" data-primary-id="<?= $objectId ?>" class="<?php echo $tr_class; ?>" tabindex="0">
+  <tr id="Attribute_<?= $objectId ?>_tr" data-primary-id="<?= $objectId ?>" class="<?php echo $tr_class; ?>" tabindex="0" data-uuid="<?= h($object['uuid']) ?>">
       <?php if (($mayModify || !empty($extended)) && empty($disable_multi_select)): ?>
         <td style="width:10px">
         <?php if ($mayModify):?>
