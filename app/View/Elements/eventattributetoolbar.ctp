@@ -263,7 +263,7 @@
                 'children' => [
                     [
                         'id' => 'expand-all-objects',
-                        'text' => _('Expand all Objects'),
+                        'text' => __('Expand all Objects'),
                         'title' => __('Show all Attribute contained in Objects'),
                         'fa-icon' => 'angle-double-down',
                         'onClick' => 'showAllAttributeInObjects',
@@ -271,7 +271,7 @@
                     ],
                     [
                         'id' => 'collapse-all-objects',
-                        'text' => _('Collapse all Attributes'),
+                        'text' => __('Collapse all Attributes'),
                         'title' => __('Hide all Attribute contained in Objects'),
                         'fa-icon' => 'angle-double-up',
                         'onClick' => 'hideAllAttributeInObjects',

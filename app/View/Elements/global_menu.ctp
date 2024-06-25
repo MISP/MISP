@@ -11,6 +11,28 @@ if (!empty($me)) {
         $logoHtml = __('Home');
     }
 
+    // Build bookmarks
+    $topbarBookmarks = [];
+    foreach ($bookmarks as $bookmark) {
+        $topbarBookmarks[] = [
+            'html' => sprintf('<i class="fas fa-link fa-fw"></i> %s', h($bookmark['Bookmark']['name'])),
+            'url' => h($bookmark['Bookmark']['url']),
+        ];
+    }
+    $topbarBookmarks[] = ['type' => 'separator'];
+    $topbarBookmarks[] = [
+        'html' => sprintf('<span id="bookmarkThisPageContainer" data-current-page="%s"><i class="fas fa-plus fa-fw"></i> %s</span>',
+           $baseurl .  h($this->here),
+            __('Bookmark this page')
+        ),
+        'requirement' => $this->Acl->canAccess('bookmarks', 'add'),
+    ];
+    $topbarBookmarks[] = [
+        'html' => sprintf('<i class="fas fa-cogs fa-fw"></i> %s', __('Manage Bookmarks')),
+        'url' => $baseurl . '/bookmarks/index',
+        'requirement' => $this->Acl->canAccess('bookmarks', 'add'),
+    ];
+
     // New approach how to define menu requirements. It takes ACLs from ACLComponent.
     $menu = array(
         array(
@@ -516,6 +538,11 @@ if (!empty($me)) {
         )
     );
     $menu_right = array(
+        array(
+            'type' => 'root',
+            'html' => sprintf('%s <i class="fas fa-caret-down"></i>', __('Bookmarks')),
+            'children' => $topbarBookmarks,
+        ),
         array(
             'type' => 'root',
             'url' => '#',

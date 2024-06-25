@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '162';
-    public $pyMispVersion = '2.4.193';
+    private $__queryVersion = '163';
+    public $pyMispVersion = '2.4.194';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -326,6 +326,8 @@ class AppController extends Controller
             $this->set('isAclSighting', $role['perm_sighting'] ?? false);
             $this->set('isAclAnalystDataCreator', $role['perm_analyst_data'] ?? false);
             $this->set('aclComponent', $this->ACL);
+            $this->loadModel('Bookmark');
+            $this->set('bookmarks', $this->Bookmark->getBookmarksForUser($user));
             $this->userRole = $role;
 
             $this->__accessMonitor($user);

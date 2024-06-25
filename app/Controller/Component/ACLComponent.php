@@ -100,6 +100,13 @@ class ACLComponent extends Component
         'benchmarks' => [
             'index' => []
         ],
+        'bookmarks' => [
+            'add' => ['*'],
+            'delete' => ['*'],
+            'edit' => ['*'],
+            'index' => ['*'],
+            'view' => ['*'],
+        ],
         'cerebrates' => [
             'add' => [],
             'delete' => [],
