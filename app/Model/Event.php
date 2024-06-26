@@ -2821,6 +2821,7 @@ class Event extends AppModel
                 $scope = $options['scope'];
             }
             if ($params['deleted']) {
+                $params['deleted'] = $this->convert_filters($params['deleted']);
                 $conditions = $this->generic_add_filter($conditions, $params['deleted'], $scope . '.deleted');
             }
         }
