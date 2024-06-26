@@ -2279,8 +2279,13 @@ class Event extends AppModel
                 }
                 unset($tempObjectAttributeContainer);
             }
-            if (!$sharingGroupReferenceOnly && !empty($event['EventReport'])) {
-                $event['EventReport'] = $this->__attachSharingGroups($event['EventReport'], $sharingGroupData);
+            if (!empty($event['EventReport'])) {
+                if (!$sharingGroupReferenceOnly) {
+                    $event['EventReport'] = $this->__attachSharingGroups($event['EventReport'], $sharingGroupData);
+                }
+                if (!empty($options['includeAnalystData'])) {
+                    $event['EventReport'] = $this->EventReport->attachAnalystDataBulk($event['EventReport']);
+                }
             }
             if (empty($options['metadata']) && empty($options['noSightings'])) {
                 if (empty(Configure::read('MISP.disable_sighting_loading'))) {
