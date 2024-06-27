@@ -1551,8 +1551,7 @@ class Event extends AppModel
                 'Object' => array(
                     'object_name' => array('function' => 'set_filter_object_name'),
                     'object_template_uuid' => array('function' => 'set_filter_object_template_uuid'),
-                    'object_template_version' => array('function' => 'set_filter_object_template_version'),
-                    'deleted' => array('function' => 'set_filter_deleted')
+                    'object_template_version' => array('function' => 'set_filter_object_template_version')
                 ),
                 'Attribute' => array(
                     'value' => array('function' => 'set_filter_value'),
@@ -1624,7 +1623,7 @@ class Event extends AppModel
             $find_params['fields'] = array('Event.id', 'Event.attribute_count');
             $results = $this->find('list', $find_params);
         } else {
-            $find_params['fields'] = array('Event.id');
+            $find_params['fields'] = array('Event.id');   
             $results = $this->find('column', $find_params);
         }
         if (!isset($params['limit'])) {
@@ -2819,16 +2818,14 @@ class Event extends AppModel
 
     public function set_filter_deleted(&$params, $conditions, $options)
     {
-        if (!empty($params['deleted'])) {
+        if (isset($params['deleted'])) {
             if (empty($options['scope'])) {
                 $scope = 'Attribute';
             } else {
                 $scope = $options['scope'];
             }
-            if ($params['deleted']) {
-                $deleted = $this->convert_filters($params['deleted']);
-                $conditions = $this->generic_add_filter($conditions, $deleted, $scope . '.deleted');
-            }
+            $deleted = $this->convert_filters($params['deleted']);
+            $conditions = $this->generic_add_filter($conditions, $deleted, $scope . '.deleted');
         }
         return $conditions;
     }
