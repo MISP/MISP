@@ -2826,8 +2826,8 @@ class Event extends AppModel
                 $scope = $options['scope'];
             }
             if ($params['deleted']) {
-                $params['deleted'] = $this->convert_filters($params['deleted']);
-                $conditions = $this->generic_add_filter($conditions, $params['deleted'], $scope . '.deleted');
+                $deleted = $this->convert_filters($params['deleted']);
+                $conditions = $this->generic_add_filter($conditions, $deleted, $scope . '.deleted');
             }
         }
         return $conditions;
@@ -7495,6 +7495,7 @@ class Event extends AppModel
         if (!empty($exportTool->additional_params)) {
             $filters = array_merge($filters, $exportTool->additional_params);
         }
+        
         $exportToolParams = array(
             'user' => $user,
             'params' => array(),
