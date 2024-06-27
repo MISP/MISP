@@ -34,6 +34,7 @@ tools/mkdocs
 /app/tmp/cache/misp_feed*
 /app/tmp/browscap/*
 /app/files/*
+!/app/files/img
 /app/tmp/cache/feeds/*.cache
 /app/tmp/cache/feeds/*.cache.gz
 /app/tmp/cache/feeds/*.etag
@@ -91,6 +92,7 @@ app/Lib/EventWarning/Custom/*
 !/app/files/img/orgs/MISP.png
 !/app/files/img/orgs/NATO.png
 !/app/files/img/orgs/NCIRC.png
+!/app/files/img/orgs/5cf66e53-b5f8-43e7-be9a-49880a3b4631.png
 /app/Config/bootstrap.php
 /app/Config/database.php
 /app/Config/core.php
