@@ -1870,6 +1870,13 @@ class Attribute extends AppModel
                 'Attribute',
                 ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation']
             );
+            if (is_null($params['order'])) {
+                $params['order'] = $this->findOrder(
+                    $options['order'],
+                    'Event',
+                    ['publish_timestamp']
+                );
+            }
         }
         if (!isset($options['withAttachments'])) {
             $options['withAttachments'] = false;
@@ -3185,7 +3192,7 @@ class Attribute extends AppModel
         $conditions = $this->buildFilterConditions($user, $filters, true);
         $params = array(
             'conditions' => $conditions,
-            'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
+            'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Event.publish_timestamp'),
             'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
             'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
             'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
@@ -3240,6 +3247,13 @@ class Attribute extends AppModel
                 'Attribute',
                 ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation']
             );
+            if (is_null($params['order'])) {
+                $params['order'] = $this->findOrder(
+                    $filters['order'],
+                    'Event',
+                    ['publish_timestamp']
+                );
+            }
         }
         if ($paramsOnly) {
             return $params;
