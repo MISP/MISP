@@ -1868,15 +1868,11 @@ class Attribute extends AppModel
             $params['order'] = $this->findOrder(
                 $options['order'],
                 'Attribute',
-                ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation']
+                array(
+                    'Attribute' => array('id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation'),
+                    'Event' => array('publish_timestamp'),
+                )
             );
-            if (is_null($params['order'])) {
-                $params['order'] = $this->findOrder(
-                    $options['order'],
-                    'Event',
-                    ['publish_timestamp']
-                );
-            }
         }
         if (!isset($options['withAttachments'])) {
             $options['withAttachments'] = false;
@@ -3245,15 +3241,11 @@ class Attribute extends AppModel
             $params['order'] = $this->findOrder(
                 $filters['order'],
                 'Attribute',
-                ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation']
+                array(
+                    'Attribute' => array('id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation'),
+                    'Event' => array('publish_timestamp'),
+                )
             );
-            if (is_null($params['order'])) {
-                $params['order'] = $this->findOrder(
-                    $filters['order'],
-                    'Event',
-                    ['publish_timestamp']
-                );
-            }
         }
         if ($paramsOnly) {
             return $params;
