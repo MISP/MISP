@@ -1780,7 +1780,7 @@ class Event extends AppModel
         }
         foreach ($this->possibleOptions as $opt) {
             if (!isset($options[$opt])) {
-                $options[$opt] = false;
+                $options[$opt] = null;
             }
         }
         $conditions = $this->createEventConditions($user);
@@ -1823,7 +1823,6 @@ class Event extends AppModel
         $conditionsEventReport = array();
 
         $flatten = (bool)$options['flatten'];
-
         // restricting to non-private or same org if the user is not a site-admin.
         $sgids = $this->SharingGroup->authorizedIds($user);
         if (!$isSiteAdmin) {
@@ -1901,10 +1900,10 @@ class Event extends AppModel
         if ($options['event_uuid']) {
             $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
         }
-        if ($options['protected']) {
+        if (isset($options['protected'])) {
             $conditions['AND'][] = array('Event.protected' => $options['protected']);
         }
-        if ($options['published']) {
+        if (isset($options['published'])) {
             $conditions['AND'][] = array('Event.published' => $options['published']);
         }
         if ($options['orgc_id']) {
