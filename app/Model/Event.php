@@ -2068,7 +2068,6 @@ class Event extends AppModel
         if (empty($results)) {
             return array();
         }
-
         $sharingGroupReferenceOnly = (bool)$options['sgReferenceOnly'];
         $sharingGroupData = $sharingGroupReferenceOnly ? [] : $this->__cacheSharingGroupData($user, $useCache);
 
@@ -4796,7 +4795,10 @@ class Event extends AppModel
             $event['Event']['publish_timestamp'] = time();
             $event['Event']['skip_zmq'] = 1;
             $event['Event']['skip_kafka'] = 1;
-            $this->save($event, array('fieldList' => $fieldList));
+            $result = $this->save($event, array('fieldList' => $fieldList));
+            if (!$result) {
+                return json_encode($this->validationErrors);
+            }
         }
         if ($allowZMQ) {
             $this->publishEventToZmq($id, $userForPubSub, $fullEvent);
