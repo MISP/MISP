@@ -1955,7 +1955,10 @@ class Attribute extends AppModel
         }
         $eventTags = []; // tag cache
         $attributes = [];
-        $params['ignoreIndexHint'] = 'deleted';
+        $index = $this->query("SHOW index from attributes where Key_name = 'deleted'");
+        if (!empty($index)) {
+            $params['ignoreIndexHint'] = 'deleted';
+        }
         do {
             $results = $this->find('all', $params);
             if (empty($results)) {
