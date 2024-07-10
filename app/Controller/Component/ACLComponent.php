@@ -947,7 +947,7 @@ class ACLComponent extends Component
             return true;
         };
         $this->dynamicChecks['add_user_enabled'] = function (array $user) {
-            if (Configure::read('MISP.disable_user_add')) {
+            if (Configure::read('MISP.disable_user_add') && !$user['Role']['perm_site_admin']) {
                 throw new ForbiddenException('Adding users has been disabled on this instance.');
             }
             return true;
