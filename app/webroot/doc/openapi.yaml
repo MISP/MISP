@@ -470,7 +470,7 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /eventReports/delete/{eventReportId}/{hardDelete}:
+  /eventReports/delete/{eventReportId}:
     post:
       summary: "Delete Event Report"
       operationId: deleteEventReport
@@ -478,7 +478,23 @@ paths:
         - Event Report
       parameters:
         - $ref: "#/components/parameters/eventReportIdParameter"
-        - $ref: "#/components/parameters/hardDeleteParameterNotRequired"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteEventReportResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /eventReports/delete/{eventReportId}/{hardDelete}:
+    post:
+      summary: "Hard Delete Event Report"
+      operationId: hardDeleteEventReport
+      tags:
+        - Event Report
+      parameters:
+        - $ref: "#/components/parameters/eventReportIdParameter"
+        - $ref: "#/components/parameters/hardDeleteParameter"
       responses:
         "200":
           $ref: "#/components/responses/DeleteEventReportResponse"
@@ -6349,6 +6365,7 @@ components:
       name: local
       in: path
       description: "Whether the object should be attached locally or not to the target"
+      required: true
       schema:
         $ref: "#/components/schemas/IsLocal"
 
@@ -6598,17 +6615,6 @@ components:
       in: path
       description: "`1` for hard delete the entity, `0` for soft deletion."
       required: true
-      schema:
-        type: string
-        enum:
-          - "0"
-          - "1"
-
-    hardDeleteParameterNotRequired:
-      name: hardDelete
-      in: path
-      description: "`1` for hard delete the entity, `0` for soft deletion."
-      required: false
       schema:
         type: string
         enum:
