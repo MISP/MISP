@@ -2617,12 +2617,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /taxonomies/view/{taxonomyIdParameter}:
+  /taxonomies/view/{taxonomyId}:
     get:
       summary: "Get a taxonomy by ID"
       operationId: getTaxonomyById
       tags:
         - Taxonomies
+      parameters:
+        - $ref: "#/components/parameters/taxonomyIdParameter"
       responses:
         "200":
           $ref: "#/components/responses/TaxonomiesResponse"
@@ -2633,12 +2635,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /taxonomies/enable/{taxonomyIdParameter}:
+  /taxonomies/enable/{taxonomyId}:
     post:
       summary: "Enable taxonomy"
       operationId: enableTaxonomy
       tags:
         - Taxonomies
+      parameters:
+        - $ref: "#/components/parameters/taxonomyIdParameter"
       responses:
         "200":
           $ref: "#/components/responses/EnableTaxonomyResponse"
@@ -2649,12 +2653,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /taxonomies/disable/{taxonomyIdParameter}:
+  /taxonomies/disable/{taxonomyId}:
     post:
       summary: "Disable taxonomy"
       operationId: disableTaxonomy
       tags:
         - Taxonomies
+      parameters:
+        - $ref: "#/components/parameters/taxonomyIdParameter"
       responses:
         "200":
           $ref: "#/components/responses/DisableTaxonomyResponse"
@@ -2681,12 +2687,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /taxonomies/taxonomy_tags/{taxonomyIdParameter}:
+  /taxonomies/taxonomy_tags/{taxonomyId}:
     get:
       summary: "Get a taxonomy extended with tags used in events and attributes."
       operationId: getTaxonomyTags
       tags:
         - Taxonomies
+      parameters:
+        - $ref: "#/components/parameters/taxonomyIdParameter"
       responses:
         "200":
           $ref: "#/components/responses/GetTaxonomyTagsResponse"
@@ -2697,12 +2705,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /taxonomies/export/{taxonomyIdParameter}:
+  /taxonomies/export/{taxonomyId}:
     get:
       summary: "Export taxonomy."
       operationId: exportTaxonomy
       tags:
         - Taxonomies
+      parameters:
+        - $ref: "#/components/parameters/taxonomyIdParameter"
       responses:
         "200":
           $ref: "#/components/responses/ExportTaxonomyTagsResponse"
