@@ -135,7 +135,7 @@ tags:
 
 
 paths:
-  /analystData/add/{analystType}/{objectUUID}/{ObjectType}:
+  /analystData/add/{analystType}/{analystObjectUUID}/{analystObjectType}:
     post:
       summary: "Add analyst data"
       operationId: addAnalystData
@@ -214,7 +214,7 @@ paths:
   /analystData/view/{analystType}/{analystDataID}:
     get:
       summary: "Get Analyst Data by ID"
-      operationId: getEventById
+      operationId: getAnalystDataById
       tags:
         - Analyst Data
       parameters:
@@ -6660,7 +6660,7 @@ components:
           - $ref: "#/components/schemas/UUID"
 
     analystDataIdParameter:
-      name: analystID
+      name: analystDataID
       in: path
       description: "UUID or numeric ID of the Analyst data"
       required: true
