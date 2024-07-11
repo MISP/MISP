@@ -3627,31 +3627,7 @@ components:
             Tag:
               $ref: "#/components/schemas/TagList"
 
-    CreatedEvent:
-      type: object
-      properties:
-        Event:
-          allOf:
-            - $ref: "#/components/schemas/ExtendedEvent"
-            - type: object
-              properties:
-                event_creator_email:
-                  type: string
-                  format: email
-                Galaxy:
-                  type: array
-                  items:
-                    $ref: "#/components/schemas/Galaxy"
-                Object:
-                  type: array
-                  items:
-                    $ref: "#/components/schemas/Object"
-                EventReport:
-                  type: array
-                  items:
-                    $ref: "#/components/schemas/EventReport"
-
-    UpdatedEvent:
+    EditedEvent:
       type: object
       properties:
         Event:
@@ -7685,14 +7661,14 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CreatedEvent"
+            $ref: "#/components/schemas/EditedEvent"
 
     EditEventResponse:
       description: "A freshly updated event"
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/UpdatedEvent"
+            $ref: "#/components/schemas/EditedEvent"
 
     DeleteEventResponse:
       description: "Delete event response"
