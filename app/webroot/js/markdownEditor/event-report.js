@@ -756,7 +756,6 @@ function fetchTagInfo(tagNames, callback) {
         },
         success: function (data) {
             var $tag, tagName;
-            data = $.parseJSON(data)
             for (var i = 0; i < data.length; i++) {
                 var tag = data[i];
                 tagName = tag.Tag.name;

@@ -3780,7 +3780,7 @@ function findObjectByUuid(uuid) {
     $('#attributeList tr').each(function () {
         var trId = $(this).attr('id');
         if (trId && (trId.startsWith("Object") || trId.startsWith("Attribute") || trId.startsWith('proposal'))) {
-            var objectUuid = $('.uuid', this).text().trim();
+            var objectUuid = $(this).data('uuid');
             if (objectUuid === uuid) {
                 $tr = $(this);
                 return false;

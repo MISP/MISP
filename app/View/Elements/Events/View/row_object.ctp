@@ -22,7 +22,7 @@ $quickEdit = function($fieldName) use ($mayModify) {
 };
 $objectId = intval($object['id']);
 ?>
-<tr id="Object_<?= $objectId ?>_tr" data-primary-id="<?= $objectId ?>" class="<?php echo $tr_class; ?>" tabindex="0">
+<tr id="Object_<?= $objectId ?>_tr" data-primary-id="<?= $objectId ?>" class="<?php echo $tr_class; ?>" tabindex="0" data-uuid="<?= h($object['uuid']) ?>">
   <?php
     if ($mayModify || $extended):
   ?>

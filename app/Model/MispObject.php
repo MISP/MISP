@@ -1621,7 +1621,7 @@ class MispObject extends AppModel
         if (isset($filters['page'])) {
             $params['page'] = $filters['page'];
         }
-        if (!empty($filters['deleted'])) {
+        if (isset($filters['deleted'])) {
             $params['deleted'] = $filters['deleted'];
         }
         if (!empty($filters['excludeDecayed'])) {
