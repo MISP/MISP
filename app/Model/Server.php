@@ -6810,6 +6810,15 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'allow_unsafe_cleartext_apikey_logging' => array(
+                    'level' => 0,
+                    'description' => __('Allows logging the API key (auth key) in clear text - highly recommended not to enable this.'),
+                    'value' => false,
+                    'errorMessage' => __('You have enabled the logging of API keys in clear text. This is highly recommended against, do you really want to reveal APIkeys in your logs?...'),
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'allow_cors' => array(
                     'level' => 1,
                     'description' => __('Allow cross-origin requests to this instance, matching origins given in Security.cors_origins. Set to false to totally disable'),
