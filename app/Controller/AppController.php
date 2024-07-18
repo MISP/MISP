@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '162';
-    public $pyMispVersion = '2.4.190';
+    private $__queryVersion = '163';
+    public $pyMispVersion = '2.4.194';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -112,7 +112,7 @@ class AppController extends Controller
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
         }
-        
+
         $this->User = ClassRegistry::init('User');
         if (Configure::read('Plugin.Benchmarking_enable')) {
             App::uses('BenchmarkTool', 'Tools');
@@ -121,7 +121,9 @@ class AppController extends Controller
         }
         $controller = $this->request->params['controller'];
         $action = $this->request->params['action'];
-
+        if ($action === 'heartbeat') {
+            return;
+        }
         $this->_setupBaseurl();
         $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
 
@@ -170,6 +172,7 @@ class AppController extends Controller
 
         Configure::write('CurrentController', $controller);
         Configure::write('CurrentAction', $action);
+        Configure::write('CurrentRequestIsRest', $this->_isRest());
         $versionArray = $this->User->checkMISPVersion();
         $this->mispVersion = implode('.', $versionArray);
         $this->Security->blackHoleCallback = 'blackHole';
@@ -241,7 +244,7 @@ class AppController extends Controller
         ) {
             // REST authentication
             if ($this->_isRest() || $this->_isAutomation()) {
-                
+
                 // disable CSRF for REST access
                 $this->Security->csrfCheck = false;
                 $loginByAuthKeyResult = $this->__loginByAuthKey();
@@ -324,6 +327,8 @@ class AppController extends Controller
             $this->set('isAclSighting', $role['perm_sighting'] ?? false);
             $this->set('isAclAnalystDataCreator', $role['perm_analyst_data'] ?? false);
             $this->set('aclComponent', $this->ACL);
+            $this->loadModel('Bookmark');
+            $this->set('bookmarks', $this->Bookmark->getBookmarksForUser($user));
             $this->userRole = $role;
 
             $this->__accessMonitor($user);
@@ -456,6 +461,9 @@ class AppController extends Controller
                 $authKeyToStore = $start
                     . str_repeat('*', 32)
                     . $end;
+                if (!empty(Configure::read('Security.allow_unsafe_cleartext_apikey_logging'))) {
+                    $authKeyToStore = $authKey;
+                }
                 $this->__logApiKeyUse($start . $end);
                 if ($user) {
                     // User found in the db, add the user info to the session
@@ -643,7 +651,12 @@ class AppController extends Controller
         }
 
         // Check if user must create TOTP secret, force them to be on that page as long as needed.
-        if (empty($user['totp']) && Configure::read('Security.otp_required') && !$this->_isControllerAction(['users' => ['terms', 'change_pw', 'logout', 'login', 'totp_new']])) {  // TOTP is mandatory for users, prevent login until the user has configured their TOTP
+        if (
+            empty($user['totp']) &&
+            Configure::read('Security.otp_required') &&
+            !$this->_isControllerAction(['users' => ['terms', 'change_pw', 'logout', 'login', 'totp_new']]) &&
+            empty($user['Role']['perm_skip_otp'])
+        ) {  // TOTP is mandatory for users, prevent login until the user has configured their TOTP
             $this->redirect(array('controller' => 'users', 'action' => 'totp_new', 'admin' => false));
             return false;
         }
@@ -892,7 +905,7 @@ class AppController extends Controller
                 //$redis->setex('misp:auth_fail_throttling:' . $key, 3600, 1);
                 //return true;
             //}
-            
+
         }
         if ($this->isApiAuthed && $this->_isRest() && !Configure::read('Security.authkey_keep_session')) {
             $this->Session->destroy();

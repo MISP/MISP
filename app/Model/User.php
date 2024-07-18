@@ -231,6 +231,18 @@ class User extends AppModel
         'Containable'
     );
 
+    public const HEARTBEAT_MESSAGES = [
+        'You must construct additional pylons.',
+        'You\'ve not enough minerals.',
+        'You require more vespene gas.',
+        'Additional supply depots required.',
+        'Not enough minerals.',
+        'Insufficient vespene gas.',
+        'Spawn more overlords.',
+        'We require more minerals.',
+        'We require more vespene gas.'
+    ];
+
     /** @var CryptGpgExtended|null|false */
     private $gpg;
 

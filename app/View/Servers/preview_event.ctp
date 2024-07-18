@@ -76,6 +76,7 @@ $tableData[] = [
             ?>
             <li class="<?php echo $i > $display_threshold ? 'correlation-expanded-area' : ''; ?>" style="<?php echo $i > $display_threshold ? 'display: none;' : ''; ?>">
                 <?php echo $this->element('/Events/View/related_event', array(
+                    'ownOrg' => $relatedEvent['Event']['orgc_id'] == $me['org_id'],
                     'related' => $relatedEvent['Event'],
                     'relatedEventCorrelationCount' => array(),
                     'href_url' => $baseurl . '/servers/previewEvent/' . $server['Server']['id']

@@ -1,4 +1,4 @@
-#SMIME patch
+# SMIME patch
 
 ## Create SMIME directory
 ```bash
@@ -31,3 +31,21 @@ chown www-data:www-data /var/www/MISP/app/webroot/public_certificate.pem
 chmod 440 /var/www/MISP/app/webroot/public_certificate.pem
 ```
 ## Configure the section "SMIME" in the server settings (Administration -> Server settings -> Encryption tab)
+
+# S/MIME self-signed key creation with OpenSSL
+
+## CA key creation
+
+`openssl req -nodes -new -x509 -days 3650 -newkey rsa:4096 -keyout ca.key -out ca.crt -extensions v3_ca -subj "/CN=MISP-CA"`
+
+## MISP instance key + CSR request
+
+`openssl req -nodes -new -newkey rsa:4096 -keyout info@mymisp.key -out info\@mymisp.csr`
+
+## Sign S/MIME key
+
+`openssl x509 -req -days 3650 -in info\@mymisp.csr -CA ca.crt -CAkey ca.key -set_serial 1 -out info\@mymisp.crt -addtrust emailProtection -addreject clientAuth -addreject serverAuth -trustout -extensions smime`
+
+## Convert CRT file to PEM format
+
+`openssl x509 -in info\@mymisp.crt -out info\@mymisp.pem -outform PEM`

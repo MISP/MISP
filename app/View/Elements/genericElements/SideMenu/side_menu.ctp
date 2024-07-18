@@ -366,7 +366,7 @@ $divider = '<li class="divider"></li>';
                         'url' => $baseurl . '/collections/index',
                         'text' => __('List Collections')
                     ));
-                    if ($this->Acl->canAccess('collection', 'add')) {
+                    if ($this->Acl->canAccess('collections', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
                             'url' => $baseurl . '/collections/add',
@@ -1868,6 +1868,37 @@ $divider = '<li class="divider"></li>';
                                 'element_id' => 'edit',
                                 'url' => sprintf('/analystData/edit/%s/%s', h($modelSelection), h($id)),
                                 'text' => __('Edit Analyst Data')
+                            ));
+                        }
+                    }
+                    break;
+
+                case 'bookmarks':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => '/bookmarks/index',
+                        'text' => __('List Bookmarks')
+                    ));
+                    if ($this->Acl->canAccess('bookmarks', 'add')) {
+                        echo $divider;
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add',
+                            'url' => sprintf('/bookmarks/add'),
+                            'text' => __('Add Bookmark')
+                        ));
+                    }
+                    if ($menuItem === 'view' || $menuItem === 'edit') {
+                        echo $divider;
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => sprintf('/bookmarks/view/%s', h($id)),
+                            'text' => __('View Bookmark')
+                        ));
+                        if ($isSiteAdmin) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'edit',
+                                'url' => sprintf('/bookmarks/edit/%s', h($id)),
+                                'text' => __('Edit Bookmark')
                             ));
                         }
                     }

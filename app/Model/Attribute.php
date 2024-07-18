@@ -1101,6 +1101,12 @@ class Attribute extends AppModel
         $params[$tag_key] = $this->dissectArgs($params[$tag_key]);
         foreach (array(0, 1, 2) as $tag_operator) {
             $tagArray[$tag_operator] = $tag->fetchTagIdsSimple($params[$tag_key][$tag_operator]);
+            // If at least one of the ANDed tags is not found, invalidate the entire query by setting the lookup equal -1
+            if ($tag_operator === 2) {
+                if (count($params[$tag_key][2]) !== count($tagArray[2])) {
+                    $tagArray[2] = [-1];
+                }
+            }
         }
         $temp = array();
         if (!empty($tagArray[0])) {
@@ -1126,7 +1132,7 @@ class Attribute extends AppModel
                             'tag_id' => $tagArray[0]
                         ),
                         'fields' => array(
-                            $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+                            $options['scope'] === 'Event' ? 'event_id' : 'attribute_id'
                         )
                     );
                     $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
@@ -1200,7 +1206,7 @@ class Attribute extends AppModel
                                 'tag_id' => $anded_tag
                             ),
                             'fields' => array(
-                                $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+                                $options['scope'] === 'Event' ? 'event_id' : 'attribute_id'
                             )
                         );
                         $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
@@ -1259,14 +1265,15 @@ class Attribute extends AppModel
      * @param array $conditions
      * @param array $fields
      * @param bool|string $callbacks
+     * @param int $chunk_size
      * @return Generator<array>|void
      */
-    public function fetchAttributesInChunks(array $conditions = [], array $fields = [], $callbacks = true)
+    public function fetchAttributesInChunks(array $conditions = [], array $fields = [], $callbacks = true, $chunk_size = 500)
     {
         $query = [
             'recursive' => -1,
             'conditions' => $conditions,
-            'limit' => 500,
+            'limit' => $chunk_size,
             'order' => ['Attribute.id'],
             'fields' => $fields,
             'callbacks' => $callbacks,
@@ -1278,12 +1285,43 @@ class Attribute extends AppModel
                 yield $attribute;
             }
             $count = count($attributes);
-            if ($count < 500) {
+            if ($count < $chunk_size) {
                 return;
             }
             $lastAttribute = $attributes[$count - 1];
             $query['conditions']['Attribute.id >'] = $lastAttribute['Attribute']['id'];
         }
+    }
+
+        /**
+     * This method is useful if you want something semi compatible to fetchAttributesInChunks, but with single iterations
+     * @param array $conditions
+     * @param array $fields
+     * @param bool|string $callbacks
+     * @param int $chunk_size
+     * @param int $last_id
+     * @param bool $continue
+     * @return array
+     */
+    public function fetchAttributesInChunksSingle(array $conditions = [], array $fields = [], $callbacks = true, $chunk_size = 500, &$last_id = 0, &$continue = false)
+    {
+        $conditions['Attribute.id > '] = $last_id;
+        $query = [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'limit' => $chunk_size,
+            'order' => ['Attribute.id'],
+            'fields' => $fields,
+            'callbacks' => $callbacks,
+        ];
+        $attributes = $this->find('all', $query);
+        if (empty($attributes)) {
+            $continue = false;
+            return [];
+        }
+        $lastAttribute = $attributes[count($attributes) - 1];
+        $last_id = $lastAttribute['Attribute']['id'];
+        return $attributes;
     }
 
     /**
@@ -3870,5 +3908,137 @@ class Attribute extends AppModel
             'conditions' => $conditions,
             'fields' => ['Attribute.id', 'Attribute.uuid']
         ]);
+    }
+
+    public function enrichmentRouter($options)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                $options['user'],
+                Job::WORKER_PRIO,
+                'enrichment',
+                'Attribute ID: ' . $options['id'] . ' modules: ' . json_encode($options['modules']),
+                'Enriching attribute.'
+            );
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::PRIO_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                [
+                    'attribute_enrichment',
+                    $options['user']['id'],
+                    $options['id'],
+                    json_encode($options['modules']),
+                    $jobId
+                ],
+                true,
+                $jobId
+            );
+            return __('Job queued (job ID: %s).', $jobId);
+        } else {
+            $result = $this->enrichment($options);
+            return __('#' . $result . ' attributes have been created during the enrichment process.');
+        }
+    }
+
+    public function enrichment($params)
+    {
+        $option_fields = ['user', 'id', 'modules'];
+        foreach ($option_fields as $option_field) {
+            if (empty($params[$option_field])) {
+                throw new MethodNotAllowedException(__('%s not set', $option_field));
+            }
+        }
+        $attribute = $this->fetchAttributes($params['user'], [
+            'conditions' => [
+                'Attribute.id' => $params['id'],
+            ],
+            'withAttachments' => 1,
+        ]);
+        if (empty($attribute)) {
+            throw new MethodNotAllowedException('Invalid attribute.');
+        }
+        $attribute = $attribute[0]['Attribute'];
+        $this->Module = ClassRegistry::init('Module');
+        $enabledModules = $this->Module->getEnabledModules($params['user']);
+        if (empty($enabledModules) || is_string($enabledModules)) {
+            return true;
+        }
+        $options = array();
+        foreach ($enabledModules['modules'] as $k => $temp) {
+            if (isset($temp['meta']['config'])) {
+                $settings = array();
+                foreach ($temp['meta']['config'] as $conf) {
+                    $settings[$conf] = Configure::read('Plugin.Enrichment_' . $temp['name'] . '_' . $conf);
+                }
+                $enabledModules['modules'][$k]['config'] = $settings;
+            }
+        }
+        $attributes_added = 0;
+        $initial_objects = array();
+        $event_id = $attribute['event_id'];
+        $event = $this->Event->find('first', ['conditions' => ['Event.id' => $event_id], 'recursive' => -1]);
+        if (empty($event)) {
+            throw new MethodNotAllowedException('Invalid event.');
+        }
+        $object_id = $attribute['object_id'];
+        if ($object_id != '0' && empty($initial_objects[$object_id])) {
+            $initial_objects[$object_id] = $this->Event->fetchInitialObject($event_id, $object_id);
+        }
+        foreach ($enabledModules['modules'] as $module) {
+            if (in_array($module['name'], $params['modules'])) {
+                if (in_array($attribute['type'], $module['mispattributes']['input'])) {
+                    $data = array('module' => $module['name'], 'event_id' => $event_id, 'attribute_uuid' => $attribute['uuid']);
+                    if (!empty($module['config'])) {
+                        $data['config'] = $module['config'];
+                    }
+                    if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] == 'misp_standard') {
+                        $data['attribute'] = $attribute;
+                    } else {
+                        $data[$attribute['type']] = $attribute['value'];
+                    }
+                    if ($object_id != '0' && !empty($initial_objects[$object_id])) {
+                        $attribute['Object'] = $initial_objects[$object_id]['Object'];
+                    }
+                    $triggerData = $event;
+                    $triggerData['Attribute'] = [$attribute];
+                    $result = $this->Module->queryModuleServer($data, false, 'Enrichment', false, $triggerData);
+                    if ($result === false) {
+                        throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
+                    } else if (!is_array($result)) {
+                        continue;
+                    }
+                    if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] == 'misp_standard') {
+                        if ($object_id != '0' && !empty($initial_objects[$object_id])) {
+                            $result['initialObject'] = $initial_objects[$object_id];
+                        }
+                        $default_comment = $attribute['value'] . ': enriched via the ' . $module['name'] . ' module.';
+                        $attributes_added += $this->Event->processModuleResultsData($params['user'], $result['results'], $event_id, $default_comment, false, false, true);
+                    } else {
+                        $attributes = $this->Event->handleModuleResult($result, $event_id);
+                        foreach ($attributes as $a) {
+                            $this->create();
+                            $a['distribution'] = $attribute['distribution'];
+                            $a['sharing_group_id'] = $attribute['sharing_group_id'];
+                            $comment = 'Attribute #' . $attribute['id'] . ' enriched by ' . $module['name'] . '.';
+                            if (!empty($a['comment'])) {
+                                $a['comment'] .= PHP_EOL . $comment;
+                            } else {
+                                $a['comment'] = $comment;
+                            }
+                            $a['type'] = empty($a['default_type']) ? $a['types'][0] : $a['default_type'];
+                            $result = $this->save($a);
+                            if ($result) {
+                                $attributes_added++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return $attributes_added;
     }
 }

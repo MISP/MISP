@@ -5184,6 +5184,14 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ],
+                'correlation_chunk_size' => [
+                    'level' => 0,
+                    'description' => __('When correlating large events, set a number of attributes that MISP will fetch per round when recorrelating. Large chunk sizes will speed the iteration up on systems with plenty of available memory, at the cost of memory usage.'),
+                    'value' => 5000,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
                 'enable_advanced_correlations' => [
                     'level' => 0,
                     'description' => __('Enable some performance heavy correlations (currently CIDR correlation)'),
@@ -5930,6 +5938,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'collapse_attribute_in_object' => array(
+                    'level' => 1,
+                    'description' => __('When enabled, all Attributes contained inside an object will be automatically collapsed when viewing an Event.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'disableUserSelfManagement' => array(
                     'level' => 1,
                     'description' => __('When enabled only Org and Site admins can edit a user\'s profile.'),
@@ -6246,6 +6262,7 @@ class Server extends AppModel
                     'value' => null,
                     'type' => 'string',
                     'null' => true,
+                    'cli_only' => true,
                 ],
                 'menu_custom_right_link_html' => [
                     'level' => self::SETTING_OPTIONAL,
@@ -6253,6 +6270,7 @@ class Server extends AppModel
                     'value' => null,
                     'type' => 'string',
                     'null' => true,
+                    'cli_only' => true,
                 ],
                 'enable_synchronisation_filtering_on_type' => [
                     'level' => self::SETTING_OPTIONAL,
@@ -6788,6 +6806,15 @@ class Server extends AppModel
                     'description' => __('Allows passing the API key via the named url parameter "apikey" - highly recommended not to enable this, but if you have some dodgy legacy tools that cannot pass the authorization header it can work as a workaround. Again, only use this as a last resort.'),
                     'value' => false,
                     'errorMessage' => __('You have enabled the passing of API keys via URL parameters. This is highly recommended against, do you really want to reveal APIkeys in your logs?...'),
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'allow_unsafe_cleartext_apikey_logging' => array(
+                    'level' => 0,
+                    'description' => __('Allows logging the API key (auth key) in clear text - highly recommended not to enable this.'),
+                    'value' => false,
+                    'errorMessage' => __('You have enabled the logging of API keys in clear text. This is highly recommended against, do you really want to reveal APIkeys in your logs?...'),
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
                     'null' => true

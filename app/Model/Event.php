@@ -1083,7 +1083,11 @@ class Event extends AppModel
         // prepare Object for sync
         if (!empty($data['Object'])) {
             foreach ($data['Object'] as $key => $object) {
-                if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) && in_array($object['template_uuid'], $pushRules['type_objects']['NOT'])) {
+                if (
+                    !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type')) &&
+                    !empty($pushRules['type_objects']['NOT']) &&
+                    in_array($object['template_uuid'], $pushRules['type_objects']['NOT'])
+                ) {
                     unset($data['Object'][$key]);
                     continue;
                 }
@@ -1528,7 +1532,7 @@ class Event extends AppModel
                     'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
                     'eventinfo' => array('function' => 'set_filter_eventinfo'),
                     'ignore' => array('function' => 'set_filter_ignore'),
-                    'tags' => array('function' => 'set_filter_tags'),
+                    'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'event_tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
@@ -1547,8 +1551,7 @@ class Event extends AppModel
                 'Object' => array(
                     'object_name' => array('function' => 'set_filter_object_name'),
                     'object_template_uuid' => array('function' => 'set_filter_object_template_uuid'),
-                    'object_template_version' => array('function' => 'set_filter_object_template_version'),
-                    'deleted' => array('function' => 'set_filter_deleted')
+                    'object_template_version' => array('function' => 'set_filter_object_template_version')
                 ),
                 'Attribute' => array(
                     'value' => array('function' => 'set_filter_value'),
@@ -1620,7 +1623,7 @@ class Event extends AppModel
             $find_params['fields'] = array('Event.id', 'Event.attribute_count');
             $results = $this->find('list', $find_params);
         } else {
-            $find_params['fields'] = array('Event.id');
+            $find_params['fields'] = array('Event.id');   
             $results = $this->find('column', $find_params);
         }
         if (!isset($params['limit'])) {
@@ -1777,7 +1780,7 @@ class Event extends AppModel
         }
         foreach ($this->possibleOptions as $opt) {
             if (!isset($options[$opt])) {
-                $options[$opt] = false;
+                $options[$opt] = null;
             }
         }
         $conditions = $this->createEventConditions($user);
@@ -1820,7 +1823,6 @@ class Event extends AppModel
         $conditionsEventReport = array();
 
         $flatten = (bool)$options['flatten'];
-
         // restricting to non-private or same org if the user is not a site-admin.
         $sgids = $this->SharingGroup->authorizedIds($user);
         if (!$isSiteAdmin) {
@@ -1898,10 +1900,10 @@ class Event extends AppModel
         if ($options['event_uuid']) {
             $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
         }
-        if ($options['protected']) {
+        if (isset($options['protected'])) {
             $conditions['AND'][] = array('Event.protected' => $options['protected']);
         }
-        if ($options['published']) {
+        if (isset($options['published'])) {
             $conditions['AND'][] = array('Event.published' => $options['published']);
         }
         if ($options['orgc_id']) {
@@ -2066,7 +2068,6 @@ class Event extends AppModel
         if (empty($results)) {
             return array();
         }
-
         $sharingGroupReferenceOnly = (bool)$options['sgReferenceOnly'];
         $sharingGroupData = $sharingGroupReferenceOnly ? [] : $this->__cacheSharingGroupData($user, $useCache);
 
@@ -2275,8 +2276,13 @@ class Event extends AppModel
                 }
                 unset($tempObjectAttributeContainer);
             }
-            if (!$sharingGroupReferenceOnly && !empty($event['EventReport'])) {
-                $event['EventReport'] = $this->__attachSharingGroups($event['EventReport'], $sharingGroupData);
+            if (!empty($event['EventReport'])) {
+                if (!$sharingGroupReferenceOnly) {
+                    $event['EventReport'] = $this->__attachSharingGroups($event['EventReport'], $sharingGroupData);
+                }
+                if (!empty($options['includeAnalystData'])) {
+                    $event['EventReport'] = $this->EventReport->attachAnalystDataBulk($event['EventReport']);
+                }
             }
             if (empty($options['metadata']) && empty($options['noSightings'])) {
                 if (empty(Configure::read('MISP.disable_sighting_loading'))) {
@@ -2810,15 +2816,14 @@ class Event extends AppModel
 
     public function set_filter_deleted(&$params, $conditions, $options)
     {
-        if (!empty($params['deleted'])) {
+        if (isset($params['deleted'])) {
             if (empty($options['scope'])) {
                 $scope = 'Attribute';
             } else {
                 $scope = $options['scope'];
             }
-            if ($params['deleted']) {
-                $conditions = $this->generic_add_filter($conditions, $params['deleted'], $scope . '.deleted');
-            }
+            $deleted = $this->convert_filters($params['deleted']);
+            $conditions = $this->generic_add_filter($conditions, $deleted, $scope . '.deleted');
         }
         return $conditions;
     }
@@ -4790,7 +4795,10 @@ class Event extends AppModel
             $event['Event']['publish_timestamp'] = time();
             $event['Event']['skip_zmq'] = 1;
             $event['Event']['skip_kafka'] = 1;
-            $this->save($event, array('fieldList' => $fieldList));
+            $result = $this->save($event, array('fieldList' => $fieldList));
+            if (!$result) {
+                return json_encode($this->validationErrors);
+            }
         }
         if ($allowZMQ) {
             $this->publishEventToZmq($id, $userForPubSub, $fullEvent);
@@ -7485,6 +7493,7 @@ class Event extends AppModel
         if (!empty($exportTool->additional_params)) {
             $filters = array_merge($filters, $exportTool->additional_params);
         }
+        
         $exportToolParams = array(
             'user' => $user,
             'params' => array(),
