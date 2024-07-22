@@ -119,6 +119,13 @@ class Module_webhook extends WorkflowBaseActionModule
         } else {
             $payload = $rData;
         }
+        if ($params['content_type']['value'] == 'json') {
+            try {
+                $payload = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
+            } catch (Exception $e) {
+                // Do nothing. simply send the payload as is
+            }
+        }
         $tmpHeaders = explode(PHP_EOL, $params['headers']['value']);
         $headers = [];
         $selfSignedAllowed = $params['self_signed']['value'] == 'allow';

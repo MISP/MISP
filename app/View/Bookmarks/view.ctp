@@ -18,7 +18,7 @@ echo $this->element(
                 'path' => 'Bookmark.url',
             ],
             [
-                'key' => __('Exposed to Organsation'),
+                'key' => __('Exposed to Organisation'),
                 'path' => 'Bookmark.exposed_to_org',
                 'type' => 'boolean'
             ],

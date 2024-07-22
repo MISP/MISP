@@ -172,6 +172,7 @@ class AppController extends Controller
 
         Configure::write('CurrentController', $controller);
         Configure::write('CurrentAction', $action);
+        Configure::write('CurrentRequestIsRest', $this->_isRest());
         $versionArray = $this->User->checkMISPVersion();
         $this->mispVersion = implode('.', $versionArray);
         $this->Security->blackHoleCallback = 'blackHole';
@@ -460,6 +461,9 @@ class AppController extends Controller
                 $authKeyToStore = $start
                     . str_repeat('*', 32)
                     . $end;
+                if (!empty(Configure::read('Security.allow_unsafe_cleartext_apikey_logging'))) {
+                    $authKeyToStore = $authKey;
+                }
                 $this->__logApiKeyUse($start . $end);
                 if ($user) {
                     // User found in the db, add the user info to the session

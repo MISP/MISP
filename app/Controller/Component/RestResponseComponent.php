@@ -1969,14 +1969,14 @@ class RestResponseComponent extends Component
                                 if (is_array($field)) {
                                     foreach($field as $sf) {
                                         $fieldsConstraint[$sf] = $this->__fieldsConstraint[$sf];
-                                        $label = $scope . '.' . $sf;
+                                        $label = $action == 'restSearch' ? $sf : ($scope . '.' . $sf);
                                         $fieldsConstraint[$sf]['id'] = $label;
                                         $fieldsConstraint[$sf]['label'] = $label;
                                     }
                                 } else {
                                     if (!empty($this->__fieldsConstraint[$field])) {
                                         $fieldsConstraint[$field] = $this->__fieldsConstraint[$field];
-                                        $label = $scope . '.' . $field;
+                                        $label = $action == 'restSearch' ? $field : ($scope . '.' . $field);
                                         $fieldsConstraint[$field]['id'] = $label;
                                         $fieldsConstraint[$field]['label'] = $label;
                                     }
