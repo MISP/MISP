@@ -20,7 +20,7 @@ echo $this->element(
             [
                 'key' => __('Comment'),
                 'path' => 'Bookmark.comment',
-            ]
+            ],
             [
                 'key' => __('Exposed to Organsation'),
                 'path' => 'Bookmark.exposed_to_org',
