@@ -545,6 +545,19 @@ $divider = '<li class="divider"></li>';
                     }
                 break;
 
+                case 'correlationRules':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => $baseurl . '/correlationRules/index',
+                        'text' => __('Correlation Rules')
+                    ));
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'add',
+                        'url' => $baseurl . '/correlationRules/add',
+                        'text' => __('Add Correlation Rule')
+                    ));
+                    break;
+
                 case 'correlationExclusions':
                     if ($menuItem === 'view') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(

@@ -24,10 +24,12 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 'Event' => [
                     'fields' => [
                         'Event.id',
+                        'Event.orgc_id',
                         'Event.org_id',
                         'Event.distribution',
                         'Event.sharing_group_id',
                         'Event.disable_correlation',
+                        'Event.info',
                     ]
                 ],
                 'Object' => [
