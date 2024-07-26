@@ -6331,6 +6331,14 @@ class Server extends AppModel
                     'null' => true,
                     'cli_only' => true,
                 ],
+                'fetchAttributeLegacyStrategy' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Enabling this setting flip the attribute fetcher into using single joined queries rather than subqueries. This should be a performance downgrade for most, but could improve performance on older mysql versions.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ]
             ),
             'GnuPG' => array(
                 'branch' => 1,

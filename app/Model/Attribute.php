@@ -1594,34 +1594,52 @@ class Attribute extends AppModel
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
-            $subQuery1 = [
-                'conditions' => ['org_id' => $user['org_id']],
-                'fields' => ['id']
-            ];
-            $subQuery2 = [
-                'conditions' => [
-                    'distribution IN' => [1, 2, 3]
-                ],
-                'fields' => ['id']
-            ];
-            $subQuery3 = [
-                'conditions' => [
+            if (Configure::read('MISP.fetchAttributeLegacyStrategy')) {
+                $org_ownership_condition = ['Event.org_id' => $user['org_id']];
+                $event_lax_distribution_condition = [
+                    'Event.distribution IN' => [1,2,3]
+                ];
+                $event_sharing_group_condition = [
                     'Event.distribution' => 4,
-                    'Event.sharing_group_id IN' => $sgids
-                ],
-                'fields' => ['id']
-            ];
-            if (Configure::read('MISP.unpublishedprivate')) {
-                $subQuery2['conditions']['Event.published'] = 1;
-                $subQuery3['conditions']['Event.published'] = 1;
+                    'Event.sharing_group_id' => $sgids
+                ];
+                if (Configure::read('MISP.unpublishedprivate')) {
+                    $event_lax_distribution_condition['Event.published'] = 1;
+                    $event_sharing_group_condition['Event.published'] = 1;
+                }
+            } else {
+                $subQuery1 = [
+                    'conditions' => ['org_id' => $user['org_id']],
+                    'fields' => ['id']
+                ];
+                $subQuery2 = [
+                    'conditions' => [
+                        'distribution IN' => [1, 2, 3]
+                    ],
+                    'fields' => ['id']
+                ];
+                $subQuery3 = [
+                    'conditions' => [
+                        'Event.distribution' => 4,
+                        'Event.sharing_group_id IN' => $sgids
+                    ],
+                    'fields' => ['id']
+                ];
+                if (Configure::read('MISP.unpublishedprivate')) {
+                    $subQuery2['conditions']['Event.published'] = 1;
+                    $subQuery3['conditions']['Event.published'] = 1;
+                }
+                $org_ownership_condition = $this->subQueryGenerator($this->Event, $subQuery1, 'Attribute.event_id');
+                $event_lax_distribution_condition = $this->subQueryGenerator($this->Event, $subQuery2, 'Attribute.event_id');
+                $event_sharing_group_condition = $this->subQueryGenerator($this->Event, $subQuery3, 'Attribute.event_id');
             }
             $conditions = [
                 'OR' => [
-                    $this->subQueryGenerator($this->Event, $subQuery1, 'Attribute.event_id'),
+                    $org_ownership_condition,
                     'AND' => [
                         'OR' => [
-                            $this->subQueryGenerator($this->Event, $subQuery2, 'Attribute.event_id'),
-                            $this->subQueryGenerator($this->Event, $subQuery3, 'Attribute.event_id')
+                            $event_lax_distribution_condition,
+                            $event_sharing_group_condition
                         ],
                         [
                             'OR' => [
