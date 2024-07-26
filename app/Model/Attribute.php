@@ -1836,6 +1836,9 @@ class Attribute extends AppModel
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
         }
+        if (isset($options['offset'])) {
+            $params['offset'] = $options['offset'];
+        }
         if (!empty($options['allow_proposal_blocking']) && Configure::read('MISP.proposals_block_attributes')) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
@@ -1863,7 +1866,6 @@ class Attribute extends AppModel
         if (empty($options['flatten'])) {
             $params['conditions']['AND'][] = array('Attribute.object_id' => 0);
         }
-        $params['order'] = [];
         if (!empty($options['order'])) {
             $params['order'] = $this->findOrder(
                 $options['order'],
@@ -1976,7 +1978,6 @@ class Attribute extends AppModel
                 $eventsById = $this->__fetchEventsForAttributeContext($user, array_keys($eventIds), !empty($options['includeAllTags']));
                 unset($eventIds);
             }
-
             $this->attachTagsToAttributes($results, $options);
             $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
             $sgids = $this->SharingGroup->authorizedIds($user);
@@ -2044,7 +2045,6 @@ class Attribute extends AppModel
                 $attributes[] = $attribute;
             }
             unset($attribute);
-
             if ($loop) {
                 if ($iteration_result_count < $loopLimit) { // we fetched fewer results than the limit, so we can exit the loop
                     break;
@@ -2133,7 +2133,6 @@ class Attribute extends AppModel
             'recursive' => -1,
         ]);
         $tags = array_column(array_column($tags, 'Tag'), null, 'id');
-
         foreach ($attributes as $k => $attribute) {
             $tagCulled = false;
             foreach ($attribute['AttributeTag'] as $k2 => $at) {
@@ -3267,16 +3266,21 @@ class Attribute extends AppModel
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
         $loop = false;
+        $memoryInMb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
+        $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 50;
+        $memoryScalingFactor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
+        $maxLimit = $memoryInMb * $memoryScalingFactor;
         if (empty($params['limit'])) {
-            $memoryInMb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
-            $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;
-            $memoryScalingFactor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
-            $params['limit'] = $memoryInMb * $memoryScalingFactor;
+            $params['limit'] = $maxLimit;
             $loop = true;
             $params['page'] = 1;
+        } else {
+            if (empty($params['page'])) {
+                $params['page'] = 1;
+            }
         }
         if (empty($exportTool->mock_query_only)) {
-            $elementCounter = $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams);
+            $elementCounter = $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $maxLimit);
         }
         $tmpfile->write($exportTool->footer($exportToolParams));
         return $tmpfile;
@@ -3292,20 +3296,33 @@ class Attribute extends AppModel
      * @return int Number of all attributes that matches given conditions
      * @throws Exception
      */
-    private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams)
+    private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams, $maxLimit = null)
     {
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
         $elementCounter = 0;
-        $real_count = false;
-        $incrementTotalBy = $loop || $real_count ? 0 : 1;
+        $incrementTotalBy = $loop ? 0 : 1;
+        $offset = ($params['limit'] * ($params['page'] - 1));
+        if ($params['page'] > 1) {
+            $params['offset'] = $offset;
+        }
+        $requestedLimit = $params['limit'];
+        if ($maxLimit < $params['limit']) {
+            $params['limit'] = $maxLimit;
+            $loop = true;
+        }
+        unset($params['page']);
+        $totalCount = 0;
         do {
-            $results = $this->fetchAttributes($user, $params, $elementCounter, $real_count);
-            if (!$real_count) {
-                $totalCount = $params['limit'] * ($params['page'] - 1) + $elementCounter;
-            } else {
-                $totalCount = $elementCounter;
+            if (($totalCount + $params['limit']) > $requestedLimit) {
+                $params['limit'] = $requestedLimit - $totalCount;
+                $loop = false;
             }
+            $params['order'] = 'Attribute.id asc';
+            $results = $this->fetchAttributes($user, $params, $elementCounter, false);
+
+            $resultCount = count($results);
+            $totalCount = $totalCount + $elementCounter;
             $elementCounter = false; // do not call `count` again
             if (empty($results)) {
                 break; // nothing found, skip rest
@@ -3315,19 +3332,22 @@ class Attribute extends AppModel
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
             $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
+            $lastId = 0;
             foreach ($results as $attribute) {
+                $lastId = $attribute['Attribute']['id'];
                 $handlerResult = $exportTool->handler($attribute, $exportToolParams);
                 if ($handlerResult !== '') {
                     $tmpfile->writeWithSeparator($handlerResult, $separator);
                 }
             }
-            if (count($results) < $params['limit']) {
+            if ($resultCount < $params['limit']) {
                 $incrementTotalBy = 0;
                 if ($loop) {
                     break; // do not continue if we received less results than limit
                 }
             }
-            $params['page'] += 1;
+            $params['conditions']['Attribute.id >'] = $lastId;
+            unset($params['offset']);
         } while ($loop);
         return $totalCount + $incrementTotalBy;
     }
