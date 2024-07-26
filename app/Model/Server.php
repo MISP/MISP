@@ -5127,7 +5127,7 @@ class Server extends AppModel
                 'default_attribute_memory_coefficient' => array(
                     'level' => 1,
                     'description' => __('This values controls the internal fetcher\'s memory envelope when it comes to attributes. The number provided is the amount of attributes that can be loaded for each MB of PHP memory available in one shot. Consider lowering this number if your instance has a lot of attribute tags / attribute galaxies attached.'),
-                    'value' => 80,
+                    'value' => 50,
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => true
@@ -6331,6 +6331,14 @@ class Server extends AppModel
                     'null' => true,
                     'cli_only' => true,
                 ],
+                'fetchAttributeLegacyStrategy' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Enabling this setting flip the attribute fetcher into using single joined queries rather than subqueries. This should be a performance downgrade for most, but could improve performance on older mysql versions.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ]
             ),
             'GnuPG' => array(
                 'branch' => 1,
@@ -6806,6 +6814,15 @@ class Server extends AppModel
                     'description' => __('Allows passing the API key via the named url parameter "apikey" - highly recommended not to enable this, but if you have some dodgy legacy tools that cannot pass the authorization header it can work as a workaround. Again, only use this as a last resort.'),
                     'value' => false,
                     'errorMessage' => __('You have enabled the passing of API keys via URL parameters. This is highly recommended against, do you really want to reveal APIkeys in your logs?...'),
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'allow_unsafe_cleartext_apikey_logging' => array(
+                    'level' => 0,
+                    'description' => __('Allows logging the API key (auth key) in clear text - highly recommended not to enable this.'),
+                    'value' => false,
+                    'errorMessage' => __('You have enabled the logging of API keys in clear text. This is highly recommended against, do you really want to reveal APIkeys in your logs?...'),
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
                     'null' => true

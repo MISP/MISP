@@ -63,6 +63,9 @@ class Correlation extends AppModel
     /** @var OverCorrelatingValue */
     public $OverCorrelatingValue;
 
+    /** @var CorrelationRule */
+    public $CorrelationRule;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -75,6 +78,8 @@ class Correlation extends AppModel
         $this->advancedCorrelationEnabled = (bool)Configure::read('MISP.enable_advanced_correlations');
         // load the overcorrelatingvalue model for chaining
         $this->OverCorrelatingValue = ClassRegistry::init('OverCorrelatingValue');
+        // load the correlationRule model
+        $this->CorrelationRule = ClassRegistry::init('CorrelationRule');
     }
 
     public function correlateValueRouter($value)
@@ -478,6 +483,8 @@ class Correlation extends AppModel
                 $conditions['Attribute.id >'] = $a['Attribute']['id'];
             }
             $correlationLimit = $this->OverCorrelatingValue->getLimit();
+
+            $conditions = $this->CorrelationRule->attachCustomCorrelationRules($a, $conditions);
 
             $correlatingAttributes = $this->Attribute->find('all', [
                 'conditions' => $conditions,

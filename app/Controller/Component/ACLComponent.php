@@ -141,6 +141,13 @@ class ACLComponent extends Component
             'index' => [],
             'view' => []
         ],
+        'correlationRules' => [
+            'index' => [],
+            'add' => [],
+            'edit' => [],
+            'delete' => [],
+            'view' => []
+        ],
         'correlations' => [
             'generateOccurrences' => [],
             'generateTopCorrelations' => [],

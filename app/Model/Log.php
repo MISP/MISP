@@ -144,6 +144,7 @@ class Log extends AppModel
         if (Configure::read('MISP.log_client_ip')) {
             $this->data['Log']['ip'] = $this->_remoteIp();
         }
+        $this->data['Log']['request_is_rest'] = Configure::read('CurrentRequestIsRest');
         $setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '', 'ip' => '');
         foreach ($setEmpty as $field => $empty) {
             if (empty($this->data['Log'][$field])) {
