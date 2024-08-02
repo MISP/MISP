@@ -85,7 +85,7 @@
                                 <span class="add-on param-name" data-toggle="tooltip" data-placement="left" style="min-width: 100px;" title="<?php echo isset($config['info']) ? h($config['info']) : ''?>">
                                     <?php echo h($config['name']) . (isset($config['greek']) ? ' <strong>' . h($config['greek']).'</strong>' : ''); ?>
                                 </span>
-                                <input id="input_<?php echo h($param); ?>" class="input-mini" type="number" min=0 step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> max=<?php echo isset($config['max']) ? h($config['max']) : ''; ?> oninput="refreshGraph(this);">
+                                <input id="input_<?php echo h($param); ?>" class="input-mini" type="number" min=0 step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> max=<?php echo isset($config['max']) ? h($config['max']) : ''; ?> oninput="$('#input_<?php echo h($param); ?>_range').val(this.value); refreshGraph(this); ">
                                 <span class="add-on"><input id="input_<?php echo h($param); ?>_range" type="range" min=0 <?php echo isset($config['max']) ? 'max=' . h($config['max']) : '' ?> step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="$('#input_<?php echo h($param); ?>').val(this.value).trigger('input');"></span>
                                 <?php if (isset($config['unit'])): ?>
                                     <span class="add-on"><?php echo h($config['unit']); ?></span>
