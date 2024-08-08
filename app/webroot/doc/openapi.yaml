@@ -4333,6 +4333,8 @@ components:
           $ref: "#/components/schemas/Taxonomy"
         TaxonomyPredicate:
           $ref: "#/components/schemas/TaxonomyPredicate"
+        GalaxyCluster:
+          $ref: "#/components/schemas/GalaxyCluster"
 
     # Taxonomies
     TaxonomyId:
