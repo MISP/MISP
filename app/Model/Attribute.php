@@ -1890,6 +1890,8 @@ class Attribute extends AppModel
                 'Attribute',
                 ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation']
             );
+        } else {
+            $params['order'] = [];
         }
         if (!isset($options['withAttachments'])) {
             $options['withAttachments'] = false;
