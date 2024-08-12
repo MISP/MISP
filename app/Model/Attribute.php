@@ -3319,7 +3319,6 @@ class Attribute extends AppModel
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
         $elementCounter = 0;
-        $incrementTotalBy = $loop ? 0 : 1;
         $offset = ($params['limit'] * ($params['page'] - 1));
         if ($params['page'] > 1) {
             $params['offset'] = $offset;
@@ -3336,7 +3335,7 @@ class Attribute extends AppModel
                 $params['limit'] = $requestedLimit - $totalCount;
                 $loop = false;
             }
-            $params['order'] = 'Attribute.id asc';
+            $incrementTotalBy = $loop ? 0 : 1;
             $results = $this->fetchAttributes($user, $params, $elementCounter, false);
 
             $resultCount = count($results);
@@ -3350,9 +3349,8 @@ class Attribute extends AppModel
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
             $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
-            $lastId = 0;
+            //$lastId = 0;
             foreach ($results as $attribute) {
-                $lastId = $attribute['Attribute']['id'];
                 $handlerResult = $exportTool->handler($attribute, $exportToolParams);
                 if ($handlerResult !== '') {
                     $tmpfile->writeWithSeparator($handlerResult, $separator);
@@ -3361,11 +3359,10 @@ class Attribute extends AppModel
             if ($resultCount < $params['limit']) {
                 $incrementTotalBy = 0;
                 if ($loop) {
-                    break; // do not continue if we received less results than limit
+                    break; // do not continue if we received fewer results than limit
                 }
             }
-            $params['conditions']['Attribute.id >'] = $lastId;
-            unset($params['offset']);
+            $params['offset'] = (empty($params['offset']) ? 0 : $params['offset']) + $params['limit'];
         } while ($loop);
         return $totalCount + $incrementTotalBy;
     }
