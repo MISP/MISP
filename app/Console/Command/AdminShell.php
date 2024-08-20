@@ -551,7 +551,7 @@ class AdminShell extends AppShell
             }
         }
 
-        $result = $this->Server->serverSettingsEditValue('SYSTEM', $setting, $value, $this->params['force']);
+        $result = $this->Server->serverSettingsEditValue('SYSTEM', $setting, $value, $this->params['force'], true);
         if ($result === true) {
             $this->out(__('Setting "%s" changed to %s', $settingName, is_string($value) ? '"' . $value . '"' : json_encode($value)));
         } else {
@@ -1013,7 +1013,7 @@ class AdminShell extends AppShell
                 $this->out('<warning>Redis is not reachable.</warning>');
             }
 
-            $success = $this->Server->serverSettingsSaveValue('MISP.live', $newStatus);
+            $success = $this->Server->serverSettingsSaveValue(null, 'MISP.live', $newStatus, null ,1);
             if ($success) {
                 $this->out('Set live status in PHP config file.');
                 $overallSuccess = true;
