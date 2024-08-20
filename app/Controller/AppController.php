@@ -108,6 +108,15 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        // Set the baseurl for redirects
+        $baseurl = empty(Configure::read('MISP.baseurl')) ? null : Configure::read('MISP.baseurl');
+        // If external_baseurl is set, let's prefer that instead though
+        $baseurl = empty(Configure::read('MISP.external_baseurl')) ? $baseurl : Configure::read('MISP.external_baseurl');
+        if (!empty($baseurl)) {
+            Configure::write('App.fullBaseUrl', $baseurl);
+            Router::fullBaseUrl($baseurl);
+        }
+
         if (Configure::read('MISP.system_setting_db')) {
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
