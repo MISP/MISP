@@ -189,7 +189,7 @@ class Workflow extends AppModel
         try {
             $redis = $this->setupRedisWithException();
         } catch (Exception $e) {
-            return false;
+            return [];
         }
         $list = $redis->sMembers(Workflow::REDIS_KEY_MODULES_ENABLED);
         return !empty($list) ? $list : [];
