@@ -1013,7 +1013,7 @@ class AdminShell extends AppShell
                 $this->out('<warning>Redis is not reachable.</warning>');
             }
 
-            $success = $this->Server->serverSettingsSaveValue(null, 'MISP.live', $newStatus, null ,1);
+            $success = $this->Server->serverSettingsSaveValue('MISP.live', $newStatus);
             if ($success) {
                 $this->out('Set live status in PHP config file.');
                 $overallSuccess = true;
