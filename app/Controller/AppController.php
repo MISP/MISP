@@ -34,7 +34,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '163';
-    public $pyMispVersion = '2.4.195';
+    public $pyMispVersion = '2.4.196';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -108,11 +108,20 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        // Set the baseurl for redirects
+        $baseurl = empty(Configure::read('MISP.baseurl')) ? null : Configure::read('MISP.baseurl');
+        // If external_baseurl is set, let's prefer that instead though
+        $baseurl = empty(Configure::read('MISP.external_baseurl')) ? $baseurl : Configure::read('MISP.external_baseurl');
+        if (!empty($baseurl)) {
+            Configure::write('App.fullBaseUrl', $baseurl);
+            Router::fullBaseUrl($baseurl);
+        }
+
         if (Configure::read('MISP.system_setting_db')) {
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
         }
-
+        $this->_setupBaseurl();
         $this->User = ClassRegistry::init('User');
         if (Configure::read('Plugin.Benchmarking_enable')) {
             App::uses('BenchmarkTool', 'Tools');
@@ -124,7 +133,6 @@ class AppController extends Controller
         if ($action === 'heartbeat') {
             return;
         }
-        $this->_setupBaseurl();
         $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
 
         $customLogout = Configure::read('Plugin.CustomAuth_custom_logout');
@@ -1409,7 +1417,8 @@ class AppController extends Controller
             }
         }
         /** @var TmpFileTool $final */
-        $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+        $skippedElementsCounter = 0;
+        $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter);
         if ($renderView) {
             $this->layout = false;
             $final = JsonTool::decode($final->intoString());
@@ -1417,7 +1426,7 @@ class AppController extends Controller
             $this->render('/Events/module_views/' . $renderView);
         } else {
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
-            $headers = ['X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType];
+            $headers = ['X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType, 'X-Skipped-Elements-Count' => $skippedElementsCounter];
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers);
         }
     }
