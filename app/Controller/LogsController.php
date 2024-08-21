@@ -276,6 +276,18 @@ class LogsController extends AppController
         }
         $this->set('validFilters', $validFilters);
         $this->set('filters', false);
+        $filtersToExtract = [
+            'email',
+            'action',
+            'model',
+            'model_id',
+            'title',
+            'change',
+            'from',
+            'to',
+            'from_time',
+            'to_time'
+        ];
         if ($new !== false) {
             $this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
 
@@ -285,16 +297,6 @@ class LogsController extends AppController
                 if (empty($this->request->data['Log'])) {
                     $this->request->data = ['Log' => $this->request->data];
                 }
-                $filtersToExtract = [
-                    'email',
-                    'action',
-                    'model',
-                    'model_id',
-                    'title',
-                    'change',
-                    'from',
-                    'to'
-                ];
                 if (Configure::read('MISP.log_client_ip')) {
                     $filtersToExtract[] = 'ip';
                 }
@@ -328,47 +330,17 @@ class LogsController extends AppController
                 } else {
                     // and store into session
                     $this->Session->write('paginate_conditions_log', $this->paginate);
-                    $this->Session->write('paginate_conditions_log_email', $filters['email']);
-                    $this->Session->write('paginate_conditions_log_org', $filters['org']);
-                    $this->Session->write('paginate_conditions_log_action', $filters['action']);
-                    $this->Session->write('paginate_conditions_log_model', $filters['model']);
-                    $this->Session->write('paginate_conditions_log_model_id', $filters['model_id']);
-                    $this->Session->write('paginate_conditions_log_title', $filters['title']);
-                    $this->Session->write('paginate_conditions_log_change', $filters['change']);
-                    $this->Session->write('paginate_conditions_log_from', $filters['from'] ?? null);
-                    $this->Session->write('paginate_conditions_log_to', $filters['to'] ?? null);
-                    if (Configure::read('MISP.log_client_ip')) {
-                        $this->Session->write('paginate_conditions_log_ip', $filters['ip']);
+                    foreach ($filtersToExtract as $filter) {
+                        $this->Session->write('paginate_conditions_log_' . $filter, $filters[$filter]);
                     }
                     // set the same view as the index page
                     $this->render('index');
                 }
             } else {
                 // get from Session
-                $filters['email'] = $this->Session->read('paginate_conditions_log_email');
-                $filters['org'] = $this->Session->read('paginate_conditions_log_org');
-                $filters['action'] = $this->Session->read('paginate_conditions_log_action');
-                $filters['model'] = $this->Session->read('paginate_conditions_log_model');
-                $filters['model_id'] = $this->Session->read('paginate_conditions_log_model_id');
-                $filters['title'] = $this->Session->read('paginate_conditions_log_title');
-                $filters['change'] = $this->Session->read('paginate_conditions_log_change');
-                $filters['from'] = $this->Session->read('paginate_conditions_log_from') ?? null;
-                $filters['to'] = $this->Session->read('paginate_conditions_log_to') ?? null;
-                if (Configure::read('MISP.log_client_ip')) {
-                    $filters['ip'] = $this->Session->read('paginate_conditions_log_ip');
-                }
-                // for info on what was searched for
-                $this->set('emailSearch', $filters['email']);
-                $this->set('orgSearch', $filters['org']);
-                $this->set('actionSearch', $filters['action']);
-                $this->set('modelSearch', $filters['model']);
-                $this->set('model_idSearch', $filters['model_id']);
-                $this->set('titleSearch', $filters['title']);
-                $this->set('changeSearch', $filters['change']);
-                $this->set('changeSearch', $filters['from'] ?? null);
-                $this->set('changeSearch', $filters['to'] ?? null);
-                if (Configure::read('MISP.log_client_ip')) {
-                    $this->set('ipSearch', $filters['ip']);
+                foreach ($filtersToExtract as $filter) {
+                    $filters[$filter] = $this->Session->read('paginate_conditions_log_' . $filter);
+                    $this->set($filter . 'Search', $filters[$filter]);
                 }
                 $this->set('isSearch', 1);
 
@@ -459,11 +431,16 @@ class LogsController extends AppController
         if (isset($filters['change']) && !empty($filters['change'])) {
             $conditions['LOWER(Log.change) LIKE'] = '%' . strtolower($filters['change']) . '%';
         }
-        if (isset($filters['from']) && !empty($filters['from'])) {
-            $conditions['Log.created >='] = $filters['from'];
-        }
-        if (isset($filters['to']) && !empty($filters['to'])) {
-            $conditions['Log.created <='] = $filters['to'];
+        foreach (['from' => '>=', 'to' => '<='] as $keyword => $operator) {
+            if (!empty($filters[$keyword])) {
+                $date = $filters[$keyword];
+                if (!empty($filters[$keyword . '_time'])) {
+                    $date .= ' ' . $filters[$keyword . '_time'];
+                } else {
+                    $date .= ' ' . ($keyword == 'from' ? '00:00:00': '23:59:59');
+                }
+                $conditions['Log.created ' . $operator] = $date;
+            }
         }
         if (Configure::read('MISP.log_client_ip') && isset($filters['ip']) && !empty($filters['ip'])) {
             $conditions['Log.ip LIKE'] = '%' . $filters['ip'] . '%';
