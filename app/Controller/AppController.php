@@ -121,7 +121,7 @@ class AppController extends Controller
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
         }
-
+        $this->_setupBaseurl();
         $this->User = ClassRegistry::init('User');
         if (Configure::read('Plugin.Benchmarking_enable')) {
             App::uses('BenchmarkTool', 'Tools');
@@ -133,7 +133,6 @@ class AppController extends Controller
         if ($action === 'heartbeat') {
             return;
         }
-        $this->_setupBaseurl();
         $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
 
         $customLogout = Configure::read('Plugin.CustomAuth_custom_logout');
