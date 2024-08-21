@@ -12,9 +12,9 @@ class Sightings extends DecayingModelBase
     public function computeScore($model, $attribute, $base_score, $elapsed_time)
     {
         $settings = $model['DecayingModel']['parameters']['settings'];
-        $minimum_sightings = $settings['minimum_sightings'] ?: 1;
-        $true_positive_offset = $settings['true_positive_offset'] ?: 0;
-        $false_positive_offset = $settings['false_positive_offset'] ?: 0;
+        $minimum_sightings = isset($settings['minimum_sightings']) ? $settings['minimum_sightings'] : 1;
+        $true_positive_offset = isset($settings['true_positive_offset']) ? $settings['true_positive_offset'] : 0;
+        $false_positive_offset = isset($settings['false_positive_offset']) ? $settings['false_positive_offset'] : 0;
 
         $sightings = $attribute['Sighting'];
         $true_positives = array_filter($sightings, function ($item) {
