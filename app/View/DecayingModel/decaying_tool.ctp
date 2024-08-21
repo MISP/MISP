@@ -74,18 +74,18 @@
                 </select>
                 <i id="formulaSelectPickerHelpText" class="fas fa-question-circle"></i>
             </div>
-            <div id="containerFormulaPolynomialSetting">
-                <div class="span10" style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
+            <div id="containerFormulaSetting">
+                <div class="span10 settings polynomial" style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
                     <div id="decayGraph" style="width: 100%;"></div>
                 </div>
                 <div class="row">
                     <div class="span6" style="margin-bottom: 20px;">
                         <?php foreach ($parameters as $param => $config): ?>
-                            <div class="input-prepend input-append">
+                            <div class="input-prepend input-append settings polynomial <?php echo $param == 'threshold' ? 'sightings' : ''; ?>">
                                 <span class="add-on param-name" data-toggle="tooltip" data-placement="left" style="min-width: 100px;" title="<?php echo isset($config['info']) ? h($config['info']) : ''?>">
                                     <?php echo h($config['name']) . (isset($config['greek']) ? ' <strong>' . h($config['greek']).'</strong>' : ''); ?>
                                 </span>
-                                <input id="input_<?php echo h($param); ?>" class="input-mini" type="number" min=0 step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> max=<?php echo isset($config['max']) ? h($config['max']) : ''; ?> oninput="refreshGraph(this);">
+                                <input id="input_<?php echo h($param); ?>" class="input-mini" type="number" min=0 step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> max=<?php echo isset($config['max']) ? h($config['max']) : ''; ?> oninput="$('#input_<?php echo h($param); ?>_range').val(this.value); refreshGraph(this); ">
                                 <span class="add-on"><input id="input_<?php echo h($param); ?>_range" type="range" min=0 <?php echo isset($config['max']) ? 'max=' . h($config['max']) : '' ?> step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="$('#input_<?php echo h($param); ?>').val(this.value).trigger('input');"></span>
                                 <?php if (isset($config['unit'])): ?>
                                     <span class="add-on"><?php echo h($config['unit']); ?></span>
@@ -94,7 +94,7 @@
                             </div>
                         <?php endforeach; ?>
                         <input id="input_default_base_score" value=0 class="hidden">
-                        <div class="input-append" style="margin-bottom: 0px;">
+                        <div class="input-append settings polynomial sightings" style="margin-bottom: 0px;">
                             <input id="input_base_score_config" class="hidden" value="[]">
                             <button class="btn btn-primary" style="border-radius: 4px 0px 0px 4px;" onclick="decayingTool.toggleBasescoreForm()">
                                 <span class="fa fa-tags"> <?php echo __('Adjust base  score'); ?></span>
@@ -103,13 +103,13 @@
                                 <span class="far fa-square"></span>
                             </span>
                         </div>
-                        <div style="display: inline-block; margin-left: 10px;">
+                        <div class="settings polynomial sightings" style="display: inline-block; margin-left: 10px;">
                             <a id="button-toggle-simulation" target="_blank" class="btn btn-primary" href="" onclick="return !$(this).hasClass('disabled');">
                                 <span class="fa fa-chart-line"> <?php echo __('Simulate this model'); ?></span>
                             </a>
                         </div>
                     </div>
-                    <div class="span6">
+                    <div class="span6 settings polynomial">
                         <table class="table table-striped table-bordered">
                             <tbody>
                                 <tr>
@@ -124,9 +124,9 @@
                         </table>
                     </div>
                 </div>
-            </div>
-            <div  id="containerFormulaOtherSetting" class="hidden">
-                <textarea id="textarea_other_settings_formulas" style="width: 430px;" rows="5" placeholder="<?php echo(__('Model\'s Settings')); ?>"></textarea>
+                <div class="span6 settings other sightings hidden">
+                  <textarea id="textarea_other_settings_formulas" style="width: 430px;" rows="5" placeholder="<?php echo(__('Model\'s Settings')); ?>"></textarea>
+                </div>
             </div>
 
             <div class="row">
@@ -196,16 +196,15 @@ $(document).ready(function() {
 
 });
 function toggleContainer() {
+    $('.settings').hide();
+
     var $option = $('#formulaSelectPicker').find('option:selected');
     if ($option.data('extends') == 'Polynomial') {
-        $('#containerFormulaPolynomialSetting').show();
+        $('.settings.polynomial').show();
+    } else if ($option.data('extends') == 'Sightings') {
+        $('.settings.sightings').show();
     } else {
-        $('#containerFormulaPolynomialSetting').hide();
-    }
-    if ($('#formulaSelectPicker').val() == 'Polynomial') {
-        $('#containerFormulaOtherSetting').hide();
-    } else {
-        $('#containerFormulaOtherSetting').show();
+        $('.settings.other').show();
     }
 }
 </script>

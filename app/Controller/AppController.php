@@ -1417,7 +1417,8 @@ class AppController extends Controller
             }
         }
         /** @var TmpFileTool $final */
-        $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+        $skippedElementsCounter = 0;
+        $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter);
         if ($renderView) {
             $this->layout = false;
             $final = JsonTool::decode($final->intoString());
@@ -1425,7 +1426,7 @@ class AppController extends Controller
             $this->render('/Events/module_views/' . $renderView);
         } else {
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
-            $headers = ['X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType];
+            $headers = ['X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType, 'X-Skipped-Elements-Count' => $skippedElementsCounter];
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers);
         }
     }

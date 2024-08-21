@@ -4204,20 +4204,46 @@ class AppModel extends Model
 
     public function findOrder($order, $orderModel, $validOrderFields)
     {
-        if (!is_array($order)) {
-            $orderRules = explode(' ', strtolower($order));
-            $orderField = explode('.', $orderRules[0]);
-            $orderField = end($orderField);
-            if (in_array($orderField, $validOrderFields, true)) {
-                $direction = 'asc';
-                if (!empty($orderRules[1]) && trim($orderRules[1]) === 'desc') {
-                    $direction = 'desc';
+        if (is_string($order)) {
+            $orderRules = explode(',', $order);
+        } elseif (is_array($order)) {
+            $orderRules = $order; // to support multiple column order
+        }
+
+        $order = array();
+        foreach ($orderRules as $rule) {
+            if (!is_string($rule)) {
+                return null;
+            }
+            $ruleItems = explode(' ', trim($rule));
+            $direction = 'asc';
+            if (count($ruleItems) === 2) {
+                if (strtolower(end($ruleItems)) === 'asc' || strtolower(end($ruleItems)) === 'desc') {
+                    $direction = end($ruleItems);
                 }
+            }
+            $orderPath = explode('.', $ruleItems[0]);
+            if (count($orderPath) === 1) {
+                $model = $orderModel;
+                $field = strtolower($orderPath[0]);
+            } elseif (count($orderPath) === 2) {
+                $model = $orderPath[0];
+                $field = strtolower($orderPath[1]);
             } else {
                 return null;
             }
-            return $orderModel . '.' . $orderField . ' ' . $direction;
+            if (
+                    (in_array($field, $validOrderFields) && $model === $orderModel) ||
+                    (array_key_exists($model, $validOrderFields) && in_array($field, $validOrderFields[$model]))
+            ) {
+                $order[] = $model . '.' . $field . ' ' . $direction;
+            } else {
+                return null;
+            }
         }
+        if (count($order) > 0) {
+           return $order;
+        } 
         return null;
     }
 
