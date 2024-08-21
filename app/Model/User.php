@@ -887,7 +887,7 @@ class User extends AppModel
             $result = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
 
         } catch (SendEmailException $e) {
-            $this->logException("Exception during sending e-mail", $e);
+            $this->logException("Exception during sending e-mail with subject '$subject' to {$user['User']['email']}", $e);
             $log->create();
             $log->saveOrFailSilently(array(
                 'org' => 'SYSTEM',
