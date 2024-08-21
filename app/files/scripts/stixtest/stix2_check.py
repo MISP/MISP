@@ -8,8 +8,23 @@ from compare_events import Comparer
 from query_rest_client import query_misp
 from stix2validator import validate_file, print_results
 
-_scripts_path = '/'.join(os.path.realpath(__file__).split('/')[:-2])
-sys.path.insert(0, f'{_scripts_path}/stix2')
+import importlib
+MODULE_TO_DIRECTORY = {
+    "stix2": "cti-python-stix2",
+    "stix": "python-stix",
+    "cybox": "python-cybox",
+    "mixbox": "mixbox",
+    "misp_stix_converter": "misp-stix",
+    "maec": "python-maec",
+}
+_CURRENT_PATH = Path(__file__).resolve().parent
+_CURRENT_PATH_IDX = 0
+for module_name, dir_path in MODULE_TO_DIRECTORY.items():
+    try:
+        importlib.import_module(module_name)
+    except ImportError:
+        sys.path.insert(_CURRENT_PATH_IDX, str(_CURRENT_PATH / dir_path))
+        _CURRENT_PATH_IDX += 1
 from stix2misp import ExternalStixParser, StixFromMISPParser
 
 

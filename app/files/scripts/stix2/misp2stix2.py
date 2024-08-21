@@ -24,12 +24,23 @@ import traceback
 from pathlib import Path
 from typing import Union
 
-_scripts_path = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(_scripts_path / 'cti-python-stix2'))
-sys.path.insert(1, str(_scripts_path / 'python-stix'))
-sys.path.insert(2, str(_scripts_path / 'python-cybox'))
-sys.path.insert(3, str(_scripts_path / 'mixbox'))
-sys.path.insert(4, str(_scripts_path / 'misp-stix'))
+import importlib
+MODULE_TO_DIRECTORY = {
+    "stix2": "cti-python-stix2",
+    "stix": "python-stix",
+    "cybox": "python-cybox",
+    "mixbox": "mixbox",
+    "misp_stix_converter": "misp-stix",
+    "maec": "python-maec",
+}
+_CURRENT_PATH = Path(__file__).resolve().parent
+_CURRENT_PATH_IDX = 0
+for module_name, dir_path in MODULE_TO_DIRECTORY.items():
+    try:
+        importlib.import_module(module_name)
+    except ImportError:
+        sys.path.insert(_CURRENT_PATH_IDX, str(_CURRENT_PATH / dir_path))
+        _CURRENT_PATH_IDX += 1
 from stix2.base import STIXJSONEncoder
 from misp_stix_converter import MISPtoSTIX20Parser, MISPtoSTIX21Parser
 
