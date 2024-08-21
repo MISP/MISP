@@ -135,7 +135,7 @@ tags:
 
 
 paths:
-  /analystData/add/{analystType}/{objectUUID}/{ObjectType}:
+  /analystData/add/{analystType}/{analystObjectUUID}/{analystObjectType}:
     post:
       summary: "Add analyst data"
       operationId: addAnalystData
@@ -214,7 +214,7 @@ paths:
   /analystData/view/{analystType}/{analystDataID}:
     get:
       summary: "Get Analyst Data by ID"
-      operationId: getEventById
+      operationId: getAnalystDataById
       tags:
         - Analyst Data
       parameters:
@@ -470,7 +470,7 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /eventReports/delete/{eventReportId}/{hardDelete}:
+  /eventReports/delete/{eventReportId}:
     post:
       summary: "Delete Event Report"
       operationId: deleteEventReport
@@ -478,7 +478,23 @@ paths:
         - Event Report
       parameters:
         - $ref: "#/components/parameters/eventReportIdParameter"
-        - $ref: "#/components/parameters/hardDeleteParameterNotRequired"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteEventReportResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /eventReports/delete/{eventReportId}/{hardDelete}:
+    post:
+      summary: "Hard Delete Event Report"
+      operationId: hardDeleteEventReport
+      tags:
+        - Event Report
+      parameters:
+        - $ref: "#/components/parameters/eventReportIdParameter"
+        - $ref: "#/components/parameters/hardDeleteParameter"
       responses:
         "200":
           $ref: "#/components/responses/DeleteEventReportResponse"
@@ -2617,12 +2633,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /taxonomies/view/{taxonomyIdParameter}:
+  /taxonomies/view/{taxonomyId}:
     get:
       summary: "Get a taxonomy by ID"
       operationId: getTaxonomyById
       tags:
         - Taxonomies
+      parameters:
+        - $ref: "#/components/parameters/taxonomyIdParameter"
       responses:
         "200":
           $ref: "#/components/responses/TaxonomiesResponse"
@@ -2633,12 +2651,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /taxonomies/enable/{taxonomyIdParameter}:
+  /taxonomies/enable/{taxonomyId}:
     post:
       summary: "Enable taxonomy"
       operationId: enableTaxonomy
       tags:
         - Taxonomies
+      parameters:
+        - $ref: "#/components/parameters/taxonomyIdParameter"
       responses:
         "200":
           $ref: "#/components/responses/EnableTaxonomyResponse"
@@ -2649,12 +2669,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /taxonomies/disable/{taxonomyIdParameter}:
+  /taxonomies/disable/{taxonomyId}:
     post:
       summary: "Disable taxonomy"
       operationId: disableTaxonomy
       tags:
         - Taxonomies
+      parameters:
+        - $ref: "#/components/parameters/taxonomyIdParameter"
       responses:
         "200":
           $ref: "#/components/responses/DisableTaxonomyResponse"
@@ -2681,12 +2703,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /taxonomies/taxonomy_tags/{taxonomyIdParameter}:
+  /taxonomies/taxonomy_tags/{taxonomyId}:
     get:
       summary: "Get a taxonomy extended with tags used in events and attributes."
       operationId: getTaxonomyTags
       tags:
         - Taxonomies
+      parameters:
+        - $ref: "#/components/parameters/taxonomyIdParameter"
       responses:
         "200":
           $ref: "#/components/responses/GetTaxonomyTagsResponse"
@@ -2697,12 +2721,14 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
-  /taxonomies/export/{taxonomyIdParameter}:
+  /taxonomies/export/{taxonomyId}:
     get:
       summary: "Export taxonomy."
       operationId: exportTaxonomy
       tags:
         - Taxonomies
+      parameters:
+        - $ref: "#/components/parameters/taxonomyIdParameter"
       responses:
         "200":
           $ref: "#/components/responses/ExportTaxonomyTagsResponse"
@@ -2758,9 +2784,9 @@ components:
       example: "fr-BE"
 
     AnalystNoteOpinion:
-      type: number
+      type: integer
       description: "The opinion expressed on a scale from 0 to 100 where values < 50 are negatives, 50 is neutral and values > 50 are positives"
-      format: integer
+      format: int32
       minimum: 0
       maximum: 100
       example: 70
@@ -3107,9 +3133,15 @@ components:
         disable_correlation:
           $ref: "#/components/schemas/DisableCorrelationFlag"
         first_seen:
-          $ref: "#/components/schemas/NullableMicroTimestamp"
+          oneOf:
+            - $ref: "#/components/schemas/NullableMicroTimestamp"
+            - type: string
+              format: date-time
         last_seen:
-          $ref: "#/components/schemas/NullableMicroTimestamp"
+          oneOf:
+            - $ref: "#/components/schemas/NullableMicroTimestamp"
+            - type: string
+              format: date-time
 
     Attribute:
       allOf:
@@ -3595,31 +3627,7 @@ components:
             Tag:
               $ref: "#/components/schemas/TagList"
 
-    CreatedEvent:
-      type: object
-      properties:
-        Event:
-          allOf:
-            - $ref: "#/components/schemas/ExtendedEvent"
-            - type: object
-              properties:
-                event_creator_email:
-                  type: string
-                  format: email
-                Galaxy:
-                  type: array
-                  items:
-                    $ref: "#/components/schemas/Galaxy"
-                Object:
-                  type: array
-                  items:
-                    $ref: "#/components/schemas/Object"
-                EventReport:
-                  type: array
-                  items:
-                    $ref: "#/components/schemas/EventReport"
-
-    UpdatedEvent:
+    EditedEvent:
       type: object
       properties:
         Event:
@@ -3668,7 +3676,6 @@ components:
         - sighting_timestamp
         - published
         - uuid
-        - orgc_uuid
 
     EventList:
       type: array
@@ -3694,10 +3701,7 @@ components:
             type: object
             allOf:
               - $ref: "#/components/schemas/ExtendedEvent"
-              - type: object
-                properties:
-                  Event:
-                    $ref: "#/components/schemas/SlimEvent"
+              - $ref: "#/components/schemas/SlimEvent"
 
     # Objects
     ObjectId:
@@ -3763,9 +3767,15 @@ components:
         deleted:
           type: boolean
         first_seen:
-          $ref: "#/components/schemas/NullableMicroTimestamp"
+          oneOf:
+            - $ref: "#/components/schemas/NullableMicroTimestamp"
+            - type: string
+              format: date-time
         last_seen:
-          $ref: "#/components/schemas/NullableMicroTimestamp"
+          oneOf:
+            - $ref: "#/components/schemas/NullableMicroTimestamp"
+            - type: string
+              format: date-time
         Attribute:
           type: array
           items:
@@ -4323,6 +4333,8 @@ components:
           $ref: "#/components/schemas/Taxonomy"
         TaxonomyPredicate:
           $ref: "#/components/schemas/TaxonomyPredicate"
+        GalaxyCluster:
+          $ref: "#/components/schemas/GalaxyCluster"
 
     # Taxonomies
     TaxonomyId:
@@ -5537,10 +5549,10 @@ components:
               $ref: "#/components/schemas/UserId"
             created:
               type: string
-              format: datetime
+              format: date-time
             modified:
               type: string
-              format: datetime
+              format: date-time
             roaming:
               type: boolean
 
@@ -5703,7 +5715,7 @@ components:
           $ref: "#/components/schemas/LogTitle"
         created:
           type: string
-          format: datetime
+          format: date-time
         model:
           $ref: "#/components/schemas/ModelName"
         model_id:
@@ -5770,7 +5782,6 @@ components:
     UUID:
       type: string
       format: uuid
-      maxLength: 36
       example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
 
     ExtendsUUID:
@@ -5900,8 +5911,8 @@ components:
     DateIntervalRestSearchFilter:
       description: "Interval described by two dates"
       type: array
-      minimum: 2
-      maximum: 2
+      minItems: 2
+      maxItems: 2
       items:
         $ref: "#/components/schemas/DateRestSearchFilter"
 
@@ -6214,7 +6225,7 @@ components:
           $ref: "#/components/schemas/Timestamp"
         expiration:
           type: string
-          format: datetime
+          format: date-time
           example: "1970-01-01 00:00:00"
           nullable: true
         read_only:
@@ -6332,6 +6343,7 @@ components:
       name: local
       in: path
       description: "Whether the object should be attached locally or not to the target"
+      required: true
       schema:
         $ref: "#/components/schemas/IsLocal"
 
@@ -6587,17 +6599,6 @@ components:
           - "0"
           - "1"
 
-    hardDeleteParameterNotRequired:
-      name: hardDelete
-      in: path
-      description: "`1` for hard delete the entity, `0` for soft deletion."
-      required: false
-      schema:
-        type: string
-        enum:
-          - "0"
-          - "1"
-
     objectTemplateIdParameter:
       name: objectTemplateId
       in: path
@@ -6653,7 +6654,7 @@ components:
           - $ref: "#/components/schemas/UUID"
 
     analystDataIdParameter:
-      name: analystID
+      name: analystDataID
       in: path
       description: "UUID or numeric ID of the Analyst data"
       required: true
@@ -6684,7 +6685,7 @@ components:
       description: "Object type that has an analyst data"
       required: true
       schema:
-        $ref: "#/components/schemas/analystObjectType"
+        $ref: "#/components/schemas/AnalystObjectType"
 
   securitySchemes:
     ApiKeyAuth:
@@ -7503,6 +7504,16 @@ components:
                 type: string
                 example: "https://domain.example/blogpost/123.pdf"
 
+    AddAnalystDataRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/AnalystNote"
+              - $ref: "#/components/schemas/AnalystOpinion"
+              - $ref: "#/components/schemas/AnalystRelationship"
+
   responses:
     AnalystDataResponse:
       description: "An analyst data. Could be a Note, Opinion or Relationship depending on the `analystType` parameter"
@@ -7652,14 +7663,14 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CreatedEvent"
+            $ref: "#/components/schemas/EditedEvent"
 
     EditEventResponse:
       description: "A freshly updated event"
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/UpdatedEvent"
+            $ref: "#/components/schemas/EditedEvent"
 
     DeleteEventResponse:
       description: "Delete event response"
@@ -9521,8 +9532,11 @@ components:
                 properties:
                   id:
                     $ref: "#/components/schemas/UserId"
+                  # see https://github.com/tfranzel/drf-spectacular/issues/925
                   org_id:
-                    $ref: "#/components/schemas/OrganisationId"
+                    type: object
+                    allOf:
+                      - $ref: "#/components/schemas/OrganisationId"
                     nullable: true
                   email:
                     type: string

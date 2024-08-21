@@ -1148,7 +1148,7 @@ class Attribute extends AppModel
         }
         $temp = array();
         if (!empty($tagArray[1])) {
-            /* 
+            /*
              * If we didn't find the given negation tag, no need to use the -1 trick,
              * it is basically a hack to block the search from finding anything if no positive lookup was valid.
              * However, if none of the negated tags exist, there's nothing to filter here
@@ -1594,34 +1594,52 @@ class Attribute extends AppModel
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
-            $subQuery1 = [
-                'conditions' => ['org_id' => $user['org_id']],
-                'fields' => ['id']
-            ];
-            $subQuery2 = [
-                'conditions' => [
-                    'distribution IN' => [1, 2, 3]
-                ],
-                'fields' => ['id']
-            ];
-            $subQuery3 = [
-                'conditions' => [
+            if (Configure::read('MISP.fetchAttributeLegacyStrategy')) {
+                $org_ownership_condition = ['Event.org_id' => $user['org_id']];
+                $event_lax_distribution_condition = [
+                    'Event.distribution IN' => [1,2,3]
+                ];
+                $event_sharing_group_condition = [
                     'Event.distribution' => 4,
-                    'Event.sharing_group_id IN' => $sgids
-                ],
-                'fields' => ['id']
-            ];
-            if (Configure::read('MISP.unpublishedprivate')) {
-                $subQuery2['conditions']['Event.published'] = 1;
-                $subQuery3['conditions']['Event.published'] = 1;
+                    'Event.sharing_group_id' => $sgids
+                ];
+                if (Configure::read('MISP.unpublishedprivate')) {
+                    $event_lax_distribution_condition['Event.published'] = 1;
+                    $event_sharing_group_condition['Event.published'] = 1;
+                }
+            } else {
+                $subQuery1 = [
+                    'conditions' => ['org_id' => $user['org_id']],
+                    'fields' => ['id']
+                ];
+                $subQuery2 = [
+                    'conditions' => [
+                        'distribution IN' => [1, 2, 3]
+                    ],
+                    'fields' => ['id']
+                ];
+                $subQuery3 = [
+                    'conditions' => [
+                        'Event.distribution' => 4,
+                        'Event.sharing_group_id IN' => $sgids
+                    ],
+                    'fields' => ['id']
+                ];
+                if (Configure::read('MISP.unpublishedprivate')) {
+                    $subQuery2['conditions']['Event.published'] = 1;
+                    $subQuery3['conditions']['Event.published'] = 1;
+                }
+                $org_ownership_condition = $this->subQueryGenerator($this->Event, $subQuery1, 'Attribute.event_id');
+                $event_lax_distribution_condition = $this->subQueryGenerator($this->Event, $subQuery2, 'Attribute.event_id');
+                $event_sharing_group_condition = $this->subQueryGenerator($this->Event, $subQuery3, 'Attribute.event_id');
             }
             $conditions = [
                 'OR' => [
-                    $this->subQueryGenerator($this->Event, $subQuery1, 'Attribute.event_id'),
+                    $org_ownership_condition,
                     'AND' => [
                         'OR' => [
-                            $this->subQueryGenerator($this->Event, $subQuery2, 'Attribute.event_id'),
-                            $this->subQueryGenerator($this->Event, $subQuery3, 'Attribute.event_id')
+                            $event_lax_distribution_condition,
+                            $event_sharing_group_condition
                         ],
                         [
                             'OR' => [
@@ -1764,7 +1782,7 @@ class Attribute extends AppModel
      * @return array
      * @throws Exception
      */
-    public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false)
+    public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false, &$skiped_item_count = false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -1836,6 +1854,9 @@ class Attribute extends AppModel
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
         }
+        if (isset($options['offset'])) {
+            $params['offset'] = $options['offset'];
+        }
         if (!empty($options['allow_proposal_blocking']) && Configure::read('MISP.proposals_block_attributes')) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
             $proposalRestriction =  array(
@@ -1863,7 +1884,6 @@ class Attribute extends AppModel
         if (empty($options['flatten'])) {
             $params['conditions']['AND'][] = array('Attribute.object_id' => 0);
         }
-        $params['order'] = [];
         if (!empty($options['order'])) {
             $params['order'] = $this->findOrder(
                 $options['order'],
@@ -1873,6 +1893,8 @@ class Attribute extends AppModel
                     'Event' => array('publish_timestamp'),
                 )
             );
+        } else {
+            $params['order'] = [];
         }
         if (!isset($options['withAttachments'])) {
             $options['withAttachments'] = false;
@@ -1958,7 +1980,11 @@ class Attribute extends AppModel
         }
         $eventTags = []; // tag cache
         $attributes = [];
-        $params['ignoreIndexHint'] = 'deleted';
+        $skipped_items = 0;
+        $index = $this->query("SHOW index from attributes where Key_name = 'deleted'");
+        if (!empty($index)) {
+            $params['ignoreIndexHint'] = 'deleted';
+        }
         do {
             $results = $this->find('all', $params);
             if (empty($results)) {
@@ -1976,7 +2002,6 @@ class Attribute extends AppModel
                 $eventsById = $this->__fetchEventsForAttributeContext($user, array_keys($eventIds), !empty($options['includeAllTags']));
                 unset($eventIds);
             }
-
             $this->attachTagsToAttributes($results, $options);
             $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
             $sgids = $this->SharingGroup->authorizedIds($user);
@@ -1994,6 +2019,7 @@ class Attribute extends AppModel
                     $attribute['Attribute']['RelatedAttribute'] = $this->Correlation->getRelatedAttributes($user, $sgids, $attribute['Attribute'], $attributeFields, true);
                 }
                 if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute['Attribute'])) {
+                    $skipped_items++;
                     continue;
                 }
                 if (!empty($options['includeEventTags'])) {
@@ -2007,6 +2033,7 @@ class Attribute extends AppModel
                 }
                 if ($proposals_block_attributes) {
                     if ($this->__blockAttributeViaProposal($attribute)) {
+                        $skipped_items++;
                         continue;
                     }
                     unset($attribute['ShadowAttribute']);
@@ -2031,6 +2058,7 @@ class Attribute extends AppModel
                             $decayed_flag = $decayed_flag && $decayResult['decayed'];
                         }
                         if ($decayed_flag) {
+                            $skipped_items++;
                             continue;
                         }
                     }
@@ -2044,7 +2072,6 @@ class Attribute extends AppModel
                 $attributes[] = $attribute;
             }
             unset($attribute);
-
             if ($loop) {
                 if ($iteration_result_count < $loopLimit) { // we fetched fewer results than the limit, so we can exit the loop
                     break;
@@ -2052,6 +2079,9 @@ class Attribute extends AppModel
                 $params['page']++;
             }
         } while ($loop);
+        if (is_int($skiped_item_count)) {
+            $skiped_item_count += $skipped_items;
+        }
         return $attributes;
     }
 
@@ -2133,7 +2163,6 @@ class Attribute extends AppModel
             'recursive' => -1,
         ]);
         $tags = array_column(array_column($tags, 'Tag'), null, 'id');
-
         foreach ($attributes as $k => $attribute) {
             $tagCulled = false;
             foreach ($attribute['AttributeTag'] as $k2 => $at) {
@@ -3145,7 +3174,7 @@ class Attribute extends AppModel
      * @return array|TmpFileTool Array when $paramsOnly is true
      * @throws Exception
      */
-    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
@@ -3270,16 +3299,21 @@ class Attribute extends AppModel
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
         $loop = false;
+        $memoryInMb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
+        $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 50;
+        $memoryScalingFactor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
+        $maxLimit = $memoryInMb * $memoryScalingFactor;
         if (empty($params['limit'])) {
-            $memoryInMb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
-            $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;
-            $memoryScalingFactor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
-            $params['limit'] = $memoryInMb * $memoryScalingFactor;
+            $params['limit'] = $maxLimit;
             $loop = true;
             $params['page'] = 1;
+        } else {
+            if (empty($params['page'])) {
+                $params['page'] = 1;
+            }
         }
         if (empty($exportTool->mock_query_only)) {
-            $elementCounter = $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams);
+            $elementCounter = $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $maxLimit, $skippedElementsCounter);
         }
         $tmpfile->write($exportTool->footer($exportToolParams));
         return $tmpfile;
@@ -3295,20 +3329,32 @@ class Attribute extends AppModel
      * @return int Number of all attributes that matches given conditions
      * @throws Exception
      */
-    private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams)
+    private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams, $maxLimit = null, &$skippedElementsCounter = 0)
     {
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
         $elementCounter = 0;
-        $real_count = false;
-        $incrementTotalBy = $loop || $real_count ? 0 : 1;
+        $offset = ($params['limit'] * ($params['page'] - 1));
+        if ($params['page'] > 1) {
+            $params['offset'] = $offset;
+        }
+        $requestedLimit = $params['limit'];
+        if ($maxLimit < $params['limit']) {
+            $params['limit'] = $maxLimit;
+            $loop = true;
+        }
+        unset($params['page']);
+        $totalCount = 0;
         do {
-            $results = $this->fetchAttributes($user, $params, $elementCounter, $real_count);
-            if (!$real_count) {
-                $totalCount = $params['limit'] * ($params['page'] - 1) + $elementCounter;
-            } else {
-                $totalCount = $elementCounter;
+            if (($totalCount + $params['limit']) > $requestedLimit) {
+                $params['limit'] = $requestedLimit - $totalCount;
+                $loop = false;
             }
+            $incrementTotalBy = $loop ? 0 : 1;
+            $results = $this->fetchAttributes($user, $params, $elementCounter, false, $skippedElementsCounter);
+
+            $resultCount = count($results);
+            $totalCount = $totalCount + $elementCounter;
             $elementCounter = false; // do not call `count` again
             if (empty($results)) {
                 break; // nothing found, skip rest
@@ -3318,19 +3364,20 @@ class Attribute extends AppModel
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
             $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
+            //$lastId = 0;
             foreach ($results as $attribute) {
                 $handlerResult = $exportTool->handler($attribute, $exportToolParams);
                 if ($handlerResult !== '') {
                     $tmpfile->writeWithSeparator($handlerResult, $separator);
                 }
             }
-            if (count($results) < $params['limit']) {
+            if ($resultCount < $params['limit']) {
                 $incrementTotalBy = 0;
                 if ($loop) {
-                    break; // do not continue if we received less results than limit
+                    break; // do not continue if we received fewer results than limit
                 }
             }
-            $params['page'] += 1;
+            $params['offset'] = (empty($params['offset']) ? 0 : $params['offset']) + $params['limit'];
         } while ($loop);
         return $totalCount + $incrementTotalBy;
     }
@@ -3458,7 +3505,7 @@ class Attribute extends AppModel
                             )
                         );
                     }
-                    
+
                 } else {
                     $conditions['AND'][] = array(
                         'OR' => array(

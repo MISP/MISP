@@ -22,6 +22,21 @@
         echo '<div class="input clear">';
         echo $this->Form->input('from', array('label' => __('From'), 'class' => 'datepicker form-control'));
         echo $this->Form->input('to', array('label' => __('To'), 'class' => 'datepicker form-control'));
+        echo '<div class="input clear">';
+        echo $this->Form->input(
+            'from_time',
+            [
+                'label' => __('From time (requires from)'),
+                'placeholder' => __("HH:MM:SS")
+            ]
+        );
+        echo $this->Form->input(
+            'to_time',
+            [
+                'label' => __('To time (requires to)'),
+                'placeholder' => __("HH:MM:SS")
+            ]
+        );
     ?>
     </fieldset>
 <?php

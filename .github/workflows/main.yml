@@ -148,7 +148,8 @@ jobs:
           app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"
           . ./venv/bin/activate
           export PYTHONPATH=$PYTHONPATH:./app/files/scripts
-          pip install ./PyMISP[fileobjects,email] ./app/files/scripts/python-stix ./app/files/scripts/cti-python-stix2 pyzmq redis plyara pytest
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
           deactivate
 
       - name: DB Update

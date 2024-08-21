@@ -486,6 +486,11 @@ if (!empty($me)) {
                     'requirement' => $isSiteAdmin
                 ],
                 [
+                    'text' => __('Correlation rules'),
+                    'url' => $baseurl . '/correlationRules/index',
+                    'requirement' => $isSiteAdmin
+                ],
+                [
                     'html' => sprintf(
                         '<span style="display: flex;"><span>%s</span></span>',
                         __('Over-correlating values')

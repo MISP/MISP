@@ -22,6 +22,11 @@ class NoAclCorrelationBehavior extends ModelBehavior
                     'fields' => [
                         'Event.id',
                         'Event.disable_correlation',
+                        'Event.orgc_id',
+                        'Event.org_id',
+                        'Event.distribution',
+                        'Event.sharing_group_id',
+                        'Event.info',
                     ]
                 ]
             ],
