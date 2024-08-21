@@ -180,6 +180,28 @@ echo $this->element('genericElements/assetLoader', array(
     'css' => array('vis', 'distribution-graph'),
     'js' => array('vis', 'jquery-ui.min', 'network-distribution-graph')
 ));
+if (Configure::read('MISP.log_new_audit')) {
+    $searchHtml = sprintf(
+        '&nbsp;<a href="%s" class="btn btn-inverse">%s</a>',
+        sprintf(
+            '%s/admin/audit_logs/index/model:User/model_id:%s',
+            $baseurl,
+            h($user['User']['id'])
+        ),
+        __('Review user logs')
+    );
+} else {
+    $searchHtml = sprintf(
+        '&nbsp;<form action="%s" method="post" style="display:inline;">%s%s%s</form>',
+        $baseurl . '/admin/logs/search/search',
+        '<input type="hidden" value="User" name="model" />',
+        '<input type="hidden" value="' . h($user['User']['id']) . '" name="model_id" />',
+        sprintf(
+            '<input type="submit" value="%s" class="btn btn-inverse">',
+            __('Review user logs')
+        )
+    );
+}
 echo sprintf(
     '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s%s%s<div style="margin-top:20px;">%s%s%s</div></div>',
     sprintf(
@@ -196,14 +218,7 @@ echo sprintf(
         ),
         __('Download user profile for data portability')
     ),
-    sprintf(
-        '&nbsp;<a href="%s" class="btn btn-inverse">%s</a>',
-        sprintf(
-            '%s/logs/index',
-            $baseurl
-        ),
-        __('Review user logs')
-    ),
+    $searchHtml,
     sprintf(
         '&nbsp;<a href="%s" class="btn btn-inverse">%s</a>',
         sprintf(

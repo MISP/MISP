@@ -27,6 +27,7 @@ class SystemSetting extends AppModel
 
     // Allow to set config values just for these categories
     const ALLOWED_CATEGORIES = [
+        'SimpleBackgroundJobs',
         'MISP',
         'Security',
         'GnuPG',

@@ -2455,7 +2455,7 @@ class Server extends AppModel
      * @return mixed|string|true|null
      * @throws Exception
      */
-    public function serverSettingsEditValue($user, array $setting, $value, $forceSave = false)
+    public function serverSettingsEditValue($user, array $setting, $value, $forceSave = false, $cli = false)
     {
         if (isset($setting['beforeHook'])) {
             $beforeResult = $this->{$setting['beforeHook']}($setting['name'], $value);
@@ -2496,8 +2496,11 @@ class Server extends AppModel
             return $errorMessage;
         }
         $oldValue = Configure::read($setting['name']);
-        $fileOnly = isset($setting['cli_only']) && $setting['cli_only'];
-        $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value, $fileOnly);
+        $cliOnly = isset($setting['cli_only']) && $setting['cli_only'];
+        if (!$cli && $cliOnly) {
+            return __('This setting can only changed via the CLI. Change request ignored.');
+        }
+        $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
         if ($settingSaveResult) {
             if (SystemSetting::isSensitive($setting['name'])) {
                 $change = array($setting['name'] => array('*****', '*****'));

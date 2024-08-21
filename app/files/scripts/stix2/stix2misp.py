@@ -84,9 +84,9 @@ def _process_stix_file(args: argparse.Namespace):
             )
         stix_version = getattr(bundle, 'version', '2.1')
         to_call, arguments = _get_stix_parser(_from_misp(bundle.objects), args)
-        parser = globals()[to_call](**arguments)
+        parser = globals()[to_call]()
         parser.load_stix_bundle(bundle)
-        parser.parse_stix_bundle(single_event=True)
+        parser.parse_stix_bundle(single_event=True, **arguments)
         with open(f'{args.input}.out', 'wt', encoding='utf-8') as f:
             f.write(parser.misp_event.to_json())
         print(

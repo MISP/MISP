@@ -23,7 +23,15 @@ class OrgImgHelper extends AppHelper
         }
         if ($orgImgName) {
             $base64 = $this->_View->Image->base64(self::IMG_PATH . $orgImgName);
-            return sprintf('<a href="%s" style="background-image: url(\'%s\')" class="orgImg">%s</a>', $link, $base64, h($organisation['Organisation']['name']));
+            return sprintf(
+                '<a href="%s">%s %s</a>',
+                $link,
+                sprintf(
+                    '<img style="display:inline;height:20px;width:auto;" src="%s"></img>',
+                    $base64
+                ),
+                h($organisation['Organisation']['name'])
+            );
         } else {
             return sprintf('<a href="%s">%s</a>', $link, h($organisation['Organisation']['name']));
         }
