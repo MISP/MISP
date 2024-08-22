@@ -2301,8 +2301,14 @@ class Feed extends AppModel
         $existingMembers = $redis->sMembers(self::REDIS_CACHE_PREFIX . $source);
         if (!empty($existingMembers)) {
             $pipe = $redis->pipeline();
+            $i = 0;
             foreach ($existingMembers as $hash) {
                 $pipe->hDel(self::REDIS_CACHE_PREFIX . $hash, $source);
+                // Flush pipeline after every 1000 requests
+                if ($i++ % 1000 === 0) {
+                    $pipe->exec();
+                    $pipe = $redis->pipeline();
+                }
             }
             $pipe->del(self::REDIS_CACHE_PREFIX . $source);
             $pipe->exec();
@@ -2322,9 +2328,15 @@ class Feed extends AppModel
                 }
             }
             $pipe = $redis->pipeline();
+            $i = 0;
             foreach ($toInsert as $hash => $value) {
                 $pipe->sAdd(self::REDIS_CACHE_PREFIX . $source, $hash);
                 $pipe->hSet(self::REDIS_CACHE_PREFIX . $hash, $source, $value);
+                // Flush pipeline after every 1000 requests
+                if ($i++ % 1000 === 0) {
+                    $pipe->exec();
+                    $pipe = $redis->pipeline();
+                }
             }
             $pipe->exec();
         } else {
