@@ -1129,9 +1129,9 @@ class Sighting extends AppModel
                     }
                 }
                 if ($negation) {
-                    $conditions['Sighting.org_id'][] = $temp;
-                } else {
                     $conditions['Sighting.org_id NOT IN'][] = $temp;
+                } else {
+                    $conditions['Sighting.org_id'][] = $temp;
                 }
                 if (empty($conditions['Sighting.org_id']) && empty($conditions['Sighting.org_id NOT IN'])) {
                     $conditions['Sighting.org_id'] = -1;
