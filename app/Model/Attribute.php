@@ -1148,7 +1148,7 @@ class Attribute extends AppModel
         }
         $temp = array();
         if (!empty($tagArray[1])) {
-            /* 
+            /*
              * If we didn't find the given negation tag, no need to use the -1 trick,
              * it is basically a hack to block the search from finding anything if no positive lookup was valid.
              * However, if none of the negated tags exist, there's nothing to filter here
@@ -1782,7 +1782,7 @@ class Attribute extends AppModel
      * @return array
      * @throws Exception
      */
-    public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false)
+    public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false, &$skiped_item_count = false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -1888,7 +1888,10 @@ class Attribute extends AppModel
             $params['order'] = $this->findOrder(
                 $options['order'],
                 'Attribute',
-                ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation']
+                array(
+                    'Attribute' => array('id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation'),
+                    'Event' => array('publish_timestamp'),
+                )
             );
         } else {
             $params['order'] = [];
@@ -1977,6 +1980,7 @@ class Attribute extends AppModel
         }
         $eventTags = []; // tag cache
         $attributes = [];
+        $skipped_items = 0;
         $index = $this->query("SHOW index from attributes where Key_name = 'deleted'");
         if (!empty($index)) {
             $params['ignoreIndexHint'] = 'deleted';
@@ -2015,6 +2019,7 @@ class Attribute extends AppModel
                     $attribute['Attribute']['RelatedAttribute'] = $this->Correlation->getRelatedAttributes($user, $sgids, $attribute['Attribute'], $attributeFields, true);
                 }
                 if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute['Attribute'])) {
+                    $skipped_items++;
                     continue;
                 }
                 if (!empty($options['includeEventTags'])) {
@@ -2028,6 +2033,7 @@ class Attribute extends AppModel
                 }
                 if ($proposals_block_attributes) {
                     if ($this->__blockAttributeViaProposal($attribute)) {
+                        $skipped_items++;
                         continue;
                     }
                     unset($attribute['ShadowAttribute']);
@@ -2052,6 +2058,7 @@ class Attribute extends AppModel
                             $decayed_flag = $decayed_flag && $decayResult['decayed'];
                         }
                         if ($decayed_flag) {
+                            $skipped_items++;
                             continue;
                         }
                     }
@@ -2072,6 +2079,9 @@ class Attribute extends AppModel
                 $params['page']++;
             }
         } while ($loop);
+        if (is_int($skiped_item_count)) {
+            $skiped_item_count += $skipped_items;
+        }
         return $attributes;
     }
 
@@ -3164,7 +3174,7 @@ class Attribute extends AppModel
      * @return array|TmpFileTool Array when $paramsOnly is true
      * @throws Exception
      */
-    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
@@ -3207,7 +3217,7 @@ class Attribute extends AppModel
         $conditions = $this->buildFilterConditions($user, $filters, true);
         $params = array(
             'conditions' => $conditions,
-            'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
+            'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Event.publish_timestamp'),
             'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
             'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
             'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
@@ -3260,7 +3270,10 @@ class Attribute extends AppModel
             $params['order'] = $this->findOrder(
                 $filters['order'],
                 'Attribute',
-                ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation']
+                array(
+                    'Attribute' => array('id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation'),
+                    'Event' => array('publish_timestamp'),
+                )
             );
         }
         if ($paramsOnly) {
@@ -3300,7 +3313,7 @@ class Attribute extends AppModel
             }
         }
         if (empty($exportTool->mock_query_only)) {
-            $elementCounter = $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $maxLimit);
+            $elementCounter = $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $maxLimit, $skippedElementsCounter);
         }
         $tmpfile->write($exportTool->footer($exportToolParams));
         return $tmpfile;
@@ -3316,7 +3329,7 @@ class Attribute extends AppModel
      * @return int Number of all attributes that matches given conditions
      * @throws Exception
      */
-    private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams, $maxLimit = null)
+    private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams, $maxLimit = null, &$skippedElementsCounter = 0)
     {
         $this->Allowedlist = ClassRegistry::init('Allowedlist');
         $separator = $exportTool->separator($exportToolParams);
@@ -3338,7 +3351,7 @@ class Attribute extends AppModel
                 $loop = false;
             }
             $incrementTotalBy = $loop ? 0 : 1;
-            $results = $this->fetchAttributes($user, $params, $elementCounter, false);
+            $results = $this->fetchAttributes($user, $params, $elementCounter, false, $skippedElementsCounter);
 
             $resultCount = count($results);
             $totalCount = $totalCount + $elementCounter;
@@ -3492,7 +3505,7 @@ class Attribute extends AppModel
                             )
                         );
                     }
-                    
+
                 } else {
                     $conditions['AND'][] = array(
                         'OR' => array(

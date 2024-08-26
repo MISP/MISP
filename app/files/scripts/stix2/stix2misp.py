@@ -22,12 +22,23 @@ import sys
 import traceback
 from pathlib import Path
 
-_scripts_path = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(_scripts_path / 'cti-python-stix2'))
-sys.path.insert(1, str(_scripts_path / 'python-stix'))
-sys.path.insert(2, str(_scripts_path / 'python-cybox'))
-sys.path.insert(3, str(_scripts_path / 'mixbox'))
-sys.path.insert(4, str(_scripts_path / 'misp-stix'))
+import importlib
+MODULE_TO_DIRECTORY = {
+    "stix2": "cti-python-stix2",
+    "stix": "python-stix",
+    "cybox": "python-cybox",
+    "mixbox": "mixbox",
+    "misp_stix_converter": "misp-stix",
+    "maec": "python-maec",
+}
+_CURRENT_PATH = Path(__file__).resolve().parent
+_CURRENT_PATH_IDX = 0
+for module_name, dir_path in MODULE_TO_DIRECTORY.items():
+    try:
+        importlib.import_module(module_name)
+    except ImportError:
+        sys.path.insert(_CURRENT_PATH_IDX, str(_CURRENT_PATH / dir_path))
+        _CURRENT_PATH_IDX += 1
 from misp_stix_converter import (
     ExternalSTIX2toMISPParser, InternalSTIX2toMISPParser,
     MISP_org_uuid, _from_misp)
@@ -73,9 +84,9 @@ def _process_stix_file(args: argparse.Namespace):
             )
         stix_version = getattr(bundle, 'version', '2.1')
         to_call, arguments = _get_stix_parser(_from_misp(bundle.objects), args)
-        parser = globals()[to_call](**arguments)
+        parser = globals()[to_call]()
         parser.load_stix_bundle(bundle)
-        parser.parse_stix_bundle(single_event=True)
+        parser.parse_stix_bundle(single_event=True, **arguments)
         with open(f'{args.input}.out', 'wt', encoding='utf-8') as f:
             f.write(parser.misp_event.to_json())
         print(
