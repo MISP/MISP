@@ -18,6 +18,10 @@ echo $this->element(
                 'path' => 'Bookmark.url',
             ],
             [
+                'key' => __('Comment'),
+                'path' => 'Bookmark.comment',
+            ],
+            [
                 'key' => __('Exposed to Organisation'),
                 'path' => 'Bookmark.exposed_to_org',
                 'type' => 'boolean'
