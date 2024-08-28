@@ -12,7 +12,7 @@ $fields = [
         'class' => 'input span6',
     ],
     [
-        'field' => 'Comment',
+        'field' => 'comment',
         'type' => 'textarea',
         'class' => 'input span6',
     ],
