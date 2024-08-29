@@ -3833,9 +3833,12 @@ class Event extends AppModel
         }
         unset($data['Event']['id']);
         if (
-            (Configure::read('MISP.block_publishing_for_same_creator', false) && !$user['Role']['perm_sync']) ||
+            (Configure::read('MISP.block_publishing_for_same_creator') && !$user['Role']['perm_sync']) ||
             (isset($data['Event']['published']) && $data['Event']['published'] && $user['Role']['perm_publish'] == 0)
         ) {
+            if (isset($data['Event']['published']) && $data['Event']['published']) {
+                $this->loadLog()->createLogEntry($user, 'add', 'Event', 0, 'Event will not be published');
+            }
             $data['Event']['published'] = 0;
         }
         if (isset($data['Event']['uuid'])) {
