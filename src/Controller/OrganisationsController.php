@@ -50,11 +50,6 @@ class OrganisationsController extends AppController
                 'contextFilters' => [
                     'custom' => $customContextFilters,
                 ],
-                'afterFind' => function ($entity) {
-                    $entity->setVirtual(['user_count']);
-
-                    return $entity;
-                },
                 'contain' => $this->containFields,
                 'statisticsFields' => $this->statisticsFields,
             ]

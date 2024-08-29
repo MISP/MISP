@@ -1,54 +1,81 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Model\Table;
 
-use App\Model\Table\AppTable;
-use Cake\Validation\Validator;
+use App\Lib\Tools\CidrTool;
+use App\Lib\Tools\FileAccessTool;
+use App\Lib\Tools\RedisTool;
+use App\Model\Entity\Warninglist;
 use Cake\Core\Configure;
 use Cake\ORM\RulesChecker;
-use App\Lib\Tools\CidrTool;
-use App\Lib\Tools\RedisTool;
-use App\Lib\Tools\FileAccessTool;
-use App\Model\Entity\Warninglist;
+use Cake\Validation\Validator;
 use Exception;
 
 class WarninglistsTable extends AppTable
 {
-
-    /** @var array */
+    /**
+     * @var array
+     */
     private $entriesCache = [];
 
-    /** @var array|null */
+    /**
+     * @var array|null
+     */
     private $enabledCache = null;
 
     private $showForAll;
 
+    /**
+     * initialize
+     *
+     * @param  mixed $config the config
+     * @return void
+     */
     public function initialize(array $config): void
     {
+        parent::initialize($config);
+
         $this->showForAll = Configure::read('MISP.warning_for_all');
         $this->hasMany(
             'WarninglistEntries',
             [
                 'dependent' => true,
-                'propertyName' => 'WarninglistEntry'
+                'propertyName' => 'WarninglistEntry',
             ]
         );
         $this->hasMany(
             'WarninglistTypes',
             [
                 'dependent' => true,
-                'propertyName' => 'WarninglistType'
+                'propertyName' => 'WarninglistType',
             ]
         );
-        parent::initialize($config);
+
+        $this->setTable('warninglists');
+        $this->setDisplayField('name');
+        $this->setPrimaryKey('id');
     }
 
+    /**
+     * buildRules
+     *
+     * @param  \Cake\ORM\RulesChecker $rules the rules
+     * @return \Cake\ORM\RulesChecker
+     */
     public function buildRules(RulesChecker $rules): RulesChecker
     {
         $rules->add($rules->isUnique(['name']));
+
         return $rules;
     }
 
+    /**
+     * validationDefault
+     *
+     * @param  \Cake\Validation\Validator $validator the validator
+     * @return \Cake\Validation\Validator
+     */
     public function validationDefault(Validator $validator): Validator
     {
         $validator
@@ -71,11 +98,12 @@ class WarninglistsTable extends AppTable
                 ]
             )
             ->requirePresence(['name', 'description', 'entries'], 'create');
+
         return $validator;
     }
 
     // TODO: [3.x-MIGRATION] re-implement this as a custom validation rule
-    // public function beforeValidate($options = array())
+    // public function beforeValidate($options = [])
     // {
     //     if (isset($this->data['WarninglistEntry'])) {
     //         if ($this->data['Warninglist']['type'] === 'cidr') {
@@ -103,7 +131,7 @@ class WarninglistsTable extends AppTable
     /**
      * Attach warninglist matches to attributes or proposals with IDS mark.
      *
-     * @param array $attributes
+     * @param array $attributes the attributes to attach to
      * @return array Warninglist ID => name
      */
     public function attachWarninglistToAttributes(array &$attributes)
@@ -133,6 +161,7 @@ class WarninglistsTable extends AppTable
             if (!empty($eventWarnings)) {
                 $this->assignComments($attributes);
             }
+
             return $eventWarnings;
         }
 
@@ -218,7 +247,9 @@ class WarninglistsTable extends AppTable
 
     /**
      * Assign comments to warninglist hits.
-     * @param array $attributes
+     *
+     * @param array $attributes the attributes to assign comments to
+     * @return void
      */
     private function assignComments(array &$attributes)
     {
@@ -233,19 +264,24 @@ class WarninglistsTable extends AppTable
 
         $conditions = [];
         foreach ($toFetch as $warninglistId => $values) {
-            $conditions[] = ['AND' => [
-                'warninglist_id' => $warninglistId,
-                'value' => array_unique($values),
-            ]];
+            $conditions[] = [
+                'AND' => [
+                    'warninglist_id' => $warninglistId,
+                    'value' => array_unique($values),
+                ]
+            ];
         }
 
-        $entries = $this->WarninglistEntry->find('all', [
-            'conditions' => [
-                'OR' => $conditions,
-                'comment !=' => '',
-            ],
-            'fields' => ['value', 'warninglist_id', 'comment'],
-        ]);
+        $entries = $this->WarninglistEntry->find(
+            'all',
+            [
+                'conditions' => [
+                    'OR' => $conditions,
+                    'comment !=' => '',
+                ],
+                'fields' => ['value', 'warninglist_id', 'comment'],
+            ]
+        );
         if (empty($entries)) {
             return;
         }
@@ -267,14 +303,22 @@ class WarninglistsTable extends AppTable
         }
     }
 
+    /**
+     * update the warninglists
+     *
+     * @return array the result of the update
+     */
     public function update()
     {
         // Fetch existing default warninglists
-        $existingWarninglist = $this->find('all', [
-            'fields' => ['id', 'name', 'version', 'enabled'],
-            'recursive' => -1,
-            'conditions' => ['default' => 1],
-        ])->toArray();
+        $existingWarninglist = $this->find(
+            'all',
+            [
+                'fields' => ['id', 'name', 'version', 'enabled'],
+                'recursive' => -1,
+                'conditions' => ['default' => 1],
+            ]
+        )->toArray();
         $existingWarninglist = array_column(array_column($existingWarninglist, 'Warninglist'), null, 'name');
 
         $directories = glob(APP . '..' . DS . 'libraries' . DS . 'misp-warninglists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
@@ -306,40 +350,52 @@ class WarninglistsTable extends AppTable
         if (!empty($result['success']) || !empty($result['fails'])) {
             $this->regenerateWarninglistCaches();
         }
+
         return $result;
     }
 
+    /**
+     * quickDelete
+     *
+     * @param  mixed $id the id of the list to delete
+     * @return array the result of the deletion
+     */
     public function quickDelete($id)
     {
         $result = $this->WarninglistEntry->deleteAll(
-            array('WarninglistEntry.warninglist_id' => $id),
+            ['WarninglistEntry.warninglist_id' => $id],
             false
         );
         if ($result) {
             $result = $this->WarninglistType->deleteAll(
-                array('WarninglistType.warninglist_id' => $id),
+                ['WarninglistType.warninglist_id' => $id],
                 false
             );
         }
         if ($result) {
             $result = $this->delete($id, false);
         }
+
         return $result;
     }
 
     /**
      * Import single warninglist
-     * @param array $list
+     *
+     * @param array $list a list to import
      * @return int Warninglist ID
-     * @throws Exception
+     * @throws \Exception
      */
     public function import(array $list)
     {
-        $existingWarninglist = $this->find('first', [
-            'fields' => ['id', 'name', 'version', 'enabled', 'default'],
-            'recursive' => -1,
-            'conditions' => ['name' => $list['name']],
-        ]);
+        $existingWarninglist = $this->find(
+            'first',
+            [
+                'fields' => ['id', 'name', 'version', 'enabled', 'default'],
+                'recursive' => -1,
+                'conditions' => ['name' => $list['name']],
+            ]
+        );
 
         if ($existingWarninglist && $existingWarninglist['Warninglist']['default']) {
             throw new Exception('It is not possible to modify default warninglist.');
@@ -352,11 +408,11 @@ class WarninglistsTable extends AppTable
     }
 
     /**
-     * @param array $list
-     * @param array $existing
-     * @param bool $default
+     * @param array $list List to update
+     * @param array $existing Existing list
+     * @param bool $default Whether the list is default
      * @return int Warninglist ID
-     * @throws Exception
+     * @throws \Exception
      */
     private function __updateList(array $list, array $existing, $default = true)
     {
@@ -371,7 +427,7 @@ class WarninglistsTable extends AppTable
             $this->WarninglistEntry->deleteAll(['WarninglistEntry.warninglist_id' => $existing['id']], false);
             $this->WarninglistType->deleteAll(['WarninglistType.warninglist_id' => $existing['id']], false);
         }
-        $fieldsToSave = array('name', 'version', 'description', 'type', 'enabled');
+        $fieldsToSave = ['name', 'version', 'description', 'type', 'enabled'];
         foreach ($fieldsToSave as $fieldToSave) {
             $warninglist['Warninglist'][$fieldToSave] = $list[$fieldToSave];
         }
@@ -380,7 +436,7 @@ class WarninglistsTable extends AppTable
         }
         $this->create();
         if (!$this->save($warninglist)) {
-            throw new Exception("Could not save warninglist because of validation errors: " . json_encode($this->validationErrors));
+            throw new Exception('Could not save warninglist because of validation errors: ' . json_encode($this->validationErrors));
         }
 
         $db = $this->getDataSource();
@@ -418,7 +474,7 @@ class WarninglistsTable extends AppTable
         }
         $values = [];
         foreach ($list['matching_attributes'] as $type) {
-            $values[] = array('type' => $type, 'warninglist_id' => $warninglistId);
+            $values[] = ['type' => $type, 'warninglist_id' => $warninglistId];
         }
         $this->WarninglistType->saveMany($values);
 
@@ -428,9 +484,10 @@ class WarninglistsTable extends AppTable
     /**
      * Regenerate the warninglist caches, but if an ID is passed along, only regen the entries for the given ID.
      * This allows us to enable/disable a single warninglist without regenerating all caches.
-     * @param int|null $id
+     *
+     * @param int|null $id the ID of the warninglist to regenerate
      * @return bool
-     * @throws RedisException
+     * @throws \RedisException
      */
     public function regenerateWarninglistCaches($id = null)
     {
@@ -453,26 +510,34 @@ class WarninglistsTable extends AppTable
             if ($id && $warninglist['Warninglist']['id'] != $id) {
                 continue;
             }
-            $entries = $this->WarninglistEntry->find('column', array(
-                'conditions' => array('warninglist_id' => $warninglist['Warninglist']['id']),
-                'fields' => array('value')
-            ));
+            $entries = $this->WarninglistEntry->find(
+                'column',
+                [
+                    'conditions' => ['warninglist_id' => $warninglist['Warninglist']['id']],
+                    'fields' => ['value'],
+                ]
+            );
             $this->cacheWarninglistEntries($entries, $warninglist['Warninglist']['id']);
         }
+
         return true;
     }
 
     /**
      * Get enable warninglists and cache them.
-     * @return array
+     *
+     * @return array the warning lists
      */
     private function getEnabledAndCacheWarninglist()
     {
-        $warninglists = $this->find('all', [
-            'contain' => ['WarninglistType'],
-            'conditions' => ['enabled' => 1],
-            'fields' => ['id', 'name', 'type', 'category'],
-        ]);
+        $warninglists = $this->find(
+            'all',
+            [
+                'contain' => ['WarninglistType'],
+                'conditions' => ['enabled' => 1],
+                'fields' => ['id', 'name', 'type', 'category'],
+            ]
+        );
 
         // Convert type to array
         foreach ($warninglists as &$warninglist) {
@@ -491,6 +556,13 @@ class WarninglistsTable extends AppTable
         return $warninglists;
     }
 
+    /**
+     * cacheWarninglistEntries
+     *
+     * @param  mixed $warninglistEntries the entries
+     * @param  mixed $id the id of the warninglist
+     * @return bool true if the cache was successful
+     */
     private function cacheWarninglistEntries(array $warninglistEntries, $id)
     {
         try {
@@ -508,12 +580,13 @@ class WarninglistsTable extends AppTable
                 $redis->sAdd($key, $entry);
             }
         }
+
         return true;
     }
 
     /**
      * @return array
-     * @throws JsonException
+     * @throws \JsonException
      */
     public function getEnabled()
     {
@@ -533,11 +606,14 @@ class WarninglistsTable extends AppTable
         }
 
         $this->enabledCache = $warninglists;
+
         return $warninglists;
     }
 
     /**
-     * @param int $id
+     * get warninglist entries (from cache if possible) and cache if needed
+     *
+     * @param int $id the ID of the warninglist
      * @return array
      */
     private function getWarninglistEntries($id)
@@ -550,18 +626,22 @@ class WarninglistsTable extends AppTable
         } catch (Exception $e) {
         }
 
-        $entries = $this->WarninglistEntry->find('column', array(
-            'conditions' => array('warninglist_id' => $id),
-            'fields' => array('WarninglistEntry.value')
-        ));
+        $entries = $this->WarninglistEntry->find(
+            'column',
+            [
+                'conditions' => ['warninglist_id' => $id],
+                'fields' => ['WarninglistEntry.value'],
+            ]
+        );
         $this->cacheWarninglistEntries($entries, $id);
+
         return $entries;
     }
 
     /**
      * For 'hostname', 'string' and 'cidr' warninglist type, values are just in keys to save memory.
      *
-     * @param array $warninglist
+     * @param array $warninglist the warninglist
      * @return array
      */
     public function getFilteredEntries(array $warninglist)
@@ -579,13 +659,13 @@ class WarninglistsTable extends AppTable
                 $output[$v] = true;
             }
             $values = $output;
-        } else if ($warninglist['Warninglist']['type'] === 'string') {
+        } elseif ($warninglist['Warninglist']['type'] === 'string') {
             $output = [];
             foreach ($values as $v) {
                 $output[$v] = true;
             }
             $values = $output;
-        } else if ($warninglist['Warninglist']['type'] === 'cidr') {
+        } elseif ($warninglist['Warninglist']['type'] === 'cidr') {
             $values = new CidrTool($values);
         }
 
@@ -595,7 +675,7 @@ class WarninglistsTable extends AppTable
     }
 
     /**
-     * @param array $object
+     * @param array $object the object to check
      * @param array|null $warninglists If null, all enabled warninglists will be used
      * @return array
      */
@@ -610,25 +690,26 @@ class WarninglistsTable extends AppTable
                 if (in_array('ALL', $list['types'], true) || in_array($object['type'], $list['types'], true)) {
                     $result = $this->checkValue($this->getFilteredEntries($list), $object['value'], $object['type'], $list['Warninglist']['type']);
                     if ($result !== false) {
-                        $object['warnings'][] = array(
+                        $object['warnings'][] = [
                             'match' => $result[0],
                             'value' => $result[1],
                             'warninglist_id' => $list['Warninglist']['id'],
                             'warninglist_name' => $list['Warninglist']['name'],
                             'warninglist_category' => $list['Warninglist']['category'],
-                        );
+                        ];
                     }
                 }
             }
         }
+
         return $object;
     }
 
     /**
-     * @param array|CidrTool $listValues
-     * @param string $value
-     * @param string $type
-     * @param string $listType
+     * @param array|\App\Lib\Tools\CidrTool $listValues the values of the list
+     * @param string $value the value to check
+     * @param string $type the type of the attribute
+     * @param string $listType the type of the list
      * @return array|false [Matched value, attribute value that matched]
      */
     public function checkValue($listValues, $value, $type, $listType)
@@ -636,7 +717,7 @@ class WarninglistsTable extends AppTable
         if ($type === 'malware-sample' || strpos($type, '|') !== false) {
             $value = explode('|', $value, 2);
         } else {
-            $value = array($value);
+            $value = [$value];
         }
         foreach ($value as $v) {
             if ($listType === 'cidr') {
@@ -656,14 +737,15 @@ class WarninglistsTable extends AppTable
                 return [$result, $v];
             }
         }
+
         return false;
     }
 
     /**
      * Check for exact match.
      *
-     * @param array $listValues
-     * @param string $value
+     * @param array $listValues the values of the list
+     * @param string $value the value to check
      * @return false
      */
     private function __evalString($listValues, $value)
@@ -671,9 +753,17 @@ class WarninglistsTable extends AppTable
         if (isset($listValues[$value])) {
             return $value;
         }
+
         return false;
     }
 
+    /**
+     * Check for substring match.
+     *
+     * @param array $listValues the values of the list
+     * @param string $value the value to check
+     * @return false
+     */
     private function __evalSubString($listValues, $value)
     {
         foreach ($listValues as $listValue) {
@@ -681,9 +771,17 @@ class WarninglistsTable extends AppTable
                 return $listValue;
             }
         }
+
         return false;
     }
 
+    /**
+     * Check for hostname match.
+     *
+     * @param array $listValues the values of the list
+     * @param string $value the value to check
+     * @return false
+     */
     private function __evalHostname($listValues, $value)
     {
         // php's parse_url is dumb, so let's use some hacky workarounds
@@ -711,9 +809,17 @@ class WarninglistsTable extends AppTable
                 return $rebuilt;
             }
         }
+
         return false;
     }
 
+    /**
+     * Check for regex match.
+     *
+     * @param array $listValues the values of the list
+     * @param string $value the value to check
+     * @return false
+     */
     private function __evalRegex($listValues, $value)
     {
         foreach ($listValues as $listValue) {
@@ -721,6 +827,7 @@ class WarninglistsTable extends AppTable
                 return $listValue;
             }
         }
+
         return false;
     }
 
@@ -729,10 +836,13 @@ class WarninglistsTable extends AppTable
      */
     public function fetchTLDLists()
     {
-        $tldLists = $this->find('column', array(
-            'conditions' => array('name IN' => Warninglist::TLDS),
-            'fields' => array('id')
-        ));
+        $tldLists = $this->find(
+            'column',
+            [
+                'conditions' => ['name IN' => Warninglist::TLDS],
+                'fields' => ['id'],
+            ]
+        );
         $tlds = [];
         foreach ($tldLists as $warninglistId) {
             $tlds = array_merge($tlds, $this->getWarninglistEntries($warninglistId));
@@ -741,6 +851,7 @@ class WarninglistsTable extends AppTable
         if (!in_array('onion', $tlds, true)) {
             $tlds[] = 'onion';
         }
+
         return $tlds;
     }
 
@@ -749,19 +860,23 @@ class WarninglistsTable extends AppTable
      */
     public function fetchSecurityVendorDomains()
     {
-        $securityVendorList = $this->find('column', array(
-            'conditions' => array('name' => 'List of known domains used by automated malware analysis services & security vendors'),
-            'fields' => array('id')
-        ));
+        $securityVendorList = $this->find(
+            'column',
+            [
+                'conditions' => ['name' => 'List of known domains used by automated malware analysis services & security vendors'],
+                'fields' => ['id'],
+            ]
+        );
         $domains = [];
         foreach ($securityVendorList as $warninglistId) {
             $domains = array_merge($domains, $this->getWarninglistEntries($warninglistId));
         }
+
         return $domains;
     }
 
     /**
-     * @param array $attribute
+     * @param array $attribute the attribute to filter
      * @param array|null $warninglists If null, all enabled warninglists will be used
      * @return bool
      */
@@ -779,33 +894,35 @@ class WarninglistsTable extends AppTable
                 }
             }
         }
+
         return true;
     }
 
-    public function missingTldLists()
-    {
-        $missingTldLists = array();
-        foreach (Warninglist::TLDS as $tldList) {
-            $temp = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Warninglist.name' => $tldList),
-                'fields' => array('Warninglist.id')
-            ));
-            if (empty($temp)) {
-                $missingTldLists[] = $tldList;
-            }
-        }
-        return $missingTldLists;
-    }
+    // public function missingTldLists()
+    // {
+    //     $missingTldLists = [];
+    //     foreach (Warninglist::TLDS as $tldList) {
+    //         $temp = $this->find('first', [
+    //             'recursive' => -1,
+    //             'conditions' => ['Warninglist.name' => $tldList],
+    //             'fields' => ['Warninglist.id'],
+    //         ]);
+    //         if (empty($temp)) {
+    //             $missingTldLists[] = $tldList;
+    //         }
+    //     }
+
+    //     return $missingTldLists;
+    // }
 
     /**
-     * @param array|null $data
-     * @param bool $validate
-     * @param array $fieldList
+     * @param array|null $data the data to save
+     * @param bool $validate whether to validate the data
+     * @param array $fieldList  the fields to save
      * @return array|bool|mixed|null
-     * @throws Exception
+     * @throws \Exception
      */
-    public function save($data = null, $validate = true, $fieldList = array())
+    public function save($data = null, $validate = true, $fieldList = [])
     {
         $db = $this->getDataSource();
         $transactionBegun = $db->begin();
@@ -825,7 +942,7 @@ class WarninglistsTable extends AppTable
                 $this->WarninglistEntry->deleteAll(['warninglist_id' => $id], false);
                 $entriesToInsert = [];
                 foreach ($data['WarninglistEntry'] as $entry) {
-                    $entriesToInsert[] = [$entry['value'], isset($entry['comment']) ? $entry['comment'] : null, $id];
+                    $entriesToInsert[] = [$entry['value'], $entry['comment'] ?? null, $id];
                 }
                 $db->insertMulti(
                     $this->WarninglistEntry->table,
@@ -864,7 +981,10 @@ class WarninglistsTable extends AppTable
     }
 
     /**
-     * @param bool $created
+     * post full save actions
+     *
+     * @param bool $created True for a new creation, false for an edit
+     * @param array $data the data that was saved
      * @return void
      */
     private function afterFullSave($created, array $data)
@@ -874,17 +994,20 @@ class WarninglistsTable extends AppTable
         }
 
         if ($this->pubToZmq('warninglist')) {
-            $warninglist = $this->find('first', [
-                'conditions' => ['id' => $data['Warninglist']['id']],
-                'contains' => ['WarninglistEntry', 'WarninglistType'],
-            ]);
+            $warninglist = $this->find(
+                'first',
+                [
+                    'conditions' => ['id' => $data['Warninglist']['id']],
+                    'contains' => ['WarninglistEntry', 'WarninglistType'],
+                ]
+            );
             $pubSubTool = $this->getPubSubTool();
             $pubSubTool->warninglist_save($warninglist, $created ? 'add' : 'edit');
         }
     }
 
     /**
-     * @param string $input
+     * @param string $input the input to parse
      * @return array
      */
     public function parseFreetext($input)
@@ -896,15 +1019,21 @@ class WarninglistsTable extends AppTable
 
         $entries = [];
         foreach (explode("\n", trim($input)) as $entry) {
-            $valueAndComment = explode("#", $entry, 2);
+            $valueAndComment = explode('#', $entry, 2);
             $entries[] = [
                 'value' => trim($valueAndComment[0]),
                 'comment' => count($valueAndComment) === 2 ? trim($valueAndComment[1]) : null,
             ];
         }
+
         return $entries;
     }
 
+    /**
+     * get the categories
+     *
+     * @return array
+     */
     public function categories()
     {
         return [
