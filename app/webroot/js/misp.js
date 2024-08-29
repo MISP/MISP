@@ -5739,7 +5739,6 @@ $(document.body).on('click', '.hex-value-convert', function() {
 
         $.ajax({
             success: function (data) {
-                data = $.parseJSON(data);
                 var tagData;
                 for (var i = 0; i < data.length; i++) {
                     var tag = data[i];
