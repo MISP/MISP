@@ -21,6 +21,11 @@ class GalaxiesController extends AppController
 {
     use LocatorAwareTrait;
 
+    public $quickFilterFields = [['name' => true], 'uuid'];
+    public $filterFields = ['name', 'uuid'];
+    public $containFields = [];
+    public $statisticsFields = [];
+
     public $paginate = [
         'limit' => 60,
         'recursive' => 0,
@@ -37,50 +42,30 @@ class GalaxiesController extends AppController
 
     public function index()
     {
-        $filterData = [
-            'request' => $this->request,
-            'named_params' => $this->request->getParam('named'),
-            'paramArray' => ['value', 'enabled'],
-            'ordered_url_params' => [],
-            'additional_delimiters' => PHP_EOL
-        ];
-        $exception = false;
-        $filters = $this->harvestParameters($filterData, $exception);
-        $searchConditions = [];
-        if (empty($filters['value'])) {
-            $filters['value'] = '';
-        } else {
-            $searchall = '%' . strtolower($filters['value']) . '%';
-            $searchConditions = [
-                'OR' => [
-                    'LOWER(Galaxies.name) LIKE' => $searchall,
-                    'LOWER(Galaxies.namespace) LIKE' => $searchall,
-                    'LOWER(Galaxies.description) LIKE' => $searchall,
-                    'LOWER(Galaxies.kill_chain_order) LIKE' => $searchall,
-                    'Galaxies.uuid LIKE' => $searchall
-                ]
-            ];
-        }
-        if (isset($filters['enabled'])) {
-            $searchConditions[]['enabled'] = $filters['enabled'] ? 1 : 0;
-        }
-        if ($this->ParamHandler->isRest()) {
-            $galaxies = $this->Galaxies->find(
-                'all',
-                [
-                    'recursive' => -1,
-                    'conditions' => [
-                        'AND' => $searchConditions
-                    ]
-                ]
-            )->disableHydration()->toArray();
-            return $this->RestResponse->viewData($galaxies, $this->response->getType());
-        } else {
-            $this->paginate['conditions']['AND'][] = $searchConditions;
-            $galaxies = $this->paginate();
-            $this->set('galaxyList', $galaxies);
-            $this->set('passedArgsArray', $this->passedArgs);
-            $this->set('searchall', $filters['value']);
+        $this->CRUD->index(
+            [
+                'filters' => $this->filterFields,
+                'quickFilters' => $this->quickFilterFields,
+                //'quickFilterForMetaField' => ['enabled' => true, 'wildcard_search' => true],
+                'contextFilters' => [
+                    'custom' => [
+                        [
+                            'label' => __('Enabled'),
+                            'filterCondition' => ['enabled' => 1],
+                        ],
+                        [
+                            'label' => __('Disabled'),
+                            'filterCondition' => ['enabled' => 0],
+                        ],
+                    ],
+                ],
+                'contain' => $this->containFields,
+                'statisticsFields' => $this->statisticsFields,
+            ]
+        );
+        $responsePayload = $this->CRUD->getResponsePayload();
+        if (!empty($responsePayload)) {
+            return $responsePayload;
         }
     }
 
