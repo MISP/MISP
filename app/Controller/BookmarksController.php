@@ -49,6 +49,17 @@ class BookmarksController extends AppController
             'filters' => ['name', 'url', ],
             'quickFilters' => ['Bookmark.name', 'Bookmark.url', ],
             'conditions' => $conditions,
+            'recursive' => -1,
+            'contain' => ['Organisation' => ['fields' => ['id', 'name', 'uuid']], 'User' => ['fields' => ['id', 'email', 'org_id']], ],
+            'afterFind' => function($results) {
+                foreach ($results as $k => $data) {
+                    $canSeeUser = $this->Bookmark->mayViewUser($this->Auth->user(), $data['Bookmark']['id']);
+                    if (!$canSeeUser) {
+                        unset($results[$k]['User']);
+                    }
+                }
+                return $results;
+            }
         ];
         $this->CRUD->index($params);
         if ($this->restResponsePayload) {
@@ -109,8 +120,23 @@ class BookmarksController extends AppController
         if (!$this->Bookmark->mayModify($this->Auth->user(), intval($id))) {
             throw new MethodNotAllowedException(__('Invalid Bookmark or insuficient privileges'));
         }
+        $canSeeUser = false;
         $params = [
-            'contain' => ['User', 'Organisation'],
+            'contain' => [
+                'User' => [
+                    'fields' => ['id', 'email', 'org_id']
+                ], 
+                'Organisation' => [
+                    'fields' => ['id', 'name', 'uuid']
+                ]
+            ],
+            'afterFind' => function($data) {
+                $canSeeUser = $this->Bookmark->mayViewUser($this->Auth->user(), $data['Bookmark']['id']);
+                if (!$canSeeUser) {
+                    unset($data['User']);
+                }
+                return $data;
+            }
         ];
         $this->CRUD->view($id, $params);
         if ($this->restResponsePayload) {

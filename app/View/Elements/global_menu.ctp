@@ -15,7 +15,7 @@ if (!empty($me)) {
     $topbarBookmarks = [];
     foreach ($bookmarks as $bookmark) {
         $topbarBookmarks[] = [
-            'html' => sprintf('<i class="fas fa-link fa-fw"></i> %s', h($bookmark['Bookmark']['name'])),
+            'html' => sprintf('<span title="%s"><i class="fas fa-link fa-fw"></i> %s</span>', h($bookmark['Bookmark']['comment']), h($bookmark['Bookmark']['name'])),
             'url' => h($bookmark['Bookmark']['url']),
         ];
     }

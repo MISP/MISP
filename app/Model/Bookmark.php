@@ -120,4 +120,26 @@ class Bookmark extends AppModel
         }
         return false;
     }
+
+    // same as mayView, but with returning false if the user is not an org admin
+    public function mayViewUser($user, $bookmark_id)
+    {
+        $bookmark = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Bookmark.id' => $bookmark_id]
+        ]);
+        if (empty($bookmark)) {
+            return false;
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if ($user['id'] === $bookmark['Bookmark']['user_id']) {
+            return true;
+        }
+        if ($user['Role']['perm_admin'] && $user['org_id'] == $bookmark['Bookmark']['org_id'] && !empty($bookmark['Bookmark']['exposed_to_org'])) {
+            return true;
+        }
+        return false;
+    }
 }

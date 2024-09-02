@@ -292,6 +292,12 @@ class AppController extends Controller
                 $this->RestResponse->setHeader('X-Username', $headerValue);
             }
 
+            if (Configure::read('Security.user_org_uuid_in_response_header')) {
+                $userOrgHeaderValue = $user['Organisation']['uuid'];
+                $this->response->header('X-UserOrgUUID', $userOrgHeaderValue);
+                $this->RestResponse->setHeader('X-UserOrgUUID', $userOrgHeaderValue);
+            }
+
             if (!$this->__verifyUser($user))  {
                 $this->_stop(); // just for sure
             }
