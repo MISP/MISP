@@ -21,7 +21,7 @@ class GpgTool
         require_once __DIR__ . '/CryptGpgExtended.php';
 
         $homedir = Configure::read('GnuPG.homedir');
-        if ($homedir === null) {
+        if (empty($homedir)) {
             throw new Exception("Configuration option 'GnuPG.homedir' is not set, Crypt_GPG cannot be initialized.");
         }
 
