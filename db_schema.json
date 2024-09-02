@@ -1019,6 +1019,17 @@
                 "column_type": "tinyint(1)",
                 "column_default": "0",
                 "extra": ""
+            },
+            {
+                "column_name": "comment",
+                "is_nullable": "NO",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "text",
+                "column_default": null,
+                "extra": ""
             }
         ],
         "bruteforces": [
@@ -10795,5 +10806,5 @@
             "uuid": false
         }
     },
-    "db_version": "128"
+    "db_version": "129"
 }
