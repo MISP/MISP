@@ -127,6 +127,14 @@ class IOCImportComponent extends Component
 
     private $filename = "";
 
+    /**
+     * @param string $data
+     * @param int $id
+     * @param int $dist
+     * @param string $filename
+     * @return array|string
+     * @throws Exception
+     */
     public function readXML($data, $id, $dist, $filename)
     {
         $this->Attribute = ClassRegistry::init('Attribute');
@@ -138,7 +146,11 @@ class IOCImportComponent extends Component
         App::uses('Xml', 'Utility');
 
         // now parse it
-        $xmlArray['ioc'] = json_decode(json_encode((array) simplexml_load_string($data)), 1);
+        $parsed = simplexml_load_string($data);
+        if ($parsed === false) {
+            throw new Exception("Could not parse XML, invalid XML data provided");
+        }
+        $xmlArray['ioc'] = json_decode(json_encode((array) $parsed), true);
 
         // Since the tree created by simplexml is a bit of a pain to traverse (partially because of branches with 1 leaves and with several leaves ending up in a different format -
         // $branch['leaf'] vs $branch[0]['leaf'] we convert it to an easier to deal with tree structure

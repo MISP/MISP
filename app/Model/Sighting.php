@@ -1199,7 +1199,7 @@ class Sighting extends AppModel
         $tmpfile = new TmpFileTool();
         $tmpfile->write($exportTool->header($exportToolParams));
         $separator = $exportTool->separator($exportToolParams);
-        
+
 
         if (empty(Configure::read('MISP.disable_sighting_loading'))) {
             // fetch sightings matching the query without ACL checks
@@ -1209,7 +1209,7 @@ class Sighting extends AppModel
                 foreach ($conditions['Sighting.event_id'] as $e_id) {
                     $conditions_copy['Sighting.event_id'] = $e_id;
                     $tempIds = $this->find('column', [
-                        'conditions' => $conditions,
+                        'conditions' => $conditions_copy,
                         'fields' => ['Sighting.id'],
                         'contain' => $contain
                     ]);
@@ -1224,7 +1224,7 @@ class Sighting extends AppModel
                     'contain' => $contain
                 ]);
             }
-            
+
             foreach (array_chunk($sightingIds, 10000) as $chunk) {
                 // fetch sightings with ACL checks and sighting policies
                 $sightings = $this->getSightings($user, $chunk, $includeEvent, $includeAttribute, $includeUuid);

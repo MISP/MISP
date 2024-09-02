@@ -217,9 +217,11 @@ class Feed extends AppModel
         $manifest = $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
         $this->Event = ClassRegistry::init('Event');
         $rules = json_decode($feed['Feed']['rules'], true);
-        foreach ($manifest as $k => $event) {
-            if (!$this->checkEventAgainstRules($event, $rules)) {
-                unset($manifest[$k]);
+        if ($rules != NULL) {
+            foreach ($manifest as $k => $event) {
+                if (!$this->checkEventAgainstRules($event, $rules)) {
+                    unset($manifest[$k]);
+                }
             }
         }
         $events = $this->Event->find('all', array(

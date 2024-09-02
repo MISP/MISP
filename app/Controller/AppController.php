@@ -34,7 +34,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '163';
-    public $pyMispVersion = '2.4.196';
+    public $pyMispVersion = '2.4.197';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -290,6 +290,12 @@ class AppController extends Controller
                 }
                 $this->response->header('X-Username', $headerValue);
                 $this->RestResponse->setHeader('X-Username', $headerValue);
+            }
+
+            if (Configure::read('Security.user_org_uuid_in_response_header')) {
+                $userOrgHeaderValue = $user['Organisation']['uuid'];
+                $this->response->header('X-UserOrgUUID', $userOrgHeaderValue);
+                $this->RestResponse->setHeader('X-UserOrgUUID', $userOrgHeaderValue);
             }
 
             if (!$this->__verifyUser($user))  {

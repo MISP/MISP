@@ -12,6 +12,11 @@ $fields = [
         'class' => 'input span6',
     ],
     [
+        'field' => 'comment',
+        'type' => 'textarea',
+        'class' => 'input span6',
+    ],
+    [
         'field' => 'exposed_to_org',
         'type' => 'checkbox',
         'label' => __('Should this bookmark be exposed to all users from the organisation'),
