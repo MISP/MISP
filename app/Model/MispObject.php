@@ -1026,7 +1026,7 @@ class MispObject extends AppModel
                                     $newAttribute['event_id'] = $object['Object']['event_id'];
                                     $newAttribute['object_id'] = $object['Object']['id'];
                                     $newAttribute['timestamp'] = $time;
-                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => Attribute::EDITABLE_FIELDS));
+                                    $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array('fieldList' => MispAttribute::EDITABLE_FIELDS));
                                     if ($result) {
                                         $this->Event->Attribute->AttributeTag->handleAttributeTags($user, $newAttribute, $newAttribute['event_id'], $capture=true);
                                     } else {
@@ -1068,7 +1068,7 @@ class MispObject extends AppModel
                 }
                 foreach ($object['Attribute'] as $originalAttribute) {
                     $originalAttribute['deleted'] = 1;
-                    $this->Event->Attribute->save($originalAttribute, array('fieldList' => Attribute::EDITABLE_FIELDS));
+                    $this->Event->Attribute->save($originalAttribute, array('fieldList' => MispAttribute::EDITABLE_FIELDS));
                 }
             }
         } else { // we only add the new attribute

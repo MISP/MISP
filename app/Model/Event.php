@@ -5064,8 +5064,8 @@ class Event extends AppModel
             /* TypeGroupings */
             if (
                 $filterType['attributeFilter'] !== 'all'
-                && isset(Attribute::TYPE_GROUPINGS[$filterType['attributeFilter']])
-                && !in_array($attribute['type'], Attribute::TYPE_GROUPINGS[$filterType['attributeFilter']], true)
+                && isset(MispAttribute::TYPE_GROUPINGS[$filterType['attributeFilter']])
+                && !in_array($attribute['type'], MispAttribute::TYPE_GROUPINGS[$filterType['attributeFilter']], true)
             ) {
                 return null;
             }
@@ -5168,8 +5168,8 @@ class Event extends AppModel
             /* TypeGroupings */
             if (
                 $filterType['attributeFilter'] !== 'all'
-                && isset(Attribute::TYPE_GROUPINGS[$filterType['attributeFilter']])
-                && !in_array($proposal['type'], Attribute::TYPE_GROUPINGS[$filterType['attributeFilter']], true)
+                && isset(MispAttribute::TYPE_GROUPINGS[$filterType['attributeFilter']])
+                && !in_array($proposal['type'], MispAttribute::TYPE_GROUPINGS[$filterType['attributeFilter']], true)
             ) {
                 return null;
             }

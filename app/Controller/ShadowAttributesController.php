@@ -38,7 +38,7 @@ class ShadowAttributesController extends AppController
 
     private function __accept($id)
     {
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $this->Attribute->Behaviors->detach('SysLogLogable.SysLogLogable');
         $shadow = $this->ShadowAttribute->find(
             'first',
@@ -836,7 +836,7 @@ class ShadowAttributesController extends AppController
         if (empty($sa)) {
             throw new NotFoundException(__('Invalid proposal.'));
         }
-        
+
         if (!$this->ShadowAttribute->Attribute->isImage($sa['ShadowAttribute'])) {
             throw new NotFoundException("ShadowAttribute is not an image.");
         }

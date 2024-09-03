@@ -147,7 +147,7 @@ class WarninglistsController extends AppController
         $this->set('possibleTypes', $types);
         $this->set('possibleCategories', $this->Warninglist->categories());
 
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $this->set('matchingAttributes', array_combine(array_keys($this->Attribute->typeDefinitions), array_keys($this->Attribute->typeDefinitions)));
 
         $this->CRUD->add([
@@ -184,7 +184,7 @@ class WarninglistsController extends AppController
         $this->set('possibleTypes', $types);
         $this->set('possibleCategories', $this->Warninglist->categories());
 
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $this->set('matchingAttributes', array_combine(array_keys($this->Attribute->typeDefinitions), array_keys($this->Attribute->typeDefinitions)));
 
         $this->CRUD->edit($id, [

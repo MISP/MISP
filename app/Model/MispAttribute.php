@@ -1032,7 +1032,7 @@ class MispAttribute extends AppModel
                 'conditions' => [
                     'OR' => $or,
                     'NOT' => [
-                        'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
+                        'Attribute.type' => MispAttribute::NON_CORRELATING_TYPES,
                     ],
                     'Attribute.disable_correlation' => 0,
                 ],
@@ -1792,7 +1792,7 @@ class MispAttribute extends AppModel
                 'Event' => array(
                     'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
                 ),
-                'AttributeTag', // tags are fetched separately, @see Attribute::attachTagsToAttributes
+                'AttributeTag', // tags are fetched separately, @see MispAttribute::attachTagsToAttributes
                 'Object' => array(
                     'fields' => array('id', 'distribution', 'sharing_group_id')
                 )

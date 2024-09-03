@@ -4,7 +4,7 @@ $object = Hash::extract($row, $field['data']['object']['value_path']);
 $event = $row['Event'];
 $objectId = intval($object['id']);
 
-$isNonCorrelatingType = in_array($object['type'], Attribute::NON_CORRELATING_TYPES, true);
+$isNonCorrelatingType = in_array($object['type'], MispAttribute::NON_CORRELATING_TYPES, true);
 $correlationDisabled = $object['disable_correlation'] || $isNonCorrelatingType;
 $correlationButtonEnabled = $this->Acl->canDisableCorrelation($row) &&
     empty($event['disable_correlation']) &&

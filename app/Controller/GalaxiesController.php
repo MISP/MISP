@@ -317,7 +317,7 @@ class GalaxiesController extends AppController
             return $this->response;
         } else {
             $this->set('galaxy', $galaxy);
-            $this->loadModel('Attribute');
+            $this->loadModel('MispAttribute');
             $distributionLevels = $this->Attribute->distributionLevels;
             unset($distributionLevels[5]);
             $distributionLevels[4] = __('All sharing groups');
@@ -563,7 +563,7 @@ class GalaxiesController extends AppController
             }
             if ($mirrorOnEventRequested && !empty($target_id_list)) {
                 $first_attribute_id = $target_id_list[0]; // We consider that all attributes to be tagged are contained in the same event.
-                $this->loadModel('Attribute');
+                $this->loadModel('MispAttribute');
                 $attribute = $this->Attribute->fetchAttributeSimple($user, array('conditions' => array('Attribute.id' => $first_attribute_id)));
                 if (!empty($attribute['Attribute']['event_id'])) {
                     $event_id = $attribute['Attribute']['event_id'];
@@ -641,7 +641,7 @@ class GalaxiesController extends AppController
             }
             $object = $object[0];
         } elseif ($scope === 'attribute') {
-            $this->loadModel('Attribute');
+            $this->loadModel('MispAttribute');
             $object = $this->Attribute->fetchAttributeSimple($this->Auth->user(), [
                 'conditions' => ['Attribute.id' => $id],
                 'contain' => [
@@ -717,7 +717,7 @@ class GalaxiesController extends AppController
         $this->set('galaxy', $galaxy);
         $this->set('galaxy_id', $galaxyId);
         $this->set('includeInbound', $includeInbound);
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $distributionLevels = $this->Attribute->distributionLevels;
         $this->set('distributionLevels', $distributionLevels);
     }

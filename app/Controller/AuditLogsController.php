@@ -490,7 +490,7 @@ class AuditLogsController extends AppController
         }
 
         if (isset($models['Attribute'])) {
-            $this->loadModel('Attribute');
+            $this->loadModel('MispAttribute');
             $attributes = $this->Attribute->fetchAttributesSimple($user, [
                 'conditions' => ['Attribute.id' => array_unique($models['Attribute'])],
                 'fields' => ['Attribute.id', 'Attribute.event_id', 'Attribute.uuid', 'Attribute.deleted'],

@@ -434,9 +434,9 @@ class UsersController extends AppController
                     }
                 } elseif ("inactive" == $searchTerm) {
                     if ($v == "1") {
-                        $this->paginate['conditions']['AND'][] = array('User.last_login <' =>  time() - 60*60*24*30);  // older than a month 
-                        $this->paginate['conditions']['AND'][] = array('User.current_login <' =>  time() - 60*60*24*30);  // older than a month 
-                        $this->paginate['conditions']['AND'][] = array('User.last_api_access <' =>  time() - 60*60*24*30);  // older than a month 
+                        $this->paginate['conditions']['AND'][] = array('User.last_login <' =>  time() - 60*60*24*30);  // older than a month
+                        $this->paginate['conditions']['AND'][] = array('User.current_login <' =>  time() - 60*60*24*30);  // older than a month
+                        $this->paginate['conditions']['AND'][] = array('User.last_api_access <' =>  time() - 60*60*24*30);  // older than a month
                     }
                 }
                 $passedArgsArray[$searchTerm] = $v;
@@ -978,7 +978,7 @@ class UsersController extends AppController
                     if (
                         empty($chosenRole) ||
                         (
-                            ($chosenRole['Role']['id'] != $allowedRole) && 
+                            ($chosenRole['Role']['id'] != $allowedRole) &&
                             ($chosenRole['Role']['perm_site_admin'] == 1 ||
                             $chosenRole['Role']['perm_regexp_access'] == 1 ||
                             $chosenRole['Role']['perm_sync'] == 1) ||
@@ -1231,7 +1231,7 @@ class UsersController extends AppController
                 }
             }
         }
-        // if instance requires email OTP 
+        // if instance requires email OTP
         if ($this->request->is('post') && Configure::read('Security.email_otp_enabled')) {
             $user = $this->Auth->identify($this->request, $this->response);
             if ($user && !$user['disabled']) {
@@ -1833,7 +1833,7 @@ class UsersController extends AppController
             throw new NotFoundException(__('Invalid user'));
         }
         // do not allow this page to be accessed if the current already has a TOTP. Just redirect to the users details page with a Flash->error()
-        if ($user['User']['totp']) { 
+        if ($user['User']['totp']) {
             $this->Flash->error(__("Your account already has a TOTP. Please contact your organisational administrator to change or delete it."));
             $this->redirect($this->referer());
         }
@@ -1858,7 +1858,7 @@ class UsersController extends AppController
                 $this->User->id = $user['User']['id'];
                 $this->User->saveField('totp', $secret);
                 $this->User->saveField('hotp_counter', 0);
-                $this->_refreshAuth();    
+                $this->_refreshAuth();
                 $this->Flash->info(__('The OTP is correct and now active for your account.'));
                 $fieldsDescrStr = 'User (' . $user['User']['id'] . '): ' . $user['User']['email']. ' TOTP token created';
                 $this->User->extralog($this->Auth->user(), "update", $fieldsDescrStr, '');
@@ -1883,7 +1883,7 @@ class UsersController extends AppController
             $totp->setIssuer(Configure::read('MISP.org') . ' MISP');
         }
         $qrcode = $writer->writeString($totp->getProvisioningUri());
-        $qrcode = preg_replace('/^.+\n/', '', $qrcode); // ignore first <?xml version line 
+        $qrcode = preg_replace('/^.+\n/', '', $qrcode); // ignore first <?xml version line
 
         $this->set('qrcode', $qrcode);
         $this->set('secret', $secret);
@@ -2942,7 +2942,7 @@ class UsersController extends AppController
             'User' => $user,
             'periodic_settings' => $this->User->fetchPeriodicSettingForUser($user['id']),
         ];
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $distributionData = $this->Attribute->fetchDistributionData($user);
         unset($distributionData['levels'][5]);
         $this->set('sharingGroups', $distributionData['sgs']);
@@ -3114,7 +3114,7 @@ class UsersController extends AppController
             'login' => 'web:login',
             'login_fail' => 'web:failed'
         ];
-        
+
         $maxRows = 6;  // limit to a few rows, to prevent cluttering the interface.
                         // We didn't filter the data at SQL query too much, nor by age, as we want to show "enough" data, even if old
         $rows = 0;

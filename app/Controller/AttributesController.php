@@ -475,7 +475,7 @@ class AttributesController extends AppController
         $this->set('distributionLevels', $distributionData['levels']);
         $this->set('initialDistribution', $distributionData['initial']);
         $this->set('fieldDesc', $this->__fieldDesc());
-        $this->set('nonCorrelatingTypes', Attribute::NON_CORRELATING_TYPES);
+        $this->set('nonCorrelatingTypes', MispAttribute::NON_CORRELATING_TYPES);
 
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
@@ -768,14 +768,14 @@ class AttributesController extends AppController
                 }
             }
             if ($existingAttribute['Attribute']['object_id']) {
-                $result = $this->Attribute->save($this->request->data, array('fieldList' => Attribute::EDITABLE_FIELDS));
+                $result = $this->Attribute->save($this->request->data, array('fieldList' => MispAttribute::EDITABLE_FIELDS));
                 if ($result) {
                     $this->Attribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $attribute['Event']['id'], $capture=true);
                     $this->Attribute->Event->captureAnalystData($this->Auth->user(), $this->request->data['Attribute'], 'Attribute', $existingAttribute['Attribute']['uuid']);
                 }
                 $this->Attribute->Object->updateTimestamp($existingAttribute['Attribute']['object_id']);
             } else {
-                $result = $this->Attribute->save($this->request->data, array('fieldList' => Attribute::EDITABLE_FIELDS));
+                $result = $this->Attribute->save($this->request->data, array('fieldList' => MispAttribute::EDITABLE_FIELDS));
                 if ($result) {
                     $this->Attribute->AttributeTag->handleAttributeTags($this->Auth->user(), $this->request->data['Attribute'], $attribute['Event']['id'], $capture=true);
                     $this->Attribute->Event->captureAnalystData($this->Auth->user(), $this->request->data['Attribute'], 'Attribute', $existingAttribute['Attribute']['uuid']);
@@ -2237,7 +2237,7 @@ class AttributesController extends AppController
             $validTypes = $this->Attribute->resolveHashType($hash);
             if ($allSamples) {
                 if (empty($validTypes)) {
-                    $error = 'Invalid hash format (valid options are ' . implode(', ', array_keys(Attribute::FILE_HASH_TYPES)) . ')';
+                    $error = 'Invalid hash format (valid options are ' . implode(', ', array_keys(MispAttribute::FILE_HASH_TYPES)) . ')';
                 } else {
                     foreach ($validTypes as $t) {
                         if ($t === 'md5') {
@@ -2353,7 +2353,7 @@ class AttributesController extends AppController
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException(__('You are not authorised to do that.'));
         }
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $events = array_keys($this->Attribute->Event->find('list'));
         $orphans = $this->Attribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
         return new CakeResponse(array('body'=> count($orphans), 'status'=>200, 'type' => 'json'));

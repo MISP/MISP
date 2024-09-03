@@ -209,7 +209,7 @@ class GalaxyClustersController extends AppController
             $newVersionAvailable = false;
         }
         $this->set('newVersionAvailable', $newVersionAvailable);
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $distributionLevels = $this->Attribute->distributionLevels;
         $this->set('distributionLevels', $distributionLevels);
         $this->set('shortDist', $this->Attribute->shortDist);
@@ -237,7 +237,7 @@ class GalaxyClustersController extends AppController
         } elseif (!is_numeric($galaxyId)) {
             throw new NotFoundException(__('Invalid galaxy'));
         }
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $distributionLevels = $this->Attribute->distributionLevels;
         unset($distributionLevels[5]);
         $initialDistribution = 3;
@@ -356,7 +356,7 @@ class GalaxyClustersController extends AppController
         }
         $this->GalaxyCluster->data = array('GalaxyCluster' => $cluster['GalaxyCluster'], 'GalaxyElement' => $cluster['GalaxyCluster']['GalaxyElement']);
 
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $distributionLevels = $this->Attribute->distributionLevels;
         unset($distributionLevels[5]);
         $initialDistribution = 3;
@@ -892,7 +892,7 @@ class GalaxyClustersController extends AppController
         $this->set('relations', $relations);
         $this->set('tree', $tree);
         $this->set('includeInbound', $includeInbound);
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $distributionLevels = $this->Attribute->distributionLevels;
         unset($distributionLevels[4]);
         unset($distributionLevels[5]);

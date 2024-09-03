@@ -72,7 +72,7 @@ class GalaxyClusterRelationsController extends AppController
             $this->paginate['contain'] = array('SharingGroup', 'SourceCluster' => ['Org', 'Orgc'], 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tag'));
             $relations = $this->paginate();
             $relations = $this->GalaxyClusterRelation->removeNonAccessibleTargetCluster($this->Auth->user(), $relations);
-            $this->loadModel('Attribute');
+            $this->loadModel('MispAttribute');
             $distributionLevels = $this->Attribute->distributionLevels;
             unset($distributionLevels[5]);
             $this->set('distributionLevels', $distributionLevels);
@@ -106,7 +106,7 @@ class GalaxyClusterRelationsController extends AppController
 
     public function add()
     {
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $distributionLevels = $this->Attribute->distributionLevels;
         unset($distributionLevels[5]);
         $initialDistribution = 3;
@@ -131,7 +131,7 @@ class GalaxyClusterRelationsController extends AppController
             if (isset($clusterSource['authorized']) && !$clusterSource['authorized']) {
                 $errors = array($clusterSource['error']);
             }
-            
+
             if (!empty($relation['GalaxyClusterRelation']['tags'])) {
                 $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
                 $tags = array_map('trim', $tags);
@@ -139,11 +139,11 @@ class GalaxyClusterRelationsController extends AppController
             } else {
                 $relation['GalaxyClusterRelation' ]['tags'] = array();
             }
-            
+
             if (empty($errors)) {
                 $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['SourceCluster'], $relation);
             }
-            
+
             if (empty($errors)) {
                 $message = __('Relationship added.');
                 $this->GalaxyClusterRelation->SourceCluster->touchTimestamp($clusterSource['SourceCluster']['id']);
@@ -199,7 +199,7 @@ class GalaxyClusterRelationsController extends AppController
         $existingRelation['GalaxyClusterRelation']['tags'] = Hash::extract($existingRelation['GalaxyClusterRelationTag'], '{n}.Tag.name');
         $existingRelation['GalaxyClusterRelation']['tags'] = implode(', ', $existingRelation['GalaxyClusterRelation']['tags']);
 
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $distributionLevels = $this->Attribute->distributionLevels;
         unset($distributionLevels[5]);
         $initialDistribution = 3;

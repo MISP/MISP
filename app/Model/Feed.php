@@ -164,7 +164,7 @@ class Feed extends AppModel
         if (!empty($event['Tag'])) {
             $tags = Hash::extract($event, 'Tag.{n}.name');
         }
-        
+
         // Check the tag rules
         if (!empty($rules['tags']['OR'])) {
             if (empty(array_intersect($rules['tags']['OR'], $tags))) {
@@ -545,7 +545,7 @@ class Feed extends AppModel
         $redisResultToAttributePosition = [];
 
         foreach ($attributes as $k => $attribute) {
-            if (in_array($attribute['type'], Attribute::NON_CORRELATING_TYPES, true)) {
+            if (in_array($attribute['type'], MispAttribute::NON_CORRELATING_TYPES, true)) {
                 continue; // attribute type is not correlateable
             }
             if (!empty($attribute['disable_correlation'])) {
@@ -556,7 +556,7 @@ class Feed extends AppModel
                 list($value1, $value2) = explode('|', $attribute['value']);
                 $parts = [$value1];
 
-                if (!in_array($attribute['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
+                if (!in_array($attribute['type'], MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
                     $parts[] = $value2;
                 }
             } else {
@@ -1645,10 +1645,10 @@ class Feed extends AppModel
             if (!empty($event['Event']['Attribute'])) {
                 $pipe = $redis->pipeline();
                 foreach ($event['Event']['Attribute'] as $attribute) {
-                    if (!in_array($attribute['type'], Attribute::NON_CORRELATING_TYPES, true)) {
+                    if (!in_array($attribute['type'], MispAttribute::NON_CORRELATING_TYPES, true)) {
                         if (in_array($attribute['type'], $this->Attribute->getCompositeTypes(), true)) {
                             $value = explode('|', $attribute['value']);
-                            if (in_array($attribute['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
+                            if (in_array($attribute['type'], MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
                                 unset($value[1]);
                             }
                         } else {
