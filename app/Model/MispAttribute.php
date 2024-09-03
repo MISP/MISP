@@ -27,6 +27,7 @@ class MispAttribute extends AppModel
 
     public $name = 'Attribute';
     public $alias = 'Attribute';
+    public $useTable = 'attributes';
 
     public $actsAs = array(
         'AuditLog',
