@@ -133,7 +133,7 @@ class Module_assign_country_from_enrichment extends Module_tag_operation
                 'GalaxyCluster' => ['fields' => ['id', 'uuid', 'value', 'tag_name']],
             ],
         ]);
-        return $clusters['GalaxyCluster'];
+        return $clusters['GalaxyCluster'] ?? [];
     }
 
     protected function guessTagFromPath($countries)
