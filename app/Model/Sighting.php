@@ -5,7 +5,7 @@ App::uses('ServerSyncTool', 'Tools');
 App::uses('ProcessTool', 'Tools');
 
 /**
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  * @property Event $Event
  * @property Organisation $Organisation
  */

@@ -13,7 +13,7 @@ App::uses('JsonTool', 'Tools');
 
 /**
  * @property Event $Event
- * @property AttributeTag $AttributeTag
+ * @property MispAttributeTag $AttributeTag
  * @property Sighting $Sighting
  * @property MispObject $Object
  * @property SharingGroup $SharingGroup
@@ -21,11 +21,12 @@ App::uses('JsonTool', 'Tools');
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
-class Attribute extends AppModel
+class MispAttribute extends AppModel
 {
     public $combinedKeys = array('event_id', 'category', 'type');
 
     public $name = 'Attribute';
+    public $alias = 'Attribute';
 
     public $actsAs = array(
         'AuditLog',

@@ -5,7 +5,7 @@ App::uses('File', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 
 /**
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  */
 class AttributesController extends AppController
 {

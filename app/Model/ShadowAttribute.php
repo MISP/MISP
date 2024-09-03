@@ -9,7 +9,7 @@ App::uses('AttributeValidationTool', 'Tools');
 
 /**
  * @property Event $Event
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
@@ -50,7 +50,7 @@ class ShadowAttribute extends AppModel
                 'foreignKey' => 'event_org_id'
         ),
         'Attribute' => array(
-            'className' => 'Attribute',
+            'className' => 'MispAttribute',
             'foreignKey' => 'old_id'
         )
     );

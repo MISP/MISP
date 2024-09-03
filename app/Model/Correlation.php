@@ -2,7 +2,7 @@
 App::uses('AppModel', 'Model');
 
 /**
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  * @property Event $Event
  * @property CorrelationValue $CorrelationValue
  * @method saveCorrelations(array $correlations)
@@ -22,7 +22,7 @@ class Correlation extends AppModel
 
     public $belongsTo = array(
         'Attribute' => [
-            'className' => 'Attribute',
+            'className' => 'MispAttribute',
             'foreignKey' => 'attribute_id'
         ],
         'Event' => array(
@@ -971,7 +971,7 @@ class Correlation extends AppModel
         }
         return $this->runGetRelatedAttributes($user, $sgids, $attribute, $fields, $includeEventData);
     }
-    
+
     /**
      * @param array $user User array
      * @param int $eventId Event ID

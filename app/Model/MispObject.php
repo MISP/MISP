@@ -7,7 +7,7 @@ App::uses('FileAccessTool', 'Tools');
 /**
  * @property Event $Event
  * @property SharingGroup $SharingGroup
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  * @property ObjectReference $ObjectReference
  * @property ObjectTemplate $ObjectTemplate
  */
@@ -47,7 +47,7 @@ class MispObject extends AppModel
 
     public $hasMany = array(
         'Attribute' => array(
-            'className' => 'Attribute',
+            'className' => 'MispAttribute',
             'dependent' => true,
         ),
         'ObjectReference' => array(

@@ -8,7 +8,7 @@ App::uses('ProcessTool', 'Tools');
 
 /**
  * @property User $User
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  * @property MispObject $Object
  * @property EventReport $EventReport
  * @property ShadowAttribute $ShadowAttribute
@@ -293,7 +293,7 @@ class Event extends AppModel
 
     public $hasMany = array(
         'Attribute' => array(
-            'className' => 'Attribute',
+            'className' => 'MispAttribute',
             'foreignKey' => 'event_id',
             'dependent' => true,    // cascade deletes
             'conditions' => '',
@@ -1623,7 +1623,7 @@ class Event extends AppModel
             $find_params['fields'] = array('Event.id', 'Event.attribute_count');
             $results = $this->find('list', $find_params);
         } else {
-            $find_params['fields'] = array('Event.id');   
+            $find_params['fields'] = array('Event.id');
             $results = $this->find('column', $find_params);
         }
         if (!isset($params['limit'])) {
@@ -3682,24 +3682,24 @@ class Event extends AppModel
     {
         $event = $this->updatedLockedFieldForAnalystData($event, 'Event');
         if (!empty($event['Event']['Attribute'])) {
-            for ($i=0; $i < count($event['Event']['Attribute']); $i++) { 
+            for ($i=0; $i < count($event['Event']['Attribute']); $i++) {
                 $event['Event']['Attribute'][$i] = $this->updatedLockedFieldForAnalystData($event['Event']['Attribute'][$i]);
             }
         }
         if (!empty($event['Event']['Object'])) {
-            for ($i=0; $i < count($event['Event']['Object']); $i++) { 
+            for ($i=0; $i < count($event['Event']['Object']); $i++) {
                  if (isset($event['Event']['Object'][$i])) {
                     $event['Event']['Object'][$i] = $this->updatedLockedFieldForAnalystData($event['Event']['Object'][$i]);
                 }
                 if (!empty($event['Event']['Object'][$i])) {
-                    for ($j=0; $j < count($event['Event']['Object'][$i]['Attribute']); $j++) { 
+                    for ($j=0; $j < count($event['Event']['Object'][$i]['Attribute']); $j++) {
                         $event['Event']['Object'][$i]['Attribute'][$j] = $this->updatedLockedFieldForAnalystData($event['Event']['Object'][$i]['Attribute'][$j]);
                     }
                 }
             }
         }
         if (!empty($event['Event']['EventReport'])) {
-            for ($i=0; $i < count($event['Event']['EventReport']); $i++) { 
+            for ($i=0; $i < count($event['Event']['EventReport']); $i++) {
                 $event['Event']['EventReport'][$i] = $this->updatedLockedFieldForAnalystData($event['Event']['EventReport'][$i]);
             }
         }
@@ -3714,7 +3714,7 @@ class Event extends AppModel
         }
         foreach ($this->AnalystData::ANALYST_DATA_TYPES as $type) {
             if (!empty($data[$type])) {
-                for ($i=0; $i < count($data[$type]); $i++) { 
+                for ($i=0; $i < count($data[$type]); $i++) {
                     $data[$type][$i]['locked'] = true;
                     foreach ($this->AnalystData::ANALYST_DATA_TYPES as $childType) {
                         if (!empty($data[$type][$i][$childType])) {
@@ -4735,7 +4735,7 @@ class Event extends AppModel
             'recursive' => -1,
             'conditions' => array('Event.id' => $id)
         ));
-        
+
         if (empty($event)) {
             return false;
         }
@@ -4784,7 +4784,7 @@ class Event extends AppModel
             $success = $this->executeTrigger('event-publish', $fullEvent[0], $workflowErrors, $logging);
             if (empty($success)) {
                 $errorMessage = implode(', ', $workflowErrors);
-                
+
                 return $errorMessage;
             }
         }
@@ -7496,7 +7496,7 @@ class Event extends AppModel
         if (!empty($exportTool->additional_params)) {
             $filters = array_merge($filters, $exportTool->additional_params);
         }
-        
+
         $exportToolParams = array(
             'user' => $user,
             'params' => array(),

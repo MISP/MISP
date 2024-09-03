@@ -4,7 +4,7 @@ App::uses('AppModel', 'Model');
 /**
  * @property EventTag $EventTag
  * @property User $User
- * @property AttributeTag $AttributeTag
+ * @property MispAttributeTag $AttributeTag
  * @property FavouriteTag $FavouriteTag
  * @property Organisation $Organisation
  */

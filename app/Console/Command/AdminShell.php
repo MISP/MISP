@@ -11,7 +11,7 @@ App::uses('JsonTool', 'Tools');
  * @property AdminSetting $AdminSetting
  * @property Taxonomy $Taxonomy
  * @property Warninglist $Warninglist
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  * @property Job $Job
  * @property Correlation $Correlation
  * @property OverCorrelatingValue $OverCorrelatingValue
@@ -19,7 +19,7 @@ App::uses('JsonTool', 'Tools');
 class AdminShell extends AppShell
 {
     public $uses = [
-        'Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 
+        'Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation',
         'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce',
         'Role', 'Feed', 'SharingGroupBlueprint', 'Correlation', 'OverCorrelatingValue'
     ];

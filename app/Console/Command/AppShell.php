@@ -20,7 +20,6 @@ App::uses('AppModel', 'Model');
 App::uses('BackgroundJobsTool', 'Tools');
 App::uses('BenchmarkTool', 'Tools');
 
-require_once dirname(__DIR__) . '/../Model/Attribute.php';   // FIXME workaround bug where Vendor/symfony/polyfill-php80/Resources/stubs/Attribute.php is loaded instead
 
 /**
  * Application Shell
