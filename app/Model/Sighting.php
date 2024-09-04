@@ -44,7 +44,11 @@ class Sighting extends AppModel
     );
 
     public $belongsTo = array(
-            'Attribute',
+            'Attribute' => [
+                'className' => 'MispAttribute',
+                'foreignKey' => 'attribute_id',
+                'dependent' => false,
+            ],
             'Event',
             'Organisation' => array(
                     'className' => 'Organisation',

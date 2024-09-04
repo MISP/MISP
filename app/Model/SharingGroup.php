@@ -56,7 +56,11 @@ class SharingGroup extends AppModel
             'dependent' => true,    // cascade deletes
         ),
         'Event',
-        'Attribute',
+        'Attribute' => [
+            'className' => 'MispAttribute',
+            'foreignKey' => 'sharing_group_id',
+            'dependent' => false,
+        ],
         'Thread'
     );
 

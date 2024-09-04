@@ -25,9 +25,10 @@ class AttributeTag extends AppModel
     ];
 
     public $belongsTo = array(
-        'Attribute' => array(
+        'Attribute' => [
             'className' => 'MispAttribute',
-        ),
+            'foreignKey' => 'attribute_id'
+        ],
         'Tag' => array(
             'className' => 'Tag',
         ),
