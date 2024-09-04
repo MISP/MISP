@@ -219,7 +219,7 @@ class JSONConverterTool
         return $objects;
     }
 
-    private function __cleanAnalystData($data)
+    private static function __cleanAnalystData($data)
     {
         foreach ($data as $k => $entry) {
             if (empty($entry['SharingGroup'])) {
