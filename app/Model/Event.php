@@ -798,7 +798,7 @@ class Event extends AppModel
         foreach ($objects as $object) {
             // Workaround for different structure in XML/array than what CakePHP expects
             if (isset($data['Event'][$object]) && is_array($data['Event'][$object]) && count($data['Event'][$object])) {
-                if (!is_numeric(implode(array_keys($data['Event'][$object]), ''))) {
+                if (!is_numeric(implode('', array_keys($data['Event'][$object])))) {
                     // single attribute
                     $data['Event'][$object] = array(0 => $data['Event'][$object]);
                 }
