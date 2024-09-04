@@ -28,7 +28,7 @@ class Module_tag_operation extends WorkflowBaseActionModule
         ];
         $this->Tag = ClassRegistry::init('Tag');
         $this->Event = ClassRegistry::init('Event');
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $tags = $this->Tag->find('all', [
             'conditions' => $conditions,
             'recursive' => -1,

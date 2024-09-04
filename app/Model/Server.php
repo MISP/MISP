@@ -2326,7 +2326,7 @@ class Server extends AppModel
     public function correlationAfterHook($setting, $value)
     {
         if (!Configure::read('MISP.background_jobs')) {
-            $this->Attribute = ClassRegistry::init('Attribute');
+            $this->Attribute = ClassRegistry::init('MispAttribute');
             if ($value) {
                 $this->Attribute->purgeCorrelations();
             } else {
@@ -5058,7 +5058,7 @@ class Server extends AppModel
     public function getAllTypes(): array
     {
         $allTypes = [];
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
         $objects = $this->ObjectTemplate->find('all', [
             'recursive' => -1,

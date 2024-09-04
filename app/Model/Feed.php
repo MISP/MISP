@@ -451,7 +451,7 @@ class Feed extends AppModel
             $settings = array_merge($settings, $feed['Feed']['settings']['common']);
         }
         $resultArray = $complexTypeTool->checkComplexRouter($data, $type, $settings);
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $typeDefinitions = $this->Attribute->typeDefinitions;
         foreach ($resultArray as &$value) {
             $definition = $typeDefinitions[$value['default_type']];
@@ -467,7 +467,7 @@ class Feed extends AppModel
         foreach ($data as $key => $value) {
             $values[] = $value['value'];
         }
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $redis = $this->setupRedis();
         if ($redis !== false) {
             $feeds = $this->find('all', array(
@@ -536,7 +536,7 @@ class Feed extends AppModel
         }
 
         if (!isset($this->Attribute)) {
-            $this->Attribute = ClassRegistry::init('Attribute');
+            $this->Attribute = ClassRegistry::init('MispAttribute');
         }
         $compositeTypes = $this->Attribute->getCompositeTypes();
 
@@ -934,7 +934,7 @@ class Feed extends AppModel
 
     private function passesURLParamFilters($url_params, $event): bool
     {
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         if (!empty($url_params['timestamp'])) {
             $timestamps = $this->Attribute->setTimestampConditions($url_params['timestamp'], [], '', true);
             if (is_array($timestamps)) {
@@ -1633,7 +1633,7 @@ class Feed extends AppModel
         $redis->del('misp:feed_cache:' . $feedId);
 
         $k = 0;
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         foreach ($manifest as $uuid => $event) {
             try {
                 $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);

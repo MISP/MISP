@@ -21,7 +21,7 @@ class Module_attribute_edition_operation extends WorkflowBaseActionModule
     public function __construct()
     {
         parent::__construct();
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
     }
 
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool

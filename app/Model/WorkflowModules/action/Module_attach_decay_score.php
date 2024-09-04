@@ -20,7 +20,7 @@ class Module_attach_decay_score extends WorkflowBaseActionModule
     public function __construct()
     {
         parent::__construct();
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $this->DecayingModel = ClassRegistry::init('DecayingModel');
         $this->decayingmodels = $this->DecayingModel->find('all', [
             'recursive' => -1,

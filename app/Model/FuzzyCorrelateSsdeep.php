@@ -91,7 +91,7 @@ class FuzzyCorrelateSsdeep extends AppModel
         if (!$eventId && !$attributeId) {
             $this->query('TRUNCATE TABLE fuzzy_correlate_ssdeep;');
         } elseif (!$attributeId) {
-            $this->Attribute = ClassRegistry::init('Attribute');
+            $this->Attribute = ClassRegistry::init('MispAttribute');
             $attributeId = $this->Attribute->find('column', array(
                 'conditions' => array(
                     'Attribute.event_id' => $eventId,

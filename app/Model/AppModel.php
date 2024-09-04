@@ -3125,7 +3125,7 @@ class AppModel extends Model
 
     private function removeDuplicateAttributeUUIDs()
     {
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $this->Log = ClassRegistry::init('Log');
         $duplicates = $this->Attribute->find('all', array(
             'fields' => array('Attribute.uuid', 'count(Attribute.uuid) as occurrence'),
@@ -4140,7 +4140,7 @@ class AppModel extends Model
             ];
         }
         $this->Correlation = ClassRegistry::init('Correlation');
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         if (!Configure::read('MISP.background_jobs')) {
             $this->Correlation->truncate($user, 'Legacy');
             $this->Attribute->generateCorrelation();

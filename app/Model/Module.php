@@ -218,7 +218,7 @@ class Module extends AppModel
         }
         if (empty($triggerData) && !empty($postData['attribute_uuid'])) {
             $this->User = ClassRegistry::init('User');
-            $this->Attribute = ClassRegistry::init('Attribute');
+            $this->Attribute = ClassRegistry::init('MispAttribute');
             $user = $this->User->getAuthUser(Configure::read('CurrentUserId'), true);
             $options = [
                 'conditions' => [

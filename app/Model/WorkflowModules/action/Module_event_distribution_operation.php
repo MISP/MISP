@@ -20,7 +20,7 @@ class Module_event_distribution_operation extends WorkflowBaseModule
     public function __construct()
     {
         parent::__construct();
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $this->Event = ClassRegistry::init('Event');
         $distributionLevels = $this->Attribute->shortDist;
         unset($distributionLevels[5]);

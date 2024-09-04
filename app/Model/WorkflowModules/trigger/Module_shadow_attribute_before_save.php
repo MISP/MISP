@@ -23,7 +23,7 @@ class Module_shadow_attribute_before_save extends WorkflowBaseTriggerModule
     public function normalizeData(array $data)
     {
         $this->Event = ClassRegistry::init('Event');
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
 
         if (empty($data['ShadowAttribute'])) {
             return false;

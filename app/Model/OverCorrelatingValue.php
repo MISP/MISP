@@ -140,7 +140,7 @@ class OverCorrelatingValue extends AppModel
         $overCorrelations = $this->find('all', [
             'recursive' => -1
         ]);
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         foreach ($overCorrelations as &$overCorrelation) {
             $value = $overCorrelation['OverCorrelatingValue']['value'] . '%';
             $count = $this->Attribute->find('count', [

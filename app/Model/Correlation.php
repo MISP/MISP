@@ -287,7 +287,7 @@ class Correlation extends AppModel
     private function __getMatchingAttributes($value)
     {
         // stupid hack to allow statically retrieving the constants
-        ClassRegistry::init('Attribute');
+        ClassRegistry::init('MispAttribute');
         $conditions = [
             'OR' => [
                 'Attribute.value1' => $value,
