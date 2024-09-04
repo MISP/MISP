@@ -5,7 +5,7 @@ App::uses('RestSearchComponent', 'Controller/Component');
 
 class DevShell extends AppShell {
 
-    public $uses = ['Attribute', 'Event', 'Object', 'GalaxyCluster', 'Sighting'];
+    public $uses = ['MispAttribute', 'Event', 'Object', 'GalaxyCluster', 'Sighting'];
 
     public function cleanFeedDefault() {
         $this->out(__('Massaging the feed metadata file.'));

@@ -19,7 +19,7 @@ App::uses('JsonTool', 'Tools');
 class AdminShell extends AppShell
 {
     public $uses = [
-        'Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation',
+        'Event', 'Post', 'MispAttribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation',
         'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce',
         'Role', 'Feed', 'SharingGroupBlueprint', 'Correlation', 'OverCorrelatingValue'
     ];
