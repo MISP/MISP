@@ -9,7 +9,7 @@
         "ext-dom": "*",
         "ext-simplexml": "*",
         "ext-pcre": "*",
-        "kamisama/cake-resque": "4.1.2",
+        "iglocska/cake-resque": "4.2",
         "pear/crypt_gpg": "1.6.7",
         "monolog/monolog": "^2.5.0 || ^3.0.0",
         "spomky-labs/otphp": "^10.0",
