@@ -468,7 +468,7 @@ class AttributeValidationTool
                 return true;
             case 'link':
                 // Moved to a native function whilst still enforcing the scheme as a requirement
-                return (bool)filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED);
+                return (bool)filter_var($value, FILTER_VALIDATE_URL);
             case 'hex':
                 return ctype_xdigit($value);
             case 'target-user':
