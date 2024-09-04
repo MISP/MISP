@@ -29,7 +29,7 @@ class ObjectReference extends AppModel
             ),
         ),
         'ReferencedAttribute' => array(
-            'className' => 'Attribute',
+            'className' => 'MispAttribute',
             'foreignKey' => false,
             'conditions' => array(
                 'ReferencedAttribute.id' => 'ObjectReference.referenced_id',

@@ -107,7 +107,7 @@ class SightingsController extends AppController
                 throw new MethodNotAllowedException('This method is only accessible via POST requests and ajax GET requests.');
             } else {
                 $this->layout = false;
-                $this->loadModel('Attribute');
+                $this->loadModel('MispAttribute');
                 $attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
                 if (empty($attributes)) {
                     throw new MethodNotAllowedExeption('Invalid Attribute.');
@@ -144,7 +144,7 @@ class SightingsController extends AppController
         $input_id = $id;
         $id = $this->Sighting->explodeIdList($id);
         if ($context == 'attribute') {
-            $this->loadModel('Attribute');
+            $this->loadModel('MispAttribute');
             $attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
             if (empty($attributes)) {
                 throw new MethodNotAllowedException('Invalid attribute.');
@@ -166,7 +166,7 @@ class SightingsController extends AppController
             throw new MethodNotAllowedException(__('You are not authorised to remove sightings data as you don\'t have permission to modify your organisation\'s data.'));
         }
         if (!$this->request->is('post')) {
-            $this->loadModel('Attribute');
+            $this->loadModel('MispAttribute');
             $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1));
             if (empty($attribute)) {
                 throw new MethodNotAllowedException(__('Attribute not found'));

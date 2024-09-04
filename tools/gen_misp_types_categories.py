@@ -100,7 +100,7 @@ for folder in folders:
 # - extracting the variables in PHP code
 # - using PHP to convert it to a JSON
 # - read the JSON in python
-with open('../app/Model/Attribute.php', 'r') as f:
+with open('../app/Model/MispAttribute.php', 'r') as f:
     attribute_php_file = f.read()
 re_match = re.search(r'function generateCategoryDefinitions\(\)\s*{\s*return(.*?\));\s*}', attribute_php_file, flags=re.MULTILINE + re.DOTALL)
 php_code_template = '''

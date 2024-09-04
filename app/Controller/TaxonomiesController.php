@@ -82,7 +82,7 @@ class TaxonomiesController extends AppController
             throw new NotFoundException(__('Taxonomy not found.'));
         }
         $this->loadModel('EventTag');
-        $this->loadModel('AttributeTag');
+        $this->loadModel('MispAttributeTag');
 
         $tagIds = array_column(array_column(array_column($taxonomy['entries'], 'existing_tag'), 'Tag'), 'id');
         $eventCount = $this->EventTag->countForTags($tagIds, $this->Auth->user());

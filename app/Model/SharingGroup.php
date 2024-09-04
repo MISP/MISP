@@ -6,7 +6,7 @@ App::uses('AppModel', 'Model');
  * @property SharingGroupServer $SharingGroupServer
  * @property Organisation $Organisation
  * @property Event $Event
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  * @property Thread $Thread
  */
 class SharingGroup extends AppModel

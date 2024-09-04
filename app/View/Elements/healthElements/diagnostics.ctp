@@ -75,8 +75,8 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
         </span><br>
         <span><?php echo __('Current branch…');?>
             <?php
-                $branchColour = $branch == '2.4' ? 'green' : (!Configure::read('MISP.self_update') && Configure::check('MISP.self_update')) ? 'bold' : 'red bold';
-            ?>
+                $branchColour = $branch == '2.4' ? 'green' : ((!Configure::read('MISP.self_update') && Configure::check('MISP.self_update')) ? 'bold' : 'red bold');
+                ?>
             <span class="<?php echo h($branchColour); ?>">
                 <?php
                   if ($branch == '2.4') {

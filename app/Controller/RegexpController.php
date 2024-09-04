@@ -18,7 +18,7 @@ class RegexpController extends AppController
 
     public function admin_add()
     {
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $types = array_keys($this->Attribute->typeDefinitions);
         if ($this->request->is('post')) {
             if ($this->request->data['Regexp']['all'] == 1) {
@@ -62,7 +62,7 @@ class RegexpController extends AppController
         // unlike other edits, the new regexp edit will actually create copies of an entry and delete the old ones. The reason for this is that each regular expression can now
         // have several entries for different types. For example, /127.0.0.1/ -> '' can be an entry for ip-src, ip-dst, but not url, meaning that the string 127.0.0.1 would be blocked
         // for ip-src and ip-dst attribute entry, but not for url.
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $types = array_keys($this->Attribute->typeDefinitions);
         $this->Regexp->id = $id;
         if (!$this->Regexp->exists()) {
@@ -168,7 +168,7 @@ class RegexpController extends AppController
         $allRegexp = $this->Regexp->find('all');
         $deletable = array();
         $modifications = 0;
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $count = $this->Attribute->find('count', array());
         $chunks = ceil($count / 1000);
         for ($i = 1; $i <= $chunks; $i++) {

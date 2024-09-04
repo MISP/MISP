@@ -2,7 +2,7 @@
 App::uses('AppModel', 'Model');
 
 /**
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  * @property Event $Event
  * @property CorrelationValue $CorrelationValue
  * @method saveCorrelations(array $correlations)
@@ -22,7 +22,7 @@ class Correlation extends AppModel
 
     public $belongsTo = array(
         'Attribute' => [
-            'className' => 'Attribute',
+            'className' => 'MispAttribute',
             'foreignKey' => 'attribute_id'
         ],
         'Event' => array(
@@ -201,7 +201,7 @@ class Correlation extends AppModel
             'Attribute.deleted' => 0,
             'Attribute.disable_correlation' => 0,
             'NOT' => [
-                'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
+                'Attribute.type' => MispAttribute::NON_CORRELATING_TYPES,
             ],
         ];
         if ($eventId) {
@@ -271,7 +271,7 @@ class Correlation extends AppModel
             'conditions' => [
                 'AND' => $extraConditions,
                 'NOT' => [
-                    'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
+                    'Attribute.type' => MispAttribute::NON_CORRELATING_TYPES,
                 ],
                 'Attribute.disable_correlation' => 0,
                 'Event.disable_correlation' => 0,
@@ -293,11 +293,11 @@ class Correlation extends AppModel
                 'Attribute.value1' => $value,
                 'AND' => [
                     'Attribute.value2' => $value,
-                    'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
+                    'NOT' => ['Attribute.type' => MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES]
                 ]
             ],
             'NOT' => [
-                'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
+                'Attribute.type' => MispAttribute::NON_CORRELATING_TYPES,
             ],
             'Attribute.disable_correlation' => 0,
             'Event.disable_correlation' => 0,
@@ -417,7 +417,7 @@ class Correlation extends AppModel
             return true;
         }
         // Don't do any correlation if the type is a non correlating type
-        if (in_array($a['Attribute']['type'], Attribute::NON_CORRELATING_TYPES, true)) {
+        if (in_array($a['Attribute']['type'], MispAttribute::NON_CORRELATING_TYPES, true)) {
             return true;
         }
         if (!$event) {
@@ -440,7 +440,7 @@ class Correlation extends AppModel
             $extraConditions = null;
             $correlatingValues = [];
         }
-        if (!empty($a['Attribute']['value2']) && !in_array($a['Attribute']['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true) && !$this->__preventExcludedCorrelations($a['Attribute']['value2'])) {
+        if (!empty($a['Attribute']['value2']) && !in_array($a['Attribute']['type'], MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES, true) && !$this->__preventExcludedCorrelations($a['Attribute']['value2'])) {
             $correlatingValues[] = $a['Attribute']['value2'];
         }
         if (empty($correlatingValues)) {
@@ -466,13 +466,13 @@ class Correlation extends AppModel
                     'Attribute.value1' => $cV,
                     'AND' => [
                         'Attribute.value2' => $cV,
-                        'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
+                        'NOT' => ['Attribute.type' => MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES]
                     ],
                     $extraConditions,
                 ],
                 'NOT' => [
                     'Attribute.event_id' => $a['Attribute']['event_id'],
-                    'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
+                    'Attribute.type' => MispAttribute::NON_CORRELATING_TYPES,
                 ],
                 'Attribute.disable_correlation' => 0,
                 'Event.disable_correlation' => 0,
@@ -966,12 +966,12 @@ class Correlation extends AppModel
      */
     public function getRelatedAttributes($user, $sgids, $attribute, $fields=[], $includeEventData = false)
     {
-        if (in_array($attribute['type'], Attribute::NON_CORRELATING_TYPES, true)) {
+        if (in_array($attribute['type'], MispAttribute::NON_CORRELATING_TYPES, true)) {
             return [];
         }
         return $this->runGetRelatedAttributes($user, $sgids, $attribute, $fields, $includeEventData);
     }
-    
+
     /**
      * @param array $user User array
      * @param int $eventId Event ID
@@ -1004,10 +1004,10 @@ class Correlation extends AppModel
         $compositeTypes = $this->Attribute->getCompositeTypes();
         $valuesToCheck = [];
         foreach ($attributes as &$attribute) {
-            if ($attribute['disable_correlation'] || in_array($attribute['type'],Attribute::NON_CORRELATING_TYPES, true)) {
+            if ($attribute['disable_correlation'] || in_array($attribute['type'],MispAttribute::NON_CORRELATING_TYPES, true)) {
                 continue;
             }
-            $primaryOnly = in_array($attribute['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true);
+            $primaryOnly = in_array($attribute['type'], MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES, true);
             if (in_array($attribute['type'], $compositeTypes, true)) {
                 $values = explode('|', $attribute['value']);
                 $valuesToCheck[$values[0]] = true;
@@ -1030,10 +1030,10 @@ class Correlation extends AppModel
         unset($valuesToCheck);
 
         foreach ($attributes as &$attribute) {
-            if ($attribute['disable_correlation'] || in_array($attribute['type'],Attribute::NON_CORRELATING_TYPES, true)) {
+            if ($attribute['disable_correlation'] || in_array($attribute['type'],MispAttribute::NON_CORRELATING_TYPES, true)) {
                 continue;
             }
-            $primaryOnly = in_array($attribute['type'], Attribute::PRIMARY_ONLY_CORRELATING_TYPES, true);
+            $primaryOnly = in_array($attribute['type'], MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES, true);
             if (in_array($attribute['type'], $compositeTypes, true)) {
                 $values = explode('|', $attribute['value']);
                 $values = OverCorrelatingValue::truncateValues($values);

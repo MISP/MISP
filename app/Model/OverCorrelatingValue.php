@@ -150,10 +150,10 @@ class OverCorrelatingValue extends AppModel
                         'Attribute.value1 LIKE' => $value,
                         'AND' => [
                             'Attribute.value2 LIKE' => $value,
-                            'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
+                            'NOT' => ['Attribute.type' => MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES]
                         ],
                     ],
-                    'NOT' => ['Attribute.type' => Attribute::NON_CORRELATING_TYPES],
+                    'NOT' => ['Attribute.type' => MispAttribute::NON_CORRELATING_TYPES],
                     'Attribute.disable_correlation' => 0,
                     'Event.disable_correlation' => 0,
                     'Attribute.deleted' => 0,

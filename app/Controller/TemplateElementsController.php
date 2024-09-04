@@ -35,7 +35,7 @@ class TemplateElementsController extends AppController
             ),
             'order' => array('TemplateElement.position ASC')
         ));
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $this->set('validTypeGroups', $this->Attribute->validTypeGroups);
         $this->set('id', $id);
         $this->layout = false;
@@ -73,7 +73,7 @@ class TemplateElementsController extends AppController
         if ($this->request->is('get')) {
             $this->set('id', $id);
             if ($type == 'attribute') {
-                $this->loadModel('Attribute');
+                $this->loadModel('MispAttribute');
                 // combobox for types
                 $types = array_keys($this->Attribute->typeDefinitions);
                 $types = $this->_arrayToValuesIndexArray($types);
@@ -96,7 +96,7 @@ class TemplateElementsController extends AppController
                 $this->set('validTypeGroups', $this->Attribute->validTypeGroups);
                 $this->set('typeGroupCategoryMapping', $this->Attribute->typeGroupCategoryMapping);
             } elseif ($type == 'file') {
-                $this->loadModel('Attribute');
+                $this->loadModel('MispAttribute');
                 $categoryArray = array();
                 $categories = array();
                 foreach ($this->Attribute->categoryDefinitions as $k => $catDef) {
@@ -163,7 +163,7 @@ class TemplateElementsController extends AppController
             $this->set('id', $id);
             $this->request->data[$ModelType] = $templateElement[$ModelType][0];
             if ($type == 'attribute') {
-                $this->loadModel('Attribute');
+                $this->loadModel('MispAttribute');
                 // combobox for types
                 $types = array_keys($this->Attribute->typeDefinitions);
                 $types = $this->_arrayToValuesIndexArray($types);
@@ -190,7 +190,7 @@ class TemplateElementsController extends AppController
                 $this->set('validTypeGroups', $this->Attribute->validTypeGroups);
                 $this->set('typeGroupCategoryMapping', $this->Attribute->typeGroupCategoryMapping);
             } elseif ($type == 'file') {
-                $this->loadModel('Attribute');
+                $this->loadModel('MispAttribute');
                 $categoryArray = array();
                 $categories = array();
                 foreach ($this->Attribute->categoryDefinitions as $k => $catDef) {

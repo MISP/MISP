@@ -14,7 +14,7 @@ require_once 'AppShell.php';
  */
 class EventShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation', 'Tag');
+    public $uses = array('Event', 'Post', 'MispAttribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation', 'Tag');
 
     public function getOptionParser()
     {
@@ -213,7 +213,7 @@ class EventShell extends AppShell
             return false;
         }
         if ($export_type == 'text') {
-            $types = array_keys($this->Attribute->typeDefinitions);
+            $types = array_keys($this->MispAttribute->typeDefinitions);
             $typeCount = count($types);
             foreach ($types as $k => $type) {
                 $typeData['params']['type'] = $type;
@@ -272,7 +272,7 @@ class EventShell extends AppShell
         $file->write('');
         $skipHeader = false;
         foreach ($types as $k => $type) {
-            $final = $this->Attribute->bro($user, $type, false, false, false, false, false, false, $skipHeader);
+            $final = $this->MispAttribute->bro($user, $type, false, false, false, false, false, false, $skipHeader);
             $skipHeader = true;
             foreach ($final as $attribute) {
                 $file->append($attribute . PHP_EOL);
@@ -538,7 +538,7 @@ class EventShell extends AppShell
             'id' => $id,
             'modules' => $modules
         );
-        $result = $this->Attribute->enrichment($options);
+        $result = $this->MispAttribute->enrichment($options);
         $job['Job']['progress'] = 100;
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");
         if ($result) {
@@ -700,7 +700,7 @@ class EventShell extends AppShell
 
     public function reportValidationIssuesAttributes()
     {
-        foreach ($this->Event->Attribute->reportValidationIssuesAttributes() as $validationIssue) {
+        foreach ($this->Event->MispAttribute->reportValidationIssuesAttributes() as $validationIssue) {
             echo $this->json($validationIssue) . "\n";
         }
     }
@@ -710,7 +710,7 @@ class EventShell extends AppShell
         $dryRun = $this->param('dry-run');
 
         $count = 0;
-        foreach ($this->Event->Attribute->normalizeIpAddress($dryRun) as $attribute) {
+        foreach ($this->Event->MispAttribute->normalizeIpAddress($dryRun) as $attribute) {
             $count++;
             echo JsonTool::encode($attribute) . "\n";
         }

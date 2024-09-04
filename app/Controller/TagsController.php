@@ -31,7 +31,7 @@ class TagsController extends AppController
 
     public function index()
     {
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $this->loadModel('Event');
         $this->loadModel('Taxonomy');
         if ($this->_isSiteAdmin()) {
@@ -384,7 +384,7 @@ class TagsController extends AppController
     {
         $user = $this->_closeSession();
         $this->helpers[] = 'TextColour';
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $this->loadModel('Taxonomy');
 
         $attributes = $this->Attribute->fetchAttributes($user, [

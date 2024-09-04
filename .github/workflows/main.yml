@@ -6,9 +6,9 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ '2.4', develop, misp-stix, taxii, php8 ]
+    branches: [ '2.4', develop, misp-stix, taxii, php8, 'feature/2.4_php8' ]
   pull_request:
-    branches: [ '2.4', develop, misp-stix, php8 ]
+    branches: [ '2.4', develop, misp-stix, php8, 'feature/2.4_php8' ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        php: ['7.4']
+        php: ['8.1', '7.4']
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -49,8 +49,8 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
-          extensions: mysql, mbstring, json, xml, opcache, readline, redis, gd, apcu
+          php-version: ${{ matrix.php }}a
+          extensions: mysql, mbstring, xml, opcache, readline, redis, gd, apcu
 
       - name: Initialize variables
         run: |
@@ -140,6 +140,14 @@ jobs:
           sudo chmod +x /home/runner
           sudo chmod +x /home
           sudo chmod +x /
+
+      - name: FIXME install cakephp2-php8
+        run: |
+          pushd app/Lib/
+          rm -Rf cakephp
+          git clone https://github.com/kamilwylegala/cakephp2-php8
+          mv cakephp2-php8 cakephp
+          popd
 
       - name: Python setup
         run: |

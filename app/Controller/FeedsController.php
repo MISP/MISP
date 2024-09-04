@@ -848,7 +848,7 @@ class FeedsController extends AppController
             }
         }
         $resultArray = array_values($resultArray);
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $correlatingEventInfos = $this->Attribute->Event->find('list', array(
             'fields' => array('Event.id', 'Event.info'),
             'conditions' => array('Event.id' => $correlatingEvents)
