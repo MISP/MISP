@@ -15,11 +15,14 @@
         "spomky-labs/otphp": "^10.0",
         "bacon/bacon-qr-code": "^2.0",
         "geoip2/geoip2": "~2.0",
-        "browscap/browscap-php": "^7.0"
+        "browscap/browscap-php": "^7.0",
+        "matthiasmullie/scrapbook": ">=1.5.3",
+        "league/flysystem": ">=1.0"
     },
     "_comments": [
         "Browscap-php v6 and v7 are NOT backwards compatible, so needs to test.",
-        "Monolog upgrade from 1.25.3 to 2.5 or 3 is also to be tested"
+        "Monolog upgrade from 1.25.3 to 2.5 or 3 is also to be tested",
+        "Doctrine simple cache no longer supported, switched to scrapbook"
     ],
     "require-dev": {
         "phpunit/phpunit": "^8",
