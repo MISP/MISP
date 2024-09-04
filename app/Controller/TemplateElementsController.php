@@ -36,7 +36,7 @@ class TemplateElementsController extends AppController
             'order' => array('TemplateElement.position ASC')
         ));
         $this->loadModel('MispAttribute');
-        $this->set('validTypeGroups', $this->Attribute->validTypeGroups);
+        $this->set('validTypeGroups', $this->MispAttribute->validTypeGroups);
         $this->set('id', $id);
         $this->layout = false;
         $this->set('elements', $templateElements);
@@ -75,16 +75,16 @@ class TemplateElementsController extends AppController
             if ($type == 'attribute') {
                 $this->loadModel('MispAttribute');
                 // combobox for types
-                $types = array_keys($this->Attribute->typeDefinitions);
+                $types = array_keys($this->MispAttribute->typeDefinitions);
                 $types = $this->_arrayToValuesIndexArray($types);
                 $this->set('types', $types);
                 // combobox for categories
-                $categories = array_keys($this->Attribute->categoryDefinitions);
+                $categories = array_keys($this->MispAttribute->categoryDefinitions);
                 $categories = $this->_arrayToValuesIndexArray($categories);
                 $this->set('categories', compact('categories'));
-                $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
-                $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
-                $categoryDefinitions = $this->Attribute->categoryDefinitions;
+                $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
+                $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
+                $categoryDefinitions = $this->MispAttribute->categoryDefinitions;
                 foreach ($categoryDefinitions as $k => $catDef) {
                     foreach ($catDef['types'] as $l => $t) {
                         if ($t == 'malware-sample' || $t == 'attachment') {
@@ -93,13 +93,13 @@ class TemplateElementsController extends AppController
                     }
                 }
                 $this->set('categoryDefinitions', $categoryDefinitions);
-                $this->set('validTypeGroups', $this->Attribute->validTypeGroups);
-                $this->set('typeGroupCategoryMapping', $this->Attribute->typeGroupCategoryMapping);
+                $this->set('validTypeGroups', $this->MispAttribute->validTypeGroups);
+                $this->set('typeGroupCategoryMapping', $this->MispAttribute->typeGroupCategoryMapping);
             } elseif ($type == 'file') {
                 $this->loadModel('MispAttribute');
                 $categoryArray = array();
                 $categories = array();
-                foreach ($this->Attribute->categoryDefinitions as $k => $catDef) {
+                foreach ($this->MispAttribute->categoryDefinitions as $k => $catDef) {
                     $temp = array();
                     if (in_array('malware-sample', $catDef['types'])) {
                         $temp[] = 'malware-sample';
@@ -165,14 +165,14 @@ class TemplateElementsController extends AppController
             if ($type == 'attribute') {
                 $this->loadModel('MispAttribute');
                 // combobox for types
-                $types = array_keys($this->Attribute->typeDefinitions);
+                $types = array_keys($this->MispAttribute->typeDefinitions);
                 $types = $this->_arrayToValuesIndexArray($types);
                 $this->set('types', $types);
                 // combobox for categories
-                $categories = array_keys($this->Attribute->categoryDefinitions);
+                $categories = array_keys($this->MispAttribute->categoryDefinitions);
                 $categories = $this->_arrayToValuesIndexArray($categories);
                 $this->set('categories', compact('categories'));
-                $categoryDefinitions = $this->Attribute->categoryDefinitions;
+                $categoryDefinitions = $this->MispAttribute->categoryDefinitions;
                 foreach ($categoryDefinitions as $k => $catDef) {
                     foreach ($catDef['types'] as $l => $t) {
                         if ($t == 'malware-sample' || $t == 'attachment') {
@@ -181,19 +181,19 @@ class TemplateElementsController extends AppController
                     }
                 }
                 if ($this->request->data['TemplateElementAttribute']['complex']) {
-                    $this->set('initialTypes', $this->_arrayToValuesIndexArray($this->Attribute->typeGroupCategoryMapping[$templateElement['TemplateElementAttribute'][0]['category']]));
+                    $this->set('initialTypes', $this->_arrayToValuesIndexArray($this->MispAttribute->typeGroupCategoryMapping[$templateElement['TemplateElementAttribute'][0]['category']]));
                 } else {
                     $this->set('initialTypes', $this->_arrayToValuesIndexArray($categoryDefinitions[$templateElement['TemplateElementAttribute'][0]['category']]['types']));
                 }
                 $this->set('initialValues', $templateElement['TemplateElementAttribute'][0]);
                 $this->set('categoryDefinitions', $categoryDefinitions);
-                $this->set('validTypeGroups', $this->Attribute->validTypeGroups);
-                $this->set('typeGroupCategoryMapping', $this->Attribute->typeGroupCategoryMapping);
+                $this->set('validTypeGroups', $this->MispAttribute->validTypeGroups);
+                $this->set('typeGroupCategoryMapping', $this->MispAttribute->typeGroupCategoryMapping);
             } elseif ($type == 'file') {
                 $this->loadModel('MispAttribute');
                 $categoryArray = array();
                 $categories = array();
-                foreach ($this->Attribute->categoryDefinitions as $k => $catDef) {
+                foreach ($this->MispAttribute->categoryDefinitions as $k => $catDef) {
                     $temp = array();
                     if (in_array('malware-sample', $catDef['types'])) {
                         $temp[] = 'malware-sample';

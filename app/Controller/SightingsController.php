@@ -108,7 +108,7 @@ class SightingsController extends AppController
             } else {
                 $this->layout = false;
                 $this->loadModel('MispAttribute');
-                $attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
+                $attributes = $this->MispAttribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
                 if (empty($attributes)) {
                     throw new MethodNotAllowedExeption('Invalid Attribute.');
                 }
@@ -145,7 +145,7 @@ class SightingsController extends AppController
         $id = $this->Sighting->explodeIdList($id);
         if ($context == 'attribute') {
             $this->loadModel('MispAttribute');
-            $attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
+            $attributes = $this->MispAttribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
             if (empty($attributes)) {
                 throw new MethodNotAllowedException('Invalid attribute.');
             }
@@ -167,7 +167,7 @@ class SightingsController extends AppController
         }
         if (!$this->request->is('post')) {
             $this->loadModel('MispAttribute');
-            $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1));
+            $attribute = $this->MispAttribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1));
             if (empty($attribute)) {
                 throw new MethodNotAllowedException(__('Attribute not found'));
             } else {

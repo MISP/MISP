@@ -19,7 +19,7 @@ class RegexpController extends AppController
     public function admin_add()
     {
         $this->loadModel('MispAttribute');
-        $types = array_keys($this->Attribute->typeDefinitions);
+        $types = array_keys($this->MispAttribute->typeDefinitions);
         if ($this->request->is('post')) {
             if ($this->request->data['Regexp']['all'] == 1) {
                 $this->Regexp->create();
@@ -63,7 +63,7 @@ class RegexpController extends AppController
         // have several entries for different types. For example, /127.0.0.1/ -> '' can be an entry for ip-src, ip-dst, but not url, meaning that the string 127.0.0.1 would be blocked
         // for ip-src and ip-dst attribute entry, but not for url.
         $this->loadModel('MispAttribute');
-        $types = array_keys($this->Attribute->typeDefinitions);
+        $types = array_keys($this->MispAttribute->typeDefinitions);
         $this->Regexp->id = $id;
         if (!$this->Regexp->exists()) {
             throw new NotFoundException('Invalid Regexp');
@@ -169,10 +169,10 @@ class RegexpController extends AppController
         $deletable = array();
         $modifications = 0;
         $this->loadModel('MispAttribute');
-        $count = $this->Attribute->find('count', array());
+        $count = $this->MispAttribute->find('count', array());
         $chunks = ceil($count / 1000);
         for ($i = 1; $i <= $chunks; $i++) {
-            $all = $this->Attribute->find('all', array(
+            $all = $this->MispAttribute->find('all', array(
                 'recursive' => -1,
                 'deleted' => 0,
                 'limit' => 1000,
@@ -186,7 +186,7 @@ class RegexpController extends AppController
                 } else {
                     // Until now this wasn't checked and all attributes were resaved, no matter if they were changed...
                     if ($result == 1) {
-                        $this->Attribute->save($item);
+                        $this->MispAttribute->save($item);
                         $modifications++;
                     }
                 }
@@ -194,7 +194,7 @@ class RegexpController extends AppController
         }
         if (count($deletable)) {
             foreach ($deletable as $item) {
-                $this->Attribute->delete($item);
+                $this->MispAttribute->delete($item);
             }
         }
         $this->Flash->info(__('All done! Number of changed attributes: ' . $modifications . ' Number of deletions: ' . count($deletable)));

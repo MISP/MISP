@@ -387,7 +387,7 @@ class TagsController extends AppController
         $this->loadModel('MispAttribute');
         $this->loadModel('Taxonomy');
 
-        $attributes = $this->Attribute->fetchAttributes($user, [
+        $attributes = $this->MispAttribute->fetchAttributes($user, [
             'conditions' => ['Attribute.id' => $id],
             'includeAllTags' => true,
             'flatten' => true,
@@ -814,7 +814,7 @@ class TagsController extends AppController
                     $message = 'Local tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
                 } else {
                     if ($objectType === 'Attribute') {
-                        $this->Attribute->touch($object['Attribute']['id']);
+                        $this->MispAttribute->touch($object['Attribute']['id']);
                     } elseif ($objectType === 'Event') {
                         $this->Event->unpublishEvent($object['Event']['id']);
                     }
@@ -918,7 +918,7 @@ class TagsController extends AppController
             );
             if (!$local) {
                 if ($objectType === 'Attribute') {
-                    $this->Attribute->touch($object['Attribute']['id']);
+                    $this->MispAttribute->touch($object['Attribute']['id']);
                 } elseif ($objectType === 'Event') {
                     $this->Event->unpublishEvent($object['Event']['id']);
                 }

@@ -3317,7 +3317,7 @@ class EventsController extends AppController
         $this->set('broTypes', $broTypes);
         // generate the list of Attribute types
         $this->loadModel('MispAttribute');
-        $this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
+        $this->set('sigTypes', array_keys($this->MispAttribute->typeDefinitions));
         $this->loadModel('Server');
         if (empty(Configure::read('Security.advanced_authkeys'))) {
             $authkey = $this->Event->User->find('first', [
@@ -6392,7 +6392,7 @@ class EventsController extends AppController
         // do one SQL query with the counts
         // loop over events, update in db
         $this->loadModel('MispAttribute');
-        $events = $this->Attribute->find('all', array(
+        $events = $this->MispAttribute->find('all', array(
             'recursive' => -1,
             'fields' => array('event_id', 'count(event_id) as attribute_count'),
             'group' => array('Attribute.event_id'),

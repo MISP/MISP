@@ -2943,7 +2943,7 @@ class UsersController extends AppController
             'periodic_settings' => $this->User->fetchPeriodicSettingForUser($user['id']),
         ];
         $this->loadModel('MispAttribute');
-        $distributionData = $this->Attribute->fetchDistributionData($user);
+        $distributionData = $this->MispAttribute->fetchDistributionData($user);
         unset($distributionData['levels'][5]);
         $this->set('sharingGroups', $distributionData['sgs']);
         $this->set('distributionLevels', $distributionData['levels']);

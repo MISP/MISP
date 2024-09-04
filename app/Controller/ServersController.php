@@ -2368,20 +2368,20 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
         $this->loadModel('MispAttribute');
-        $duplicates = $this->Attribute->find('all', array(
+        $duplicates = $this->MispAttribute->find('all', array(
             'fields' => array('Attribute.uuid', 'count(*) as occurance'),
             'recursive' => -1,
             'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
         ));
         $counter = 0;
         foreach ($duplicates as $duplicate) {
-            $attributes = $this->Attribute->find('all', array(
+            $attributes = $this->MispAttribute->find('all', array(
                 'recursive' => -1,
                 'conditions' => array('uuid' => $duplicate['Attribute']['uuid'])
             ));
             foreach ($attributes as $k => $attribute) {
                 if ($k > 0) {
-                    $this->Attribute->delete($attribute['Attribute']['id']);
+                    $this->MispAttribute->delete($attribute['Attribute']['id']);
                     $counter++;
                 }
             }

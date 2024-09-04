@@ -73,7 +73,7 @@ class GalaxyClusterRelationsController extends AppController
             $relations = $this->paginate();
             $relations = $this->GalaxyClusterRelation->removeNonAccessibleTargetCluster($this->Auth->user(), $relations);
             $this->loadModel('MispAttribute');
-            $distributionLevels = $this->Attribute->distributionLevels;
+            $distributionLevels = $this->MispAttribute->distributionLevels;
             unset($distributionLevels[5]);
             $this->set('distributionLevels', $distributionLevels);
             $this->set('data', $relations);
@@ -107,7 +107,7 @@ class GalaxyClusterRelationsController extends AppController
     public function add()
     {
         $this->loadModel('MispAttribute');
-        $distributionLevels = $this->Attribute->distributionLevels;
+        $distributionLevels = $this->MispAttribute->distributionLevels;
         unset($distributionLevels[5]);
         $initialDistribution = 3;
         $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
@@ -200,7 +200,7 @@ class GalaxyClusterRelationsController extends AppController
         $existingRelation['GalaxyClusterRelation']['tags'] = implode(', ', $existingRelation['GalaxyClusterRelation']['tags']);
 
         $this->loadModel('MispAttribute');
-        $distributionLevels = $this->Attribute->distributionLevels;
+        $distributionLevels = $this->MispAttribute->distributionLevels;
         unset($distributionLevels[5]);
         $initialDistribution = 3;
         $configuredDistribution = Configure::check('MISP.default_attribute_distribution');

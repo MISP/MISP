@@ -388,8 +388,8 @@ class TemplatesController extends AppController
                         }
                         $file->delete();
                     }
-                    $this->Attribute->create();
-                    if (!$this->Attribute->save(array('Attribute' => $attributes[$k]))) {
+                    $this->MispAttribute->create();
+                    if (!$this->MispAttribute->save(array('Attribute' => $attributes[$k]))) {
                         $fails++;
                     }
                 }
