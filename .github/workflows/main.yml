@@ -143,10 +143,8 @@ jobs:
 
       - name: FIXME install cakephp2-php8
         run: |
-          pushd app/Lib/
-          rm -Rf cakephp
-          git clone https://github.com/kamilwylegala/cakephp2-php8
-          mv cakephp2-php8 cakephp
+          pushd app/Lib/cakephp
+          git checkout master-cakephp2-php8
           popd
 
       - name: Python setup
@@ -194,7 +192,7 @@ jobs:
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1
 
       - name: Update JSON
-        run: app/Console/cake Admin updateJSON
+        run: app/Console/cake Admin updateJSONLite
 
       - name: Turn MISP live
         run: app/Console/cake Admin live 1

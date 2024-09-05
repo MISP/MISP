@@ -30,6 +30,9 @@ class AdminShell extends AppShell
         $parser->addSubcommand('updateJSON', array(
             'help' => __('Update the JSON definitions of MISP.'),
         ));
+        $parser->addSubcommand('updateJSONLite', array(
+            'help' => __('***TESTING ONLY*** Update the JSON definitions of MISP - but with a minimal set, only meant for testing.'),
+        ));
         $parser->addSubcommand('updateWarningLists', array(
             'help' => __('Update the JSON definition of warninglists.'),
             'parser' => [
@@ -297,6 +300,27 @@ class AdminShell extends AppShell
             __('Worker started.'),
             PHP_EOL
         );
+    }
+
+    public function updateJSONLite()
+    {
+        $this->out('Updating some JSON structures. I\'m travelling at the speed of light');
+        $overallSuccess = true;
+        foreach ($this->Server->updateJSONLite() as $type => $result) {
+            $type = Inflector::pluralize(Inflector::humanize($type));
+            if ($result['success']) {
+                $this->out(__('%s updated in %.2f seconds.', $type, $result['duration']));
+            } else {
+                $this->out(__('Could not update %s.', $type));
+                $this->out($result['result']);
+                $overallSuccess = false;
+            }
+        }
+        if ($overallSuccess) {
+            $this->out('Some JSON structures updated. I wanna make a supersonic man out of you.');
+        } else {
+            $this->error('Some structure could no be updated');
+        }
     }
 
     public function updateJSON()

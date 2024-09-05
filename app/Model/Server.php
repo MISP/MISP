@@ -4752,12 +4752,12 @@ class Server extends AppModel
     /**
      * @return Generator[string, array]
      */
-    public function updateJSON()
+    public function updateJSON($lite = false)
     {
         foreach (['Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate', 'ObjectRelationship'] as $target) {
             $model = ClassRegistry::init($target);
             $start = microtime(true);
-            $result = $model->update();
+            $result = $model->update(false, $lite);
             $duration = microtime(true) - $start;
             yield $target => ['success' => $result !== false, 'result' => $result, 'duration' => $duration];
         }

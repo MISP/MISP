@@ -35,7 +35,7 @@ class Taxonomy extends AppModel
 
     private $__taxonomyConflicts = [];
 
-    public function update()
+    public function update($force = false, $lite = false)
     {
         $existing = $this->find('all', array(
             'recursive' => -1,
@@ -86,6 +86,10 @@ class Taxonomy extends AppModel
                 } else {
                     $updated['fails'][] = array('namespace' => $vocab['namespace'], 'fail' => json_encode($result));
                 }
+            }
+            if ($lite) {
+                $this->cleanupCache();
+                return $updated;
             }
         }
 
