@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        php: ['8.1']
+        php: ['8.1', '8.3']
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -140,12 +140,6 @@ jobs:
           sudo chmod +x /home/runner
           sudo chmod +x /home
           sudo chmod +x /
-
-      - name: FIXME install cakephp2-php8
-        run: |
-          pushd app/Lib/cakephp
-          git checkout master-cakephp2-php8
-          popd
 
       - name: Python setup
         run: |
