@@ -242,7 +242,7 @@ class Galaxy extends AppModel
         return [$elements, $relations];
     }
 
-    public function update($force = false, $lite = false)
+    public function update($force = false)
     {
         $galaxies = $this->__load_galaxies($force);
         $files = new GlobIterator(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters' . DS . '*.json');
@@ -265,9 +265,6 @@ class Galaxy extends AppModel
                 $db->insertMulti('galaxy_elements', $fields, $elements);
             }
             array_push($allRelations, ...$relations);
-            if ($lite) {
-                return true;
-            }
         }
         // Save relation as last part when all clusters are created
         if (!empty($allRelations)) {
