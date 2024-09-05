@@ -306,7 +306,7 @@ class AdminShell extends AppShell
     {
         $this->out('Updating some JSON structures. I\'m travelling at the speed of light');
         $overallSuccess = true;
-        foreach ($this->Server->updateJSONLite() as $type => $result) {
+        foreach ($this->Server->updateJSON(true) as $type => $result) {
             $type = Inflector::pluralize(Inflector::humanize($type));
             if ($result['success']) {
                 $this->out(__('%s updated in %.2f seconds.', $type, $result['duration']));
