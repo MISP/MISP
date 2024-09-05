@@ -95,7 +95,7 @@ jobs:
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant usage on *.* to misp@'%' identified by 'blah';"
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant all privileges on misp.* to misp@'%';"
           mysql -h 127.0.0.1 --port 3306 -u misp -pblah misp < INSTALL/MYSQL.sql
-          mysql -h 127.0.0.1 --port 3306 -u misp -pblah misp < INSTALL/MYSQLJsonShit.sql
+
 
           # configure apache virtual hosts
           sudo mkdir -p /etc/apache2/sites-available
