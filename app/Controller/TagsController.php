@@ -648,7 +648,7 @@ class TagsController extends AppController
             if ($r['Tag']['name'] == null) {
                 continue;
             }
-            $tags[$r['Tag']['name']] = $r[0]['count'];
+            $tags[$r['Tag']['name']] = strval($r[0]['count']);
             $totalCount += $r[0]['count'];
             foreach ($taxonomies as $taxonomy => $count) {
                 if (substr(strtolower($r['Tag']['name']), 0, strlen($taxonomy)) === strtolower($taxonomy)) {
