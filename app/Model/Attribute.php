@@ -1929,8 +1929,8 @@ class Attribute extends AppModel
         if (isset($options['deleted'])) {
             if ($options['deleted'] === "only") {
                 $options['deleted'] = 1;
+                $params['conditions']['AND']['Attribute.deleted'] = $options['deleted'];
             }
-            $params['conditions']['AND']['(Attribute.deleted + 0)'] = $options['deleted'];
         } elseif (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
             $params['conditions']['AND']['Attribute.deleted'] = 0;
         }
