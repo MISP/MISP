@@ -2552,7 +2552,7 @@ class AttributesController extends AppController
             if ($percentage) {
                 $results[$attribute['Attribute'][$type]] = round(100 * $attribute[0]['attribute_count'] / $totalAttributes, 3) . '%';
             } else {
-                $results[$attribute['Attribute'][$type]] = $attribute[0]['attribute_count'];
+                $results[$attribute['Attribute'][$type]] = strval($attribute[0]['attribute_count']);
             }
         }
         ksort($results);
