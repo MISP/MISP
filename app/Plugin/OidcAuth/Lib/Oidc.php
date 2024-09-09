@@ -19,6 +19,13 @@ class Oidc
     {
         $oidc = $this->prepareClient();
 
+        $scopes = $this->getConfig('scopes');
+        if (is_array($scopes)) {
+            foreach ($scopes as $scope) {
+                $oidc->addScope($scope);
+            }
+        }
+
         $this->log(null, 'Authenticate');
 
         if (!$oidc->authenticate()) {
