@@ -27,7 +27,8 @@ class Oidc
 
         $claims = $oidc->getVerifiedClaims();
 
-        $mispUsername = $claims->email ?? $oidc->requestUserInfo('email');
+        $usernameProperty = $this->getConfig('username_property', 'email');
+        $mispUsername = $claims->$usernameProperty ?? $oidc->requestUserInfo($usernameProperty);
         if (empty($mispUsername)) {
             $sub = $claims->sub ?? 'UNKNOWN';
             throw new Exception("OIDC user $sub doesn't have email address, that is required by MISP.");
@@ -49,7 +50,7 @@ class Oidc
         }
 
         $organisationProperty = $this->getConfig('organisation_property', 'organization');
-        $organisationName = $claims->{$organisationProperty} ?? null;
+        $organisationName = $claims->{$organisationProperty} ?? $this->getConfig('default_org');
 
         $organisationUuidProperty = $this->getConfig('organisation_uuid_property', 'organization_uuid');
         $organisationUuid = $claims->{$organisationUuidProperty} ?? null;
@@ -68,7 +69,12 @@ class Oidc
         }
 
         $roleProperty = $this->getConfig('roles_property', 'roles');
-        $roles = $claims->{$roleProperty} ?? $oidc->requestUserInfo($roleProperty);
+        try {
+            $roles = $claims->{$roleProperty} ?? $oidc->requestUserInfo($roleProperty);
+        } catch (JakubOnderka\OpenIDConnectClientException $e) {
+            $this->log(null, "Could not get roles from $$roleProperty , using default");
+            $roles = array($this->getConfig('default_role'));
+        }
         if ($roles === null) {
             $this->log($mispUsername, "Role property `$roleProperty` is missing in claims, access prohibited.", LOG_WARNING);
             return false;
