@@ -3089,7 +3089,12 @@ class UsersController extends AppController
     public function view_login_history($userId = null)
     {
         if ($userId && $this->_isAdmin()) {   // org and site admins
-            $userExists = $this->User->hasAny($this->__adminFetchConditions($userId));
+            $userExists = (bool) $this->User->find('first', [
+                'fields' => ['User' . '.' . 'id'],
+                'conditions' => $this->__adminFetchConditions($userId),
+                'recursive' => -1,
+                'contain' => ['Role'],
+            ]);
             if (!$userExists) {
                 throw new NotFoundException(__('Invalid user'));
             }
