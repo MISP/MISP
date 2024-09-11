@@ -18,6 +18,32 @@ class UserLoginProfilesController extends AppController
         )
     );
 
+    private $user_allowed_fields = [
+        'id',
+        'org_id',
+        'server_id',
+        'email',
+        'autoalert',
+        'invited_by',
+        'gpgkey',
+        'certif_public',
+        'nids_sid',
+        'termsaccepted',
+        'newsread',
+        'role_id',
+        'change_pw',
+        'contactalert',
+        'disabled',
+        'expiration',
+        'current_login',
+        'last_login',
+        'last_api_access',
+        'force_logout',
+        'date_created',
+        'date_modified',
+        'last_pw_change',
+    ];
+
     public function index($user_id = null)
     {
         $delete_buttons = false;
@@ -35,7 +61,17 @@ class UserLoginProfilesController extends AppController
             $delete_buttons = true;
         }
         $this->CRUD->index([
-            'conditions' => $conditions
+            'conditions' => $conditions,
+            'afterFind' => function(array $userLoginProfiles) {
+                foreach ($userLoginProfiles as $i => $userLoginProfile) {
+                    foreach ($userLoginProfile['User'] as $field => $value) {
+                        if (!in_array($field, $this->user_allowed_fields)) {
+                            unset($userLoginProfiles[$i]['User'][$field]);
+                        }
+                    }
+                }
+                return $userLoginProfiles;
+            }
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
