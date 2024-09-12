@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('ProcessTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 /**
  * @property MispAttribute $Attribute
@@ -1232,6 +1233,7 @@ class Sighting extends AppModel
             foreach (array_chunk($sightingIds, 10000) as $chunk) {
                 // fetch sightings with ACL checks and sighting policies
                 $sightings = $this->getSightings($user, $chunk, $includeEvent, $includeAttribute, $includeUuid);
+                JsonTool::convertIntegersToStrings($sightings);
                 foreach ($sightings as $sighting) {
                     $tmpfile->writeWithSeparator($exportTool->handler($sighting, $exportToolParams), $separator);
                 }

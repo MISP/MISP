@@ -2099,8 +2099,11 @@ class UsersController extends AppController
 
         $stats['post_count'] = $this->Thread->Post->find('count', array('recursive' => -1));
         $stats['post_count_month'] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s", $this_month)), 'recursive' => -1));
-
+        foreach ($stats as &$value) {
+            $value = strval($value);
+        }
         if ($this->_isRest()) {
+
             $data = array(
                 'stats' => $stats
             );
