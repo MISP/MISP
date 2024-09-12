@@ -20,7 +20,7 @@ class UsersController extends AppController
         ),
         'contain' => array(
             'Organisation' => array('id', 'uuid', 'name'),
-            'Role' => array('id', 'name', 'perm_auth', 'perm_site_admin')
+            'Role' => array('id', 'name', 'perm_auth', 'perm_site_admin', 'perm_admin')
         )
     );
 
@@ -482,7 +482,7 @@ class UsersController extends AppController
                 ),
                 'contain' => array(
                     'Organisation' => array('id', 'name'),
-                    'Role' => array('id', 'name', 'perm_auth', 'perm_site_admin')
+                    'Role' => array('id', 'name', 'perm_auth', 'perm_site_admin', 'perm_admin')
                 )
             ));
             if (!$this->_isSiteAdmin()) {
@@ -495,6 +495,11 @@ class UsersController extends AppController
             foreach ($users as $key => $user) {
                 $users[$key]['User']['totp_is_set'] = !empty($user['User']['totp']);
                 unset($users[$key]['User']['totp']);
+                if (!empty(Configure::read('Security.advanced_authkeys'))) { // There is no point to show that authkey since it doesn't work when this setting is active
+                    unset($users[$key]['User']['authkey']);
+                } else if ((!empty($user['Role']['perm_admin']) && $user['User']['id'] != $this->Auth->user('id'))) {
+                    $users[$key]['User']['authkey'] = __('Redacted');
+                }
             }
             $users = $this->User->attachIsUserMonitored($users);
             return $this->RestResponse->viewData($users, $this->response->type());
@@ -511,6 +516,8 @@ class UsersController extends AppController
             $users = $this->paginate();
             foreach ($users as $key => $value) {
                 if ($value['Role']['perm_site_admin']) {
+                    $users[$key]['User']['authkey'] = __('Redacted');
+                } else if (!empty($value['Role']['perm_admin']) && $value['User']['id'] != $this->Auth->user('id')) {
                     $users[$key]['User']['authkey'] = __('Redacted');
                 }
             }
@@ -3082,7 +3089,12 @@ class UsersController extends AppController
     public function view_login_history($userId = null)
     {
         if ($userId && $this->_isAdmin()) {   // org and site admins
-            $userExists = $this->User->hasAny($this->__adminFetchConditions($userId));
+            $userExists = (bool) $this->User->find('first', [
+                'fields' => ['User' . '.' . 'id'],
+                'conditions' => $this->__adminFetchConditions($userId),
+                'recursive' => -1,
+                'contain' => ['Role'],
+            ]);
             if (!$userExists) {
                 throw new NotFoundException(__('Invalid user'));
             }
