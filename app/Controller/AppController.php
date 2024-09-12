@@ -1374,9 +1374,10 @@ class AppController extends Controller
         }
         if ($scope === 'Object') {
             $modelName = 'MispObject';
-        }
-        if ($scope === 'Attribute') {
+        } else if ($scope === 'Attribute') {
             $modelName = 'MispAttribute';
+        }else {
+            $modelName = $scope;
         }
         if (!isset($this->$modelName)) {
             $this->loadModel($modelName);
