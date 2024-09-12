@@ -326,6 +326,12 @@ class Oidc
             $oidc->addScope('offline_access');
         }
 
+        $scopes = $this->getConfig('scopes', [], false);
+        if (!is_array($scopes)) {
+            throw new RuntimeException("Config option `OidcAuth.scopes` must be array, " . gettype($scopes) . " given.");
+        }
+        $oidc->addScope($scopes);
+
         $oidc->setRedirectURL(Configure::read('MISP.baseurl') . '/users/login');
         $this->oidcClient = $oidc;
         return $oidc;
