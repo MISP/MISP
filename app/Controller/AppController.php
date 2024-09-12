@@ -1366,11 +1366,15 @@ class AppController extends Controller
         if ($scope === 'MispObject') {
             $scope = 'Object';
         }
+        if ($scope === 'MispAttribute') {
+            $scope = 'Attribute';
+        }
         if (!isset($this->RestSearch->paramArray[$scope])) {
             throw new NotFoundException(__('RestSearch is not implemented (yet) for this scope.'));
         }
 
         $modelName = $scope === 'Object' ? 'MispObject' : $scope;
+        $modelName = $scope === 'Attribute' ? 'MispAttribute' : $scope;
         if (!isset($this->$modelName)) {
             $this->loadModel($modelName);
         }
