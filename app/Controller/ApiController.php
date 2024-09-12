@@ -3,6 +3,10 @@ App::uses('AppController', 'Controller');
 
 class ApiController extends AppController
 {
+    public $components = [
+        'RequestHandler'
+    ];
+
     public function beforeFilter()
     {
         parent::beforeFilter();
