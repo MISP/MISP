@@ -3214,7 +3214,7 @@ class Attribute extends AppModel
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
-        $conditions = $this->buildFilterConditions($user, $filters, true);
+        $conditions = $this->buildFilterConditions($user, $filters, !$paramsOnly);
         $params = array(
             'conditions' => $conditions,
             'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Event.publish_timestamp'),
