@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '163';
-    public $pyMispVersion = '2.4.197';
+    private $__queryVersion = '164';
+    public $pyMispVersion = '2.4.198';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -108,19 +108,18 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        if (Configure::read('MISP.system_setting_db')) {
+            App::uses('SystemSetting', 'Model');
+            SystemSetting::setGlobalSetting();
+        }
+
         // Set the baseurl for redirects
         $baseurl = empty(Configure::read('MISP.baseurl')) ? null : Configure::read('MISP.baseurl');
-        // If external_baseurl is set, let's prefer that instead though
-        $baseurl = empty(Configure::read('MISP.external_baseurl')) ? $baseurl : Configure::read('MISP.external_baseurl');
         if (!empty($baseurl)) {
             Configure::write('App.fullBaseUrl', $baseurl);
             Router::fullBaseUrl($baseurl);
         }
 
-        if (Configure::read('MISP.system_setting_db')) {
-            App::uses('SystemSetting', 'Model');
-            SystemSetting::setGlobalSetting();
-        }
         $this->_setupBaseurl();
         $this->User = ClassRegistry::init('User');
         if (Configure::read('Plugin.Benchmarking_enable')) {

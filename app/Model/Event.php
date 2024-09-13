@@ -928,7 +928,8 @@ class Event extends AppModel
                 throw new Exception("This should never happen.");
             }
 
-            $serverSync->pushEvent($event)->json();
+            $response = $serverSync->pushEvent($event)->json();
+            $serverSync->debug("Pushed event '{$event['Event']['uuid']}' to remote server as event with remote ID {$response['Event']['id']}");
         } catch (Crypt_GPG_KeyNotFoundException $e) {
             $errorMessage = sprintf(
                 'Could not push event %s to remote server #%s. Reason: %s',
@@ -2816,14 +2817,20 @@ class Event extends AppModel
 
     public function set_filter_deleted(&$params, $conditions, $options)
     {
+        $conditional_for_filter = null;
         if (isset($params['deleted'])) {
             if (empty($options['scope'])) {
                 $scope = 'Attribute';
             } else {
+                if ($options['scope'] === 'Object') {
+                    $conditional_for_filter = [
+                        'Attribute.object_id' => 0
+                    ];
+                }
                 $scope = $options['scope'];
             }
             $deleted = $this->convert_filters($params['deleted']);
-            $conditions = $this->generic_add_filter($conditions, $deleted, $scope . '.deleted');
+            $conditions = $this->generic_add_filter($conditions, $deleted, $scope . '.deleted', $conditional_for_filter);
         }
         return $conditions;
     }
