@@ -7,7 +7,7 @@ misp-stix>=2.4.194
 mixbox>=1.0.5
 plyara>=2.1.1
 pydeep2>=0.5.1
-pymisp==2.4.197
+pymisp==2.4.198
 python-magic>=0.4.27
 pyzmq>=25.1.1
 redis>=5.0.1
