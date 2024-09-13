@@ -3509,7 +3509,7 @@ class AppModel extends Model
     }
 
     // take filters in the {"OR" => [foo], "NOT" => [bar]} format along with conditions and set the conditions
-    public function generic_add_filter($conditions, &$filter, $keys)
+    public function generic_add_filter($conditions, &$filter, $keys, $conditional_for_filter = null)
     {
         $operator_composition = array(
             'NOT' => 'AND',
@@ -3554,13 +3554,26 @@ class AppModel extends Model
                             if ($operator === 'NOT') {
                                 $temp[$key . ' !='][] = $f;
                             } else {
-                                $temp['OR'][$key][] = $f;
+                                $temp['OR'][$key . ' IN'][] = $f;
                             }
                         }
                     }
                 }
             }
-            $conditions['AND'][] = array($operator_composition[$operator] => $temp);
+            if (!empty($conditional_for_filter)) {
+                $conditions['AND'][] = [
+                    'OR' => [
+                        $conditional_for_filter,
+                        [
+                            $operator_composition[$operator] => $temp
+                        ]
+                    ]
+                ];
+            } else {
+                $conditions['AND'][] = [
+                    $operator_composition[$operator] => $temp
+                ];
+            }
             if ($operator !== 'NOT') {
                 unset($filter[$operator]);
             }
@@ -3597,14 +3610,14 @@ class AppModel extends Model
             $temp = array();
             foreach ($filter as $param) {
                 $paramString = strval($param);
-                if (!empty($paramString)) {
+                if (!empty($paramString) && !is_int($param)) {
                     if ($paramString[0] === '!') {
                         $temp['NOT'][] = substr($paramString, 1);
                     } else {
                         $temp['OR'][] = $paramString;
                     }
                 } else if (isset($param)) {
-                    $temp['OR'][] = strval($param);
+                    $temp['OR'][] = $param;
                 }
             }
             $filter = $temp;

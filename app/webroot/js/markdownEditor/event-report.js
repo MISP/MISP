@@ -1448,7 +1448,7 @@ function getPriorityValue(mispObject, objectTemplate) {
 function getTopPriorityValue(object) {
     var associatedTemplate = object.template_uuid + '.' + object.template_version
     var objectTemplate = proxyMISPElements['objectTemplates'][associatedTemplate]
-    var topPriorityValue = object.Attribute.length
+    var topPriorityValue = object.Attribute.length > 0 ? object.Attribute[0].value : ''
     if (objectTemplate !== undefined) {
         var temp = getPriorityValue(object, objectTemplate)
         topPriorityValue = temp !== false ? temp : topPriorityValue

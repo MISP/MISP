@@ -62,7 +62,7 @@ class ServerSyncTool
         $url = $this->server['Server']['url'] . '/events/view/' . $event['Event']['uuid'];
         $start = microtime(true);
         $exists = $this->socket->head($url, [], $this->request);
-        $this->log($start, 'HEAD', $url, $exists);
+        $this->requestLog($start, 'HEAD', $url, $exists);
         if ($exists->code == '404') {
             return false;
         }
@@ -152,13 +152,14 @@ class ServerSyncTool
      */
     public function createEvent(array $event)
     {
+        $this->debug("Pushing new event #{$event['Event']['id']} to remote server");
         $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
         return $this->post("/events/add/metadata:1", $event, $logMessage);
     }
 
     /**
      * @param array $event
-     * @param int|string|null Event ID or UUID that should be updated. If not provieded, UUID from $event will be used
+     * @param int|string|null $eventId Event ID or UUID that should be updated. If not provided, UUID from $event will be used
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
@@ -168,6 +169,7 @@ class ServerSyncTool
         if ($eventId === null) {
             $eventId = $event['Event']['uuid'];
         }
+        $this->debug("Pushing updated event #{$event['Event']['id']} to remote server");
         $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
         return $this->post("/events/edit/$eventId/metadata:1", $event, $logMessage);
     }
@@ -526,7 +528,7 @@ class ServerSyncTool
         $url = $this->server['Server']['url'] . $url;
         $start = microtime(true);
         $response = $this->socket->get($url, [], $this->request);
-        $this->log($start, 'GET', $url, $response);
+        $this->requestLog($start, 'GET', $url, $response);
         if (!$response->isOk()) {
             throw new HttpSocketHttpException($response, $url);
         }
@@ -587,7 +589,7 @@ class ServerSyncTool
         $url = $this->server['Server']['url'] . $url;
         $start = microtime(true);
         $response = $this->socket->post($url, $data, $request);
-        $this->log($start, 'POST', $url, $response);
+        $this->requestLog($start, 'POST', $url, $response);
         if ($etag && $response->isNotModified()) {
             return $response; // if etag was provided and response code is 304, it is valid response
         }
@@ -653,7 +655,7 @@ class ServerSyncTool
      * @param string $url
      * @param HttpSocketResponse $response
      */
-    private function log($start, $method, $url, HttpSocketResponse $response)
+    private function requestLog($start, $method, $url, HttpSocketResponse $response)
     {
         $duration = round(microtime(true) - $start, 3);
         $responseSize = strlen($response->body);
