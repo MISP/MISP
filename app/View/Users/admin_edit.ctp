@@ -106,6 +106,7 @@
             'type' => 'checkbox',
             'label' => __('User must change password'),
             'disabled' => !$canChangePassword,
+            'checked' => $canChangePassword ? (bool) $this->request->data['User']['enable_password'] : false,
             'data-disabled-reason' => !$canChangePassword ? __('User password change is disabled on this instance') : '',
         ]);
         echo $this->Form->input('contactalert', array('label' => __('Receive email alerts from "Contact reporter" requests'), 'type' => 'checkbox'));

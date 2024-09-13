@@ -646,6 +646,9 @@ class UsersController extends AppController
         $default_role_id = $this->AdminSetting->getSetting('default_role');
         $roles = $this->User->Role->find('list', $params);
         $syncRoles = $this->User->Role->find('list', array('conditions' => array('perm_sync' => 1), 'recursive' => -1));
+        $disablePasswordChange = Configure::read('MISP.disable_user_password_change');
+        $this->set('disablePasswordChange', $disablePasswordChange);
+
         if ($this->request->is('post')) {
             // In case we don't get the data encapsulated in a User object
             if ($this->_isRest()) {
@@ -673,6 +676,9 @@ class UsersController extends AppController
                 if (isset($this->request->data['User']['password'])) {
                     $this->request->data['User']['confirm_password'] = $this->request->data['User']['password'];
                 }
+                if ($disablePasswordChange && isset($this->request->data['User']['change_pw'])) {
+                    $this->request->data['User']['change_pw'] = 0;
+                }
                 $defaults = array(
                     'external_auth_required' => 0,
                     'external_auth_key' => '',
@@ -683,7 +689,7 @@ class UsersController extends AppController
                     'contactalert' => 0,
                     'disabled' => 0,
                     'newsread' => 0,
-                    'change_pw' => 1,
+                    'change_pw' => $disablePasswordChange ? 0 : 1,
                     'termsaccepted' => 0,
                     'org_id' => $this->Auth->user('org_id'),
                 );
