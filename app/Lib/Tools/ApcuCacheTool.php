@@ -25,7 +25,7 @@ class ApcuCacheTool implements \Psr\SimpleCache\CacheInterface
      * @throws \Psr\SimpleCache\InvalidArgumentException
      *   MUST be thrown if the $key string is not a legal value.
      */
-    public function get($key, $default = null)
+    public function get(string $key, mixed $default = null): mixed
     {
         $value = \apcu_fetch("$this->prefix:$key", $success);
         if ($success) {
@@ -48,7 +48,7 @@ class ApcuCacheTool implements \Psr\SimpleCache\CacheInterface
      * @throws \Psr\SimpleCache\InvalidArgumentException
      *   MUST be thrown if the $key string is not a legal value.
      */
-    public function set($key, $value, $ttl = null)
+    public function set(string $key, mixed $value, null|int|\DateInterval $ttl = null): bool
     {
         return \apcu_store("$this->prefix:$key", $value, $this->tllToInt($ttl));
     }
@@ -63,7 +63,7 @@ class ApcuCacheTool implements \Psr\SimpleCache\CacheInterface
      * @throws \Psr\SimpleCache\InvalidArgumentException
      *   MUST be thrown if the $key string is not a legal value.
      */
-    public function delete($key)
+    public function delete(string $key): bool
     {
         return \apcu_delete("$this->prefix:$key");
     }
@@ -73,7 +73,7 @@ class ApcuCacheTool implements \Psr\SimpleCache\CacheInterface
      *
      * @return bool True on success and false on failure.
      */
-    public function clear()
+    public function clear(): bool
     {
         $iterator = new APCUIterator(
             '/^' . preg_quote($this->prefix . ':', '/') . '/',
@@ -94,7 +94,7 @@ class ApcuCacheTool implements \Psr\SimpleCache\CacheInterface
      *   MUST be thrown if $keys is neither an array nor a Traversable,
      *   or if any of the $keys are not a legal value.
      */
-    public function getMultiple($keys, $default = null)
+    public function getMultiple(iterable $keys, mixed $default = null): iterable
     {
         $keysToFetch = $this->keysToFetch($keys);
         $values = \apcu_fetch($keysToFetch);
@@ -120,7 +120,7 @@ class ApcuCacheTool implements \Psr\SimpleCache\CacheInterface
      *   MUST be thrown if $values is neither an array nor a Traversable,
      *   or if any of the $values are not a legal value.
      */
-    public function setMultiple($values, $ttl = null)
+    public function setMultiple(iterable $values, null|int|\DateInterval $ttl = null): bool
     {
         $dataToSave = [];
         foreach ($values as $key => $value) {
@@ -140,7 +140,7 @@ class ApcuCacheTool implements \Psr\SimpleCache\CacheInterface
      *   MUST be thrown if $keys is neither an array nor a Traversable,
      *   or if any of the $keys are not a legal value.
      */
-    public function deleteMultiple($keys)
+    public function deleteMultiple(iterable $keys): bool
     {
         $keysToDelete = $this->keysToFetch($keys);
         return \apcu_delete($keysToDelete);
@@ -161,7 +161,7 @@ class ApcuCacheTool implements \Psr\SimpleCache\CacheInterface
      * @throws \Psr\SimpleCache\InvalidArgumentException
      *   MUST be thrown if the $key string is not a legal value.
      */
-    public function has($key)
+    public function has(string $key): bool
     {
         return \apcu_exists("$this->prefix:$key");
     }
@@ -183,7 +183,7 @@ class ApcuCacheTool implements \Psr\SimpleCache\CacheInterface
      * @param null|int|\DateInterval $ttl
      * @return int
      */
-    private function tllToInt($ttl = null): int
+    private function tllToInt(null|int|\DateInterval $ttl = null): int
     {
         if ($ttl === null) {
             return 0;
