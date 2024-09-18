@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This is core configuration file.
  *
@@ -57,17 +58,18 @@
  * unix_socket =>
  * For MySQL to connect via socket specify the `unix_socket` parameter instead of `host` and `port`
  */
-class DATABASE_CONFIG {
+class DATABASE_CONFIG
+{
 
 	public $default = array(
-		'datasource' => 'Database/MysqlExtended',
+		'datasource' => 'Database/Postgres',
 		'persistent' => false,
 		'host' => '127.0.0.1',
 		'login' => 'misp',
-		'port' => 3306,
+		'port' => 5432,
 		'password' => 'blah',
 		'database' => 'misp',
 		'prefix' => '',
-		//'encoding' => 'utf8',
+		'encoding' => 'utf8',
 	);
 }

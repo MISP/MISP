@@ -6,9 +6,9 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ '2.4', develop, misp-stix, taxii, 'feature/2.4_php8' ]
+    branches: ["2.4", develop, misp-stix, taxii, "feature/2.4_php8"]
   pull_request:
-    branches: [ '2.4', develop, misp-stix ]
+    branches: ["2.4", develop, misp-stix]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -21,28 +21,26 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        php: ['8.1', '8.3']
+        php: ["8.1", "8.3"]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
         with:
-          submodules: 'recursive'
+          submodules: "recursive"
 
-      # Run mariadb
-      - uses: getong/mariadb-action@v1.1
+      # Run postgres
+      - uses: harmon758/postgresql-action@v1
         with:
-          host port: 3306
-          container port: 3306
-          mysql root password: 'bar'
-          mysql database: 'misp'
-          mysql user: 'misp'
-          mysql password: 'blah'
+          postgresql version: "16"
+          postgresql db: "misp"
+          postgresql user: "misp"
+          postgresql password: "blah"
 
       - uses: zhulik/redis-action@1.1.0
         with:
-          redis version: '5'
+          redis version: "5"
           number of databases: 100
 
       # prepare php stuff
@@ -50,7 +48,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}a
-          extensions: mysql, mbstring, xml, opcache, readline, redis, gd, apcu
+          extensions: pgsql, mbstring, xml, opcache, readline, redis, gd, apcu
 
       - name: Initialize variables
         run: |
@@ -89,13 +87,6 @@ jobs:
           # Resque perms
           sudo chown -R $USER:www-data `pwd`/app/Plugin/CakeResque/tmp
           sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
-
-          # Fill database with basic MISP schema
-          mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "SET GLOBAL sql_mode = 'STRICT_ALL_TABLES';"
-          mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant usage on *.* to misp@'%' identified by 'blah';"
-          mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant all privileges on misp.* to misp@'%';"
-          mysql -h 127.0.0.1 --port 3306 -u misp -pblah misp < INSTALL/MYSQL.sql
-
 
           # configure apache virtual hosts
           sudo mkdir -p /etc/apache2/sites-available
@@ -153,11 +144,10 @@ jobs:
           pip install -r requirements-dev.txt
           deactivate
 
-      - name: DB Update
+      - name: DB Migrations
         run: |
-          app/Console/cake Admin setSetting "MISP.osuser" $USER
-          app/Console/cake Admin runUpdates
-          app/Console/cake Admin schemaDiagnostics
+          app/Vendor/Vendor/bin/phinx migrate -c app/Config/MISP/phinx.php
+          app/Vendor/Vendor/bin/phinx seed:run -c app/Config/MISP/phinx.php
 
       - name: Configure MISP
         run: |
