@@ -6,7 +6,15 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: ["2.4", develop, misp-stix, taxii, "feature/2.4_php8", "feature/2.4_php8_postgres"]
+    branches:
+      [
+        "2.4",
+        develop,
+        misp-stix,
+        taxii,
+        "feature/2.4_php8",
+        "feature/2.4_php8_postgres",
+      ]
   pull_request:
     branches: ["2.4", develop, misp-stix]
 
@@ -106,6 +114,10 @@ jobs:
           sudo cp app/Config/config.default.php app/Config/config.php
           sudo cp build/email.php app/Config/email.php
 
+          # Run DB migrations
+          app/Vendor/Vendor/bin/phinx migrate -c app/Config/MISP/phinx.php
+          app/Vendor/Vendor/bin/phinx seed:run -c app/Config/MISP/phinx.php
+
           # GPG setup
           sudo mkdir `pwd`/.gnupg
           # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
@@ -143,11 +155,6 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
           deactivate
-
-      - name: DB Migrations
-        run: |
-          app/Vendor/Vendor/bin/phinx migrate -c app/Config/MISP/phinx.php
-          app/Vendor/Vendor/bin/phinx seed:run -c app/Config/MISP/phinx.php
 
       - name: Configure MISP
         run: |
