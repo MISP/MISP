@@ -6,7 +6,7 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: ["2.4", develop, misp-stix, taxii, "feature/2.4_php8"]
+    branches: ["2.4", develop, misp-stix, taxii, "feature/2.4_php8", "feature/2.4_php8_postgres"]
   pull_request:
     branches: ["2.4", develop, misp-stix]
 
