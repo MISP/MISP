@@ -39,11 +39,11 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
                 'after' => 'post_id',
             ])
             ->addIndex(['post_id'], [
-                'name' => 'post_id',
+                'name' => 'posts_post_id',
                 'unique' => false,
             ])
             ->addIndex(['thread_id'], [
-                'name' => 'thread_id',
+                'name' => 'posts_thread_id',
                 'unique' => false,
             ])
             ->create();
@@ -164,7 +164,7 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
                 'after' => 'org_id',
             ])
             ->addIndex(['user_id'], [
-                'name' => 'user_id',
+                'name' => 'threads_user_id',
                 'unique' => false,
             ])
             ->addIndex(['event_id'], [
@@ -207,11 +207,11 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
                 'after' => 'local',
             ])
             ->addIndex(['event_id'], [
-                'name' => 'event_id',
+                'name' => 'event_tags_event_id',
                 'unique' => false,
             ])
             ->addIndex(['tag_id'], [
-                'name' => 'tag_id',
+                'name' => 'event_tags_tag_id',
                 'unique' => false,
             ])
             ->create();
@@ -3819,11 +3819,11 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
                 'after' => 'source',
             ])
             ->addIndex(['uuid'], [
-                'name' => 'uuid',
+                'name' => 'sightings_uuid',
                 'unique' => true,
             ])
             ->addIndex(['attribute_id'], [
-                'name' => 'attribute_id',
+                'name' => 'sightings_attribute_id',
                 'unique' => false,
             ])
             ->addIndex(['event_id'], [
