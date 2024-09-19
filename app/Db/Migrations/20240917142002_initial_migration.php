@@ -2414,13 +2414,14 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
                 'default' => 0,
                 'after' => 'published',
             ])
-            ->addIndex(['value'], [
-                'name' => 'galaxy_clusters_value',
-                'unique' => false,
-                'limit' => [
-                    'value' => 255,
-                ],
-            ])
+            // FIXME: This index is too long for PostgreSQL
+            // ->addIndex(['value'], [
+            //     'name' => 'galaxy_clusters_value',
+            //     'unique' => false,
+            //     'limit' => [
+            //         'value' => 255,
+            //     ],
+            // ])
             ->addIndex(['uuid'], [
                 'name' => 'galaxy_clusters_uuid',
                 'unique' => false,
@@ -2829,13 +2830,14 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
                 'name' => 'galaxy_elements_key',
                 'unique' => false,
             ])
-            ->addIndex(['value'], [
-                'name' => 'galaxy_elements_value',
-                'unique' => false,
-                'limit' => [
-                    'value' => 255,
-                ],
-            ])
+            // FIXME: This index is too long for PostgreSQL
+            // ->addIndex(['value'], [
+            //     'name' => 'galaxy_elements_value',
+            //     'unique' => false,
+            //     'limit' => [
+            //         'value' => 255,
+            //     ],
+            // ])
             ->addIndex(['galaxy_cluster_id'], [
                 'name' => 'galaxy_elements_galaxy_cluster_id',
                 'unique' => false,
