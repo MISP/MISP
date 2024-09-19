@@ -10,17 +10,14 @@ class AdminSettingsSeeder extends AbstractSeed
     {
         $data = [
             [
-                'id'    => 1,
                 'setting' => 'db_version',
                 'value' => '129'
             ],
             [
-                'id'    => 2,
                 'setting' => 'fix_login',
                 'value' => date('Y-m-d H:i:s')
             ],
             [
-                'id'    => 3,
                 'setting' => 'default_role',
                 'value' => '3'
             ]
