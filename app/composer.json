@@ -17,7 +17,12 @@
         "geoip2/geoip2": "~2.0",
         "browscap/browscap-php": "^7.0",
         "matthiasmullie/scrapbook": ">=1.5.3",
-        "league/flysystem": ">=1.0"
+        "league/flysystem": ">=1.0",
+        "supervisorphp/supervisor": "*",
+        "guzzlehttp/guzzle": "*",
+        "lstrojny/fxmlrpc": "*",
+        "php-http/message": "*",
+        "php-http/message-factory": "*"       
     },
     "_comments": [
         "Browscap-php v6 and v7 are NOT backwards compatible, so needs to test.",
@@ -48,11 +53,7 @@
         "elasticsearch/elasticsearch": "For logging to elasticsearch",
         "aws/aws-sdk-php": "To upload samples to S3",
         "jakub-onderka/openid-connect-php": "To enable OIDC authentication",
-        "supervisorphp/supervisor": "For managing background jobs",
-        "guzzlehttp/guzzle": "Required for supervisorphp/supervisor XML-RPC requests",
-        "lstrojny/fxmlrpc": "Required for supervisorphp/supervisor XML-RPC requests",
-        "php-http/message": "Required for supervisorphp/supervisor XML-RPC requests",
-        "php-http/message-factory": "Required for supervisorphp/supervisor XML-RPC requests"
+        "iglocska/cake-resque": "If you would like to use the old background worker system install this. But this is advised against."
     },
     "config": {
         "vendor-dir": "Vendor",
