@@ -8,7 +8,7 @@ return
         ],
         'environments' => [
             'default_migration_table' => 'phinxlog',
-            'default_environment' => 'development',
+            'default_environment' => 'production',
             'production' => [
                 'adapter' => 'pgsql',
                 'host' => 'db',
