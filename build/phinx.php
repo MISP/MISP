@@ -3,8 +3,8 @@
 return
     [
         'paths' => [
-            'migrations' => '/app/Db/Migrations',
-            'seeds' => '/app/Db/Seeds'
+            'migrations' => 'app/Db/Migrations',
+            'seeds' => 'app/Db/Seeds'
         ],
         'environments' => [
             'default_migration_table' => 'phinxlog',

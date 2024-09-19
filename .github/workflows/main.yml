@@ -115,10 +115,8 @@ jobs:
           sudo cp build/email.php app/Config/email.php
 
           # Run DB migrations
-          pushd app
-          Vendor/bin/phinx migrate -c build/phinx.php -e production
-          Vendor/bin/phinx seed:run -c build/phinx.php -e production
-          popd
+          app/Vendor/bin/phinx migrate -c build/phinx.php -e production
+          app/Vendor/bin/phinx seed:run -c build/phinx.php -e production
 
           # GPG setup
           sudo mkdir `pwd`/.gnupg
