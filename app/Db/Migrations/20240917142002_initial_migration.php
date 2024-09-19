@@ -5,7 +5,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
     public function up()
     {
         $this->table('posts', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -49,7 +48,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('templates', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -77,7 +75,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('template_elements', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -99,7 +96,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('threat_levels', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -124,7 +120,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('threads', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -186,7 +181,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('event_tags', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -222,7 +216,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('template_element_texts', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -245,7 +238,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('tags', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -319,7 +311,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('tasks', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -362,7 +353,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('template_element_attributes', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -412,7 +402,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('jobs', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -475,7 +464,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('template_element_files', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -515,7 +503,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('template_tags', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -532,7 +519,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('attribute_tags', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -576,7 +562,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('warninglist_entries', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -604,7 +589,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('event_locks', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -638,7 +622,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('rest_client_histories', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -726,7 +709,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('object_templates', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -807,7 +789,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('shadow_attribute_correlations', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -892,7 +873,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('event_delegations', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -937,7 +917,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('decaying_models', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1036,7 +1015,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('warninglist_types', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1054,7 +1032,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('news', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1082,7 +1059,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('favourite_tags', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1107,7 +1083,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('noticelist_entries', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1129,7 +1104,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('warninglists', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1175,7 +1149,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('feeds', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1317,7 +1290,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('tag_collections', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1367,7 +1339,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('object_relationships', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1400,7 +1371,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('object_references', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1481,7 +1451,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('fuzzy_correlate_ssdeep', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1507,7 +1476,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('noticelists', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1556,7 +1524,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('event_graph', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1613,7 +1580,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('decaying_model_mappings', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1635,7 +1601,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('galaxy_cluster_relation_tags', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1660,7 +1625,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('admin_settings', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1683,7 +1647,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('objects', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1809,7 +1772,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('tag_collection_tags', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1834,7 +1796,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('object_template_elements', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1909,7 +1870,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('user_settings', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1948,7 +1908,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('allowedlist', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -1962,7 +1921,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('bookmarks', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2016,7 +1974,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('taxonomy_entries', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2065,7 +2022,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('org_blocklists', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2102,7 +2058,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('galaxies', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2181,7 +2136,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('sighting_blocklists', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2218,7 +2172,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('galaxy_cluster_relations', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2292,7 +2245,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('correlations', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2358,7 +2310,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('shadow_attributes', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2512,7 +2463,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('sharing_group_servers', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2541,7 +2491,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('galaxy_cluster_blocklists', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2583,7 +2532,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('correlation_rules', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2641,7 +2589,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('taxonomies', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2684,7 +2631,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('galaxy_clusters', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2849,7 +2795,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('logs', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -2916,7 +2861,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('roles', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -3102,7 +3046,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('organisations', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -3191,7 +3134,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('regexp', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -3216,7 +3158,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('galaxy_elements', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -3255,7 +3196,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('sharing_groups', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -3339,7 +3279,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('servers', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -3493,7 +3432,7 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('bruteforces', [
-            'id' => false,
+            'primary_key' => ['id'],
         ])
             ->addColumn('ip', 'string', [
                 'null' => false,
@@ -3510,7 +3449,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('event_blocklists', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -3552,7 +3490,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('analyst_data_blocklists', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -3594,7 +3531,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('users', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -3784,7 +3720,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('notification_logs', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -3815,7 +3750,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('sharing_group_orgs', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -3845,7 +3779,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('sightings', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -3911,7 +3844,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('taxonomy_predicates', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -3965,7 +3897,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('cake_sessions', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'string', [
@@ -3988,7 +3919,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('events', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -4119,7 +4049,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('attributes', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -4267,7 +4196,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('sightingdbs', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -4346,7 +4274,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('sightingdb_orgs', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -4371,7 +4298,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('no_acl_correlations', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -4436,7 +4362,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('event_reports', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -4495,7 +4420,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('attachment_scans', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -4531,7 +4455,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('default_correlations', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -4694,7 +4617,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('inbox', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -4783,7 +4705,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('dashboards', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -4869,7 +4790,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('collection_elements', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -4927,7 +4847,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('auth_keys', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -5019,7 +4938,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('notes', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -5124,7 +5042,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('relationships', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -5246,7 +5163,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('collections', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -5346,7 +5262,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('user_login_profiles', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -5439,7 +5354,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('cryptographic_keys', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -5509,7 +5423,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('system_settings', [
-            'id' => false,
             'primary_key' => ['setting'],
         ])
             ->addColumn('setting', 'string', [
@@ -5522,7 +5435,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('access_logs', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -5616,7 +5528,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('correlation_exclusions', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -5648,7 +5559,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('workflows', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -5718,7 +5628,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('audit_logs', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -5798,7 +5707,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('over_correlating_values', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -5829,7 +5737,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('sharing_group_blueprints', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -5888,7 +5795,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('opinions', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -5999,7 +5905,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('cerebrates', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -6083,7 +5988,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('taxii_servers', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -6153,7 +6057,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('correlation_values', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
@@ -6173,7 +6076,6 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
             ])
             ->create();
         $this->table('workflow_blueprints', [
-            'id' => false,
             'primary_key' => ['id'],
         ])
             ->addColumn('id', 'integer', [
