@@ -13,7 +13,7 @@ import json
 import requests
 
 default_feed = '../../app/files/feed-metadata/defaults.json'
-misp_website_path = '../../../misp-website-new/content/feeds.md'
+misp_website_path = '../../../misp-website/content/feeds.md'
 verify_certificate = False
 
 with open(default_feed) as feed_file:

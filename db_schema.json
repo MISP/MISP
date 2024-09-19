@@ -1022,13 +1022,13 @@
             },
             {
                 "column_name": "comment",
-                "is_nullable": "NO",
+                "is_nullable": "YES",
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
                 "column_type": "text",
-                "column_default": null,
+                "column_default": "NULL",
                 "extra": ""
             }
         ],
@@ -10806,5 +10806,5 @@
             "uuid": false
         }
     },
-    "db_version": "129"
+    "db_version": "130"
 }
