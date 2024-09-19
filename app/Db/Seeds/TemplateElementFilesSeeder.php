@@ -6,6 +6,14 @@ use Phinx\Seed\AbstractSeed;
 
 class TemplateElementFilesSeeder extends AbstractSeed
 {
+    public function getDependencies(): array
+    {
+        return [
+            'TemplatesSeeder',
+            'TemplateElementsSeeder'
+        ];
+    }
+
     public function run(): void
     {
         $data = [

@@ -6,6 +6,15 @@ use Phinx\Seed\AbstractSeed;
 
 class TemplatesSeeder extends AbstractSeed
 {
+    public function shouldExecute(): bool
+    {
+        $templates = $this->hasTable('templates');
+
+        print_r($templates);
+
+        return true;
+    }
+
     public function run(): void
     {
         $data = [
