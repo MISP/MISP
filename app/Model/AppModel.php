@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Application model for Cake.
  *
@@ -56,42 +57,184 @@ class AppModel extends Model
     const OLD_DB_CHANGES = array(
         2 => array(
             4 => array(
-                18 => false, 19 => false, 20 => false, 25 => false, 27 => false,
-                32 => false, 33 => true, 38 => true, 39 => true, 40 => false,
-                42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
-                51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
-                58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-                63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
-                68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
-                75 => false, 77 => false, 78 => false, 79 => false, 80 => false,
-                81 => false, 82 => false, 83 => false, 84 => false, 85 => false,
-                86 => false, 87 => false
+                18 => false,
+                19 => false,
+                20 => false,
+                25 => false,
+                27 => false,
+                32 => false,
+                33 => true,
+                38 => true,
+                39 => true,
+                40 => false,
+                42 => false,
+                44 => false,
+                45 => false,
+                49 => true,
+                50 => false,
+                51 => false,
+                52 => false,
+                55 => true,
+                56 => true,
+                57 => true,
+                58 => false,
+                59 => false,
+                60 => false,
+                61 => false,
+                62 => false,
+                63 => false,
+                64 => false,
+                65 => false,
+                66 => false,
+                67 => true,
+                68 => false,
+                69 => false,
+                71 => false,
+                72 => false,
+                73 => false,
+                75 => false,
+                77 => false,
+                78 => false,
+                79 => false,
+                80 => false,
+                81 => false,
+                82 => false,
+                83 => false,
+                84 => false,
+                85 => false,
+                86 => false,
+                87 => false
             )
         )
     );
 
     const DB_CHANGES = array(
-        1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
-        7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
-        13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
-        21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
-        27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
-        33 => false, 34 => false, 35 => false, 36 => false, 37 => false, 38 => false,
-        39 => false, 40 => false, 41 => false, 42 => false, 43 => false, 44 => false,
-        45 => false, 46 => false, 47 => false, 48 => false, 49 => false, 50 => false,
-        51 => false, 52 => false, 53 => false, 54 => false, 55 => false, 56 => false,
-        57 => false, 58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-        63 => true, 64 => false, 65 => false, 66 => false, 67 => false, 68 => false,
-        69 => false, 70 => false, 71 => true, 72 => true, 73 => false, 74 => false,
-        75 => false, 76 => true, 77 => false, 78 => false, 79 => false, 80 => false,
-        81 => false, 82 => false, 83 => false, 84 => false, 85 => false, 86 => false,
-        87 => false, 88 => false, 89 => false, 90 => false, 91 => false, 92 => false,
-        93 => false, 94 => false, 95 => true, 96 => false, 97 => true, 98 => false,
-        99 => false, 100 => false, 101 => false, 102 => false, 103 => false, 104 => false,
-        105 => false, 106 => false, 107 => false, 108 => false, 109 => false, 110 => false,
-        111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
-        117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
-        123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
+        1 => false,
+        2 => false,
+        3 => false,
+        4 => true,
+        5 => false,
+        6 => false,
+        7 => false,
+        8 => false,
+        9 => false,
+        10 => false,
+        11 => false,
+        12 => false,
+        13 => false,
+        14 => false,
+        15 => false,
+        18 => false,
+        19 => false,
+        20 => false,
+        21 => false,
+        22 => false,
+        23 => false,
+        24 => false,
+        25 => false,
+        26 => false,
+        27 => false,
+        28 => false,
+        29 => false,
+        30 => false,
+        31 => false,
+        32 => false,
+        33 => false,
+        34 => false,
+        35 => false,
+        36 => false,
+        37 => false,
+        38 => false,
+        39 => false,
+        40 => false,
+        41 => false,
+        42 => false,
+        43 => false,
+        44 => false,
+        45 => false,
+        46 => false,
+        47 => false,
+        48 => false,
+        49 => false,
+        50 => false,
+        51 => false,
+        52 => false,
+        53 => false,
+        54 => false,
+        55 => false,
+        56 => false,
+        57 => false,
+        58 => false,
+        59 => false,
+        60 => false,
+        61 => false,
+        62 => false,
+        63 => true,
+        64 => false,
+        65 => false,
+        66 => false,
+        67 => false,
+        68 => false,
+        69 => false,
+        70 => false,
+        71 => true,
+        72 => true,
+        73 => false,
+        74 => false,
+        75 => false,
+        76 => true,
+        77 => false,
+        78 => false,
+        79 => false,
+        80 => false,
+        81 => false,
+        82 => false,
+        83 => false,
+        84 => false,
+        85 => false,
+        86 => false,
+        87 => false,
+        88 => false,
+        89 => false,
+        90 => false,
+        91 => false,
+        92 => false,
+        93 => false,
+        94 => false,
+        95 => true,
+        96 => false,
+        97 => true,
+        98 => false,
+        99 => false,
+        100 => false,
+        101 => false,
+        102 => false,
+        103 => false,
+        104 => false,
+        105 => false,
+        106 => false,
+        107 => false,
+        108 => false,
+        109 => false,
+        110 => false,
+        111 => false,
+        112 => false,
+        113 => true,
+        114 => false,
+        115 => false,
+        116 => false,
+        117 => false,
+        118 => false,
+        119 => false,
+        120 => false,
+        121 => false,
+        122 => false,
+        123 => false,
+        124 => false,
+        125 => false,
+        126 => false,
+        127 => false,
+        128 => false,
         129 => false
     );
 
@@ -125,15 +268,15 @@ class AppModel extends Model
             $errorDuplicateIndex = 'SQLSTATE[42000]: Syntax error or access violation: 1061 Duplicate key name';
             $errorDropIndex = "/SQLSTATE\[42000\]: Syntax error or access violation: 1091 Can't DROP '[\w]+'; check that column\/key exists/";
             $isAccepted = substr($errorMessage, 0, strlen($errorDuplicateColumn)) === $errorDuplicateColumn ||
-                            substr($errorMessage, 0, strlen($errorDuplicateIndex)) === $errorDuplicateIndex ||
-                            preg_match($errorDropIndex, $errorMessage) !== 0;
+                substr($errorMessage, 0, strlen($errorDuplicateIndex)) === $errorDuplicateIndex ||
+                preg_match($errorDropIndex, $errorMessage) !== 0;
         } else {
             $errorDuplicateColumn = '/ERROR:  column "[\w]+" specified more than once/';
             $errorDuplicateIndex = '/ERROR: relation "[\w]+" already exists/';
             $errorDropIndex = '/ERROR: index "[\w]+" does not exist/';
             $isAccepted = preg_match($errorDuplicateColumn, $errorMessage) !== 0 ||
-                            preg_match($errorDuplicateIndex, $errorMessage) !== 0 ||
-                            preg_match($errorDropIndex, $errorMessage) !== 0;
+                preg_match($errorDuplicateIndex, $errorMessage) !== 0 ||
+                preg_match($errorDropIndex, $errorMessage) !== 0;
         }
         return $isAccepted;
     }
@@ -160,7 +303,7 @@ class AppModel extends Model
                 break;
             case '2.4.27':
                 $newFeeds = array(
-                    array('provider' => 'Botvrij.eu', 'name' => 'The Botvrij.eu Data','url' => 'https://www.botvrij.eu/data/feed-osint', 'enabled' => 0)
+                    array('provider' => 'Botvrij.eu', 'name' => 'The Botvrij.eu Data', 'url' => 'https://www.botvrij.eu/data/feed-osint', 'enabled' => 0)
                 );
                 $this->__addNewFeeds($newFeeds);
                 break;
@@ -1042,7 +1185,7 @@ class AppModel extends Model
                 $sqlArray[] = 'ALTER TABLE `tags` ADD INDEX `user_id` (`user_id`);';
                 break;
             case 2:
-            // rerun missing db entries
+                // rerun missing db entries
                 $sqlArray[] = "ALTER TABLE users ADD COLUMN date_created bigint(20);";
                 $sqlArray[] = "ALTER TABLE users ADD COLUMN date_modified bigint(20);";
                 break;
@@ -1088,7 +1231,7 @@ class AppModel extends Model
                         PRIMARY KEY (`id`),
                         INDEX `noticelist_id` (`noticelist_id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
-            break;
+                break;
             case 9:
                 $sqlArray[] = 'ALTER TABLE galaxies ADD namespace varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT "misp";';
                 $indexArray[] = array('galaxies', 'namespace');
@@ -1261,7 +1404,7 @@ class AppModel extends Model
                     KEY `org_id` (`org_id`),
                     KEY `type` (`type`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
-                    break;
+                break;
             case 36:
                 $sqlArray[] = "ALTER TABLE `event_tags` ADD `local` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `local` tinyint(1) NOT NULL DEFAULT 0;";
@@ -1851,7 +1994,7 @@ class AppModel extends Model
                       INDEX `name` (`name`),
                       INDEX `timestamp` (`timestamp`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-                    break;
+                break;
             case 92:
                 $sqlArray[] = "ALTER TABLE users ADD `last_api_access` INT(11) DEFAULT 0;";
                 break;
@@ -1888,7 +2031,7 @@ class AppModel extends Model
             case 98:
                 $this->__addIndex('object_template_elements', 'object_template_id');
                 break;
-            case 99: 
+            case 99:
                 $sqlArray[] = "ALTER TABLE `event_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
                 $sqlArray[] = "ALTER TABLE `attribute_tags` ADD `relationship_type` varchar(191) NULL DEFAULT '';";
                 break;
@@ -1946,7 +2089,7 @@ class AppModel extends Model
                 if (!$this->AdminSetting->getSetting('default_role')) {
                     $role = ClassRegistry::init('Role')->findByName('User');
                     if ($role) {
-                        $sqlArray[] = "INSERT INTO `admin_settings` (setting, value) VALUES ('default_role', '".$role['Role']['id']."');";
+                        $sqlArray[] = "INSERT INTO `admin_settings` (setting, value) VALUES ('default_role', '" . $role['Role']['id'] . "');";
                     } else {
                         // there is no role called User, do nothing
                     }
@@ -2212,7 +2355,7 @@ class AppModel extends Model
                     INDEX `name` (`name`),
                     INDEX `selector_type` (`selector_type`)
                   ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
-                  break;
+                break;
             case 129:
                 $sqlArray[] = "ALTER TABLE `bookmarks` ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci;";
                 break;
@@ -2381,27 +2524,28 @@ class AppModel extends Model
                     $this->cleanCacheFiles();
                 }
                 foreach ($indexArray as $i => $iA) {
-                    $this->__setUpdateProgress(count($sqlArray)+$i, false);
+                    $this->__setUpdateProgress(count($sqlArray) + $i, false);
                     if (isset($iA[2])) {
                         $indexSuccess = $this->__addIndex($iA[0], $iA[1], $iA[2]);
                     } else {
                         $indexSuccess = $this->__addIndex($iA[0], $iA[1]);
                     }
                     if ($indexSuccess['success']) {
-                        $this->__setUpdateResMessages(count($sqlArray)+$i, __('Successfully indexed %s -> %s', $iA[0], $iA[1]));
+                        $this->__setUpdateResMessages(count($sqlArray) + $i, __('Successfully indexed %s -> %s', $iA[0], $iA[1]));
                     } else {
-                        $this->__setUpdateResMessages(count($sqlArray)+$i, sprintf('%s %s %s %s',
+                        $this->__setUpdateResMessages(count($sqlArray) + $i, sprintf(
+                            '%s %s %s %s',
                             __('Failed to add index'),
                             sprintf('%s -> %s', $iA[0], $iA[1]),
                             __('The returned error is:') . PHP_EOL,
                             $indexSuccess['errorMessage']
                         ));
-                        $this->__setUpdateError(count($sqlArray)+$i);
+                        $this->__setUpdateError(count($sqlArray) + $i);
                     }
                 }
             }
             $this->__setUpdateProgress(count($sqlArray) + count($indexArray), false);
-         }
+        }
         if ($clean) {
             $this->cleanCacheFiles();
         }
@@ -2629,7 +2773,7 @@ class AppModel extends Model
             `testfield` BIGINT(6) NULL DEFAULT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
         try {
-            foreach($sqlArray as $i => $sql) {
+            foreach ($sqlArray as $i => $sql) {
                 $this->query($sql);
             }
         } catch (Exception $e) {
@@ -2637,7 +2781,7 @@ class AppModel extends Model
         }
         // clean up
         $sqlArray[] = "DROP TABLE testtable;";
-        foreach($sqlArray as $i => $sql) {
+        foreach ($sqlArray as $i => $sql) {
             $this->query($sql);
         }
     }
@@ -2700,7 +2844,7 @@ class AppModel extends Model
                     if (!empty($job)) { // if multiple prio worker is enabled, want to mark them as done
                         $job['Job']['progress'] = 100;
                         $job['Job']['message'] = __('Update done');
-                       $this->Job->save($job);
+                        $this->Job->save($job);
                     }
                     return true;
                 }
@@ -2718,12 +2862,12 @@ class AppModel extends Model
                     /** @var Job $job */
                     $job = ClassRegistry::init('Job');
                     $jobId = $job->createJob(
-                            'SYSTEM',
-                            Job::WORKER_UPDATE,
-                            'run_updates',
-                            'command: ' . implode(',', $updates),
-                            'Updating.'
-                        );
+                        'SYSTEM',
+                        Job::WORKER_UPDATE,
+                        'run_updates',
+                        'command: ' . implode(',', $updates),
+                        'Updating.'
+                    );
 
                     $this->getBackgroundJobsTool()->enqueue(
                         BackgroundJobsTool::UPDATE_QUEUE,
@@ -2822,7 +2966,7 @@ class AppModel extends Model
         $this->User->updateAll(['date_modified' => time()]);
     }
 
-    private function __setUpdateProgress($current, $total=false, $toward_db_version=false)
+    private function __setUpdateProgress($current, $total = false, $toward_db_version = false)
     {
         $updateProgress = $this->getUpdateProgress();
         $updateProgress['current'] = $current;
@@ -2899,7 +3043,7 @@ class AppModel extends Model
         } else {
             $updateProgress = $this->__getEmptyUpdateMessage();
         }
-        foreach($updateProgress as $setting => $value) {
+        foreach ($updateProgress as $setting => $value) {
             if (!is_array($value)) {
                 if (is_numeric($value)) {
                     $value = intval($value);
@@ -2980,7 +3124,7 @@ class AppModel extends Model
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $updateFailNumber = $this->AdminSetting->getSetting('update_fail_number');
-        $this->AdminSetting->changeSetting('update_fail_number', $updateFailNumber+1);
+        $this->AdminSetting->changeSetting('update_fail_number', $updateFailNumber + 1);
     }
 
     public function UpdateFailNumberReached()
@@ -3073,7 +3217,6 @@ class AppModel extends Model
                 true,
                 $jobId
             );
-
         }
         return true;
     }
@@ -3093,7 +3236,7 @@ class AppModel extends Model
         $this->Log->createLogEntry('SYSTEM', 'update_database', 'Server', 0, __('Removed duplicated UUIDs'), __('Event: %s, Attribute: %s, Object: %s, Sighting: %s, Dashboard: %s, Inbox: %s, TagCollection: %s', h($removedResults['Event']), h($removedResults['Attribute']), h($removedResults['Object']), h($removedResults['Sighting']), h($removedResults['Dashboard']), h($removedResults['Inbox']), h($removedResults['TagCollection'])));
     }
 
-    private function __removeDuplicateUUIDsGeneric($model, $sort_by=false): int
+    private function __removeDuplicateUUIDsGeneric($model, $sort_by = false): int
     {
         $className = get_class($model);
         $alias = $model->alias;
@@ -3182,9 +3325,9 @@ class AppModel extends Model
         $this->Event = ClassRegistry::init('Event');
         $this->Log = ClassRegistry::init('Log');
         $duplicates = $this->Event->find('all', array(
-                'fields' => array('Event.uuid', 'count(Event.uuid) as occurrence'),
-                'recursive' => -1,
-                'group' => array('Event.uuid HAVING occurrence > 1'),
+            'fields' => array('Event.uuid', 'count(Event.uuid) as occurrence'),
+            'recursive' => -1,
+            'group' => array('Event.uuid HAVING occurrence > 1'),
         ));
         $counter = 0;
 
@@ -3352,6 +3495,14 @@ class AppModel extends Model
      */
     public function tableRows()
     {
+        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+        $dataSource = $dataSourceConfig['datasource'];
+
+        if ($dataSource == 'Database/Postgres') {
+            $rows = $this->query("SELECT n_live_tup FROM pg_stat_user_tables WHERE relname = '{$this->table}';");
+            return $rows[0]['pg_stat_user_tables']['n_live_tup'];
+        }
+
         $rows = $this->query("SELECT TABLE_ROWS FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{$this->table}';");
         return $rows[0]['TABLES']['TABLE_ROWS'];
     }
@@ -3632,7 +3783,7 @@ class AppModel extends Model
             // default to 8GB if no limit is set
             return 8 * 1024;
         }
-        $unit = $val[strlen($val)-1];
+        $unit = $val[strlen($val) - 1];
         if (is_numeric($unit)) {
             $unit = 'b';
         } else {
@@ -3695,13 +3846,13 @@ class AppModel extends Model
             if (!empty($object_ids)) {
                 $this->Event->Object->updateAll(
                     array(
-                    'Object.timestamp' => 'Object.timestamp + 1'
+                        'Object.timestamp' => 'Object.timestamp + 1'
                     ),
                     array('Object.id' => $object_ids)
                 );
                 $this->Event->updateAll(
                     array(
-                    'Event.timestamp' => 'Event.timestamp + 1'
+                        'Event.timestamp' => 'Event.timestamp + 1'
                     ),
                     array('Event.id' => $event_ids)
                 );
@@ -4095,16 +4246,16 @@ class AppModel extends Model
      * @param array $logging If the execution failure should be logged
      * @return boolean If the execution for the blocking path was a success
      */
-    protected function executeTrigger($trigger_id, array $data=[], array &$blockingErrors=[], array $logging=[]): bool
+    protected function executeTrigger($trigger_id, array $data = [], array &$blockingErrors = [], array $logging = []): bool
     {
         if ($this->isTriggerCallable($trigger_id)) {
-           $success = $this->Workflow->executeWorkflowForTriggerRouter($trigger_id, $data, $blockingErrors, $logging);
-           if (!empty($logging) && empty($success)) {
+            $success = $this->Workflow->executeWorkflowForTriggerRouter($trigger_id, $data, $blockingErrors, $logging);
+            if (!empty($logging) && empty($success)) {
                 $logging['message'] = !empty($logging['message']) ? $logging['message'] : __('Error while executing workflow.');
                 $errorMessage = implode(', ', $blockingErrors);
                 $this->loadLog()->createLogEntry('SYSTEM', $logging['action'], $logging['model'], $logging['id'], $logging['message'], __('Returned message: %s', $errorMessage));
-           }
-           return $success;
+            }
+            return $success;
         }
         return true;
     }
@@ -4250,8 +4401,8 @@ class AppModel extends Model
                 return null;
             }
             if (
-                    (in_array($field, $validOrderFields) && $model === $orderModel) ||
-                    (array_key_exists($model, $validOrderFields) && in_array($field, $validOrderFields[$model]))
+                (in_array($field, $validOrderFields) && $model === $orderModel) ||
+                (array_key_exists($model, $validOrderFields) && in_array($field, $validOrderFields[$model]))
             ) {
                 $order[] = $model . '.' . $field . ' ' . $direction;
             } else {
@@ -4259,8 +4410,8 @@ class AppModel extends Model
             }
         }
         if (count($order) > 0) {
-           return $order;
-        } 
+            return $order;
+        }
         return null;
     }
 
