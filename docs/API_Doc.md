@@ -659,7 +659,7 @@ Simply run a get request on this endpoint to get the relevant log entries for a 
 
 # Organisations
 ## Add
-POST an Organisation object in JSON format to this API to create a new organsiation.
+POST an Organisation object in JSON format to this API to create a new organisation.
 ```
 /admin/organisations/add
 ```
@@ -683,7 +683,7 @@ POST an Organisation object in JSON format to this API to create a new organsiat
 | local |integer |If the organisation should have access to this instance, make sure that the Local organisation setting is checked. If you would only like to add a known external organisation for inclusion in sharing groups, uncheck the Local organisation setting. |
 
 ## Edit
-POST an Organisation object in JSON format to this API to create a new organsiation.
+POST an Organisation object in JSON format to this API to create a new organisation.
 ```
 /admin/organisations/edit
 ```
@@ -997,7 +997,7 @@ Untag an event or attribute. Tag can be the id or the name.
 
 
 ## AttachTagToObject
-Attach a Tag to an object, refenced by an UUID. Tag can either be a tag id or a tag name.
+Attach a Tag to an object, referenced by an UUID. Tag can either be a tag id or a tag name.
 ```
 /tags/attachTagToObject
 ```

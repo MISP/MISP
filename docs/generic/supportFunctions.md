@@ -438,7 +438,7 @@ preInstall () {
 # Check apache config (Maybe try to talk to the server via api, this would confirm quite a lot)
 # Check if workers are running/installed, maybe kick them if they are not
 # /var/www/MISP/app/Config/[bootstrap,databases,core,config].php exists
-# /var/www/MISP perms are correct (for $SUDO_WWW useage)
+# /var/www/MISP perms are correct (for $SUDO_WWW usage)
 #
 
   # Check if $PATH_TO_MISP exists and is writable by $WWW_USER

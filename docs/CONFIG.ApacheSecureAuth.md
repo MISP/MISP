@@ -34,7 +34,7 @@ the browser forget these.
 There is no common or properly defined way of "logging out" after logging in with HTTP Basic Auth.
 
 If the user presses the GUI "Log out" link, this can result in a logout-login loop, where the user
-is logged out, but then immediately loggged back in by means of the browsers cached HTTP Basic Auth
+is logged out, but then immediately logged back in by means of the browsers cached HTTP Basic Auth
 credentials. This can be observed when a user presses "Log out", for then to be returned to the 
 events view with two flash messages - one about a successful logout, and one "Welcome back" login-message.
 
