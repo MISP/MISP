@@ -92,7 +92,6 @@ class UsersController extends AppController
             unset($user['User']['authkey']);
         }
         $user['User']['password'] = '*****';
-        $user['User']['totp_is_set'] = !empty($user['User']['totp']);
         $user['User']['totp'] = '*****';
         $temp = [];
         $objectsToInclude = array('User', 'Role', 'UserSetting', 'Organisation');
@@ -493,7 +492,6 @@ class UsersController extends AppController
                 }
             }
             foreach ($users as $key => $user) {
-                $users[$key]['User']['totp_is_set'] = !empty($user['User']['totp']);
                 unset($users[$key]['User']['totp']);
                 if (!empty(Configure::read('Security.advanced_authkeys'))) { // There is no point to show that authkey since it doesn't work when this setting is active
                     unset($users[$key]['User']['authkey']);
