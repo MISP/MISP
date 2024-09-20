@@ -71,5 +71,6 @@ class DATABASE_CONFIG
 		'database' => 'misp',
 		'prefix' => '',
 		'encoding' => 'utf8',
+		'schema' => 'public',
 	);
 }
