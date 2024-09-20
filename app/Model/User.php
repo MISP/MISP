@@ -24,6 +24,10 @@ class User extends AppModel
 
     public $displayField = 'email';
 
+    public $virtualFields = array(
+        'totp_is_set' => 'User.totp IS NOT NULL',
+    );
+
     public $validate = array(
         'role_id' => array(
             'numeric' => array(
