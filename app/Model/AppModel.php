@@ -3502,7 +3502,7 @@ class AppModel extends Model
     {
         if ($this->dataSource == 'Database/Postgres') {
             $rows = $this->query("SELECT n_live_tup FROM pg_stat_user_tables WHERE relname = '{$this->table}';");
-            return $rows[0]['pg_stat_user_tables']['n_live_tup'];
+            return $rows[0][0]['n_live_tup'];
         }
 
         $rows = $this->query("SELECT TABLE_ROWS FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{$this->table}';");
