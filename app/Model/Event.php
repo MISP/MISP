@@ -1942,7 +1942,7 @@ class Event extends AppModel
                     ${'conditions' . $softDeletable . 's'}['AND'][] = array(
                         'OR' => array(
                             'AND' => array(
-                                sprintf('(SELECT events.org_id FROM events WHERE events.id = %s.event_id)', $softDeletable) => $user['org_id'],
+                                sprintf('(SELECT events.org_id FROM events WHERE events.id = "%s".event_id)', $softDeletable) => $user['org_id'],
                                 "$softDeletable.deleted" => $options['deleted'],
                             ),
                             $deletion_subconditions
