@@ -34,7 +34,8 @@ class MispAttribute extends AppModel
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
-            'change' => 'full'),
+            'change' => 'full'
+        ),
         'Trim',
         'Containable',
         'Regexp' => array('fields' => array('value')),
@@ -45,13 +46,13 @@ class MispAttribute extends AppModel
     public $displayField = 'value';
 
     public $virtualFields = array(
-            'value' => "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END",
+        'value' => "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END",
     );
 
     // explanations of certain fields to be used in various views
     public $fieldDescriptions = array(
-            'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
-            'distribution' => array('desc' => 'Describes who will have access to the attribute.')
+        'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
+        'distribution' => array('desc' => 'Describes who will have access to the attribute.')
     );
 
     const EDITABLE_FIELDS = [
@@ -185,7 +186,7 @@ class MispAttribute extends AppModel
     // This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?)
     const TYPE_GROUPINGS = [
         'file' => ['attachment', 'pattern-in-file', 'filename-pattern', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-fingerprint-md5'],
-        'network' => ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'mac-address', 'mac-eui-64', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'bro', 'zeek',  'pattern-in-traffic', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256','ja3-fingerprint-md5', 'jarm-fingerprint', 'favicon-mmh3', 'hassh-md5', 'hasshserver-md5', 'community-id', 'dom-hash'],
+        'network' => ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'mac-address', 'mac-eui-64', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'bro', 'zeek',  'pattern-in-traffic', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'favicon-mmh3', 'hassh-md5', 'hasshserver-md5', 'community-id', 'dom-hash'],
         'financial' => ['btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number']
     ];
 
@@ -277,21 +278,21 @@ class MispAttribute extends AppModel
     // If the complex type "file" is chosen for example, then the system will try to categorise the values entered into a complex template field based
     // on the regular expression rules
     public $validTypeGroups = array(
-            'File' => array(
-                'description' => '',
-                'types' => array('filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'md5', 'sha1', 'sha256'),
-            ),
-            'CnC' => array(
-                'description' => '',
-                'types' => array('url', 'domain', 'hostname', 'ip-dst'),
-            ),
+        'File' => array(
+            'description' => '',
+            'types' => array('filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'md5', 'sha1', 'sha256'),
+        ),
+        'CnC' => array(
+            'description' => '',
+            'types' => array('url', 'domain', 'hostname', 'ip-dst'),
+        ),
     );
 
     public $typeGroupCategoryMapping = array(
-            'Payload delivery' => array('File', 'CnC'),
-            'Payload installation' => array('File'),
-            'Artifacts dropped' => array('File'),
-            'Network activity' => array('CnC'),
+        'Payload delivery' => array('File', 'CnC'),
+        'Payload installation' => array('File'),
+        'Artifacts dropped' => array('File'),
+        'Network activity' => array('CnC'),
     );
 
     public $belongsTo = array(
@@ -305,8 +306,8 @@ class MispAttribute extends AppModel
             'order' => ''
         ),
         'SharingGroup' => array(
-                'className' => 'SharingGroup',
-                'foreignKey' => 'sharing_group_id'
+            'className' => 'SharingGroup',
+            'foreignKey' => 'sharing_group_id'
         ),
         'Object' => array(
             'className' => 'MispObject',
@@ -322,8 +323,8 @@ class MispAttribute extends AppModel
             'dependent' => false
         ],
         'Sighting' => [
-                'className' => 'Sighting',
-                'dependent' => true,
+            'className' => 'Sighting',
+            'dependent' => true,
         ]
     ];
 
@@ -1295,7 +1296,7 @@ class MispAttribute extends AppModel
         }
     }
 
-        /**
+    /**
      * This method is useful if you want something semi compatible to fetchAttributesInChunks, but with single iterations
      * @param array $conditions
      * @param array $fields
@@ -1563,10 +1564,10 @@ class MispAttribute extends AppModel
     private function __createAttribute($element, $value)
     {
         $attribute = array(
-                'comment' => $element['name'],
-                'to_ids' => $element['to_ids'],
-                'category' => $element['category'],
-                'value' => $value,
+            'comment' => $element['name'],
+            'to_ids' => $element['to_ids'],
+            'category' => $element['category'],
+            'value' => $value,
         );
         if ($element['complex']) {
             $complexTypeTool = new ComplexTypeTool();
@@ -1599,7 +1600,7 @@ class MispAttribute extends AppModel
             if (Configure::read('MISP.fetchAttributeLegacyStrategy')) {
                 $org_ownership_condition = ['Event.org_id' => $user['org_id']];
                 $event_lax_distribution_condition = [
-                    'Event.distribution IN' => [1,2,3]
+                    'Event.distribution IN' => [1, 2, 3]
                 ];
                 $event_sharing_group_condition = [
                     'Event.distribution' => 4,
@@ -1646,7 +1647,7 @@ class MispAttribute extends AppModel
                         [
                             'OR' => [
                                 'Attribute.distribution' => [1, 2, 3, 5],
-                                'AND '=> [
+                                'AND ' => [
                                     'Attribute.distribution' => 4,
                                     'Attribute.sharing_group_id' => $sgids,
                                 ]
@@ -1983,7 +1984,16 @@ class MispAttribute extends AppModel
         $eventTags = []; // tag cache
         $attributes = [];
         $skipped_items = 0;
-        $index = $this->query("SHOW index from attributes where Key_name = 'deleted'");
+
+        if ($this->dataSource == "Database/Postgres") {
+            $index = $this->query("SELECT indexname FROM pg_indexes WHERE tablename='attributes' AND  indexname='attributes_deleted'");
+        } else {
+            $index = $this->query("SHOW index from attributes where Key_name = 'deleted'");
+        }
+        if (!empty($index)) {
+            $params['ignoreIndexHint'] = 'deleted';
+        }
+
         if (!empty($index)) {
             $params['ignoreIndexHint'] = 'deleted';
         }
@@ -2306,7 +2316,8 @@ class MispAttribute extends AppModel
     {
         if (!empty($attribute['ShadowAttribute'])) {
             foreach ($attribute['ShadowAttribute'] as $sa) {
-                if ($sa['value'] === $attribute['Attribute']['value'] &&
+                if (
+                    $sa['value'] === $attribute['Attribute']['value'] &&
                     $sa['type'] === $attribute['Attribute']['type'] &&
                     $sa['category'] === $attribute['Attribute']['category'] &&
                     ($sa['to_ids'] == 0 || $sa['to_ids'] == '') &&
@@ -2462,7 +2473,7 @@ class MispAttribute extends AppModel
             $saveResult = $saveResult && $currentSave;
             if ($currentSave) {
                 $attribute['id'] = $this->id;
-                $this->AttributeTag->handleAttributeTags($user, $attribute, $attribute['event_id'], $capture=true);
+                $this->AttributeTag->handleAttributeTags($user, $attribute, $attribute['event_id'], $capture = true);
             }
         }
         return $saveResult;
@@ -2814,7 +2825,7 @@ class MispAttribute extends AppModel
                 } else {
                     $attribute['timestamp'] = time();
                 }
-                foreach (['value','type','distribution','sharing_group_id'] as $relevantField) {
+                foreach (['value', 'type', 'distribution', 'sharing_group_id'] as $relevantField) {
                     if (isset($attribute[$relevantField]) && $existingAttribute['Attribute'][$relevantField] !== $attribute[$relevantField]) {
                         $attribute['_materialChange'] = true;
                     }
@@ -2839,7 +2850,11 @@ class MispAttribute extends AppModel
             }
             if (empty($attribute['sharing_group_id'])) {
                 $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
-                $this->loadLog()->createLogEntry($user, 'edit', 'Attribute', 0,
+                $this->loadLog()->createLogEntry(
+                    $user,
+                    'edit',
+                    'Attribute',
+                    0,
                     'Attribute dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $attribute_short,
                     'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute)
                 );
@@ -2935,7 +2950,7 @@ class MispAttribute extends AppModel
                             $tag_result = $this->AttributeTag->handleAttributeTag($attributeId, $attribute['event_id'], $tag, true);
                             if (isset($tag_result['attach'])) {
                                 $tagActions['attach'][$attributeId . '-' . $tag_id] = $tag_result['attach'];
-                            } else if(isset($tag_result['detach'])) {
+                            } else if (isset($tag_result['detach'])) {
                                 $tagActions['detach'][] = $tag_result['detach'];
                             }
                         } else {
@@ -2969,7 +2984,6 @@ class MispAttribute extends AppModel
             if (!empty($tagActions['attach'])) {
                 $this->AttributeTag->saveMany($tagActions['attach']);
             }
-
         }
         if (!empty($tagActions['detach'])) {
             foreach ($tagActions['detach'] as $detach) {
@@ -3507,7 +3521,6 @@ class MispAttribute extends AppModel
                             )
                         );
                     }
-
                 } else {
                     $conditions['AND'][] = array(
                         'OR' => array(
@@ -3613,7 +3626,11 @@ class MispAttribute extends AppModel
         }
         $eventId = $attribute['event_id'];
         $modelId = $action === 'add' ? 0 : $this->id;
-        $this->loadLog()->createLogEntry($user, $action, 'Attribute',  $modelId,
+        $this->loadLog()->createLogEntry(
+            $user,
+            $action,
+            'Attribute',
+            $modelId,
             "Attribute dropped due to validation for Event $eventId failed: $attribute_short",
             'Validation errors: ' . JsonTool::encode($validationError) . ' Full Attribute: ' . JsonTool::encode($attribute)
         );
@@ -3664,16 +3681,16 @@ class MispAttribute extends AppModel
             'Payload delivery' => array(
                 'desc' => __('Information about how the malware is delivered'),
                 'formdesc' => __('Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.'),
-                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'cpe', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
+                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'cpe', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised')
             ),
             'Artifacts dropped' => array(
                 'desc' => __('Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system'),
-                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory', 'filename-pattern', 'pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'process-state','windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'kusto-query', 'mime-type', 'anonymised', 'pgp-public-key', 'pgp-private-key')
+                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory', 'filename-pattern', 'pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'process-state', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'kusto-query', 'mime-type', 'anonymised', 'pgp-public-key', 'pgp-private-key')
             ),
             'Payload installation' => array(
                 'desc' => __('Info on where the malware gets installed in the system'),
                 'formdesc' => __('Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.'),
-                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'cpe','weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'azure-application-id', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
+                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'cpe', 'weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'azure-application-id', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
             ),
             'Persistence mechanism' => array(
                 'desc' => __('Mechanisms used by the malware to start at boot'),
@@ -3682,7 +3699,7 @@ class MispAttribute extends AppModel
             ),
             'Network activity' => array(
                 'desc' => __('Information about network traffic generated by the malware'),
-                'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'port', 'hostname', 'domain', 'domain|ip', 'mac-address', 'mac-eui-64', 'email', 'email-dst', 'email-src', 'eppn', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'filename-pattern','stix2-pattern', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hex', 'cookie', 'hostname|port', 'bro', 'zeek', 'anonymised', 'community-id', 'email-subject', 'favicon-mmh3', 'dkim', 'dkim-signature', 'ssh-fingerprint', 'dom-hash')
+                'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'port', 'hostname', 'domain', 'domain|ip', 'mac-address', 'mac-eui-64', 'email', 'email-dst', 'email-src', 'eppn', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'filename-pattern', 'stix2-pattern', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hex', 'cookie', 'hostname|port', 'bro', 'zeek', 'anonymised', 'community-id', 'email-subject', 'favicon-mmh3', 'dkim', 'dkim-signature', 'ssh-fingerprint', 'dom-hash')
             ),
             'Payload type' => array(
                 'desc' => __('Information about the final payload(s)'),
@@ -3691,12 +3708,12 @@ class MispAttribute extends AppModel
             ),
             'Attribution' => array(
                 'desc' => __('Identification of the group, organisation, or country behind the attack'),
-                'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registrant-org', 'whois-registrar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-sha1','x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'dns-soa-email', 'anonymised', 'email')
+                'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registrant-org', 'whois-registrar', 'whois-creation-date', 'comment', 'text', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'dns-soa-email', 'anonymised', 'email')
             ),
             'External analysis' => array(
                 'desc' => __('Any other result from additional analysis of the malware like tools output'),
                 'formdesc' => __('Any other result from additional analysis of the malware like tools output Examples: pdf-parser output, automated sandbox analysis, reverse engineering report.'),
-                'types' => array('md5', 'sha1', 'sha256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'mac-address', 'mac-eui-64', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'bro', 'zeek', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern','vulnerability', 'cpe', 'weakness', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'github-repository', 'other', 'cortex', 'anonymised', 'community-id', 'dom-hash')
+                'types' => array('md5', 'sha1', 'sha256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'mac-address', 'mac-eui-64', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'bro', 'zeek', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'vulnerability', 'cpe', 'weakness', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'github-repository', 'other', 'cortex', 'anonymised', 'community-id', 'dom-hash')
             ),
             'Financial fraud' => array(
                 'desc' => __('Financial Fraud indicators'),
@@ -3710,7 +3727,7 @@ class MispAttribute extends AppModel
             'Social network' => array(
                 'desc' => __('Social networks and platforms'),
                 // email-src and email-dst or should we go with a new email type that is neither / both?
-                'types' => array('github-username', 'github-repository', 'github-organisation', 'jabber-id', 'twitter-id', 'email', 'email-src', 'email-dst', 'eppn','comment', 'text', 'other', 'whois-registrant-email', 'anonymised', 'pgp-public-key', 'pgp-private-key')
+                'types' => array('github-username', 'github-repository', 'github-organisation', 'jabber-id', 'twitter-id', 'email', 'email-src', 'email-dst', 'eppn', 'comment', 'text', 'other', 'whois-registrant-email', 'anonymised', 'pgp-public-key', 'pgp-private-key')
             ),
             'Person' => array(
                 'desc' => __('A human being - natural person'),
@@ -3743,7 +3760,7 @@ class MispAttribute extends AppModel
             'ip-dst' => array('desc' => __('A destination IP address of the attacker or C&C server'), 'formdesc' => __("A destination IP address of the attacker or C&C server. Also set the IDS flag on when this IP is hardcoded in malware"), 'default_category' => 'Network activity', 'to_ids' => 1),
             'hostname' => array('desc' => __('A full host/dnsname of an attacker'), 'formdesc' => __("A full host/dnsname of an attacker. Also set the IDS flag on when this hostname is hardcoded in malware"), 'default_category' => 'Network activity', 'to_ids' => 1),
             'domain' => array('desc' => __('A domain name used in the malware'), 'formdesc' => __("A domain name used in the malware. Use this instead of hostname when the upper domain is important or can be used to create links between events."), 'default_category' => 'Network activity', 'to_ids' => 1),
-            'domain|ip' => array('desc' => __('A domain name and its IP address (as found in DNS lookup) separated by a |'),'formdesc' => __("A domain name and its IP address (as found in DNS lookup) separated by a | (no spaces)"), 'default_category' => 'Network activity', 'to_ids' => 1),
+            'domain|ip' => array('desc' => __('A domain name and its IP address (as found in DNS lookup) separated by a |'), 'formdesc' => __("A domain name and its IP address (as found in DNS lookup) separated by a | (no spaces)"), 'default_category' => 'Network activity', 'to_ids' => 1),
             'email' => array('desc' => ('An email address'), 'default_category' => 'Social network', 'to_ids' => 1),
             'email-src' => array('desc' => __("The source email address. Used to describe the sender when describing an e-mail."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'eppn' => array('desc' => __("eduPersonPrincipalName - eppn - the NetId of the person for the purposes of inter-institutional authentication. Should be stored in the form of user@univ.edu, where univ.edu is the name of the local security domain."), 'default_category' => 'Network activity', 'to_ids' => 1),
@@ -3767,8 +3784,8 @@ class MispAttribute extends AppModel
             'snort' => array('desc' => __('An IDS rule in Snort rule-format'), 'formdesc' => __("An IDS rule in Snort rule-format. This rule will be automatically rewritten in the NIDS exports."), 'default_category' => 'Network activity', 'to_ids' => 1),
             'bro' => array('desc' => __('An NIDS rule in the Bro rule-format'), 'formdesc' => __("An NIDS rule in the Bro rule-format."), 'default_category' => 'Network activity', 'to_ids' => 1),
             'zeek' => array('desc' => __('An NIDS rule in the Zeek rule-format'), 'formdesc' => __("An NIDS rule in the Zeek rule-format."), 'default_category' => 'Network activity', 'to_ids' => 1),
-	    'community-id' => array('desc' => __('A community ID flow hashing algorithm to map multiple traffic monitors into common flow id'), 'formdesc' => __("a community ID flow hashing algorithm to map multiple traffic monitors into common flow id"), 'default_category' => 'Network activity', 'to_ids' => 1),
-	    'dom-hash' => array('desc' => __('A dom-hash algorithm is a structural fingerprint of an HTML Document Object Model where all tag names are contained in a single string separated by a pipe. The truncated SHA252 value by the first 32-character serves as fingerprint.'), 'formdesc' => __("A dom-hash value is a structural fingerprint to uniquely identify an HTML Document Object Model."), 'default_category' => 'Network activity', 'to_ids' => 1),
+            'community-id' => array('desc' => __('A community ID flow hashing algorithm to map multiple traffic monitors into common flow id'), 'formdesc' => __("a community ID flow hashing algorithm to map multiple traffic monitors into common flow id"), 'default_category' => 'Network activity', 'to_ids' => 1),
+            'dom-hash' => array('desc' => __('A dom-hash algorithm is a structural fingerprint of an HTML Document Object Model where all tag names are contained in a single string separated by a pipe. The truncated SHA252 value by the first 32-character serves as fingerprint.'), 'formdesc' => __("A dom-hash value is a structural fingerprint to uniquely identify an HTML Document Object Model."), 'default_category' => 'Network activity', 'to_ids' => 1),
             'pattern-in-file' => array('desc' => __('Pattern in file that identifies the malware'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'pattern-in-traffic' => array('desc' => __('Pattern in network traffic that identifies the malware'), 'default_category' => 'Network activity', 'to_ids' => 1),
             'pattern-in-memory' => array('desc' => __('Pattern in memory dump that identifies the malware'), 'default_category' => 'Payload installation', 'to_ids' => 1),
@@ -3786,7 +3803,7 @@ class MispAttribute extends AppModel
             'cookie' => array('desc' => __('HTTP cookie as often stored on the user web client. This can include authentication cookie or session cookie.'), 'default_category' => 'Network activity', 'to_ids' => 0),
             'vulnerability' => array('desc' => __('A reference to the vulnerability used in the exploit'), 'default_category' => 'External analysis', 'to_ids' => 0),
             'cpe' => array('desc' => __('Common Platform Enumeration - structured naming scheme for information technology systems, software, and packages.'), 'default_category' => 'External analysis', 'to_ids' => 0),
-            'weakness' => array('desc'=> __('A reference to the weakness (CWE) used in the exploit'), 'default_category' => 'External analysis', 'to_ids' => 0),
+            'weakness' => array('desc' => __('A reference to the weakness (CWE) used in the exploit'), 'default_category' => 'External analysis', 'to_ids' => 0),
             'attachment' => array('desc' => __('Attachment with external information'), 'formdesc' => __("Please upload files using the <em>Upload Attachment</em> button."), 'default_category' => 'External analysis', 'to_ids' => 0),
             'malware-sample' => array('desc' => __('Attachment containing encrypted malware sample'), 'formdesc' => __("Please upload files using the <em>Upload Attachment</em> button."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'link' => array('desc' => __('Link to an external information'), 'default_category' => 'External analysis', 'to_ids' => 0),
@@ -3895,7 +3912,7 @@ class MispAttribute extends AppModel
             'jabber-id' => array('desc' => __('Jabber ID'), 'default_category' => 'Social network', 'to_ids' => 0),
             'twitter-id' => array('desc' => __('Twitter ID'), 'default_category' => 'Social network', 'to_ids' => 0),
             'dkim' => array('desc' => __('DKIM public key'), 'default_category' => 'Network activity', 'to_ids' => 0),
-            'dkim-signature'=> array('desc' => __('DKIM signature'), 'default_category' => 'Network activity', 'to_ids' => 0),
+            'dkim-signature' => array('desc' => __('DKIM signature'), 'default_category' => 'Network activity', 'to_ids' => 0),
             'first-name' => array('desc' => __('First name of a natural person'), 'default_category' => 'Person', 'to_ids' => 0),
             'middle-name' => array('desc' => __('Middle name of a natural person'), 'default_category' => 'Person', 'to_ids' => 0),
             'last-name' => array('desc' => __('Last name of a natural person'), 'default_category' => 'Person', 'to_ids' => 0),

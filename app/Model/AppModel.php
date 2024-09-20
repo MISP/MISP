@@ -238,6 +238,8 @@ class AppModel extends Model
         129 => false
     );
 
+    protected $dataSource;
+
     const ADVANCED_UPDATES_DESCRIPTION = array(
         'seenOnAttributeAndObject' => array(
             'title' => 'First seen/Last seen Attribute table',
@@ -259,6 +261,9 @@ class AppModel extends Model
         if (in_array('phar', stream_get_wrappers(), true)) {
             stream_wrapper_unregister('phar');
         }
+
+        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+        $this->dataSource = $dataSourceConfig['datasource'];
     }
 
     public function isAcceptedDatabaseError($errorMessage)
@@ -3495,10 +3500,7 @@ class AppModel extends Model
      */
     public function tableRows()
     {
-        $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-        $dataSource = $dataSourceConfig['datasource'];
-
-        if ($dataSource == 'Database/Postgres') {
+        if ($this->dataSource == 'Database/Postgres') {
             $rows = $this->query("SELECT n_live_tup FROM pg_stat_user_tables WHERE relname = '{$this->table}';");
             return $rows[0]['pg_stat_user_tables']['n_live_tup'];
         }

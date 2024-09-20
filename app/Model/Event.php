@@ -1589,7 +1589,7 @@ class Event extends AppModel
                                     )
                                 );
                                 $subQuery = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
-                                if ($param === 'value') {
+                                if ($param === 'value' && $this->dataSource != 'Database/Postgres') {
                                     $subQuery[0] = explode('WHERE', $subQuery[0]);
                                     $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
                                     $subQuery[0] = implode('WHERE', $subQuery[0]);
@@ -1832,9 +1832,9 @@ class Event extends AppModel
                 $delegatedEventIDs = $this->__cachedelegatedEventIDs($user, $useCache);
                 $conditions['AND']['OR']['Event.id'] = $delegatedEventIDs;
             }
-            $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)';
-            $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = Object.event_id)';
-            $eventReportCondSelect = '(SELECT events.org_id FROM events WHERE events.id = EventReport.event_id)';
+            $attributeCondSelect = '(SELECT events.org_id FROM events WHERE events.id = "Attribute".event_id)';
+            $objectCondSelect = '(SELECT events.org_id FROM events WHERE events.id = "Object".event_id)';
+            $eventReportCondSelect = '(SELECT events.org_id FROM events WHERE events.id = "EventReport".event_id)';
             if (!$this->isMysql()) {
                 $schemaName = $this->getDataSource()->config['schema'];
                 $attributeCondSelect = sprintf('(SELECT "%s"."events"."org_id" FROM "%s"."events" WHERE "%s"."events"."id" = "Attribute"."event_id")', $schemaName, $schemaName, $schemaName);

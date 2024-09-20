@@ -607,7 +607,7 @@ class MispObject extends AppModel
             $attributeConditions = array(
                 'OR' => array(
                     array(
-                        '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
+                        '(SELECT events.org_id FROM events WHERE events.id = "Attribute".event_id)' => $user['org_id']
                     ),
                     array(
                         'OR' => array(
