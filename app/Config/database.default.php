@@ -69,6 +69,7 @@ class DATABASE_CONFIG {
 		'database' => 'misp',
 		'prefix' => '',
 		'encoding' => 'utf8',
+		'schema' => 'public',
 		'flags' => [
 			PDO::ATTR_STRINGIFY_FETCHES => true
 		]
