@@ -22,7 +22,7 @@ sudo -H -u www-data git pull origin 2.4
 sudo -H -u www-data git submodule update --init --recursive
 ```
 
-If the above fails, your permissons might be wrong. [Click here for the fix the permissions guide](https://misp.github.io/MISP/INSTALL.ubuntu1804#5-set-the-permissions).
+If the above fails, your permissions might be wrong. [Click here for the fix the permissions guide](https://misp.github.io/MISP/INSTALL.ubuntu1804#5-set-the-permissions).
 
 ##### MISP Dependencies
 
