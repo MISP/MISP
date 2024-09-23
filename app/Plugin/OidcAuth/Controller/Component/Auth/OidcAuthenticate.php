@@ -10,6 +10,7 @@ App::uses('Oidc', 'OidcAuth.Lib');
  *  - OidcAuth.authentication_method
  *  - OidcAuth.code_challenge_method
  *  - OidcAuth.role_mapper
+ *  - OidcAuth.scopes (array, default: []) - request additional scopes ex. 'scopes' => ['profile', 'email']
  *  - OidcAuth.organisation_property (default: `organization`)
  *  - OidcAuth.organisation_uuid_property (default: `organization_uuid`)
  *  - OidcAuth.roles_property (default: `roles`)
