@@ -76,6 +76,11 @@ class UserInitShell extends AppShell {
 			$auth_key = $this->User->createInitialUser($org_id);
 			if (!empty($auth_key)) {
 				echo $auth_key . PHP_EOL;
+				// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
+				if ($dataSource == 'Database/Postgres') {
+					$sql = "SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));";
+					$this->Role->query($sql);
+				}
 			} else {
 				echo 'Could not generate the initial user!' . PHP_EOL;
 			}
