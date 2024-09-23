@@ -38,6 +38,9 @@ class AttributeValidationToolTest extends TestCase
         $this->shouldBeValid('filename|ssdeep', [
             'ahoj.txt|96:s4Ud1Lj96tHHlZDrwciQmA+4uy1I0G4HYuL8N3TzS8QsO/wqWXLcMSx:sF1LjEtHHlZDrJzrhuyZvHYm8tKp/RWO',
         ]);
+        $this->shouldBeValid('dom-hash', [
+            '0cc175b9c0f1b6a831c399e269772661',
+        ]);
     }
 
     public function testValidateIp(): void
