@@ -22,7 +22,7 @@ logger = logging.getLogger('pymisp')
 urllib3.disable_warnings()
 
 # Load access information for env variables
-url = "http://" + os.environ["HOST"]
+url = "https://" + os.environ["HOST"]
 key = os.environ["AUTH"]
 
 
@@ -1030,7 +1030,7 @@ class TestComprehensive(unittest.TestCase):
 class TestLastPwChange(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.admin_misp_connector = PyMISP(url, key)
+        cls.admin_misp_connector = PyMISP(url, key, ssl=False, debug=False)
 
         organisation = MISPOrganisation()
         organisation.name = 'Test org for last pw change tests'
@@ -1053,7 +1053,7 @@ class TestLastPwChange(unittest.TestCase):
         user.password = str(uuid.uuid4())
         self.test_usr = self.admin_misp_connector.add_user(user, pythonify=True)
         check_response(self.test_usr)
-        self.test_usr_misp_connector = PyMISP(url, self.test_usr.authkey)
+        self.test_usr_misp_connector = PyMISP(url, self.test_usr.authkey, ssl=False, debug=False)
 
     def tearDown(self) -> None:
         # Delete Authkey and user
