@@ -5523,5 +5523,39 @@ class InitialMigration extends Phinx\Migration\AbstractMigration
                 'unique' => false,
             ])
             ->create();
+
+
+        # Insert default data
+
+        ## Creating initial roles
+        $this->execute(
+            "
+            INSERT INTO  roles  (id,   name,          created,   modified,   perm_add,      perm_modify,      perm_modify_org,      perm_publish,      perm_publish_zmq,    perm_publish_kafka,     perm_sync,  perm_admin,     perm_audit,     perm_full,      perm_auth,      perm_regexp_access,     perm_tagger,    perm_site_admin,    perm_template,      perm_sharing_group,     perm_tag_editor,    perm_delegate,      perm_sighting,      perm_object_template,       perm_decaying,      default_role,       memory_limit,   max_execution_time,     restricted_to_site_admin,       enforce_rate_limit,     rate_limit_count,       perm_galaxy_editor,     perm_warninglist,       perm_view_feed_correlations,        perm_analyst_data,      perm_skip_otp)
+            VALUES              (1   , 'admin',       NOW(),     NOW(),      true,          true,             true,                 true,              true,                true,                   true,       true,           true,           true,           true,           true,                   true,           true,               true,               true,                   true,               true,               true,               true,                       true,               false,              NULL,           NULL,                   false,                          false,                  0,                      true,                   true,                   true,                               true,                   false),
+                                (2   , 'Org Admin',   NOW(),     NOW(),      true,          true,             true,                 true,              true,                true,                   false,      true,           true,           false,          true,           false,                  true,           false,              true,               true,                   true,               true,               true,               false,                      true,               false,              NULL,           NULL,                   false,                          false,                  0,                      true,                   false,                  false,                              true,                   false),
+                                (3   , 'User',        NOW(),     NOW(),      true,          true,             true,                 false,             false,               false,                  false,      false,          true,           false,          true,           false,                  true,           false,              false,              false,                  false,              false,              true,               false,                      true,               true,               NULL,           NULL,                   false,                          false,                  0,                      true,                   false,                  false,                              true,                   false),
+                                (4   , 'Publisher',   NOW(),     NOW(),      true,          true,             true,                 true,              true,                true,                   false,      false,          true,           false,          true,           false,                  true,           false,              false,              false,                  false,              true,               true,               false,                      true,               false,              NULL,           NULL,                   false,                          false,                  0,                      true,                   false,                  false,                              true,                   false),
+                                (5   , 'Sync user',   NOW(),     NOW(),      true,          true,             true,                 true,              true,                true,                   true,       false,          true,           false,          true,           false,                  true,           false,              false,              true,                   true,               true,               true,               false,                      true,               false,              NULL,           NULL,                   false,                          false,                  0,                      true,                   false,                  false,                              true,                   false),
+                                (6   , 'Read Only',   NOW(),     NOW(),      false,         false,            false,                false,             false,               false,                  false,      false,          true,           false,          true,           false,                  false,          false,              false,              false,                  false,              false,              false,              false,                      false,              false,              NULL,           NULL,                   false,                          false,                  0,                      false,                  false,                  false,                              false,                  false);"
+        );
+
+        ## Initial threat levels
+        $this->execute(
+            "
+            INSERT INTO  threat_levels  (id, name, description, form_description)
+            VALUES                      (1, 'High', '*high* means sophisticated APT malware or 0-day attack', 'Sophisticated APT malware or 0-day attack'),
+                                        (2, 'Medium', '*medium* means APT malware', 'APT malware'),
+                                        (3, 'Low', '*low* means mass-malware', 'Mass-malware'),
+                                        (4, 'Undefined', '*undefined* no risk', 'No risk');"
+        );
+
+        ## Initial admin settings
+        $this->execute(
+            "
+            INSERT INTO  admin_settings ( setting,         value) 
+            VALUES                      ('db_version',     '129'),
+                                        ('fix_login',      NOW()),
+                                        ('default_role',   3);"
+        );
     }
 }
