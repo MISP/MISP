@@ -38,7 +38,7 @@ class UserInitShell extends AppShell {
 			));
 			$this->Role->save($siteAdmin);
 			// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-			if ($dataSource == 'Database/Postgres') {
+			if ($dataSource == 'Database/PostgresExtended') {
 				$sql = "SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));";
 				$this->Role->query($sql);
 			}
@@ -57,7 +57,7 @@ class UserInitShell extends AppShell {
 			));
 			$this->Organisation->save($org);
 			// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-			if ($dataSource == 'Database/Postgres') {
+			if ($dataSource == 'Database/PostgresExtended') {
 				$sql = "SELECT setval('organisations_id_seq', (SELECT MAX(id) FROM organisations));";
 				$this->Organisation->query($sql);
 			}

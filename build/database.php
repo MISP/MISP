@@ -62,7 +62,7 @@ class DATABASE_CONFIG
 {
 
 	public $default = array(
-		'datasource' => 'Database/Postgres',
+		'datasource' => 'Database/PostgresExtended',
 		'persistent' => false,
 		'host' => '127.0.0.1',
 		'login' => 'misp',

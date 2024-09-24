@@ -47,7 +47,7 @@ class Server extends AppModel
         'SharingGroupServer' => array(
             'className' => 'SharingGroupServer',
             'foreignKey' => 'server_id',
-            'dependent'=> true,
+            'dependent' => true,
         ),
         'User' => array(
             'className' => 'User',
@@ -262,6 +262,17 @@ class Server extends AppModel
         }
 
         return true;
+    }
+
+    public function afterFind($results, $primary = false)
+    {
+        foreach ($results as &$result) {
+            if (isset($result['Server']['authkey']) && EncryptedValue::isEncrypted($result['Server']['authkey'])) {
+                $result['Server']['authkey'] = (new EncryptedValue($result['Server']['authkey']))->decrypt();
+            }
+        }
+
+        return $results;
     }
 
     /**
@@ -589,7 +600,9 @@ class Server extends AppModel
                 'error',
                 'Server',
                 $serverSync->serverId(),
-                $title, $e->getMessage());
+                $title,
+                $e->getMessage()
+            );
         }
         return true;
     }
@@ -743,7 +756,7 @@ class Server extends AppModel
                     }
                 }
                 if (!empty($temp)) {
-                    $final[substr($field, 0, strlen($field) -1)] = $temp;
+                    $final[substr($field, 0, strlen($field) - 1)] = $temp;
                 }
             }
         }
@@ -823,7 +836,7 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
+    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster = true, array $eligibleClusters = array(), array $conditions = array())
     {
         $serverSync->debug("Fetching eligible clusters for pull: " . JsonTool::encode($conditions));
 
@@ -831,7 +844,7 @@ class Server extends AppModel
             return []; // no clusters for update
         }
 
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions = $conditions);
         if (empty($clusterArray)) {
             return []; // empty remote clusters
         }
@@ -879,10 +892,10 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    private function getElligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
+    private function getElligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters = array(), array $conditions = array())
     {
         $serverSync->debug("Fetching eligible clusters for push: " . JsonTool::encode($conditions));
-        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
+        $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions = $conditions);
         $keyedClusterArray = Hash::combine($clusterArray, '{n}.GalaxyCluster.uuid', '{n}.GalaxyCluster.version');
         if (!empty($localClusters)) {
             foreach ($localClusters as $k => $localCluster) {
@@ -1177,7 +1190,7 @@ class Server extends AppModel
 
             // sync custom galaxy clusters if user is capable
             if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" == $technique) {
-                $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique='full');
+                $clustersSuccesses = $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique = 'full');
             } else {
                 $clustersSuccesses = array();
             }
@@ -1199,31 +1212,31 @@ class Server extends AppModel
             $tableName = $this->Event->EventReport->table;
             $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
             $findParams = array(
-                    'conditions' => array(
-                            $eventid_conditions_key => $eventid_conditions_value,
-                            'Event.published' => 1,
-                            'OR' => array(
-                                array('Event.attribute_count >' => 0),
-                                array($eventReportQuery),
+                'conditions' => array(
+                    $eventid_conditions_key => $eventid_conditions_value,
+                    'Event.published' => 1,
+                    'OR' => array(
+                        array('Event.attribute_count >' => 0),
+                        array($eventReportQuery),
+                    ),
+                    'OR' => array(
+                        array(
+                            'AND' => array(
+                                array('Event.distribution >' => 0),
+                                array('Event.distribution <' => 4),
                             ),
-                            'OR' => array(
-                                array(
-                                    'AND' => array(
-                                        array('Event.distribution >' => 0),
-                                        array('Event.distribution <' => 4),
-                                    ),
-                                ),
-                                array(
-                                    'AND' => array(
-                                        'Event.distribution' => 4,
-                                        'Event.sharing_group_id' => $sgIds
-                                    ),
-                                )
-                            )
-                    ), // array of conditions
-                    'recursive' => -1, //int
-                    'contain' => array('EventTag' => array('fields' => array('EventTag.tag_id'))),
-                    'fields' => array('Event.id', 'Event.timestamp', 'Event.sighting_timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
+                        ),
+                        array(
+                            'AND' => array(
+                                'Event.distribution' => 4,
+                                'Event.sharing_group_id' => $sgIds
+                            ),
+                        )
+                    )
+                ), // array of conditions
+                'recursive' => -1, //int
+                'contain' => array('EventTag' => array('fields' => array('EventTag.tag_id'))),
+                'fields' => array('Event.id', 'Event.timestamp', 'Event.sighting_timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
             );
             $eventIds = $this->Event->find('all', $findParams);
             $eventUUIDsFiltered = $this->getEventIdsForPush($server, $serverSync, $eventIds);
@@ -1243,7 +1256,7 @@ class Server extends AppModel
                         'event_uuid' => $eventUuid,
                         'includeAttachments' => true,
                         'includeAllTags' => true,
-                        'deleted' => array(0,1),
+                        'deleted' => array(0, 1),
                         'excludeGalaxy' => 1
                     ));
                     if (empty($server['Server']['push_sightings'])) {
@@ -1261,7 +1274,7 @@ class Server extends AppModel
                         $this->Event->shouldBePushedToServer($event, $server);
 
                     if ($pushGalaxyClustersForEvent) {
-                        $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique=$event['Event']['id'], $event=$event);
+                        $this->syncGalaxyClusters($serverSync, $this->data, $user, $technique = $event['Event']['id'], $event = $event);
                     }
 
                     $result = $this->Event->uploadEventToServer($event, $server, $serverSync);
@@ -1380,7 +1393,7 @@ class Server extends AppModel
      * @param  array|bool  $event
      * @return array List of successfully pushed clusters
      */
-    public function syncGalaxyClusters(ServerSyncTool $serverSync, array $server, array $user, $technique='full', $event=false)
+    public function syncGalaxyClusters(ServerSyncTool $serverSync, array $server, array $user, $technique = 'full', $event = false)
     {
         if (!$server['Server']['push_galaxy_clusters']) {
             return []; // pushing clusters is not enabled
@@ -1392,7 +1405,7 @@ class Server extends AppModel
         $this->Event = ClassRegistry::init('Event');
 
         if ($technique === 'full') {
-            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
+            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions = array(), $full = true);
         } else {
             if ($event === false) {
                 throw new InvalidArgumentException('The event from which the cluster should be taken must be provided.');
@@ -1408,7 +1421,7 @@ class Server extends AppModel
             if (empty($customGalaxyClusterTags)) {
                 return [];
             }
-            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $customGalaxyClusterTags), $full=true);
+            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions = array('GalaxyCluster.tag_name' => $customGalaxyClusterTags), $full = true);
         }
         if (empty($clusters)) {
             return []; // no local clusters eligible for push
@@ -1450,10 +1463,10 @@ class Server extends AppModel
                 // event_id is not null when we are doing a publish
             }
             $events = $eventModel->find('all', array(
-                    'conditions' => $conditions,
-                    'recursive' => 1,
-                    'contain' => 'ShadowAttribute',
-                    'fields' => array('Event.uuid')
+                'conditions' => $conditions,
+                'recursive' => 1,
+                'contain' => 'ShadowAttribute',
+                'fields' => array('Event.uuid')
             ));
 
             $fails = 0;
@@ -2575,10 +2588,23 @@ class Server extends AppModel
         $config = Hash::insert($config, $setting, $value);
 
         $settingsToSave = array(
-            'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
-            'Security', 'Session', 'site_admin_debug', 'Plugin', 'CertAuth',
-            'ApacheShibbAuth', 'ApacheSecureAuth', 'OidcAuth', 'AadAuth',
-            'SimpleBackgroundJobs', 'LinOTPAuth'
+            'debug',
+            'MISP',
+            'GnuPG',
+            'SMIME',
+            'Proxy',
+            'SecureAuth',
+            'Security',
+            'Session',
+            'site_admin_debug',
+            'Plugin',
+            'CertAuth',
+            'ApacheShibbAuth',
+            'ApacheSecureAuth',
+            'OidcAuth',
+            'AadAuth',
+            'SimpleBackgroundJobs',
+            'LinOTPAuth'
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {
@@ -2717,7 +2743,6 @@ class Server extends AppModel
             }
 
             return $response;
-
         } catch (HttpSocketHttpException $e) {
             if ($e->getCode() === 403) {
                 return ['status' => 4, 'client_certificate' => $clientCertificate];
@@ -2776,7 +2801,7 @@ class Server extends AppModel
         if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
             if (!empty($response['body']['testString'])) {
                 $responseString = $response['body']['testString'];
-            } else if (!empty($rawBody)){
+            } else if (!empty($rawBody)) {
                 $responseString = $rawBody;
             } else {
                 $responseString = __('Response was empty.');
@@ -2897,8 +2922,8 @@ class Server extends AppModel
             return 0;
         }
         $existingServer = $this->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('url' => $server['url'])
+            'recursive' => -1,
+            'conditions' => array('url' => $server['url'])
         ));
         // unlike with other capture methods, if we find a server that we don't know
         // we don't want to save it.
@@ -2932,7 +2957,6 @@ class Server extends AppModel
                     'reclaimable_in_bytes' => (int) $temp['tables']['DATA_FREE'],
                 ];
             }
-
         } else {
             $sql = sprintf(
                 'select TABLE_NAME as table, pg_total_relation_size(%s||%s||TABLE_NAME) as used from information_schema.tables where table_schema = %s group by TABLE_NAME;',
@@ -3004,8 +3028,8 @@ class Server extends AppModel
                 $schemaDiagnostic['diagnostic'] = $db_schema_comparison;
                 $schemaDiagnostic['diagnostic_index'] = $db_indexes_comparison;
                 $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
-                foreach($dbActualSchema['schema'] as $tableName => $tableMetas) {
-                    foreach($tableMetas as $tableMeta) {
+                foreach ($dbActualSchema['schema'] as $tableName => $tableMetas) {
+                    foreach ($tableMetas as $tableMeta) {
                         $schemaDiagnostic['columnPerTable'][$tableName][] = $tableMeta['column_name'];
                     }
                 }
@@ -3088,7 +3112,7 @@ class Server extends AppModel
                 }
             }
             if ($length !== false) {
-                switch($field['error_type']) {
+                switch ($field['error_type']) {
                     case 'missing_column':
                         $field['sql'] = sprintf(
                             'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s %s %s %s;',
@@ -3118,7 +3142,7 @@ class Server extends AppModel
                         );
                         break;
                 }
-            } elseif($field['error_type'] == 'missing_table') {
+            } elseif ($field['error_type'] == 'missing_table') {
                 $allFields = array();
                 foreach ($field['expected_table'] as $expectedField) {
                     $length = false;
@@ -3131,7 +3155,8 @@ class Server extends AppModel
                     } elseif ($expectedField['data_type'] === 'text') {
                         $length = null;
                     }
-                    $fieldSql = sprintf('`%s` %s%s %s %s %s %s %s',
+                    $fieldSql = sprintf(
+                        '`%s` %s%s %s %s %s %s %s',
                         $expectedField['column_name'],
                         $expectedField['data_type'],
                         $length !== null ? sprintf('(%d)', $length) : '',
@@ -3145,8 +3170,8 @@ class Server extends AppModel
                 }
                 $field['sql'] = __("% The command below is a suggestion and might be incorrect. Please ask if you are not sure what you are doing.") . "</br></br>" . sprintf(
                     "CREATE TABLE IF NOT EXISTS `%s` ( %s ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;",
-                        $table,
-                        implode(', ', $allFields)
+                    $table,
+                    implode(', ', $allFields)
                 );
             }
         }
@@ -3189,7 +3214,7 @@ class Server extends AppModel
             'column_default',
             'extra',
         )
-    ){
+    ) {
         $dbActualSchema = array();
         $dbActualIndexes = array();
         if ($this->isMysql()) {
@@ -3200,17 +3225,21 @@ class Server extends AppModel
                 $sqlSchema = sprintf(
                     "SELECT %s
                     FROM information_schema.columns
-                    WHERE table_schema = '%s' AND TABLE_NAME = '%s'", implode(',', $tableColumnNames), $this->getDataSource()->config['database'], $table);
+                    WHERE table_schema = '%s' AND TABLE_NAME = '%s'",
+                    implode(',', $tableColumnNames),
+                    $this->getDataSource()->config['database'],
+                    $table
+                );
                 $sqlResult = $this->query($sqlSchema);
                 $sqlResult = array_column($sqlResult, 'columns');
                 foreach ($sqlResult as $column_schema) {
-                    $column_schema = array_change_key_case($column_schema,CASE_LOWER);
+                    $column_schema = array_change_key_case($column_schema, CASE_LOWER);
                     $dbActualSchema[$table][] = $column_schema;
                 }
                 $dbActualIndexes[$table] = $this->getDatabaseIndexes($this->getDataSource()->config['database'], $table);
             }
         } else {
-            return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
+            return array('Database/PostgresExtended' => array('description' => __('Can\'t check database schema for Postgres database type')));
         }
         return ['schema' => $dbActualSchema, 'column' => $tableColumnNames, 'indexes' => $dbActualIndexes];
     }
@@ -3224,7 +3253,7 @@ class Server extends AppModel
         $nonCriticalColumnElements = array('collation_name');
         $dbDiff = array();
         // perform schema comparison for tables
-        foreach($dbExpectedSchema as $tableName => $columns) {
+        foreach ($dbExpectedSchema as $tableName => $columns) {
             if (!array_key_exists($tableName, $dbActualSchema)) {
                 $dbDiff[$tableName][] = array(
                     'description' => __('Table `%s` does not exist', $tableName),
@@ -3237,19 +3266,19 @@ class Server extends AppModel
                 // perform schema comparison for table's columns
                 $expectedColumnKeys = array();
                 $keyedExpectedColumn = array();
-                foreach($columns as $column) {
+                foreach ($columns as $column) {
                     $expectedColumnKeys[] = $column['column_name'];
                     $keyedExpectedColumn[$column['column_name']] = $column;
                 }
                 $existingColumnKeys = array();
                 $keyedActualColumn = array();
-                foreach($dbActualSchema[$tableName] as $column) {
+                foreach ($dbActualSchema[$tableName] as $column) {
                     $existingColumnKeys[] = $column['column_name'];
                     $keyedActualColumn[$column['column_name']] = $column;
                 }
 
                 $additionalKeysInActualSchema = array_diff($existingColumnKeys, $expectedColumnKeys);
-                foreach($additionalKeysInActualSchema as $additionalKeys) {
+                foreach ($additionalKeysInActualSchema as $additionalKeys) {
                     if (isset($allowedlistFields[$tableName]) && in_array($additionalKeys, $allowedlistFields[$tableName])) {
                         continue; // column is allowedlisted
                     }
@@ -3269,8 +3298,8 @@ class Server extends AppModel
                         if (count($colDiff) > 0) {
                             $colElementDiffs = array_keys(array_diff_assoc($column, $keyedActualColumn[$columnName]));
                             $isCritical = false;
-                            foreach($colElementDiffs as $colElementDiff) {
-                                if(!in_array($colElementDiff, $nonCriticalColumnElements)) {
+                            foreach ($colElementDiffs as $colElementDiff) {
+                                if (!in_array($colElementDiff, $nonCriticalColumnElements)) {
                                     if ($colElementDiff == 'column_default') {
                                         $expectedValue = $column['column_default'];
                                         $actualValue = $keyedActualColumn[$columnName]['column_default'];
@@ -3330,15 +3359,20 @@ class Server extends AppModel
     {
         $db = $this->getDataSource();
         $duplicates = $this->query(
-            sprintf('SELECT %s, COUNT(*) c FROM %s GROUP BY %s HAVING c > 1;',
-                $db->name($columnName), $db->name($tableName), $db->name($columnName))
+            sprintf(
+                'SELECT %s, COUNT(*) c FROM %s GROUP BY %s HAVING c > 1;',
+                $db->name($columnName),
+                $db->name($tableName),
+                $db->name($columnName)
+            )
         );
         return empty($duplicates);
     }
 
     private function generateSqlDropIndexQuery($tableName, $columnName)
     {
-        return sprintf('DROP INDEX `%s` ON %s;',
+        return sprintf(
+            'DROP INDEX `%s` ON %s;',
             $columnName,
             $tableName
         );
@@ -3359,7 +3393,8 @@ class Server extends AppModel
         } else {
             $keyLength = '';
         }
-        return sprintf('CREATE%s INDEX `%s` ON `%s` (`%s`%s);',
+        return sprintf(
+            'CREATE%s INDEX `%s` ON `%s` (`%s`%s);',
             $shouldBeUnique ? ' UNIQUE' : '',
             $columnName,
             $tableName,
@@ -4127,16 +4162,14 @@ class Server extends AppModel
             foreach ($composer['require'] as $require => $foo) {
                 if (substr($require, 0, 4) === 'ext-') {
                     $extensions[substr($require, 4)] = true;
-                }
-                else if (mb_strpos($require, '/') !== false) {  // external dependencies have namespaces, so a /
+                } else if (mb_strpos($require, '/') !== false) {  // external dependencies have namespaces, so a /
                     $dependencies[$require] = true;
                 }
             }
             foreach ($composer['suggest'] as $suggest => $reason) {
                 if (substr($suggest, 0, 4) === 'ext-') {
                     $extensions[substr($suggest, 4)] = $reason;
-                }
-                else if (mb_strpos($suggest, '/') !== false) {  // external dependencies have namespaces, so a /
+                } else if (mb_strpos($suggest, '/') !== false) {  // external dependencies have namespaces, so a /
                     $dependencies[$suggest] = $reason;
                 }
             }
@@ -4404,14 +4437,14 @@ class Server extends AppModel
         return $status;
     }
 
-    public function updateSubmodule($user, $submodule_name=false)
+    public function updateSubmodule($user, $submodule_name = false)
     {
         $path = APP . '../';
         if ($submodule_name == false) {
             $command = sprintf('cd %s; git submodule update --init --recursive 2>&1', $path);
             exec($command, $output, $return_code);
             $output = implode("\n", $output);
-            $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
+            $res = array('status' => ($return_code == 0 ? true : false), 'output' => $output);
             if ($return_code == 0) { // update all DB
                 $res = array_merge($res, $this->updateDatabaseAfterPullRouter($submodule_name, $user));
             }
@@ -4419,7 +4452,7 @@ class Server extends AppModel
             $command = sprintf('cd %s; git submodule update --init --recursive -- %s 2>&1', $path, $submodule_name);
             exec($command, $output, $return_code);
             $output = implode("\n", $output);
-            $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
+            $res = array('status' => ($return_code == 0 ? true : false), 'output' => $output);
             if ($return_code == 0) { // update DB if necessary
                 $res = array_merge($res, $this->updateDatabaseAfterPullRouter($submodule_name, $user));
             }
@@ -4470,23 +4503,23 @@ class Server extends AppModel
             $updateAll = empty($submodule_name);
             if ($submodule_name == 'app/files/misp-galaxy' || $updateAll) {
                 $this->Galaxy = ClassRegistry::init('Galaxy');
-                $result[] = ($this->Galaxy->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->Galaxy->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `' . h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/misp-objects' || $updateAll) {
                 $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
-                $result[] = ($this->ObjectTemplate->update($user, false, false) ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->ObjectTemplate->update($user, false, false) ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `' . h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/noticelists' || $updateAll) {
                 $this->Noticelist = ClassRegistry::init('Noticelist');
-                $result[] = ($this->Noticelist->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->Noticelist->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `' . h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/taxonomies' || $updateAll) {
                 $this->Taxonomy = ClassRegistry::init('Taxonomy');
-                $result[] = ($this->Taxonomy->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->Taxonomy->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `' . h($submodule_name) . '` failed.') . PHP_EOL;
             }
             if ($submodule_name == 'app/files/warninglists' || $updateAll) {
                 $this->Warninglist = ClassRegistry::init('Warninglist');
-                $result[] = ($this->Warninglist->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `'. h($submodule_name) . '` failed.') . PHP_EOL;
+                $result[] = ($this->Warninglist->update() ? 'Update `' . h($submodule_name) . '` Successful.' : 'Update `' . h($submodule_name) . '` failed.') . PHP_EOL;
             }
         }
         return implode('\n', $result);
@@ -4582,7 +4615,7 @@ class Server extends AppModel
         return (empty($server)) ? false : $server;
     }
 
-    public function restartWorkers($user=false)
+    public function restartWorkers($user = false)
     {
         if (Configure::read('MISP.background_jobs')) {
             $this->workerRemoveDead($user);
@@ -4592,7 +4625,7 @@ class Server extends AppModel
         return true;
     }
 
-    public function restartDeadWorkers($user=false)
+    public function restartDeadWorkers($user = false)
     {
         if (Configure::read('MISP.background_jobs')) {
             $killed = $this->workerRemoveDead($user);
@@ -4629,7 +4662,7 @@ class Server extends AppModel
             return __('Invalid worker type.');
         }
         if ($queue != 'scheduler') {
-            shell_exec(APP . 'Console' . DS . 'cake CakeResque.CakeResque start --interval 5 --queue ' . $queue .' > /dev/null 2>&1 &');
+            shell_exec(APP . 'Console' . DS . 'cake CakeResque.CakeResque start --interval 5 --queue ' . $queue . ' > /dev/null 2>&1 &');
         } else {
             shell_exec(APP . 'Console' . DS . 'cake CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
         }
@@ -4721,7 +4754,7 @@ class Server extends AppModel
             }
             $pipe->exec();
             if ($jobId) {
-                $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+                $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i - 1) * $chunk_size) + count($data)) . ' attributes cached.');
             }
         }
         $redis->set('misp:server_cache_timestamp:' . $serverId, time());
@@ -4816,10 +4849,10 @@ class Server extends AppModel
                 if ($server['Server']['id'] && $server['Server']['id'] == $id) {
                     if (
                         !($k === 0 && $direction === 'up') &&
-                        !(empty($servers[$k+1]) && $direction === 'down')
+                        !(empty($servers[$k + 1]) && $direction === 'down')
                     ) {
                         $temp = $servers[$k];
-                        $destination = $direction === 'up' ? $k-1 : $k+1;
+                        $destination = $direction === 'up' ? $k - 1 : $k + 1;
                         $servers[$k] = $servers[$destination];
                         $servers[$destination] = $temp;
                     } else {
@@ -4899,7 +4932,7 @@ class Server extends AppModel
         } catch (HttpSocketHttpException $e) {
             $this->logException('Could not fetch remote user account.', $e);
             return ['error' => $e->getCode()];
-        } catch  (Exception $e) {
+        } catch (Exception $e) {
             $this->logException('Could not fetch remote user account.', $e);
             $message = __('Could not fetch remote user account.');
             $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $id, 'Error: ' . $message);
@@ -4938,7 +4971,7 @@ class Server extends AppModel
             ],
             'fields' => ['Correlation.id', 'Correlation.attribute_id'],
         ]);
-        if (empty($orphansLeft))  {
+        if (empty($orphansLeft)) {
             return 0;
         }
         $orphansLeft = array_column($orphansLeft, 'Correlation');

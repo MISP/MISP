@@ -3500,7 +3500,7 @@ class AppModel extends Model
      */
     public function tableRows()
     {
-        if ($this->dataSource == 'Database/Postgres') {
+        if ($this->dataSource == 'Database/PostgresExtended') {
             $rows = $this->query("SELECT n_live_tup FROM pg_stat_user_tables WHERE relname = '{$this->table}';");
             return $rows[0][0]['n_live_tup'];
         }

@@ -60,7 +60,7 @@
 class DATABASE_CONFIG {
 
 	public $default = array(
-		'datasource' => 'Database/Postgres',
+		'datasource' => 'Database/PostgresExtended',
 		'persistent' => false,
 		'host' => 'localhost',
 		'login' => 'db login',

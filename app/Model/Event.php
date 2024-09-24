@@ -1589,7 +1589,7 @@ class Event extends AppModel
                                     )
                                 );
                                 $subQuery = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
-                                if ($param === 'value' && $this->dataSource != 'Database/Postgres') {
+                                if ($param === 'value' && $this->dataSource != 'Database/PostgresExtended') {
                                     $subQuery[0] = explode('WHERE', $subQuery[0]);
                                     $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
                                     $subQuery[0] = implode('WHERE', $subQuery[0]);
