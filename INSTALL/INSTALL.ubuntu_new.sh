@@ -21,10 +21,8 @@ rm ${logfile}.pipe
 
 function install_packages()
 {
-    sudo apt-get update &>> $logfile 
     sudo apt-get install -y ${@} &>> $logfile
     error_check 'Package installation'
-    print_ok "${@} installed."
 }
 
 function error_check
@@ -120,13 +118,14 @@ OPENSSL_EMAILADDRESS='misp@'${MISP_DOMAIN}
 
 
 # Update your base system
+print_status "Updating base system..."
 sudo apt-get update &>> $logfile
 sudo apt-get upgrade -y &>> $logfile
 
 # install all dependencies
 print_status "Installing dependencies..."
 ## install the basics
-declare -a packages=( git curl python3 python3-pip python3-virtualenv apache2 zip gcc make sudo binutils openssl );
+declare -a packages=( git curl python3 python3-pip python3-virtualenv apache2 zip gcc make sudo binutils openssl supervisor );
 install_packages ${packages[@]}
 
 print_ok "Basic dependencies installed."
@@ -154,6 +153,8 @@ print_ok "Composer installed."
 print_status "Cloning MISP"
 sudo git clone https://github.com/MISP/MISP.git ${MISP_PATH}  &>> $logfile
 print_ok "MISP cloned."
+sudo git config --global --add safe.directory ${MISP_PATH}  &>> $logfile
+sudo git -C ${MISP_PATH} submodule update --init --recursive &>> $logfile
 sudo git -C ${MISP_PATH} submodule foreach --recursive git config core.filemode false &>> $logfile
 sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>> $logfile
 print_ok "MISP's submodules cloned."
@@ -161,6 +162,19 @@ print_status "Installing MISP composer dependencies..."
 cd ${MISP_PATH}/app
 sudo -u ${APACHE_USER} composer install --no-dev &>> $logfile
 print_ok "MISP composer dependencies installed."
+
+print_status "Moving and configuring MISP php config files.."
+
+cd /var/www/MISP/app/Config
+cp -a bootstrap.default.php bootstrap.php
+cp -a database.default.php database.php
+cp -a core.default.php core.php
+cp -a config.default.php config.php
+sed -i "s#db login#misp#" database.php
+sed -i "s#db password#$misp_mysql_pass#" database.php
+sed -i "s#Rooraenietu8Eeyo<Qu2eeNfterd-dd+#$(random_string)#" config.php
+
+print_ok "MISP php config files moved and configured."
 
 # Generate ssl certificate
 if [ -z "${PATH_TO_SSL_CERT}" ]; then
@@ -213,21 +227,7 @@ print_status "Creating Apache configuration file for MISP..."
           Header set X-Frame-Options DENY
   </VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-ssl.conf
 
-print_ok "Apache configuration file created."
-
-
-print_status "Moving and configuring MISP php config files.."
-
-cd /var/www/MISP/app/Config
-cp -a bootstrap.default.php bootstrap.php
-cp -a database.default.php database.php
-cp -a core.default.php core.php
-cp -a config.default.php config.php
-sed -i "s#db login#misp#" database.php
-sed -i "s#db password#$misp_mysql_pass#" database.php
-sed -i "s#Rooraenietu8Eeyo<Qu2eeNfterd-dd+#$(random_string)#" config.php
-
-print_ok "MISP php config files moved and configured."
+print_ok "Apache configuration file created."  &>> $logfile
 
 
 print_status "Running MISP updates"
@@ -267,7 +267,7 @@ print_status "Setting up Python environment for MISP"
 sudo -u ${APACHE_USER} virtualenv -p python3 ${MISP_PATH}/venv &>> $logfile
 # make pip happy
 sudo mkdir /var/www/.cache/
-sudo chown -R -u ${APACHE_USER}:${APACHE_USER} /var/www/.cache/
+sudo chown -R ${APACHE_USER}:${APACHE_USER} /var/www/.cache/
 
 cd ${MISP_PATH}/venv
 . ./venv/bin/activate &>> $logfile
