@@ -31,7 +31,7 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
 
 !!! notice
     Semi-maintained and tested by @SteveClement, CentOS 7.6-1804 on 20190410<br />
-    It is still considered experimental as not everything works seemlessly.
+    It is still considered experimental as not everything works seamlessly.
 
 !!! notice
     Maintenance for CentOS 7 will end on: June 30th, 2024 [Source[0]](https://wiki.centos.org/About/Product) [Source[1]](https://linuxlifecycle.com/)

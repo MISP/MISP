@@ -673,7 +673,7 @@ doas $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
 doas $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
 doas $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
 
-# Enable Import modules set better timout
+# Enable Import modules set better timeout
 doas $CAKE Admin setSetting "Plugin.Import_services_enable" true
 doas $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
 doas $CAKE Admin setSetting "Plugin.Import_services_port" 6666
@@ -681,7 +681,7 @@ doas $CAKE Admin setSetting "Plugin.Import_timeout" 300
 doas $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
 doas $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
 
-# Enable Export modules set better timout
+# Enable Export modules set better timeout
 doas $CAKE Admin setSetting "Plugin.Export_services_enable" true
 doas $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
 doas $CAKE Admin setSetting "Plugin.Export_services_port" 6666

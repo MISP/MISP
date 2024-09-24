@@ -7,7 +7,7 @@ MISP is a web-based **information sharing platform**, by design it is kept rathe
 Bare in mind that neither the MISP documentation efforts or the core MISP project can give you the ultimate guide on how to harden your system.
 This is not the purpose of the MISP Project but the purpose and care of those individuals and organizations deploying MISP Instances.
 
-Nevertheless here is a very rough **food for thoughts** bulletpoint list for you to consider, and a list of some hardening ressources below.
+Nevertheless here is a very rough **food for thoughts** bulletpoint list for you to consider, and a list of some hardening resources below.
 
 - Are we using SSL by default? (Especially when syncing over the internet and exposing the API)
 - How to we access the machine remotely? Via ssh? What is the path to get there? Does a [bastion host](https://en.wikipedia.org/wiki/Bastion_host) make sense?
