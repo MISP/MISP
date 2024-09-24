@@ -9,6 +9,7 @@
         "ext-dom": "*",
         "ext-simplexml": "*",
         "ext-pcre": "*",
+        "ext-curl": "*",
         "iglocska/cake-resque": ">=4.2.1",
         "pear/crypt_gpg": "1.6.7",
         "monolog/monolog": "^2.5.0 || ^3.0.0",

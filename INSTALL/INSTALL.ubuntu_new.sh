@@ -86,13 +86,20 @@ save_settings() {
 
 # Configure the following variables in advance for your environment
 ## required settings - please change all of these, failing to do so will result in a non-working installation or a highly insecure installation
-MYSQL_ROOT_PASSWORD="$(random_string)"
 PASSWORD="$(random_string)"
-MYSQL_USER_PASSWORD="$(random_string)"
 MISP_DOMAIN='misp.local'
 PATH_TO_SSL_CERT=''
 
 ## optional settings
+### DB settings, if you want to use a different DB host, name, user, or password, please change these
+DBHOST='localhost'
+DBUSER_ADMIN='root'
+DBPASSWORD_ADMIN='' # Default on Ubuntu is a passwordless root account, if you have changed it, please set it here
+DBNAME='misp'
+DBPORT='3306'
+DBUSER_MISP='misp'
+DBPASSWORD_MISP="$(random_string)"
+
 MYSQL_USER_NAME='misp'
 MISP_PATH='/var/www/MISP'
 APACHE_USER='www-data'
@@ -136,7 +143,7 @@ install_packages ${packages[@]}
 print_ok "MariaDB installed."
 ## Install PHP and required extensions
 declare -a packages=( redis-server php8.3 php8.3-cli php8.3-dev php8.3-xml php8.3-mysql php8.3-opcache php8.3-readline php8.3-mbstring php8.3-zip \
-  php8.3-intl php8.3-bcmath php8.3-gd php8.3-redis php8.3-gnupg php8.3-apcu libapache2-mod-php8.3 );
+  php8.3-intl php8.3-bcmath php8.3-gd php8.3-redis php8.3-gnupg php8.3-apcu libapache2-mod-php8.3, php8.3-curl );
 install_packages ${packages[@]}
 
 print_ok "PHP and required extensions installed."
@@ -152,6 +159,8 @@ print_ok "Composer installed."
 
 print_status "Cloning MISP"
 sudo git clone https://github.com/MISP/MISP.git ${MISP_PATH}  &>> $logfile
+cd ${MISP_PATH}
+git checkout origin/feature/2.4_php8 &>> $logfile
 print_ok "MISP cloned."
 sudo git config --global --add safe.directory ${MISP_PATH}  &>> $logfile
 sudo git -C ${MISP_PATH} submodule update --init --recursive &>> $logfile
@@ -160,8 +169,33 @@ sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>> $logfile
 print_ok "MISP's submodules cloned."
 print_status "Installing MISP composer dependencies..."
 cd ${MISP_PATH}/app
-sudo -u ${APACHE_USER} composer install --no-dev &>> $logfile
+sudo -u ${APACHE_USER} composer install --no-dev --no-interaction --prefer-dist &>> $logfile
 print_ok "MISP composer dependencies installed."
+
+print_status "Create DB and user for MISP as well as importing the basic MISP schema..."
+
+DBUSER_ADMIN_STRING=''
+if [ ! -z "${DBUSER_ADMIN}" ]; then
+    DBUSER_ADMIN_STRING='-u '"${DBUSER_ADMIN}"
+fi
+
+DBPASSWORD_ADMIN_STRING=''
+if [ ! -z "${DBPASSWORD_ADMIN}" ]; then
+    DBPASSWORD_ADMIN_STRING='-p'"${DBPASSWORD_ADMIN}"
+fi
+
+DBPASSWORD_ADMIN_STRING=''
+if [ ! -z "${DBPASSWORD_ADMIN}" ]; then
+    DBPASSWORD_ADMIN_STRING='-p'"${DBPASSWORD_ADMIN}"
+fi
+
+DBCONN_STRING='-h '"${DBHOST}"' -P '"${DBPORT} ${DBUSER_ADMIN_STRING} ${DBPASSWORD_ADMIN_STRING}"
+
+sudo mysql $DBCONN_STRING -e "CREATE DATABASE ${DBNAME};"
+sudo mysql $DBCONN_STRING -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"
+sudo mysql $DBCONN_STRING -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"
+sudo mysql $DBCONN_STRING -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"
+sudo mysql $DBCONN_STRING -e "FLUSH PRIVILEGES;"
 
 print_status "Moving and configuring MISP php config files.."
 
@@ -170,8 +204,11 @@ cp -a bootstrap.default.php bootstrap.php
 cp -a database.default.php database.php
 cp -a core.default.php core.php
 cp -a config.default.php config.php
-sed -i "s#db login#misp#" database.php
-sed -i "s#db password#$misp_mysql_pass#" database.php
+sed -i "s#3306#${DBPORT}#" database.php
+sed -i "s#'host' => 'localhost'#'host' => '$DBHOST'#" database.php
+sed -i "s#db login#$DBUSER_MISP#" database.php
+sed -i "s#db password#$DBPASSWORD_MISP#" database.php
+sed -i "s#'database' => 'misp'#'database' => '$DBNAME'#" database.php
 sed -i "s#Rooraenietu8Eeyo<Qu2eeNfterd-dd+#$(random_string)#" config.php
 
 print_ok "MISP php config files moved and configured."
@@ -409,3 +446,20 @@ print_ok "Settings configured."
 print_status "Ingesting JSON structures"
 sudo -u ${APACHE_USER} ${MISP_PATH}app/Console/cake Admin updateJSON &>> $logfile
 print_ok "JSON structures ingested."
+
+  # Enable modules, settings, and default of SSL in Apache
+  sudo a2dismod status
+  sudo a2enmod ssl
+  sudo a2enmod rewrite
+  sudo a2enmod headers
+  sudo a2dissite 000-default
+  sudo a2ensite default-ssl
+
+  # Apply all changes
+  sudo systemctl restart apache2
+  # activate new vhost
+  sudo a2dissite default-ssl
+  sudo a2ensite misp-ssl
+
+  # Restart apache
+  sudo systemctl restart apache2

@@ -60,7 +60,7 @@
 class DATABASE_CONFIG {
 
 	public $default = array(
-		'datasource' => 'Database/Mysql',
+		'datasource' => 'Database/MysqlObserverExtended',
 		//'datasource' => 'Database/Postgres',
 		'persistent' => false,
 		'host' => 'localhost',
