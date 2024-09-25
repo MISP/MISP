@@ -206,7 +206,7 @@ if [ ! -z "${DBPASSWORD_ADMIN}" ]; then
 fi
 
 DBUSER_MISP_STRING=''
-if [ "$DBUSER_MISP" != 'root' ]; then
+if [ ! -z "${DBUSER_MISP}" ]; then
     DBUSER_MISP_STRING='-u '"${DBUSER_MISP}"
 fi
 
@@ -227,11 +227,11 @@ fi
 DBCONN_ADMIN_STRING="${DBPORT_STRING} ${DBHOST_STRING} ${DBUSER_ADMIN_STRING} ${DBPASSWORD_ADMIN_STRING}"
 DBCONN_MISP_STRING="${DBPORT_STRING} ${DBHOST_STRING} ${DBUSER_MISP_STRING} ${DBPASSWORD_MISP_STRING}"
 
-sudo mysql $DBCONN_STRING -e "CREATE DATABASE ${DBNAME};"  &>> $logfile
-sudo mysql $DBCONN_STRING -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"  &>> $logfile
-sudo mysql $DBCONN_STRING -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"  &>> $logfile
-sudo mysql $DBCONN_STRING -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"  &>> $logfile
-sudo mysql $DBCONN_STRING -e "FLUSH PRIVILEGES;"  &>> $logfile
+sudo mysql $DBCONN_ADMIN_STRING -e "CREATE DATABASE ${DBNAME};"  &>> $logfile
+sudo mysql $DBCONN_ADMIN_STRING -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';"  &>> $logfile
+sudo mysql $DBCONN_ADMIN_STRING -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"  &>> $logfile
+sudo mysql $DBCONN_ADMIN_STRING -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"  &>> $logfile
+sudo mysql $DBCONN_ADMIN_STRING -e "FLUSH PRIVILEGES;"  &>> $logfile
 mysql $DBCONN_MISP_STRING < "${MISP_PATH}/INSTALL/MYSQL.sql"  &>> $logfile
 print_ok "MISP database is ready to be used."
 
