@@ -638,3 +638,9 @@ sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>> $logfile
 sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git &>> $logfile
 
 save_settings
+
+print_notification "You can now access your MISP instance at https://${MISP_DOMAIN}"
+print_notification "The default admin credentials are:"
+print_notification "Username: admin@admin.test"
+print_notification "Password: ${PASSWORD}"
+print_notification "MISP setup complete. Thank you, and have a very safe, and productive day."
