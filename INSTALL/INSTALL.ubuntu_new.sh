@@ -224,7 +224,7 @@ error_check "Apache restart"
 sudo service mysql restart
 error_check "MySQL restart"
 
-print_status "PHP and MySQL configured..."
+print_ok "PHP and MySQL configured..."
 
 print_status "Cloning MISP"
 sudo git clone https://github.com/MISP/MISP.git ${MISP_PATH}  &>> $logfile
@@ -609,7 +609,7 @@ error_check "Background workers setup"
 print_ok "Settings configured."
 
 print_status "Ingesting JSON structures"
-sudo -u ${APACHE_USER} ${MISP_PATH}app/Console/cake Admin updateJSON &>> $logfile
+sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin updateJSON &>> $logfile
 error_check "JSON structures ingestion"
 
   # Enable modules, settings, and default of SSL in Apache
