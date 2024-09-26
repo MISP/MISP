@@ -399,6 +399,7 @@ class ACLComponent extends Component
             'delete' => array('perm_galaxy_editor'),
             'detach' => array('perm_tagger'),
             'edit' => array('perm_galaxy_editor'),
+            'export_for_misp_galaxy' => array('*'),
             'index' => array('*'),
             'publish' => array('perm_galaxy_editor'),
             'restore' => array('perm_galaxy_editor'),
