@@ -122,6 +122,25 @@ class BackgroundJobsTool
     {
         $this->settings = $settings;
 
+        if (!isset($this->settings['redis_host'])) {
+            $this->settings['redis_host'] = 'localhost';
+        }
+        if (!isset($this->settings['redis_port'])) {
+            $this->settings['redis_port'] = 6379;
+        }
+        if (!isset($this->settings['redis_database'])) {
+            $this->settings['redis_database'] = 1;
+        }
+        if (!isset($this->settings['redis_namespace'])) {
+            $this->settings['redis_namespace'] = 'background_jobs';
+        }
+        if (!isset($this->settings['max_job_history_ttl'])) {
+            $this->settings['max_job_history_ttl'] = 86400;
+        }
+        if (!isset($this->settings['supervisor_port'])) {
+            $this->settings['supervisor_port'] = 9001;
+        }
+        
         if ($this->settings['enabled'] === true) {
             $this->RedisConnection = $this->createRedisConnection();
         }
