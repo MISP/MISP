@@ -106,6 +106,8 @@ save_settings() {
 - Apache user: ${APACHE_USER}
 - GPG Email: ${GPG_EMAIL_ADDRESS}
 - GPG Passphrase: ${GPG_PASSPHRASE}
+- SUPERVISOR_USER: ${SUPERVISOR_USER}
+- SUPERVISOR_PASSWORD: ${SUPERVISOR_PASSWORD}
 " | tee /var/log/misp_settings.txt  &>> $logfile
 
     print_notification "Settings saved to /var/log/misp_settings.txt"
@@ -127,12 +129,21 @@ DBPORT='3306'
 DBUSER_MISP='misp'
 DBPASSWORD_MISP="$(random_string)"
 
+### Supervisor settings
+SUPERVISOR_USER='supervisor'
+SUPERVISOR_PASSWORD="$(random_string)"
+
+### PHP settings
+upload_max_filesize="50M"
+post_max_size="50M"
+max_execution_time="300"
+memory_limit="2048M"
+
 MYSQL_USER_NAME='misp'
 MISP_PATH='/var/www/MISP'
 APACHE_USER='www-data'
 
 ## GPG
-# On a REAL install, please do not set a comment, see here for why: https://www.debian-administration.org/users/dkg/weblog/97
 GPG_EMAIL_ADDRESS="admin@admin.test"
 GPG_PASSPHRASE="$(openssl rand -hex 32)"
 
@@ -165,16 +176,54 @@ print_status "Installing PHP and the list of required extensions..."
 declare -a packages=( redis-server php8.3 php8.3-cli php8.3-dev php8.3-xml php8.3-mysql php8.3-opcache php8.3-readline php8.3-mbstring php8.3-zip \
   php8.3-intl php8.3-bcmath php8.3-gd php8.3-redis php8.3-gnupg php8.3-apcu libapache2-mod-php8.3 php8.3-curl );
 install_packages ${packages[@]}
+PHP_ETC_BASE=/etc/php/8.3
+PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 print_ok "PHP and required extensions installed."
 
 # Install composer and the composer dependencies of MISP
 
 print_status "Installing composer..."
+
+## make pip and composer happy
+sudo mkdir /var/www/.cache/
+sudo chown -R ${APACHE_USER}:${APACHE_USER} /var/www/.cache/
+
 curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php &>> $logfile
 COMPOSER_HASH=`curl -sS https://composer.github.io/installer.sig`
 php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '$HASH') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"  &>> $logfile
 sudo php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer  &>> $logfile
 print_ok "Composer installed."
+
+print_status "Configuring php and MySQL configs..."
+for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+do
+    sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+done
+sudo sed -i "s/^\(session.sid_length\).*/\1 = 32/" $PHP_INI
+sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = 1/" $PHP_INI
+sudo sed -i "s/^\(session.save_handler\).*/\1 = redis/" $PHP_INI
+sudo sed -i "s/^\(session.save_path\).*/\1 = 'tcp:\/\/localhost:6379'/" $PHP_INI
+
+MYCNF="/etc/mysql/mariadb.conf.d/50-server.cnf"
+# We go for an innodb buffer pool size of 50% of the available memory
+
+# Check for cgroup memory limits, don't rely on /proc/meminfo in an LXC container with unbound memory limits
+# Thanks to Sascha Rommelfangen (@rommelfs) for the hint
+CGROUPMEMORYHIGHPATH="/sys/fs/cgroup/memory.high"
+if [ -f $CGROUPMEMORYHIGHPATH ] && [[ "cat ${CGROUPMEMORYHIGHPATH}" == "max" ]]; then
+    INNODBBUFFERPOOLSIZE='2048M'
+else
+    INNODBBUFFERPOOLSIZE=$(grep MemTotal /proc/meminfo | awk '{print int($2 / 2048)}')'M'
+fi
+
+sudo sed -i "/\[mariadb\]/a innodb_buffer_pool_size = ${INNODBBUFFERPOOLSIZE}" $MYCNF
+sudo sed -i '/\[mariadb\]/a innodb_io_capacity = 1000' $MYCNF
+sudo sed -i '/\[mariadb\]/a innodb_read_io_threads = 16' $MYCNF
+
+sudo service apache2 restart
+sudo service mysql restart
+
+print_status "PHP and MySQL configured..."
 
 print_status "Cloning MISP"
 sudo git clone https://github.com/MISP/MISP.git ${MISP_PATH}  &>> $logfile
@@ -232,7 +281,7 @@ sudo mysql $DBCONN_ADMIN_STRING -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDE
 sudo mysql $DBCONN_ADMIN_STRING -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"  &>> $logfile
 sudo mysql $DBCONN_ADMIN_STRING -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"  &>> $logfile
 sudo mysql $DBCONN_ADMIN_STRING -e "FLUSH PRIVILEGES;"  &>> $logfile
-mysql $DBCONN_MISP_STRING < "${MISP_PATH}/INSTALL/MYSQL.sql"  &>> $logfile
+mysql $DBCONN_MISP_STRING $DBNAME < "${MISP_PATH}/INSTALL/MYSQL.sql"  &>> $logfile
 print_ok "MISP database is ready to be used."
 
 print_status "Moving and configuring MISP php config files.."
@@ -309,7 +358,7 @@ print_status "Running MISP updates"
 
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.osuser" ${APACHE_USER} &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin runUpdates &>> $logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake User init | sudo tee /tmp/misp_user_key.txt
+sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake User init | sudo tee /tmp/misp_user_key.txt  &>> $logfile
 MISP_USER_KEY=`cat /tmp/misp_user_key.txt`
 rm -f /tmp/misp_user_key.txt
 
@@ -328,9 +377,6 @@ print_status "Setting up Python environment for MISP"
 
 # Create a python3 virtualenv
 sudo -u ${APACHE_USER} virtualenv -p python3 ${MISP_PATH}/venv &>> $logfile
-# make pip happy
-sudo mkdir /var/www/.cache/
-sudo chown -R ${APACHE_USER}:${APACHE_USER} /var/www/.cache/
 
 cd ${MISP_PATH}/venv
 . ./venv/bin/activate &>> $logfile
@@ -339,6 +385,85 @@ cd ${MISP_PATH}/venv
 ${MISP_PATH}/venv/bin/pip install -r ${MISP_PATH}/requirements.txt  &>> $logfile
 
 chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/venv
+
+print_status "Setting up background workers"
+
+sudo echo "
+[inet_http_server]
+port=127.0.0.1:9001
+username=$SUPERVISOR_USER
+password=$SUPERVISOR_PASSWORD" >> /etc/supervisor/supervisord.conf  &>> $logfile
+
+sudo echo "[group:misp-workers]
+programs=default,email,cache,prio,update
+
+[program:default]
+directory=$MISP_PATH
+command=$MISP_PATH/app/Console/cake start_worker default
+process_name=%(program_name)s_%(process_num)02d
+numprocs=5
+autostart=true
+autorestart=true
+redirect_stderr=false
+stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
+stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
+directory=$MISP_PATH
+user=$APACHE_USER
+
+[program:prio]
+directory=$MISP_PATH
+command=$MISP_PATH/app/Console/cake start_worker prio
+process_name=%(program_name)s_%(process_num)02d
+numprocs=5
+autostart=true
+autorestart=true
+redirect_stderr=false
+stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
+stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
+directory=$MISP_PATH
+user=$APACHE_USER
+
+[program:email]
+directory=$MISP_PATH
+command=$MISP_PATH/app/Console/cake start_worker email
+process_name=%(program_name)s_%(process_num)02d
+numprocs=5
+autostart=true
+autorestart=true
+redirect_stderr=false
+stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
+stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
+directory=$MISP_PATH
+user=$APACHE_USER
+
+[program:update]
+directory=$MISP_PATH
+command=$MISP_PATH/app/Console/cake start_worker update
+process_name=%(program_name)s_%(process_num)02d
+numprocs=1
+autostart=true
+autorestart=true
+redirect_stderr=false
+stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
+stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
+directory=$MISP_PATH
+user=$APACHE_USER
+
+[program:cache]
+directory=$MISP_PATH
+command=$MISP_PATH/app/Console/cake start_worker cache
+process_name=%(program_name)s_%(process_num)02d
+numprocs=5
+autostart=true
+autorestart=true
+redirect_stderr=false
+stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
+stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
+user=$APACHE_USER" > /etc/supervisor/conf.d/misp-workers.conf  &>> $logfile
+
+sudo systemctl restart supervisord  &>> $logfile
+
+print_ok "Backround workers configured."
 
 # Set settings
   # The default install is Python >=3.6 in a virtualenv, setting accordingly
@@ -367,12 +492,16 @@ chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/venv
 
   # Enable installer org and tune some configurables
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.host_org_id" 1 &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.email" "info@admin.test" &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.email" "${GPG_EMAIL_ADDRESS}" &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.disable_emailing" false &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.contact" "info@admin.test" &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.contact" "${GPG_EMAIL_ADDRESS}" &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.disablerestalert" true &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.showCorrelationsOnIndex" true &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.default_event_tag_collection" 0 &>> $logfile
+
+  # Configure background workers
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_user" ${SUPERVISOR_USER} &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_password" ${SUPERVISOR_PASSWORD} &>> $logfile
 
   # Various plugin sightings settings
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.Sightings_policy" 0 &>> $logfile
