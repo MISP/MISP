@@ -8,7 +8,7 @@
 # - The previous iterations of the official MISP installation guide, which can be found at: https://misp.github.io/MISP
 # - The automisp install guide by @da667, which can be found at: https://github.com/da667/AutoMISP/blob/master/auto-MISP-ubuntu.sh
 # - MISP-docker by @ostefano, which can be found at: https://github.com/MISP/MISP-docker
-# Thanks to both Tony Robinson (@da667), Stafano  and Steve Clement (@SteveClement) for their awesome work!
+# Thanks to both Tony Robinson (@da667), Stefano Ortolani (@ostefano) and Steve Clement (@SteveClement) for their awesome work!
 
 # This installation script assumes that you are installing as root, or a user with sudo access.
 
