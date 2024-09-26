@@ -418,8 +418,8 @@ class AppController extends Controller
             if (!empty($homepage)) {
                 $this->set('homepage', $homepage);
             }
-            if (PHP_MAJOR_VERSION >= 8) {
-                $this->Flash->error(__('WARNING: MISP is currently running under PHP 8.0, which is unsupported. Background jobs will fail, so please contact your administrator to run a supported PHP version (such as 7.4)'));
+            if (PHP_MAJOR_VERSION < 8) {
+                $this->Flash->error(__('WARNING: MISP 2.5.x is currently running under PHP 7.x, which is unsupported. Make sure that you upgrade to PHP 8.x as soon as possible.'));
             }
         }
     }
