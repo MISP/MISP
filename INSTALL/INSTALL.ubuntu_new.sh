@@ -12,6 +12,49 @@
 
 # This installation script assumes that you are installing as root, or a user with sudo access.
 
+# Configure the following variables in advance for your environment
+## required settings - please change all of these, failing to do so will result in a non-working installation or a highly insecure installation
+PASSWORD="$(random_string)"
+MISP_DOMAIN='misp.local'
+PATH_TO_SSL_CERT=''
+INSTALL_SSDEEP='n' # y/n, if you want to install ssdeep, set to 'y', however, this will require the installation of make
+
+## optional settings
+MISP_PATH='/var/www/MISP'
+APACHE_USER='www-data'
+
+### DB settings, if you want to use a different DB host, name, user, or password, please change these
+DBHOST='localhost'
+DBUSER_ADMIN='root'
+DBPASSWORD_ADMIN='' # Default on Ubuntu is a passwordless root account, if you have changed it, please set it here
+DBNAME='misp'
+DBPORT='3306'
+DBUSER_MISP='misp'
+DBPASSWORD_MISP="$(random_string)"
+
+### Supervisor settings
+SUPERVISOR_USER='supervisor'
+SUPERVISOR_PASSWORD="$(random_string)"
+
+### PHP settings
+upload_max_filesize="50M"
+post_max_size="50M"
+max_execution_time="300"
+memory_limit="2048M"
+
+## GPG
+GPG_EMAIL_ADDRESS="admin@admin.test"
+GPG_PASSPHRASE="$(openssl rand -hex 32)"
+
+### Only needed if no SSL CERT is provided
+OPENSSL_C='LU'
+OPENSSL_ST='Luxembourg'
+OPENSSL_L='Luxembourg'
+OPENSSL_O='MISP'
+OPENSSL_OU='MISP'
+OPENSSL_CN=${MISP_DOMAIN}
+OPENSSL_EMAILADDRESS='misp@'${MISP_DOMAIN}
+
 # Some helper functions shamelessly copied from @da667's automisp install script.
 
 logfile=/var/log/misp_install.log
@@ -113,49 +156,6 @@ save_settings() {
     print_notification "Settings saved to /var/log/misp_settings.txt"
 }
 
-# Configure the following variables in advance for your environment
-## required settings - please change all of these, failing to do so will result in a non-working installation or a highly insecure installation
-PASSWORD="$(random_string)"
-MISP_DOMAIN='misp.local'
-PATH_TO_SSL_CERT=''
-INSTALL_SSDEEP='n' # y/n, if you want to install ssdeep, set to 'y', however, this will require the installation of make
-
-## optional settings
-MISP_PATH='/var/www/MISP'
-APACHE_USER='www-data'
-
-### DB settings, if you want to use a different DB host, name, user, or password, please change these
-DBHOST='localhost'
-DBUSER_ADMIN='root'
-DBPASSWORD_ADMIN='' # Default on Ubuntu is a passwordless root account, if you have changed it, please set it here
-DBNAME='misp'
-DBPORT='3306'
-DBUSER_MISP='misp'
-DBPASSWORD_MISP="$(random_string)"
-
-### Supervisor settings
-SUPERVISOR_USER='supervisor'
-SUPERVISOR_PASSWORD="$(random_string)"
-
-### PHP settings
-upload_max_filesize="50M"
-post_max_size="50M"
-max_execution_time="300"
-memory_limit="2048M"
-
-## GPG
-GPG_EMAIL_ADDRESS="admin@admin.test"
-GPG_PASSPHRASE="$(openssl rand -hex 32)"
-
-### Only needed if no SSL CERT is provided
-OPENSSL_C='LU'
-OPENSSL_ST='Luxembourg'
-OPENSSL_L='Luxembourg'
-OPENSSL_O='MISP'
-OPENSSL_OU='MISP'
-OPENSSL_CN=${MISP_DOMAIN}
-OPENSSL_EMAILADDRESS='misp@'${MISP_DOMAIN}
-
 print_status "Updating base system..."
 sudo apt-get update &>> $logfile
 sudo apt-get upgrade -y &>> $logfile
@@ -232,8 +232,6 @@ print_status "Installing PECL extensions..."
 sudo pecl channel-update pecl.php.net &>> $logfile
 sudo pecl install brotli &>> $logfile
 error_check "PECL brotli extension installation"
-sudo pecl install rdkafka &>> $logfile
-error_check "PECL rdkafka extension installation"
 sudo pecl install simdjson &>> $logfile
 error_check "PECL simdjson extension installation"
 sudo pecl install zstd &>> $logfile
