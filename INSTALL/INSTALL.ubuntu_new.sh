@@ -12,6 +12,10 @@
 
 # This installation script assumes that you are installing as root, or a user with sudo access.
 
+random_string() {
+    cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1
+}
+
 # Configure the following variables in advance for your environment
 ## required settings - please change all of these, failing to do so will result in a non-working installation or a highly insecure installation
 PASSWORD="$(random_string)"
@@ -124,9 +128,6 @@ echo -e "${BLUE}██║ ╚═╝ ██║${NC}██║███████
 echo -e "${BLUE}╚═╝     ╚═╝${NC}╚═╝╚══════╝╚═╝     "
 echo -e "v2.5 Setup on Ubuntu 24.04 LTS"
 
-random_string() {
-    cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1
-}
 
 save_settings() {
     echo "[$(date)] MISP installation
