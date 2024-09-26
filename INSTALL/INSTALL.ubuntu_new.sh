@@ -120,6 +120,9 @@ MISP_DOMAIN='misp.local'
 PATH_TO_SSL_CERT=''
 
 ## optional settings
+MISP_PATH='/var/www/MISP'
+APACHE_USER='www-data'
+
 ### DB settings, if you want to use a different DB host, name, user, or password, please change these
 DBHOST='localhost'
 DBUSER_ADMIN='root'
@@ -139,10 +142,6 @@ post_max_size="50M"
 max_execution_time="300"
 memory_limit="2048M"
 
-MYSQL_USER_NAME='misp'
-MISP_PATH='/var/www/MISP'
-APACHE_USER='www-data'
-
 ## GPG
 GPG_EMAIL_ADDRESS="admin@admin.test"
 GPG_PASSPHRASE="$(openssl rand -hex 32)"
@@ -159,17 +158,17 @@ OPENSSL_EMAILADDRESS='misp@'${MISP_DOMAIN}
 print_status "Updating base system..."
 sudo apt-get update &>> $logfile
 sudo apt-get upgrade -y &>> $logfile
-print_ok "Base system updated."
+error_check "Base system update"
 
 print_status "Installing apt packages (git curl python3 python3-pip python3-virtualenv apache2 zip gcc make sudo binutils openssl supervisor)..."
 declare -a packages=( git curl python3 python3-pip python3-virtualenv apache2 zip gcc make sudo binutils openssl supervisor );
 install_packages ${packages[@]}
-print_ok "Basic dependencies installed."
+error_check "Basic dependencies installation"
 
 print_status "Installing MariaDB..."
 declare -a packages=( mariadb-server mariadb-client );
 install_packages ${packages[@]}
-print_ok "MariaDB installed."
+error_check "MariaDB installation"
 
 
 print_status "Installing PHP and the list of required extensions..."
@@ -178,7 +177,7 @@ declare -a packages=( redis-server php8.3 php8.3-cli php8.3-dev php8.3-xml php8.
 install_packages ${packages[@]}
 PHP_ETC_BASE=/etc/php/8.3
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-print_ok "PHP and required extensions installed."
+error_check "PHP and required extensions installation."
 
 # Install composer and the composer dependencies of MISP
 
@@ -192,7 +191,7 @@ curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php &>> $logfi
 COMPOSER_HASH=`curl -sS https://composer.github.io/installer.sig`
 php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '$HASH') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"  &>> $logfile
 sudo php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer  &>> $logfile
-print_ok "Composer installed."
+error_check "Composer installation"
 
 print_status "Configuring php and MySQL configs..."
 for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
@@ -202,7 +201,7 @@ done
 sudo sed -i "s/^\(session.sid_length\).*/\1 = 32/" $PHP_INI
 sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = 1/" $PHP_INI
 sudo sed -i "s/^\(session.save_handler\).*/\1 = redis/" $PHP_INI
-sudo sed -i "s/^\(session.save_path\).*/\1 = 'tcp:\/\/localhost:6379'/" $PHP_INI
+sudo sed -i "/session.save_handler/a session.save_path = 'tcp:\/\/localhost:6379'/" $PHP_INI
 
 MYCNF="/etc/mysql/mariadb.conf.d/50-server.cnf"
 # We go for an innodb buffer pool size of 50% of the available memory
@@ -221,27 +220,34 @@ sudo sed -i '/\[mariadb\]/a innodb_io_capacity = 1000' $MYCNF
 sudo sed -i '/\[mariadb\]/a innodb_read_io_threads = 16' $MYCNF
 
 sudo service apache2 restart
+error_check "Apache restart"
 sudo service mysql restart
+error_check "MySQL restart"
 
 print_status "PHP and MySQL configured..."
 
 print_status "Cloning MISP"
 sudo git clone https://github.com/MISP/MISP.git ${MISP_PATH}  &>> $logfile
+error_check "MISP clonining"
 cd ${MISP_PATH}
-git checkout origin/feature/2.4_php8 &>> $logfile
-print_ok "MISP cloned."
+git fetch origin feature/2.4_php8 &>> $logfile
+error_check "Fetching feature/2.4_php8 branch"
+git checkout feature/2.4_php8 &>> $logfile
+error_check "Checking out feature/2.4_php8 branch"
 
 print_status "Cloning MISP submodules..."
 sudo git config --global --add safe.directory ${MISP_PATH}  &>> $logfile
 sudo git -C ${MISP_PATH} submodule update --init --recursive &>> $logfile
+error_check "MISP submodules cloning"
 sudo git -C ${MISP_PATH} submodule foreach --recursive git config core.filemode false &>> $logfile
 sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>> $logfile
+sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git &>> $logfile
 print_ok "MISP's submodules cloned."
 
 print_status "Installing MISP composer dependencies..."
 cd ${MISP_PATH}/app
 sudo -u ${APACHE_USER} composer install --no-dev --no-interaction --prefer-dist &>> $logfile
-print_ok "MISP composer dependencies installed."
+error_check "MISP composer dependencies installation"
 
 print_status "Create DB and user for MISP as well as importing the basic MISP schema..."
 DBUSER_ADMIN_STRING=''
@@ -282,7 +288,7 @@ sudo mysql $DBCONN_ADMIN_STRING -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'loca
 sudo mysql $DBCONN_ADMIN_STRING -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"  &>> $logfile
 sudo mysql $DBCONN_ADMIN_STRING -e "FLUSH PRIVILEGES;"  &>> $logfile
 mysql $DBCONN_MISP_STRING $DBNAME < "${MISP_PATH}/INSTALL/MYSQL.sql"  &>> $logfile
-print_ok "MISP database is ready to be used."
+error_check "MISP database schema import"
 
 print_status "Moving and configuring MISP php config files.."
 
@@ -306,7 +312,7 @@ if [ -z "${PATH_TO_SSL_CERT}" ]; then
     sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
     -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
     -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt &>> $logfile
-    print_ok "Self-signed SSL certificate generated."
+    error_check "Self-signed SSL certificate generation"
 else
     print_status "Using provided SSL certificate."
 fi
@@ -351,7 +357,7 @@ print_status "Creating Apache configuration file for MISP..."
           Header set X-Frame-Options DENY
   </VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-ssl.conf  &>> $logfile
 
-print_ok "Apache configuration file created."  &>> $logfile
+error_check "Apache configuration file creation"  &>> $logfile
 
 
 print_status "Running MISP updates"
@@ -369,20 +375,24 @@ print_status "Generating PGP key"
 # set in the configuration menu in the administration menu configuration file
 
 sudo -u ${APACHE_USER} gpg --homedir $MISP_PATH/.gnupg --quick-generate-key --batch --passphrase ${GPG_PASSPHRASE} ${GPG_EMAIL_ADDRESS} ed25519 sign never  &>> $logfile
-
+error_check "PGP key generation"
 # Export the public key to the webroot
 sudo -u ${APACHE_USER} gpg --homedir $MISP_PATH/.gnupg --export --armor ${GPG_EMAIL_ADDRESS} | sudo -u ${APACHE_USER} tee $MISP_PATH/app/webroot/gpg.asc  &>> $logfile
+error_check "PGP key export"
 
 print_status "Setting up Python environment for MISP"
 
 # Create a python3 virtualenv
 sudo -u ${APACHE_USER} virtualenv -p python3 ${MISP_PATH}/venv &>> $logfile
+error_check "Python virtualenv creation"
 
-cd ${MISP_PATH}/venv
+cd ${MISP_PATH}
 . ./venv/bin/activate &>> $logfile
+error_check "Python virtualenv activation"
 
 # install python dependencies
 ${MISP_PATH}/venv/bin/pip install -r ${MISP_PATH}/requirements.txt  &>> $logfile
+error_check "Python dependencies installation"
 
 chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/venv
 
@@ -392,7 +402,7 @@ sudo echo "
 [inet_http_server]
 port=127.0.0.1:9001
 username=$SUPERVISOR_USER
-password=$SUPERVISOR_PASSWORD" >> /etc/supervisor/supervisord.conf  &>> $logfile
+password=$SUPERVISOR_PASSWORD" | sudo tee -a /etc/supervisor/supervisord.conf  &>> $logfile
 
 sudo echo "[group:misp-workers]
 programs=default,email,cache,prio,update
@@ -459,11 +469,10 @@ autorestart=true
 redirect_stderr=false
 stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
 stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
-user=$APACHE_USER" > /etc/supervisor/conf.d/misp-workers.conf  &>> $logfile
+user=$APACHE_USER"  | sudo tee -a /etc/supervisor/conf.d/misp-workers.conf  &>> $logfile
 
-sudo systemctl restart supervisord  &>> $logfile
-
-print_ok "Backround workers configured."
+sudo systemctl restart supervisor  &>> $logfile
+error_check "Background workers setup"
 
 # Set settings
   # The default install is Python >=3.6 in a virtualenv, setting accordingly
@@ -500,6 +509,7 @@ print_ok "Backround workers configured."
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.default_event_tag_collection" 0 &>> $logfile
 
   # Configure background workers
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" 1 &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_user" ${SUPERVISOR_USER} &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_password" ${SUPERVISOR_PASSWORD} &>> $logfile
 
@@ -600,7 +610,7 @@ print_ok "Settings configured."
 
 print_status "Ingesting JSON structures"
 sudo -u ${APACHE_USER} ${MISP_PATH}app/Console/cake Admin updateJSON &>> $logfile
-print_ok "JSON structures ingested."
+error_check "JSON structures ingestion"
 
   # Enable modules, settings, and default of SSL in Apache
   sudo a2dismod status &>> $logfile
@@ -618,6 +628,12 @@ print_ok "JSON structures ingested."
 
   # Restart apache
   sudo systemctl restart apache2 &>> $logfile
+  error_check "Apache restart"
 
-  print_ok "Settings configured."
-  save_settings
+print_ok "Settings configured."
+
+print_status "Finalising MISP setup..."
+sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>> $logfile
+sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git &>> $logfile
+
+save_settings
