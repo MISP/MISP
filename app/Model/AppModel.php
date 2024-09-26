@@ -92,7 +92,7 @@ class AppModel extends Model
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
         117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
-        129 => false
+        129 => false, 130 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2215,6 +2215,10 @@ class AppModel extends Model
                   break;
             case 129:
                 $sqlArray[] = "ALTER TABLE `bookmarks` ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci;";
+                break;
+            case 130:
+                // change bookmarks' table's comment field to utf8_mb4
+                $sqlArray[] = "ALTER TABLE `bookmarks` MODIFY `comment` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

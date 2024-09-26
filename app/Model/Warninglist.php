@@ -884,6 +884,24 @@ class Warninglist extends AppModel
         }
     }
 
+    public function parseArray($input)
+    {
+        $entries = [];
+        foreach ($input as $entry) {
+            if (is_array($entry)) {
+                $entries[] = [
+                    'value' => $entry['value'],
+                    'comment' => isset($entry['comment']) ? $entry['comment'] : null,
+                ];
+            } else {
+                $entries[] = [
+                    'value' => $entry
+                ];
+            }
+        }
+        return $entries;
+    }
+
     /**
      * @param string $input
      * @return array

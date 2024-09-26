@@ -60,7 +60,7 @@ psql -U misp -d misp -f /var/www/MISP/INSTALL/POSTGRESQL-data-initial.sql -h loc
 
 
 # ATTENTION: skip this step if you want to migrate from MySQL/MariaDB!
-# perhaps you accidently installed MySQL/MariaDB, too - but you can clean it up like this
+# perhaps you accidentally installed MySQL/MariaDB, too - but you can clean it up like this
 sudo apt-get remove mysql-server mysql-client mariadb-client mariadb-server php5-mysql
 
 
