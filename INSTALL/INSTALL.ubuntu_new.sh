@@ -90,7 +90,7 @@ save_settings() {
 
 [MISP admin user]
 - Admin Username: admin@admin.test
-- Admin Password: admin
+- Admin Password: ${PASSWORD}
 - Admin API key: ${MISP_USER_KEY}
 
 [MYSQL ADMIN]
@@ -118,6 +118,7 @@ save_settings() {
 PASSWORD="$(random_string)"
 MISP_DOMAIN='misp.local'
 PATH_TO_SSL_CERT=''
+INSTALL_SSDEEP='n' # y/n, if you want to install ssdeep, set to 'y', however, this will require the installation of make
 
 ## optional settings
 MISP_PATH='/var/www/MISP'
@@ -225,6 +226,28 @@ sudo service mysql restart
 error_check "MySQL restart"
 
 print_ok "PHP and MySQL configured..."
+
+print_status "Installing PECL extensions..."
+
+sudo pecl channel-update pecl.php.net &>> $logfile
+sudo pecl install brotli &>> $logfile
+error_check "PECL brotli extension installation"
+sudo pecl install rdkafka &>> $logfile
+error_check "PECL rdkafka extension installation"
+sudo pecl install simdjson &>> $logfile
+error_check "PECL simdjson extension installation"
+sudo pecl install zstd &>> $logfile
+error_check "PECL zstd extension installation"
+
+if [ $INSTALL_SSDEEP == "y" ]; then
+    sudo apt install make -y &>> $logfile
+    error_check "The installation of make"
+    git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
+    error_check "Jakub Onderka's PHP8 SSDEEP extension cloning"
+    cd /tmp/pecl-text-ssdeep && phpize && ./configure && make && make install
+    error_check "Jakub Onderka's PHP8 SSDEEP extension compilation and installation"
+fi
+
 
 print_status "Cloning MISP"
 sudo git clone https://github.com/MISP/MISP.git ${MISP_PATH}  &>> $logfile
@@ -365,7 +388,7 @@ print_status "Running MISP updates"
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.osuser" ${APACHE_USER} &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin runUpdates &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake User init | sudo tee /tmp/misp_user_key.txt  &>> $logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake User changepw 'admin@admin.test' ${PASSWORD} &>> $logfile
+sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake User change_pw 'admin@admin.test' ${PASSWORD} &>> $logfile
 MISP_USER_KEY=`cat /tmp/misp_user_key.txt`
 rm -f /tmp/misp_user_key.txt
 
@@ -375,7 +398,7 @@ print_status "Generating PGP key"
 # The email address should match the one set in the config.php
 # set in the configuration menu in the administration menu configuration file
 
-sudo -u ${APACHE_USER} gpg --homedir $MISP_PATH/.gnupg --quick-generate-key --batch --passphrase ${GPG_PASSPHRASE} ${GPG_EMAIL_ADDRESS} ed25519 sign never  &>> $logfile
+sudo -u ${APACHE_USER} gpg --homedir $MISP_PATH/.gnupg --quick-generate-key --batch --passphrase $GPG_PASSPHRASE ${GPG_EMAIL_ADDRESS} ed25519 sign never  &>> $logfile
 error_check "PGP key generation"
 # Export the public key to the webroot
 sudo -u ${APACHE_USER} gpg --homedir $MISP_PATH/.gnupg --export --armor ${GPG_EMAIL_ADDRESS} | sudo -u ${APACHE_USER} tee $MISP_PATH/app/webroot/gpg.asc  &>> $logfile
@@ -508,6 +531,7 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.disablerestalert" true &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.showCorrelationsOnIndex" true &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.default_event_tag_collection" 0 &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.log_new_audit" 1 &>> $logfile
 
   # Configure background workers
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" 1 &>> $logfile
@@ -574,18 +598,10 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.event_alert_republish_ban_threshold" 5 &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.event_alert_republish_ban_refresh_on_retry" false &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.incoming_tags_disabled_by_default" false &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.maintenance_message" "Great things are happening! MISP is undergoing maintenance, but will return shortly. You can contact the administration at \$email." &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.footermidleft" "This is an initial install" &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.footermidright" "Please configure and harden accordingly" &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.welcome_text_top" "Initial Install, please configure" &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.welcome_text_bottom" "Welcome to MISP on Ubuntu, change this message in MISP Settings" &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.attachments_dir" "${MISP_PATH}/app/files" &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.download_attachments_on_load" true &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.event_alert_metadata_only" false &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.title_text" "MISP" &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.terms_download" false &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.showorgalternate" false &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.event_view_filter_fields" "id, uuid, value, comment, type, category, Tag.name" &>> $logfile
 
   # Force defaults to make MISP Server Settings less GREEN
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "debug" 0 &>> $logfile
