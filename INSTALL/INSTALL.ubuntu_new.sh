@@ -365,6 +365,7 @@ print_status "Running MISP updates"
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.osuser" ${APACHE_USER} &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin runUpdates &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake User init | sudo tee /tmp/misp_user_key.txt  &>> $logfile
+sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake User changepw 'admin@admin.test' ${PASSWORD} &>> $logfile
 MISP_USER_KEY=`cat /tmp/misp_user_key.txt`
 rm -f /tmp/misp_user_key.txt
 
