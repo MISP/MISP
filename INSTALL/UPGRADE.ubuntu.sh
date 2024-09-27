@@ -20,13 +20,6 @@ random_string() {
 MISP_PATH='/var/www/MISP'
 APACHE_USER='www-data'
 
-### DB settings, if you want to use a different DB host, name, user, or password, please change these
-DBHOST='localhost'
-DBUSER_ADMIN='root'
-DBPASSWORD_ADMIN='' # Default on Ubuntu is a passwordless root account, if you have changed it, please set it here
-DBNAME='misp'
-DBPORT='3306'
-
 ### Supervisor settings
 SWITCH_TO_SUPERVISOR=true
 SUPERVISOR_USER='supervisor'
@@ -107,6 +100,18 @@ print_status "Updating base system..."
 sudo apt-get update &>> $logfile
 sudo apt-get upgrade -y &>> $logfile
 error_check "Base system update"
+
+print_status "Checking if we're on the correct branch of MISP and updating it to the latest 2.4 release..."
+cd ${MISP_PATH}
+CURRENT_MISP_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ $CURRENT_MISP_BRANCH != "2.4" ]; then
+    print_error "You are not on the 2.4 branch of MISP. This upgrade script is meant to take your MISP 2.4 installation to 2.5+. Please switch to the 2.4 branch before running this script."
+    exit 1
+fi
+git pull origin 2.4 &>> $logfile
+error_check "Updating MISP to the latest 2.4 release"
+sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin runUpdates &>> $logfile
+error_check "Updating MISP's database to the latest 2.4 release's schema"
 
 print_status "Installing apt packages (supervisor)..."
 declare -a packages=( supervisor );
