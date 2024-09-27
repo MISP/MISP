@@ -88,16 +88,6 @@ function error_check
     fi
 }
 
-function error_check_silent
-{
-    if [ $? -eq 0 ]; then
-        print_ok "$1 successfully completed."
-    else
-        print_error "$1 failed. Please check $logfile for more details."
-    exit 1
-    fi
-}
-
 function print_status ()
 {
     echo -e "\x1B[01;34m[STATUS]\x1B[0m $1"
