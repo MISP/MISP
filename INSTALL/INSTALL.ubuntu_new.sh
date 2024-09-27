@@ -304,7 +304,7 @@ error_check "MISP database schema import"
 
 print_status "Moving and configuring MISP php config files.."
 
-cd /var/www/MISP/app/Config
+cd ${MISP_PATH}/app/Config
 cp -a bootstrap.default.php bootstrap.php
 cp -a database.default.php database.php
 cp -a core.default.php core.php
