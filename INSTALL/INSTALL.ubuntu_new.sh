@@ -633,8 +633,6 @@ error_check "JSON structures ingestion"
   sudo a2dissite 000-default &>> $logfile
   sudo a2ensite default-ssl &>> $logfile
 
-  # Apply all changes
-  sudo systemctl restart apache2 &>> $logfile
   # activate new vhost
   sudo a2dissite default-ssl &>> $logfile
   sudo a2ensite misp-ssl &>> $logfile
