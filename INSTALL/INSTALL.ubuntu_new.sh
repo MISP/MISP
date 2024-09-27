@@ -4,7 +4,7 @@
 # This guide is meant to be a simply installation of MISP on a pristine Ubuntu 20.04 LTS server.
 # Keep in mind that whilst this installs the software along with all of its dependencies, it's up to you to properly secure it.
 
-# This guide liberally borrows from two sources:
+# This guide liberally borrows from three sources:
 # - The previous iterations of the official MISP installation guide, which can be found at: https://misp.github.io/MISP
 # - The automisp install guide by @da667, which can be found at: https://github.com/da667/AutoMISP/blob/master/auto-MISP-ubuntu.sh
 # - MISP-docker by @ostefano, which can be found at: https://github.com/MISP/MISP-docker
