@@ -24,6 +24,7 @@ APACHE_USER='www-data'
 SWITCH_TO_SUPERVISOR=true
 SUPERVISOR_USER='supervisor'
 SUPERVISOR_PASSWORD="$(random_string)"
+$INSTALL_SSDEEP=false
 
 # Some helper functions shamelessly copied from @da667's automisp install script.
 
@@ -82,7 +83,7 @@ echo -e "${BLUE}██╔████╔██║${NC}██║█████�
 echo -e "${BLUE}██║╚██╔╝██║${NC}██║╚════██║██╔═══╝ "
 echo -e "${BLUE}██║ ╚═╝ ██║${NC}██║███████║██║     "
 echo -e "${BLUE}╚═╝     ╚═╝${NC}╚═╝╚══════╝╚═╝     "
-echo -e "v2.5 Setup on Ubuntu 24.04 LTS"
+echo -e "v2.5 Upgrade on Ubuntu 24.04 LTS"
 
 
 save_settings() {
@@ -102,19 +103,22 @@ sudo apt-get upgrade -y &>> $logfile
 error_check "Base system update"
 
 print_status "Checking if we're on the correct branch of MISP and updating it to the latest 2.4 release..."
+sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}
+sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git
 cd ${MISP_PATH}
-CURRENT_MISP_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+git config --global --add safe.directory ${MISP_PATH}
+CURRENT_MISP_BRANCH=$(sudo -u ${APACHE_USER} git rev-parse --abbrev-ref HEAD)
 if [ $CURRENT_MISP_BRANCH != "2.4" ]; then
     print_error "You are not on the 2.4 branch of MISP. This upgrade script is meant to take your MISP 2.4 installation to 2.5+. Please switch to the 2.4 branch before running this script."
-    exit 1
+    # exit 1
 fi
-git pull origin 2.4 &>> $logfile
+sudo -u ${APACHE_USER} git pull origin 2.4 &>> $logfile
 error_check "Updating MISP to the latest 2.4 release"
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin runUpdates &>> $logfile
 error_check "Updating MISP's database to the latest 2.4 release's schema"
 
-print_status "Installing apt packages (supervisor)..."
-declare -a packages=( supervisor );
+print_status "Installing apt packages (supervisor jq)..."
+declare -a packages=( supervisor jq );
 install_packages ${packages[@]}
 error_check "Basic dependencies installation"
 
@@ -126,13 +130,22 @@ PHP_ETC_BASE=/etc/php/8.3
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 error_check "PHP and required extensions installation."
 
+print_status "Disabling/Enabling php apache module (trial and error like a monkey)..."
+sudo a2dismod php7.0 &>> $logfile
+sudo a2dismod php7.1 &>> $logfile
+sudo a2dismod php7.2 &>> $logfile
+sudo a2dismod php7.3 &>> $logfile
+sudo a2dismod php7.4 &>> $logfile
+sudo a2enmod php8.3 &>> $logfile
+error_check "PHP 8.3 module enabling"
+
 # Install composer and the composer dependencies of MISP
 
 print_status "Installing composer..."
 
 ## make pip and composer happy
-sudo mkdir /var/www/.cache/
-sudo chown -R ${APACHE_USER}:${APACHE_USER} /var/www/.cache/
+sudo mkdir /var/www/.cache/ &>> $logfile
+sudo chown -R ${APACHE_USER}:${APACHE_USER} /var/www/.cache/ &>> $logfile
 
 curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php &>> $logfile
 COMPOSER_HASH=`curl -sS https://composer.github.io/installer.sig`
@@ -154,7 +167,7 @@ error_check "PECL simdjson extension installation"
 sudo pecl install zstd &>> $logfile
 error_check "PECL zstd extension installation"
 
-if [ $INSTALL_SSDEEP == "y" ]; then
+if [ $INSTALL_SSDEEP ]; then
     sudo apt install make -y &>> $logfile
     error_check "The installation of make"
     git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
@@ -182,14 +195,15 @@ print_ok "MISP's submodules cloned."
 
 print_status "Installing MISP composer dependencies..."
 cd ${MISP_PATH}/app
+sudo -u ${APACHE_USER} rm -f composer.lock
 sudo -u ${APACHE_USER} composer install --no-dev --no-interaction --prefer-dist &>> $logfile
 error_check "MISP composer dependencies installation"
 
 print_status "Reworking the MISP database.php file"
 
 cd ${MISP_PATH}/app/Config
-cp -a database.php database.php.bk
-cp -a database.default.php database.php
+sudo -u ${APACHE_USER} cp -a database.php database.php.bk
+sudo -u ${APACHE_USER} cp -a database.default.php database.php
 
 declare -a dbsettings=("datasource" "persistent" "host" "login" "port" "password" "database" "prefix" "encoding")
 for i in "${dbsettings[@]}"
