@@ -177,12 +177,12 @@ if [ $INSTALL_SSDEEP ]; then
 fi
 
 
-print_status "Switching to the feature/2.4_php8 branch"
+print_status "Switching to the 2.5 branch"
 cd ${MISP_PATH}
-git fetch origin feature/2.4_php8 &>> $logfile
-error_check "Fetching feature/2.4_php8 branch"
-git checkout feature/2.4_php8 &>> $logfile
-error_check "Checking out feature/2.4_php8 branch"
+git fetch origin 2.5 &>> $logfile
+error_check "Fetching 2.5 branch"
+git checkout 2.5 &>> $logfile
+error_check "Checking out 2.5 branch"
 
 print_status "Cloning MISP submodules..."
 sudo git config --global --add safe.directory ${MISP_PATH}  &>> $logfile
