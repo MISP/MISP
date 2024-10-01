@@ -1679,6 +1679,7 @@ class Server extends AppModel
                     return $leafValue;
                 }
             }
+
             if (!empty($leafValue['test'])) {
                 if ($leafValue['test'] instanceof Closure) {
                     $result = $leafValue['test']($setting);
@@ -1690,6 +1691,8 @@ class Server extends AppModel
                     if ($result !== false) {
                         $leafValue['errorMessage'] = $result;
                     }
+                } else {
+                    $leafValue['errorMessage'] = null;
                 }
             }
             if (isset($leafValue['optionsSource'])) {

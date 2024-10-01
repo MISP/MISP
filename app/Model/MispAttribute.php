@@ -3469,6 +3469,7 @@ class MispAttribute extends AppModel
                 'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.comment', 'Attribute.to_ids', 'Attribute.value', 'Attribute.value' . $valueField),
                 'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
                 'enforceWarninglist' => $enforceWarninglist,
+                'allow_proposal_blocking' => true,
                 'flatten' => 1
             )
         );

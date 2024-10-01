@@ -659,6 +659,24 @@ class GalaxyClustersController extends AppController
         }
     }
 
+    public function export_for_misp_galaxy($id)
+    {
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', $throwErrors=true, $full=true);
+        $galaxy = ['Galaxy' => $cluster['GalaxyCluster']['Galaxy']];
+        $convertedCluster = $this->GalaxyCluster->Galaxy->convertToMISPGalaxyFormat($galaxy, [$cluster]);
+        $convertedCluster = !empty($convertedCluster['values']) ? $convertedCluster['values'][0] : [];
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($convertedCluster, $this->response->type());
+        } else {
+            $this->set('id', $cluster['GalaxyCluster']['id']);
+            $this->set('cluster', $cluster);
+            $this->set('galaxy', $galaxy);
+            $this->set('galaxy_id', $galaxy['Galaxy']['id']);
+            $this->set('convertedCluster', $convertedCluster);
+            $this->render('cluster_export_misp_galaxy');
+        }
+    }
+
     public function viewCyCatRelations($id)
     {
         $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', true, false);

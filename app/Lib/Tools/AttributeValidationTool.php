@@ -27,6 +27,7 @@ class AttributeValidationTool
         'sha3-256' => 64,
         'sha3-384' => 96,
         'sha3-512' => 128,
+        'dom-hash' => 32,
     ];
 
     /**
@@ -72,6 +73,7 @@ class AttributeValidationTool
             case 'email-dst':
             case 'target-email':
             case 'whois-registrant-email':
+            case 'dom-hash':
                 return strtolower($value);
             case 'domain':
                 $value = strtolower($value);
@@ -244,6 +246,7 @@ class AttributeValidationTool
             case 'x509-fingerprint-sha256':
             case 'x509-fingerprint-sha1':
             case 'git-commit-id':
+            case 'dom-hash':
                 if (self::isHashValid($type, $value)) {
                     return true;
                 }
@@ -589,7 +592,7 @@ class AttributeValidationTool
                 }
                 return __('AS number have to be integer between 1 and 4294967295');
         }
-        throw new InvalidArgumentException("Unknown type $type.");
+        throw new InvalidArgumentException("Unknown attribute type $type.");
     }
 
     /**

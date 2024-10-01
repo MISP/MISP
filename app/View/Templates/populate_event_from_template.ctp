@@ -35,9 +35,7 @@ echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<?php
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'populateFromtemplate', 'event' => array('Event' => array('id' => $event_id)), 'template_id' => $template_id));
-?>
+<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'populateFromtemplate', 'event' => $event, 'template_id' => $template_id)); ?>
 <?php
     if (!empty($fileArray)) {
         $fileArray = json_decode($fileArray, true);
@@ -51,8 +49,8 @@ echo $this->Form->end();
         $fileArray = json_encode($fileArray);
     }
 ?>
-<script type="text/javascript">
-$(document).ready(function() {
+<script>
+$(function() {
     <?php if (!empty($fileArray)): ?>
         populateTemplateHiddenFileDiv(<?php echo $fileArray; ?>);
     <?php endif; ?>

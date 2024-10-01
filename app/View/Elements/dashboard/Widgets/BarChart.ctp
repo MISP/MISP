@@ -12,7 +12,7 @@
             $max = 0;
         } else {
             $max = max($data['data']);
-            $max = !empty($config['widget_config']['forceLogarithm']) ? log10($max) : $max;
+            $max = !empty($config['widget_config']['forceLogarithm']) ? ($max == 1 ? 0.1 : log10($max)) : $max;
         }
     }
     if (!empty($max)) {
@@ -21,7 +21,7 @@
             if (!empty($data['logarithmic'])) {
                 $value = $data['logarithmic'][$entry];
             } else if (!empty($config['widget_config']['forceLogarithm'])) {
-                $value = log10($count);
+                $value = $count == 1 ? 0.1 : log10($count);
             }
             $shortlabel = $entry;
             if (mb_strlen($shortlabel) > 30) {
