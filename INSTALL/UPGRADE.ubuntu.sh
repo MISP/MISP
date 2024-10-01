@@ -212,16 +212,15 @@ error_check "MISP composer dependencies installation"
 print_status "Reworking the MISP database.php file"
 
 cd ${MISP_PATH}/app/Config
-sudo -u ${APACHE_USER} cp -a database.php database.php.bk
-sudo -u ${APACHE_USER} cp -a database.default.php database.php
+sudo -u ${APACHE_USER} cp -a database.php database.php.bk &>> $logfile
+sudo -u ${APACHE_USER} cp -a database.default.php database.php &>> $logfile
 
 declare -a dbsettings=("datasource" "persistent" "host" "login" "port" "password" "database" "prefix" "encoding")
 for i in "${dbsettings[@]}"
 do
    # Hacky AF. I have brought great shame on my family.
    TEMPVALUE=$(cat "${MISP_PATH}/app/Config/database.php.bk" | grep "'$i' => " | grep -v "//'" | grep -v '*')
-   echo $TEMPVALUE
-   sed -i "/'$i' =>/c ${TEMPVALUE}" database.php
+   sed -i "/'$i' =>/c ${TEMPVALUE}" database.php &>> $logfile
 done
 
 print_ok "MISP database.php file rewritten."
