@@ -35,8 +35,8 @@ class AppController extends Controller
 
     private $__queryVersion = '164';
     public $pyMispVersion = '2.4.198';
-    public $phpmin = '8.2';
-    public $phprec = '8.3';
+    public $phpmin = '8.1';
+    public $phprec = '8.2';
     public $phptoonew = '9.0';
     private $isApiAuthed = false;
 
