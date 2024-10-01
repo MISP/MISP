@@ -55,6 +55,16 @@ function error_check
     fi
 }
 
+
+function error_check_soft
+{
+    if [ $? -eq 0 ]; then
+        print_ok "$1 successfully completed."
+    else
+        print_error "$1 failed. Please check $logfile for more details. This is not a blocking failure though, proceeding..."
+    fi
+}
+
 function print_status ()
 {
     echo -e "\x1B[01;34m[STATUS]\x1B[0m $1"
@@ -115,7 +125,7 @@ fi
 sudo -u ${APACHE_USER} git pull origin 2.4 &>> $logfile
 error_check "Updating MISP to the latest 2.4 release"
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin runUpdates &>> $logfile
-error_check "Updating MISP's database to the latest 2.4 release's schema"
+error_check_soft "Updating MISP's database to the latest 2.4 release's schema"
 
 print_status "Installing apt packages (supervisor jq)..."
 declare -a packages=( supervisor jq );
