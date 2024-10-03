@@ -8,7 +8,6 @@ The objective of MISP is to foster the sharing of structured information within 
 
   &nbsp;&nbsp;&#x25CF;&nbsp;&nbsp;<a href="#core-functions">Core functions</a>
   &nbsp;&nbsp;&#x25CF;&nbsp;&nbsp;<a href="#website--support">Website / Support</a>
-  &nbsp;&nbsp;&#x25CF;&nbsp;&nbsp;<a href="#php-and-misp">PHP and MISP</a><br>
   &nbsp;&nbsp;&#x25CF;&nbsp;&nbsp;<a href="#installation">Installation</a>
   &nbsp;&nbsp;&#x25CF;&nbsp;&nbsp;<a href="#documentation">Documentation</a>
   &nbsp;&nbsp;&#x25CF;&nbsp;&nbsp;<a href="#contributing">Contributing</a><br>
@@ -85,13 +84,6 @@ Website / Support
 Checkout the [website](https://www.misp-project.org) for more information about MISP software, standards, tools and communities.
 
 Information, news and updates are also regularly posted on the MISP project [Mastodon account](https://misp-community.org/@misp), [twitter account](https://twitter.com/MISPProject) and [news page](https://www.misp-project.org/news/).
-
-PHP and MISP
--------------
-MISP currently **requires PHP 7.4**, an end-of-life version of PHP. Because of this it is recommended that you only run MISP on distributions or PHP installs that you know will get security fixes backported, like Red Hat or Debian and derivatives.
-
-MISP 3.x, currently in development will support PHP 8.x.
-
 
 Installation
 -------------
