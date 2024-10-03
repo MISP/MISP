@@ -42,7 +42,7 @@
     $defaults = array_replace_recursive($defaults_options, $options);
 
     // enforce consistency
-    if ($defaults['multiple'] == 0) {
+    if ($defaults['multiple'] != -1) {
         unset($defaults['select_options']['multiple']);
     } else { // multiple enabled
         $defaults['chosen_options']['max_selected_options'] = $defaults['multiple'] == -1 ? 'Infinity' : $defaults['multiple'];
