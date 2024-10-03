@@ -24,7 +24,7 @@ APACHE_USER='www-data'
 SWITCH_TO_SUPERVISOR=true
 SUPERVISOR_USER='supervisor'
 SUPERVISOR_PASSWORD="$(random_string)"
-$INSTALL_SSDEEP=false
+INSTALL_SSDEEP=false
 
 # Some helper functions shamelessly copied from @da667's automisp install script.
 
