@@ -13,7 +13,7 @@ App::uses('JsonTool', 'Tools');
 
 /**
  * @property Event $Event
- * @property MispAttributeTag $AttributeTag
+ * @property AttributeTag $AttributeTag
  * @property Sighting $Sighting
  * @property MispObject $Object
  * @property SharingGroup $SharingGroup
