@@ -108,6 +108,16 @@ function print_notification ()
 	echo -e "\x1B[01;33m[NOTICE]\x1B[0m $1"
 }
 
+function os_version_check ()
+{
+    # Check if we're on Ubuntu 24.04 as expected:
+    UBUNTU_VERSION=$(lsb_release -a | grep Release | grep -oP '[\d-]+.[\d-]+$')
+    if [[ "$UBUNTU_VERSION" != "24.04" ]]; then
+        print_error "This upgrade tool expects you to be running Ubuntu 24.04. If you are on a prior upgrade of Ubuntu, please make sure that you upgrade your distribution first, then execute this script again."
+        exit 1
+    fi
+}
+
 BLUE="\033[1;34m"
 NC="\033[0m"
 echo -e "${BLUE}███╗   ███╗${NC}██╗███████╗██████╗ "
@@ -118,6 +128,7 @@ echo -e "${BLUE}██║ ╚═╝ ██║${NC}██║███████
 echo -e "${BLUE}╚═╝     ╚═╝${NC}╚═╝╚══════╝╚═╝     "
 echo -e "v2.5 Setup on Ubuntu 24.04 LTS"
 
+os_version_check
 
 save_settings() {
     echo "[$(date)] MISP installation
