@@ -4083,6 +4083,7 @@ $(document.body).on('mouseenter', '.eventViewAttributeHover', function () {
         currentPopover = '';
     }
     var type = $(this).attr('data-object-type');
+    if (type==='attributes') type = 'Attribute'; // Type translation to expected input for further processing
     var id = $(this).attr('data-object-id');
 
     if (type + "_" + id in ajaxResults["hover"]) {
