@@ -72,7 +72,7 @@ Core functions
 
 Exchanging info results in *faster detection* of targeted attacks and improves the detection ratio while reducing the false positives. We also avoid reversing similar malware as we know very fast that other teams or organizations have already analyzed a specific malware.
 
-![MISP 2.4 overview](https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/screenshots/misp-panorama.png)
+![MISP 2.5 overview](https://raw.githubusercontent.com/MISP/MISP/2.5/INSTALL/screenshots/misp-panorama.png)
 
 A sample event encoded in MISP:
 
@@ -110,9 +110,9 @@ Feel free to contact us, create [issues](https://github.com/MISP/MISP/issues), i
 
 There is one main branch:
 
-- 2.4 (current stable version): what we consider as stable with frequent updates as hot-fixes.
+- 2.5 (current stable version): what we consider as stable with frequent updates as hot-fixes.
 
-and features are developed in separated branches and then regularly merged into the 2.4 stable branch.
+and features are developed in separated branches and then regularly merged into the 2.5 stable branch.
 
 
 License
