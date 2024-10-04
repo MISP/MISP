@@ -121,7 +121,9 @@ class Module_webhook extends WorkflowBaseActionModule
         }
         if ($params['content_type']['value'] == 'json') {
             try {
-                $payload = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
+                if (is_string($payload)) {
+                    $payload = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
+                }
             } catch (Exception $e) {
                 // Do nothing. simply send the payload as is
             }
