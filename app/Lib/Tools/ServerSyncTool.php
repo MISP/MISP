@@ -474,16 +474,16 @@ class ServerSyncTool
                 return isset($info['filter_sightings']) && $info['filter_sightings'];
             case self::FEATURE_ORG_RULE:
                 $version = explode('.', $info['version']);
-                return $version[0] == 2 && $version[1] == 4 && $version[2] > 123;
+                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 123) || ($version[1] == 5));
             case self::FEATURE_PROPOSALS:
                 $version = explode('.', $info['version']);
-                return $version[0] == 2 && $version[1] == 4 && $version[2] >= 111;
+                return $version[0] == 2 && (($version[1] == 4 && $version[2] >= 111)  || ($version[1] == 5));
             case self::FEATURE_POST_TEST:
                 $version = explode('.', $info['version']);
-                return $version[0] == 2 && $version[1] == 4 && $version[2] > 68;
+                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 68) || ($version[1] == 5));
             case self::FEATURE_PROTECTED_EVENT:
                 $version = explode('.', $info['version']);
-                return $version[0] == 2 && $version[1] == 4 && $version[2] > 155;
+                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 155) || ($version[1] == 5));
             case self::FEATURE_EDIT_OF_GALAXY_CLUSTER:
                 return isset($info['perm_galaxy_editor']);
             case self::PERM_SYNC:
@@ -494,7 +494,7 @@ class ServerSyncTool
                 return isset($info['perm_analyst_data']) && $info['perm_analyst_data'];
             case self::FEATURE_SIGHTING_REST_SEARCH:
                 $version = explode('.', $info['version']);
-                return $version[0] == 2 && $version[1] == 4 && $version[2] > 164;
+                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 164) || ($version[1] == 5));
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
