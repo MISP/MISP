@@ -511,7 +511,7 @@ class ServersController extends AppController
                 } else {
                     $this->Flash->error($error_msg);
                 }
-            }            
+            }
             if (!$fail && !empty($this->request->data['Server']['push_rules'])) {
                 $pushRules = $this->_jsonDecode($this->request->data['Server']['push_rules']);
                 if (!empty($pushRules['tags'])) {
@@ -526,7 +526,7 @@ class ServersController extends AppController
                     }
                 }
             }
-            
+
             if (!$fail) {
                 // say what fields are to be updated
                 $fieldList = array('id', 'url', 'push', 'pull', 'push_sightings', 'push_galaxy_clusters', 'pull_galaxy_clusters', 'push_analyst_data', 'pull_analyst_data', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'remove_missing_tags', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
@@ -2367,21 +2367,21 @@ class ServersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
-        $this->loadModel('Attribute');
-        $duplicates = $this->Attribute->find('all', array(
+        $this->loadModel('MispAttribute');
+        $duplicates = $this->MispAttribute->find('all', array(
             'fields' => array('Attribute.uuid', 'count(*) as occurance'),
             'recursive' => -1,
             'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
         ));
         $counter = 0;
         foreach ($duplicates as $duplicate) {
-            $attributes = $this->Attribute->find('all', array(
+            $attributes = $this->MispAttribute->find('all', array(
                 'recursive' => -1,
                 'conditions' => array('uuid' => $duplicate['Attribute']['uuid'])
             ));
             foreach ($attributes as $k => $attribute) {
                 if ($k > 0) {
-                    $this->Attribute->delete($attribute['Attribute']['id']);
+                    $this->MispAttribute->delete($attribute['Attribute']['id']);
                     $counter++;
                 }
             }

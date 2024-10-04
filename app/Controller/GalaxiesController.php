@@ -317,8 +317,8 @@ class GalaxiesController extends AppController
             return $this->response;
         } else {
             $this->set('galaxy', $galaxy);
-            $this->loadModel('Attribute');
-            $distributionLevels = $this->Attribute->distributionLevels;
+            $this->loadModel('MispAttribute');
+            $distributionLevels = $this->MispAttribute->distributionLevels;
             unset($distributionLevels[5]);
             $distributionLevels[4] = __('All sharing groups');
             $this->set('distributionLevels', $distributionLevels);
@@ -563,8 +563,8 @@ class GalaxiesController extends AppController
             }
             if ($mirrorOnEventRequested && !empty($target_id_list)) {
                 $first_attribute_id = $target_id_list[0]; // We consider that all attributes to be tagged are contained in the same event.
-                $this->loadModel('Attribute');
-                $attribute = $this->Attribute->fetchAttributeSimple($user, array('conditions' => array('Attribute.id' => $first_attribute_id)));
+                $this->loadModel('MispAttribute');
+                $attribute = $this->MispAttribute->fetchAttributeSimple($user, array('conditions' => array('Attribute.id' => $first_attribute_id)));
                 if (!empty($attribute['Attribute']['event_id'])) {
                     $event_id = $attribute['Attribute']['event_id'];
                 } else {
@@ -641,8 +641,8 @@ class GalaxiesController extends AppController
             }
             $object = $object[0];
         } elseif ($scope === 'attribute') {
-            $this->loadModel('Attribute');
-            $object = $this->Attribute->fetchAttributeSimple($this->Auth->user(), [
+            $this->loadModel('MispAttribute');
+            $object = $this->MispAttribute->fetchAttributeSimple($this->Auth->user(), [
                 'conditions' => ['Attribute.id' => $id],
                 'contain' => [
                     'Event',
@@ -656,7 +656,7 @@ class GalaxiesController extends AppController
             if (empty($object)) {
                 throw new NotFoundException('Invalid attribute.');
             }
-            $object = $this->Attribute->Event->massageTags($this->Auth->user(), $object, 'Attribute');
+            $object = $this->MispAttribute->Event->massageTags($this->Auth->user(), $object, 'Attribute');
         } elseif ($scope === 'tag_collection') {
             $this->loadModel('TagCollection');
             $object = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $id)));
@@ -717,8 +717,8 @@ class GalaxiesController extends AppController
         $this->set('galaxy', $galaxy);
         $this->set('galaxy_id', $galaxyId);
         $this->set('includeInbound', $includeInbound);
-        $this->loadModel('Attribute');
-        $distributionLevels = $this->Attribute->distributionLevels;
+        $this->loadModel('MispAttribute');
+        $distributionLevels = $this->MispAttribute->distributionLevels;
         $this->set('distributionLevels', $distributionLevels);
     }
 }

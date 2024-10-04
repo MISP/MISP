@@ -31,7 +31,7 @@ class TagsController extends AppController
 
     public function index()
     {
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $this->loadModel('Event');
         $this->loadModel('Taxonomy');
         if ($this->_isSiteAdmin()) {
@@ -384,10 +384,10 @@ class TagsController extends AppController
     {
         $user = $this->_closeSession();
         $this->helpers[] = 'TextColour';
-        $this->loadModel('Attribute');
+        $this->loadModel('MispAttribute');
         $this->loadModel('Taxonomy');
 
-        $attributes = $this->Attribute->fetchAttributes($user, [
+        $attributes = $this->MispAttribute->fetchAttributes($user, [
             'conditions' => ['Attribute.id' => $id],
             'includeAllTags' => true,
             'flatten' => true,
@@ -648,7 +648,7 @@ class TagsController extends AppController
             if ($r['Tag']['name'] == null) {
                 continue;
             }
-            $tags[$r['Tag']['name']] = $r[0]['count'];
+            $tags[$r['Tag']['name']] = strval($r[0]['count']);
             $totalCount += $r[0]['count'];
             foreach ($taxonomies as $taxonomy => $count) {
                 if (substr(strtolower($r['Tag']['name']), 0, strlen($taxonomy)) === strtolower($taxonomy)) {
@@ -789,32 +789,33 @@ class TagsController extends AppController
                 $fails[] = __('Invalid Tag. This tag can only be set as a local tag.');
                 continue;
             }
-            $this->loadModel($objectType);
+            $modelName = $objectType === 'Attribute' ? 'MispAttribute' : $objectType;
+            $this->loadModel($modelName);
             $connectorObject = $objectType . 'Tag';
             $conditions = array(
                 strtolower($objectType) . '_id' => $object[$objectType]['id'],
                 'tag_id' => $existingTag['Tag']['id'],
             );
-            $existingAssociation = $this->$objectType->$connectorObject->hasAny($conditions);
+            $existingAssociation = $this->$modelName->$connectorObject->hasAny($conditions);
             if ($existingAssociation) {
                 $message = __('%s already has the requested tag attached, no changes had to be made for tag %s.', $objectType, $existingTag['Tag']['name']);
                 $existingRelations[] = $existingTag['Tag']['name'];
                 $successes++;
                 continue;
             }
-            $this->$objectType->$connectorObject->create();
+            $this->$modelName->$connectorObject->create();
             $data = $conditions;
             $data['local'] = $local ? 1 : 0;
             if ($objectType === 'Attribute') {
                 $data['event_id'] = $object['Event']['id'];
             }
-            $result = $this->$objectType->$connectorObject->save([$connectorObject => $data]);
+            $result = $this->$modelName->$connectorObject->save([$connectorObject => $data]);
             if ($result) {
                 if ($local) {
                     $message = 'Local tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
                 } else {
                     if ($objectType === 'Attribute') {
-                        $this->Attribute->touch($object['Attribute']['id']);
+                        $this->MispAttribute->touch($object['Attribute']['id']);
                     } elseif ($objectType === 'Event') {
                         $this->Event->unpublishEvent($object['Event']['id']);
                     }
@@ -884,8 +885,9 @@ class TagsController extends AppController
         }
         $object = $this->__findObjectByUuid($uuid, $objectType, 'view');
         $connectorObject = $objectType . 'Tag';
-        $this->loadModel($objectType);
-        $existingAssociation = $this->$objectType->$connectorObject->find('first', array(
+        $modelName = $objectType === 'Attribute' ? 'MispAttribute' : $objectType;
+        $this->loadModel($modelName);
+        $existingAssociation = $this->$modelName->$connectorObject->find('first', array(
             'conditions' => array(
                 strtolower($objectType) . '_id' => $object[$objectType]['id'],
                 'tag_id' => $existingTag['Tag']['id']
@@ -902,7 +904,7 @@ class TagsController extends AppController
             }
         }
         $local = $existingAssociation[$objectType . 'Tag']['local'];
-        $result = $this->$objectType->$connectorObject->delete($existingAssociation[$connectorObject]['id']);
+        $result = $this->$modelName->$connectorObject->delete($existingAssociation[$connectorObject]['id']);
         if ($result) {
             $message = __('%s tag %s (%s) successfully removed from %s(%s).', $local ? __('Local') : __('Global'), $existingTag['Tag']['name'], $existingTag['Tag']['id'], $objectType, $object[$objectType]['id']);
             $this->loadModel('Log');
@@ -918,7 +920,7 @@ class TagsController extends AppController
             );
             if (!$local) {
                 if ($objectType === 'Attribute') {
-                    $this->Attribute->touch($object['Attribute']['id']);
+                    $this->MispAttribute->touch($object['Attribute']['id']);
                 } elseif ($objectType === 'Event') {
                     $this->Event->unpublishEvent($object['Event']['id']);
                 }

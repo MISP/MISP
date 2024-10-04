@@ -1374,7 +1374,7 @@ class GalaxyCluster extends AppModel
             if ($model == 'Attribute') {
                 // We have to make sure users have access to the event/attributes
                 // Otherwise, they might enumerate and fetch tags from event/attributes they can't see
-                $this->Attribute = ClassRegistry::init('Attribute');
+                $this->Attribute = ClassRegistry::init('MispAttribute');
                 $attributes = $this->Attribute->fetchAttributes($user, array(
                     'conditions' => array('Attribute.event_id' => $eventId),
                     'fields' => array('Attribute.id'),

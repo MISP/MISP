@@ -83,7 +83,7 @@
         'checked' => $element['disable_correlation'],
         'label' => false,
         'div' => false,
-        'disabled' => in_array($element['type'], Attribute::NON_CORRELATING_TYPES, true),
+        'disabled' => in_array($element['type'], MispAttribute::NON_CORRELATING_TYPES, true),
       ));
     ?>
   </td>

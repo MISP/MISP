@@ -867,7 +867,11 @@ class RestResponseComponent extends Component
         if (!$this->__setup) {
             $scopes = array('Event', 'Attribute', 'Sighting');
             foreach ($scopes as $scope) {
-                $this->{$scope} = ClassRegistry::init($scope);
+                $scopeModel = $scope;
+                if ($scope === 'Attribute') {
+                    $scopeModel = 'MispAttribute';
+                }
+                $this->{$scope} = ClassRegistry::init($scopeModel);
                 $returnFormat = array_keys($this->{$scope}->validFormats);
                 $this->__descriptions[$scope]['restSearch']['returnFormat'] = $returnFormat;
             }

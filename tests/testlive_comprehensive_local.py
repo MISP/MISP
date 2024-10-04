@@ -390,7 +390,7 @@ class TestComprehensive(unittest.TestCase):
         minimal_org_uuid_not = self.user_misp_connector.search_index(minimal=True, org="!" + self.test_org.uuid)
         for event in minimal_org_uuid_not:
             self.assertNotEqual(event["orgc_uuid"], self.test_org.uuid)
-        minimal_org_id_not = self.user_misp_connector.search_index(minimal=True, org="!" + self.test_org.id)
+        minimal_org_id_not = self.user_misp_connector.search_index(minimal=True, org="!" + str(self.test_org.id))
         for event in minimal_org_id_not:
             self.assertNotEqual(event["orgc_uuid"], self.test_org.uuid)
 

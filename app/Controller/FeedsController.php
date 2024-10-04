@@ -848,13 +848,13 @@ class FeedsController extends AppController
             }
         }
         $resultArray = array_values($resultArray);
-        $this->loadModel('Attribute');
-        $correlatingEventInfos = $this->Attribute->Event->find('list', array(
+        $this->loadModel('MispAttribute');
+        $correlatingEventInfos = $this->MispAttribute->Event->find('list', array(
             'fields' => array('Event.id', 'Event.info'),
             'conditions' => array('Event.id' => $correlatingEvents)
         ));
         $this->set('correlatingEventInfos', $correlatingEventInfos);
-        $this->set('distributionLevels', $this->Attribute->distributionLevels);
+        $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
         $this->set('feed', $feed);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($resultArray, $this->response->type());

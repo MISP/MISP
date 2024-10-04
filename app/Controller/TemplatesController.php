@@ -375,7 +375,7 @@ class TemplatesController extends AppController
 
             if (isset($this->request->data['Template']['attributes'])) {
                 $attributes = json_decode($this->request->data['Template']['attributes'], true);
-                $this->loadModel('Attribute');
+                $this->loadModel('MispAttribute');
                 $fails = 0;
                 foreach ($attributes as $k => $attribute) {
                     if (isset($attribute['data']) && $this->Template->checkFilename($attribute['data'])) {
@@ -388,8 +388,8 @@ class TemplatesController extends AppController
                         }
                         $file->delete();
                     }
-                    $this->Attribute->create();
-                    if (!$this->Attribute->save(array('Attribute' => $attributes[$k]))) {
+                    $this->MispAttribute->create();
+                    if (!$this->MispAttribute->save(array('Attribute' => $attributes[$k]))) {
                         $fails++;
                     }
                 }

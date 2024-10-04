@@ -209,10 +209,10 @@ class GalaxyClustersController extends AppController
             $newVersionAvailable = false;
         }
         $this->set('newVersionAvailable', $newVersionAvailable);
-        $this->loadModel('Attribute');
-        $distributionLevels = $this->Attribute->distributionLevels;
+        $this->loadModel('MispAttribute');
+        $distributionLevels = $this->MispAttribute->distributionLevels;
         $this->set('distributionLevels', $distributionLevels);
-        $this->set('shortDist', $this->Attribute->shortDist);
+        $this->set('shortDist', $this->MispAttribute->shortDist);
         if (!$cluster['GalaxyCluster']['default'] && !$cluster['GalaxyCluster']['published'] && $cluster['GalaxyCluster']['orgc_id'] == $this->Auth->user()['org_id']) {
             $this->Flash->warning(__('This cluster is not published. Users will not be able to use it'));
         }
@@ -237,8 +237,8 @@ class GalaxyClustersController extends AppController
         } elseif (!is_numeric($galaxyId)) {
             throw new NotFoundException(__('Invalid galaxy'));
         }
-        $this->loadModel('Attribute');
-        $distributionLevels = $this->Attribute->distributionLevels;
+        $this->loadModel('MispAttribute');
+        $distributionLevels = $this->MispAttribute->distributionLevels;
         unset($distributionLevels[5]);
         $initialDistribution = 3;
         $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
@@ -356,8 +356,8 @@ class GalaxyClustersController extends AppController
         }
         $this->GalaxyCluster->data = array('GalaxyCluster' => $cluster['GalaxyCluster'], 'GalaxyElement' => $cluster['GalaxyCluster']['GalaxyElement']);
 
-        $this->loadModel('Attribute');
-        $distributionLevels = $this->Attribute->distributionLevels;
+        $this->loadModel('MispAttribute');
+        $distributionLevels = $this->MispAttribute->distributionLevels;
         unset($distributionLevels[5]);
         $initialDistribution = 3;
         $configuredDistribution = Configure::check('MISP.default_attribute_distribution');
@@ -459,7 +459,7 @@ class GalaxyClustersController extends AppController
         $fieldDesc = array(
             'authors' => __('Valid JSON array or comma separated'),
             'elements' => __('Valid JSON array composed from Object of the form {key: keyname, value: actualValue}'),
-            'distribution' => Hash::extract($this->Attribute->distributionDescriptions, '{n}.formdesc'),
+            'distribution' => Hash::extract($this->MispAttribute->distributionDescriptions, '{n}.formdesc'),
         );
         $this->set('id', $cluster['GalaxyCluster']['id']);
         $this->set('cluster', $cluster);
@@ -910,8 +910,8 @@ class GalaxyClustersController extends AppController
         $this->set('relations', $relations);
         $this->set('tree', $tree);
         $this->set('includeInbound', $includeInbound);
-        $this->loadModel('Attribute');
-        $distributionLevels = $this->Attribute->distributionLevels;
+        $this->loadModel('MispAttribute');
+        $distributionLevels = $this->MispAttribute->distributionLevels;
         unset($distributionLevels[4]);
         unset($distributionLevels[5]);
         $this->set('distributionLevels', $distributionLevels);

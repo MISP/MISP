@@ -35,9 +35,9 @@ class AppController extends Controller
 
     private $__queryVersion = '164';
     public $pyMispVersion = '2.4.198';
-    public $phpmin = '7.2';
-    public $phprec = '7.4';
-    public $phptoonew = '8.0';
+    public $phpmin = '8.1';
+    public $phprec = '8.2';
+    public $phptoonew = '9.0';
     private $isApiAuthed = false;
 
     /** @var redis */
@@ -418,8 +418,8 @@ class AppController extends Controller
             if (!empty($homepage)) {
                 $this->set('homepage', $homepage);
             }
-            if (PHP_MAJOR_VERSION >= 8) {
-                $this->Flash->error(__('WARNING: MISP is currently running under PHP 8.0, which is unsupported. Background jobs will fail, so please contact your administrator to run a supported PHP version (such as 7.4)'));
+            if (PHP_MAJOR_VERSION < 8) {
+                $this->Flash->error(__('WARNING: MISP 2.5.x is currently running under PHP 7.x, which is unsupported. Make sure that you upgrade to PHP 8.x as soon as possible.'));
             }
         }
     }
@@ -1365,11 +1365,19 @@ class AppController extends Controller
         if ($scope === 'MispObject') {
             $scope = 'Object';
         }
+        if ($scope === 'MispAttribute') {
+            $scope = 'Attribute';
+        }
         if (!isset($this->RestSearch->paramArray[$scope])) {
             throw new NotFoundException(__('RestSearch is not implemented (yet) for this scope.'));
         }
-
-        $modelName = $scope === 'Object' ? 'MispObject' : $scope;
+        if ($scope === 'Object') {
+            $modelName = 'MispObject';
+        } else if ($scope === 'Attribute') {
+            $modelName = 'MispAttribute';
+        }else {
+            $modelName = $scope;
+        }
         if (!isset($this->$modelName)) {
             $this->loadModel($modelName);
         }

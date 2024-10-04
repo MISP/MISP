@@ -140,7 +140,7 @@ class OverCorrelatingValue extends AppModel
         $overCorrelations = $this->find('all', [
             'recursive' => -1
         ]);
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         foreach ($overCorrelations as &$overCorrelation) {
             $value = $overCorrelation['OverCorrelatingValue']['value'] . '%';
             $count = $this->Attribute->find('count', [
@@ -150,10 +150,10 @@ class OverCorrelatingValue extends AppModel
                         'Attribute.value1 LIKE' => $value,
                         'AND' => [
                             'Attribute.value2 LIKE' => $value,
-                            'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
+                            'NOT' => ['Attribute.type' => MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES]
                         ],
                     ],
-                    'NOT' => ['Attribute.type' => Attribute::NON_CORRELATING_TYPES],
+                    'NOT' => ['Attribute.type' => MispAttribute::NON_CORRELATING_TYPES],
                     'Attribute.disable_correlation' => 0,
                     'Event.disable_correlation' => 0,
                     'Attribute.deleted' => 0,

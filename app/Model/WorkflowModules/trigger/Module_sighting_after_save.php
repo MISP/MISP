@@ -24,7 +24,7 @@ class Module_sighting_after_save extends WorkflowBaseTriggerModule
     public function normalizeData(array $data)
     {
         $this->Event = ClassRegistry::init('Event');
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
 
         if (empty($data['Sighting'])) {
             return false;

@@ -79,7 +79,7 @@ class Relationship extends AnalystData
             $data = $this->Event->fetchSimpleEvent($user, $uuid, $params);
             $this->Event->includeAnalystData = $backup;
         } else if ($type == 'Attribute') {
-            $this->Attribute = ClassRegistry::init('Attribute');
+            $this->Attribute = ClassRegistry::init('MispAttribute');
             $params = [
                 'conditions' => [
                     ['Attribute.uuid' => $uuid],

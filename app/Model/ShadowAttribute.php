@@ -9,7 +9,7 @@ App::uses('AttributeValidationTool', 'Tools');
 
 /**
  * @property Event $Event
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  * @property-read array $typeDefinitions
  * @property-read array $categoryDefinitions
  */
@@ -50,7 +50,7 @@ class ShadowAttribute extends AppModel
                 'foreignKey' => 'event_org_id'
         ),
         'Attribute' => array(
-            'className' => 'Attribute',
+            'className' => 'MispAttribute',
             'foreignKey' => 'old_id'
         )
     );
@@ -231,7 +231,7 @@ class ShadowAttribute extends AppModel
         if (isset($sa['ShadowAttribute'])) {
             $sa = $sa['ShadowAttribute'];
         }
-        if (in_array($sa['type'], Attribute::NON_CORRELATING_TYPES, true)) {
+        if (in_array($sa['type'], MispAttribute::NON_CORRELATING_TYPES, true)) {
             return;
         }
         $this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
@@ -248,7 +248,7 @@ class ShadowAttribute extends AppModel
                                             'Attribute.value1' => $cV,
                                             'Attribute.value2' => $cV
                                     ),
-                                    'Attribute.type !=' => Attribute::NON_CORRELATING_TYPES,
+                                    'Attribute.type !=' => MispAttribute::NON_CORRELATING_TYPES,
                                     'Attribute.deleted' => 0,
                                     'Attribute.event_id !=' => $sa['event_id']
                             ),

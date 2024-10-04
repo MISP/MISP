@@ -3,7 +3,7 @@ App::uses('AppModel', 'Model');
 
 /**
  * @property Tag $Tag
- * @property Attribute $Attribute
+ * @property MispAttribute $Attribute
  */
 class AttributeTag extends AppModel
 {
@@ -25,9 +25,10 @@ class AttributeTag extends AppModel
     ];
 
     public $belongsTo = array(
-        'Attribute' => array(
-            'className' => 'Attribute',
-        ),
+        'Attribute' => [
+            'className' => 'MispAttribute',
+            'foreignKey' => 'attribute_id'
+        ],
         'Tag' => array(
             'className' => 'Tag',
         ),

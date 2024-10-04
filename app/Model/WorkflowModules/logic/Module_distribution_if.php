@@ -25,7 +25,7 @@ class Module_distribution_if extends WorkflowBaseLogicModule
     public function __construct()
     {
         parent::__construct();
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $distributionLevels = $this->Attribute->shortDist;
         unset($distributionLevels[5]);
         $distribution_param = [];

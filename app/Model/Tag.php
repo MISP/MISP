@@ -685,7 +685,7 @@ class Tag extends AppModel
         $this->EventTag = Classregistry::init('EventTag');
         $this->AttributeTag = Classregistry::init('AttributeTag');
         $this->Event = Classregistry::init('Event');
-        $this->Attribute = Classregistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $full_print_buffer .= "<h2>Conversion</h2>";
         foreach ($mappings as $old_tag_id => $new_tag_name) {
             $print_buffer = "";

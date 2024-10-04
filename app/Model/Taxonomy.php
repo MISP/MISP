@@ -35,7 +35,7 @@ class Taxonomy extends AppModel
 
     private $__taxonomyConflicts = [];
 
-    public function update()
+    public function update($force = false)
     {
         $existing = $this->find('all', array(
             'recursive' => -1,
