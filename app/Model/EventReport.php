@@ -93,6 +93,26 @@ class EventReport extends AppModel
         return true;
     }
 
+    public function afterSave($created, $options = array())
+    {
+        $isTriggerCallable = $this->isTriggerCallable('event-report-after-save');
+        if ($isTriggerCallable) {
+            $report = $this->data['EventReport'];
+            $action = $created ? 'add' : 'edit';
+            if (!empty($report['deleted'])) {
+                $action = 'soft-delete';
+            }
+            $workflowErrors = [];
+            $logging = [
+                'model' => 'EventReport',
+                'action' => $action,
+                'id' => $report['id'],
+            ];
+            $triggerData = ['EventReport' => $report];
+            $this->executeTrigger('event-report-after-save', $triggerData, $workflowErrors, $logging);
+        }
+    }
+
     /**
      * captureReport Gets a report then save it
      *

@@ -308,6 +308,18 @@ class ShadowAttribute extends AppModel
         if (empty($this->data['ShadowAttribute']['deleted'])) {
             $action = $created ? 'add' : 'edit';
             $this->publishKafkaNotification('shadow_attribute', $this->data, $action);
+            $isTriggerCallable = $this->isTriggerCallable('shadow-attribute-after-save');
+            if ($isTriggerCallable) {
+                $shadowAttr = $this->data['ShadowAttribute'];
+                $workflowErrors = [];
+                $logging = [
+                    'model' => 'EventReport',
+                    'action' => $action,
+                    'id' => $shadowAttr['id'],
+                ];
+                $triggerData = ['ShadowAttribute' => $shadowAttr];
+                $this->executeTrigger('shadow-attribute-after-save', $triggerData, $workflowErrors, $logging);
+            }
         }
         return $result;
     }

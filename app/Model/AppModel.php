@@ -3804,7 +3804,8 @@ class AppModel extends Model
             $keyPath = explode('.', $query['list']['keyPath']);
             $valuePath = explode('.', $query['list']['valuePath']);
             if ($keyPath[1] === $valuePath[1]) { // same model
-                return array_column(array_column($results, $keyPath[1]), $valuePath[2], $keyPath[2]);
+                $results = array_column($results, $keyPath[1]);
+                return array_column($results, $valuePath[2], $keyPath[2]);
             }
         }
 
