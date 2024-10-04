@@ -1862,7 +1862,7 @@ function genInput(options, isTextArea, forNode = true) {
     var $input
     if (isTextArea) {
         if (forNode) {
-            $input = $('<textarea>').attr('rows', 1).prop('disabled', true).css({ resize: 'none' }).attr('title', 'Can only be edited in node settings')
+            $input = $('<textarea>').attr('rows', 3).prop('disabled', true).css({ resize: 'none' }).attr('title', 'Can only be edited in node settings')
         } else {
             $input = $('<textarea>').attr('rows', 4).css({resize: 'none'}).addClass('start-codemirror')
         }
