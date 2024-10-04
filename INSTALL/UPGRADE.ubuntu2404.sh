@@ -188,7 +188,7 @@ error_check "PECL simdjson extension installation"
 sudo pecl install zstd &>> $logfile
 error_check "PECL zstd extension installation"
 
-if [ $INSTALL_SSDEEP ]; then
+if $INSTALL_SSDEEP; then
     sudo apt install make -y &>> $logfile
     error_check "The installation of make"
     git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
