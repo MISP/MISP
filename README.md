@@ -108,9 +108,14 @@ Feel free to fork the code, play with it, make some patches and send us the pull
 
 Feel free to contact us, create [issues](https://github.com/MISP/MISP/issues), if you have questions, remarks or bug reports.
 
-There is one main branch:
+There is one main branch (2.5) and one stable branch for 2.4:
 
-- 2.5 (current stable version): what we consider as stable with frequent updates as hot-fixes.
+- [2.5](https://github.com/MISP/MISP/tree/2.5) (current stable version): what we consider as stable with frequent updates as hot-fixes.
+- [2.4](https://github.com/MISP/MISP/tree/2.4) (legacy stable version): what we consider as stable with frequent updates as hot-fixes until April 2025.
+
+Along with two development branches:
+- [develop](https://github.com/MISP/MISP/tree/develop) (main dev branch): The branch containing all ongoing work, to be merged into 2.5 at each release
+- [2.4-develop](https://github.com/MISP/MISP/tree/2.4-develop) (2.4 dev branch): The branch containing ongoing work to be merged into 2.4 on each legacy release along with frequent merges into develop. We consider this the main entry point for new development for 2.x until the 6 months grace period is up.
 
 and features are developed in separated branches and then regularly merged into the 2.5 stable branch.
 
