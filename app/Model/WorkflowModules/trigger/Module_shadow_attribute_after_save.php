@@ -29,8 +29,15 @@ class Module_shadow_attribute_after_save extends WorkflowBaseTriggerModule
             return false;
         }
 
-        $event = $this->Event->quickFetchEvent($data['ShadowAttribute']['event_id']);
-        $event['Event']['ShadowAttribute'] = [$data['ShadowAttribute']];
+        // If we're dealing with a proposed edit, we retrieve the data about the attribute 
+        if ($data['ShadowAttribute']['old_id']) {
+            $event = $this->Attribute->fetchAttribute($data['ShadowAttribute']['old_id']);
+            $event['Attribute']['ShadowAttribute'] = [$data['ShadowAttribute']];
+        } else {
+            // If it is a proposal to add a new attribute, we retrieve only the data about the event
+            $event = $this->Event->quickFetchEvent($data['ShadowAttribute']['event_id']);
+            $event['Event']['ShadowAttribute'] = [$data['ShadowAttribute']];
+        }
 
         $event = parent::normalizeData($event);
         return $event;
