@@ -10,7 +10,7 @@ class Module_shadow_attribute_after_save extends WorkflowBaseTriggerModule
     public $icon = 'comment';
     public $inputs = 0;
     public $outputs = 1;
-    public $blocking = true;
+    public $blocking = false;
     public $misp_core_format = true;
     public $trigger_overhead = self::OVERHEAD_MEDIUM;
 
