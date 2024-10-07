@@ -21,35 +21,47 @@ class RedisTool
             return self::$connection;
         }
 
-        if (!class_exists('Redis')) {
-            throw new Exception("Class Redis doesn't exists. Please install redis extension for PHP.");
+        $redisVersion = phpversion('redis');
+        if ($redisVersion === false) {
+            throw new Exception("Redis extension is not installed. Please install redis extension for PHP.");
         }
 
         $host = Configure::read('MISP.redis_host') ?: '127.0.0.1';
-        $socket = false;
-        if ($host[0] === '/') {
-            $socket = $host;
-        } else {
-            $port = Configure::read('MISP.redis_port') ?: 6379;
-        }
+        $port = Configure::read('MISP.redis_port') ?: 6379;
         $database = Configure::read('MISP.redis_database') ?: 13;
         $pass = Configure::read('MISP.redis_password');
+        $persistent = Configure::read('MISP.redis_persistent_connection');
 
-        $redis = new Redis();
-        $connection = empty($socket) ? $redis->connect($host, (int) $port) : $redis->connect($host);
-        if (!$connection) {
-            throw new Exception("Could not connect to Redis: {$redis->getLastError()}");
-        }
-        if (!empty($pass)) {
-            if (!$redis->auth($pass)) {
-                throw new Exception("Could not authenticate to Redis: {$redis->getLastError()}");
+        if ($redisVersion[0] >= 6) {
+            $options = [
+                'host' => $host,
+                'port' => $port,
+                'persistent' => $persistent,
+            ];
+            if (!empty($pass)) {
+                $options['auth'] = $pass;
+            }
+            $redis = new Redis($options);
+        } else {
+            $redis = new Redis();
+            $connection = $persistent ? $redis->pconnect($host, $port) : $redis->connect($host, $port);
+            if (!$connection) {
+                throw new Exception("Could not connect to Redis: {$redis->getLastError()}");
+            }
+            if (!empty($pass)) {
+                if (!$redis->auth($pass)) {
+                    throw new Exception("Could not authenticate to Redis: {$redis->getLastError()}");
+                }
             }
         }
+
         if (!$redis->select($database)) {
             throw new Exception("Could not select Redis database $database: {$redis->getLastError()}");
         }
         // By default retry scan if empty results are returned
         $redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
+        // Set client name so it is possible to distinguish redis connections
+        $redis->client('setname', 'misp-' . PHP_SAPI);
         self::$connection = $redis;
         return $redis;
     }

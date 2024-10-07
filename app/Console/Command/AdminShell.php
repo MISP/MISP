@@ -134,6 +134,9 @@ class AdminShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('schemaDiagnostics', [
+            'help' => __('Check differences between current and expected database schema')
+        ]);
         return $parser;
     }
 
@@ -987,8 +990,8 @@ class AdminShell extends AppShell
     public function schemaDiagnostics()
     {
         $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
-        $this->out('# Columns diagnostics');
 
+        $this->out('# Columns diagnostics');
         foreach ($dbSchemaDiagnostics['diagnostic'] as $tableName => $diagnostics) {
             $diagnostics = array_filter($diagnostics, function ($c) {
                 return $c['is_critical'];
@@ -997,7 +1000,7 @@ class AdminShell extends AppShell
                 continue;
             }
             $this->out();
-            $this->out('Table ' . $tableName . ':');
+            $this->out("Table `$tableName`:");
             foreach ($diagnostics as $diagnostic) {
                 $this->out(' - ' . $diagnostic['description']);
                 $this->out('   Expected: ' . implode(' ', $diagnostic['expected']));
@@ -1007,13 +1010,15 @@ class AdminShell extends AppShell
             }
         }
 
-        $this->out();
-        $this->out('# Index diagnostics');
-        foreach ($dbSchemaDiagnostics['diagnostic_index'] as $tableName => $diagnostics) {
+        if (!empty($dbSchemaDiagnostics['diagnostic_index'])) {
             $this->out();
-            $this->out('Table ' . $tableName . ':');
-            foreach ($diagnostics as $info) {
-                $this->out(' - ' . $info['message']);
+            $this->out('# Index diagnostics');
+            foreach ($dbSchemaDiagnostics['diagnostic_index'] as $tableName => $diagnostics) {
+                $this->out();
+                $this->out('Table ' . $tableName . ':');
+                foreach ($diagnostics as $info) {
+                    $this->out(' - ' . $info['message']);
+                }
             }
         }
     }
