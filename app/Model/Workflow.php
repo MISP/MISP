@@ -606,7 +606,8 @@ class Workflow extends AppModel
             $errors[] = __('Could not find a valid user to run the workflow. Please set setting `MISP.host_org_id` or make sure a valid site_admin user exists.');
             return false;
         }
-        $roamingData = $this->workflowGraphTool->getRoamingData($userForWorkflow, $data, $workflow, $startNode);
+        $triggerNode = $this->workflowGraphTool->extractTriggerFromWorkflow($workflow['Workflow']['data'], true);
+        $roamingData = $this->workflowGraphTool->getRoamingData($userForWorkflow, $data, $workflow, $startNode, $triggerNode);
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, $this, $startNode, $for_path, $roamingData);
         $preventExecutionForPaths = [];
