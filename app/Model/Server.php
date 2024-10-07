@@ -4128,7 +4128,7 @@ class Server extends AppModel
             $extensions = [];
             $dependencies = [];
             foreach ($composer['require'] as $require => $foo) {
-                if (substr($require, 0, 4) === 'ext-') {
+                if (str_starts_with($require, 'ext-')) {
                     $extensions[substr($require, 4)] = true;
                 }
                 else if (mb_strpos($require, '/') !== false) {  // external dependencies have namespaces, so a /
@@ -4136,7 +4136,7 @@ class Server extends AppModel
                 }
             }
             foreach ($composer['suggest'] as $suggest => $reason) {
-                if (substr($suggest, 0, 4) === 'ext-') {
+                if (str_starts_with($suggest, 'ext-')) {
                     $extensions[substr($suggest, 4)] = $reason;
                 }
                 else if (mb_strpos($suggest, '/') !== false) {  // external dependencies have namespaces, so a /
