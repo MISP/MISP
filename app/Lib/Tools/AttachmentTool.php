@@ -471,7 +471,7 @@ class AttachmentTool
     public function attachmentDirIsS3()
     {
         $attachmentsDir = Configure::read('MISP.attachments_dir');
-        return $attachmentsDir && substr($attachmentsDir, 0, 2) === "s3";
+        return $attachmentsDir && str_starts_with($attachmentsDir, "s3");
     }
 
     /**

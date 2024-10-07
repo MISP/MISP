@@ -960,7 +960,7 @@ class AppController extends Controller
     {
         // Let us access $baseurl from all views
         $baseurl = Configure::read('MISP.baseurl');
-        if (substr($baseurl, -1) === '/') {
+        if (str_ends_with($baseurl, '/')) {
             // if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
             $baseurl = rtrim($baseurl, '/');
             $this->loadModel('Server');
@@ -1065,7 +1065,7 @@ class AppController extends Controller
                     $data = array_merge($data, $temp);
                 } else {
                     foreach ($options['paramArray'] as $param) {
-                        if (substr($param, -1) == '*') {
+                        if (str_ends_with($param, '*')) {
                             $root = substr($param, 0, strlen($param)-1);
                             foreach ($temp as $existingParamKey => $v) {
                                 $leftover = substr($existingParamKey, strlen($param)-1);
@@ -1127,7 +1127,7 @@ class AppController extends Controller
             foreach ($data as $k => $v) {
                 $found = false;
                 foreach ($options['additional_delimiters'] as $delim) {
-                    if (strpos($v, $delim) !== false) {
+                    if (str_contains($v, $delim)) {
                         $found = true;
                         break;
                     }

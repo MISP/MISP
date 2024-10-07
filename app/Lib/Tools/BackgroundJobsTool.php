@@ -154,7 +154,7 @@ class BackgroundJobsTool
      */
     public function fetchDataFile($path)
     {
-        if (strpos($path, 'redis:') === 0) {
+        if (str_starts_with($path, 'redis:')) {
             $uuid = substr($path, 6);
             $data = $this->RedisConnection->get(self::DATA_CONTENT_PREFIX . ':' . $uuid);
             if ($data === false) {
@@ -723,7 +723,7 @@ class BackgroundJobsTool
         }
 
         $host = null;
-        if (substr($this->settings['supervisor_host'], 0, 5) === 'unix:') {
+        if (str_starts_with($this->settings['supervisor_host'], 'unix:')) {
             if (!defined('CURLOPT_UNIX_SOCKET_PATH')) {
                 throw new Exception("For unix socket connection, cURL is required.");
             }

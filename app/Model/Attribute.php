@@ -597,7 +597,7 @@ class Attribute extends AppModel
 
     public function afterDelete()
     {
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && strpos($this->data['Attribute']['value'], '/')) {
+        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && str_contains($this->data['Attribute']['value'], '/')) {
             $this->Correlation->updateCidrList();
         }
         if (isset($this->data['Attribute']['event_id'])) {
@@ -843,7 +843,7 @@ class Attribute extends AppModel
             $compositeTypes = array('malware-sample');  // TODO hardcoded composite
             // dynamically generated list
             foreach ($this->typeDefinitions as $type => $foo) {
-                if (strpos($type, '|') !== false) {
+                if (str_contains($type, '|')) {
                     $compositeTypes[] = $type;
                 }
             }
@@ -2472,7 +2472,7 @@ class Attribute extends AppModel
      */
     public function onDemandEncrypt(array $attribute)
     {
-        if (strpos($attribute['value'], '|') !== false) {
+        if (str_contains($attribute['value'], '|')) {
             $temp = explode('|', $attribute['value']);
             $attribute['value'] = $temp[0];
         }
