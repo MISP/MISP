@@ -2811,7 +2811,7 @@ function freetextSerializeAttributes() {
 
 function freetextImportResultsSubmit(event_id, count) {
     var attributeArray = freetextSerializeAttributes();
-    $("#AttributeJsonObject").val(JSON.stringify(attributeArray));
+    $("#MispAttributeJsonObject").val(JSON.stringify(attributeArray));
     var formData = $(".mainForm").serialize();
     xhr({
         type: "post",
