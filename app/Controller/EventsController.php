@@ -4099,11 +4099,9 @@ class EventsController extends AppController
         $this->set('event_id', $event['Event']['id']);
         if ($this->request->is('get')) {
             $this->layout = false;
-            $this->request->data['MispAttribute']['event_id'] = $event['Event']['id'];
+            $this->request->data['Attribute']['event_id'] = $event['Event']['id'];
 
         } else if ($this->request->is('post')) {
-            $this->request->data['Attribute'] = $this->request->data['MispAttribute'];
-            unset($this->request->data['MispAttribute']);
             App::uses('ComplexTypeTool', 'Tools');
             $complexTypeTool = new ComplexTypeTool();
             $this->loadModel('Warninglist');
@@ -4223,8 +4221,6 @@ class EventsController extends AppController
         }
 
         $this->Event->insertLock($this->Auth->user(), $id);
-        $this->request->data['Attribute'] = $this->request->data['MispAttribute'];
-        unset($this->request->data['MispAttribute']);
         $attributes = $this->_jsonDecode($this->request->data['Attribute']['JsonObject']);
         $defaultComment = $this->request->data['Attribute']['default_comment'];
         $proposals = !$this->__canModifyEvent($event) || (isset($this->request->data['Attribute']['force']) && $this->request->data['Attribute']['force']);
