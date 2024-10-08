@@ -274,14 +274,16 @@ class WorkflowRoamingData
     private $data;
     private $workflow;
     private $current_node;
+    private $trigger_node;
     private $workflowModel;
 
-    public function __construct(array $workflow_user, array $data, array $workflow, int $current_node)
+    public function __construct(array $workflow_user, array $data, array $workflow, int $current_node, $trigger_node)
     {
         $this->workflow_user = $workflow_user;
         $this->data = $data;
         $this->workflow = $workflow;
         $this->current_node = $current_node;
+        $this->trigger_node = $trigger_node;
     }
 
     public function getUser(): array
@@ -343,6 +345,11 @@ class WorkflowRoamingData
     public function getCurrentNode(): int
     {
         return $this->current_node;
+    }
+
+    public function getTriggerNode(): array
+    {
+        return $this->trigger_node;
     }
 
     public function setData(array $data)
@@ -529,9 +536,9 @@ class WorkflowGraphTool
         return -1;
     }
 
-    public static function getRoamingData(array $user=[], array $data=[], array $workflow=[], int $node_id=-1)
+    public static function getRoamingData(array $user=[], array $data=[], array $workflow=[], int $node_id=-1, array $trigger_node = null)
     {
-        return new WorkflowRoamingData($user, $data, $workflow, $node_id);
+        return new WorkflowRoamingData($user, $data, $workflow, $node_id, $trigger_node);
     }
 
     public static function getWalkerIterator(array $graphData, $WorkflowModel, $startNodeID, $path_type=null, WorkflowRoamingData $roamingData)

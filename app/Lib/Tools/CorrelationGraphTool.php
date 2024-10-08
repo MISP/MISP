@@ -156,7 +156,7 @@ App::uses('OrgImgHelper', 'View/Helper');
       private function __handleTags($tags, $anchor_id)
       {
           foreach ($tags as $tag) {
-              if (strpos($tag['name'], 'misp-galaxy:') === 0) {
+              if (str_starts_with($tag['name'], 'misp-galaxy:')) {
                   continue;
               }
               $taxonomy = $this->__taxonomyModel->getTaxonomyForTag($tag['name']);

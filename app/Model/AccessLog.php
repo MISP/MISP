@@ -173,7 +173,7 @@ class AccessLog extends AppModel
         $requestContentType = $_SERVER['CONTENT_TYPE'] ?? null;
         $requestEncoding = $_SERVER['HTTP_CONTENT_ENCODING'] ?? null;
 
-        if (substr($requestContentType, 0, 19) === 'multipart/form-data') {
+        if (str_starts_with($requestContentType, 'multipart/form-data')) {
            $input = http_build_query($request->data, '', '&');
         } else {
             $input = $request->input();
@@ -244,7 +244,7 @@ class AccessLog extends AppModel
         $requestTime = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
         $requestTime = (string) $requestTime;
         // Fix string if float value doesnt contain decimal part
-        if (strpos($requestTime, '.') === false) {
+        if (!str_contains($requestTime, '.')) {
             $requestTime .= '.0';
         }
         return DateTime::createFromFormat('U.u', $requestTime);
@@ -282,8 +282,7 @@ class AccessLog extends AppModel
      */
     private function decompress($data)
     {
-        $header = substr($data, 0, 4);
-        if ($header === self::BROTLI_HEADER) {
+        if (str_starts_with($data, self::BROTLI_HEADER)) {
             if (function_exists('brotli_uncompress')) {
                 $data = brotli_uncompress(substr($data, 4));
                 if ($data === false) {

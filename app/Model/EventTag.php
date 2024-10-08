@@ -30,6 +30,7 @@ class EventTag extends AppModel
         parent::afterSave($created, $options);
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
         $kafkaTopic = $this->kafkaTopic('tag');
+        $triggerCallable = $this->isTriggerCallable('tag-attached-after-save');
         if ($pubToZmq || $kafkaTopic) {
             $tag = $this->find('first', array(
                 'recursive' => -1,
@@ -37,6 +38,7 @@ class EventTag extends AppModel
                 'contain' => array('Tag')
             ));
             $tag['Tag']['event_id'] = $tag['EventTag']['event_id'];
+            $tag['Tag']['local'] = $tag['EventTag']['local'];
             $tag = array('Tag' => $tag['Tag']);
             if ($pubToZmq) {
                 $pubSubTool = $this->getPubSubTool();
@@ -45,6 +47,15 @@ class EventTag extends AppModel
             if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $tag, 'attached to event');
+            }
+            if ($triggerCallable) {
+                $workflowErrors = [];
+                $logging = [
+                    'model' => 'EventTag',
+                    'action' => 'add',
+                    'id' => $this->id,
+                ];
+                $this->executeTrigger('tag-attached-after-save', $tag, $workflowErrors, $logging);
             }
         }
     }
