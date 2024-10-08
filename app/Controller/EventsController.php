@@ -4102,8 +4102,6 @@ class EventsController extends AppController
             $this->request->data['MispAttribute']['event_id'] = $event['Event']['id'];
 
         } else if ($this->request->is('post')) {
-            $this->request->data['Attribute'] = $this->request->data['MispAttribute'];
-            unset($this->request->data['MispAttribute']);
             App::uses('ComplexTypeTool', 'Tools');
             $complexTypeTool = new ComplexTypeTool();
             $this->loadModel('Warninglist');
