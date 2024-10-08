@@ -495,7 +495,7 @@ class UsersController extends AppController
                 unset($users[$key]['User']['totp']);
                 if (!empty(Configure::read('Security.advanced_authkeys'))) { // There is no point to show that authkey since it doesn't work when this setting is active
                     unset($users[$key]['User']['authkey']);
-                } else if ((!empty($user['Role']['perm_admin']) && $user['User']['id'] != $this->Auth->user('id'))) {
+                } else if (!$this->_isSiteAdmin() && !empty($user['Role']['perm_admin']) && $user['User']['id'] != $this->Auth->user('id')) {
                     $users[$key]['User']['authkey'] = __('Redacted');
                 }
             }
