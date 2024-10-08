@@ -67,7 +67,7 @@ tee < ${logfile}.pipe $logfile &
 exec &> ${logfile}.pipe
 rm ${logfile}.pipe
 
-function install_packages()
+function install_packages ()
 {
     install_params=("$@")
     for i in "${install_params[@]}";
