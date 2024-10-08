@@ -691,7 +691,7 @@ class EventsController extends AppController
                 $this->request->data = $this->request->data['request'];
             }
             foreach ($this->request->data as $k => $v) {
-                if (substr($k, 0, 6) === 'search' && in_array(strtolower(substr($k, 6)), $overrideAbleParams, true)) {
+                if (str_starts_with($k, 'search') && in_array(strtolower(substr($k, 6)), $overrideAbleParams, true)) {
                     unset($this->request->data[$k]);
                     $this->request->data[strtolower(substr($k, 6))] = $v;
                 } else if (in_array(strtolower($k), $overrideAbleParams, true)) {
@@ -1105,7 +1105,7 @@ class EventsController extends AppController
         }
 
         foreach ($this->passedArgs as $k => $v) {
-            if (substr($k, 0, 6) === 'search') {
+            if (str_starts_with($k, 'search')) {
                 $searchTerm = substr($k, 6);
                 switch ($searchTerm) {
                     case 'published':
@@ -4099,9 +4099,11 @@ class EventsController extends AppController
         $this->set('event_id', $event['Event']['id']);
         if ($this->request->is('get')) {
             $this->layout = false;
-            $this->request->data['Attribute']['event_id'] = $event['Event']['id'];
+            $this->request->data['MispAttribute']['event_id'] = $event['Event']['id'];
 
         } else if ($this->request->is('post')) {
+            $this->request->data['Attribute'] = $this->request->data['MispAttribute'];
+            unset($this->request->data['MispAttribute']);
             App::uses('ComplexTypeTool', 'Tools');
             $complexTypeTool = new ComplexTypeTool();
             $this->loadModel('Warninglist');
@@ -4221,6 +4223,8 @@ class EventsController extends AppController
         }
 
         $this->Event->insertLock($this->Auth->user(), $id);
+        $this->request->data['Attribute'] = $this->request->data['MispAttribute'];
+        unset($this->request->data['MispAttribute']);
         $attributes = $this->_jsonDecode($this->request->data['Attribute']['JsonObject']);
         $defaultComment = $this->request->data['Attribute']['default_comment'];
         $proposals = !$this->__canModifyEvent($event) || (isset($this->request->data['Attribute']['force']) && $this->request->data['Attribute']['force']);

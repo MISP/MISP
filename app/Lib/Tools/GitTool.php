@@ -58,7 +58,7 @@ class GitTool
     {
         if (is_file($repoPath . '/.git')) {
             $fileContent = FileAccessTool::readFromFile($repoPath . '/.git');
-            if (substr($fileContent, 0, 8) === 'gitdir: ') {
+            if (str_starts_with($fileContent, 'gitdir: ')) {
                 $gitDir = $repoPath . '/' . trim(substr($fileContent, 8)) . '/';
             } else {
                 throw new Exception("$repoPath/.git is file, but contains non expected content $fileContent");
@@ -68,7 +68,7 @@ class GitTool
         }
 
         $head = rtrim(FileAccessTool::readFromFile($gitDir . 'HEAD'));
-        if (substr($head, 0, 5) === 'ref: ') {
+        if (str_starts_with($head, 'ref: ')) {
             $path = substr($head, 5);
             return rtrim(FileAccessTool::readFromFile($gitDir . $path));
         }  else if (strlen($head) === 40) {
@@ -86,7 +86,7 @@ class GitTool
     public static function currentBranch()
     {
         $head = rtrim(FileAccessTool::readFromFile(ROOT . '/.git/HEAD'));
-        if (substr($head, 0, 5) === 'ref: ') {
+        if (str_starts_with($head, 'ref: ')) {
             $path = substr($head, 5);
             return str_replace('refs/heads/', '', $path);
         } else {

@@ -390,7 +390,7 @@ class Warninglist extends AppModel
         $warninglistId = (int)$this->id;
         $result = true;
 
-        if (JsonTool::arrayIsList($list['list'])) {
+        if (array_is_list($list['list'])) {
             foreach (array_chunk($list['list'], 1000) as $chunk) {
                 $valuesToInsert = [];
                 foreach ($chunk as $value) {
@@ -634,7 +634,7 @@ class Warninglist extends AppModel
      */
     public function checkValue($listValues, $value, $type, $listType)
     {
-        if ($type === 'malware-sample' || strpos($type, '|') !== false) {
+        if ($type === 'malware-sample' || str_contains($type, '|')) {
             $value = explode('|', $value, 2);
         } else {
             $value = array($value);
@@ -678,7 +678,7 @@ class Warninglist extends AppModel
     private function __evalSubString($listValues, $value)
     {
         foreach ($listValues as $listValue) {
-            if (strpos($value, $listValue) !== false) {
+            if (str_contains($value, $listValue)) {
                 return $listValue;
             }
         }
@@ -688,7 +688,7 @@ class Warninglist extends AppModel
     private function __evalHostname($listValues, $value)
     {
         // php's parse_url is dumb, so let's use some hacky workarounds
-        if (strpos($value, '//') === false) {
+        if (!str_contains($value, '//')) {
             $value = explode('/', $value);
             $hostname = $value[0];
         } else {

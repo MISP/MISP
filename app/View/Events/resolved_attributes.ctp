@@ -10,7 +10,7 @@
         }
     ?>
     <?php
-        echo $this->Form->create('Attribute', array('url' => $baseurl . '/events/saveFreeText/' . $event['Event']['id'], 'class' => 'mainForm'));
+        echo $this->Form->create('MispAttribute', array('url' => $baseurl . '/events/saveFreeText/' . $event['Event']['id'], 'class' => 'mainForm'));
         if ($isSiteAdmin) {
             echo $this->Form->input('force', array(
                 'checked' => false,

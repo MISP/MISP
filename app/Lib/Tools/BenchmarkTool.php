@@ -8,12 +8,12 @@ class BenchmarkTool
 {
     /** @var Model */
     public $Model;
-    
-    /** @var redis */
-    public $redis;
 
-    /** @var retention */
+    /** @var int */
     private $retention = 0;
+
+    /** @var Redis */
+    private $redis;
 
     const BENCHMARK_SCOPES = ['user', 'endpoint', 'user_agent'];
     const BENCHMARK_FIELDS = ['time', 'sql_time', 'sql_queries', 'memory'];
@@ -24,10 +24,12 @@ class BenchmarkTool
         'memory' => 'MB'
     ];
 
-    public $namespace = 'misp:benchmark:';
+    const NAMESPACE = 'misp:benchmark:';
 
-    function __construct(Model $model) {
+    function __construct(Model $model)
+    {
         $this->Model = $model;
+        $this->redis = RedisTool::init();
     }
 
     public function getSettings()
@@ -47,94 +49,88 @@ class BenchmarkTool
 
     public function startBenchmark()
     {
-        $start_time = microtime(true);
-        $this->redis = $this->Model->setupRedis();
+        $startTime = microtime(true);
         $this->retention = Configure::check('Plugin.benchmark_retention') ? Configure::read('Plugin.benchmark_retention') : 0;
-        return $start_time;
+        return $startTime;
     }
 
     public function stopBenchmark(array $options)
     {
-        $start_time = $options['start_time'];
+        $startTime = $options['start_time'];
+        $sql = $this->Model->getDataSource()->getLog(false, false);
+
         if (!empty($options['user'])) {
-            $sql = $this->Model->getDataSource()->getLog(false, false);
             $benchmarkData = [
                 'user' => $options['user'],
                 'endpoint' => $options['controller'] . '/' . $options['action'],
                 'user_agent' => $_SERVER['HTTP_USER_AGENT'],
                 'sql_queries' => $sql['count'],
                 'sql_time' => $sql['time'],
-                'time' => (microtime(true) - $start_time),
+                'time' => (microtime(true) - $startTime),
                 'memory' => (int)(memory_get_peak_usage(true) / 1024 / 1024),
                 //'date' => date('Y-m-d', strtotime("-3 days"))
                 'date' => date('Y-m-d')
             ];
-            $this->pushBenchmarkDataToRedis($benchmarkData);
         } else {
-            $sql = $this->Model->getDataSource()->getLog(false, false);
             $benchmarkData = [
                 'user' => 'SYSTEM',
                 'endpoint' => $options['controller'] . '/' . $options['action'],
                 'user_agent' => 'CLI',
                 'sql_queries' => $sql['count'],
                 'sql_time' => $sql['time'],
-                'time' => (microtime(true) - $start_time),
+                'time' => (microtime(true) - $startTime),
                 'memory' => (int)(memory_get_peak_usage(true) / 1024 / 1024),
                 //'date' => date('Y-m-d', strtotime("-3 days"))
                 'date' => date('Y-m-d')
             ];
-            $this->pushBenchmarkDataToRedis($benchmarkData);
         }
+        $this->pushBenchmarkDataToRedis($benchmarkData);
     }
 
     private function pushBenchmarkDataToRedis($benchmarkData)
     {
-        $this->redis = $this->Model->setupRedis();
-        $this->redis->pipeline();
-        $this->redis->sAdd(
-            $this->namespace . 'days',
+        $pipeline = $this->redis->pipeline();
+        $pipeline->sAdd(
+            self::NAMESPACE . 'days',
             $benchmarkData['date']
         );
         foreach (self::BENCHMARK_SCOPES as $scope) {
-            $this->redis->sAdd(
-                $this->namespace . $scope . ':list',
+            $pipeline->sAdd(
+                self::NAMESPACE . $scope . ':list',
                 $benchmarkData[$scope]
             );
-            $this->redis->zIncrBy(
-                $this->namespace . $scope . ':count:' . $benchmarkData['date'],
+            $pipeline->zIncrBy(
+                self::NAMESPACE . $scope . ':count:' . $benchmarkData['date'],
                 1,
                 $benchmarkData[$scope]
             );
             foreach (self::BENCHMARK_FIELDS as $field) {
-                $this->redis->zIncrBy(
-                    $this->namespace . $scope . ':' . $field . ':' . $benchmarkData['date'],
+                $pipeline->zIncrBy(
+                    self::NAMESPACE . $scope . ':' . $field . ':' . $benchmarkData['date'],
                     $benchmarkData[$field],
                     $benchmarkData[$scope]
                 );
             }
-            $this->redis->zIncrBy(
-                $this->namespace . $scope . ':endpoint:' . $benchmarkData['date'] . ':' . $benchmarkData['user'],
+            $pipeline->zIncrBy(
+                self::NAMESPACE . $scope . ':endpoint:' . $benchmarkData['date'] . ':' . $benchmarkData['user'],
                 1,
                 $benchmarkData['endpoint']
             );
         }
-        $this->redis->exec();
+        $pipeline->exec();
     }
 
     public function getTopList(string $scope, string $field, array $days = [], $limit = 10, $average = false, $aggregate = false)
     {
-        if (empty($this->redis)) {
-            $this->redis = $this->Model->setupRedis();
-        }
         $results = [];
         if (is_string($days)) {
             $days = [$days];
         }
         foreach ($days as $day) {
-            $temp = $this->redis->zrevrange($this->namespace . $scope . ':' . $field . ':' . $day, 0, $limit, true);
+            $temp = $this->redis->zrevrange(self::NAMESPACE . $scope . ':' . $field . ':' . $day, 0, $limit, true);
             foreach ($temp as $k => $v) {
                 if ($average) {
-                    $divisor = $this->redis->zscore($this->namespace . $scope . ':count:' . $day, $k);
+                    $divisor = $this->redis->zscore(self::NAMESPACE . $scope . ':count:' . $day, $k);
                     if ($aggregate) {
                         $results['aggregate'][$k] = empty($results['aggregate'][$k]) ? ($v / $divisor) : ($results['aggregate'][$k] + ($v / $divisor));
                     } else {
@@ -160,12 +156,10 @@ class BenchmarkTool
 
     public function getAllTopLists(array $days = null, $limit = 10, $average = false, $aggregate = false, $scope_filter = [])
     {
-        if (empty($this->redis)) {
-            $this->redis = $this->Model->setupRedis();
-        }
         if ($days === null) {
-            $days = $this->redis->smembers($this->namespace . 'days');
+            $days = $this->redis->smembers(self::NAMESPACE . 'days');
         }
+        $results = [];
         foreach (self::BENCHMARK_SCOPES as $scope) {
             if (empty($scope_filter) || in_array($scope, $scope_filter)) {
                 foreach (self::BENCHMARK_FIELDS as $field) {

@@ -149,7 +149,7 @@ abstract class StixExport
                 $tags = array();
                 foreach($raw_attribute['AttributeTag'] as $tag) {
                     $tag_name = $tag['Tag']['name'];
-                    if (substr($tag_name, 0, 12) === 'misp-galaxy:') {
+                    if (str_starts_with($tag_name, 'misp-galaxy:')) {
                         $this->__merge_galaxy_tag($galaxies['Attribute'], $tag_name);
                     } else {
                         $tags[] = $tag['Tag'];
@@ -162,7 +162,7 @@ abstract class StixExport
             if (!empty($raw_attribute['EventTag'])) {
                 foreach($raw_attribute['EventTag'] as $tag) {
                     $tag_name = $tag['Tag']['name'];
-                    if (substr($tag_name, 0, 12) === 'misp-galaxy:') {
+                    if (str_starts_with($tag_name, 'misp-galaxy:')) {
                         $this->__merge_galaxy_tag($galaxies['Event'], $tag_name);
                     }
                 }

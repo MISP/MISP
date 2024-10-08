@@ -1,5 +1,5 @@
 <div class="freetext">
-<?= $this->Form->create('Attribute', array('id')); ?>
+<?= $this->Form->create('MispAttribute', array('id')); ?>
     <fieldset>
         <legend><?php echo __('Freetext Import Tool'); ?></legend>
         <div class="add_attribute_fields">
