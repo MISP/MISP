@@ -12,18 +12,18 @@
     <?php
         echo $this->Form->create('MispAttribute', array('url' => $baseurl . '/events/saveFreeText/' . $event['Event']['id'], 'class' => 'mainForm'));
         if ($isSiteAdmin) {
-            echo $this->Form->input('force', array(
+            echo $this->Form->input('Attribute.force', array(
                 'checked' => false,
                 'label' => __('Proposals instead of attributes'),
             ));
         }
-        echo $this->Form->input('JsonObject', array(
+        echo $this->Form->input('Attribute.JsonObject', array(
             'label' => false,
             'type' => 'text',
             'style' => 'display:none;',
             'value' => '',
         ));
-        echo $this->Form->input('default_comment', array(
+        echo $this->Form->input('Attribute.default_comment', array(
             'label' => false,
             'type' => 'text',
             'style' => 'display:none;',
