@@ -17,7 +17,7 @@ class FuzzyCorrelateSsdeep extends AppModel
         while ($search) {
             $search = false;
             foreach ($uniqueChars as $c) {
-                if (strpos($hash, $c . $c . $c . $c)) {
+                if (str_contains($hash, $c . $c . $c . $c)) {
                     $hash = str_replace($c . $c . $c . $c, $c . $c . $c, $hash);
                     $search = true;
                 }

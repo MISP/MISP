@@ -821,7 +821,7 @@ class Tag extends AppModel
                 continue;
             }
             $dataTag['Tag']['local'] = empty($dataTag['local']) ? 0 : 1;
-            if (substr($dataTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
+            if (str_starts_with($dataTag['Tag']['name'], 'misp-galaxy:')) {
                 $possibleGalaxyClusterTag[] = $dataTag['Tag']['name'];
             }
         }

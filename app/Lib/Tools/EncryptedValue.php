@@ -75,6 +75,6 @@ class EncryptedValue implements JsonSerializable
      */
     public static function isEncrypted($value)
     {
-        return substr($value, 0, 2) === EncryptedValue::ENCRYPTED_MAGIC;
+        return str_starts_with($value, EncryptedValue::ENCRYPTED_MAGIC);
     }
 }

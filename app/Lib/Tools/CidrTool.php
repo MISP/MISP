@@ -25,7 +25,7 @@ class CidrTool
     public function contains($value)
     {
         $valueMask = null;
-        if (strpos($value, '/') !== false) {
+        if (str_contains($value, '/')) {
             list($value, $valueMask) = explode('/', $value);
         }
 
@@ -134,7 +134,7 @@ class CidrTool
                 continue;
             }
 
-            $mask = isset($parts[1]) ? $parts[1] : $maximumNetmask;
+            $mask = $parts[1] ?? $maximumNetmask;
             if ($maximumNetmask === 32) {
                 if ($mask < $this->minimumIpv4Mask) {
                     $this->minimumIpv4Mask = (int)$mask;
