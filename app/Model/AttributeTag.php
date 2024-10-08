@@ -38,7 +38,8 @@ class AttributeTag extends AppModel
     {
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
         $kafkaTopic = $this->kafkaTopic('tag');
-        if ($pubToZmq || $kafkaTopic) {
+        $triggerCallable = $this->isTriggerCallable('tag-attached-after-save');
+        if ($pubToZmq || $kafkaTopic || $triggerCallable) {
             $tag = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('AttributeTag.id' => $this->id),
@@ -54,6 +55,15 @@ class AttributeTag extends AppModel
             if ($kafkaTopic) {
                 $kafkaPubTool = $this->getKafkaPubTool();
                 $kafkaPubTool->publishJson($kafkaTopic, $tag, 'attached to attribute');
+            }
+            if ($triggerCallable) {
+                $workflowErrors = [];
+                $logging = [
+                    'model' => 'AttributeTag',
+                    'action' => 'add',
+                    'id' => $this->id,
+                ];
+                $this->executeTrigger('tag-attached-after-save', $tag, $workflowErrors, $logging);
             }
         }
     }

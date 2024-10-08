@@ -1562,7 +1562,10 @@ class AttributesController extends AppController
             }
 
             $this->paginate['conditions'] = $params['conditions'];
-            $this->paginate['ignoreIndexHint'] = 'deleted';
+            $index = $this->MispAttribute->query("SHOW index from attributes where Key_name = 'deleted'");
+            if (!empty($index)) {
+                $this->paginate['ignoreIndexHint'] = 'deleted';
+            }
             $attributes = $this->paginate();
             $this->MispAttribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
 

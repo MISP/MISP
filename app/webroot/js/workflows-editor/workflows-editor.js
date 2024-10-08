@@ -64,6 +64,7 @@ var dotBlock_trigger = doT.template(' \
                 </span> \
             </span> \
         </div> \
+        {{=it._node_param_html}} \
     </div> \
 </div>')
 
