@@ -112,7 +112,7 @@ class GalaxyClustersController extends AppController
         $this->paginate['conditions']['AND'][] = $contextConditions;
         $this->paginate['conditions']['AND'][] = $searchConditions;
         $this->paginate['conditions']['AND'][] = $aclConditions;
-        $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc', 'SharingGroup', 'GalaxyClusterRelation', 'TargetingClusterRelation'));
+        $this->paginate['contain'] = array_merge($this->paginate['contain'], array('Org', 'Orgc', 'SharingGroup', 'GalaxyClusterRelation', 'TargetingClusterRelation', 'Galaxy'));
         $clusters = $this->paginate();
 
         $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters);
@@ -224,17 +224,8 @@ class GalaxyClustersController extends AppController
      */
     public function add($galaxyId)
     {
-        if (Validation::uuid($galaxyId)) {
-            $temp = $this->GalaxyCluster->Galaxy->find('first', array(
-                'recursive' => -1,
-                'fields' => array('Galaxy.id', 'Galaxy.uuid'),
-                'conditions' => array('Galaxy.uuid' => $galaxyId)
-            ));
-            if ($temp === null) {
-                throw new NotFoundException(__('Invalid galaxy'));
-            }
-            $galaxyId = $temp['Galaxy']['id'];
-        } elseif (!is_numeric($galaxyId)) {
+        $galaxy = $this->GalaxyCluster->Galaxy->fetchGalaxyById($this->Auth->user(), $galaxyId);
+        if (empty($galaxy)) {
             throw new NotFoundException(__('Invalid galaxy'));
         }
         $this->loadModel('Attribute');

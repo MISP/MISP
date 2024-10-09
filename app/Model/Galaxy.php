@@ -24,16 +24,68 @@ class Galaxy extends AppModel
         'GalaxyCluster' => array('dependent' => true)
     );
 
+    public $belongsTo = [
+        'Org' => [
+            'className' => 'Organisation',
+            'foreignKey' => 'org_id'
+        ],
+        'Orgc' => [
+            'className' => 'Organisation',
+            'foreignKey' => 'orgc_id'
+        ],
+    ];
+
+    public $validate = array(
+        'kill_chain_order' => array(
+            'rule' => 'valueIsJson',
+            'message' => 'The provided Kill Chain Order is not a valid json format',
+            'required' => false,
+        ),
+    );
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
         if (isset($this->data['Galaxy']['kill_chain_order'])) {
-            $json = json_encode($this->data['Galaxy']['kill_chain_order']);
+            if (is_array($this->data['Galaxy']['kill_chain_order'])) {
+                $json = json_encode($this->data['Galaxy']['kill_chain_order']);
+            } else {
+                $json = $this->data['Galaxy']['kill_chain_order'];
+            }
             if ($json !== null) {
                 $this->data['Galaxy']['kill_chain_order'] = $json;
             } else {
                 unset($this->data['Galaxy']['kill_chain_order']);
             }
+            
+        }
+        return true;
+    }
+
+    public function beforeSave($options = [])
+    {
+        parent::beforeSave($options);
+        if (empty($this->data['Galaxy']['created'])) {
+            $this->data['Galaxy']['created'] = (new DateTime())->format('Y-m-d H:i:s');
+            $this->data['Galaxy']['created'] = (new DateTime($this->data['Galaxy']['created'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+        }
+        if (empty($this->data['Galaxy']['modified'])) {
+            $this->data['Galaxy']['modified'] = (new DateTime())->format('Y-m-d H:i:s');
+            $this->data['Galaxy']['modified'] = (new DateTime($this->data['Galaxy']['modified'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+        }
+        if (empty($this->data['Galaxy']['uuid'])) {
+            $this->data['Galaxy']['uuid'] = CakeText::uuid();
+        }
+        if (empty($this->data['Galaxy']['type'])) {
+            $this->data['Galaxy']['type'] =  $this->data['Galaxy']['uuid'];
+        }
+        if (empty($this->data['Galaxy']['version'])) {
+            $date = new DateTime();
+            $this->data['Galaxy']['version'] = $date->getTimestamp();
+        }
+
+        if (!isset($this->data['Galaxy']['default'])) {
+            $this->data['Galaxy']['default'] = true;
         }
         return true;
     }
@@ -50,6 +102,16 @@ class Galaxy extends AppModel
                 $results[$k]['Galaxy']['kill_chain_order'] = json_decode($v['Galaxy']['kill_chain_order'], true);
             } else {
                 unset($results[$k]['Galaxy']['kill_chain_order']);
+            }
+            if (isset($v['Galaxy']['org_id']) && $v['Galaxy']['org_id'] == 0) {
+                if (isset($results[$k]['Org'])) {
+                    $results[$k]['Org'] = Organisation::GENERIC_MISP_ORGANISATION;
+                }
+            }
+            if (isset($v['Galaxy']['orgc_id']) && $v['Galaxy']['orgc_id'] == 0) {
+                if (isset($results[$k]['Orgc'])) {
+                    $results[$k]['Orgc'] = Organisation::GENERIC_MISP_ORGANISATION;
+                }
             }
         }
         return $results;
@@ -368,6 +430,264 @@ class Galaxy extends AppModel
         }
         $results['success'] = !($results['failed'] > 0 && $results['imported'] == 0);
         return $results;
+    }
+
+    /**
+     * Fetches a galaxy and checks if the user has the authorization to perform the requested operation
+     *
+     * @param  array $user
+     * @param  int|string|array $galaxy
+     * @param  mixed $authorizations the requested actions to be performed on the galaxy
+     * @param  bool  $throwErrors Should the function throws exception if users is not allowed to perform the action
+     * @param  bool  $full
+     * @return array The galaxy or an error message
+     */
+    public function fetchIfAuthorized(array $user, $galaxy, $authorizations, $throwErrors=true, $full=false)
+    {
+        $authorizations = is_array($authorizations) ? $authorizations : [$authorizations];
+        $possibleAuthorizations = ['view', 'edit', 'delete'];
+        if (!empty(array_diff($authorizations, $possibleAuthorizations))) {
+            throw new NotFoundException(__('Invalid authorization requested'));
+        }
+        if (isset($galaxy['uuid'])) {
+            $galaxy[$this->alias] = $galaxy;
+        }
+        if (!isset($galaxy[$this->alias]['uuid'])) {
+            $galaxy = $this->fetchGalaxyById($user, $galaxy, $throwErrors, $full);
+            if (empty($galaxy)) {
+                $message = __('Invalid galaxy');
+                if ($throwErrors) {
+                    throw new NotFoundException($message);
+                }
+                return array('authorized' => false, 'error' => $message);
+            }
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return $galaxy;
+        }
+
+        if (in_array('view', $authorizations) && count($authorizations) === 1) {
+            return $galaxy;
+        } else {
+            if (!$user['Role']['perm_galaxy_editor']) {
+                $message = __('You don\'t have the permission to do that.');
+                if ($throwErrors) {
+                    throw new MethodNotAllowedException($message);
+                }
+                return array('authorized' => false, 'error' => $message);
+            }
+            if (in_array('edit', $authorizations) || in_array('delete', $authorizations)) {
+                if ($galaxy[$this->alias]['orgc_id'] != $user['org_id']) {
+                    $message = __('Only the creator organisation can modify the galaxy');
+                    if ($throwErrors) {
+                        throw new MethodNotAllowedException($message);
+                    }
+                    return array('authorized' => false, 'error' => $message);
+                }
+            }
+            if (in_array('publish', $authorizations)) {
+                if ($galaxy[$this->alias]['orgc_id'] != $user['org_id'] && $user['Role']['perm_publish']) {
+                    $message = __('Only the creator organisation with publishing capabilities can publish the galaxy');
+                    if ($throwErrors) {
+                        throw new MethodNotAllowedException($message);
+                    }
+                    return array('authorized' => false, 'error' => $message);
+                }
+            }
+            return $galaxy;
+        }
+    }
+
+    /**
+     * Simple ACL-aware method to fetch a galaxy by Id or UUID
+     *
+     * @param array $user
+     * @param int|string $id Galaxy ID or UUID
+     * @param bool $throwErrors
+     * @param bool $full
+     * @return array
+     */
+    public function fetchGalaxyById(array $user, $id, $throwErrors=true, $full=false)
+    {
+        $alias = $this->alias;
+        if (Validation::uuid($id)) {
+            $conditions = array("{$alias}.uuid" => $id);
+        } elseif (is_numeric($id)) {
+            $conditions = array("{$alias}.id" => $id);
+        } else{
+            if ($throwErrors) {
+                throw new NotFoundException(__('Invalid galaxy'));
+            }
+            return array();
+        }
+
+        return $this->fetchGalaxies($user, ['conditions' => $conditions, 'first' => true], $full=$full);
+    }
+
+    /**
+     * fetchGalaxies Very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
+     *
+     * @param  mixed $user
+     * @param  mixed $options
+     * @param  bool  $full
+     * @return array
+     */
+    public function fetchGalaxies(array $user, array $options, $full=false, $includeFullClusterRelationship=false)
+    {
+        $params = [
+            'conditions' => $this->buildConditions($user),
+            'recursive' => -1,
+            'contain' => [
+                'Orgc',
+                'Org',
+            ],
+        ];
+        if (!empty($options['contain'])) {
+            $params['contain'] = $options['contain'];
+        }
+        if (isset($options['fields'])) {
+            $params['fields'] = $options['fields'];
+        }
+        if (isset($options['conditions'])) {
+            $params['conditions']['AND'][] = $options['conditions'];
+        }
+        if (isset($options['group'])) {
+            $params['group'] = $options['group'];
+        }
+        if (!empty($options['order'])) {
+            $params['order'] = $this->findOrder(
+                $options['order'],
+                'GalaxyCluster',
+                ['id', 'version', 'name', 'namesapce', 'distribution', 'orgc_id', 'org_id']
+            );
+        }
+        if (isset($options['page'])) {
+            $params['page'] = $options['page'];
+        }
+        if (isset($options['limit'])) {
+            $params['limit'] = $options['limit'];
+        }
+        if (isset($options['list']) && $options['list']) {
+            return $this->find('list', $params);
+        }
+
+        if (isset($options['first']) && $options['first']) {
+            $galaxies = $this->find('first', $params);
+        } else if (isset($options['count']) && $options['count']) {
+            return $this->find('count', $params);
+        } else if (isset($options['column']) && $options['column']) {
+            $galaxies = $this->find('all', $params);
+            return Hash::extract($galaxies, '{n}.Galaxy.id');
+        } else {
+            $galaxies = $this->find('all', $params);
+        }
+
+        if (empty($galaxies)) {
+            return $galaxies;
+        }
+
+        if (isset($options['first']) && $options['first']) {
+            $galaxies = [$galaxies];
+        }
+
+        if ($full) {
+            foreach ($galaxies as $i => $galaxy) {
+                $galaxies[$i]['GalaxyCluster'] = $this->GalaxyCluster->fetchGalaxyClusters($user, [
+                    'conditions' => [
+                        'galaxy_id' => $galaxy['Galaxy']['id'],
+                    ],
+                ], true);
+            }
+        }
+
+        foreach ($galaxies as $i => $galaxy) {
+            $galaxies[$i] = $this->arrangeData($galaxies[$i]);
+        }
+        if (isset($options['first']) && $options['first']) {
+            return $galaxies[0];
+        }
+
+        return $galaxies;
+    }
+
+    public function buildConditions($user)
+    {
+        $conditions = array();
+        if (!$user['Role']['perm_site_admin']) {
+            $alias = $this->alias;
+            $conditions['AND']['OR'] = [
+                "{$alias}.default" => true,
+                "{$alias}.org_id" => $user['org_id'],
+                [
+                    'AND' => [
+                        "{$alias}.distribution >" => 0,
+                        "{$alias}.distribution <" => 4
+                    ],
+                ],
+            ];
+        }
+        return $conditions;
+    }
+
+
+    /**
+     * arrangeData Move linked data into the galaxy model key
+     *
+     * @return array The arranged galaxy
+     */
+    public function arrangeData($galaxy)
+    {
+        $models = ['GalaxyCluster', 'Org', 'Orgc',];
+        foreach ($models as $model) {
+            if (isset($galaxy[$model])) {
+                $galaxy['Galaxy'][$model] = $galaxy[$model];
+                unset($galaxy[$model]);
+            }
+        }
+        return $galaxy;
+    }
+
+    public function editGalaxy($user, $galaxy)
+    {
+        $errors = [];
+        if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
+            $errors[] = __('Incorrect permission');
+        }
+        if (isset($galaxy['Galaxy']['uuid'])) {
+            $existingGalaxy = $this->find('first', [
+                'conditions' => array('Galaxy.uuid' => $galaxy['Galaxy']['uuid'])
+            ]);
+        } else {
+            $errors[] = __('UUID not provided');
+        }
+        if (empty($existingGalaxy)) {
+            $errors[] = __('Unkown UUID');
+        } else {
+            if (!empty($existingGalaxy['Galaxy']['default'])) {
+                $errors[] = __('Cannot edit default Galaxy');
+            }
+            if (!($existingGalaxy['Galaxy']['orgc_id'] === $user['org_id'] || $user['Role']['perm_site_admin'])) {
+                $errors[] = [
+                    __('Galaxy could not be saved: The user used to edit the galaxy is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the galaxy whilst also not being a site administrator.')
+                ];
+            }
+            $galaxy['Galaxy']['id'] = $existingGalaxy['Galaxy']['id'];
+
+            if (empty($errors)) {
+                $date = new DateTime();
+                $galaxy['Galaxy']['version'] = $date->getTimestamp();
+                if (empty($fieldList)) {
+                    $fieldList = ['name', 'namespace', 'description', 'version', 'distribution', 'icon', 'enabled', 'kill_chain_order'];
+                }
+                $saveSuccess = $this->save($galaxy, ['fieldList' => $fieldList]);
+                if (!$saveSuccess) {
+                    foreach ($this->validationErrors as $validationError) {
+                        $errors[] = $validationError[0];
+                    }
+                }
+            }
+        }
+        return $errors;
     }
 
     /**

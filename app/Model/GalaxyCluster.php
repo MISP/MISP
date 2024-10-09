@@ -258,9 +258,7 @@ class GalaxyCluster extends AppModel
             $errors[] = __('Incorrect permission');
             return $errors;
         }
-        $galaxy = $this->Galaxy->find('first', array('conditions' => array(
-            'id' => $cluster['GalaxyCluster']['galaxy_id']
-        )));
+        $galaxy = $this->Galaxy->fetchGalaxyById($user, $cluster['GalaxyCluster']['galaxy_id']);
         if (empty($galaxy)) {
             $errors[] = __('Galaxy not found');
             return $errors;
@@ -996,27 +994,41 @@ class GalaxyCluster extends AppModel
         return $clusters;
     }
 
-    public function buildConditions($user)
+    public function buildConditions($user, $useGalaxyContiainedIDsConditions=false)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
             $alias = $this->alias;
-            $conditions['AND']['OR'] = array(
-                "${alias}.org_id" => $user['org_id'],
-                array(
-                    'AND' => array(
-                        "${alias}.distribution >" => 0,
-                        "${alias}.distribution <" => 4
-                    ),
-                ),
-                array(
-                    'AND' => array(
-                        "${alias}.sharing_group_id" => $sgids,
-                        "${alias}.distribution" => 4
-                    )
-                )
-            );
+            if ($useGalaxyContiainedIDsConditions) {
+                $galaxyIDs = $this->Galaxy->fetchGalaxies($user, ['column' => true]);
+                $galaxyIDs = !empty($galaxyIDs) ? $galaxyIDs : [-1];
+                $galaxyConditions = [
+                    'AND' => [
+                        "{$alias}.galaxy_id IN" => $galaxyIDs,
+                    ]
+                ];
+            } else {
+                $galaxyConditions = $this->Galaxy->buildConditions($user);
+            }
+            $conditions['AND'] = [
+                $galaxyConditions,
+                'OR' => [
+                    "{$alias}.org_id" => $user['org_id'],
+                    [
+                        'AND' => [
+                            "{$alias}.distribution >" => 0,
+                            "{$alias}.distribution <" => 4
+                        ],
+                    ],
+                    [
+                        'AND' => [
+                            "{$alias}.sharing_group_id" => $sgids,
+                            "{$alias}.distribution" => 4
+                        ],
+                    ],
+                ]
+            ];
         }
         return $conditions;
     }
@@ -1033,7 +1045,8 @@ class GalaxyCluster extends AppModel
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
-            'recursive' => -1
+            'recursive' => -1,
+            'contain' => ['Galaxy'],
         );
         if ($full) {
             $params['contain'] = array(
@@ -2009,14 +2022,14 @@ class GalaxyCluster extends AppModel
         if (isset($this->__assetCache['gcOwnerIds'])) {
             return $this->__assetCache['gcOwnerIds'];
         } else {
+            $alias = $this->alias;
             $gcOwnerIds = $this->fetchGalaxyClusters($user, array(
                 'fields' => 'id',
-                'conditions' => array(
-                    'org_id' => $user['org_id']
-                )
+                'conditions' => [
+                    "{$alias}.org_id" => $user['org_id']
+                ]
             ), false);
-            $alias = $this->alias;
-            $gcOwnerIds = Hash::extract($gcOwnerIds, "{n}.${alias}.id");
+            $gcOwnerIds = Hash::extract($gcOwnerIds, "{n}.{$alias}.id");
             if (empty($gcOwnerIds)) {
                 $gcOwnerIds = array(-1);
             }

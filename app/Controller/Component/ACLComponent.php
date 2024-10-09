@@ -368,7 +368,9 @@ class ACLComponent extends Component
         'galaxies' => array(
             'attachCluster' => array('perm_tagger'),
             'attachMultipleClusters' => array('perm_tagger'),
-            'delete' => array(),
+            'add' => array('perm_galaxy_editor'),
+            'edit' => array('perm_galaxy_editor'),
+            'delete' => array('perm_galaxy_editor'),
             'disable' => array(),
             'enable' => array(),
             'export' => array('*'),
@@ -1149,6 +1151,30 @@ class ACLComponent extends Component
             return false;
         }
         return $cluster['GalaxyCluster']['orgc_id'] == $user['org_id'];
+    }
+
+    /**
+     * Checks if user can modify given galaxy cluster
+     *
+     * @param array $user
+     * @param array $cluster
+     * @return bool
+     */
+    public function canModifyGalaxy(array $user, array $galaxy)
+    {
+        if (!isset($galaxy['Galaxy'])) {
+            throw new InvalidArgumentException('Passed object does not contain an Galaxy.');
+        }
+        if ($galaxy['Galaxy']['default']) {
+            return false; // it is not possible to edit default clusters
+        }
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        if (!$user['Role']['perm_galaxy_editor']) {
+            return false;
+        }
+        return $galaxy['Galaxy']['orgc_id'] == $user['org_id'];
     }
 
     /**

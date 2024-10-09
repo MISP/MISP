@@ -111,6 +111,15 @@ class AclHelper extends Helper
      * @param array $cluster
      * @return bool
      */
+    public function canModifyGalaxy(array $galaxy)
+    {
+        return $this->ACL->canModifyGalaxy($this->me, $galaxy);
+    }
+
+    /**
+     * @param array $cluster
+     * @return bool
+     */
     public function canPublishGalaxyCluster(array $cluster)
     {
         return $this->ACL->canModifyGalaxyCluster($this->me, $cluster);

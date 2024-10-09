@@ -122,9 +122,19 @@
                         return $isSiteAdmin && $row['Galaxy']['enabled'];
                     }
                 ),
+                [
+                    'title' => __('Edit'),
+                    'icon' => 'edit',
+                    'title' => __('View'),
+                    'url' => $baseurl . '/galaxies/edit',
+                    'url_params_data_paths' => ['Galaxy.id'],
+                    'complex_requirement' => function ($row) use ($isSiteAdmin, $me) {
+                        return !$row['Galaxy']['default'] && ($isSiteAdmin || ($row['Galaxy']['org_id'] === $me['org_id'] && $me['Role']['perm_galaxy_editor']));
+                    }
+                ],
                 array(
                     'url' => '/galaxies/delete',
-		            'title' => __('Delete'),
+                    'title' => __('Delete'),
                     'url_params_data_paths' => array(
                         'Galaxy.id'
                     ),

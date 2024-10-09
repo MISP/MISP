@@ -1500,6 +1500,20 @@ $divider = '<li class="divider"></li>';
                         'url' => $baseurl . '/galaxy_cluster_relations/index',
                         'text' => __('List Relationships')
                     ));
+                    if ($this->Acl->canAccess('galaxy_cluster_blocklists', 'index')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'galaxy_add',
+                            'url' => $baseurl . '/galaxies/add',
+                            'text' => __('Add Custom Galaxy')
+                        ));
+                    }
+                    if ($menuItem === 'view' && $menuItem !== 'galaxy_add' && $this->Acl->canModifyGalaxy($galaxy)) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'edit_galaxy',
+                            'url' => $baseurl . '/galaxies/edit/' . h($galaxy['Galaxy']['id']),
+                            'text' => __('Edit Custom Galaxy')
+                        ));
+                    }
                     if ($isSiteAdmin) {
                         echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
@@ -1587,22 +1601,22 @@ $divider = '<li class="divider"></li>';
                                 'url' => $baseurl . '/galaxies/viewGraph/' . h($id),
                                 'text' => __('View Correlation Graph')
                             ));
-                        }
-                        if ($me['Role']['perm_modify']) {
-                            echo $divider;
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'onClick' => array(
-                                    'function' => 'openGenericModal',
-                                    'params' => [
-                                        sprintf(
-                                            '%s/collectionElements/addElementToCollection/GalaxyCluster/%s',
-                                            $baseurl,
-                                            h($cluster['GalaxyCluster']['uuid'])
-                                        )
-                                    ]
-                                ),
-                                'text' => __('Add Cluster to Collection')
-                            ));
+                            if ($me['Role']['perm_modify']) {
+                                echo $divider;
+                                echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                    'onClick' => array(
+                                        'function' => 'openGenericModal',
+                                        'params' => [
+                                            sprintf(
+                                                '%s/collectionElements/addElementToCollection/GalaxyCluster/%s',
+                                                $baseurl,
+                                                h($cluster['GalaxyCluster']['uuid'])
+                                            )
+                                        ]
+                                    ),
+                                    'text' => __('Add Cluster to Collection')
+                                ));
+                            }
                         }
                     }
                     if ($menuItem === 'view' || $menuItem === 'export') {

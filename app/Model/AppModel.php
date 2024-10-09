@@ -92,7 +92,7 @@ class AppModel extends Model
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
         117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
-        129 => false, 130 => false
+        129 => false, 130 => false, 131 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2219,6 +2219,36 @@ class AppModel extends Model
             case 130:
                 // change bookmarks' table's comment field to utf8_mb4
                 $sqlArray[] = "ALTER TABLE `bookmarks` MODIFY `comment` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
+                break;
+            case 131:
+                $sqlArray[] = "ALTER TABLE `galaxies` ADD `default` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `galaxies` ADD `org_id` int(10) unsigned NOT NULL";
+                $sqlArray[] = "ALTER TABLE `galaxies` ADD `orgc_id` int(10) unsigned NOT NULL";
+                $sqlArray[] = "ALTER TABLE `galaxies` ADD `created` datetime NOT NULL";
+                $sqlArray[] = "ALTER TABLE `galaxies` ADD `modified` datetime NOT NULL";
+                $sqlArray[] = "ALTER TABLE `galaxies` ADD `distribution` tinyint(4) NOT NULL";
+                $sqlArray[] = "UPDATE galaxies g
+                    SET g.default = (
+                        CASE
+                            -- Set to 0 if all related galaxy_clusters have default set to 0
+                            WHEN (
+                                SELECT MAX(gc.default)
+                                FROM galaxy_clusters gc
+                                WHERE gc.galaxy_id = g.id
+                            ) = 0 THEN 0
+                            -- Otherwise, set to 1 if any related cluster has default <> 0
+                            ELSE 1
+                        END
+                    );
+                ";
+
+                $this->__addIndex('galaxies', 'default');
+                $this->__addIndex('galaxies', 'org_id');
+                $this->__addIndex('galaxies', 'orgc_id');
+                $this->__addIndex('galaxies', 'user_id');
+                $this->__addIndex('galaxies', 'created');
+                $this->__addIndex('galaxies', 'modified');
+                $this->__addIndex('galaxies', 'distribution');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
