@@ -95,6 +95,10 @@ if (!empty($failed)) {
 
 require_once dirname(__DIR__) . '/Model/Attribute.php';   // FIXME workaround bug where Vendor/symfony/polyfill-php80/Resources/stubs/Attribute.php is loaded instead
 
+if (PHP_VERSION_ID < 80000) {
+    require_once ROOT . DS . APP_DIR . DS . 'Lib' . DS . 'polyfill.php';
+}
+
 App::uses('Dispatcher', 'Routing');
 
 $Dispatcher = new Dispatcher();
