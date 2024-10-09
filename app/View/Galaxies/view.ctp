@@ -9,8 +9,8 @@
     $table_data[] = array('key' => __('Description'), 'value' => $galaxy['Galaxy']['description']);
     $table_data[] = array('key' => __('Default'), 'boolean' => $galaxy['Galaxy']['default'], 'class' => 'black');
     $table_data[] = array('key' => __('Version'), 'value' => $galaxy['Galaxy']['version']);
-    $table_data[] = array('key' => __('Created'), 'value' => $galaxy['Galaxy']['created']);
-    $table_data[] = array('key' => __('Modified'), 'value' => $galaxy['Galaxy']['modified']);
+    $table_data[] = array('key' => __('Created'), 'value' => $galaxy['Galaxy']['created'] == '0000-00-00 00:00:00' ? 'N/A' : $galaxy['Galaxy']['created']);
+    $table_data[] = array('key' => __('Modified'), 'value' => $galaxy['Galaxy']['modified'] == '0000-00-00 00:00:00' ? 'N/A' : $galaxy['Galaxy']['modified']);
     $table_data[] = array('key' => __('Enabled'), 'boolean' => $galaxy['Galaxy']['enabled']);
     $table_data[] = array('key' => __('Local Only'), 'value' => ($galaxy['Galaxy']['local_only'] ? __("Yes. It can only be added in the local context.") : __("No")));
     $table_data[] = array('key' => __('Distribution'), 'element' => 'genericElements/IndexTable/Fields/distribution_levels', 'element_params' => array(
