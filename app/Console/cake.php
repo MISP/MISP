@@ -35,6 +35,10 @@ if (function_exists('set_include_path')) {
     unset($appDir, $install, $composerInstall);
 }
 
+if (PHP_VERSION_ID < 80000) {
+    require_once dirname(__DIR__). DS . 'Lib' . DS . 'polyfill.php';
+}
+
 if (!include $dispatcher) {
     trigger_error('Could not locate CakePHP core files.', E_USER_ERROR);
 }
