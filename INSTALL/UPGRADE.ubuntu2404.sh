@@ -1,7 +1,7 @@
 #!/bin/bash
 # MISP 2.5 upgrade for MISP 2.4 installations on Ubuntu 24.04 LTS
 
-# For other Ubuntu versions, make sure that you first dist-upgrade to 24.04. 
+# For other Ubuntu versions, make sure that you first dist-upgrade to 24.04.
 
 # This guide liberally borrows from three sources:
 # - The previous iterations of the official MISP installation guide, which can be found at: https://misp.github.io/MISP
@@ -188,7 +188,7 @@ error_check "PECL simdjson extension installation"
 sudo pecl install zstd &>> $logfile
 error_check "PECL zstd extension installation"
 
-if [ $INSTALL_SSDEEP ]; then
+if [ "$INSTALL_SSDEEP" = "true" ]; then
     sudo apt install make -y &>> $logfile
     error_check "The installation of make"
     git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
@@ -245,7 +245,7 @@ print_status "Setting up background workers"
 
 SUPERVISOR_ALREADY_ENABLED=$(${MISP_PATH}/app/Console/cake Admin getSetting SimpleBackgroundJobs.enabled | jq -r '.value')
 
-if [ $SWITCH_TO_SUPERVISOR ] && [ $SUPERVISOR_ALREADY_ENABLED != true ]; then
+if [ "$SWITCH_TO_SUPERVISOR" = "true" ] && [ "$SUPERVISOR_ALREADY_ENABLED" != "true" ]; then
 
 sudo echo "
 [inet_http_server]
