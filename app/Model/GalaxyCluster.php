@@ -33,6 +33,12 @@ class GalaxyCluster extends AppModel
                 'rule' => array('stringNotEmpty')
             )
         ),
+        'tag_name' => array(
+            'unique' => array(
+                'rule' => 'isUnique',
+                'message' => 'The Cluster name is not unique in this Galaxy'
+            )
+        ),
         'uuid' => array(
             'uuid' => array(
                 'rule' => 'uuid',
@@ -339,7 +345,7 @@ class GalaxyCluster extends AppModel
             $date = new DateTime();
             $cluster['GalaxyCluster']['version'] = $date->getTimestamp();
         }
-        $cluster['GalaxyCluster']['tag_name'] = sprintf('misp-galaxy:%s="%s"', $galaxy['type'], $cluster['GalaxyCluster']['uuid']);
+        $cluster['GalaxyCluster']['tag_name'] = sprintf('misp-galaxy:%s="%s"', $galaxy['type'], $cluster['GalaxyCluster']['value']);
         $this->create();
         $saveSuccess = $this->save($cluster);
         if ($saveSuccess) {
