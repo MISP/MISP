@@ -5588,7 +5588,7 @@ class Server extends AppModel
                         '1' => __('This community only'),
                         '2' => __('Connected communities'),
                         '3' => __('All communities'),
-                        '4' => __('Sharing Group'),
+                        '4' => __('Sharing Group')
                     ],
                 ),
                 'default_attribute_distribution' => array(
