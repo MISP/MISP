@@ -3,7 +3,7 @@
   if ($event['Event']['id'] != $object['event_id']) {
       $objectEvent = $event['extensionEvents'][$object['event_id']];
       $objectEvent = ['Event' => $objectEvent, 'Orgc' => $objectEvent['Orgc']]; // fix format to match standard event format
-      $mayModify = $this->Acl->canMofiyEvent($objectEvent);
+      $mayModify = $this->Acl->canModifyEvent($objectEvent);
   } else {
       $objectEvent = $event;
   }
