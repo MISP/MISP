@@ -5579,7 +5579,7 @@ class Server extends AppModel
                 ],
                 'default_event_distribution' => array(
                     'level' => 0,
-                    'description' => __('The default distribution setting for events (0-3).'),
+                    'description' => __('The default distribution setting for events (0-4).'),
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
@@ -5587,7 +5587,8 @@ class Server extends AppModel
                         '0' => __('Your organisation only'),
                         '1' => __('This community only'),
                         '2' => __('Connected communities'),
-                        '3' => __('All communities')
+                        '3' => __('All communities'),
+                        '4' => __('All communities'),
                     ],
                 ),
                 'default_attribute_distribution' => array(
