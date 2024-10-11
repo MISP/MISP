@@ -85,7 +85,7 @@ class Galaxy extends AppModel
         }
 
         if (!isset($this->data['Galaxy']['default'])) {
-            $this->data['Galaxy']['default'] = true;
+            $this->data['Galaxy']['default'] = false;
         }
         return true;
     }
@@ -135,6 +135,7 @@ class Galaxy extends AppModel
         ));
         $existingGalaxies = array_column(array_column($existingGalaxies, 'Galaxy'), null, 'uuid');
         foreach ($galaxies as $galaxy) {
+            $galaxy['default'] = true;
             if (isset($existingGalaxies[$galaxy['uuid']])) {
                 if (
                     $force ||
@@ -356,6 +357,7 @@ class Galaxy extends AppModel
         ]);
 
         unset($galaxy['id']);
+        $galaxy['default'] = false;
         if (!empty($existingGalaxy)) {
             // check if provided galaxy has the same fields as galaxy that are saved in database
             $fieldsToSave = [];
