@@ -290,6 +290,17 @@ class GalaxyClustersController extends AppController
                 }
                 $cluster['GalaxyCluster']['GalaxyElement'] = $decoded;
             }
+
+            if (empty($cluster['GalaxyCluster']['authors'])) {
+                $cluster['GalaxyCluster']['authors'] = [];
+            } else if (!is_array($cluster['GalaxyCluster']['authors'])) {
+                $decoded = json_decode($cluster['GalaxyCluster']['authors'], true);
+                if (is_null($decoded)) { // authors might be comma separated
+                    $decoded = array_map('trim', explode(',', $cluster['GalaxyCluster']['authors']));
+                }
+                $cluster['GalaxyCluster']['authors'] = $decoded;
+            }
+
             if (!empty($cluster['GalaxyCluster']['extends_uuid'])) {
                 $extendId = $this->Toolbox->findIdByUuid($this->GalaxyCluster, $cluster['GalaxyCluster']['extends_uuid']);
                 $forkedCluster = $this->GalaxyCluster->fetchGalaxyClusters(
@@ -328,6 +339,12 @@ class GalaxyClustersController extends AppController
                 }
             }
         }
+        $fieldDesc = array(
+            'authors' => __('Valid JSON array or comma separated'),
+            'elements' => __('Valid JSON array composed from Object of the form {key: keyname, value: actualValue}'),
+            'distribution' => Hash::extract($this->Attribute->distributionDescriptions, '{n}.formdesc'),
+        );
+        $this->set('fieldDesc', $fieldDesc);
         $this->set('galaxy', ['Galaxy' => ['id' => $galaxyId]]);
         $this->set('galaxy_id', $galaxyId);
         $this->set('distributionLevels', $distributionLevels);
@@ -403,7 +420,7 @@ class GalaxyClustersController extends AppController
                 $cluster['GalaxyCluster']['authors'] = [];
             } else if (is_array($cluster['GalaxyCluster']['authors'])) {
                 // This is as intended, move on
-            }else {
+            } else {
                 $decoded = json_decode($cluster['GalaxyCluster']['authors'], true);
                 if (is_null($decoded)) { // authors might be comma separated
                     $decoded = array_map('trim', explode(',', $cluster['GalaxyCluster']['authors']));
