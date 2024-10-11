@@ -2227,6 +2227,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `galaxies` ADD `created` datetime NOT NULL";
                 $sqlArray[] = "ALTER TABLE `galaxies` ADD `modified` datetime NOT NULL";
                 $sqlArray[] = "ALTER TABLE `galaxies` ADD `distribution` tinyint(4) NOT NULL";
+                $sqlArray[] = 'UPDATE `galaxies` SET `distribution` = 3;';
                 $sqlArray[] = "UPDATE galaxies g
                     SET g.default = (
                         CASE
