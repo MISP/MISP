@@ -6253,6 +6253,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
+                'hide_unkown_cluster' => [
+                    'level' => self::SETTING_RECOMMENDED,
+                    'description' => __('This will hide unknown cluster to all users expect those having the sync permission.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
                 'system_setting_db' => [
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('Enable storing setting in database.'),

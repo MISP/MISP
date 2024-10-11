@@ -2138,6 +2138,7 @@ class Event extends AppModel
             }
             $this->__attachTags($event, $justExportableTags);
             $this->__attachGalaxies($event, $user, $options['excludeGalaxy'], $options['fetchFullClusters'], $options['fetchFullClusterRelationship']);
+            $this->__pruneUnknownClusters($event, $user);
             $event = $this->Orgc->attachOrgs($event, $fieldsOrg);
             if (!$sharingGroupReferenceOnly && $event['Event']['sharing_group_id']) {
                 if (isset($sharingGroupData[$event['Event']['sharing_group_id']])) {
@@ -2401,6 +2402,20 @@ class Event extends AppModel
                         }
                     }
                     $attribute['Galaxy'] = array_values($attribute['Galaxy']);
+                }
+            }
+        }
+    }
+
+    private function __pruneUnknownClusters(array &$event, array $user)
+    {
+        if (!Configure::read('MISP.hide_unkown_cluster', true) || $user['Role']['perm_sync']) {
+            return;
+        }
+        foreach ($event['EventTag'] as $i => $eventTag) {
+            if ($eventTag['Tag']['is_galaxy']) {
+                if (preg_match($this->EventTag->Tag::RE_CUSTOM_GALAXY, $eventTag['Tag']['name'])) {
+                    unset($event['EventTag'][$i]);
                 }
             }
         }
