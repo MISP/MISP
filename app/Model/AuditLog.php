@@ -276,7 +276,7 @@ class AuditLog extends AppModel
             }
         }
         if ($this->syslog) {
-            $entry = $data['AuditLog']['action'];
+            $entry = "User (" . $data['AuditLog']['user_id'] . ") -- " . $data['AuditLog']['action'];
             $title = $this->generateUserFriendlyTitle($data['AuditLog']);
             if ($title) {
                 $entry .= " -- $title";
