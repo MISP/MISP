@@ -1604,6 +1604,35 @@
     }
   },
   {
+  "Feed": {
+    "name": "Phishfort Blacklist",
+    "provider": "http://phishfort.com",
+    "url": "https://raw.githubusercontent.com/phishfort/phishfort-lists/master/blacklists/domains.json",
+    "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+    "enabled": false,
+    "distribution": 0,
+    "sharing_group_id": 0,
+    "default": false,
+    "source_format": "json",
+    "fixed_event": true,
+    "delta_merge": false,
+    "publish": true,
+    "override_ids": false,
+    "settings": "{\"json\":{\"value\":\"3\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": true,
+    "caching_enabled": true,
+    "force_to_ids": false
+  },
+  "Tag": {
+    "name": "osint:source-type=\"block-or-filter-list\"",
+    "colour": "#007bd6",
+    "exportable": true,
+    "hide_tag": false
+  }
+},
+  {
     "Feed": {
       "name": "SSH Bruteforce IPs",
       "provider": "APNIC Community Honeynet Project",
