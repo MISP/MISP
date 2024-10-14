@@ -1,4 +1,8 @@
 <?php
+    echo $this->element('genericElements/assetLoader', [
+        'js' => ['doT', 'moment.min'],
+        'css' => ['analyst-data',],
+    ]);
     if(!$embedded_view) {
         echo '<div class="index">';
     }
