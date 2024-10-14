@@ -184,6 +184,11 @@
     var canEdit = <?= $canEdit ? 'true' : 'false' ?>;
     var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
     var lastModified = '<?= h($lastModified) ?>' + '000'
+    var templateVariables = <?= json_encode($templateVariables, JSON_HEX_TAG); ?>;
+    var templateVariablesProxy = {}
+    templateVariables.forEach(entry => {
+        templateVariablesProxy[entry.name] = entry.value
+    });
 </script>
 
 <?php

@@ -255,6 +255,7 @@ class ACLComponent extends Component
             'replaceSuggestionInReport' => array('*'),
             'importReportFromUrl' => array('*'),
             'sendToLLM' => ['*'],
+            'configureTemplateVariable' => ['perm_add'],
         ),
         'events' => array(
             'add' => array('perm_add'),

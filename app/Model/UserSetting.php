@@ -109,6 +109,9 @@ class UserSetting extends AppModel
                 'tags' => '["tlp:red"]',
             ],
         ],
+        'eventreport_template_variables' => [
+            'placeholder' => [['name' => 'banner','value' => 'MY_BANNER']],
+        ],
     );
 
     // massage the data before we send it off for validation before saving anything

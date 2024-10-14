@@ -508,6 +508,7 @@ function showHelp() {
 
 function renderMarkdown() {
     var toRender = getEditorData()
+    toRender = injectTemplateVariables(toRender)
     var result = md.render(toRender)
     scrollMap = null
     $viewer.html(result)
@@ -519,6 +520,19 @@ function doRender() {
         clearTimeout(renderTimer);
         renderTimer = setTimeout(renderMarkdown, debounceDelay);
     }
+}
+
+function injectTemplateVariables(text) {
+    var newText = text
+    for (var varName in templateVariablesProxy) {
+        if (templateVariablesProxy.hasOwnProperty(varName)) {
+            var varSyntax = '{{\s*' + varName + '\s*}}'
+            var replacementValue = templateVariablesProxy[varName]
+            var regex = new RegExp(varSyntax, 'g');
+            newText = newText.replace(regex, replacementValue);
+        }
+    }
+    return newText;
 }
 
 function registerListener() {

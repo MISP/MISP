@@ -72,3 +72,18 @@
 <ul>
     <li><code>@[galaxymatrix](5f1accda-cde4-47fc-baf1-6ab8f331dc3b)</code></li>
 </ul>
+
+<h4><?= __('Template Variables') ?></h4>
+<p><?=  __('Syntax for providing injecting user-defined template variables:') ?></p>
+<ul>
+    <li><?= __('Variables are specified using the Handlebars-style notation') ?></li>
+    <li><?= __('That variable will be replace by whatever is defined in the user\'s settings for that name, or nothing if undefined.') ?></li>
+</ul>
+<h4 style="text-align: center;">
+    <code style="font-size: 14px;">{{var_name}}</code>
+</h4>
+<span><?= __('Examples:') ?></span>
+<ul>
+    <li><code>{{banner_tlp_green}}</code></li>
+    <li><code>{{my_company_logo}}</code></li>
+</ul>

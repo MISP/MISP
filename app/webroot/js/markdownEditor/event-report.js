@@ -3,7 +3,7 @@
 // Function called to setup custom MarkdownIt rendering and parsing rules
 var markdownItCustomPostInit = markdownItCustomPostInit
 // Hint option passed to the CodeMirror constructor
-var cmCustomHints = hintMISPElements
+var cmCustomHints = hintMISPandTemplateVars
 // Setup function called after the CodeMirror initialization
 var cmCustomSetup = cmCustomSetup
 // Hook allowing to alter the raw text before returning the GFM version to the user to be downloaded
@@ -179,6 +179,59 @@ function buildMISPElementHints() {
     })
 }
 
+function hintMISPandTemplateVars(cm, options) {
+    var hints = hintMISPElements(cm, options)
+    if (hints === null) {
+        return hintTemplateVars(cm, options)
+    }
+}
+
+function hintTemplateVars(cm, options) {
+    var reTemplateVar = RegExp('{{\s*(?<varname>[a-zA-Z_$0-9]{3,})\s*}}');
+    var availableTemplateVars = Object.keys(templateVariablesProxy)
+    var reExtendedWord = /\S/
+    var hintList = []
+    var cursor = cm.getCursor()
+    var line = cm.getLine(cursor.line)
+    var start = cursor.ch
+    var end = cursor.ch
+    while (start && reExtendedWord.test(line.charAt(start - 1))) --start
+    while (end < line.length && reExtendedWord.test(line.charAt(end))) ++end
+    var word = line.slice(start, end).toLowerCase()
+
+    if (word === '{{' || word === '{{}}') {
+        availableTemplateVars.forEach(function(templateVar) {
+            hintList.push({
+                text: '{{ '+ templateVar +' }}'
+            })
+        });
+        return {
+            list: hintList,
+            from: CodeMirror.Pos(cursor.line, start),
+            to: CodeMirror.Pos(cursor.line, end)
+        }
+    }
+
+    var resTemplateVar = reTemplateVar.exec(word)
+    if (resTemplateVar !== null) {
+        var partialScope = resTemplateVar.groups.varname
+        availableTemplateVars.forEach(function(templateVar) {
+            if (templateVar.startsWith(partialScope) && templateVar !== partialScope) {
+                hintList.push({
+                    text: '{{ ' + templateVar + ' }}'
+                })
+            }
+        });
+        if (hintList.length > 0) {
+            return {
+                list: hintList,
+                from: CodeMirror.Pos(cursor.line, start),
+                to: CodeMirror.Pos(cursor.line, end)
+            }
+        }
+    }
+}
+
 function hintMISPElements(cm, options) {
     var authorizedMISPElements = ['attribute', 'object', 'galaxymatrix', 'tag']
     var availableScopes = ['attribute', 'object', 'galaxymatrix', 'tag']
@@ -194,7 +247,7 @@ function hintMISPElements(cm, options) {
     while (start && reExtendedWord.test(line.charAt(start - 1))) --start
     while (end < line.length && reExtendedWord.test(line.charAt(end))) ++end
     var word = line.slice(start, end).toLowerCase()
-    
+
     if (word === '@[]()') {
         availableScopes.forEach(function(scope) {
             hintList.push({
@@ -863,6 +916,13 @@ function injectCustomRulesMenu() {
         ]
     })
     createSubMenu({
+        name: 'Templating',
+        icon: 'fas fa-pencil-ruler',
+        items: [
+            { name: 'Configure Template variables', icon: 'fas fa-pen', clickHandler: configureTemplateVariable},
+        ]
+    })
+    createSubMenu({
         name: 'LLM ',
         icon: 'fas fa-robot',
         items: [
@@ -1268,6 +1328,11 @@ function submitExtractionSuggestion() {
 
 function sendToLLM() {
     var url = baseurl + '/eventReports/sendToLLM/' + reportid
+    openGenericModal(url)
+}
+
+function configureTemplateVariable() {
+    var url = baseurl + '/eventReports/configureTemplateVariable'
     openGenericModal(url)
 }
 
