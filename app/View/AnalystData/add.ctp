@@ -210,10 +210,11 @@ if (!$ajax) {
             $popover.css('z-index', 1060)
             $popover.find('select').chosen({
                 width: '300px',
+                placeholder_text_single: '<?= __('Select a relationship') ?>'
             }).on('change', function(evt, param) {
                 $('#RelationshipRelationshipType').val($('#pickerRelationshipTypeSelect').val());
                 $(that).popover('hide')
-            });
+            }).val('').trigger('chosen:updated');
             $('#genericModal').attr('tabindex', '')
         });
     }
