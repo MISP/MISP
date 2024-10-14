@@ -42,7 +42,7 @@ var renderingRules = {
     'galaxymatrix': true,
     'suggestion': true,
 }
-var galaxyMatrixTimer, tagTimers = {};
+var galaxyMatrixTimer = {}, tagTimers = {};
 var cache_matrix = {}, cache_tag = {};
 var firstCustomPostRenderCall = true;
 var contentBeforeSuggestions
@@ -656,13 +656,15 @@ function updateSuggestionCheckedState($wrapper, $checkbox) {
 function attachRemoteMISPElements() {
     $('.embeddedGalaxyMatrix[data-scope="galaxymatrix"]').each(function() {
         var $div = $(this)
-        clearTimeout(galaxyMatrixTimer);
         $div.append($('<div/>').css('font-size', '24px').append(loadingSpanAnimation))
         var eventID = $div.data('eventid')
         var elementID = $div.data('elementid')
         var cacheKey = eventid + '-' + elementID
+        if (galaxyMatrixTimer[cacheKey] !== undefined) {
+            clearTimeout(galaxyMatrixTimer[cacheKey]);
+        }
         if (cache_matrix[cacheKey] === undefined) {
-            galaxyMatrixTimer = setTimeout(function() {
+            galaxyMatrixTimer[cacheKey] = setTimeout(function() {
                 attachGalaxyMatrix($div, eventID, elementID)
             }, firstCustomPostRenderCall ? 0 : slowDebounceDelay);
         } else {
