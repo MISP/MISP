@@ -184,6 +184,7 @@ function hintMISPandTemplateVars(cm, options) {
     if (hints === null) {
         return hintTemplateVars(cm, options)
     }
+    return hints
 }
 
 function hintTemplateVars(cm, options) {
