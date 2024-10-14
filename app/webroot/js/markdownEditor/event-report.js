@@ -867,13 +867,19 @@ function fetchTagInfo(tagNames, callback) {
 function replaceMISPElementByTheirValue(raw) {
     var match, replacement, element
     var final = ''
-    var authorizedMISPElements = ['attribute', 'object']
-    var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[\\d]+)\\)', 'g');
+    var authorizedMISPElements = ['attribute', 'object', 'tag']
+    var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[^\\)]+)\\)', 'g');
     var offset = 0
     while ((match = reMISPElement.exec(raw)) !== null) {
         element = proxyMISPElements[match.groups.scope][match.groups.elementid]
         if (element !== undefined) {
-            replacement = match.groups.scope + '-' + element.uuid
+            if (match.groups.scope == 'attribute') {
+                replacement = match.groups.scope + '[type:' + element.type + ']' + '[value:' + element.value + ']'
+            } else if (match.groups.scope == 'object') {
+                replacement = match.groups.scope + '[name:' + element.name + ']' + '[value:' + element.Attribute[0].value + ']'
+            } else if (match.groups.scope == 'tag') {
+                replacement = match.groups.scope + '[' + element.Tag.name + ']'
+            }
         } else {
             replacement = match.groups.scope + '-' + match.groups.elementid
         }
