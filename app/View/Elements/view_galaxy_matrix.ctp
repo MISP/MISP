@@ -62,7 +62,7 @@ if (isset($interpolation) && !empty($interpolation)) {
 }
 ?>
 
-
+<?php if ($pickingMode): ?>
 <div style="position: absolute; left: 1em; top: 0.25em;">
     <span>Galaxy Matrix: </span>
     <select id="galaxyMatrixPicker" data-toggle="chosen">
@@ -71,6 +71,7 @@ if (isset($interpolation) && !empty($interpolation)) {
         <?php endforeach; ?>
     </select>
 </div>
+<?php endif; ?>
 
 
 <div style="position: relative;">
@@ -141,7 +142,7 @@ foreach(array_keys($columnOrders) as $tabName):
 </div>
 <?php endif; ?>
 
-<div id="matrix_container" class="fixed-table-container-inner" style="margin-top: 60px;" data-picking-mode="<?php echo $pickingMode ? 'true' : 'false'; ?>">
+<div id="matrix_container" class="fixed-table-container-inner" style="margin-top: <?= $pickingMode ? '60' : '0' ?>px;" data-picking-mode="<?php echo $pickingMode ? 'true' : 'false'; ?>">
     <div class="tab-content">
     <?php foreach(array_keys($columnOrders) as $tabName): ?>
         <?php 
@@ -260,6 +261,7 @@ foreach(array_keys($columnOrders) as $tabName):
 <?php endif; ?>
 </div>
 
+<?php if ($pickingMode): ?>
 <script>
 $(document).ready(function() {
     $('[data-toggle="chosen"]')
@@ -276,3 +278,4 @@ function reloadGalaxyMatrix() {
     })
 }
 </script>
+<?php endif; ?>
