@@ -984,7 +984,7 @@
       "default": false,
       "source_format": "csv",
       "fixed_event": true,
-      "delta_merge": false,
+      "delta_merge": true,
       "publish": false,
       "override_ids": false,
       "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"},\"disable_correlation\":\"1\"}",
