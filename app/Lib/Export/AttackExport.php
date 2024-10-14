@@ -26,9 +26,11 @@ class AttackExport
     private $__matrixTags = false;
     private $__killChainOrders = false;
     private $__instanceUUID = false;
+    private $__user = false;
 
     public function handler($data, $options = array())
     {
+        $this->__user = $options['user'];
         if (empty($this->__GalaxyModel)) {
             $this->__GalaxyModel = ClassRegistry::init('Galaxy');
         }
@@ -47,7 +49,7 @@ class AttackExport
             }
         }
         if (empty($this->__matrixData)) {
-            $this->__matrixData = $this->__GalaxyModel->getMatrix($this->__galaxy_id);
+            $this->__matrixData = $this->__GalaxyModel->getMatrix($this->__user, $this->__galaxy_id);
         }
         if (empty($this->__tabs)) {
             $this->__tabs = $this->__matrixData['tabs'];
@@ -125,7 +127,7 @@ class AttackExport
         }
         $result['galaxyName'] = $this->__galaxy_name;
         $result['galaxyId'] = $this->__galaxy_id;
-        $matrixGalaxies = $this->__GalaxyModel->getAllowedMatrixGalaxies();
+        $matrixGalaxies = $this->__GalaxyModel->getAllowedMatrixGalaxies($this->__user);
         $result['matrixGalaxies'] = $matrixGalaxies;
         return JsonTool::encode($result);
     }

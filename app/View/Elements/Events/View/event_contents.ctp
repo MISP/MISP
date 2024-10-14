@@ -16,7 +16,7 @@
         <span class="fas fa-plus" title="<?php echo __('Toggle Correlation graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Correlation graph');?>"></span><?php echo __('Correlation graph');?>
     </button>
     <button class="btn btn-inverse toggle qet" id="attackmatrix_toggle" data-toggle-type="attackmatrix" data-load-url="<?= $baseurl; ?>/events/viewGalaxyMatrix/<?= h($event['Event']['id']) ?>/mitre-attack/event/1/<?= $extended ? '1' : '0'?>">
-        <span class="fas fa-plus" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>"></span><?php echo __('ATT&CK matrix');?>
+        <span class="fas fa-plus" title="<?php echo __('Toggle Galaxy matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Galaxy matrix');?>"></span><?php echo __('Galaxy matrix');?>
     </button>
     <button class="btn btn-inverse toggle qet" id="eventreport_toggle" data-toggle-type="eventreport">
         <span class="fas fa-plus" title="<?php echo __('Toggle reports');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle reports');?>"></span><?php echo __('Event reports');?>

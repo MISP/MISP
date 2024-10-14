@@ -2402,7 +2402,7 @@ class UsersController extends AppController
 
         // No need for restSearch or result is empty
         if ($rest_response_empty) {
-            $matrixData = $this->Galaxy->getMatrix($galaxy_id);
+            $matrixData = $this->Galaxy->getMatrix($user, $galaxy_id);
             $tabs = $matrixData['tabs'];
             $matrixTags = $matrixData['matrixTags'];
             $killChainOrders = $matrixData['killChain'];
@@ -2484,7 +2484,7 @@ class UsersController extends AppController
 
             $this->set('galaxyName', $matrixData['galaxy']['name']);
             $this->set('galaxyId', $matrixData['galaxy']['id']);
-            $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
+            $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies($this->Auth->user());
             $this->set('matrixGalaxies', $matrixGalaxies);
         }
         $this->render('statistics_galaxymatrix');

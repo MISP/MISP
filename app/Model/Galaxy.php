@@ -998,12 +998,13 @@ class Galaxy extends AppModel
         return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
     }
 
-    public function getAllowedMatrixGalaxies()
+    public function getAllowedMatrixGalaxies(array $user)
     {
         $conditions = array(
             'NOT' => array(
                 'kill_chain_order' => ''
-            )
+            ),
+            $this->buildConditions($user),
         );
         $galaxies = $this->find('all', array(
             'recursive' => -1,
@@ -1012,12 +1013,12 @@ class Galaxy extends AppModel
         return $galaxies;
     }
 
-    public function getMatrix($galaxy_id, $scores=array())
+    public function getMatrix($user, $galaxy_id, $scores=[])
     {
-        $conditions = array('Galaxy.id' => $galaxy_id);
-        $contains = array(
-            'GalaxyCluster' => array('GalaxyElement'),
-        );
+        $conditions = ['Galaxy.id' => $galaxy_id, 'AND' => $this->buildConditions($user)];
+        $contains = [
+            'GalaxyCluster' => ['GalaxyElement'],
+        ];
 
         $galaxy = $this->find('first', array(
                 'recursive' => -1,
