@@ -526,7 +526,7 @@ function injectTemplateVariables(text) {
     var newText = text
     for (var varName in templateVariablesProxy) {
         if (templateVariablesProxy.hasOwnProperty(varName)) {
-            var varSyntax = '{{\s*' + varName + '\s*}}'
+            var varSyntax = '{{\\s*' + varName + '\\s*}}'
             var replacementValue = templateVariablesProxy[varName]
             var regex = new RegExp(varSyntax, 'g');
             newText = newText.replace(regex, replacementValue);
