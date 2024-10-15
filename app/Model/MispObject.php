@@ -1738,7 +1738,7 @@ class MispObject extends AppModel
     private function getObjectAttributeHash($attribute)
     {
         if ($attribute['type'] === 'malware-sample') {
-            if (strpos($attribute['value'], '|') === false && !empty($attribute['data'])) {
+            if (!str_contains($attribute['value'], '|') && !empty($attribute['data'])) {
                 $attribute['value'] = $attribute['value'] . '|' . md5(base64_decode($attribute['data']));
             }
         }

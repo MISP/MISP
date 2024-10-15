@@ -154,7 +154,7 @@ class AttributeValidationTool
                 if (substr_count($value, ':') >= 2) { // (ipv6|port) - tokenize ip and port
                     if (strpos($value, '|')) { // 2001:db8::1|80
                         $parts = explode('|', $value);
-                    } elseif (strpos($value, '[') === 0 && strpos($value, ']') !== false) { // [2001:db8::1]:80
+                    } elseif (str_starts_with($value, '[') && str_contains($value, ']')) { // [2001:db8::1]:80
                         $ipv6 = substr($value, 1, strpos($value, ']')-1);
                         $port = explode(':', substr($value, strpos($value, ']')))[1];
                         $parts = array($ipv6, $port);
@@ -203,7 +203,7 @@ class AttributeValidationTool
                 if (strtoupper(substr($value, 0, 2)) === 'AS') {
                     $value = substr($value, 2); // remove 'AS'
                 }
-                if (strpos($value, '.') !== false) { // maybe value is in asdot notation
+                if (str_contains($value, '.')) { // maybe value is in asdot notation
                     $parts = explode('.', $value, 2);
                     if (self::isPositiveInteger($parts[0]) && self::isPositiveInteger($parts[1])) {
                         return $parts[0] * 65536 + $parts[1];
@@ -318,7 +318,7 @@ class AttributeValidationTool
                 return __('Checksum has an invalid length or format (expected: filename|%s hexadecimal characters). Please double check the value or select type "other".', $length);
             case 'filename|ssdeep':
                 $composite = explode('|', $value);
-                if (strpos($composite[0], "\n") !== false) {
+                if (str_contains($composite[0], "\n")) {
                     return __('Filename must not contain new line character.');
                 }
                 if (self::isSsdeep($composite[1])) {
@@ -327,7 +327,7 @@ class AttributeValidationTool
                 return __('Invalid ssdeep hash (expected: blocksize:hash:hash).');
             case 'filename|tlsh':
                 $composite = explode('|', $value);
-                if (strpos($composite[0], "\n") !== false) {
+                if (str_contains($composite[0], "\n")) {
                     return __('Filename must not contain new line character.');
                 }
                 if (self::isTlshValid($composite[1])) {
@@ -341,7 +341,7 @@ class AttributeValidationTool
                 return __('Checksum has an invalid length or format (expected: filename|string characters). Please double check the value or select type "other".');
             case 'ip-src':
             case 'ip-dst':
-                if (strpos($value, '/') !== false) {
+                if (str_contains($value, '/')) {
                     $parts = explode("/", $value);
                     if (count($parts) !== 2 || !self::isPositiveInteger($parts[1])) {
                         return __('Invalid CIDR notation value found.');
@@ -535,7 +535,7 @@ class AttributeValidationTool
             case 'mobile-application-id':
             case 'azure-application-id':
             case 'named pipe':
-                if (strpos($value, "\n") !== false) {
+                if (str_contains($value, "\n")) {
                     return __('Value must not contain new line character.');
                 }
                 return true;
@@ -692,11 +692,11 @@ class AttributeValidationTool
      */
     private static function isSshFingerprint($value)
     {
-        if (substr($value, 0, 7) === 'SHA256:') {
+        if (str_starts_with($value, 'SHA256:')) {
             $value = substr($value, 7);
             $decoded = base64_decode($value, true);
             return $decoded && strlen($decoded) === 32;
-        } else if (substr($value, 0, 4) === 'MD5:') {
+        } else if (str_starts_with($value, 'MD5:')) {
             $value = substr($value, 4);
         }
 

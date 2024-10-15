@@ -993,8 +993,8 @@ class EventReport extends AppModel
      */
     private function isValidReplacementTag($content, $tagName)
     {
-        $toSearch = strpos($tagName, ':') === false ? ' ' . $tagName . ' ' : $tagName;
-        return strpos($content, $toSearch) !== false;
+        $toSearch = !str_contains($tagName, ':') ? ' ' . $tagName . ' ' : $tagName;
+        return str_contains($content, $toSearch);
     }
 
     public function attachTagsAfterReplacements($user, $replacedContext, $eventId)

@@ -167,8 +167,7 @@ class AuditLog extends AppModel
     {
         $len = strlen($change);
         $this->compressionStats['bytes_total'] += $len;
-        $header = substr($change, 0, 4);
-        if ($header === self::BROTLI_HEADER) {
+        if (str_starts_with($change, self::BROTLI_HEADER)) {
             $this->compressionStats['compressed']++;
             if (function_exists('brotli_uncompress')) {
                 $this->compressionStats['bytes_compressed'] += $len;
