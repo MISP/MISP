@@ -580,6 +580,75 @@ class EventReport extends AppModel
         ];
     }
 
+    public function replaceWithTemplateVars($content, $user)
+    {
+        $this->UserSetting = ClassRegistry::init('UserSetting');
+        $templateVariables = $this->UserSetting->getValueForUser($user['id'], 'eventreport_template_variables');
+        $templateVarProxy = Hash::combine($templateVariables, '{n}.name', '{n}.value');
+        foreach ($templateVarProxy as $varName => $replacementValue) {
+            $varSyntax = '/{{\s*' . preg_quote($varName, '/') . '\s*}}/';
+            $content = preg_replace($varSyntax, $replacementValue, $content);
+
+        }
+        return $content;
+    }
+
+    public function replaceMISPElementByTheirValue($content, $event_id, $user)
+    {
+        $proxyMISPElements = $this->getProxyMISPElements($user, $event_id);
+        $replaceContent = '';
+        $authorizedMISPElements = ['attribute', 'object', 'tag'];
+        $reMISPElement = '/@\[(?<scope>' . implode('|', $authorizedMISPElements) . ')\]\((?<elementid>[^\)]+)\)/';
+        $offset = 0;
+
+        if (preg_match_all($reMISPElement, $content, $matches, PREG_OFFSET_CAPTURE)) {
+            foreach ($matches[0] as $index => $match) {
+                $scope = $matches['scope'][$index][0];
+                $elementId = $matches['elementid'][$index][0];
+                $matchPosition = $matches[0][$index][1];
+
+                $element = isset($proxyMISPElements[$scope][$elementId]) ? $proxyMISPElements[$scope][$elementId] : null;
+                if ($element !== null) {
+                    if ($scope == 'attribute') {
+                        $replacement = $scope . '[type:' . $element['type'] . '][value:' . $element['value'] . ']';
+                    } elseif ($scope == 'object') {
+                        $replacement = $scope . '[name:' . $element['name'] . '][value:' . $element['Attribute'][0]['value'] . ']';
+                    } elseif ($scope == 'tag') {
+                        $replacement = $scope . '[' . $element['Tag']['name'] . ']';
+                    }
+                } else {
+                    $replacement = $scope . '-' . $elementId;
+                }
+
+                $replaceContent .= substr($content, $offset, $matchPosition - $offset) . $replacement;
+                $offset = $matchPosition + strlen($match[0]);
+            }
+        }
+
+        $replaceContent .= substr($content, $offset);
+        return $replaceContent;
+    }
+
+    public function convertToPDF($content)
+    {
+        $mispModule = ClassRegistry::init('Module');
+        $postData = [
+            'module' => 'convert_markdown_to_pdf',
+            'text' => JsonTool::encode([
+                'markdown' => $content,
+            ])
+        ];
+        $result = $mispModule->queryModuleServer($postData, false, 'Enrichment', false, [], true);
+        if (!empty($result['error'])) {
+            throw new BadRequestException('Error Processing Request: ' . $result['error']);
+        } else if (empty($result)) {
+            throw new BadRequestException('Error Processing Request: Error while querying misp-module `convert_markdown_to_pdf` module.');
+        }
+        $converted = $result['results'][0]['values'][0]; // The pdf file is base64 encoded
+        $pdfFile = base64_decode($converted);
+        return $pdfFile;
+    }
+
     private function saveAndReturnErrors($data, $saveOptions = [], $errors = [])
     {
         $saveSuccess = $this->save($data, $saveOptions);

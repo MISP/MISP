@@ -465,9 +465,9 @@ function cancelEdit() {
     setMode('viewer')
 }
 
-function downloadMarkdown(type) {
+function downloadMarkdown(type, report_id) {
     var content, fileType, baseName, extension
-    if (type == 'pdf') {
+    if (type == 'pdf-print') {
         if (currentMode != 'viewer' && currentMode != 'splitscreen') {
             setMode('viewer')
             setTimeout(function (){ // let the parser render the document
@@ -481,6 +481,10 @@ function downloadMarkdown(type) {
             }
         }
         return
+    } else if (type == 'pdf-module') {
+        var url = '/eventReports/downloadAsPDF/' + report_id
+        var name = 'event-report-' + (new Date()).getTime()
+        return downloadFile(url, name)
     } else if (type == 'text') {
         content = getEditorData()
         baseName = 'event-report-' + (new Date()).getTime()
@@ -500,6 +504,16 @@ function downloadMarkdown(type) {
         type: fileType
     })
     saveAs(blob, filename)
+}
+
+function downloadFile(uri, name) {
+    var a = document.createElement('a');
+    a.setAttribute('href', uri);
+    a.setAttribute('download', name);
+    var aj = $(a);
+    aj.appendTo('body');
+    aj[0].click();
+    aj.remove();
 }
 
 function showHelp() {

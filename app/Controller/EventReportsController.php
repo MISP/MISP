@@ -449,6 +449,19 @@ class EventReportsController extends AppController
         $this->render('ajax/configureTemplateVariables');
     }
 
+    public function downloadAsPDF($reportId)
+    {
+        $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
+        $content = $report['EventReport']['content'];
+        $contentWithTemplateVars = $this->EventReport->replaceWithTemplateVars($content, $this->Auth->user());
+        $contentWithVarsUnderGFM = $this->EventReport->replaceMISPElementByTheirValue($contentWithTemplateVars, $report['EventReport']['event_id'], $this->Auth->user());
+        $pdfFile = $this->EventReport->convertToPDF($contentWithVarsUnderGFM);
+        $fileExt = 'pdf';
+        $name = sprintf('%s_%s', $report['EventReport']['id'], $report['EventReport']['name']);
+        $filename = sprintf('%s_%s', $name, date("c"));
+        return $this->RestResponse->sendStringAsFile($pdfFile, $fileExt, $filename . '.' . $fileExt);
+    }
+
     private function __generateIndexConditions($filters = [])
     {
         $aclConditions = $this->EventReport->buildACLConditions($this->Auth->user());

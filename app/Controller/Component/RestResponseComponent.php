@@ -825,6 +825,14 @@ class RestResponseComponent extends Component
         return $cakeResponse;
     }
 
+    public function sendStringAsFile($content, $type = null, $filename = 'download')
+    {
+        $this->Controller->response->body($content);
+        $this->Controller->response->type($type);
+        $this->Controller->response->download($filename);
+        return $this->Controller->response;
+    }
+
     public function throwException($code, $message, $url = '', $format = false, $raw = false, $headers = array())
     {
         $message = array(

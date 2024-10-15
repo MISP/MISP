@@ -256,6 +256,7 @@ class ACLComponent extends Component
             'importReportFromUrl' => array('*'),
             'sendToLLM' => ['*'],
             'configureTemplateVariable' => ['perm_add'],
+            'downloadAsPDF' => ['*'],
         ),
         'events' => array(
             'add' => array('perm_add'),
