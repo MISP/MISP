@@ -977,6 +977,22 @@ class ACLComponent extends Component
             }
             return true;
         };
+        // Ensure new users with AAD enabled are not required to set a new password
+        $this->dynamicChecks['aad_password_change_disabled'] = function ($user) {
+            if (Configure::read('AadAuth.enabled') && $user['change_pw'] == 1) {
+                $user['change_pw'] = 0;
+                $this->User->save($user);
+            }
+            return true;
+        };
+        // Ensure new users with AAD enabled are not required to edit their profile
+        $this->dynamicChecks['aad_profile_edit_disabled'] = function ($user) {
+            if (Configure::read('AadAuth.enabled') && $user['Role']['perm_self_management']) {
+                $user['Role']['perm_self_management'] = 0;
+                $this->User->save($user);
+            }
+            return true;
+        };
     }
 
     /**
