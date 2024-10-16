@@ -461,19 +461,15 @@ class SecurityAudit
             }
         }
 
-        // uptime
-        try {
-            $since = ProcessTool::execute(['uptime', '-s']);
-            $since = new DateTime($since);
-            $diff = (new DateTime())->diff($since);
-            $diffDays = $diff->format('a');
-            if ($diffDays > 100) {
+        $uptime = $this->getUptime();
+        if ($uptime) {
+            $uptimeInDays = intdiv((int)$uptime, 3600 * 24);
+            if ($uptimeInDays > 100) {
                 $output['System'][] = [
                     'warning',
-                    __('Uptime of this server is %s days. This usually means that the system kernel is outdated.', $diffDays),
+                    __('Uptime of this server is %s days. This usually means that the system kernel is outdated.', $uptimeInDays),
                 ];
             }
-        } catch (Exception $e) {
         }
 
         // Python version
@@ -563,6 +559,25 @@ class SecurityAudit
             return false;
         }
         return [$parsed['NAME'], $parsed['VERSION_ID']];
+    }
+
+    /**
+     * Returns how long the system has been on since its last restart
+     * @return false|float
+     */
+    private function getUptime()
+    {
+        if (PHP_OS !== 'Linux') {
+            return false;
+        }
+        if (!is_readable('/proc/uptime')) {
+            return false;
+        }
+        $content = file_get_contents('/proc/uptime');
+        if ($content === false) {
+            return false;
+        }
+        return (float)explode(" ", $content)[0];
     }
 
     /**
