@@ -270,7 +270,7 @@ class Module extends AppModel
      */
     public function queryModuleServer(array $postData, $hover = false, $moduleFamily = 'Enrichment', $throwException = false, $triggerData=[], $skipTrigger=false)
     {
-        if ($moduleFamily == 'Enrichment' && empty($skipTrigger)) {
+        if ($moduleFamily === 'Enrichment' && empty($skipTrigger)) {
             $triggerData['_module'] = $postData['module'];
             $success = $this->__prepareAndExecuteTrigger($postData, $triggerData);
             if (!$success) {

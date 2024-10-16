@@ -37,7 +37,7 @@ Despite the re-correlation potentially taking a long time, your instance will st
 ### Some precautions you can take to ease the process:
 
 - Make sure that your mysql is able to perform well, it is especially important that the innodb_buffer_size is not using the rather restrictive default value
-- Potentially disalbe query caching as this is one of the situations where it can be quite detrimental due to the alternating high frequency reads/writes to the same table (you can do this by issuing the `SET GLOBAL query_cache_size = 0;` command via your MySQL CLI client)
+- Potentially disable query caching as this is one of the situations where it can be quite detrimental due to the alternating high frequency reads/writes to the same table (you can do this by issuing the `SET GLOBAL query_cache_size = 0;` command via your MySQL CLI client)
 - Run multiple `default` background workers, since the correlation will keep one of the workers monitoring that queue busy for a prolonged period. (Add more via Administration->server settings->workers)
 
 # How is the new engine different than the old one?
@@ -68,7 +68,7 @@ Despite the re-correlation potentially taking a long time, your instance will st
 
 # Switching engines
 
-The following proedure is to be used to switch between the `Default correlation engine` and the `No ACL engine`:
+The following procedure is to be used to switch between the `Default correlation engine` and the `No ACL engine`:
 - Navigate to Administration -> server settings -> correlations
 - Click on `Activate` under the chosen engine's header
 - Once the desired engine becomes active, truncate the table of the previously used engine to regain the disk space
@@ -96,7 +96,7 @@ In addition to the values being blocked based on the threshold the state of this
 
 ![](https://raw.githubusercontent.com/MISP/MISP/2.4/docs/img/2.4.160/over_correlations2.png)
 
-You will be able to see attrbutes as having too many correlations when viewing events, clicking on the magnifying glass will bring up the attribute search for the attribute value.
+You will be able to see attributes as having too many correlations when viewing events, clicking on the magnifying glass will bring up the attribute search for the attribute value.
 
 ### The Correlation exclusions
 

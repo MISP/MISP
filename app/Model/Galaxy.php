@@ -888,7 +888,7 @@ class Galaxy extends AppModel
         $converted['authors'] = [];
         $converted['version'] = 0;
         $values = [];
-        $fieldsToSave = ['description', 'uuid', 'value', 'extends_uuid', 'extends_version'];
+        $fieldsToSave = ['description', 'uuid', 'value'];
         foreach ($clusters as $i => $cluster) {
             foreach ($fieldsToSave as $field) {
                 $values[$i][$field] = $cluster['GalaxyCluster'][$field];

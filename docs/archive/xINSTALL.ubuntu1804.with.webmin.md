@@ -286,7 +286,7 @@ Most of it should have been done when you created the subdomain but add these ch
 
         <Directory /home/misp/public_html/MISP/app/webroot>
 
-# The rest should't require modifications. Restart Apache
+# The rest shouldn't require modifications. Restart Apache
 
 sudo service apache2 restart
 ```

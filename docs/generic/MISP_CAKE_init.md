@@ -1,7 +1,7 @@
 #### Initialize MISP configuration and set some defaults
 ```bash
 # <snippet-begin 2_core-cake.sh>
-# Core cake commands to tweak MISP and aleviate some of the configuration pains
+# Core cake commands to tweak MISP and alleviate some of the configuration pains
 # The ${RUN_PHP} is ONLY set on RHEL installs and can thus be ignored
 # This file is NOT an excuse to NOT read the settings and familiarize ourselves with them ;)
 
@@ -270,7 +270,7 @@ coreCAKE () {
 
 # This updates Galaxies, ObjectTemplates, Warninglists, Noticelists, Templates
 updateGOWNT () {
-  # AUTH_KEY Place holder in case we need to **curl** somehing in the future
+  # AUTH_KEY Place holder in case we need to **curl** something in the future
   # 
   ${SUDO_WWW} ${RUN_MYSQL} -- mysql -h ${DBHOST} -u ${DBUSER_MISP} -p${DBPASSWORD_MISP} misp -e "SELECT authkey FROM users;" | tail -1 > /tmp/auth.key
   AUTH_KEY=$(cat /tmp/auth.key)

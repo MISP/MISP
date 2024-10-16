@@ -258,6 +258,19 @@
                     ),
                 ),
                 array(
+                    'title' => __('Contribute to misp-galaxy'),
+                    'url' => '/galaxy_clusters/export_for_misp_galaxy',
+                    'url_params_data_paths' => array(
+                        'GalaxyCluster.id'
+                    ),
+                    'icon' => 'handshake',
+                    'complex_requirement' => array(
+                        'function' => function($row, $options) {
+                            return empty($row['GalaxyCluster']['default']);
+                        },
+                    ),
+                ),
+                array(
                     'title' => __('Edit'),
                     'url' => '/galaxy_clusters/edit',
                     'url_params_data_paths' => array(
