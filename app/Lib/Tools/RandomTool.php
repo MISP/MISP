@@ -13,25 +13,14 @@ class RandomTool
      *
      * @link https://paragonie.com/b/JvICXzh_jhLyt4y3
      *
-     * @param bool $crypto_secure - If a cryptographically secure or a fast random number generator should be used
+     * @param bool $cryptoSecure - If a cryptographically secure or a fast random number generator should be used
      * @param int $length - How long should our random string be?
      * @param string $charset - A string of all possible characters to choose from
      * @return string
      * @throws Exception
      */
-    public static function random_str($crypto_secure = true, $length = 32, $charset = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    public static function random_str(bool $cryptoSecure = true, int $length = 32, string $charset = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
     {
-        // Type checks:
-        if (!is_bool($crypto_secure)) {
-            throw new InvalidArgumentException('random_str - Argument 1 - expected a boolean');
-        }
-        if (!is_numeric($length)) {
-            throw new InvalidArgumentException('random_str - Argument 2 - expected an integer');
-        }
-        if (!is_string($charset)) {
-            throw new InvalidArgumentException('random_str - Argument 3 - expected a string');
-        }
-
         if ($length < 1) {
             // Just return an empty string. Any value < 1 is meaningless.
             return '';
@@ -46,10 +35,16 @@ class RandomTool
             // Avoid letting users do: random_str($int, 'a'); -> 'aaaaa...'
             throw new LogicException('random_str - Argument 3 - expected a string that contains at least 2 distinct characters');
         }
+
+        if (PHP_VERSION_ID >= 80300) {
+            $randomizer = new \Random\Randomizer();
+            return $randomizer->getBytesFromString($charset, $length);
+        }
+
         // Now that we have good data, this is the meat of our function:
         $random_str = '';
         for ($i = 0; $i < $length; ++$i) {
-            $r = $crypto_secure ? random_int(0, $charset_max) : mt_rand(0, $charset_max);
+            $r = $cryptoSecure ? random_int(0, $charset_max) : mt_rand(0, $charset_max);
             $random_str .= $charset[$r];
         }
         return $random_str;

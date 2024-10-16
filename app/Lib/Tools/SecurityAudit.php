@@ -94,7 +94,7 @@ class SecurityAudit
                 'https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP',
             ];
         }
-        if (!env('HTTPS') && strpos(Configure::read('MISP.baseurl'), 'https://') === 0) {
+        if (!env('HTTPS') && str_starts_with(Configure::read('MISP.baseurl'), 'https://')) {
             $output['Browser'][] = [
                 'error',
                 __('MISP base URL is set to https://, but MISP thinks that the connection is insecure. This usually happens when a server is running behind a reverse proxy. By setting `Security.force_https` to `true`, session cookies will be set as Secure and CSP headers will upgrade insecure requests.'),
@@ -354,7 +354,7 @@ class SecurityAudit
             'fields' => ['name', 'url'],
         ]);
         foreach ($enabledFeeds as $feedName => $feedUrl) {
-            if (substr($feedUrl, 0, strlen('http://')) === 'http://') {
+            if (str_starts_with($feedUrl, 'http://')) {
                 $output['Feeds'][] = ['warning', __('Feed %s uses insecure (HTTP) connection.', $feedName)];
             }
         }
@@ -374,7 +374,7 @@ class SecurityAudit
             'fields' => ['id', 'name', 'url', 'self_signed', 'cert_file', 'client_cert_file'],
         ]);
         foreach ($enabledServers as $enabledServer) {
-            if (substr($enabledServer['Server']['url'], 0, strlen('http://')) === 'http://') {
+            if (str_starts_with($enabledServer['Server']['url'], 'http://')) {
                 $output['Remote servers'][] = ['warning', __('Server %s uses insecure (HTTP) connection.', $enabledServer['Server']['name'])];
             } else if ($enabledServer['Server']['self_signed']) {
                 $output['Remote servers'][] = ['warning', __('Server %s uses self signed certificate. This is considered insecure.', $enabledServer['Server']['name'])];
@@ -461,19 +461,15 @@ class SecurityAudit
             }
         }
 
-        // uptime
-        try {
-            $since = ProcessTool::execute(['uptime', '-s']);
-            $since = new DateTime($since);
-            $diff = (new DateTime())->diff($since);
-            $diffDays = $diff->format('a');
-            if ($diffDays > 100) {
+        $uptime = $this->getUptime();
+        if ($uptime) {
+            $uptimeInDays = intdiv((int)$uptime, 3600 * 24);
+            if ($uptimeInDays > 100) {
                 $output['System'][] = [
                     'warning',
-                    __('Uptime of this server is %s days. This usually means that the system kernel is outdated.', $diffDays),
+                    __('Uptime of this server is %s days. This usually means that the system kernel is outdated.', $uptimeInDays),
                 ];
             }
-        } catch (Exception $e) {
         }
 
         // Python version
@@ -504,7 +500,7 @@ class SecurityAudit
         if ($linuxVersion) {
             list($name, $version) = $linuxVersion;
             if ($name === 'Ubuntu') {
-                if (in_array($version, ['14.04', '16.04', '19.10', '20.10', '21.04', '21.10'], true)) {
+                if (in_array($version, ['14.04', '16.04', '19.10', '20.10', '21.04', '21.10', '22.10', '23.04', '23.10'], true)) {
                     $output['System'][] = [
                         'warning',
                         __('You are using Ubuntu %s. This version doesn\'t receive security support anymore.', $version),
@@ -530,7 +526,7 @@ class SecurityAudit
             return false;
         }
         $version = php_uname('v');
-        if (substr($version, 0, 7) !== '#1 SMP ') {
+        if (!str_starts_with($version, '#1 SMP ')) {
             return false;
         }
         try {
@@ -563,6 +559,25 @@ class SecurityAudit
             return false;
         }
         return [$parsed['NAME'], $parsed['VERSION_ID']];
+    }
+
+    /**
+     * Returns how long the system has been on since its last restart
+     * @return false|float
+     */
+    private function getUptime()
+    {
+        if (PHP_OS !== 'Linux') {
+            return false;
+        }
+        if (!is_readable('/proc/uptime')) {
+            return false;
+        }
+        $content = file_get_contents('/proc/uptime');
+        if ($content === false) {
+            return false;
+        }
+        return (float)explode(" ", $content)[0];
     }
 
     /**

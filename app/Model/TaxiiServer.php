@@ -138,7 +138,7 @@ class TaxiiServer extends AppModel
     private function temporaryFolder()
     {
         $tmpDir = Configure::check('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
-        $random = (new RandomTool())->random_str(true, 12);
+        $random = RandomTool::random_str(true, 12);
         $dir = new Folder($tmpDir . '/Taxii/' . $random, true);
         return [
             'random' => $random,
@@ -148,7 +148,7 @@ class TaxiiServer extends AppModel
 
     private function temporaryFile($temporaryFolder)
     {
-        $random = (new RandomTool())->random_str(true, 12);
+        $random = RandomTool::random_str(true, 12);
         return new File($temporaryFolder . '/' . $random . '.json', true, 0644);
     }
 

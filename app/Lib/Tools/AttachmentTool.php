@@ -444,7 +444,7 @@ class AttachmentTool
 
     private function tempFileName()
     {
-        $randomName = (new RandomTool())->random_str(false, 12);
+        $randomName = RandomTool::random_str(false, 12);
         return $this->tempDir() . DS . $randomName;
     }
 
