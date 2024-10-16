@@ -3451,7 +3451,7 @@ class Server extends AppModel
 
     public function writeableDirsDiagnostics(&$diagnostic_errors)
     {
-        $writeableDirs = array(
+        $writeableDirs = [
             '/tmp' => 0,
             APP . 'tmp' => 0,
             APP . 'files' => 0,
@@ -3467,11 +3467,14 @@ class Server extends AppModel
             APP . 'tmp' . DS . 'files' => 0,
             APP . 'tmp' . DS . 'logs' => 0,
             APP . 'tmp' . DS . 'bro' => 0,
-        );
+        ];
 
         $attachmentDir = Configure::read('MISP.attachments_dir');
         if ($attachmentDir && !isset($writeableDirs[$attachmentDir])) {
-            $writeableDirs[$attachmentDir] = 0;
+            unset($writeableDirs[APP . 'files']);
+            if (!str_starts_with($attachmentDir, 's3://')) {
+                $writeableDirs[$attachmentDir] = 0;
+            }
         }
 
         $tmpDir = Configure::read('MISP.tmpdir');
