@@ -3729,7 +3729,7 @@ class AppModel extends Model
 
     public function generateRandomFileName()
     {
-        return (new RandomTool())->random_str(false, 12);
+        return RandomTool::random_str(false, 12);
     }
 
     /**

@@ -145,7 +145,7 @@ class OpendataExport
 
     private function __generateRandomFileName()
     {
-        return (new RandomTool())->random_str(false, 12);
+        return RandomTool::random_str(false, 12);
     }
 
     private function __generateSetupFile($to_write)

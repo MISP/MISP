@@ -303,7 +303,7 @@ class AuthKey extends AppModel
     public function createnewkey($userId, $authKey = null, $comment = '', array $allowedIps = [])
     {
         if(empty($authKey)) {
-            $authKey = (new RandomTool())->random_str(true, 40);
+            $authKey = RandomTool::random_str(true, 40);
         }
         $newKey = [
             'authkey' => $authKey,
