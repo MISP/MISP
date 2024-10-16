@@ -4654,9 +4654,6 @@ class Server extends AppModel
         );
         if ($id !== 'all') {
             $params['conditions']['Server.id'] = $id;
-        } else {
-            $redis->del('misp:server_cache:combined');
-            $redis->del($redis->keys('misp:server_cache:event_uuid_lookup:*'));
         }
         $servers = $this->find('all', $params);
         if ($jobId) {
@@ -4667,7 +4664,7 @@ class Server extends AppModel
             }
         }
         foreach ($servers as $k => $server) {
-            $this->__cacheInstance($server, $redis, $jobId);
+            $this->__cacheInstance($server, $jobId);
             if ($jobId) {
                 $job->saveField('progress', 100 * $k / count($servers));
                 $job->saveField('message', 'Server ' . $server['Server']['id'] . ' cached.');
@@ -4676,61 +4673,52 @@ class Server extends AppModel
         return true;
     }
 
-    /**
-     * @param array $server
-     * @param Redis $redis
-     * @param int|false $jobId
-     * @return bool
-     * @throws JsonException
-     */
-    private function __cacheInstance($server, $redis, $jobId = false)
+    private function __cacheInstance(array $server, $jobId = false)
     {
-        $serverId = $server['Server']['id'];
-        $i = 0;
-        $chunk_size = 50000;
-        if ($jobId) {
-            $job = ClassRegistry::init('Job');
-            $job->id = $jobId;
-        }
-        $redis->del('misp:server_cache:' . $serverId);
+        $job = $jobId ? ClassRegistry::init('Job') : null;
 
-        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-        while (true) {
-            $i++;
-            $rules = [
-                'returnFormat' => 'cache',
-                'includeEventUuid' => 1,
-                'page' => $i,
-                'limit' => $chunk_size,
-            ];
-            try {
-                $data = $serverSync->attributeSearch($rules)->body();
-            } catch (Exception $e) {
-                $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
-                break;
-            }
+        // Use generator
+        $result = function () use ($server, $job, $jobId) {
+            $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+            $i = 0;
 
-            $data = trim($data);
-            if (empty($data)) {
-                break;
-            }
-
-            $data = explode(PHP_EOL, $data);
-            $pipe = $redis->pipeline();
-            foreach ($data as $entry) {
-                list($value, $uuid) = explode(',', $entry);
-                if (!empty($value)) {
-                    $redis->sAdd('misp:server_cache:' . $serverId, $value);
-                    $redis->sAdd('misp:server_cache:combined', $value);
-                    $redis->sAdd('misp:server_cache:event_uuid_lookup:' . $value, $serverId . '/' . $uuid);
+            while (true) {
+                $i++;
+                $chunk_size = 50000;
+                $rules = [
+                    'returnFormat' => 'cache',
+                    'includeEventUuid' => 1,
+                    'page' => $i,
+                    'limit' => $chunk_size,
+                ];
+                try {
+                    $data = $serverSync->attributeSearch($rules)->body();
+                } catch (Exception $e) {
+                    $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
+                    break;
+                }
+                $data = trim($data);
+                if (empty($data)) {
+                    break;
+                }
+                $data = explode(PHP_EOL, $data);
+                foreach ($data as $entry) {
+                    list($value, $uuid) = explode(',', $entry);
+                    if (!Validation::uuid($uuid)) {
+                        break;
+                    }
+                    if (!empty($value)) {
+                        yield [hex2bin($value), $uuid];
+                    }
+                }
+                if ($jobId) {
+                    $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
                 }
             }
-            $pipe->exec();
-            if ($jobId) {
-                $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
-            }
-        }
-        $redis->set('misp:server_cache_timestamp:' . $serverId, time());
+        };
+
+        $this->Feed = ClassRegistry::init('Feed');
+        $this->Feed->insertToRedisCache('server', $server['Server']['id'], $result(), true);
         return true;
     }
 
@@ -4746,7 +4734,7 @@ class Server extends AppModel
         }
         $redis->pipeline();
         foreach ($servers as $server) {
-            $redis->get('misp:server_cache_timestamp:' . $server['Server']['id']);
+            $redis->get('misp:cache_timestamp:S' . $server['Server']['id']);
         }
         $results = $redis->exec();
         foreach ($servers as $k => $v) {

@@ -1131,9 +1131,9 @@ class AdminShell extends AppShell
 
         $output = [];
 
-        list($count, $size) = RedisTool::sizeByPrefix($redis, 'misp:feed_cache:*');
-        $output['feed_cache_count'] = $count;
-        $output['feed_cache_size'] = $size;
+        list($count, $size) = RedisTool::sizeByPrefix($redis, 'misp:cache:*');
+        $output['cache_count'] = $count;
+        $output['cache_size'] = $size;
 
         // Size of different feeds
         $feedIds = $this->Feed->find('column', [
@@ -1142,7 +1142,7 @@ class AdminShell extends AppShell
 
         $redis->pipeline();
         foreach ($feedIds as $feedId) {
-            $redis->rawCommand("memory", "usage", 'misp:feed_cache:' . $feedId);
+            $redis->rawCommand("memory", "usage", 'misp:cache:F' . $feedId);
         }
         $feedSizes = $redis->exec();
 
