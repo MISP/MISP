@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '162';
-    public $pyMispVersion = '2.4.193';
+    private $__queryVersion = '164';
+    public $pyMispVersion = '2.4.198';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -113,6 +113,14 @@ class AppController extends Controller
             SystemSetting::setGlobalSetting();
         }
 
+        // Set the baseurl for redirects
+        $baseurl = empty(Configure::read('MISP.baseurl')) ? null : Configure::read('MISP.baseurl');
+        if (!empty($baseurl)) {
+            Configure::write('App.fullBaseUrl', $baseurl);
+            Router::fullBaseUrl($baseurl);
+        }
+
+        $this->_setupBaseurl();
         $this->User = ClassRegistry::init('User');
         if (Configure::read('Plugin.Benchmarking_enable')) {
             App::uses('BenchmarkTool', 'Tools');
@@ -121,8 +129,9 @@ class AppController extends Controller
         }
         $controller = $this->request->params['controller'];
         $action = $this->request->params['action'];
-
-        $this->_setupBaseurl();
+        if ($action === 'heartbeat') {
+            return;
+        }
         $this->Auth->loginRedirect = $this->baseurl . '/users/routeafterlogin';
 
         $customLogout = Configure::read('Plugin.CustomAuth_custom_logout');
@@ -170,6 +179,7 @@ class AppController extends Controller
 
         Configure::write('CurrentController', $controller);
         Configure::write('CurrentAction', $action);
+        Configure::write('CurrentRequestIsRest', $this->_isRest());
         $versionArray = $this->User->checkMISPVersion();
         $this->mispVersion = implode('.', $versionArray);
         $this->Security->blackHoleCallback = 'blackHole';
@@ -281,6 +291,12 @@ class AppController extends Controller
                 $this->RestResponse->setHeader('X-Username', $headerValue);
             }
 
+            if (Configure::read('Security.user_org_uuid_in_response_header')) {
+                $userOrgHeaderValue = $user['Organisation']['uuid'];
+                $this->response->header('X-UserOrgUUID', $userOrgHeaderValue);
+                $this->RestResponse->setHeader('X-UserOrgUUID', $userOrgHeaderValue);
+            }
+
             if (!$this->__verifyUser($user))  {
                 $this->_stop(); // just for sure
             }
@@ -324,6 +340,8 @@ class AppController extends Controller
             $this->set('isAclSighting', $role['perm_sighting'] ?? false);
             $this->set('isAclAnalystDataCreator', $role['perm_analyst_data'] ?? false);
             $this->set('aclComponent', $this->ACL);
+            $this->loadModel('Bookmark');
+            $this->set('bookmarks', $this->Bookmark->getBookmarksForUser($user));
             $this->userRole = $role;
 
             $this->__accessMonitor($user);
@@ -456,6 +474,9 @@ class AppController extends Controller
                 $authKeyToStore = $start
                     . str_repeat('*', 32)
                     . $end;
+                if (!empty(Configure::read('Security.allow_unsafe_cleartext_apikey_logging'))) {
+                    $authKeyToStore = $authKey;
+                }
                 $this->__logApiKeyUse($start . $end);
                 if ($user) {
                     // User found in the db, add the user info to the session
@@ -643,7 +664,12 @@ class AppController extends Controller
         }
 
         // Check if user must create TOTP secret, force them to be on that page as long as needed.
-        if (empty($user['totp']) && Configure::read('Security.otp_required') && !$this->_isControllerAction(['users' => ['terms', 'change_pw', 'logout', 'login', 'totp_new']])) {  // TOTP is mandatory for users, prevent login until the user has configured their TOTP
+        if (
+            empty($user['totp']) &&
+            Configure::read('Security.otp_required') &&
+            !$this->_isControllerAction(['users' => ['terms', 'change_pw', 'logout', 'login', 'totp_new']]) &&
+            empty($user['Role']['perm_skip_otp'])
+        ) {  // TOTP is mandatory for users, prevent login until the user has configured their TOTP
             $this->redirect(array('controller' => 'users', 'action' => 'totp_new', 'admin' => false));
             return false;
         }
@@ -1396,7 +1422,8 @@ class AppController extends Controller
             }
         }
         /** @var TmpFileTool $final */
-        $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView);
+        $skippedElementsCounter = 0;
+        $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter);
         if ($renderView) {
             $this->layout = false;
             $final = JsonTool::decode($final->intoString());
@@ -1404,7 +1431,7 @@ class AppController extends Controller
             $this->render('/Events/module_views/' . $renderView);
         } else {
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
-            $headers = ['X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType];
+            $headers = ['X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType, 'X-Skipped-Elements-Count' => $skippedElementsCounter];
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers);
         }
     }

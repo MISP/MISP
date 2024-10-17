@@ -40,6 +40,7 @@ $config = array(
             'misp-admin' => 1, // Admin
         ],
         'default_org' => '{{ MISP_ORG }}',
+        'scopes' => ['profile', 'email'],
     ],
     ...
 ```

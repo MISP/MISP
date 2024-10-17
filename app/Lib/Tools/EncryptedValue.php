@@ -14,6 +14,10 @@ class EncryptedValue implements JsonSerializable
     /** @var bool */
     private $isJson;
 
+    /**
+     * @param mixed $value
+     * @param bool $isJson
+     */
     public function __construct($value, $isJson = false)
     {
         $this->value = $value;
@@ -31,8 +35,16 @@ class EncryptedValue implements JsonSerializable
         return $this->isJson ? JsonTool::decode($decrypt) : $decrypt;
     }
 
+    /**
+     * @return string
+     * @throws JsonException
+     * @throws Exception
+     */
     public function __toString()
     {
+        if ($this->isJson) {
+            throw new Exception("It is not possible convert to string encrypted JSON value.");
+        }
         return $this->decrypt();
     }
 

@@ -12,16 +12,16 @@
                 <?php
                 $gpgpath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'gpg.asc';
                 if (Configure::read("MISP.download_gpg_from_homedir")) { ?>
-                    <span>Download: <?= $this->Html->link(__('PGP public key'), array('controller' => 'users', 'action' => 'getGpgPublicKey')) ?></span>
+                    <span>Download: <?= $this->Html->link(__('Server PGP public key'), array('controller' => 'users', 'action' => 'getGpgPublicKey')) ?></span>
                 <?php } else if (file_exists($gpgpath) && (is_file($gpgpath) || is_link($gpgpath))) { ?>
-                    <span>Download: <?php echo $this->Html->link(__('PGP public key'), $this->webroot.'gpg.asc');?></span>
+                    <span>Download: <?php echo $this->Html->link(__('Server PGP public key'), $this->webroot.'gpg.asc');?></span>
                 <?php } else { ?>
                     <span><?php echo __('Could not locate the PGP public key.');?></span>
                 <?php }
                 if (Configure::read('SMIME.enabled')):
                     $smimepath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'public_certificate.pem';
                     if (file_exists($smimepath) && (is_file($smimepath) || is_link($gpgpath))) { ?>
-                        <span>Download: <?php echo $this->Html->link(__('S/MIME certificate'), $this->webroot.'public_certificate.pem');?></span>
+                        <span>Download: <?php echo $this->Html->link(__('Server S/MIME certificate'), $this->webroot.'public_certificate.pem');?></span>
                     <?php } else { ?>
                         <span><?php echo __('Could not locate S/MIME certificate.');?></span>
                     <?php }

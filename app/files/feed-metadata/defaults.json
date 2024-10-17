@@ -984,7 +984,7 @@
       "default": false,
       "source_format": "csv",
       "fixed_event": true,
-      "delta_merge": false,
+      "delta_merge": true,
       "publish": false,
       "override_ids": false,
       "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"},\"disable_correlation\":\"1\"}",
@@ -1838,6 +1838,246 @@
       "input_source": "network",
       "delete_local_file": false,
       "lookup_visible": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "Threatview.io - OSINT Threat Feed",
+      "provider": "threatview.io",
+      "url": "https://threatview.io/Downloads/Experimental-IOC-Tweets.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+      "enabled": true,
+      "distribution": "0",
+      "sharing_group_id": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"disable_correlation\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\\/^#.*|Threatview.*\\/i\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "headers": "",
+      "caching_enabled": false,
+      "force_to_ids": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "Threatview.io - C2 Hunt Feed",
+      "provider": "threatview.io",
+      "url": "https://threatview.io/Downloads/High-Confidence-CobaltStrike-C2%20-Feeds.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+      "enabled": true,
+      "distribution": "0",
+      "sharing_group_id": "0",
+      "default": false,
+      "source_format": "csv",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"disable_correlation\":\"0\",\"csv\":{\"value\":\"1,3\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\\/^#.*|Threatview.*\\/i\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "headers": "",
+      "caching_enabled": false,
+      "force_to_ids": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "Threatview.io - IP Blocklist",
+      "provider": "threatview.io",
+      "url": "https://threatview.io/Downloads/IP-High-Confidence-Feed.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+      "enabled": true,
+      "distribution": "0",
+      "sharing_group_id": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"disable_correlation\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "headers": "",
+      "caching_enabled": false,
+      "force_to_ids": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "Threatview.io - Domain Blocklist",
+      "provider": "threatview.io",
+      "url": "https://threatview.io/Downloads/DOMAIN-High-Confidence-Feed.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+      "enabled": true,
+      "distribution": "0",
+      "sharing_group_id": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"disable_correlation\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "headers": "",
+      "caching_enabled": false,
+      "force_to_ids": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "Threatview.io - MD5 Hash Blocklist",
+      "provider": "threatview.io",
+      "url": "https://threatview.io/Downloads/MD5-HASH-ALL.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+      "enabled": true,
+      "distribution": "0",
+      "sharing_group_id": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": false,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"disable_correlation\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "headers": "",
+      "caching_enabled": false,
+      "force_to_ids": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "Threatview.io - URL Blocklist",
+      "provider": "threatview.io",
+      "url": "https://threatview.io/Downloads/URL-High-Confidence-Feed.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+      "enabled": true,
+      "distribution": "0",
+      "sharing_group_id": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"disable_correlation\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "headers": "",
+      "caching_enabled": false,
+      "force_to_ids": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "Threatview.io - Bitcoin Address Intel",
+      "provider": "threatview.io",
+      "url": "https://threatview.io/Downloads/MALICIOUS-BITCOIN_FEED.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+      "enabled": true,
+      "distribution": "0",
+      "sharing_group_id": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": false,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"disable_correlation\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "headers": "",
+      "caching_enabled": false,
+      "force_to_ids": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "Threatview.io - SHA File Hash Blocklist",
+      "provider": "threatview.io",
+      "url": "https://threatview.io/Downloads/SHA-HASH-FEED.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+      "enabled": true,
+      "distribution": "0",
+      "sharing_group_id": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": false,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"disable_correlation\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "headers": "",
+      "caching_enabled": false,
+      "force_to_ids": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
     }
   }
 ]

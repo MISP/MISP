@@ -1,6 +1,10 @@
 <?php
 abstract class DecayingModelBase
 {
+    // If REQUIRES_SIGHTINGS is true, all sightings will be added to the attribute
+    // before passing the attribute to computeScore
+    const REQUIRES_SIGHTINGS = false;
+
     public function checkLoading()
     {
         return 'BONFIRE LIT';
@@ -131,8 +135,8 @@ abstract class DecayingModelBase
         if ($base_score === false) {
             $base_score = $this->computeBasescore($model, $attribute)['base_score'];
         }
+        $this->Sighting = ClassRegistry::init('Sighting');
         if ($last_sighting_timestamp === false) {
-            $this->Sighting = ClassRegistry::init('Sighting');
             $last_sighting = $this->Sighting->getLastSightingForAttribute($user, $attribute['id']);
             if (!empty($last_sighting)) {
                 $last_sighting_timestamp = $last_sighting['Sighting']['date_sighting'];
@@ -150,6 +154,9 @@ abstract class DecayingModelBase
             }
         }
         $timestamp = time();
+        if ($this::REQUIRES_SIGHTINGS) {
+            $attribute['Sighting'] = $this->Sighting->listSightings($user, $attribute['id'], 'attribute', false, false, false);
+        }
         $scores = array(
             'score' => $this->computeScore($model, $attribute, $base_score, $timestamp - $last_sighting_timestamp),
             'base_score' => $base_score
@@ -157,11 +164,15 @@ abstract class DecayingModelBase
         return $scores;
     }
 
-    final public function computeEventScore($model, $event, $base_score = false)
+    final public function computeEventScore($user, $model, $event, $base_score = false)
     {
+        $this->Sighting = ClassRegistry::init('Sighting');
         $base_score = $this->computeBasescore($model, $event)['base_score'];
         $last_timestamp = $event['Event']['publish_timestamp'];
         $timestamp = time();
+        if ($this::REQUIRES_SIGHTINGS) {
+            $event['Sighting'] = $this->Sighting->listSightings($user, $event['id'], 'context', false, false, false);
+        }
         $scores = array(
             'score' => $this->computeScore($model, $event, $base_score, $timestamp - $last_timestamp),
             'base_score' => $base_score

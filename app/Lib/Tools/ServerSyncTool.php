@@ -62,7 +62,7 @@ class ServerSyncTool
         $url = $this->server['Server']['url'] . '/events/view/' . $event['Event']['uuid'];
         $start = microtime(true);
         $exists = $this->socket->head($url, [], $this->request);
-        $this->log($start, 'HEAD', $url, $exists);
+        $this->requestLog($start, 'HEAD', $url, $exists);
         if ($exists->code == '404') {
             return false;
         }
@@ -152,13 +152,14 @@ class ServerSyncTool
      */
     public function createEvent(array $event)
     {
+        $this->debug("Pushing new event #{$event['Event']['id']} to remote server");
         $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
         return $this->post("/events/add/metadata:1", $event, $logMessage);
     }
 
     /**
      * @param array $event
-     * @param int|string|null Event ID or UUID that should be updated. If not provieded, UUID from $event will be used
+     * @param int|string|null $eventId Event ID or UUID that should be updated. If not provided, UUID from $event will be used
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
@@ -168,6 +169,7 @@ class ServerSyncTool
         if ($eventId === null) {
             $eventId = $event['Event']['uuid'];
         }
+        $this->debug("Pushing updated event #{$event['Event']['id']} to remote server");
         $logMessage = "Pushing Event #{$event['Event']['id']} to Server #{$this->serverId()}";
         return $this->post("/events/edit/$eventId/metadata:1", $event, $logMessage);
     }
@@ -472,16 +474,16 @@ class ServerSyncTool
                 return isset($info['filter_sightings']) && $info['filter_sightings'];
             case self::FEATURE_ORG_RULE:
                 $version = explode('.', $info['version']);
-                return $version[0] == 2 && $version[1] == 4 && $version[2] > 123;
+                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 123) || ($version[1] == 5));
             case self::FEATURE_PROPOSALS:
                 $version = explode('.', $info['version']);
-                return $version[0] == 2 && $version[1] == 4 && $version[2] >= 111;
+                return $version[0] == 2 && (($version[1] == 4 && $version[2] >= 111)  || ($version[1] == 5));
             case self::FEATURE_POST_TEST:
                 $version = explode('.', $info['version']);
-                return $version[0] == 2 && $version[1] == 4 && $version[2] > 68;
+                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 68) || ($version[1] == 5));
             case self::FEATURE_PROTECTED_EVENT:
                 $version = explode('.', $info['version']);
-                return $version[0] == 2 && $version[1] == 4 && $version[2] > 155;
+                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 155) || ($version[1] == 5));
             case self::FEATURE_EDIT_OF_GALAXY_CLUSTER:
                 return isset($info['perm_galaxy_editor']);
             case self::PERM_SYNC:
@@ -492,7 +494,7 @@ class ServerSyncTool
                 return isset($info['perm_analyst_data']) && $info['perm_analyst_data'];
             case self::FEATURE_SIGHTING_REST_SEARCH:
                 $version = explode('.', $info['version']);
-                return $version[0] == 2 && $version[1] == 4 && $version[2] > 164;
+                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 164) || ($version[1] == 5));
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
@@ -526,7 +528,7 @@ class ServerSyncTool
         $url = $this->server['Server']['url'] . $url;
         $start = microtime(true);
         $response = $this->socket->get($url, [], $this->request);
-        $this->log($start, 'GET', $url, $response);
+        $this->requestLog($start, 'GET', $url, $response);
         if (!$response->isOk()) {
             throw new HttpSocketHttpException($response, $url);
         }
@@ -587,7 +589,7 @@ class ServerSyncTool
         $url = $this->server['Server']['url'] . $url;
         $start = microtime(true);
         $response = $this->socket->post($url, $data, $request);
-        $this->log($start, 'POST', $url, $response);
+        $this->requestLog($start, 'POST', $url, $response);
         if ($etag && $response->isNotModified()) {
             return $response; // if etag was provided and response code is 304, it is valid response
         }
@@ -653,7 +655,7 @@ class ServerSyncTool
      * @param string $url
      * @param HttpSocketResponse $response
      */
-    private function log($start, $method, $url, HttpSocketResponse $response)
+    private function requestLog($start, $method, $url, HttpSocketResponse $response)
     {
         $duration = round(microtime(true) - $start, 3);
         $responseSize = strlen($response->body);

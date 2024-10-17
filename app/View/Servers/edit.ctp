@@ -98,6 +98,7 @@
         echo '<div class="input clear" style="width:100%;"><hr><h4>' . __('Misc settings') . '</h4></div>';
         echo $this->Form->input('unpublish_event', array(
             'type' => 'checkbox',
+            'label' => __('Unpublish event when pushing to remote server')
         ));
         echo '<div class="input clear"></div>';
         echo $this->Form->input('publish_without_email', array(
@@ -201,7 +202,7 @@
         if (!empty($server)) {
             $pushRules = json_decode($server['Server']['push_rules'], true);
             $pullRules = json_decode($server['Server']['pull_rules'], true);
-            $pullRules['url_params'] = json_decode($pullRules['url_params'], true);
+            $pullRules['url_params'] = isset($pullRules['url_params']) ? json_decode($pullRules['url_params'], true) : '';
         }
         $modalData = [
             'data' => [
@@ -239,7 +240,7 @@
     ?>
 </div>
 <?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => $this->action)); ?>
-<script type="text/javascript">
+<script>
 var formInfoValues = {
     'ServerUrl' : "<?php echo __('The base-url to the external server you want to sync with. Example: https://foo.sig.mil.be');?>",
     'ServerOrganization' : "<?php echo __('The organization having the external server you want to sync with. Example: BE');?>",
@@ -247,8 +248,8 @@ var formInfoValues = {
     'ServerAuthkey' : "<?php echo __('You can find the authentication key on your profile on the external server.');?>",
     'ServerPush' : "<?php echo __('Allow the upload of events and their attributes.');?>",
     'ServerPull' : "<?php echo __('Allow the download of events and their attributes from the server.');?>",
-    'ServerUnpublishEvent' : '<?php echo __('Unpublish new event (working with Push event).');?>',
-    'ServerPublishWithoutEmail' : '<?php echo __('Publish new event without email (working with Pull event).');?>',
+    'ServerUnpublishEvent' : '<?php echo __('When publishing event to remote server, it will be not published on remote server.');?>',
+    'ServerPublishWithoutEmail' : '<?php echo __('Publish new event without sending e-mail notification when pulling event from remote server.');?>',
     'ServerSubmittedCert' : "<?php echo __('You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.');?>",
     'ServerSubmittedClientCert' : "<?php echo __('You can also upload a client certificate file if the instance you are trying to connect requires this.');?>",
     'ServerSelfSigned' : "<?php echo __('Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended).');?>",

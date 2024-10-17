@@ -294,7 +294,7 @@ class TestSecurity(unittest.TestCase):
         check_response(updated_user)
         self.assertTrue(updated_user.change_pw)
 
-        # User try to change back trough API
+        # User try to change back through API
         logged_in = PyMISP(url, self.test_usr.authkey)
         logged_in.update_user({'change_pw': 0}, self.test_usr)
 

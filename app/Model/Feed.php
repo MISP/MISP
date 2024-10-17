@@ -217,9 +217,11 @@ class Feed extends AppModel
         $manifest = $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
         $this->Event = ClassRegistry::init('Event');
         $rules = json_decode($feed['Feed']['rules'], true);
-        foreach ($manifest as $k => $event) {
-            if (!$this->checkEventAgainstRules($event, $rules)) {
-                unset($manifest[$k]);
+        if ($rules != NULL) {
+            foreach ($manifest as $k => $event) {
+                if (!$this->checkEventAgainstRules($event, $rules)) {
+                    unset($manifest[$k]);
+                }
             }
         }
         $events = $this->Event->find('all', array(
@@ -802,26 +804,27 @@ class Feed extends AppModel
     {
         $version = $this->checkMISPVersion();
         $version = implode('.', $version);
-
+        $commit = $this->checkMIPSCommit();
         $result = array(
             'header' => array(
                 'Accept' => array('application/json', 'text/plain', 'text/*'),
                 'MISP-version' => $version,
                 'MISP-uuid' => Configure::read('MISP.uuid'),
+                'User-Agent' => 'MISP ' . $version . (empty($commit) ? '' : ' - #' . $commit),
             )
         );
 
-        $commit = $this->checkMIPSCommit();
         if ($commit) {
             $result['header']['commit'] = $commit;
         }
+
         if (!empty($headers)) {
             $lines = explode("\n", $headers);
             foreach ($lines as $line) {
                 if (!empty($line)) {
                     $kv = explode(':', $line);
                     if (!empty($kv[0]) && !empty($kv[1])) {
-                        if (!in_array($kv[0], array('commit', 'MISP-version', 'MISP-uuid'))) {
+                        if (!in_array($kv[0], array('commit', 'MISP-version', 'MISP-uuid', 'User-Agent'))) {
                             $result['header'][trim($kv[0])] = trim($kv[1]);
                         }
                     }

@@ -3780,7 +3780,7 @@ function findObjectByUuid(uuid) {
     $('#attributeList tr').each(function () {
         var trId = $(this).attr('id');
         if (trId && (trId.startsWith("Object") || trId.startsWith("Attribute") || trId.startsWith('proposal'))) {
-            var objectUuid = $('.uuid', this).text().trim();
+            var objectUuid = $(this).data('uuid');
             if (objectUuid === uuid) {
                 $tr = $(this);
                 return false;
@@ -5021,6 +5021,8 @@ $(document).ready(function () {
     if (d.getDate() == 1 && d.getMonth() == 3) {
         $("a:contains('tlp:unclear')").css('background-color', '#ffffff').addClass('special-tag')
     }
+
+    $('#bookmarkThisPageContainer').click(addCurrentPageToBookmark)
 });
 
 function destroyPopovers($element) {
@@ -5552,6 +5554,34 @@ function setHomePage() {
     });
 }
 
+function addCurrentPageToBookmark() {
+    var url = baseurl + '/bookmarks/add'
+    fetchFormDataAjax(url, function (formData) {
+        var $formData = $(formData);
+        var currentPage = $('#bookmarkThisPageContainer').data('current-page');
+        var pageTitle = document.title;
+        $formData.find('#BookmarkUrl').val(currentPage);
+        $formData.find('#BookmarkName').val(pageTitle);
+        $.ajax({
+            data: $formData.find('form').serialize(),
+            beforeSend: function () {
+                $(".loading").show();
+            },
+            success: function (data) {
+                showMessage('success', 'Bookmark successfully added');
+            },
+            error: function () {
+                showMessage('fail', 'Could not add current page to list of bookmark');
+            },
+            complete: function () {
+                $(".loading").hide();
+            },
+            type: "post",
+            url: $formData.find('form').attr('action')
+        });
+    });
+}
+
 $(document.body).on('dblclick', '.dblclickElement', function() {
     var href = $(this).closest('tr').find('.dblclickActionElement').attr('href');
     window.location = href;
@@ -5709,7 +5739,6 @@ $(document.body).on('click', '.hex-value-convert', function() {
 
         $.ajax({
             success: function (data) {
-                data = $.parseJSON(data);
                 var tagData;
                 for (var i = 0; i < data.length; i++) {
                     var tag = data[i];

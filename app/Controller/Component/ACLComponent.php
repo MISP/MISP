@@ -100,6 +100,13 @@ class ACLComponent extends Component
         'benchmarks' => [
             'index' => []
         ],
+        'bookmarks' => [
+            'add' => ['*'],
+            'delete' => ['*'],
+            'edit' => ['*'],
+            'index' => ['*'],
+            'view' => ['*'],
+        ],
         'cerebrates' => [
             'add' => [],
             'delete' => [],
@@ -132,6 +139,13 @@ class ACLComponent extends Component
             'clean' => [],
             'delete' => [],
             'index' => [],
+            'view' => []
+        ],
+        'correlationRules' => [
+            'index' => [],
+            'add' => [],
+            'edit' => [],
+            'delete' => [],
             'view' => []
         ],
         'correlations' => [
@@ -385,6 +399,7 @@ class ACLComponent extends Component
             'delete' => array('perm_galaxy_editor'),
             'detach' => array('perm_tagger'),
             'edit' => array('perm_galaxy_editor'),
+            'export_for_misp_galaxy' => array('*'),
             'index' => array('*'),
             'publish' => array('perm_galaxy_editor'),
             'restore' => array('perm_galaxy_editor'),
@@ -797,6 +812,7 @@ class ACLComponent extends Component
             'edit' => array('self_management_enabled'),
             'email_otp' => array('*'),
             'forgot' => ['AND' => ['password_forgotten_enabled', 'password_change_enabled']],
+            'heartbeat' => ['*'],
             'otp' => ['otp_enabled'],
             'hotp' => ['otp_enabled'],
             'totp_new' => ['otp_enabled'],
@@ -939,7 +955,7 @@ class ACLComponent extends Component
             return true;
         };
         $this->dynamicChecks['add_user_enabled'] = function (array $user) {
-            if (Configure::read('MISP.disable_user_add')) {
+            if (Configure::read('MISP.disable_user_add') && !$user['Role']['perm_site_admin']) {
                 throw new ForbiddenException('Adding users has been disabled on this instance.');
             }
             return true;

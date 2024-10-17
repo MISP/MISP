@@ -11,6 +11,9 @@ python ./../app/files/scripts/generate_file_objects.py -c | python3 -c 'import s
 # Try to extract data from file
 python ./../app/files/scripts/generate_file_objects.py -p /bin/ls | python3 -c 'import sys, json; data = json.load(sys.stdin); sys.exit(0 if "objects" in data else 1)'
 
+# Show dependency version for STIX
+python ./../app/files/scripts/stixtest.py
+
 # Test converting stix1 to MISP format
 curl -sS --compressed https://stixproject.github.io/documentation/idioms/c2-indicator/indicator-for-c2-ip-address.xml > ./../app/files/scripts/tmp/test-stix1.xml
 python ./../app/files/scripts/stix2misp.py test-stix1.xml 1 1 ./../app/files/scripts/synonymsToTagNames.json | python3 -c 'import sys, json; data = json.load(sys.stdin); print(data); sys.exit(0 if data["success"] == 1 else 1)'

@@ -1679,6 +1679,7 @@ class Server extends AppModel
                     return $leafValue;
                 }
             }
+
             if (!empty($leafValue['test'])) {
                 if ($leafValue['test'] instanceof Closure) {
                     $result = $leafValue['test']($setting);
@@ -1690,6 +1691,8 @@ class Server extends AppModel
                     if ($result !== false) {
                         $leafValue['errorMessage'] = $result;
                     }
+                } else {
+                    $leafValue['errorMessage'] = null;
                 }
             }
             if (isset($leafValue['optionsSource'])) {
@@ -2455,7 +2458,7 @@ class Server extends AppModel
      * @return mixed|string|true|null
      * @throws Exception
      */
-    public function serverSettingsEditValue($user, array $setting, $value, $forceSave = false)
+    public function serverSettingsEditValue($user, array $setting, $value, $forceSave = false, $cli = false)
     {
         if (isset($setting['beforeHook'])) {
             $beforeResult = $this->{$setting['beforeHook']}($setting['name'], $value);
@@ -2496,8 +2499,11 @@ class Server extends AppModel
             return $errorMessage;
         }
         $oldValue = Configure::read($setting['name']);
-        $fileOnly = isset($setting['cli_only']) && $setting['cli_only'];
-        $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value, $fileOnly);
+        $cliOnly = isset($setting['cli_only']) && $setting['cli_only'];
+        if (!$cli && $cliOnly) {
+            return __('This setting can only changed via the CLI. Change request ignored.');
+        }
+        $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
         if ($settingSaveResult) {
             if (SystemSetting::isSensitive($setting['name'])) {
                 $change = array($setting['name'] => array('*****', '*****'));
@@ -5127,7 +5133,7 @@ class Server extends AppModel
                 'default_attribute_memory_coefficient' => array(
                     'level' => 1,
                     'description' => __('This values controls the internal fetcher\'s memory envelope when it comes to attributes. The number provided is the amount of attributes that can be loaded for each MB of PHP memory available in one shot. Consider lowering this number if your instance has a lot of attribute tags / attribute galaxies attached.'),
-                    'value' => 80,
+                    'value' => 50,
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => true
@@ -6331,6 +6337,14 @@ class Server extends AppModel
                     'null' => true,
                     'cli_only' => true,
                 ],
+                'fetchAttributeLegacyStrategy' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Enabling this setting flip the attribute fetcher into using single joined queries rather than subqueries. This should be a performance downgrade for most, but could improve performance on older mysql versions.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ]
             ),
             'GnuPG' => array(
                 'branch' => 1,
@@ -6810,6 +6824,15 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'allow_unsafe_cleartext_apikey_logging' => array(
+                    'level' => 0,
+                    'description' => __('Allows logging the API key (auth key) in clear text - highly recommended not to enable this.'),
+                    'value' => false,
+                    'errorMessage' => __('You have enabled the logging of API keys in clear text. This is highly recommended against, do you really want to reveal APIkeys in your logs?...'),
+                    'test' => 'testBoolFalse',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'allow_cors' => array(
                     'level' => 1,
                     'description' => __('Allow cross-origin requests to this instance, matching origins given in Security.cors_origins. Set to false to totally disable'),
@@ -6845,6 +6868,14 @@ class Server extends AppModel
                 'username_in_response_header' => [
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('When enabled, logged in username will be included in X-Username HTTP response header. This is useful for request logging on webserver/proxy side.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ],
+                'user_org_uuid_in_response_header' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('When enabled, logged in user\'s organisation uuid will be included in X-UserOrgUUID HTTP response header.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',

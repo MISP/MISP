@@ -88,7 +88,7 @@ Information, news and updates are also regularly posted on the MISP project [Mas
 
 PHP and MISP
 -------------
-MISP currently **requires PHP 7.4**, an end-of-life version of PHP. Because of this it is recommended that you only run MISP on distributions or PHP installs that you know will get security fixes backported, like Red Hat or Debian and derratives.
+MISP currently **requires PHP 7.4**, an end-of-life version of PHP. Because of this it is recommended that you only run MISP on distributions or PHP installs that you know will get security fixes backported, like Red Hat or Debian and derivatives.
 
 MISP 3.x, currently in development will support PHP 8.x.
 

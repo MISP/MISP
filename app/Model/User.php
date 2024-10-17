@@ -24,6 +24,10 @@ class User extends AppModel
 
     public $displayField = 'email';
 
+    public $virtualFields = array(
+        'totp_is_set' => 'User.totp IS NOT NULL',
+    );
+
     public $validate = array(
         'role_id' => array(
             'numeric' => array(
@@ -230,6 +234,18 @@ class User extends AppModel
         'Trim',
         'Containable'
     );
+
+    public const HEARTBEAT_MESSAGES = [
+        'You must construct additional pylons.',
+        'You\'ve not enough minerals.',
+        'You require more vespene gas.',
+        'Additional supply depots required.',
+        'Not enough minerals.',
+        'Insufficient vespene gas.',
+        'Spawn more overlords.',
+        'We require more minerals.',
+        'We require more vespene gas.'
+    ];
 
     /** @var CryptGpgExtended|null|false */
     private $gpg;
@@ -875,7 +891,7 @@ class User extends AppModel
             $result = $sendEmail->sendToUser($user, $subject, $body, $bodyNoEnc,$replyToUser ?: []);
 
         } catch (SendEmailException $e) {
-            $this->logException("Exception during sending e-mail", $e);
+            $this->logException("Exception during sending e-mail with subject '$subject' to {$user['User']['email']}", $e);
             $log->create();
             $log->saveOrFailSilently(array(
                 'org' => 'SYSTEM',

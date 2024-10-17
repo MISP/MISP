@@ -1,5 +1,5 @@
 # Migration guide to new Background Jobs backend
-As of **MISP** version `2.4.151` we introduced a simpler way to handle background jobs without relying in CakeResque as this library is no longer mantained.
+As of **MISP** version `2.4.151` we introduced a simpler way to handle background jobs without relying in CakeResque as this library is no longer maintained.
 
 For the time being both background jobs backends will be supported, but we plan to phase out the CakeResque one in a near future.
 
@@ -136,7 +136,7 @@ Run on your MISP instance the following commands.
     cd /tmp/misp-modules-supervisord
     ```
 3. Create file and add content to
-   `misp-modules-supervisord.te`
+   `misp-workers-httpd.te`
     ```
     policy_module(misp-workers-httpd, 1.0)
     require{
@@ -148,8 +148,8 @@ Run on your MISP instance the following commands.
     ```
 4. Make and install module
     ```
-    make -f /usr/share/selinux/devel/Makefile misp-modules-supervisord.pp
-    sudo semodule -i misp-modules-supervisord.pp
+    make -f /usr/share/selinux/devel/Makefile misp-workers-httpd.pp
+    sudo semodule -i misp-workers-httpd.pp
     ```
 
 5. Restart **Supervisord** to load the changes:
