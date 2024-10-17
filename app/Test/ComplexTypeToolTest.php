@@ -594,4 +594,18 @@ EOT;
         $complexTypeTool = new ComplexTypeTool();
         $this->assertEquals($text, $complexTypeTool->refangValue($text, 'url'));
     }
+
+    // Issue https://github.com/MISP/MISP/pull/9989
+    public function testRefangEmailBrackets(): void
+    {
+        $toCheck = [
+            'admin@admin[.]test',
+            'admin[@]admin[.]test',
+            'admin[at]admin[dot]test',
+        ];
+
+        foreach ($toCheck as $test) {
+            $this->assertEquals('admin@admin.test', ComplexTypeTool::refangValue($test, 'email-src'));
+        }
+    }
 }

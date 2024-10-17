@@ -12,7 +12,7 @@ class ComplexTypeTool
         array(
             'from' => '/(\[\.\]|\[dot\]|\(dot\))/',
             'to' => '.',
-            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname')
+            'types' => array('link', 'url', 'ip-dst', 'ip-src', 'domain|ip', 'domain', 'hostname', 'email', 'email-src', 'email-dst')
         ),
         array(
             'from' => '/\[hxxp:\/\/\]/',
@@ -20,7 +20,7 @@ class ComplexTypeTool
             'types' => array('link', 'url')
         ),
         array(
-            'from' => '/[\@]|\[at\]/',
+            'from' => '/\[\@\]|\[at\]/',
             'to' => '@',
             'types' => array('email', 'email-src', 'email-dst')
         ),
@@ -383,7 +383,7 @@ class ComplexTypeTool
     private function __checkForEmail($input)
     {
         // quick filter for an @ to see if we should validate a potential e-mail address
-        if (strpos($input['refanged'], '@') !== false) {
+        if (str_contains($input['refanged'], '@')) {
             if (filter_var($input['refanged'], FILTER_VALIDATE_EMAIL)) {
                 return [
                     'types' => array('email', 'email-src', 'email-dst', 'target-email', 'whois-registrant-email'),
@@ -407,7 +407,7 @@ class ComplexTypeTool
     private function __checkForHashes($input)
     {
         // handle prepared composite values with the filename|hash format
-        if (strpos($input['raw'], '|')) {
+        if (str_contains($input['raw'], '|')) {
             $compositeParts = explode('|', $input['raw']);
             if (count($compositeParts) === 2) {
                 if ($this->__resolveFilename($compositeParts[0])) {
@@ -523,7 +523,7 @@ class ComplexTypeTool
             ];
         }
         // it could still be a CIDR block
-        if (strpos($input['refanged_no_port'], '/')) {
+        if (str_contains($input['refanged_no_port'], '/')) {
             $temp = explode('/', $input['refanged_no_port']);
             if (count($temp) === 2 && filter_var($temp[0], FILTER_VALIDATE_IP) && is_numeric($temp[1])) {
                 return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'default_type' => 'ip-dst', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
@@ -558,7 +558,7 @@ class ComplexTypeTool
                     if ($this->isLink($input['refanged_no_port'])) {
                         return array('types' => array('link'), 'default_type' => 'link', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
                     }
-                    if (strpos($input['refanged_no_port'], '/')) {
+                    if (str_contains($input['refanged_no_port'], '/')) {
                         return array('types' => array('url'), 'default_type' => 'url', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
                     }
                 }
@@ -569,7 +569,7 @@ class ComplexTypeTool
         }
         if (str_contains($input['raw'], '\\')) {
             $temp = explode('\\', $input['raw']);
-            if (strpos(end($temp), '.') || preg_match('/^.:/i', $temp[0])) {
+            if (str_contains(end($temp), '.') || preg_match('/^.:/i', $temp[0])) {
                 if ($this->__resolveFilename(end($temp))) {
                     return array('types' => array('filename'), 'default_type' => 'filename', 'value' => $input['raw']);
                 }
