@@ -4258,12 +4258,40 @@ class Server extends AppModel
             return false;
         }
         // find the latest version tag in the v[major].[minor].[hotfix] format
+        $latest_versions = [];
         foreach ($tags as $tag) {
             if (preg_match('/^v[0-9]+\.[0-9]+\.[0-9]+$/', $tag['name'])) {
-                return $this->checkVersion($tag['name']);
+                $tagname = substr($tag['name'], 1);
+                $tagname = explode('.', $tagname);
+                if (!isset($latest_versions[$tagname[0]][$tagname[1]])) {
+                    $latest_versions[$tagname[0]][$tagname[1]] = $tagname[2];
+                } elseif (version_compare($tag['name'], $latest_versions[$tagname[0]][$tagname[1]]) === 1) {
+                    $latest_versions[$tagname[0]][$tagname[1]] = $tagname[2];
+                }    
             }
         }
-        return false;
+        $version_array = $this->checkMISPVersion();
+        $current = implode('.', $version_array);
+        $latest_version_string = sprintf('v%s.%s.%s', $version_array['major'], $version_array['minor'], $latest_versions[$version_array['major']][$version_array['minor']]);
+        $latest_major = 0;
+        $latest_minor = 0;
+        foreach ($latest_versions as $major => $minor) {
+            if ($major > $latest_major) {
+                $latest_major = $major;
+            }
+        }
+        foreach ($latest_versions[$major] as $minor => $hotfix) {
+            if ($minor > $latest_minor) {
+                $latest_minor = $minor;
+            }
+        }
+        $result = $this->checkVersion($latest_version_string);
+        if ($latest_major > $version_array['major']) {
+            $result['new_major'] = $latest_major;
+        } else if ($latest_minor > $version_array['minor']) {
+            $result['new_minor'] = $latest_major . '.' . $latest_minor;
+        }
+        return $result;
     }
 
     /**
