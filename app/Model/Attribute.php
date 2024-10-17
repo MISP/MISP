@@ -162,6 +162,7 @@ class Attribute extends AppModel
         'hashes' => array('txt', 'HashesExport', 'txt'),
         'hosts' => array('txt', 'HostsExport', 'txt'),
         'json' => array('json', 'JsonExport', 'json'),
+        'kunai' => ['json', 'KunaiExport', 'json'],
         'netfilter' => array('txt', 'NetfilterExport', 'sh'),
         'opendata' => array('txt', 'OpendataExport', 'txt'),
         'openioc' => array('xml', 'OpeniocExport', 'ioc'),
@@ -1688,7 +1689,7 @@ class Attribute extends AppModel
                     'fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.uuid', 'Event.published', 'Event.analysis', 'Event.threat_level_id', 'Event.org_id', 'Event.orgc_id', 'Event.distribution', 'Event.sharing_group_id')
                 ),
                 'AttributeTag' => array(
-                    'fields' => ['AttributeTag.tag_id'],
+                    'fields' => ['AttributeTag.tag_id', 'AttributeTag.local'],
                     'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable'))
                 ),
                 'Object'
@@ -1697,6 +1698,7 @@ class Attribute extends AppModel
         if (!empty($attribute)) {
             if (!empty($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $at) {
+                    $at['Tag']['local'] = !empty($at['local']);
                     $attribute['Attribute']['Tag'][] = $at['Tag'];
                 }
             }
