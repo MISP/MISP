@@ -481,13 +481,40 @@ class OrganisationsController extends AppController
             $extension = pathinfo($logo['name'], PATHINFO_EXTENSION);
             $filename = $orgId . '.' . ($extension === 'svg' ? 'svg' : 'png');
 
+            if ($logo['size'] > 250 * 1024) {
+                $this->Flash->error(__('This organisation logo is too large, maximum file size allowed is 250 kB.'));
+                return false;
+            }
+
+            if ($extension !== 'svg' && $extension !== 'png') {
+                $this->Flash->error(__('Invalid file extension, Only PNG and SVG images are allowed.'));
+                return false;
+            }
+            $matches = null;
+            $tmp_name = $logo['tmp_name'];
+            if (preg_match_all('/[\w\/\-\.]*/', $tmp_name, $matches) && file_exists($logo['tmp_name'])) {
+                $tmp_name = $matches[0][0];
+                $imgMime = mime_content_type($tmp_name);
+            } else {
+                throw new NotFoundException(__('Invalid file.'));    
+            }
+            if ($extension === 'png' && (function_exists('exif_imagetype') && !exif_imagetype($logo['tmp_name']))) {
+                $this->Flash->error(__('This is not a valid PNG image.'));
+                return false;
+            }
+
+            if ($extension === 'svg' && !($imgMime === 'image/svg+xml' || $imgMime === 'image/svg')) {
+                $this->Flash->error(__('This is not a valid SVG image.'));
+                return false;
+            }
+
             if ($extension === 'svg' && !Configure::read('Security.enable_svg_logos')) {
                 $this->Flash->error(__('Invalid file extension, SVG images are not allowed.'));
                 return false;
             }
 
-            if (!empty($logo['tmp_name']) && is_uploaded_file($logo['tmp_name'])) {
-                return move_uploaded_file($logo['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
+            if (!empty($tmp_name) && is_uploaded_file($tmp_name)) {
+                return move_uploaded_file($tmp_name, APP . 'files/img/orgs/' . $filename);
             }
         }
 

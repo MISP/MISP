@@ -29,8 +29,29 @@ sys.path.insert(2, str(_scripts_path / 'python-cybox'))
 sys.path.insert(3, str(_scripts_path / 'mixbox'))
 sys.path.insert(4, str(_scripts_path / 'misp-stix'))
 from misp_stix_converter import (
-    ExternalSTIX2toMISPParser, InternalSTIX2toMISPParser, _from_misp)
+    ExternalSTIX2toMISPParser, InternalSTIX2toMISPParser,
+    MISP_org_uuid, _from_misp)
 from stix2.parsing import parse as stix2_parser
+
+
+def _get_stix_parser(from_misp, args):
+    arguments = {
+        'distribution': args.distribution,
+        'galaxies_as_tags': args.galaxies_as_tags
+    }
+    if args.distribution == 4 and args.sharing_group_id is not None:
+        arguments['sharing_group_id'] = args.sharing_group_id
+    if from_misp:
+        return 'InternalSTIX2toMISPParser', arguments
+    arguments.update(
+        {
+            'cluster_distribution': args.cluster_distribution,
+            'organisation_uuid': args.org_uuid
+        }
+    )
+    if args.cluster_distribution == 4 and args.cluster_sharing_group_id is not None:
+        arguments['cluster_sharing_group_id'] = args.cluster_sharing_group_id
+    return 'ExternalSTIX2toMISPParser', arguments
 
 
 def _handle_return_message(traceback):
@@ -44,23 +65,17 @@ def _handle_return_message(traceback):
     return '\n - '.join(traceback)
 
 
-def _process_stix_file(args: argparse.ArgumentParser):
+def _process_stix_file(args: argparse.Namespace):
     try:
         with open(args.input, 'rt', encoding='utf-8') as f:
             bundle = stix2_parser(
                 f.read(), allow_custom=True, interoperability=True
             )
         stix_version = getattr(bundle, 'version', '2.1')
-        to_call = 'Internal' if _from_misp(bundle.objects) else 'External'
-        arguments = {
-            'distribution': args.distribution,
-            'galaxies_as_tags': args.galaxies_as_tags
-        }
-        if args.distribution == 4 and args.sharing_group_id is not None:
-            arguments['sharing_group_id'] = args.sharing_group_id
-        parser = globals()[f'{to_call}STIX2toMISPParser'](**arguments)
+        to_call, arguments = _get_stix_parser(_from_misp(bundle.objects), args)
+        parser = globals()[to_call](**arguments)
         parser.load_stix_bundle(bundle)
-        parser.parse_stix_bundle()
+        parser.parse_stix_bundle(single_event=True)
         with open(f'{args.input}.out', 'wt', encoding='utf-8') as f:
             f.write(parser.misp_event.to_json())
         print(
@@ -81,8 +96,11 @@ def _process_stix_file(args: argparse.ArgumentParser):
                         file=sys.stderr
                     )
     except Exception as e:
-        print(json.dumps({'error': e.__str__()}))
+        error = type(e).__name__ + ': ' + e.__str__()
+        print(json.dumps({'error': error}))
         traceback.print_tb(e.__traceback__)
+        print(error, file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == '__main__':
@@ -90,6 +108,10 @@ if __name__ == '__main__':
     argparser.add_argument(
         '-i', '--input', required=True, type=Path,
         help='Input file containing STIX 2 content.'
+    )
+    argparser.add_argument(
+        '--org_uuid', default=MISP_org_uuid,
+        help='Organisation UUID to use when creating custom Galaxy clusters.'
     )
     argparser.add_argument(
         '--distribution', type=int, default=0,
@@ -107,10 +129,17 @@ if __name__ == '__main__':
         '--galaxies_as_tags', action='store_true',
         help='Import MISP Galaxies as tag names.'
     )
+    argparser.add_argument(
+        '--cluster_distribution', type=int, default=0,
+        help='Cluster distribution level for clusters generated from STIX 2.x objects'
+    )
+    argparser.add_argument(
+        '--cluster_sharing_group_id', type=int,
+        help='Cluster sharing group id when the cluster distribution level is 4.'
+    )
     try:
         args = argparser.parse_args()
-        _process_stix_file(args)
-    except SystemExit:
+    except SystemExit as e:
         print(
             json.dumps(
                 {
@@ -118,4 +147,6 @@ if __name__ == '__main__':
                 }
             )
         )
+        sys.exit(1)
 
+    _process_stix_file(args)

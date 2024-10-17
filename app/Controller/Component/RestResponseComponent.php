@@ -213,6 +213,7 @@ class RestResponseComponent extends Component
                     'perm_tag_editor',
                     'default_role',
                     'perm_sighting',
+                    'perm_analyst_data',
                     'permission'
                 )
             ),
@@ -234,6 +235,7 @@ class RestResponseComponent extends Component
                     'perm_tag_editor',
                     'default_role',
                     'perm_sighting',
+                    'perm_analyst_data',
                     'permission'
                 )
             )
@@ -517,7 +519,7 @@ class RestResponseComponent extends Component
         if ($id) {
             $response['id'] = $id;
         }
-        return $this->__sendResponse($response, 403, $format);
+        return $this->prepareResponse($response, 403, $format);
     }
 
     /**
@@ -562,7 +564,7 @@ class RestResponseComponent extends Component
         if ($id) {
             $response['id'] = $id;
         }
-        return $this->__sendResponse($response, 200, $format);
+        return $this->prepareResponse($response, 200, $format);
     }
 
     /**
@@ -587,7 +589,7 @@ class RestResponseComponent extends Component
      * @return CakeResponse
      * @throws Exception
      */
-    private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
+    private function prepareResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
     {
         App::uses('TmpFileTool', 'Tools');
         $format = !empty($format) ? strtolower($format) : 'json';
@@ -633,7 +635,7 @@ class RestResponseComponent extends Component
                 }
                 
                 // If response is big array, encode items separately to save memory
-                if (is_array($response) && count($response) > 10000) {
+                if (is_array($response) && count($response) > 10000 && JsonTool::arrayIsList($response)) {
                     $output = new TmpFileTool();
                     $output->write('[');
 
@@ -646,6 +648,9 @@ class RestResponseComponent extends Component
                 } else {
                     $prettyPrint = !$this->isAutomaticTool(); // Do not pretty print response for automatic tools
                     $response = JsonTool::encode($response, $prettyPrint);
+                    if ($format !== 'json' && $format !== 'application/json') {
+                        $response = h($response);
+                    }
                 }
             } else {
                 if ($dumpSql) {
@@ -667,11 +672,11 @@ class RestResponseComponent extends Component
             $tmpFile->writeWithSeparator($response, null);
             $response = $tmpFile;
         }
-
         if ($response instanceof TmpFileTool) {
-            if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+            $requestEtag = $this->requestEtag();
+            if ($requestEtag !== null) {
                 $etag = '"' . $response->hash('sha1') . '"';
-                if ($_SERVER['HTTP_IF_NONE_MATCH'] === $etag) {
+                if ($requestEtag === $etag) {
                     return new CakeResponse(['status' => 304]);
                 }
                 $headers['ETag'] = $etag;
@@ -687,9 +692,10 @@ class RestResponseComponent extends Component
             }
         } else {
             // Check if resource was changed when `If-None-Match` header is send and return 304 Not Modified
-            if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+            $requestEtag = $this->requestEtag();
+            if ($requestEtag !== null) {
                 $etag = '"' . sha1($response) . '"';
-                if ($_SERVER['HTTP_IF_NONE_MATCH'] === $etag) {
+                if ($requestEtag === $etag) {
                     return new CakeResponse(['status' => 304]);
                 }
                 // Generate etag just when HTTP_IF_NONE_MATCH is set
@@ -720,6 +726,25 @@ class RestResponseComponent extends Component
             $cakeResponse->download($download);
         }
         return $cakeResponse;
+    }
+
+    /**
+     * Return etag from If-None-Match HTTP request header without compression marks added by Apache
+     * @return string|null
+     */
+    private function requestEtag()
+    {
+        if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+            // Remove compression marks that adds Apache for compressed content
+            $requestEtag = $_SERVER['HTTP_IF_NONE_MATCH'];
+            $etagWithoutQuotes = trim($requestEtag, '"');
+            $dashPos = strrpos($etagWithoutQuotes, '-');
+            if ($dashPos && in_array(substr($etagWithoutQuotes, $dashPos + 1), ['br', 'gzip'], true)) {
+                return '"' . substr($etagWithoutQuotes, 0, $dashPos) . '"';
+            }
+            return $requestEtag;
+        }
+        return null;
     }
 
     /**
@@ -775,7 +800,7 @@ class RestResponseComponent extends Component
         if (!empty($errors)) {
             $data['errors'] = $errors;
         }
-        return $this->__sendResponse($data, 200, $format, $raw, $download, $headers);
+        return $this->prepareResponse($data, 200, $format, $raw, $download, $headers);
     }
 
     /**
@@ -807,7 +832,7 @@ class RestResponseComponent extends Component
             'message' => $message,
             'url' => $url
         );
-        return $this->__sendResponse($message, $code, $format, $raw, false, $headers);
+        return $this->prepareResponse($message, $code, $format, $raw, false, $headers);
     }
 
     public function setHeader($header, $value)
@@ -834,7 +859,7 @@ class RestResponseComponent extends Component
             }
         }
         $response['url'] = $this->__generateURL($actionArray, $controller, $params);
-        return $this->__sendResponse($response, 200, $format);
+        return $this->prepareResponse($response, 200, $format);
     }
 
     private function __setup()
@@ -1052,7 +1077,7 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Include deleted elements')
+                'help' => __('Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes wil be returned')
             ),
             'delta_merge' => array(
                 'input' => 'radio',
@@ -1553,6 +1578,11 @@ class RestResponseComponent extends Component
                 'values' => array(1 => 'True', 0 => 'False')
             ),
             'perm_template' => array(
+                'input' => 'radio',
+                'type' => 'integer',
+                'values' => array(1 => 'True', 0 => 'False')
+            ),
+            'perm_analyst_data' => array(
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False')

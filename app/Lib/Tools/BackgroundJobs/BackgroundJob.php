@@ -66,8 +66,9 @@ class BackgroundJob implements JsonSerializable
 
     /**
      * Run the job command
+     * @param callable|null $runningCallback
      */
-    public function run(): void
+    public function run(callable $runningCallback = null): void
     {
         $descriptorSpec = [
             1 => ["pipe", "w"], // stdout
@@ -88,7 +89,7 @@ class BackgroundJob implements JsonSerializable
             ['BACKGROUND_JOB_ID' => $this->id]
         );
 
-        $this->pool($process, $pipes);
+        $this->pool($process, $pipes, $runningCallback);
 
         if ($this->returnCode === 0 && empty($stderr)) {
             $this->setStatus(BackgroundJob::STATUS_COMPLETED);
@@ -98,13 +99,27 @@ class BackgroundJob implements JsonSerializable
         }
     }
 
-    private function pool($process, array $pipes)
+    /**
+     * @param resource $process
+     * @param array $pipes
+     * @param callable|null $runningCallback
+     * @return void
+     */
+    private function pool($process, array $pipes, callable $runningCallback = null)
     {
         stream_set_blocking($pipes[1], false);
         stream_set_blocking($pipes[2], false);
 
         $this->output = '';
         $this->error = '';
+
+        if ($runningCallback) {
+            $status = proc_get_status($process);
+            if ($status === false) {
+                throw new RuntimeException("Could not get process status");
+            }
+            $runningCallback($status);
+        }
 
         while (true) {
             $read = [$pipes[1], $pipes[2]];
@@ -118,6 +133,12 @@ class BackgroundJob implements JsonSerializable
                 $this->error .= stream_get_contents($pipes[2]);
             }
             $status = proc_get_status($process);
+            if ($status === false) {
+                throw new RuntimeException("Could not get process status");
+            }
+            if ($runningCallback) {
+                $runningCallback($status);
+            }
             if (!$status['running']) {
                 // Just in case read rest data from stream
                 $this->output .= stream_get_contents($pipes[1]);
@@ -153,6 +174,9 @@ class BackgroundJob implements JsonSerializable
         return ['id', 'command', 'args', 'createdAt', 'updatedAt', 'status', 'output', 'error', 'metadata'];
     }
 
+    /**
+     * @return string Background job ID in UUID format
+     */
     public function id(): string
     {
         return $this->id;

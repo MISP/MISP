@@ -83,7 +83,7 @@ foreach ($list as $template):
             <?php
                 if ($template['ObjectTemplate']['fixed']):
             ?>
-                <img src="<?php echo $baseurl;?>/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" />
+                    <?php echo '<img src="' . $this->Image->base64(APP . 'files/img/orgs/MISP.png') . '" alt="' . __('MISP logo') . '" width="24" height="24" style="padding-bottom:3px" onerror="this.style.display=\'none\';">';?>
             <?php
                 endif;
             ?>

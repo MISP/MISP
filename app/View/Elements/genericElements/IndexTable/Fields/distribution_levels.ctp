@@ -7,6 +7,9 @@ if ($quickedit) {
 }
 
 $distributionLevel = Hash::extract($row, $field['data_path'])[0];
+if ($distributionLevel == 4) {
+    $sg = empty($field['sg_path']) ? $row['SharingGroup'] : Hash::extract($row, $field['sg_path']);
+}
 
 echo sprintf('<div%s>', $quickedit ? sprintf(
     " onmouseenter=\"quickEditHover(this, '%s', %s, 'distribution');\"",
@@ -25,8 +28,8 @@ echo sprintf(
         sprintf(
             '<a href="%s/sharing_groups/view/%s">%s</a>',
             $baseurl,
-            h($row['SharingGroup']['id']),
-            h($row['SharingGroup']['name'])
+            h($sg['id']),
+            h($sg['name'])
         )
 );
 if ($quickedit) {

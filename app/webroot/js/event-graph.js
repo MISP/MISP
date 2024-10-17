@@ -95,6 +95,9 @@ class EventGraph {
             // });
         });
 
+        this.network.on("doubleClick", function (params) {
+            eventGraph.expand_node(params.nodes[0]);
+        });
         this.network.on("dragStart", function (params) {
             eventGraph.physics_state(false);
             eventGraph.physics_activate_physics_for_nodes(params.nodes);

@@ -12,7 +12,7 @@ class AuthkeyShell extends AppShell {
 
     public function main()
     {
-        $this->err('This method is deprecated. Next time please use `cake user change_authkey [user] [authkey]` command.');
+        $this->deprecated('cake user change_authkey [user] [authkey]');
 
         if (!isset($this->args[0]) || empty($this->args[0])) echo 'MISP authkey reset command line tool.' . PHP_EOL . 'To assign a new authkey for a user:' . PHP_EOL . APP . 'Console/cake Authkey [email] [auth_key | optional]' . PHP_EOL;
         else {

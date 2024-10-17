@@ -35,4 +35,3 @@ class AttackWidget
         return $data;
     }
 }
-?>

@@ -18,6 +18,7 @@
 
 App::uses('AppModel', 'Model');
 App::uses('BackgroundJobsTool', 'Tools');
+App::uses('BenchmarkTool', 'Tools');
 
 require_once dirname(__DIR__) . '/../Model/Attribute.php';   // FIXME workaround bug where Vendor/symfony/polyfill-php80/Resources/stubs/Attribute.php is loaded instead
 
@@ -31,16 +32,25 @@ require_once dirname(__DIR__) . '/../Model/Attribute.php';   // FIXME workaround
  */
 abstract class AppShell extends Shell
 {
-    public $tasks = array('ConfigLoad');
-
     /** @var BackgroundJobsTool */
     private $BackgroundJobsTool;
 
     public function initialize()
     {
-        $this->ConfigLoad = $this->Tasks->load('ConfigLoad');
-        $this->ConfigLoad->execute();
-
+        $configLoad = $this->Tasks->load('ConfigLoad');
+        $configLoad->execute();
+        if (Configure::read('Plugin.Benchmarking_enable')) {
+            $Benchmark = new BenchmarkTool(ClassRegistry::init('User'));
+            $start_time = $Benchmark->startBenchmark();
+            register_shutdown_function(function () use ($start_time, $Benchmark) {
+                $Benchmark->stopBenchmark([
+                    'user' => 0,
+                    'controller' => 'Shell::' . $this->modelClass,
+                    'action' => $this->command,
+                    'start_time' => $start_time
+                ]);
+            });
+        }
         parent::initialize();
     }
 
@@ -82,6 +92,15 @@ abstract class AppShell extends Shell
             default:
                 $this->error("Invalid state value `$value`, it must be `true`, `false`, `1`, or `0`.");
         }
+    }
+
+    /**
+     * @param string $newCommand
+     * @return void
+     */
+    protected function deprecated($newCommand)
+    {
+        $this->err("<warning>Warning: This method is deprecated. Next time please use `$newCommand`.</warning>");
     }
 
     /**

@@ -104,6 +104,16 @@
                         ],
                     ),
                     array(
+                        'id' => 'multi-galaxy-button',
+                        'title' => __('Add new local cluster to selected Attributes'),
+                        'class' => 'mass-select hidden',
+                        'fa-icon' => 'empire',
+                        'fa-source' => 'fab',
+                        'data' => [
+                            'popover-popup' => $baseurl . '/galaxies/selectGalaxyNamespace/selected/attribute/local:1/eventid:' . $eventId,
+                        ],
+                    ),
+                    array(
                         'id' => 'group-into-object-button',
                         'title' => __('Group selected Attributes into an Object'),
                         'class' => 'mass-select hidden',
@@ -249,6 +259,26 @@
                     )
                 )
             ),
+            [
+                'children' => [
+                    [
+                        'id' => 'expand-all-objects',
+                        'text' => __('Expand all Objects'),
+                        'title' => __('Show all Attribute contained in Objects'),
+                        'fa-icon' => 'angle-double-down',
+                        'onClick' => 'showAllAttributeInObjects',
+                        'onClickParams' => [],
+                    ],
+                    [
+                        'id' => 'collapse-all-objects',
+                        'text' => __('Collapse all Attributes'),
+                        'title' => __('Hide all Attribute contained in Objects'),
+                        'fa-icon' => 'angle-double-up',
+                        'onClick' => 'hideAllAttributeInObjects',
+                        'onClickParams' => [],
+                    ],
+                ],
+            ],
             array(
                 'type' => 'search',
                 'fa-icon' => 'search',

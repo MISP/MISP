@@ -10,6 +10,7 @@ class AuditLog extends AppModel
 {
     const BROTLI_HEADER = "\xce\xb2\xcf\x81";
     const COMPRESS_MIN_LENGTH = 256;
+    const CHANGE_MAX_SIZE = 64 * 1024; // MySQL type blob
 
     const ACTION_ADD = 'add',
         ACTION_EDIT = 'edit',
@@ -25,11 +26,7 @@ class AuditLog extends AppModel
         ACTION_REMOVE_GALAXY = 'remove_galaxy',
         ACTION_REMOVE_GALAXY_LOCAL = 'remove_local_galaxy',
         ACTION_PUBLISH = 'publish',
-        ACTION_PUBLISH_SIGHTINGS = 'publish_sightings',
-        ACTION_LOGIN = 'login',
-        ACTION_PASSWDCHANGE = 'password_change',
-        ACTION_LOGOUT = 'logout',
-        ACTION_LOGIN_FAILED = 'login_failed';
+        ACTION_PUBLISH_SIGHTINGS = 'publish_sightings';
 
     const REQUEST_TYPE_DEFAULT = 0,
         REQUEST_TYPE_API = 1,
@@ -239,6 +236,10 @@ class AuditLog extends AppModel
 
         if (isset($auditLog['change'])) {
             $auditLog['change'] = $this->encodeChange($auditLog['change']);
+            if (strlen($auditLog['change']) > self::CHANGE_MAX_SIZE) {
+                // Change is too big to save in database, skipping
+                $auditLog['change'] = null;
+            }
         }
     }
 

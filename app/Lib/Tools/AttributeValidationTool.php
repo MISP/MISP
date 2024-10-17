@@ -41,7 +41,7 @@ class AttributeValidationTool
         switch ($type) {
             case 'ip-src':
             case 'ip-dst':
-                return self::compressIpv6($value);
+                return self::normalizeIp($value);
             case 'md5':
             case 'sha1':
             case 'sha224':
@@ -98,7 +98,7 @@ class AttributeValidationTool
                         $parts[0] = $punyCode;
                     }
                 }
-                $parts[1] = self::compressIpv6($parts[1]);
+                $parts[1] = self::normalizeIp($parts[1]);
                 return "$parts[0]|$parts[1]";
             case 'filename|md5':
             case 'filename|sha1':
@@ -175,7 +175,7 @@ class AttributeValidationTool
                 } else {
                     return $value;
                 }
-                return self::compressIpv6($parts[0]) . '|' . $parts[1];
+                return self::normalizeIp($parts[0]) . '|' . $parts[1];
             case 'mac-address':
             case 'mac-eui-64':
                 $value = str_replace(array('.', ':', '-', ' '), '', strtolower($value));
@@ -556,7 +556,12 @@ class AttributeValidationTool
                   if (!is_numeric($value) || $value < 0 || $value > 10) {
                       return __('The value has to be a number between 0 and 10.');
                   }
-                  return true;*/
+                return true;*/
+            case 'integer':
+                if (is_int($value)) {
+                    return true;
+                }
+                return __('The value has to be an integer value.');
             case 'iban':
             case 'bic':
             case 'btc':
@@ -700,11 +705,30 @@ class AttributeValidationTool
      * @param string $value
      * @return string
      */
-    private static function compressIpv6($value)
+    private static function normalizeIp($value)
     {
+        // If IP is a CIDR
+        if (strpos($value, '/')) {
+            list($ip, $range) = explode('/', $value, 2);
+
+            // Compress IPv6
+            if (strpos($ip, ':') && $converted = inet_pton($ip)) {
+                $ip = inet_ntop($converted);
+            }
+
+            // If IP is in CIDR format, but the network is 32 for IPv4 or 128 for IPv6, normalize to non CIDR type
+            if (($range === '32' && strpos($value, '.')) || ($range === '128' && strpos($value, ':'))) {
+                return $ip;
+            }
+
+            return "$ip/$range";
+        }
+
+        // Compress IPv6
         if (strpos($value, ':') && $converted = inet_pton($value)) {
             return inet_ntop($converted);
         }
+
         return $value;
     }
     

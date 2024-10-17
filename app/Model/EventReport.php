@@ -17,6 +17,7 @@ class EventReport extends AppModel
             'change' => 'full'
         ),
         'Regexp' => array('fields' => array('value')),
+        'AnalystDataParent',
     );
 
     public $validate = array(
@@ -118,6 +119,15 @@ class EventReport extends AppModel
                 __('Event Report dropped due to validation for Event report %s failed: %s', $this->data['EventReport']['uuid'], $this->data['EventReport']['name']),
                 __('Validation errors: %s.%sFull report: %s', json_encode($errors), PHP_EOL, json_encode($report['EventReport']))
             );
+        } else {
+            $savedReport = $this->find('first', [
+                'recursive' => -1,
+                'fields' => ['id', 'uuid'],
+                'conditions' => ['id' => $this->id],
+            ]);
+            if ($savedReport) {
+                $this->Event->captureAnalystData($user, $report, 'EventReport', $savedReport['EventReport']['uuid']);
+            }
         }
         return $errors;
     }
@@ -153,8 +163,12 @@ class EventReport extends AppModel
     {
         $errors = array();
         if (!isset($report['EventReport']['uuid'])) {
-            $errors[] = __('Event Report doesn\'t have an UUID');
-            return $errors;
+            if ($fromPull) {
+                $report['EventReport']['uuid'] = $attribute['uuid'] = CakeText::uuid();
+            } else {
+                $errors[] = __('Event Report doesn\'t have an UUID');
+                return $errors;
+            }
         }
         $report['EventReport']['event_id'] = $eventId;
         $existingReport = $this->find('first', array(
@@ -184,7 +198,10 @@ class EventReport extends AppModel
         }
         $errors = $this->saveAndReturnErrors($report, ['fieldList' => self::CAPTURE_FIELDS], $errors);
         if (empty($errors)) {
-            $this->Event->unpublishEvent($eventId);
+            $this->Event->captureAnalystData($user, $report['EventReport'], 'EventReport', $report['EventReport']['uuid']);
+            if (!$fromPull) {
+                $this->Event->unpublishEvent($eventId);
+            }
         }
         return $errors;
     }
@@ -702,7 +719,7 @@ class EventReport extends AppModel
                 'category' => $typeToCategoryMapping[$complexTypeToolEntry['default_type']][0],
                 'type' => $complexTypeToolEntry['default_type'],
                 'value' => $textToBeReplaced,
-                'to_ids' => $complexTypeToolEntry['to_ids'],
+                'to_ids' => $complexTypeToolEntry['to_ids'] ?? 0,
             ];
             $replacedContent = str_replace($complexTypeToolEntry['original_value'], $textToInject, $replacedContent);
         }

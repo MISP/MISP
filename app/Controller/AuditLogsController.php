@@ -119,13 +119,18 @@ class AuditLogsController extends AppController
         ]);
 
         $this->paginate['conditions'] = $this->__searchConditions($params);
+        $user = $this->Auth->user();
+        $acl = $this->__applyAuditAcl($user);
+        if ($acl) {
+            $this->paginate['conditions']['AND'][] = $acl;
+        }
         $list = $this->paginate();
 
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($list, 'json');
         }
 
-        $list = $this->__appendModelLinks($list);
+        $list = $this->__appendModelLinks($user, $list);
         foreach ($list as $k => $item) {
             $list[$k]['AuditLog']['action_human'] =  $this->actions[$item['AuditLog']['action']];
         }
@@ -150,17 +155,21 @@ class AuditLogsController extends AppController
         $this->set('title_for_layout', __('Audit logs'));
     }
 
-    public function eventIndex($eventId, $org = null)
+    public function eventIndex($eventId = null, $org = null)
     {
+        $params = $this->IndexFilter->harvestParameters(['created', 'org', 'eventId']);
+        if (!empty($params['eventId'])) {
+            $eventId = $params['eventId'];
+        } else if (empty($eventId)) {
+            $eventId = -1;
+        }
         $event = $this->AuditLog->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
         if (empty($event)) {
             throw new NotFoundException('Invalid event.');
         }
-
         $this->paginate['conditions'] = $this->__createEventIndexConditions($event);
         $this->set('passedArgsArray', ['eventId' => $eventId, 'org' => $org]);
 
-        $params = $this->IndexFilter->harvestParameters(['created', 'org']);
         if ($org) {
             $params['org'] = $org;
         }
@@ -204,13 +213,19 @@ class AuditLogsController extends AppController
 
     public function fullChange($id)
     {
+        $acl = $this->__applyAuditAcl($this->Auth->user());
         $log = $this->AuditLog->find('first', [
-            'conditions' => ['id' => $id],
+            'conditions' => [
+                'AND' => [
+                    $acl,
+                    'id' => $id
+                ]
+            ],
             'recursive' => -1,
             'fields' => ['change', 'action'],
         ]);
         if (empty($log)) {
-            throw new Exception('Log not found.');
+            throw new NotFoundException('Log not found.');
         }
         $this->set('log', $log);
     }
@@ -228,11 +243,27 @@ class AuditLogsController extends AppController
         return $this->RestResponse->viewData($data, $this->response->type());
     }
 
+    private function __applyAuditAcl(array $user)
+    {
+        $acl = [];
+        if (empty($user['Role']['perm_site_admin'])) {
+            if (!empty($user['Role']['perm_admin'])) {
+                // ORG admins can see their own org info
+                $acl = ['AuditLog.org_id' => $user['org_id']];
+            } else {
+                // users can see their own info
+                $acl = ['AuditLog.user_id' => $user['id']];
+            }
+        }
+        return $acl;
+    }
+
     /**
      * @return array
      */
     private function __searchConditions(array $params)
     {
+        $conditions = [];
         $qbRules = [];
         foreach ($params as $key => $value) {
             if ($key === 'model' && strpos($value, ':') !== false) {
@@ -263,7 +294,6 @@ class AuditLogsController extends AppController
         }
         $this->set('qbRules', $qbRules);
 
-        $conditions = [];
         if (isset($params['user'])) {
             if (strtoupper($params['user']) === 'SYSTEM') {
                 $conditions['AuditLog.user_id'] = 0;
@@ -351,7 +381,6 @@ class AuditLogsController extends AppController
             // Site admins and event owners can see all changes
             return ['event_id' => $event['Event']['id']];
         }
-
         $event = $this->AuditLog->Event->fetchEvent($this->Auth->user(), [
             'eventid' => $event['Event']['id'],
             'sgReferenceOnly' => 1,
@@ -361,7 +390,6 @@ class AuditLogsController extends AppController
             'includeEventCorrelations' => false,
             'excludeGalaxy' => true,
         ])[0];
-
         $attributeIds = [];
         $objectIds = [];
         $proposalIds = array_column($event['ShadowAttribute'], 'id');
@@ -419,10 +447,11 @@ class AuditLogsController extends AppController
 
     /**
      * Generate link to model view if exists and use has permission to access it.
+     * @param array $user
      * @param array $auditLogs
      * @return array
      */
-    private function __appendModelLinks(array $auditLogs)
+    private function __appendModelLinks(array $user, array $auditLogs)
     {
         $models = [];
         foreach ($auditLogs as $auditLog) {
@@ -433,7 +462,7 @@ class AuditLogsController extends AppController
             }
         }
 
-        $eventIds = isset($models['Event']) ? $models['Event'] : [];
+        $eventIds = $models['Event'] ?? [];
 
         if (isset($models['ObjectReference'])) {
             $this->loadModel('ObjectReference');
@@ -445,11 +474,11 @@ class AuditLogsController extends AppController
 
         if (isset($models['Object']) || isset($objectReferences)) {
             $objectIds = array_unique(array_merge(
-                isset($models['Object']) ? $models['Object'] : [],
+                $models['Object'] ?? [],
                 isset($objectReferences) ? array_values($objectReferences) : []
             ));
             $this->loadModel('MispObject');
-            $conditions = $this->MispObject->buildConditions($this->Auth->user());
+            $conditions = $this->MispObject->buildConditions($user);
             $conditions['Object.id'] = $objectIds;
             $objects = $this->MispObject->find('all', [
                 'conditions' => $conditions,
@@ -457,22 +486,22 @@ class AuditLogsController extends AppController
                 'fields' => ['Object.id', 'Object.event_id', 'Object.uuid', 'Object.deleted'],
             ]);
             $objects = array_column(array_column($objects, 'Object'), null, 'id');
-            $eventIds = array_merge($eventIds, array_column($objects, 'event_id'));
+            array_push($eventIds, ...array_column($objects, 'event_id'));
         }
 
         if (isset($models['Attribute'])) {
             $this->loadModel('Attribute');
-            $attributes = $this->Attribute->fetchAttributesSimple($this->Auth->user(), [
+            $attributes = $this->Attribute->fetchAttributesSimple($user, [
                 'conditions' => ['Attribute.id' => array_unique($models['Attribute'])],
                 'fields' => ['Attribute.id', 'Attribute.event_id', 'Attribute.uuid', 'Attribute.deleted'],
             ]);
             $attributes = array_column(array_column($attributes, 'Attribute'), null, 'id');
-            $eventIds = array_merge($eventIds, array_column($attributes, 'event_id'));
+            array_push($eventIds, ...array_column($attributes, 'event_id'));
         }
 
         if (isset($models['ShadowAttribute'])) {
             $this->loadModel('ShadowAttribute');
-            $conditions = $this->ShadowAttribute->buildConditions($this->Auth->user());
+            $conditions = $this->ShadowAttribute->buildConditions($user);
             $conditions['AND'][] = ['ShadowAttribute.id' => array_unique($models['ShadowAttribute'])];
             $shadowAttributes = $this->ShadowAttribute->find('all', [
                 'conditions' => $conditions,
@@ -480,12 +509,12 @@ class AuditLogsController extends AppController
                 'contain' => ['Event', 'Attribute'],
             ]);
             $shadowAttributes = array_column(array_column($shadowAttributes, 'ShadowAttribute'), null, 'id');
-            $eventIds = array_merge($eventIds, array_column($shadowAttributes, 'event_id'));
+            array_push($eventIds, ...array_column($shadowAttributes, 'event_id'));
         }
 
         if (!empty($eventIds)) {
             $this->loadModel('Event');
-            $conditions = $this->Event->createEventConditions($this->Auth->user());
+            $conditions = $this->Event->createEventConditions($user);
             $conditions['Event.id'] = array_unique($eventIds);
             $events = $this->Event->find('list', [
                 'conditions' => $conditions,

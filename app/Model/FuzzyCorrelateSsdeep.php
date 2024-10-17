@@ -9,38 +9,32 @@ class FuzzyCorrelateSsdeep extends AppModel
 
     public function ssdeep_prepare($hash)
     {
-        list($block_size, $hash) = explode(':', $hash, 2);
-        
-        $chars = array();
-        for ($i = 0; $i < strlen($hash); $i++) {
-            if (!in_array($hash[$i], $chars, true)) {
-                $chars[] = $hash[$i];
-            }
-        }
+        list($blockSize, $hash) = explode(':', $hash, 2);
+
+        $uniqueChars = array_unique(str_split($hash), SORT_REGULAR);
+
         $search = true;
         while ($search) {
             $search = false;
-            foreach ($chars as $c) {
+            foreach ($uniqueChars as $c) {
                 if (strpos($hash, $c . $c . $c . $c)) {
                     $hash = str_replace($c . $c . $c . $c, $c . $c . $c, $hash);
                     $search = true;
                 }
             }
         }
-        $hash = explode(':', $hash);
-        $block_data = $hash[0];
-        $double_block_data = $hash[1];
-        //        (struct.unpack("<Q", base64.b64decode(h[i:i + 7] + "=") + "\x00\x00\x00")[0] for i in range(len(h) - 6)))
 
-        $result = array(
-            $block_size,
-            $this->get_all_7_char_chunks($block_data),
-            $this->get_all_7_char_chunks($double_block_data)
-        );
-        return $result;
+        $hash = explode(':', $hash);
+        list($block_data, $double_block_data) = $hash;
+
+        return [
+            $blockSize,
+            $this->getAll7CharChunks($block_data),
+            $this->getAll7CharChunks($double_block_data)
+        ];
     }
 
-    public function get_all_7_char_chunks($hash)
+    private function getAll7CharChunks($hash)
     {
         $results = array();
         for ($i = 0; $i < strlen($hash) - 6; $i++) {
@@ -56,16 +50,22 @@ class FuzzyCorrelateSsdeep extends AppModel
         return $results;
     }
 
+    /**
+     * @param string $hash
+     * @param int $attributeId
+     * @return array
+     */
     public function query_ssdeep_chunks($hash, $attributeId)
     {
         $chunks = $this->ssdeep_prepare($hash);
+        $bothPartChunks = array_merge($chunks[1], $chunks[2]);
         
         // Original algo from article https://www.virusbulletin.com/virusbulletin/2015/11/optimizing-ssdeep-use-scale
         // also propose to insert chunk size to database, but current database schema doesn't contain that column.
         // This optimisation can be add in future versions.
         $result = $this->find('column', array(
             'conditions' => array(
-                'FuzzyCorrelateSsdeep.chunk' => array_merge($chunks[1], $chunks[2]),
+                'FuzzyCorrelateSsdeep.chunk' => $bothPartChunks,
             ),
             'fields' => array('FuzzyCorrelateSsdeep.attribute_id'),
             'unique' => true,
@@ -73,15 +73,11 @@ class FuzzyCorrelateSsdeep extends AppModel
         
         $toSave = [];
         $attributeId = (int) $attributeId;
-        foreach (array(1, 2) as $type) {
-            foreach ($chunks[$type] as $chunk) {
-                $toSave[] = [$attributeId, $chunk];
-            }
+        foreach ($bothPartChunks as $chunk) {
+            $toSave[] = [$attributeId, $chunk];
         }
-        if (!empty($toSave)) {
-            $db = $this->getDataSource();
-            $db->insertMulti($this->table, ['attribute_id', 'chunk'], $toSave);
-        }
+        $db = $this->getDataSource();
+        $db->insertMulti($this->table, ['attribute_id', 'chunk'], $toSave);
         return $result;
     }
 

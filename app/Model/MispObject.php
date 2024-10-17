@@ -20,11 +20,12 @@ class MispObject extends AppModel
 
     public $actsAs = array(
         'AuditLog',
-            'Containable',
-            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
-                'userModel' => 'User',
-                'userKey' => 'user_id',
-                'change' => 'full'),
+        'Containable',
+        'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
+            'userModel' => 'User',
+            'userKey' => 'user_id',
+            'change' => 'full'),
+        'AnalystDataParent'
     );
 
     public $belongsTo = array(
@@ -153,6 +154,8 @@ class MispObject extends AppModel
                     'object_name' => array('function' => 'set_filter_object_name'),
                     'object_template_uuid' => array('function' => 'set_filter_object_template_uuid'),
                     'object_template_version' => array('function' => 'set_filter_object_template_version'),
+                    'first_seen' => array('function' => 'set_filter_seen'),
+                    'last_seen' => array('function' => 'set_filter_seen'),
                     'deleted' => array('function' => 'set_filter_deleted')
                 ),
                 'Event' => array(
@@ -181,8 +184,8 @@ class MispObject extends AppModel
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'timestamp' => array('function' => 'set_filter_timestamp'),
                     'attribute_timestamp' => array('function' => 'set_filter_timestamp'),
-                    'first_seen' => array('function' => 'set_filter_seen'),
-                    'last_seen' => array('function' => 'set_filter_seen'),
+                    //'first_seen' => array('function' => 'set_filter_seen'),
+                    //'last_seen' => array('function' => 'set_filter_seen'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
                     'comment' => array('function' => 'set_filter_comment')
                 )
@@ -507,7 +510,8 @@ class MispObject extends AppModel
             }
         }
         $this->create();
-        if ($this->save($object)) {
+        $saveResult = $this->save($object);
+        if ($saveResult) {
             $result = $this->id;
             foreach ($object['Attribute'] as $k => $attribute) {
                 $object['Attribute'][$k]['object_id'] = $this->id;
@@ -525,6 +529,7 @@ class MispObject extends AppModel
                 }
             }
             $this->Attribute->saveAttributes($object['Attribute'], $user);
+            $this->Event->captureAnalystData($user, $object['Object'], 'Object', $saveResult['Object']['uuid']);
         } else {
             $result = $this->validationErrors;
         }
@@ -569,11 +574,18 @@ class MispObject extends AppModel
         if (isset($options['fields'])) {
             $params['fields'] = $options['fields'];
         }
+        $contain = [];
+        if (isset($options['contain'])) {
+            $contain = $options['contain'];
+        }
+        if (empty($contain['Event'])) {
+            $contain = ['Event' => ['distribution', 'id', 'user_id', 'orgc_id', 'org_id']];
+        }
         $results = $this->find('all', array(
             'conditions' => $params['conditions'],
             'recursive' => -1,
             'fields' => $params['fields'],
-            'contain' => array('Event' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id')),
+            'contain' => $contain,
             'sort' => false
         ));
         return $results;
@@ -991,6 +1003,8 @@ class MispObject extends AppModel
             return $this->validationErrors;
         }
 
+        $this->Event->captureAnalystData($user, $objectToSave['Object'], 'Object', $saveResult['Object']['uuid']);
+
         if (!$onlyAddNewAttribute) {
             $checkFields = array('category', 'value', 'to_ids', 'distribution', 'sharing_group_id', 'comment', 'disable_correlation', 'first_seen', 'last_seen');
             if (!empty($objectToSave['Attribute'])) {
@@ -1129,6 +1143,7 @@ class MispObject extends AppModel
                 $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
             }
         }
+        $this->Event->captureAnalystData($user, $object['Object'], 'Object', $object['Object']['uuid']);
         return true;
     }
 
@@ -1208,6 +1223,7 @@ class MispObject extends AppModel
             );
             return $this->validationErrors;
         }
+        $this->Event->captureAnalystData($user, $object, 'Object', $object['uuid']);
         if (!empty($object['Attribute'])) {
             $attributes = [];
             foreach ($object['Attribute'] as $attribute) {
@@ -1678,7 +1694,9 @@ class MispObject extends AppModel
                 $results = $this->Sightingdb->attachToObjects($results, $user);
             }
             $params['page'] += 1;
-            $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
+            foreach ($results as $k => $result) {
+                $results[$k]['Attribute'] = $this->Allowedlist->removeAllowedlistedFromArray($result['Attribute'], true);
+            }
             $results = array_values($results);
             $i = 0;
             foreach ($results as $object) {

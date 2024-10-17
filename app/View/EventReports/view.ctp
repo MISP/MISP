@@ -1,7 +1,22 @@
 <?php
+    echo $this->element('genericElements/assetLoader', [
+        'js' => ['doT', 'moment.min'],
+        'css' => ['analyst-data',],
+    ]);
+
     $table_data = array();
     $table_data[] = array('key' => __('ID'), 'value' => $report['EventReport']['id']);
-    $table_data[] = array('key' => __('UUID'), 'value' => $report['EventReport']['uuid'], 'value_class' => 'quickSelect');
+    $table_data[] = [
+        'key' => __('UUID'),
+        'element' => 'genericElements/SingleViews/Fields/uuidField',
+        'element_params' => [
+            'data' => $report,
+            'field' => [
+                'path' => 'EventReport.uuid',
+                'object_type' => 'EventReport',
+            ]
+        ],
+    ];
     $table_data[] = array(
         'key' => __('Event'),
         'html' => sprintf(

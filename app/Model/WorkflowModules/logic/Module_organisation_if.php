@@ -65,6 +65,7 @@ class Module_organisation_if extends WorkflowBaseLogicModule
 
         $org_type = $params['org_type']['value'];
         $operator = $params['condition']['value'];
+        $operator = $this->convertOperators($operator);
         $selectedOrgs = !empty($params['org_id']['value']) ? $params['org_id']['value'] : [];
         $selectedOrgs = is_array($selectedOrgs) ? $selectedOrgs : [$selectedOrgs]; // Backward compatibility for non-multiple `org_id`
         $path = 'Event.org_id';
@@ -74,5 +75,21 @@ class Module_organisation_if extends WorkflowBaseLogicModule
         $extracted_org = intval(Hash::get($data, $path)) ?? -1;
         $eval = $this->evaluateCondition($selectedOrgs, $operator, $extracted_org);
         return !empty($eval);
+    }
+
+    /**
+     * Make sure to convert version 0.1 of this module to the new operators
+     *
+     * @param string $operator
+     * @return string
+     */
+    private function convertOperators($operator)
+    {
+        if ($operator == 'equals') {
+            $operator = 'in';
+        } else if ($operator == 'not_equals') {
+            $operator = 'not_in';
+        }
+        return $operator;
     }
 }

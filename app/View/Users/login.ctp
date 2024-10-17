@@ -5,7 +5,9 @@
 <table style="margin-left:auto;margin-right:auto;">
     <tr>
     <td style="text-align:right;width:250px;padding-right:50px">
-        <?php if (Configure::read('MISP.welcome_logo')) echo $this->Html->image('custom/' . h(Configure::read('MISP.welcome_logo')), array('alt' => __('Logo'), 'onerror' => "this.style.display='none';")); ?>
+        <?php if (Configure::read('MISP.welcome_logo') && file_exists(APP . '/files/img/custom/' . Configure::read('MISP.welcome_logo'))): ?>
+            <img src="<?= $this->Image->base64(APP . 'files/img/custom/' . Configure::read('MISP.welcome_logo')) ?>" alt="<?= __('Logo') ?>" onerror="this.style.display='none';">
+        <?php endif; ?>
     </td>
     <td style="width:460px">
         <span style="font-size:18px;">
@@ -16,10 +18,10 @@
             ?>
         </span><br /><br />
         <div>
-        <?php if (Configure::read('MISP.main_logo') && file_exists(APP . '/webroot/img/custom/' . Configure::read('MISP.main_logo'))): ?>
-            <img src="<?php echo $baseurl?>/img/custom/<?php echo h(Configure::read('MISP.main_logo'));?>" style=" display:block; margin-left: auto; margin-right: auto;" />
+        <?php if (Configure::read('MISP.main_logo') && file_exists(APP . '/files/img/custom/' . Configure::read('MISP.main_logo'))): ?>
+            <img src="<?= $this->Image->base64(APP . 'files/img/custom/' . Configure::read('MISP.main_logo')) ?>" style=" display:block; margin-left: auto; margin-right: auto;">
         <?php else: ?>
-            <img src="<?php echo $baseurl?>/img/misp-logo-s-u.png" style="display:block; margin-left: auto; margin-right: auto;"/>
+            <img src="<?php echo $baseurl?>/img/misp-logo-s-u.png" style="display:block; margin-left: auto; margin-right: auto;">
         <?php endif;?>
         </div>
         <?php
@@ -82,7 +84,9 @@
         ?>
     </td>
     <td style="width:250px;padding-left:50px">
-        <?php if (Configure::read('MISP.welcome_logo2')) echo $this->Html->image('custom/' . h(Configure::read('MISP.welcome_logo2')), array('alt' => 'Logo2', 'onerror' => "this.style.display='none';")); ?>
+        <?php if (Configure::read('MISP.welcome_logo2') && file_exists(APP . '/files/img/custom/' . Configure::read('MISP.welcome_logo2'))): ?>
+            <img src="<?= $this->Image->base64(APP . 'files/img/custom/' . Configure::read('MISP.welcome_logo2')) ?>" alt="<?= __('Logo2') ?>" onerror="this.style.display='none';">
+        <?php endif; ?>
     </td>
     </tr>
     </table>

@@ -265,6 +265,22 @@ $divider = '<li class="divider"></li>';
                         'text' => __('Download as…')
                     ));
                     echo $divider;
+                    if ($me['Role']['perm_modify']) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'onClick' => array(
+                                'function' => 'openGenericModal',
+                                'params' => [
+                                    sprintf(
+                                        '%s/collectionElements/addElementToCollection/Event/%s',
+                                        $baseurl,
+                                        h($event['Event']['uuid'])
+                                    )
+                                ]
+                            ),
+                            'text' => __('Add Event to Collection')
+                        ));
+                        echo $divider;
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => $baseurl . '/events/index',
                         'text' => __('List Events')
@@ -314,7 +330,50 @@ $divider = '<li class="divider"></li>';
                         );
                     }
                     break;
-
+                case 'collections':
+                    if ($menuItem === 'edit' || $menuItem === 'view') {
+                        if ($this->Acl->canAccess('collections', 'add') && $mayModify) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', [
+                                'element_id' => 'edit',
+                                'url' => $baseurl . '/collections/edit/' . h($id),
+                                'text' => __('Edit Collection')
+                            ]);
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', [
+                                'element_id' => 'delete',
+                                'onClick' => [
+                                    'function' => 'openGenericModal',
+                                    'params' => array($baseurl . '/Collections/delete/' . h($id))
+                                ],
+                                'text' => __('Delete Collection')
+                            ]);
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', [
+                                'text' => __('Add Element to Collection'),
+                                'onClick' => [
+                                    'function' => 'openGenericModal',
+                                    'params' => array($baseurl . '/CollectionElements/add/' . h($id))
+                                ],
+                            ]);
+                            echo $divider;
+                        }
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => $baseurl . '/collections/view/' . h($id),
+                            'text' => __('View Collection')
+                        ));
+                    }
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => $baseurl . '/collections/index',
+                        'text' => __('List Collections')
+                    ));
+                    if ($this->Acl->canAccess('collections', 'add')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add',
+                            'url' => $baseurl . '/collections/add',
+                            'text' => __('Add Collection')
+                        ));
+                    }
+                    break;
                 case 'event-collection':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'index',
@@ -1041,6 +1100,13 @@ $divider = '<li class="divider"></li>';
                             'url' => $baseurl . '/servers/updateProgress',
                             'text' => __('Update Progress')
                         ));
+                        if (Configure::read('Plugin.Benchmarking_enable')) {
+                            echo $divider;
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => $baseurl . '/benchmarks/index',
+                                'text' => __('Benchmarks')
+                            ));
+                        }
                         echo $divider;
                         if (Configure::read('MISP.background_jobs')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -1060,6 +1126,7 @@ $divider = '<li class="divider"></li>';
                             'url' => $baseurl . '/servers/eventBlockRule',
                             'text' => __('Event Block Rules')
                         ));
+                        echo $divider;
                         if (Configure::read('MISP.enableEventBlocklisting') !== false) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'eventBlocklistsAdd',
@@ -1071,6 +1138,7 @@ $divider = '<li class="divider"></li>';
                                 'url' => $baseurl . '/eventBlocklists',
                                 'text' => __('Manage Event Blocklists')
                             ));
+                            echo $divider;
                         }
                         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -1083,6 +1151,20 @@ $divider = '<li class="divider"></li>';
                                 'url' => $baseurl . '/orgBlocklists',
                                 'text' => __('Manage Org Blocklists')
                             ));
+                            echo $divider;
+                        }
+                        if (!Configure::check('MISP.enableSightingBlocklisting') || Configure::read('MISP.enableSightingBlocklisting') !== false) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'sightingBlocklistsAdd',
+                                'url' => $baseurl . '/sightingBlocklists/add',
+                                'text' => __('Blocklists Sightings')
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'sightingBlocklists',
+                                'url' => $baseurl . '/sightingBlocklists',
+                                'text' => __('Manage Sighting Blocklists')
+                            ));
+                            echo $divider;
                         }
                     }
                     break;
@@ -1493,6 +1575,22 @@ $divider = '<li class="divider"></li>';
                                 'text' => __('View Correlation Graph')
                             ));
                         }
+                        if ($me['Role']['perm_modify']) {
+                            echo $divider;
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'onClick' => array(
+                                    'function' => 'openGenericModal',
+                                    'params' => [
+                                        sprintf(
+                                            '%s/collectionElements/addElementToCollection/GalaxyCluster/%s',
+                                            $baseurl,
+                                            h($cluster['GalaxyCluster']['uuid'])
+                                        )
+                                    ]
+                                ),
+                                'text' => __('Add Cluster to Collection')
+                            ));
+                        }
                     }
                     if ($menuItem === 'view' || $menuItem === 'export') {
                         echo $divider;
@@ -1726,6 +1824,54 @@ $divider = '<li class="divider"></li>';
                     }
                 }
                 break;
+
+                case 'analyst_data':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => '/analystData/index',
+                        'text' => __('List Analyst Data')
+                    ));
+                    if ($this->Acl->canAccess('analyst_data_blocklists', 'index')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'index_blocklist',
+                            'url' => $baseurl . '/analyst_data_blocklists/index',
+                            'text' => __('List Analyst-Data Blocklists')
+                        ));
+                    }
+                    if ($this->Acl->canAccess('analyst_data', 'add')) {
+                        echo $divider;
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add_note',
+                            'url' => sprintf('/analystData/add/Note'),
+                            'text' => __('Add Analyst Note')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add_opinion',
+                            'url' => sprintf('/analystData/add/Opinion'),
+                            'text' => __('Add Analyst Opinion')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add_relationship',
+                            'url' => sprintf('/analystData/add/Relationship'),
+                            'text' => __('Add Analyst Relationship')
+                        ));
+                    }
+                    if ($menuItem === 'view' || $menuItem === 'edit') {
+                        echo $divider;
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => sprintf('/analystData/view/%s/%s', h($modelSelection), h($id)),
+                            'text' => __('View Analyst Data')
+                        ));
+                        if ($isSiteAdmin) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'edit',
+                                'url' => sprintf('/analystData/edit/%s/%s', h($modelSelection), h($id)),
+                                'text' => __('Edit Analyst Data')
+                            ));
+                        }
+                    }
+                    break;
             }
         ?>
     </ul>

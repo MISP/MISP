@@ -7,6 +7,14 @@ App::uses('Mysql', 'Model/Datasource/Database');
  */
 class MysqlExtended extends Mysql
 {
+    const PDO_MAP = [
+        'integer' => PDO::PARAM_INT,
+        'float' => PDO::PARAM_STR,
+        'boolean' => PDO::PARAM_BOOL,
+        'string' => PDO::PARAM_STR,
+        'text' => PDO::PARAM_STR
+    ];
+
     /**
      * Output MD5 as binary, that is faster and uses less memory
      * @param string $value
@@ -50,6 +58,7 @@ class MysqlExtended extends Mysql
             'having' => $this->having($query['having'], true, $Model),
             'lock' => $this->getLockingHint($query['lock']),
             'indexHint' => $this->__buildIndexHint($query['forceIndexHint'] ?? null),
+            'ignoreIndexHint' => $this->__buildIgnoreIndexHint($query['ignoreIndexHint'] ?? null)
         ));
     }
 
@@ -82,6 +91,7 @@ class MysqlExtended extends Mysql
                 'having' => $queryData['having'],
                 'lock' => $queryData['lock'],
                 'forceIndexHint' => $queryData['forceIndexHint'] ?? null,
+                'ignoreIndexHint' => $queryData['ignoreIndexHint'] ?? null,
             ),
             $Model
         );
@@ -109,14 +119,25 @@ class MysqlExtended extends Mysql
     }
 
     /**
-     * Builds the index hint for the query
+     * Builds the force index hint for the query
      * 
-     * @param string|null $forceIndexHint FORCE INDEX hint
+     * @param string|null $forceIndexHint INDEX hint
      * @return string
      */
     private function __buildIndexHint($forceIndexHint = null): ?string
     {
-        return isset($forceIndexHint) ? ('FORCE INDEX ' . $forceIndexHint) : null;
+        return isset($forceIndexHint) ? ('FORCE INDEX (' . $forceIndexHint . ')') : null;
+    }
+
+        /**
+     * Builds the ignore index hint for the query
+     * 
+     * @param string|null $ignoreIndexHint INDEX hint
+     * @return string
+     */
+    private function __buildIgnoreIndexHint($ignoreIndexHint = null): ?string
+    {
+        return isset($ignoreIndexHint) ? ('IGNORE INDEX (' . $ignoreIndexHint . ')') : null;
     }
 
     /**
@@ -131,7 +152,9 @@ class MysqlExtended extends Mysql
     public function execute($sql, $options = [], $params = [])
     {
         $log = $options['log'] ?? $this->fullDebug;
-
+        if (Configure::read('Plugin.Benchmarking_enable')) {
+            $log = true;
+        }
         if ($log) {
             $t = microtime(true);
             $this->_result = $this->_execute($sql, $params);
@@ -156,16 +179,14 @@ class MysqlExtended extends Mysql
      */
     public function insertMulti($table, $fields, $values)
     {
+        if (empty($values)) {
+            return true;
+        }
+
         $table = $this->fullTableName($table);
-        $holder = implode(',', array_fill(0, count($fields), '?'));
+        $holder = substr(str_repeat('?,', count($fields)), 0, -1);
         $fields = implode(',', array_map([$this, 'name'], $fields));
-        $pdoMap = [
-            'integer' => PDO::PARAM_INT,
-            'float' => PDO::PARAM_STR,
-            'boolean' => PDO::PARAM_BOOL,
-            'string' => PDO::PARAM_STR,
-            'text' => PDO::PARAM_STR
-        ];
+
         $columnMap = [];
         foreach ($values[key($values)] as $key => $val) {
             if (is_int($val)) {
@@ -174,21 +195,21 @@ class MysqlExtended extends Mysql
                 $columnMap[$key] = PDO::PARAM_BOOL;
             } else {
                 $type = $this->introspectType($val);
-                $columnMap[$key] = $pdoMap[$type];
+                $columnMap[$key] = self::PDO_MAP[$type];
             }
         }
 
         $sql = "INSERT INTO $table ($fields) VALUES ";
-        $sql .= implode(',', array_fill(0, count($values), "($holder)"));
+        $sql .= substr(str_repeat("($holder),", count($values)), 0, -1);
         $statement = $this->_connection->prepare($sql);
         $valuesList = array();
-        $i = 1;
+        $i = 0;
         foreach ($values as $value) {
             foreach ($value as $col => $val) {
                 if ($this->fullDebug) {
                     $valuesList[] = $val;
                 }
-                $statement->bindValue($i++, $val, $columnMap[$col]);
+                $statement->bindValue(++$i, $val, $columnMap[$col]);
             }
         }
         $result = $statement->execute();

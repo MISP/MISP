@@ -867,6 +867,7 @@ armv7l-ubuntu-bionic
 armv7l-ubuntu-focal
 aarch64-ubuntu-focal
 aarch64-ubuntu-hirsute
+aarch64-ubuntu-jammy
 "
 
 # Check if we actually support this configuration

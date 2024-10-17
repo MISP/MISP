@@ -96,7 +96,7 @@ class StixParser():
 
     # Convert the MISP event we create from the STIX document into json format
     # and write it in the output file
-    def saveFile(self):
+    def save_to_file(self):
         for attribute in self.misp_event.attributes:
             attribute_uuid = uuid.UUID(attribute.uuid) if isinstance(attribute.uuid, str) else attribute.uuid
             if attribute_uuid.version not in _RFC_UUID_VERSIONS:
@@ -1547,19 +1547,20 @@ def generate_event(filename, tries=0):
         return STIXPackage.from_xml(filename)
     except NamespaceNotFoundError:
         if tries == 1:
-            print(json.dump({'error': 'Cannot handle STIX namespace'}))
-            sys.exit()
+            print(json.dumps({'error': 'Cannot handle STIX namespace'}))
+            sys.exit(1)
         _update_namespaces()
         return generate_event(filename, 1)
     except NotImplementedError:
         print(json.dumps({'error': 'Missing python library: stix_edh'}))
+        sys.exit(1)
     except Exception as e:
         try:
             import maec
             print(json.dumps({'error': f'Error while loading the STIX file: {e.__str__()}'}))
         except ImportError:
             print(json.dumps({'error': 'Missing python library: maec'}))
-    sys.exit(0)
+        sys.exit(1)
 
 
 def is_from_misp(event):
@@ -1567,7 +1568,7 @@ def is_from_misp(event):
         title = event.stix_header.title
     except AttributeError:
         return False
-    return ('Export from ' in title and 'MISP' in title)
+    return 'Export from ' in title and 'MISP' in title
 
 
 def main(args):
@@ -1578,11 +1579,16 @@ def main(args):
         stix_parser = StixFromMISPParser() if from_misp else ExternalStixParser()
         stix_parser.load_event(args[2:], filename, from_misp, event.version)
         stix_parser.build_misp_event(event)
-        stix_parser.saveFile()
+        stix_parser.save_to_file()
         print(json.dumps({'success': 1}))
+        sys.exit(0)
     except Exception as e:
-        print(json.dumps({'error': e.__str__()}))
+        error = type(e).__name__ + ': ' + e.__str__()
+        print(json.dumps({'error': error}))
         traceback.print_tb(e.__traceback__)
+        print(error, file=sys.stderr)
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main(sys.argv)

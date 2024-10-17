@@ -13,10 +13,11 @@ App::uses('Oidc', 'OidcAuth.Lib');
  *  - OidcAuth.organisation_property (default: `organization`)
  *  - OidcAuth.organisation_uuid_property (default: `organization_uuid`)
  *  - OidcAuth.roles_property (default: `roles`)
- *  - OidcAuth.default_org
+ *  - OidcAuth.default_org - organisation ID, UUID or name if organisation is not provided by OIDC
  *  - OidcAuth.unblock (boolean, default: false)
  *  - OidcAuth.offline_access (boolean, default: false)
  *  - OidcAuth.check_user_validity (integer, default `0`)
+ *  - OidcAuth.update_user_role (boolean, default: true) - if disabled, manually modified role in MISP admin interface will be not changed from OIDC
  */
 class OidcAuthenticate extends BaseAuthenticate
 {

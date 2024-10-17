@@ -213,6 +213,8 @@ class WorkflowBaseModule
             if ($operator == 'in_or') {
                 return !empty($matching);
             } elseif ($operator == 'in_and') {
+                sort($matching);
+                sort($value);
                 return array_values($matching) == array_values($value);
             } elseif ($operator == 'not_in_or') {
                 return empty($matching);

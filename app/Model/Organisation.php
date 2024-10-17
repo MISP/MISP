@@ -76,14 +76,28 @@ class Organisation extends AppModel
     );
 
     const ORGANISATION_ASSOCIATIONS = array(
+        'AccessLog' => array('table' => 'access_logs', 'fields' => array('org_id')),
+        'AuditLog' => array('table' => 'audit_logs', 'fields' => array('org_id')),
         'Correlation' => array('table' => 'correlations', 'fields' => array('org_id')),
+        'Cerebrate' => array('table' => 'cerebrates', 'fields' => array('org_id')),
+        'Dashboard' => array('table' => 'dashboards', 'fields' => array('restrict_to_org_id')),
         'Event' => array('table' => 'events', 'fields' => array('org_id', 'orgc_id')),
+        'EventGraph' => array('table' => 'event_graph', 'fields' => array('org_id')),
+        'Feed' => array('table' => 'feeds', 'fields' => array('orgc_id')),
+        'GalaxyCluster' => array('table' => 'galaxy_clusters', 'fields' => array('org_id', 'orgc_id')),
+        'ObjectTemplate' => array('table' => 'object_templates', 'fields' => array('org_id')),
         'Job' => array('table' => 'jobs', 'fields' => array('org_id')),
+        'RestClientHistory' => array('table' => 'rest_client_histories', 'fields' => array('org_id')),
         'Server' => array('table' => 'servers', 'fields' => array('org_id', 'remote_org_id')),
         'ShadowAttribute' => array('table' => 'shadow_attributes', 'fields' => array('org_id', 'event_org_id')),
         'SharingGroup' => array('table' => 'sharing_groups', 'fields' => array('org_id')),
         'SharingGroupOrg' => array('table' => 'sharing_group_orgs', 'fields' => array('org_id')),
+        'SharingGroupBlueprint' => array('table' => 'sharing_group_blueprints', 'fields' => array('org_id')),
+        'Sighting' => array('table' => 'sightings', 'fields' => array('org_id')),
+        'SightingdbOrg' => array('table' => 'sightingdb_orgs', 'fields' => array('org_id')),
         'Thread' => array('table' => 'threads', 'fields' => array('org_id')),
+        'Tag' => array('table' => 'tags', 'fields' => array('org_id')),
+        'TagCollection' => array('table' => 'tag_collections', 'fields' => array('org_id')),
         'User' => array('table' => 'users', 'fields' => array('org_id'))
     );
 
@@ -182,7 +196,7 @@ class Organisation extends AppModel
      * @return int Organisation ID
      * @throws Exception
      */
-    public function captureOrg($org, array $user, $force = false)
+    public function captureOrg($org, array $user, $force = false, $returnUUID = false)
     {
         $fieldsToFetch = $force ?
             ['id', 'uuid', 'type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts'] :
@@ -224,7 +238,7 @@ class Organisation extends AppModel
             }
             $this->create();
             $this->save($organisation);
-            return $this->id;
+            return $returnUUID ? $organisation['uuid'] : $this->id;
         } else {
             $changed = false;
             if (isset($org['uuid']) && empty($existingOrg[$this->alias]['uuid'])) {
@@ -248,7 +262,7 @@ class Organisation extends AppModel
                 $this->save($existingOrg);
             }
         }
-        return $existingOrg[$this->alias]['id'];
+        return $returnUUID ? $existingOrg[$this->alias]['uuid']: $existingOrg[$this->alias]['id'];
     }
 
     /**
@@ -287,6 +301,9 @@ class Organisation extends AppModel
     public function orgMerge($id, $request, $user)
     {
         $currentOrg = $this->find('first', array('recursive' => -1, 'conditions' => array('Organisation.id' => $id)));
+        if (isset($currentOrg['Organisation']['restricted_to_domain'])) {
+            $currentOrg['Organisation']['restricted_to_domain'] = json_encode($currentOrg['Organisation']['restricted_to_domain']);
+        }
         $currentOrgUserCount = $this->User->find('count', array(
             'conditions' => array('User.org_id' => $id)
         ));

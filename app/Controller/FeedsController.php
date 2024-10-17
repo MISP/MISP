@@ -74,7 +74,12 @@ class FeedsController extends AppController
                 );
             }
         }
-
+        $host_org_id = (int)Configure::read('MISP.host_org_id');
+        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $host_org_id) {
+            $conditions[] =  ['Feed.lookup_visible' => 1];
+        }
+        $loggedUser = $this->Auth->user();
+        $this->loadModel('TagCollection');
         $this->CRUD->index([
             'filters' => [
                 'Feed.name',
@@ -92,7 +97,7 @@ class FeedsController extends AppController
                 'source_format'
             ],
             'conditions' => $conditions,
-            'afterFind' => function (array $feeds) {
+            'afterFind' => function (array $feeds) use ($loggedUser) {
                 if ($this->_isSiteAdmin()) {
                     $feeds = $this->Feed->attachFeedCacheTimestamps($feeds);
                 }
@@ -102,6 +107,19 @@ class FeedsController extends AppController
                         unset($feed['SharingGroup']);
                         if (empty($feed['Tag']['id'])) {
                             unset($feed['Tag']);
+                        }
+                    }
+                }
+
+                foreach ($feeds as &$feed) {
+                    if (!empty($feed['Feed']['tag_collection_id'])) {
+                        $tagCollection = $this->TagCollection->fetchTagCollection($loggedUser, [
+                            'conditions' => [
+                                'TagCollection.id' => $feed['Feed']['tag_collection_id'],
+                            ]
+                        ]);
+                        if (!empty($tagCollection)) {
+                            $feed['TagCollection'] = $tagCollection;
                         }
                     }
                 }
@@ -294,6 +312,10 @@ class FeedsController extends AppController
         }
         $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
         $tags[0] = 'None';
+        $this->loadModel('TagCollection');
+        $tagCollections = $this->TagCollection->fetchTagCollection($this->Auth->user());
+        $tagCollections = Hash::combine($tagCollections, '{n}.TagCollection.id', '{n}.TagCollection.name');
+        $tagCollections[0] = 'None';
 
         $this->loadModel('Server');
         $allTypes = $this->Server->getAllTypes();
@@ -304,6 +326,7 @@ class FeedsController extends AppController
                 'order' => 'LOWER(name)'
             )),
             'tags' => $tags,
+            'tag_collections' => $tagCollections,
             'feedTypes' => $this->Feed->getFeedTypesOptions(),
             'sharingGroups' => $sharingGroups,
             'distributionLevels' => $distributionLevels,
@@ -340,6 +363,7 @@ class FeedsController extends AppController
                 'distribution',
                 'sharing_group_id',
                 'tag_id',
+                'tag_collection_id',
                 'event_id',
                 'publish',
                 'delta_merge',
@@ -442,8 +466,17 @@ class FeedsController extends AppController
         if (empty(Configure::read('Security.disable_local_feed_access'))) {
             $inputSources['local'] = 'Local';
         }
+        $tags = $this->Event->EventTag->Tag->find('all', [
+            'recursive' => -1,
+            'fields' => ['Tag.name', 'Tag.id'],
+            'order' => ['lower(Tag.name) asc']
+        ]);
         $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
         $tags[0] = 'None';
+        $this->loadModel('TagCollection');
+        $tagCollections = $this->TagCollection->fetchTagCollection($this->Auth->user());
+        $tagCollections = Hash::combine($tagCollections, '{n}.TagCollection.id', '{n}.TagCollection.name');
+        $tagCollections[0] = 'None';
 
         $this->loadModel('Server');
         $allTypes = $this->Server->getAllTypes();
@@ -457,6 +490,7 @@ class FeedsController extends AppController
                 'order' => 'LOWER(name)'
             )),
             'tags' => $tags,
+            'tag_collections' => $tagCollections,
             'feedTypes' => $this->Feed->getFeedTypesOptions(),
             'sharingGroups' => $sharingGroups,
             'distributionLevels' => $distributionLevels,
@@ -672,9 +706,11 @@ class FeedsController extends AppController
             'conditions' => ['id' => $feedId],
             'recursive' => -1,
         ]);
-        if (empty($feed)) {
+
+        if (empty($feed) || !$this->__canViewFeed($feed)) {
             throw new NotFoundException(__('Invalid feed.'));
         }
+
         if (!empty($feed['Feed']['settings'])) {
             $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
         }
@@ -827,13 +863,22 @@ class FeedsController extends AppController
         $this->render('freetext_index');
     }
 
+    private function __canViewFeed($feed)
+    {
+        $host_org_id = (int)Configure::read('MISP.host_org_id');
+        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $host_org_id && !$feed['Feed']['lookup_visible']) {
+            return false;
+        }
+        return true;
+    }
+
     public function previewEvent($feedId, $eventUuid, $all = false)
     {
         $feed = $this->Feed->find('first', [
             'conditions' => ['id' => $feedId],
             'recursive' => -1,
         ]);
-        if (empty($feed)) {
+        if (empty($feed) || !$this->__canViewFeed($feed)) {
             throw new NotFoundException(__('Invalid feed.'));
         }
         try {
@@ -1002,7 +1047,8 @@ class FeedsController extends AppController
 
     public function compareFeeds($id = false)
     {
-        $feeds = $this->Feed->compareFeeds($id);
+        $limited = !$this->_isSiteAdmin() && $this->Auth->user('org_id') !== (int)Configure::read('MISP.host_org_id');
+        $feeds = $this->Feed->compareFeeds($limited);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($feeds, $this->response->type());
         } else {
@@ -1075,7 +1121,9 @@ class FeedsController extends AppController
         if (!empty($this->params['named']['value'])) {
             $value = $this->params['named']['value'];
         }
-        $hits = $this->Feed->searchCaches($value);
+        $host_org_id = (int)Configure::read('MISP.host_org_id');
+        $limited = !$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $host_org_id;
+        $hits = $this->Feed->searchCaches($value, $limited);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($hits, $this->response->type());
         } else {

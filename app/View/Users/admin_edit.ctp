@@ -52,6 +52,18 @@
                 echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
             ?>
         </div>
+        <?php
+            $isTotp = isset($this->request->data['User']['totp']) ? true : false;
+            if ($isTotp) {
+                echo sprintf(
+                    '<div class="clear"><span role="button" tabindex="0" aria-label="%s" onclick="openGenericModal(\'%s/users/totp_delete/%s\')" class="btn btn-inverse" style="margin-bottom:10px;">%s</span></div>',
+                    __('Delete TOTP token'),
+                    h($baseurl),
+                    h($this->request->data['User']['id']),
+                    __('Delete TOTP token')
+                );
+            } 
+        ?>
     </div>
     <div class="clear"></div>
     <?php

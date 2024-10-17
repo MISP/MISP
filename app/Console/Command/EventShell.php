@@ -53,10 +53,21 @@ class EventShell extends AppShell
         $parser->addSubcommand('mergeTags', [
             'help' => __('Merge tags'),
             'parser' => [
-                'arguments' => array(
+                'arguments' => [
                     'source' => ['help' => __('Source tag ID or name. Source tag will be deleted.'), 'required' => true],
                     'destination' => ['help' => __('Destination tag ID or name.'), 'required' => true],
-                )
+                ],
+            ],
+        ]);
+        $parser->addSubcommand('reportValidationIssuesAttributes', [
+            'help' => __('Report validation issues on attributes'),
+        ]);
+        $parser->addSubcommand('normalizeIpAddress', [
+            'help' => __('Normalize IP address format in old events'),
+            'parser' => [
+                'options' => [
+                    'dry-run' => ['help' => __('Just show what changes will be made.'), 'boolean' => true],
+                ],
             ],
         ]);
         return $parser;
@@ -490,6 +501,57 @@ class EventShell extends AppShell
         $log->createLogEntry($user, 'publish', 'GalaxyCluster', $clusterId, 'GalaxyCluster (' . $clusterId . '): published.', 'published () => (1)');
     }
 
+    public function attribute_enrichment()
+    {
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run attribute enrichment'] . PHP_EOL);
+        }
+
+        $userId = $this->args[0];
+        $user = $this->getUser($userId);
+        $id = $this->args[1];
+        $modulesRaw = $this->args[2];
+        try {
+            $modules = json_decode($modulesRaw, true);
+        } catch (Exception $e) {
+            die('Invalid module JSON');
+        }
+        if (!empty($this->args[3])) {
+            $jobId = $this->args[3];
+        } else {
+            $this->Job->create();
+            $data = [
+                    'worker' => 'default',
+                    'job_type' => 'enrichment',
+                    'job_input' => 'Attribute: ' . $id . ' modules: ' . $modulesRaw,
+                    'status' => 0,
+                    'retries' => 0,
+                    'org' => $user['Organisation']['name'],
+                    'message' => 'Enriching event.',
+            ];
+            $this->Job->save($data);
+            $jobId = $this->Job->id;
+        }
+        $job = $this->Job->read(null, $jobId);
+        $options = array(
+            'user' => $user,
+            'id' => $id,
+            'modules' => $modules
+        );
+        $result = $this->Attribute->enrichment($options);
+        $job['Job']['progress'] = 100;
+        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
+        if ($result) {
+            $job['Job']['message'] = 'Added ' . $result . ' attribute' . ($result > 1 ? 's.' : '.');
+        } else {
+            $job['Job']['message'] = 'Enrichment finished, but no attributes added.';
+        }
+        echo $job['Job']['message'] . PHP_EOL;
+        $this->Job->save($job);
+        $log = ClassRegistry::init('Log');
+        $log->createLogEntry($user, 'enrichment', 'Attribute', $id, 'Attribute (' . $id . '): enriched.', 'enriched () => (1)');
+    }
+
     public function enrichment()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
@@ -535,7 +597,7 @@ class EventShell extends AppShell
         } else {
             $job['Job']['message'] = 'Enrichment finished, but no attributes added.';
         }
-	echo $job['Job']['message'] . PHP_EOL;
+        echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
         $log->createLogEntry($user, 'enrichment', 'Event', $eventId, 'Event (' . $eventId . '): enriched.', 'enriched () => (1)');
@@ -636,18 +698,28 @@ class EventShell extends AppShell
         }
     }
 
-    /**
-     * @param int $userId
-     * @return array
-     */
-    private function getUser($userId)
+    public function reportValidationIssuesAttributes()
     {
-        $user = $this->User->getAuthUser($userId, true);
-        if (empty($user)) {
-            $this->error("User with ID $userId does not exist.");
+        foreach ($this->Event->Attribute->reportValidationIssuesAttributes() as $validationIssue) {
+            echo $this->json($validationIssue) . "\n";
         }
-        Configure::write('CurrentUserId', $user['id']); // for audit logging purposes
-        return $user;
+    }
+
+    public function normalizeIpAddress()
+    {
+        $dryRun = $this->param('dry-run');
+
+        $count = 0;
+        foreach ($this->Event->Attribute->normalizeIpAddress($dryRun) as $attribute) {
+            $count++;
+            echo JsonTool::encode($attribute) . "\n";
+        }
+
+        if ($dryRun) {
+            $this->err(__n("%s attribute to fix", "%s attributes to fix", $count, $count));
+        } else {
+            $this->err(__n("%s attribute fixed", "%s attributes fixed", $count, $count));
+        }
     }
 
     public function generateTopCorrelations()
@@ -667,5 +739,19 @@ class EventShell extends AppShell
             $job['Job']['message'] = __('Job done.');
             $this->Job->save($job);
         }
+    }
+
+    /**
+     * @param int $userId
+     * @return array
+     */
+    private function getUser($userId)
+    {
+        $user = $this->User->getAuthUser($userId, true);
+        if (empty($user)) {
+            $this->error("User with ID $userId does not exist.");
+        }
+        Configure::write('CurrentUserId', $user['id']); // for audit logging purposes
+        return $user;
     }
 }

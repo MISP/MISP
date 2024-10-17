@@ -1935,7 +1935,9 @@ function popoverConfirm(clicked, message, placement, callback) {
         var href = $clicked.attr("href");
         // Load form to get new token
         fetchFormDataAjax(href, function (form) {
-            var $form = $(form);
+            var $formContainer = $(form);
+            var $form = $formContainer.is('form') ? $formContainer : $formContainer.find('form');
+            $clicked.popover('destroy');
             xhr({
                 data: $form.serialize(),
                 success: function (data) {
@@ -4285,27 +4287,9 @@ function feedFormUpdate() {
     checkSharingGroup('Feed');
 }
 
-function setContextFields() {
-    if (typeof showContext === "undefined") {
-        showContext = false;
-    }
-
-    var $button = $('#show_attribute_context');
-    if (showContext) {
-        $('.context').show();
-        $button.removeClass("btn-inverse").addClass("btn-primary");
-    } else {
-        $('.context').hide();
-        $button.removeClass("btn-primary").addClass("btn-inverse");
-    }
-}
-
 function toggleContextFields() {
-    if (typeof showContext === "undefined") {
-        showContext = false;
-    }
-    showContext = !showContext;
-    setContextFields();
+    $('.context').toggle()
+    $('#show_attribute_context').toggleClass("btn-inverse").toggleClass("btn-primary")
 }
 
 function checkOrphanedAttributes() {
@@ -5401,6 +5385,18 @@ function submitDashboardAddWidget() {
     var height = $('#DashboardHeight').val();
     var el = null;
     var k = $('#last-element-counter').data('element-counter');
+
+    if (config === '') {
+        config = '[]'
+    }
+    try {
+        config = JSON.parse(config);
+    } catch (error) {
+        showMessage('fail', error.message)
+        return
+    }
+    config = JSON.stringify(config);
+
     $.ajax({
         url: baseurl + '/dashboards/getEmptyWidget/' + widget + '/' + (k+1),
         type: 'GET',
@@ -5414,14 +5410,7 @@ function submitDashboardAddWidget() {
                     "autoposition": 1
                 }
             );
-            if (config !== '') {
-                config = JSON.parse(config);
-                config = JSON.stringify(config);
-            } else {
-                config = '[]';
-            }
             $('#widget_' + (k+1)).attr('config', config);
-            saveDashboardState();
             $('#last-element-counter').data('element-counter', (k+1));
         },
         complete: function(data) {
@@ -5586,9 +5575,13 @@ function loadClusterRelations(clusterId) {
     }
 }
 
-function submitGenericFormInPlace(callback) {
+function submitGenericFormInPlace(callback, forceApi=false) {
     var $genericForm = $('.genericForm');
-    $.ajax({
+    ajaxOptions = {}
+    if (forceApi) {
+        ajaxOptions['headers'] = { Accept: "application/json" }
+    }
+    $.ajax(Object.assign({}, {
         type: "POST",
         url: $genericForm.attr('action'),
         data: $genericForm.serialize(), // serializes the form's elements.
@@ -5606,7 +5599,7 @@ function submitGenericFormInPlace(callback) {
             $('#genericModal').modal();
         },
         error: xhrFailCallback,
-    });
+    }, ajaxOptions));
 }
 
 function openIdSelection(clicked, scope, action) {
