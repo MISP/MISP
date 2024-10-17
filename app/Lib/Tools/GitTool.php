@@ -11,7 +11,7 @@ class GitTool
      */
     public static function getLatestTags(HttpSocketExtended $HttpSocket)
     {
-        $url = 'https://api.github.com/repos/MISP/MISP/tags?per_page=10';
+        $url = 'https://api.github.com/repos/MISP/MISP/tags?per_page=20';
         return self::gitHubRequest($HttpSocket, $url);
     }
 
@@ -26,7 +26,7 @@ class GitTool
         $url = 'https://api.github.com/repos/MISP/MISP/commits?per_page=1';
         $data = self::gitHubRequest($HttpSocket, $url);
         if (!isset($data[0]['sha'])) {
-            throw new Exception("Response do not contains requested data.");
+            throw new Exception("Response does not contain the requested data.");
         }
         return $data[0]['sha'];
     }
@@ -58,7 +58,7 @@ class GitTool
     {
         if (is_file($repoPath . '/.git')) {
             $fileContent = FileAccessTool::readFromFile($repoPath . '/.git');
-            if (substr($fileContent, 0, 8) === 'gitdir: ') {
+            if (str_starts_with($fileContent, 'gitdir: ')) {
                 $gitDir = $repoPath . '/' . trim(substr($fileContent, 8)) . '/';
             } else {
                 throw new Exception("$repoPath/.git is file, but contains non expected content $fileContent");
@@ -68,7 +68,7 @@ class GitTool
         }
 
         $head = rtrim(FileAccessTool::readFromFile($gitDir . 'HEAD'));
-        if (substr($head, 0, 5) === 'ref: ') {
+        if (str_starts_with($head, 'ref: ')) {
             $path = substr($head, 5);
             return rtrim(FileAccessTool::readFromFile($gitDir . $path));
         }  else if (strlen($head) === 40) {
@@ -86,7 +86,7 @@ class GitTool
     public static function currentBranch()
     {
         $head = rtrim(FileAccessTool::readFromFile(ROOT . '/.git/HEAD'));
-        if (substr($head, 0, 5) === 'ref: ') {
+        if (str_starts_with($head, 'ref: ')) {
             $path = substr($head, 5);
             return str_replace('refs/heads/', '', $path);
         } else {

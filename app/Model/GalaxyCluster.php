@@ -947,7 +947,7 @@ class GalaxyCluster extends AppModel
         if (is_numeric($name)) {
             $conditions = array('GalaxyCluster.id' => $name);
         } else {
-            $isGalaxyTag = strpos($name, 'misp-galaxy:') === 0;
+            $isGalaxyTag = str_starts_with($name, 'misp-galaxy:');
             if (!$isGalaxyTag) {
                 return null;
             }

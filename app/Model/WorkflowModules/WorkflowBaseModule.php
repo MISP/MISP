@@ -257,6 +257,24 @@ class WorkflowBaseModule
     {
         return [];
     }
+
+    public function reloadRoamingData(WorkflowRoamingData $roamingData): void
+    {
+        // Impossible to reload roaming if not in known format
+        if ($this->expect_misp_core_format) {
+            $this->Event = ClassRegistry::init('Event');
+            $event = $roamingData->getData();
+            $fullEvent = $this->Event->fetchEvent($roamingData->getUser(), [
+                'eventid' => $event['Event']['id'],
+                'includeAttachments' => 1
+            ]);
+            App::uses('WorkflowFormatConverterTool', 'Tools');
+            $fullEvent = WorkflowFormatConverterTool::convert($fullEvent[0]);
+            if (!empty($fullEvent)) {
+                $roamingData->setData($fullEvent);;
+            }
+        }
+    }
 }
 
 class WorkflowBaseTriggerModule extends WorkflowBaseModule

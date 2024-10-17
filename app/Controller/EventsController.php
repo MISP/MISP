@@ -691,7 +691,7 @@ class EventsController extends AppController
                 $this->request->data = $this->request->data['request'];
             }
             foreach ($this->request->data as $k => $v) {
-                if (substr($k, 0, 6) === 'search' && in_array(strtolower(substr($k, 6)), $overrideAbleParams, true)) {
+                if (str_starts_with($k, 'search') && in_array(strtolower(substr($k, 6)), $overrideAbleParams, true)) {
                     unset($this->request->data[$k]);
                     $this->request->data[strtolower(substr($k, 6))] = $v;
                 } else if (in_array(strtolower($k), $overrideAbleParams, true)) {
@@ -1105,7 +1105,7 @@ class EventsController extends AppController
         }
 
         foreach ($this->passedArgs as $k => $v) {
-            if (substr($k, 0, 6) === 'search') {
+            if (str_starts_with($k, 'search')) {
                 $searchTerm = substr($k, 6);
                 switch ($searchTerm) {
                     case 'published':

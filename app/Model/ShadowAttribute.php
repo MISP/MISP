@@ -308,6 +308,18 @@ class ShadowAttribute extends AppModel
         if (empty($this->data['ShadowAttribute']['deleted'])) {
             $action = $created ? 'add' : 'edit';
             $this->publishKafkaNotification('shadow_attribute', $this->data, $action);
+            $isTriggerCallable = $this->isTriggerCallable('shadow-attribute-after-save');
+            if ($isTriggerCallable) {
+                $shadowAttr = $this->data['ShadowAttribute'];
+                $workflowErrors = [];
+                $logging = [
+                    'model' => 'ShadowAttribute',
+                    'action' => $action,
+                    'id' => $shadowAttr['id'],
+                ];
+                $triggerData = ['ShadowAttribute' => $shadowAttr];
+                $this->executeTrigger('shadow-attribute-after-save', $triggerData, $workflowErrors, $logging);
+            }
         }
         return $result;
     }
@@ -916,5 +928,159 @@ class ShadowAttribute extends AppModel
         }
 
         return $imageData;
+    }
+
+
+    /**
+     * acceptProposal - Accept the proposal without checking ACL.
+     * @param array $user - The user object
+     * @param str|array $proposal - The ID of the proposal to discard or the proposal object
+     * @return bool - The success of the operation as an array with a message
+     */
+    public function acceptProposal($user, $proposal): array
+    {
+        if (is_int($proposal)) {
+            $id = $proposal;
+            $shadow = $this->find(
+                'first',
+                array(
+                    'recursive' => -1,
+                    'conditions' => array(
+                        'ShadowAttribute.id' => $id,
+                        'deleted' => 0
+                    ),
+                )
+            );
+        } else {
+            $id = $proposal['ShadowAttribute']['id'];
+            $shadow = $proposal;
+        }
+        if (empty($shadow)) {
+            return ['success' => true, 'message' => 'Proposal not found or you are not authorised to accept it.'];
+        }
+        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Event = ClassRegistry::init('Event');
+        $this->Log = ClassRegistry::init('Log');
+
+        $this->publishKafkaNotification('shadow_attribute', $shadow, 'accept');
+        $shadow = $shadow['ShadowAttribute'];
+        if ($this->typeIsAttachment($shadow['type']) && !$shadow['proposal_to_delete']) {
+            $encodedFile = $this->base64EncodeAttachment($shadow);
+            $shadow['data'] = $encodedFile;
+        }
+        // If the old_id is set to anything but 0 then we're dealing with a proposed edit to an existing attribute
+        if ($shadow['old_id'] != 0) {
+            // Find the live attribute by the shadow attribute's uuid, so we can begin editing it
+            $activeAttribute = $this->Attribute->find('first', [
+                'conditions' => ['Attribute.uuid' => $shadow['uuid']],
+                'contain' => ['Event'],
+            ]);
+
+            if (isset($shadow['proposal_to_delete']) && $shadow['proposal_to_delete']) {
+                $this->Attribute->deleteAttribute($activeAttribute['Attribute']['id'], $user, false);
+            } else {
+                // Update the live attribute with the shadow data
+                $fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids', 'first_seen', 'last_seen');
+                foreach ($fieldsToUpdate as $f) {
+                    $activeAttribute['Attribute'][$f] = $shadow[$f];
+                }
+                $date = new DateTime();
+                $activeAttribute['Attribute']['timestamp'] = $date->getTimestamp();
+                $this->Attribute->save($activeAttribute['Attribute']);
+            }
+            $this->setDeleted($id);
+            $this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
+            $this->Event->recursive = -1;
+            // Unpublish the event, accepting a proposal is modifying the event after all. Also, reset the lock.
+            $event = $this->Event->read(null, $activeAttribute['Attribute']['event_id']);
+            $this->Event->unpublishEvent($activeAttribute['Attribute']['event_id'], true);
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org_id' => $user['org_id'],
+                'model' => 'ShadowAttribute',
+                'model_id' => $id,
+                'email' => $user['email'],
+                'action' => 'accept',
+                'title' => 'Proposal (' . $shadow['id'] . ') of ' . $shadow['org_id'] . ' to Attribute (' . $shadow['old_id'] . ') of Event (' . $shadow['event_id'] . ') accepted - ' . $shadow['category'] . '/' . $shadow['type'] . ' ' . $shadow['value'],
+            ));
+            return ['success' => true, 'message' => 'Proposed change accepted.'];
+        } else {
+            // If the old_id is set to 0, then we're dealing with a brand new proposed attribute
+            // The idea is to load the event that the new attribute will be attached to, create an attribute to it and set the distribution equal to that of the event
+            $toDeleteId = $shadow['id'];
+            $this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
+            $this->Event->recursive = -1;
+            $event = $this->Event->read(null, $shadow['event_id']);
+
+            $shadowForLog = $shadow;
+            // Stuff that we won't use in its current form for the attribute
+            unset($shadow['email'], $shadow['org_id'], $shadow['id'], $shadow['old_id']);
+            $attribute = $shadow;
+
+            // set the distribution equal to that of the event
+            $attribute['distribution'] = 5;
+            $this->Attribute->create();
+            $this->Attribute->save($attribute);
+            $this->setDeleted($toDeleteId);
+
+            if ($user['org_id'] == $event['Event']['orgc_id']) {
+                $this->Event->unpublishEvent($shadow['event_id'], true);
+                $event['Event']['proposal_email_lock'] = 0;
+            } else {
+                $this->Event->unpublishEvent($shadow['event_id']);
+            }
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org_id' => $user['org_id'],
+                'model' => 'ShadowAttribute',
+                'model_id' => $id,
+                'email' => $user['email'],
+                'action' => 'accept',
+                'title' => 'Proposal (' . $shadowForLog['id'] . ') of ' . $shadowForLog['org_id'] . ' to Event(' . $shadowForLog['event_id'] . ') accepted',
+                'change' => null,
+            ));
+            return ['success' => true, 'message' => 'Proposal accepted.'];
+        }
+    }
+
+    /**
+     * discardProposal - Discard the proposal without checking ACL.
+     * @param array $user - The user object
+     * @param str|array $proposal - The ID of the proposal to discard or the proposal object
+     * @return bool - The success of the operation
+     */
+    public function discardProposal($user, $proposal): bool
+    {
+        if (is_int($proposal) || empty($proposal['Event'])) {
+            $id = is_int($proposal) ? $proposal : $proposal['ShadowAttribute']['id'];
+            $sa = $this->find(
+                'first',
+                array(
+                    'recursive' => -1,
+                    'contain' => 'Event',
+                    'conditions' => array(
+                        'ShadowAttribute.id' => $id,
+                        'deleted' => 0
+                    ),
+                )
+            );
+        } else {
+            $sa = $proposal;
+            $id = $proposal['ShadowAttribute']['id'];
+        }
+        if (empty($sa)) {
+            return false;
+        }
+        $this->publishKafkaNotification('shadow_attribute', $sa, 'discard');
+        if ($this->setDeleted($id)) {
+            if ($user['org_id'] == $sa['Event']['orgc_id']) {
+                $this->setProposalLock($sa['Event']['id'], false);
+            }
+            $logTitle = "Proposal ({$sa['ShadowAttribute']['id']}) of {$sa['ShadowAttribute']['org_id']} discarded - {$sa['ShadowAttribute']['category']}/{$sa['ShadowAttribute']['type']} {$sa['ShadowAttribute']['value']}";
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->createLogEntry($user, 'discard', 'ShadowAttribute', $id, $logTitle);
+            return true;
+        }
+        return false;
     }
 }

@@ -6,9 +6,9 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ '2.4', develop, misp-stix, taxii ]
+    branches: [ '2.4', develop, '2.4-develop', misp-stix, taxii ]
   pull_request:
-    branches: [ '2.4', develop, misp-stix ]
+    branches: [ '2.4', develop, '2.4-develop', misp-stix ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:

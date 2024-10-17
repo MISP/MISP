@@ -549,17 +549,17 @@ class Correlation extends AppModel
                 $lastChar = substr($exclusion, -1);
                 if ($firstChar === '%' && $lastChar === '%') {
                     $exclusion = substr($exclusion, 1, -1);
-                    if (strpos($value, $exclusion) !== false) {
+                    if (str_contains($value, $exclusion)) {
                         return true;
                     }
                 } else if ($firstChar === '%') {
                     $exclusion = substr($exclusion, 1);
-                    if (substr($value, -strlen($exclusion)) === $exclusion) {
+                    if (str_ends_with($value, $exclusion)) {
                         return true;
                     }
                 } else if ($lastChar === '%') {
                     $exclusion = substr($exclusion, 0, -1);
-                    if (substr($value, 0, strlen($exclusion)) === $exclusion) {
+                    if (str_starts_with($value, $exclusion)) {
                         return true;
                     }
                 } else {
@@ -613,7 +613,7 @@ class Correlation extends AppModel
     {
         $ipValues = array();
         $ip = $attribute['Attribute']['value1'];
-        if (strpos($ip, '/') !== false) { // IP is CIDR
+        if (str_contains($ip, '/')) { // IP is CIDR
             list($networkIp, $mask) = explode('/', $ip);
             $ip_version = filter_var($networkIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
 
@@ -678,7 +678,7 @@ class Correlation extends AppModel
             $ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
             $cidrList = $this->getCidrList();
             foreach ($cidrList as $cidr) {
-                if (strpos($cidr, '.') !== false) {
+                if (str_contains($cidr, '.')) {
                     if ($ip_version === 4 && $this->__ipv4InCidr($ip, $cidr)) {
                         $ipValues[] = $cidr;
                     }
