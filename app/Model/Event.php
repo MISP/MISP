@@ -115,6 +115,7 @@ class Event extends AppModel
         'hashes' => array('txt', 'HashesExport', 'txt'),
         'hosts' => array('txt', 'HostsExport', 'txt'),
         'json' => array('json', 'JsonExport', 'json'),
+        'kunai' => ['json', 'KunaiExport', 'json'],
         'netfilter' => array('txt', 'NetfilterExport', 'sh'),
         'opendata' => array('txt', 'OpendataExport', 'txt'),
         'openioc' => array('xml', 'OpeniocExport', 'ioc'),
@@ -6442,7 +6443,7 @@ class Event extends AppModel
                 }
                 $dataTag['Tag']['local'] = empty($dataTag['local']) ? false : true;
                 if (!isset($excludeGalaxy) || !$excludeGalaxy) {
-                    if (substr($dataTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
+                    if (str_starts_with($dataTag['Tag']['name'], 'misp-galaxy:')) {
                         $cluster = $this->GalaxyCluster->getCluster($dataTag['Tag']['name'], $user);
                         if ($cluster) {
                             $found = false;
