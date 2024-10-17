@@ -30,8 +30,8 @@ class KunaiExport
         'sha1' => 10,
         'sha256' => 10,
         'sha512' => 10,
-        'domain' => 5,
-        'hostname' => 5,
+        'domain' => 7,
+        'hostname' => 7,
         'ip-dst' => 5
     ];
 
