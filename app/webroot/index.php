@@ -97,6 +97,10 @@ if (PHP_VERSION_ID < 80000) {
     require_once ROOT . DS . APP_DIR . DS . 'Lib' . DS . 'polyfill.php';
 }
 
+if (PHP_VERSION_ID < 80000) {
+    require_once ROOT . DS . APP_DIR . DS . 'Lib' . DS . 'polyfill.php';
+}
+
 App::uses('Dispatcher', 'Routing');
 
 $Dispatcher = new Dispatcher();
