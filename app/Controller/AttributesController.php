@@ -687,6 +687,7 @@ class AttributesController extends AppController
         // form not submitted, show page
         $this->loadModel('Event');
         $events = $this->Event->findById($eventId);
+        $this->set('uuid', $events['Event']['uuid']);
         $this->set('published', $events['Event']['published']);
     }
 

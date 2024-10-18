@@ -290,7 +290,7 @@ class TemplatesController extends AppController
         $event = $this->Event->find('first', array(
             'conditions' => array('id' => $event_id),
             'recursive' => -1,
-            'fields' => array('id', 'orgc_id', 'distribution'),
+            'fields' => array('uuid', 'id', 'orgc_id', 'distribution'),
         ));
         $this->set('event', $event);
         if (empty($event)) {
