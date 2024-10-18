@@ -3541,7 +3541,7 @@ class AppModel extends Model
                     continue;
                 }
                 // split the filter params into two lists, one for substring searches one for exact ones
-                if (is_string($f) && ($f[strlen($f) - 1] === '%' || $f[0] === '%')) {
+                if (is_string($f) && (str_ends_with($f, '%') || str_starts_with($f, '%'))) {
                     foreach ($keys as $key) {
                         if ($this->checkParam($key)) {
                             if ($operator === 'NOT') {
