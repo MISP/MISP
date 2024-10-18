@@ -240,7 +240,7 @@ class UserLoginProfile extends AppModel
     public function _isSuspicious()
     {
         // previously marked loginuserprofile as malicious by the user
-        if (strpos($this->_getTrustStatus($this->_getUserProfile()), 'malicious') !== false) {
+        if (str_contains($this->_getTrustStatus($this->_getUserProfile()), 'malicious')) {
             return __('A user reported a similar login profile as malicious.');
         }
 

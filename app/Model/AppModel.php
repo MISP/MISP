@@ -3804,7 +3804,8 @@ class AppModel extends Model
             $keyPath = explode('.', $query['list']['keyPath']);
             $valuePath = explode('.', $query['list']['valuePath']);
             if ($keyPath[1] === $valuePath[1]) { // same model
-                return array_column(array_column($results, $keyPath[1]), $valuePath[2], $keyPath[2]);
+                $results = array_column($results, $keyPath[1]);
+                return array_column($results, $valuePath[2], $keyPath[2]);
             }
         }
 
@@ -3823,7 +3824,7 @@ class AppModel extends Model
     {
         if ($state === 'before') {
             if (isset($query['fields']) && is_array($query['fields']) && count($query['fields']) === 1) {
-                if (strpos($query['fields'][0], '.') === false) {
+                if (!str_contains($query['fields'][0], '.')) {
                     $query['fields'][0] = $this->alias . '.' . $query['fields'][0];
                 }
 
@@ -3965,7 +3966,7 @@ class AppModel extends Model
                 }
             }
 
-            if (strpos($field, '.') === false) {
+            if (!str_contains($field, '.')) {
                 unset($fields[$field]);
                 $fields[$this->alias . '.' . $field] = $value;
             }

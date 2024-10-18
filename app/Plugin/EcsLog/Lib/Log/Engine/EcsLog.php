@@ -39,7 +39,7 @@ class EcsLog implements CakeLogInterface
      */
     public function write($type, $message)
     {
-        if (strpos($message, 'Could not convert ECS log message into JSON: ') !== false) {
+        if (str_contains($message, 'Could not convert ECS log message into JSON: ')) {
             return; // prevent recursion when saving logs
         }
 
@@ -294,7 +294,7 @@ class EcsLog implements CakeLogInterface
      */
     private static function createUrlMeta()
     {
-        if (strpos($_SERVER['REQUEST_URI'], '?') !== false) {
+        if (str_contains($_SERVER['REQUEST_URI'], '?')) {
             list($path, $query) = explode('?', $_SERVER['REQUEST_URI'], 2);
             $url = [
                 'path' => $path,
@@ -304,7 +304,7 @@ class EcsLog implements CakeLogInterface
             $url = ['path' => $_SERVER['REQUEST_URI']];
         }
 
-        if (strpos($_SERVER['HTTP_HOST'], ':') !== false) {
+        if (str_contains($_SERVER['HTTP_HOST'], ':')) {
             list($domain, $port) = explode(':', $_SERVER['HTTP_HOST'], 2);
             $url['domain'] = $domain;
             $url['port'] = (int) $port;

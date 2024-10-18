@@ -53,12 +53,14 @@ class ShadowAttributesController extends AppController
         if (empty($shadow)) {
             return array('false' => true, 'errors' => 'Proposal not found or you are not authorised to accept it.');
         }
-        $this->ShadowAttribute->publishKafkaNotification('shadow_attribute', $shadow, 'accept');
         $shadow = $shadow['ShadowAttribute'];
-        if ($this->ShadowAttribute->typeIsAttachment($shadow['type']) && !$shadow['proposal_to_delete']) {
-            $encodedFile = $this->ShadowAttribute->base64EncodeAttachment($shadow);
-            $shadow['data'] = $encodedFile;
+
+        $this->loadModel('Event');
+        $event = $this->Event->read(null, $shadow['event_id']);
+        if (!$this->_isRest()) {
+            $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
         }
+
         // If the old_id is set to anything but 0 then we're dealing with a proposed edit to an existing attribute
         if ($shadow['old_id'] != 0) {
             // Find the live attribute by the shadow attribute's uuid, so we can begin editing it
@@ -70,91 +72,23 @@ class ShadowAttributesController extends AppController
             // Send those away that shouldn't be able to edit this
             if (!$this->__canModifyEvent($activeAttribute)) {
                 if ($this->_isRest()) {
-                    return array('false' => true, 'errors' => 'Proposal not found or you are not authorised to accept it.');
+                    return ['false' => true, 'errors' => 'Proposal not found or you are not authorised to accept it.'];
                 } else {
                     $this->Flash->error('You don\'t have permission to do that');
-                    $this->redirect(array('controller' => 'events', 'action' => 'view', $shadow['event_id']));
+                    $this->redirect(['controller' => 'events', 'action' => 'view', $shadow['event_id']]);
                 }
             }
-
-            if (isset($shadow['proposal_to_delete']) && $shadow['proposal_to_delete']) {
-                $this->Attribute->deleteAttribute($activeAttribute['Attribute']['id'], $this->Auth->user(), false);
-            } else {
-                // Update the live attribute with the shadow data
-                $fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids', 'first_seen', 'last_seen');
-                foreach ($fieldsToUpdate as $f) {
-                    $activeAttribute['Attribute'][$f] = $shadow[$f];
-                }
-                $date = new DateTime();
-                $activeAttribute['Attribute']['timestamp'] = $date->getTimestamp();
-                $this->Attribute->save($activeAttribute['Attribute']);
-            }
-            $this->ShadowAttribute->setDeleted($id);
-            $this->loadModel('Event');
-            $this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
-            $this->Event->recursive = -1;
-            // Unpublish the event, accepting a proposal is modifying the event after all. Also, reset the lock.
-            $event = $this->Event->read(null, $activeAttribute['Attribute']['event_id']);
-            if (!$this->_isRest()) {
-                $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
-            }
-            $this->Event->unpublishEvent($activeAttribute['Attribute']['event_id'], true);
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->saveOrFailSilently(array(
-                'org_id' => $this->Auth->user('org_id'),
-                'model' => 'ShadowAttribute',
-                'model_id' => $id,
-                'email' => $this->Auth->user('email'),
-                'action' => 'accept',
-                'title' => 'Proposal (' . $shadow['id'] . ') of ' . $shadow['org_id'] . ' to Attribute (' . $shadow['old_id'] . ') of Event (' . $shadow['event_id'] . ') accepted - ' . $shadow['category'] . '/' . $shadow['type'] . ' ' . $shadow['value'],
-            ));
-            return array('saved' => true, 'success' => 'Proposed change accepted.');
         } else {
-            // If the old_id is set to 0, then we're dealing with a brand new proposed attribute
-            // The idea is to load the event that the new attribute will be attached to, create an attribute to it and set the distribution equal to that of the event
-            $toDeleteId = $shadow['id'];
-            $this->loadModel('Event');
-            $this->Event->Behaviors->detach('SysLogLogable.SysLogLogable');
-            $this->Event->recursive = -1;
-            $event = $this->Event->read(null, $shadow['event_id']);
-
             if (!$this->__canModifyEvent($event)) {
                 $this->Flash->error('You don\'t have permission to do that');
                 $this->redirect(array('controller' => 'events', 'action' => 'index'));
             }
-            if (!$this->_isRest()) {
-                $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
-            }
-            $shadowForLog = $shadow;
-            // Stuff that we won't use in its current form for the attribute
-            unset($shadow['email'], $shadow['org_id'], $shadow['id'], $shadow['old_id']);
-            $attribute = $shadow;
-
-            // set the distribution equal to that of the event
-            $attribute['distribution'] = 5;
-            $this->Attribute->create();
-            $this->Attribute->save($attribute);
-            $this->ShadowAttribute->setDeleted($toDeleteId);
-
-            if ($this->Auth->user('org_id') == $event['Event']['orgc_id']) {
-                $this->Event->unpublishEvent($shadow['event_id'], true);
-                $event['Event']['proposal_email_lock'] = 0;
-            } else {
-                $this->Event->unpublishEvent($shadow['event_id']);
-            }
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->saveOrFailSilently(array(
-                'org_id' => $this->Auth->user('org_id'),
-                'model' => 'ShadowAttribute',
-                'model_id' => $id,
-                'email' => $this->Auth->user('email'),
-                'action' => 'accept',
-                'title' => 'Proposal (' . $shadowForLog['id'] . ') of ' . $shadowForLog['org_id'] . ' to Event(' . $shadowForLog['event_id'] . ') accepted',
-                'change' => null,
-            ));
-            return array('saved' => true, 'success' => 'Proposal accepted.');
+        }
+        $result = $this->ShadowAttribute->acceptProposal($this->Auth->user(), ['ShadowAttribute' => $shadow]);
+        if ($result['success']) {
+            return ['saved' => true, 'success' => $result['message']];
+        } else {
+            return ['false' => true, 'errors' => $result['message']];
         }
     }
 
@@ -201,17 +135,7 @@ class ShadowAttributesController extends AppController
         if (!$this->__canModifyEvent($sa) && $this->Auth->user('email') !== $sa['ShadowAttribute']['email']) {
             return false;
         }
-        $this->ShadowAttribute->publishKafkaNotification('shadow_attribute', $sa, 'discard');
-        if ($this->ShadowAttribute->setDeleted($id)) {
-            if ($this->Auth->user('org_id') == $sa['Event']['orgc_id']) {
-                $this->ShadowAttribute->setProposalLock($sa['Event']['id'], false);
-            }
-            $logTitle = "Proposal ({$sa['ShadowAttribute']['id']}) of {$sa['ShadowAttribute']['org_id']} discarded - {$sa['ShadowAttribute']['category']}/{$sa['ShadowAttribute']['type']} {$sa['ShadowAttribute']['value']}";
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->createLogEntry($this->Auth->user(), 'discard', 'ShadowAttribute', $id, $logTitle);
-            return true;
-        }
-        return false;
+        return $this->ShadowAttribute->discardProposal($this->Auth->user(), $sa);
     }
 
     // This method will discard a proposed change. Users that can delete the proposals are the publishing users of the org that created the event and of the ones that created the proposal - in addition to site admins of course

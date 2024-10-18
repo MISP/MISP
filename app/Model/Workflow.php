@@ -524,6 +524,7 @@ class Workflow extends AppModel
         $walkResult = [];
         $debugData = ['original' => $data];
         $conversionFailure = false;
+        $dataBeforeNormalization = $data;
         try {
             $data = $this->__normalizeDataForTrigger($triggerModule, $data);
         } catch (Throwable $e) {
@@ -545,6 +546,17 @@ class Workflow extends AppModel
         $debugData['normalized'] = $data;
         $for_path = !empty($triggerModule->blocking) ? GraphWalker::PATH_TYPE_BLOCKING : GraphWalker::PATH_TYPE_NON_BLOCKING;
         $this->sendRequestToDebugEndpointIfDebug($workflow, [], '/init?type=' . $for_path, $debugData);
+
+        $triggerNode = $this->workflowGraphTool->extractTriggerFromWorkflow($workflow['Workflow']['data'], true);
+        $continueExecution = $this->__execForTrigger($triggerModule, $triggerNode, $startNodeID, $dataBeforeNormalization, $workflow);
+        if (!$continueExecution) {
+            $message = __('Conditions on the trigger are not satisfied to continue the execution');
+            return [
+                'outcomeText' => 'failure' . sprintf(' %s', $message),
+                'walkResult' => [],
+                'success' => false,
+            ];
+        }
 
         $blockingPathExecutionSuccess = $this->walkGraph($workflow, $startNodeID, $for_path, $data, $blockingErrors, $walkResult);
         $executionStoppedByStopModule = in_array('stop-execution', Hash::extract($walkResult, 'blocking_nodes.{n}.data.id'));
@@ -594,7 +606,8 @@ class Workflow extends AppModel
             $errors[] = __('Could not find a valid user to run the workflow. Please set setting `MISP.host_org_id` or make sure a valid site_admin user exists.');
             return false;
         }
-        $roamingData = $this->workflowGraphTool->getRoamingData($userForWorkflow, $data, $workflow, $startNode);
+        $triggerNode = $this->workflowGraphTool->extractTriggerFromWorkflow($workflow['Workflow']['data'], true);
+        $roamingData = $this->workflowGraphTool->getRoamingData($userForWorkflow, $data, $workflow, $startNode, $triggerNode);
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $graphWalker = $this->workflowGraphTool->getWalkerIterator($graphData, $this, $startNode, $for_path, $roamingData);
         $preventExecutionForPaths = [];
@@ -735,6 +748,17 @@ class Workflow extends AppModel
             $data = $triggerClass->normalizeData($data);
         }
         return $data;
+    }
+
+    private function __execForTrigger($triggerClass, array $node, $startNodeID, array $data, array $workflow): bool
+    {
+        if (method_exists($triggerClass, 'exec')) {
+            $errors = [];
+            $userForWorkflow = $this->getUserForWorkflow();
+            $roamingData = $this->workflowGraphTool->getRoamingData($userForWorkflow, $data, $workflow, $startNodeID);
+            return $triggerClass->exec($node, $roamingData, $errors);
+        }
+        return true;
     }
 
     private function digestExecutionResult(array $walkResult)
