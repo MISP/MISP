@@ -2858,7 +2858,7 @@ class Attribute extends AppModel
         return $attribute;
     }
 
-    public function editAttributeBulk($attributes, $event, $user)
+    public function editAttributeBulk($attributes, $event, $user, $server = null)
     {
         $fieldList = self::EDITABLE_FIELDS;
         $addableFieldList = array('event_id', 'type', 'uuid', 'object_id', 'object_relation');
@@ -2889,10 +2889,10 @@ class Attribute extends AppModel
         if (!empty($attributes)) {
             $this->saveMany($attributes, $saveOptions);
         }
-        return $this->editAttributePostProcessing($attributes, $event, $user);
+        return $this->editAttributePostProcessing($attributes, $event, $user, $server);
     }
 
-    public function editAttributePostProcessing($attributes, $event, $user)
+    public function editAttributePostProcessing($attributes, $event, $user, $server)
     {
         $eventId = $event['Event']['id'];
         $tagActions = [];
@@ -2914,9 +2914,12 @@ class Attribute extends AppModel
                 if (isset($server) && isset($server['Server']['remove_missing_tags']) && $server['Server']['remove_missing_tags']) {
                     $existingTags = $this->AttributeTag->find('all', [
                         'recursive' => -1,
-                        'conditions' => ['attribute_id' => $attribute['id']]
+                        'conditions' => ['attribute_id' => $attribute['id']],
+                        'contain' => array(
+                            'Tag' => array('fields' => array('Tag.id', 'Tag.name'))
+                        )
                     ]);
-                    $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingTags['AttributeTag']);
+                    $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingTags);
                 }
                 $tag_id_store = [];
                 if (isset($attribute['Tag'])) {

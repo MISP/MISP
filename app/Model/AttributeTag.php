@@ -234,9 +234,9 @@ class AttributeTag extends AppModel
             $newerTagsName[] = strtolower($tag['name']);
         }
         foreach ($originalAttributeTags as $k => $attributeTag) {
-            if (!$attributeTag['local']) { //
+            if (!$attributeTag['AttributeTag']['local']) { //
                 if (!in_array(strtolower($attributeTag['Tag']['name']), $newerTagsName)) {
-                    $this->softDelete($attributeTag['id']);
+                    $this->softDelete($attributeTag['AttributeTag']['id']);
                 }
             }
         }
