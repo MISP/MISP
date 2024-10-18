@@ -6094,8 +6094,8 @@ class EventsController extends AppController
             $fileName = $this->request['data']['SelectedData']['mactime_file_name'];
             $fileData = $this->request['data']['SelectedData']['mactime_file_content'];
             $object = array();
-        $data = json_decode($this->request['data']['SelectedData']['mactime_data'], true);
-        $firstObject = 1;
+            $data = json_decode($this->request['data']['SelectedData']['mactime_data'], true);
+            $firstObject = 1;
             foreach ($data as $objectData) {
                 $object['Object'] = array(
                     'name' => 'mactime-timeline-analysis',
