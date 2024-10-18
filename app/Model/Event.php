@@ -115,6 +115,7 @@ class Event extends AppModel
         'hashes' => array('txt', 'HashesExport', 'txt'),
         'hosts' => array('txt', 'HostsExport', 'txt'),
         'json' => array('json', 'JsonExport', 'json'),
+        'kunai' => ['json', 'KunaiExport', 'json'],
         'netfilter' => array('txt', 'NetfilterExport', 'sh'),
         'opendata' => array('txt', 'OpendataExport', 'txt'),
         'openioc' => array('xml', 'OpeniocExport', 'ioc'),
@@ -6711,6 +6712,12 @@ class Event extends AppModel
                 if (empty($attribute['comment'])) {
                     $attribute['comment'] = $default_comment;
                 }
+                if (!isset($attribute['distribution'])) {
+                    $attribute['distribution'] = $this->Attribute->defaultDistribution();
+                }
+                if ($attribute['distribution'] != 4) {
+                    $attribute['sharing_group_id'] = 0;
+                }
                 if (!empty($attribute['data']) && !empty($attribute['encrypt'])) {
                     $attribute = $this->Attribute->onDemandEncrypt($attribute);
                 }
@@ -7093,6 +7100,12 @@ class Event extends AppModel
         $attribute['event_id'] = $event['Event']['id'];
         if (empty($attribute['comment']) && $default_comment) {
             $attribute['comment'] = $default_comment;
+        }
+        if (!isset($attribute['distribution'])) {
+            $attribute['distribution'] = $this->Attribute->defaultDistribution();
+        }
+        if ($attribute['distribution'] != 4) {
+            $attribute['sharing_group_id'] = 0;
         }
         if (!empty($attribute['data']) && !empty($attribute['encrypt'])) {
             $attribute = $this->Attribute->onDemandEncrypt($attribute);

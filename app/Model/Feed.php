@@ -1911,7 +1911,7 @@ class Feed extends AppModel
             'fields' => array('Server.id', 'Server.id')
         ));
         $feed_element_count = $redis->scard('misp:feed_cache:' . $id);
-        $temp_store = (new RandomTool())->random_str(false, 12);
+        $temp_store = RandomTool::random_str(false, 12);
         $params = array('misp:feed_temp:' . $temp_store);
         foreach ($other_feeds as $other_feed) {
             $params[] = 'misp:feed_cache:' . $other_feed;

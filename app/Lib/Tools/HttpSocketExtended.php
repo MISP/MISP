@@ -101,6 +101,11 @@ class HttpSocketResponseExtended extends HttpSocketResponse
             if ($this->body === false) {
                 throw new SocketException("Response should be brotli encoded, but brotli decoding failed.");
             }
+        } else if ($contentEncoding === 'zstd' && function_exists('zstd_uncompress')) {
+            $this->body = zstd_uncompress($this->body);
+            if ($this->body === false) {
+                throw new SocketException("Response should be zstd encoded, but zstd decoding failed.");
+            }
         } else if ($contentEncoding) {
             throw new SocketException("Remote server returns unsupported content encoding '$contentEncoding'.");
         }
@@ -140,13 +145,13 @@ class HttpSocketExtended extends HttpSocket
     /** @var callable */
     private $onConnect;
 
-    public function __construct($config = array())
+    public function __construct($config = [])
     {
         parent::__construct($config);
         if (isset($config['compress']) && $config['compress']) {
             $acceptEncoding = $this->acceptedEncodings();
             if (!empty($acceptEncoding)) {
-                $this->config['request']['header']['Accept-Encoding'] = implode(', ', $this->acceptedEncodings());
+                $this->config['request']['header']['Accept-Encoding'] = implode(', ', $acceptEncoding);
             }
         }
     }
@@ -217,6 +222,10 @@ class HttpSocketExtended extends HttpSocket
         // Enable gzipped responses if PHP has 'gzdecode' method
         if (function_exists('gzdecode')) {
             $supportedEncoding[] = 'gzip';
+        }
+        // Enable zstd compressed responses if PHP has 'zstd_uncompress' method
+        if (function_exists('zstd_uncompress')) {
+            $supportedEncoding[] = 'zstd';
         }
         return $supportedEncoding;
     }

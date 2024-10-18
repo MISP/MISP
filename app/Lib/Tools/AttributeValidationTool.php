@@ -74,6 +74,7 @@ class AttributeValidationTool
             case 'target-email':
             case 'whois-registrant-email':
             case 'dom-hash':
+            case 'onion-address':
                 return strtolower($value);
             case 'domain':
                 $value = strtolower($value);
@@ -377,6 +378,11 @@ class AttributeValidationTool
                     return __('Port numbers have to be integers between 1 and 65535.');
                 }
                 return true;
+            case 'onion-address':
+                if (preg_match('#^([a-z2-7]{16}|[a-z2-7]{56)\.onion$#', $value)) {
+                    return true;
+                }
+                return __('Onion address has an invalid format.');
             case 'mac-address':
                 return preg_match('/^([a-fA-F0-9]{2}[:]?){6}$/', $value) === 1;
             case 'mac-eui-64':
