@@ -1691,7 +1691,7 @@ class MispAttribute extends AppModel
                     'fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.uuid', 'Event.published', 'Event.analysis', 'Event.threat_level_id', 'Event.org_id', 'Event.orgc_id', 'Event.distribution', 'Event.sharing_group_id')
                 ),
                 'AttributeTag' => array(
-                    'fields' => ['AttributeTag.tag_id'],
+                    'fields' => ['AttributeTag.tag_id', 'AttributeTag.local'],
                     'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable'))
                 ),
                 'Object'
@@ -1700,6 +1700,7 @@ class MispAttribute extends AppModel
         if (!empty($attribute)) {
             if (!empty($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $at) {
+                    $at['Tag']['local'] = !empty($at['local']);
                     $attribute['Attribute']['Tag'][] = $at['Tag'];
                 }
             }

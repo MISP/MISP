@@ -22,6 +22,13 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
         echo __('Make sure that you update MISP regularly.');
     ?></p>
     <div class="diagnostics-box" style="width:100%">
+        <?php
+            if (!empty($version['new_major'])) {
+                echo '<span class="bold">' . __('A new major MISP release is available') . '</span>... <span class="blue bold">' . h($version['new_major']) . '</span> <span>Keep in mind that major versions require manual intervention, check out the <a href="https://github.com/MISP/MISP/releases/tag/v2.5.0">release</a>\'s instructions.</span><br />';
+            } else if (!empty($version['new_minor'])) {
+                echo '<span class="bold">' . __('A new major MISP release is available') . '</span>... <span class="blue bold">' . h($version['new_minor']) . '</span> <span>Keep in mind that major versions require manual intervention, check out the <a href="https://github.com/MISP/MISP/releases/tag/v2.5.0">release</a>\'s instructions.</span><br />';
+            }
+        ?>
         <span><?= __('Currently installed version…');?>
             <?php
                 $upToDate = isset($version['upToDate']) ? $version['upToDate'] : null;
