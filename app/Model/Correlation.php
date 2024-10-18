@@ -289,13 +289,6 @@ class Correlation extends AppModel
         // stupid hack to allow statically retrieving the constants
         ClassRegistry::init('Attribute');
         $conditions = [
-            'OR' => [
-                'Attribute.value1' => $value,
-                'AND' => [
-                    'Attribute.value2' => $value,
-                    'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
-                ]
-            ],
             'NOT' => [
                 'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
             ],
@@ -303,13 +296,38 @@ class Correlation extends AppModel
             'Event.disable_correlation' => 0,
             'Attribute.deleted' => 0
         ];
-        $correlatingAttributes = $this->Attribute->find('all', [
-            'conditions' => $conditions,
-            'recursive' => -1,
-            'fields' => $this->getFieldRules(),
-            'contain' => $this->getContainRules(),
-            'order' => [],
-        ]);
+
+        $valueConditions = [
+            'Attribute.value1' => $value,
+            'AND' => [
+                'Attribute.value2' => $value,
+                'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
+            ]
+        ];
+
+        $correlatingAttributes = [];
+
+        // Instead of relying upon SQL to optimize the query with sort_union, instead make
+        // up to three requests to get the correlations up to the correlation limit set.
+        // Not every MySQL setup will opt for sort_union, making correlations very slow on some setups.
+        foreach ($valueConditions as $valueKey => $valueTerm) {
+            $conditionsPart = $conditions;
+            $conditionsPart[$valueKey] = $valueTerm;
+
+            $correlatingAttributesPart = $this->Attribute->find('all', [
+                'conditions' => $conditionsPart,
+                'recursive' => -1,
+                'fields' => $this->getFieldRules(),
+                'contain' => $this->getContainRules(),
+                'order' => []
+            ]);
+
+            if (!empty($correlatingAttributesPart)) {
+                array_push($correlatingAttributes, ...$correlatingAttributesPart);
+            }
+
+        }
+
         return $correlatingAttributes;
     }
 
@@ -462,14 +480,6 @@ class Correlation extends AppModel
                 continue; // skip already blocked values when doing full correlation
             }
             $conditions = [
-                'OR' => [
-                    'Attribute.value1' => $cV,
-                    'AND' => [
-                        'Attribute.value2' => $cV,
-                        'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
-                    ],
-                    $extraConditions,
-                ],
                 'NOT' => [
                     'Attribute.event_id' => $a['Attribute']['event_id'],
                     'Attribute.type' => Attribute::NON_CORRELATING_TYPES,
@@ -486,19 +496,56 @@ class Correlation extends AppModel
 
             $conditions = $this->CorrelationRule->attachCustomCorrelationRules($a, $conditions);
 
-            $correlatingAttributes = $this->Attribute->find('all', [
-                'conditions' => $conditions,
-                'recursive' => -1,
-                'fields' => $this->getFieldRules(),
-                'contain' => $this->getContainRules(),
-                'order' => [],
-                'callbacks' => 'before', // memory leak fix
-                // let's fetch the limit +1 - still allows us to detect overcorrelations, but we'll also never need more
-                'limit' => empty($correlationLimit) ? null : ($correlationLimit+1)
-            ]);
+            // Begin looking for one of the value conditions
+            $valueConditions = [
+                'Attribute.value1' => $cV,
+                'AND' => [
+                    'Attribute.value2' => $cV,
+                    'NOT' => ['Attribute.type' => Attribute::PRIMARY_ONLY_CORRELATING_TYPES]
+                ],
+                $extraConditions
+            ];
+
+            $correlatingAttributes = [];
 
             // Let's check if we don't have a case of an over-correlating attribute
             $count = count($correlatingAttributes);
+
+            // Instead of relying upon SQL to optimize the query with sort_union, instead make
+            // up to three requests to get the correlations up to the correlation limit set.
+            // Not every MySQL setup will opt for sort_union, making correlations very slow on some setups.
+            foreach ($valueConditions as $valueKey => $valueTerm) {
+                // Skip any empty conditions, $extraConditions may be null
+                if ($valueTerm == null) {
+                    continue;
+                }
+
+                // Do not keep fetching results if we've hit our limit
+                if (!empty($correlationLimit) && count($correlatingAttributes) >= $correlationLimit) {
+                    break;
+                }
+
+                $conditionsPart = $conditions;
+                $conditionsPart[$valueKey] = $valueTerm;
+
+                $correlatingAttributesPart = $this->Attribute->find('all', [
+                    'conditions' => $conditionsPart,
+                    'recursive' => -1,
+                    'fields' => $this->getFieldRules(),
+                    'contain' => $this->getContainRules(),
+                    'order' => [],
+                    'callbacks' => 'before', // memory leak fix
+                    // let's fetch the limit +1 - still allows us to detect overcorrelations, but we'll also never need more
+                    // reduce the limit by how many correlations we've already received from previous calls
+                    'limit' => empty($correlationLimit) ? null : ($correlationLimit - $count +1)
+                ]);
+                if (!empty($correlatingAttributesPart)) {
+                    array_push($correlatingAttributes, ...$correlatingAttributesPart);
+                    // Update the count
+                    $count = $count + count($correlatingAttributesPart);
+                }
+            }
+
             if ($count > $correlationLimit) {
                 // If we have more correlations for the value than the limit, set the block entry and stop the correlation process
                 $this->OverCorrelatingValue->block($cV);
@@ -971,7 +1018,7 @@ class Correlation extends AppModel
         }
         return $this->runGetRelatedAttributes($user, $sgids, $attribute, $fields, $includeEventData);
     }
-    
+
     /**
      * @param array $user User array
      * @param int $eventId Event ID
