@@ -214,7 +214,7 @@ class SharingGroup extends AppModel
             $sgs = $this->find('list', array(
                 'recursive' => -1,
                 'fields' => array('SharingGroup.id', 'SharingGroup.name'),
-                'order' => 'SharingGroup.name ASC',
+                'order' => 'SharingGroup.id ASC',
                 'conditions' => $conditions,
             ));
             return $sgs;
@@ -662,7 +662,7 @@ class SharingGroup extends AppModel
             $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['org_id'] == $user['org_id'];
             if ($isUpdatableBySync || $isSGOwner || $user['Role']['perm_site_admin']) {
                 $editedSG = $existingSG['SharingGroup'];
-                $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming'];
+                $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming', 'active', 'local'];
                 foreach ($attributes as $a) {
                     if (isset($sg[$a])) {
                         $editedSG[$a] = $sg[$a];
