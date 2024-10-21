@@ -199,12 +199,12 @@ class RedisTool
         if ($magic === self::ZSTD_HEADER) {
            $data = zstd_uncompress($data);
            if ($data === false) {
-               throw new RuntimeException('Could not decompress');
+               throw new RuntimeException('Could not decompress zstd compressed data');
            }
         } elseif ($magic === self::BROTLI_HEADER) {
             $data = brotli_uncompress(substr($data, 4));
             if ($data === false) {
-                throw new RuntimeException('Could not decompress');
+                throw new RuntimeException('Could not decompress brotli compressed data');
             }
         }
         return $data;

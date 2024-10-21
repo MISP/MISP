@@ -515,7 +515,8 @@ class ServerSyncTool
     public function debug($message)
     {
         $memoryUsage = round(memory_get_usage() / 1024 / 1024, 2);
-        CakeLog::debug("[Server sync #{$this->serverId()}]: $message. Memory: $memoryUsage MB");
+        $memoryUsageReal = round(memory_get_usage(true) / 1024 / 1024, 2);
+        CakeLog::debug("[Server sync #{$this->serverId()}]: $message. Memory usage: $memoryUsage MB (real $memoryUsageReal MB)");
     }
 
     /**
