@@ -1651,11 +1651,15 @@ function enableHashpathPicker() {
 }
 
 function redrawFormatPicker(json, associatedParamId) {
-    var jsonData = JSON.parse(json)
-    var $customDataInput = genCustomDataInputForHashpathPicker(associatedParamId)
-    var UIPicker = generateCoreFormatUI(jsonData, associatedParamId)
-    var $modalBody = $('<div>').attr('style', 'display: flex; flex-direction: column').append($customDataInput, UIPicker)
-    $('#core-format-picker').parent().html($modalBody[0])
+    try {
+        var jsonData = JSON.parse(json)
+        var $customDataInput = genCustomDataInputForHashpathPicker(associatedParamId)
+        var UIPicker = generateCoreFormatUI(jsonData, associatedParamId)
+        var $modalBody = $('<div>').attr('style', 'display: flex; flex-direction: column').append($customDataInput, UIPicker)
+        $('#core-format-picker').parent().html($modalBody[0])
+    } catch (error) {
+        console.error('Invalid JSON');
+    }
 }
 
 function genCustomDataInputForHashpathPicker(associatedParamId) {
