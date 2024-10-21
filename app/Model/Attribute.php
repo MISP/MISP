@@ -2252,7 +2252,7 @@ class Attribute extends AppModel
         return $saveSuccess;
     }
 
-    public function attachTagsFromAttributeAndTouch($attribute_id, $event_id, array $options, array $user)
+    public function attachTagsToAttributeAndTouch($attribute_id, $event_id, array $options, array $user)
     {
         $tags = $options['tags'];
         $local = $options['local'];

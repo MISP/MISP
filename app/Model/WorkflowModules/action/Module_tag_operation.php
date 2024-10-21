@@ -133,7 +133,7 @@ class Module_tag_operation extends WorkflowBaseActionModule
     {
         $success = false;
         foreach ($attributes as $attribute) {
-            $saveSuccess = $this->Attribute->attachTagsFromAttributeAndTouch($attribute['id'], $attribute['event_id'], $options, $user);
+            $saveSuccess = $this->Attribute->attachTagsToAttributeAndTouch($attribute['id'], $attribute['event_id'], $options, $user);
             $success = $success || !empty($saveSuccess);
         }
         return $success;
