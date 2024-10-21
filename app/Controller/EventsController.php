@@ -4221,8 +4221,6 @@ class EventsController extends AppController
         }
 
         $this->Event->insertLock($this->Auth->user(), $id);
-        $this->request->data['Attribute'] = $this->request->data['MispAttribute'];
-        unset($this->request->data['MispAttribute']);
         $attributes = $this->_jsonDecode($this->request->data['Attribute']['JsonObject']);
         $defaultComment = $this->request->data['Attribute']['default_comment'];
         $proposals = !$this->__canModifyEvent($event) || (isset($this->request->data['Attribute']['force']) && $this->request->data['Attribute']['force']);
