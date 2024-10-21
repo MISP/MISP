@@ -379,7 +379,7 @@ class AttributeValidationTool
                 }
                 return true;
             case 'onion-address':
-                if (preg_match('#^([a-z2-7]{16}|[a-z2-7]{56)\.onion$#', $value)) {
+                if (preg_match('#^([a-z2-7]{16}|[a-z2-7]{56})\.onion$#', $value)) {
                     return true;
                 }
                 return __('Onion address has an invalid format.');
