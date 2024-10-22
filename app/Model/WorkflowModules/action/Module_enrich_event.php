@@ -82,12 +82,8 @@ class Module_enrich_event extends WorkflowBaseActionModule
                 'Enriching event' => $event_id,
                 'Attribute added' => $result
             ]);
-            $fullEvent = $this->Event->fetchEvent($roamingData->getUser(), [
-                'eventid' => $event_id,
-                'includeAttachments' => 1
-            ]);
-            $roamingData->setData($fullEvent[0]);
         }
+        $this->reloadRoamingData($roamingData);
         return true;
     }
 }
