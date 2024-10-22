@@ -277,6 +277,11 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 						$user = $this->_findUser($mispUsername);
 						if ($user) {
 							$this->_log("info", "AAD authentication successful for ${mispUsername}");
+							// Ensure new users can operate without setting a new password
+							if ($user['User']['change_pw'] == 1) {
+								$user['User']['change_pw'] = 0;
+								$this->User->save($user);
+							}
 						}
 						return $user;
 					}
