@@ -919,16 +919,16 @@ class Server extends AppModel
         $filterRules['minimal'] = 1;
         $filterRules['published'] = 1;
 
-        // Fetch event index from cache if exists and is not modified
+        // Fetch event index from cache if exists and is not modified on server
         $redis = RedisTool::init();
         $indexFromCache = $redis->get("misp:event_index_cache:{$serverSync->serverId()}");
         if ($indexFromCache) {
             $etagPos = strpos($indexFromCache, "\n");
             if ($etagPos === false) {
-                throw new RuntimeException("Could not find etag in cache fro server {$serverSync->serverId()}");
+                throw new RuntimeException("Could not find etag in cache for server {$serverSync->serverId()}");
             }
             $etag = substr($indexFromCache, 0, $etagPos);
-            $serverSync->debug("Event index loaded from Redis cache with etag $etag containing");
+            $serverSync->debug("Event index loaded from Redis cache with etag $etag");
         } else {
             $etag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
         }
