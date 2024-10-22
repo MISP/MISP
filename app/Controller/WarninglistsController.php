@@ -155,6 +155,10 @@ class WarninglistsController extends AppController
                 if (empty($warninglist['Warninglist'])) {
                     $warninglist = ['Warninglist' => $warninglist];
                 }
+                if (isset($warninglist['Warninglist']['WarninglistEntry'])) {
+                    $warninglist['Warninglist']['entries'] = $warninglist['Warninglist']['WarninglistEntry'];
+                    unset($warninglist['Warninglist']['WarninglistEntry']);
+                }
                 if (isset($warninglist['Warninglist']['entries'])) {
                     if (is_array($warninglist['Warninglist']['entries'])) {
                         $entries = $this->Warninglist->parseArray($warninglist['Warninglist']['entries']);
@@ -198,11 +202,15 @@ class WarninglistsController extends AppController
         $this->CRUD->edit($id, [
             'conditions' => ['default' => 0], // it is not possible to edit default warninglist
             'contain' => ['WarninglistEntry', 'WarninglistType'],
-            'fields' => ['name', 'description', 'type', 'category', 'entries', 'matching_attributes'],
+            'fields' => ['name', 'description', 'type', 'category', 'WarninglistEntry', 'entries', 'matching_attributes'],
             'redirect' => ['action' => 'view', $id],
             'beforeSave' => function (array $warninglist) {
                 if (empty($warninglist['Warninglist'])) {
                     $warninglist = ['Warninglist' => $warninglist];
+                }
+                if (isset($warninglist['Warninglist']['WarninglistEntry'])) {
+                    $warninglist['Warninglist']['entries'] = $warninglist['Warninglist']['WarninglistEntry'];
+                    unset($warninglist['Warninglist']['WarninglistEntry']);
                 }
                 if (isset($warninglist['Warninglist']['entries'])) {
                     if (is_array($warninglist['Warninglist']['entries'])) {
