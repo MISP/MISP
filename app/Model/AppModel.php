@@ -2226,6 +2226,7 @@ class AppModel extends Model
                     `event_report_id` int(11) NOT NULL,
                     `tag_id` int(11) NOT NULL,
                     `local` tinyint(1) NOT NULL DEFAULT 0,
+                    `relationship_type` varchar(191) NULL DEFAULT '',
                     PRIMARY KEY (`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $indexArray[] = array('event_report_tags', 'event_report_id');

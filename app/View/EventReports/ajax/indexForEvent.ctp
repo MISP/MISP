@@ -101,7 +101,7 @@
                     array(
                         'name' => __('Tags'),
                         'class' => 'short',
-                        'data_path' => 'EventReportTag.{n}.Tag',
+                        'data_path' => 'EventReportTag',
                         'element' => 'tags',
                         'elementParams' => array(
                             'searchScope' => 'taxonomy',

@@ -858,6 +858,8 @@ function modifyTagRelationship() {
                    var attribute_id = data.data.attribute_id;
                    loadAttributeTags(attribute_id);
                    loadGalaxies(attribute_id, 'attribute');
+               } else if ("event_report_id" in data.data) {
+                    reloadEventReportTable()
                } else {
                    var event_id = data.data.event_id;
                    loadEventTags(event_id);
