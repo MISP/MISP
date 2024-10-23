@@ -73,6 +73,18 @@
                     'data_path' => 'EventReport.name',
                 ),
                 array(
+                    'name' => __('Tags'),
+                    'class' => 'short',
+                    'data_path' => 'EventReportTag',
+                    'element' => 'tags',
+                    'elementParams' => array(
+                        'searchScope' => 'taxonomy',
+                    ),
+                    'scope' => 'event_report',
+                    'addButtonOnly' => false,
+                    'id_data_path' => 'EventReport.id',
+                ),
+                array(
                     'name' => __('Event ID'),
                     'sort' => 'event_id',
                     'class' => 'short',
