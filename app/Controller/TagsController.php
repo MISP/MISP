@@ -579,6 +579,8 @@ class TagsController extends AppController
             $onClickForm = 'quickSubmitAttributeTagForm';
         } elseif ($scope === 'tag_collection') {
             $onClickForm = 'quickSubmitTagCollectionTagForm';
+        } elseif ($scope === 'event_report') {
+            $onClickForm = 'quickSubmitEventReportTagForm';
         } else {
             $onClickForm = 'quickSubmitTagForm';
         }

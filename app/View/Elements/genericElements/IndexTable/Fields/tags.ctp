@@ -7,6 +7,11 @@
     } else {
         $params = $defaultParams;
     }
+    $attributeId = 0;
+    if (isset($field['id_data_path'])) {
+        $attributeId = Hash::get($row, $field['id_data_path']);
+    }
+    $event = !empty($row['Event']) ? ['Event' => $row['Event']] : false;
     $tags = Hash::extract($row, $field['data_path']);
     if (!empty($tags)) {
         if (empty($tags[0])) {
@@ -16,10 +21,10 @@
             'ajaxTags',
             [
                 'scope' => $params['searchScope'],
-                'attributeId' => 0,
+                'attributeId' => $attributeId,
                 'tags' => $tags,
-                'tagAccess' => false,
-                'localTagAccess' => false,
+                'tagAccess' => $isSiteAdmin || $mayModify,
+                'localTagAccess' => $event !== false ? $this->Acl->canModifyTag($event, true) : false,
                 'static_tags_only' => 1,
                 'scope' => isset($field['scope']) ? $field['scope'] : 'event',
                 'hide_global_scope' => isset($field['hide_global_scope']) ? $field['hide_global_scope'] : false
@@ -38,10 +43,10 @@
                 'ajaxTags',
                 [
                     'scope' => '',
-                    'attributeId' => 0,
+                    'attributeId' => $attributeId,
                     'tags' => Hash::extract($row['TagCollection'][0]['TagCollectionTag'], '{n}.Tag'),
-                    'tagAccess' => false,
-                    'localTagAccess' => false,
+                    'tagAccess' => $isSiteAdmin || $mayModify,
+                    'localTagAccess' => $event !== false ? $this->Acl->canModifyTag($event, true) : false,
                     'static_tags_only' => 1,
                     'scope' => isset($field['scope']) ? $field['scope'] : 'event',
                     'hide_global_scope' => isset($field['hide_global_scope']) ? $field['hide_global_scope'] : false
@@ -49,5 +54,21 @@
                 );
             echo '</div>';
         }
+    }
+    if (!empty($field['addButtonOnly'])) {
+        echo $this->element(
+            'ajaxTags',
+            [
+                'scope' => isset($field['scope']) ? $field['scope'] : 'event',
+                'attributeId' => $attributeId,
+                'tags' => [],
+                'tagAccess' => true,
+                'localTagAccess' => true,
+                'static_tags_only' => false,
+                'scope' => isset($field['scope']) ? $field['scope'] : 'event',
+                'hide_global_scope' => isset($field['hide_global_scope']) ? $field['hide_global_scope'] : false,
+                'addButtonOnly' => !empty($field['addButtonOnly']),
+            ]
+        );
     }
 ?>

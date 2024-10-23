@@ -99,6 +99,18 @@
                         'url' => $baseurl . '/events/view/%s'
                     ),
                     array(
+                        'name' => __('Tags'),
+                        'class' => 'short',
+                        'data_path' => 'EventReportTag.{n}.Tag',
+                        'element' => 'tags',
+                        'elementParams' => array(
+                            'searchScope' => 'taxonomy',
+                        ),
+                        'scope' => 'event_report',
+                        'addButtonOnly' => true,
+                        'id_data_path' => 'EventReport.id',
+                    ),
+                    array(
                         'name' => __('Last update'),
                         'sort' => 'timestamp',
                         'class' => 'short',

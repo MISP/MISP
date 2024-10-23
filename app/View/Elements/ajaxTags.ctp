@@ -20,6 +20,10 @@
                 $searchUrl = sprintf("/servers/previewIndex/%s/searchtag:", h($server['Server']['id']));
             }
             break;
+        case 'event_report':
+            $id = $attributeId;
+            $searchUrl = '';
+            break;
     }
     $full = $isAclTagger && $tagAccess && empty($static_tags_only);
     $fullLocal = $isAclTagger && $localTagAccess && empty($static_tags_only);

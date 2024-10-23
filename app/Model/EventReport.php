@@ -69,6 +69,12 @@ class EventReport extends AppModel
         ),
     );
 
+    public $hasMany = [
+        'EventReportTag' => [
+            'dependent' => true
+        ],
+    ];
+
     public function beforeValidate($options = array())
     {
         $eventReport = &$this->data['EventReport'];

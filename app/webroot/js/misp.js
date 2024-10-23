@@ -797,6 +797,37 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
     });
 }
 
+function quickSubmitEventReportTagForm(selected_tag_ids, addData) {
+    var eventreport_id = addData.id;
+    var localFlag = '';
+    if (undefined != addData['local'] && addData['local']) {
+        localFlag = '/local:1';
+    }
+    var url = baseurl + "/event_reports/addTag/" + eventreport_id + localFlag;
+    fetchFormDataAjax(url, function(formData) {
+        var $formData = $(formData);
+        $formData.find('#EventReportTag').val(JSON.stringify(selected_tag_ids));
+        xhr({
+            data: $formData.serialize(),
+            success:function (data) {
+                handleGenericAjaxResponse(data);
+                reloadEventReportTable();
+            },
+            error:function() {
+                showMessage('fail', 'Could not add tag.');
+                // refreshTagCollectionRow(eventreport_id);
+            },
+            complete:function() {
+                $("#popover_form").fadeOut();
+                $("#gray_out").fadeOut();
+                $(".loading").hide();
+            },
+            type:"post",
+            url: url
+        });
+    });
+}
+
 function refreshTagCollectionRow(tag_collection_id) {
     $.ajax({
         type:"get",
@@ -1203,6 +1234,8 @@ function removeObjectTag(context, object, tag) {
                 loadAttributeTags(object);
             } else if (context == 'tag_collection') {
                 refreshTagCollectionRow(object);
+            } else if (context == 'event_report') {
+                reloadEventReportTable();
             } else {
                 loadEventTags(object);
             }

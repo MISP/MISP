@@ -24,7 +24,10 @@ class EventReportsController extends AppController
                 'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
                 'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
                 'Org' => array('fields' => array('Org.id', 'Org.name'))
-            )
+            ),
+            'EventReportTag' => [
+                'Tag'
+            ]
         )
     );
 
@@ -172,6 +175,158 @@ class EventReportsController extends AppController
         }
     }
 
+    public function addTag($id = false, $tag_id = false)
+    {
+        $local = empty($this->request->params['named']['local']) ? 0 : 1;
+        if (!$this->request->is('post')) {
+            if ($id === false) {
+                throw new NotFoundException(__('Invalid report'));
+            }
+            $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
+            $this->set('local', $local);
+            $this->set('object_id', $id);
+            $this->set('scope', 'EventReport');
+            $this->layout = false;
+            $this->autoRender = false;
+            $this->render('/Events/add_tag');
+        } else {
+            $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', $throwErrors=true, $full=false);
+            if ($tag_id === false) {
+                if (!isset($this->request->data['EventReport']['tag'])) {
+                    throw new NotFoundException(__('Invalid tag'));
+                }
+                $tag_id = $this->request->data['EventReport']['tag'];
+            }
+            if (!is_numeric($tag_id)) {
+                if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                    $tagChoice = explode('_', $tag_id)[1];
+                    $this->loadModel('TagCollection');
+                    $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), ['conditions' => ['TagCollection.id' => $tagChoice]]);
+                    if (empty($tagCollection)) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                    }
+                    $tag_id_list = array_column($tagCollection[0]['TagCollectionTag'], 'tag_id');
+                } else {
+                    // try to parse json array
+                    $tag_ids = json_decode($tag_id);
+                    if ($tag_ids !== null) { // can decode json
+                        $tag_id_list = [];
+                        foreach ($tag_ids as $tag_id) {
+                            if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                                $tagChoice = explode('_', $tag_id)[1];
+                                $this->loadModel('TagCollection');
+                                $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), ['conditions' => ['TagCollection.id' => $tagChoice]]);
+                                if (empty($tagCollection)) {
+                                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                                }
+                                $tag_id_list = array_column($tagCollection[0]['TagCollectionTag'], 'tag_id');
+                            } else {
+                                $tag_id_list[] = $tag_id;
+                            }
+                        }
+                    } else {
+                        $tagId = $this->EventReports->EventReportTag->Tag->lookupTagIdForUser($this->Auth->user(), trim($tag_id));
+                        if (empty($tagId)) {
+                            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                        }
+                        $tag_id = $tagId;
+                    }
+                }
+            }
+            if (empty($tag_id_list)) {
+                $tag_id_list = [$tag_id];
+            }
+            $saveResult = $this->EventReport->EventReportTag->attachTags($this->Auth->user(), $id, $tag_id_list, $local);
+            $fails = $saveResult['fails'];
+            $successes = $saveResult['successes'];
+            if ($fails === 0) {
+                $message = __n('Tag added.', '%s tags added', $successes, $successes);
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message, 'check_publish' => true)), 'status' => 200, 'type' => 'json'));
+            } else {
+                $message = __n('Tag could not be added.', '%s tags could not be added.', $fails, $fails);
+                if ($successes > 0) {
+                    $message .= __n(' However, %s tag was added.', ' However, %s tags were added.', $successes, $successes);
+                }
+                return new CakeResponse(array('body' => json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
+            }
+        }
+    }
+
+    public function removeTag($id = false, $tag_id = false, $galaxy = false)
+    {
+        $report = $this->EventReport->fetchIfAuthorized($this->Auth->user(), $id, 'edit', true, false);
+        if (!$this->request->is('post')) {
+            $reportTag = $this->EventReport->EventReportTag->find('first', array(
+                'conditions' => array(
+                    'event_report_id' => $report['EventReport']['id'],
+                    'tag_id' => $tag_id,
+                ),
+                'contain' => ['Tag'],
+                'recursive' => -1,
+            ));
+            if (!$reportTag) {
+                throw new NotFoundException(__('Invalid tag.'));
+            }
+            $this->set('is_local', $reportTag['EventReportTag']['local']);
+            $this->set('tag', $reportTag);
+            $this->set('id', $report['EventReport']['id']);
+            $this->set('tag_id', $tag_id);
+            $this->set('model', 'event_report');
+            $this->set('model_name', $report['EventReport']['name']);
+            $this->render('/Attributes/ajax/tagRemoveConfirmation');
+        } else {
+            if ($id === false) {
+                $id = $this->request->data['event'];
+            }
+            if ($tag_id === false) {
+                $tag_id = $this->request->data['tag'];
+            }
+            if (empty($tag_id)) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')), 'status'=>200, 'type' => 'json'));
+            }
+            if (!is_numeric($tag_id)) {
+                $tag = $this->EventReport->EventReportTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
+                if (empty($tag)) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')), 'status'=>200, 'type' => 'json'));
+                }
+                $tag_id = $tag['Tag']['id'];
+            }
+            if (!is_numeric($id)) {
+                $id = $this->request->data['EventReport']['id'];
+            }
+            $eventReportTag = $this->EventReport->EventReportTag->find('first', array(
+                'conditions' => array(
+                    'event_report_id' => $id,
+                    'tag_id' => $tag_id
+                ),
+                'recursive' => -1,
+            ));
+            if (!$eventReportTag) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event-report - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')), 'status'=>200, 'type' => 'json'));
+            }
+            $event = ['Event' => $report['Event']];
+            // org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
+            if (!$this->__canModifyTag($event, $eventReportTag['EventReportTag']['local'])) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+            }
+            $tag = $this->EventReport->EventReportTag->Tag->find('first', array(
+                'conditions' => array('Tag.id' => $tag_id),
+                'recursive' => -1,
+                'fields' => array('Tag.name')
+            ));
+            if ($this->EventReport->EventReportTag->delete($eventReportTag['EventReportTag']['id'])) {
+                if (empty($eventReportTag['EventReportTag']['local'])) {
+                    $this->EventReport->Event->unpublishEvent($event);
+                }
+                $log = ClassRegistry::init('Log');
+                $log->createLogEntry($this->Auth->user(), 'tag', 'EventReport', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event-report (' . $id . ')', 'EventReport (' . $id . ') untagged of Tag (' . $tag_id . ')');
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => empty($eventReportTag['EventReportTag']['local']))), 'status'=>200, 'type' => 'json'));
+            } else {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')), 'status'=>200, 'type' => 'json'));
+            }
+        }
+    }
+
     public function index()
     {
         $filters = $this->IndexFilter->harvestParameters(['event_id', 'value', 'context', 'index_for_event', 'extended_event']);
@@ -188,6 +343,7 @@ class EventReportsController extends AppController
         } else {
             $this->paginate['conditions']['AND'][] = $compiledConditions;
             $reports = $this->paginate();
+            $reports = $this->moveTagLocality($reports);
             $this->set('reports', $reports);
             $this->__injectIndexVariablesToViewContext($filters);
             if (!empty($filters['index_for_event'])) {
@@ -209,6 +365,16 @@ class EventReportsController extends AppController
                 $this->set('title_for_layout', __('Event Reports'));
             }
         }
+    }
+
+    private function moveTagLocality(array $reports): array
+    {
+        foreach ($reports as $i => $report) {
+            foreach ($report['EventReportTag'] as $j => $reportTag) {
+                $reports[$i]['EventReportTag'][$j]['Tag']['local'] = $reportTag['local'];
+            }
+        }
+        return $reports;
     }
 
     public function extractAllFromReport($reportId)
