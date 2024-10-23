@@ -72,6 +72,13 @@ if (!empty($me)) {
                     'type' => 'separator'
                 ],
                 [
+                    'text' => __('List Event Reports'),
+                    'url' => $baseurl . '/event_reports/index'
+                ],
+                [
+                    'type' => 'separator'
+                ],
+                [
                     'text' => __('List Analyst Data'),
                     'url' => $baseurl . '/analyst_data/index'
                 ],
