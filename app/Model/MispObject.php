@@ -297,7 +297,7 @@ class MispObject extends AppModel
             $object['sharing_group_id'] = 0;
         }
         if (!isset($object['distribution'])) {
-            $object['distribution'] = 5;
+            $object['distribution'] = is_null(Configure::read('MISP.default_object_distribution')) ? 5 : Configure::read('MISP.default_object_distribution');
         }
         return true;
     }
