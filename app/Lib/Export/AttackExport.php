@@ -122,7 +122,7 @@ class AttackExport
             $result['interpolation'] = $colours['interpolation'];
         }
         if ($this->__galaxy_id == $this->__GalaxyModel->getMitreAttackGalaxyId()) {
-            $result['defaultTabName'] = 'mitre-attack';
+            $result['defaultTabName'] = 'attack-enterprise';
             $result['removeTrailling'] = 2;
         }
         $result['galaxyName'] = $this->__galaxy_name;

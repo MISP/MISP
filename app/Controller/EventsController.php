@@ -5191,7 +5191,7 @@ class EventsController extends AppController
         $this->set('pickingMode', !$disable_picking);
         $this->set('target_id', $scope_id);
         if ($matrixData['galaxy']['id'] == $mitreAttackGalaxyId) {
-            $this->set('defaultTabName', 'mitre-attack');
+            $this->set('defaultTabName', 'attack-enterprise');
             $this->set('removeTrailling', 2);
         }
         $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies($this->Auth->user());

@@ -1015,6 +1015,7 @@ class Galaxy extends AppModel
 
     public function getMatrix($user, $galaxy_id, $scores=[])
     {
+        $sectionInEnterprise = ['attack-PRE', 'attack-Windows', 'attack-Linux', 'attack-macOS', 'attack-Office-365', 'attack-Azure-AD', 'attack-Google-Workspace', 'attack-SaaS', 'attack-IaaS', 'attack-Network', 'attack-Containers'];
         $conditions = ['Galaxy.id' => $galaxy_id, 'AND' => $this->buildConditions($user)];
         $contains = [
             'GalaxyCluster' => ['GalaxyElement'],
@@ -1042,6 +1043,22 @@ class Galaxy extends AppModel
         $clusters = $galaxy['GalaxyCluster'];
         $cols = array();
 
+        // FIXME: temporary fix: create a fake tab to have an unfiltered view of mitre-attach-pattern galaxy
+        $mitreAttackGalaxyId = $this->getMitreAttackGalaxyId();
+        if ($galaxy_id == $mitreAttackGalaxyId) {
+            $tabs['attack-enterprise'] = [];
+            $killChainEnterpriseColumn = [];
+            foreach ($matrixData['killChain'] as $tabname => $columns) {
+                if (in_array($tabname, $sectionInEnterprise)) {
+                    foreach ($columns as $column) {
+                        $killChainEnterpriseColumn[$column] = 1;
+                    }
+                }
+            }
+            $matrixData['killChain'] = ['attack-enterprise' => array_keys($killChainEnterpriseColumn)] + $matrixData['killChain'];
+        }
+        // end FIXME
+
         foreach ($clusters as $cluster) {
             if (empty($cluster['GalaxyElement'])) {
                 continue;
@@ -1050,6 +1067,7 @@ class Galaxy extends AppModel
             $toBeAdded = false;
             $clusterType = $cluster['type'];
             $galaxyElements = $cluster['GalaxyElement'];
+            $uniqueClusterForColumn = [];
             foreach ($galaxyElements as $element) {
                 // add cluster if kill_chain is present
                 if ($element['key'] == 'kill_chain') {
@@ -1058,6 +1076,17 @@ class Galaxy extends AppModel
                     $kc = $kc[1];
                     $cols[$galaxyType][$kc][] = $cluster;
                     $toBeAdded = true;
+
+                    // FIXME: temporary fix: create a fake tab to have an unfiltered view of mitre-attach-pattern galaxy
+                    $uniqueClusterKey = sprintf('%s_%s', $kc, $cluster['uuid']);
+                    if (
+                        $galaxy_id == $mitreAttackGalaxyId && in_array($galaxyType, $sectionInEnterprise) &&
+                        empty($uniqueClusterForColumn[$uniqueClusterKey])
+                    ) {
+                        $cols['attack-enterprise'][$kc][] = $cluster;
+                        $uniqueClusterForColumn[$uniqueClusterKey] = true;
+                    }
+                    // end FIXME
                 }
                 if ($element['key'] == 'external_id') {
                     $cluster['external_id'] = $element['value'];
