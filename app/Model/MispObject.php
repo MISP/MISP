@@ -1155,7 +1155,7 @@ class MispObject extends AppModel
         return true;
     }
 
-    public function editObject($object, array $event, $user, $log, $force = false, &$nothingToChange = false)
+    public function editObject($object, array $event, $user, $log, $force = false, &$nothingToChange = false, $server = null)
     {
         $eventId = $event['Event']['id'];
         $object['event_id'] = $eventId;
@@ -1243,8 +1243,7 @@ class MispObject extends AppModel
                     $attributes[] = $result;
                 }
             }
-            $this->Attribute->editAttributeBulk($attributes, $event, $user);
-            $this->Attribute->editAttributePostProcessing($attributes, $event, $user);
+            $this->Attribute->editAttributeBulk($attributes, $event, $user, $server);
         }
         return true;
     }
