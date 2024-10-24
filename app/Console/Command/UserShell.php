@@ -654,7 +654,7 @@ class UserShell extends AppShell
                 ],
                 'allowed_ips' => NULL
             ],
-            'fields' => ['id', 'user_id'],
+            'fields' => ['id', 'user_id', 'unique_ips'],
             'recursive' => 0
         ]);
         foreach ($authkeys as $authkey) {
