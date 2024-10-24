@@ -669,10 +669,6 @@ class FeedsController extends AppController
             throw new NotFoundException(__('Invalid feed.'));
         }
         $this->Feed->read();
-        if (!$this->Feed->data['Feed']['enabled']) {
-            $this->Flash->error(__('Feed is currently not enabled. Make sure you enable it.'));
-            $this->redirect(array('action' => 'previewIndex', $feedId));
-        }
         try {
             $result = $this->Feed->downloadAndSaveEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
         } catch (Exception $e) {
