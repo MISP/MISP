@@ -2343,7 +2343,7 @@ class Feed extends AppModel
             foreach ($values as $value) {
                 list($hash, $eventUuid) = $value;
                 if (isset($toInsert[$hash])) {
-                    if (strpos($toInsert[$hash], $eventUuid) === false) { // do not insert duplicates
+                    if (!str_contains($toInsert[$hash], $eventUuid)) { // do not insert duplicates
                         $toInsert[$hash] .= ',' . $eventUuid;
                     }
                 } else {
