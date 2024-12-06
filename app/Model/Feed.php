@@ -559,7 +559,7 @@ class Feed extends AppModel
         }
         $compositeTypes = $this->Attribute->getCompositeTypes();
 
-        $pipe = $redis->pipeline();
+        $redis->pipeline();
         $redisResultToAttributePosition = [];
 
         foreach ($attributes as $k => $attribute) {
@@ -597,12 +597,12 @@ class Feed extends AppModel
         }
 
         if (empty($redisResultToAttributePosition)) {
-            $pipe->discard();
+            $redis->discard();
             // No attribute that can be correlated
             return $attributes;
         }
 
-        $results = $pipe->exec();
+        $results = $redis->exec();
 
         $sources = null;
         foreach ($results as $k => $result) {
@@ -2323,18 +2323,18 @@ class Feed extends AppModel
         // Delete existing values from current feed
         $existingMembers = $redis->sMembers(self::REDIS_CACHE_PREFIX . $source);
         if (!empty($existingMembers)) {
-            $pipe = $redis->pipeline();
+            $redis->pipeline();
             $i = 0;
             foreach ($existingMembers as $hash) {
-                $pipe->hDel(self::REDIS_CACHE_PREFIX . $hash, $source);
+                $redis->hDel(self::REDIS_CACHE_PREFIX . $hash, $source);
                 // Flush pipeline after every 1000 requests
                 if ($i++ % 1000 === 0) {
-                    $pipe->exec();
-                    $pipe = $redis->pipeline();
+                    $redis->exec();
+                    $redis->pipeline();
                 }
             }
-            $pipe->del(self::REDIS_CACHE_PREFIX . $source);
-            $pipe->exec();
+            $redis->del(self::REDIS_CACHE_PREFIX . $source);
+            $redis->exec();
         }
 
         if ($withEventUuid) {
@@ -2350,31 +2350,31 @@ class Feed extends AppModel
                     $toInsert[$hash] = $eventUuid;
                 }
             }
-            $pipe = $redis->pipeline();
+            $redis->pipeline();
             $i = 0;
             foreach ($toInsert as $hash => $value) {
-                $pipe->sAdd(self::REDIS_CACHE_PREFIX . $source, $hash);
-                $pipe->hSet(self::REDIS_CACHE_PREFIX . $hash, $source, $value);
+                $redis->sAdd(self::REDIS_CACHE_PREFIX . $source, $hash);
+                $redis->hSet(self::REDIS_CACHE_PREFIX . $hash, $source, $value);
                 // Flush pipeline after every 1000 requests
                 if ($i++ % 1000 === 0) {
-                    $pipe->exec();
-                    $pipe = $redis->pipeline();
+                    $redis->exec();
+                    $redis->pipeline();
                 }
             }
-            $pipe->exec();
+            $redis->exec();
         } else {
-            $pipe = $redis->pipeline();
+            $redis->pipeline();
             $i = 0;
             foreach ($values as $hash) {
-                $pipe->sAdd(self::REDIS_CACHE_PREFIX . $source, $hash);
-                $pipe->hSet(self::REDIS_CACHE_PREFIX . $hash, $source, 0);
+                $redis->sAdd(self::REDIS_CACHE_PREFIX . $source, $hash);
+                $redis->hSet(self::REDIS_CACHE_PREFIX . $hash, $source, '0');
                 // Flush pipeline after every 1000 requests
                 if ($i++ % 1000 === 0) {
-                    $pipe->exec();
-                    $pipe = $redis->pipeline();
+                    $redis->exec();
+                    $redis->pipeline();
                 }
             }
-            $pipe->exec();
+            $redis->exec();
         }
         $redis->set('misp:cache_timestamp:' . $source, time());
     }
