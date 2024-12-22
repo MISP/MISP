@@ -635,15 +635,7 @@ class RestResponseComponent extends Component
                 
                 // If response is big array, encode items separately to save memory
                 if (is_array($response) && count($response) > 10000 && array_is_list($response)) {
-                    $output = new TmpFileTool();
-                    $output->write('[');
-
-                    foreach ($response as $item) {
-                        $output->writeWithSeparator(JsonTool::encode($item), ',');
-                    }
-
-                    $output->write(']');
-                    $response = $output;
+                    $response = JsonTool::encodeBigArray($response);
                 } else {
                     $prettyPrint = !$this->isAutomaticTool(); // Do not pretty print response for automatic tools
                     $response = JsonTool::encode($response, $prettyPrint);

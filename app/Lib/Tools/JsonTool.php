@@ -32,6 +32,31 @@ class JsonTool
     }
 
     /**
+     * Encode big array to tmp file to reduce memory usage
+     *
+     * @param array $list
+     * @return TmpFileTool
+     * @throws JsonException
+     * @throws Exception
+     */
+    public static function encodeBigArray(array $list)
+    {
+        $output = new TmpFileTool();
+
+        if (function_exists('simdjson_encode_to_stream')) {
+            simdjson_encode_to_stream($list, $output->resource());
+        } else {
+            $output->write('[');
+            foreach ($list as $item) {
+                $output->writeWithSeparator(JsonTool::encode($item), ',');
+            }
+            $output->write(']');
+        }
+
+        return $output;
+    }
+
+    /**
      * @param string $value
      * @returns mixed
      * @throws JsonException
