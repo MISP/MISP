@@ -4,16 +4,31 @@ class JsonTool
     /**
      * @param mixed $value
      * @param bool $prettyPrint
+     * @param bool $appendNewLine Add new line char to end of encoded string
      * @returns string
      * @throws JsonException
      */
-    public static function encode($value, $prettyPrint = false)
+    public static function encode($value, $prettyPrint = false, $appendNewLine = false)
     {
+        if (function_exists('simdjson_encode')) {
+            // Use faster version of json_encode from simdjson PHP extension if this extension is installed
+            $flags = $prettyPrint ? SIMDJSON_PRETTY_PRINT : 0;
+            if ($appendNewLine) {
+                $flags |= SIMDJSON_APPEND_NEWLINE;
+            }
+            try {
+                return simdjson_encode($value, $flags);
+            } catch (SimdJsonException $e) {
+                throw new JsonException($e->getMessage(), $e->getCode(), $e);
+            }
+        }
+
         $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR;
         if ($prettyPrint) {
             $flags |= JSON_PRETTY_PRINT;
         }
-        return json_encode($value, $flags);
+        $output = json_encode($value, $flags);
+        return $appendNewLine ? ($output . "\n") : $output;
     }
 
     /**
