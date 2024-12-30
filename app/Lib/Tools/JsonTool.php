@@ -5,16 +5,20 @@ class JsonTool
      * @param mixed $value
      * @param bool $prettyPrint
      * @param bool $appendNewLine Add new line char to end of encoded string
+     * @param bool $invalidUtf8Substitute Convert invalid UTF-8 characters to \0xfffd
      * @returns string
      * @throws JsonException
      */
-    public static function encode($value, $prettyPrint = false, $appendNewLine = false)
+    public static function encode($value, $prettyPrint = false, $appendNewLine = false, $invalidUtf8Substitute = false)
     {
         if (function_exists('simdjson_encode')) {
             // Use faster version of json_encode from simdjson PHP extension if this extension is installed
             $flags = $prettyPrint ? SIMDJSON_PRETTY_PRINT : 0;
             if ($appendNewLine) {
                 $flags |= SIMDJSON_APPEND_NEWLINE;
+            }
+            if ($invalidUtf8Substitute) {
+                $flags |= SIMDJSON_INVALID_UTF8_SUBSTITUTE;
             }
             try {
                 return simdjson_encode($value, $flags);
@@ -26,6 +30,9 @@ class JsonTool
         $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR;
         if ($prettyPrint) {
             $flags |= JSON_PRETTY_PRINT;
+        }
+        if ($invalidUtf8Substitute) {
+            $flags |= JSON_INVALID_UTF8_SUBSTITUTE;
         }
         $output = json_encode($value, $flags);
         return $appendNewLine ? ($output . "\n") : $output;
