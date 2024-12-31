@@ -5753,7 +5753,7 @@ class EventsController extends AppController
                     $modulePayload['data'] = '';
                 }
                 if (!$fail) {
-                    $modulePayload['data'] = base64_encode($modulePayload['data']);
+                    $modulePayload['data'] = JsonTool::base64Encode($modulePayload['data']);
                     if (!empty($filename)) {
                         $modulePayload['filename'] = $filename;
                     }

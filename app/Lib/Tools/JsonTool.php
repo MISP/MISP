@@ -39,6 +39,18 @@ class JsonTool
     }
 
     /**
+     * @param string $value
+     * @return SimdJsonBase64Encode|string
+     */
+    public static function base64Encode(string $value)
+    {
+        if (class_exists('SimdJsonBase64Encode')) {
+            return new SimdJsonBase64Encode($value);
+        }
+        return base64_encode($value);
+    }
+
+    /**
      * Encode big array to tmp file to reduce memory usage
      *
      * @param array $list

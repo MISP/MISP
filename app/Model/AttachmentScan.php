@@ -363,7 +363,7 @@ class AttachmentScan extends AppModel
             if ($fileContent === false) {
                 throw new Exception("Could not read content of file '$file->path'.");
             }
-            $attribute['data'] = base64_encode($fileContent);
+            $attribute['data'] = JsonTool::base64Encode($fileContent);
         } else {
             // Instead of sending whole file to module, just generate file hash and send that hash as fake attribute.
             $hashAlgo = $moduleInfo['types'][0];
