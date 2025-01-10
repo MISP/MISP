@@ -102,6 +102,6 @@ if (PHP_VERSION_ID < 80000) {
 }
 
 App::uses('Dispatcher', 'Routing');
-
+App::uses('RandomTool', 'Tools');
 $Dispatcher = new Dispatcher();
 $Dispatcher->dispatch(new CakeRequest(), new CakeResponse(array('charset' => Configure::read('App.encoding'))));

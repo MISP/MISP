@@ -1,6 +1,7 @@
 <?php
-
-echo $this->Form->input($fieldData['field'], $params);
-if (!empty($params['description'])) {
-    echo sprintf('<small class="clear form-field-description apply_css_arrow">%s</small>', h($params['description']));
-}
+    $params['class'] .= ' form-check-input';
+    $params['templates'] = [
+        'nestingLabel' => '{{hidden}}{{input}}<label class="form-check-label" {{attrs}}>{{text}}</label>{{tooltip}}',
+        'inputContainer' => '<div class="form-check">{{content}}</div>'
+    ];
+    echo $this->FormFieldMassage->prepareFormElement($this->Form, $params, $fieldData);

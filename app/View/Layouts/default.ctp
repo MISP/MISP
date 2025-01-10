@@ -1,120 +1,86 @@
+<?php
+$cakeDescription = 'MISP';
+//$sidebarOpen = $me['user_settings_by_name_with_fallback']['ui.sidebar.expanded']['value'];
+$bsTheme = 'default';
+?>
 <!DOCTYPE html>
-<html lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>">
+<html>
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width">
-    <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
-    <title><?= h($title_for_layout), ' - ', h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
+    <?= $this->Html->charset() ?>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+        <?= $cakeDescription ?>:
+        <?= $this->fetch('title') ?>
+    </title>
+    <?= $this->Html->meta('icon') ?>
     <?php
-        $css = [
-            ['bootstrap', ['preload' => true]],
-            ['bootstrap-datepicker', ['preload' => true]],
-            ['bootstrap-colorpicker', ['preload' => true]],
-            ['font-awesome', ['preload' => true]],
-            ['chosen.min', ['preload' => true]],
-            ['main', ['preload' => true]],
-            ['print', ['media' => 'print']],
-        ];
-        if (Configure::read('MISP.custom_css')) {
-            $css[] = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
-        }
-        $js = [
-            ['jquery', ['preload' => true]],
-            ['chosen.jquery.min', ['preload' => true]],
-        ];
-        if (!empty($additionalCss)) {
-            $css = array_merge($css, $additionalCss);
-        }
-        if (!empty($additionalJs)) {
-            $js = array_merge($js, $additionalJs);
-        }
-        echo $this->element('genericElements/assetLoader', [
-            'css' => $css,
-            'js' => $js,
-        ]);
+        echo $this->Html->css('themes/theme-' . $bsTheme);
     ?>
+    <?= $this->Html->css('main.css') ?>
+    <?= $this->Html->css('font-awesome') ?>
+    <?= $this->Html->css('fa-brand') ?>
+    <?= $this->Html->css('fa-solid') ?>
+    <?= $this->Html->css('layout.css') ?>
+    <?= $this->Html->script('jquery-3.5.1.min.js') ?>
+    <?= $this->Html->script('bootstrap.bundle.js') ?>
+    <?= $this->Html->script('main.js') ?>
+    <?= $this->Html->script('utils.js') ?>
+    <?= $this->Html->script('bootstrap-helper.js') ?>
+    <?= $this->Html->script('api-helper.js') ?>
+    <?= $this->Html->script('select2.min.js') ?>
+    <?= $this->Html->script('table-settings.js') ?>
+    <?= $this->Html->script('CodeMirror/codemirror.js') ?>
+    <?= $this->Html->script('CodeMirror/mode/javascript/javascript') ?>
+    <?= $this->Html->script('CodeMirror/addon/hint/show-hint') ?>
+    <?= $this->Html->script('CodeMirror/addon/lint/lint') ?>
+    <?= $this->Html->script('CodeMirror/addon/lint/jsonlint') ?>
+    <?= $this->Html->script('CodeMirror/addon/lint/json-lint') ?>
+    <?= $this->Html->script('CodeMirror/addon/edit/matchbrackets') ?>
+    <?= $this->Html->script('CodeMirror/addon/edit/closebrackets') ?>
+    <?= $this->Html->script('CodeMirror/addon/display/placeholder') ?>
+    <?= $this->Html->css('CodeMirror/codemirror') ?>
+    <?= $this->Html->css('CodeMirror/codemirror-additional') ?>
+    <?= $this->Html->css('CodeMirror/addon/hint/show-hint') ?>
+    <?= $this->Html->css('CodeMirror/addon/lint/lint') ?>
+    <?= $this->Html->css('select2.min') ?>
+    <?= $this->Html->css('select2-bootstrap5-vars') ?>
+    <?= $this->Html->script('apexcharts.min') ?>
+    <?= $this->Html->script('moment-with-locales.min') ?>
+    <?= $this->Html->css('apexcharts') ?>
+
+    <?= $this->fetch('meta') ?>
+    <?= $this->fetch('css') ?>
+    <?= $this->fetch('script') ?>
+
+    <?= $this->Html->script('Tags.tagging') ?>
+    <?= $this->Html->css('Tags.tagging') ?>
+
+    <?= $this->Html->meta('favicon-misp.png', '/img/favicon-misp.png', ['type' => 'icon']); ?>
 </head>
-<body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
-    <div id="popover_form" class="ajax_popover_form"></div>
-    <div id="popover_form_large" class="ajax_popover_form ajax_popover_form_large"></div>
-    <div id="popover_form_x_large" class="ajax_popover_form ajax_popover_form_x_large"></div>
-    <div id="popover_matrix" class="ajax_popover_form ajax_popover_matrix"></div>
-    <div id="popover_box" class="popover_box"></div>
-    <div id="confirmation_box"></div>
-    <div id="gray_out"></div>
-    <div id="container">
-        <?php
-            echo $this->element('global_menu');
-            $topPadding = '50';
-            if (!empty($debugMode) && $debugMode != 'debugOff') {
-                $topPadding = '0';
-            }
-        ?>
+<body>
+    <div class="main-wrapper">
+        <header class="navbar top-navbar navbar-dark">
+            <?= $this->element('layouts/header') ?>
+        </header>
+        <nav id="app-sidebar" class="collapse d-sm-block sidebar <?= !empty($sidebarOpen) ? 'expanded' : '' ?>">
+            <?= $this->element('layouts/sidebar') ?>
+        </nav>
+        <main role="main" class="content">
+            <div class="container-fluid mt-1">
+                <?= $this->Flash->render() ?>
+                <?= $this->fetch('actionBar') ?>
+                <?= $this->fetch('content') ?>
+            </div>
+        </main>
     </div>
-    <div id="flashContainer" style="padding-top:<?php echo $topPadding; ?>px; !important;">
-        <div id="main-view-container" class="container-fluid">
-            <?php
-                echo $this->Flash->render();
-            ?>
-        </div>
-    </div>
-    <div>
-        <?php
-            echo $this->fetch('content');
-        ?>
-    </div>
-    <?php
-    echo $this->element('genericElements/assetLoader', [
-        'js' => [
-            'misp-touch',
-            'bootstrap',
-            'bootstrap-timepicker',
-            'bootstrap-datepicker',
-            'bootstrap-colorpicker',
-            'misp',
-            'keyboard-shortcuts-definition',
-            'keyboard-shortcuts',
-        ],
-    ]);
-    echo $this->element('footer');
-    echo $this->element('sql_dump');
-    ?>
-    <div id="ajax_success_container" class="ajax_container">
-        <div id="ajax_success" class="ajax_result ajax_success"></div>
-    </div>
-    <div id="ajax_fail_container" class="ajax_container">
-        <div id="ajax_fail" class="ajax_result ajax_fail"></div>
-    </div>
-    <div class="loading">
-        <div class="spinner"></div>
-        <div class="loadingText"><?php echo __('Loading');?></div>
-    </div>
-    <script>
-    <?php
-        if (!isset($debugMode)):
-    ?>
-        $(window).scroll(function() {
-            $('.actions').css('left',-$(window).scrollLeft());
-        });
-    <?php
-        endif;
-    ?>
-        var baseurl = '<?php echo $baseurl; ?>';
-        var here = '<?php
-                if (substr($this->params['action'], 0, 6) === 'admin_') {
-                    echo $baseurl . '/admin/' . h($this->params['controller']) . '/' . h(substr($this->params['action'], 6));
-                } else {
-                    echo $baseurl . '/' . h($this->params['controller']) . '/' . h($this->params['action']);
-                }
-            ?>';
-        <?php
-            if (!Configure::read('MISP.disable_auto_logout') && isset($me) && $me):
-        ?>
-                //checkIfLoggedIn();
-        <?php
-            endif;
-        ?>
-    </script>
+    <div id="mainModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="mediumModalLabel" aria-hidden="true"></div>
+    <div id="mainToastContainer" class="main-toast-container"></div>
+    <div id="mainModalContainer"></div>
+    <?= $this->element('sql_dump') ?>
 </body>
+
+<script>
+    const bsTheme = '<?= h($bsTheme); ?>'
+    $.fn.select2.defaults.set('theme', 'bootstrap-5');
+</script>
 </html>

@@ -1,0 +1,65 @@
+$secondary: #6c757d !default;
+$translateX: calc(1.5rem * -.5 + 3px);
+$rectHeight: calc(100% + 4px);
+$borderRadius: 3px;
+
+.multi-metafields-container {
+    position: relative; 
+
+    @include media-breakpoint-up(sm) {
+        &::before {
+            content: none !important;
+        }
+    }
+    &::before {
+        border-style: solid;
+        border-color: $secondary;
+        border-width: 2px 0px 2px 2px;
+        border-radius: 3px 0px 0px 3px;
+        opacity: 0.5;
+        position: absolute;
+        content: ' ';
+        width: 0.5rem;
+        height: calc(100% - 33px);
+        transform: translate(0px, 18px);
+    }
+
+    & > .multi-metafield-container {
+        position: relative;
+
+        & > .multi-metafield-input-container::before {
+            content: ' ';
+        }
+
+        @include media-breakpoint-up(sm) {
+            & > .multi-metafield-input-container::before {
+                background-color: $secondary;
+                opacity: 0.5;
+                position: absolute;
+                width: 0.25rem;
+                transform: translateX($translateX);
+                height: $rectHeight;
+            }
+
+            
+        }
+
+        @include media-breakpoint-down(sm) {
+            &:not(:first-child) label.form-label {
+                display: none;
+            }
+        }
+
+        
+        &:first-child > .multi-metafield-input-container::before {
+            border-top-left-radius: $borderRadius;
+            border-top-right-radius: $borderRadius;
+        }
+
+        &:last-child > .multi-metafield-input-container::before {
+            border-bottom-left-radius: $borderRadius;
+            border-bottom-right-radius: $borderRadius;
+            height: 100%;
+        }
+    }
+}

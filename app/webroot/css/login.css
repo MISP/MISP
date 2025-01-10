@@ -1,0 +1,21 @@
+/* based on the example from https://getbootstrap.com/docs/4.0/examples/sign-in/ */
+.form-signin {
+    width: 100%;
+    max-width: 330px;
+    padding: 15px;
+    margin: 0 auto;
+    border-radius: 0.5rem;
+    top: 40%;
+    box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 35%) !important
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    /* background-color: #f9fafb; */
+    /* background: linear-gradient(180deg, #2fa1dbaa 20%, #5f6062ff); */
+    /* background: radial-gradient(#2fa1dbaa 50%, #5f6062ff); */
+    /* Less opacity */
+    /* background: radial-gradient(#2fa1db55 30%, #5f606233); */
+    background: linear-gradient(180deg, #2fa1db44 20%, #5f606244);
+}

@@ -1,23 +1,21 @@
 <?php
-    $rules_raw = array();
-    $typeOptions = array(
-        'OR' => array(
+    $rules_raw = [];
+    $typeOptions = [
+        'OR' => [
             'colour' => 'green',
             'text' => 'allowed'
-        ),
-        'NOT' => array(
+        ],
+        'NOT' => [
             'colour' => 'red',
             'text' => 'blocked'
-        )
-    );
-
-    $data = Hash::get($row, $field['data_path']);
+        ]
+    ];
     if (
-        !empty($data) &&
+        !empty($this->Hash->extract($row, $field['data_path'])[0]) &&
         !empty($field['rule_path'][0]) &&
-        !empty(Hash::extract($row, $field['rule_path'])[0])
+        !empty($this->Hash->extract($row, $field['rule_path'])[0])
     ) {
-        $rules = Hash::extract($row, $field['rule_path'])[0];
+        $rules = $this->Hash->extract($row, $field['rule_path'])[0];
         $rules = json_decode($rules, true);
         foreach ($rules as $rule => $rule_data) {
             if (is_array($rule_data)) {
@@ -27,8 +25,8 @@
                             $values = implode(', ', $values);
                         }
                         $rules_raw[] = sprintf(
-                            '<span class="bold">%s %s</span>: <span class="%s">%s</span>',
-                            h(Inflector::humanize($rule)),
+                            '<span class=\'bold\'>%s %s</span>: <span class=\'%s\'>%s</span>',
+                            h(\Inflector::humanize($rule)),
                             $typeOptions[$boolean]['text'],
                             $typeOptions[$boolean]['colour'],
                             h($values)
@@ -37,34 +35,36 @@
                 }
             } else if (!empty($rule_data)){
                 $rules_raw[] = sprintf(
-                    '<span class="bold">%s</span>: <span class="green">%s</span>',
-                    h(Inflector::humanize($rule)),
+                    '<span class=\'bold\'>%s</span>: <span class=\'green\'>%s</span>',
+                    h(\Inflector::humanize($rule)),
                     h($rule_data)
                 );
             }
         }
-        $rules_raw = implode('<br>', $rules_raw);
+        $rules_raw = implode('<br />', $rules_raw);
     }
 
-    $classes = ['fa'];
-    $classes[] = !empty($data) ? 'fa-check' : 'fa-times';
-
+    $value = !empty($this->Hash->extract($row, $field['data_path'])[0]);
+    $iconConfig = [];
+    $defaultColorMapping = [true => 'success', false => 'danger'];
     if (!empty($field['colors'])) {
-        $classes[] = !empty($data) ? 'green' : 'grey';
-    } else {
-        $classes[] = 'black';
+        if ($field['colors'] === true) {
+            $textVariant = $defaultColorMapping[$value];
+        } else if (is_array($field['colors'])) {
+            $textVariant = $field['colors'][$value];
+        } else {
+            $textVariant = 'muted';
+        }
+        $iconConfig['class'] = "text-{$textVariant}";
     }
 
-    echo sprintf(
-        '<i class="%s" role="img" aria-label="%s"></i>%s',
-        implode(' ', $classes),
-        (!empty($data)) ? __('Yes') : __('No'),
-        empty($rules_raw) ? '' :
-        sprintf(
-            ' <span data-toggle="popover" title="%s" data-content="%s">(%s)</span>',
+    $icon = $this->Bootstrap->icon($value ? 'check' : 'times', $iconConfig);
+    echo $icon;
+    if (!empty($rules_raw)) {
+        echo sprintf(
+            ' <span data-bs-toggle="popover" title="%s" data-bs-content="%s">(%s)</span>',
             __('Filter rules'),
-            h($rules_raw),
+            $rules_raw,
             __('Rules')
-        )
-    );
-
+        );
+    }

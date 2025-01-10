@@ -1,5 +1,5 @@
 <?php
-    $data = Hash::extract($row, $field['data_path']);
+    $data = $this->Hash->extract($row, $field['data_path']);
     foreach ($data as $key => $element) {
         if (!is_numeric($key)) {
             $data[$key] = sprintf(

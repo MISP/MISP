@@ -1,20 +1,23 @@
 <?php
-    $value = Hash::extract($data, $field['path']);
-    // I feed dirty for this...
-    if (is_array($value) && count($value) === 1 && isset($value[0])) {
-        $value = $value[0];
+    $randomId = RandomTool::random_str(true, 8);;
+    if (isset($field['raw'])) {
+        $string = $field['raw'];
+    } else {
+        $value = Hash::get($data, $field['path']);
+        $string = is_null($value) ? '' : $value;
     }
-    $containerClassSuffix = Inflector::variable(h($field['key']));
     echo sprintf(
-        '<div class="json_container_%s"></div>',
-        $containerClassSuffix
+        '<div>%s</div><div class="collapse json_container_%s"></div>',
+        empty($field['collapsible']) ? '' : sprintf(
+            '<button class="btn btn-primary btn-xs" data-bs-toggle="collapse" data-bs-target=".json_container_%s" aria-expanded="false" aria-controls="Show JSON"><i class="fas fa-eye"></i></a>',
+            h($randomId)
+        ),
+        h($randomId)
     );
-    if (is_string($value)) {
-        $value = json_decode($value);
-    }
 ?>
+
 <script type="text/javascript">
 $(document).ready(function() {
-    $('.json_container_<?= $containerClassSuffix ?>').html(syntaxHighlightJson(<?php echo json_encode($value); ?>, 4));
+    $('.json_container_<?php echo h($randomId);?>').html(syntaxHighlightJson(<?php echo json_encode($string); ?>, 4));
 });
 </script>

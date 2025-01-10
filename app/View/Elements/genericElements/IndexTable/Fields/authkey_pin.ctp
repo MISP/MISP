@@ -1,5 +1,5 @@
 <?php
-    $data_path = Hash::extract($row, $field['data_path']);
+    $data_path = $this->Hash->extract($row, $field['data_path']);
     $result = [];
     foreach ($data_path as $key => $ip) {
         $data_ip['ip'] = $ip; 

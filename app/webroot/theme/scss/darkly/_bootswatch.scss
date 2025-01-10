@@ -1,0 +1,89 @@
+// Darkly 5.2.2
+// Bootswatch
+
+
+// Variables
+
+$web-font-path: "https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;1,400&display=swap" !default;
+
+@if $web-font-path {
+    @import url($web-font-path);
+}
+
+:root {
+    color-scheme: dark;
+}
+
+// Typography
+
+.blockquote {
+    &-footer {
+        color: $gray-600;
+    }
+}
+
+// Forms
+
+.form-control {
+    color-scheme: light;
+}
+
+.input-group-addon {
+    color: $white;
+}
+
+.form-floating>label {
+    color: $gray-700;
+}
+
+// Navs
+
+.nav-tabs,
+.nav-pills {
+
+    .nav-link,
+    .nav-link.active,
+    .nav-link.active:focus,
+    .nav-link.active:hover,
+    .nav-item.open .nav-link,
+    .nav-item.open .nav-link:focus,
+    .nav-item.open .nav-link:hover {
+        color: $white;
+    }
+}
+
+.breadcrumb a {
+    color: $white;
+}
+
+.pagination {
+    a:hover {
+        text-decoration: none;
+    }
+}
+
+// Indicators
+
+.alert {
+    color: $white;
+    border: none;
+
+    a,
+    .alert-link {
+        color: $white;
+        text-decoration: underline;
+    }
+
+    @each $color,
+    $value in $theme-colors {
+        &-#{$color} {
+            @if $enable-gradients {
+                background: $value linear-gradient(180deg, mix($white, $value, 15%), $value) repeat-x;
+            }
+
+            @else {
+                background-color: $value;
+            }
+        }
+    }
+}

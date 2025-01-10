@@ -1,33 +1,18 @@
 <?php
-    if ($ajax) {
-        $submit = isset($ajaxSubmit) ? $ajaxSubmit : '$(\'.genericForm\').submit();';
+    if (!empty($ajax)) {
         echo sprintf(
-            '%s%s',
+            '%s',
             sprintf(
-                '<button id="submitButton" class="btn btn-primary" onClick="%s">%s</button>',
-                $submit,
+                '<button id="submitButton" class="btn btn-primary" data-form-id="%s" type="button" autofocus>%s</button>',
+                '#form-' . h($formRandomValue),
                 __('Submit')
-            ),
-            sprintf(
-                '<button class="btn" data-dismiss="modal" aria-hidden="true" onClick="%s">%s</button>',
-                'cancelPopoverForm();',
-                __('Cancel')
             )
         );
     } else {
-        if (!empty($submitFunction)) {
-            $submitAction = $submitFunction;
-        } else {
-            $submitAction = sprintf(
-                "$('#%s%sForm').submit();",
-                h($model),
-                h(Inflector::classify($action))
-            );
-        }
-        echo sprintf(
-            '<button onClick="%s" class="btn btn-%s">%s</button>',
-            $submitAction,
-            empty($type) ? 'primary' : h($type),
-            empty($text) ? __('Submit') : h($text)
-        );
+        echo $this->Form->button(empty($text) ? __('Submit') : h($text), [
+            'class' => 'btn btn-' . (empty($type) ? 'primary' : h($type)),
+            'type' => 'submit',
+            'data-form-id' => '#form-' . h($formRandomValue)
+        ]);
     }
+?>

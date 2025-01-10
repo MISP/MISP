@@ -1,133 +1,76 @@
-<div style="width:100%;">
+<div class="form-signin panel shadow position-absolute start-50 translate-middle">
     <?php
-        echo $this->Session->flash('auth');
+    echo sprintf(
+        '<div class="text-center mb-4">%s</div>',
+        $this->Html->image('misp-logo.png', [
+            'alt' => __('MISP logo'),
+            'height' => 100,
+            'style' => ['filter: drop-shadow(4px 4px 4px #22222233);']
+        ])
+    );
+    if (!Configure::check('password_auth.enabled') || Configure::read('password_auth.enabled')) {
+        echo sprintf('<h4 class="text-uppercase fw-light mb-3">%s</h4>', __('Sign In'));
+        echo $this->Form->create('User');
+        echo $this->Form->input('email', [
+            'label' => 'Email',
+            'class' => 'form-control mb-2',
+            'placeholder' => __('Email'),
+            'div' => [
+                'class' => 'form-floating input email'
+            ]
+        ]);
+        echo $this->Form->input('password', [
+            'type' => 'password',
+            'label' => 'Password',
+            'class' => 'form-control mb-3',
+            'placeholder' => __('Password'),
+            'div' => [
+                'class' => 'form-floating input password'
+            ]
+        ]);
+        if (!empty(Configure::read('LinOTPAuth')) && Configure::read('LinOTPAuth.enabled')!== false) {
+            echo $this->Form->input('otp', [
+                'autocomplete' => 'off',
+                'type' => 'password',
+                'label' => 'OTP',
+                'class' => 'form-control mb-2'
+            ]);
+            echo sprintf(
+                '%s <a href="%s/selfservice" title="LinOTP Selfservice">LinOTP Selfservice</a> %s',
+                __('Visit'),
+                h(Configure::read('LinOTPAuth.baseUrl')),
+                __('for the One-Time-Password selfservice.')
+            );
+        }
+        echo empty(Configure::read('Security.allow_password_forgotten')) ? '' : sprintf(
+            '<a href="%s/users/forgot" title="%s">%s</a>',
+            $baseurl,
+            __('Initiate a password reset.'),
+            __('I have forgotten my password')
+        );
+        echo $this->Form->input(__('Login'), [
+            'type' => 'button',
+            'label' => false,
+            'class' => 'btn btn-primary',
+            'div' => [
+                'class' => ' submit d-grid'
+            ]
+        ]);
+        echo $this->Form->end();
+        if (!empty(Configure::read('Security.allow_self_registration'))) {
+            echo '<div class="text-end">';
+                echo sprintf('<span class="text-secondary ms-auto" style="font-size: 0.8rem">%s <a href="/users/register" class="text-decoration-none link-primary fw-bold">%s</a></span>', __('Don\'t have an account?'), __('Sign up'));
+            echo '</div>';
+        }
+        if (!empty(Configure::read('keycloak.enabled'))) {
+            echo sprintf('<div class="d-flex align-items-center my-2"><hr class="d-inline-block flex-grow-1"/><span class="mx-3 fw-light">%s</span><hr class="d-inline-block flex-grow-1"/></div>', __('Or'));
+        }
+        if (Configure::read('ApacheShibbAuth') == true) {
+            echo '<div class="clear"></div><a class="btn btn-info" href="/Shibboleth.sso/Login">Login with SAML</a>';
+        }
+        if (Configure::read('AadAuth') == true) {
+            echo '<div class="clear"></div><a class="btn btn-info" href="/users/login?AzureAD=enable">Login with AzureAD</a>';
+        }
+    }
     ?>
-<table style="margin-left:auto;margin-right:auto;">
-    <tr>
-    <td style="text-align:right;width:250px;padding-right:50px">
-        <?php if (Configure::read('MISP.welcome_logo') && file_exists(APP . '/files/img/custom/' . Configure::read('MISP.welcome_logo'))): ?>
-            <img src="<?= $this->Image->base64(APP . 'files/img/custom/' . Configure::read('MISP.welcome_logo')) ?>" alt="<?= __('Logo') ?>" onerror="this.style.display='none';">
-        <?php endif; ?>
-    </td>
-    <td style="width:460px">
-        <span style="font-size:18px;">
-            <?php
-                if (Configure::read('MISP.welcome_text_top')) {
-                    echo h(Configure::read('MISP.welcome_text_top'));
-                }
-            ?>
-        </span><br /><br />
-        <div>
-        <?php if (Configure::read('MISP.main_logo') && file_exists(APP . '/files/img/custom/' . Configure::read('MISP.main_logo'))): ?>
-            <img src="<?= $this->Image->base64(APP . 'files/img/custom/' . Configure::read('MISP.main_logo')) ?>" style=" display:block; margin-left: auto; margin-right: auto;">
-        <?php else: ?>
-            <img src="<?php echo $baseurl?>/img/misp-logo-s-u.png" style="display:block; margin-left: auto; margin-right: auto;">
-        <?php endif;?>
-        </div>
-        <?php
-            if (true == Configure::read('MISP.welcome_text_bottom')):
-        ?>
-                <div style="text-align:right;font-size:18px;">
-                <?php
-                    echo h(Configure::read('MISP.welcome_text_bottom'));
-                ?>
-                </div>
-        <?php
-            endif;
-            if ($formLoginEnabled):
-            echo $this->Form->create('User');
-        ?>
-        <legend><?php echo __('Login');?></legend>
-        <?php
-            echo $this->Form->input('email', array('autocomplete' => 'off', 'autofocus'));
-            echo $this->Form->input('password', array('autocomplete' => 'off'));
-            if (!empty(Configure::read('LinOTPAuth')) && Configure::read('LinOTPAuth.enabled')!== FALSE) {
-                echo $this->Form->input('otp', array('autocomplete' => 'off', 'type' => 'password', 'label' => 'OTP'));
-                echo "<div class=\"clear\">";
-                echo sprintf(
-                    '%s <a href="%s/selfservice" title="LinOTP Selfservice">LinOTP Selfservice</a> %s',
-                    __('Visit'),
-                    h(Configure::read('LinOTPAuth.baseUrl')),
-                    __('for the One-Time-Password selfservice.')
-                );
-            }
-        ?>
-            <div class="clear">
-            <?php
-                echo empty(Configure::read('Security.allow_self_registration')) ? '' : sprintf(
-                    '<a href="%s/users/register" title="%s">%s</a>',
-                    $baseurl,
-                    __('Registration will be sent to the administrators of the instance for consideration.'),
-                    __('No account yet? Register now!')
-                );
-            ?>
-            <div class="clear">
-            <?php
-                echo empty(Configure::read('Security.allow_password_forgotten')) ? '' : sprintf(
-                    '<a href="%s/users/forgot" title="%s">%s</a>',
-                    $baseurl,
-                    __('Initiate a password reset.'),
-                    __('I have forgotten my password')
-                );
-            ?>
-            </div>
-            <?= $this->Form->button(__('Login'), array('class' => 'btn btn-primary')); ?>
-        <?php
-            echo $this->Form->end();
-            endif;
-            if (Configure::read('ApacheShibbAuth') == true) {
-                echo '<div class="clear"></div><a class="btn btn-info" href="/Shibboleth.sso/Login">Login with SAML</a>';
-            }
-            if (Configure::read('AadAuth') == true) {
-                echo '<div class="clear"></div><a class="btn btn-info" href="/users/login?AzureAD=enable">Login with AzureAD</a>';
-            }
-        ?>
-    </td>
-    <td style="width:250px;padding-left:50px">
-        <?php if (Configure::read('MISP.welcome_logo2') && file_exists(APP . '/files/img/custom/' . Configure::read('MISP.welcome_logo2'))): ?>
-            <img src="<?= $this->Image->base64(APP . 'files/img/custom/' . Configure::read('MISP.welcome_logo2')) ?>" alt="<?= __('Logo2') ?>" onerror="this.style.display='none';">
-        <?php endif; ?>
-    </td>
-    </tr>
-    </table>
 </div>
-
-<script>
-$(function() {
-    $('#UserLoginForm').submit(function(event) {
-        event.preventDefault()
-        submitLoginForm()
-    });
-})
-
-function submitLoginForm() {
-    var $form = $('#UserLoginForm')
-    var url = $form.attr('action')
-    var email = $form.find('#UserEmail').val()
-    var password = $form.find('#UserPassword').val()
-    var LinOTPAuth = <?= empty(Configure::read('LinOTPAuth')) ? 'false' : 'true' ?>;
-    var LinOTPAuthEnabled = <?= empty(Configure::read('LinOTPAuth.enabled')) ? 'false' : 'true' ?>;
-
-    if (LinOTPAuth && LinOTPAuthEnabled) {
-        var otp = $form.find('#UserOtp').val()
-    }
-    if (!$form[0].checkValidity()) {
-        $form[0].reportValidity()
-    } else {
-        fetchFormDataAjax(url, function(html) {
-            var formHTML = $(html).find('form#UserLoginForm')
-            if (!formHTML.length) {
-                window.location = baseurl + '/users/login'
-            }
-            $('body').append($('<div id="temp" style="display: none"/>').append(formHTML))
-            var $tmpForm = $('#temp form#UserLoginForm')
-            $tmpForm.find('#UserEmail').val(email)
-            $tmpForm.find('#UserPassword').val(password)
-            if (LinOTPAuth && LinOTPAuthEnabled) {
-                $tmpForm.find('#UserOtp').val(otp)
-            }
-            $tmpForm.submit()
-        })
-    }
-}
-</script>

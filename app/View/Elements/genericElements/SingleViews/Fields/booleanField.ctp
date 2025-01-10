@@ -1,7 +1,14 @@
 <?php
-$value = Hash::extract($data, $field['path'])[0];
-$mapping = !empty($field['mapping']) ? $field['mapping'] : [
-    false => '<i class="fas fa-times"></i>',
-    true => '<i class="fas fa-check"></i>'
-];
-echo $mapping[(bool)$value];
+$value = Hash::extract($data, $field['path']);
+if (!empty($field['pill'])) {
+    echo sprintf(
+        '<span class="%s">%s</span>',
+        !empty($value[0]) ? 'badge bg-success' : 'badge bg-danger',
+        !empty($value[0]) ? __('Yes') : __('No')
+    );
+} else {
+    echo sprintf(
+        '<i class="fas fa-%s"></i>',
+        empty($value[0]) ? 'times' : 'check'
+    );
+}

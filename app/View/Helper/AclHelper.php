@@ -1,7 +1,7 @@
 <?php
 App::uses('Helper', 'View');
 
-class AclHelper extends Helper
+class AclHelper extends AppHelper
 {
     /** @var ACLComponent */
     private $ACL;

@@ -1,8 +1,14 @@
 <?php
-$authKey = Hash::extract($row, $field['data_path']);
-echo sprintf(
-    '<span class="authkey">%s</span>%s<span class="authkey">%s</span>',
-    h($authKey['authkey_start']),
-    str_repeat('&bull;', 32),
-    h($authKey['authkey_end'])
-);
+    $start = $this->Hash->extract($row, 'authkey_start')[0];
+    $end = $this->Hash->extract($row, 'authkey_end')[0];
+    echo sprintf(
+        '<div>%s: <span class="fw-bold text-info">%s</span></div>',
+        __('Starts with'),
+        h($start)
+    );
+    echo sprintf(
+        '<div>%s: <span class="fw-bold text-info">%s</span></div>',
+        __('Ends with'),
+        h($end)
+    );
+?>

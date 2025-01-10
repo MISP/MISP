@@ -1,6 +1,6 @@
 <?php
-
-echo $this->Form->input($fieldData['field'], $params);
-if (!empty($params['description'])) {
-    echo sprintf('<small class="clear form-field-description apply_css_arrow">%s</small>', h($params['description']));
-}
+    $params['div'] = false;
+    if (empty($fieldData['type']) || ($fieldData['type'] !== 'checkbox' && $fieldData['type'] !== 'radio')) {
+        $params['class'] .= ' form-control';
+    }
+    echo $this->FormFieldMassage->prepareFormElement($this->Form, $params, $fieldData);

@@ -293,5 +293,5 @@
             )
         )
     );
-    echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+    echo $this->element('/genericElements/ListTopBar/scaffold', array('table_data' => $data));
     echo $this->element('/Events/View/eventFilteringQueryBuilder');

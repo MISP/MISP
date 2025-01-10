@@ -1209,6 +1209,7 @@ class UsersController extends AppController
 
     public function login()
     {
+        $this->layout = 'login';
         $oldHash = false;
         if ($this->request->is(['post', 'put'])) {
             $this->Bruteforce = ClassRegistry::init('Bruteforce');

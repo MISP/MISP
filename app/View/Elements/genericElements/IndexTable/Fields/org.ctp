@@ -1,5 +1,5 @@
 <?php
-    $orgs = Hash::extract($row, $field['data_path']);
+    $orgs = $row[$field['data_path']];
     if (!isset($field['fields']['allow_picture'])) {
         $field['fields']['allow_picture'] = true;
     }
@@ -7,16 +7,21 @@
         $field['fields']['default_org'] = '';
     }
     if (!empty($orgs)) {
-        if (!isset($orgs[0])) {
-            $orgs = array($orgs);
+        if (!empty($orgs['id'])) {
+            $orgs = [$orgs];
         }
         $count = count($orgs);
         $i = 0;
         foreach ($orgs as $org) {
             $i++;
             if (!empty($org['id']) || !empty($org['name'])) {
-                if ($field['fields']['allow_picture']) {
-                    echo $this->OrgImg->getOrgLogo($org, 24);
+                if ($field['fields']['allow_picture'] && !empty($org['id'])) {
+                    echo sprintf(
+                        '<a href="%s">%s</a>',
+                        $baseurl . '/organisations/view/' . h($org['id']),
+                        h($org['name'])
+                    );
+                    //echo $this->OrgImg->getOrgImg(array('name' => $org['name'], 'id' => $org['id'], 'size' => 24));
                 } else {
                     echo sprintf(
                         '<a href="%s/organisations/view/%s">%s</a>',
@@ -26,12 +31,18 @@
                     );
                 }
                 if ($i < $count) {
-                    echo '<br>';
+                    echo '<br />';
                 }
             } else {
                 if ($field['fields']['allow_picture']) {
-                    echo $this->OrgImg->getOrgLogo(['name' => $field['fields']['default_org']], 24, false);
+                    echo sprintf(
+                        '<a href="%s">%s</a>',
+                        $baseurl . 'organisations/view/' . h($org['id']),
+                        h($org['name'])
+                    );
+                    //echo $this->OrgImg->getOrgImg(array('name' =>  $field['fields']['default_org'], 'size' => 24));
                 }
             }
         }
     }
+?>

@@ -15,7 +15,7 @@
         empty($field['url']) ? '' : sprintf(
             'onClick="runOnDemandAction(this, \'%s%s\', \'onDemandButtonResult%s-%s\', \'%s\');"',
             h($field['url']),
-            h(Hash::extract($row, $field['data_path'])[0]),
+            h($this->Hash->extract($row, $field['data_path'])[0]),
             h($k),
             h($column),
             empty($field['textInput']) ? '' : sprintf(

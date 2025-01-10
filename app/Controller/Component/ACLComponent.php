@@ -942,6 +942,10 @@ class ACLComponent extends Component
     /** @var int */
     private $hostOrgId;
 
+    public function initialize(Controller $controller) {
+        $this->controller = $controller;
+    }
+
     public function __construct(ComponentCollection $collection, $settings = array())
     {
         parent::__construct($collection, $settings);
@@ -1484,5 +1488,116 @@ class ACLComponent extends Component
             }
         }
         return $result;
+    }
+
+    public function checkAccessUrl($url, $soft = false): bool
+    {
+        $urlParts = explode('/', $url);
+        if ($urlParts[1] === 'open') {
+            return in_array($urlParts[2], Configure::read('Cerebrate.open'));
+        } else {
+            return $this->checkAccessInternal(Inflector::camelize($urlParts[1]), $urlParts[2] ?? 'index', $soft);
+        }
+    }
+
+    private function checkAccessInternal($controller, $action, $soft): bool
+    {
+        if (empty($this->user)) {
+            // we have to be in a publically allowed scope otherwise the Auth component will kick us out anyway.
+            return true;
+        }
+        if (!empty($this->user->Role->perm_site_admin)) {
+            return true;
+        }
+        //$this->__checkLoggedActions($user, $controller, $action);
+        if (isset($this->aclList['*'][$action])) {
+            if ($this->evaluateAccessLeaf('*', $action)) {
+                return true;
+            }
+        }
+        if (!isset($this->aclList[$controller])) {
+            return $this->__error(404, __('Invalid controller.'), $soft);
+        }
+        return $this->evaluateAccessLeaf($controller, $action);
+    }
+
+    private function __error($code, $message, $soft = false)
+    {
+        if ($soft) {
+            return false;
+        }
+        switch ($code) {
+            case 404:
+                throw new NotFoundException($message);
+                break;
+            case 403:
+                throw new MethodNotAllowedException($message);
+            default:
+                throw new InternalErrorException('Unknown error: ' . $message);
+        }
+    }
+
+    private function evaluateAccessLeaf(string $controller, string $action): bool
+    {
+        if (isset($this->aclList[$controller][$action]) && !empty($this->aclList[$controller][$action])) {
+            if (in_array('*', $this->aclList[$controller][$action])) {
+                return true;
+            }
+            if (isset($this->aclList[$controller][$action]['OR'])) {
+                foreach ($this->aclList[$controller][$action]['OR'] as $permission) {
+                    if ($this->user['Role'][$permission]) {
+                        return true;
+                    }
+                }
+            } elseif (isset($this->aclList[$controller][$action]['AND'])) {
+                $allConditionsMet = true;
+                foreach ($this->aclList[$controller][$action]['AND'] as $permission) {
+                    if (!$this->user['Role'][$permission]) {
+                        $allConditionsMet = false;
+                    }
+                }
+                if ($allConditionsMet) {
+                    return true;
+                }
+            } else {
+                foreach ($this->aclList[$controller][$action] as $permission) {
+                    if ($this->user['Role'][$permission]) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    public function getMenu()
+    {
+        $menu = $this->controller->Navigation->getSideMenu();
+        foreach ($menu as $group => $subMenu) {
+            if ($group == '__bookmarks') {
+                continue;
+            }
+            foreach ($subMenu as $subMenuElementName => $subMenuElement) {
+                if (!empty($subMenuElement['url']) && !$this->checkAccessUrl($subMenuElement['url'], true) === true) {
+                    unset($menu[$group][$subMenuElementName]);
+                    continue;
+                }
+                if (!empty($subMenuElement['children'])) {
+                    foreach ($subMenuElement['children'] as $menuItem => $menuItemData) {
+                        if (!empty($menuItemData['url']) && !$this->checkAccessUrl($menuItemData['url'], true) === true) {
+                            unset($menu[$group][$subMenuElementName]['children'][$menuItem]);
+                            continue;
+                        }
+                    }
+                    if (empty($menu[$group][$subMenuElementName]['children'])) {
+                        unset($subMenu[$subMenuElementName]);
+                    }
+                }
+            }
+            if (empty($menu[$group])) {
+                unset($menu[$group]);
+            }
+        }
+        return $menu;
     }
 }

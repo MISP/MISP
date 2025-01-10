@@ -6,6 +6,7 @@ App::uses('GpgTool', 'Tools');
 App::uses('SendEmail', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
+App::uses('UserSettingsProvider', 'Model/SettingProviders');
 
 /**
  * @property Log $Log
@@ -383,6 +384,32 @@ class User extends AppModel
             }
         }
         return true;
+    }
+    public function getUserSettingsByName()
+    {
+        $settingsByName = [];
+        if (!empty($this->user_settings)) {
+            foreach ($this->user_settings as $i => $setting) {
+                $settingsByName[$setting->name] = $setting;
+            }
+        }
+        return $settingsByName;
+    }
+
+    public function getUserSettingsByNameWithFallback()
+    {
+        if (!isset($this->SettingsProvider)) {
+            $this->SettingsProvider = new UserSettingsProvider();
+        }
+        $settingsByNameWithFallback = [];
+        if (!empty($this->user_settings)) {
+            foreach ($this->user_settings as $i => $setting) {
+                $settingsByNameWithFallback[$setting->name] = $setting->value;
+            }
+        }
+        $settingsProvider = $this->SettingsProvider->getSettingsConfiguration($settingsByNameWithFallback);
+        $settingsFlattened = $this->SettingsProvider->flattenSettingsConfiguration($settingsProvider);
+        return $settingsFlattened;
     }
 
     /**

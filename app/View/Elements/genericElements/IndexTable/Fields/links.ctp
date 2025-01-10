@@ -1,16 +1,16 @@
 <?php
 /**
- *    - url: url to reference. Can have `%s` in it to be replaced by `data_path` extracted value.
- *    - url_params_data_paths: add dynamic URL elements such as an id to the URL. Can be an array with each value added in a separate param. Used if `url` does not have a `%s` marker
+ *    - url: A url to link to. Can include placeholders for variables using the {{0}} notation
+ *    - url_vars: ordered list of parameters, to be used as replacements in the url (first parameter would replace {{0}} for example)
  */
-    $data_elements = Hash::extract($row, $field['data_path']);
+    $data_elements = $this->Hash->extract($row, $field['data_path']);
     $url_param_data_paths = '';
     $urlWithData = empty($field['url']) ? '#' : h($field['url']);
     if (!empty($field['url_params_data_paths'])) {
         if (is_array($field['url_params_data_paths'])) {
             $temp = array();
             foreach ($field['url_params_data_paths'] as $k => $path) {
-                $extracted_value = Hash::extract($row, $path);
+                $extracted_value = $this->Hash->extract($row, $path);
                 if (!empty($extracted_value)) {
                     if (is_string($k)) { // associative array, use cake's parameter
                         $temp[] = h($k) . ':' . h($extracted_value[0]);
@@ -21,7 +21,7 @@
             }
             $url_param_data_paths = implode('/', $temp);
         } else {
-            $url_param_data_paths = Hash::extract($row, $field['url_params_data_paths']);
+            $url_param_data_paths = $this->Hash->extract($row, $field['url_params_data_paths']);
             if (empty($url_param_data_paths)) {
                 $url_param_data_paths = '';
             }
@@ -60,4 +60,5 @@
         );
     }
     echo implode('<br />', $links);
+
 ?>

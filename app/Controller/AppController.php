@@ -102,7 +102,9 @@ class AppController extends Controller
         'IndexFilter',
         'Deprecation',
         'RestSearch',
-        'CRUD'
+        'CRUD',
+        'Navigation',
+        'Notification'
         //,'DebugKit.Toolbar'
     );
 
@@ -239,7 +241,6 @@ class AppController extends Controller
             $this->Security->unlockedActions = [$action];
             $this->Security->doNotGenerateToken = true;
         }
-
         if (
             !$userLoggedIn &&
             (
@@ -271,7 +272,7 @@ class AppController extends Controller
                 $this->_loadAuthenticationPlugins();
             }
         }
-
+        
         $user = $this->Auth->user();
         if ($user) {
             Configure::write('CurrentUserId', $user['id']);
@@ -313,7 +314,7 @@ class AppController extends Controller
                 $this->response->header('X-Auth-Key-Expiration', $expiration);
                 $this->RestResponse->setHeader('X-Auth-Key-Expiration', $expiration);
             }
-
+            $this->set('menu', $this->ACL->getMenu());
             $this->set('default_memory_limit', ini_get('memory_limit'));
             if (isset($user['Role']['memory_limit']) && $user['Role']['memory_limit'] !== '') {
                  ini_set('memory_limit', $user['Role']['memory_limit']);
@@ -325,6 +326,7 @@ class AppController extends Controller
 
             $this->set('mispVersion', "{$versionArray['major']}.{$versionArray['minor']}.0");
             $this->set('mispVersionFull', $this->mispVersion);
+            $user['user_settings_by_name_with_fallback'] = $this->User->getUserSettingsByNameWithFallback();
             $this->set('me', $user);
             $role = $user['Role'];
             $this->set('isAdmin', $role['perm_admin']);
@@ -412,6 +414,7 @@ class AppController extends Controller
             if (!$user) {
                 return;
             }
+            $this->set('notifications', $this->Notification->getNotifications());
             $hasNotifications = $this->User->hasNotifications($user);
             $this->set('hasNotifications', $hasNotifications);
 

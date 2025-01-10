@@ -24,15 +24,14 @@
                         'column' => $column,
                         'data_path' => empty($field['data_path']) ? '' : $field['data_path'],
                         'k' => $k,
-                        'primary' => $primary
+                        'primary' => $primary,
+                        'tableRandomValue' => $tableRandomValue,
+                        'stateDependence' => isset($field['stateDependence']) ? $field['stateDependence'] : []
                     )
                 );
             }
-            if (!empty($field['decorator'])) {
-                $valueField = $field['decorator']($valueField);
-            }
             $rowHtml .= sprintf(
-                '<td%s%s%s%s%s%s%s>%s</td>',
+                '<td%s%s%s%s%s%s%s%s>%s</td>',
                 (empty($field['id'])) ? '' : sprintf('id="%s"', $field['id']),
                 (empty($field['class'])) ? '' : sprintf(' class="%s"', $field['class']),
                 (empty($field['style'])) ? '' : sprintf(' style="%s"', $field['style']),
@@ -43,7 +42,11 @@
                         h(implode(', ', $field['data_path'])) :
                         (h($field['data_path']))
                 ),
-                (empty($field['encode_raw_value']) || empty($field['data_path'])) ? '' : sprintf(' data-value="%s"', (h(Hash::extract($row, $field['data_path'])[0]))),
+                sprintf(
+                    ' data-columnname="%s"',
+                    h(\Inflector::variable(!empty($field['name']) ? $field['name'] : \Inflector::humanize($field['data_path'])))
+                ),
+                (empty($field['encode_raw_value']) || empty($field['data_path'])) ? '' : sprintf(' data-value="%s"', (h($this->Hash->extract($row, $field['data_path'])[0]))),
                 (empty($field['ondblclick'])) ? '' : sprintf(' ondblclick="%s"', $field['ondblclick']),
                 $valueField
             );
@@ -56,8 +59,10 @@
                 'actions' => $actions,
                 'row' => $row,
                 'column' => $column,
-                'primary' => $primary
+                'primary' => $primary,
+                'tableRandomValue' => $tableRandomValue
             )
         );
     }
-    echo $rowHtml;
+    echo ($rowHtml);
+?>

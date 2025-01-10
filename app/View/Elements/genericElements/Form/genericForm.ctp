@@ -4,7 +4,6 @@
      *
      * Simply pass a JSON with the following keys set:
      * - model: The model used to create the form (such as Attribute, Event)
-     * - description: text description of the form
      * - fields: an array with each element generating an input field
      *     - field is the actual field name (such as org_id, name, etc) which is required
      *     - optional fields: default, type, options, placeholder, label - these are passed directly to $this->Form->input(),
@@ -13,121 +12,158 @@
            - use these to define dynamic form fields, or anything that will feed into the regular fields via JS population
      * - submit: The submit button itself. By default it will simply submit to the form as defined via the 'model' field
      */
-$modelForForm = empty($data['model']) ?
-    h(Inflector::singularize(Inflector::classify($this->request->params['controller']))) :
-    h($data['model']);
-$fieldsString = '';
-$simpleFieldAllowedlist = array(
-    'default',
-    'type',
-    'options',
-    'placeholder',
-    'label',
-    'empty',
-    'rows',
-    'div',
-    'required',
-    'checked',
-    'multiple',
-    'selected',
-    'legend',
-    'disabled',
-    'description',
-    'autocomplete',
-);
-$fieldsArrayForPersistence = array();
-$formOptions = isset($formOptions) ? $formOptions : array();
-$formOptions = array_merge(['class' => 'genericForm'], $formOptions);
-$formCreate = $this->Form->create($modelForForm, $formOptions);
-$fieldsArray = [];
-if (!empty($data['fields'])) {
-    foreach ($data['fields'] as $fieldData) {
-        if (!empty($fieldData['field'])) {
-            $fieldsArray[] = $modelForForm . Inflector::camelize($fieldData['field']);
-        }
-        if (isset($fieldData['requirements']) && !$fieldData['requirements']) {
-            continue;
-        }
 
-        $fieldsString .= $this->element(
-            'genericElements/Form/fieldScaffold',
-            [
-                'fieldData' => $fieldData,
-                'form' => $this->Form,
-                'simpleFieldAllowlist' => $simpleFieldAllowedlist,
-                'modelForForm' => $modelForForm,
-                'fieldDesc' => empty($fieldDesc)? [] : $fieldDesc
-            ]
-        );
-
-        if (empty($fieldData['stayInLine'])) {
-            $fieldsString .= '<div class="clear"></div>';
+    $modelForForm = empty($data['model']) ?
+        h(Inflector::singularize(Inflector::classify($this->request->params['controller']))) :
+        h($data['model']);
+    $data = isset($data) ? $data : null;
+    $fieldsString = '';
+    $simpleFieldWhitelist = [
+        'default', 'type', 'placeholder', 'label', 'empty', 'rows', 'div', 'required', 'templates', 'options', 'value', 'checked', 'div',
+    ];
+    if (empty($data['url'])) {
+        $data['url'] = ["controller" => $this->request->params['controller'], "action" => $this->request->params['action']];
+    }
+    $formRandomValue = RandomTool::random_str(true, 8);
+    $initSelect2 = false;
+    $formCreate = $this->Form->create($modelForForm , ['id' => 'form-' . $formRandomValue]);
+    $default_template = [
+        'inputContainer' => '<div class="row mb-3">{{content}}</div>',
+        'inputContainerError' => '<div class="row mb-3 has-error">{{content}}</div>',
+        'label' => '{{text}}',
+        'input' => '<input type="{{type}}" name="{{name}}"{{attrs}} />',
+        'textarea' => '<textarea name="{{name}}" {{attrs}}>{{value}}</textarea>',
+        'select' => '<select name="{{name}}" {{attrs}}>{{content}}</select>',
+        'checkbox' => '<input type="checkbox" name="{{name}}" value="{{value}}"{{attrs}}>',
+        'checkboxFormGroup' => '{{label}}',
+        'radio' => '<input type="radio" name="{{name}}" value="{{value}}"{{attrs}}>',
+        'radioWrapper' => '{{label}}',
+        'formGroup' => '<label class="col-sm-2 col-form-label form-label" {{attrs}}>{{label}}</label><div class="col-sm-10">{{input}}{{error}}</div>',
+        'nestingLabel' => '{{hidden}}<div class="col-sm-2 form-label">{{text}}</div><div class="col-sm-10">{{input}}</div>',
+        'option' => '<option value="{{value}}"{{attrs}}>{{text}}</option>',
+        'optgroup' => '<optgroup label="{{label}}"{{attrs}}>{{content}}</optgroup>',
+        'error' => '<div class="error-message invalid-feedback d-block">{{content}}</div>',
+        'errorList' => '<ul>{{content}}</ul>',
+        'errorItem' => '<li>{{text}}</li>',
+    ];
+    if (!empty($data['fields'])) {
+        foreach ($data['fields'] as $fieldData) {
+            if (!empty($fields)) {
+                if (!in_array($fieldData['field'], $fields)) {
+                    continue;
+                }
+            }
+            $initSelect2 = $initSelect2 || (!empty($fieldData['type']) && $fieldData['type'] == 'dropdown' && !empty($fieldData['select2']));
+            $formTemplate = $default_template;
+            if (!empty($fieldData['floating-label'])) {
+                $formTemplate['inputContainer'] = '<div class="form-floating input {{type}}{{required}}">{{content}}</div>';
+                $formTemplate['label'] = '<label{{attrs}}>{{text}}</label>';
+                $formTemplate['formGroup'] = '{{input}}{{label}}';
+                $fieldData['placeholder'] = !empty($fieldData['label']) ? $fieldData['label'] : h($fieldData['field']);
+            }
+            if (!empty($fieldData['templates'])) {
+                $formTemplate = array_merge($formTemplate, $fieldData['templates']);
+            }
+            // we reset the template each iteration as individual fields might override the defaults.
+            //$this->Form->setConfig($formTemplate);
+            //$this->Form->setTemplates($formTemplate);
+            if (isset($fieldData['requirements']) && !$fieldData['requirements']) {
+                continue;
+            }
+            $fieldsString .= $this->element(
+                'genericElements/Form/fieldScaffold',
+                [
+                    'fieldData' => $fieldData,
+                    'form' => $this->Form,
+                    'simpleFieldWhitelist' => $simpleFieldWhitelist
+                ]
+            );
         }
     }
-}
-$metaFieldString = '';
-if (!empty($data['metaFields'])) {
-    $metaFieldString = implode('', $data['metaFields']);
-}
-$submitButtonData = array('model' => $modelForForm);
-if (!empty($data['submit'])) {
-    $submitButtonData = array_merge($submitButtonData, $data['submit']);
-}
-if (!empty($data['ajaxSubmit'])) {
-    $submitButtonData['ajaxSubmit'] = $ajaxSubmit;
-}
-$ajaxFlashMessage = '';
-if ($ajax) {
-    $ajaxFlashMessage = sprintf(
-        '<div id="flashContainer"><div id="main-view-container">%s</div></div>',
-        $this->Flash->render()
-    );
-}
-$formEnd = $this->Form->end();
-if (!empty($ajax)) {
-    echo sprintf(
-        '<div id="genericModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="genericModalLabel" aria-hidden="true">%s%s%s</div>',
-        sprintf(
-            '<div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button><h3 id="genericModalLabel">%s</h3></div>',
-            empty($data['title']) ? h(Inflector::humanize($this->request->params['action'])) . ' ' . $modelForForm : h($data['title'])
-        ),
-        sprintf(
-            '<div class="modal-body modal-body-long">%s</div>',
-            sprintf(
-                '%s%s<fieldset>%s%s</fieldset>%s%s',
-                empty($data['description']) ? '' : $data['description'],
-                $formCreate,
-                $ajaxFlashMessage,
-                $fieldsString,
-                $metaFieldString,
-                $formEnd
-            )
-        ),
-        sprintf(
-            '<div class="modal-footer">%s</div>',
-            !empty($data['submit']['no_submit']) ? '' : $this->element('genericElements/Form/submitButton', $submitButtonData)
-        )
-    );
-} else {
-    echo sprintf(
-        '<div class="%s">%s<fieldset><legend>%s</legend>%s%s<div class="clear">%s</div>%s</fieldset>%s%s%s</div>',
-        empty($data['skip_side_menu']) ? 'form' : 'menuless-form',
-        $formCreate,
-        empty($data['title']) ? h(Inflector::humanize($this->request->params['action'])) . ' ' . $modelForForm : h($data['title']),
-        $ajaxFlashMessage,
-        empty($data['notice']) ? '' : $this->element('genericElements/Form/notice', ['notice' => $data['notice']]),
-        empty($data['description']) ? '' : $data['description'],
-        $fieldsString,
-        $metaFieldString,
-        !empty($data['submit']['no_submit']) ? '' : $this->element('genericElements/Form/submitButton', $submitButtonData),
-        $formEnd
-    );
-}
+    $metaTemplateString = '';
+    if (!empty($data['MetaTemplates']) && count($data['MetaTemplates']) > 0) {
+        $metaTemplateString = $this->element(
+            'genericElements/Form/metaTemplateScaffold',
+            [
+                'form' => $this->Form,
+            ]
+        );
+    }
+    $submitButtonData = ['model' => $modelForForm, 'formRandomValue' => $formRandomValue];
+    if (!empty($data['submit'])) {
+        $submitButtonData = array_merge($submitButtonData, $data['submit']);
+    }
+    if (!empty($data['ajaxSubmit'])) {
+        $submitButtonData['ajaxSubmit'] = $ajaxSubmit;
+    }
+    $ajaxFlashMessage = '';
+    if (!empty($ajax)) {
+        $ajaxFlashMessage = sprintf(
+            '<div id="flashContainer"><div id="main-view-container">%s</div></div>',
+            $this->Flash->render()
+        );
+    }
+    $formEnd = $this->Form->end();
+    $actionName = h(\Inflector::humanize($this->request->params['action']));
+    $modelName = h(\Inflector::humanize(\Inflector::singularize($this->request->params['controller'])));
+    if (empty($raw) && !empty($ajax)) {
+        $seedModal = 'mseed-' . mt_rand();
+        echo $this->Bootstrap->modal(
+            [
+            'title' => empty($data['title']) ? sprintf('%s %s', $actionName, $modelName) : h($data['title']),
+            'bodyHtml' =>  $this->element(
+                'genericElements/Form/formLayouts/formRaw',
+                [
+                'data' => $data,
+                'formCreate' => $formCreate,
+                'ajaxFlashMessage' => $ajaxFlashMessage,
+                'fieldsString' => $fieldsString,
+                'formEnd' => $formEnd,
+                'metaTemplateString' => $metaTemplateString,
+                ]
+            ),
+            'size' => !empty($fieldsString) ? 'xl' : 'lg',
+            'type' => 'confirm',
+            'modalClass' => $seedModal,
+            ]
+        );
+    } else if (!empty($raw)) {
+        echo $this->element(
+            'genericElements/Form/formLayouts/formRaw',
+            [
+            'data' => $data,
+            'actionName' => $actionName,
+            'modelName' => $modelName,
+            'submitButtonData' => $submitButtonData,
+            'formCreate' => $formCreate,
+            'ajaxFlashMessage' => $ajaxFlashMessage,
+            'fieldsString' => $fieldsString,
+            'formEnd' => $formEnd,
+            'metaTemplateString' => $metaTemplateString,
+            ]
+        );
+    } else {
+        echo $this->element(
+            'genericElements/Form/formLayouts/formDefault',
+            [
+            'data' => $data,
+            'actionName' => $actionName,
+            'modelName' => $modelName,
+            'submitButtonData' => $submitButtonData,
+            'formCreate' => $formCreate,
+            'ajaxFlashMessage' => $ajaxFlashMessage,
+            'fieldsString' => $fieldsString,
+            'formEnd' => $formEnd,
+            'metaTemplateString' => $metaTemplateString,
+            ]
+        );
+    }
 ?>
-
 <script type="text/javascript">
-    var fieldsArray = <?= json_encode($fieldsArray) ?>;
-    $(function() {
-        popoverStartup();
+    $(document).ready(function() {
+        executeStateDependencyChecks();
+        $('.formDropdown').on('change', function() {
+            executeStateDependencyChecks('#' + this.id);
+        })
     });
 </script>
