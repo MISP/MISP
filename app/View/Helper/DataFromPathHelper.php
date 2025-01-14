@@ -1,10 +1,6 @@
 <?php
 
-namespace App\View\Helper;
-
-use Cake\View\Helper;
-use Hash;
-
+App::uses('AppHelper', 'View/Helper');
 class DataFromPathHelper extends AppHelper
 {
     private $defaultOptions = [

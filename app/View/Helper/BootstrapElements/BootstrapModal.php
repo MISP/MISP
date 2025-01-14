@@ -1,7 +1,9 @@
 <?php
 
 
-use App\View\Helper\BootstrapGeneric;
+App::uses('AppHelper', 'View/Helper');
+App::uses('BootstrapGeneric', 'View/Helper');
+App::uses('BootstrapHelper', 'View/Helper');
 
 /**
  * Creates a bootstrap modal based on the given options

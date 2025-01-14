@@ -12,6 +12,7 @@
         "'{{url}}'"
 
     );
+    /*
     $this->Paginator->setTemplates(
         [
             'nextActive' => '<li class="page-item"><a class="page-link" href="#" ' . $onClick . '>{{text}}</a></li>',
@@ -33,4 +34,5 @@
         ]
     );
     echo $this->Paginator->options($options);
+    */
 ?>

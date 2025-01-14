@@ -1,0 +1,550 @@
+<?php
+
+App::uses('Component', 'Controller');
+App::uses('SidemenuNavigation', 'Controller/Component/Navigation');
+
+class NavigationComponent extends Component
+{
+    const NAVIGATION_FILES_DIR = APP . DS . 'Controller' . DS . 'Component' . DS . 'Navigation';
+
+    private $currentUser = null;
+    public $breadcrumb = null;
+    public $fullBreadcrumb = null;
+    public $iconToTableMapping = [
+        'Events' => 'envelope-open-text',
+        'Attributes' => 'cube',
+        'Objects' => 'cubes',
+        'EventReports' => 'file-lines',
+        'PeriodicReport' => 'newspaper',
+        'Dashboard' => 'chart-line',
+        'Proposals' => 'pen-square',
+        'Taxonomies' => 'book',
+        'Galaxies' => 'atlas',
+        'ObjectTemplates' => 'ruler-combined',
+        'Tags' => 'tag',
+        'TagCollections' => 'tags',
+        'Templates' => 'pencil-ruler',
+        'Warninglists' => ['stacked' => [
+            ['icon' => 'file'],
+            ['icon' => 'exclamation-triangle', 'class' => 'fa-inverse', 'style' => 'top: 0.2em;'],
+        ]],
+        'Workflows' => 'sitemap',
+        'CorrelationsExclusions' => ['stacked' => [
+            ['icon' => 'ban'],
+            ['icon' => 'project-diagram', 'class' => '', 'style' => ''],
+        ]],
+        'DecayingModels' => 'hourglass-end',
+        'ImportRegexp' => 'file-import',
+        'SignatureAllowedlists' => 'fingerprint',
+        'Noticelists' => 'list',
+        'Correlations' => 'project-diagram',
+        'Servers' => 'network-wired',
+        'Communities' => 'handshake-simple',
+        'Cerebrates' => ['image' => '/img/cerebrate-icon-purple.png',],
+        'TaxiiServers' => ['image' => '/img/taxii-icon.png',],
+        'ServerSettings' => 'cogs',
+        'Jobs' => 'robot',
+        'BlockRules' => 'ban',
+        'Logs' => 'history',
+        'AccessLogs' => 'door-open',
+        'ApplicationLogs' => 'list-ul',
+        'OrganisationsRules' => ['stacked' => [
+            ['icon' => 'ban', 'class' => 'text-muted',],
+            ['icon' => 'building', 'class' => 'text-body',]
+        ]],
+        'EventsBlockRules' => ['stacked' => [
+            ['icon' => 'ban', 'class' => 'text-muted',],
+            ['icon' => 'envelope-open-text', 'class' => 'text-body',],
+        ]],
+        'SharingGroups' => 'users-rectangle',
+        'Organisations' => 'building',
+        'Users' => 'users',
+        'Feeds' => 'rss',
+        'Roles' => 'id-badge',
+        'API' => 'code',
+        'UserSettings' => 'user-cog',
+        'Inbox' => 'inbox',
+        'RestClient' =>  ['stacked' => [
+            ['icon' => 'cloud'],
+            ['icon' => 'cog', 'class' => 'fa-inverse']
+        ]],
+    ];
+    protected $defaultCRUDControllers = [
+        //'Individuals',
+        'Organisations',
+        'SharingGroups',
+        'Roles',
+        'Users',
+        'Tags',
+        'UserSettings',
+        // 'Events',
+        'Noticelists',
+        'ObjectTemplates',
+        'Cerebrates'
+    ];
+
+    public function initialize(Controller $controller): void
+    {
+        $this->controller = $controller;
+        $this->request = $controller->request;
+    }
+
+    public function beforeRender($event)
+    {
+        // $this->fullBreadcrumb = null;
+        $this->fullBreadcrumb = $this->genBreadcrumb();
+    }
+
+    public function getSideMenu(): array
+    {
+        $sidemenu = new SidemenuNavigation($this->iconToTableMapping, $this->request);
+        $sidemenu = $sidemenu->get();
+        $sidemenu = $this->addUserBookmarks($sidemenu);
+        return $sidemenu;
+    }
+
+
+    public function addUserBookmarks($sidemenu): array
+    {
+        $bookmarks = null;
+        //$bookmarks = $this->getUserBookmarks();
+        $sidemenu = array_merge(
+            [
+            '__bookmarks' => $bookmarks
+            ],
+            $sidemenu
+        );
+        return $sidemenu;
+    }
+
+    public function getUserBookmarks(): array
+    {
+        $userSettingTable = TableRegistry::getTableLocator()->get('UserSettings');
+        $setting = $userSettingTable->getSettingByName($this->request->getAttribute('identity'), 'ui.bookmarks');
+        $bookmarks = is_null($setting) ? [] : json_decode($setting->value, true);
+
+        $links = array_map(
+            function($bookmark) {
+            return [
+                'name' => $bookmark['name'],
+                'label' => $bookmark['label'],
+                'url' => $bookmark['url'],
+            ];
+            },
+            $bookmarks
+        );
+        return $links;
+    }
+
+    public function getIconToTableMapping(): array
+    {
+        return $this->iconToTableMapping;
+    }
+
+    public function getBreadcrumb(): array
+    {
+        $controller = $this->request->getParam('controller');
+        $action = $this->request->getParam('action');
+        if (empty($this->fullBreadcrumb[$controller][$action])) {
+            return [[
+                'label' => $controller,
+                'url' => Router::url(['controller' => $controller, 'action' => $action]),
+            ]]; // no breadcrumb defined for this endpoint
+        }
+        $currentRoute = $this->fullBreadcrumb[$controller][$action];
+        $breadcrumbPath = $this->getBreadcrumbPath($currentRoute);
+        return $breadcrumbPath;
+    }
+
+    public function getBreadcrumbPath(array $currentRoute): array
+    {
+        $path = [];
+        $visitedURL = [];
+        while (empty($visitedURL[$currentRoute['url']])) {
+            $visitedURL[$currentRoute['url']] = true;
+            $path[] = $currentRoute;
+            if (!empty($currentRoute['after'])) {
+                if (is_callable($currentRoute['after'])) {
+                    $route = $currentRoute['after']();
+                } else {
+                    $route = $currentRoute['after'];
+                }
+                if (empty($route)) {
+                    continue;
+                }
+                $currentRoute = $route;
+            }
+        }
+        $path = array_reverse($path);
+        return $path;
+    }
+
+    public function genBreadcrumb(): array
+    {
+        $request = $this->request;
+        $bcf = new BreadcrumbFactory($this->iconToTableMapping);
+        $fullConfig = $this->getFullConfig($bcf, $this->request);
+        return $fullConfig;
+    }
+
+    private function loadNavigationClasses($bcf, $request)
+    {
+        $navigationClasses = [];
+        $dir = new DirectoryIterator(self::NAVIGATION_FILES_DIR);
+        foreach ($dir as $fileinfo) {
+            if ($fileinfo->isFile()) {
+                if ($fileinfo->getFilename() == 'BaseNavigation.php' || $fileinfo->getFilename() == 'SidemenuNavigation.php') {
+                    continue;
+                }
+                $navigationClassname = str_replace('.php', '', $fileinfo->getFilename());
+                require_once(APP . 'Controller' . DS . 'Component' . DS . 'Navigation' . DS . $fileinfo->getFilename());
+                $reflection = new \ReflectionClass("{$navigationClassname}");
+                $viewVars = $this->controller->_View;
+                $navigationClasses[$navigationClassname] = $reflection->newInstance($bcf, $request, $viewVars);
+                $navigationClasses[$navigationClassname]->setCurrentUser($this->currentUser);
+            }
+        }
+        return $navigationClasses;
+    }
+
+    public function getFullConfig($bcf, $request)
+    {
+        $navigationClasses = $this->loadNavigationClasses($bcf, $request);
+        $CRUDControllers = $this->defaultCRUDControllers;
+        foreach ($CRUDControllers as $controller) {
+            $bcf->setDefaultCRUDForModel($controller);
+        }
+
+        foreach ($navigationClasses as $className => $class) {
+            $class->addRoutes();
+        }
+        foreach ($navigationClasses as $className => $class) {
+            $class->addParents();
+        }
+        foreach ($navigationClasses as $className => $class) {
+            $class->addLinks();
+        }
+        foreach ($navigationClasses as $className => $class) {
+            $class->addActions();
+        }
+        return $bcf->getEndpoints();
+    }
+}
+
+class BreadcrumbFactory
+{
+    private $endpoints = [];
+    public $iconToTableMapping = [];
+
+    public function __construct($iconToTableMapping)
+    {
+        $this->iconToTableMapping = $iconToTableMapping;
+    }
+
+    public function defaultCRUD(string $controller, string $action, array $overrides = []): array
+    {
+        $table = ClassRegistry::init($controller);
+        $item = [];
+        if ($action === 'index') {
+            $item = $this->genRouteConfig(
+                $controller,
+                $action,
+                [
+                'label' => __('{0} index', Inflector::humanize($controller)),
+                'url' => "/{$controller}/index",
+                'icon' => $this->iconToTableMapping[$controller]
+                ]
+            );
+        } else if ($action === 'view') {
+            $item = $this->genRouteConfig(
+                $controller,
+                $action,
+                [
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => "/{$controller}/view/{{id}}",
+                'url_vars' => ['id' => 'id'],
+                'textGetter' => !empty($table->displayField) ? $table->displayField : 'id',
+                ]
+            );
+        } else if ($action === 'add') {
+            $item = $this->genRouteConfig(
+                $controller,
+                $action,
+                [
+                'label' => __('Create {0}', $controller),
+                'icon' => 'plus',
+                'url' => "/{$controller}/add",
+                ]
+            );
+        } else if ($action === 'edit') {
+            $item = $this->genRouteConfig(
+                $controller,
+                $action,
+                [
+                'label' => __('Edit'),
+                'icon' => 'edit',
+                'url' => "/{$controller}/edit/{{id}}",
+                'url_vars' => ['id' => 'id'],
+                'textGetter' => !empty($table->displayField) ? $table->displayField : 'id',
+                ]
+            );
+        } else if ($action === 'delete') {
+            $item = $this->genRouteConfig(
+                $controller,
+                $action,
+                [
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => "/{$controller}/delete/{{id}}",
+                'url_vars' => ['id' => 'id'],
+                'textGetter' => !empty($table->displayField) ? $table->displayField : 'id',
+                'variant' => 'danger',
+                ]
+            );
+        }
+        $item['route_path'] = "{$controller}:{$action}";
+        $item = array_merge($item, $overrides);
+        return $item;
+    }
+
+    public function genRouteConfig($controller, $action, $config = [])
+    {
+        $routeConfig = [
+            'controller' => $controller,
+            'action' => $action,
+            'route_path' => "{$controller}:{$action}",
+        ];
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'url');
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'url_vars');
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'icon');
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'label');
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'textGetter');
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'badge');
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'variant');
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'is-go-to');
+        $routeConfig = $this->addIfNotEmpty($routeConfig, $config, 'isPOST');
+        return $routeConfig;
+    }
+
+    private function addIfNotEmpty($arr, $data, $key, $default = null)
+    {
+        if (!empty($data[$key])) {
+            $arr[$key] = $data[$key];
+        } else {
+            if (!is_null($default)) {
+                $arr[$key] = $default;
+            }
+        }
+        return $arr;
+    }
+
+    public function addRoute(string $controller, string $action, array $config = []) {
+        $this->endpoints[$controller][$action] = $this->genRouteConfig($controller, $action, $config);
+    }
+
+    public function setDefaultCRUDForModel($controller)
+    {
+        $this->addRoute($controller, 'index', $this->defaultCRUD($controller, 'index'));
+        $this->addRoute($controller, 'view', $this->defaultCRUD($controller, 'view'));
+        $this->addRoute($controller, 'add', $this->defaultCRUD($controller, 'add'));
+        $this->addRoute($controller, 'edit', $this->defaultCRUD($controller, 'edit'));
+        $this->addRoute($controller, 'delete', $this->defaultCRUD($controller, 'delete'));
+
+        $this->addParent($controller, 'view', $controller, 'index');
+        $this->addParent($controller, 'add', $controller, 'index');
+        $this->addParent($controller, 'edit', $controller, 'index');
+        $this->addParent($controller, 'delete', $controller, 'index');
+
+        $this->addSelfLink($controller, 'view');
+        $this->addLink($controller, 'view', $controller, 'edit');
+        $this->addLink($controller, 'edit', $controller, 'view');
+        $this->addSelfLink($controller, 'edit');
+
+        // $this->addAction($controller, 'index', $controller, 'add');
+        // $this->addAction($controller, 'view', $controller, 'add');
+        $this->addAction($controller, 'view', $controller, 'delete');
+        $this->addAction($controller, 'edit', $controller, 'add');
+        $this->addAction($controller, 'edit', $controller, 'delete');
+    }
+
+    public function get($controller, $action)
+    {
+        if (empty($this->endpoints[$controller]) || empty($this->endpoints[$controller][$action])) {
+            throw new \Exception(sprintf("Tried to add a reference to %s:%s which does not exists", $controller, $action), 1);
+        }
+        return $this->endpoints[$controller][$action];
+    }
+
+    public function getEndpoints()
+    {
+        return $this->endpoints;
+    }
+
+    public function addParent(string $sourceController, string $sourceAction, string $targetController, string $targetAction, $overrides = [])
+    {
+        $routeSourceConfig = $this->get($sourceController, $sourceAction);
+        $routeTargetConfig = $this->get($targetController, $targetAction);
+        $overrides = $this->execClosureIfNeeded($overrides, $routeTargetConfig);
+        if (!is_array($overrides)) {
+            throw new \Exception(sprintf("Override closure for %s:%s -> %s:%s must return an array", $sourceController, $sourceAction, $targetController, $targetAction), 1);
+        }
+        $routeTargetConfig = array_merge($routeTargetConfig, $overrides);
+        $parents = array_merge($routeSourceConfig['after'] ?? [], $routeTargetConfig);
+        $this->endpoints[$sourceController][$sourceAction]['after'] = $parents;
+    }
+
+    public function addSelfLink(string $controller, string $action, array $options=[])
+    {
+        $this->addLink(
+            $controller,
+            $action,
+            $controller,
+            $action,
+            array_merge(
+                $options,
+                [
+                'selfLink' => true,
+                ]
+            )
+        );
+    }
+
+    public function addLink(string $sourceController, string $sourceAction, string $targetController, string $targetAction, $overrides = [])
+    {
+        $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
+        $routeTargetConfig = $this->getRouteConfig($targetController, $targetAction);
+        $overrides = $this->execClosureIfNeeded($overrides, $routeTargetConfig);
+        if (is_null($overrides)) {
+            // Overrides is null, the link should not be added
+            return;
+        }
+        if (!is_array($overrides)) {
+            throw new \Exception(sprintf("Override closure for %s:%s -> %s:%s must return an array", $sourceController, $sourceAction, $targetController, $targetAction), 1);
+        }
+        $routeTargetConfig = array_merge($routeTargetConfig, $overrides);
+        $links = array_merge($routeSourceConfig['links'] ?? [], [$routeTargetConfig]);
+        $this->endpoints[$sourceController][$sourceAction]['links'] = $links;
+    }
+
+    public function addCustomLink(string $sourceController, string $sourceAction, string $targetUrl, string $label, $overrides = [])
+    {
+        $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
+        $overrides = $this->execClosureIfNeeded($overrides, $routeSourceConfig);
+        if (!is_array($overrides)) {
+            throw new \Exception(sprintf("Override closure for custom action %s:%s must return an array", $sourceController, $sourceAction), 1);
+        }
+        $linkConfig = [
+            'url' => $targetUrl,
+            'icon' => 'link',
+            'label' => $label,
+            'route_path' => 'foo:bar'
+        ];
+        $linkConfig = array_merge($linkConfig, $overrides);
+        $links = array_merge($routeSourceConfig['links'] ?? [], [$linkConfig]);
+        $this->endpoints[$sourceController][$sourceAction]['links'] = $links;
+
+    }
+
+    public function addAction(string $sourceController, string $sourceAction, string $targetController, string $targetAction, $overrides = [])
+    {
+        $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
+        $routeTargetConfig = $this->getRouteConfig($targetController, $targetAction);
+        $overrides = $this->execClosureIfNeeded($overrides, $routeTargetConfig);
+        if (!is_array($overrides)) {
+            throw new \Exception(sprintf("Override closure for %s:%s -> %s:%s must return an array", $sourceController, $sourceAction, $targetController, $targetAction), 1);
+        }
+        $routeTargetConfig = array_merge($routeTargetConfig, $overrides);
+        $links = array_merge($routeSourceConfig['actions'] ?? [], [$routeTargetConfig]);
+        $this->endpoints[$sourceController][$sourceAction]['actions'] = $links;
+    }
+
+    /**
+     * Add a custom action to the action bar
+     *
+     * @param string $sourceController The source controller name
+     * @param string $sourceAction The source action name
+     * @param string $targetUrl The target URL for that action
+     * @param string $label The text to be displayed in the button
+     * @param array $overrides Optional overrides to apply on this action
+     * @return void
+     */
+    public function addCustomAction(string $sourceController, string $sourceAction, string $targetUrl, string $label, $overrides = [])
+    {
+        $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
+        $overrides = $this->execClosureIfNeeded($overrides, $routeSourceConfig);
+        if (!is_array($overrides)) {
+            throw new \Exception(sprintf("Override closure for custom action %s:%s must return an array", $sourceController, $sourceAction), 1);
+        }
+        $actionConfig = [
+            'url' => $targetUrl,
+            'label' => $label,
+            'route_path' => 'foo:bar'
+        ];
+        $actionConfig = array_merge($actionConfig, $overrides);
+        $links = array_merge($routeSourceConfig['actions'] ?? [], [$actionConfig]);
+        $this->endpoints[$sourceController][$sourceAction]['actions'] = $links;
+    }
+
+    public function removeLink(string $sourceController, string $sourceAction, string $targetController, string $targetAction)
+    {
+        $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
+        if (!empty($routeSourceConfig['links'])) {
+            foreach ($routeSourceConfig['links'] as $i => $routeConfig) {
+                if ($routeConfig['controller'] == $targetController && $routeConfig['action'] == $targetAction) {
+                    unset($routeSourceConfig['links'][$i]);
+                    $this->endpoints[$sourceController][$sourceAction]['links'] = $routeSourceConfig['links'];
+                    break;
+                }
+            }
+        }
+    }
+
+    public function removeAction(string $sourceController, string $sourceAction, string $targetController, string $targetAction)
+    {
+        $routeSourceConfig = $this->getRouteConfig($sourceController, $sourceAction, true);
+        if (!empty($routeSourceConfig['actions'])) {
+            foreach ($routeSourceConfig['actions'] as $i => $routeConfig) {
+                if ($routeConfig['controller'] == $targetController && $routeConfig['action'] == $targetAction) {
+                    unset($routeSourceConfig['actions'][$i]);
+                    $this->endpoints[$sourceController][$sourceAction]['actions'] = $routeSourceConfig['actions'];
+                    break;
+                }
+            }
+        }
+    }
+
+    public function registerGoToMenuConfig(string $sourceController, string $sourceAction, string $goToID, array $config = []): void
+    {
+        $this->endpoints[$sourceController][$sourceAction]['goToMenu'][$goToID] = $config;
+    }
+
+    public function registerLinkMenuConfig(string $sourceController, string $sourceAction, string $menuID, array $config = []): void
+    {
+        $this->endpoints[$sourceController][$sourceAction]['linkMenu'][$menuID] = $config;
+    }
+
+    public function registerActionMenuConfig(string $sourceController, string $sourceAction, string $menuID, array $config = []): void
+    {
+        $this->endpoints[$sourceController][$sourceAction]['actionMenu'][$menuID] = $config;
+    }
+
+    public function getRouteConfig($controller, $action, $fullRoute = false)
+    {
+        $routeConfig = $this->get($controller, $action);
+        if (empty($fullRoute)) {
+            unset($routeConfig['after']);
+            unset($routeConfig['links']);
+            unset($routeConfig['actions']);
+        }
+        return $routeConfig;
+    }
+
+    private function execClosureIfNeeded($closure, $routeConfig=[])
+    {
+        if (is_callable($closure)) {
+            return $closure($routeConfig);
+        }
+        return $closure;
+    }
+}

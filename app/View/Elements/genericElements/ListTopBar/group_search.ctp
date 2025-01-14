@@ -76,8 +76,8 @@
 ?>
 <script type="text/javascript">
     $(document).ready(function() {
-        var controller = '<?= $this->request->param['controller'] ?>';
-        var action = '<?= $this->request->param['action'] ?>';
+        var controller = '<?= $this->params['controller'] ?>';
+        var action = '<?= $this->params['action'] ?>';
         var additionalUrlParams = '';
         var quickFilter = <?= json_encode(!empty($quickFilter) ? $quickFilter : []) ?>;
         var activeFilters = <?= json_encode(!empty($activeFilters) ? $activeFilters : []) ?>;

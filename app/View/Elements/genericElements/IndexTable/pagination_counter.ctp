@@ -2,16 +2,7 @@
     echo sprintf(
         '<p>%s</p>',
         $this->Paginator->counter(
-            sprintf(
-                __('Page %s of %s, showing %s %s out of %s total, starting on record %s, ending on %s'),
-                '{{page}}',
-                '{{pages}}',
-                '{{current}}',
-                '{{model}}',
-                '{{count}}',
-                '{{start}}',
-                '{{end}}'
-            )
+            __('Page {:page} of {:pages}, showing {:current} {:model} out of {:count} total, starting on record {:start}, ending on {:end}')
         )
     );
 ?>

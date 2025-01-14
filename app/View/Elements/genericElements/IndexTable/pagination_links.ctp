@@ -1,8 +1,38 @@
 <?php
+    $currentPage = $this->Paginator->param('page');
+    $url = $this->Paginator->url([
+        'page' => null
+    ]);
+    $prev = sprintf(
+        '<li class="page-item %s"><a class="page-link" href="%s" tabindex="-1">%s</a></li>',
+        $this->Paginator->hasPrev() ? '' : 'disabled',
+        $url . '/page:' . $this->Paginator->param('page') - 1,
+        __('Previous')
+    );
+    $next = sprintf(
+        '<li class="page-item %s"><a class="page-link" href="%s" tabindex="-1">%s</a></li>',
+        $this->Paginator->hasNext() ? '' : 'disabled',
+        $url . '/page:' . $this->Paginator->param('page') + 1,
+        __('Next')
+    );
+    $numbers = [-2, -1, 0, 1, 2];
+    $numberString = '';
+    foreach ($numbers as $number) {
+        $page = $currentPage + $number;
+        if ($page < 1 || $page > $this->Paginator->param('count')) {
+            continue;
+        }
+        $numberString .= sprintf(
+            '<li class="page-item %s"><a class="page-link" href="%s" tabindex="-1">%s</a></li>',
+            $page == $currentPage ? 'active' : '',
+            $url . '/page:' . $page,
+            $page
+        );
+    }
+
     echo sprintf(
-        '<nav aria-label="%s"><div class="pagination"><ul class="pagination">%s%s%s</ul></div></nav>',
-        __(''),
-        $this->Paginator->prev(__('Previous')),
-        $this->Paginator->numbers(['first' => 1, 'last' => 1]),
-        $this->Paginator->next(__('Next'))
+        '<div class="pagination"><ul class="pagination">%s%s%s</ul></div>',
+        $prev,
+        $numberString,
+        $next
     );

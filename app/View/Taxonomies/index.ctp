@@ -67,7 +67,7 @@
             'name' => __('Required'),
             'element' => 'toggle',
             'url' => $baseurl . '/taxonomies/toggleRequired',
-            'url_params_data_paths' => array(
+            'url_params_vars' => array(
                 'Taxonomy.id'
             ),
             'sort' => 'required',
@@ -79,7 +79,7 @@
             'name' => __('Highlighted'),
             'element' => 'toggle',
             'url' => $baseurl . '/taxonomies/toggleHighlighted',
-            'url_params_data_paths' => array(
+            'url_params_vars' => array(
                 'Taxonomy.id'
             ),
             'sort' => 'highlighted',

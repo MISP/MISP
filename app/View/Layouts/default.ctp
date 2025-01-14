@@ -52,9 +52,6 @@ $bsTheme = 'default';
     <?= $this->fetch('css') ?>
     <?= $this->fetch('script') ?>
 
-    <?= $this->Html->script('Tags.tagging') ?>
-    <?= $this->Html->css('Tags.tagging') ?>
-
     <?= $this->Html->meta('favicon-misp.png', '/img/favicon-misp.png', ['type' => 'icon']); ?>
 </head>
 <body>

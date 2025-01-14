@@ -38,11 +38,10 @@ $normalizeKey = function ($key) {
     $key = str_replace('Cfr', 'CFR', $key);
     return $key;
 };
-
 $generatePopover = function (array $cluster) use ($normalizeKey) {
     $clusterFields = [];
     if (!empty($cluster['description'])) {
-        $clusterFields[] = ['key' => 'description', 'value' => $this->Markdown->toText($cluster['description'])];
+        $clusterFields[] = ['key' => 'description', 'value' => $this->Markdown->text($cluster['description'])];
     }
     if (isset($cluster['meta']['synonyms'])) {
         $clusterFields[] = ['key' => 'synonyms', 'value' => $cluster['meta']['synonyms']];
