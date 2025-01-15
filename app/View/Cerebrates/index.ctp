@@ -44,6 +44,7 @@
     echo $this->element('genericElements/IndexTable/index_table', [
         'data' => [
             'data' => $data,
+            'multi-select' => true,
             'top_bar' => [
                 'pull' => 'right',
                 'children' => [

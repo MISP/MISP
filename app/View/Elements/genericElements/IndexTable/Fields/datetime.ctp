@@ -14,7 +14,7 @@
     $data = h($data);
     if (is_numeric($data)) {
         if ($data == 0) {
-            __('N/A');
+            $data = '';
         } else {
             $data = date('Y-m-d H:i:s', $data);
         }

@@ -147,7 +147,8 @@ foreach ($data['data'] as $k => $data_row) {
                 'options' => $options,
                 'actions' => $actions,
                 'primary' => $primary,
-                'tableRandomValue' => $tableRandomValue
+                'tableRandomValue' => $tableRandomValue,
+                'multi-select' => $data['multi-select'] ?? false,
             ]
         )
     );
@@ -164,7 +165,8 @@ $html .= sprintf(
             'fields' => $data['fields'],
             'paginator' => $this->Paginator,
             'actions' => (empty($actions) ? false : true),
-            'tableRandomValue' => $tableRandomValue
+            'tableRandomValue' => $tableRandomValue,
+            'multi-select' => $data['multi-select'] ?? false,
         ]
     ),
     $tbody

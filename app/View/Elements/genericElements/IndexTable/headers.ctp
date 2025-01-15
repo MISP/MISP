@@ -1,5 +1,6 @@
 <?php
     $headersHtml = '';
+    $headerName = '';
     foreach ($fields as $k => $header) {
         if (!isset($header['requirement']) || $header['requirement']) {
             $header_data = '';
@@ -14,6 +15,7 @@
                         sprintf('%s%s', $icon_html, h($header['name'])),
                         ['escape' => false]
                     );
+                    $headerName = $header['name'];
                 } else {
                     if (empty($icon_html)) {
                         $header_data = $paginator->sort($header['sort']);
@@ -34,6 +36,7 @@
                     );
                 } else {
                     $header_data = h($header['name']);
+                    $headerName = $header['name'];
                 }
 
             }
@@ -43,8 +46,9 @@
                 $columnName = h(\Inflector::variable(!empty($header['name']) ? $header['name'] : \Inflector::humanize($header['data_path'])));
             }
             $headersHtml .= sprintf(
-                '<th scope="col" data-columnname="%s">%s</th>',
+                '<th scope="col" data-columnname="%s" %s>%s</th>',
                 $columnName,
+                empty($header['header_title']) ? h($headerName) : 'title="' . h($header['header_title']) . '"',
                 $header_data
             );
         }
