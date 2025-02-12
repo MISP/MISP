@@ -24,6 +24,13 @@ class EventTag extends AppModel
         'Event',
         'Tag'
     );
+    public $hasMany = [
+        'TagRelationTag' => [
+            'conditions' => ['scope' => 'event'],
+            'foreignKey' => 'tag_relation_id',
+            'dependent' => true
+        ],
+    ];
 
     public function afterSave($created, $options = array())
     {

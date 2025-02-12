@@ -33,6 +33,13 @@ class AttributeTag extends AppModel
             'className' => 'Tag',
         ),
     );
+    public $hasMany = [
+        'TagRelationTag' => [
+            'conditions' => ['scope' => 'attribute'],
+            'foreignKey' => 'tag_relation_id',
+            'dependent' => true
+        ],
+    ];
 
     public function afterSave($created, $options = array())
     {

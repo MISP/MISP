@@ -7,6 +7,7 @@ $input = $this->Form->input($fieldData['field'], [
     'placeholder' => $fieldData['placeholder'] ?? 'tlp:red, PAP:GREEN',
     'div' => 'input text input-append',
     'after' => sprintf('<button type="button" class="btn" onclick="pickerTags.call(this);">%s</button>', __('Pick tags')),
+    'default' => $fieldData['default'] ?? null,
 ]);
 ?>
 
@@ -16,11 +17,16 @@ $input = $this->Form->input($fieldData['field'], [
 
 <script>
     function pickerTags() {
+        var clicked = this
         $(this).data('popover-no-submit', true);
         $(this).data('popover-callback-function', setTagsAfterSelect);
         var target_id = 0;
-        var target_type = 'galaxyClusterRelation';
-        popoverPopup(this, target_id + '/' + target_type, 'tags', 'selectTaxonomy')
+        var target_type = '<?= $fieldData['tag_scope'] ?? 'generic' ?>';
+        popoverPopup(this, target_id + '/' + target_type, 'tags', 'selectTaxonomy').then(function() {
+            if ($(clicked).closest(".modal")) {
+                $(clicked).data("popover").tip().css({'z-index': '1060'})
+            }
+        })
     }
 
     function setTagsAfterSelect(selected, additionalData) {

@@ -557,6 +557,9 @@ class Event extends AppModel
         foreach ($events as $event) {
             foreach ($event['EventTag'] as $et) {
                 $tagsToFetch[$et['tag_id']] = $et['tag_id'];
+                foreach ($et['TagRelationTag'] as $tr) {
+                    $tagsToFetch[$tr['tag_id']] = $tr['tag_id'];
+                }
             }
         }
         if (empty($tagsToFetch)) {
@@ -572,6 +575,9 @@ class Event extends AppModel
         foreach ($events as &$event) {
             foreach ($event['EventTag'] as &$et) {
                 $et['Tag'] = $tags[$et['tag_id']];
+                foreach ($et['TagRelationTag'] as &$tr) {
+                    $tr['Tag'] = $tags[$tr['tag_id']];
+                }
             }
         }
         return $events;
@@ -2023,7 +2029,8 @@ class Event extends AppModel
                     'order' => false
                 ),
                 'EventTag' => array(
-                    'order' => false
+                    'order' => false,
+                    'TagRelationTag' => ['Tag'],
                 ),
                 'EventReport' => array(
                     'conditions' => $conditionsEventReport,
@@ -2372,6 +2379,7 @@ class Event extends AppModel
                     $cluster['event_tag_id'] = $eventTag['id'];
                     $cluster['local'] = $eventTag['local'] ?? false;
                     $cluster['relationship_type'] = !empty($eventTag['relationship_type']) ? $eventTag['relationship_type'] : false;
+                    $cluster['TagRelationTag'] = !empty($eventTag['TagRelationTag']) ? $eventTag['TagRelationTag'] : [];
                     if (isset($event['Galaxy'][$galaxyId])) {
                         unset($cluster['Galaxy']);
                         $event['Galaxy'][$galaxyId]['GalaxyCluster'][] = $cluster;
@@ -7371,6 +7379,7 @@ class Event extends AppModel
             'conditions' => $conditions,
             'fields' => ['AttributeTag.id', 'AttributeTag.attribute_id', 'AttributeTag.tag_id', 'AttributeTag.local', 'AttributeTag.relationship_type'], // we don't need id or event_id
             'recursive' => -1,
+            'contain' => ['TagRelationTag',]
         ]);
         if (empty($ats)) {
             foreach ($events as &$event) {
@@ -7382,6 +7391,8 @@ class Event extends AppModel
         }
         $atForAttributes = [];
         foreach ($ats as $at) {
+            $at['AttributeTag']['TagRelationTag'] = $at['TagRelationTag'];
+            unset($at['TagRelationTag']);
             $atForAttributes[$at['AttributeTag']['attribute_id']][] = $at['AttributeTag'];
         }
         foreach ($events as &$event) {
@@ -7429,6 +7440,9 @@ class Event extends AppModel
             foreach ($event['Attribute'] as $attribute) {
                 foreach ($attribute['AttributeTag'] as $attributeTag) {
                     $tagIds[$attributeTag['tag_id']] = true;
+                    foreach ($attributeTag['TagRelationTag'] as $attrTagRelTag) {
+                        $tagIds[$attrTagRelTag['tag_id']] = true;
+                    }
                 }
             }
         }
@@ -7484,6 +7498,14 @@ class Event extends AppModel
                             $event['Attribute'][$ak]['AttributeTag'][$atk]['Tag'] = $tag;
                         } else {
                             unset($event['Attribute'][$ak]['AttributeTag'][$atk]);
+                        }
+                        foreach ($attributeTag['TagRelationTag'] as $atrtk => $attributeTagRelTag) {
+                            $tag = $this->__getCachedTag($attributeTagRelTag['tag_id'], $justExportable);
+                            if ($tag !== null) {
+                                $event['Attribute'][$ak]['AttributeTag'][$atk]['TagRelationTag'][$atrtk]['Tag'] = $tag;
+                            } else {
+                                unset($event['Attribute'][$ak]['AttributeTag'][$atk]['TagRelationTag'][$atrtk]);
+                            }
                         }
                     }
                     $event['Attribute'][$ak]['AttributeTag'] = array_values($event['Attribute'][$ak]['AttributeTag']);

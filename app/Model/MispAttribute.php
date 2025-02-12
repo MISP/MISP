@@ -1692,7 +1692,8 @@ class MispAttribute extends AppModel
                 ),
                 'AttributeTag' => array(
                     'fields' => ['AttributeTag.tag_id', 'AttributeTag.local'],
-                    'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable'))
+                    'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable')),
+                    'TagRelationTag' => ['Tag' => ['fields' => ['Tag.id', 'Tag.name', 'Tag.colour']]],
                 ),
                 'Object'
             )
@@ -1795,7 +1796,7 @@ class MispAttribute extends AppModel
                 'Event' => array(
                     'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
                 ),
-                'AttributeTag', // tags are fetched separately, @see MispAttribute::attachTagsToAttributes
+                'AttributeTag' => ['TagRelationTag'], // tags are fetched separately, @see MispAttribute::attachTagsToAttributes
                 'Object' => array(
                     'fields' => array('id', 'distribution', 'sharing_group_id')
                 )
@@ -2147,6 +2148,11 @@ class MispAttribute extends AppModel
             if (!empty($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $at) {
                     $tagIdsToFetch[$at['tag_id']] = true;
+                    if (!empty($at['TagRelationTag'])) {
+                        foreach ($at['TagRelationTag'] as $attrTagRelTag) {
+                            $tagIdsToFetch[$attrTagRelTag['tag_id']] = true;
+                        }
+                    }
                 }
             }
         }
@@ -2177,6 +2183,12 @@ class MispAttribute extends AppModel
                     $tag = $tags[$at['tag_id']];
                     $tag['local'] = $at['local'];
                     $attributes[$k]['AttributeTag'][$k2]['Tag'] = $tag;
+                    if (!empty($at['TagRelationTag'])) {
+                        foreach ($at['TagRelationTag'] as $k3 => $atrt) {
+                            $tag = $tags[$atrt['tag_id']];
+                            $attributes[$k]['AttributeTag'][$k2]['TagRelationTag'][$k3]['Tag'] = $tag;
+                        }
+                    }
                 }
             }
             if ($tagCulled) {

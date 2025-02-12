@@ -30,6 +30,13 @@ class EventReportTag extends AppModel
             'className' => 'Tag',
         ],
     ];
+    public $hasMany = [
+        'TagRelationTag' => [
+            'conditions' => ['scope' => 'event_report'],
+            'foreignKey' => 'tag_relation_id',
+            'dependent' => true
+        ],
+    ];
 
     /**
      * attachTags

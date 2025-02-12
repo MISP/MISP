@@ -729,6 +729,7 @@ class EventsController extends AppController
         ];
         $this->paginate['contain']['EventTag'] = [
             'fields' => ['EventTag.event_id', 'EventTag.tag_id', 'EventTag.local', 'EventTag.relationship_type'],
+            'TagRelationTag',
         ];
         if ($this->_isSiteAdmin()) {
             $this->paginate['contain'][] = 'User.email';

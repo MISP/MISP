@@ -27,7 +27,8 @@ class EventReportsController extends AppController
                 'Org' => array('fields' => array('Org.id', 'Org.name'))
             ),
             'EventReportTag' => [
-                'Tag'
+                'Tag',
+                'TagRelationTag' => ['Tag'],
             ]
         )
     );

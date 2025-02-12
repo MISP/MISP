@@ -57,7 +57,10 @@ class EventReport extends AppModel
             'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
             'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
             'Org' => array('fields' => array('Org.id', 'Org.name'))
-        )
+        ),
+        'EventReportTag' => [
+            'Tag',
+        ],
     );
 
     public $belongsTo = array(

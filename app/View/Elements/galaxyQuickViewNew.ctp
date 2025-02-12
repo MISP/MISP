@@ -147,13 +147,15 @@ $generatePopover = function (array $cluster) use ($normalizeKey) {
                     );
                 }
             }
+            $tag_relation_tags_html = !empty($cluster['TagRelationTag']) ? $this->element('tagRelationshipTags', ['tagRelationshipTags' => $cluster['TagRelationTag']]) : '';
             echo sprintf(
                 '<li>%s %s</li>',
                 sprintf(
                     '%s<b %s data-content="%s"><i class="fas fa-%s" title="%s"></i> %s</b>',
                     empty($cluster['relationship_type']) ?  '' : sprintf(
-                        '<span class="tagComplete white" style="background-color:black">%s:</span> ',
-                        h($cluster['relationship_type'])
+                        '<span class="tagComplete white" style="background-color:black; margin-bottom: 2px;"><div>%s :</div>%s</span> ',
+                        h($cluster['relationship_type']),
+                        $tag_relation_tags_html,
                     ),
                     $preview ? '' : 'class="useCursorPointer" data-clusterid="' . h($cluster['id']) . '"',
                     h($generatePopover($cluster)),

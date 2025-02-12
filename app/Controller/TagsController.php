@@ -357,7 +357,8 @@ class TagsController extends AppController
             'contain' => [
                 'EventTag' => array(
                     'Tag' => array('order' => false),
-                    'order' => false
+                    'order' => false,
+                    'TagRelationTag' => ['Tag'],
                 )
             ],
         ]);
@@ -1032,7 +1033,7 @@ class TagsController extends AppController
         return $this->RestResponse->viewData($tags, 'application/json');
     }
 
-    public function modifyTagRelationship($scope, $id)
+    public function modifyTagRelationship($scope, $id, $captureTag = false)
     {
         $validScopes = ['event', 'attribute', 'event_report'];
         if (!in_array($scope, $validScopes, true)) {
@@ -1042,7 +1043,10 @@ class TagsController extends AppController
         $tagConnector = $this->Tag->$model_name->find('first', [
             'conditions' => [$model_name . '.id' => $id],
             'recursive' => -1,
-            'contain' => ['Tag'],
+            'contain' => [
+                'Tag',
+                'TagRelationTag' => ['Tag' => ['fields' => ['id', 'name']]],
+            ],
         ]);
         if (empty($tagConnector)) {
             throw new NotFoundException(__('Tag not found.'));
@@ -1074,6 +1078,15 @@ class TagsController extends AppController
             }
             $result = $this->Tag->$model_name->save($tagConnector, true, ['relationship_type']);
             if ($result) {
+                $savedId = $this->Tag->$model_name->id;
+                $tagRelationTags = !empty($this->request->data['Tag']['relationship_tag_tags']) ?  JsonTool::decode($this->request->data['Tag']['relationship_tag_tags']) : [];
+                $this->Tag->$model_name->TagRelationTag->detachTags($this->Auth->user(), $scope, $savedId);
+                if (!empty($tagRelationTags)) {
+                    $tagSaveResults = $this->Tag->$model_name->TagRelationTag->attachTags($this->Auth->user(), $scope, $savedId, $tagRelationTags, $captureTag);
+                    if (!$tagSaveResults) {
+                        $errors[] = __('Tags could not be saved for Tag Relationship (%s)', $savedId);
+                    }
+                }
                 $message = __('Relationship updated.');
                 if ($this->_isRest() || $this->request->is('ajax')) {
                     return $this->RestResponse->successResponse($id, $message, ["{$scope}_id" => $tagConnector[$model_name]["{$scope}_id"]]);
@@ -1120,6 +1133,8 @@ class TagsController extends AppController
             } else {
                 $this->set('default', $tagConnector[$model_name]['relationship_type']);
             }
+            $tagNames = Hash::extract($tagConnector['TagRelationTag'], '{n}.Tag.name');
+            $this->set('default_tag_relationship_tag', JsonTool::encode($tagNames));
             $this->set('model', 'Tag');
             $this->set('onsubmit', 'modifyTagRelationship()');
             $this->set('field', 'relationship_type');

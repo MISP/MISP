@@ -41,11 +41,14 @@ $span_scope = !empty($hide_global_scope) ? '' : sprintf(
     !empty($tag['local']) ? __('Local tag') : __('Global tag'),
     !empty($tag['local']) ? 'user' : 'globe-americas'
 );
+$tag_relation_tags_html = !empty($tag['TagRelationTag']) ? $this->element('tagRelationshipTags', ['tagRelationshipTags' => $tag['TagRelationTag']]) : '';
 $span_relationship_type = empty($tag['relationship_type']) ? '' : sprintf(
-    '<span class="tag nowrap white" style="background-color:black" title="%s" aria-label="%s">%s:</span>',
+    '<span class="tag nowrap white" style="background-color:black; margin-bottom: 2px; %s" title="%s" aria-label="%s"><div>%s :</div>%s</span>',
+    !empty($tag['TagRelationTag']) ? 'border-radius: 3px;' : '',
     h($tag['relationship_type']),
     h($tag['relationship_type']),
-    h($tag['relationship_type'])
+    h($tag['relationship_type']),
+    $tag_relation_tags_html
 );
 if (!empty($tag['Tag']['id'])) {
     $span_tag = sprintf(

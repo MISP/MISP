@@ -1557,6 +1557,7 @@ class GalaxyCluster extends AppModel
                     $cluster = $this->postprocess($clustersByTagName[$tagName], $eventTag['Tag']['id']);
                     $cluster['GalaxyCluster']['local'] = $eventTag['local'];
                     $cluster['GalaxyCluster']['relationship_type'] = $eventTag['relationship_type'];
+                    $cluster['GalaxyCluster']['TagRelationTag'] = !empty($eventTag['TagRelationTag']) ? $eventTag['TagRelationTag'] : [];
                     $events[$k]['GalaxyCluster'][] = $cluster['GalaxyCluster'];
                     if ($replace) {
                         unset($events[$k]['EventTag'][$k2]);

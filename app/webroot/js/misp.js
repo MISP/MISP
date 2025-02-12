@@ -843,7 +843,8 @@ function refreshTagCollectionRow(tag_collection_id) {
 
 function modifyTagRelationship() {
     event.preventDefault();
-    var $form = $(event.target);
+    var $submit_button = $(event.target)
+    var $form = $submit_button.closest('.modal').find('.genericForm')
     var action = $form.attr("action");
 
     $.ajax({
@@ -1901,7 +1902,7 @@ function popoverPopup(clicked, id, context, target, admin) {
     }
     if (target != '') url += "/" + target;
     if (id != '') url += "/" + id;
-    popoverPopupNew(clicked, url);
+    return popoverPopupNew(clicked, url);
 }
 
 function popoverPopupNew(clicked, url) {
@@ -1909,7 +1910,7 @@ function popoverPopupNew(clicked, url) {
     var popover = openPopover($clicked, undefined);
 
     // actual request
-    $.ajax({
+    return $.ajax({
         dataType: "html",
         cache: false,
         success: function (data) {

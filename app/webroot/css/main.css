@@ -907,7 +907,7 @@ a.black-white:hover {
     font-weight: bold;
     line-height: 14px;
     border-radius: 3px;
-    box-shadow: 3px 3px 3px #888888;
+    box-shadow: 2px 2px 2px #888888;
 }
 
 .topGap {
@@ -2114,7 +2114,8 @@ a.discrete {
     background-color: #fff;
     border: 1px solid #ddd;
     border-radius: 3px;
-    width: 40em;
+    min-width: 40em;
+    max-width: 80em;
 }
 
 #galaxies_div > .title-section {
