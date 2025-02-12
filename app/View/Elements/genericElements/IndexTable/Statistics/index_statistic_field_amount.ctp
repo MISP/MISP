@@ -1,14 +1,12 @@
 <?php
 
-use Inflector;
-
 $statisticsHtml = '';
-$statistics_pie_amount = $this->request->getQuery('statistics_entry_amount', 5);
-$statistics_pie_include_remaining = $this->request->getQuery('statistics_include_remainging', true);
+$statistics_pie_amount = $this->request->params['statistics_entry_amount'] ?? 5;
+$statistics_pie_include_remaining = $this->request->params['statistics_include_remainging'] ?? true;
 if (is_string($statistics_pie_include_remaining)) {
     $statistics_pie_include_remaining = $statistics_pie_include_remaining == 'true' ? true : false;
 }
-$statistics_pie_ignore_null = $this->request->getQuery('statistics_ignore_null', true);
+$statistics_pie_ignore_null = $this->request->params['statistics_ignore_null'] ?? true;
 if (is_string($statistics_pie_ignore_null)) {
     $statistics_pie_ignore_null = $statistics_pie_ignore_null == 'true' ? true : false;
 }

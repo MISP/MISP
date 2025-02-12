@@ -15,11 +15,14 @@ class CerebratesController extends AppController
             'maxLimit' => 9999
     );
 
+    public $statisticsFields = ['org_id', 'pull_orgs'];
+
     public function index()
     {
         $params = [
             'filters' => ['name', 'url', 'uuid'],
-            'quickFilters' => ['name']
+            'quickFilters' => ['name'],
+            'statisticsFields' => $this->statisticsFields
         ];
         $this->CRUD->index($params);
         if ($this->IndexFilter->isRest()) {

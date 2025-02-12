@@ -26,6 +26,7 @@
         if (isset($action['complex_requirement'])) {
             if ($action['complex_requirement'] instanceof Closure) {
                 $requirementMet = $action['complex_requirement']($row);
+
             } else {
                 if (isset($action['complex_requirement']['options']['datapath'])) {
                     foreach ($action['complex_requirement']['options']['datapath'] as $name => $path) {
@@ -34,9 +35,9 @@
                 }
                 $options = isset($action['complex_requirement']['options']) ? $action['complex_requirement']['options'] : array();
                 $requirementMet = $action['complex_requirement']['function']($row, $options);
-                if (!$requirementMet) {
-                    continue;
-                }
+            }
+            if (!$requirementMet) {
+                continue;
             }
         }
         $url_param_data_paths = '';

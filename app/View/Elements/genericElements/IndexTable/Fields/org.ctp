@@ -1,5 +1,5 @@
 <?php
-    $orgs = $row[$field['data_path']];
+    $orgs = $this->Hash->extract($row, $field['data_path']);
     if (!isset($field['fields']['allow_picture'])) {
         $field['fields']['allow_picture'] = true;
     }

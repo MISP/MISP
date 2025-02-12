@@ -1,7 +1,7 @@
 <?php
 
 
-use App\View\Helper\BootstrapGeneric;
+App::uses('BootstrapGeneric', 'View/Helper');
 
 /**
  * Creates a Bootstrap card with the given options

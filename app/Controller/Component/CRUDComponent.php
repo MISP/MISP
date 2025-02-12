@@ -51,6 +51,7 @@ class CRUDComponent extends Component
             }
             $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
         } else {
+            $model = $this->Controller->{$this->Controller->defaultModel};
             $query['includeAnalystData'] = true;
             $this->Controller->paginate = $query;
             $data = $this->Controller->paginate();
@@ -58,8 +59,46 @@ class CRUDComponent extends Component
                 if (is_callable($options['afterFind'])) {
                     $data = $options['afterFind']($data);
                 } else {
-                    $data = $this->Controller->{$this->Controller->defaultModel}->{$options['afterFind']}($data);
+                    $data = $model->{$options['afterFind']}($data);
                 }
+            }
+            if (empty($excludeStats)) { // check if stats are requested
+                $modelStatistics = [];
+                if ($model->Behaviors->enabled('Timestamp')) {
+                    $modelStatistics = $model->getActivityStatisticsForModel(
+                        $model,
+                        !empty($this->Controller->request->params['statistics_days']) ? 7 : intval($this->Controller->request->params['statistics_days'])
+                    );
+                }
+                if (!empty($options['statisticsFields'])) {
+                    $statIncludeRemaining = $this->Controller->request->params['statistics_include_remainging'] ?? true;
+                    if (is_string($statIncludeRemaining)) {
+                        $statIncludeRemaining = $statIncludeRemaining == 'true' ? true : false;
+                    }
+                    $statIgnoreNull = $this->Controller->request->params['statistics_ignore_null'] ?? true;
+                    if (is_string($statIgnoreNull)) {
+                        $statIgnoreNull = $statIgnoreNull == 'true' ? true : false;
+                    }
+                    $statistics_entry_amount = $this->Controller->request->params['statistics_entry_amount'] ?? 5;
+                    if (
+                        !is_numeric($statistics_entry_amount) ||
+                        intval($statistics_entry_amount) <= 0
+                    ) {
+                        $statistics_entry_amount = 5;
+                    } else {
+                        $statistics_entry_amount = intval($statistics_entry_amount);
+                    }
+                    $statsOptions = [
+                        'limit' => $statistics_entry_amount,
+                        'includeOthers' => $statIncludeRemaining,
+                        'ignoreNull' => $statIgnoreNull,
+                    ];
+                    $modelStatistics['usage'] = $model->getStatisticsUsageForModel(
+                        $options['statisticsFields'],
+                        $statsOptions
+                    );
+                }
+                $this->Controller->set('modelStatistics', $modelStatistics);
             }
             $this->Controller->set('data', $data);
         }
@@ -404,4 +443,6 @@ class CRUDComponent extends Component
         }
         return $massagedFilters;
     }
+
+    
 }

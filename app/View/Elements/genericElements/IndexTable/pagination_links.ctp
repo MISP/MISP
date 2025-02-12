@@ -1,8 +1,12 @@
 <?php
+$urlOptions = array_merge($this->request->params['pass'], $this->request->params['named']);
+$urlOptions['controller'] = $this->params['controller'];
+$urlOptions['action'] = $this->params['action'];
+if (isset($urlOptions['page'])) {
+    unset($urlOptions['page']);
+}
+$url = Router::url($urlOptions);
     $currentPage = $this->Paginator->param('page');
-    $url = $this->Paginator->url([
-        'page' => null
-    ]);
     $prev = sprintf(
         '<li class="page-item %s"><a class="page-link" href="%s" tabindex="-1">%s</a></li>',
         $this->Paginator->hasPrev() ? '' : 'disabled',

@@ -196,10 +196,6 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 ],
             ],
             [
-                'icon' => 'grip-lines-vertical',
-                'requirement' => $isSiteAdmin
-            ],
-            [
                 'title' => __('Add enrichment'),
                 'icon' => 'asterisk',
                 'onclick' => 'simplePopup(\'' . $baseurl . '/events/queryEnrichment/[onclick_params_data_path]/Enrichment/Attribute\');',
