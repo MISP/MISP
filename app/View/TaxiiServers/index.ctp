@@ -89,7 +89,7 @@
                             $baseurl
                         ),
                         'onclick_params_data_path' => 'TaxiiServer.id',
-                        'title' => __('Pull all filtered data to TAXII server'),
+                        'title' => __('Push all filtered data to TAXII server'),
                         'icon' => 'upload'
                     ],
                     [

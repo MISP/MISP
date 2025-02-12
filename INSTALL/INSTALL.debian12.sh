@@ -1,6 +1,7 @@
 #!/bin/bash
-# MISP 2.5 installation for Ubuntu RHEL 9.4
-# This guide is meant to be a simply installation of MISP on a pristine RHEL 9.4 server.
+# MISP 2.5 installation for Debian 12
+
+# This guide is meant to be a simply installation of MISP on a pristine Debian 12 server.
 # Keep in mind that whilst this installs the software along with all of its dependencies, it's up to you to properly secure it.
 
 # This guide liberally borrows from three sources:
@@ -24,12 +25,12 @@ INSTALL_SSDEEP='n' # y/n, if you want to install ssdeep, set to 'y', however, th
 
 ## optional settings
 MISP_PATH='/var/www/MISP'
-APACHE_USER='apache'
+APACHE_USER='www-data'
 
 ### DB settings, if you want to use a different DB host, name, user, or password, please change these
 DBHOST='localhost'
 DBUSER_ADMIN='root'
-DBPASSWORD_ADMIN='' # Default on Ubuntu is a passwordless root account, if you have changed it, please set it here
+DBPASSWORD_ADMIN='' # Default on Debian is a passwordless root account, if you have changed it, please set it here
 DBNAME='misp'
 DBPORT='3306'
 DBUSER_MISP='misp'
@@ -58,8 +59,6 @@ OPENSSL_OU='MISP'
 OPENSSL_CN=${MISP_DOMAIN}
 OPENSSL_EMAILADDRESS='misp@'${MISP_DOMAIN}
 
-PHP_INI=/etc/php.ini
-
 # Some helper functions shamelessly copied from @da667's automisp install script.
 
 logfile=/var/log/misp_install.log
@@ -68,12 +67,12 @@ tee < ${logfile}.pipe $logfile &
 exec &> ${logfile}.pipe
 rm ${logfile}.pipe
 
-function install_packages()
+function install_packages ()
 {
     install_params=("$@")
     for i in "${install_params[@]}";
     do
-        sudo dnf install -y "$i" &>> $logfile
+        sudo apt-get install -y "$i" &>> $logfile
         error_check "$i installation"
     done
 }
@@ -120,10 +119,10 @@ function print_notification ()
 
 function os_version_check ()
 {
-    # Check if we're on RHEL 9.4+ as expected:
-    RHEL_VERSION=$(cat /etc/os-release | grep VERSION_ID | grep -oP '9\.(([4-9]|[1-9][0-9]+))')
-    if [ -z "$RHEL_VERSION" ]; then
-        print_error "This installation tool expects you to be running RHEL 9.4+. If you are on a prior version of RHEL, please make sure that you upgrade your distribution first, then execute this script again."
+    # Check if we're on Debian 12 as expected:
+    DEBIAN_VERSION=$(lsb_release -a | grep Release | grep -oP '[\d-]+$')
+    if [[ "$DEBIAN_VERSION" != "12" ]]; then
+        print_error "This upgrade tool expects you to be running Debian 12. If you are on a prior upgrade of Debian, please make sure that you upgrade your distribution first, then execute this script again."
         exit 1
     fi
 }
@@ -136,7 +135,7 @@ echo -e "${BLUE}██╔████╔██║${NC}██║█████�
 echo -e "${BLUE}██║╚██╔╝██║${NC}██║╚════██║██╔═══╝ "
 echo -e "${BLUE}██║ ╚═╝ ██║${NC}██║███████║██║     "
 echo -e "${BLUE}╚═╝     ╚═╝${NC}╚═╝╚══════╝╚═╝     "
-echo -e "v2.5 Setup on RHEL 9.4 (until you move to a sane distro)"
+echo -e "v2.5 Setup on Debian 12"
 
 os_version_check
 
@@ -169,90 +168,54 @@ save_settings() {
 }
 
 print_status "Updating base system..."
-sudo subscription-manager refresh &>> $logfile
-sudo dnf update -y &>> $logfile
-sudo dnf upgrade -y &>> $logfile
+sudo apt-get update &>> $logfile
+sudo apt-get upgrade -y &>> $logfile
 error_check "Base system update"
 
-sudo subscription-manager repos --enable=codeready-builder-for-rhel-9-$(arch)-rpms  &>> $logfile
-error_check "Enable repo needed for gpgme-devel"
-
-yes | sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm  &>> $logfile
-error_check "Enable EPEL"
-
-print_status "Installing dnf packages (git curl python3.12 python3.12-pip httpd zip gcc sudo binutils openssl gpgme-devel supervisor mod_ssl)..."
-declare -a packages=( git curl python3.12 python3.12-pip httpd zip gcc sudo binutils openssl gpgme-devel supervisor mod_ssl );
+print_status "Installing apt packages (git curl python3 python3-pip python3-virtualenv apache2 zip gcc sudo binutils openssl supervisor)..."
+declare -a packages=( git curl python3 python3-pip python3-virtualenv apache2 zip gcc sudo binutils openssl supervisor );
 install_packages ${packages[@]}
 error_check "Basic dependencies installation"
 
 print_status "Installing MariaDB..."
-declare -a packages=( mariadb-server );
+declare -a packages=( mariadb-server mariadb-client );
 install_packages ${packages[@]}
 error_check "MariaDB installation"
-sudo systemctl start mariadb.service &>> $logfile
-error_check "Launching MariaDB"
+
 
 print_status "Installing PHP and the list of required extensions..."
-dnf module install php:8.2 -y &>> $logfile
-declare -a packages=( redis php php-devel php-pear php-mysqlnd php-devel php-zip php-gd php-intl php-bcmath php-pecl-apcu);
+declare -a packages=( redis-server php8.2 php8.2-cli php8.2-dev php8.2-xml php8.2-mysql php8.2-opcache php8.2-readline php8.2-mbstring php8.2-zip \
+  php8.2-intl php8.2-bcmath php8.2-gd php8.2-redis php8.2-gnupg php8.2-apcu libapache2-mod-php8.2 php8.2-curl );
 install_packages ${packages[@]}
-
-print_status "Opening port 80 and 443 in the firewall..."
-sudo firewall-cmd --zone=public --add-service=http --permanent &>> $logfile
-sudo firewall-cmd --zone=public --add-service=https --permanent &>> $logfile
-sudo firewall-cmd --reload &>> $logfile
-error_check "Opening of ports 80 and 443"
-
-print_status "Enabling the httpd service"
-sudo systemctl enable httpd.service &>> $logfile
-error_check "Enabling of the httpd service"
-
-print_status "Starting httpd"
-sudo systemctl start httpd.service &>> $logfile
-error_check "Starting of httpd"
-
-print_status "Enabling the redis service"
-sudo systemctl enable redis.service &>> $logfile
-error_check "Enabling of the redis service"
-
-print_status "Starting the redis service"
-sudo systemctl start redis.service &>> $logfile
-error_check "Starting of the redis service"
+PHP_ETC_BASE=/etc/php/8.2
+PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+error_check "PHP and required extensions installation."
 
 # Install composer and the composer dependencies of MISP
 
 print_status "Installing composer..."
 
 ## make pip and composer happy
-sudo mkdir /var/www/.cache/  &>> $logfile
-sudo chown -R ${APACHE_USER}:${APACHE_USER} /var/www/.cache/  &>> $logfile
+sudo mkdir /var/www/.cache/
+sudo chown -R ${APACHE_USER}:${APACHE_USER} /var/www/.cache/
 
 curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php &>> $logfile
 COMPOSER_HASH=`curl -sS https://composer.github.io/installer.sig`
 php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '$COMPOSER_HASH') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"  &>> $logfile
-sudo php /tmp/composer-setup.php --install-dir=/usr/bin --filename=composer  &>> $logfile
+sudo php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer  &>> $logfile
 error_check "Composer installation"
 
-print_status "Configuring SELinux"
-sudo setsebool -P httpd_can_network_connect 1 &>> $logfile
-sudo setsebool -P httpd_can_sendmail 1 &>> $logfile
-if [ "$DBHOST" != 'localhost' ]; then
-    sudo setsebool -P httpd_can_network_connect_db 1 &>> $logfile
-fi
-error_check "SELinux configuration"
-
 print_status "Configuring php and MySQL configs..."
-
 for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
 do
-    sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI  &>> $logfile
+    sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
 done
-sudo sed -i "s/^\(session.sid_length\).*/\1 = 32/" $PHP_INI  &>> $logfile
-sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = 1/" $PHP_INI  &>> $logfile
-sudo sed -i "s/^\(session.save_handler\).*/\1 = redis/" $PHP_INI  &>> $logfile
-sudo sed -i "/session.save_handler/a session.save_path = 'tcp:\/\/localhost:6379'/" $PHP_INI  &>> $logfile
+sudo sed -i "s/^\(session.sid_length\).*/\1 = 32/" $PHP_INI
+sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = 1/" $PHP_INI
+sudo sed -i "s/^\(session.save_handler\).*/\1 = redis/" $PHP_INI
+sudo sed -i "/session.save_handler/a session.save_path = 'tcp:\/\/localhost:6379'/" $PHP_INI
 
-MYCNF="/etc/my.cnf.d/mariadb-server.cnf "
+MYCNF="/etc/mysql/mariadb.conf.d/50-server.cnf"
 # We go for an innodb buffer pool size of 50% of the available memory
 
 # Check for cgroup memory limits, don't rely on /proc/meminfo in an LXC container with unbound memory limits
@@ -268,46 +231,35 @@ sudo sed -i "/\[mariadb\]/a innodb_buffer_pool_size = ${INNODBBUFFERPOOLSIZE}" $
 sudo sed -i '/\[mariadb\]/a innodb_io_capacity = 1000' $MYCNF
 sudo sed -i '/\[mariadb\]/a innodb_read_io_threads = 16' $MYCNF
 
-sudo service httpd restart &>> $logfile
+sudo service apache2 restart
 error_check "Apache restart"
-sudo service mariadb restart &>> $logfile
+sudo service mysql restart
 error_check "MySQL restart"
-sudo service php-fpm restart &>> $logfile
-error_check "PHP FPM restart"
-
 
 print_ok "PHP and MySQL configured..."
 
 print_status "Installing PECL extensions..."
 
-sudo pecl channel-update pecl.php.net &>> $logfile
+sudo pecl channel-update pecl.php.net &>> $logfile || echo "Continuing despite error in updating PECL channel"
 sudo pecl install brotli &>> $logfile
-error_check_soft "PECL brotli extension installation"
-sudo echo "extension=brotli.so" >> $PHP_INI
+error_check_soft "PECL brotli extension installation" || echo "Continuing despite error in installing PECL brotli extension"
 sudo pecl install simdjson &>> $logfile
-error_check_soft "PECL simdjson extension installation"
-sudo echo "extension=simdjson.so" >> $PHP_INI
+error_check_soft "PECL simdjson extension installation" || echo "Continuing despite error in installing PECL simdjson extension"
 sudo pecl install zstd &>> $logfile
-error_check_soft "PECL zstd extension installation"
-sudo echo "extension=zstd.so" >> $PHP_INI
-yes 'no' | sudo pecl install redis &>> $logfile
-error_check_soft "PECL redis extension installation"
-sudo echo "extension=redis.so" >> $PHP_INI
-sudo pecl install gnupg &>> $logfile
-error_check_soft "PECL gnupg extension installation"
-sudo echo "extension=gnupg.so" >> $PHP_INI
+error_check_soft "PECL zstd extension installation" || echo "Continuing despite error in installing PECL zstd extension"
 
 if [ $INSTALL_SSDEEP == "y" ]; then
-    sudo dnf install make -y &>> $logfile
-    error_check "The installation of make"
+    sudo apt install make libfuzzy-dev -y &>> $logfile
+    error_check "The installation of make" || echo "Continuing despite error in installing make"
+    sudo ln -s /usr/lib/x86_64-linux-gnu/libfuzzy.so /usr/local/lib/libfuzzy.so
+
     git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
-    error_check "Jakub Onderka's PHP8 SSDEEP extension cloning"
+    error_check "Jakub Onderka's PHP8 SSDEEP extension cloning" || echo "Continuing despite error in cloning SSDEEP extension"
+
     cd /tmp/pecl-text-ssdeep && phpize && ./configure && make && make install
-    error_check_soft "Jakub Onderka's PHP8 SSDEEP extension compilation and installation"
+    error_check "Jakub Onderka's PHP8 SSDEEP extension compilation and installation" || echo "Continuing despite error in SSDEEP compilation and installation"
 fi
 
-sudo service httpd restart &>> $logfile
-error_check "Apache restart"
 
 print_status "Cloning MISP"
 sudo git clone https://github.com/MISP/MISP.git ${MISP_PATH}  &>> $logfile
@@ -326,17 +278,6 @@ sudo git -C ${MISP_PATH} submodule foreach --recursive git config core.filemode 
 sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>> $logfile
 sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git &>> $logfile
 print_ok "MISP's submodules cloned."
-
-
-print_status "Setting up Python environment for MISP"
-
-# Create a python3 virtualenv
-sudo -u ${APACHE_USER} python3.12 -m venv ${MISP_PATH}/venv &>> $logfile
-error_check "Python virtualenv creation"
-
-cd ${MISP_PATH}
-. ./venv/bin/activate &>> $logfile
-error_check "Python virtualenv activation"
 
 print_status "Installing MISP composer dependencies..."
 cd ${MISP_PATH}/app
@@ -400,33 +341,9 @@ sed -i "s#Rooraenietu8Eeyo<Qu2eeNfterd-dd+#$(random_string)#" config.php
 
 print_ok "MISP php config files moved and configured."
 
-print_status "Setting SELinux context for MISP..."
-sudo chcon -t httpd_sys_rw_content_t $MISP_PATH/app/files  &>> $logfile
-sudo chcon -t httpd_sys_rw_content_t $MISP_PATH/app/files/terms  &>> $logfile
-sudo chcon -t httpd_sys_rw_content_t $MISP_PATH/app/files/scripts/tmp  &>> $logfile
-sudo chcon -t httpd_sys_rw_content_t $MISP_PATH/app/Plugin/CakeResque/tmp  &>> $logfile
-sudo chcon -t httpd_sys_script_exec_t $MISP_PATH/app/Console/cake  &>> $logfile
-sudo sh -c "chcon -t httpd_sys_script_exec_t $MISP_PATH/app/Console/worker/*.sh"  &>> $logfile
-sudo sh -c "chcon -t httpd_sys_script_exec_t $MISP_PATH/app/files/scripts/*.py"  &>> $logfile
-sudo sh -c "chcon -t httpd_sys_script_exec_t $MISP_PATH/app/files/scripts/*/*.py"  &>> $logfile
-[[ -e ${PATH_TO_MISP}/app/files/scripts/lief/build/api/python/lief.so ]] && sudo chcon -t httpd_sys_script_exec_t $MISP_PATH/app/files/scripts/lief/build/api/python/lief.so  &>> $logfile
-sudo chcon -t httpd_sys_script_exec_t $MISP_PATH/app/Vendor/pear/crypt_gpg/scripts/crypt-gpg-pinentry  &>> $logfile
-sudo sh -c "chcon -R -t bin_t $MISP_PATH/venv/bin/*"  &>> $logfile
-sudo find $MISP_PATH/venv -type f -name "*.so*" -or -name "*.so.*" | xargs sudo chcon -t lib_t  &>> $logfile
-# Only run these if you want to be able to update MISP from the web interface
-sudo chcon -R -t httpd_sys_rw_content_t $MISP_PATH/.git  &>> $logfile
-sudo chcon -R -t httpd_sys_rw_content_t $MISP_PATH/app/tmp  &>> $logfile
-sudo chcon -R -t httpd_sys_rw_content_t $MISP_PATH/app/Lib  &>> $logfile
-sudo chcon -R -t httpd_sys_rw_content_t $MISP_PATH/app/Config  &>> $logfile
-sudo chcon -R -t httpd_sys_rw_content_t $MISP_PATH/app/webroot/img/orgs  &>> $logfile
-sudo chcon -R -t httpd_sys_rw_content_t $MISP_PATH/app/webroot/img/custom  &>> $logfile
-sudo chcon -R -t httpd_sys_rw_content_t $MISP_PATH/app/files/scripts/mispzmq  &>> $logfile
-print_ok "SELinux context setting"
-
 # Generate ssl certificate
 if [ -z "${PATH_TO_SSL_CERT}" ]; then
     print_notification "Generating self-signed SSL certificate."
-    mkdir -p /etc/ssl/private
     sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
     -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
     -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt &>> $logfile
@@ -445,8 +362,8 @@ print_status "Creating Apache configuration file for MISP..."
           Redirect permanent / https://$MISP_DOMAIN
 
           LogLevel warn
-          ErrorLog /var/log/httpd/misp.local_error.log
-          CustomLog /var/log/httpd/misp.local_access.log combined
+          ErrorLog /var/log/apache2/misp.local_error.log
+          CustomLog /var/log/apache2/misp.local_access.log combined
           ServerSignature Off
   </VirtualHost>
 
@@ -468,12 +385,12 @@ print_status "Creating Apache configuration file for MISP..."
           SSLCertificateKeyFile /etc/ssl/private/misp.local.key
 
           LogLevel warn
-          ErrorLog /var/log/httpd/misp.local_error.log
-          CustomLog /var/log/httpd/misp.local_access.log combined
+          ErrorLog /var/log/apache2/misp.local_error.log
+          CustomLog /var/log/apache2/misp.local_access.log combined
           ServerSignature Off
           Header set X-Content-Type-Options nosniff
           Header set X-Frame-Options DENY
-  </VirtualHost>" | sudo tee /etc/httpd/conf.d/misp-ssl.conf  &>> $logfile
+  </VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-ssl.conf  &>> $logfile
 
 error_check "Apache configuration file creation"  &>> $logfile
 
@@ -499,6 +416,16 @@ error_check "PGP key generation"
 sudo -u ${APACHE_USER} gpg --homedir $MISP_PATH/.gnupg --export --armor ${GPG_EMAIL_ADDRESS} | sudo -u ${APACHE_USER} tee $MISP_PATH/app/webroot/gpg.asc  &>> $logfile
 error_check "PGP key export"
 
+print_status "Setting up Python environment for MISP"
+
+# Create a python3 virtualenv
+sudo -u ${APACHE_USER} virtualenv -p python3 ${MISP_PATH}/venv &>> $logfile
+error_check "Python virtualenv creation"
+
+cd ${MISP_PATH}
+. ./venv/bin/activate &>> $logfile
+error_check "Python virtualenv activation"
+
 # install python dependencies
 ${MISP_PATH}/venv/bin/pip install -r ${MISP_PATH}/requirements.txt  &>> $logfile
 error_check "Python dependencies installation"
@@ -511,7 +438,7 @@ sudo echo "
 [inet_http_server]
 port=127.0.0.1:9001
 username=$SUPERVISOR_USER
-password=$SUPERVISOR_PASSWORD" | sudo tee -a /etc/supervisord.d/supervisord.ini  &>> $logfile
+password=$SUPERVISOR_PASSWORD" | sudo tee -a /etc/supervisor/supervisord.conf  &>> $logfile
 
 sudo echo "[group:misp-workers]
 programs=default,email,cache,prio,update
@@ -578,9 +505,9 @@ autorestart=true
 redirect_stderr=false
 stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
 stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
-user=$APACHE_USER"  | sudo tee -a /etc/supervisord.d/misp-workers.ini  &>> $logfile
+user=$APACHE_USER"  | sudo tee -a /etc/supervisor/conf.d/misp-workers.conf  &>> $logfile
 
-sudo systemctl restart supervisord  &>> $logfile
+sudo systemctl restart supervisor  &>> $logfile
 error_check "Background workers setup"
 
 # Set settings
@@ -596,7 +523,7 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.tmpdir" "${MISP_PATH}/app/tmp" &>> $logfile
 
   # Change base url, either with this CLI command or in the UI
-  [[ ! -z ${MISP_DOMAIN} ]] && sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Baseurl $MISP_DOMAIN &>> $logfile
+  [[ ! -z ${MISP_DOMAIN} ]] && sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake admin setSetting MISP.baseurl "https://${MISP_DOMAIN}" &>> $logfile
   [[ ! -z ${MISP_DOMAIN} ]] && sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.external_baseurl" ${MISP_BASEURL} &>> $logfile
 
   # Enable GnuPG
@@ -664,7 +591,7 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1" &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_port" 6379 &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_database" 13 &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_password" "" &>> $logfileMusk operation is being led by senior officials from Ron DeSantis’ embarrassing 2024 effort.
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_password" "" &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_serializer" "JSON" &>> $logfile
 
   # Force defaults to make MISP Server Settings less YELLOW
@@ -686,7 +613,7 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.block_event_alert" false &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.block_event_alert_tag" "no-alerts=\"true\"" &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.block_old_event_alert" false &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.block_old_event_alert_age" "90" &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.block_old_event_alert_age" "" &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.block_old_event_alert_by_date" "" &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.event_alert_republish_ban" true &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.event_alert_republish_ban_threshold" 5 &>> $logfile
@@ -704,7 +631,7 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.rest_client_baseurl" "" &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.advanced_authkeys" true &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.password_policy_length" 12 &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/' &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.password_policy_complexity" '/^((?=.*\\d)|(?=.*\\W+))(?![\\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/' &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators." &>> $logfile
 
   # Appease the security audit, #hardening
@@ -736,10 +663,8 @@ error_check "JSON structures ingestion"
   sudo a2ensite misp-ssl &>> $logfile
 
   # Restart apache
-  sudo systemctl restart httpd &>> $logfile
+  sudo systemctl restart apache2 &>> $logfile
   error_check "Apache restart"
-  sudo service php-fpm restart &>> $logfile
-  error_check "PHP FPM restart"
 
 print_ok "Settings configured."
 

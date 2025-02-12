@@ -262,7 +262,7 @@ fi
 
 print_status "Cloning MISP"
 sudo git clone https://github.com/MISP/MISP.git ${MISP_PATH}  &>> $logfile
-error_check "MISP clonining"
+error_check "MISP cloning"
 cd ${MISP_PATH}
 git fetch origin 2.5 &>> $logfile
 error_check "Fetching 2.5 branch"

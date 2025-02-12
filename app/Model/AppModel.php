@@ -2224,7 +2224,7 @@ class AppModel extends Model
                 // change bookmarks' table's comment field to utf8_mb4
                 $sqlArray[] = "ALTER TABLE `bookmarks` MODIFY `comment` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
                 break;
-            case 131;
+            case 131:
                 $sqlArray[] = "ALTER TABLE `galaxies` ADD `default` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `galaxies` ADD `org_id` int(10) unsigned NOT NULL";
                 $sqlArray[] = "ALTER TABLE `galaxies` ADD `orgc_id` int(10) unsigned NOT NULL";

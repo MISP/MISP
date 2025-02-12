@@ -77,14 +77,15 @@ class GalaxyClustersController extends AppController
             $searchall = '%' . strtolower($filters['searchall']) . '%';
             $synonym_hits = $this->GalaxyCluster->GalaxyElement->find(
                 'list',
-                array(
+                [
                     'recursive' => -1,
-                    'conditions' => array(
-                        'LOWER(GalaxyElement.value) LIKE' => $searchall,
-                        'GalaxyElement.key' => 'synonyms' ),
-                        'fields' => array(
-                            'GalaxyElement.galaxy_cluster_id')
-                        )
+                    'conditions' => [
+                        'LOWER(GalaxyElement.value) LIKE' => $searchall
+                    ],
+                    'fields' => [
+                        'GalaxyElement.galaxy_cluster_id'
+                    ]
+                ]
             );
             $searchConditions = array(
                 'OR' => array(
@@ -101,6 +102,11 @@ class GalaxyClustersController extends AppController
             $clusters = $this->GalaxyCluster->find(
                 'all',
                 array(
+                    'contain' => [
+                        'Galaxy' => [
+                            'fields' => ['id', 'uuid', 'name', 'type', 'namespace', 'version', 'description', 'default']
+                        ]
+                    ],
                     'conditions' => array(
                         'AND' => array($contextConditions, $searchConditions, $aclConditions)
                     ),
@@ -228,6 +234,7 @@ class GalaxyClustersController extends AppController
         if (empty($galaxy)) {
             throw new NotFoundException(__('Invalid galaxy'));
         }
+        $galaxyId = $galaxy['Galaxy']['id'];
         $this->loadModel('MispAttribute');
         $distributionLevels = $this->MispAttribute->distributionLevels;
         unset($distributionLevels[5]);

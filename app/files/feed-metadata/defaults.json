@@ -2079,5 +2079,29 @@
       "exportable": true,
       "hide_tag": false
     }
-  }
+  },
+  {
+  "Feed": {
+    "name": "Rösti - Repackaged Öpen Source Threat Intelligence",
+    "provider": "bin.re",
+    "url": "https://rosti.64617461.xyz/downloads/misp/",
+    "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+    "enabled": true,
+    "distribution": "3",
+    "sharing_group_id": "0",
+    "default": false,
+    "source_format": "misp",
+    "fixed_event": true,
+    "delta_merge": false,
+    "publish": false,
+    "override_ids": false,
+    "settings": "{\"disable_correlation\":\"0\",\"unpublish_event\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": true,
+    "headers": "",
+    "caching_enabled": false,
+    "force_to_ids": false
+      }
+  }  
 ]

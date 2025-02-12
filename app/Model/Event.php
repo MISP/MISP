@@ -5683,8 +5683,10 @@ class Event extends AppModel
         foreach ($objects as $k => $object) {
             if ($object['objectType'] === 'object') {
                 $object_notes[] = $object['uuid'];
-                foreach ($object['Attribute'] as $a) {
-                    $attribute_notes[] = $a['uuid'];
+                if (!empty($object['Attribute'])) {
+                    foreach ($object['Attribute'] as $a) {
+                        $attribute_notes[] = $a['uuid'];
+                    }
                 }
             } else if ($object['objectType'] === 'attribute') {
                 $attribute_notes[] = $object['uuid'];
@@ -5697,9 +5699,11 @@ class Event extends AppModel
                 if (!empty($object_notes[$object['uuid']])) {
                     $objects[$k] = array_merge($object, $object_notes[$object['uuid']]);
                 }
-                foreach ($object['Attribute'] as $k2 => $a) {
-                    if (!empty($attribute_notes[$a['uuid']])) {
-                        $objects[$k]['Attribute'][$k2] = array_merge($a, $attribute_notes[$a['uuid']]);
+                if (!empty($object['Attribute'])) {
+                    foreach ($object['Attribute'] as $k2 => $a) {
+                        if (!empty($attribute_notes[$a['uuid']])) {
+                            $objects[$k]['Attribute'][$k2] = array_merge($a, $attribute_notes[$a['uuid']]);
+                        }
                     }
                 }
             } else if ($object['objectType'] === 'attribute') {

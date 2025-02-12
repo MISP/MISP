@@ -142,6 +142,15 @@ Additionally, it is recommended to set the following settings in the MISP config
 
 This way users will not be able to change their passwords and by-pass the AAD login flow.
 
+## Known problems
+### tls_process_server_certificate:certificate verify failed in CakeSocket.php
+
+If you encounter an error `error:1416F086:SSL routines:tls_process_server_certificate:certificate verify failed in [/var/www/MISP/app/Lib/cakephp/lib/Cake/Network/CakeSocket.php, line 504]` then this most likely means the plugin is unable to verify the remote server certificate, in this case the certificate from Microsoft. This can happen when you're behind a corporate proxy server with TLS inspection. The solution is to include the certificate of your proxy into the `/var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem` (or what you have defined as ca_path) file.
+
+```
+cat /etc/pki/ca-trust/corporate.pem >> /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
+```
+
 # Create users via the MISP REST API
 
 Because users already need to exist in MISP before they can authenticate with AAD it can be useful to provision them in an automated fashion. This can be done by creating the users via the MISP REST API. The below `curl` command provides an example on how to do this. Note that you need an API key.

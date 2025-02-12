@@ -41,7 +41,7 @@ for module_name, dir_path in MODULE_TO_DIRECTORY.items():
         _CURRENT_PATH_IDX += 1
 from misp_stix_converter import (
     ExternalSTIX2toMISPParser, InternalSTIX2toMISPParser,
-    MISP_org_uuid, _from_misp)
+    MISP_org_uuid, _is_stix2_from_misp)
 from stix2.parsing import parse as stix2_parser
 
 
@@ -83,7 +83,9 @@ def _process_stix_file(args: argparse.Namespace):
                 f.read(), allow_custom=True, interoperability=True
             )
         stix_version = getattr(bundle, 'version', '2.1')
-        to_call, arguments = _get_stix_parser(_from_misp(bundle.objects), args)
+        to_call, arguments = _get_stix_parser(
+            _is_stix2_from_misp(bundle.objects), args
+        )
         parser = globals()[to_call]()
         parser.load_stix_bundle(bundle)
         parser.parse_stix_bundle(single_event=True, **arguments)

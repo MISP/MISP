@@ -241,8 +241,13 @@ class LdapAuthenticate extends BaseAuthenticate
             $orgId = $firstOrg['Organisation']['id'];
         }
 
-        // Set role_id based on group membership or default role
+        // Set role_id based on group membership with ldapReaderUser bind or default role
         if (is_array(self::$conf['ldapDefaultRoleId'])) {
+            $ldapbind = ldap_bind($ldapconn, self::$conf['ldapReaderUser'],  self::$conf['ldapReaderPassword']);
+            if (!$ldapbind) {
+                CakeLog::error("[LdapAuth] Invalid LDAP reader user credentials: " . ldap_error($ldapconn));
+                throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
+            }
             // Get user memberships
             $groups = $this->getUserMemberships($ldapconn, $ldapUserData);
 
