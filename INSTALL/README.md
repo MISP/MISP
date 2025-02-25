@@ -11,6 +11,8 @@ Files prefixed with 'CONFIG.' are CONFIGuration guides and not full blown INSTAL
 
 UPGRADE.ubuntu2404.sh upgrades an existing MISP 2.4 installation to 2.5, provided you are on ubuntu 24.04 (if you are on an earlier distribution, make sure you run a distribution upgrade first).
 
+**Something to keep in mind if you are updating from MISP 2.4 to 2.5, please make sure that you repopulate the new /var/www/MISP/app/Config/database.default.php rather than copying over your existing one from your old instance.**
+
 UPDATE.md gives you a brief overview on how to update MISP to the latest version, as well as some other core dependencies that can be updated.
 
 Install guides with the 'x' prefix, are marked as Experimental.

@@ -3727,8 +3727,10 @@ class Event extends AppModel
                     $event['Event']['Object'][$i] = $this->updatedLockedFieldForAnalystData($event['Event']['Object'][$i]);
                 }
                 if (!empty($event['Event']['Object'][$i])) {
-                    for ($j=0; $j < count($event['Event']['Object'][$i]['Attribute']); $j++) {
-                        $event['Event']['Object'][$i]['Attribute'][$j] = $this->updatedLockedFieldForAnalystData($event['Event']['Object'][$i]['Attribute'][$j]);
+                    if (!empty($event['Event']['Object'][$i]['Attribute'])) {
+                        for ($j=0; $j < count($event['Event']['Object'][$i]['Attribute']); $j++) {
+                            $event['Event']['Object'][$i]['Attribute'][$j] = $this->updatedLockedFieldForAnalystData($event['Event']['Object'][$i]['Attribute'][$j]);
+                        }
                     }
                 }
             }
@@ -3974,6 +3976,9 @@ class Event extends AppModel
                 'conditions' => array('Event.id' => $this->id),
                 'recursive' => -1
             ));
+
+            $this->dedupAttributesForCorrelation($data);
+
             if (!empty($data['Event']['Attribute'])) {
                 $attributeHashes = [];
                 foreach ($data['Event']['Attribute'] as $attribute) {
@@ -4089,6 +4094,68 @@ class Event extends AppModel
             $validationErrors['Event'] = $this->validationErrors;
             return json_encode($validationErrors);
         }
+    }
+
+    private function addAttributeToCorrelationDedupTable(array &$value_table, int|null $object_id, int $attribute_id, array $attribute, array $compositeTypes): void
+    {
+        $values = [];
+        // we need to build our little internal value table with composite types in mind
+        if (in_array($attribute['type'], $compositeTypes)) {
+            $values = explode('|', $attribute['value']);
+        } else {
+            $values = [$attribute['value']];
+        }
+        foreach ($values as $value) {
+            $value = hash('sha256', $attribute['value']);
+            if (!isset($value_table[$value])) {
+                $value_table[$value] = ['v' => $attribute['value'], 'data' => [['o' => $object_id, 'a' => $attribute_id]]];
+            } else {
+                $value_table[$value]['data'][] = ['o' => $object_id, 'a' => $attribute_id, 'v' => $attribute['value']];
+            }
+        }
+    }
+
+    // deduplicate event for attributes with multiple correlations
+    private function dedupAttributesForCorrelation(array &$event): bool
+    {
+        $limit = (Configure::read('MISP.correlation_limit') ?? 20);
+        $value_table = [];
+        $compositeTypes = $this->Attribute->getCompositeTypes();
+        if (!empty($event['Event']['Object'])) {
+            foreach ($event['Event']['Object'] as $object_id => $object) {
+                if (!empty($object['Attribute'])) {
+                    foreach ($object['Attribute'] as $attribute_id => $attribute) {
+                        $this->addAttributeToCorrelationDedupTable($value_table, $object_id, $attribute_id, $attribute, $compositeTypes);
+                    }
+                }
+            }
+        }
+
+        if (!empty($event['Event']['Attribute'])) {
+            foreach ($event['Event']['Attribute'] as $attribute_id => $attribute) {
+                $this->addAttributeToCorrelationDedupTable($value_table, null, $attribute_id, $attribute, $compositeTypes);
+            }
+        }
+
+        foreach ($value_table as $value => $elements) {
+            if (count($elements['data']) > ($limit)) {
+                $this->Attribute->Correlation->OverCorrelatingValue->block($elements['v']);
+                foreach ($elements['data'] as $i => $element) {
+                    if (isset($element['o']) && $element['o'] !== null) {
+                        $event['Event']['Object'][$element['o']]['Attribute'][$element['a']]['skip_overcorrelation_unblock'] = true;
+                        if ($i > $limit) {
+                            $event['Event']['Object'][$element['o']]['Attribute'][$element['a']]['skip_correlation'] = true;
+                        }
+                    } else {
+                        $event['Event']['Attribute'][$element['a']]['skip_overcorrelation_unblock'] = true;
+                        if ($i > $limit) {
+                            $event['Event']['Attribute'][$element['a']]['skip_correlation'] = true;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     /**
@@ -6129,9 +6196,9 @@ class Event extends AppModel
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    public function upload_stix(array $user, $file, $stixVersion, $originalFile, $publish, $distribution, $sharingGroupId, $galaxiesAsTags, $clusterDistribution, $clusterSharingGroupId, $debug = false)
+    public function upload_stix(array $user, $file, $stixVersion, $originalFile, $publish, $distribution, $sharingGroupId, $forceContextualData, $galaxiesAsTags, $clusterDistribution, $clusterSharingGroupId, $debug = false)
     {
-        $decoded = $this->convertStixToMisp($stixVersion, $file, $distribution, $sharingGroupId, $galaxiesAsTags, $clusterDistribution, $clusterSharingGroupId, $user['Organisation']['uuid'], $debug);
+        $decoded = $this->convertStixToMisp($stixVersion, $file, $distribution, $sharingGroupId, $forceContextualData, $galaxiesAsTags, $clusterDistribution, $clusterSharingGroupId, $user['Organisation']['uuid'], $debug);
 
         if (!empty($decoded['success'])) {
             $data = JsonTool::decodeArray($decoded['converted']);
@@ -6194,6 +6261,7 @@ class Event extends AppModel
      * @param string $file Path to STIX file
      * @param int $distribution
      * @param int|null $sharingGroupId
+     * @param bool $forceContextualData
      * @param bool $galaxiesAsTags
      * @param int $clusterDistribution
      * @param int|null $clusterSharingGroupId
@@ -6202,7 +6270,7 @@ class Event extends AppModel
      * @return array
      * @throws Exception
      */
-    private function convertStixToMisp($stixVersion, $file, $distribution, $sharingGroupId, $galaxiesAsTags, $clusterDistribution, $clusterSharingGroupId, $orgUuid, $debug)
+    private function convertStixToMisp($stixVersion, $file, $distribution, $sharingGroupId, $forceContextualData, $galaxiesAsTags, $clusterDistribution, $clusterSharingGroupId, $orgUuid, $debug)
     {
         $scriptDir = APP . 'files' . DS . 'scripts';
         if ($stixVersion === '2' || $stixVersion === '2.0' || $stixVersion === '2.1') {
@@ -6213,17 +6281,20 @@ class Event extends AppModel
                 $scriptFile,
                 '-i', $file,
                 '--distribution', $distribution,
-                '--org_uuid', $orgUuid
+                '--org-uuid', $orgUuid
             ];
             if ($distribution == 4) {
-                array_push($shellCommand, '--sharing_group_id', $sharingGroupId);
+                array_push($shellCommand, '--sharing-group-id', $sharingGroupId);
+            }
+            if ($forceContextualData) {
+                $shellCommand[] = '--force-contextual-data';
             }
             if ($galaxiesAsTags) {
-                $shellCommand[] = '--galaxies_as_tags';
+                $shellCommand[] = '--galaxies-as-tags';
             } else {
-                array_push($shellCommand, '--cluster_distribution', $clusterDistribution);
+                array_push($shellCommand, '--cluster-distribution', $clusterDistribution);
                 if ($clusterDistribution == 4) {
-                    array_push($shellCommand, '--cluster_sharing_group_id', $clusterSharingGroupId);
+                    array_push($shellCommand, '--cluster-sharing-group-id', $clusterSharingGroupId);
                 }
             }
             if ($debug) {

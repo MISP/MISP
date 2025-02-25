@@ -15,7 +15,7 @@ $description = sprintf(
     '%s<br />%s<br /><br />%s<br />%s',
     __('Create a sharing group blueprint, which can be used to generate a sharing rule based on the nested rules described.'),
     __('Simply create a JSON dictionary using a combination of filters and boolean operators.'),
-    '<span class="bold">Filters</span>: org_id, org_type, org_uuid, org_name, org_sector, org_nationality, sharing_group_id, , sharing_group_uuid',
+    '<span class="bold">Filters</span>: org_id, org_type, org_uuid, org_name, org_sector, org_nationality, sharing_group_id, sharing_group_uuid',
     '<span class="bold">Boolean operators</span>: OR, AND, NOT'
 );
 echo $this->element('genericElements/Form/genericForm', [

@@ -92,7 +92,7 @@ _user_account_object_mapping = {'username': ('text', 'username'), 'full_name': (
                                 'disabled': ('boolean', 'disabled'), 'creation_date': ('datetime', 'created'),
                                 'last_login': ('datetime', 'last_login'), 'home_directory': ('text', 'home_dir'),
                                 'script_path': ('text', 'shell')}
-_vulnerability_object_mapping = {'cve_id': ('text', 'id'), 'description': ('text', 'summary'),
+_vulnerability_object_mapping = {'cve_id': ('vulnerability', 'id'), 'description': ('text', 'summary'),
                                  'published_datetime': ('datetime', 'published')}
 _weakness_object_mapping = {'cwe_id': 'id', 'description': 'description'}
 _whois_registrant_mapping = {'email_address': ('whois-registrant-email', 'address_value.value', 'registrant-email'),

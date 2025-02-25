@@ -1,6 +1,6 @@
 # Contributing to MISP Project
 
-MISP project is a large free software project composed of multiple sub-projects which are contributed by different contributors who are generally active users of the MISP project. MISP project fully supports the [Contributor Covenant Code of Conduct](https://github.com/MISP/MISP/blob/2.4/code_of_conduct.md) to foster an open and dynamic environment for contributing and the exchange in the threat intelligence and information exchange field.
+MISP project is a large free software project composed of multiple sub-projects which are contributed by different contributors who are generally active users of the MISP project. MISP project fully supports the [Contributor Covenant Code of Conduct](https://github.com/MISP/MISP/blob/2.5/code_of_conduct.md) to foster an open and dynamic environment for contributing and the exchange in the threat intelligence and information exchange field.
 
 The [MISP roadmap](/ROADMAP.md) is mostly based on the user communities (e.g. private communities, CSIRTs communities, security researchers, ISACs - Information Sharing and Analysis Center, security providers, governmental or military organisations) relying on MISP to perform their duties of information sharing and analysis.
 
@@ -24,7 +24,7 @@ Don’t forget that you can cross-reference issues from other sub-projects.
 ### Following up afterward
 
 If the MISP developers make a code change that resolves your issue, then your GitHub issue will typically be closed from the relevant patch message. 
-There is one main MISP core branch, `2.4` (current stable version), that we consider as stable with frequent updates as hotfixes.
+There is one main MISP core branch, `2.5` (current stable version), that we consider as stable with frequent updates as hotfixes.
 Features are developed in separated branches and then regularly merged into the stable branch. 
 If you so choose, you can test the fix while it’s in the feature branch, or you can wait for it to land in the stable repository. 
 If, after testing the fix, you find that it does not fix your bug, please leave a comment on your issue explaining the situation. 
@@ -47,7 +47,7 @@ Before you get started, read our [coding guidelines](/CODINGSTYLE.md).
 If you want to contribute to the [MISP core](https://github.com/MISP/MISP) project:
 
 - First fork the [MISP core project](https://github.com/MISP/MISP)
-- Branch off from 2.4 (2.4 branch is the main branch of development in MISP) `git checkout 2.4`
+- Branch off from 2.5 (2.5 branch is the main branch of development in MISP) `git checkout 2.5`
 - Then create a branch for your own contribution (bug fixes, enhancement, new features) by typing `git checkout -b fix-glossy-user-interface`
 - Work on your fix or feature (only work on that, avoid committing any debug functionalities, testing, or unused code)
 - Commit your fix or feature (and sign it with GnuPG -- if you have a GnuPG key) with a meaningful commit message as recommended in our [Commit Messages Best Practices](https://github.com/MISP/MISP/wiki/CommitMessageBestPractices). MISP uses [gitchangelog](https://github.com/vaab/gitchangelog/blob/master/src/gitchangelog/gitchangelog.rc.reference) to generate changelog, so it's recommended that when writing commit messages, use `new:` for new features, `fix:` when it's a bug-fix or `chg` when it's re-factoring or clean-up.

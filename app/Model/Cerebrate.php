@@ -362,12 +362,19 @@ class Cerebrate extends AppModel
             'description' => [
                 'field' => 'description'
             ],
+            'roaming' => [
+                'field' => 'roaming',
+                'default' => true,
+            ],
         ];
         $sg = [];
         foreach ($mapping as $cerebrate_field => $field_data) {
             if (empty($sg_data[$cerebrate_field])) {
                 if (!empty($field_data['required'])) {
                     return false;
+                } else if (isset($field_data['default'])) {
+                    $sg[$field_data['field']] = $field_data['default'];
+                    continue;
                 } else {
                     continue;
                 }

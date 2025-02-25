@@ -11175,7 +11175,7 @@ msgid "Markdown format"
 msgstr ""
 
 #: View/Elements/EventReports/reportHelpModal.ctp:11
-msgid "The suported markdown format is similar to %s with some differences:"
+msgid "The supported markdown format is similar to %s with some differences:"
 msgstr ""
 
 #: View/Elements/EventReports/reportHelpModal.ctp:18

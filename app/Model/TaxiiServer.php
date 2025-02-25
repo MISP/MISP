@@ -29,6 +29,15 @@ class TaxiiServer extends AppModel
         if (empty($this->id) && empty($this->data['TaxiiServer']['uuid'])) {
             $this->data['TaxiiServer']['uuid'] = CakeText::uuid();
         }
+        // Set skip_proxy to false if not provided
+        if (!isset($this->data['TaxiiServer']['skip_proxy'])) {
+            $this->data['TaxiiServer']['skip_proxy'] = false;
+        }
+
+        // Validate skip_proxy as a boolean
+        if (isset($this->data['TaxiiServer']['skip_proxy']) && !is_bool($this->data['TaxiiServer']['skip_proxy'])) {
+            $this->invalidate('skip_proxy', 'Invalid value for skip_proxy. Must be a boolean.');
+        }
         return true;
     }
 
@@ -157,6 +166,12 @@ class TaxiiServer extends AppModel
         $url = $options['TaxiiServer']['baseurl'] . $options['TaxiiServer']['uri'];
         App::uses('HttpSocket', 'Network/Http');
         $HttpSocket = new HttpSocket();
+        if (!$options['TaxiiServer']['skip_proxy']) {
+            $proxy = Configure::read('Proxy');
+            if (isset($proxy['host']) && !empty($proxy['host'])) {
+                $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
+            }
+        }
         $request = [
             'header' => [
                 'Accept' => 'application/taxii+json;version=2.1',

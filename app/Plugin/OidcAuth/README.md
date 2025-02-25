@@ -20,7 +20,7 @@ $config = array(
     ...
     'Security' => array(
         ...
-        'auth' => 'array('OidcAuth.Oidc')',
+        'auth' => array('OidcAuth.Oidc'),
     ),
     ...
 ```
@@ -35,14 +35,22 @@ $config = array(
         'issuer' => '{{ OIDC_ISSUER }}', // If omitted, it defaults to provider_url
         'client_id' => '{{ OIDC_CLIENT_ID }}',
         'client_secret' => '{{ OIDC_CLIENT_SECRET }}',
-        'role_mapper' => [ // if user has multiple roles, first role that match will be assigned to user
+        'role_mapper' => [ // if user has multiple roles, first role that matches will be assigned to user. In below example, lowest privileged role (misp-user) will be assigned, if the IdP says the user has both misp-user and misp-admin role. You might want to sort the opposite way, if you want the highest privileged role to get priority.
             'misp-user' => 3, // User
             'misp-admin' => 1, // Admin
         ],
         'default_org' => '{{ MISP_ORG }}',
-        'scopes' => ['profile', 'email'],
+        'scopes' => ['profile', 'email'], // Make sure to add your custom scope here if you set any
     ],
     ...
+```
+
+4. Other MISP settings
+
+You might want to change or set the following MISP config values once the single sign on integration works (you can do this via GUI):
+```
+Security.require_password_confirmation false
+Security.auth_enforced true
 ```
 
 ## Caveats

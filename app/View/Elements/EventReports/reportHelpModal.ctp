@@ -8,7 +8,7 @@
 ?>
 
 <h2><?= __('Markdown format') ?></h2>
-<p><?= __('The suported markdown format is similar to %s with some differences:', sprintf('<a href="%s" target="_blank">GFM</a>', 'https://github.github.com/gfm/')) ?></p>
+<p><?= __('The supported markdown format is similar to %s with some differences:', sprintf('<a href="%s" target="_blank">GFM</a>', 'https://github.github.com/gfm/')) ?></p>
 <ul>
     <?php foreach($formatDifferences as $formatDifference): ?>
         <li><?= $formatDifference ?></li>

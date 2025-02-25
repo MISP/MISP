@@ -1,6 +1,6 @@
 <div class="confirmation">
     <?php
-    echo $this->Form->create('Attribute', ['style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => $baseurl . '/attributes/generateCorrelation']);
+    echo $this->Form->create('MISPAttribute', ['style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => $baseurl . '/attributes/generateCorrelation']);
     $message = __('Recorrelate instance');
     $buttonTitle = __('Recorrelate');
     ?>

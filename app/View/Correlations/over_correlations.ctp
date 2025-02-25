@@ -32,6 +32,13 @@ echo $this->element('genericElements/IndexTable/index_table', [
                             'text' => __('Regenerate occurrence counts')
                         ]
                     ]
+                ],
+                [
+                    'type' => 'search',
+                    'button' => __('Filter'),
+                    'placeholder' => __('Enter value to search'),
+                    'data' => '',
+                    'searchKey' => 'quickFilter'
                 ]
             ]
         ],

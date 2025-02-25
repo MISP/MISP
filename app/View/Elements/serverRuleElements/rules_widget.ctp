@@ -1,4 +1,4 @@
-<?php 
+    <?php 
 $seed = rand();
 $pickerDisplayed = false;
 ?>
@@ -22,7 +22,11 @@ $pickerDisplayed = false;
             >
                 <?php foreach($initAllowOptions as $option): ?>
                     <?php if(is_array($option)): ?>
-                        <option value="<?= !empty($optionNoValue) ? h($option['name']) : h($option['id']) ?>"><?= h($option['name']) ?></option>
+                        <?php if(!empty($option['uuid'])): ?>
+                            <option value="<?= h($option['uuid']) ?>"><?= h($option['name']) ?></option>
+                        <?php else: ?>
+                            <option value="<?= !empty($optionNoValue) ? h($option['name']) : h($option['id']) ?>"><?= h($option['name']) ?></option>
+                        <?php endif; ?>
                     <?php else: ?>
                         <option value="<?= h($option) ?>"><?= h($option) ?></option>
                     <?php endif; ?>
@@ -64,7 +68,11 @@ $pickerDisplayed = false;
                                         <?php endforeach; ?>
                                     </optgroup>
                                 <?php elseif(is_array($option)): ?>
-                                    <option value="<?= !empty($optionNoValue) ? h($option['name']) : h($option['id']) ?>"><?= h($option['name']) ?></option>
+                                    <?php if(!empty($option['uuid'])): ?>
+                                        <option value="<?= h($option['uuid']) ?>"><?= h($option['name']) ?></option>
+                                    <?php else: ?>
+                                        <option value="<?= !empty($optionNoValue) ? h($option['name']) : h($option['id']) ?>"><?= h($option['name']) ?></option>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <option value="<?= h($option) ?>"><?= h($option) ?></option>
                                 <?php endif; ?>
@@ -144,7 +152,11 @@ $pickerDisplayed = false;
             >
                 <?php foreach($initBlockOptions as $option): ?>
                     <?php if(is_array($option)): ?>
-                        <option value="<?= !empty($optionNoValue) ? h($option['name']) : h($option['id']) ?>"><?= h($option['name']) ?></option>
+                        <?php if(!empty($option['uuid'])): ?>
+                            <option value="<?= h($option['uuid']) ?>"><?= h($option['name']) ?></option>
+                        <?php else: ?>
+                            <option value="<?= !empty($optionNoValue) ? h($option['name']) : h($option['id']) ?>"><?= h($option['name']) ?></option>
+                        <?php endif; ?>
                     <?php else: ?>
                         <option value="<?= h($option) ?>"><?= h($option) ?></option>
                     <?php endif; ?>

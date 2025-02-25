@@ -1061,7 +1061,14 @@ class TagsController extends AppController
         }
         if ($this->request->is('post')) {
             if (isset($this->request->data['Tag']['relationship_type'])) {
-                $tagConnector[$model_name]['relationship_type'] = $this->request->data['Tag']['relationship_type'];
+                if (
+                    $this->request->data['Tag']['relationship_type'] == 'custom' &&
+                    !empty($this->request->data['Tag']['relationship_type_custom'])
+                ) {
+                    $tagConnector[$model_name]['relationship_type'] = $this->request->data['Tag']['relationship_type_custom'];
+                } else {
+                    $tagConnector[$model_name]['relationship_type'] = $this->request->data['Tag']['relationship_type'];
+                }
             } else {
                 $tagConnector[$model_name]['relationship_type'] = '';
             }
@@ -1107,7 +1114,12 @@ class TagsController extends AppController
                 )
             );
             $this->set('options', $relationships);
-            $this->set('default', $tagConnector[$model_name]['relationship_type']);
+            if (empty($relationships[$tagConnector[$model_name]['relationship_type']])) {
+                $this->set('default', 'custom');
+                $this->set('default_custom', $tagConnector[$model_name]['relationship_type']);
+            } else {
+                $this->set('default', $tagConnector[$model_name]['relationship_type']);
+            }
             $this->set('model', 'Tag');
             $this->set('onsubmit', 'modifyTagRelationship()');
             $this->set('field', 'relationship_type');

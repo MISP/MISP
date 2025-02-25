@@ -3676,6 +3676,49 @@ function testConnection(id) {
     })
 }
 
+function testSyncRule(id, method) {
+    var resultContainer = $("#sync_rule_" + method + "_test_" + id);
+    $.ajax({
+        url: baseurl + '/servers/testSyncRules/' + id + '/' + method,
+        type: 'GET',
+        beforeSend: function () {
+            resultContainer.text('Running test...');
+        },
+        error: function () {
+            resultContainer.html('<span class="red bold">Internal error</span>');
+        },
+        success: function (response) {
+            resultContainer.empty();
+            if (typeof response !== 'object') {
+                resultContainer.html('<span class="red bold">Internal error</span>');
+            } else if ("error" in response) {
+                resultContainer.append(
+                    $('<span>')
+                        .attr('class', 'red bold')
+                        .text('Error')
+                ).append(
+                    $('<span>')
+                        .text(': #' + response.error)
+                );
+            } else {
+                resultText = response.without_rules - response.with_rules
+                if (resultText != 0) {
+                    resultText += ' (' + (((response.without_rules - response.with_rules) / response.without_rules) * 100).toFixed(1) + '%' + ')'
+                }
+                resultContainer.append(
+                    $('<div>').css({'text-wrap': 'nowrap'}).append(
+                        $('<span>')
+                            .attr('class', 'blue bold')
+                            .text('# Filtered Events'),
+                        $('<span>')
+                            .text(': ' + resultText)
+                    )
+                )
+            }
+        }
+    });
+}
+
 function getTextColour(hex) {
     hex = hex.slice(1);
     var r = parseInt(hex.substring(0,2), 16);
@@ -3743,10 +3786,14 @@ function serverRuleUpdate() {
     validOptions.forEach(function(type) {
         validFields.forEach(function(field) {
             var indexedList = {};
-            if (type === 'push' || field == 'type_objects') {
+            if (type === 'push' || field == 'type_objects' || field == 'orgs') {
                 if (window[field] !== undefined) {
                     window[field].forEach(function(item) {
-                        indexedList[item.id] = item.name;
+                        if (field == 'orgs') {
+                            indexedList[item.uuid] = item.name + ' (' + item.uuid + ')';
+                        } else {
+                            indexedList[item.id] = item.name;
+                        }
                     });
                 }
             }

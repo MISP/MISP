@@ -14,6 +14,12 @@ $fields = [
         'class' => 'span6'
     ],
     [
+        'field' => 'skip_proxy',
+        'label' => 'Skip Proxy (if applicable)',
+        'type' => 'checkbox',
+        'default' => false
+    ],
+    [
         'field' => 'api_key',
         'label' => 'API Key',
         'type' => 'text',

@@ -138,7 +138,7 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 - **Example**: `LDAP_OPT_X_TLS_NEVER`
 
 ### `ldapTlsCustomCaCert`
-- **Description**: Sets the value for `LDAP_OPT_X_TLS_CACERTDIR` and `LDAP_OPT_X_TLS_CACERTFILE`.
+- **Description**: Sets the value for `LDAP_OPT_X_TLS_CACERTDIR` and `LDAP_OPT_X_TLS_CACERTFILE`. Ensure the file is readable by the PHP user (`www-data` or `apache` depending on the system).
 - **Type**: `boolean|string`
 - **Default**: `false`
 - **Example**: `/var/wwww/MISP/app/files/certs/ldap.crt`
@@ -202,6 +202,7 @@ If experiencing issues when configuring MISP to use LDAPS, try:
 
 * If you are using a self-signed certificate, ensure the CN matches the host name of the LDAP server, otherwise the TLS session will fail.
 
+* If you are using a custom CA cert (ldapTlsCustomCaCert) please ensure the certificate file is readable by the php user (`www-data` or `apache` depending on the system).
 
 #### Debugging
 

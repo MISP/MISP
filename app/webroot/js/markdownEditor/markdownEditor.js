@@ -5,7 +5,7 @@ var renderTimer, scrollTimer, attackMatrixTimer, eventgraphTimer;
 var scrollMap;
 var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $fullContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB, $topBar, $lastModifiedField, $markdownDropdownRulesMenu, $markdownDropdownGeneralMenu, $toggleFullScreenMode, $loadingBackdrop
 var $editor, $viewer, $raw
-var $saveMarkdownButton, $mardownViewerToolbar
+var $saveMarkdownButton, $markdownViewerToolbar
 var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
 
 var contentChanged = false
@@ -37,7 +37,7 @@ $(document).ready(function() {
     $editor = $('#editor')
     $viewer = $('#viewer')
     $raw = $('#raw')
-    $mardownViewerToolbar = $('#mardown-viewer-toolbar')
+    $markdownViewerToolbar = $('#markdown-viewer-toolbar')
     $loadingBackdrop = $('#loadingBackdrop')
     $saveMarkdownButton = $('#saveMarkdownButton')
     $autocompletionCB = $('#autocompletionCB')
@@ -391,8 +391,8 @@ function hideAll() {
 
 function setMode(mode) {
     currentMode = mode
-    $mardownViewerToolbar.find('button').removeClass('btn-inverse')
-    $mardownViewerToolbar.find('button[data-togglemode="' + mode + '"]').addClass('btn-inverse')
+    $markdownViewerToolbar.find('button').removeClass('btn-inverse')
+    $markdownViewerToolbar.find('button[data-togglemode="' + mode + '"]').addClass('btn-inverse')
     hideAll()
     $editorContainer.css('width', '');
     if (mode === 'raw') {

@@ -531,8 +531,9 @@ class Correlation extends AppModel
                 // If we have more correlations for the value than the limit, set the block entry and stop the correlation process
                 $this->OverCorrelatingValue->block($cV);
                 return true;
-            } else if ($count !== 0 && !$full) {
+            } else if ($count !== 0 && !$full && !isset($a['Attribute']['skip_overcorrelation_unblock'])) {
                 // If we have fewer hits than the limit, proceed with the correlation, but first make sure we remove any existing blockers
+                // Added the skip_correlation flag as a reason to skip over this, we're receiving an event that in itself contains more than the limit in correlations. Let's not unblock any values in this case.
                 $this->OverCorrelatingValue->unblock($cV);
             }
             foreach ($correlatingAttributes as $b) {

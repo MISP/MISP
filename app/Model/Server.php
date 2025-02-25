@@ -1347,11 +1347,11 @@ class Server extends AppModel
      * @param array $events
      * @return array|false
      */
-    private function getEventIdsForPush(array $server, ServerSyncTool $serverSync, array $events)
+    private function getEventIdsForPush(array $server, ServerSyncTool $serverSync, array $events, $ignoreFilterRules = false)
     {
         $request = [];
         foreach ($events as $event) {
-            if (empty($this->eventFilterPushableServers($event, [$server]))) {
+            if (!$ignoreFilterRules && empty($this->eventFilterPushableServers($event, [$server]))) {
                 continue;
             }
             $request[] = ['Event' => [
@@ -2804,6 +2804,101 @@ class Server extends AppModel
     }
 
     /**
+     * @param string $id
+     * @param string $method
+     * @return array
+     * @throws Exception
+     */
+    public function runTestSyncRules($id, $method): array
+    {
+        $results = [];
+        $server = $this->find('first', array(
+            'conditions' => array('Server.id' => $id),
+            'contain' => [
+                'RemoteOrg' => ['fields' => ['RemoteOrg.id', 'RemoteOrg.uuid', 'RemoteOrg.name']]
+            ],
+            'recursive' => -1,
+        ));
+        if (empty($server)) {
+            return null; // server not found
+        }
+
+        $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+
+        try {
+            $eventArrayWithRules = '?';
+            $eventArrayWithoutRules = '?';
+            if ($method == 'pull') {
+                $eventArrayWithRules = $this->getEventIndexFromServer($serverSync, false);
+                $eventArrayWithoutRules = $this->getEventIndexFromServer($serverSync, true);
+            } else {
+                $this->Event = ClassRegistry::init('Event');
+                $eventid_conditions_key = 'Event.id >';
+                $eventid_conditions_value = 0;
+                $sgs = $this->Event->SharingGroup->find('all', [
+                    'recursive' => -1,
+                    'contain' => ['Organisation', 'SharingGroupOrg' => ['Organisation'], 'SharingGroupServer'],
+                ]);
+                $sgIds = [];
+                foreach ($sgs as $sg) {
+                    if ($this->Event->SharingGroup->checkIfServerInSG($sg, $server)) {
+                        $sgIds[] = $sg['SharingGroup']['id'];
+                    }
+                }
+                if (empty($sgIds)) {
+                    $sgIds = [-1];
+                }
+                $tableName = $this->Event->EventReport->table;
+                $eventReportQuery = sprintf('EXISTS (SELECT id, deleted FROM %s WHERE %s.event_id = Event.id and %s.deleted = 0)', $tableName, $tableName, $tableName);
+                $findParams = [
+                    'conditions' => [
+                        $eventid_conditions_key => $eventid_conditions_value,
+                        'Event.published' => 1,
+                        'OR' => [
+                            ['Event.attribute_count >' => 0],
+                            [$eventReportQuery],
+                        ],
+                        'OR' => [
+                            [
+                                'AND' => [
+                                    ['Event.distribution >' => 0],
+                                    ['Event.distribution <' => 4],
+                                ],
+                            ],
+                            [
+                                'AND' => [
+                                    'Event.distribution' => 4,
+                                    'Event.sharing_group_id' => $sgIds
+                                ],
+                            ]
+                        ]
+                    ],
+                    'recursive' => -1,
+                    'contain' => ['EventTag' => ['fields' => ['EventTag.tag_id']]],
+                    'fields' => ['Event.id', 'Event.timestamp', 'Event.sighting_timestamp', 'Event.uuid', 'Event.orgc_id'],
+                ];
+                $eventIds = $this->Event->find('all', $findParams);
+                $eventArrayWithRules = $this->getEventIdsForPush($server, $serverSync, $eventIds, false);
+                $eventArrayWithoutRules = $this->getEventIdsForPush($server, $serverSync, $eventIds, true);
+            }
+
+            $results = [
+                'with_rules' => count($eventArrayWithRules),
+                'without_rules' => count($eventArrayWithoutRules),
+            ];
+        } catch (HttpSocketHttpException $e) {
+            $this->logException('Could not perform sync rules test.', $e);
+            return ['error' => $e->getCode()];
+        } catch (Exception $e) {
+            $this->logException('Could not perform sync rules test.', $e);
+            $message = __('Could not perform sync rules test.');
+            $this->loadLog()->createLogEntry('SYSTEM', 'error', 'Server', $id, 'Error: ' . $message);
+            return ['error' => $message];
+        }
+        return $results;
+    }
+
+    /**
      * @param array $server
      * @param array $user
      * @param ServerSyncTool|null $serverSync
@@ -4110,18 +4205,41 @@ class Server extends AppModel
                 }
             }
             if (!empty($push_rules['orgs']['OR'])) {
-                if (!in_array($event['Event']['orgc_id'], $push_rules['orgs']['OR'])) {
+                $convertedRule = $this->convertUUIDsToIDs($push_rules['orgs']['OR']);
+                if (!in_array($event['Event']['orgc_id'], $convertedRule)) {
                     continue;
                 }
             }
             if (!empty($push_rules['orgs']['NOT'])) {
-                if (in_array($event['Event']['orgc_id'], $push_rules['orgs']['NOT'])) {
+                $convertedRule = $this->convertUUIDsToIDs($push_rules['orgs']['NOT']);
+                if (in_array($event['Event']['orgc_id'], $convertedRule)) {
                     continue;
                 }
             }
             $validServers[] = $server;
         }
         return $validServers;
+    }
+
+    private function convertUUIDsToIDs($orgs): array
+    {
+        $orgIDs = [];
+        $toConvert = [];
+        foreach ($orgs as $org) {
+            if (Validation::uuid($org)) {
+                $toConvert[] = $org;
+            } else {
+                $orgIDs[] = $org;
+            }
+        }
+        $converted = $this->Organisation->find('column', [
+            'fields' => ['id'],
+            'conditions' => [
+                'uuid' => $toConvert,
+            ],
+        ]);
+        $orgIDs = array_merge($orgIDs, $converted);
+        return $orgIDs;
     }
 
     /**
@@ -5023,9 +5141,12 @@ class Server extends AppModel
         $this->Tag = ClassRegistry::init('Tag');
         $organisations = [];
         if ($user['Role']['perm_sharing_group'] || !Configure::read('Security.hide_organisation_index_from_users')) {
-            $organisations = $this->Organisation->find('column', [
-                'fields' => ['name'],
+            $organisations = $this->Organisation->find('all', [
+                'fields' => ['name', 'uuid'],
             ]);
+            $organisations = array_map(function($org) {
+                return ['name' => $org['Organisation']['name'], 'uuid' => $org['Organisation']['uuid']];
+            }, $organisations);
         }
         $tags = $this->Tag->find('column', [
             'fields' => ['name'],
@@ -5221,7 +5342,7 @@ class Server extends AppModel
                 'correlation_limit' => [
                     'level' => 0,
                     'description' => __('Set a value for the maximum number of correlations a value should have before MISP will refuse to correlate it (extremely over-correlating values are rarely useful from a correlation perspective).'),
-                    'value' => 100,
+                    'value' => 20,
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => true

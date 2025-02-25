@@ -635,6 +635,7 @@ class ACLComponent extends Component
             'stopWorker' => array(),
             'stopZeroMQServer' => array(),
             'testConnection' => array(),
+            'testSyncRules' => [],
             'update' => array(),
             'updateJSON' => array(),
             'updateProgress' => array(),

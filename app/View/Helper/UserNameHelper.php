@@ -36,6 +36,11 @@ class UserNameHelper extends AppHelper
             return '<span class="bold white">Graphman</span> ';
         } else if (strpos($lower_email, 'm.j.nassette') !== false) {
             return '<i class="fas fa-cheese white"></i>&nbsp;';
+        } else if (strpos($lower_email, 'pinoy.jeroen') !== false) {
+            return '<span class="fa-stack" style="vertical-align: top;">
+                        <i class="fas fa-bug fa-stack-1x"></i>
+                        <i class="fas fa-slash fa-stack-1x"></i>
+                    </span>&nbsp;';
         }
         return '';
     }

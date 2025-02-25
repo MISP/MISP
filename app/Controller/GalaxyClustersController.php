@@ -708,7 +708,7 @@ class GalaxyClustersController extends AppController
         }
 
         $cluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
-            'conditions' => array('id' => $id)
+            'conditions' => array('GalaxyCluster.id' => $id)
         ), $full=false);
         if (empty($cluster)) {
             throw new MethodNotAllowedException("Invalid Galaxy Cluster.");

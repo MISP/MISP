@@ -22,6 +22,11 @@ echo $this->element(
                 'path' => 'TaxiiServer.baseurl'
             ],
             [
+                'key' => __('Skip Proxy'),
+                'path' => 'TaxiiServer.skip_proxy',
+                'type' => 'json'
+            ],
+            [
                 'key' => __('API Root'),
                 'path' => 'TaxiiServer.api_root'
             ],

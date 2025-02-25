@@ -2406,7 +2406,7 @@ class EventsController extends AppController
         $this->set('title_for_layout', __('Import from MISP Export File'));
     }
 
-    public function upload_stix($stix_version = '1', $publish = false, $galaxies_as_tags = true, $debug = false)
+    public function upload_stix($stix_version = '1', $publish = false, $force_contextual_data = true, $galaxies_as_tags = false, $debug = false)
     {
         $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $initialDistribution = 0;
@@ -2436,6 +2436,9 @@ class EventsController extends AppController
                     if (!array_key_exists($sharingGroupId, $sgs)) {
                         throw new BadRequestException(__('Please select a valid sharing group id.'));
                     }
+                }
+                if (isset($this->param['named']['force_contextual_data'])) {
+                    $force_contextual_data = $this->params['named']['force_contextual_data'];
                 }
                 $clusterDistribution = $initialDistribution;
                 $clusterSharingGroupId = null;
@@ -2469,6 +2472,7 @@ class EventsController extends AppController
                     $publish,
                     $distribution,
                     $sharingGroupId,
+                    $force_contextual_data,
                     $galaxies_as_tags,
                     $clusterDistribution,
                     $clusterSharingGroupId,
@@ -2502,6 +2506,7 @@ class EventsController extends AppController
                         $this->data['Event']['publish'],
                         $this->data['Event']['distribution'],
                         $this->data['Event']['sharing_group_id'] ?? null,
+                        $this->data['Event']['force_contextual_data'] ?? true,
                         $this->data['Event']['galaxies_handling'] ?? false,
                         $this->data['Event']['cluster_distribution'] ?? 0,
                         $this->data['Event']['cluster_sharing_group_id'] ?? null,
@@ -2544,6 +2549,14 @@ class EventsController extends AppController
             0 => __('The critical errors are logged in the usual log file.'),
             1 => __('All the errors and warnings are logged in the usual log file.'),
         ];
+        $forceContextualDataOptions = [
+            0 => __("Conversion library's decision"),
+            1 => __('As contextual MISP data')
+        ];
+        $forceContextualDataDescriptions = [
+            0 => __('Let the conversion library decide if the STIX objects should be converted as Galaxy Cluster or MISP Object.'),
+            1 => __('STIX objects that could either be converted as Galaxy Cluster or MISP Object depending on the context will be converted here anyway as Galaxy Cluster (and also as MISP object if applicable).')
+        ];
         $galaxiesOptions = [
             0 => __('As MISP standard format'),
             1 => __('As tag names'),
@@ -2556,6 +2569,10 @@ class EventsController extends AppController
         $this->set('debugOptions', $debugOptions);
         foreach ($debugOptions as $key => $value) {
             $fieldDesc['debug'][$key] = $debugDescriptions[$key];
+        }
+        $this->set('forceContextualDataOptions', $forceContextualDataOptions);
+        foreach ($forceContextualDataOptions as $key => $value) {
+            $fieldDesc['force_contextual_data'][$key] = $forceContextualDataDescriptions[$key];
         }
         $this->set('galaxiesOptions', $galaxiesOptions);
         foreach ($galaxiesOptions as $key => $value) {
@@ -5650,6 +5667,9 @@ class EventsController extends AppController
             if (isset($module['mispattributes']['userConfig'])) {
                 foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
                     if (!$fail) {
+                        if (empty($requestData['config'][$configName]) && empty($config['required'])) {
+                            continue;
+                        }
                         if (isset($config['validation'])) {
                             if ($config['validation'] === '0' && $config['type'] == 'String') {
                                 $validation = true;

@@ -50,6 +50,22 @@
         'checked' => true,
         'label' => __('Include the original imported file as attachment')
     ));
+    $forceContextualDataFormInfo = $this->element(
+        'genericElements/Form/formInfo',
+        [
+            'field' => [
+                'field' => 'force_contextual_data'
+            ],
+            'modelForForm' => 'Event',
+            'fieldDesc' => $fieldDesc['force_contextual_data'],
+        ]
+    );
+    echo '<div class="input clear"></div>';
+    echo $this->Form->input('force_contextual_data', array(
+        'options' => array($forceContextualDataOptions),
+        'label' => __('How to convert contextual STIX objects') . $forceContextualDataFormInfo,
+        'selected' => 1
+    ));
     if ($me['Role']['perm_site_admin'] || $me['Role']['perm_galaxy_editor']) {
         $galaxiesFormInfo = $this->element(
             'genericElements/Form/formInfo',

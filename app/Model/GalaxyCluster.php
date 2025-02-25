@@ -1010,6 +1010,12 @@ class GalaxyCluster extends AppModel
                 ];
             } else {
                 $galaxyConditions = $this->Galaxy->buildConditions($user);
+                $subquery_options = [
+                    'fields' => ['id'],
+                    'conditions' => $galaxyConditions,
+                ];
+                $lookup_field = 'galaxy_id';
+                $galaxyConditions = $this->subQueryGenerator($this->Galaxy, $subquery_options, $lookup_field);
             }
             $conditions['AND'] = [
                 $galaxyConditions,

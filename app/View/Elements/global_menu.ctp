@@ -553,7 +553,7 @@ if (!empty($me)) {
     $today = date('md');
     if ($today >= 1222 && $today <= 1226) {
         $logo = '<span class="logoBlueStatic bold" id="smallLogo" title="' . __('Happy holidays!') .'">M🎄SP</span>';
-    } else if ($today == 1231 || $today = 0101) {
+    } else if ($today == 1231 || $today == 0101) {
         $logo = '<span class="logoBlueStatic bold" id="smallLogo" title="' . __('Happy New Year!') .'">🎉 MISP 🎉</span>';
     }
     $menu_right = array(

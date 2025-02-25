@@ -1266,7 +1266,7 @@ class UsersController extends AppController
             $this->_postlogin();
         } else {
             // don't display authError before first login attempt
-            if (str_replace("//", "/", $this->webroot . $this->Session->read('Auth.redirect')) == $this->webroot && $this->Session->read('Message.auth.message') == $this->Auth->authError) {
+            if (str_replace("//", "/", $this->webroot . $this->Session->read('Auth.redirect')) == $this->webroot && $this->Session->read('Message.auth.0.message') == $this->Auth->authError) {
                 $this->Session->delete('Message.auth');
             }
             // Login was failed, do everything that is needed such as blocklisting, logging and more

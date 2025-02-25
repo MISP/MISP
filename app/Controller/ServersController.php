@@ -93,7 +93,7 @@ class ServersController extends AppController
             $this->set('servers', $servers);
             $collection = array();
             $collection['orgs'] = $this->Server->Organisation->find('list', array(
-                  'fields' => array('id', 'name'),
+                  'fields' => array('uuid', 'name'),
             ));
             $this->loadModel('Tag');
             $collection['tags'] = $this->Tag->find('list', array(
@@ -628,7 +628,7 @@ class ServersController extends AppController
             $organisationOptions = array(0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation');
 
             $temp = $this->Server->Organisation->find('all', array(
-                'fields' => array('id', 'name', 'local'),
+                'fields' => array('id', 'name', 'local', 'uuid'),
                 'order' => array('lower(Organisation.name) ASC')
             ));
             $allOrgs = [];
@@ -640,7 +640,7 @@ class ServersController extends AppController
                 } else {
                     $externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
                 }
-                $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+                $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name'], 'uuid' => $o['Organisation']['uuid']);
             }
 
             $allTypes = $this->Server->getAllTypes();
@@ -1820,6 +1820,15 @@ class ServersController extends AppController
             }
         }
         return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
+    }
+
+    public function testSyncRules($id, $method)
+    {
+        $result = $this->Server->runTestSyncRules($id, $method);
+        if ($result === null) {
+            throw new NotFoundException(__('Invalid server'));
+        }
+        return $this->RestResponse->viewData($result);
     }
 
     public function startZeroMQServer()

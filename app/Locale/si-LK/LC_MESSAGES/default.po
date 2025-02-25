@@ -11169,7 +11169,7 @@ msgid "Markdown format"
 msgstr "සලකුණු කිරීමේ ආකෘතිය"
 
 #: View/Elements/EventReports/reportHelpModal.ctp:11
-msgid "The suported markdown format is similar to %s with some differences:"
+msgid "The supported markdown format is similar to %s with some differences:"
 msgstr "සහාය දක්වන සලකුණු කිරීමේ ආකෘතිය %s ට සමාන වෙනස්කම් සහිතව:"
 
 #: View/Elements/EventReports/reportHelpModal.ctp:18
