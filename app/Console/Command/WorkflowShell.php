@@ -84,7 +84,7 @@ class WorkflowShell extends AppShell {
         $workflow_id = (int)$this->args[0];
         $workflow = $this->Workflow->fetchWorkflow($workflow_id);
         $node_id_to_exec = (int)$this->args[1];
-        $roamingData = JsonTool::decode($this->args[2]);
+        $roamingData = JsonTool::decode(FileAccessTool::readAndDelete($this->args[2]));
         $for_path = $this->args[3];
         $jobId = $this->args[4];
 
