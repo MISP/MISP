@@ -14,7 +14,7 @@ class WorkflowShell extends AppShell {
         }
 
         $trigger_id = $this->args[0];
-        $data = JsonTool::decode($this->args[1]);
+        $data = JsonTool::decode(FileAccessTool::readAndDelete($this->args[1]));
         $logging = JsonTool::decode($this->args[2]);
         $jobId = $this->args[3];
         if (!empty($this->args[4])) {
