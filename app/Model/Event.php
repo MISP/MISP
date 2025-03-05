@@ -2981,24 +2981,114 @@ class Event extends AppModel
             foreach (['OR', 'AND', 'NOT'] as $operand) {
                 if (!empty($params[$options['filter']][$operand])) {
                     foreach ($params[$options['filter']][$operand] as $k => $v) {
-                        if ($operand === 'NOT') {
-                            $v = mb_substr($v, 1);
-                        }
                         if (filter_var($v, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                             $v = $this->compressIpv6($v);
                         }
-                        $params[$options['filter']][$operand][$k] = $operand === 'NOT' ? '!' . $v : $v;
+                        $params[$options['filter']][$operand][$k] = $v;
                     }
                 }
             }
-            $conditions = $this->generic_add_filter($conditions, $params['value'], ['Attribute.value1', 'Attribute.value2']);
+
+            if ($options['context'] !== 'Attribute') {
+                foreach (['OR', 'AND', 'NOT'] as $operand) {
+                    if (!empty($params[$options['filter']][$operand])) {
+                        $values = $params[$options['filter']][$operand];
+                        $conditions = $this->add_value_filter_subquery($conditions, $operand, $values, $options);
+                        unset($params[$options['filter']][$operand]);
+                    }
+                }
+            } else {
+                $conditions = $this->generic_add_filter($conditions, $params['value'], ['Attribute.value1', 'Attribute.value2']);
+            }
+
         }
 
         return $conditions;
     }
 
-    public function set_filter_object_name(&$params, $conditions, $options)
-    {
+    private function add_value_filter_subquery(
+      $conditions,
+      $operand,
+      $values,
+      $options
+    ) {
+        $lookup_field = null;
+        $field = null;
+        switch ($options['context']) {
+            case 'Object':
+                $lookup_field = 'Object.id';
+                $field = 'object_id';
+                break;
+            case 'Event':
+                $lookup_field = 'Event.id';
+                $field = 'event_id';
+                break;
+            default:
+                return $conditions;
+        }
+        switch ($operand) {
+            case 'OR':
+            case 'NOT':
+                $sub_filter = ['OR' => $values];
+                $subconditions_value1 = $this->generic_add_filter([], $sub_filter, ['Attribute.value1']);
+                $sub_filter = ['OR' => $values];
+                $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
+                $subquery_options = [
+                  'conditions' => [
+                    'OR' => [
+                      ...$subconditions_value1['AND'],
+                      ...$subconditions_value2['AND'],
+                    ],
+                  ],
+                  'fields' => [
+                    $field,
+                  ],
+                ];
+                $subQuery = $this->subQueryGenerator(
+                  $this->Attribute,
+                  $subquery_options,
+                  $lookup_field,
+                  $operand === 'NOT'
+                );
+                $subQuery[0] = explode('WHERE', $subQuery[0]);
+                $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
+                $subQuery[0] = implode('WHERE', $subQuery[0]);
+                $conditions['AND'][] = $subQuery;
+                break;
+            case 'AND':
+                foreach ($values as $v) {
+                    $sub_filter = ['OR' => $v];
+                    $subconditions_value1 = $this->generic_add_filter([], $sub_filter, ['Attribute.value1']);
+                    $sub_filter = ['OR' => $v];
+                    $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
+                    $subquery_options = [
+                      'conditions' => [
+                        'OR' => [
+                          ...$subconditions_value1['AND'],
+                          ...$subconditions_value2['AND'],
+                        ],
+                      ],
+                      'fields' => [
+                        $field,
+                      ],
+                    ];
+                    $subQuery = $this->subQueryGenerator(
+                      $this->Attribute,
+                      $subquery_options,
+                      $lookup_field
+                    );
+                    $subQuery[0] = explode('WHERE', $subQuery[0]);
+                    $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
+                    $subQuery[0] = implode('WHERE', $subQuery[0]);
+                    $conditions['AND'][] = $subQuery;
+                }
+                break;
+        }
+
+        return $conditions;
+    }
+
+    public function set_filter_object_name(&$params, $conditions, $options) {
         if (!empty($params['object_name'])) {
             $params['object_name'] = $this->convert_filters($params['object_name']);
             $conditions = $this->generic_add_filter($conditions, $params['object_name'], 'Object.name');
@@ -7029,7 +7119,7 @@ class Event extends AppModel
                     if ($current_reference) {
                         continue; // Reference already exists, skip.
                     }
-                    list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
+                    [$referenced_id, $referenced_uuid, $referenced_type] = $this->Object->ObjectReference->getReferencedInfo(
                         $reference['referenced_uuid'],
                         array('Event' => array('id' => $id)),
                         false,
