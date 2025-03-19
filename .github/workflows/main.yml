@@ -62,7 +62,7 @@ jobs:
           php_version: ${{ matrix.php }}
         run: |
           sudo apt-get -y update
-          sudo apt-get -y install curl python3 python3-pip python3-virtualenv apache2 libapache2-mod-php$php_version
+          sudo apt-get -y install curl python3 python3-pip python3-virtualenv apache2 libapache2-mod-php$php_version supervisor
 
       # Runs a set of commands using the runners shell
       - name: Install deps
@@ -72,7 +72,6 @@ jobs:
           composer config --no-plugins allow-plugins.composer/installers true
           composer install --no-progress
           popd
-          cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
 
           # Set perms
           sudo chown -R $USER:www-data `pwd`
@@ -85,10 +84,6 @@ jobs:
           sudo chmod -R g+ws `pwd`/app/files
           sudo chmod -R g+ws `pwd`/app/files/scripts/tmp
           sudo chown -R $USER:www-data `pwd`
-
-          # Resque perms
-          sudo chown -R $USER:www-data `pwd`/app/Plugin/CakeResque/tmp
-          sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
 
           # Fill database with basic MISP schema
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "SET GLOBAL sql_mode = 'STRICT_ALL_TABLES';"
@@ -114,12 +109,6 @@ jobs:
           sudo cp app/Config/config.default.php app/Config/config.php
           sudo cp build/email.php app/Config/email.php
 
-          # Enable CakeResque plugin #FIXME: change tests to use SimpleBackgroundJobs
-          sudo chmod 666 app/Config/bootstrap.php
-          echo 'CakePlugin::loadAll(array(
-              "CakeResque" => array("bootstrap" => true)
-          ));' >> app/Config/bootstrap.php
-
           # GPG setup
           sudo mkdir `pwd`/.gnupg
           # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
@@ -132,7 +121,6 @@ jobs:
           sudo chown -R www-data:www-data `pwd`/.gnupg
           sudo chmod -R 700 `pwd`/.gnupg
           sudo usermod -a -G www-data $USER
-          sudo chmod -R 777 `pwd`/app/Plugin/CakeResque/tmp/
           # Ensure the perms of config files
           sudo chown -R $USER:www-data `pwd`/app/Config
           sudo chmod -R 777 `pwd`/app/Config
@@ -146,6 +134,13 @@ jobs:
           sudo chmod +x /home/runner
           sudo chmod +x /home
           sudo chmod +x /
+
+      - name: Start supervisor
+        run: |
+          sudo cp build/supervisor/50-workers.conf /etc/supervisor/conf.d/50-workers.conf
+          sudo supervisorctl reread
+          sudo supervisorctl update
+          sudo supervisorctl start misp-workers:*
 
       - name: Python setup
         run: |
@@ -190,6 +185,14 @@ jobs:
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" 1
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_host" 127.0.0.1
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_port" 9001
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_user" "supervisor"
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_password" "supervisor"
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_database" 1
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.background_jobs" "background_jobs"
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.max_job_history_ttl" 86400
 
       - name: Check if Redis is ready
         run: app/Console/cake Admin redisReady
