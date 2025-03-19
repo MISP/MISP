@@ -139,7 +139,11 @@ jobs:
         run: |
           sudo cp build/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
           sudo cp build/supervisor/50-workers.conf /etc/supervisor/conf.d/50-workers.conf
-          sudo systemctl restart supervisord
+          sudo systemctl restart supervisor
+          sudo systemctl enable supervisor
+          sudo supervisorctl reread
+          sudo supervisorctl update
+          sudo supervisorctl status
           sudo supervisorctl start misp-workers:*
 
       - name: Python setup
