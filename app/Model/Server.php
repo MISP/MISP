@@ -3647,11 +3647,11 @@ class Server extends AppModel
         return array('operational' => $scriptResult['success'], 'plyara' => $scriptResult['plyara'], 'test_run' => true);
     }
 
-    public function stixDiagnostics(&$diagnostic_errors)
+    public function stixDiagnostics()
     {
         $expected = array(
             'stix' => '>=1.2.0.11', 'cybox' => '>=2.1.0.21', 'mixbox' => '>=1.0.5', 'maec' => '>=4.1.0.17',
-            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2025.2.14'
+            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2025.03.04'
         );
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'stixtest.py';
@@ -3683,9 +3683,6 @@ class Server extends AppModel
             );
         }
         $scriptResult['operational'] = $scriptResult['success'];
-        if ($scriptResult['operational'] == 0) {
-            $diagnostic_errors++;
-        }
         $result = [
             'operational' => $scriptResult['operational'],
             'invalid_version' => false,
@@ -3700,7 +3697,6 @@ class Server extends AppModel
                 $result[$package]['status'] = $result[$package]['version'] === $expectedVersion ? 1 : 0;
             }
             if ($result[$package]['status'] == 0) {
-                $diagnostic_errors++;
                 $result['invalid_version'] = true;
             }
         }

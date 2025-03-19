@@ -1176,9 +1176,6 @@ class ServersController extends AppController
                 $diagnostic_errors++;
             }
 
-            // check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
-            $stix = $this->Server->stixDiagnostics($diagnostic_errors);
-
             $yaraStatus = $this->Server->yaraDiagnostics($diagnostic_errors);
 
             // if GnuPG is set up in the settings, try to encrypt a test message
@@ -1217,7 +1214,7 @@ class ServersController extends AppController
 
             $securityAudit = (new SecurityAudit())->run($this->Server);
 
-            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stix', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'dbConfiguration', 'redisInfo', 'attachmentScan', 'securityAudit');
+            $view = compact('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'moduleStatus', 'yaraStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'moduleErrors', 'moduleTypes', 'dbDiagnostics', 'dbSchemaDiagnostics', 'dbConfiguration', 'redisInfo', 'attachmentScan', 'securityAudit');
         } else {
             $view = [];
         }
@@ -1251,7 +1248,6 @@ class ServersController extends AppController
                 'gpgStatus' => $gpgErrors[$gpgStatus['status']],
                 'proxyStatus' => $proxyErrors[$proxyStatus],
                 'zmqStatus' => $zmqStatus,
-                'stix' => $stix,
                 'moduleStatus' => $moduleStatus,
                 'writeableDirs' => $writeableDirs,
                 'writeableFiles' => $writeableFiles,
@@ -1468,6 +1464,12 @@ class ServersController extends AppController
             $this->set('remote_events', $remote_events);
         }
         $this->set('title_for_layout', __('Event ID translator'));
+    }
+
+    public function getPythonLibrariesStatus()
+    {
+        $this->set('pythonLibraries', $this->Server->stixDiagnostics());
+        $this->render('ajax/pythonLibrariesStatus');
     }
 
     public function getSubmodulesStatus()

@@ -436,41 +436,7 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     <p><?= __('Mitre\'s STIX and Cybox python libraries have to be installed in order for MISP\'s STIX 1 export to work. For STIX 2, make sure both stix2 and misp-stix libraries installed');?><br />
     <?= __('If you run into any issues here, make sure to check how libraries are installed in the INSTALL.txt file.');?><br>
 
-    <?php if ($stix['operational'] === -1): ?>
-        <b class="red"><?= __('Could not run test script (stixtest.py). Please check error logs for more details.') ?></b>
-    <?php else: ?>
-
-    <b><?= __('Current libraries status') ?>:</b>
-    <?php if ($stix['test_run'] === false): ?>
-    <b class="red bold"><?= __('Failed to run STIX diagnostics tool.') ?></b>
-    <?php elseif ($stix['operational'] === 0): ?>
-    <b class="red bold"><?= __('Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.') ?></b>
-    <?php elseif ($stix['invalid_version']): ?>
-    <span class="orange"><?= __('Some versions should be updated.') ?></span>
-    <?php else: ?>
-    <b class="green"><?= __('OK') ?></b>
-    <?php endif ?>
-    <table class="table table-condensed table-bordered" style="width: 400px">
-        <thead>
-            <tr>
-                <th><?= __('Library') ?></th>
-                <th><?= __('Expected version') ?></th>
-                <th><?= __('Installed version') ?></th>
-                <th><?= __('Status') ?></th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($stix as $name => $library): if (!isset($library['expected'])) continue; ?>
-            <tr>
-                <td><?= h($name) ?></td>
-                <td><?= h($library['expected']) ?></td>
-                <td><?= $library['version'] === 0 ? __('Not installed') : h($library['version']) ?></td>
-                <td><?= $library['status'] ? '<i class="green fa fa-check" role="img" aria-label="' .  __('Correct') . '"></i>' : '<i class="red fa fa-times" role="img" aria-label="' .  __('Incorrect') . '"></i>' ?></td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-    <?php endif; ?>
+    <div id="divPythonLibraryVersions"></div>
 
     <h3><?php echo __('Yara');?></h3>
     <p><?php echo __('This tool tests whether plyara, the library used by the yara export tool is installed or not.');?></p>
@@ -620,6 +586,7 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
 <script>
     $(function() {
         updateSubModulesStatus();
+        updatePythonLibrariesStatus();
         $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
         $('#updateAllJson').click(function() { updateAllJson(); });
     });
@@ -663,6 +630,16 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
             },
             complete: function() {
                 $('#submoduleGitResult').find('fa-spinner').remove();
+            }
+        });
+    }
+    function updatePythonLibrariesStatus(message) {
+        $('#divPythonLibraryVersions').empty().append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');
+        $.get('<?php echo $baseurl . '/servers/getPythonLibrariesStatus/'; ?>', function(html){
+            $('#divPythonLibraryVersions').html(html);
+            if (message !== undefined) {
+                $('#pythonLibraryResultDiv').show();
+                $('#pythonLibraryResult').text(message);
             }
         });
     }
