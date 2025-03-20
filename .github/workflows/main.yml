@@ -141,7 +141,7 @@ jobs:
           sudo cp build/supervisor/supervisord.conf /etc/supervisord.conf
           sudo mkdir -p /etc/supervisor/conf.d
           sudo cp build/supervisor/50-workers.conf /etc/supervisor/conf.d/50-workers.conf
-          sudo supervisord -c /etc/supervisord.conf
+          sudo python3 -m supervisor.supervisord -c /etc/supervisord.conf
           sudo supervisorctl -c /etc/supervisord.conf status
           sudo supervisorctl -c /etc/supervisord.conf start all
 
@@ -205,11 +205,6 @@ jobs:
 
       - name: Turn MISP live
         run: app/Console/cake Admin live 1
-
-      - name: Start workers
-        run: |
-          sudo chmod +x app/Console/worker/start.sh
-          sudo -u www-data 'app/Console/worker/start.sh'
 
       - name: Test if apache is working
         run: |
