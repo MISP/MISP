@@ -138,7 +138,8 @@ jobs:
       - name: Start supervisor
         run: |
           pip install supervisor
-          sudo cp build/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
+          sudo cp build/supervisor/supervisord.conf /etc/supervisord.conf
+          sudo mkdir -p /etc/supervisor/conf.d
           sudo cp build/supervisor/50-workers.conf /etc/supervisor/conf.d/50-workers.conf
           sudo systemctl restart supervisor
           sudo systemctl enable supervisor
