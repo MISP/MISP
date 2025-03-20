@@ -148,6 +148,7 @@ jobs:
 
       - name: Start workers
         run: |
+          set -x
           . ./venv/bin/activate
           pip install supervisor
           sudo cp build/supervisor/supervisord.conf /etc/supervisord.conf
@@ -155,8 +156,11 @@ jobs:
           sudo cp build/supervisor/50-workers.conf /etc/supervisor/conf.d/50-workers.conf
           python3 -m supervisor.supervisord -c /etc/supervisord.conf
           python3 -m supervisor.supervisorctl -c /etc/supervisord.conf status
-          python3 -m supervisor.supervisorctl -c /etc/supervisord.conf start all
+          python3 -m supervisor.supervisorctl -c /etc/supervisord.conf start all || true
           deactivate
+          cat /tmp/misp-workers.log
+          cat /tmp/misp-workers.err
+          exit 1
 
       - name: DB Update
         run: |
