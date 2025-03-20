@@ -285,3 +285,8 @@ jobs:
         if: ${{ always() }}
         run: |
           ./tests/logs_tests.sh
+
+      - name: error.log
+        if: ${{ always() }}
+        run: |
+          cat `pwd`/app/tmp/logs/error.log
