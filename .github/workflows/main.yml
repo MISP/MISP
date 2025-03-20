@@ -146,16 +146,16 @@ jobs:
           pip install -r requirements-dev.txt
           deactivate
 
-      - name: Start supervisor
+      - name: Start workers
         run: |
           . ./venv/bin/activate
           pip install supervisor
           sudo cp build/supervisor/supervisord.conf /etc/supervisord.conf
           sudo mkdir -p /etc/supervisor/conf.d
           sudo cp build/supervisor/50-workers.conf /etc/supervisor/conf.d/50-workers.conf
-          sudo python3 -m supervisor.supervisord -c /etc/supervisord.conf
-          sudo supervisorctl -c /etc/supervisord.conf status
-          sudo supervisorctl -c /etc/supervisord.conf start all
+          python3 -m supervisor.supervisord -c /etc/supervisord.conf
+          python3 -m supervisor.supervisorctl -c /etc/supervisord.conf status
+          python3 -m supervisor.supervisorctl -c /etc/supervisord.conf start all
           deactivate
 
       - name: DB Update
