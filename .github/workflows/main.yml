@@ -146,20 +146,6 @@ jobs:
           pip install -r requirements-dev.txt
           deactivate
 
-      - name: Start workers
-        run: |
-          set -x
-          sudo pip install supervisor
-          sudo cp build/supervisor/supervisord.conf /etc/supervisord.conf
-          sudo mkdir -p /etc/supervisor/conf.d
-          sudo cp build/supervisor/50-workers.conf /etc/supervisor/conf.d/50-workers.conf
-          sudo python3 -m supervisor.supervisord -c /etc/supervisord.conf
-          sudo python3 -m supervisor.supervisorctl -c /etc/supervisord.conf start all || true
-          sudo python3 -m supervisor.supervisorctl -c /etc/supervisord.conf status || true
-          cat /tmp/misp-workers.log
-          cat /tmp/misp-workers-errors.log
-          exit 1
-
       - name: DB Update
         run: |
           app/Console/cake Admin setSetting "MISP.osuser" $USER
@@ -193,16 +179,33 @@ jobs:
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1
           app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" 1
-          app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_host" 127.0.0.1
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_host" "127.0.0.1"
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_port" 6379
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_password" ""
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_database" 1
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_namespace" "background_jobs"
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_host" "127.0.0.1"
           app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_port" 9001
           app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_user" "supervisor"
           app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_password" "supervisor"
-          app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_database" 1
-          app/Console/cake Admin setSetting "SimpleBackgroundJobs.background_jobs" "background_jobs"
           app/Console/cake Admin setSetting "SimpleBackgroundJobs.max_job_history_ttl" 86400
 
       - name: Check if Redis is ready
         run: app/Console/cake Admin redisReady
+
+      - name: Start workers
+        run: |
+          set -x
+          sudo pip install supervisor
+          sudo cp build/supervisor/supervisord.conf /etc/supervisord.conf
+          sudo mkdir -p /etc/supervisor/conf.d
+          sudo cp build/supervisor/50-workers.conf /etc/supervisor/conf.d/50-workers.conf
+          sudo python3 -m supervisor.supervisord -c /etc/supervisord.conf
+          sudo python3 -m supervisor.supervisorctl -c /etc/supervisord.conf start all || true
+          sudo python3 -m supervisor.supervisorctl -c /etc/supervisord.conf status || true
+          cat /tmp/misp-workers.log
+          cat /tmp/misp-workers-errors.log
+          exit 1
 
       - name: Update JSON
         run: app/Console/cake Admin updateJSON
