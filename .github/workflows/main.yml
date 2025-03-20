@@ -135,16 +135,6 @@ jobs:
           sudo chmod +x /home
           sudo chmod +x /
 
-      - name: Start supervisor
-        run: |
-          pip install supervisor
-          sudo cp build/supervisor/supervisord.conf /etc/supervisord.conf
-          sudo mkdir -p /etc/supervisor/conf.d
-          sudo cp build/supervisor/50-workers.conf /etc/supervisor/conf.d/50-workers.conf
-          sudo python3 -m supervisor.supervisord -c /etc/supervisord.conf
-          sudo supervisorctl -c /etc/supervisord.conf status
-          sudo supervisorctl -c /etc/supervisord.conf start all
-
       - name: Python setup
         run: |
           # Dirty install python stuff
@@ -154,6 +144,18 @@ jobs:
           export PYTHONPATH=$PYTHONPATH:./app/files/scripts
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+          deactivate
+
+      - name: Start supervisor
+        run: |
+          . ./venv/bin/activate
+          pip install supervisor
+          sudo cp build/supervisor/supervisord.conf /etc/supervisord.conf
+          sudo mkdir -p /etc/supervisor/conf.d
+          sudo cp build/supervisor/50-workers.conf /etc/supervisor/conf.d/50-workers.conf
+          sudo python3 -m supervisor.supervisord -c /etc/supervisord.conf
+          sudo supervisorctl -c /etc/supervisord.conf status
+          sudo supervisorctl -c /etc/supervisord.conf start all
           deactivate
 
       - name: DB Update
