@@ -111,7 +111,7 @@ jobs:
 
           # Enable ShibbAuth plugin for tests
           sudo chmod 666 app/Config/bootstrap.php
-          echo 'CakePlugin::load('ShibbAuth');' >> app/Config/bootstrap.php
+          echo "CakePlugin::load('ShibbAuth');" >> app/Config/bootstrap.php
 
           # GPG setup
           sudo mkdir `pwd`/.gnupg
