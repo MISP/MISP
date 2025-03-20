@@ -159,7 +159,7 @@ jobs:
           python3 -m supervisor.supervisorctl -c /etc/supervisord.conf start all || true
           deactivate
           cat /tmp/misp-workers.log
-          cat /tmp/misp-workers.err
+          cat /tmp/misp-workers-errors.log
           exit 1
 
       - name: DB Update
