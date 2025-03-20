@@ -109,6 +109,10 @@ jobs:
           sudo cp app/Config/config.default.php app/Config/config.php
           sudo cp build/email.php app/Config/email.php
 
+          # Enable ShibbAuth plugin for tests
+          sudo chmod 666 app/Config/bootstrap.php
+          echo 'CakePlugin::load('ShibbAuth');' >> app/Config/bootstrap.php
+
           # GPG setup
           sudo mkdir `pwd`/.gnupg
           # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
