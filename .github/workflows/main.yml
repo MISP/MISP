@@ -155,8 +155,8 @@ jobs:
           sudo mkdir -p /etc/supervisor/conf.d
           sudo cp build/supervisor/50-workers.conf /etc/supervisor/conf.d/50-workers.conf
           python3 -m supervisor.supervisord -c /etc/supervisord.conf
-          python3 -m supervisor.supervisorctl -c /etc/supervisord.conf status
-          python3 -m supervisor.supervisorctl -c /etc/supervisord.conf start all || true
+          python3 -m supervisor.supervisorctl -c /etc/supervisord.conf start all
+          python3 -m supervisor.supervisorctl -c /etc/supervisord.conf status || true
           deactivate
           cat /tmp/misp-workers.log
           cat /tmp/misp-workers-errors.log
