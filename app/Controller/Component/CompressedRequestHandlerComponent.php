@@ -3,6 +3,10 @@ class CompressedRequestHandlerComponent extends Component
 {
     public function initialize(Controller $controller)
     {
+        if ($controller instanceof CakeErrorController) {
+            return; // do not try to decode compressed content again for error controller
+        }
+
         $contentEncoding = $_SERVER['HTTP_CONTENT_ENCODING'] ?? null;
         if (!empty($contentEncoding)) {
             if ($contentEncoding === 'br') {
