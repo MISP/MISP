@@ -113,7 +113,7 @@ class LdapAuthenticate extends BaseAuthenticate
     private function getUserMemberships($ldapconn, $ldapUserData)
     {
         $groups = [];
-        $filter = '(member= ' . $ldapUserData[0]['dn'] . ')';
+        $filter = '(member=' . ldap_escape($ldapUserData[0]['dn'], "", LDAP_ESCAPE_FILTER) . ')';
         $ldapUserMemberships = ldap_search($ldapconn, self::$conf['ldapDn'], $filter, ['cn']);
 
         if ($ldapUserMemberships) {
