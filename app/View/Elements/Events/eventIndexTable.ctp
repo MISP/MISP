@@ -58,6 +58,22 @@
         <?php endif; ?>
         <td class="short">
             <span><a href="<?= $baseurl."/events/view/".$eventId ?>" class="dblclickActionElement threat-level-<?= strtolower(h($event['ThreatLevel']['name'])) ?>" title="<?= h($event['Event']['info']) ?>"><?= $eventId ?></a> <?= !empty($event['Event']['protected']) ? sprintf('<i class="fas fa-lock" title="%s"></i>', __('Protected event')) : ''?></span>
+            <?php if (in_array('extended_id', $columns, true)):
+                $extends_uuid = $event['Event']['extends_uuid'] ?? null;
+                $extendedEventsByUuid = array_column($extendedEvents, 'id', 'uuid');
+                $extends_id = $extendedEventsByUuid[$extends_uuid] ?? null;
+                if ($extends_id) {
+                    echo sprintf(
+                        '<div style="padding-left: 1.0em;">
+                            <span class="apply_css_arrow">
+                                <a href="%s/events/view/%s" title="%s" aria-label="%s">%s</a>
+                            </span>
+                        </div>',
+                        h($baseurl), h($extends_id), __('Extend this event'), __('Extend this event'), h($extends_id)
+                    );
+                }
+            ?>
+            <?php endif; ?>
         </td>
         <?php if (in_array('clusters', $columns, true)): ?>
         <td class="short">

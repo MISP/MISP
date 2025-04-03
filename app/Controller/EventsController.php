@@ -761,6 +761,16 @@ class EventsController extends AppController
         $this->set('passedArgsArray', $passedArgsArray);
         $this->set('passedArgs', json_encode($passedArgs));
 
+        $extendedUuids = array_filter(array_map(fn($event) => $event['Event']['extends_uuid'] ?? null, $events));
+
+        if ($extendedUuids) {
+            $extendedEvents = $this->Event->fetchSimpleEvents(
+                $this->Auth->user(),
+                ['conditions' => ['Event.uuid' => $extendedUuids]]
+            );
+            $this->set('extendedEvents', array_column($extendedEvents, 'Event', 'uuid'));
+        }
+
         if ($this->request->is('ajax')) {
             $this->autoRender = false;
             $this->layout = false;
@@ -969,6 +979,8 @@ class EventsController extends AppController
         if ($this->_isSiteAdmin() && !Configure::read('MISP.showorgalternate')) {
             $possibleColumns[] = 'owner_org';
         }
+
+        $possibleColumns[] = 'extended_id';
 
         if (Configure::read('MISP.tagging')) {
             $possibleColumns[] = 'clusters';
