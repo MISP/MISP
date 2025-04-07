@@ -167,6 +167,7 @@ var workflow_id = 0
 var contentChanged = false
 var lastModified = 0
 var graphPooler
+var cachedCalls = {}
 
 function sanitizeObject(obj) {
     var newObj = {}
@@ -1551,26 +1552,46 @@ function genNodeParamHtml(node, forNode = true) {
     return html
 }
 
+function doCachedAjaxCall(url, method, successCB, errorCB) {
+    if (cachedCalls[url] === undefined) {
+        $.ajax({
+            success: function (data, textStatus) {
+                cachedCalls[url] = data
+                setTimeout(() => {
+                    delete cachedCalls[url]
+                }, 3000);
+                successCB(data)
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                errorCB(jqXHR, textStatus, errorThrown)
+            },
+            type: method,
+            url: url
+        })
+    }
+}
+
 function afterNodeDrawCallback() {
-    var $nodes = $drawflow.find('.drawflow-node')
+    var $nodes = $drawflow.find('.drawflow-node:not(.after-draw-callback)')
     $nodes.find('.start-chosen').each(function() {
         var chosenOptions = $(this).data('chosen_options')
         var $select = $(this)
-        var savedValues = $select.data('saved_values')
+        var savedValues = JSON.parse($select.attr('data-saved_values') ?? '[]')
         if (chosenOptions.select_options_url) {
-            $.ajax({
-                success: function (newOptions, textStatus) {
-                    updateChosenOptions($select, newOptions, savedValues)
+            doCachedAjaxCall(
+                chosenOptions.select_options_url,
+                'get',
+                (data) => {
+                    updateChosenOptions($select, data, savedValues)
                 },
-                error: function (jqXHR, textStatus, errorThrown) {
-                    showMessage('fail', 'Could not get options from select_options_url');
-                },
-                type: "get",
-                url: chosenOptions.select_options_url
-            })
+                () => {
+                    showMessage('fail', 'Could not get options from select_options_url')
+                }
+            )
         }
         $(this).chosen(chosenOptions).trigger('change')
     })
+    $nodes.addClass('after-draw-callback')
     toggleDisplayOnFields()
     enablePickerCreateNewOptions()
     enableHashpathPicker()
@@ -1580,7 +1601,7 @@ function afterModalShowCallback() {
     $blockModal.find('.start-chosen').each(function() {
         var chosenOptions = $(this).data('chosen_options')
         var $select = $(this)
-        var savedValues = $select.data('saved_values')
+        var savedValues = JSON.parse($select.attr('data-saved_values') ?? '[]')
         if (chosenOptions.select_options_url) {
             $.ajax({
                 success: function (newOptions, textStatus) {
@@ -1670,16 +1691,20 @@ function enablePickerCreateNewOptions() {
 }
 
 function updateChosenOptions($select, options, savedValues) {
+    $select.empty()
     options.forEach(option => {
         var $newOption = $('<option>')
             .val(option)
             .text(option)
-        if (savedValues.includes(option)) {
+        if (Array.isArray(savedValues) && savedValues.includes(option)) {
+            $newOption.attr('selected', 'selected')
+        } else if (savedValues == option) {
             $newOption.attr('selected', 'selected')
         }
         $select.append($newOption);
     });
     $select.trigger('chosen:updated');
+    $select.trigger('change');
 }
 
 function enableHashpathPicker() {
@@ -1878,7 +1903,7 @@ function genSelect(options, forNode = true) {
     }
     $select
         .attr('data-paramid', options.param_id)
-        .attr('data-saved_values', options.value)
+        .attr('data-saved_values', JSON.stringify(options.value))
         .attr('onchange', 'handleSelectChange(this)')
     $label.append($select)
     $container.append($label)

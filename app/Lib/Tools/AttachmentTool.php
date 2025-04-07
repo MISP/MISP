@@ -278,8 +278,25 @@ class AttachmentTool
     public function deleteAll($eventId)
     {
         if ($this->attachmentDirIsS3()) {
+            // AWS S3 SDK validates that the Directory (Prefix) to delete is a string.
+            // So we need to validate that it can be casted to string
+            if (is_object($eventId) && !method_exists($eventId, '__toString')) {
+                throw new \InvalidArgumentException("Object of class " . get_class($eventId) . " cannot be cast to string.");
+            }
+            // Also validate that we're not trying to cast arrays, resources or closures
+            if (is_array($eventId) || is_resource($eventId) || $eventId instanceof \Closure) {
+                throw new \InvalidArgumentException("Value of type " . get_debug_type($eventId) . " cannot be cast to string.");
+            }
+            $prefix = (string) $eventId;
+            // Check if casting resulted in an empty string when it shouldn't have. Also check the edge case when $eventId is bool(true)
+            if (($prefix === '' && !in_array($eventId, [null, false, 0, 0.0, ''], true)) || ($prefix === '1' && $eventId === true)) {
+                throw new \InvalidArgumentException(
+                    "Casting to string failed for value of type: " . get_debug_type($eventId) .
+                    " with value: " . var_export($eventId, true)
+                );
+            }
             $s3 = $this->loadS3Client();
-            $s3->deleteDirectory($eventId);
+            $s3->deleteDirectory($prefix);
         } else {
             App::uses('Folder', 'Utility');
             $dirPath = $this->attachmentDir();

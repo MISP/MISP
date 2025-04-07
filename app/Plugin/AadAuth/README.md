@@ -65,22 +65,6 @@ Password: f37827f21bfea08f4f11bb749b132772523b665f7a151c05ca3e3f0d65b299a2
 
 ![Login as misp](.images/Picture35.png)
 
-Next we need to edit the bootstrap.php file to add the AAD plugin.
-
-```BASH
-sudo nano /var/www/MISP/app/Config/bootstrap.php
-```
-
-Add the following under plugins
-
-```PHP
-CakePlugin::load('AadAuth');
-```
-
-![AadAuth](.images/Picture36.png)
-
-**Note:** This line does not exist in the bootstrap.php files and needs to be added.
-
 **Warning: Before continuing with the next step make a backup of the original `config.php` file**
 
 ```BASH
