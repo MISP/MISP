@@ -980,7 +980,7 @@ class EventsController extends AppController
             $possibleColumns[] = 'owner_org';
         }
 
-        $possibleColumns[] = 'extended_id';
+        $possibleColumns[] = 'extending';
 
         if (Configure::read('MISP.tagging')) {
             $possibleColumns[] = 'clusters';
