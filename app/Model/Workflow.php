@@ -118,6 +118,10 @@ class Workflow extends AppModel
             if (!empty($result['Workflow']['id'])) {
                 $trigger_ids = $this->__getTriggersIDPerWorkflow((int) $result['Workflow']['id']);
                 $results[$k]['Workflow']['listening_triggers'] = $this->getModuleByID($trigger_ids);
+                if (!empty($results[$k]['Workflow']['listening_triggers'])) {
+                        $enabledAdHocs = $this->getEnabledAdHocWorkflows();
+                        $results[$k]['Workflow']['enabled'] = in_array($results[$k]['Workflow']['trigger_id'], $enabledAdHocs);
+                }
             }
         }
         return $results;
@@ -1418,7 +1422,7 @@ class Workflow extends AppModel
         if (empty($full)) {
             return $this->find('all', [
                 'recursive' => -1,
-                'fields' => ['id', 'trigger_id', 'name'],
+                'fields' => ['id', 'trigger_id', 'name', 'enabled',],
                 'conditions' => $conditions,
                 'callbacks' => false,
             ]);
@@ -1693,7 +1697,7 @@ class Workflow extends AppModel
                 'saved_filters' => $module_config['saved_filters'],
                 'module_data' => $module_config,
                 'expect_misp_core_format' => $module_config['expect_misp_core_format'],
-                'is_filtering' => $module_config['isFiltering'],
+                'is_filtering' => $module_config['isFiltering'] ?? false,
             ],
             'inputs' => [],
             'outputs' => [],

@@ -312,6 +312,7 @@ class AuditLog extends AppModel
                 $userFromDb = $this->User->find('first', [
                     'conditions' => ['User.id' => $currentUserId],
                     'fields' => ['User.org_id'],
+                    'recursive' => -1,
                 ]);
                 $this->user['org_id'] = $userFromDb['User']['org_id'];
             }

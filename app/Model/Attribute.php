@@ -469,7 +469,10 @@ class Attribute extends AppModel
                     if (
                         empty($this->old) ||
                         $attribute['value'] != $this->old['Attribute']['value'] ||
-                        $attribute['disable_correlation'] != $this->old['Attribute']['disable_correlation'] ||
+                        (
+                            isset($attribute['disable_correlation']) && 
+                            $attribute['disable_correlation'] != $this->old['Attribute']['disable_correlation']
+                        ) ||
                         $attribute['type'] != $this->old['Attribute']['type'] ||
                         $attribute['distribution'] != $this->old['Attribute']['distribution'] ||
                         $attribute['sharing_group_id'] != $this->old['Attribute']['sharing_group_id']

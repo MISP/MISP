@@ -88,6 +88,8 @@ class Tag extends AppModel
     const RE_CUSTOM_CLUSTER_FROM_DEFAULT_GALAXY = '/misp-galaxy:(?:(?![a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}).)+="[^:="]+"/i';
     private $tagOverrides = false;
 
+    private $cachedTagsByName = [];
+
     public function beforeValidate($options = array())
     {
         $tag = &$this->data['Tag'];
@@ -901,5 +903,21 @@ class Tag extends AppModel
             }
         }
         return $counts;
+    }
+
+    public function getCachedTags($includeClusters=false): array
+    {
+        $conditions = [
+            'Tag.is_galaxy' => !empty($includeClusters),
+        ];
+        if (empty($this->cachedTagsByName)) {
+            $this->cachedTagsByName = $this->find('all', [
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'order' => ['name asc'],
+                'fields' => ['Tag.id', 'Tag.name']
+            ]);
+        }
+        return $this->cachedTagsByName;
     }
 }

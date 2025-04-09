@@ -1006,12 +1006,12 @@ class GalaxyCluster extends AppModel
         return $clusters;
     }
 
-    public function buildConditions($user, $useGalaxyContiainedIDsConditions=false)
+    public function buildConditions($user, $useGalaxyContiainedIDsConditions=false, $alias = false)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
-            $alias = $this->alias;
+            $alias = $alias ? $alias : $this->alias;
             if ($useGalaxyContiainedIDsConditions) {
                 $galaxyIDs = $this->Galaxy->fetchGalaxies($user, ['column' => true]);
                 $galaxyIDs = !empty($galaxyIDs) ? $galaxyIDs : [-1];
@@ -1071,9 +1071,10 @@ class GalaxyCluster extends AppModel
                 'Galaxy',
                 'GalaxyElement',
                 'GalaxyClusterRelation' => array(
-                    'conditions' => $this->GalaxyClusterRelation->buildConditions($user, false),
+                    'conditions' => $this->GalaxyClusterRelation->buildConditions($user, false, 'SourceCluster'),
                     'GalaxyClusterRelationTag',
                     'SharingGroup',
+                    'SourceCluster'
                 ),
                 'Orgc',
                 'Org',

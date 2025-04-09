@@ -100,7 +100,7 @@ class GalaxyClusterRelation extends AppModel
                     ]
                 ]
             ];
-            $conditionsSourceCluster = $clusterConditions ? $this->SourceCluster->buildConditions($user, true) : [];
+            $conditionsSourceCluster = $clusterConditions ? $this->SourceCluster->buildConditions($user, true, 'SourceCluster') : [];
             $conditions = [
                 'AND' => [
                     $conditionsRelations,
@@ -111,12 +111,31 @@ class GalaxyClusterRelation extends AppModel
         return $conditions;
     }
 
+    private function renameClusterTypeInArray($array, $oldName, $newName)
+    {
+        foreach ($array as $k => $v) {
+            if (str_contains($k, $oldName)) {
+                $tempName = str_replace($oldName, $newName, $k);
+                $array[$tempName] = $array[$k];
+                unset($array[$k]);
+                $lookupKey = $tempName;
+            } else {
+                $lookupKey = $k;
+            }
+            if (is_array($v)) {
+                $array[$lookupKey] = $this->renameClusterTypeInArray($v, $oldName, $newName);
+            }
+        }
+        return $array;
+    }
+
     public function fetchRelations($user, $options, $full=false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
             'recursive' => -1
         );
+        $params = $this->renameClusterTypeInArray($params, 'GalaxyCluster.', 'SourceCluster.');
         if (!empty($options['contain'])) {
             $params['contain'] = $options['contain'];
         } elseif ($full) {

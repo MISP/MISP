@@ -389,7 +389,7 @@ class GalaxyClustersController extends AppController
 
         if (!empty($cluster['GalaxyCluster']['extends_uuid'])) {
             $forkedCluster = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array(
-                'conditions' => array('uuid' => $cluster['GalaxyCluster']['extends_uuid']),
+                'conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['extends_uuid']),
             ), false);
         } else {
             $forkedCluster = array();

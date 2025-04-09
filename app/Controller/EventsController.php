@@ -5939,7 +5939,7 @@ class EventsController extends AppController
             $results = $this->Event->runWorkflow($id, $workflow_ids);
             $succesMessage = __('Successfully ran %s Workflows on Event %s', count($workflow_ids), h($id));
             $errorMessage = __('Error(s) while running Workflow(s): ') . implode(', ', $results['error_messages']);
-            if ($this->_isRest()) {
+            if ($this->_isRest() || $this->request->is('ajax')) {
                 return $this->RestResponse->saveSuccessResponse('Events', 'runWorkflow', $id, $this->response->type(), $results['success_count'] > 0 ? $succesMessage : $errorMessage);
             } else {
                 if ($results['success_count'] > 0) {
@@ -5954,7 +5954,7 @@ class EventsController extends AppController
             $workflows = $this->Workflow->fetchAdHocWorkflows(true);
             $workflows = $this->Workflow->attachTriggerParamsToWorkflow($workflows);
             $allowedWorkflows = array_filter($workflows, function($workflow) {
-                return $workflow['trigger_scope'] == 'passed_event_ids';
+                return $workflow['trigger_scope'] == 'passed_event_ids' && !empty($workflow['Workflow']['enabled']);
             });
             $this->layout = false;
             $this->set('workflows', $allowedWorkflows);

@@ -22,34 +22,9 @@ class Module_tag_if extends WorkflowBaseLogicModule
         'not_in_and' => 'Is not tagged with all (AND)',
     ];
 
-    private function getDisplayTag($fullTag)
-    {
-        return substr($fullTag, 12);
-    }
-
     public function __construct()
     {
         parent::__construct();
-        $conditions = [
-            'Tag.is_galaxy' => [0, 1],
-        ];
-        $this->Tag = ClassRegistry::init('Tag');
-        $allTags = $this->Tag->find('all', [
-            'conditions' => $conditions,
-            'recursive' => -1,
-            'order' => ['name asc'],
-            'fields' => ['Tag.id', 'Tag.name', 'Tag.is_galaxy']
-        ]);
-        $tags = [];
-        $clusters = [];
-        foreach ($allTags as $tag) {
-            if ($tag['Tag']['is_galaxy']) {
-                $readableTagName = $this->getDisplayTag($tag['Tag']['name']);
-                $clusters[] = $readableTagName;
-            } else {
-                $tags[] = $tag['Tag']['name'];
-            }
-        }
         $this->params = [
             [
                 'id' => 'scope',
@@ -73,10 +48,12 @@ class Module_tag_if extends WorkflowBaseLogicModule
             ],
             [
                 'id' => 'tags',
-                'label' => 'Tags',
+                'label' => __('Tags'),
                 'type' => 'picker',
                 'multiple' => true,
-                'options' => $tags,
+                'picker_options' => [
+                    'select_options_url' => '/tags/fastIndex/0.json',
+                ],
                 'placeholder' => __('Pick a tag'),
             ],
             [
@@ -84,7 +61,9 @@ class Module_tag_if extends WorkflowBaseLogicModule
                 'label' => __('Galaxy Clusters'),
                 'type' => 'picker',
                 'multiple' => true,
-                'options' => $clusters,
+                'picker_options' => [
+                    'select_options_url' => '/tags/fastIndex/1.json',
+                ],
                 'placeholder' => __('Pick a Galaxy Cluster'),
             ],
         ];

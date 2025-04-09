@@ -894,8 +894,10 @@ class Warninglist extends AppModel
                     'comment' => isset($entry['comment']) ? $entry['comment'] : null,
                 ];
             } else {
+                $valueAndComment = explode("#", $entry, 2);
                 $entries[] = [
-                    'value' => $entry
+                    'value' => trim($valueAndComment[0]),
+                    'comment' => count($valueAndComment) === 2 ? trim($valueAndComment[1]) : null,
                 ];
             }
         }

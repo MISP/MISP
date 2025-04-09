@@ -731,6 +731,9 @@ class UsersController extends AppController
             if (Configure::read('CustomAuth_enable') && Configure::read('CustomAuth_required')) {
                 $this->request->data['User']['change_pw'] = 0;
             }
+            if (Configure::read('MISP.disable_user_password_change')) {
+                $this->request->data['User']['change_pw'] = 0;
+            }
             $this->request->data['User']['newsread'] = 0;
             if (!$this->_isSiteAdmin()) {
                 $this->request->data['User']['org_id'] = $this->Auth->user('org_id');

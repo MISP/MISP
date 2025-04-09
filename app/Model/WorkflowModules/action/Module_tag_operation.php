@@ -23,19 +23,9 @@ class Module_tag_operation extends WorkflowBaseActionModule
     public function __construct()
     {
         parent::__construct();
-        $conditions = [
-            'Tag.is_galaxy' => 0,
-        ];
         $this->Tag = ClassRegistry::init('Tag');
         $this->Event = ClassRegistry::init('Event');
         $this->Attribute = ClassRegistry::init('Attribute');
-        $tags = $this->Tag->find('all', [
-            'conditions' => $conditions,
-            'recursive' => -1,
-            'order' => ['name asc'],
-            'fields' => ['Tag.id', 'Tag.name']
-        ]);
-        $tags = array_column(array_column($tags, 'Tag'), 'name');
         $this->params = [
             [
                 'id' => 'scope',
@@ -73,8 +63,20 @@ class Module_tag_operation extends WorkflowBaseActionModule
                 'label' => __('Tags'),
                 'type' => 'picker',
                 'multiple' => true,
-                'options' => $tags,
+                'picker_options' => [
+                    'select_options_url' => '/tags/fastIndex/0.json',
+                ],
                 'placeholder' => __('Pick a tag'),
+            ],
+            [
+                'id' => 'clusters',
+                'label' => __('Galaxy Clusters'),
+                'type' => 'picker',
+                'multiple' => true,
+                'picker_options' => [
+                    'select_options_url' => '/tags/fastIndex/1.json',
+                ],
+                'placeholder' => __('Pick a Galaxy Cluster'),
             ],
             [
                 'id' => 'relationship_type',

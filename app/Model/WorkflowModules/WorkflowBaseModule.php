@@ -58,7 +58,11 @@ class WorkflowBaseModule
         foreach ($indexedParams as $id => $param) {
             $indexedParams[$id]['value'] = $param['value'] ?? ($param['default'] ?? '');
             if (!empty($param['jinja_supported']) && strlen($param['value']) > 0) {
-                $indexedParams[$id]['value'] = $this->render_jinja_template($param['value'], $rData);
+                $rDataWithEnv = $rData;
+                $rDataWithEnv['_env'] = [
+                    'baseurl' => Configure::read('MISP.baseurl'),
+                ];
+                $indexedParams[$id]['value'] = $this->render_jinja_template($param['value'], $rDataWithEnv);
             }
         }
         return $indexedParams;
@@ -346,7 +350,7 @@ class AdHocTrigger extends WorkflowBaseTriggerModule
                 'id' => 'scope',
                 'label' => __('Data Input Scope'),
                 'type' => 'select',
-                'default' => 'passed_filters',
+                'default' => 'events',
                 'options' => [
                     'passed_roaming_data' => 'Passed Roaming Data',
                     'passed_event_ids' => 'Passed Event IDs',

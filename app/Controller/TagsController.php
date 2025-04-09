@@ -1136,4 +1136,14 @@ class TagsController extends AppController
             $this->render('/genericTemplates/select');
         }
     }
+
+    public function fastIndex($includeClusters=false)
+    {
+        if (!$this->_isRest() && !$this->request->is('ajax')) {
+            throw new MethodNotAllowedException('This action is only for REST users.');
+        }
+        $tags = $this->Tag->getCachedTags($includeClusters);
+        $tags = array_column(array_column($tags, 'Tag'), 'name');
+        return $this->RestResponse->viewData($tags, $this->response->type());
+    }
 }
