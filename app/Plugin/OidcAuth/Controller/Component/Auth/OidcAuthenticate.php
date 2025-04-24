@@ -31,7 +31,6 @@ class OidcAuthenticate extends BaseAuthenticate
      */
     public function authenticate(CakeRequest $request, CakeResponse $response)
     {
-
         $userModel = ClassRegistry::init($this->settings['userModel']);
         $headers = $response->header();
         if($headers) {
