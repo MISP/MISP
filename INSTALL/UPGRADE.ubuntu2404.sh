@@ -10,6 +10,9 @@
 # Thanks to both Tony Robinson (@da667), Stefano Ortolani (@ostefano) and Steve Clement (@SteveClement) for their awesome work!
 
 # This installation script assumes that you are installing as root, or a user with sudo access.
+#
+# To upgrade from an existing 2.4 install you can use the following command:
+# $ wget --no-cache -O /tmp/UPGRADE.ubuntu2404.sh https://raw.githubusercontent.com/MISP/MISP/refs/heads/2.5/INSTALL/UPGRADE.ubuntu2404.sh ; sudo bash /tmp/UPGRADE.ubuntu2404.sh
 
 random_string() {
     cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1
