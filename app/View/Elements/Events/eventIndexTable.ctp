@@ -193,8 +193,8 @@
                     </div>
                 <?php else: ?>
                     <a href="<?= h($baseurl) ?>/events/view/<?= h($extends_id) ?>" 
-                    title="Extends event <?= h($extends_id) ?>"
-                    aria-label="Extends event <?= h($extends_id) ?>">
+                    title="<?= __('Extends event %s', h($extends_id)) ?>"
+                    aria-label="<?= __('Extends event %s', h($extends_id)) ?>">
                         <i class="fas fa-external-link-square-alt"></i>
                     </a>
                 <?php endif; ?>

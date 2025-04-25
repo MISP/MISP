@@ -57,6 +57,7 @@ class EventsController extends AppController
 
     // private
     const DEFAULT_HIDDEN_INDEX_COLUMNS = [
+        'extending',
         'timestamp',
         'publish_timestamp'
     ];
@@ -1012,7 +1013,7 @@ class EventsController extends AppController
         if ($this->_isSiteAdmin()) {
             $possibleColumns[] = 'creator_user';
         }
-
+ 
         $possibleColumns[] = 'timestamp';
         $possibleColumns[] = 'publish_timestamp';
 
