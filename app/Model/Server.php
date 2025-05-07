@@ -6942,7 +6942,7 @@ class Server extends AppModel
                 ],
                 'otp_required' => array(
                     'level' => 2,
-                    'description' => __('Require authentication with OTP. Users that do not have (T/H)OTP configured will be forced to create a token at first login. You cannot use it in combination with external authentication plugins.'),
+                    'description' => __('Require authentication with OTP. Users that do not have (T/H)OTP configured will be forced to create a token at first login.'),
                     'value' => false,
                     'test' => 'testBool',
                     'beforeHook' => 'otpBeforeHook',
