@@ -26,8 +26,6 @@ class UsersController extends AppController
 
     public function beforeFilter()
     {
-        parent::beforeFilter();
-
         // what pages are allowed for non-logged-in users
         $allowedActions = array('login', 'logout', 'getGpgPublicKey', 'logout401', 'otp', 'heartbeat');
         if (!empty(Configure::read('Security.allow_password_forgotten'))) {
@@ -41,6 +39,8 @@ class UsersController extends AppController
             $allowedActions[] = 'register';
         }
         $this->Auth->allow($allowedActions);
+
+        parent::beforeFilter();
     }
 
     public function view($id = null)
