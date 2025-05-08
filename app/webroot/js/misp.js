@@ -3979,6 +3979,36 @@ function toggleBoolFilter(param) {
     fetchAttributes(currentUri, res);
 }
 
+function toggleWarningFilter(param) { 
+    if (querybuilderTool === undefined) {
+        triggerEventFilteringTool(true); // allows to fetch rules
+    }
+    var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
+    var res = cleanRules(rules);
+
+    var [key, value] = param.split(':');
+
+    if (key === "warning" && res["warninglistId"] !== undefined) {
+        res["warninglistId"] = 0;
+        res["warning"] = value;
+    } else if (key === "warninglistId" && res["warning"] !== undefined) {
+        res["warning"] = 0;
+        res["warninglistId"] = value;
+    } else {
+        var current = res[key];
+
+        if (current !== undefined) {
+            res[key] = (current == value) ? 0 : value;
+        } else {
+            res[key] = value;
+        }
+    }
+
+    fetchAttributes(currentUri, res);
+}
+
+
+
 function resetPaginationParameters(currentUri) {
     var newUri = []
     currentUri.split('/').forEach(function(el) {

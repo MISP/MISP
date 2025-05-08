@@ -5266,11 +5266,28 @@ class Event extends AppModel
                 return null;
             }
 
-            if ($filterType['warning'] == 0) { // `both`
-                // pass, do not consider as `both` is selected
-            } else if (!empty($attribute['warnings']) || !empty($attribute['validationIssue'])) { // `include only`
-                $include = $include && ($filterType['warning'] == 1);
-            } else { // `exclude`
+            if ($filterType['warning'] == 0) { // `all`
+                // pass, do not consider as `all` is selected
+            } else if (!empty($attribute['warnings']) || !empty($attribute['validationIssue'])) {
+                $hasFalsePositive = false;
+                $hasKnown = false;
+                if (!empty($attribute['warnings'])) {
+                    foreach ($attribute['warnings'] as $warning) {
+                        if ($warning['warninglist_category'] === 'false_positive') {
+                            $hasFalsePositive = true;
+                        } elseif ($warning['warninglist_category'] === 'known') {
+                            $hasKnown = true;
+                        }
+                    }
+                }
+                if ($filterType['warning'] == 3) { // False positive
+                    $include = $include && $hasFalsePositive;
+                } elseif ($filterType['warning'] == 4) { // Known identifier
+                    $include = $include && $hasKnown;
+                } else {
+                    $include = $include && ($filterType['warning'] == 1); // include only
+                }
+            } else { // exclude
                 $include = $include && ($filterType['warning'] == 2);
             }
 
