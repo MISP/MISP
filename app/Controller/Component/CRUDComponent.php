@@ -74,7 +74,7 @@ class CRUDComponent extends Component
     {
         $modelName = $this->Controller->modelClass;
         $data = [];
-        if ($this->Controller->request->is('post')) {
+        if ($this->Controller->request->is('post') || $this->Controller->request->is('put')) {
             $input = $this->Controller->request->data;
             if (empty($input[$modelName])) {
                 $input = [$modelName => $input];
@@ -145,7 +145,7 @@ class CRUDComponent extends Component
                     }
                 }
             } else {
-                $message = __('%s could not be added.', $modelName);
+                $message = __('%s could not be added. Errors %s', $modelName, implode(', ', Hash::flatten($model->validationErrors)));
                 if ($this->Controller->IndexFilter->isRest()) {
                     $controllerName = $this->Controller->params['controller'];
                     $actionName = $this->Controller->params['action'];

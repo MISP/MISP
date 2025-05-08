@@ -1636,13 +1636,15 @@ class Workflow extends AppModel
             if (!empty($labelsByNodes[$node['id']])) {
                 foreach ($node['inputs'] as $inputName => $inputs) {
                     foreach ($inputs['connections'] as $j => $connection) {
-                        $workflow['Workflow']['data'][$i]['inputs'][$inputName]['connections'][$j]['labels'] = array_map(function($label) {
-                            return [
-                                'id' => Inflector::variable($label),
-                                'name' => $label,
-                                'variant' => 'info',
-                            ];
-                        }, $labelsByNodes[$node['id']][$connection['node']]);
+                        if (!empty($labelsByNodes[$node['id']][$connection['node']])) {
+                            $workflow['Workflow']['data'][$i]['inputs'][$inputName]['connections'][$j]['labels'] = array_map(function($label) {
+                                return [
+                                    'id' => Inflector::variable($label),
+                                    'name' => $label,
+                                    'variant' => 'info',
+                                ];
+                            }, $labelsByNodes[$node['id']][$connection['node']]);
+                        }
                     }
                 }
             }
@@ -1680,6 +1682,12 @@ class Workflow extends AppModel
         $success = $module_class->exec($node, $roaming_data, $errors);
         $result['success'] = $success;
         $result['errors'] = $errors;
+        if (!empty($module_config['isFiltering'])) {
+            $rData = $roaming_data->getData();
+            if (!empty($rData['Event'])) {
+                $result['filtered_data'] = ['Event' => $rData['Event']];
+            }
+        }
         return $result;
     }
 
@@ -1697,7 +1705,7 @@ class Workflow extends AppModel
                 'saved_filters' => $module_config['saved_filters'],
                 'module_data' => $module_config,
                 'expect_misp_core_format' => $module_config['expect_misp_core_format'],
-                'is_filtering' => $module_config['isFiltering'],
+                'is_filtering' => $module_config['isFiltering'] ?? false,
             ],
             'inputs' => [],
             'outputs' => [],

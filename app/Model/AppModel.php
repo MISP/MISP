@@ -93,7 +93,7 @@ class AppModel extends Model
         117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
-        135 => false, 136 => true, 137 => false,
+        135 => false, 136 => true, 137 => false, 138 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2286,6 +2286,9 @@ class AppModel extends Model
                 break;
             case 137:
                 $sqlArray[] = "ALTER TABLE `object_relationships` ADD `highlighted` tinyint(1) DEFAULT 0;";
+                break;
+            case 138:
+                $sqlArray[] = "ALTER TABLE `events` MODIFY info text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

@@ -361,4 +361,8 @@ sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git &>> $logfile
 
 save_settings
 
+print_status "Doing some cleanup to avoid some potential post upgrade caching fuck-ups"
+sudo rm -f ${MISP_PATH}/app/tmp/cache/models/myapp* &>> $logfile
+sudo rm -f ${MISP_PATH}/app/tmp/cache/persistent/myapp* &>> $logfile
+
 print_notification "MISP setup complete. Thank you, and have a very safe, and productive day."

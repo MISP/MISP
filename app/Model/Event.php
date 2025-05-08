@@ -588,7 +588,7 @@ class Event extends AppModel
         return $this->unpublishEvent($event_id);
     }
 
-    public function attachTagsToEventAndTouch($event_id, array $options, array $user)
+    public function attachTagsToEventAndTouch($event_id, array $options, array $user, array &$tagAttached = [])
     {
         $tags = $options['tags'];
         $local = $options['local'];
@@ -611,6 +611,9 @@ class Event extends AppModel
                 'relationship_type' => $relationship,
             ];
             $attachSuccess = $this->EventTag->attachTagToEvent($event_id, $tag, $nothingToChange);
+            if ($attachSuccess) {
+                $tagAttached[] = $tag_name;
+            }
             $success = $success || $attachSuccess;
             $touchEvent = $touchEvent || !$nothingToChange;
         }
@@ -620,7 +623,7 @@ class Event extends AppModel
         return $success;
     }
 
-    public function detachTagsFromEventAndTouch($event_id, array $options)
+    public function detachTagsFromEventAndTouch($event_id, array $options, array &$tagDetached = [])
     {
         $tags = $options['tags'];
         $local = $options['local'];
@@ -634,6 +637,9 @@ class Event extends AppModel
                 continue;
             }
             $detachSuccess = $this->EventTag->detachTagFromEvent($event_id, $tag_id, $local, $nothingToChange);
+            if ($detachSuccess) {
+                $tagDetached[] = $tag_name;
+            }
             $success = $success || $detachSuccess;
             $touchEvent = $touchEvent || !$nothingToChange;
         }

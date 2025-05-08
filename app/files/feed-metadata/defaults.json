@@ -297,7 +297,7 @@
     "Feed": {
       "name": "OpenPhish url list",
       "provider": "openphish.com",
-      "url": "https://openphish.com/feed.txt",
+      "url": "https://raw.githubusercontent.com/openphish/public_feed/refs/heads/main/feed.txt",
       "rules": "",
       "enabled": false,
       "distribution": "3",

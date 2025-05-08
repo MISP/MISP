@@ -34,7 +34,7 @@ class WorkflowShell extends AppShell {
             $job['Job']['message'] = __('Workflow for trigger `%s` completed execution', $trigger_id);
         } else {
             $errorMessage = implode(', ', $blockingErrors);
-            $message = __('Error while executing workflow for trigger `%s`: %s. %s%s', $trigger_id, $logging['message'], PHP_EOL . __('Returned message: %s', $errorMessage));
+            $message = __('Error while executing workflow for trigger `%s`: %s. %s%s', $trigger_id, $logging['message'], PHP_EOL, __('Returned message: %s', $errorMessage));
             $job['Job']['message'] = $message;
         }
     }

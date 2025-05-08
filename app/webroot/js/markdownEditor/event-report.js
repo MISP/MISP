@@ -62,6 +62,7 @@ var renderingRules = {
 }
 var galaxyMatrixTimer = {}, tagTimers = {};
 var cache_matrix = {}, cache_tag = {};
+var draw_matrix_timer
 var firstCustomPostRenderCall = true;
 var contentBeforeSuggestions
 var typeToCategoryMapping
@@ -886,7 +887,10 @@ function attachRemoteMISPElements() {
                 attachGalaxyMatrix($div, eventID, elementID)
             }, firstCustomPostRenderCall ? 0 : slowDebounceDelay);
         } else {
-            $div.html(cache_matrix[cacheKey])
+            clearTimeout(draw_matrix_timer);
+            draw_matrix_timer = setTimeout(function() {
+                $div.html(cache_matrix[cacheKey])
+            }, 2000);
         }
     })
 

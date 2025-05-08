@@ -117,47 +117,87 @@ class Module_tag_operation extends WorkflowBaseActionModule
         ];
         if ($params['scope']['value'] == 'event') {
             if ($params['action']['value'] == 'remove') {
-                $result = $this->__removeTagsFromEvent($matchingItems, $options);
+                $result = $this->__removeTagsFromEvent($matchingItems, $options, $roamingData);
             } else {
-                $result = $this->__addTagsToEvent($matchingItems, $options, $user);
+                $result = $this->__addTagsToEvent($matchingItems, $options, $user, $roamingData);
             }
         } else {
             if ($params['action']['value'] == 'remove') {
-                $result = $this->__removeTagsFromAttributes($matchingItems, $options);
+                $result = $this->__removeTagsFromAttributes($matchingItems, $options, $roamingData);
             } else {
-                $result = $this->__addTagsToAttributes($matchingItems, $options, $user);
+                $result = $this->__addTagsToAttributes($matchingItems, $options, $user, $roamingData);
             }
         }
         return $result;
     }
 
-    protected function __addTagsToAttributes(array $attributes, array $options, array $user): bool
+
+    protected function __addTagsToAttributes(array $attributes, array $options, array $user, WorkflowRoamingData $roamingData): bool
     {
         $success = false;
         foreach ($attributes as $attribute) {
-            $saveSuccess = $this->Attribute->attachTagsToAttributeAndTouch($attribute['id'], $attribute['event_id'], $options, $user);
+            $tagAttached = [];
+            $saveSuccess = $this->Attribute->attachTagsToAttributeAndTouch($attribute['id'], $attribute['event_id'], $options, $user, $tagAttached);
+            if ($saveSuccess) {
+                $tags = $this->genTagObjectsFromTagNames($tagAttached, $options);
+                $updatedRData = $this->_addTag($tags, 'attribute', $roamingData->getData(), $attribute);
+                $roamingData->setData($updatedRData);
+                $this->_buildFastLookupForRoamingData($roamingData->getData());
+            }
             $success = $success || !empty($saveSuccess);
         }
         return $success;
     }
     
-    protected function __removeTagsFromAttributes(array $attributes, array $options): bool
+    protected function __removeTagsFromAttributes(array $attributes, array $options, WorkflowRoamingData $roamingData): bool
     {
         $success = false;
         foreach ($attributes as $attribute) {
-            $saveSuccess = $this->Attribute->detachTagsFromAttributeAndTouch($attribute['id'], $attribute['event_id'], $options);
+            $tagDetached = [];
+            $saveSuccess = $this->Attribute->detachTagsFromAttributeAndTouch($attribute['id'], $attribute['event_id'], $options, $tagDetached);
+            if ($saveSuccess) {
+                $tags = $this->genTagObjectsFromTagNames($tagDetached, $options);
+                $updatedRData = $this->_removeTag($tags, 'attribute', $roamingData->getData(), $attribute);
+                $roamingData->setData($updatedRData);
+                $this->_buildFastLookupForRoamingData($roamingData->getData());
+            }
             $success = $success || !empty($saveSuccess);
         }
         return $success;
     }
 
-    protected function __addTagsToEvent(array $event, array $options, array $user): bool
+    protected function __addTagsToEvent(array $event, array $options, array $user, WorkflowRoamingData $roamingData): bool
     {
-        return !empty($this->Event->attachTagsToEventAndTouch($event['Event']['id'], $options, $user));
+        $tagAttached = [];
+        $saveSuccess = !empty($this->Event->attachTagsToEventAndTouch($event['Event']['id'], $options, $user, $tagAttached));
+        if ($saveSuccess) {
+            $tags = $this->genTagObjectsFromTagNames($tagAttached, $options);
+            $updatedRData = $this->_addTag($tags, 'event', $roamingData->getData());
+            $roamingData->setData($updatedRData);
+        }
+        return $saveSuccess;
     }
 
-    protected function __removeTagsFromEvent(array $event, array $options): bool
+    protected function __removeTagsFromEvent(array $event, array $options, WorkflowRoamingData $roamingData): bool
     {
-        return !empty($this->Event->detachTagsFromEventAndTouch($event['Event']['id'], $options));
+        $tagDetached = [];
+        $saveSuccess = !empty($this->Event->detachTagsFromEventAndTouch($event['Event']['id'], $options, $tagDetached));
+        if ($saveSuccess) {
+            $tags = $this->genTagObjectsFromTagNames($tagDetached, $options);
+            $updatedRData = $this->_removeTag($tags, 'event', $roamingData->getData());
+            $roamingData->setData($updatedRData);
+        }
+        return $saveSuccess;
+    }
+
+    private function genTagObjectsFromTagNames($tagNames, $options): array
+    {
+        return array_map(function ($tagName) use ($options) {
+            return [
+                'name' => $tagName,
+                'relationship_type' => $options['relationship_type'],
+                'local' => $options['local'],
+            ];
+        }, $tagNames);
     }
 }

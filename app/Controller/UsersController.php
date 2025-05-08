@@ -3293,4 +3293,16 @@ class UsersController extends AppController
         $payload = $this->User::HEARTBEAT_MESSAGES[rand(0, count($this->User::HEARTBEAT_MESSAGES)-1)];
         return $this->RestResponse->viewData($payload, 'json');
     }
+
+    public function userIp($user)
+    {
+        $result = $this->User->userIP($user);
+        return $this->RestResponse->viewData($result['User'], 'json');
+    }
+
+    public function ipUser($ip)
+    {
+        $result = $this->User->ipUser($ip);
+        return $this->RestResponse->viewData($result, 'json');
+    }
 }

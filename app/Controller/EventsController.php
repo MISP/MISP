@@ -5952,7 +5952,7 @@ class EventsController extends AppController
             $results = $this->Event->runWorkflow($id, $workflow_ids);
             $succesMessage = __('Successfully ran %s Workflows on Event %s', count($workflow_ids), h($id));
             $errorMessage = __('Error(s) while running Workflow(s): ') . implode(', ', $results['error_messages']);
-            if ($this->_isRest()) {
+            if ($this->_isRest() || $this->request->is('ajax')) {
                 return $this->RestResponse->saveSuccessResponse('Events', 'runWorkflow', $id, $this->response->type(), $results['success_count'] > 0 ? $succesMessage : $errorMessage);
             } else {
                 if ($results['success_count'] > 0) {

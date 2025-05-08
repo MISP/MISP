@@ -924,7 +924,7 @@ class TagsController extends AppController
                 if ($objectType === 'Attribute') {
                     $this->MispAttribute->touch($object['Attribute']['id']);
                 } elseif ($objectType === 'Event') {
-                    $this->Event->unpublishEvent($object['Event']['id']);
+                    $this->Event->touch($object['Event']['id']);
                 }
             }
             return $this->RestResponse->saveSuccessResponse('Tags', 'removeTagFromObject', false, $this->response->type(), $message);

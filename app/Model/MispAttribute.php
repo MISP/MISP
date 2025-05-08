@@ -2257,7 +2257,7 @@ class MispAttribute extends AppModel
         return $saveSuccess;
     }
 
-    public function attachTagsToAttributeAndTouch($attribute_id, $event_id, array $options, array $user)
+    public function attachTagsToAttributeAndTouch($attribute_id, $event_id, array $options, array $user, array &$tagAttached=[])
     {
         $tags = $options['tags'];
         $local = $options['local'];
@@ -2275,6 +2275,9 @@ class MispAttribute extends AppModel
                 $capturedTags
             );
             $saveSuccess = $this->AttributeTag->attachTagToAttribute($attribute_id, $event_id, $tag_id, $local, $relationship, $nothingToChange);
+            if ($saveSuccess) {
+                $tagAttached[] = $tag_name;
+            }
             $success = $success || !empty($saveSuccess);
             $touchAttribute = $touchAttribute || !$nothingToChange;
         }
@@ -2284,7 +2287,7 @@ class MispAttribute extends AppModel
         return $success;
     }
 
-    public function detachTagsFromAttributeAndTouch($attribute_id, $event_id, array $options)
+    public function detachTagsFromAttributeAndTouch($attribute_id, $event_id, array $options, array &$tagDetached=[])
     {
         $tags = $options['tags'];
         $local = $options['local'];
@@ -2299,6 +2302,9 @@ class MispAttribute extends AppModel
             }
             $saveSuccess = $this->AttributeTag->detachTagFromAttribute($attribute_id, $event_id, $tag_id, $local, $nothingToChange);
             $success = $success || !empty($saveSuccess);
+            if ($saveSuccess) {
+                $tagDetached[] = $tag_name;
+            }
             $touchAttribute = $touchAttribute || !$nothingToChange;
         }
         if ($touchAttribute) {

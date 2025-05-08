@@ -2306,4 +2306,56 @@ class User extends AppModel
         }
         return []; 
     }
+
+    public function userIP($user)
+    {
+        $Server = ClassRegistry::init('Server');
+        $redis = $Server->setupRedis();
+        if (is_numeric($user)) {
+            $conditions = ['User.id' => $user];
+        } else {
+            $conditions = ['User.email' => $user];
+        }
+        $user = $this->find('first', array(
+            'recursive' => -1,
+            'contain' => ['Organisation', 'Role'],
+            'fields' => ['User.email', 'User.disabled', 'Organisation.*', 'Role.*', 'User.id'],
+            'conditions' => $conditions
+        ));
+        if (empty($user)) {
+            throw new NotFoundException(__('User not found.'));
+        }
+        $temp = ['Organisation' => $user['Organisation'], 'Role' => $user['Role']];
+        unset($user['Organisation']);
+        unset($user['Role']);
+        $user = $user['User'];
+        $user = array_merge($user, $temp);
+        $ips = $redis->smembers('misp:user_ip:' . $user['id']);
+        return ['ips' => $ips, 'User' => $user];
+    }
+
+    public function IPUser($ip)
+    {
+        $Server = ClassRegistry::init('Server');
+        $redis = $Server->setupRedis();
+        $user_id = $redis->get('misp:ip_user:' . $ip);
+        if (empty($user_id)) {
+            throw new NotFoundException(__('No Users found for the given IP.'));
+        }
+        $user = $this->find('first', array(
+            'recursive' => -1,
+            'contain' => ['Organisation', 'Role'],
+            'fields' => ['User.email', 'User.disabled', 'Organisation.*', 'Role.*', 'User.id'],
+            'conditions' => array('User.id' => $user_id)
+        ));
+        if (empty($user)) {
+            throw new NotFoundException(__('User not found.'));
+        }
+        $temp = ['Organisation' => $user['Organisation'], 'Role' => $user['Role']];
+        unset($user['Organisation']);
+        unset($user['Role']);
+        $user = $user['User'];
+        $user = array_merge($user, $temp);
+        return ['ip' => $ip, 'User' => $user];
+    }
 }
