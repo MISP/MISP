@@ -770,6 +770,8 @@ class EventsController extends AppController
                 ['conditions' => ['Event.uuid' => $extendedUuids]]
             );
             $this->set('extendedEvents', array_column($extendedEvents, 'Event', 'uuid'));
+        } else {
+            $this->set('extendedEvents', []);
         }
 
         if ($this->request->is('ajax')) {
