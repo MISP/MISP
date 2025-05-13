@@ -1,6 +1,6 @@
 <div class="attribute_replace">
 <?php
-echo $this->Form->create('Attribute', array('id', 'url' => $baseurl . '/attributes/attributeReplace/' . $event_id));
+echo $this->Form->create('Attribute', array('id', 'url' => $baseurl . '/attributes/attributeReplace/' . h($event_id)));
 ?>
     <fieldset>
         <legend><?php echo __('Attribute Replace Tool'); ?></legend>
@@ -35,7 +35,7 @@ echo $this->Form->create('Attribute', array('id', 'url' => $baseurl . '/attribut
             <table>
                 <tr>
                 <td style="vertical-align:top">
-                    <span id="submitButton" class="btn btn-primary" title="<?php echo __('Replace attributes'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Replaceattributes'); ?>" onClick="submitPopoverForm('<?php echo $event_id;?>', 'replaceAttributes')"><?php echo __('Submit'); ?></span>
+                    <span id="submitButton" class="btn btn-primary" title="<?php echo __('Replace attributes'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Replaceattributes'); ?>" onClick="submitPopoverForm('<?php echo h($event_id);?>', 'replaceAttributes')"><?php echo __('Submit'); ?></span>
                 </td>
                 <td style="width:540px;">
                     <p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.'); ?></p>

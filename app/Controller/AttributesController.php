@@ -2909,6 +2909,7 @@ class AttributesController extends AppController
                 $attribute['Attribute']['disable_correlation'] = 1;
             }
             $this->Attribute->save($attribute, ['parentEvent' => $attribute]);
+            $this->Attribute->touch($attribute);
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('attributes', 'toggleCorrelation', $id, false, 'Correlation ' . ($attribute['Attribute']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
             } else {

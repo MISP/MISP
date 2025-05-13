@@ -821,9 +821,9 @@ class Galaxy extends AppModel
         if ($result) {
             if (!$local) {
                 if ($targetType === 'attribute') {
-                    $this->Tag->AttributeTag->Attribute->touch($target);
+                    $this->Tag->AttributeTag->Attribute->touch($target_id);
                 } elseif ($targetType === 'event') {
-                    $this->Tag->EventTag->Event->unpublishEvent($target);
+                    $this->Tag->EventTag->Event->touch($target_id);
                 }
             }
             if ($targetType === 'attribute' || $targetType === 'event') {
@@ -889,6 +889,7 @@ class Galaxy extends AppModel
 
         $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
 
+        $connectorModel = Inflector::camelize($target_type) . 'Tag';
         if ($target_type === 'attribute') {
             $existingTargetTag = $this->Tag->AttributeTag->find('first', array(
                 'conditions' => array('AttributeTag.tag_id' => $tag_id, 'AttributeTag.attribute_id' => $target_id),
@@ -912,11 +913,18 @@ class Galaxy extends AppModel
         if (empty($existingTargetTag)) {
             return 'Cluster not attached.';
         }
+        $local = isset($existingTargetTag[$connectorModel]['local']) ? $existingTargetTag[$connectorModel]['local'] : 0;
 
         if ($target_type === 'event') {
             $result = $this->Tag->EventTag->delete($existingTargetTag['EventTag']['id']);
+            if (!$local) {
+                $this->GalaxyCluster->Tag->EventTag->Event->touch($target_id);
+            }
         } elseif ($target_type === 'attribute') {
             $result = $this->Tag->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
+            if (!$local) {
+                $this->GalaxyCluster->Tag->AttributeTag->Attribute->touch($target_id);
+            }
         } elseif ($target_type === 'tag_collection') {
             $result = $this->Tag->TagCollectionTag->delete($existingTargetTag['TagCollectionTag']['id']);
         }
@@ -945,6 +953,7 @@ class Galaxy extends AppModel
      */
     public function detachClusterByTagId(array $user, $targetId, $targetType, $tagId)
     {
+        $local = false;
         if ($targetType === 'attribute') {
             $attribute = $this->GalaxyCluster->Tag->EventTag->Event->Attribute->find('first', array(
                 'recursive' => -1,
@@ -986,13 +995,14 @@ class Galaxy extends AppModel
                 }
             }
         }
-
+        $connectorModel = Inflector::camelize($targetType) . 'Tag';
         if ($targetType === 'attribute') {
             $existingTargetTag = $this->GalaxyCluster->Tag->AttributeTag->find('first', array(
                 'conditions' => array('AttributeTag.tag_id' => $tagId, 'AttributeTag.attribute_id' => $targetId),
                 'recursive' => -1,
                 'contain' => array('Tag')
             ));
+
         } elseif ($targetType === 'event') {
             $existingTargetTag = $this->GalaxyCluster->Tag->EventTag->find('first', array(
                 'conditions' => array('EventTag.tag_id' => $tagId, 'EventTag.event_id' => $targetId),
@@ -1010,7 +1020,7 @@ class Galaxy extends AppModel
         if (empty($existingTargetTag)) {
             throw new NotFoundException('Galaxy not attached.');
         }
-
+        $local = isset($existingTargetTag[$connectorModel]['local']) ? $existingTargetTag[$connectorModel]['local'] : 0;
         $cluster = $this->GalaxyCluster->find('first', array(
             'recursive' => -1,
             'conditions' => array('GalaxyCluster.tag_name' => $existingTargetTag['Tag']['name'])
@@ -1021,8 +1031,12 @@ class Galaxy extends AppModel
 
         if ($targetType === 'event') {
             $result = $this->GalaxyCluster->Tag->EventTag->delete($existingTargetTag['EventTag']['id']);
+            $this->GalaxyCluster->Tag->EventTag->Event->touch($targetId);
         } elseif ($targetType === 'attribute') {
             $result = $this->GalaxyCluster->Tag->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
+            if (!$local) {
+                $this->GalaxyCluster->Tag->AttributeTag->Attribute->touch($targetId);
+            }
         } elseif ($targetType === 'tag_collection') {
             $result = $this->GalaxyCluster->Tag->TagCollectionTag->delete($existingTargetTag['TagCollectionTag']['id']);
         }

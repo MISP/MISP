@@ -5644,7 +5644,7 @@ class Server extends AppModel
                 ),
                 'download_attachments_on_load' => array(
                     'level' => 2,
-                    'description' => __('Always download attachments when loaded by a user in a browser'),
+                    'description' => __('Always download attachments when loaded by a user in a browser. It is highly recommended to leave this setting on true, as otherwise opening an attachment can lead to the execution of malicious code via XSS.'),
                     'value' => true,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -6938,7 +6938,7 @@ class Server extends AppModel
                 ],
                 'otp_required' => array(
                     'level' => 2,
-                    'description' => __('Require authentication with OTP. Users that do not have (T/H)OTP configured will be forced to create a token at first login. You cannot use it in combination with external authentication plugins.'),
+                    'description' => __('Require authentication with OTP. Users that do not have (T/H)OTP configured will be forced to create a token at first login.'),
                     'value' => false,
                     'test' => 'testBool',
                     'beforeHook' => 'otpBeforeHook',

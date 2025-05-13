@@ -57,6 +57,11 @@ Security.require_password_confirmation false
 Security.auth_enforced true
 ```
 
+For avoiding redirect loops when trying to logout, you can configure the `Plugin.CustomAuth_custom_logout` setting with the logout url of your IdP.
+
+6. Mixed Auth
+Set `OidcAuth.mixedAuth` to `true` to prevent MISP to automatically redirect to your SSO and instead add a `Login with SSO` button in the login page, this allows users to still login with other authentication methods enabled in MISP.
+
 ## Caveats
 
 When user is blocked in SSO (IdM), he/she will be not blocked in MISP. He could not log in, but users authentication keys will still work and also he/she will still receive all emails. 

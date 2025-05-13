@@ -839,20 +839,11 @@ class AdminShell extends AppShell
         }
 
         $user_id = trim($this->args[0]);
-        $redis = $this->Server->setupRedis();
-        $user = $this->User->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('User.id' => $user_id)
-        ));
-        if (empty($user)) {
-            echo PHP_EOL . 'Invalid user ID.' . PHP_EOL;
-            die();
-        }
-        $ips = $redis->smembers('misp:user_ip:' . $user_id);
-        $ips = implode(PHP_EOL, $ips);
+        $results = $this->User->userIP($user_id);
+        $ips = implode(PHP_EOL, $results['ips']);
         echo sprintf(
             '%s==============================%sUser #%s: %s%s==============================%s%s%s==============================%s',
-            PHP_EOL, PHP_EOL, $user['User']['id'], $user['User']['email'], PHP_EOL, PHP_EOL, $ips, PHP_EOL, PHP_EOL
+            PHP_EOL, PHP_EOL, $results['User']['id'], $results['User']['email'], PHP_EOL, PHP_EOL, $ips, PHP_EOL, PHP_EOL
         );
     }
 
@@ -868,20 +859,10 @@ class AdminShell extends AppShell
         }
 
         $ip = trim($this->args[0]);
-        $redis = $this->Server->setupRedis();
-        $user_id = $redis->get('misp:ip_user:' . $ip);
-        if (empty($user_id)) {
-            echo PHP_EOL . 'No hits.' . PHP_EOL;
-            die();
-        }
-        $user = $this->User->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('User.id' => $user_id)
-        ));
-
+        $results = $this->User->IPuser($ip);
         echo sprintf(
             '%s==============================%sIP: %s%s==============================%sUser #%s: %s%s==============================%s',
-            PHP_EOL, PHP_EOL, $ip, PHP_EOL, PHP_EOL, $user['User']['id'], $user['User']['email'], PHP_EOL, PHP_EOL
+            PHP_EOL, PHP_EOL, $results['ip'], PHP_EOL, PHP_EOL, $results['User']['id'], $results['User']['email'], PHP_EOL, PHP_EOL
         );
     }
 

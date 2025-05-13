@@ -76,10 +76,13 @@
             echo $this->Form->end();
             endif;
             if (Configure::read('ApacheShibbAuth') == true) {
-                echo '<div class="clear"></div><a class="btn btn-info" href="/Shibboleth.sso/Login">Login with SAML</a>';
+                echo '<div class="clear" style="margin-top: 5px;"></div><a class="btn btn-info" href="/Shibboleth.sso/Login">Login with SAML</a>';
             }
             if (Configure::read('AadAuth') == true) {
-                echo '<div class="clear"></div><a class="btn btn-info" href="/users/login?AzureAD=enable">Login with AzureAD</a>';
+                echo '<div class="clear" style="margin-top: 5px;"></div><a class="btn btn-info" href="/users/login?AzureAD=enable">Login with AzureAD</a>';
+            }
+            if (Configure::read('OidcAuth') == true && Configure::read('OidcAuth.mixedAuth') == true) {
+                echo '<div class="clear" style="margin-top: 5px;"></div><a class="btn btn-info" href="/users/login?OidcAuth=enable">Login with OIDC</a>';
             }
         ?>
     </td>

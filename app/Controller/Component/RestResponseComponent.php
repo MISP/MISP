@@ -616,7 +616,6 @@ class RestResponseComponent extends Component
             $type = 'csv';
         } else {
             $type = $format;
-
             $dumpSql = intval($this->Controller->request->params['named']['sql'] ?? 0);
             if ($dumpSql && Configure::read('debug') < 2) {
                 $dumpSql = 0; // disable dumping SQL if debugging is off

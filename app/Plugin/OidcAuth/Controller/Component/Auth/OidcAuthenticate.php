@@ -19,6 +19,7 @@ App::uses('Oidc', 'OidcAuth.Lib');
  *  - OidcAuth.offline_access (boolean, default: false)
  *  - OidcAuth.check_user_validity (integer, default `0`)
  *  - OidcAuth.update_user_role (boolean, default: true) - if disabled, manually modified role in MISP admin interface will be not changed from OIDC
+ *  - OidcAuth.mixedAuth (boolean, default: false) - if enabled, MISP will not automatically redirect to SSO portal and allow other authentication methods
  */
 class OidcAuthenticate extends BaseAuthenticate
 {
@@ -41,7 +42,23 @@ class OidcAuthenticate extends BaseAuthenticate
                 }
             }
         }
+
         $oidc = new Oidc($userModel);
-        return $oidc->authenticate($this->settings);
+
+        $mixedAuth = Configure::read("OidcAuth.mixedAuth", false);
+
+        if (!$mixedAuth){
+            return $oidc->authenticate($this->settings);
+        }
+
+        if (!$mixedAuth && empty($request->query['OidcAuth']) && empty($request->query['code'])) {
+            return false;
+        }
+
+        if (($request->query['OidcAuth'] ?? null) === 'enable' || isset($request->query['code'])) {
+            return $oidc->authenticate($this->settings);
+        }
+
+        return false;
     }
 }

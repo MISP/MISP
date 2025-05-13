@@ -63,6 +63,7 @@ class CollectionsController extends AppController
 
     public function edit($id)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
         $this->Collection->current_user = $this->Auth->user();
         if (!$this->Collection->mayModify($this->Auth->user('id'), $id)) {
             throw new MethodNotAllowedException(__('Invalid Collection or insuficient privileges'));
@@ -117,6 +118,7 @@ class CollectionsController extends AppController
 
     public function delete($id)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
         if (!$this->Collection->mayModify($this->Auth->user('id'), $id)) {
             throw new MethodNotAllowedException(__('Invalid Collection or insuficient privileges'));
         }
@@ -128,6 +130,7 @@ class CollectionsController extends AppController
 
     public function view($id)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
         $this->set('mayModify', $this->Collection->mayModify($this->Auth->user('id'), $id));
         if (!$this->Collection->mayView($this->Auth->user('id'), $id)) {
             throw new MethodNotAllowedException(__('Invalid Collection or insuficient privileges'));

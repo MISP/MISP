@@ -6,7 +6,7 @@ class Module_filter_tag extends WorkflowFilteringLogicModule
     public $id = 'filter-tag';
     public $isFiltering = true;
     public $name = 'Filter :: Tag';
-    public $version = '0.2';
+    public $version = '0.3';
     public $description = 'Tag filtering block. The module filters incoming data and forward the matching data to its output.';
     public $icon = 'filter';
     public $inputs = 1;
@@ -42,7 +42,7 @@ class Module_filter_tag extends WorkflowFilteringLogicModule
                     'event_report' => __('Event Report'),
                     'inherited_report' => __('Inherited Event Report'),
                 ],
-                'default' => 'event',
+                'default' => 'event_attribute',
             ],
             [
                 'id' => 'condition',
@@ -88,6 +88,12 @@ class Module_filter_tag extends WorkflowFilteringLogicModule
         $allSelectedTags = array_merge($selectedTags, $selectedClusters);
         $operator = $params['condition']['value'];
         $scope = $params['scope']['value'];
+
+        if ($scope == 'event') {
+            // Due to a bug introduce in this module v0.2, event was the unsupported default value
+            $scope == 'event_attribute';
+        }
+
         $filteringLabel = $params['filtering-label']['value'];
 
         $newRData = $rData;
@@ -100,6 +106,15 @@ class Module_filter_tag extends WorkflowFilteringLogicModule
             $path = $scope == 'event_attribute' ? '_allTags.{n}.name' : 'Tag.{n}.name';
             $value = $allSelectedTags;
             $newRData['enabledFilters'][$filteringLabel] = [
+                'selector' => $selector,
+                'path' => $path,
+                'operator' => $operator,
+                'value' => $value,
+            ];
+
+            // Also filter attributes in the Attribute key
+            $selector = 'Event.Attribute';
+            $newRData['enabledFilters'][$filteringLabel . '_2'] = [
                 'selector' => $selector,
                 'path' => $path,
                 'operator' => $operator,

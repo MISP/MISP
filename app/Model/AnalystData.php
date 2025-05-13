@@ -841,12 +841,12 @@ class AnalystData extends AppModel
     {
         $push_rules = json_decode($server['Server']['push_rules'], true);
         if (!empty($push_rules['orgs']['OR'])) {
-            if (!in_array($analystData['Orgc']['id'], $push_rules['orgs']['OR'])) {
+            if (!in_array($analystData['Orgc']['uuid'], $push_rules['orgs']['OR'])) {
                 return false;
             }
         }
         if (!empty($push_rules['orgs']['NOT'])) {
-            if (in_array($analystData['Orgc']['id'], $push_rules['orgs']['NOT'])) {
+            if (in_array($analystData['Orgc']['uuid'], $push_rules['orgs']['NOT'])) {
                 return false;
             }
         }

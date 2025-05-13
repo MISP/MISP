@@ -15,7 +15,11 @@ class Relationship extends AnalystData
     public $current_type = 'Relationship';
     public $current_type_id = 2;
 
-    protected $EDITABLE_FIELDS = [
+    public const EDITABLE_FIELDS = [
+        'relationship_type',
+    ];
+
+    public const SEARCHABLE_FIELDS = [
         'relationship_type',
     ];
 

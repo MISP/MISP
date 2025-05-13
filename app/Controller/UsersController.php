@@ -26,8 +26,6 @@ class UsersController extends AppController
 
     public function beforeFilter()
     {
-        parent::beforeFilter();
-
         // what pages are allowed for non-logged-in users
         $allowedActions = array('login', 'logout', 'getGpgPublicKey', 'logout401', 'otp', 'heartbeat');
         if (!empty(Configure::read('Security.allow_password_forgotten'))) {
@@ -41,6 +39,8 @@ class UsersController extends AppController
             $allowedActions[] = 'register';
         }
         $this->Auth->allow($allowedActions);
+
+        parent::beforeFilter();
     }
 
     public function view($id = null)
@@ -3289,5 +3289,17 @@ class UsersController extends AppController
     {
         $payload = $this->User::HEARTBEAT_MESSAGES[rand(0, count($this->User::HEARTBEAT_MESSAGES)-1)];
         return $this->RestResponse->viewData($payload, 'json');
+    }
+
+    public function userIp($user)
+    {
+        $result = $this->User->userIP($user);
+        return $this->RestResponse->viewData($result['User'], 'json');
+    }
+
+    public function ipUser($ip)
+    {
+        $result = $this->User->ipUser($ip);
+        return $this->RestResponse->viewData($result, 'json');
     }
 }

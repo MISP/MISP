@@ -1263,7 +1263,7 @@ function runWorkflow() {
     var html = '<div style="width: 350px;"> \
         <textarea rows=15 style="width: 100%; box-sizing: border-box;" placeholder="Enter data to be sent to the workflow"></textarea>\
         <div style="display: flex;"> \
-            <input type="number" placeholder="Or provide the Event ID" min="1" style="margin-bottom: 0; width: 165px;" /> \
+            <input type="text" placeholder="Or provide the Event ID / UUID" style="margin-bottom: 0; width: 210px;" /> \
             <button class="btn btn-primary" style="margin: 0 0 0 auto;"><i class="fa fa-spin fa-spinner hidden"></i> Run Workflow</button> \
         </div> \
         <pre style="margin-top: 0.75em;"></pre> \
@@ -1766,8 +1766,10 @@ function updateChosenOptions($select, options, savedValues) {
         }
         $select.append($newOption);
     });
+    $select.data('invalidate_cache', false);
     $select.trigger('chosen:updated');
     $select.trigger('change');
+    $select.data('invalidate_cache', true);
 }
 
 function enableHashpathPicker() {
@@ -2236,7 +2238,9 @@ function handleSelectChange(changed) {
     var node_data = setParamValueForInput($input, node.data)
     editor.updateNodeDataFromId(node.id, node_data)
     toggleDisplayOnFields()
-    invalidateContentCache()
+    if ($input.data('invalidate_cache') === undefined || $input.data('invalidate_cache') === true) {
+        invalidateContentCache()
+    }
 }
 
 function saveFilteringForModule() {

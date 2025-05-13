@@ -588,7 +588,7 @@ class Event extends AppModel
         return $this->unpublishEvent($event_id);
     }
 
-    public function attachTagsToEventAndTouch($event_id, array $options, array $user)
+    public function attachTagsToEventAndTouch($event_id, array $options, array $user, array &$tagAttached = [])
     {
         $tags = $options['tags'];
         $local = $options['local'];
@@ -611,6 +611,9 @@ class Event extends AppModel
                 'relationship_type' => $relationship,
             ];
             $attachSuccess = $this->EventTag->attachTagToEvent($event_id, $tag, $nothingToChange);
+            if ($attachSuccess) {
+                $tagAttached[] = $tag_name;
+            }
             $success = $success || $attachSuccess;
             $touchEvent = $touchEvent || !$nothingToChange;
         }
@@ -620,7 +623,7 @@ class Event extends AppModel
         return $success;
     }
 
-    public function detachTagsFromEventAndTouch($event_id, array $options)
+    public function detachTagsFromEventAndTouch($event_id, array $options, array &$tagDetached = [])
     {
         $tags = $options['tags'];
         $local = $options['local'];
@@ -634,6 +637,9 @@ class Event extends AppModel
                 continue;
             }
             $detachSuccess = $this->EventTag->detachTagFromEvent($event_id, $tag_id, $local, $nothingToChange);
+            if ($detachSuccess) {
+                $tagDetached[] = $tag_name;
+            }
             $success = $success || $detachSuccess;
             $touchEvent = $touchEvent || !$nothingToChange;
         }
@@ -5260,11 +5266,28 @@ class Event extends AppModel
                 return null;
             }
 
-            if ($filterType['warning'] == 0) { // `both`
-                // pass, do not consider as `both` is selected
-            } else if (!empty($attribute['warnings']) || !empty($attribute['validationIssue'])) { // `include only`
-                $include = $include && ($filterType['warning'] == 1);
-            } else { // `exclude`
+            if ($filterType['warning'] == 0) { // `all`
+                // pass, do not consider as `all` is selected
+            } else if (!empty($attribute['warnings']) || !empty($attribute['validationIssue'])) {
+                $hasFalsePositive = false;
+                $hasKnown = false;
+                if (!empty($attribute['warnings'])) {
+                    foreach ($attribute['warnings'] as $warning) {
+                        if ($warning['warninglist_category'] === 'false_positive') {
+                            $hasFalsePositive = true;
+                        } elseif ($warning['warninglist_category'] === 'known') {
+                            $hasKnown = true;
+                        }
+                    }
+                }
+                if ($filterType['warning'] == 3) { // False positive
+                    $include = $include && $hasFalsePositive;
+                } elseif ($filterType['warning'] == 4) { // Known identifier
+                    $include = $include && $hasKnown;
+                } else {
+                    $include = $include && ($filterType['warning'] == 1); // include only
+                }
+            } else { // exclude
                 $include = $include && ($filterType['warning'] == 2);
             }
 

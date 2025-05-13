@@ -57,6 +57,7 @@ class EventsController extends AppController
 
     // private
     const DEFAULT_HIDDEN_INDEX_COLUMNS = [
+        'extending',
         'timestamp',
         'publish_timestamp'
     ];
@@ -761,6 +762,16 @@ class EventsController extends AppController
         $this->set('passedArgsArray', $passedArgsArray);
         $this->set('passedArgs', json_encode($passedArgs));
 
+        $extendedUuids = array_filter(array_map(fn($event) => $event['Event']['extends_uuid'] ?? null, $events));
+
+        if ($extendedUuids) {
+            $extendedEvents = $this->Event->fetchSimpleEvents(
+                $this->Auth->user(),
+                ['conditions' => ['Event.uuid' => $extendedUuids]]
+            );
+            $this->set('extendedEvents', array_column($extendedEvents, 'Event', 'uuid'));
+        }
+
         if ($this->request->is('ajax')) {
             $this->autoRender = false;
             $this->layout = false;
@@ -970,6 +981,8 @@ class EventsController extends AppController
             $possibleColumns[] = 'owner_org';
         }
 
+        $possibleColumns[] = 'extending';
+
         if (Configure::read('MISP.tagging')) {
             $possibleColumns[] = 'clusters';
             $possibleColumns[] = 'tags';
@@ -1000,7 +1013,7 @@ class EventsController extends AppController
         if ($this->_isSiteAdmin()) {
             $possibleColumns[] = 'creator_user';
         }
-
+ 
         $possibleColumns[] = 'timestamp';
         $possibleColumns[] = 'publish_timestamp';
 

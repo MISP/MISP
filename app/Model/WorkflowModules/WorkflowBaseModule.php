@@ -448,11 +448,13 @@ class WorkflowBaseActionModule extends WorkflowBaseModule
 {
     protected $fastLookupArrayMispFormat = [];
     protected $fastLookupArrayFlattened = [];
+    protected $fastLookupArrayMispFormatUnfiltered = [];
+    protected $fastLookupArrayFlattenedUnfiltered = [];
 
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
-        $rData = $roamingData->getData();
         if ($this->expect_misp_core_format) {
+            $rData = $roamingData->getData();
             $this->_buildFastLookupForRoamingData($rData);
         }
         return true;
@@ -475,6 +477,24 @@ class WorkflowBaseActionModule extends WorkflowBaseModule
         foreach ($rData['Event']['_AttributeFlattened'] as $i => $attribute) {
             $this->fastLookupArrayFlattened[$attribute['id']] = $i;
         }
+
+        if (!empty($rData['enabledFilters'])) {
+            if (!empty($rData['_unfilteredData']['Event']['Attribute'])) {
+                foreach ($rData['_unfilteredData']['Event']['Attribute'] as $i => $attribute) {
+                    $this->fastLookupArrayMispFormatUnfiltered[$attribute['id']] = $i;
+                }
+            }
+            if (!empty($rData['_unfilteredData']['Event']['Object'])) {
+                foreach ($rData['_unfilteredData']['Event']['Object'] as $j => $object) {
+                    foreach ($object['Attribute'] as $i => $attribute) {
+                        $this->fastLookupArrayMispFormatUnfiltered[$attribute['id']] = [$j, $i];
+                    }
+                }
+            }
+            foreach ($rData['_unfilteredData']['Event']['_AttributeFlattened'] as $i => $attribute) {
+                $this->fastLookupArrayFlattenedUnfiltered[$attribute['id']] = $i;
+            }
+        }
     }
 
     protected function _overrideAttribute(array $oldAttribute, array $newAttribute, array $rData): array
@@ -489,7 +509,164 @@ class WorkflowBaseActionModule extends WorkflowBaseModule
             $attributeID = $this->fastLookupArrayMispFormat[$attributeID];
             $rData['Event']['Attribute'][$attributeID] = $newAttribute;
         }
+
+        $attributeID = $oldAttribute['id'];
+        if (!empty($rData['enabledFilters'])) {
+            $rData['_unfilteredData']['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattenedUnfiltered[$attributeID]] = $newAttribute;
+            if (is_array($this->fastLookupArrayMispFormatUnfiltered[$attributeID])) {
+                $objectID = $this->fastLookupArrayMispFormatUnfiltered[$attributeID][0];
+                $attributeID = $this->fastLookupArrayMispFormatUnfiltered[$attributeID][1];
+                $rData['_unfilteredData']['Event']['Object'][$objectID]['Attribute'][$attributeID] = $newAttribute;
+            } else {
+                $attributeID = $this->fastLookupArrayMispFormat[$attributeID];
+                $rData['_unfilteredData']['Event']['Attribute'][$attributeID] = $newAttribute;
+            }
+        }
+
         return $rData;
+    }
+
+    protected function _addTag($tags, $scope, array $rData, $attribute=null): array
+    {
+        return $this->_handleTag($tags, 'add', $scope, $rData, $attribute);
+    }
+
+    protected function _removeTag($tags, $scope, array $rData, $attribute=null): array
+    {
+        return $this->_handleTag($tags, 'remove', $scope, $rData, $attribute);
+    }
+
+    protected function _handleTag($tags, $operation, $scope, array $rData, $attribute=null): array
+    {
+        if ($scope == 'event') {
+            if ($operation == 'add') {
+                $newTagList = array_merge($rData['Event']['Tag'], $tags);
+            } else {
+                $newTagList = $this->getNewTagList(
+                    $rData['Event']['Tag'],
+                    $tags
+                );
+            }
+            $rData['Event']['Tag'] = $newTagList;
+
+        } else if ($scope == 'attribute') {
+            $attributeID = $attribute['id'];
+            if (!isset($rData['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattened[$attributeID]]['Tag'])) {
+                $rData['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattened[$attributeID]]['Tag'] = [];
+                if (!empty($rData['enabledFilters'])) {
+                    $rData['_unfilteredData']['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattenedUnfiltered[$attributeID]]['Tag'] = [];
+                }
+            }
+            if ($operation == 'add') {
+                $newTagList = array_merge(
+                    $rData['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattened[$attributeID]]['Tag'],
+                    $tags
+                );
+                $newAllTagList = array_merge(
+                    $rData['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattened[$attributeID]]['_allTags'],
+                    $tags
+                );
+            } else {
+                $newTagList = $this->getNewTagList(
+                    $rData['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattened[$attributeID]]['Tag'],
+                    $tags
+                );
+                $newAllTagList = $this->getNewTagList(
+                    $rData['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattened[$attributeID]]['_allTags'],
+                    $tags
+                );
+            }
+            $rData['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattened[$attributeID]]['Tag'] = $newTagList;
+            $rData['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattened[$attributeID]]['_allTags'] = $newAllTagList;
+            if (!empty($rData['enabledFilters'])) {
+                $rData['_unfilteredData']['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattenedUnfiltered[$attributeID]]['Tag'] = $newTagList;
+                $rData['_unfilteredData']['Event']['_AttributeFlattened'][$this->fastLookupArrayFlattenedUnfiltered[$attributeID]]['_allTags'] = $newAllTagList;
+            }
+
+            if (is_array($this->fastLookupArrayMispFormat[$attributeID])) {
+                $objectIndex = $this->fastLookupArrayMispFormat[$attributeID][0];
+                $attributeIndex = $this->fastLookupArrayMispFormat[$attributeID][1];
+                if (!isset($rData['Event']['Object'][$objectIndex]['Attribute'][$attributeIndex]['Tag'])) {
+                    $rData['Event']['Object'][$objectIndex]['Attribute'][$attributeIndex]['Tag'] = [];
+                }
+                if ($operation == 'add') {
+                    $newTagList = array_merge(
+                        $rData['Event']['Object'][$objectIndex]['Attribute'][$attributeIndex]['Tag'],
+                        $tags
+                    );
+                    $newAllTagList = array_merge(
+                        $rData['Event']['Object'][$objectIndex]['Attribute'][$attributeIndex]['_allTags'],
+                        $tags
+                    );
+                } else {
+                    $newTagList = $this->getNewTagList(
+                        $rData['Event']['Object'][$objectIndex]['Attribute'][$attributeIndex]['Tag'],
+                        $tags
+                    );
+                    $newAllTagList = $this->getNewTagList(
+                        $rData['Event']['Object'][$objectIndex]['Attribute'][$attributeIndex]['_allTags'],
+                        $tags
+                    );
+                }
+                $rData['Event']['Object'][$objectIndex]['Attribute'][$attributeIndex]['Tag'] = $newTagList;
+                $rData['Event']['Object'][$objectIndex]['Attribute'][$attributeIndex]['_allTags'] = $newAllTagList;
+                if (!empty($rData['enabledFilters'])) {
+                    $objectIndex = $this->fastLookupArrayMispFormatUnfiltered[$attributeID][0];
+                    $attributeIndex = $this->fastLookupArrayMispFormatUnfiltered[$attributeID][1];
+                    $rData['_unfilteredData']['Event']['Object'][$objectIndex]['Attribute'][$attributeIndex]['Tag'] = $newTagList;
+                    $rData['_unfilteredData']['Event']['Object'][$objectIndex]['Attribute'][$attributeIndex]['_allTags'] = $newAllTagList;
+                }
+
+            } else {
+                $attributeIndex = $this->fastLookupArrayMispFormat[$attributeID];
+                if (!isset($rData['Event']['Attribute'][$attributeIndex]['Tag'])) {
+                    $rData['Event']['Attribute'][$attributeIndex]['Tag'] = [];
+                }
+                if ($operation == 'add') {
+                    $newTagList = array_merge(
+                        $rData['Event']['Attribute'][$attributeIndex]['Tag'],
+                        $tags
+                    );
+                    $newAllTagList = array_merge(
+                        $rData['Event']['Attribute'][$attributeIndex]['_allTags'],
+                        $tags
+                    );
+                } else {
+                    $newTagList = $this->getNewTagList(
+                        $rData['Event']['Attribute'][$attributeIndex]['Tag'],
+                        $tags
+                    );
+                    $newAllTagList = $this->getNewTagList(
+                        $rData['Event']['Attribute'][$attributeIndex]['_allTags'],
+                        $tags
+                    );
+                }
+                $rData['Event']['Attribute'][$attributeIndex]['Tag'] = $newTagList;
+                $rData['Event']['Attribute'][$attributeIndex]['_allTags'] = $newAllTagList;
+
+                if (!empty($rData['enabledFilters'])) {
+                    $attributeIndex = $this->fastLookupArrayMispFormatUnfiltered[$attributeID];
+                    $rData['_unfilteredData']['Event']['Attribute'][$attributeIndex]['Tag'] = $newTagList;
+                    $rData['_unfilteredData']['Event']['Attribute'][$attributeIndex]['_allTags'] = $newAllTagList;
+                }
+            }
+        }
+        return $rData;
+    }
+
+    private function getNewTagList($oldList, $tagsToRemove): array
+    {
+        return array_filter(
+            $oldList,
+            function ($attributeTag) use ($tagsToRemove) {
+                foreach ($tagsToRemove as $tag) {
+                    if ($attributeTag['name'] == $tag['name']) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        );
     }
 }
 
