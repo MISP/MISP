@@ -2964,9 +2964,13 @@ class Event extends AppModel
             return $conditions;
         }
 
+        $extended = null;
         //If extended is an array, it means that the user is filtering for both extended and not extended events
         if (is_array($params['extended']) && in_array(1, $params['extended']) && in_array(0, $params['extended'])) {
             return $conditions;
+        //Accept if extended is [0] or [1] and converting it to boolean
+        } else if (is_array($params['extended']) && (in_array(1, $params['extended'] ) || in_array(0, $params['extended']))) {
+            $extended = filter_var($params['extended'][0], FILTER_VALIDATE_BOOLEAN);
         } else {
             $extended = filter_var($params['extended'], FILTER_VALIDATE_BOOLEAN);
         }
@@ -3023,11 +3027,14 @@ class Event extends AppModel
             return $conditions;
         }
 
+        $extending = null;
         //If extended is an array, it means that the user is filtering for both extended and not extended events
-        if (is_array($params['extended']) && in_array(1, $params['extended']) && in_array(0, $params['extended'])) {
+        if (is_array($params['extending']) && in_array(1, $params['extending']) && in_array(0, $params['extending'])) {
             return $conditions;
-        }
-        else{
+        //Accept if extended is [0] or [1] and converting it to boolean
+        } else if (is_array($params['extending']) && (in_array(1, $params['extending'] ) || in_array(0, $params['extending']))) {
+            $extending = filter_var($params['extending'][0], FILTER_VALIDATE_BOOLEAN);
+        } else{
             $extending = filter_var($params['extending'], FILTER_VALIDATE_BOOLEAN);
         }
 
