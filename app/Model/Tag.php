@@ -842,6 +842,7 @@ class Tag extends AppModel
         $conditions['GalaxyCluster.tag_name'] = $possibleGalaxyClusterTag;
         $galaxyClusterTags = $this->GalaxyCluster->find('column', [
             'conditions' => $conditions,
+            'contains' => ['Galaxy'],
             'fields' => ['GalaxyCluster.tag_name'],
         ]);
 

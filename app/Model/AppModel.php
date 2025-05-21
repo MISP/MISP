@@ -119,7 +119,11 @@ class AppModel extends Model
         }
     }
 
-    public function isAcceptedDatabaseError($errorMessage)
+    /**
+     * @param string $errorMessage
+     * @return bool
+     */
+    private function isAcceptedDatabaseError($errorMessage)
     {
         if ($this->isMysql()) {
             $errorDuplicateColumn = 'SQLSTATE[42S21]: Column already exists: 1060 Duplicate column name';

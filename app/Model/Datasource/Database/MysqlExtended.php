@@ -15,6 +15,15 @@ class MysqlExtended extends Mysql
         'text' => PDO::PARAM_STR
     ];
 
+    public function __construct($config = null, $autoConnect = true)
+    {
+        parent::__construct($config, $autoConnect);
+        // Enable full debug when benchmarking is enabled
+        if (Configure::read('Plugin.Benchmarking_enable')) {
+            $this->fullDebug = true;
+        }
+    }
+
     /**
      * Output SHA1 as binary, that is faster and uses less memory
      * @param string $value
@@ -151,9 +160,6 @@ class MysqlExtended extends Mysql
     public function execute($sql, $options = [], $params = [])
     {
         $log = $options['log'] ?? $this->fullDebug;
-        if (Configure::read('Plugin.Benchmarking_enable')) {
-            $log = true;
-        }
         if ($log) {
             $t = microtime(true);
             $this->_result = $this->_execute($sql, $params);
@@ -161,7 +167,12 @@ class MysqlExtended extends Mysql
             $this->numRows = $this->affected = $this->lastAffected();
             $this->logQuery($sql, $params);
         } else {
-            $this->_result = $this->_execute($sql, $params);
+            try {
+                $this->_result = $this->_execute($sql, $params);
+            } catch (PDOException $e) {
+                // code must be zero as PDOException uses string error code that cannot be used in exception constructor
+                throw new PDOException($e->getMessage() . ' when executing SQL ' . $sql, 0, $e);
+            }
             $this->_queriesCnt++;
         }
 
