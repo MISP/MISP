@@ -264,6 +264,18 @@ class User extends AppModel
 
     public function beforeValidate($options = array())
     {
+        $length = (int)(Configure::read('Security.password_policy_length') ?: 12);
+        if (empty($length) || $length < 0) {
+            $length = 12;
+        }
+        $this->validate['password']['minlength']['message'] = 'Password must be at least ' . $length . ' characters.';
+
+        $regex = Configure::read('Security.password_policy_complexity');
+        if ($regex === '/^((?=.*\\\\d)|(?=.*\\\\W+))(?![\\\\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/') {
+            $this->validate['password']['complexity']['message'] = 'At least 1 digit or special character, 1 uppercase, 1 lowercase, no newlines, or 16+ characters.';
+        } else {
+            $this->validate['password']['complexity']['message'] = 'Password complexity requirement not met. Current rule: ' . $regex;
+        }
         $user = &$this->data['User'];
         if (!isset($user['id'])) {
             if ((isset($user['enable_password']) && !$user['enable_password']) || (empty($user['password']) && empty($user['confirm_password']))) {
