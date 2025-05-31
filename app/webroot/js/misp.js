@@ -1367,6 +1367,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
     if (!url.startsWith('http')) {
         url = baseurl + url;
     }
+    var formData = new FormData($form[0])
     $.ajax({
         beforeSend: function () {
             if (modal) {
@@ -1383,8 +1384,10 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                     $(".loading").show();
                 }
             }
-        },
-        data: $form.serialize(),
+        }, 
+        data: formData,
+        processData: false,
+        contentType: false,
         success: function (data) {
             if (closePopover) {
                 if (modal) {
@@ -2176,9 +2179,19 @@ function indexEvaluateFiltering() {
             $('#value_published').html("");
         }
         if (filtering.hasproposal != 2) {
-            $('#value_hasproposal').html(publishedOptions[filtering.hasproposal]);
+            $('#value_hasproposal').html(hasproposalOptions[filtering.hasproposal]);
         } else {
             $('#value_hasproposal').html("");
+        }
+        if (filtering.extending != 2) {
+            $('#value_extending').html(extendsOptions[filtering.extending]);
+        } else {
+            $('#value_extending').html("");
+        }
+        if (filtering.extended != 2) {
+            $('#value_extended').html(extendsOptions[filtering.extended]);
+        } else {
+            $('#value_extended').html("");
         }
         if (filtering.date.from != null) {
             var text = "";
@@ -2416,6 +2429,14 @@ function indexCreateFilters() {
             if (text != "") text += "/";
             text += "searchhasproposal:" + filtering.hasproposal;
         }
+        if (filtering.extending != "2") {
+            if (text != "") text += "/";
+            text += "searchextending:" + filtering.extending;
+        }
+        if (filtering.extended != "2") {
+            if (text != "") text += "/";
+            text += "searchextended:" + filtering.extended;
+        }
     } else {
         for (var i = 0; i < differentFilters.length; i++) {
             if (filtering[differentFilters[i]]) {
@@ -2538,6 +2559,12 @@ function indexAddRule(param) {
         } else if (param.data.param1 == "hasproposal") {
             var value = encodeURIComponent($('#EventSearchhasproposal').val());
             if (value != "") filtering.hasproposal = value;
+        } else if (param.data.param1 == "extending") {
+            var value = encodeURIComponent($('#EventSearchextending').val());
+            if (value != "") filtering.extending = value; 
+        } else if (param.data.param1 == "extended") {
+            var value = encodeURIComponent($('#EventSearchextended').val());
+            if (value != "") filtering.extended = value;
         } else {
             var value = encodeURIComponent($('#EventSearch' + param.data.param1).val());
             var operator = operators[encodeURIComponent($('#EventSearchbool').val())];
@@ -2603,6 +2630,10 @@ function indexFilterClearRow(field) {
         filtering.published = 2;
     } else if (field == "hasproposal") {
         filtering.hasproposal = 2;
+    } else if (field == "extending") {
+        filtering.extending = 2;
+    } else if (field == "extended") {
+        filtering.extended = 2;
     } else if (differentFilters.indexOf(field) != -1) {
         filtering[field] = "";
     } else {
@@ -3701,17 +3732,30 @@ function testSyncRule(id, method) {
                         .text(': #' + response.error)
                 );
             } else {
-                resultText = response.without_rules - response.with_rules
-                if (resultText != 0) {
-                    resultText += ' (' + (((response.without_rules - response.with_rules) / response.without_rules) * 100).toFixed(1) + '%' + ')'
+                var resultTextFiltered = response.without_rules - response.with_rules
+                if (resultTextFiltered != 0) {
+                    resultTextFiltered += ' (' + (((response.without_rules - response.with_rules) / response.without_rules) * 100).toFixed(1) + '%' + ')'
+                }
+                var resultTextSync = response.with_rules
+                if (resultTextSync != 0) {
+                    resultTextSync += ' (' + ((response.with_rules / response.without_rules) * 100).toFixed(1) + '%' + ')'
                 }
                 resultContainer.append(
                     $('<div>').css({'text-wrap': 'nowrap'}).append(
-                        $('<span>')
-                            .attr('class', 'blue bold')
-                            .text('# Filtered Events'),
-                        $('<span>')
-                            .text(': ' + resultText)
+                        $('<div>').append(
+                            $('<span>')
+                                .attr('class', 'blue bold')
+                                .text('# Filtered Events'),
+                            $('<span>')
+                                .text(': ' + resultTextFiltered)
+                        ),
+                        $('<div>').append(
+                            $('<span>')
+                                .attr('class', 'blue bold')
+                                .text('# Events to be Sync'),
+                            $('<span>')
+                                .text(': ' + resultTextSync)
+                        ),
                     )
                 )
             }
@@ -3965,6 +4009,36 @@ function toggleBoolFilter(param) {
     }
     fetchAttributes(currentUri, res);
 }
+
+function toggleWarningFilter(param) { 
+    if (querybuilderTool === undefined) {
+        triggerEventFilteringTool(true); // allows to fetch rules
+    }
+    var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
+    var res = cleanRules(rules);
+
+    var [key, value] = param.split(':');
+
+    if (key === "warning" && res["warninglistId"] !== undefined) {
+        res["warninglistId"] = 0;
+        res["warning"] = value;
+    } else if (key === "warninglistId" && res["warning"] !== undefined) {
+        res["warning"] = 0;
+        res["warninglistId"] = value;
+    } else {
+        var current = res[key];
+
+        if (current !== undefined) {
+            res[key] = (current == value) ? 0 : value;
+        } else {
+            res[key] = value;
+        }
+    }
+
+    fetchAttributes(currentUri, res);
+}
+
+
 
 function resetPaginationParameters(currentUri) {
     var newUri = []

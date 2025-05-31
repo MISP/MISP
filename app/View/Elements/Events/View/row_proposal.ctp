@@ -69,7 +69,7 @@
           ?>
       </td>
   <?php
-    if ($extended || $extending):
+    if ($include_extended || $include_extending):
   ?>
     <td class="short">
       <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '" class="white">' . h($object['event_id']) . '</a>'; ?>

@@ -97,13 +97,7 @@ You may need to tell the rewriterules for MISP in its `.htaccess` file not to ap
     RewriteRule ^(.*)$ index.php?/$1 [QSA,L]
 ```
 
-Enable the plugin at bootstrap.php:
-
-```php
-CakePlugin::load('ShibbAuth');
-```
-
-And configure it at config.php:
+Configure it at config.php:
 
 Uncomment the following line to enable SSO authorization
 ```php

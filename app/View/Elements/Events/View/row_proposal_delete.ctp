@@ -51,7 +51,7 @@
   </td>
   <td style="font-weight:bold;text-align:left;"><?= __('DELETE') ?></td>
   <?php
-    if ($extended):
+    if ($include_extended):
   ?>
     <td class="short">
       <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '" class="white">' . h($object['event_id']) . '</a>'; ?>

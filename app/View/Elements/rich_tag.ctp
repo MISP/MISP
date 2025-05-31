@@ -90,7 +90,7 @@ if ($canModifyAllTags || ($canModifyLocalTags && $tag['Tag']['local'])) {
         sprintf(
             "removeObjectTagPopup(this, '%s', %s, %s)",
              $scope,
-             $id,
+             h($id),
              intval($tag['Tag']['id'])
         )
     );

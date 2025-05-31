@@ -1390,6 +1390,7 @@ class MispObject extends AppModel
                 $sightings = $this->Event->Sighting->attachToEvent($event, $user, $existing_attribute['Attribute']['id']);
                 $object_relation = $selected_object_relation_mapping[$existing_attribute['Attribute']['id']];
                 $created_attribute = $existing_attribute['Attribute'];
+                $original_id = $created_attribute['id'];
                 unset($created_attribute['timestamp']);
                 unset($created_attribute['id']);
                 unset($created_attribute['uuid']);
@@ -1401,8 +1402,12 @@ class MispObject extends AppModel
                 if (!empty($sightings)) {
                     $created_attribute['Sighting'] = $sightings;
                 }
-                $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object_id);
-                $this->Attribute->deleteAttribute($existing_attribute['Attribute']['id'], $user, $hard_delete_attribute);
+                $saved_attribute = $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object_id);
+                if (!empty($saved_attribute)) {
+                    $new_id = $this->Attribute->id;
+                    $this->loadAttachmentTool()->changeID($saved_attribute['event_id'], $original_id, $new_id);
+                    $this->Attribute->deleteAttribute($existing_attribute['Attribute']['id'], $user, $hard_delete_attribute);
+                }
             }
         }
         return $saved_object_id;

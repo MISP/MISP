@@ -1,7 +1,14 @@
 <?php
 $warninglistsValues = [];
-foreach ($event['warnings'] as $id => $name) {
-    $warninglistsValues[] = [(int)$id => h($name)];
+if (!empty($event['warnings']['false_positive'])) {
+    foreach ($event['warnings']['false_positive'] as $id => $name) {
+        $warninglistsValues[] = [(int)$id => h($name)];
+    }
+}
+if (!empty($event['warnings']['known'])) {
+    foreach ($event['warnings']['known'] as $id => $name) {
+        $warninglistsValues[] = [(int)$id => h($name)];
+    }
 }
 $warninglistsValues = json_encode($warninglistsValues, JSON_UNESCAPED_UNICODE);
 
@@ -151,9 +158,11 @@ function triggerEventFilteringTool(hide) {
                 "id": "correlation",
                 "label": "Correlation",
                 "values": {
-                    0: "Both",
-                    1: "Correlation only",
-                    2: "Exclude correlation"
+                    0: "All",
+                    1: "Warning only",
+                    2: "Exclude warning",
+                    3: "False positive only",
+                    4: "Known identifier only",
                 }
             },
             {

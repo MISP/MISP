@@ -6,9 +6,9 @@
                 '%s/events/view/%s%s',
                 $baseurl,
                 h($data['Event']['id']),
-                ($field['extending'] ? '' : '/extending:1')
+                ($field['include_extending'] ? '' : '/include_extending:1')
             ),
-            $field['extending'] ? __('Switch to atomic view') : __('Switch to extending view')
+            $field['include_extending'] ? __('Switch to atomic view') : __('Switch to extending view')
         );
         echo sprintf(
             '<div>%s (<a href="%s">%s</a>): %s %s</div>',

@@ -4,9 +4,9 @@
         'js' => ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph', 'd3', 'd3.custom', 'jquery-ui.min'],
     ]);
     $pageTitle = $event['Event']['info'];
-    if ($extended) {
+    if ($include_extended) {
         $pageTitle = '[' . __('Extended view') . '] ' . $pageTitle;
-    } else if ($extending) {
+    } else if ($include_extending) {
         $pageTitle = '[' . __('Extending view') . '] ' . $pageTitle;
     }
     echo $this->element(
@@ -210,7 +210,7 @@
                     'key' => __('Extends'),
                     'type' => 'extends',
                     'path' => 'Event.extends_uuid',
-                    'extending' => $extending,
+                    'include_extending' => $include_extending,
                     'extendedEvent' => isset($extendedEvent) ? $extendedEvent : null,
                     'class' => 'break-word',
                     'requirement' => !empty($extendedEvent)
@@ -220,7 +220,7 @@
                     'type' => 'extendedBy',
                     'path' => 'Event.id',
                     'extended_by' => isset($extensions) ? $extensions : null,
-                    'extended' => $extended,
+                    'include_extended' => $include_extended,
                     'class' => 'break-word',
                     'requirement' => !empty($extensions)
                 ],
@@ -293,7 +293,7 @@
                 ],
                 [
                     'type' => 'eventWarnings',
-                    'requirement' => !empty($event['warnings'])
+                    'requirement' => !empty($event['warnings']['false_positive']) || !empty($event['warnings']['known'])
                 ]
             ],
             'append' => [

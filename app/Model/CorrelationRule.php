@@ -37,6 +37,9 @@ class CorrelationRule extends AppModel
         if (empty($this->id) && empty($this->data['CorrelationRule']['uuid'])) {
             $this->data['CorrelationRule']['uuid'] = CakeText::uuid();
         }
+        if (empty($this->id)) {
+            $this->data['CorrelationRule']['created'] = time();    
+        }
         $this->data['CorrelationRule']['timestamp'] = time();
         if (!is_array($this->data['CorrelationRule']['selector_list'])) {
             $this->data['CorrelationRule']['selector_list'] = json_decode($this->data['CorrelationRule']['selector_list'], true);

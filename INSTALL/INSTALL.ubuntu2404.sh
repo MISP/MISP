@@ -1,7 +1,7 @@
 #!/bin/bash
 # MISP 2.5 installation for Ubuntu 24.04 LTS
 
-# This guide is meant to be a simply installation of MISP on a pristine Ubuntu 20.04 LTS server.
+# This guide is meant to be a simply installation of MISP on a pristine Ubuntu 24.04 LTS server.
 # Keep in mind that whilst this installs the software along with all of its dependencies, it's up to you to properly secure it.
 
 # This guide liberally borrows from three sources:

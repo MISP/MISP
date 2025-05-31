@@ -486,7 +486,7 @@ class SharingGroup extends AppModel
                     return __('Invalid Sharing Group or not authorised.');
                 } else {
                     if (
-                        !$this->checkIfExists($object['SharingGroup']['uuid']) ||
+                        $this->checkIfExists($object['SharingGroup']['uuid']) &&
                         !$this->checkIfAuthorised($user, $object['SharingGroup']['uuid'])
                     ) {
                         return __('Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group).');

@@ -37,7 +37,7 @@
             __('Add a tag'),
             __('Add a tag'),
             'addTagButton addButton btn btn-inverse noPrint',
-            $baseurl . '/tags/selectTaxonomy/' . $id . ($scope === 'event' ? '' : ('/' . $scope)),
+            $baseurl . '/tags/selectTaxonomy/' . h($id) . ($scope === 'event' ? '' : ('/' . $scope)),
             '<i class="fas fa-globe-americas"></i> <i class="fas fa-plus"></i>'
         );
     }
@@ -47,7 +47,7 @@
             __('Add a local tag'),
             __('Add a local tag'),
             'addLocalTagButton addButton btn btn-inverse noPrint',
-            $baseurl . '/tags/selectTaxonomy/local:1/' . $id . ($scope === 'event' ? '' : ('/' . $scope)),
+            $baseurl . '/tags/selectTaxonomy/local:1/' . h($id) . ($scope === 'event' ? '' : ('/' . $scope)),
             '<i class="fas fa-user"></i> <i class="fas fa-plus"></i>'
         );
     }
@@ -62,7 +62,7 @@
                     __('Add a tag'),
                     __('Add a tag'),
                     'addTagButton addButton btn btn-inverse noPrint',
-                    sprintf($baseurl . '/tags/selectTag/%u/%u/event', $id, $hTaxonomy['taxonomy']['Taxonomy']['id']),
+                    sprintf($baseurl . '/tags/selectTag/%u/%u/event', h($id), $hTaxonomy['taxonomy']['Taxonomy']['id']),
                     '<i class="fas fa-globe-americas"></i> <i class="fas fa-plus"></i>'
                 );
             }

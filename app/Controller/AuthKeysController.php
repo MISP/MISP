@@ -14,7 +14,7 @@ class AuthKeysController extends AppController
     public $paginate = array(
         'limit' => 60,
         'order' => array(
-            'AuthKey.name' => 'ASC',
+            'AuthKey.id' => 'ASC',
         )
     );
 

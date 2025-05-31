@@ -17,7 +17,7 @@
 
     <div id="summary-filters" class="collapse">
         <pre>
-<?= json_encode($periodic_settings, JSON_PRETTY_PRINT) ?>
+<?= h(json_encode($periodic_settings, JSON_PRETTY_PRINT))?>
         </pre>
     </div>
     <div class="report-container" style="margin-top: 2em;">

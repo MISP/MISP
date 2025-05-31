@@ -1641,6 +1641,9 @@ class ServersController extends AppController
     {
         if ($this->request->is('post')) {
             $validItems = $this->Server->getFileRules();
+            if (!isset($validItems[$type])) {
+                throw new NotFoundException(__('Invalid type.'));
+            }
             App::uses('File', 'Utility');
             $existingFile = new File($validItems[$type]['path'] . DS . $filename);
             if (!$existingFile->exists()) {
@@ -1667,6 +1670,10 @@ class ServersController extends AppController
             throw new MethodNotAllowedException(__('Feature disabled.'));
         }
         $validItems = $this->Server->getFileRules();
+
+        if (!isset($validItems[$type])) {
+            throw new NotFoundException(__('Invalid type.'));
+        }
 
         // Check if there were problems with the file upload
         // only keep the last part of the filename, this should prevent directory attacks

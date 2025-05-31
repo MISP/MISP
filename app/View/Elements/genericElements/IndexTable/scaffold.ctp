@@ -6,6 +6,9 @@
         (empty($ajax) ? 'class="index"' : '')
     );
     echo $this->element('genericElements/IndexTable/index_table', $scaffold_data);
+    if (!empty($scaffold_data['append'])) {
+        echo $scaffold_data['append'];
+    }
     echo '</div>';
     if (empty($ajax)) {
         echo $this->element('/genericElements/SideMenu/side_menu', $menuData);

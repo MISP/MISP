@@ -6,16 +6,6 @@ Basically it loads the `SSL_CLIENT_*` variables, parses and maps the certificate
 
 ## Configuration
 
-1. Enable the plugin
-
-Enable the plugin at bootstrap.php:
-
-```php
-CakePlugin::load('CertAuth');
-```
-
-2. Configure
-
 * Uncomment the line "'auth'=>array('CertAuth.Certificate')," in Config.php, section "Security"
 
 ```php

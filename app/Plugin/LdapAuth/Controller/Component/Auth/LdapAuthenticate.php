@@ -1,5 +1,7 @@
 <?php
 
+use PSpell\Config;
+
 App::uses('BaseAuthenticate', 'Controller/Component/Auth');
 
 class LdapAuthenticate extends BaseAuthenticate
@@ -46,7 +48,13 @@ class LdapAuthenticate extends BaseAuthenticate
             'ldapTlsCustomCaCert' => Configure::read('LdapAuth.ldapTlsCustomCaCert') ?? false,
             'ldapTlsCrlCheck' => Configure::read('LdapAuth.ldapTlsCrlCheck') ?? LDAP_OPT_X_TLS_CRL_PEER,
             'ldapTlsProtocolMin' => Configure::read('LdapAuth.ldapTlsProtocolMin') ?? LDAP_OPT_X_TLS_PROTOCOL_TLS1_2,
+            'ldapEscape' => Configure::read('LdapAuth.ldapEscape') ?? false,
+            'ldapEscapeIgnoreChars' => Configure::read('LdapAuth.ldapEscapeIgnoreChars') ?? "",
         ];
+
+        if (self::$conf['ldapEscape'] && self::$conf['ldapSearchFilter']) {
+            self::$conf['ldapSearchFilter'] = ldap_escape(self::$conf['ldapSearchFilter'], self::$conf['ldapEscapeIgnoreChars'], LDAP_ESCAPE_FILTER);
+        }
     }
 
     public function authenticate(CakeRequest $request, CakeResponse $response)
@@ -113,7 +121,10 @@ class LdapAuthenticate extends BaseAuthenticate
     private function getUserMemberships($ldapconn, $ldapUserData)
     {
         $groups = [];
-        $filter = '(member= ' . $ldapUserData[0]['dn'] . ')';
+        if (Configure::read('LdapAuth.ldapEscape')) {
+            $ldapUserData[0]['dn'] = ldap_escape($ldapUserData[0]['dn'], self::$conf['ldapEscapeIgnoreChars'], LDAP_ESCAPE_FILTER);
+        }
+        $filter = '(member=' . $ldapUserData[0]['dn'] . ')';
         $ldapUserMemberships = ldap_search($ldapconn, self::$conf['ldapDn'], $filter, ['cn']);
 
         if ($ldapUserMemberships) {

@@ -100,6 +100,13 @@ class GalaxyCluster extends AppModel
         'json' => array('json', 'JsonExport', 'json'),
     );
 
+    public function __construct($id = false, $table = null, $ds = null)
+    {
+        parent::__construct();
+        $this->schema();
+        $this->_schema['distribution']['default'] = Configure::read('MISP.default_galaxy_distribution') ?? 1;
+    }
+
     public function beforeValidate($options = array())
     {
         $cluster = &$this->data['GalaxyCluster'];
@@ -795,7 +802,12 @@ class GalaxyCluster extends AppModel
             $cluster['GalaxyCluster']['published'] = false;
         }
         if (empty($existingGalaxyCluster)) {
-            $galaxy = $this->Galaxy->captureGalaxy($user, $cluster['GalaxyCluster']['Galaxy']);
+            $galaxy = $this->Galaxy->captureGalaxy($user, $cluster['GalaxyCluster']['Galaxy'], $fromPull, $orgId, $server);
+            if ($galaxy === false) {
+                $results['errors'][] = __('Could not save Galaxy');
+                $results['failed']++;
+                return $results;
+            }
             $cluster['GalaxyCluster']['galaxy_id'] = $galaxy['Galaxy']['id'];
             unset($cluster['GalaxyCluster']['id']);
             $this->create();
@@ -808,6 +820,7 @@ class GalaxyCluster extends AppModel
             }
             if ($cluster['GalaxyCluster']['version'] > $existingGalaxyCluster['GalaxyCluster']['version']) {
                 $cluster['GalaxyCluster']['id'] = $existingGalaxyCluster['GalaxyCluster']['id'];
+                $cluster['GalaxyCluster']['galaxy_id'] = $existingGalaxyCluster['GalaxyCluster']['galaxy_id'];
                 $saveSuccess = $this->save($cluster);
             } else {
                 $results['errors'][] = __('Remote version is not newer than local one for cluster (%s)', $cluster['GalaxyCluster']['uuid']);
@@ -994,12 +1007,12 @@ class GalaxyCluster extends AppModel
         return $clusters;
     }
 
-    public function buildConditions($user, $useGalaxyContiainedIDsConditions=false)
+    public function buildConditions($user, $useGalaxyContiainedIDsConditions=false, $alias = false)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
-            $alias = $this->alias;
+            $alias = $alias ? $alias : $this->alias;
             if ($useGalaxyContiainedIDsConditions) {
                 $galaxyIDs = $this->Galaxy->fetchGalaxies($user, ['column' => true]);
                 $galaxyIDs = !empty($galaxyIDs) ? $galaxyIDs : [-1];
@@ -1059,13 +1072,20 @@ class GalaxyCluster extends AppModel
                 'Galaxy',
                 'GalaxyElement',
                 'GalaxyClusterRelation' => array(
-                    'conditions' => $this->GalaxyClusterRelation->buildConditions($user, false),
+                    'conditions' => $this->GalaxyClusterRelation->buildConditions($user, false, 'SourceCluster'),
                     'GalaxyClusterRelationTag',
                     'SharingGroup',
+                    'SourceCluster'
                 ),
                 'Orgc',
                 'Org',
                 'SharingGroup'
+            );
+            // Fixes issue where CakePHP 2 overrides 'recursive' => -1 when using 'contain' with hasMany associations,
+            // unintentionally fetching deeper related models not explicitly listed in 'contain'.
+            // TargetingClusterRelation is collected later on as a separate step.
+            $this->unbindModel(
+                ['hasMany' => ['TargetingClusterRelation']]
             );
         }
         if (!empty($includeFullClusterRelationship)) {
@@ -1685,6 +1705,7 @@ class GalaxyCluster extends AppModel
      */
     public function uploadClusterToServer(array $cluster, array $server, ServerSyncTool $serverSync, array $user)
     {
+        $cluster_id = $cluster['GalaxyCluster']['id'];
         $cluster = $this->__prepareForPushToServer($cluster, $server);
         if (is_numeric($cluster)) {
             return $cluster;
@@ -1696,8 +1717,8 @@ class GalaxyCluster extends AppModel
             }
             $serverSync->pushGalaxyCluster($cluster)->json();
         } catch (Exception $e) {
-            $title = __('Uploading GalaxyCluster (%s) to Server (%s)', $cluster['GalaxyCluster']['id'], $server['Server']['id']);
-            $this->loadLog()->createLogEntry($user, 'push', 'GalaxyCluster', $cluster['GalaxyCluster']['id'], $title, $e->getMessage());
+            $title = __('Uploading GalaxyCluster (%s) to Server (%s)', $cluster_id, $server['Server']['id']);
+            $this->loadLog()->createLogEntry($user, 'push', 'GalaxyCluster', $cluster_id, $title, $e->getMessage());
 
             $this->logException("Could not push galaxy cluster to remote server {$serverSync->serverId()}", $e);
             return $e->getMessage();
@@ -1942,12 +1963,15 @@ class GalaxyCluster extends AppModel
             return false;
         }
 
-        $cluster = $this->updatePulledClusterBeforeInsert($cluster, $serverSync->server(), $user);
+        $remoteUser = $serverSync->cachedUserInfo();
+        $remotePermSyncInternal = !empty($remoteUser['Role']['perm_sync_internal']);
+
+        $cluster = $this->updatePulledClusterBeforeInsert($cluster, $serverSync->server(), $user, $remotePermSyncInternal);
         $result = $this->captureCluster($user, $cluster, $fromPull=true, $orgId=$serverSync->server()['Server']['org_id']);
         return $result['success'];
     }
 
-    private function updatePulledClusterBeforeInsert($cluster, $server, $user)
+    private function updatePulledClusterBeforeInsert($cluster, $server, $user, $remotePermSyncInternal = false)
     {
         // The cluster came from a pull, so it should be locked and distribution should be adapted.
         $cluster['GalaxyCluster']['locked'] = true;
@@ -1955,7 +1979,7 @@ class GalaxyCluster extends AppModel
             $cluster['GalaxyCluster']['distribution'] = '1';
         }
 
-        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] || Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] || Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || !$remotePermSyncInternal) {
             switch ($cluster['GalaxyCluster']['distribution']) {
                 case 1:
                     $cluster['GalaxyCluster']['distribution'] = 0; // if community only, downgrade to org only after pull

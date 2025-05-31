@@ -85,6 +85,8 @@ class RestSearchComponent extends Component
             'last',
             'eventid',
             'withAttachments',
+            'extended',
+            'extending',
             'metadata',
             'uuid',
             'publish_timestamp',
@@ -241,6 +243,8 @@ class RestSearchComponent extends Component
             } else {
                 $filename .= 'list';
             }
+        } else {
+            $filename = 'misp.' . Inflector::tableize($scope) . '_search.' . $filters['returnFormat'] . '.' . time();
         }
         if ($filename !== false) {
             $filename .= '.' . $responseType;

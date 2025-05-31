@@ -7,7 +7,7 @@ var items_backup;
 var use_local_timezone = true;
 var mapping_text_to_id = new Map();
 var user_manipulation = $('#event_timeline').data('user-manipulation');
-var extended_text = $('#event_timeline').data('extended') == 1 ? "extended:1/" : "";
+var extended_text = $('#event_timeline').data('extended') == 1 ? "/include_extended:1" : "";
 var container_timeline = document.getElementById('event_timeline');
 var hardThreshold = 500;
 var softThreshold = 200;
@@ -452,7 +452,7 @@ function reload_timeline() {
     var selectedScope = map_scope($('#select_timeline_scope').val());
     var payload = {scope: selectedScope};
     $.ajax({
-        url: baseurl + "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
+        url: baseurl + "/events/"+"getEventTimeline"+"/"+scope_id+extended_text+"/event.json",
         dataType: 'json',
         type: 'post',
         contentType: 'application/json',
@@ -535,7 +535,7 @@ function enable_timeline() {
     };
     var payload = {scope: map_scope($('#select_timeline_scope').val())};
     $.ajax({
-        url: baseurl + "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
+        url: baseurl + "/events/"+"getEventTimeline"+"/"+scope_id+extended_text+"/event.json",
         dataType: 'json',
         type: 'post',
         contentType: 'application/json',

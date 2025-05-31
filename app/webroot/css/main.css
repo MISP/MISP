@@ -2095,7 +2095,6 @@ a.discrete {
 }
 
 .warning_container {
-    border: 1px solid red;
     border-radius: 7px;
     padding: 0 10px 10px 10px;
     width: 100%;
@@ -2104,9 +2103,22 @@ a.discrete {
     margin-top: 15px;
 }
 
-.warning_container h4 {
+.false_positive {
+    border: 1px solid red;
+}
+
+.false_positive h4 {
     color: red;
 }
+
+.known_identifier {
+    border: 1px solid orange;
+}
+
+.known_identifier h4 {
+    color: orange;
+}
+
 
 #galaxies_div {
     position: relative;

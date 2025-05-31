@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '170';
-    public $pyMispVersion = '2.5.7';
+    private $__queryVersion = '176';
+    public $pyMispVersion = '2.5.10';
     public $phpmin = '8.1';
     public $phprec = '8.2';
     public $phptoonew = '9.0';
@@ -396,6 +396,12 @@ class AppController extends Controller
                 } else {
                     $this->Flash->warning($deprecationWarnings);
                 }
+            }
+        }
+        $notificationToasts = $this->User->collectNotificationToastForUser(['User' => $user]);
+        if (!empty($notificationToasts)) {
+            foreach ($notificationToasts as $notificationToast) {
+                $this->Flash->set($notificationToast['message'], $notificationToast);
             }
         }
         if (Configure::read('MISP.enable_automatic_garbage_collection') && mt_rand(1,100) % 100 == 0) {
@@ -1115,6 +1121,11 @@ class AppController extends Controller
                 }
             }
         }
+        if (!empty($options['request']->query)) {
+            foreach ($options['request']->query as $k => $v) {
+                $data[$k] = $v;
+            }
+        }
         foreach ($data as &$v) {
             if (is_string($v)) {
                 $v = trim($v);
@@ -1402,8 +1413,21 @@ class AppController extends Controller
             return $exception;
         }
         if (empty($filters['returnFormat'])) {
-            $filters['returnFormat'] = 'json';
+            $acceptHeader = $this->request->header('Accept');
+
+            if (preg_match('#application/([a-zA-Z0-9\-\+]+)#', $acceptHeader, $matches)) {
+                $format = strtolower(trim($matches[1]));
+            } elseif (preg_match('#text/csv#', $acceptHeader, $matches)) {
+                $format = 'csv';
+            } else {
+                $format = 'json';
+            }
+        
+            if (isset($this->$modelName->validFormats[$format])) {
+                $filters['returnFormat'] = $format;
+            }
         }
+        
         unset($filterData);
 
         $user = $this->_closeSession();
@@ -1435,17 +1459,33 @@ class AppController extends Controller
         /** @var TmpFileTool $final */
         $skippedElementsCounter = 0;
         $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter);
+        $responseTypeMapping = [
+            'json' => 'application/json',
+            'html' => 'text/html',
+            'text' => 'text/plain',
+            'xml' => 'application/xml'
+        ];
         if ($renderView) {
             $this->layout = false;
             $final = JsonTool::decode($final->intoString());
             $this->set($final);
             $this->render('/Events/module_views/' . $renderView);
+            if (isset($responseTypeMapping[$responseType])) {
+                $this->response->type($responseTypeMapping[$responseType]);
+            }
+            return $this->response;
         } else {
             if (!empty($filters['sign'])) {
                 $this->RestResponse->signContents = true;
             }
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
-            $headers = ['X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType, 'X-Skipped-Elements-Count' => $skippedElementsCounter];
+            $headers = [
+                'X-Result-Count' => $elementCounter,
+                'X-Export-Module-Used' => $returnFormat,
+                'X-Response-Format' => $responseType,
+                'X-Skipped-Elements-Count' => $skippedElementsCounter,
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+            ];
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers);
         }
     }

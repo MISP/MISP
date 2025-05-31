@@ -125,6 +125,9 @@ class JSONConverterTool
                 }
             }
         }
+        if (isset($event['Event']['EventReport'])) {
+            $event['Event']['EventReport'] = self::__cleanEventReports($event['Event']['EventReport']);
+        }
         unset($tempSightings);
         unset($event['Event']['RelatedAttribute']);
 
@@ -204,6 +207,23 @@ class JSONConverterTool
             }
         }
         return $attributes;
+    }
+
+    private static function __cleanEventReports($eventReports)
+    {
+        foreach ($eventReports as $key => $eventReport) {
+            if (empty($eventReport['SharingGroup'])) {
+                unset($eventReports[$key]['SharingGroup']);
+            }
+            if (isset($eventReports[$key]['EventReportTag'])) {
+                foreach ($eventReport['EventReportTag'] as $erk => $tag) {
+                    unset($tag['Tag']['org_id']);
+                    $eventReports[$key]['Tag'][$erk] = $tag['Tag'];
+                }
+                unset($eventReports[$key]['EventReportTag']);
+            }
+        }
+        return $eventReports;
     }
 
     private static function __cleanObjects($objects, $tempSightings = array())

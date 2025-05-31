@@ -2,8 +2,7 @@
 This plugin allows MISP to authenticate against an LDAP server.
 
 ## How to
-1. For enabling this plugin, uncomment the line `CakePlugin::load('LdapAuth');` in the `app/Config/bootstrap.php` configuration file.
-2. Add your LDAP server configuration to `app/Config/config.php` configuration file:
+1. Add your LDAP server configuration to `app/Config/config.php` configuration file:
     ```
     'LdapAuth' => [
         'ldapServer' => 'ldap://openldap:1389',
@@ -13,7 +12,7 @@ This plugin allows MISP to authenticate against an LDAP server.
     ],
     ```
     > **NOTE:** This plugin requires a reader user to query the LDAP server.
-3. Add the LDAP authentication method in the `Security.auth` key of the `app/Config/config.php` configuration file:
+2. Add the LDAP authentication method in the `Security.auth` key of the `app/Config/config.php` configuration file:
     ```
     ...
     'Security' => [
@@ -23,7 +22,7 @@ This plugin allows MISP to authenticate against an LDAP server.
        ]
     ]
     ``` 
-4. Log in with your LDAP credentials using the MISP Login form, if the user doesn't exist on MISP it will be created on the first log in.
+3. Log in with your LDAP credentials using the MISP Login form, if the user doesn't exist on MISP it will be created on the first log in.
 
 ## Settings
 Each setting is stored in the `LdapAuth` configuration array and can be customized as per your LDAP server and application requirements.
@@ -157,14 +156,27 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 - **Default**: `LDAP_OPT_X_TLS_PROTOCOL_TLS1_2`
 - **Example**: `LDAP_OPT_X_TLS_PROTOCOL_SSL3`
 
-See also: https://www.php.net/manual/en/ldap.constants.php
+* See also: https://www.php.net/manual/en/ldap.constants.php
+
+### `ldapEscape`
+- **Description**: Escapes filters sent to ldap_search.
+- **Type**: `boolean`
+- **Default**: `false`
+- **Example**: `true`
+
+### `ldapEscapeIgnoreChars`
+- **Description**: Characters to ignore when escaping .
+- **Type**: `string`
+- **Default**: `""`
+- **Example**: `" "`
+
 
 ## Example Usage
 
 To configure these settings in your application, ensure each setting is defined in your configuration file as follows:
 
 ```php
-'LdapAuth', [
+'LdapAuth' => [
     'ldapServer' => 'ldap://ldap.example.com',
     'ldapDn' => 'dc=example,dc=com',
     'ldapReaderUser' => 'cn=reader,dc=example,dc=com',
@@ -180,7 +192,7 @@ To configure these settings in your application, ensure each setting is defined 
     'ldapDefaultOrg' => 1,
     'ldapDefaultRoleId' => 3,
     'updateUser' => true
-];
+]
 ```
 
 Adjust the values as needed based on your LDAP server setup.

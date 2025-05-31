@@ -167,6 +167,7 @@ var workflow_id = 0
 var contentChanged = false
 var lastModified = 0
 var graphPooler
+var cachedCalls = {}
 
 function sanitizeObject(obj) {
     var newObj = {}
@@ -1259,7 +1260,14 @@ function enabledDebugMode() {
 }
 
 function runWorkflow() {
-    var html = '<div style="width: 350px;"><textarea rows=15 style="width: 100%; box-sizing: border-box;" placeholder="Enter data to be sent to the workflow"></textarea><div style="display: flex;"><button class="btn btn-primary" style="margin: 0 0 0 auto;"><i class="fa fa-spin fa-spinner hidden"></i> Run Workflow</button></div><pre style="margin-top: 0.75em;"></pre></div>'
+    var html = '<div style="width: 350px;"> \
+        <textarea rows=15 style="width: 100%; box-sizing: border-box;" placeholder="Enter data to be sent to the workflow"></textarea>\
+        <div style="display: flex;"> \
+            <input type="text" placeholder="Or provide the Event ID / UUID" style="margin-bottom: 0; width: 210px;" /> \
+            <button class="btn btn-primary" style="margin: 0 0 0 auto;"><i class="fa fa-spin fa-spinner hidden"></i> Run Workflow</button> \
+        </div> \
+        <pre style="margin-top: 0.75em;"></pre> \
+    </div>'
     var popoverOptions = {
         html: true,
         placement: 'bottom',
@@ -1272,38 +1280,94 @@ function runWorkflow() {
         $runWorkflowButton
             .popover(popoverOptions)
             .on('shown.bs.popover', function () {
+                toggleRunWorkflowInputs()
                 var $popover = $runWorkflowButton.data('popover').tip()
                 $popover.find('button').click(function() {
-                    var url = baseurl + "/workflows/executeWorkflow/" + workflow.Workflow.id
-                    fetchFormDataAjax(url, function (formHTML) {
-                        $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
-                        var $tmpForm = $('#temp form')
-                        var formUrl = $tmpForm.attr('action')
-                        data = $popover.find('textarea').val()
-                        $tmpForm.find('[name="data[Workflow][data]"]').val(data)
-
-                        $.ajax({
-                            data: $tmpForm.serialize(),
-                            beforeSend: function() {
-                                $popover.find('pre').empty()
-                                $popover.find('button i').removeClass('hidden')
-                            },
-                            success: function (data) {
-                                $popover.find('pre').html(data)
-                            },
-                            error: xhrFailCallback,
-                            complete: function () {
-                                $('#temp').remove();
-                                $popover.find('button i').addClass('hidden')
-                            },
-                            type: 'post',
-                            cache: false,
-                            url: formUrl,
-                        })
-                    })
+                    var data = $popover.find('textarea').val()
+                    if (data.length > 0) {
+                        runWorkflowForJSONData($popover, data)
+                    } else {
+                        var event_id = $popover.find('input').val()
+                        runWorkflowForEventID($popover, event_id)
+                    }
                 })
             })
             .popover('show')
+    }
+}
+
+function runWorkflowForJSONData($popover, data) {
+    var url = baseurl + "/workflows/executeWorkflow/" + workflow.Workflow.id
+    fetchFormDataAjax(url, function (formHTML) {
+        $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
+        var $tmpForm = $('#temp form')
+        var formUrl = $tmpForm.attr('action')
+        $tmpForm.find('[name="data[Workflow][data]"]').val(data)
+
+        $.ajax({
+            data: $tmpForm.serialize(),
+            beforeSend: function () {
+                $popover.find('pre').empty()
+                $popover.find('button i').removeClass('hidden')
+            },
+            success: function (data) {
+                $popover.find('pre').html(data)
+            },
+            error: xhrFailCallback,
+            complete: function () {
+                $('#temp').remove();
+                $popover.find('button i').addClass('hidden')
+            },
+            type: 'post',
+            cache: false,
+            url: formUrl,
+        })
+    })
+}
+
+function runWorkflowForEventID($popover, event_id) {
+    var url = baseurl + "/events/runWorkflow/" + event_id
+    fetchFormDataAjax(url, function (formHTML) {
+        $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
+        var $tmpForm = $('#temp form')
+        var formUrl = $tmpForm.attr('action')
+        $tmpForm.find(`[name="data[Event][${workflow.Workflow.id}]"]`).prop('checked', true)
+
+        $.ajax({
+            data: $tmpForm.serialize(),
+            beforeSend: function () {
+                $popover.find('pre').empty()
+                $popover.find('button i').removeClass('hidden')
+            },
+            success: function (data) {
+                $popover.find('pre').html(data)
+            },
+            error: xhrFailCallback,
+            complete: function () {
+                $('#temp').remove();
+                $popover.find('button i').addClass('hidden')
+            },
+            type: 'post',
+            cache: false,
+            url: formUrl,
+        })
+    })
+}
+
+function toggleRunWorkflowInputs() {
+    var trigger_node = Object.values(workflow.Workflow.data).filter((node) => { return node?.data?.module_type == 'trigger' })[0]
+    var $popover = $runWorkflowButton.data('popover').tip()
+    if (trigger_node.data.is_adhoc) {
+        var scope = trigger_node.data.indexed_params.scope
+        if (scope !== undefined && scope == 'passed_event_ids') {
+            $popover.find('textarea').prop('disabled', true)
+            $popover.find('input').prop('disabled', false)
+        } else {
+            $popover.find('textarea').prop('disabled', false)
+            $popover.find('input').prop('disabled', true)
+        }
+    } else {
+        $popover.find('input').prop('disabled', true)
     }
 }
 
@@ -1551,12 +1615,46 @@ function genNodeParamHtml(node, forNode = true) {
     return html
 }
 
+function doCachedAjaxCall(url, method, successCB, errorCB) {
+    if (cachedCalls[url] === undefined) {
+        $.ajax({
+            success: function (data, textStatus) {
+                cachedCalls[url] = data
+                setTimeout(() => {
+                    delete cachedCalls[url]
+                }, 3000);
+                successCB(data)
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                errorCB(jqXHR, textStatus, errorThrown)
+            },
+            type: method,
+            url: url
+        })
+    }
+}
+
 function afterNodeDrawCallback() {
-    var $nodes = $drawflow.find('.drawflow-node')
+    var $nodes = $drawflow.find('.drawflow-node:not(.after-draw-callback)')
     $nodes.find('.start-chosen').each(function() {
         var chosenOptions = $(this).data('chosen_options')
+        var $select = $(this)
+        var savedValues = JSON.parse($select.attr('data-saved_values') ?? '[]')
+        if (chosenOptions.select_options_url) {
+            doCachedAjaxCall(
+                chosenOptions.select_options_url,
+                'get',
+                (data) => {
+                    updateChosenOptions($select, data, savedValues)
+                },
+                () => {
+                    showMessage('fail', 'Could not get options from select_options_url')
+                }
+            )
+        }
         $(this).chosen(chosenOptions).trigger('change')
     })
+    $nodes.addClass('after-draw-callback')
     toggleDisplayOnFields()
     enablePickerCreateNewOptions()
     enableHashpathPicker()
@@ -1565,6 +1663,20 @@ function afterNodeDrawCallback() {
 function afterModalShowCallback() {
     $blockModal.find('.start-chosen').each(function() {
         var chosenOptions = $(this).data('chosen_options')
+        var $select = $(this)
+        var savedValues = JSON.parse($select.attr('data-saved_values') ?? '[]')
+        if (chosenOptions.select_options_url) {
+            $.ajax({
+                success: function (newOptions, textStatus) {
+                    updateChosenOptions($select, newOptions, savedValues)
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    showMessage('fail', 'Could not get options from select_options_url');
+                },
+                type: "get",
+                url: chosenOptions.select_options_url
+            })
+        }
         $(this).chosen(chosenOptions).trigger('change')
     })
     var cmOptions = {
@@ -1639,6 +1751,25 @@ function enablePickerCreateNewOptions() {
             }
         })
     })
+}
+
+function updateChosenOptions($select, options, savedValues) {
+    $select.empty()
+    options.forEach(option => {
+        var $newOption = $('<option>')
+            .val(option)
+            .text(option)
+        if (Array.isArray(savedValues) && savedValues.includes(option)) {
+            $newOption.attr('selected', 'selected')
+        } else if (savedValues == option) {
+            $newOption.attr('selected', 'selected')
+        }
+        $select.append($newOption);
+    });
+    $select.data('invalidate_cache', false);
+    $select.trigger('chosen:updated');
+    $select.trigger('change');
+    $select.data('invalidate_cache', true);
 }
 
 function enableHashpathPicker() {
@@ -1799,7 +1930,7 @@ function genSelect(options, forNode = true) {
     if (options.disabled !== undefined) {
         $select.prop('disabled', options.disabled == true)
     }
-    var selectOptions = options.options
+    var selectOptions = options.options ?? []
     if (!Array.isArray(selectOptions)) {
         selectOptions = Object.keys(options.options).map((k) => { return { name: options.options[k], value: k } })
     }
@@ -1837,6 +1968,7 @@ function genSelect(options, forNode = true) {
     }
     $select
         .attr('data-paramid', options.param_id)
+        .attr('data-saved_values', JSON.stringify(options.value))
         .attr('onchange', 'handleSelectChange(this)')
     $label.append($select)
     $container.append($label)
@@ -1901,6 +2033,14 @@ function genInput(options, isTextArea, forNode = true) {
     if (options.disabled !== undefined) {
         $input.prop('disabled', options.disabled == true)
     }
+    var otherAcceptedAttrs = ['min', 'max', 'step', 'input_type', ]
+    otherAcceptedAttrs.forEach((inputAttr) => {
+        if (inputAttr == 'input_type' && options['input_type'] !== undefined) {
+            $input.attr('type', options['input_type'])
+        } else if (options[inputAttr] !== undefined) {
+            $input.attr(inputAttr, options[inputAttr])
+        }
+    })
     $label.append($input)
     $container.append($label)
     return $container
@@ -2098,7 +2238,9 @@ function handleSelectChange(changed) {
     var node_data = setParamValueForInput($input, node.data)
     editor.updateNodeDataFromId(node.id, node_data)
     toggleDisplayOnFields()
-    invalidateContentCache()
+    if ($input.data('invalidate_cache') === undefined || $input.data('invalidate_cache') === true) {
+        invalidateContentCache()
+    }
 }
 
 function saveFilteringForModule() {

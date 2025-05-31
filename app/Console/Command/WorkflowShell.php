@@ -20,6 +20,8 @@ class WorkflowShell extends AppShell {
         if (!empty($this->args[4])) {
             Configure::write('CurrentUserId', JsonTool::decode($this->args[4]));
         }
+        $initiator_user_id = Configure::check('CurrentUserId') ? Configure::read('CurrentUserId') : null;
+        Configure::write('InitiatorUserId', $initiator_user_id);
 
         $blockingErrors = [];
         $executionSuccess = $this->Workflow->executeWorkflowForTrigger($trigger_id, $data, $blockingErrors);
@@ -32,7 +34,7 @@ class WorkflowShell extends AppShell {
             $job['Job']['message'] = __('Workflow for trigger `%s` completed execution', $trigger_id);
         } else {
             $errorMessage = implode(', ', $blockingErrors);
-            $message = __('Error while executing workflow for trigger `%s`: %s. %s%s', $trigger_id, $logging['message'], PHP_EOL . __('Returned message: %s', $errorMessage));
+            $message = __('Error while executing workflow for trigger `%s`: %s. %s%s', $trigger_id, $logging['message'], PHP_EOL, __('Returned message: %s', $errorMessage));
             $job['Job']['message'] = $message;
         }
     }
