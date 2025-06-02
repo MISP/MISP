@@ -14,7 +14,7 @@ class WorkflowShell extends AppShell {
         }
 
         $trigger_id = $this->args[0];
-        $data = JsonTool::decode(FileAccessTool::readAndDelete($this->args[1]));
+	$data = $this->Job->getBackgroundJobsTool()->fetchDataFile($this->args[1]);
         $logging = JsonTool::decode($this->args[2]);
         $jobId = $this->args[3];
         if (!empty($this->args[4])) {
@@ -86,7 +86,7 @@ class WorkflowShell extends AppShell {
         $workflow_id = (int)$this->args[0];
         $workflow = $this->Workflow->fetchWorkflow($workflow_id);
         $node_id_to_exec = (int)$this->args[1];
-        $roamingData = JsonTool::decode(FileAccessTool::readAndDelete($this->args[2]));
+	$roamingData= $this->Job->getBackgroundJobsTool()->fetchDataFile($this->args[2]);
         $for_path = $this->args[3];
         $jobId = $this->args[4];
 

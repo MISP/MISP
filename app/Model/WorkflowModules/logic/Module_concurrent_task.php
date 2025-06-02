@@ -40,8 +40,7 @@ class Module_concurrent_task extends WorkflowBaseLogicModule
             sprintf('Workflow ID: %s', $roamingData->getWorkflow()['Workflow']['id']),
             __('Running workflow parallel tasks.')
         );
-	$tempFile = FileAccessTool::createTempFile();
-	FileAccessTool::writeToFile($tempFile, JsonTool::encode($roamingData->getData()));
+	$tempFile = $this->Job->getBackgroundJobsTool()->enqueueDataFile($roamingData->getData());
         $this->Job->getBackgroundJobsTool()->enqueue(
             BackgroundJobsTool::PRIO_QUEUE,
             BackgroundJobsTool::CMD_WORKFLOW,
