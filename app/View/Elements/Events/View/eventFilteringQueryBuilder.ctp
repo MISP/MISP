@@ -10,13 +10,13 @@ if (!empty($event['warnings']['known'])) {
         $warninglistsValues[] = [(int)$id => h($name)];
     }
 }
-$warninglistsValues = json_encode($warninglistsValues, JSON_UNESCAPED_UNICODE);
+$warninglistsValues = JsonTool::encode($warninglistsValues);
 
 $relatedEventsValues = [];
 foreach ($event['RelatedEvent'] as $relatedEvent) {
     $relatedEventsValues[] = [(int)$relatedEvent["Event"]["id"] => "#{$relatedEvent["Event"]["id"]} " . h($relatedEvent["Event"]["info"])];
 }
-$relatedEventsValues = json_encode($relatedEventsValues, JSON_UNESCAPED_UNICODE);
+$relatedEventsValues = JsonTool::encode($relatedEventsValues);
 
 // Rules for query builder
 $rules = [];
@@ -86,7 +86,7 @@ foreach ($rules as $field => $value) {
         ];
     }
 }
-$jsonRules = json_encode($jsonRules, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$jsonRules = JsonTool::encode($jsonRules);
 ?>
 <div id="eventFilteringQBWrapper">
     <div id="eventFilteringQB"></div>
@@ -98,7 +98,7 @@ $jsonRules = json_encode($jsonRules, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLA
     </div>
 </div>
 <script>
-var defaultFilteringRules = <?= json_encode($defaultFilteringRules); ?>;
+var defaultFilteringRules = <?= JsonTool::encode($defaultFilteringRules); ?>;
 var querybuilderTool = undefined;
 function triggerEventFilteringTool(hide) {
     var qbOptions = {
@@ -338,7 +338,7 @@ function triggerEventFilteringTool(hide) {
                 "unique": true,
                 "id": "taggedAttributes",
                 "label": "Tags",
-                "values": <?php echo json_encode(array_map("h", $attributeTags)); // additional `h` because values are directly inserted into the DOM by QB.?>
+                "values": <?= JsonTool::encode(array_map("h", $attributeTags)); // additional `h` because values are directly inserted into the DOM by QB.?>
             },
             <?php endif; ?>
             <?php
@@ -356,7 +356,7 @@ function triggerEventFilteringTool(hide) {
                 "unique": true,
                 "id": "galaxyAttachedAttributes",
                 "label": "Galaxies",
-                "values": <?php echo json_encode(array_map("h", $attributeClusters)); // additional `h` because values are directly inserted into the DOM by QB.?>
+                "values": <?= JsonTool::encode(array_map("h", $attributeClusters)); // additional `h` because values are directly inserted into the DOM by QB.?>
             },
             <?php endif; ?>
             {
