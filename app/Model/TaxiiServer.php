@@ -29,15 +29,21 @@ class TaxiiServer extends AppModel
         if (empty($this->id) && empty($this->data['TaxiiServer']['uuid'])) {
             $this->data['TaxiiServer']['uuid'] = CakeText::uuid();
         }
+
         // Set skip_proxy to false if not provided
         if (!isset($this->data['TaxiiServer']['skip_proxy'])) {
             $this->data['TaxiiServer']['skip_proxy'] = false;
-        }
+        } 
 
         // Validate skip_proxy as a boolean
-        if (isset($this->data['TaxiiServer']['skip_proxy']) && !is_bool($this->data['TaxiiServer']['skip_proxy'])) {
-            $this->invalidate('skip_proxy', 'Invalid value for skip_proxy. Must be a boolean.');
-        }
+        $value = $this->data['TaxiiServer']['skip_proxy'];
+        $filtered = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($filtered === null) {
+           $this->invalidate('skip_proxy', 'Invalid value for skip_proxy. Must be a value that can be interpreted as boolean.');
+        } else {
+           $this->data['TaxiiServer']['skip_proxy'] = $filtered;
+        }      
+
         return true;
     }
 
