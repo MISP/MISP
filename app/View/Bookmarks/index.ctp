@@ -40,6 +40,15 @@
             'colors' => true,
             'class' => 'short',
         ],
+        [
+            'name' => __('Exposed to All Users'),
+            'title' => __('This bookmark is exposed to all users belonging to this MISP instance'),
+            'sort' => 'Bookmark.exposed_to_all',
+            'data_path' => 'Bookmark.exposed_to_all',
+            'element' => 'boolean',
+            'colors' => true,
+            'class' => 'short',
+        ],
     ];
 
     echo $this->element('genericElements/IndexTable/scaffold', [

@@ -21,6 +21,11 @@ $fields = [
         'type' => 'checkbox',
         'label' => __('Should this bookmark be exposed to all users from the organisation'),
     ],
+    [
+        'field' => 'exposed_to_all',
+        'type' => 'checkbox',
+        'label' => __('Should this bookmark be exposed to all users on this instance'),
+    ],
 ];
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [

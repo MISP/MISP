@@ -2195,6 +2195,7 @@ class AppModel extends Model
                     `name` varchar(191) NOT NULL,
                     `url` varchar(255) NOT NULL,
                     `exposed_to_org` tinyint(1) NOT NULL DEFAULT 0,
+                    `exposed_to_all` tinyint(1) NOT NULL DEFAULT 0,
                     PRIMARY KEY (`id`),
                     INDEX `user_id` (`user_id`),
                     INDEX `org_id` (`org_id`),
