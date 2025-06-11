@@ -2870,7 +2870,15 @@ class MispAttribute extends AppModel
         return $attribute;
     }
 
-    public function editAttributeBulk($attributes, $event, $user, $server = null)
+    /**
+     * @param array $attributes
+     * @param array $event
+     * @param array $user
+     * @param array|null $server
+     * @return true
+     * @throws JsonException
+     */
+    public function editAttributeBulk(array $attributes, array $event, array $user, $server = null)
     {
         $fieldList = self::EDITABLE_FIELDS;
         $addableFieldList = array('event_id', 'type', 'uuid', 'object_id', 'object_relation');
@@ -2888,7 +2896,7 @@ class MispAttribute extends AppModel
         }
 
         // validation only so we can cull the problematic attributes
-        $this->saveAll($attributes, $saveOptions);
+        $this->validateMany($attributes, $saveOptions);
         if (!empty($this->validationErrors)) {
             foreach ($this->validationErrors as $key => $validationError) {
                 $this->logDropped($user, $attributes[$key], 'edit', $validationError);
