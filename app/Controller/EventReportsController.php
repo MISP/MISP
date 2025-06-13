@@ -40,6 +40,7 @@ class EventReportsController extends AppController
         if ($eventId === false) {
             throw new MethodNotAllowedException(__('No event ID set.'));
         }
+        $eventId = $this->Toolbox->findIdByUuid($this->EventReport->Event, $eventId);
         $event = $this->__canModifyReport($eventId);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['EventReport'])) {
@@ -234,7 +235,7 @@ class EventReportsController extends AppController
                             }
                         }
                     } else {
-                        $tagId = $this->EventReports->EventReportTag->Tag->lookupTagIdForUser($this->Auth->user(), trim($tag_id));
+                        $tagId = $this->EventReport->EventReportTag->Tag->lookupTagIdForUser($this->Auth->user(), trim($tag_id));
                         if (empty($tagId)) {
                             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
                         }
@@ -245,7 +246,7 @@ class EventReportsController extends AppController
             if (empty($tag_id_list)) {
                 $tag_id_list = [$tag_id];
             }
-            $saveResult = $this->EventReport->EventReportTag->attachTags($this->Auth->user(), $id, $tag_id_list, $local);
+            $saveResult = $this->EventReport->attachTags($this->Auth->user(), $report, $tag_id_list, $local);
             $fails = $saveResult['fails'];
             $successes = $saveResult['successes'];
             if ($fails === 0) {
@@ -323,10 +324,8 @@ class EventReportsController extends AppController
                 'recursive' => -1,
                 'fields' => array('Tag.name')
             ));
-            if ($this->EventReport->EventReportTag->delete($eventReportTag['EventReportTag']['id'])) {
-                if (empty($eventReportTag['EventReportTag']['local'])) {
-                    $this->EventReport->Event->unpublishEvent($event);
-                }
+            $detachSuccess = $this->EventReport->detachTag($eventReportTag['EventReportTag']['id'], $id, !empty($eventReportTag['EventReportTag']['local']));
+            if ($detachSuccess) {
                 $log = ClassRegistry::init('Log');
                 $log->createLogEntry($this->Auth->user(), 'tag', 'EventReport', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event-report (' . $id . ')', 'EventReport (' . $id . ') untagged of Tag (' . $tag_id . ')');
                 return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => empty($eventReportTag['EventReportTag']['local']))), 'status'=>200, 'type' => 'json'));
@@ -395,6 +394,7 @@ class EventReportsController extends AppController
         if (!$this->request->is('ajax') && !$this->_isRest()) {
             throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
         }
+        $reportId = $this->Toolbox->findIdByUuid($this->EventReport, $reportId);
         if ($this->request->is('post')) {
             if (!isset($this->data['EventReport'])) {
                 $this->data = ['EventReport' => $this->data];

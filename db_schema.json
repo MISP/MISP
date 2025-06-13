@@ -2442,7 +2442,7 @@
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
+                "collation_name": "utf8mb4_unicode_ci",
                 "column_type": "text",
                 "column_default": null,
                 "extra": ""
@@ -5386,6 +5386,17 @@
                 "column_type": "text",
                 "column_default": null,
                 "extra": ""
+            },
+            {
+                "column_name": "highlighted",
+                "is_nullable": "YES",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
             }
         ],
         "object_templates": [
@@ -6885,6 +6896,28 @@
             },
             {
                 "column_name": "perm_server_sign",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "perm_sync_internal",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "perm_sync_authoritative",
                 "is_nullable": "NO",
                 "data_type": "tinyint",
                 "character_maximum_length": null,
@@ -10995,5 +11028,5 @@
             "uuid": false
         }
     },
-    "db_version": "135"
+    "db_version": "138"
 }

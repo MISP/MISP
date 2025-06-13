@@ -1463,10 +1463,10 @@ class DataHandler {
             var payload = {};
             payload.filtering = filtering_rules;
             payload.keyType = keyType;
-            var extended_text = dataHandler.extended_event ? "extended:1" : "";
+            var extended_text = dataHandler.extended_event ? "/include_extended:1" : "";
             eventGraph.canDrawHull = false;
             $.ajax({
-                url: baseurl+"/events/"+dataHandler.get_scope_url()+"/"+scope_id+"/"+extended_text+"/event.json",
+                url: baseurl+"/events/"+dataHandler.get_scope_url()+"/"+scope_id+extended_text+"/event.json",
                 dataType: 'json',
                 type: 'post',
                 contentType: 'application/json',

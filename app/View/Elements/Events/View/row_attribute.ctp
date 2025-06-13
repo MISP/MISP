@@ -60,7 +60,7 @@
 
   ?>
   <tr id="Attribute_<?= $objectId ?>_tr" data-primary-id="<?= $objectId ?>" class="<?php echo $tr_class; ?>" tabindex="0" data-uuid="<?= h($object['uuid']) ?>">
-      <?php if (($mayModify || !empty($extended)) && empty($disable_multi_select)): ?>
+      <?php if (($mayModify || !empty($include_extended)) && empty($disable_multi_select)): ?>
         <td style="width:10px">
         <?php if ($mayModify):?>
             <input class="select_attribute" type="checkbox" data-id="<?= $objectId ?>" aria-label="<?php echo __('Select attribute');?>">
@@ -92,7 +92,7 @@
         ?>
       </td>
       <?php
-        if (!empty($extended || $extending)):
+        if (!empty($include_extended || $include_extending)):
       ?>
         <td class="short">
           <?php
@@ -109,7 +109,7 @@
       <?php if ($includeOrgColumn): ?>
       <td class="short">
         <?php
-          if (!empty($extended) || !empty($extending)):
+          if (!empty($include_extended) || !empty($include_extending)):
               echo $this->OrgImg->getOrgLogo($attributeEvent['Orgc'], 24);
           endif;
         ?>

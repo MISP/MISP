@@ -471,7 +471,10 @@ class MispAttribute extends AppModel
                     if (
                         empty($this->old) ||
                         $attribute['value'] != $this->old['Attribute']['value'] ||
-                        $attribute['disable_correlation'] != $this->old['Attribute']['disable_correlation'] ||
+                        (
+                            isset($attribute['disable_correlation']) && 
+                            $attribute['disable_correlation'] != $this->old['Attribute']['disable_correlation']
+                        ) ||
                         $attribute['type'] != $this->old['Attribute']['type'] ||
                         $attribute['distribution'] != $this->old['Attribute']['distribution'] ||
                         $attribute['sharing_group_id'] != $this->old['Attribute']['sharing_group_id']
@@ -1647,7 +1650,7 @@ class MispAttribute extends AppModel
                         [
                             'OR' => [
                                 'Attribute.distribution' => [1, 2, 3, 5],
-                                'AND '=> [
+                                'AND' => [
                                     'Attribute.distribution' => 4,
                                     'Attribute.sharing_group_id' => $sgids,
                                 ]
@@ -1793,7 +1796,7 @@ class MispAttribute extends AppModel
             'recursive' => -1,
             'contain' => array(
                 'Event' => array(
-                    'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
+                    'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid', 'user_id'),
                 ),
                 'AttributeTag', // tags are fetched separately, @see MispAttribute::attachTagsToAttributes
                 'Object' => array(
@@ -2254,7 +2257,7 @@ class MispAttribute extends AppModel
         return $saveSuccess;
     }
 
-    public function attachTagsToAttributeAndTouch($attribute_id, $event_id, array $options, array $user)
+    public function attachTagsToAttributeAndTouch($attribute_id, $event_id, array $options, array $user, array &$tagAttached=[])
     {
         $tags = $options['tags'];
         $local = $options['local'];
@@ -2272,6 +2275,9 @@ class MispAttribute extends AppModel
                 $capturedTags
             );
             $saveSuccess = $this->AttributeTag->attachTagToAttribute($attribute_id, $event_id, $tag_id, $local, $relationship, $nothingToChange);
+            if ($saveSuccess) {
+                $tagAttached[] = $tag_name;
+            }
             $success = $success || !empty($saveSuccess);
             $touchAttribute = $touchAttribute || !$nothingToChange;
         }
@@ -2281,7 +2287,7 @@ class MispAttribute extends AppModel
         return $success;
     }
 
-    public function detachTagsFromAttributeAndTouch($attribute_id, $event_id, array $options)
+    public function detachTagsFromAttributeAndTouch($attribute_id, $event_id, array $options, array &$tagDetached=[])
     {
         $tags = $options['tags'];
         $local = $options['local'];
@@ -2296,6 +2302,9 @@ class MispAttribute extends AppModel
             }
             $saveSuccess = $this->AttributeTag->detachTagFromAttribute($attribute_id, $event_id, $tag_id, $local, $nothingToChange);
             $success = $success || !empty($saveSuccess);
+            if ($saveSuccess) {
+                $tagDetached[] = $tag_name;
+            }
             $touchAttribute = $touchAttribute || !$nothingToChange;
         }
         if ($touchAttribute) {
@@ -2674,6 +2683,7 @@ class MispAttribute extends AppModel
     {
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId ?: 0;
+        $attribute['object_relation'] = !empty($objectId) ? $attribute['object_relation'] : null;
         if (!isset($attribute['to_ids'])) {
             $attribute['to_ids'] = $this->typeDefinitions[$attribute['type']]['to_ids'];
         }
@@ -2913,15 +2923,21 @@ class MispAttribute extends AppModel
                     A solution to still keep the behavior for previous instance could be to not soft-delete the Tag if the remote instance
                     has a version below x
                 */
-                if (isset($server) && isset($server['Server']['remove_missing_tags']) && $server['Server']['remove_missing_tags']) {
-                    $existingTags = $this->AttributeTag->find('all', [
+                if (
+                    (isset($server) && isset($server['Server']['remove_missing_tags']) && $server['Server']['remove_missing_tags']) ||
+                    ($user['Role']['perm_sync'] && !empty($user['Role']['perm_sync_authoritative']))
+                ) {
+                    $existingGlobalTags = $this->AttributeTag->find('all', [
                         'recursive' => -1,
-                        'conditions' => ['attribute_id' => $attribute['id']],
+                        'conditions' => [
+                            'attribute_id' => $attribute['id'],
+                            'local' => 0,
+                        ],
                         'contain' => array(
                             'Tag' => array('fields' => array('Tag.id', 'Tag.name'))
                         )
                     ]);
-                    $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingTags);
+                    $this->AttributeTag->pruneOutdatedAttributeTagsFromSync(isset($attribute['Tag']) ? $attribute['Tag'] : array(), $existingGlobalTags);
                 }
                 $tag_id_store = [];
                 if (isset($attribute['Tag'])) {

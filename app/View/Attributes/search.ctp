@@ -1,5 +1,5 @@
 <div class="attributes form">
-<?php echo $this->Form->create('Attribute', array('url' => array('controller' => 'attributes', 'action' => 'search', 'results')));?>
+<?php echo $this->Form->create('Attribute', array('url' => $baseurl . '/attributes/index'));?>
     <fieldset>
         <legend><?php echo __('Search Attribute'); ?></legend>
         <?= __('You can search for attributes based on contained expression within the value, event ID, submitting organisation, category and type. <br>For the value, event ID and organisation, you can enter several search terms by entering each term as a new line. To exclude things from a result, use the NOT operator (!) in front of the term.'); ?>
@@ -10,7 +10,7 @@
             echo $this->Form->input('value', array('type' => 'textarea', 'rows' => 2, 'label' => __('Containing the following expressions'), 'div' => 'clear', 'class' => 'input-xxlarge', 'required' => false));
             echo $this->Form->input('tags', array('type' => 'textarea', 'rows' => 2, 'label' => __('Having tag or being an attribute of an event having the tag'), 'div' => 'clear', 'class' => 'input-xxlarge', 'required' => false));
             echo $this->Form->input('uuid', array('type' => 'textarea', 'rows' => 2, 'maxlength' => false, 'label' => __('Being attributes of the following event IDs, event UUIDs or attribute UUIDs'), 'div' => 'clear', 'class' => 'input-xxlarge', 'required' => false));
-            echo $this->Form->input('org', array(
+            echo $this->Form->input('org_id', array(
                 'type' => 'textarea',
                 'label' => __('From the following organisation(s)'),
                 'div' => 'input clear',
@@ -46,6 +46,11 @@
             echo $this->Form->input('to_ids', array(
                 'type' => 'checkbox',
                 'label' => __('Only find IOCs flagged as to IDS'),
+                'div' => ['style' => 'margin-top:1em'],
+            ));
+            echo $this->Form->input('enforceWarninglist', array(
+                'type' => 'checkbox',
+                'label' => __('Exclude IOCs spotted in a warning list'),
                 'div' => ['style' => 'margin-top:1em'],
             ));
             echo $this->Form->input('first_seen', array(

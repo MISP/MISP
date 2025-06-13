@@ -84,7 +84,7 @@ $objectId = intval($object['id']);
       ?>
       </td>
   <?php
-    if ($extended || $extending):
+    if ($include_extended || $include_extending):
   ?>
     <td class="short">
       <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '" class="white">' . h($object['event_id']) . '</a>'; ?>
@@ -95,7 +95,7 @@ $objectId = intval($object['id']);
   <?php if ($includeOrgColumn): ?>
   <td class="short">
     <?php
-      if ($extended || $extending):
+      if ($include_extended || $include_extending):
           echo $this->OrgImg->getOrgImg(array('name' => $objectEvent['Orgc']['name'], 'id' => $objectEvent['Orgc']['id'], 'size' => 24));
       endif;
     ?>

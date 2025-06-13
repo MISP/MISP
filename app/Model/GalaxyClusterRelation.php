@@ -100,7 +100,7 @@ class GalaxyClusterRelation extends AppModel
                     ]
                 ]
             ];
-            $conditionsSourceCluster = $clusterConditions ? $this->SourceCluster->buildConditions($user, true) : [];
+            $conditionsSourceCluster = $clusterConditions ? $this->SourceCluster->buildConditions($user, true, 'SourceCluster') : [];
             $conditions = [
                 'AND' => [
                     $conditionsRelations,
@@ -111,12 +111,31 @@ class GalaxyClusterRelation extends AppModel
         return $conditions;
     }
 
+    private function renameClusterTypeInArray($array, $oldName, $newName)
+    {
+        foreach ($array as $k => $v) {
+            if (str_contains($k, $oldName)) {
+                $tempName = str_replace($oldName, $newName, $k);
+                $array[$tempName] = $array[$k];
+                unset($array[$k]);
+                $lookupKey = $tempName;
+            } else {
+                $lookupKey = $k;
+            }
+            if (is_array($v)) {
+                $array[$lookupKey] = $this->renameClusterTypeInArray($v, $oldName, $newName);
+            }
+        }
+        return $array;
+    }
+
     public function fetchRelations($user, $options, $full=false)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
             'recursive' => -1
         );
+        $params = $this->renameClusterTypeInArray($params, 'GalaxyCluster.', 'SourceCluster.');
         if (!empty($options['contain'])) {
             $params['contain'] = $options['contain'];
         } elseif ($full) {
@@ -442,7 +461,7 @@ class GalaxyClusterRelation extends AppModel
                     $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = 0;
                 } else {
                     $referencedCluster = $referencedCluster[0];
-                    $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $referencedCluster['SourceCluster']['id'];
+                    $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $referencedCluster['GalaxyCluster']['id'];
                 }
             }
 
@@ -518,22 +537,22 @@ class GalaxyClusterRelation extends AppModel
     private function syncUUIDsAndIDs(array $user, array $relation)
     {
         $options = array('conditions' => array(
-            'SourceCluster.uuid' => $relation['GalaxyClusterRelation']['galaxy_cluster_uuid']
+            "{$this->SourceCluster->alias}.uuid" => $relation['GalaxyClusterRelation']['galaxy_cluster_uuid']
         ));
         $sourceCluster = $this->SourceCluster->fetchGalaxyClusters($user, $options);
         if (!empty($sourceCluster)) {
             $sourceCluster = $sourceCluster[0];
-            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $sourceCluster['SourceCluster']['id'];
-            $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $sourceCluster['SourceCluster']['uuid'];
+            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $sourceCluster[$this->SourceCluster->alias]['id'];
+            $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $sourceCluster[$this->SourceCluster->alias]['uuid'];
         }
         $options = array('conditions' => array(
-            'TargetCluster.uuid' => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid']
+            "{$this->TargetCluster->alias}.uuid" => $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid']
         ));
         $targetCluster = $this->TargetCluster->fetchGalaxyClusters($user, $options);
         if (!empty($targetCluster)) {
             $targetCluster = $targetCluster[0];
-            $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $targetCluster['TargetCluster']['id'];
-            $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'] = $targetCluster['TargetCluster']['uuid'];
+            $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $targetCluster[$this->TargetCluster->alias]['id'];
+            $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'] = $targetCluster[$this->TargetCluster->alias]['uuid'];
         } else {
             $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = 0;
         }

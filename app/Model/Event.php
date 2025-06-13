@@ -150,9 +150,12 @@ class Event extends AppModel
         'sgReferenceOnly', // do not fetch additional information about sharing groups
         'flatten',
         'blockedAttributeTags',
+        'blockedEventReportTags',
         'eventsExtendingUuid',
         'extended',
         'extending',
+        'include_extended',
+        'include_extending',
         'extensionList',
         'excludeGalaxy',
         // 'includeCustomGalaxyCluster', // not used
@@ -587,7 +590,7 @@ class Event extends AppModel
         return $this->unpublishEvent($event_id);
     }
 
-    public function attachTagsToEventAndTouch($event_id, array $options, array $user)
+    public function attachTagsToEventAndTouch($event_id, array $options, array $user, array &$tagAttached = [])
     {
         $tags = $options['tags'];
         $local = $options['local'];
@@ -610,6 +613,9 @@ class Event extends AppModel
                 'relationship_type' => $relationship,
             ];
             $attachSuccess = $this->EventTag->attachTagToEvent($event_id, $tag, $nothingToChange);
+            if ($attachSuccess) {
+                $tagAttached[] = $tag_name;
+            }
             $success = $success || $attachSuccess;
             $touchEvent = $touchEvent || !$nothingToChange;
         }
@@ -619,7 +625,7 @@ class Event extends AppModel
         return $success;
     }
 
-    public function detachTagsFromEventAndTouch($event_id, array $options)
+    public function detachTagsFromEventAndTouch($event_id, array $options, array &$tagDetached = [])
     {
         $tags = $options['tags'];
         $local = $options['local'];
@@ -633,6 +639,9 @@ class Event extends AppModel
                 continue;
             }
             $detachSuccess = $this->EventTag->detachTagFromEvent($event_id, $tag_id, $local, $nothingToChange);
+            if ($detachSuccess) {
+                $tagDetached[] = $tag_name;
+            }
             $success = $success || $detachSuccess;
             $touchEvent = $touchEvent || !$nothingToChange;
         }
@@ -1119,6 +1128,8 @@ class Event extends AppModel
         }
         if (isset($data['EventReport']) && empty($data['EventReport'])) {
             unset($data['EventReport']);
+        } else {
+            $data['EventReport'][$key] = $this->__removeNonExportableTags($data['EventReport'][$key], 'EventReport', $server);
         }
         return $data;
     }
@@ -1548,6 +1559,8 @@ class Event extends AppModel
                     'orgc_id' => array('function' => 'set_filter_orgc_id', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
                     'published' => array('function' => 'set_filter_published', 'pop' => true),
+                    'extended' => array('function' => 'set_filter_extended', 'pop' => true),
+                    'extending' => array('function' => 'set_filter_extending', 'pop' => true),
                     'threat_level_id' => array('function' => 'set_filter_threat_level_id', 'pop' => true),
                     'sharinggroup' => array('function' => 'set_filter_sharing_group')
                 ),
@@ -1909,6 +1922,12 @@ class Event extends AppModel
         if (isset($options['published'])) {
             $conditions['AND'][] = array('Event.published' => $options['published']);
         }
+        if (isset($options['extended'])) {
+            $conditions = $this->set_filter_extended($options, $conditions, null);
+        }
+        if (isset($options['extending'])) {
+            $conditions = $this->set_filter_extending($options, $conditions, null);
+        }
         if ($options['orgc_id']) {
             $conditions['AND'][] = array('Event.orgc_id' => $options['orgc_id']);
         }
@@ -2027,7 +2046,8 @@ class Event extends AppModel
                 ),
                 'EventReport' => array(
                     'conditions' => $conditionsEventReport,
-                    'order' => false
+                    'order' => false,
+                    'EventReportTag',
                 ),
                 'CryptographicKey'
             )
@@ -2213,6 +2233,7 @@ class Event extends AppModel
                     $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit, 'Server');
                 }
                 $event = $this->__filterBlockedAttributesByTags($event, $options, $user);
+                $event = $this->__filterBlockedEventReportsByTags($event, $options, $user);
                 if (!$sharingGroupReferenceOnly) {
                     $event['Attribute'] = $this->__attachSharingGroups($event['Attribute'], $sharingGroupData);
                 }
@@ -2298,12 +2319,12 @@ class Event extends AppModel
                 $event = $this->Sightingdb->attachToEvent($event, $user);
             }
         }
-        if ($options['extended']) {
+        if ($options['include_extended']) {
             foreach ($results as $k => $result) {
                 $results[$k] = $this->__mergeExtensions($user, $result, $options);
             }
         }
-        if ($options['extending']) {
+        if ($options['include_extending']) {
             foreach ($results as $k => $result) {
                 $results[$k] = $this->__mergeExtensions($user, $result, $options);
             }
@@ -2553,7 +2574,7 @@ class Event extends AppModel
             'sgReferenceOnly' => $options['sgReferenceOnly'],
             'includeAnalystData' => $options['includeAnalystData'],
         ];
-        if (!empty($options['extending'])) {
+        if (!empty($options['include_extending'])) {
             $fetchOptions['event_uuid'] = $event['Event']['extends_uuid'];
         } else {
             $fetchOptions['eventsExtendingUuid'] = $event['Event']['uuid'];
@@ -2661,6 +2682,35 @@ class Event extends AppModel
         return $event;
     }
 
+    // Filter the event-reports within an event based on the tag filter block rules
+    private function __filterBlockedEventReportsByTags($event, $options, $user)
+    {
+        if (!empty($options['blockedEventReportTags'])) {
+            foreach ($options['blockedEventReportTags'] as $key => $blockedTag) {
+                if (!is_numeric($blockedTag)) {
+                    $options['blockedEventReportTags'][$key] = $this->EventReport->EventReportTag->Tag->lookupTagIdFromName($blockedTag);
+                } else {
+                    $options['blockedEventReportTags'][$key] = $blockedTag;
+                }
+            }
+        }
+        if (!empty($user['Server']['push_rules'])) {
+            $push_rules = json_decode($user['Server']['push_rules'], true);
+            if (!empty($push_rules['tags']['NOT'])) {
+                if (empty($options['blockedEventReportTags'])) {
+                    $options['blockedEventReportTags'] = [];
+                }
+                $options['blockedEventReportTags'] = array_merge($options['blockedEventReportTags'], $push_rules['tags']['NOT']);
+            }
+        }
+        if (!empty($options['blockedEventReportTags'])) {
+            if (!empty($event['EventReport'])) {
+                $event['EventReport'] = $this->__filterBlockedEventReportsFromContainer($event['EventReport'], $options['blockedEventReportTags']);
+            }
+        }
+        return $event;
+    }
+
     // accepts an attribute array and a list of blocked tags. Returns the attribute array with the blocked attributes cleaned out.
     private function __filterBlockedAttributesFromContainer($container, $blockedTags)
     {
@@ -2668,6 +2718,22 @@ class Event extends AppModel
             if (!empty($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $at) {
                     if (in_array($at['tag_id'], $blockedTags)) {
+                        unset($container[$key]);
+                    }
+                }
+            }
+        }
+        $container = array_values($container);
+        return $container;
+    }
+
+    // accepts an event-report array and a list of blocked tags. Returns the event-report array with the blocked reports cleaned out.
+    private function __filterBlockedEventReportsFromContainer($container, $blockedTags)
+    {
+        foreach ($container as $key => $eventReport) {
+            if (!empty($eventReport['EventReportTag'])) {
+                foreach ($eventReport['EventReportTag'] as $ev) {
+                    if (in_array($ev['tag_id'], $blockedTags)) {
                         unset($container[$key]);
                     }
                 }
@@ -2893,6 +2959,96 @@ class Event extends AppModel
         return $conditions;
     }
 
+
+    public function set_filter_extended(&$params, $conditions, $options)
+    {
+        if (!isset($params['extended'])) {
+            return $conditions;
+        }
+
+        $extended = null;
+        //If extended is an array, it means that the user is filtering for both extended and not extended events
+        if (is_array($params['extended']) && in_array(1, $params['extended']) && in_array(0, $params['extended'])) {
+            return $conditions;
+        //Accept if extended is [0] or [1] and converting it to boolean
+        } else if (is_array($params['extended']) && (in_array(1, $params['extended'] ) || in_array(0, $params['extended']))) {
+            $extended = filter_var($params['extended'][0], FILTER_VALIDATE_BOOLEAN);
+        } else {
+            $extended = filter_var($params['extended'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        //Step 1 - Extract the UUIDs of the events that are extended and remove duplicates
+        $targetUuids = array_unique($this->find('column', array(
+            'fields' => array('Event.extends_uuid'),
+            'conditions' => array('Event.extends_uuid !=' => ''),
+            'recursive' => -1
+        )));
+
+        //If there is no event with extends_uuid(extending), there is basically no event extended
+        if (empty($targetUuids)) {
+            $conditions['AND'][] = array('Event.id' => -1);
+            return $conditions;
+        }
+
+        //Step 2 - Extract the UUIDs and ids of all events
+        $allEvents = $this->find('list', array(
+            'fields' => array('Event.uuid', 'Event.id'),
+            'recursive' => -1
+        ));
+
+        //Step 3 - Fetch the events that are extended or not extended
+        $linkedEventIds = array();
+        if ($extended) {
+            foreach ($targetUuids as $uuid) {
+                if (isset($allEvents[$uuid])) {
+                    $linkedEventIds[] = $allEvents[$uuid];
+                }
+            }
+        } else {
+            foreach ($allEvents as $uuid => $id) {
+                if (!in_array($uuid, $targetUuids, true)) {
+                    $linkedEventIds[] = $id;
+                }
+            }
+        }
+
+        if (empty($linkedEventIds)) {
+            $conditions['AND'][] = array('Event.id' => -1);
+        } else {
+            $conditions['AND'][] = array('Event.id' => $linkedEventIds);
+        }
+
+        return $conditions;
+    }
+
+
+
+    public function set_filter_extending(&$params, $conditions, $options)
+    {
+        if (!isset($params['extending'])) {
+            return $conditions;
+        }
+
+        $extending = null;
+        //If extended is an array, it means that the user is filtering for both extended and not extended events
+        if (is_array($params['extending']) && in_array(1, $params['extending']) && in_array(0, $params['extending'])) {
+            return $conditions;
+        //Accept if extended is [0] or [1] and converting it to boolean
+        } else if (is_array($params['extending']) && (in_array(1, $params['extending'] ) || in_array(0, $params['extending']))) {
+            $extending = filter_var($params['extending'][0], FILTER_VALIDATE_BOOLEAN);
+        } else{
+            $extending = filter_var($params['extending'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if ($extending) {
+            $conditions['AND'][] = array('Event.extends_uuid !=' => '');
+        } else {
+            $conditions['AND'][] = array('Event.extends_uuid' => '');
+        }
+        return $conditions;
+    }
+
+
     public function set_filter_threat_level_id(&$params, $conditions, $options)
     {
         if (isset($params['threat_level_id'])) {
@@ -3002,7 +3158,6 @@ class Event extends AppModel
             }
 
         }
-
         return $conditions;
     }
 
@@ -4109,7 +4264,7 @@ class Event extends AppModel
             }
             if (!empty($data['Event']['EventReport'])) {
                 foreach ($data['Event']['EventReport'] as $report) {
-                    $result = $this->EventReport->captureReport($user, $report, $this->id);
+                    $result = $this->EventReport->captureReport($user, $report, $this->id, $server);
                 }
             }
 
@@ -4459,7 +4614,7 @@ class Event extends AppModel
             if (isset($data['Event']['EventReport'])) {
                 foreach ($data['Event']['EventReport'] as $report) {
                     $nothingToChange = false;
-                    $result = $this->EventReport->editReport($user, ['EventReport' => $report], $this->id, true, $nothingToChange);
+                    $result = $this->EventReport->editReport($user, ['EventReport' => $report], $this->id, true, $server, $nothingToChange);
                     if (!empty($result)) {
                         $validationErrors['EventReport'][] = $result;
                     }
@@ -4468,7 +4623,24 @@ class Event extends AppModel
                     }
                 }
             }
+            // Also remove existing tags not present in the incoming data if user is sync_user and has authoritative flag set
             if (isset($data['Event']['Tag']) && $user['Role']['perm_tagger']) {
+                if (
+                    (isset($server) && isset($server['Server']['remove_missing_tags']) && $server['Server']['remove_missing_tags']) ||
+                    ($user['Role']['perm_sync'] && !empty($user['Role']['perm_sync_authoritative']))
+                ) {
+                    $existingGlobalTags = $this->EventTag->find('all', [
+                        'recursive' => -1,
+                        'conditions' => [
+                            'event_id' => $this->id,
+                            'local' => 0,
+                        ],
+                        'contain' => [
+                            'Tag' => ['fields' => ['Tag.id', 'Tag.name']]
+                        ]
+                    ]);
+                    $this->EventTag->pruneOutdatedEventTagsFromSync(isset($data['Event']['Tag']) ? $data['Event']['Tag'] : [], $existingGlobalTags);
+                }
                 foreach ($data['Event']['Tag'] as $tag) {
                     $tag_id = $this->EventTag->Tag->captureTag($tag, $user);
                     if ($tag_id) {
@@ -4809,6 +4981,7 @@ class Event extends AppModel
                     $pushRules = json_decode($server['Server']['push_rules'], true);
                     if (!empty($pushRules['tags']['NOT'])) {
                         $params['blockedAttributeTags'] = $pushRules['tags']['NOT'];
+                        $params['blockedEventReportTags'] = $pushRules['tags']['NOT'];
                     }
                 }
                 if (!empty($server['Server']['internal'])) {
@@ -5286,11 +5459,28 @@ class Event extends AppModel
                 return null;
             }
 
-            if ($filterType['warning'] == 0) { // `both`
-                // pass, do not consider as `both` is selected
-            } else if (!empty($attribute['warnings']) || !empty($attribute['validationIssue'])) { // `include only`
-                $include = $include && ($filterType['warning'] == 1);
-            } else { // `exclude`
+            if ($filterType['warning'] == 0) { // `all`
+                // pass, do not consider as `all` is selected
+            } else if (!empty($attribute['warnings']) || !empty($attribute['validationIssue'])) {
+                $hasFalsePositive = false;
+                $hasKnown = false;
+                if (!empty($attribute['warnings'])) {
+                    foreach ($attribute['warnings'] as $warning) {
+                        if ($warning['warninglist_category'] === 'false_positive') {
+                            $hasFalsePositive = true;
+                        } elseif ($warning['warninglist_category'] === 'known') {
+                            $hasKnown = true;
+                        }
+                    }
+                }
+                if ($filterType['warning'] == 3) { // False positive
+                    $include = $include && $hasFalsePositive;
+                } elseif ($filterType['warning'] == 4) { // Known identifier
+                    $include = $include && $hasKnown;
+                } else {
+                    $include = $include && ($filterType['warning'] == 1); // include only
+                }
+            } else { // exclude
                 $include = $include && ($filterType['warning'] == 2);
             }
 
@@ -7596,6 +7786,14 @@ class Event extends AppModel
             }
         }
 
+        if (!empty($event['EventReport'])) {
+            foreach ($event['EventReport'] as $eventReport) {
+                foreach ($eventReport['EventReportTag'] as $eventReportTag) {
+                    $tagIds[$eventReportTag['tag_id']] = true;
+                }
+            }
+        }
+
         $notCachedTags = array_diff_key($tagIds, $this->assetCache['tags'] ?? []);
         if (empty($notCachedTags)) {
             return;
@@ -7614,7 +7812,7 @@ class Event extends AppModel
     }
 
     /**
-     * Attach tags to attributes and event.
+     * Attach tags to attributes, event-reports and event.
      *
      * @param array $event
      * @param bool $justExportable If true, attach just exportable tags.
@@ -7650,6 +7848,23 @@ class Event extends AppModel
                         }
                     }
                     $event['Attribute'][$ak]['AttributeTag'] = array_values($event['Attribute'][$ak]['AttributeTag']);
+                }
+            }
+        }
+        if (!empty($event['EventReport'])) {
+            foreach ($event['EventReport'] as $ek => $eventReport) {
+                if (!empty($eventReport['EventReportTag'])) {
+                    foreach ($eventReport['EventReportTag'] as $etk => $eventReportTag) {
+                        $tag = $this->__getCachedTag($eventReportTag['tag_id'], $justExportable);
+                        if ($tag !== null) {
+                            $tag['local'] = empty($eventReportTag['local']) ? false : true;
+                            $tag['relationship_type'] = empty($eventReportTag['relationship_type']) ? null : $eventReportTag['relationship_type'];
+                            $event['EventReport'][$ek]['EventReportTag'][$etk]['Tag'] = $tag;
+                        } else {
+                            unset($event['EventReport'][$ek]['EventReportTag'][$etk]);
+                        }
+                    }
+                    $event['EventReport'][$ek]['EventReportTag'] = array_values($event['EventReport'][$ek]['EventReportTag']);
                 }
             }
         }
@@ -7770,6 +7985,7 @@ class Event extends AppModel
             $filters['eventid'] = $chunk;
             if (!empty($filters['tags']['NOT'])) {
                 $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
+                $filters['blockedEventReportTags'] = $filters['tags']['NOT'];
                 unset($filters['tags']['NOT']);
             }
             $result = $this->fetchEvent($user, $filters, true);

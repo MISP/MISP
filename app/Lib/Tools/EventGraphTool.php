@@ -46,7 +46,7 @@
         {
             $this->__json['available_pivot_key'] = $this->__authorized_JSON_key;
 
-            $fullevent = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'extended' => $this->__extended_view));
+            $fullevent = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'include_extended' => $this->__extended_view));
             $event = array();
             if (empty($fullevent)) {
                 return $event;

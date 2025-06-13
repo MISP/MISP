@@ -176,12 +176,31 @@ function initMarkdownIt() {
 }
 
 function renderMermaid(code) {
-    try {
-        var result = mermaid.mermaidAPI.render('mermaid-graph', code)
-        return '<div class="mermaid">' + (result !== undefined ? result : '- error while parsing mermaid graph -') + '</div>'
-    } catch (err) {
-        return '<pre>' + 'mermaid error:\n' + err.message + '</pre>'
+    var id = 'm-' + Math.random().toString().split('.')[1]
+    doAsyncMermaidRendering(id, code)
+    return '<div id="' + id + '"></div>'
+}
+
+async function doAsyncMermaidRendering(id, code) {
+    function partialEscapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            // Quotes need to be preserved for mermaid to parse some diagrams correctly
     }
+    code = partialEscapeHtml(code)
+
+    setTimeout(async () => {
+        var html = ''
+        try {
+            var result = await mermaid.mermaidAPI.render('mermaid-graph' + id, code)
+            html = '<div class="mermaid">' + (result !== undefined ? result.svg : '- error while parsing mermaid graph -') + '</div>'
+        } catch (err) {
+            html = '<pre>' + 'mermaid error:\n' + err.message + '</pre>'
+        }
+        $('#'+id).html(html)
+    }, 1);
 }
 
 function initCodeMirror() {

@@ -83,7 +83,7 @@
     <table class="table table-striped table-condensed">
         <tr>
             <?php
-                if ($extended || ($mayModify && !empty($event['objects']))):
+                if ($include_extended || ($mayModify && !empty($event['objects']))):
                     $fieldCount++;
             ?>
                     <th><input class="select_all" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all attributes/proposals on current page');?>" onclick="toggleAllAttributeCheckboxes()"></th>
@@ -95,7 +95,7 @@
             <th class="context hidden"><?= $this->Paginator->sort('first_seen', __('First seen')) ?> <i class="fas fa-arrow-right"></i> <?= $this->Paginator->sort('last_seen', __('Last seen')) ?></th>
             <th><?php echo $this->Paginator->sort('timestamp', __('Date'), array('direction' => 'desc'));?></th>
             <th class="context"><?= __('Context') ?></th>
-            <?php if ($extended || $extending): ?>
+            <?php if ($include_extended || $include_extending): ?>
                 <th class="event_id"><?php echo $this->Paginator->sort('event_id', __('Event'));?></th>
             <?php endif; ?>
             <?php if ($includeOrgColumn): $fieldCount++; ?>

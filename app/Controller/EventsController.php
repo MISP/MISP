@@ -57,6 +57,7 @@ class EventsController extends AppController
 
     // private
     const DEFAULT_HIDDEN_INDEX_COLUMNS = [
+        'extending',
         'timestamp',
         'publish_timestamp'
     ];
@@ -671,6 +672,26 @@ class EventsController extends AppController
                     $this->paginate['conditions']['AND'][] = array('Event.id' => $eventIds);
 
                     break;
+                case 'extending':
+                    $params = ["extending" => $v];
+                    $conditions = array();
+                    $conditions = $this->Event->set_filter_extending($params, $conditions, null);
+                    if (!empty($conditions['AND'])) {
+                        foreach ($conditions['AND'] as $cond) {
+                            $this->paginate['conditions']['AND'][] = $cond;
+                        }
+                    }
+                    break;
+                case 'extended':
+                    $params = ["extended" => $v];
+                    $conditions = array();
+                    $conditions = $this->Event->set_filter_extended($params, $conditions, null);
+                    if (!empty($conditions['AND'])) {
+                        foreach ($conditions['AND'] as $cond) {
+                            $this->paginate['conditions']['AND'][] = $cond;
+                        }
+                    }
+                    break;
                 default:
                     continue 2;
             }
@@ -683,9 +704,10 @@ class EventsController extends AppController
     {
         // list the events
         $urlparams = "";
-        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value');
+        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value', 'extending', 'extended');
         $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
         $passedArgs = $this->passedArgs;
+
         if (!empty($this->request->data)) {
             if (isset($this->request->data['request'])) {
                 $this->request->data = $this->request->data['request'];
@@ -760,6 +782,18 @@ class EventsController extends AppController
         $this->set('urlparams', $urlparams);
         $this->set('passedArgsArray', $passedArgsArray);
         $this->set('passedArgs', json_encode($passedArgs));
+
+        $extendedUuids = array_filter(array_map(fn($event) => $event['Event']['extends_uuid'] ?? null, $events));
+
+        if ($extendedUuids) {
+            $extendedEvents = $this->Event->fetchSimpleEvents(
+                $this->Auth->user(),
+                ['conditions' => ['Event.uuid' => $extendedUuids]]
+            );
+            $this->set('extendedEvents', array_column($extendedEvents, 'Event', 'uuid'));
+        } else {
+            $this->set('extendedEvents', []);
+        }
 
         if ($this->request->is('ajax')) {
             $this->autoRender = false;
@@ -970,6 +1004,8 @@ class EventsController extends AppController
             $possibleColumns[] = 'owner_org';
         }
 
+        $possibleColumns[] = 'extending';
+
         if (Configure::read('MISP.tagging')) {
             $possibleColumns[] = 'clusters';
             $possibleColumns[] = 'tags';
@@ -1000,7 +1036,7 @@ class EventsController extends AppController
         if ($this->_isSiteAdmin()) {
             $possibleColumns[] = 'creator_user';
         }
-
+ 
         $possibleColumns[] = 'timestamp';
         $possibleColumns[] = 'publish_timestamp';
 
@@ -1096,6 +1132,8 @@ class EventsController extends AppController
             'analysis' => array('OR' => array(), 'NOT' => array()),
             'attribute' => array('OR' => array(), 'NOT' => array()),
             'hasproposal' => 2,
+            'extending' => 2,
+            'extended' => 2,
             'timestamp' => array('from' => "", 'until' => ""),
             'publishtimestamp' => array('from' => "", 'until' => "")
         );
@@ -1109,6 +1147,8 @@ class EventsController extends AppController
                 $searchTerm = substr($k, 6);
                 switch ($searchTerm) {
                     case 'published':
+                    case 'extending':
+                    case 'extended':
                     case 'hasproposal':
                         $filtering[$searchTerm] = $v;
                         break;
@@ -1164,6 +1204,8 @@ class EventsController extends AppController
             'distribution' => __('Distribution'),
             'sharinggroup' => __('Sharing group'),
             'analysis' => __('Analysis'),
+            'extending' => __('Extends'),
+            'extended'  => __('Is extended'),
             'attribute' => __('Attribute'),
             'hasproposal' => __('Has proposal'),
             'timestamp' => __('Last change at'),
@@ -1229,17 +1271,17 @@ class EventsController extends AppController
             'noSightings' => true,
             'includeServerCorrelations' => $filters['includeServerCorrelations'] ?? 1,
         ];
-        if (isset($filters['extended'])) {
-            $conditions['extended'] = 1;
-            $this->set('extended', 1);
+        if (isset($filters['include_extended'])) {
+            $conditions['include_extended'] = 1;
+            $this->set('include_extended', 1);
         } else {
-            $this->set('extended', 0);
+            $this->set('include_extended', 0);
         }
-        if (!empty($filters['extending'])) {
-            $conditions['extending'] = 1;
-            $this->set('extending', 1);
+        if (!empty($filters['include_extending'])) {
+            $conditions['include_extending'] = 1;
+            $this->set('include_extending', 1);
         } else {
-            $this->set('extending', 0);
+            $this->set('include_extending', 0);
         }
         if (!empty($filters['overrideLimit'])) {
             $conditions['overrideLimit'] = 1;
@@ -1357,7 +1399,7 @@ class EventsController extends AppController
         }
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
-        $this->set('includeOrgColumn', (isset($conditions['extended']) || isset($conditions['extending']) || $containsProposals));
+        $this->set('includeOrgColumn', (isset($conditions['include_extended']) || isset($conditions['include_extending']) || $containsProposals));
         $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
         $this->set('deleted', isset($filters['deleted']) && $filters['deleted'] != 0);
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
@@ -1602,7 +1644,7 @@ class EventsController extends AppController
         if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($user));
         }
-        $this->set('includeOrgColumn', $this->viewVars['extended'] || $this->viewVars['extending'] || $containsProposals);
+        $this->set('includeOrgColumn', $this->viewVars['include_extended'] || $this->viewVars['include_extending'] || $containsProposals);
         $this->set('includeSightingdb', !empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable'));
         $this->set('relatedEventCorrelationCount', $relatedEventCorrelationCount);
         $this->set('oldest_timestamp', $oldestTimestamp === PHP_INT_MAX ? false : $oldestTimestamp);
@@ -1733,17 +1775,17 @@ class EventsController extends AppController
                 $conditions['includeCustomGalaxyCluster'] = 1;
             }
         }
-        if (!empty($namedParams['extended']) || !empty($this->request->data['extended'])) {
-            $conditions['extended'] = 1;
-            $this->set('extended', 1);
+        if (!empty($namedParams['include_extended']) || !empty($this->request->data['include_extended'])) {
+            $conditions['include_extended'] = 1;
+            $this->set('include_extended', 1);
         } else {
-            $this->set('extended', 0);
+            $this->set('include_extended', 0);
         }
-        if (!empty($namedParams['extending']) || !empty($this->request->data['extending'])) {
-            $conditions['extending'] = 1;
-            $this->set('extending', 1);
+        if (!empty($namedParams['include_extending']) || !empty($this->request->data['include_extending'])) {
+            $conditions['include_extending'] = 1;
+            $this->set('include_extending', 1);
         } else {
-            $this->set('extending', 0);
+            $this->set('include_extending', 0);
         }
         $conditions['excludeLocalTags'] = false;
         $conditions['includeWarninglistHits'] = true;
@@ -2180,21 +2222,9 @@ class EventsController extends AppController
                 }
                 // If the distribution is set to sharing group, check if the id provided is really visible to the user, if not throw an error.
                 if ($this->request->data['Event']['distribution'] == 4) {
-                    if ($this->userRole['perm_sync'] && $this->_isRest()) {
-                        if (isset($this->request->data['Event']['SharingGroup'])) {
-                            if (!isset($this->request->data['Event']['SharingGroup']['uuid'])) {
-                                if ($this->Event->SharingGroup->checkIfExists($this->request->data['Event']['SharingGroup']['uuid']) &&
-                                    $this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['SharingGroup']['uuid'])) {
-                                    throw new MethodNotAllowedException(__('Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group).'));
-                                }
-                            }
-                        } elseif (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) {
-                            throw new MethodNotAllowedException(__('Invalid Sharing Group or not authorised.'));
-                        }
-                    } else {
-                        if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) {
-                            throw new MethodNotAllowedException(__('Invalid Sharing Group or not authorised.'));
-                        }
+                    $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data, 'Event');
+                    if ($canSGBeUsed !== true) {
+                        throw new MethodNotAllowedException($canSGBeUsed);
                     }
                 } else {
                     // If the distribution is set to something "traditional", set the SG id to 0.
@@ -4951,7 +4981,7 @@ class EventsController extends AppController
         $dataFiltering = array_key_exists('filtering', $data) ? $data['filtering'] : array();
         $scope = isset($data['scope']) ? $data['scope'] : 'seen';
 
-        $extended = isset($this->params['named']['extended']) ? 1 : 0;
+        $extended = isset($this->params['named']['include_extended']) ? 1 : 0;
 
         $grapher->construct($this->Event, $this->Auth->user(), $dataFiltering, $extended);
         if ($scope == 'seen') {
@@ -4971,7 +5001,7 @@ class EventsController extends AppController
     public function getDistributionGraph($id, $type = 'event')
     {
         $user = $this->_closeSession();
-        $extended = isset($this->params['named']['extended']) ? 1 : 0;
+        $extended = isset($this->params['named']['include_extended']) ? 1 : 0;
         $json = $this->__genDistributionGraph($id, $type, $extended, $user);
         return $this->RestResponse->viewData($json, 'json');
     }
@@ -4987,7 +5017,7 @@ class EventsController extends AppController
         $grapher = new EventGraphTool();
         $data = $this->request->is('post') ? $this->request->data : array();
 
-        $extended = isset($this->params['named']['extended']) ? 1 : 0;
+        $extended = isset($this->params['named']['include_extended']) ? 1 : 0;
 
         $grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
         $json = $grapher->get_references($id);
@@ -5011,7 +5041,7 @@ class EventsController extends AppController
         $grapher = new EventGraphTool();
         $data = $this->request->is('post') ? $this->request->data : array();
 
-        $extended = isset($this->params['named']['extended']) ? 1 : 0;
+        $extended = isset($this->params['named']['include_extended']) ? 1 : 0;
 
         $grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
         $json = $grapher->get_tags($id);
@@ -5035,7 +5065,7 @@ class EventsController extends AppController
         $grapher = new EventGraphTool();
         $data = $this->request->is('post') ? $this->request->data : array();
 
-        $extended = isset($this->params['named']['extended']) ? 1 : 0;
+        $extended = isset($this->params['named']['include_extended']) ? 1 : 0;
 
         $grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
         if (!array_key_exists('keyType', $data)) {
@@ -5139,7 +5169,7 @@ class EventsController extends AppController
         }
 
         if ($scope !== 'tag_collection') {
-            $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'metadata' => true, 'extended' => $extended));
+            $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'metadata' => true, 'include_extended' => $extended));
             if (empty($event)) {
                 throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
             }
@@ -5222,7 +5252,7 @@ class EventsController extends AppController
         $colours = $gradientTool->createGradientFromValues($scores);
         $this->set('galaxy_id', $galaxy_id);
         $this->set('eventId', $eventId);
-        $this->set('extended', $extended);
+        $this->set('include_extended', $extended);
         $this->set('target_type', $scope);
         $this->set('columnOrders', $killChainOrders);
         $this->set('tabs', $tabs);
@@ -5951,7 +5981,7 @@ class EventsController extends AppController
             $results = $this->Event->runWorkflow($id, $workflow_ids);
             $succesMessage = __('Successfully ran %s Workflows on Event %s', count($workflow_ids), h($id));
             $errorMessage = __('Error(s) while running Workflow(s): ') . implode(', ', $results['error_messages']);
-            if ($this->_isRest()) {
+            if ($this->_isRest() || $this->request->is('ajax')) {
                 return $this->RestResponse->saveSuccessResponse('Events', 'runWorkflow', $id, $this->response->type(), $results['success_count'] > 0 ? $succesMessage : $errorMessage);
             } else {
                 if ($results['success_count'] > 0) {
@@ -5966,7 +5996,7 @@ class EventsController extends AppController
             $workflows = $this->Workflow->fetchAdHocWorkflows(true);
             $workflows = $this->Workflow->attachTriggerParamsToWorkflow($workflows);
             $allowedWorkflows = array_filter($workflows, function($workflow) {
-                return $workflow['trigger_scope'] == 'passed_event_ids';
+                return $workflow['trigger_scope'] == 'passed_event_ids' && !empty($workflow['Workflow']['enabled']);
             });
             $this->layout = false;
             $this->set('workflows', $allowedWorkflows);

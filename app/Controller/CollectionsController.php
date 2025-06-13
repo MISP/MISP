@@ -23,12 +23,23 @@ class CollectionsController extends AppController
     ];
     
     public function add()
-    {   
+    {
         $this->Collection->current_user = $this->Auth->user();
+        $currentUser = $this->Auth->user();
         $params = [];
+        $this->loadModel('Event');
         if ($this->request->is('post')) {
             $data = $this->request->data;
             $params = [
+                'beforeSave' => function (array $collection) use ($currentUser) {
+                    if (isset($collection['Collection']['distribution']) && $collection['Collection']['distribution'] == 4) {
+                        $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($currentUser, $this->_isRest(), $collection, 'Collection');
+                        if ($canSGBeUsed !== true) {
+                            throw new MethodNotAllowedException($canSGBeUsed);
+                        }
+                    }
+                    return $collection;
+                },
                 'afterSave' => function (array $collection) use ($data) {
                     $this->Collection->CollectionElement->captureElements($collection);
                     return $collection;
@@ -40,7 +51,6 @@ class CollectionsController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('menuData', array('menuList' => 'collections', 'menuItem' => 'add'));
-        $this->loadModel('Event');
         $dropdownData = [
             'types' => array_combine($this->valid_types, $this->valid_types),
             'distributionLevels' => $this->Event->distributionLevels,
@@ -53,6 +63,7 @@ class CollectionsController extends AppController
 
     public function edit($id)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
         $this->Collection->current_user = $this->Auth->user();
         if (!$this->Collection->mayModify($this->Auth->user('id'), $id)) {
             throw new MethodNotAllowedException(__('Invalid Collection or insuficient privileges'));
@@ -75,6 +86,12 @@ class CollectionsController extends AppController
                 $data['Collection']['modified'] <= $oldCollection['Collection']['modified']
             ) {
                 throw new ForbiddenException(__('Collection received older or same as local version.'));
+            }
+            if (isset($data['Collection']['distribution']) && $data['Collection']['distribution'] == 4) {
+                $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $data, 'Collection');
+                if ($canSGBeUsed !== true) {
+                    throw new MethodNotAllowedException($canSGBeUsed);
+                }
             }
             $params = [
                 'afterSave' => function (array &$collection) use ($data) {
@@ -101,6 +118,7 @@ class CollectionsController extends AppController
 
     public function delete($id)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
         if (!$this->Collection->mayModify($this->Auth->user('id'), $id)) {
             throw new MethodNotAllowedException(__('Invalid Collection or insuficient privileges'));
         }
@@ -112,6 +130,7 @@ class CollectionsController extends AppController
 
     public function view($id)
     {
+        $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
         $this->set('mayModify', $this->Collection->mayModify($this->Auth->user('id'), $id));
         if (!$this->Collection->mayView($this->Auth->user('id'), $id)) {
             throw new MethodNotAllowedException(__('Invalid Collection or insuficient privileges'));

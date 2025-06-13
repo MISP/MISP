@@ -363,4 +363,16 @@ class ObjectReference extends AppModel
         ]);
         return !empty($targetEventFromExtension) && $targetEventFromExtension['Event']['id'] == $targetEventID;
     }
+
+    public function countForObject(): array
+    {
+        $this->virtualFields['reference_count'] = 'COUNT(ObjectReference.id)';
+        $counts = $this->find('list', [
+            'recursive' => -1,
+            'fields' => ['ObjectReference.relationship_type', 'reference_count'],
+            'group' => ['ObjectReference.relationship_type'],
+        ]);
+        unset($this->virtualFields['reference_count']);
+        return $counts;
+    }
 }

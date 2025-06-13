@@ -72,7 +72,6 @@ jobs:
           composer config --no-plugins allow-plugins.composer/installers true
           composer install --no-progress
           popd
-          cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
 
           # Set perms
           sudo chown -R $USER:www-data `pwd`
@@ -86,16 +85,11 @@ jobs:
           sudo chmod -R g+ws `pwd`/app/files/scripts/tmp
           sudo chown -R $USER:www-data `pwd`
 
-          # Resque perms
-          sudo chown -R $USER:www-data `pwd`/app/Plugin/CakeResque/tmp
-          sudo chmod -R 755 `pwd`/app/Plugin/CakeResque/tmp
-
           # Fill database with basic MISP schema
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "SET GLOBAL sql_mode = 'STRICT_ALL_TABLES';"
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant usage on *.* to misp@'%' identified by 'blah';"
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant all privileges on misp.* to misp@'%';"
           mysql -h 127.0.0.1 --port 3306 -u misp -pblah misp < INSTALL/MYSQL.sql
-
 
           # configure apache virtual hosts
           sudo mkdir -p /etc/apache2/sites-available
@@ -115,6 +109,10 @@ jobs:
           sudo cp app/Config/config.default.php app/Config/config.php
           sudo cp build/email.php app/Config/email.php
 
+          # Enable ShibbAuth plugin for tests
+          sudo chmod 666 app/Config/bootstrap.php
+          echo "CakePlugin::load('ShibbAuth');" >> app/Config/bootstrap.php
+
           # GPG setup
           sudo mkdir `pwd`/.gnupg
           # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
@@ -127,7 +125,6 @@ jobs:
           sudo chown -R www-data:www-data `pwd`/.gnupg
           sudo chmod -R 700 `pwd`/.gnupg
           sudo usermod -a -G www-data $USER
-          sudo chmod -R 777 `pwd`/app/Plugin/CakeResque/tmp/
           # Ensure the perms of config files
           sudo chown -R $USER:www-data `pwd`/app/Config
           sudo chmod -R 777 `pwd`/app/Config
@@ -185,20 +182,36 @@ jobs:
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" 1
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_host" "127.0.0.1"
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_port" 6379
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_password" ""
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_database" 1
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_namespace" "background_jobs"
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_host" "127.0.0.1"
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_port" 9001
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_user" "supervisor"
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_password" "supervisor"
+          app/Console/cake Admin setSetting "SimpleBackgroundJobs.max_job_history_ttl" 86400
 
       - name: Check if Redis is ready
         run: app/Console/cake Admin redisReady
+
+      - name: Start workers
+        run: |
+          sudo pip install supervisor
+          sudo cp build/supervisor/supervisord.conf /etc/supervisord.conf
+          sudo mkdir -p /etc/supervisor/conf.d
+          sudo cp build/supervisor/50-workers.conf /etc/supervisor/conf.d/50-workers.conf
+          sudo python3 -m supervisor.supervisord -c /etc/supervisord.conf
+          sudo python3 -m supervisor.supervisorctl -c /etc/supervisord.conf start all
+          sudo python3 -m supervisor.supervisorctl -c /etc/supervisord.conf status
 
       - name: Update JSON
         run: app/Console/cake Admin updateJSON
 
       - name: Turn MISP live
         run: app/Console/cake Admin live 1
-
-      - name: Start workers
-        run: |
-          sudo chmod +x app/Console/worker/start.sh
-          sudo -u www-data 'app/Console/worker/start.sh'
 
       - name: Test if apache is working
         run: |
@@ -276,3 +289,8 @@ jobs:
         if: ${{ always() }}
         run: |
           ./tests/logs_tests.sh
+
+      - name: error.log
+        if: ${{ always() }}
+        run: |
+          cat `pwd`/app/tmp/logs/error.log

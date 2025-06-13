@@ -65,7 +65,7 @@ echo sprintf(
     sprintf(
         '%s/userLoginProfiles/index/%s',
         $baseurl,
-        $user_id
+        h($user_id)
     ),
     __('Review user login profiles')
 );

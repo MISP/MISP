@@ -116,7 +116,7 @@ class DistributionGraphTool
             'noSightings' => true,
             'excludeGalaxy' => true,
             'includeEventCorrelations' => false,
-            'extended' => $this->__extended_view,
+            'include_extended' => $this->__extended_view,
         ));
         $event = array();
         if (empty($fullevent)) {

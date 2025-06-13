@@ -470,6 +470,40 @@ class SharingGroup extends AppModel
     }
 
     /**
+     * Returns true if the SG exists and the user is allowed to see it, from the parent element
+     * @param array $user
+     * @param array $element Parent element containg the SG data
+     * @return bool|str
+     * @throws MethodNotAllowedException
+     */
+    public function checkIfCanBeUsed($user, $isRest, $element, $modelKey=false)
+    {
+        $sgs = $this->fetchAllAuthorised($user, 'name', 1);
+        $object = !empty($modelKey) ? $element[$modelKey] : $element;
+        if ($user['Role']['perm_sync'] && $isRest) {
+            if (isset($object['SharingGroup'])) {
+                if (!isset($object['SharingGroup']['uuid'])) {
+                    return __('Invalid Sharing Group or not authorised.');
+                } else {
+                    if (
+                        $this->checkIfExists($object['SharingGroup']['uuid']) &&
+                        !$this->checkIfAuthorised($user, $object['SharingGroup']['uuid'])
+                    ) {
+                        return __('Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group).');
+                    }
+                }
+            } else if (!isset($sgs[$object['sharing_group_id']])) {
+                return __('Invalid Sharing Group or not authorised.');
+            }
+        } else {
+            if (!isset($sgs[$object['sharing_group_id']])) {
+                return __('Invalid Sharing Group or not authorised.');
+            }
+        }
+        return true;
+    }
+
+    /**
      * Returns sharing groups IDs that the user is allowed to see it
      * @param array $user
      * @param bool $useCache

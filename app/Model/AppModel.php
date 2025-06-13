@@ -93,7 +93,7 @@ class AppModel extends Model
         117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
-        135 => true
+        135 => false, 136 => true, 137 => false, 138 => false, 139 => false,
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -281,6 +281,9 @@ class AppModel extends Model
                 break;
             case 120:
                 $dbUpdateSuccess = $this->moveImages();
+                break;
+            case 139:
+                $dbUpdateSuccess = $this->fixUpdatedGalaxyID();
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -2279,6 +2282,16 @@ class AppModel extends Model
                 break;
             case 135:
                 $sqlArray[] = "ALTER TABLE `taxii_servers` ADD `skip_proxy` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 136:
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_sync_internal` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_sync_authoritative` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 137:
+                $sqlArray[] = "ALTER TABLE `object_relationships` ADD `highlighted` tinyint(1) DEFAULT 0;";
+                break;
+            case 138:
+                $sqlArray[] = "ALTER TABLE `events` MODIFY info text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -4394,7 +4407,7 @@ class AppModel extends Model
         return false;
     }
 
-    private function checkParam($param)
+    protected function checkParam($param)
     {
         return preg_match('/^[\w\_\-\. ]+$/', $param);
     }
@@ -4422,6 +4435,89 @@ class AppModel extends Model
         ]);
         if ($result) {
             $oldCustomDir->delete();
+        }
+        return true;
+    }
+
+    public function getSearchParamsByToken($filters)
+    {
+        $token = $filters['search_token'];
+        $redis = $this->setupRedis();
+        if (!$redis) {
+            throw new Exception('Could not connect to Redis server');
+        }
+        $path = 'misp:search_tokens:' . $token;
+        $params = $redis->get($path);
+        $params = json_decode($params, true);
+        $params['search_token'] = $token;
+        $toUnset = ['page', 'limit', 'sort', 'direction'];
+        foreach ($toUnset as $unset) {
+            if (isset($params[$unset])) {
+                unset($params[$unset]);
+            }
+        }
+        return array_merge($filters, $params);
+    }
+
+    public function setSearchParamsByToken($params)
+    {
+        $redis = $this->setupRedis();
+        if (!$redis) {
+            throw new Exception('Could not connect to Redis server');
+        }
+        $token = bin2hex(Security::randomBytes(32));
+        $path = 'misp:search_tokens:' . $token;
+        $params = json_encode($params);
+        $redis->set($path, $params);
+        $redis->expire($path, 3600);
+        return $token;
+    }
+    
+    public function fixUpdatedGalaxyID()
+    {
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $this->AuditLog = ClassRegistry::init('AuditLog');
+        $allUpdatedClusters = $this->AuditLog->find('all', [
+            'conditions' => [
+                'model' => 'GalaxyCluster',
+                'user_id !=' => 0, // Ignore clusters from misp-galaxy
+                'action' => ['edit',],
+            ],
+            'recursive' => -1,
+        ]);
+        $clusterIDsThatGotTheirGalaxyIDChanged = [];
+        foreach ($allUpdatedClusters as $cluster) {
+            if (!empty($cluster['AuditLog']['change']['galaxy_id'])) {
+                $oldID = $cluster['AuditLog']['change']['galaxy_id'][0];
+                $newID = $cluster['AuditLog']['change']['galaxy_id'][1];
+                $clusterIDsThatGotTheirGalaxyIDChanged[$cluster['AuditLog']['model_id']] = [$oldID, $newID];
+            }
+        }
+        $clustersThatGotTheirGalaxyIDChanged = $this->GalaxyCluster->find('all', [
+            'conditions' => [
+                'id' => array_keys($clusterIDsThatGotTheirGalaxyIDChanged),
+            ],
+            'recursive' => -1,
+        ]);
+        $toUpdate = [];
+        foreach ($clustersThatGotTheirGalaxyIDChanged as $cluster) {
+            $oldID = $clusterIDsThatGotTheirGalaxyIDChanged[$cluster['GalaxyCluster']['id']][0];
+            $newID = $clusterIDsThatGotTheirGalaxyIDChanged[$cluster['GalaxyCluster']['id']][1];
+            if ($oldID !== $newID) {
+                $toUpdate[] = [
+                    'id' => $cluster['GalaxyCluster']['id'],
+                    'galaxy_id' => $oldID,
+                ];
+                $this->GalaxyCluster->saveMany($toUpdate);
+            }
+        }
+
+        $options = [
+            'validate' => false,
+            'callbacks' => false,
+        ];
+        foreach (array_chunk($toUpdate, 1000) as $chunk) {
+            $this->GalaxyCluster->saveMany($chunk, $options);
         }
         return true;
     }

@@ -301,7 +301,7 @@ class Server extends AppModel
      * @param array $pullRules
      * @return bool Return true if event was emptied by pull rules
      */
-    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules)
+    private function __updatePulledEventBeforeInsert(array &$event, array $server, array $user, array $pullRules, $remoteUser = false)
     {
         $pullRulesEmptiedEvent = false;
         // we have an Event array
@@ -311,7 +311,7 @@ class Server extends AppModel
             $event['Event']['distribution'] = '1';
         }
         // Distribution
-        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || empty($remoteUser['Role']['perm_sync_internal'])) {
             switch ($event['Event']['distribution']) {
                 case 1:
                     // if community only, downgrade to org only after pull
@@ -572,7 +572,8 @@ class Server extends AppModel
             return false;
         }
 
-        $pullRulesEmptiedEvent = $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules());
+        $remoteUser = $serverSync->cachedUserInfo();
+        $pullRulesEmptiedEvent = $this->__updatePulledEventBeforeInsert($event, $serverSync->server(), $user, $serverSync->pullRules(), $remoteUser);
 
         if (!$this->__checkIfEventSaveAble($event)) {
             if (!$pullRulesEmptiedEvent) { // The event is empty because of the filtering rule. This is not considered a failure
@@ -2969,7 +2970,7 @@ class Server extends AppModel
         if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) {
             $response = "Sync to Server ('{$server['Server']['id']}') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
         }
-        if (empty($response) && $remoteVersion[2] < 111) {
+        if (empty($response) && $remoteVersion[1] <= 4 && $remoteVersion[2] < 111) {
             $response = "Sync to Server ('{$server['Server']['id']}') initiated, but version 2.4.111 is required in order to be able to pull proposals from the remote side.";
         }
 
@@ -3648,7 +3649,10 @@ class Server extends AppModel
 
     public function stixDiagnostics(&$diagnostic_errors)
     {
-        $expected = array('stix' => '>1.2.0.11', 'cybox' => '>2.1.0.21', 'mixbox' => '>1.0.5', 'maec' => '>4.1.0.17', 'stix2' => '>3.0.0', 'pymisp' => '>2.4.120');
+        $expected = array(
+            'stix' => '>=1.2.0.11', 'cybox' => '>=2.1.0.21', 'mixbox' => '>=1.0.5', 'maec' => '>=4.1.0.17',
+            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2025.2.14'
+        );
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'stixtest.py';
         try {
@@ -3674,7 +3678,8 @@ class Server extends AppModel
                 'mixbox' => array('expected' => $expected['mixbox']),
                 'maec' => array('expected' => $expected['maec']),
                 'stix2' => array('expected' => $expected['stix2']),
-                'pymisp' => array('expected' => $expected['pymisp'])
+                'pymisp' => array('expected' => $expected['pymisp']),
+                'misp-stix' => array('expected' => $expected['misp-stix'])
             );
         }
         $scriptResult['operational'] = $scriptResult['success'];
@@ -3690,7 +3695,7 @@ class Server extends AppModel
             $result[$package]['version'] = $scriptResult[$package];
             $result[$package]['expected'] = $expectedVersion;
             if ($expectedVersion[0] === '>') {
-                $result[$package]['status'] = version_compare($result[$package]['version'], trim($expectedVersion, '>')) >= 0 ? 1 : 0;
+                $result[$package]['status'] = version_compare($result[$package]['version'], trim($expectedVersion, '>=')) >= 0 ? 1 : 0;
             } else {
                 $result[$package]['status'] = $result[$package]['version'] === $expectedVersion ? 1 : 0;
             }
@@ -4505,6 +4510,7 @@ class Server extends AppModel
             'app/files/scripts/misp-opendata',
             'app/files/scripts/python-maec',
             'app/files/scripts/python-stix',
+            'app/files/scripts/misp-stix'
         );
         return in_array($submodule, $accepted_submodules_names, true);
     }
@@ -5047,6 +5053,8 @@ class Server extends AppModel
                 __('User') => $user['User']['email'],
                 __('Role name') => $user['Role']['name'] ?? __('Unknown, outdated instance'),
                 __('Sync flag') => isset($user['Role']['perm_sync']) ? ($user['Role']['perm_sync'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
+                __('Sync Internal flag') => isset($user['Role']['perm_sync_internal']) ? ($user['Role']['perm_sync_internal'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
+                __('Sync Authoritative flag') => isset($user['Role']['perm_sync_authoritative']) ? ($user['Role']['perm_sync_authoritative'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
             ];
             if ($response->getHeader('X-Auth-Key-Expiration')) {
                 $date = new DateTime($response->getHeader('X-Auth-Key-Expiration'));
@@ -5643,7 +5651,7 @@ class Server extends AppModel
                 ),
                 'download_attachments_on_load' => array(
                     'level' => 2,
-                    'description' => __('Always download attachments when loaded by a user in a browser'),
+                    'description' => __('Always download attachments when loaded by a user in a browser. It is highly recommended to leave this setting on true, as otherwise opening an attachment can lead to the execution of malicious code via XSS.'),
                     'value' => true,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -5813,6 +5821,19 @@ class Server extends AppModel
                 'default_analyst_data_distribution' => array(
                     'level' => 1,
                     'description' => __('The default distribution setting for analyst-data (notes, opinions, ...) (0-3)'),
+                    'value' => '1',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'options' => array(
+                        '0' => __('Your organisation only'),
+                        '1' => __('This community only'),
+                        '2' => __('Connected communities'),
+                        '3' => __('All communities'),
+                    ),
+                ),
+                'default_galaxy_distribution' => array(
+                    'level' => 1,
+                    'description' => __('The default distribution setting for Galaxies and Clusters (0-3)'),
                     'value' => '1',
                     'test' => 'testForEmpty',
                     'type' => 'string',
@@ -6684,6 +6705,7 @@ class Server extends AppModel
                     'value' => '/var/www/MISP/.smime/email@address.com.pem',
                     'test' => 'testForEmpty',
                     'type' => 'string',
+                    'cli_only' => 1,
                 ),
                 'key_sign' => array(
                     'level' => 2,
@@ -6691,6 +6713,7 @@ class Server extends AppModel
                     'value' => '/var/www/MISP/.smime/email@address.com.key',
                     'test' => 'testForEmpty',
                     'type' => 'string',
+                    'cli_only' => 1,
                 ),
                 'password' => array(
                     'level' => 2,
@@ -6924,7 +6947,7 @@ class Server extends AppModel
                 ],
                 'otp_required' => array(
                     'level' => 2,
-                    'description' => __('Require authentication with OTP. Users that do not have (T/H)OTP configured will be forced to create a token at first login. You cannot use it in combination with external authentication plugins.'),
+                    'description' => __('Require authentication with OTP. Users that do not have (T/H)OTP configured will be forced to create a token at first login.'),
                     'value' => false,
                     'test' => 'testBool',
                     'beforeHook' => 'otpBeforeHook',
@@ -7751,14 +7774,16 @@ class Server extends AppModel
                     'description' => __('AWS key to use when uploading samples (WARNING: It\' highly recommended that you use EC2 IAM roles if at all possible)'),
                     'value' => '',
                     'test' => 'testForEmpty',
-                    'type' => 'string'
+                    'type' => 'string',
+                    'redacted' => true
                 ),
                 'S3_aws_secret_key' => array(
                     'level' => 2,
                     'description' => __('AWS secret key to use when uploading samples'),
                     'value' => '',
                     'test' => 'testForEmpty',
-                    'type' => 'string'
+                    'type' => 'string',
+                    'redacted' => true
                 ),
                 'Sightings_policy' => array(
                     'level' => 1,

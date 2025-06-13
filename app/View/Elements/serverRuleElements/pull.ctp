@@ -119,7 +119,7 @@ echo $this->element('genericElements/assetLoader', array(
     var coreMirrorHints = <?= json_encode(!empty($coreMirrorHints) ? $coreMirrorHints : []) ?>;
     var cm;
     $(function() {
-        var serverID = "<?= isset($id) ? $id : '' ?>"
+        var serverID = "<?= isset($id) ? h($id) : '' ?>"
         <?php if ($context == 'servers') : ?>
             addPullFilteringRulesToPicker()
         <?php endif; ?>

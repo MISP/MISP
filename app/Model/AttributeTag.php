@@ -228,17 +228,15 @@ class AttributeTag extends AppModel
     }
 
     // This function help mirroring the tags at attribute level. It will delete tags that are not present on the remote attribute
-    public function pruneOutdatedAttributeTagsFromSync($newerTags, $originalAttributeTags)
+    public function pruneOutdatedAttributeTagsFromSync($newerTags, $originalGlobalAttributeTags)
     {
         $newerTagsName = array();
         foreach ($newerTags as $tag) {
             $newerTagsName[] = strtolower($tag['name']);
         }
-        foreach ($originalAttributeTags as $k => $attributeTag) {
-            if (!$attributeTag['AttributeTag']['local']) { //
-                if (!in_array(strtolower($attributeTag['Tag']['name']), $newerTagsName)) {
-                    $this->softDelete($attributeTag['AttributeTag']['id']);
-                }
+        foreach ($originalGlobalAttributeTags as $k => $attributeTag) {
+            if (!in_array(strtolower($attributeTag['Tag']['name']), $newerTagsName)) {
+                $this->softDelete($attributeTag['AttributeTag']['id']);
             }
         }
     }

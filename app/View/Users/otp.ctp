@@ -19,7 +19,8 @@ echo $this->element('/genericElements/Form/genericForm', array(
         "label" => $label,
         "type" => "text",
         "placeholder" => __("Enter your OTP here"),
-        "autofocus" => 1
+        "autofocus" => 1,
+        "autocomplete" => "off",
       )
     ),
     "submit" => array (
