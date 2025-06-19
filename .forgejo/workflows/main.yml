@@ -297,7 +297,7 @@ jobs:
           pip install --no-cache-dir supervisor
           cp build/supervisor/supervisord.conf /etc/supervisord.conf
           mkdir -p /etc/supervisor/conf.d
-          cp build/supervisor/50-workers.conf /etc/supervisor/conf.d/50-workers.conf
+          cp build/supervisor/50-workers-forgejo.conf /etc/supervisor/conf.d/50-workers.conf
 
           python3 -m supervisor.supervisord -c /etc/supervisord.conf
           sleep 2  # Brief wait before starting services
