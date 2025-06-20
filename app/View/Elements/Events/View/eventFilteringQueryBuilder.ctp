@@ -1,10 +1,14 @@
 <?php
 $warninglistsValues = [];
-foreach ($event['warnings']['false_positive'] as $id => $name) {
-    $warninglistsValues[] = [(int)$id => h($name)];
+if (!empty($event['warnings']['false_positive'])) {
+    foreach ($event['warnings']['false_positive'] as $id => $name) {
+        $warninglistsValues[] = [(int)$id => h($name)];
+    }
 }
-foreach ($event['warnings']['known'] as $id => $name) {
-    $warninglistsValues[] = [(int)$id => h($name)];
+if (!empty($event['warnings']['known'])) {
+    foreach ($event['warnings']['known'] as $id => $name) {
+        $warninglistsValues[] = [(int)$id => h($name)];
+    }
 }
 $warninglistsValues = json_encode($warninglistsValues, JSON_UNESCAPED_UNICODE);
 

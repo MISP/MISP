@@ -1,5 +1,4 @@
 <?php
-$edit = $this->request->params['action'] === 'edit' ? true : false;
 $fields = [
     [
         'field' => 'email',
@@ -40,6 +39,7 @@ $fields = [
         'class' => 'span3 log-search-field',
         'label' => __('Action'),
         'options' => $dropdownData['actions'],
+        'required' => false,
         'type' => 'dropdown',
         'data-field' => 'action'
     ],
@@ -92,10 +92,13 @@ echo $this->element('genericElements/Form/genericForm', [
         'title' => __('Search Logs'),
         'fields' => $fields,
         'submit' => [
-            'ajaxSubmit' => 'submitLogSearch(); return false;',
-            'submitFunction' => 'submitLogSearch(); return false;'
+            'action' => 'index',
+            'ajaxSubmit' => 'submitGenericFormInPlace();'
         ]
-    ]
+    ],
+    'formOptions' => [
+        'url' => $baseurl . '/logs/index'
+    ],
 ]);
 
 if (!$ajax) {

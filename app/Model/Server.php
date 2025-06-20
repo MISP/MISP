@@ -498,7 +498,7 @@ class Server extends AppModel
         $passAlong = $server['Server']['id'];
         if (!$existingEvent) {
             // add data for newly imported events
-            if (isset($event['Event']['protected']) && $event['Event']['protected']) {
+            if (!$server['Server']['internal'] && isset($event['Event']['protected']) && $event['Event']['protected']) {
                 if (!$eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $event)) {
                     $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                     return false;
@@ -518,7 +518,7 @@ class Server extends AppModel
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
                 $fails[$eventId] = __('Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side.');
             } else {
-                if ($existingEvent['Event']['protected']) {
+                if (!$server['Server']['internal'] && $existingEvent['Event']['protected']) {
                     if (!$eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $existingEvent)) {
                         $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                         return false;
@@ -5311,6 +5311,14 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'object_fetch_hard_limit'=> [
+                    'level' => 1,
+                    'description' => __('This value controls the the maximum number of objects that can be fetched in one shot via /objects/restSearch. If a query would exceed the given limit, it will iterate internally to build the result-set, so it will only effect the internals, however, it can resolve object restSearch failures due to high memory allocation to php.ini. Setting this to 0 will disable the cap altogether and revert to the old behaviour. Defaults to 0 (disabled).'),
+                    'value' => 0,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
                 'curl_request_timeout' => [
                     'level' => 1,
                     'description' => __('Control the default timeout in seconds of curl HTTP requests issued by MISP (during synchronisation, feed fetching, etc.)'),
@@ -6456,6 +6464,13 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'default_restsearch_limit' => array(
+                    'level' => 1,
+                    'description' => 'Default number of matching result for restSearch API if none is provided when adding a new role. Leave empty(0) to set as unlimited.',
+                    'value' => 0,
+                    'errorMessage' => '',
+                    'null' => true
+                ),
                 'attribute_filters_block_only' => array(
                     'level' => 1,
                     'description' => __('This is a performance tweak to change the behaviour of restSearch to use attribute filters solely for blocking. This means that a lookup on the event scope with for example the type field set will be ignored unless it\'s used to strip unwanted attributes from the results. If left disabled, passing [ip-src, ip-dst] for example will return any event with at least one ip-src or ip-dst attribute. This is generally not considered to be too useful and is a heavy burden on the database.'),
@@ -6705,6 +6720,7 @@ class Server extends AppModel
                     'value' => '/var/www/MISP/.smime/email@address.com.pem',
                     'test' => 'testForEmpty',
                     'type' => 'string',
+                    'cli_only' => 1,
                 ),
                 'key_sign' => array(
                     'level' => 2,
@@ -6712,6 +6728,7 @@ class Server extends AppModel
                     'value' => '/var/www/MISP/.smime/email@address.com.key',
                     'test' => 'testForEmpty',
                     'type' => 'string',
+                    'cli_only' => 1,
                 ),
                 'password' => array(
                     'level' => 2,

@@ -40,6 +40,7 @@ class EventReportsController extends AppController
         if ($eventId === false) {
             throw new MethodNotAllowedException(__('No event ID set.'));
         }
+        $eventId = $this->Toolbox->findIdByUuid($this->EventReport->Event, $eventId);
         $event = $this->__canModifyReport($eventId);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['EventReport'])) {
@@ -393,6 +394,7 @@ class EventReportsController extends AppController
         if (!$this->request->is('ajax') && !$this->_isRest()) {
             throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
         }
+        $reportId = $this->Toolbox->findIdByUuid($this->EventReport, $reportId);
         if ($this->request->is('post')) {
             if (!isset($this->data['EventReport'])) {
                 $this->data = ['EventReport' => $this->data];
