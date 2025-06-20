@@ -124,7 +124,6 @@ class AnalystData extends AppModel
         foreach ($results as &$v) {
             $v[$this->alias]['note_type'] = $this->current_type_id;
             $v[$this->alias]['note_type_name'] = $this->current_type;
-
             $v = $this->rearrangeOrganisation($v);
             $v = $this->rearrangeSharingGroup($v, $this->current_user);
 
@@ -261,7 +260,12 @@ class AnalystData extends AppModel
     {
         if (!empty($analystData[$this->alias]['orgc_uuid'])) {
             if (!isset($analystData['Orgc'])) {
-                $orgFound = $this->Orgc->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['orgc_uuid']]]);
+                $orgFound = $this->Orgc->find('first', [
+                    'conditions' => [
+                        'uuid' => $analystData[$this->alias]['orgc_uuid']
+                    ],
+                    'fields' => ['id', 'name', 'uuid']
+                ]);
                 if (!empty($orgFound)) {
                     $analystData[$this->alias]['Orgc'] = $orgFound['Organisation'];
                 }
@@ -272,7 +276,12 @@ class AnalystData extends AppModel
         }
         if (!empty($analystData[$this->alias]['org_uuid'])) {
             if (!isset($analystData['Org'])) {
-                $orgFound = $this->Org->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['org_uuid']]]);
+                $orgFound = $this->Org->find('first', [
+                    'conditions' => [
+                        'uuid' => $analystData[$this->alias]['org_uuid']
+                    ],
+                    'fields' => ['id', 'name', 'uuid']
+                ]);
                 if (!empty($orgFound)) {
                     $analystData[$this->alias]['Org'] = $orgFound['Organisation'];
                 }

@@ -2358,4 +2358,24 @@ class User extends AppModel
         $user = array_merge($user, $temp);
         return ['ip' => $ip, 'User' => $user];
     }
+
+    public function getUserRestLimit($user, $Controller)
+    {
+        if (!empty($user['Role'])){
+            $role = $user['Role'];
+        } else {
+            $Controller->loadModel('Role');
+            $role = $this->Role->find('first', [
+                'conditions' => ['Role.id' => $user['role_id']],
+                'recursive' => -1,
+                'fields' => ['Role.restsearch_limit_result', 'Role.perm_site_admin']
+            ])['Role'];
+        }
+        if (isset($role['restsearch_limit_result'])) {
+            $roleLimit = (int)$role['restsearch_limit_result'];
+        } else {
+            $roleLimit = $role['perm_site_admin'] ? 0 : (int) Configure::read('MISP.default_restsearch_limit');
+        }
+        return $roleLimit;
+    }
 }

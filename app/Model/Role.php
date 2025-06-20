@@ -126,6 +126,13 @@ class Role extends AppModel
         }
         if (empty($this->data['Role']['rate_limit_count'])) {
             $this->data['Role']['rate_limit_count'] = 0;
+        } else {
+            if ($this->data['Role']['rate_limit_count'] < 0) {
+                $this->data['Role']['rate_limit_count'] = 0;
+            }
+        }
+        if (!empty($this->data['Role']['restsearch_limit_result']) && $this->data['Role']['restsearch_limit_result'] < 0) {
+            $this->data['Role']['restsearch_limit_result'] = 0;
         }
         return true;
     }

@@ -33,7 +33,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '175';
+    private $__queryVersion = '176';
     public $pyMispVersion = '2.5.10';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -1027,7 +1027,7 @@ class AppController extends Controller
 
     private function __captureParam($data, $param, $value)
     {
-        if ($this->modelClass->checkParam($param)) {
+        if ($this->{$this->modelClass}->checkParam($param)) {
             $data[$param] = $value;
         }
         return $data;
@@ -1069,10 +1069,7 @@ class AppController extends Controller
                     $temp = $request->data;
                 }
                 if (empty($options['paramArray'])) {
-                    foreach ($options['paramArray'] as $param => $value) {
-                        $data = $this->__captureParam($data, $param, $value);
-                    }
-                    $data = array_merge($data, $temp);
+                    $data = $temp;
                 } else {
                     foreach ($options['paramArray'] as $param) {
                         if (str_ends_with($param, '*')) {
@@ -1456,6 +1453,12 @@ class AppController extends Controller
                 ]);
             }
         }
+
+        $roleLimit = $this->User->getUserRestLimit($this->Auth->user(), $this);
+        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
+            $filters['limit'] = $roleLimit;
+        }
+
         /** @var TmpFileTool $final */
         $skippedElementsCounter = 0;
         $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter);

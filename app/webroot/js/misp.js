@@ -1367,6 +1367,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
     if (!url.startsWith('http')) {
         url = baseurl + url;
     }
+    var formData = new FormData($form[0])
     $.ajax({
         beforeSend: function () {
             if (modal) {
@@ -1384,7 +1385,9 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                 }
             }
         }, 
-        data: $form.serialize(),
+        data: formData,
+        processData: false,
+        contentType: false,
         success: function (data) {
             if (closePopover) {
                 if (modal) {
@@ -2990,7 +2993,9 @@ function moduleResultsSubmit(id) {
                 meta_category: $(this).find('.ObjectMetaCategory').text(),
                 distribution: $(this).find('.ObjectDistribution').val(),
                 sharing_group_id: $(this).find('.ObjectSharingGroup').val(),
-                comment: $(this).find('.ObjectComment').val()
+                comment: $(this).find('.ObjectComment').val(),
+                first_seen: $(this).find('.ObjectFirstSeen').val(),
+                last_seen: $(this).find('.ObjectLastSeen').val(),
             }
             if (!temp['import_object']) {
                 return true;
@@ -3043,7 +3048,9 @@ function moduleResultsSubmit(id) {
                         disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
                         comment: $(this).find('.AttributeComment').val(),
                         distribution: $(this).find('.AttributeDistribution').val(),
-                        sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                        sharing_group_id: $(this).find('.AttributeSharingGroup').val(),
+                        first_seen: $(this).find('.AttributeFirstSeen').val(),
+                        last_seen: $(this).find('.AttributeLastSeen').val(),
                     }
                     if (!attribute['import_attribute']) {
                         return true;
@@ -3103,7 +3110,9 @@ function moduleResultsSubmit(id) {
                 disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
                 comment: $(this).find('.AttributeComment').val(),
                 distribution: $(this).find('.AttributeDistribution').val(),
-                sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                sharing_group_id: $(this).find('.AttributeSharingGroup').val(),
+                first_seen: $(this).find('.AttributeFirstSeen').val(),
+                last_seen: $(this).find('.AttributeLastSeen').val(),
             }
             if (!temp['import_attribute']) {
                 return true;
@@ -5512,6 +5521,15 @@ function checkRoleEnforceRateLimit() {
         $('#rateLimitCountContainer').hide();
     }
 }
+
+function toggleIsRestsearchLimitedField() {
+    if ($('#RoleIsRestsearchLimited').is(':checked')) {
+        $('#restsearchLimitValueContainer').show();
+    } else {
+        $('#restsearchLimitValueContainer').hide();
+    }
+}
+
 
 function queryDeprecatedEndpointUsage() {
     $.ajax({

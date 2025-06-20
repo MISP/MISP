@@ -241,10 +241,12 @@ class AnalystDataController extends AppController
     public function index($type = 'Note')
     {
         $this->__typeSelector($type);
-
+        if (isset($this->request->data[$type])) {
+            $this->request->data = $this->request->data[$type];
+        }
         $conditions = $this->AnalystData->buildConditions($this->Auth->user());
         $params = [
-            'filters' => ['uuid', 'target_object'],
+            'filters' => array_merge(['uuid', 'target_object'], $this->AnalystData::SEARCHABLE_FIELDS),
             'quickFilters' => $this->AnalystData::SEARCHABLE_FIELDS,
             'conditions' => $conditions,
             'afterFind' => function(array $data) {

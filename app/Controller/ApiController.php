@@ -187,7 +187,7 @@ class ApiController extends AppController
             if ($python !== false) {
                 $python = $this->__generatePythonScript($request, $url);
             }
-            $response = $HttpSocket->get($url, false, array('header' => $request['header']));
+            $response = $HttpSocket->get($url, [], array('header' => $request['header']));
         } elseif (
             !empty($request['method']) &&
             $request['method'] === 'POST' &&

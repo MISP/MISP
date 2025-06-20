@@ -7,6 +7,14 @@ App::uses('Mysql', 'Model/Datasource/Database');
  */
 class MysqlExtended extends Mysql
 {
+    public $supports = [
+        'indexHints' => true,
+        'ignoreIndexHints' => true,
+        'reverseJoin' => true,
+        'straightJoin' => true,
+        'insertMulti' => true,
+    ];
+
     const PDO_MAP = [
         'integer' => PDO::PARAM_INT,
         'float' => PDO::PARAM_STR,
@@ -16,6 +24,38 @@ class MysqlExtended extends Mysql
     ];
 
     /**
+     * Builds and generates a JOIN condition from an array. Handles final clean-up before conversion.
+     *
+     * @param array $join An array defining a JOIN condition in a query.
+     * @return string An SQL JOIN condition to be used in a query.
+     * @see DboSource::renderJoinStatement()
+     * @see DboSource::buildStatement()
+     */
+    public function buildJoinStatement($join, $reversed_alias = null, $reversed_table = null) {
+        $data = array_merge(array(
+            'type' => null,
+            'alias' => null,
+            'table' => 'join_table',
+            'conditions' => '',
+        ), $join);
+
+        if (!empty($reversed_alias)) {
+            $data['alias'] = $this->name($reversed_alias);
+        } else if (!empty($data['alias'])) {
+            $data['alias'] = $this->alias . $this->name($data['alias']);
+        }
+        if (!empty($data['conditions'])) {
+            $data['conditions'] = trim($this->conditions($data['conditions'], true, false));
+        }
+        if (!empty($reversed_table)) {
+            $data['table'] = $reversed_table;
+		} else if (!empty($data['table']) && (!is_string($data['table']) || strpos($data['table'], '(') !== 0)) {
+			$data['table'] = $this->fullTableName($data['table']);
+		}
+		return $this->renderJoinStatement($data);
+	}
+
+    /**
      * Output SHA1 as binary, that is faster and uses less memory
      * @param string $value
      * @return string
@@ -23,6 +63,26 @@ class MysqlExtended extends Mysql
     public function cacheMethodHasher($value)
     {
         return sha1($value, true);
+    }
+
+        /**
+     * Renders a final SQL JOIN statement
+     *
+     * @param array $data The data to generate a join statement for.
+     * @return string
+     */
+    public function renderJoinStatement($data) {
+        //Fixed deprecation notice in PHP8.1 - fallback to empty string
+        if (!empty($data['type']) && strtoupper($data['type']) === 'STRAIGHT') {
+            return "{$data['type']}_JOIN {$data['table']} {$data['alias']} ON ({$data['conditions']})";
+        }
+        if (!empty($data['type']) && strtoupper($data['type']) === 'STRAIGHT_REVERSE') {
+            return "STRAIGHT_JOIN {$data['table']} AS {$data['alias']} ON ({$data['conditions']})";
+        }
+        if (strtoupper($data['type'] ?? "") === 'CROSS' || empty($data['conditions'])) {
+            return "{$data['type']} JOIN {$data['table']} {$data['alias']}";
+        }
+        return trim("{$data['type']} JOIN {$data['table']} {$data['alias']} ON ({$data['conditions']})");
     }
 
     /**
@@ -37,12 +97,48 @@ class MysqlExtended extends Mysql
     {
         $query = array_merge($this->_queryDefaults, $query);
 
+        $isReverseJoin = false;
         if (!empty($query['joins'])) {
             foreach ($query['joins'] as &$join) {
                 if (is_array($join)) {
-                    $join = $this->buildJoinStatement($join);
+                    if (isset($join['type']) && $join['type'] === 'STRAIGHT_REVERSE') {
+                        // we're dealing with a reverse join, this means we need to reverse the order of joins
+                        $isReverseJoin = true;
+                        $reversed_table = $join['table'];
+                        $reversed_alias = $join['alias'];
+                        // we'll pass two additional parameters: the table and alias that would have been used as the primary table. These will replace the join table/alias in the rendered JOIN statement to swap the order
+                        $join = $this->buildJoinStatement($join, $query['alias'], $query['table']);
+                    } else if ($isReverseJoin) {
+                        // we have a STRAIGHT_REVERSE join already, can't add more joins (this is a limitation of the STRAIGHT reverse join code)
+                        throw new InvalidArgumentException(
+                            'Join type STRAIGHT_REVERSE can\'t be mixed with other joins.'
+                        );
+                    } else {
+                        // we're dealing with a regular set of JOINs so far, continue normally
+                        $join = $this->buildJoinStatement($join);
+                    }
+                    
                 }
             }
+        }
+
+        if ($isReverseJoin) {
+            $query['alias'] = $this->name($reversed_alias);
+            $query['table'] = $this->fullTableName($reversed_table);
+            return $this->renderStatement('select', array(
+                'conditions' => $this->conditions($query['conditions'], true, true, $Model),
+                'fields' => implode(', ', $query['fields']),
+                'table' => $query['table'],
+                'alias' => $this->alias . $this->name($query['alias']),
+                'order' => $this->order($query['order'], 'ASC', $Model),
+                'limit' => $this->limit($query['limit'], $query['offset']),
+                'joins' => implode(' ', $query['joins']),
+                'group' => $this->group($query['group'], $Model),
+                'having' => $this->having($query['having'], true, $Model),
+                'lock' => $this->getLockingHint($query['lock']),
+                'indexHint' => $this->__buildIndexHint($query['forceIndexHint'] ?? null),
+                'ignoreIndexHint' => $this->__buildIgnoreIndexHint($query['ignoreIndexHint'] ?? null),
+            ));
         }
 
         return $this->renderStatement('select', array(
@@ -57,7 +153,7 @@ class MysqlExtended extends Mysql
             'having' => $this->having($query['having'], true, $Model),
             'lock' => $this->getLockingHint($query['lock']),
             'indexHint' => $this->__buildIndexHint($query['forceIndexHint'] ?? null),
-            'ignoreIndexHint' => $this->__buildIgnoreIndexHint($query['ignoreIndexHint'] ?? null)
+            'ignoreIndexHint' => $this->__buildIgnoreIndexHint($query['ignoreIndexHint'] ?? null),
         ));
     }
 
@@ -128,7 +224,7 @@ class MysqlExtended extends Mysql
         return isset($forceIndexHint) ? ('FORCE INDEX (' . $forceIndexHint . ')') : null;
     }
 
-        /**
+    /**
      * Builds the ignore index hint for the query
      * 
      * @param string|null $ignoreIndexHint INDEX hint

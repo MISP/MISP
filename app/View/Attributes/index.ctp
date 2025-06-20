@@ -23,7 +23,11 @@ $append .= sprintf(
     </div>',
     $downloadOptions
 );
-
+if (isset($search_token)) {
+    $passedArgsArray = [
+        'search_token' => $search_token
+    ];
+}
 echo $this->element('genericElements/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
@@ -290,8 +294,9 @@ echo $this->element('genericElements/IndexTable/scaffold', [
                     },
                 ]
             ],
-            'persistUrlParams' => ['results', '?']
+            'persistUrlParams' => ['search_token']
         ],
+        'passedArgsArray' => $passedArgsArray,
         'append' => $append
     ]
 ]);
