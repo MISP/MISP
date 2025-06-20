@@ -4,7 +4,7 @@ on:
   push:
     branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii, forgejo_CI ]
   pull_request:
-    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii ]
+    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii, forgejo_CI ]
 
 jobs:
   build:
