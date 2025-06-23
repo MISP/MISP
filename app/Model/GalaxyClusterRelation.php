@@ -461,7 +461,7 @@ class GalaxyClusterRelation extends AppModel
                     $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = 0;
                 } else {
                     $referencedCluster = $referencedCluster[0];
-                    $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $referencedCluster['SourceCluster']['id'];
+                    $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $referencedCluster['GalaxyCluster']['id'];
                 }
             }
 

@@ -152,6 +152,8 @@ class Event extends AppModel
         'blockedAttributeTags',
         'blockedEventReportTags',
         'eventsExtendingUuid',
+        'is_extended',
+        'is_extension',
         'extended',
         'extending',
         'extensionList',
@@ -1557,6 +1559,8 @@ class Event extends AppModel
                     'orgc_id' => array('function' => 'set_filter_orgc_id', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
                     'published' => array('function' => 'set_filter_published', 'pop' => true),
+                    'is_extended' => array('function' => 'set_filter_extended', 'pop' => true),
+                    'is_extension' => array('function' => 'set_filter_extending', 'pop' => true),
                     'threat_level_id' => array('function' => 'set_filter_threat_level_id', 'pop' => true),
                     'sharinggroup' => array('function' => 'set_filter_sharing_group')
                 ),
@@ -1917,6 +1921,12 @@ class Event extends AppModel
         }
         if (isset($options['published'])) {
             $conditions['AND'][] = array('Event.published' => $options['published']);
+        }
+        if (isset($options['is_extended'])) {
+            $conditions = $this->set_filter_extended($options, $conditions, null);
+        }
+        if (isset($options['is_extension'])) {
+            $conditions = $this->set_filter_extending($options, $conditions, null);
         }
         if ($options['orgc_id']) {
             $conditions['AND'][] = array('Event.orgc_id' => $options['orgc_id']);
@@ -2948,6 +2958,96 @@ class Event extends AppModel
         }
         return $conditions;
     }
+
+
+    public function set_filter_extended(&$params, $conditions, $options)
+    {
+        if (!isset($params['is_extended'])) {
+            return $conditions;
+        }
+
+        $extended = null;
+        //If is_extended is an array, it means that the user is filtering for both extended and not extended events
+        if (is_array($params['is_extended']) && in_array(1, $params['is_extended']) && in_array(0, $params['is_extended'])) {
+            return $conditions;
+        //Accept if is_extended is [0] or [1] and converting it to boolean
+        } else if (is_array($params['is_extended']) && (in_array(1, $params['is_extended'] ) || in_array(0, $params['is_extended']))) {
+            $extended = filter_var($params['is_extended'][0], FILTER_VALIDATE_BOOLEAN);
+        } else {
+            $extended = filter_var($params['is_extended'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        //Step 1 - Extract the UUIDs of the events that are extended and remove duplicates
+        $targetUuids = array_unique($this->find('column', array(
+            'fields' => array('Event.extends_uuid'),
+            'conditions' => array('Event.extends_uuid !=' => ''),
+            'recursive' => -1
+        )));
+
+        //If there is no event with extends_uuid(extending), there is basically no event extended
+        if (empty($targetUuids)) {
+            $conditions['AND'][] = array('Event.id' => -1);
+            return $conditions;
+        }
+
+        //Step 2 - Extract the UUIDs and ids of all events
+        $allEvents = $this->find('list', array(
+            'fields' => array('Event.uuid', 'Event.id'),
+            'recursive' => -1
+        ));
+
+        //Step 3 - Fetch the events that are extended or not extended
+        $linkedEventIds = array();
+        if ($extended) {
+            foreach ($targetUuids as $uuid) {
+                if (isset($allEvents[$uuid])) {
+                    $linkedEventIds[] = $allEvents[$uuid];
+                }
+            }
+        } else {
+            foreach ($allEvents as $uuid => $id) {
+                if (!in_array($uuid, $targetUuids, true)) {
+                    $linkedEventIds[] = $id;
+                }
+            }
+        }
+
+        if (empty($linkedEventIds)) {
+            $conditions['AND'][] = array('Event.id' => -1);
+        } else {
+            $conditions['AND'][] = array('Event.id' => $linkedEventIds);
+        }
+
+        return $conditions;
+    }
+
+
+
+    public function set_filter_extending(&$params, $conditions, $options)
+    {
+        if (!isset($params['is_extension'])) {
+            return $conditions;
+        }
+
+        $extending = null;
+        //If extended is an array, it means that the user is filtering for both extended and not extended events
+        if (is_array($params['is_extension']) && in_array(1, $params['is_extension']) && in_array(0, $params['is_extension'])) {
+            return $conditions;
+        //Accept if extended is [0] or [1] and converting it to boolean
+        } else if (is_array($params['is_extension']) && (in_array(1, $params['is_extension'] ) || in_array(0, $params['is_extension']))) {
+            $extending = filter_var($params['is_extension'][0], FILTER_VALIDATE_BOOLEAN);
+        } else{
+            $extending = filter_var($params['is_extension'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if ($extending) {
+            $conditions['AND'][] = array('Event.extends_uuid !=' => '');
+        } else {
+            $conditions['AND'][] = array('Event.extends_uuid' => '');
+        }
+        return $conditions;
+    }
+
 
     public function set_filter_threat_level_id(&$params, $conditions, $options)
     {
@@ -4321,7 +4421,7 @@ class Event extends AppModel
             $changed = false;
             // If a field is not set in the request, just reuse the old value
             // Also, compare the event to the existing event and see whether this is a meaningful change
-            $recoverFields = array('analysis', 'threat_level_id', 'info', 'distribution', 'date', 'org_id');
+            $recoverFields = array('analysis', 'threat_level_id', 'info', 'distribution', 'date', 'org_id', 'protected');
             foreach ($recoverFields as $rF) {
                 if (!isset($data['Event'][$rF])) {
                     $data['Event'][$rF] = $existingEvent['Event'][$rF];
@@ -4354,7 +4454,8 @@ class Event extends AppModel
             'timestamp',
             'sharing_group_id',
             'disable_correlation',
-            'extends_uuid'
+            'extends_uuid',
+            'protected'
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList));
         if ($saveResult) {

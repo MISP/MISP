@@ -28,7 +28,7 @@ class EventsController extends AppController
 
     // private
     const ACCEPTED_FILTERING_NAMED_PARAMS = array(
-        'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'page',
+        'sort', 'direction', 'focus', 'is_extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'page',
         'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution',
         'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'feed', 'server', 'toIDS',
         'sighting', 'includeSightingdb', 'warninglistId', 'correlationId', 'email', 'eventid', 'datefrom', 'dateuntil'
@@ -57,7 +57,7 @@ class EventsController extends AppController
 
     // private
     const DEFAULT_HIDDEN_INDEX_COLUMNS = [
-        'extending',
+        'is_extension',
         'timestamp',
         'publish_timestamp'
     ];
@@ -672,6 +672,26 @@ class EventsController extends AppController
                     $this->paginate['conditions']['AND'][] = array('Event.id' => $eventIds);
 
                     break;
+                case 'is_extension':
+                    $params = ["is_extension" => $v];
+                    $conditions = array();
+                    $conditions = $this->Event->set_filter_extending($params, $conditions, null);
+                    if (!empty($conditions['AND'])) {
+                        foreach ($conditions['AND'] as $cond) {
+                            $this->paginate['conditions']['AND'][] = $cond;
+                        }
+                    }
+                    break;
+                case 'is_extended':
+                    $params = ["is_extended" => $v];
+                    $conditions = array();
+                    $conditions = $this->Event->set_filter_extended($params, $conditions, null);
+                    if (!empty($conditions['AND'])) {
+                        foreach ($conditions['AND'] as $cond) {
+                            $this->paginate['conditions']['AND'][] = $cond;
+                        }
+                    }
+                    break;
                 default:
                     continue 2;
             }
@@ -684,9 +704,10 @@ class EventsController extends AppController
     {
         // list the events
         $urlparams = "";
-        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value');
+        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value', 'is_extension', 'is_extended');
         $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
         $passedArgs = $this->passedArgs;
+
         if (!empty($this->request->data)) {
             if (isset($this->request->data['request'])) {
                 $this->request->data = $this->request->data['request'];
@@ -983,7 +1004,7 @@ class EventsController extends AppController
             $possibleColumns[] = 'owner_org';
         }
 
-        $possibleColumns[] = 'extending';
+        $possibleColumns[] = 'is_extension';
 
         if (Configure::read('MISP.tagging')) {
             $possibleColumns[] = 'clusters';
@@ -1111,6 +1132,8 @@ class EventsController extends AppController
             'analysis' => array('OR' => array(), 'NOT' => array()),
             'attribute' => array('OR' => array(), 'NOT' => array()),
             'hasproposal' => 2,
+            'is_extension' => 2,
+            'is_extended' => 2,
             'timestamp' => array('from' => "", 'until' => ""),
             'publishtimestamp' => array('from' => "", 'until' => "")
         );
@@ -1124,6 +1147,8 @@ class EventsController extends AppController
                 $searchTerm = substr($k, 6);
                 switch ($searchTerm) {
                     case 'published':
+                    case 'is_extension':
+                    case 'is_extended':
                     case 'hasproposal':
                         $filtering[$searchTerm] = $v;
                         break;
@@ -1179,6 +1204,8 @@ class EventsController extends AppController
             'distribution' => __('Distribution'),
             'sharinggroup' => __('Sharing group'),
             'analysis' => __('Analysis'),
+            'is_extension' => __('Is extension'),
+            'is_extended'  => __('Is extended'),
             'attribute' => __('Attribute'),
             'hasproposal' => __('Has proposal'),
             'timestamp' => __('Last change at'),
@@ -2078,7 +2105,7 @@ class EventsController extends AppController
     // look in the parameters if we are doing advanced filtering or not
     private function __checkIfAdvancedFiltering($filters)
     {
-        $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0, 'extended' => 0, 'page' => 0));
+        $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0, 'is_extended' => 0, 'page' => 0));
 
         if (count($advancedFilteringActive) > 0) {
             if (count(array_diff_key($advancedFilteringActive, array('deleted', 'includeRelatedTags', 'includeDecayScore'))) > 0) {
@@ -2162,7 +2189,8 @@ class EventsController extends AppController
             if (
                 !empty($this->request->data['Event']['protected']) &&
                 $this->Auth->user('Role')['perm_sync'] &&
-                !$this->Auth->user('Role')['perm_site_admin']
+                !$this->Auth->user('Role')['perm_site_admin'] &&
+                !$this->Auth->user('Role')['perm_sync_internal']
             ) {
                 $pgp_signature = $this->request->header('x-pgp-signature');
                 if (empty($pgp_signature)) {
@@ -2827,7 +2855,8 @@ class EventsController extends AppController
         if (
             !empty($event['Event']['protected']) &&
             $this->Auth->user('Role')['perm_sync'] &&
-            !$this->Auth->user('Role')['perm_site_admin']
+            !$this->Auth->user('Role')['perm_site_admin'] &&
+            !$this->Auth->user('Role')['perm_sync_internal']
         ) {
             $pgp_signature = $this->request->header('x-pgp-signature');
             if (empty($pgp_signature)) {

@@ -35,7 +35,7 @@
 
         $columnsDescription = [
             'owner_org' => __('Owner org'),
-            'extending' => __('Extended event'),
+            'is_extension' => __('Extended event'),
             'attribute_count' => __('Attribute count'),
             'creator_user' => __('Creator user'),
             'tags' => __('Tags'),

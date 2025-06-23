@@ -177,7 +177,7 @@
             <?= nl2br(h($event['Event']['info']), false) ?>
 
             <?php if ($extends_info): ?>
-                <?php if (in_array('extending', $columns, true)): ?>
+                <?php if (in_array('is_extension', $columns, true)): ?>
                     <div style="padding-left: 1em;">
                         <span class="apply_css_arrow">
                             <p style="display: inline;">

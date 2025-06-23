@@ -106,6 +106,18 @@ class AWSS3Client
        ]);
     }
 
+    public function rename($key, $newKey)
+    {
+        // Copy the object to the new key
+        $this->__client->copyObject([
+            'Bucket' => $this->__settings['bucket_name'],
+            'CopySource' => $this->__settings['bucket_name'] . '/' . $key,
+            'Key' => $newKey
+        ]);
+
+        $this->delete($key); // Delete the old object
+    }
+
     public function download($key)
     {
         try {

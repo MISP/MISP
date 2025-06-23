@@ -432,6 +432,9 @@ class Correlation extends AppModel
         if (!empty($a['Event']['disable_correlation'])) {
             return true;
         }
+        if (!$this->CorrelationRule->canCorrelate($a)) {
+            return true;
+        }
         // generate additional correlating attribute list based on the advanced correlations
         if (!$this->__preventExcludedCorrelations($a['Attribute']['value1'])) {
             $extraConditions = $this->__buildAdvancedCorrelationConditions($a);

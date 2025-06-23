@@ -624,22 +624,53 @@ class MispObject extends AppModel
                 )
             );
         }
-        $params = array(
-            'conditions' => $this->buildConditions($user),
-            'recursive' => -1,
-            'contain' => array(
-                'Event' => array(
-                    'fields' => array('id', 'info', 'org_id', 'orgc_id'),
+        if ($this->checkDbSupport('reverseJoin')) {
+            $params = array(
+                'fields' => array(
+                    'Object.*',          // or explicitly list them
+                    'Event.id', 'Event.info', 'Event.org_id', 'Event.orgc_id'
                 ),
-                'Attribute' => array(
-                    'conditions' => $attributeConditions,
-                    //'ShadowAttribute',
-                    'AttributeTag' => array(
-                        'Tag'
+                'conditions' => $this->buildConditions($user),
+                'recursive' => -1,
+                'joins' => array(
+                    array(
+                        'table' => 'events',
+                        'alias' => 'Event',
+                        'type' => 'STRAIGHT_REVERSE',
+                        'conditions' => array(
+                            'Event.id = Object.event_id'
+                        )
                     )
-                )
-            ),
-        );
+                ),
+                'contain' => array(
+                    'Attribute' => array(
+                        'conditions' => $attributeConditions,
+                        //'ShadowAttribute',
+                        'AttributeTag' => array(
+                            'Tag'
+                        )
+                    )
+                ),
+            );
+        } else {
+            $params = array(
+                'conditions' => $this->buildConditions($user),
+                'recursive' => -1,
+                'contain' => array(
+                    'Event' => array(
+                        'fields' => array('id', 'info', 'org_id', 'orgc_id'),
+                    ),
+                    'Attribute' => array(
+                        'conditions' => $attributeConditions,
+                        //'ShadowAttribute',
+                        'AttributeTag' => array(
+                            'Tag'
+                        )
+                    )
+                ),
+            );
+        }
+        
         if (!empty($options['metadata'])) {
             unset($params['contain']['Attribute']);
         }
@@ -1043,6 +1074,8 @@ class MispObject extends AppModel
                     }
                     $newAttribute['event_id'] = $object['Object']['event_id'];
                     $newAttribute['object_id'] = $object['Object']['id'];
+                    unset($newAttribute['id']);
+                    
                     // Set seen of object at attribute level
                     if (isset($forcedSeenOnElements['first_seen'])) {
                         $newAttribute['first_seen'] = empty($newAttribute['first_seen']) ? $forcedSeenOnElements['first_seen'] : $newAttribute['first_seen'];
@@ -1078,6 +1111,7 @@ class MispObject extends AppModel
             $newAttribute = $objectToSave['Attribute'][0];
             $newAttribute['event_id'] = $object['Object']['event_id'];
             $newAttribute['object_id'] = $object['Object']['id'];
+            unset($newAttribute['id']);
             // Set seen of object at attribute level
             if (
                 (!array_key_exists('first_seen', $newAttribute) || is_null($newAttribute['first_seen'])) &&
@@ -1390,6 +1424,7 @@ class MispObject extends AppModel
                 $sightings = $this->Event->Sighting->attachToEvent($event, $user, $existing_attribute['Attribute']['id']);
                 $object_relation = $selected_object_relation_mapping[$existing_attribute['Attribute']['id']];
                 $created_attribute = $existing_attribute['Attribute'];
+                $original_id = $created_attribute['id'];
                 unset($created_attribute['timestamp']);
                 unset($created_attribute['id']);
                 unset($created_attribute['uuid']);
@@ -1401,8 +1436,12 @@ class MispObject extends AppModel
                 if (!empty($sightings)) {
                     $created_attribute['Sighting'] = $sightings;
                 }
-                $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object_id);
-                $this->Attribute->deleteAttribute($existing_attribute['Attribute']['id'], $user, $hard_delete_attribute);
+                $saved_attribute = $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object_id);
+                if (!empty($saved_attribute)) {
+                    $new_id = $this->Attribute->id;
+                    $this->loadAttachmentTool()->changeID($saved_attribute['event_id'], $original_id, $new_id);
+                    $this->Attribute->deleteAttribute($existing_attribute['Attribute']['id'], $user, $hard_delete_attribute);
+                }
             }
         }
         return $saved_object_id;
@@ -1676,7 +1715,13 @@ class MispObject extends AppModel
             $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
             $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;
             $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
+            // The idea is that we use the memory scaling factor for attributes and divide by 10
             $params['limit'] = $memory_in_mb * $memory_scaling_factor / 10;
+            // However, this can lead to absolutely massive data sets. Sadly for objects, we fetch the objects and attributes separately and reassemble it after the fact. Optionally admins can now put a cap on the hard limit of objects fetched and moved to an iterated fetch beyond that.
+            $hard_limit = Configure::check('MISP.object_fetch_hard_limit') ? Configure::read('MISP.object_fetch_hard_limit') : 0;
+            if (intval($hard_limit) >= 1) {
+                $params['limit'] = $params['limit'] > $hard_limit ? $hard_limit : $params['limit'];
+            }
             $loop = true;
             $params['page'] = 1;
         }

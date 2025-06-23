@@ -8,7 +8,12 @@ class CorrelationRule extends AppModel
     private $__conditionCache = [
         'orgc_id' => [],
         'org_id' => [],
-        'event_id' => []
+        'event_id' => [],
+        'event_info' => []
+    ];
+
+    private $__eventCache = [
+
     ];
 
     private $__ruleCache = null;
@@ -76,6 +81,9 @@ class CorrelationRule extends AppModel
         if (!empty($this->__conditionCache[$event['id']]['org_id'])) {
             $conditions['Event.org_id NOT IN'] = $this->__conditionCache[$event['id']]['org_id'];
         }
+        if (!empty($this->__conditionCache[$event['id']]['event_info'])) {
+            $conditions['AND'][] = ['Event.id NOT IN' => $this->__conditionCache[$event['id']]['event_info']];
+        }
         return $conditions;
     }
 
@@ -85,6 +93,53 @@ class CorrelationRule extends AppModel
         $filterConditions = $this->generateConditionsForEvent($attribute['Event']);
         $conditions['AND'][] = $filterConditions;
         return $conditions;
+    }
+
+    public function canCorrelate($data)
+    {
+        if (!isset($data['Event'])) {
+            return true;
+        }
+        if (!isset($this->__eventCache[$data['Event']['id']])) {
+            $this->__loadRuleCache();
+            foreach ($this->__ruleCache as $rule) {
+                if ($this->__checkEventAgainstRule($data, $rule)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private function __checkEventAgainstRule($data, $rule)
+    {
+        if ($rule['CorrelationRule']['selector_type'] === 'event_id') {
+            return in_array($data['Event']['id'], $rule['CorrelationRule']['selector_list']);
+        } elseif ($rule['CorrelationRule']['selector_type'] === 'orgc_id') {
+            return in_array($data['Event']['orgc_id'], $rule['CorrelationRule']['selector_list']);
+        } elseif ($rule['CorrelationRule']['selector_type'] === 'org_id') {
+            return in_array($data['Event']['org_id'], $rule['CorrelationRule']['selector_list']);
+        } elseif ($rule['CorrelationRule']['selector_type'] === 'event_info') {
+            $info = strtolower($data['Event']['info']);
+            foreach ($rule['CorrelationRule']['selector_list'] as $selector) {
+                if ($selector[0] === '%' && $selector[-1] === '%') {
+                    if (str_contains($info, substr($selector, 1, -1))) {
+                        return true;
+                    }
+                } elseif ($selector[0] === '%') {
+                    if (str_ends_with($info, substr($selector, 1))) {
+                        return true;
+                    }
+                } elseif ($selector[-1] === '%') {
+                    if (str_starts_with($info, substr($selector, 0, -1))) {
+                        return true;
+                    }
+                } elseif ($info === $selector) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private function __loadRuleCache()
@@ -138,51 +193,21 @@ class CorrelationRule extends AppModel
 
     private function __generateEventInfoRule($event, $rule)
     {
-        $execute = false;
-        $info = strtolower($event['info']);
+        $this->Event = ClassRegistry::init('Event');
+        $conditions = [];
         foreach ($rule['selector_list'] as $selector) {
-            $selector = strtolower($selector);
-            if ($selector[0] === '%' && $selector[-1] === '%') {
-                if (str_contains($info, substr($selector, 1, (strlen($selector) - 2)))) {
-                    $execute = true;
-                    break;
-                }
-            } else if ($selector[0] === '%') {
-                $needle = substr($selector, 1);
-                if (substr_compare($info, $needle, -strlen($needle)) === 0) {
-                    $execute = true;
-                    break;
-                }
-            } else if ($selector[-1] === '%') {
-                $needle = substr($selector, 1);
-                if (substr_compare($info, $needle, -strlen($needle)) === 0) {
-                    $execute = true;
-                    break;
-                }
-            } else {
-                if ($info === $selector) {
-                    $execute = true;
-                    break;
-                }
-            }
+            $conditions[] = ['LOWER(Event.info) LIKE' => mb_strtolower($selector)];
         }
-        if ($execute) {
-            $this->Event = ClassRegistry::init('Event');
-            $conditions = [];
-            foreach ($rule['selector_list'] as $selector) {
-                $conditions[] = ['Event.info LIKE' => $selector];
-            }
-            $ids = $this->Event->find('column', [
-                'recursive' => -1,
-                'conditions' => [
-                    'OR' => $conditions
-                ],
-                'fields' => ['Event.id']
-            ]);
-            if (!empty($ids)) {
-                $this->__createEmptyArrayIfNotSet($event['id'], 'event_id');
-                $this->__conditionCache[$event['id']]['event_id'] = array_merge($this->__conditionCache[$event['id']]['event_id'], $ids);
-            }   
+        $ids = $this->Event->find('column', [
+            'recursive' => -1,
+            'conditions' => [
+                'OR' => $conditions
+            ],
+            'fields' => ['Event.id']
+        ]);
+        if (!empty($ids)) {
+            $this->__createEmptyArrayIfNotSet($event['id'], 'event_info');
+            $this->__conditionCache[$event['id']]['event_info'] = array_merge($this->__conditionCache[$event['id']]['event_info'], $ids);
         }
         return true;
     }

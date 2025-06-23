@@ -62,6 +62,8 @@
                 "last" => __('(Deprecated synonym for publish_timestamp) Restrict the results by the timestamp of the last publishing of the event. The input can be a timestamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
                 "timestamp" => __('Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned. In case you are dealing with /attributes as scope, the attribute\'s timestamp will be used for the lookup. The input can be a timestamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
                 "published" => __('Set whether published or unpublished events should be returned. Do not set the parameter if you want both.'),
+                "extending" => __("Set whether events that extend another or events that don't should be returned. Do not set the parameter if you want both."),
+                "extended" => __('Set whether events that are extended or not should be returned. Do not set the parameter if you want both.'),
                 "enforceWarninglist" => __('Remove any attributes from the result that would cause a hit on a warninglist entry.'),
                 "to_ids" => __('By default (0) all attributes are returned that match the other filter parameters, regardless of their to_ids setting. To restrict the returned data set to to_ids only attributes set this parameter to 1. You can only use the special "exclude" setting to only return attributes that have the to_ids flag disabled.'),
                 "deleted" => __('Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes wil be returned.'),
@@ -370,6 +372,8 @@
     <b>searcheventid</b>: <?php echo __('Filters on specific event IDs - negatable');?><br />
     <b>searchthreatlevel</b>: <?php echo __('Filters on a given event threat level [1,2,3,4] - negatable');?><br />
     <b>searchdistribution</b>: <?php echo __('Filters on the distribution level [0,1,2,3] - negatable');?><br />
+    <b>searchextending</b>: <?php echo __("Filters on extending events or ones that don't [0,1] ");?><br />
+    <b>searchextended</b>: <?php echo __('Filters on events that are extended or not [0,1] ');?><br />
     <b>searchanalysis</b>: <?php echo __('Filters on the given analysis phase of the event [0,1,2] - negatable');?><br />
     <b>searchattribute</b>: <?php echo __('Filters on a contained attribute value - negatable');?><br />
     <b>searchvalue</b>: <?php echo __('Filter exact matches on the attribute value');?><br />

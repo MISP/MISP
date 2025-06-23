@@ -820,6 +820,7 @@ class GalaxyCluster extends AppModel
             }
             if ($cluster['GalaxyCluster']['version'] > $existingGalaxyCluster['GalaxyCluster']['version']) {
                 $cluster['GalaxyCluster']['id'] = $existingGalaxyCluster['GalaxyCluster']['id'];
+                $cluster['GalaxyCluster']['galaxy_id'] = $existingGalaxyCluster['GalaxyCluster']['galaxy_id'];
                 $saveSuccess = $this->save($cluster);
             } else {
                 $results['errors'][] = __('Remote version is not newer than local one for cluster (%s)', $cluster['GalaxyCluster']['uuid']);
@@ -1079,6 +1080,12 @@ class GalaxyCluster extends AppModel
                 'Orgc',
                 'Org',
                 'SharingGroup'
+            );
+            // Fixes issue where CakePHP 2 overrides 'recursive' => -1 when using 'contain' with hasMany associations,
+            // unintentionally fetching deeper related models not explicitly listed in 'contain'.
+            // TargetingClusterRelation is collected later on as a separate step.
+            $this->unbindModel(
+                ['hasMany' => ['TargetingClusterRelation']]
             );
         }
         if (!empty($includeFullClusterRelationship)) {
