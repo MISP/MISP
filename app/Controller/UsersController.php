@@ -348,6 +348,7 @@ class UsersController extends AppController
         ));
         if ($this->request->is('post') || $this->request->is('put')) {
             $abortPost = false;
+            $this->User->applyDynamicPasswordMessages();
             return $this->__pw_change($user, 'change_pw', $abortPost);
         }
         if ($this->_isRest()) {

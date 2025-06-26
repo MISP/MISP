@@ -440,9 +440,8 @@ class User extends AppModel
         $length = Configure::read('Security.password_policy_length');
         if (empty($length) || $length < 0) {
             $length = 12;
-        }
-        $value = array_values($check);
-        $value = $value[0];
+        }   
+        $value = array_values($check)[0];
         if (strlen($value) < $length) {
             return false;
         }
@@ -474,9 +473,30 @@ class User extends AppModel
         if (empty($regex) || @preg_match($regex, 'test') === false) {
             $regex = '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/';
         }
-        $value = array_values($check);
-        $value = $value[0];
+        $value = array_values($check)[0];
         return preg_match($regex, $value);
+    }
+
+    public function applyDynamicPasswordMessages()
+    {
+        $length = (int)(Configure::read('Security.password_policy_length') ?? 12);
+        if ($length < 1) {
+            $length = 12;
+        }
+
+        $this->validate['password']['minlength']['message'] =
+            'Password must be at least ' . $length . ' characters long.';
+
+        $regex = Configure::read('Security.password_policy_complexity');
+        $defaultRegex = '/^((?=.*\\\\d)|(?=.*\\\\W+))(?![\\\\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/';
+
+        if (stripcslashes($regex) === stripcslashes($defaultRegex)) {
+            $this->validate['password']['complexity']['message'] =
+                'At least 1 digit or special character, 1 uppercase, 1 lowercase, no newlines, or 16+ characters.';
+        } else {
+            $this->validate['password']['complexity']['message'] =
+                'Password complexity requirement not met. Current rule: ' . $regex;
+        }
     }
 
     public function identicalFieldValues($field = array(), $compareField = null)
