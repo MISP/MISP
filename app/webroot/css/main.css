@@ -227,6 +227,9 @@ form .error-message {
     background-color: #f2dede;
     padding: 0 5px;
 }
+#UserChangePwForm .error-message {
+    display: inline-block;
+}
 
 /* Form */
 div.form,
