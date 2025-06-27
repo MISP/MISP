@@ -15,10 +15,7 @@
         ]);
     ?>
     </fieldset>
-    <?php
-        echo $this->Form->error('password', null);
-    ?>
-    </fieldset>
+    <?php echo $this->Form->error('password', null); ?>
     <div style="border-bottom: 1px solid #e5e5e5;width:100%;">&nbsp;</div>
     <div class="clear" style="margin-top:10px;">
 <?php
