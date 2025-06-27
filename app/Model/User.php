@@ -479,17 +479,18 @@ class User extends AppModel
 
     public function applyDynamicPasswordMessages()
     {
+        $this->validate['password']['minlength']  = $this->validate['password']['minlength']  ?? [];
+        $this->validate['password']['complexity'] = $this->validate['password']['complexity'] ?? [];
+        
         $length = (int)(Configure::read('Security.password_policy_length') ?? 12);
         if ($length < 1) {
             $length = 12;
         }
-
         $this->validate['password']['minlength']['message'] =
             'Password must be at least ' . $length . ' characters long.';
 
         $regex = Configure::read('Security.password_policy_complexity');
         $defaultRegex = '/^((?=.*\\\\d)|(?=.*\\\\W+))(?![\\\\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/';
-
         if (stripcslashes($regex) === stripcslashes($defaultRegex)) {
             $this->validate['password']['complexity']['message'] =
                 'At least 1 digit or special character, 1 uppercase, 1 lowercase, no newlines, or 16+ characters.';
