@@ -4035,6 +4035,7 @@ class MispAttribute extends AppModel
                 'Attribute.id' => $params['id'],
             ],
             'withAttachments' => 1,
+            'flatten' => 1
         ]);
         if (empty($attribute)) {
             throw new MethodNotAllowedException('Invalid attribute.');

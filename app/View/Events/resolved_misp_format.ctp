@@ -145,6 +145,7 @@
           <th><?php echo __('IDS');?></th>
           <th><?php echo __('Disable Correlation');?></th>
           <th><?php echo __('Comment');?></th>
+          <th><?php echo __('Seen');?></th>
           <th><?php echo __('Distribution');?></th>
         </tr>
         <?php
@@ -232,6 +233,11 @@
             <td class="bitwider">
               <textarea class="ObjectComment inline-input" cols="30" rows="6" placeholder="<?php echo h($importComment); ?>" oninput="autoresize(this)"><?php if (!empty($object['comment'])) echo h($object['comment']);?></textarea>
             </td>
+            <td class="" style="width: 160px;">
+              <input class="ObjectFirstSeen inline-input" type="text" value="<?php echo h($object['first_seen'] ?? ''); ?>">
+              <i style="display: block; text-align: center;" class="fas fa-arrow-down"></i>
+              <input class="ObjectLastSeen inline-input" type="text" value="<?php echo h($object['last_seen'] ?? ''); ?>">
+            </td>
             <td style="width:60px;text-align:center;">
               <select class="ObjectDistribution" style="padding:0;height:20px;margin-bottom:0;">
                 <?php
@@ -305,6 +311,11 @@
             <td class="bitwider">
               <textarea class="AttributeComment inline-input" rows="1" oninput="autoresize(this)"><?php if (!empty($attribute['comment'])) echo h($attribute['comment']);?></textarea>
             </td>
+            <td class="" style="width: 160px;">
+              <input class="AttributeFirstSeen inline-input" type="text" value="<?php echo h($attribute['first_seen'] ?? ''); ?>">
+              <i style="display: block; text-align: center;" class="fas fa-arrow-down"></i>
+              <input class="AttributeLastSeen inline-input" type="text" value="<?php echo h($attribute['last_seen'] ?? ''); ?>">
+            </td>
             <td class="short" style="width:40px;text-align:center;">
               <select class="AttributeDistribution" style="padding:0;height:20px;margin-bottom:0;">
                 <?php
@@ -348,6 +359,7 @@
               <th><?php echo __('IDS');?></th>
               <th><?php echo __('Disable Correlation');?></th>
               <th><?php echo __('Comment');?></th>
+              <th><?php echo __('Seen');?></th>
               <th><?php echo __('Distribution');?></th>
             </tr>
           <?php
@@ -415,6 +427,11 @@
           <td class="bitwider">
             <textarea class="AttributeComment inline-input" rows="1" oninput="autoresize(this)" placeholder="<?php echo h($importComment); ?>"><?php if (!empty($attribute['comment'])) echo h($attribute['comment']);?></textarea>
           </td>
+          <td class="" style="width: 160px;">
+              <input class="AttributeFirstSeen inline-input" type="text" value="<?php echo h($attribute['first_seen'] ?? ''); ?>">
+              <i style="display: block; text-align: center;" class="fas fa-arrow-down"></i>
+              <input class="AttributeLastSeen inline-input" type="text" value="<?php echo h($attribute['last_seen'] ?? ''); ?>">
+            </td>
           <td class="short" style="width:40px;text-align:center;">
             <select class="AttributeDistribution" style="padding:0;height:20px;margin-bottom:0;">
             <?php

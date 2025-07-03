@@ -157,14 +157,14 @@ if (Configure::read('OidcAuth')) {
 	CakePlugin::load('OidcAuth');
 }
 
-if (Configure::read('ShibbAuth')) {
-	CakePlugin::load('ShibbAuth');
-}
-
 if (empty(Configure::read('SimpleBackgroundJobs.enabled'))) {
 	CakePlugin::loadAll(array(
 		'CakeResque' => array('bootstrap' => true)
 	));
+}
+
+if (Configure::read('ShibbAuth') || Configure::read('ApacheShibbAuth')) {
+	CakePlugin::load('ShibbAuth');
 }
 
 /**

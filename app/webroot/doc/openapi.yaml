@@ -6336,6 +6336,7 @@ components:
       minimum: 1
 
     LimitSearchFilter:
+      description: "Maximum number of results to be returned. Can't be greater than the one set for your role. 0 means maximum."
       type: integer
       format: int32
       nullable: true

@@ -194,6 +194,7 @@ class GalaxyClustersController extends AppController
         ));
         if (!empty($tag)) {
             $cluster['GalaxyCluster']['tag_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user());
+            $cluster['GalaxyCluster']['tag_att_count'] = $this->GalaxyCluster->Tag->AttributeTag->countForTag($tag['Tag']['id'], $this->Auth->user());
             $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
         }
         if ($this->_isRest()) {

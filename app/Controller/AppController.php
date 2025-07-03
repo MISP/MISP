@@ -1453,6 +1453,12 @@ class AppController extends Controller
                 ]);
             }
         }
+
+        $roleLimit = $this->User->getUserRestLimit($this->Auth->user(), $this);
+        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
+            $filters['limit'] = $roleLimit;
+        }
+
         /** @var TmpFileTool $final */
         $skippedElementsCounter = 0;
         $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter);
