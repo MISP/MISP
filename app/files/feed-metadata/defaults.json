@@ -2103,5 +2103,77 @@
     "caching_enabled": false,
     "force_to_ids": false
       }
+  },
+  {
+  "Feed": {
+    "name": "Phishing.Database - New domains of today",
+    "provider": "Phishing.Database",
+    "url": "https://phish.co.za/latest/phishing-domains-NEW-today.txt",
+    "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+    "enabled": true,
+    "distribution": "3",
+    "sharing_group_id": "0",
+    "default": false,
+    "source_format": "csv",
+    "fixed_event": true,
+    "delta_merge": true,
+    "publish": false,
+    "override_ids": false,
+    "settings": "{\"disable_correlation\":\"0\",\"unpublish_event\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": false,
+    "headers": "",
+    "caching_enabled": false,
+    "force_to_ids": false
+      }
+  },
+  {
+  "Feed": {
+    "name": "Phishing.Database - New IPs of today",
+    "provider": "Phishing.Database",
+    "url": "https://phish.co.za/latest/phishing-IPs-NEW-today.txt",
+    "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+    "enabled": true,
+    "distribution": "3",
+    "sharing_group_id": "0",
+    "default": false,
+    "source_format": "csv",
+    "fixed_event": true,
+    "delta_merge": true,
+    "publish": false,
+    "override_ids": false,
+    "settings": "{\"disable_correlation\":\"0\",\"unpublish_event\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": false,
+    "headers": "",
+    "caching_enabled": false,
+    "force_to_ids": false
+      }
+  },
+  {
+  "Feed": {
+    "name": "Phishing.Database - New URLs of today",
+    "provider": "Phishing.Database",
+    "url": "https://phish.co.za/latest/phishing-links-NEW-today.txt",
+    "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+    "enabled": true,
+    "distribution": "3",
+    "sharing_group_id": "0",
+    "default": false,
+    "source_format": "csv",
+    "fixed_event": true,
+    "delta_merge": true,
+    "publish": false,
+    "override_ids": false,
+    "settings": "{\"disable_correlation\":\"0\",\"unpublish_event\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": false,
+    "headers": "",
+    "caching_enabled": false,
+    "force_to_ids": false
+      }
   }  
 ]
