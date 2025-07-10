@@ -93,7 +93,7 @@ class AppModel extends Model
         117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
-        135 => false, 136 => true, 137 => false, 138 => false, 139 => false,
+        135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2293,6 +2293,12 @@ class AppModel extends Model
             case 138:
                 $sqlArray[] = "ALTER TABLE `events` MODIFY info text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;";
                 break;
+            case 139:
+                $sqlArray[] = "ALTER TABLE `roles` ADD `restsearch_limit_result` int(11) NULL DEFAULT NULL;";
+                break;
+            case 140:
+                $sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `api_key` TEXT NOT NULL";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -3513,16 +3519,21 @@ class AppModel extends Model
         return true;
     }
 
-    public function setupHttpSocket($server, $HttpSocket = null, $timeout = false)
+    public function setupHttpSocket($server, $HttpSocket = null, $timeout = false, $model = null)
     {
         if (empty($HttpSocket)) {
             App::uses('SyncTool', 'Tools');
             $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server, $timeout);
+
+            if ($model !== null) {
+                $HttpSocket = $syncTool->setupHttpSocket($server, $timeout, $model);
+            } else {
+                $HttpSocket = $syncTool->setupHttpSocket($server, $timeout);
+            }
         }
         return $HttpSocket;
     }
-
+    
     /**
      * @param array $server
      * @param string $model
@@ -4407,7 +4418,7 @@ class AppModel extends Model
         return false;
     }
 
-    private function checkParam($param)
+    protected function checkParam($param)
     {
         return preg_match('/^[\w\_\-\. ]+$/', $param);
     }
@@ -4439,6 +4450,40 @@ class AppModel extends Model
         return true;
     }
 
+    public function getSearchParamsByToken($filters)
+    {
+        $token = $filters['search_token'];
+        $redis = $this->setupRedis();
+        if (!$redis) {
+            throw new Exception('Could not connect to Redis server');
+        }
+        $path = 'misp:search_tokens:' . $token;
+        $params = $redis->get($path);
+        $params = json_decode($params, true);
+        $params['search_token'] = $token;
+        $toUnset = ['page', 'limit', 'sort', 'direction'];
+        foreach ($toUnset as $unset) {
+            if (isset($params[$unset])) {
+                unset($params[$unset]);
+            }
+        }
+        return array_merge($filters, $params);
+    }
+
+    public function setSearchParamsByToken($params)
+    {
+        $redis = $this->setupRedis();
+        if (!$redis) {
+            throw new Exception('Could not connect to Redis server');
+        }
+        $token = bin2hex(Security::randomBytes(32));
+        $path = 'misp:search_tokens:' . $token;
+        $params = json_encode($params);
+        $redis->set($path, $params);
+        $redis->expire($path, 3600);
+        return $token;
+    }
+    
     public function fixUpdatedGalaxyID()
     {
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -4485,5 +4530,14 @@ class AppModel extends Model
         foreach (array_chunk($toUpdate, 1000) as $chunk) {
             $this->GalaxyCluster->saveMany($chunk, $options);
         }
+        return true;
+    }
+
+    public function checkDbSupport($functionality)
+    {
+        if (isset($this->getDataSource()->supports) && !empty($this->getDataSource()->supports[$functionality])) {
+            return $this->getDataSource()->supports[$functionality];
+        }
+        return false;
     }
 }

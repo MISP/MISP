@@ -10,7 +10,7 @@
         implode('', $extended_by),
         __(
             'Currently in %s view.',
-            $field['include_extended'] ? __('extended') : __('atomic')
+            $field['extended'] ? __('extended') : __('atomic')
         ),
         sprintf(
             '<a href="%s"><span class="fa fa-sync" title="%s"></span></a>',
@@ -18,8 +18,8 @@
                 '%s/events/view/%s%s',
                 $baseurl,
                 h($id),
-                ($field['include_extended'] ? '' : '/include_extended:1')
+                ($field['extended'] ? '' : '/extended:1')
             ),
-            $field['include_extended'] ? __('Switch to atomic view') : __('Switch to extended view')
+            $field['extended'] ? __('Switch to atomic view') : __('Switch to extended view')
         )
     );

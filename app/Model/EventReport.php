@@ -599,7 +599,7 @@ class EventReport extends AppModel
         if (!empty($event['Event']['extends_uuid'])) {
             $extendedParentEvent = $this->Event->fetchEvent($user, array_merge([
                 'event_uuid' => $event['Event']['extends_uuid'],
-                'extended' => true,
+                'is_extended' => true,
             ], $options));
             if (!empty($extendedParentEvent)) {
                 $event = $extendedParentEvent[0];

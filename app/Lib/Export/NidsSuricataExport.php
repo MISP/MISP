@@ -37,6 +37,7 @@ class NidsSuricataExport extends NidsExport
             $ruleMeta[] = 'created_at ' . date('Y_m_d', $item['Attribute']['timestamp']);
             $ruleMeta[] = 'updated_at ' . date('Y_m_d', time());
             $ruleMeta = implode(',', $ruleMeta);
+            $ruleMeta = str_replace('%', '%%', $ruleMeta); // escape % for sprintf
             $ruleType = 'alert';
             $ruleFormatReference = 'reference:url,' . Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
             $ruleFormat = '%s' . $ruleType . ' %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . '; metadata:' . $ruleMeta . ';)';

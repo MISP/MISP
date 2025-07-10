@@ -25,16 +25,19 @@ class LogsController extends AppController
         parent::beforeFilter();
 
         // No need for CSRF tokens for a search
-        if ('admin_search' === $this->request->params['action']) {
+        if ('search' === $this->request->params['action'] || 'index' === $this->request->params['action']) {
             $this->Security->csrfCheck = false;
-            $this->Security->unlockedActions[] = 'admin_search';
+            $this->Security->unlockedActions[] = $this->request->params['action'];
         }
     }
 
     public function index()
     {
-        $paramArray = array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip');
+        $paramArray = array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip', 'search_token');
         $passedArgs = $this->passedArgs;
+        if (isset($this->request->data['Log'])) {
+            $this->request->data = $this->request->data['Log'];
+        }
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->request->params['named'],
@@ -43,8 +46,21 @@ class LogsController extends AppController
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
+        foreach ($filters as $k => $filter) {
+            if ($filter === '') {
+                unset($filters[$k]);
+            }
+        }
         unset($filterData);
-
+        if (!$this->_isRest()) {
+            if ($this->request->is('post') && empty($filters['search_token'])) {
+                $search_token = $this->Log->setSearchParamsByToken($this->request->data);
+                $this->set('search_token', $search_token);
+            } else if (!empty($filters['search_token'])) {
+                $filters = $this->Log->getSearchParamsByToken($filters);
+                $this->set('search_token', $filters['search_token']);
+            }
+        }
         if ($this->_isRest()) {
             if ($filters === false) {
                 return $exception;
@@ -109,11 +125,11 @@ class LogsController extends AppController
             // ORG admins can see their own org info
             $orgRestriction = $this->Auth->user('Organisation')['name'];
             $conditions['Log.org'] = $orgRestriction;
-            $this->paginate['conditions'] = $conditions;
+            $this->paginate['conditions']['AND'][] = $conditions;
         } else {
             // users can see their own info
-            $conditions['Log.email'] = $this->Auth->user('email');
-            $this->paginate['conditions'] = $conditions;
+            $conditions['Log.user_id'] = $this->Auth->user('id');
+            $this->paginate['conditions']['AND'][] = $conditions;
         }
         if (isset($this->params['named']['filter']) && in_array($this->params['named']['filter'], array_keys($validFilters))) {
             $this->paginate['conditions']['Log.action'] = $validFilters[$this->params['named']['filter']]['values'];
@@ -128,10 +144,12 @@ class LogsController extends AppController
             if ($key == 'page' || $key == 'limit') {
                 continue;
             }
-            $this->paginate['conditions']["Log.$key"] = $value;
+            if (in_array($key, array_keys($validFilters))) {
+                $this->paginate['conditions']["Log.$key"] = $value;
+            }
         }
         $this->set('validFilters', $validFilters);
-        $this->set('filter', isset($this->params['named']['filter']) ? $this->params['named']['filter'] : false);
+        $this->set('filter', $filters);
         $this->set('data', $this->paginate());
         $this->set('paramArray', $paramArray);
         $this->set('passedArgsArray', $passedArgs);

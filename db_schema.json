@@ -8669,11 +8669,11 @@
             {
                 "column_name": "api_key",
                 "is_nullable": "NO",
-                "data_type": "varchar",
-                "character_maximum_length": "255",
+                "data_type": "text",
+                "character_maximum_length": "65535",
                 "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
-                "column_type": "varchar(255)",
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "text",
                 "column_default": null,
                 "extra": ""
             },
@@ -11028,5 +11028,5 @@
             "uuid": false
         }
     },
-    "db_version": "138"
+    "db_version": "140"
 }

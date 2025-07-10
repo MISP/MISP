@@ -1796,7 +1796,7 @@ class MispAttribute extends AppModel
             'recursive' => -1,
             'contain' => array(
                 'Event' => array(
-                    'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
+                    'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid', 'user_id'),
                 ),
                 'AttributeTag', // tags are fetched separately, @see MispAttribute::attachTagsToAttributes
                 'Object' => array(
@@ -2683,6 +2683,7 @@ class MispAttribute extends AppModel
     {
         $attribute['event_id'] = $eventId;
         $attribute['object_id'] = $objectId ?: 0;
+        $attribute['object_relation'] = !empty($objectId) ? $attribute['object_relation'] : null;
         if (!isset($attribute['to_ids'])) {
             $attribute['to_ids'] = $this->typeDefinitions[$attribute['type']]['to_ids'];
         }
@@ -4034,6 +4035,7 @@ class MispAttribute extends AppModel
                 'Attribute.id' => $params['id'],
             ],
             'withAttachments' => 1,
+            'flatten' => 1
         ]);
         if (empty($attribute)) {
             throw new MethodNotAllowedException('Invalid attribute.');

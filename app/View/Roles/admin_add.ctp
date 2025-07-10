@@ -39,8 +39,24 @@ $fields = [
         'div' => [
             'id' => 'rateLimitCountContainer'
         ]
+    ],
+    [
+        'field' => 'is_restsearch_limited',
+        'label' => __('Limit restSearch Results') . ' <i class="fa fa-info restclient-infofield" data-toggle="tooltip" data-placement="right" title="If unset, will be the default setting for the server. Set 0 to allow unlimited." style="margin-left: 5px;"></i>',
+        'type' => 'checkbox',
+        'div' => [
+            'id' => 'restsearchLimitToggleContainer'
+        ]
+    ],
+    [
+        'field' => 'restsearch_limit_result',
+        'label' => __('# of results per search'),
+        'div' => [
+            'id' => 'restsearchLimitValueContainer'
+        ]
     ]
 ];
+
 $counter = 0;
 foreach ($permFlags as $k => $flag) {
     $counter += 1;
@@ -89,5 +105,10 @@ if (!$ajax) {
         $("#RoleEnforceRateLimit").change(function() {
             checkRoleEnforceRateLimit();
         });
+        $('#RoleIsRestsearchLimited').change(function () {
+            toggleIsRestsearchLimitedField();
+        });
+        toggleIsRestsearchLimitedField(); // initial state
+        $('[data-toggle="tooltip"]').tooltip();
     });
 </script>

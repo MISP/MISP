@@ -231,7 +231,7 @@ paths:
           $ref: "#/components/responses/ApiErrorResponse"
 
   /analystData/indexMinimal:
-    get:
+    post:
       summary: "List minimal Analyst data"
       operationId: indexMinimalAnalystData
       tags:
@@ -351,19 +351,19 @@ paths:
         - name: attributeId
           in: path
           description: Attribute ID or 'selected' to add tags to multiple attributes
-          required: false
+          required: true
           schema:
             type: string
         - name: tagId
           in: path
           description: Tag ID, tag name or tag collection ID (format collection_N)
-          required: false
+          required: true
           schema:
             type: string
         - name: local
           in: path
           description: Whether to add tag as local tag (1) or global tag (0). Leave the other path params empty if you want to add local tags using the json request body params
-          required: false
+          required: true
           schema:
             type: integer
             enum: [ 0, 1 ]
@@ -572,7 +572,7 @@ paths:
           $ref: "#/components/responses/ApiErrorResponse"
 
   /collections/index/{filter}:
-    get:
+    post:
       summary: "Get a list of collections with optional filtering"
       operationId: getCollections
       tags:
@@ -581,7 +581,7 @@ paths:
         - name: filter
           in: path
           description: "Optional filter for collections"
-          required: false
+          required: true
           schema:
             type: string
             enum:
@@ -589,7 +589,6 @@ paths:
               - "org_collections"
       requestBody:
         $ref: "#/components/requestBodies/SearchCollectionsRequest"
-
       responses:
         "200":
           $ref: "#/components/responses/CollectionListResponse"
@@ -3083,6 +3082,8 @@ components:
     MinimalAnalystDataEmpty:
       description: "Minimal Analyst Data"
       type: array
+      items:
+        type: object
       maxItems: 0
 
     # Attributes
@@ -6335,6 +6336,7 @@ components:
       minimum: 1
 
     LimitSearchFilter:
+      description: "Maximum number of results to be returned. Can't be greater than the one set for your role. 0 means maximum."
       type: integer
       format: int32
       nullable: true

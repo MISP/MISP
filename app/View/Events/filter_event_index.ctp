@@ -187,7 +187,7 @@
                         <th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
                     </tr>
                     <?php
-                        $fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'extending', 'extended', 'distribution', 'sharinggroup', 'attribute', 'hasproposal', 'timestamp', 'publishtimestamp', 'all');
+                        $fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'is_extension', 'is_extended', 'distribution', 'sharinggroup', 'attribute', 'hasproposal', 'timestamp', 'publishtimestamp', 'all');
                         if ($isSiteAdmin) $fields[] = 'email';
                         foreach ($fields as $k => $field):
                     ?>
@@ -229,8 +229,8 @@ var formInfoValues = {};
 var typeArray = {
         'tag' : <?php echo $tagJSON; ?>,
         'published' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
-        'extending' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
-        'extended' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
+        'is_extension' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
+        'is_extended' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
         'hasproposal' : ["<?php echo __('No');?>", "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
         'distribution' : [
                         {"id" : "0", "value" : "<?php echo __('Your organisation only');?>"},

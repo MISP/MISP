@@ -15,7 +15,7 @@
             break;
         case 'attribute':
             $id = $attributeId;
-            $searchUrl = '/attributes/search/tags:';
+            $searchUrl = '/attributes/index/tags:';
             if (!empty($server)) {
                 $searchUrl = sprintf("/servers/previewIndex/%s/searchtag:", h($server['Server']['id']));
             }
