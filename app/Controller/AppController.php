@@ -914,11 +914,16 @@ class AppController extends Controller
     {
         // benchmarking
         if (Configure::read('Plugin.Benchmarking_enable') && isset($this->Benchmark)) {
+            $sql_time = null;
+            if (get_class($this->User->getDataSource()) === 'MysqlObserverExtended') {
+                $sql_time = MysqlObserverExtended::$totalSqlTimeMs;
+            }
             $this->Benchmark->stopBenchmark([
                 'user' => $this->Auth->user('id'),
                 'controller' => $this->request->params['controller'],
                 'action' => $this->request->params['action'],
-                'start_time' => $this->start_time
+                'start_time' => $this->start_time,
+                'sql_time' => $sql_time
             ]);
 
             //if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $key)) {

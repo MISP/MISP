@@ -294,7 +294,7 @@ echo $this->element('genericElements/IndexTable/scaffold', [
                     },
                 ]
             ],
-            'persistUrlParams' => ['search_token']
+            'persistUrlParams' => ['search_token', 'tags']
         ],
         'passedArgsArray' => $passedArgsArray,
         'append' => $append

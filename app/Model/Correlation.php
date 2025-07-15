@@ -29,10 +29,6 @@ class Correlation extends AppModel
             'className' => 'Event',
             'foreignKey' => 'event_id'
         ),
-        'Object' => array(
-            'className' => 'Object',
-            'foreignKey' => 'object_id'
-        ),
         'CorrelationValue' => [
             'className' => 'CorrelationValue',
             'foreignKey' => 'value_id'
@@ -66,10 +62,24 @@ class Correlation extends AppModel
     /** @var CorrelationRule */
     public $CorrelationRule;
 
+    public $virtualTable = false;
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
         $correlationEngine = $this->getCorrelationModelName();
+        if ($correlationEngine !== 'NoAcl') {
+            $this->bindModel(
+                [
+                    'belongsTo' => [
+                        'Object' => [
+                            'className' => 'Object',
+                            'foreignKey' => 'object_id'
+                        ]
+                    ]
+                ]
+            );
+        }
         $deadlockAvoidance = Configure::read('MISP.deadlock_avoidance') ?: false;
         // load the currently used correlation engine
         $this->Behaviors->load($correlationEngine . 'Correlation', ['deadlockAvoidance' => $deadlockAvoidance]);
@@ -140,6 +150,7 @@ class Correlation extends AppModel
                 'conditions' => ['Event.disable_correlation' => 0],
             ]);
             $full = true;
+            $this->virtualTable = $this->CorrelationRule->generateVirtualTable();
         } else {
             $eventIds = [$eventId];
             $full = false;
@@ -200,9 +211,7 @@ class Correlation extends AppModel
         $attributeConditions = [
             'Attribute.deleted' => 0,
             'Attribute.disable_correlation' => 0,
-            'NOT' => [
-                'Attribute.type' => MispAttribute::NON_CORRELATING_TYPES,
-            ],
+            'Attribute.type NOT IN' => MispAttribute::NON_CORRELATING_TYPES,
         ];
         if ($eventId) {
             $attributeConditions['Attribute.event_id'] = $eventId;
@@ -432,9 +441,12 @@ class Correlation extends AppModel
         if (!empty($a['Event']['disable_correlation'])) {
             return true;
         }
+        /* 
+         *Removed this check for now, it assumed that correlatioan rules COMPLETELY blocked correlation, which is not the case.
         if (!$this->CorrelationRule->canCorrelate($a)) {
             return true;
         }
+        */
         // generate additional correlating attribute list based on the advanced correlations
         if (!$this->__preventExcludedCorrelations($a['Attribute']['value1'])) {
             $extraConditions = $this->__buildAdvancedCorrelationConditions($a);
@@ -465,10 +477,8 @@ class Correlation extends AppModel
                 continue; // skip already blocked values when doing full correlation
             }
             $conditions = [
-                'NOT' => [
-                    'Attribute.event_id' => $a['Attribute']['event_id'],
-                    'Attribute.type' => MispAttribute::NON_CORRELATING_TYPES,
-                ],
+                'Attribute.type NOT IN' => MispAttribute::NON_CORRELATING_TYPES,
+                'Attribute.event_id !=' => $a['Attribute']['event_id'],
                 'Attribute.disable_correlation' => 0,
                 'Event.disable_correlation' => 0,
                 'Attribute.deleted' => 0,
@@ -1168,5 +1178,51 @@ class Correlation extends AppModel
     private function getCorrelationModelName()
     {
         return Configure::read('MISP.correlation_engine') ?: 'Default';
+    }
+
+    public function getRuleImpact($id)
+    {
+        $rule = $this->CorrelationRule->find('first', [
+            'recursive' => -1,
+            'conditions' => ['CorrelationRule.id' => $id]
+        ]);
+        if (empty($rule)) {
+            throw new NotFoundException(__('Invalid Correlation Rule'));
+        }
+        $eventIds = $this->CorrelationRule->getEventIdsForRule($rule);
+        return count($eventIds);
+    }
+
+    public function executeRule($id)
+    {
+        $rule = $this->CorrelationRule->find('first', [
+            'conditions' => ['CorrelationRule.id' => $id],
+            'recursive' => -1
+        ]);
+        if (empty($rule)) {
+            throw new NotFoundException(__('Invalid Correlation Rule'));
+        }
+        $eventIds = $this->CorrelationRule->getEventIdsForRule($rule);
+        if (!empty($eventIds) && is_array($eventIds)) {
+            if (!$this->deleteAll([
+                'OR' => [
+                    [
+                        'AND' => [
+                            'Correlation.event_id IN' => $eventIds,
+                            'Correlation.1_event_id IN' => $eventIds,
+                        ],
+                    ],
+                    [
+                        'AND' => [
+                            'Correlation.1_event_id IN' => $eventIds,
+                            'Correlation.event_id IN' => $eventIds,
+                        ]
+                    ]
+                ]
+                ], false, false)) {
+                throw new InternalErrorException(__('Could not delete correlations for rule %s', $id));
+            }
+        }
+        return true;
     }
 }

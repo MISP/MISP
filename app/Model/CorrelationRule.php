@@ -5,6 +5,8 @@ class CorrelationRule extends AppModel
 {
     public $recursive = -1;
 
+    public $virtualTable = false;
+
     private $__conditionCache = [
         'orgc_id' => [],
         'org_id' => [],
@@ -64,6 +66,77 @@ class CorrelationRule extends AppModel
         return $results;
     }
 
+    public function generateVirtualTable()
+    {
+        $this->__loadRuleCache();
+        if (!$this->virtualTable) {
+            $query = '
+            CREATE TEMPORARY TABLE tmp_excludes (
+                event_id BIGINT NOT NULL,
+                rule_id  INT    NOT NULL,
+                PRIMARY KEY(event_id,rule_id)
+            ) ENGINE=MEMORY
+            ';
+            if ($this->query($query)) {
+                $this->Event = ClassRegistry::init('Event');
+                foreach ($this->__ruleCache as $rule) {
+                    $values = [];
+                    $ruleId = intval($rule['CorrelationRule']['id']);
+                    if (empty($rule['CorrelationRule']['selector_list'])) {
+                        continue;
+                    }
+                    if ($rule['CorrelationRule']['selector_type'] === 'event_id') {
+                        foreach ($rule['CorrelationRule']['selector_list'] as $eventId) {
+                            $values[] = '(' . intval($eventId) . ',' . $ruleId . ')';
+                        }
+                    } elseif ($rule['CorrelationRule']['selector_type'] === 'orgc_id') {
+                        $eventIds = $this->Event->find('column', [
+                            'recursive' => -1,
+                            'conditions' => [
+                                'Event.orgc_id' => $rule['CorrelationRule']['selector_list']
+                            ],
+                            'fields' => ['Event.id']
+                        ]);
+                        foreach ($eventIds as $eventId) {
+                            $values[] = '(' . intval($eventId) . ',' . $ruleId . ')';
+                        }
+                    } elseif ($rule['CorrelationRule']['selector_type'] === 'org_id') {
+                        $eventIds = $this->Event->find('column', [
+                            'recursive' => -1,
+                            'conditions' => [
+                                'Event.org_id' => $rule['CorrelationRule']['selector_list']
+                            ],
+                            'fields' => ['Event.id']
+                        ]);
+                        foreach ($eventIds as $eventId) {
+                            $values[] = '(' . intval($eventId) . ',' . $ruleId . ')';
+                        }
+                    } elseif ($rule['CorrelationRule']['selector_type'] === 'event_info') {
+                        $subConditions = [];
+                        foreach ($rule['CorrelationRule']['selector_list'] as $selector) {
+                            $subConditions[] = ['LOWER(Event.info) LIKE' => mb_strtolower($selector)];
+                        }
+                        $eventIds = $this->Event->find('column', [
+                            'recursive' => -1,
+                            'conditions' => [
+                                'OR' => $subConditions
+                            ],
+                            'fields' => ['Event.id']
+                        ]);
+                        foreach ($eventIds as $eventId) {
+                            $values[] = '(' . intval($eventId) . ',' . $ruleId . ')';
+                        }
+                    }
+                    $this->query('INSERT INTO tmp_excludes (event_id, rule_id) VALUES (' . intval($eventId) . ', ' . intval($ruleId) . ')');
+                }
+                $this->virtualTable = true;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public function generateConditionsForEvent($event)
     {
         $conditions = [];
@@ -90,8 +163,27 @@ class CorrelationRule extends AppModel
     public function attachCustomCorrelationRules($attribute, $conditions)
     {
         $this->__loadRuleCache();
-        $filterConditions = $this->generateConditionsForEvent($attribute['Event']);
-        $conditions['AND'][] = $filterConditions;
+        if (empty($attribute['Event']['id'])) {
+            // If no event ID is set, we cannot filter by correlation rules
+            return $conditions;
+        } else if ($this->virtualTable) {
+            $rules = $this->query('SELECT DISTINCT(rule_id) as rule FROM tmp_excludes WHERE event_id = ' . intval($attribute['Attribute']['event_id']));
+            if (!empty($rules)) {
+                $ruleIds = [];
+                foreach ($rules as $rule) {
+                    $ruleIds[] = intval($rule['tmp_excludes']['rule']);
+                }
+                $conditions['AND'][] = sprintf(
+                    'NOT EXISTS (SELECT 1 FROM tmp_excludes WHERE tmp_excludes.event_id = Event.id AND tmp_excludes.rule_id IN (%s))',
+                    implode(', ', $ruleIds)
+                );
+                debug($conditions);
+                throw new Exception();
+            }
+        } else {
+            $filterConditions = $this->generateConditionsForEvent($attribute['Event']);
+            $conditions['AND'][] = $filterConditions;
+        }
         return $conditions;
     }
 
@@ -210,5 +302,49 @@ class CorrelationRule extends AppModel
             $this->__conditionCache[$event['id']]['event_info'] = array_merge($this->__conditionCache[$event['id']]['event_info'], $ids);
         }
         return true;
+    }
+
+    public function getEventIdsForRule($rule)
+    {
+        if (is_numeric($rule)) {
+            $rule = $this->find('first', [
+                'conditions' => ['CorrelationRule.id' => $rule],
+                'recursive' => -1
+            ]);
+            if (empty($rule)) {
+                throw new NotFoundException(__('Invalid Correlation Rule'));
+            }
+        }
+        if ($rule['CorrelationRule']['selector_type'] === 'event_id') {
+            $eventIds = $rule['CorrelationRule']['selector_list'];
+        } elseif ($rule['CorrelationRule']['selector_type'] === 'orgc_id') {
+            $this->Event = ClassRegistry::init('Event');
+            $eventIds = $this->Event->find('column', [
+                'recursive' => -1,
+                'conditions' => ['Event.orgc_id' => $rule['CorrelationRule']['selector_list']],
+                'fields' => ['Event.id']
+            ]);
+        } elseif ($rule['CorrelationRule']['selector_type'] === 'org_id') {
+            $this->Event = ClassRegistry::init('Event');
+            $eventIds = $this->Event->find('column', [
+                'recursive' => -1,
+                'conditions' => ['Event.org_id' => $rule['CorrelationRule']['selector_list']],
+                'fields' => ['Event.id']
+            ]);
+        } elseif ($rule['CorrelationRule']['selector_type'] === 'event_info') {
+            $this->Event = ClassRegistry::init('Event');
+            $conditions = [];
+            foreach ($rule['CorrelationRule']['selector_list'] as $selector) {
+                $conditions[] = ['LOWER(Event.info) LIKE' => mb_strtolower($selector)];
+            }
+            $eventIds = $this->Event->find('column', [
+                'recursive' => -1,
+                'conditions' => ['OR' => $conditions],
+                'fields' => ['Event.id']
+            ]);
+        } else {
+            throw new InvalidArgumentException(__('Invalid selector type'));
+        }
+        return $eventIds;
     }
 }
