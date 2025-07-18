@@ -30,7 +30,12 @@
     <div class="clear"></div>
     <div id="passwordDivDiv" style="<?= (!empty(Configure::read('Plugin.CustomAuth_required')) && !empty(Configure::read('Plugin.CustomAuth_enable'))) ? 'display:none;' : ''?>">
         <?php
-            echo $this->Form->input('enable_password', array('type' => 'checkbox', 'label' => __('Set password')));
+            echo $this->Form->input('enable_password', array(
+                'type' => 'checkbox',
+                'label' => __('Set password'),
+                'disabled' => Configure::read('MISP.disable_user_password_change'),
+                'checked' => !Configure::read('MISP.disable_user_password_change')
+            ));
         ?>
         <div id="PasswordDiv">
             <div class="clear"></div>
