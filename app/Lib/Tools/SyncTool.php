@@ -95,7 +95,7 @@ class SyncTool
 
         $proxy = Configure::read('Proxy');
         if (empty($params['skip_proxy']) && isset($proxy['host']) && !empty($proxy['host'])) {
-            $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
+            $HttpSocket->configProxy($proxy['host'], $proxy['port'] ?? 3128, $proxy['method'] ?? null, $proxy['user'] ?? null, $proxy['password'] ?? null);
         }
         return $HttpSocket;
     }

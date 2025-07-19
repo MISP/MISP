@@ -498,7 +498,7 @@ class Server extends AppModel
         $passAlong = $server['Server']['id'];
         if (!$existingEvent) {
             // add data for newly imported events
-            if (isset($event['Event']['protected']) && $event['Event']['protected']) {
+            if (!$server['Server']['internal'] && isset($event['Event']['protected']) && $event['Event']['protected']) {
                 if (!$eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $event)) {
                     $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                     return false;
@@ -518,7 +518,7 @@ class Server extends AppModel
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
                 $fails[$eventId] = __('Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side.');
             } else {
-                if ($existingEvent['Event']['protected']) {
+                if (!$server['Server']['internal'] && $existingEvent['Event']['protected']) {
                     if (!$eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $existingEvent)) {
                         $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                         return false;
@@ -5311,6 +5311,14 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'object_fetch_hard_limit'=> [
+                    'level' => 1,
+                    'description' => __('This value controls the the maximum number of objects that can be fetched in one shot via /objects/restSearch. If a query would exceed the given limit, it will iterate internally to build the result-set, so it will only effect the internals, however, it can resolve object restSearch failures due to high memory allocation to php.ini. Setting this to 0 will disable the cap altogether and revert to the old behaviour. Defaults to 0 (disabled).'),
+                    'value' => 0,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
                 'curl_request_timeout' => [
                     'level' => 1,
                     'description' => __('Control the default timeout in seconds of curl HTTP requests issued by MISP (during synchronisation, feed fetching, etc.)'),
@@ -5703,7 +5711,7 @@ class Server extends AppModel
                 'cveurl' => array(
                     'level' => 1,
                     'description' => __('Turn Vulnerability type attributes into links linking to the provided CVE lookup'),
-                    'value' => 'https://cve.circl.lu/cve/',
+                    'value' => 'https://vulnerability.circl.lu/vuln/',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'cli_only' => 1
@@ -5711,7 +5719,7 @@ class Server extends AppModel
                 'cweurl' => array(
                     'level' => 1,
                     'description' => __('Turn Weakness type attributes into links linking to the provided CWE lookup'),
-                    'value' => 'https://cve.circl.lu/cwe/',
+                    'value' => 'https://vulnerability.circl.lu/cwes/',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'cli_only' => 1
@@ -6098,6 +6106,22 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
+                'log_errors_ndjson' => [
+                    'level' =>  self::SETTING_RECOMMENDED,
+                    'description' => __('Log errors in ndjson format additionally to error.log.)'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
+                'log_errors_ndjson_path' => [
+                    'level' =>  self::SETTING_RECOMMENDED,
+                    'description' => __('Path for the ndjson error log file - defaults to ' . APP . '/app/tmp/logs/error.log.ndjson.'),
+                    'value' => APP . '/tmp/logs/error.log.ndjson',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'cli' => true,
+                    'null' => true
+                ],
                 'disable_seen_ips_authkeys' => [
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('Disable the storing of IP addresses used to make API calls with an AuthKey against this AuthKey in the database.'),
@@ -6456,6 +6480,13 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'default_restsearch_limit' => array(
+                    'level' => 1,
+                    'description' => 'Default number of matching result for restSearch API if none is provided when adding a new role. Leave empty(0) to set as unlimited.',
+                    'value' => 0,
+                    'errorMessage' => '',
+                    'null' => true
+                ),
                 'attribute_filters_block_only' => array(
                     'level' => 1,
                     'description' => __('This is a performance tweak to change the behaviour of restSearch to use attribute filters solely for blocking. This means that a lookup on the event scope with for example the type field set will be ignored unless it\'s used to strip unwanted attributes from the results. If left disabled, passing [ip-src, ip-dst] for example will return any event with at least one ip-src or ip-dst attribute. This is generally not considered to be too useful and is a heavy burden on the database.'),
@@ -6705,6 +6736,7 @@ class Server extends AppModel
                     'value' => '/var/www/MISP/.smime/email@address.com.pem',
                     'test' => 'testForEmpty',
                     'type' => 'string',
+                    'cli_only' => 1,
                 ),
                 'key_sign' => array(
                     'level' => 2,
@@ -6712,6 +6744,7 @@ class Server extends AppModel
                     'value' => '/var/www/MISP/.smime/email@address.com.key',
                     'test' => 'testForEmpty',
                     'type' => 'string',
+                    'cli_only' => 1,
                 ),
                 'password' => array(
                     'level' => 2,
@@ -7904,6 +7937,27 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ],
+                'Benchmarking_log_query_metrics' => [
+                    'level' => 2,
+                    'description' => __('Enable the logging of SQL query metrics. This setting is required for all slow_log features to work.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
+                'Benchmarking_slow_log_threshold' => [
+                    'level' => 2,
+                    'description' => __('The duration of a query to be considered a slow query. Default: 5000 (=5s)'),
+                    'value' => 5000,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ],
+                'Benchmarking_slow_query_retention' => [
+                    'level' => 2,
+                    'description' => __('The retention of slow query log entries in seconds. Default: 259200 (=3 days)'),
+                    'value' => 259200,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ],
                 'Enrichment_services_enable' => array(
                     'level' => 0,
                     'description' => __('Enable/disable the enrichment services'),
@@ -8368,6 +8422,7 @@ class Server extends AppModel
                     'Dump current database schema' => 'MISP/app/Console/cake Admin dumpCurrentDatabaseSchema',
                     'Scan attachment' => 'MISP/app/Console/cake Admin scanAttachment [input] [attribute_id] [job_id]',
                     'Clean excluded correlations' => 'MISP/app/Console/cake Admin cleanExcludedCorrelations [job_id]',
+                    'Run DB Script' => 'MISP/app/Console/cake Admin runDBScript [script_name]',
                 ),
                 'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
                 'header' => __('Administering MISP via the CLI')

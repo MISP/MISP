@@ -73,8 +73,36 @@ $fields[] = [
 $fields[] = [
     'name' => __('Searches / 15 mins'),
     'sort' => 'Role.rate_limit_count',
-    'data_path' => 'Role.rate_limit_count',
-    'decorator' => function($value) {
+    'element' => 'custom',
+    'function' => function (array $row){
+        $value = $row['Role']['rate_limit_count'];
+        if (!$row['Role']['enforce_rate_limit'] || empty($value)) {
+            return __('Unlimited');
+        }
+       else {
+            return h($value);
+        }
+    },
+    'requirement' => $isAdmin,
+];
+
+$fields[] = [
+    'name' => __('Max result by restSearch'),
+    'sort' => 'Role.restsearch_limit_result',
+    'element' => 'custom',
+    'function' => function (array $row){
+        $default = (int) Configure::read('MISP.default_restsearch_limit');
+        $value = $row['Role']['restsearch_limit_result'];
+        if (is_null($value) && !$row['Role']['perm_site_admin']) {
+            if ($default == 0) {
+                return __('Undefined - Fallback to <strong>Server Default (Unlimited)</strong>');
+            } else {
+                return __('Undefined - Fallback to <strong>Server Default (%s)</strong>', h($default));
+            }
+        }
+        else if (is_null($value) && $row['Role']['perm_site_admin']) {
+            return __('Undefined - Fallback to <strong>Unlimited as Site Admin<strong>', h($default));
+        }
         return (empty($value) ? __('Unlimited') : h($value));
     },
     'requirement' => $isAdmin,

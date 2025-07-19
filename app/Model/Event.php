@@ -152,10 +152,10 @@ class Event extends AppModel
         'blockedAttributeTags',
         'blockedEventReportTags',
         'eventsExtendingUuid',
+        'is_extended',
+        'is_extension',
         'extended',
         'extending',
-        'include_extended',
-        'include_extending',
         'extensionList',
         'excludeGalaxy',
         // 'includeCustomGalaxyCluster', // not used
@@ -1437,8 +1437,7 @@ class Event extends AppModel
             $conditions['AND']['OR'] = [
                 [
                     'AND' => [
-                        'Event.distribution >' => 0,
-                        'Event.distribution <' => 4,
+                        'Event.distribution BETWEEN 1 AND 3',
                         $unpublishedPrivate ? array('Event.published' => 1) : [],
                     ],
                 ],
@@ -1546,7 +1545,7 @@ class Event extends AppModel
                     'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
                     'eventinfo' => array('function' => 'set_filter_eventinfo'),
                     'ignore' => array('function' => 'set_filter_ignore'),
-                    'tags' => array('function' => 'set_filter_tags', 'pop' => true),
+                    'tags' => array('function' => 'set_filter_tags', 'pop' => true, 'skip_neg' => true),
                     'event_tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
@@ -1559,8 +1558,8 @@ class Event extends AppModel
                     'orgc_id' => array('function' => 'set_filter_orgc_id', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
                     'published' => array('function' => 'set_filter_published', 'pop' => true),
-                    'extended' => array('function' => 'set_filter_extended', 'pop' => true),
-                    'extending' => array('function' => 'set_filter_extending', 'pop' => true),
+                    'is_extended' => array('function' => 'set_filter_extended', 'pop' => true),
+                    'is_extension' => array('function' => 'set_filter_extending', 'pop' => true),
                     'threat_level_id' => array('function' => 'set_filter_threat_level_id', 'pop' => true),
                     'sharinggroup' => array('function' => 'set_filter_sharing_group')
                 ),
@@ -1574,7 +1573,7 @@ class Event extends AppModel
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_type'),
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
-                    'tags' => array('function' => 'set_filter_tags', 'pop' => true),
+                    'tags' => array('function' => 'set_filter_tags', 'pop' => true, 'skip_neg' => true),
                     'ignore' => array('function' => 'set_filter_ignore'),
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
@@ -1591,6 +1590,9 @@ class Event extends AppModel
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
                             'context' => 'Event'
                         );
+                        if (!empty($simple_param_scoped[$param]['skip_neg'])) {
+                            $options['skip_neg'] = true;
+                        }
                         if ($scope === 'Event') {
                             $conditions = $this->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
                         } else {
@@ -1922,10 +1924,10 @@ class Event extends AppModel
         if (isset($options['published'])) {
             $conditions['AND'][] = array('Event.published' => $options['published']);
         }
-        if (isset($options['extended'])) {
+        if (isset($options['is_extended'])) {
             $conditions = $this->set_filter_extended($options, $conditions, null);
         }
-        if (isset($options['extending'])) {
+        if (isset($options['is_extension'])) {
             $conditions = $this->set_filter_extending($options, $conditions, null);
         }
         if ($options['orgc_id']) {
@@ -2319,12 +2321,12 @@ class Event extends AppModel
                 $event = $this->Sightingdb->attachToEvent($event, $user);
             }
         }
-        if ($options['include_extended']) {
+        if ($options['extended']) {
             foreach ($results as $k => $result) {
                 $results[$k] = $this->__mergeExtensions($user, $result, $options);
             }
         }
-        if ($options['include_extending']) {
+        if ($options['extending']) {
             foreach ($results as $k => $result) {
                 $results[$k] = $this->__mergeExtensions($user, $result, $options);
             }
@@ -2574,7 +2576,7 @@ class Event extends AppModel
             'sgReferenceOnly' => $options['sgReferenceOnly'],
             'includeAnalystData' => $options['includeAnalystData'],
         ];
-        if (!empty($options['include_extending'])) {
+        if (!empty($options['extending'])) {
             $fetchOptions['event_uuid'] = $event['Event']['extends_uuid'];
         } else {
             $fetchOptions['eventsExtendingUuid'] = $event['Event']['uuid'];
@@ -2962,19 +2964,19 @@ class Event extends AppModel
 
     public function set_filter_extended(&$params, $conditions, $options)
     {
-        if (!isset($params['extended'])) {
+        if (!isset($params['is_extended'])) {
             return $conditions;
         }
 
         $extended = null;
-        //If extended is an array, it means that the user is filtering for both extended and not extended events
-        if (is_array($params['extended']) && in_array(1, $params['extended']) && in_array(0, $params['extended'])) {
+        //If is_extended is an array, it means that the user is filtering for both extended and not extended events
+        if (is_array($params['is_extended']) && in_array(1, $params['is_extended']) && in_array(0, $params['is_extended'])) {
             return $conditions;
-        //Accept if extended is [0] or [1] and converting it to boolean
-        } else if (is_array($params['extended']) && (in_array(1, $params['extended'] ) || in_array(0, $params['extended']))) {
-            $extended = filter_var($params['extended'][0], FILTER_VALIDATE_BOOLEAN);
+        //Accept if is_extended is [0] or [1] and converting it to boolean
+        } else if (is_array($params['is_extended']) && (in_array(1, $params['is_extended'] ) || in_array(0, $params['is_extended']))) {
+            $extended = filter_var($params['is_extended'][0], FILTER_VALIDATE_BOOLEAN);
         } else {
-            $extended = filter_var($params['extended'], FILTER_VALIDATE_BOOLEAN);
+            $extended = filter_var($params['is_extended'], FILTER_VALIDATE_BOOLEAN);
         }
 
         //Step 1 - Extract the UUIDs of the events that are extended and remove duplicates
@@ -3025,19 +3027,19 @@ class Event extends AppModel
 
     public function set_filter_extending(&$params, $conditions, $options)
     {
-        if (!isset($params['extending'])) {
+        if (!isset($params['is_extension'])) {
             return $conditions;
         }
 
         $extending = null;
         //If extended is an array, it means that the user is filtering for both extended and not extended events
-        if (is_array($params['extending']) && in_array(1, $params['extending']) && in_array(0, $params['extending'])) {
+        if (is_array($params['is_extension']) && in_array(1, $params['is_extension']) && in_array(0, $params['is_extension'])) {
             return $conditions;
         //Accept if extended is [0] or [1] and converting it to boolean
-        } else if (is_array($params['extending']) && (in_array(1, $params['extending'] ) || in_array(0, $params['extending']))) {
-            $extending = filter_var($params['extending'][0], FILTER_VALIDATE_BOOLEAN);
+        } else if (is_array($params['is_extension']) && (in_array(1, $params['is_extension'] ) || in_array(0, $params['is_extension']))) {
+            $extending = filter_var($params['is_extension'][0], FILTER_VALIDATE_BOOLEAN);
         } else{
-            $extending = filter_var($params['extending'], FILTER_VALIDATE_BOOLEAN);
+            $extending = filter_var($params['is_extension'], FILTER_VALIDATE_BOOLEAN);
         }
 
         if ($extending) {
@@ -4258,6 +4260,9 @@ class Event extends AppModel
             $values = [$attribute['value']];
         }
         foreach ($values as $value) {
+            if (is_array($value)) {
+                throw new MethodNotAllowedException(__('Attribute value is an array, which is not allowed: [%s]', implode(', ', $attribute['value'])));
+            }
             $value = hash('sha256', $attribute['value']);
             if (!isset($value_table[$value])) {
                 $value_table[$value] = ['v' => $attribute['value'], 'data' => [['o' => $object_id, 'a' => $attribute_id]]];
@@ -4421,7 +4426,7 @@ class Event extends AppModel
             $changed = false;
             // If a field is not set in the request, just reuse the old value
             // Also, compare the event to the existing event and see whether this is a meaningful change
-            $recoverFields = array('analysis', 'threat_level_id', 'info', 'distribution', 'date', 'org_id');
+            $recoverFields = array('analysis', 'threat_level_id', 'info', 'distribution', 'date', 'org_id', 'protected');
             foreach ($recoverFields as $rF) {
                 if (!isset($data['Event'][$rF])) {
                     $data['Event'][$rF] = $existingEvent['Event'][$rF];
@@ -4454,7 +4459,8 @@ class Event extends AppModel
             'timestamp',
             'sharing_group_id',
             'disable_correlation',
-            'extends_uuid'
+            'extends_uuid',
+            'protected'
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList));
         if ($saveResult) {
@@ -6412,7 +6418,18 @@ class Event extends AppModel
                     }
                 }
             }
-            $stixVersion = $decoded['stix_version'];
+            $existingEvent = $this->find('first', ['conditions' => ['Event.uuid' => $data['Event']['uuid']], 'recursive' => -1]);
+            if (!empty($existingEvent)) {
+                if ($user['Role']['perm_modify_org'] && $existingEvent['Event']['orgc_id'] == $user['org_id']) {
+                    $eventid = $existingEvent['Event']['id'];
+                    $result = $this->_edit($data, $user, $eventid, null, null, true);
+                    if ($result === true) {
+                        return $eventid;
+                    }
+                }
+                return __('Event with the same UUID already exists, and you do not have the permission to modify it.');
+            }
+            $stixVersion = 'STIX ' . $decoded['stix_version'];
             $created_id = false;
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);

@@ -274,7 +274,7 @@ $(document).ready(function() {
 function reloadGalaxyMatrix() {
     var event_id = '<?= $eventId ?>'
     var galaxyName = $('select[data-toggle="chosen"]').val()
-    var url = "<?= $baseurl; ?>/events/viewGalaxyMatrix/" + event_id + "/" + galaxyName + "/event/1/<?= $include_extended ? '1' : '0'?>"
+    var url = "<?= $baseurl; ?>/events/viewGalaxyMatrix/" + event_id + "/" + galaxyName + "/event/1/<?= $extended ? '1' : '0'?>"
     $.get(url, function(html) {
         $('#attackmatrix_div').html(html)
     })

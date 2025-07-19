@@ -91,7 +91,7 @@ switch ($object['type']) {
         break;
 
     case 'vulnerability':
-        $cveUrl = Configure::read('MISP.cveurl') ?: 'https://cve.circl.lu/cve/';
+        $cveUrl = Configure::read('MISP.cveurl') ?: 'https://vulnerability.circl.lu/vuln/';
         echo $this->Html->link($object['value'], $cveUrl . $object['value'], [
             'target' => '_blank',
             'class' => $linkClass,
@@ -101,9 +101,8 @@ switch ($object['type']) {
         break;
 
     case 'weakness':
-        $cweUrl = Configure::read('MISP.cweurl') ?: 'https://cve.circl.lu/cwe/';
-        $link = $cweUrl . explode("-", $object['value'])[1];
-        echo $this->Html->link($object['value'], $link, [
+        $cweUrl = Configure::read('MISP.cweurl') ?: 'https://vulnerability.circl.lu/cwes/';
+        echo $this->Html->link($object['value'], $cweUrl . $object['value'], [
             'target' => '_blank',
             'class' => $linkClass,
             'rel' => 'noreferrer noopener',

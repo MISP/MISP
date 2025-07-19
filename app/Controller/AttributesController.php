@@ -50,7 +50,18 @@ class AttributesController extends AppController
         }
     }
 
-    public function cleanDefaultFormValues(array $filters): array
+    private function __massageSearchFilters(array $filters): array
+    {
+        $multiLineFields = ['value', 'tags', 'org_id', 'sharing_group_id', 'uuid'];
+        foreach ($multiLineFields as $field) {
+            if (isset($filters[$field]) && strstr($filters[$field], "\n")) {
+                $filters[$field] = preg_split('/\n|\r\n?/', $filters[$field]);
+            }
+        }
+        return $filters;
+    }
+
+    private function __cleanDefaultFormValues(array $filters): array
     {
         foreach ($filters as $key => $value) {
             if (in_array($key, ['type', 'category']) && $value === 'ALL') {
@@ -66,7 +77,7 @@ class AttributesController extends AppController
                 unset($filters[$key]);
             }
             if (is_array($value)) {
-                $filters[$key] = $this->cleanDefaultFormValues($value);
+                $filters[$key] = $this->__cleanDefaultFormValues($value);
             } elseif ($value === '') {
                 unset($filters[$key]);
             }
@@ -87,22 +98,37 @@ class AttributesController extends AppController
         }
         $params['conditions']['AND'][] = $this->MispAttribute->buildConditions($user);
         $paramArray = [
-            'value' , 'type', 'category', 'org_id', 'tags', 'to_ids', 'first_seen', 'last_seen', 'limit', 'page', 'sort', 'direction'
+            'value' , 'type', 'category', 'org', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation'
         ];
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->request->params['named'],
             'paramArray' => $paramArray,
-            'ordered_url_params' => func_get_args(),
-            'additional_delimiters' => PHP_EOL
+            'ordered_url_params' => func_get_args()
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
-        $filters = $this->cleanDefaultFormValues($filters);
+        if (!$this->_isRest()) {
+            if ($this->request->is('post') && empty($filters['search_token'])) {
+                $search_token = $this->MispAttribute->setSearchParamsByToken($this->request->data);
+                $this->set('search_token', $search_token);
+            } else if (!empty($filters['search_token'])) {
+                $filters = $this->MispAttribute->getSearchParamsByToken($filters);
+                $this->set('search_token', $filters['search_token']);
+            }
+        }
+        if (!$this->_isRest()) {
+            $filters = $this->__cleanDefaultFormValues($filters);
+            $filters = $this->__massageSearchFilters($filters);
+        }
         $request_filters = $filters;
         $conditions = $this->paginate['conditions'];
         $subqueryElements = $this->MispAttribute->Event->harvestSubqueryElements($filters);
         $filters = $this->MispAttribute->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
+        $roleLimit = $this->User->getUserRestLimit($this->Auth->user(), $this);
+        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
+            $filters['limit'] = $roleLimit;
+        }
         $request_filters = $filters;
         $params = array_merge($filters, [
             'limit' => $this->paginate['limit'] ?? null,
@@ -113,11 +139,7 @@ class AttributesController extends AppController
         }
         $this->set('params', $params);
         $conditions = $this->MispAttribute->buildFilterConditions($user, $filters, false);
-
-        if (isset($params['enforceWarninglist'])) {
-            $params['enforceWarninglist'] = 1;
-        }
-
+        $params = !empty($params['enforceWarninglist']) ? ['enforceWarninglist' => 1] : [];
         if (!empty($filters['direction'])) {
             $params['direction'] = $filters['direction'];
         }
@@ -194,7 +216,6 @@ class AttributesController extends AppController
 
         list($attributes, $sightingsData) = $this->__searchUI($attributes, $user);
         $exports = array_keys($this->MispAttribute->validFormats);
-        $this->set('paramArray', array_merge($paramArray, ['?']));
         $this->set('exports', $exports);
         $request_filters = array_diff_key($request_filters, array_flip(['direction', 'page', 'limit', 'sort']));
         $export_filters = '/';
@@ -202,13 +223,15 @@ class AttributesController extends AppController
             foreach ($request_filters as $k => $v) {
                 if (is_array($v)) {
                     foreach ($v as $vv) {
-                        $export_filters .= $k . '[]:' . $vv . '/';
+                        $export_filters .= urlencode($k) . '[]:' . urlencode($vv) . '/';
                     }
                 } else {
-                    $export_filters .= $k . ':' . $v . '/';
+                    $export_filters .= urlencode($k) . ':' . urlencode($v) . '/';
                 }
             }
         }
+        $this->set('paramArray', $paramArray);
+        $this->set('passedArgsArray', $this->passedArgs);
         $this->set('export_filters', $export_filters);
         $this->set('sightingsData', $sightingsData);
         $this->set('orgTable', array_column($orgTable, 'name', 'id'));
