@@ -32,6 +32,12 @@ echo $this->element('genericElements/Form/genericForm', [
                 'type' => 'checkbox'
             ],
             [
+                'field' => 'locked',
+                'label' => __('Lock events'),
+                'title' => __('Lock events created from this feed (allows sync users to edit them)'),
+                'type' => 'checkbox'
+            ],
+            [
                 'field' => 'name',
                 'label' => __('Name'),
                 'placeholder' => __('Feed name'),
