@@ -1061,6 +1061,7 @@ class Feed extends AppModel
             } else {
                 $event['Event']['distribution'] = $feed['Feed']['distribution'];
                 $event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
+                $event['Event']['lock_events'] = !empty($feed['Feed']['lock_events']) ? 1 : 0;
                 if ($feed['Feed']['sharing_group_id']) {
                     $sg = $this->SharingGroup->find('first', array(
                         'recursive' => -1,
