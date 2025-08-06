@@ -230,6 +230,7 @@ class AttributesController extends AppController
                 }
             }
         }
+        $this->set('request_filters', $request_filters);
         $this->set('paramArray', $paramArray);
         $this->set('passedArgsArray', $this->passedArgs);
         $this->set('export_filters', $export_filters);

@@ -33,7 +33,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '176';
+    private $__queryVersion = '177';
     public $pyMispVersion = '2.5.10';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -120,7 +120,6 @@ class AppController extends Controller
             Configure::write('App.fullBaseUrl', $baseurl);
             Router::fullBaseUrl($baseurl);
         }
-
         $this->_setupBaseurl();
         $this->User = ClassRegistry::init('User');
         if (Configure::read('Plugin.Benchmarking_enable')) {
@@ -234,6 +233,7 @@ class AppController extends Controller
                 }
                 return $this->_jsonDecode($dataToDecode);
             };
+
             //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
             $this->RequestHandler->addInputType('json', [$jsonDecode]);
             $this->Security->unlockedActions = [$action];
@@ -1237,6 +1237,9 @@ class AppController extends Controller
             } else {
                 $headerNamespace = '';
             }
+            if (empty($server[$headerNamespace . $header])) {
+                return false;
+            }
             if (isset($server[$headerNamespace . $header]) && !empty($server[$headerNamespace . $header])) {
                 if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $this->User->_remoteIp()) {
                     $this->Log = ClassRegistry::init('Log');
@@ -1410,6 +1413,26 @@ class AppController extends Controller
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception, $this->_legacyParams);
+        if (isset($this->request->params['named']['search_token'])) {
+            $temp = $this->MispAttribute->getSearchParamsByToken(['search_token' => $this->request->params['named']['search_token']]);
+            foreach ($temp as $k => $temp_data) {
+                if ($temp[$k] === 'ALL' || $temp[$k] === '') {
+                    unset($temp[$k]);
+                    continue;
+                }
+                if ($k === 'limit') {
+                    unset($temp[$k]);
+                    continue;
+                }
+                if (str_contains($temp_data, PHP_EOL)) {
+                    $temp[$k] = explode(PHP_EOL, trim($temp_data));
+                    $temp[$k] = array_map(function($element) {
+                        return trim($element);
+                    }, $temp[$k]);
+                }
+            }
+            $filters = array_merge($filters, $temp);
+        }
         if (empty($filters) && $this->request->is('get')) {
             throw new BadRequestException(__('Restsearch queries using GET and no parameters are not allowed. If you have passed parameters via a JSON body, make sure you use POST requests.'));
         }

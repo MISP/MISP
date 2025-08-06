@@ -6095,3 +6095,26 @@ function submitLogSearch() {
     });
     $(location).prop('href', url);
 }
+
+function taskFormUpdate() {
+    $('.optionalField').hide();
+    switch($('#TaskType').val()) {
+        case 'Server':
+            $('#ServerAction').show();
+            $('#Server').show();
+            $('#ServerTechnique').show();
+            break;
+        case 'Feed':
+            $('#FeedAction').show();
+            $('#Feed').show();
+            if ($('#TaskFeedAction').val() === 'cache' && $('#TaskFeedId').val() === 'all') {
+                $('#FeedScope').show();
+            }else{
+                $('#FeedScope').hide();
+            }
+            break;
+        case 'Workflow':
+            $('#Workflow').show();
+            break;
+        }
+}

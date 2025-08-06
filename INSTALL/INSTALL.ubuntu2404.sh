@@ -443,7 +443,7 @@ username=$SUPERVISOR_USER
 password=$SUPERVISOR_PASSWORD" | sudo tee -a /etc/supervisor/supervisord.conf  &>> $logfile
 
 sudo echo "[group:misp-workers]
-programs=default,email,cache,prio,update
+programs=default,email,cache,prio,update,scheduler
 
 [program:default]
 directory=$MISP_PATH
@@ -502,6 +502,18 @@ directory=$MISP_PATH
 command=$MISP_PATH/app/Console/cake start_worker cache
 process_name=%(program_name)s_%(process_num)02d
 numprocs=5
+autostart=true
+autorestart=true
+redirect_stderr=false
+stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
+stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
+user=$APACHE_USER
+
+[program:scheduler]
+directory=$MISP_PATH
+command=$MISP_PATH/app/Console/cake scheduler_worker
+process_name=%(program_name)s_%(process_num)02d
+numprocs=1
 autostart=true
 autorestart=true
 redirect_stderr=false

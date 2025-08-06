@@ -646,7 +646,9 @@ class AdminShell extends AppShell
                     'highPerformanceIndexingAttributes',
                     'highPerformanceIndexingObjects',
                     'highPerformanceIndexingDefaultCorrelations',
-                    'highPerformanceIndexingConnectorTags'
+                    'highPerformanceIndexingNoAclCorrelations',
+                    'highPerformanceIndexingConnectorTags',
+                    'highPerformanceIndexWarninglists'
                 ],
                 'help' => __('High performance indexing of events, attributes, objects and default correlations. Drastically improves view and search operations. This is a slow reindexing process and is meant for servers with abundant RAM and innodb_buffer_pool_size set to a high value.'),
             ],
@@ -655,6 +657,12 @@ class AdminShell extends AppShell
                     'highPerformanceLogSearchIndexing',
                 ],
                 'help' => __('High performance indexing of logs. Drastically improves log search performance as well  as functionalities such as checking the past 10 logins. This is a slow reindexing process and is meant for servers with abundant RAM and innodb_buffer_pool_size set to a high value.'),
+            ],
+            'OnDemandCorrelationTuning' => [
+                'scripts' => [
+                    'OnDemandCorrelationTuning',
+                ],
+                'help' => __('Additional indeces specifically to help with the unusual search patterns of the on demand correlation tuning.'),
             ]
         ];
 

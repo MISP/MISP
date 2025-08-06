@@ -38,6 +38,7 @@ class Correlation extends AppModel
     public $validEngines = [
         'Default' => 'default_correlations',
         'NoAcl' => 'no_acl_correlations',
+        'OnDemand' => false,
         'Legacy' => 'correlations'
     ];
 
@@ -62,13 +63,15 @@ class Correlation extends AppModel
     /** @var CorrelationRule */
     public $CorrelationRule;
 
+    private $engine = null;
+
     public $virtualTable = false;
 
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
         $correlationEngine = $this->getCorrelationModelName();
-        if ($correlationEngine !== 'NoAcl') {
+        if ($correlationEngine !== 'NoAcl' && $correlationEngine !== 'OnDemand') {
             $this->bindModel(
                 [
                     'belongsTo' => [
@@ -135,6 +138,9 @@ class Correlation extends AppModel
      */
     public function generateCorrelation($jobId = false, $eventId = false, $attributeId = false)
     {
+        if ($this->onDemandEngine()) {
+            return true;
+        }
         $this->purgeCorrelations($eventId);
 
         $this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
@@ -324,6 +330,9 @@ class Correlation extends AppModel
 
     public function correlateValue($value, $jobId = false)
     {
+        if ($this->onDemandEngine()) {
+            return true;
+        }
         $correlatingAttributes = $this->__getMatchingAttributes($value);
         $count = count($correlatingAttributes);
         $correlations = [];
@@ -421,6 +430,9 @@ class Correlation extends AppModel
      */
     public function afterSaveCorrelation($a, $full = false, $event = false)
     {
+        if ($this->onDemandEngine()) {
+            return true;
+        }
         $a = ['Attribute' => $a];
         if (!empty($a['Attribute']['disable_correlation']) || Configure::read('MISP.completely_disable_correlation')) {
             return true;
@@ -778,6 +790,9 @@ class Correlation extends AppModel
      */
     public function generateTopCorrelationsRouter()
     {
+        if ($this->onDemandEngine()) {
+            return true;
+        }
         if (Configure::read('MISP.background_jobs')) {
             /** @var Job $job */
             $job = ClassRegistry::init('Job');
@@ -808,6 +823,9 @@ class Correlation extends AppModel
 
     public function generateTopCorrelations($jobId = false)
     {
+        if ($this->onDemandEngine()) {
+            return true;
+        }
         try {
             $redis = RedisTool::init();
         } catch (Exception $e) {
@@ -868,6 +886,9 @@ class Correlation extends AppModel
      */
     public function findTop(array $query)
     {
+        if ($this->onDemandEngine()) {
+            return true;
+        }
         try {
             $redis = RedisTool::init();
         } catch (Exception $e) {
@@ -900,6 +921,9 @@ class Correlation extends AppModel
 
     public function getTopTime()
     {
+        if ($this->onDemandEngine()) {
+            return true;
+        }
         try {
             $redis = RedisTool::init();
         } catch (Exception $e) {
@@ -1120,6 +1144,11 @@ class Correlation extends AppModel
                         ]
                     ]
                 ],
+                'OnDemand' => [
+                    'name' => __('On Demand correlation engine'),
+                    'tables' => [
+                    ]
+                ],
                 'Legacy' => [
                     'name' => __('Legacy correlation engine (< 2.4.160)'),
                     'tables' => [
@@ -1157,6 +1186,9 @@ class Correlation extends AppModel
 
     public function truncate(array $user, string $engine)
     {
+        if ($this->onDemandEngine()) {
+            return true;
+        }
         $table = $this->validEngines[$engine];
         $result = $this->query('truncate table ' . $table);
         if ($result !== true) {
@@ -1175,9 +1207,12 @@ class Correlation extends AppModel
     /**
      * @return string
      */
-    private function getCorrelationModelName()
+    public function getCorrelationModelName()
     {
-        return Configure::read('MISP.correlation_engine') ?: 'Default';
+        if (!isset($this->engine)) {
+            $this->engine = Configure::read('MISP.correlation_engine') ?: 'Default';
+        }
+        return $this->engine;
     }
 
     public function getRuleImpact($id)
@@ -1195,6 +1230,9 @@ class Correlation extends AppModel
 
     public function executeRule($id)
     {
+        if ($this->onDemandEngine()) {
+            throw new MethodNotAllowedException(__('You\'re using an on demand correlation engine, no need to execute rules on existing data, it will be adhered to live when fetching data.'));
+        }
         $rule = $this->CorrelationRule->find('first', [
             'conditions' => ['CorrelationRule.id' => $id],
             'recursive' => -1
