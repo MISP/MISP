@@ -284,6 +284,10 @@ class AppController extends Controller
                 $this->User->runUpdates();
             }
 
+            if ($user['Role']['perm_site_admin'] && $action != 'checkLogs' && !$this->request->is('ajax') && !$this->_isRest()) {
+                $this->Flash->error(__('End of life warning: MISP 2.4 has reached its end of life and will not receive any further updates beyond security fixes (until the end of 2025). Please upgrade to MISP 2.5 as soon as possible.'));
+            }
+
             // Put username to response header for webserver or proxy logging
             if (Configure::read('Security.username_in_response_header')) {
                 $headerValue = $user['email'];
