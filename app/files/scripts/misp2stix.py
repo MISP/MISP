@@ -77,7 +77,7 @@ class StixExport:
     def parse_misp_files(self, filenames: list):
         try:
             for filename in filenames:
-                self._parser.parse_json_content(filename)
+                self._parser.parse_json_file(filename)
                 self._handle_stix_output(filename)
             results = {'success': 1}
             if hasattr(self, '_output_files'):

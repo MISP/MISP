@@ -64,7 +64,7 @@ def _process_misp_files(
     try:
         parser = MISPtoSTIX20Parser() if version == '2.0' else MISPtoSTIX21Parser()
         for name in input_names:
-            parser.parse_json_content(name)
+            parser.parse_json_file(name)
             with open(f'{name}.out', 'wt', encoding='utf-8') as f:
                 f.write(
                     json.dumps(parser.stix_objects, cls=STIXJSONEncoder)

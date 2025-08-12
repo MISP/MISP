@@ -23,6 +23,8 @@ class MysqlExtended extends Mysql
         'text' => PDO::PARAM_STR
     ];
 
+    const IDENTIFIER_QUOTE = '`';
+
     /**
      * Builds and generates a JOIN condition from an array. Handles final clean-up before conversion.
      *
@@ -72,13 +74,13 @@ class MysqlExtended extends Mysql
      * @return string
      */
     public function renderJoinStatement($data) {
-        //Fixed deprecation notice in PHP8.1 - fallback to empty string
         if (!empty($data['type']) && strtoupper($data['type']) === 'STRAIGHT') {
-            return "{$data['type']}_JOIN {$data['table']} {$data['alias']} ON ({$data['conditions']})";
+            return "STRAIGHT_JOIN {$data['table']} {$data['alias']} ON ({$data['conditions']})";
         }
         if (!empty($data['type']) && strtoupper($data['type']) === 'STRAIGHT_REVERSE') {
-            return "STRAIGHT_JOIN {$data['table']} AS {$data['alias']} ON ({$data['conditions']})";
+            return "STRAIGHT_JOIN {$data['table']} {$data['alias']} ON ({$data['conditions']})";
         }
+        //Fixed deprecation notice in PHP8.1 - fallback to empty string
         if (strtoupper($data['type'] ?? "") === 'CROSS' || empty($data['conditions'])) {
             return "{$data['type']} JOIN {$data['table']} {$data['alias']}";
         }

@@ -2,163 +2,416 @@
 
 App::uses('AppController', 'Controller');
 
+/**
+ * @property Task $Task
+ * @property Server $Server
+ * @property Feed $Feed
+ * @property Workflow $Workflow
+ */
+
 class TasksController extends AppController
 {
-    public $components = array('RequestHandler', 'Session');
+    public $components = [
+        'CRUD',
+        'RequestHandler'
+    ];
 
-    public $paginate = array(
-            'limit' => 20,
-            'order' => array(
-                    'Task.id' => 'desc'
-            )
-    );
+    public $paginate = [
+        'limit' => 60,
+        'recursive' => -1,
+        'order' => [
+            'Task.id' => 'ASC',
+        ]
+    ];
 
     public function index()
     {
         if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException();
+            throw new MethodNotAllowedException('You are not authorised to do that.');
         }
-        if (!Configure::read('MISP.background_jobs')) {
-            throw new NotFoundException('Background jobs are not enabled on this instance.');
-        }
-        $this->__checkTasks();
-        $this->recursive = 0;
-        $tasks = $this->paginate();
-        $this->set('list', $tasks);
-        $this->set('time', time());
-    }
 
-    // checks if all the mandatory tasks exist, and if not, creates them
-    // default tasks are:
-    // 'cache_exports'
-    private function __checkTasks()
-    {
-        $existingTasks = $this->Task->find('list', array('fields' => array('type')));
-        foreach ($this->Task->tasks as $taskName => $taskData) {
-            if (!in_array($taskName, $existingTasks)) {
-                $this->Task->create();
-                $this->Task->save($taskData);
-            } else {
-                $existingTask = $this->Task->find('first', array('recursive' => -1, 'conditions' => array('Task.type' => $taskName)));
-                if ($taskData['description'] != $existingTask['Task']['description']) {
-                    $existingTask['Task']['description'] = $taskData['description'];
-                    $this->Task->save($existingTask);
-                }
+        $this->CRUD->index([
+            'contain' => ['User.id', 'User.email', 'Job'],
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+
+        $workers = $this->Task->getBackgroundJobsTool()->getWorkers();
+
+        $schedulerEnabled = false;
+        foreach ($workers as $worker) {
+            if ($worker->queue() === BackgroundJobsTool::SCHEDULER_QUEUE) {
+                $schedulerEnabled = true;
+                break;
             }
         }
+
+        $this->set('schedulerEnabled', $schedulerEnabled);
     }
 
-    public function setTask()
+    public function toggleEnabled($id)
     {
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
-        $today = $this->_getTodaysTimestamp();
-        if ($this->request->is('post') || $this->request->is('put')) {
-            $tasks = $this->Task->find('all', array('fields' => array('id', 'timer', 'scheduled_time', 'type', 'next_execution_time')));
-            foreach ($tasks as $k => $task) {
-                if ($this->request->data['Task'][$task['Task']['id']]['timer'] !== $task['Task']['timer'] ||
-                $this->request->data['Task'][$task['Task']['id']]['scheduled_time'] !== $task['Task']['scheduled_time'] ||
-                $this->request->data['Task'][$task['Task']['id']]['next_execution_time'] !== date("Y-m-d", $task['Task']['next_execution_time'])) {
-                    $this->request->data['Task'][$task['Task']['id']]['id'] = $task['Task']['id'];
-                    if (isset($this->request->data['Task'][$task['Task']['id']]['next_execution_time'])) {
-                        $temp = $this->request->data['Task'][$task['Task']['id']]['next_execution_time'];
-                    } else {
-                        $temp = date("Y-m-d", $task['Task']['next_execution_time']);
+
+        $task = $this->Task->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Task.id' => $id)
+        ));
+        if (empty($task)) {
+            return $this->RestResponse->saveFailResponse('Task', 'toggleEnabled', $id, 'Invalid Task', $this->response->type());
+        }
+        if ($this->request->is('post')) {
+            $task['Task']['enabled'] = !$task['Task']['enabled'];
+            $result = $this->Task->save($task);
+            if ($result) {
+                return $this->RestResponse->saveSuccessResponse('Task', 'toggleEnabled', $id, $this->response->type());
+            } else {
+                return $this->RestResponse->saveFailResponse('Task', 'toggleEnabled', $id, $this->validationError, $this->response->type());
+            }
+        }
+
+        $this->set('enabled', !$task['Task']['enabled']);
+        $this->set('id', $id);
+        $this->autoRender = false;
+        $this->layout = false;
+        $this->render('ajax/toggle_enabled');
+    }
+
+    public function add()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+
+        $this->set('dropdownData', $this->__getDropdownData());
+
+        if ($this->request->is('post')) {
+
+            $this->request->data['Task']['message'] = '';
+            $this->request->data = $this->__massageFormInput($this->request->data);
+
+            $this->CRUD->add();
+            if ($this->restResponsePayload) {
+                return $this->restResponsePayload;
+            }
+        }
+
+        $this->set('menuData', [
+            'menuList' => 'admin',
+            'menuItem' => 'tasks',
+        ]);
+    }
+
+    public function edit($id)
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+
+        $this->set('dropdownData', $this->__getDropdownData());
+
+        if ($this->request->is('put')) {
+            $this->request->data = $this->__massageFormInput($this->request->data);
+            $this->CRUD->edit($id);
+            if ($this->restResponsePayload) {
+                return $this->restResponsePayload;
+            }
+        } else {
+            $this->CRUD->edit($id, [
+                'afterFind' => function (array $task) {
+                    if (isset($task['Task']['params'])) {
+                        $params = explode(',', $task['Task']['params']);
+                        if ($task['Task']['type'] === 'Server') {
+                            $task['Task']['server_id'] = $params[0];
+                            $task['Task']['server_action'] = $task['Task']['action'];
+
+                            if ($task['Task']['action'] === 'pull') {
+                                $task['Task']['server_technique'] = $params[1];
+                            }
+                        } elseif ($task['Task']['type'] === 'Feed') {
+                            $task['Task']['feed_action'] = $task['Task']['action'];
+                            if ($task['Task']['action'] === 'fetch') {
+                                $task['Task']['feed_id'] = $params[0];
+                            } elseif ($task['Task']['action'] === 'cache') {
+                                $task['Task']['feed_id'] = $params[0];
+                                if ($task['Task']['feed_id'] !== 'all') {
+                                    $task['Task']['feed_scope'] = '';
+                                }
+                                if (isset($params[1])) {
+                                    $task['Task']['feed_scope'] = $params[1];
+                                }
+                            }
+                        }
                     }
-                    if (isset($this->request->data['Task'][$task['Task']['id']]['scheduled_time'])) {
-                        $this->request->data['Task'][$task['Task']['id']]['next_execution_time'] = strtotime($temp . ' ' . $this->request->data['Task'][$task['Task']['id']]['scheduled_time']);
+
+                    if (isset($task['Task']['next_execution_time'])) {
+                        $task['Task']['next_execution_date'] = date('Y-m-d', $task['Task']['next_execution_time']);
+                        $task['Task']['next_execution_time'] = date('H:i:s', $task['Task']['next_execution_time']);
                     } else {
-                        $this->request->data['Task'][$task['Task']['id']]['next_execution_time'] = strtotime($temp . ' ' . $task['Task']['scheduled_time']);
+                        $task['Task']['next_execution_date'] = '';
+                        $task['Task']['next_execution_time'] = '';
                     }
-                    // schedule task
-                    $this->_jobScheduler($task['Task']['type'], $this->request->data['Task'][$task['Task']['id']]['next_execution_time'], $task['Task']['id']);
-                    $this->Task->save($this->request->data['Task'][$task['Task']['id']]);
+                    return $task;
+                },
+                'fields' => ['type', 'action', 'params', 'timer', 'next_execution_time', 'enabled'],
+                'contain' => ['User.id']
+            ]);
+
+            if ($this->restResponsePayload) {
+                return $this->restResponsePayload;
+            }
+
+            $this->set('edit', true);
+            $this->set('menuData', [
+                'menuList' => 'admin',
+                'menuItem' => 'tasks',
+            ]);
+            $this->render('add');
+        }
+    }
+
+    public function delete($id)
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+        $this->CRUD->delete($id);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+    }
+
+    public function forceRun($id)
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+
+        $task = $this->Task->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Task.id' => $id)
+        ));
+
+        if (empty($task)) {
+            if ($this->IndexFilter->isRest()) {
+                return $this->RestResponse->saveFailResponse('Task', 'forceRunTask', $id, __('Invalid Task'), $this->response->type());
+            }
+            $this->Flash->error(__('Invalid Task'));
+            $this->redirect(['action' => 'index']);
+            return;
+        }
+
+        if ($task['Task']['enabled'] === false) {
+            if ($this->IndexFilter->isRest()) {
+                return $this->RestResponse->saveFailResponse('Task', 'forceRunTask', $id, __('Task is not enabled, cannot force run.'), $this->response->type());
+            }
+            $this->Flash->error(__('Task is not enabled, cannot force run.'));
+            $this->redirect(['action' => 'index']);
+            return;
+        }
+
+        if ($this->request->is('post')) {
+            $task['Task']['next_execution_time'] = time() - 1;
+            $task['Task']['last_job_id'] = null;
+
+            $result = $this->Task->save($task);
+            if ($result) {
+                if ($this->IndexFilter->isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('Task', 'forceRunTask', $id, $this->response->type());
+                }
+                $this->Flash->success(__('Task forced to run immediately.'));
+                $this->redirect(['action' => 'index']);
+                return;
+            } else {
+                if ($this->IndexFilter->isRest()) {
+                    return $this->RestResponse->saveFailResponse('Task', 'forceRunTask', $id, $this->validationError, $this->response->type());
+                }
+                $this->Flash->error(__('Failed to force run task: '));
+                $this->redirect(['action' => 'index']);
+                return;
+            }
+        } else {
+            $this->set('task', $task);
+            $this->layout = false;
+            $this->render('ajax/force_run');
+        }
+    }
+
+    public function viewLogs($id)
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+
+        $task = $this->Task->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Task.id' => $id),
+            'contain' => ['Job']
+        ));
+
+        if (empty($task)) {
+            if ($this->IndexFilter->isRest()) {
+                return $this->RestResponse->saveFailResponse('Task', 'viewTaskLogs', $id, __('Invalid Task'), $this->response->type());
+            }
+            $this->Flash->error(__('Invalid Task'));
+            $this->redirect(['action' => 'index']);
+            return;
+        }
+
+        if (empty($task['Job'])) {
+            if ($this->IndexFilter->isRest()) {
+                return $this->RestResponse->saveFailResponse('Task', 'viewTaskLogs', $id, __('No job found for this task'), $this->response->type());
+            }
+            $this->Flash->error(__('No job found for this task'));
+            $this->redirect(['action' => 'index']);
+            return;
+        }
+
+        $this->Org = ClassRegistry::init('Organisation');
+        if (empty($task['Job']['org_id'])) {
+            $task['Org'] = ['name' => 'ADMIN'];
+        } else {
+            $task['Org'] = $this->Org->find('first', [
+                'conditions' => ['Organisation.id' => $task['Job']['org_id']],
+                'fields' => ['Organisation.name'],
+                'recursive' => -1
+            ]);
+        }
+
+        $this->set('task', $task);
+        $this->set('logs', $this->__getFailedJobLog($task['Job']['process_id']));
+        $this->layout = false;
+        $this->render('ajax/view_logs');
+    }
+
+    private function __getFailedJobLog(string $id): array
+    {
+        $job = $this->Task->getBackgroundJobsTool()->getJob($id);
+        $output = $job ? $job->output() : __('Job status not found.');
+        $backtrace = $job ? explode("\n", $job->error()) : [];
+
+        return [
+            'error' => $output ?? $backtrace[0] ?? '',
+            'backtrace' => $backtrace
+        ];
+    }
+
+    private function __getDropdownData()
+    {
+        $this->Server = ClassRegistry::init('Server');
+        $this->Feed = ClassRegistry::init('Feed');
+        $this->Workflow = ClassRegistry::init('Workflow');
+
+        $workflows = $this->Workflow->find('all', [
+            'order' => ['Workflow.name' => 'ASC'],
+        ]);
+
+        // Filter enabled workflows to only include those that have ad-hoc triggers
+        $dropdownWorkflows = [];
+        foreach ($workflows as $workflow) {
+            if ($workflow['Workflow']['enabled']) {
+                foreach ($workflow['Workflow']['listening_triggers'] as $listeningTrigger) {
+                    if ($listeningTrigger['is_adhoc']) {
+                        $dropdownWorkflows[$workflow['Workflow']['id']] = $workflow['Workflow']['name'];
+                        break;
+                    }
                 }
             }
-            $this->Flash->success('Task edited');
-            $this->redirect(array('action' => 'index'));
         }
+
+        $dropdownData = [
+            'users' => $this->User->find('list', [
+                'fields' => ['User.id', 'User.email'],
+                'conditions' => ['User.disabled' => 0],
+                'order' => ['User.email' => 'ASC']
+            ]),
+            'servers' =>  ['all' => __('All Servers')] + $this->Server->find('list', [
+                'fields' => ['Server.id', 'Server.name'],
+                'order' => ['Server.name' => 'ASC']
+            ]),
+            'feeds' => ['all' => __('All Feeds')] + $this->Feed->find('list', [
+                'fields' => ['Feed.id', 'Feed.name'],
+                'order' => ['Feed.name' => 'ASC']
+            ]),
+            'workflows' => $dropdownWorkflows,
+        ];
+
+        return $dropdownData;
     }
 
-    private function _getTodaysTimestamp()
+    private function __massageFormInput(array $data)
     {
-        return strtotime(date("d/m/Y") . ' 00:00:00');
-    }
+        if ($data['Task']['type'] === 'Server') {
+            $data['Task']['action'] = $data['Task']['server_action'];
+            $data['Task']['params'] = implode(
+                ',',
+                [
+                    $data['Task']['server_id'],
+                    $data['Task']['server_technique']
+                ]
+            );
+        } elseif ($data['Task']['type'] === 'Feed') {
+            $data['Task']['action'] = $data['Task']['feed_action'];
 
-    private function _jobScheduler($type, $timestamp, $id)
-    {
-        if ($type === 'cache_exports') {
-            $this->_cacheScheduler($timestamp, $id);
-        }
-        if ($type === 'pull_all') {
-            $this->_pullScheduler($timestamp, $id);
-        }
-        if ($type === 'push_all') {
-            $this->_pushScheduler($timestamp, $id);
-        }
-        if ($type === 'cache_feeds') {
-            $this->_feedScheduler($timestamp, $id, 1);
-        }
-        if ($type === 'fetch_feeds') {
-            $this->_feedScheduler($timestamp, $id, 0);
-        }
-    }
+            if ($data['Task']['feed_action'] === 'fetch') {
+                if (!isset($data['Task']['feed_id']) || empty($data['Task']['feed_id'])) {
+                    $this->Flash->error(__('Please select a feed.'));
+                    return;
+                }
+                $data['Task']['params'] = $data['Task']['feed_id'];
+            } elseif ($data['Task']['feed_action'] === 'cache') {
+                if (!isset($data['Task']['feed_scope']) || empty($data['Task']['feed_scope'])) {
+                    $this->Flash->error(__('Please select a feed scope.'));
+                    return;
+                }
+                if ($data['Task']['feed_id'] === 'all') {
 
-    private function _cacheScheduler($timestamp, $id)
-    {
-        $process_id = CakeResque::enqueueAt(
-                $timestamp,
-                'cache',
-                'EventShell',
-                array('enqueueCaching', $timestamp),
-                true
-        );
-        $this->Task->id = $id;
-        $this->Task->saveField('process_id', $process_id);
-    }
+                    $data['Task']['params'] = implode(
+                        ',',
+                        [
+                            $data['Task']['feed_id'],
+                            $data['Task']['feed_scope'],
+                        ]
+                    );
+                } else {
+                    $data['Task']['params'] = $data['Task']['feed_id'];
+                }
+            } else {
+                $this->Flash->error(__('Invalid action for Feed'));
+                return;
+            }
+        } elseif ($data['Task']['type'] === 'Workflow') {
+            $data['Task']['action'] = 'execute';
 
-    private function _pushScheduler($timestamp, $id)
-    {
-        $process_id = CakeResque::enqueueAt(
-                $timestamp,
-                'default',
-                'ServerShell',
-                array('enqueuePush', $timestamp, $id, $this->Auth->user('id')),
-                true
-        );
-        $this->Task->id = $id;
-        $this->Task->saveField('process_id', $process_id);
-    }
-
-    private function _pullScheduler($timestamp, $id)
-    {
-        $process_id = CakeResque::enqueueAt(
-                $timestamp,
-                'default',
-                'ServerShell',
-                array('enqueuePull', $timestamp, $this->Auth->user('id'),  $id),
-                true
-        );
-        $this->Task->id = $id;
-        $this->Task->saveField('process_id', $process_id);
-    }
-
-    private function _feedScheduler($timestamp, $id, $type)
-    {
-        if ($type == 1) {
-            $action = 'enqueueFeedCache';
+            if (!isset($data['Task']['workflow']) || empty($data['Task']['workflow'])) {
+                $this->Flash->error(__('Please select a workflow.'));
+                return;
+            }
+            $data['Task']['params'] = $data['Task']['workflow'];
+        } elseif ($data['Task']['type'] === 'Periodic Summary') {
+            $data['Task']['action'] = 'send';
         } else {
-            $action = 'enqueueFeedFetch';
+            $this->Flash->error(__('Invalid type'));
+            return;
         }
-        $process_id = CakeResque::enqueueAt(
-                $timestamp,
-                'default',
-                'ServerShell',
-                array($action, $timestamp, $this->Auth->user('id'),  $id),
-                true
-        );
-        $this->Task->id = $id;
-        $this->Task->saveField('process_id', $process_id);
+
+        $data['Task']['timer'] = $data['Task']['time_multiplier'] * $data['Task']['time_unit'];
+
+        if ($data['Task']['timer'] < 60) {
+            $this->Flash->error(__('Invalid timer value, must be at least 60 seconds or 1 minute.'));
+            return;
+        }
+
+        if ($data['Task']['next_execution_date']) {
+            $time = $data['Task']['next_execution_time'] == "" ? '00:00:00' : $data['Task']['next_execution_time'];
+            $data['Task']['next_execution_time'] = strtotime($data['Task']['next_execution_date'] . ' ' . $time);
+        } else {
+            $data['Task']['next_execution_time'] = time() - 1;
+        }
+
+        return $data;
     }
 }
