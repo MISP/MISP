@@ -98,14 +98,40 @@ class OverCorrelatingValue extends AppModel
         return $data;
     }
 
-    public function findOverCorrelatingValues(array $valuesToCheck): array
+    public function findOverCorrelatingValues(array $valuesToCheck)
     {
-        $valuesToCheck = array_unique(self::truncateValues($valuesToCheck), SORT_REGULAR);
-        return $this->find('column', [
-            'conditions' => ['value' => $valuesToCheck],
-            'fields' => ['value'],
-        ]);
+        $valuesToCheck = array_values(array_unique(self::truncateValues($valuesToCheck), SORT_REGULAR));
+        $count = count($valuesToCheck);
+        if ($count === 0) {
+            return [];
+        }
+
+        if ($count <= 10000) {
+            return $this->find('column', [
+                'conditions' => ['value' => $valuesToCheck],
+                'fields'     => ['value'],
+                'recursive'  => -1,
+            ]);
+        }
+        
+        $batchSize = 10000;
+        $results = [];
+
+        foreach (array_chunk($valuesToCheck, $batchSize) as $chunk) {
+            $hits = $this->find('column', [
+                'conditions' => ['value' => $chunk],
+                'fields'     => ['value'],
+                'recursive'  => -1,
+            ]);
+            if (!empty($hits)) {
+                foreach ($hits as $v) {
+                    $results[$v] = true;
+                }
+            }
+        }
+        return array_keys($results);
     }
+
 
     public function generateOccurrencesRouter()
     {
