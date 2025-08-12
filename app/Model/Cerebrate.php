@@ -36,7 +36,7 @@ class Cerebrate extends AppModel
         $url = $options['cerebrate']['Cerebrate']['url'] . $options['path'];
         $url_params = [];
 
-        $HttpSocket = $this->setupHttpSocket($options['cerebrate']);
+        $HttpSocket = $this->setupHttpSocket($options['cerebrate'], null, false, 'Cerebrate');
         $request = $this->setupSyncRequest($options['cerebrate'], 'Cerebrate');
         try {
             if (!empty($options['type']) && $options['type'] === 'post') {
@@ -52,7 +52,7 @@ class Cerebrate extends AppModel
                 return json_decode($response->body, true);
             }
         } catch (SocketException $e) {
-            throw new BadRequestException(__('Something went wrong. Error returned: %s', $e->getMessage));
+            throw new BadRequestException(__('Something went wrong. Error returned: %s', $e->getMessage()));
         }
         if ($response->code === 403 || $response->code === 401) {
             throw new ForbiddenException(__('Authentication failed.'));
@@ -362,12 +362,19 @@ class Cerebrate extends AppModel
             'description' => [
                 'field' => 'description'
             ],
+            'roaming' => [
+                'field' => 'roaming',
+                'default' => true,
+            ],
         ];
         $sg = [];
         foreach ($mapping as $cerebrate_field => $field_data) {
             if (empty($sg_data[$cerebrate_field])) {
                 if (!empty($field_data['required'])) {
                     return false;
+                } else if (isset($field_data['default'])) {
+                    $sg[$field_data['field']] = $field_data['default'];
+                    continue;
                 } else {
                     continue;
                 }

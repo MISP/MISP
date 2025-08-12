@@ -263,5 +263,21 @@
     "misp_project_vetted": false,
     "scope_of_data_to_be_shared": "",
     "self_registration": false
+  },
+  {
+    "name": "ThreatIntel.kz",
+    "uuid": "91e71f98-8b7a-43e1-a78d-ffc21ac74ce1",
+    "org_uuid": "86e4ee4a-0bdd-496a-b603-013a52c2189b",
+    "org_name": "threatintel.kz",
+    "description": "The Kazakhstan MISP User group/Community operates an information sharing community dedicated to Central Asia organisations.",
+    "url": "https://threatintel.kz",
+    "sector": "undefined",
+    "nationality": "Kazakh",
+    "type": "National",
+    "email": "misp@threatintel.kz",
+    "pgp_key": "\r\n\r\n-----BEGIN PGP PUBLIC KEY BLOCK-----\r\n\r\nmQINBF49WD4BEADpDaqhEU1mWlCbqvWWxRLJcBJara4Cg7yGAlabAU/trfw2x0Ob\r\non9Lh6p/CpyTY/CPcJ6fH4IrU18U8wN8RaWxmHLyml0GGKBHcSYNisDu7E4nCC5P\r\nSY8F0OH6yQ9dwX2Os3s6fJNo9ZqC3u9lxzBf0+OzH6cV6x4Olto7slGQAP1922s6\r\nies8M21GhCJ4X+XO1sO9ap1nDlAT/44OvxQuQdYVXy46Letehk3QXo/RU8iVgqDQ\r\n1v/YIaFEibk9/6teeBTe1y77lULUfgl1pd9PnD68+w/WhNUuX+RECmsGH7Snm+kb\r\nL1x+WClQgYDJioVpTA+e4R2KYIBidKfhNw3F2Hcg70wo7Bq6u/i2iM3mtK5kALyb\r\n7jn1MHKpIGUq7vtHCzEa+d9wB1cMPj4HYF7tXIfDdtcl3bTv6IiOsNT6rhpI1+vy\r\nupNXyRplSGRQ6RV1kZ3ACqG8kErEp6L9g2AxCh1S5b4cf79JJvHMkkS60DLPnsF0\r\np8RwZL1JxlNHbQ1UxgWkSHAie2d5FLY8cpTmQwTJ6/z48b68wUS7cvtntvyf6+bq\r\nPKZrUPK4I/ly/tcMlrShx1N+aC5oHGDujuQUmmQjax9Ec2MkLBilBZJd94+avyY3\r\nxZGuI4sfEQurD8cP89/cJOtGNZ24ZVM8NRQVAVEaqDV1r3RzF30XbVdy0QARAQAB\r\ntDVNSVNQIFRocmVhdCBTaGFyaW5nIChlQ3JpbWVMYWJzKSA8bWlzcEBlY3JpbWVs\r\nYWJzLmRrPokCTgQTAQoAOAIbAwULCQgHAgYVCgkICwIEFgIDAQIeAQIXgBYhBMcp\r\nObUHQyZwszqsoacaYbhQMh7/BQJePVjHAAoJEKcaYbhQMh7/4scP/14BEKdF8qse\r\nf0a4v8VrAjLEuiB97p/RI5EYqvdrPT4FqhpLOLrpGM8lBtemspzRiZyPOE9BQjN6\r\nLPhJumzGukolbCLCwF5/pMXwkAIz1vDL01qLRx1nG/OSdAY/US/gpkjhbAK9J4sU\r\nGpqiHqUwGFT7RMiUlRIzhz1xZaTITBK/LbkVnayU9UX3eoEq9q6k3yqp6dhqyM6r\r\nMF5ai0oouWJ0MaoPmjRSR/r9FA6WMAI2Ni8pnWZqJVJVSmwaZJLMFR7JyXTUpNXP\r\nAwrI+T3VEErMDx3bLhF2salZFCWS0HfQN313yhv81Nk9pDSl4JDahhao77gpSjtm\r\nmp7MaFeGaeOnS3CWI8I57/fMn4Fax9dAoHwoaG4cPTZ9mML6yH39eMCx4ik77Ucs\r\nF5vt4MImF5tucQga3P6JiYAzkDyBSzd5gQR0ocWECYnK7fMF9PmdYj6p56XqVwVs\r\nvR+0rDXc6NrqpELf62NHwnCegn9bPTwNOK158m5CHcZ+veuQBitL/6AbjHX8K7cf\r\nbb0iVJQpCskkIRq9oidNOXBDOt2vyrwLoG0RcfKS6uOJWoQakyO1TNCI87oo+fo3\r\nlUfyUqHhDCXX72lBmW2kXIPAPRhpJmVUaAyc3nzYBU5/5xV1xrH0VhXeyw17tj6w\r\nXpSrwosJzIkrJzto2oaJhAqehBPMTO0n\r\n=FHjc\r\n-----END PGP PUBLIC KEY BLOCK-----\r\n",
+    "misp_project_vetted": false,
+    "scope_of_data_to_be_shared": "Cybersecurity Threat Intelligence including indicators, threat intelligence information, reports, contextual threat actor information or financial fraud information.",
+    "self_registration": false
   }
 ]

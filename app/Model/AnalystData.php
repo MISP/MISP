@@ -251,7 +251,10 @@ class AnalystData extends AppModel
     {
         if (!empty($analystData[$this->alias]['orgc_uuid'])) {
             if (!isset($analystData['Orgc'])) {
-                $analystData[$this->alias]['Orgc'] = $this->Orgc->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['orgc_uuid']]])['Organisation'];
+                $orgFound = $this->Orgc->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['orgc_uuid']]]);
+                if (!empty($orgFound)) {
+                    $analystData[$this->alias]['Orgc'] = $orgFound['Organisation'];
+                }
             } else {
                 $analystData[$this->alias]['Orgc'] = $analystData['Orgc'];
             }
@@ -259,7 +262,10 @@ class AnalystData extends AppModel
         }
         if (!empty($analystData[$this->alias]['org_uuid'])) {
             if (!isset($analystData['Org'])) {
-                $analystData[$this->alias]['Org'] = $this->Org->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['org_uuid']]])['Organisation'];
+                $orgFound = $this->Org->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['org_uuid']]]);
+                if (!empty($orgFound)) {
+                    $analystData[$this->alias]['Org'] = $orgFound['Organisation'];
+                }
             } else {
                 $analystData[$this->alias]['Org'] = $analystData['Org'];
             }
@@ -275,15 +281,17 @@ class AnalystData extends AppModel
                 if (!isset($analystData['SharingGroup'])) {
                     $this->SharingGroup = ClassRegistry::init('SharingGroup');
                     $sg = $this->SharingGroup->fetchSG($analystData[$this->alias]['sharing_group_id'], $user, true);
-                    $sgData = array_intersect_key(
-                        $sg['SharingGroup'], array_flip(
-                            [
-                                'id', 'name', 'uuid', 'releasability', 'description', 'org_id',
-                                'active', 'roaming', 'local'
-                            ]
-                        )
-                    );
-                    $analystData[$this->alias]['SharingGroup'] = $sgData;
+                    if (!empty($sg)) {
+                        $sgData = array_intersect_key(
+                            $sg['SharingGroup'], array_flip(
+                                [
+                                    'id', 'name', 'uuid', 'releasability', 'description', 'org_id',
+                                    'active', 'roaming', 'local'
+                                ]
+                            )
+                        );
+                        $analystData[$this->alias]['SharingGroup'] = $sgData;
+                    }
                 } else {
                     $analystData[$this->alias]['SharingGroup'] = $analystData['SharingGroup'];
                 }
@@ -833,12 +841,12 @@ class AnalystData extends AppModel
     {
         $push_rules = json_decode($server['Server']['push_rules'], true);
         if (!empty($push_rules['orgs']['OR'])) {
-            if (!in_array($analystData['Orgc']['id'], $push_rules['orgs']['OR'])) {
+            if (!in_array($analystData['Orgc']['uuid'], $push_rules['orgs']['OR'])) {
                 return false;
             }
         }
         if (!empty($push_rules['orgs']['NOT'])) {
-            if (in_array($analystData['Orgc']['id'], $push_rules['orgs']['NOT'])) {
+            if (in_array($analystData['Orgc']['uuid'], $push_rules['orgs']['NOT'])) {
                 return false;
             }
         }
@@ -1112,6 +1120,9 @@ class AnalystData extends AppModel
             'fields' => ['id', 'uuid']
         ])['Organisation']['uuid'];
 
+        $remoteUser = $serverSync->cachedUserInfo();
+        $remotePermSyncInternal = !empty($remoteUser['Role']['perm_sync_internal']);
+
         foreach ($analystDataUuids as $type => $entries) {
             $uuids = array_keys($entries);
             if (empty($uuids)) {
@@ -1127,7 +1138,7 @@ class AnalystData extends AppModel
                 }
     
                 foreach ($chunkedAnalystData as $analystData) {
-                    $analystData = $this->updatePulledBeforeInsert($analystData, $type, $serverSync->server(), $user, $serverSync->pullRules());
+                    $analystData = $this->updatePulledBeforeInsert($analystData, $type, $serverSync->server(), $user, $serverSync->pullRules(), $remotePermSyncInternal);
                     $savedResult = $this->captureAnalystData($user, $analystData, true, $serverOrgUUID, $serverSync->server());
                     if ($savedResult['success']) {
                         $saved += $savedResult['imported'];
@@ -1139,11 +1150,11 @@ class AnalystData extends AppModel
         return $saved;
     }
 
-    private function updatePulledBeforeInsert(array $analystData, $type, array $server, array $user, array $pullRules): array
+    private function updatePulledBeforeInsert(array $analystData, $type, array $server, array $user, array $pullRules, $remotePermSyncInternal = false): array
     {
         $analystData[$type]['locked'] = true;
 
-        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || !$remotePermSyncInternal) {
             switch ($analystData[$type]['distribution']) {
                 case 1:
                     // if community only, downgrade to org only after pull

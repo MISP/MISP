@@ -183,7 +183,7 @@ class ApiController extends AppController
             if ($python !== false) {
                 $python = $this->__generatePythonScript($request, $url);
             }
-            $response = $HttpSocket->get($url, false, array('header' => $request['header']));
+            $response = $HttpSocket->get($url, [], array('header' => $request['header']));
         } elseif (
             !empty($request['method']) &&
             $request['method'] === 'POST' &&
@@ -278,10 +278,12 @@ misp.direct_call(relative_path, body)
 
     private function __generateCurlQuery($type, array $request, $url)
     {
+        $skipSSL = !empty($request['skip_ssl_validation']) ? '-k' : '';
         if ($type === 'get') {
             $curl = sprintf(
-                'curl \%s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s %s',
+                'curl \%s %s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s %s',
                 PHP_EOL,
+                $skipSSL,
                 $request['header']['Authorization'],
                 PHP_EOL,
                 $request['header']['Accept'],
@@ -292,8 +294,9 @@ misp.direct_call(relative_path, body)
             );
         } else {
             $curl = sprintf(
-                'curl \%s -d \'%s\' \%s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s -X POST %s',
+                'curl \%s %s -d \'%s\' \%s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s -X POST %s',
                 PHP_EOL,
+                $skipSSL,
                 json_encode(json_decode($request['body'])),
                 PHP_EOL,
                 $request['header']['Authorization'],

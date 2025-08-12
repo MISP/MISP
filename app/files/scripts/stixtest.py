@@ -9,7 +9,7 @@ MODULE_TO_DIRECTORY = {
     "stix": "python-stix",
     "cybox": "python-cybox",
     "mixbox": "mixbox",
-    "misp_stix_converter": "misp-stix",
+    "misp-stix": "misp-stix",
     "maec": "python-maec",
 }
 _CURRENT_PATH = Path(__file__).resolve().parent
@@ -28,6 +28,7 @@ results = {
     'mixbox': 0,
     'maec': 0,
     'stix2': 0,
+    'misp-stix': 0,
     'pymisp': 0
 }
 
@@ -64,6 +65,12 @@ except Exception:
 try:
     import stix2
     results['stix2'] = stix2.__version__
+except Exception:
+    results['success'] = 0
+
+try:
+    import misp_stix_converter
+    results['misp-stix'] = misp_stix_converter.__version__
 except Exception:
     results['success'] = 0
 

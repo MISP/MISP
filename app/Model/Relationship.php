@@ -15,7 +15,11 @@ class Relationship extends AnalystData
     public $current_type = 'Relationship';
     public $current_type_id = 2;
 
-    protected $EDITABLE_FIELDS = [
+    public const EDITABLE_FIELDS = [
+        'relationship_type',
+    ];
+
+    public const SEARCHABLE_FIELDS = [
         'relationship_type',
     ];
 
@@ -193,5 +197,17 @@ class Relationship extends AnalystData
         }
 
         return $inboundRelations;
+    }
+
+    public function countRelationships(): array
+    {
+        $this->virtualFields['type_count'] = 'COUNT(Relationship.id)';
+        $counts = $this->find('list', [
+            'recursive' => -1,
+            'fields' => ['Relationship.relationship_type', 'type_count'],
+            'group' => ['Relationship.relationship_type'],
+        ]);
+        unset($this->virtualFields['reference_count']);
+        return $counts;
     }
 }

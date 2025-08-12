@@ -2264,4 +2264,118 @@ class User extends AppModel
 
         return null;
     }
+
+    public function createNotificationToast(array $user, $toastHeader, $toastBody, $variant = 'info'): bool
+    {
+        if ($user['User']['disabled'] || !$this->checkIfUserIsValid($user['User'])) {
+            return false;
+        }
+        $redis = $this->setupRedis();
+        if ($redis !== false) {
+            $pipe = $redis->pipeline();
+            $redisNotificationKey = 'misp:user_toast_notification:' . $user['User']['id'];
+            $expiration = 86400; # 1 day
+            $flashMessage = [
+                'message' => $toastHeader,
+                'element' => 'parametrized_flash',
+                'params' => [
+                    'toast_header' => $toastHeader,
+                    'toast_body' => $toastBody,
+                    'variant' => $variant,
+                ],
+            ];
+            $pipe->sadd($redisNotificationKey, RedisTool::serialize($flashMessage));
+            $pipe->expire($redisNotificationKey, $expiration);
+            $pipe->exec();
+            return true;
+        }
+        return false;
+    }
+
+    public function collectNotificationToastForUser(array $user): array
+    {
+        if (!is_null($user['User'])) {
+            $redis = $this->setupRedis();
+            if ($redis !== false) {
+                $redisNotificationKey = 'misp:user_toast_notification:' . $user['User']['id'];
+                $flashMessages = $redis->smembers($redisNotificationKey);
+                $redis->del($redisNotificationKey);
+                $flashMessages = array_map('RedisTool::deserialize', $flashMessages);
+                return $flashMessages;
+            }
+        }
+        return []; 
+    }
+
+    public function userIP($user)
+    {
+        $Server = ClassRegistry::init('Server');
+        $redis = $Server->setupRedis();
+        if (is_numeric($user)) {
+            $conditions = ['User.id' => $user];
+        } else {
+            $conditions = ['User.email' => $user];
+        }
+        $user = $this->find('first', array(
+            'recursive' => -1,
+            'contain' => ['Organisation', 'Role'],
+            'fields' => ['User.email', 'User.disabled', 'Organisation.*', 'Role.*', 'User.id'],
+            'conditions' => $conditions
+        ));
+        if (empty($user)) {
+            throw new NotFoundException(__('User not found.'));
+        }
+        $temp = ['Organisation' => $user['Organisation'], 'Role' => $user['Role']];
+        unset($user['Organisation']);
+        unset($user['Role']);
+        $user = $user['User'];
+        $user = array_merge($user, $temp);
+        $ips = $redis->smembers('misp:user_ip:' . $user['id']);
+        return ['ips' => $ips, 'User' => $user];
+    }
+
+    public function IPUser($ip)
+    {
+        $Server = ClassRegistry::init('Server');
+        $redis = $Server->setupRedis();
+        $user_id = $redis->get('misp:ip_user:' . $ip);
+        if (empty($user_id)) {
+            throw new NotFoundException(__('No Users found for the given IP.'));
+        }
+        $user = $this->find('first', array(
+            'recursive' => -1,
+            'contain' => ['Organisation', 'Role'],
+            'fields' => ['User.email', 'User.disabled', 'Organisation.*', 'Role.*', 'User.id'],
+            'conditions' => array('User.id' => $user_id)
+        ));
+        if (empty($user)) {
+            throw new NotFoundException(__('User not found.'));
+        }
+        $temp = ['Organisation' => $user['Organisation'], 'Role' => $user['Role']];
+        unset($user['Organisation']);
+        unset($user['Role']);
+        $user = $user['User'];
+        $user = array_merge($user, $temp);
+        return ['ip' => $ip, 'User' => $user];
+    }
+
+    public function getUserRestLimit($user, $Controller)
+    {
+        if (!empty($user['Role'])){
+            $role = $user['Role'];
+        } else {
+            $Controller->loadModel('Role');
+            $role = $this->Role->find('first', [
+                'conditions' => ['Role.id' => $user['role_id']],
+                'recursive' => -1,
+                'fields' => ['Role.restsearch_limit_result', 'Role.perm_site_admin']
+            ])['Role'];
+        }
+        if (isset($role['restsearch_limit_result'])) {
+            $roleLimit = (int)$role['restsearch_limit_result'];
+        } else {
+            $roleLimit = $role['perm_site_admin'] ? 0 : (int) Configure::read('MISP.default_restsearch_limit');
+        }
+        return $roleLimit;
+    }
 }

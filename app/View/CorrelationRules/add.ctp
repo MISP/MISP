@@ -1,6 +1,8 @@
 <?php
 $edit = $this->request->params['action'] === 'edit' ? true : false;
-$this->request->data['CorrelationRule']['selector_list'] = json_encode($this->data['CorrelationRule']['selector_list'], JSON_PRETTY_PRINT);
+if (!empty($this->request->data['CorrelationRule']['selector_list'])) {
+    $this->request->data['CorrelationRule']['selector_list'] = json_encode($this->data['CorrelationRule']['selector_list'], JSON_PRETTY_PRINT);
+}
 $fields = [
     [
         'field' => 'name',
@@ -33,8 +35,7 @@ echo $this->element('genericElements/Form/genericForm', [
         'title' => $edit ? __('Edit Correlation Rule') : __('Add Correlation Rule'),
         'fields' => $fields,
         'submit' => [
-            'action' => $this->request->params['action'],
-            'ajaxSubmit' => 'submitGenericFormInPlace();'
+            'action' => $this->request->params['action']
         ]
     ]
 ]);

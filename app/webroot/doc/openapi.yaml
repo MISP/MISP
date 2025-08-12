@@ -64,6 +64,8 @@ tags:
     description: "Attributes in MISP can be network indicators (e.g. IP address), system indicators (e.g. a string in memory) or even bank account details."
     externalDocs:
       url: https://www.circl.lu/doc/misp/GLOSSARY.html#misp-attribute
+  - name: Collections
+    description: "MISP collections can be used to organise data shared by the community. These collections can be categorised based on commonalities or as part of the research process."
   - name: Events
     description: "MISP events are encapsulations for contextually related information represented as attributes and objects."
     externalDocs:
@@ -229,7 +231,7 @@ paths:
           $ref: "#/components/responses/ApiErrorResponse"
 
   /analystData/indexMinimal:
-    get:
+    post:
       summary: "List minimal Analyst data"
       operationId: indexMinimalAnalystData
       tags:
@@ -349,19 +351,19 @@ paths:
         - name: attributeId
           in: path
           description: Attribute ID or 'selected' to add tags to multiple attributes
-          required: false
+          required: true
           schema:
             type: string
         - name: tagId
           in: path
           description: Tag ID, tag name or tag collection ID (format collection_N)
-          required: false
+          required: true
           schema:
             type: string
         - name: local
           in: path
           description: Whether to add tag as local tag (1) or global tag (0). Leave the other path params empty if you want to add local tags using the json request body params
-          required: false
+          required: true
           schema:
             type: integer
             enum: [ 0, 1 ]
@@ -488,6 +490,108 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/EnrichAttributeResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/add:
+    post:
+      summary: "Add a collection"
+      operationId: addCollection
+      tags:
+        - Collections
+      requestBody:
+        $ref: "#/components/requestBodies/AddCollectionRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/AddCollectionResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/edit/{collectionId}:
+    post:
+      summary: "Edit a collection"
+      operationId: editCollection
+      tags:
+        - Collections
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BaseCollection"
+      responses:
+        "200":
+          $ref: "#/components/responses/EditCollectionResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/delete/{collectionId}:
+    delete:
+      summary: "Delete a collection"
+      operationId: deleteCollection
+      tags:
+        - Collections
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteCollectionResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/view/{collectionId}:
+    get:
+      summary: "View a collection by ID"
+      operationId: getCollectionById
+      tags:
+        - Collections
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/ViewCollectionResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/index/{filter}:
+    post:
+      summary: "Get a list of collections with optional filtering"
+      operationId: getCollections
+      tags:
+        - Collections
+      parameters:
+        - name: filter
+          in: path
+          description: "Optional filter for collections"
+          required: true
+          schema:
+            type: string
+            enum:
+              - "my_collections"
+              - "org_collections"
+      requestBody:
+        $ref: "#/components/requestBodies/SearchCollectionsRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/CollectionListResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         default:
@@ -2978,6 +3082,8 @@ components:
     MinimalAnalystDataEmpty:
       description: "Minimal Analyst Data"
       type: array
+      items:
+        type: object
       maxItems: 0
 
     # Attributes
@@ -6093,6 +6199,7 @@ components:
           * `3` - All communities
           * `4` - Sharing group
           * `5` - Inherit Event
+      example: "4"
 
     ThreatLevelId:
       type: string
@@ -6162,6 +6269,14 @@ components:
       type: boolean
       default: false
 
+    ExtendingRestSearchFlag:
+      description: "Whether to include events that are extending another one. If set to 1, only events extending another will be returned. If set to 0, only events that are not extending another will be returned. Omit or [0,1] to disregard extension state."
+      type: boolean
+    
+    ExtendedRestSearchFlag:
+      description: "Whether to include events that are extended by another one. If set to 1, only events extended by another will be returned. If set to 0, only events that are not extended by another will be returned. Omit or [0,1] to disregard extension state."
+      type: boolean
+
     PublishedFlag:
       type: boolean
       default: false
@@ -6221,6 +6336,7 @@ components:
       minimum: 1
 
     LimitSearchFilter:
+      description: "Maximum number of results to be returned. Can't be greater than the one set for your role. 0 means maximum."
       type: integer
       format: int32
       nullable: true
@@ -6648,6 +6764,129 @@ components:
           type: string
           example: "/users/totp_delete/1"
 
+    CollectionId:
+      type: string
+      pattern: "^\\d+$"
+      maxLength: 10
+      example: "12345"
+
+    CollectionElementId:
+      type: string
+      pattern: "^\\d+$"
+      maxLength: 10
+      example: "12345"
+
+    CollectionType:
+      type: string
+      enum:
+        - "campaign"
+        - "intrusion_set"
+        - "named_threat"
+        - "other"
+        - "research"
+
+    BaseCollection:
+      type: object
+      properties:
+        type:
+          $ref: "#/components/schemas/CollectionType"
+        name:
+          type: string
+          maxLength: 191
+          example: "APT Campaign Collection"
+        description:
+          $ref: "#/components/schemas/CollectionDescription"
+        distribution:
+          $ref: "#/components/schemas/DistributionLevelId"
+        sharing_group_id:
+          $ref: "#/components/schemas/SharingGroupId"
+
+    CollectionAddEdit:
+      allOf:
+        - type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/CollectionId"
+            org_id:
+              $ref: "#/components/schemas/OrganisationId"
+            orgc_id:
+              $ref: "#/components/schemas/OrganisationId"
+            uuid:
+              $ref: "#/components/schemas/UUID"
+            created:
+              type: string
+              example: "2024-03-19 11:10:24"
+            modified:
+              type: string
+              example: "2024-03-19 11:10:24"
+            user_id:
+              $ref: "#/components/schemas/UserId"
+        - $ref: "#/components/schemas/BaseCollection"
+
+    CollectionFullNoElements:
+      allOf:
+        - type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/CollectionId"
+            org_id:
+              $ref: "#/components/schemas/OrganisationId"
+            orgc_id:
+              $ref: "#/components/schemas/OrganisationId"
+            uuid:
+              $ref: "#/components/schemas/UUID"
+            created:
+              type: string
+              example: "2024-03-19 11:10:24"
+            modified:
+              type: string
+              example: "2024-03-19 11:10:24"
+            Org:
+              $ref: "#/components/schemas/EventOrganisation"
+            Orgc:
+              $ref: "#/components/schemas/EventOrganisation"
+        - $ref: "#/components/schemas/BaseCollection"
+
+    CollectionFull:
+      allOf:
+        - type: object
+          properties:
+            CollectionElement:
+              $ref: "#/components/schemas/CollectionElementList"
+        - $ref: "#/components/schemas/CollectionFullNoElements"
+
+    CollectionDescription:
+      type: string
+      maxLength: 16777215
+      example: "This is a dummy description, for a collection about Aiur."
+
+    CollectionElementDescription:
+      type: string
+      maxLength: 16777215
+      example: "This is a dummy description, for a collection element."
+
+    CollectionElement:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/CollectionElementId"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        collection_id:
+          $ref: "#/components/schemas/CollectionId"
+        element_uuid:
+          $ref: "#/components/schemas/UUID"
+        element_type:
+          type: string
+          enum: [ "Event", "GalaxyCluster" ]
+        description:
+          $ref: "#/components/schemas/CollectionElementDescription"
+
+    CollectionElementList:
+      type: array
+      items:
+        $ref: "#/components/schemas/CollectionElement"
+
   parameters:
     eventIdParameter:
       name: eventId
@@ -7025,6 +7264,16 @@ components:
       schema:
         $ref: "#/components/schemas/AnalystObjectType"
 
+    collectionIdParameter:
+      name: collectionId
+      in: path
+      description: "UUID or numeric ID of the collection"
+      required: true
+      schema:
+        oneOf:
+          - $ref: "#/components/schemas/CollectionId"
+          - $ref: "#/components/schemas/UUID"
+
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
@@ -7065,6 +7314,18 @@ components:
           schema:
             $ref: "#/components/schemas/AttributeNoId"
 
+    AddCollectionRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            allOf:
+              - type: object
+                properties:
+                  uuid:
+                    $ref: "#/components/schemas/UUID"
+              - $ref: "#/components/schemas/BaseCollection"
+
     EditAttributeRequest:
       required: true
       content:
@@ -7092,6 +7353,26 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/EventNoId"
+
+    SearchCollectionsRequest:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              Collection.uuid:
+                type: string
+                maxLength: 36
+                example: "c99506a6-%"
+              Collection.type:
+                type: string
+                example: "campaign%"
+              Collection.name:
+                type: string
+                maxLength: 191
+                example: "APT Campaign%"
+
 
     SearchEventRequest:
       required: true
@@ -7161,6 +7442,10 @@ components:
                 $ref: "#/components/schemas/AnalysisLevelId"
               threatlevel:
                 $ref: "#/components/schemas/ThreatLevelId"
+              extending:
+                $ref: "#/components/schemas/ExtendingRestSearchFlag"
+              extended:
+                $ref: "#/components/schemas/ExtendedRestSearchFlag"
               email:
                 description: "Filter events by matching the event creator user email"
                 type: string
@@ -7273,6 +7558,10 @@ components:
                 $ref: "#/components/schemas/ObjectRelationRestSearchFilter"
               threat_level_id:
                 $ref: "#/components/schemas/ThreatLevelId"
+              extending:
+                $ref: "#/components/schemas/ExtendingRestSearchFlag"
+              extended:
+                $ref: "#/components/schemas/ExtendedRestSearchFlag"
               returnFormat:
                 $ref: "#/components/schemas/EventsRestSearchReturnFormat"
 
@@ -10194,6 +10483,71 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/UnauthorizedApiError"
+
+    AddCollectionResponse:
+      description: "A collection"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              Collection:
+                $ref: "#/components/schemas/CollectionAddEdit"
+
+    EditCollectionResponse:
+      description: "A collection"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              Collection:
+                $ref: "#/components/schemas/CollectionAddEdit"
+
+    ViewCollectionResponse:
+      description: "A collection"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              Collection:
+                $ref: "#/components/schemas/CollectionFull"
+
+    CollectionListResponse:
+      description: "A list of collections"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                Collection:
+                  $ref: "#/components/schemas/CollectionFullNoElements"
+
+    DeleteCollectionResponse:
+      description: "Delete collection response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "Collection deleted."
+              message:
+                type: string
+                example: "Collection deleted."
+              url:
+                type: string
+                example: "/collections/delete/1"
+              id:
+                $ref: "#/components/schemas/ModelId"
 
   headers:
     X-Result-Count:

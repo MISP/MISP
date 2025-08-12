@@ -106,10 +106,10 @@ class GitTool
             if ($submodule === '' || $submodule[0] === '-') {
                 continue;
             }
-            $parts = explode(' ', $submodule);
+            $parts = explode(' ', substr($submodule, 1));
             $output[] = [
-                'name' => $parts[2],
-                'commit' => $parts[1],
+                'name' => $parts[1],
+                'commit' => $parts[0],
             ];
         }
         return $output;

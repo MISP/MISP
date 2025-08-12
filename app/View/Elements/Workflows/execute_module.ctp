@@ -110,6 +110,7 @@ $type_mapper = [
     $(document).ready(function() {
         $runModuleBtn.click(submitModuleExecution)
         $('select[multiple]').chosen()
+        populateChosenOptionsFromURL()
     })
 
     function submitModuleExecution() {
@@ -158,7 +159,7 @@ $type_mapper = [
             .removeClass(['label-success', 'label-important'])
             .addClass(jqXHR.status == 200 ? 'label-success' : 'label-important')
         if (typeof result === 'object') {
-            $executionResultText.text(JSON.stringify(result, '', 4));
+            $executionResultText.html(syntaxHighlightJson(result, 4));
             $('#executionResultHtml').empty();
         } else {
             $('#executionResultHtml').html(result);
@@ -190,6 +191,34 @@ $type_mapper = [
             type: 'post',
             url: url
         })
+    }
+
+    function populateChosenOptionsFromURL() {
+        var $selects = $('#WorkflowModuleViewForm select[picker_options]')
+        $selects.each(function() {
+            var $select = $(this)
+            var options_url = $select.attr('picker_options')
+            if (options_url) {
+                $.ajax({
+                    success: function(options, textStatus) {
+                        options.forEach(option => {
+                            var $newOption = $('<option>')
+                                .val(option)
+                                .text(option)
+                            $select.append($newOption);
+                        });
+                        $select.trigger('chosen:updated');
+                        $select.trigger('change')
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        showMessage('fail', 'Could not get options from select_options_url');
+                    },
+                    type: 'get',
+                    url: options_url
+                })
+            }
+        })
+
     }
 </script>
 

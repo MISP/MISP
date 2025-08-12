@@ -2,7 +2,7 @@
 $generatePopover = function (array $server) {
     $popover = '';
     foreach (['id' => __('ID'), 'name' => __('Name'), 'url' => __('URL'), 'events_count' => __('Events count')] as $key => $name) {
-        $popover .= '<span class=\'bold\'>' . $name . '</span>: <span class=\'bold blue\'>' . h($server['Server'][$key]) . '</span><br>';
+        $popover .= '<span class=\'bold\'>' . h($name) . '</span>: <span class=\'bold blue\'>' . h($server['Server'][$key]) . '</span><br>';
     }
     return $popover;
 };
@@ -59,9 +59,9 @@ $generatePopover = function (array $server) {
                             if ($percentage === null) {
                                 $popover = '';
                             } else if ($percentage == 0) {
-                                $popover = __('None or less than 1 % of the events of %s is contained in %s (%s matching events)', $item['Server']['name'], $item2['Server']['name'], $count);
+                                $popover = __('None or less than 1 % of the events of %s is contained in %s (%s matching events)', h($item['Server']['name']), h($item2['Server']['name']), $count);
                             } else if ($percentage > 0) {
-                                $popover = __('%s % of the events of %s is contained in %s (%s matching events)', $percentage, $item['Server']['name'], $item2['Server']['name'], $count);
+                                $popover = __('%s % of the events of %s is contained in %s (%s matching events)', $percentage, h($item['Server']['name']), h($item2['Server']['name']), $count);
                             }
                             ?>
                             <td class="<?= $class ?>" style="text-align: center">

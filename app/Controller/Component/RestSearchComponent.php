@@ -85,6 +85,8 @@ class RestSearchComponent extends Component
             'last',
             'eventid',
             'withAttachments',
+            'is_extended',
+            'is_extension',
             'metadata',
             'uuid',
             'publish_timestamp',
@@ -121,7 +123,7 @@ class RestSearchComponent extends Component
             'flatten',
             'blockedAttributeTags',
             'eventsExtendingUuid',
-            'extended',
+            'is_extended',
             'extensionList',
             'excludeGalaxy',
             'includeAnalystData',
@@ -149,6 +151,7 @@ class RestSearchComponent extends Component
             'org.local',
             'org.nationality',
             'galaxy.*',
+            'attackGalaxy',
         ],
         'Object' => [
             'returnFormat',
@@ -241,6 +244,8 @@ class RestSearchComponent extends Component
             } else {
                 $filename .= 'list';
             }
+        } else {
+            $filename = 'misp.' . Inflector::tableize($scope) . '_search.' . $filters['returnFormat'] . '.' . time();
         }
         if ($filename !== false) {
             $filename .= '.' . $responseType;

@@ -142,7 +142,6 @@ class SharingGroupBlueprint extends AppModel
             }
             $existingOrgs = array_unique($existingOrgs);
             $id = $sg['SharingGroup']['id'];
-            $failed++;
         }
         return [
             'id' => $id,

@@ -30,6 +30,31 @@ class AttributeValidationTool
         'dom-hash' => 32,
     ];
 
+    const VULNERABILITY_REGEXES = [
+        'CVE-\d{4}-\d{4,}',
+        'GCVE-\d+-\d{4}-\d+',
+        'fkie_cve-\d{4}-\d{4,}',
+        'ghsa-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}',
+        'pysec-\d{4}-\d{2,5}',
+        'gsd-\d{4}-\d{4,5}',
+        'mal-\d{4}-\d+',
+        'wid-sec-w-\d{4}-\d{4}',
+        'ncsc-\d{4}-\d{4}',
+        'ssa-\d{6}',
+        'rh(ba|ea|sa)-\d{4}:\d{4,}',
+        'ics(ma|a)-\d{2}-\d{3}-\d{2}',
+        'va-\d{2}-\d{3}-\d{2}',
+        'cisco-sa(-[a-zA-Z0-9_]+)+',
+        'sca-\d{4}-\d{4,}',
+        'nn-\d{4}[:_]\d-\d{2}',
+        'oxas-adv-\d{4}-\d{4}',
+        'msrc_cve-\d{4}-\d{4,}',
+        'var-\d{6}-\d{4}',
+        'jvndb-\d{4}-\d{6}',
+        'ts-\d{4}-\d{4}',
+        '(open)?suse-su-\d{4}:\d{4,}-\d'
+    ];
+
     /**
      * Do some last second modifications before the validation
      * @param string $type
@@ -127,6 +152,12 @@ class AttributeValidationTool
             case 'hex':
                 return strtoupper($value);
             case 'vulnerability':
+                $value = str_replace('–', '-', $value);
+                $source = explode('-', $value)[0];
+                if (in_array($source, ['cve', 'gcve'])) {
+                    return strtoupper($value);
+                }
+                return $value;
             case 'weakness':
                 $value = str_replace('–', '-', $value);
                 return strtoupper($value);
@@ -425,10 +456,10 @@ class AttributeValidationTool
                 }
                 return __('Email address has an invalid format. Please double check the value or select type "other".');
             case 'vulnerability':
-                if (preg_match("#^CVE-[0-9]{4}-[0-9]{4,}$#", $value)) {
+                if (preg_match("#^(" . implode("|", self::VULNERABILITY_REGEXES) . ")$#i", $value)) {
                     return true;
                 }
-                return __('Invalid format. Expected: CVE-xxxx-xxxx...');
+                return __('Invalid vulnerability ID format.');
             case 'weakness':
                 if (preg_match("#^CWE-[0-9]+$#", $value)) {
                     return true;

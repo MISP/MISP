@@ -31,6 +31,8 @@ class ServerSyncTool
 
     /** @var array|null */
     private $info;
+    /** @var array|null */
+    private $userInfo;
 
     /**
      * @param array $server
@@ -214,7 +216,7 @@ class ServerSyncTool
      */
     public function pushGalaxyCluster(array $cluster)
     {
-        $logMessage = "Pushing Galaxy Cluster #{$cluster['GalaxyCluster']['id']} to Server #{$this->serverId()}";
+        $logMessage = "Pushing Galaxy Cluster #{$cluster['GalaxyCluster']['uuid']} to Server #{$this->serverId()}";
         return $this->post('/galaxies/pushCluster', [$cluster], $logMessage);
     }
 
@@ -393,6 +395,22 @@ class ServerSyncTool
     public function userInfo()
     {
         return $this->get('/users/view/me.json');
+    }
+
+    /**
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function cachedUserInfo()
+    {
+        if ($this->userInfo) {
+            return $this->userInfo;
+        }
+
+        $response = $this->userInfo();
+        $userInfo = $response->json();
+        $this->userInfo = $userInfo;
+        return $userInfo;
     }
 
     /**

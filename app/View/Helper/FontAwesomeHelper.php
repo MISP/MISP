@@ -436,7 +436,7 @@ class FontAwesomeHelper extends AppHelper
 
     public function getClass($icon)
     {
-        return self::findNamespace($icon) . ' fa-' . $icon;
+        return h(self::findNamespace($icon) . ' fa-' . $icon);
     }
 
     public static function findNamespace($icon)

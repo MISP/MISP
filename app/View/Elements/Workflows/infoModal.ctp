@@ -253,8 +253,74 @@ $data_passed_to_if_module = [
                         "inherited": false
                     }
                 ],
+                "warnings": [
+                    {
+                        "match": "8.8.8.8/32",
+                        "value": "8.8.8.8",
+                        "warninglist_id": "60",
+                        "warninglist_name": "List of known IPv4 public DNS resolvers",
+                        "warninglist_category": "false_positive"
+                    }
+                ],
                 "enrichment": [
-                    {}
+                    {
+                        "Attribute": [
+                            {
+                                "uuid": "fe476827-a8de-4f90-9e24-7ada8381b6f3",
+                                "type": "ip-dst",
+                                "value": "8.8.8.8",
+                                "category": "Network activity",
+                                "to_ids": true,
+                                "distribution": "5",
+                                "id": "4763",
+                                "event_id": "144",
+                                "timestamp": "1744375057",
+                                "sharing_group_id": "0",
+                                "disable_correlation": false,
+                                "comment": "",
+                                "deleted": false,
+                                "object_id": "0"
+                            }
+                        ],
+                        "Object": [
+                            {
+                                "name": "geolocation",
+                                "meta-category": "misc",
+                                "template_uuid": "cd6f2238-ba55-4888-82c4-104e6e1acf21",
+                                "description": "An object to describe a geographic location.",
+                                "template_version": "7",
+                                "uuid": "e2998143-6e03-4184-8e08-d001c8e62e7c",
+                                "ObjectReference": [
+                                {
+                                    "uuid": "1bf1384e-dc13-4fd6-8fef-c9765926e960",
+                                    "object_uuid": "e2998143-6e03-4184-8e08-d001c8e62e7c",
+                                    "referenced_uuid": "fe476827-a8de-4f90-9e24-7ada8381b6f3",
+                                    "relationship_type": "related-to"
+                                }
+                                ],
+                                "Attribute": [
+                                    {
+                                        "uuid": "22fa277a-7426-4596-a728-1732f0bf9855",
+                                        "object_relation": "country",
+                                        "value": "United States",
+                                        "type": "text",
+                                        "disable_correlation": false,
+                                        "to_ids": false,
+                                        "category": "Other"
+                                    },
+                                    {
+                                        "uuid": "a9326ab1-1bde-4975-96e4-745676884986",
+                                        "object_relation": "countrycode",
+                                        "value": "US",
+                                        "type": "text",
+                                        "disable_correlation": false,
+                                        "to_ids": false,
+                                        "category": "Other"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
                 ]
             }
         ],
@@ -584,8 +650,74 @@ $data_passed_to_if_module = [
                         "inherited": false
                     }
                 ],
+                "warnings": [
+                    {
+                        "match": "8.8.8.8/32",
+                        "value": "8.8.8.8",
+                        "warninglist_id": "60",
+                        "warninglist_name": "List of known IPv4 public DNS resolvers",
+                        "warninglist_category": "false_positive"
+                    }
+                ],
                 "enrichment": [
-                    {}
+                    {
+                        "Attribute": [
+                            {
+                                "uuid": "fe476827-a8de-4f90-9e24-7ada8381b6f3",
+                                "type": "ip-dst",
+                                "value": "8.8.8.8",
+                                "category": "Network activity",
+                                "to_ids": true,
+                                "distribution": "5",
+                                "id": "4763",
+                                "event_id": "144",
+                                "timestamp": "1744375057",
+                                "sharing_group_id": "0",
+                                "disable_correlation": false,
+                                "comment": "",
+                                "deleted": false,
+                                "object_id": "0"
+                            }
+                        ],
+                        "Object": [
+                            {
+                                "name": "geolocation",
+                                "meta-category": "misc",
+                                "template_uuid": "cd6f2238-ba55-4888-82c4-104e6e1acf21",
+                                "description": "An object to describe a geographic location.",
+                                "template_version": "7",
+                                "uuid": "e2998143-6e03-4184-8e08-d001c8e62e7c",
+                                "ObjectReference": [
+                                {
+                                    "uuid": "1bf1384e-dc13-4fd6-8fef-c9765926e960",
+                                    "object_uuid": "e2998143-6e03-4184-8e08-d001c8e62e7c",
+                                    "referenced_uuid": "fe476827-a8de-4f90-9e24-7ada8381b6f3",
+                                    "relationship_type": "related-to"
+                                }
+                                ],
+                                "Attribute": [
+                                    {
+                                        "uuid": "22fa277a-7426-4596-a728-1732f0bf9855",
+                                        "object_relation": "country",
+                                        "value": "United States",
+                                        "type": "text",
+                                        "disable_correlation": false,
+                                        "to_ids": false,
+                                        "category": "Other"
+                                    },
+                                    {
+                                        "uuid": "a9326ab1-1bde-4975-96e4-745676884986",
+                                        "object_relation": "countrycode",
+                                        "value": "US",
+                                        "type": "text",
+                                        "disable_correlation": false,
+                                        "to_ids": false,
+                                        "category": "Other"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
                 ]
             },
             {
@@ -696,6 +828,24 @@ $data_passed_to_if_module = [
 # The `json` filter
 {{ attribute | tojson }}
 -> The complete attribute json encoded
+</pre>
+                <h4><?= __('Additional keys available') ?></h4>
+                <ul>
+                    <li><?= __('Additional key') ?> <code>_env</code> contains environment variable</li>
+                    <ul>
+                        <li><code>baseurl</code> <?= __('contains the baseurl of the instance as defined in the setting MISP.baseurl') ?></li>
+                    </ul>
+                </ul>
+                <p><strong><?= __('Sample:') ?></strong></p>
+                <pre>
+{
+    "_env" {
+        "baseurl": "https://misp.local"
+    }
+    "Event": {
+        ...
+    }
+}
 </pre>
 
             </div>

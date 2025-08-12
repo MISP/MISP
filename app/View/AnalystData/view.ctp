@@ -18,13 +18,24 @@ $fields = [
         'key' => __('Target Object'),
         'type' => 'custom',
         'function' => function (array $row) use ($baseurl, $modelSelection) {
-            $path = Inflector::pluralize(strtolower($row[$modelSelection]['object_type']));
-            return sprintf(
-                '<span class="bold">%s</span>: <a href="%s/%s/view/%s">%s</a>',
-                h($row[$modelSelection]['object_type']),
+            $path = Inflector::tableize($row[$modelSelection]['object_type']);
+            $url = sprintf('%s/%s/view/%s',
                 h($baseurl),
                 h($path),
-                h($row[$modelSelection]['object_uuid']),
+                h($row[$modelSelection]['object_uuid'])
+            );
+            if (in_array($row[$modelSelection]['object_type'], ['Note', 'Opinion', 'Relationship'])) {
+                $path = "analystData/view/{$row[$modelSelection]['object_type']}/{$row[$modelSelection]['object_uuid']}";
+                $url = sprintf(
+                    '%s/%s',
+                    h($baseurl),
+                    h($path)
+                );
+            }
+            return sprintf(
+                '<span class="bold">%s</span>: <a href="%s">%s</a>',
+                h($row[$modelSelection]['object_type']),
+                $url,
                 h($row[$modelSelection]['object_uuid'])
             );
         }

@@ -22,7 +22,7 @@
     }
 ?>
 
-<div id="mardown-viewer-toolbar" class="btn-toolbar">
+<div id="markdown-viewer-toolbar" class="btn-toolbar">
     <div class="btn-group">
         <?php if ($canEdit && !$insideModal): ?>
             <button type="button" class="btn" data-togglemode="editor" onclick="setMode('editor')">
@@ -190,7 +190,7 @@
     var saveSuccessMessage = '<?= 'Markdown saved' ?>'
     var saveFailedMessage = '<?= 'Could not save markdown. Reason' ?>'
     var imgPictureFailedMessage = '<?= 'Could not upload picture. Reason' ?>'
-    var savePDFConfirmMessage = '<?= __('In order to save the PDF, you have to set the print destination to `Save as PDF`. Warning: The prefered way to download as PDF is to use the misp-module download.') ?>'
+    var savePDFConfirmMessage = '<?= __('In order to save the PDF, you have to set the print destination to `Save as PDF`. Warning: The preferred way to download as PDF is to use the misp-module download.') ?>'
     var confirmationMessageUnsavedChanges = '<?= __('You are about to leave the page with unsaved changes. Do you want to proceed?') ?>'
     var changeDetectedMessage = '<?= __('Unsaved changes') ?>'
     var canEdit = <?= $canEdit ? 'true' : 'false' ?>;

@@ -6,7 +6,7 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ '2.4', develop, '2.4-develop', misp-stix, taxii, 'feature/analystData_flattening' ]
+    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii, fetchAttributes_refactor]
   pull_request:
     branches: [ '2.4', develop, '2.4-develop', misp-stix ]
 
@@ -275,3 +275,8 @@ jobs:
         if: ${{ always() }}
         run: |
           ./tests/logs_tests.sh
+
+      - name: error.log
+        if: ${{ always() }}
+        run: |
+          cat `pwd`/app/tmp/logs/error.log

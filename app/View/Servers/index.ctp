@@ -58,7 +58,15 @@ foreach ($servers as $server):
                     foreach ($rules[$syncOption][$fieldOption][$typeOption] as $k => $temp) {
                         if ($k != 0) $ruleDescription[$syncOption] .= ', ';
                         if ($syncOption === 'push') {
-                            $temp = !empty($collection[$fieldOption][$temp]) ? $collection[$fieldOption][$temp] : $temp;
+                            if ($fieldOption == 'orgs') {
+                                $temp = !empty($collection[$fieldOption][$temp]) ? ($collection[$fieldOption][$temp] . ' (' . $temp . ')') : $temp;
+                            } else {
+                                $temp = !empty($collection[$fieldOption][$temp]) ? $collection[$fieldOption][$temp] : $temp;
+                            }
+                        } else {
+                            if ($fieldOption == 'orgs') {
+                                $temp = !empty($collection[$fieldOption][$temp]) ? ($collection[$fieldOption][$temp] . ' (' . $temp . ')') : $temp;
+                            }
                         }
                         $ruleDescription[$syncOption] .= h($temp);
                     }
@@ -118,8 +126,18 @@ foreach ($servers as $server):
         </td>
 
         <td><span class="<?= $server['Server']['internal']? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['internal']? __('Yes') : __('No') ?>" title="<?= $server['Server']['internal'] ? __('Internal instance that ignores distribution level degradation *WARNING: Only use this setting if you have several internal instances and the sync link is to an internal extension of the current MISP community*') : __('Normal sync link to an external MISP instance. Distribution degradation will follow the normal rules.') ?>"></span></td>
-        <td><span class="<?= $server['Server']['push']? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['push']? __('Yes') : __('No') ?>"></span><span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?= $ruleDescription['push'] ?>"> (<?= __('Rules') ?>)</span></td>
-        <td><span class="<?= $server['Server']['pull']? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['pull']? __('Yes') : __('No') ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?= $ruleDescription['pull'] ?>"> (<?= __('Rules') ?>)</span></td>
+        <td>
+            <span class="<?= $server['Server']['push']? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['push']? __('Yes') : __('No') ?>"></span>
+            <span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?= $ruleDescription['push'] ?>"> (<?= __('Rules') ?>)</span>
+            <span role="button" tabindex="0" aria-label="<?php echo __('Test Rules');?>" title="<?php echo __('Test how many Events can be access with the filter rules enabled');?>" class="btn btn-primary <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" style="line-height:10px; padding: 4px 4px; text-wrap: nowrap;" onClick="testSyncRule('<?php echo $server['Server']['id'];?>', 'push');"><?php echo __('Test Push Rules');?></span>
+            <span id="sync_rule_push_test_<?php echo $server['Server']['id'];?>"></span>
+        </td>
+        <td>
+            <span class="<?= $server['Server']['pull']? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['pull']? __('Yes') : __('No') ?>"></span>
+            <span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?= $ruleDescription['pull'] ?>"> (<?= __('Rules') ?>)</span>
+            <span role="button" tabindex="0" aria-label="<?php echo __('Test Rules');?>" title="<?php echo __('Test how many Events can be access with the filter rules enabled');?>" class="btn btn-primary <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" style="line-height:10px; padding: 4px 4px; text-wrap: nowrap;" onClick="testSyncRule('<?php echo $server['Server']['id'];?>', 'pull');"><?php echo __('Test Pull Rules');?></span>
+            <span id="sync_rule_pull_test_<?php echo $server['Server']['id'];?>"></span>
+        </td>
         <td class="short"><span class="<?= $server['Server']['push_sightings'] ? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['push_sightings'] ? __('Yes') : __('No'); ?>"></span></td>
         <td class="short"><span class="<?= $server['Server']['push_galaxy_clusters'] ? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['push_galaxy_clusters'] ? __('Yes') : __('No'); ?>"></span></td>
         <td class="short"><span class="<?= $server['Server']['pull_galaxy_clusters'] ? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['pull_galaxy_clusters'] ? __('Yes') : __('No'); ?>"></span></td>

@@ -1479,6 +1479,7 @@ CREATE TABLE `taxii_servers` (
   `filters` text DEFAULT NULL,
   `api_key` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_bin NOT NULL,
   `collection` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `skip_proxy` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `uuid` (`uuid`),
   KEY `name` (`name`),

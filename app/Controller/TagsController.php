@@ -922,7 +922,7 @@ class TagsController extends AppController
                 if ($objectType === 'Attribute') {
                     $this->Attribute->touch($object['Attribute']['id']);
                 } elseif ($objectType === 'Event') {
-                    $this->Event->unpublishEvent($object['Event']['id']);
+                    $this->Event->touch($object['Event']['id']);
                 }
             }
             return $this->RestResponse->saveSuccessResponse('Tags', 'removeTagFromObject', false, $this->response->type(), $message);
@@ -1059,7 +1059,14 @@ class TagsController extends AppController
         }
         if ($this->request->is('post')) {
             if (isset($this->request->data['Tag']['relationship_type'])) {
-                $tagConnector[$model_name]['relationship_type'] = $this->request->data['Tag']['relationship_type'];
+                if (
+                    $this->request->data['Tag']['relationship_type'] == 'custom' &&
+                    !empty($this->request->data['Tag']['relationship_type_custom'])
+                ) {
+                    $tagConnector[$model_name]['relationship_type'] = $this->request->data['Tag']['relationship_type_custom'];
+                } else {
+                    $tagConnector[$model_name]['relationship_type'] = $this->request->data['Tag']['relationship_type'];
+                }
             } else {
                 $tagConnector[$model_name]['relationship_type'] = '';
             }
@@ -1084,14 +1091,24 @@ class TagsController extends AppController
 
         } else {
             $this->loadModel('ObjectRelationship');
-            $relationships = $this->ObjectRelationship->find('column', array(
+            $relationships = $this->ObjectRelationship->find('all', array(
                 'recursive' => -1,
-                'fields' => ['name'],
+                'fields' => ['name', 'highlighted', 'description'],
+                'order' => ['highlighted DESC']
             ));
-            $relationships = array_combine($relationships, $relationships);
-            $relationships['custom'] = 'custom';
-            $relationships[null] = 'Unspecified';
-            ksort($relationships);
+            $relationships = Hash::extract($relationships, '{n}.ObjectRelationship');
+            array_unshift($relationships, [
+                'name' => 'custom',
+                'value' => 'custom',
+                'description' => __('Allow to set a custom relationship'),
+                'highlighted' => false,
+            ]);
+            array_unshift($relationships, [
+                'name' => 'Unspecified',
+                'value' => '',
+                'description' => __('No relationship'),
+                'highlighted' => false,
+            ]);
 
             $this->set('title', __('Modify Tag Relationship'));
             $this->set(
@@ -1105,12 +1122,28 @@ class TagsController extends AppController
                 )
             );
             $this->set('options', $relationships);
-            $this->set('default', $tagConnector[$model_name]['relationship_type']);
+            if (!in_array($tagConnector[$model_name]['relationship_type'], array_column($relationships, 'name')) && $tagConnector[$model_name]['relationship_type'] !== '') {
+                $this->set('default', 'custom');
+                $this->set('default_custom', $tagConnector[$model_name]['relationship_type']);
+            } else {
+                $this->set('default', $tagConnector[$model_name]['relationship_type']);
+                $this->set('default_custom', '');
+            }
             $this->set('model', 'Tag');
             $this->set('onsubmit', 'modifyTagRelationship()');
             $this->set('field', 'relationship_type');
             $this->layout = false;
             $this->render('/genericTemplates/select');
         }
+    }
+
+    public function fastIndex($includeClusters=false)
+    {
+        if (!$this->_isRest() && !$this->request->is('ajax')) {
+            throw new MethodNotAllowedException('This action is only for REST users.');
+        }
+        $tags = $this->Tag->getCachedTags($includeClusters);
+        $tags = array_column(array_column($tags, 'Tag'), 'name');
+        return $this->RestResponse->viewData($tags, $this->response->type());
     }
 }

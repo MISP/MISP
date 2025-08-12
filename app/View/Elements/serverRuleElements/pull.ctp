@@ -119,7 +119,7 @@ echo $this->element('genericElements/assetLoader', array(
     var coreMirrorHints = <?= json_encode(!empty($coreMirrorHints) ? $coreMirrorHints : []) ?>;
     var cm;
     $(function() {
-        var serverID = "<?= isset($id) ? $id : '' ?>"
+        var serverID = "<?= isset($id) ? h($id) : '' ?>"
         <?php if ($context == 'servers') : ?>
             addPullFilteringRulesToPicker()
         <?php endif; ?>
@@ -190,10 +190,17 @@ echo $this->element('genericElements/assetLoader', array(
 
         function addOptions($select, data) {
             data.forEach(function(entry) {
-                $select.append($('<option/>', {
-                    value: entry,
-                    text: entry
-                }));
+                if (entry.uuid !== undefined && entry.name !== undefined) {
+                    $select.append($('<option/>', {
+                        value: entry.uuid,
+                        text: entry.name,
+                    }));
+                } else {
+                    $select.append($('<option/>', {
+                        value: entry,
+                        text: entry
+                    }));
+                }
             });
         }
 

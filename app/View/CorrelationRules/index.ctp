@@ -77,6 +77,15 @@
                 'actions' => [
                     [
                         'onclick' => sprintf(
+                            'openGenericModal(\'%s/correlationRules/executeRule/[onclick_params_data_path]\');',
+                            $baseurl
+                        ),
+                        'title' => __('Execute rule on instance'),
+                        'onclick_params_data_path' => 'CorrelationRule.id',
+                        'icon' => 'rocket'
+                    ],
+                    [
+                        'onclick' => sprintf(
                             'openGenericModal(\'%s/correlationRules/edit/[onclick_params_data_path]\');',
                             $baseurl
                         ),

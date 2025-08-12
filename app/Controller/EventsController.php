@@ -28,7 +28,7 @@ class EventsController extends AppController
 
     // private
     const ACCEPTED_FILTERING_NAMED_PARAMS = array(
-        'sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'page',
+        'sort', 'direction', 'focus', 'is_extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'page',
         'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'includeDecayScore', 'distribution',
         'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'feed', 'server', 'toIDS',
         'sighting', 'includeSightingdb', 'warninglistId', 'correlationId', 'email', 'eventid', 'datefrom', 'dateuntil'
@@ -57,6 +57,7 @@ class EventsController extends AppController
 
     // private
     const DEFAULT_HIDDEN_INDEX_COLUMNS = [
+        'is_extension',
         'timestamp',
         'publish_timestamp'
     ];
@@ -671,6 +672,26 @@ class EventsController extends AppController
                     $this->paginate['conditions']['AND'][] = array('Event.id' => $eventIds);
 
                     break;
+                case 'is_extension':
+                    $params = ["is_extension" => $v];
+                    $conditions = array();
+                    $conditions = $this->Event->set_filter_extending($params, $conditions, null);
+                    if (!empty($conditions['AND'])) {
+                        foreach ($conditions['AND'] as $cond) {
+                            $this->paginate['conditions']['AND'][] = $cond;
+                        }
+                    }
+                    break;
+                case 'is_extended':
+                    $params = ["is_extended" => $v];
+                    $conditions = array();
+                    $conditions = $this->Event->set_filter_extended($params, $conditions, null);
+                    if (!empty($conditions['AND'])) {
+                        foreach ($conditions['AND'] as $cond) {
+                            $this->paginate['conditions']['AND'][] = $cond;
+                        }
+                    }
+                    break;
                 default:
                     continue 2;
             }
@@ -683,9 +704,10 @@ class EventsController extends AppController
     {
         // list the events
         $urlparams = "";
-        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value');
+        $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value', 'is_extension', 'is_extended');
         $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
         $passedArgs = $this->passedArgs;
+
         if (!empty($this->request->data)) {
             if (isset($this->request->data['request'])) {
                 $this->request->data = $this->request->data['request'];
@@ -760,6 +782,18 @@ class EventsController extends AppController
         $this->set('urlparams', $urlparams);
         $this->set('passedArgsArray', $passedArgsArray);
         $this->set('passedArgs', json_encode($passedArgs));
+
+        $extendedUuids = array_filter(array_map(fn($event) => $event['Event']['extends_uuid'] ?? null, $events));
+
+        if ($extendedUuids) {
+            $extendedEvents = $this->Event->fetchSimpleEvents(
+                $this->Auth->user(),
+                ['conditions' => ['Event.uuid' => $extendedUuids]]
+            );
+            $this->set('extendedEvents', array_column($extendedEvents, 'Event', 'uuid'));
+        } else {
+            $this->set('extendedEvents', []);
+        }
 
         if ($this->request->is('ajax')) {
             $this->autoRender = false;
@@ -970,6 +1004,8 @@ class EventsController extends AppController
             $possibleColumns[] = 'owner_org';
         }
 
+        $possibleColumns[] = 'is_extension';
+
         if (Configure::read('MISP.tagging')) {
             $possibleColumns[] = 'clusters';
             $possibleColumns[] = 'tags';
@@ -1000,7 +1036,7 @@ class EventsController extends AppController
         if ($this->_isSiteAdmin()) {
             $possibleColumns[] = 'creator_user';
         }
-
+ 
         $possibleColumns[] = 'timestamp';
         $possibleColumns[] = 'publish_timestamp';
 
@@ -1096,6 +1132,8 @@ class EventsController extends AppController
             'analysis' => array('OR' => array(), 'NOT' => array()),
             'attribute' => array('OR' => array(), 'NOT' => array()),
             'hasproposal' => 2,
+            'is_extension' => 2,
+            'is_extended' => 2,
             'timestamp' => array('from' => "", 'until' => ""),
             'publishtimestamp' => array('from' => "", 'until' => "")
         );
@@ -1109,6 +1147,8 @@ class EventsController extends AppController
                 $searchTerm = substr($k, 6);
                 switch ($searchTerm) {
                     case 'published':
+                    case 'is_extension':
+                    case 'is_extended':
                     case 'hasproposal':
                         $filtering[$searchTerm] = $v;
                         break;
@@ -1164,6 +1204,8 @@ class EventsController extends AppController
             'distribution' => __('Distribution'),
             'sharinggroup' => __('Sharing group'),
             'analysis' => __('Analysis'),
+            'is_extension' => __('Is extension'),
+            'is_extended'  => __('Is extended'),
             'attribute' => __('Attribute'),
             'hasproposal' => __('Has proposal'),
             'timestamp' => __('Last change at'),
@@ -2063,7 +2105,7 @@ class EventsController extends AppController
     // look in the parameters if we are doing advanced filtering or not
     private function __checkIfAdvancedFiltering($filters)
     {
-        $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0, 'extended' => 0, 'page' => 0));
+        $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0, 'is_extended' => 0, 'page' => 0));
 
         if (count($advancedFilteringActive) > 0) {
             if (count(array_diff_key($advancedFilteringActive, array('deleted', 'includeRelatedTags', 'includeDecayScore'))) > 0) {
@@ -2147,7 +2189,8 @@ class EventsController extends AppController
             if (
                 !empty($this->request->data['Event']['protected']) &&
                 $this->Auth->user('Role')['perm_sync'] &&
-                !$this->Auth->user('Role')['perm_site_admin']
+                !$this->Auth->user('Role')['perm_site_admin'] &&
+                !$this->Auth->user('Role')['perm_sync_internal']
             ) {
                 $pgp_signature = $this->request->header('x-pgp-signature');
                 if (empty($pgp_signature)) {
@@ -2180,21 +2223,9 @@ class EventsController extends AppController
                 }
                 // If the distribution is set to sharing group, check if the id provided is really visible to the user, if not throw an error.
                 if ($this->request->data['Event']['distribution'] == 4) {
-                    if ($this->userRole['perm_sync'] && $this->_isRest()) {
-                        if (isset($this->request->data['Event']['SharingGroup'])) {
-                            if (!isset($this->request->data['Event']['SharingGroup']['uuid'])) {
-                                if ($this->Event->SharingGroup->checkIfExists($this->request->data['Event']['SharingGroup']['uuid']) &&
-                                    $this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['SharingGroup']['uuid'])) {
-                                    throw new MethodNotAllowedException(__('Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group).'));
-                                }
-                            }
-                        } elseif (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) {
-                            throw new MethodNotAllowedException(__('Invalid Sharing Group or not authorised.'));
-                        }
-                    } else {
-                        if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) {
-                            throw new MethodNotAllowedException(__('Invalid Sharing Group or not authorised.'));
-                        }
+                    $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data, 'Event');
+                    if ($canSGBeUsed !== true) {
+                        throw new MethodNotAllowedException($canSGBeUsed);
                     }
                 } else {
                     // If the distribution is set to something "traditional", set the SG id to 0.
@@ -2406,7 +2437,7 @@ class EventsController extends AppController
         $this->set('title_for_layout', __('Import from MISP Export File'));
     }
 
-    public function upload_stix($stix_version = '1', $publish = false, $galaxies_as_tags = true, $debug = false)
+    public function upload_stix($stix_version = '1', $publish = false, $force_contextual_data = true, $galaxies_as_tags = false, $debug = false)
     {
         $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $initialDistribution = 0;
@@ -2436,6 +2467,9 @@ class EventsController extends AppController
                     if (!array_key_exists($sharingGroupId, $sgs)) {
                         throw new BadRequestException(__('Please select a valid sharing group id.'));
                     }
+                }
+                if (isset($this->param['named']['force_contextual_data'])) {
+                    $force_contextual_data = $this->params['named']['force_contextual_data'];
                 }
                 $clusterDistribution = $initialDistribution;
                 $clusterSharingGroupId = null;
@@ -2469,6 +2503,7 @@ class EventsController extends AppController
                     $publish,
                     $distribution,
                     $sharingGroupId,
+                    $force_contextual_data,
                     $galaxies_as_tags,
                     $clusterDistribution,
                     $clusterSharingGroupId,
@@ -2502,6 +2537,7 @@ class EventsController extends AppController
                         $this->data['Event']['publish'],
                         $this->data['Event']['distribution'],
                         $this->data['Event']['sharing_group_id'] ?? null,
+                        $this->data['Event']['force_contextual_data'] ?? true,
                         $this->data['Event']['galaxies_handling'] ?? false,
                         $this->data['Event']['cluster_distribution'] ?? 0,
                         $this->data['Event']['cluster_sharing_group_id'] ?? null,
@@ -2544,6 +2580,14 @@ class EventsController extends AppController
             0 => __('The critical errors are logged in the usual log file.'),
             1 => __('All the errors and warnings are logged in the usual log file.'),
         ];
+        $forceContextualDataOptions = [
+            0 => __("Conversion library's decision"),
+            1 => __('As contextual MISP data')
+        ];
+        $forceContextualDataDescriptions = [
+            0 => __('Let the conversion library decide if the STIX objects should be converted as Galaxy Cluster or MISP Object.'),
+            1 => __('STIX objects that could either be converted as Galaxy Cluster or MISP Object depending on the context will be converted here anyway as Galaxy Cluster (and also as MISP object if applicable).')
+        ];
         $galaxiesOptions = [
             0 => __('As MISP standard format'),
             1 => __('As tag names'),
@@ -2556,6 +2600,10 @@ class EventsController extends AppController
         $this->set('debugOptions', $debugOptions);
         foreach ($debugOptions as $key => $value) {
             $fieldDesc['debug'][$key] = $debugDescriptions[$key];
+        }
+        $this->set('forceContextualDataOptions', $forceContextualDataOptions);
+        foreach ($forceContextualDataOptions as $key => $value) {
+            $fieldDesc['force_contextual_data'][$key] = $forceContextualDataDescriptions[$key];
         }
         $this->set('galaxiesOptions', $galaxiesOptions);
         foreach ($galaxiesOptions as $key => $value) {
@@ -2807,7 +2855,8 @@ class EventsController extends AppController
         if (
             !empty($event['Event']['protected']) &&
             $this->Auth->user('Role')['perm_sync'] &&
-            !$this->Auth->user('Role')['perm_site_admin']
+            !$this->Auth->user('Role')['perm_site_admin'] &&
+            !$this->Auth->user('Role')['perm_sync_internal']
         ) {
             $pgp_signature = $this->request->header('x-pgp-signature');
             if (empty($pgp_signature)) {
@@ -5650,6 +5699,9 @@ class EventsController extends AppController
             if (isset($module['mispattributes']['userConfig'])) {
                 foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
                     if (!$fail) {
+                        if (empty($requestData['config'][$configName]) && empty($config['required'])) {
+                            continue;
+                        }
                         if (isset($config['validation'])) {
                             if ($config['validation'] === '0' && $config['type'] == 'String') {
                                 $validation = true;
@@ -5931,7 +5983,7 @@ class EventsController extends AppController
             $results = $this->Event->runWorkflow($id, $workflow_ids);
             $succesMessage = __('Successfully ran %s Workflows on Event %s', count($workflow_ids), h($id));
             $errorMessage = __('Error(s) while running Workflow(s): ') . implode(', ', $results['error_messages']);
-            if ($this->_isRest()) {
+            if ($this->_isRest() || $this->request->is('ajax')) {
                 return $this->RestResponse->saveSuccessResponse('Events', 'runWorkflow', $id, $this->response->type(), $results['success_count'] > 0 ? $succesMessage : $errorMessage);
             } else {
                 if ($results['success_count'] > 0) {
@@ -5946,7 +5998,7 @@ class EventsController extends AppController
             $workflows = $this->Workflow->fetchAdHocWorkflows(true);
             $workflows = $this->Workflow->attachTriggerParamsToWorkflow($workflows);
             $allowedWorkflows = array_filter($workflows, function($workflow) {
-                return $workflow['trigger_scope'] == 'passed_event_ids';
+                return $workflow['trigger_scope'] == 'passed_event_ids' && !empty($workflow['Workflow']['enabled']);
             });
             $this->layout = false;
             $this->set('workflows', $allowedWorkflows);

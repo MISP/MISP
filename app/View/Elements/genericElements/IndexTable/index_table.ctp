@@ -34,7 +34,12 @@
     }
     if (!empty($data['persistUrlParams'])) {
         foreach ($data['persistUrlParams'] as $persistedParam) {
-            if (!empty($passedArgsArray[$persistedParam])) {
+            if ($persistedParam === '?') {
+                $parts = explode('?', $_SERVER['REQUEST_URI'], 2);
+                if (!empty($parts[1])) {
+                    $data['paginatorOptions']['url']['?'] = $parts[1];
+                }
+            } else if (!empty($passedArgsArray[$persistedParam])) {
                 $data['paginatorOptions']['url'][$persistedParam] = $passedArgsArray[$persistedParam];
             }
         }
@@ -97,7 +102,7 @@
     );
     echo sprintf(
         '<table class="table table-striped table-hover table-condensed">%s%s</table>',
-        $this->element('/genericElements/IndexTable/headers', array('fields' => $data['fields'], 'paginator' => $this->Paginator, 'actions' => empty($data['actions']) ? false : true)),
+        $this->element('/genericElements/IndexTable/headers', array('fields' => $data['fields'], 'paginator' => $Paginator, 'actions' => empty($data['actions']) ? false : true)),
         $tbody
     );
     echo '</div>';

@@ -1008,6 +1008,155 @@ class TestComprehensive(unittest.TestCase):
 
         self.admin_misp_connector.delete_event(event)
 
+    def test_restsearch_extend_event(self):
+        # parent_event
+        # ├── event_1son
+        # └── event_2son
+        #      └── event_2son_1son
+        try:
+            event = create_simple_event()
+            event = self.admin_misp_connector.add_event(event)
+            check_response(event)
+
+            event_1son = create_simple_event()
+            event_1son.extends_uuid=event.uuid
+            event_1son = self.admin_misp_connector.add_event(event_1son)
+            check_response(event_1son)
+
+            event_2son = create_simple_event()
+            event_2son.extends_uuid=event.uuid
+            event_2son = self.admin_misp_connector.add_event(event_2son)
+            check_response(event_2son)
+
+            event_2son_1son = create_simple_event()
+            event_2son_1son.extends_uuid=event_2son.uuid
+            event_2son_1son = self.admin_misp_connector.add_event(event_2son_1son)
+            check_response(event_2son_1son)
+
+            search_result = self._search_event({
+                'returnFormat': 'json',
+                'is_extended': 1,
+                'eventid': [event.id, event_1son.id, event_2son.id, event_2son_1son.id]
+            })
+
+            self.assertEqual(len(search_result), 2, search_result)
+            self.assertEqual(search_result[0]['Event']['extends_uuid'], '')
+            self.assertEqual(search_result[1]['Event']['extends_uuid'], event.uuid)
+
+            search_result = self._search_event({
+                'returnFormat': 'json',
+                'is_extended': 0,
+                'eventid': [event.id, event_1son.id, event_2son.id, event_2son_1son.id]
+            })
+            self.assertEqual(len(search_result), 2, search_result)
+            self.assertEqual(search_result[0]['Event']['extends_uuid'], event.uuid)
+            self.assertEqual(search_result[1]['Event']['extends_uuid'], event_2son.uuid)
+
+            search_result = self._search_event({
+                'returnFormat': 'json',
+                'is_extension': [1],
+                'eventid': [event.id, event_1son.id, event_2son.id, event_2son_1son.id]
+            })
+            self.assertEqual(len(search_result),3, search_result)
+            self.assertEqual(search_result[0]['Event']['extends_uuid'], event.uuid)
+            self.assertEqual(search_result[1]['Event']['extends_uuid'], event.uuid)
+            self.assertEqual(search_result[2]['Event']['extends_uuid'], event_2son.uuid)
+
+            search_result = self._search_event({
+                'returnFormat': 'json',
+                'is_extension': False,
+                'eventid': [event.id, event_1son.id, event_2son.id, event_2son_1son.id]
+            })
+            self.assertEqual(len(search_result), 1, search_result)
+            self.assertEqual(search_result[0]['Event']['extends_uuid'], '')
+        finally:
+            # Delete events
+            self.admin_misp_connector.delete_event(event)
+            self.admin_misp_connector.delete_event(event_1son)
+            self.admin_misp_connector.delete_event(event_2son)
+            self.admin_misp_connector.delete_event(event_2son_1son)
+
+
+    def test_warninglists_category(self):
+        try:
+            #Create a test event
+            event = create_simple_event()
+            event = self.admin_misp_connector.add_event(event)
+            check_response(event)
+            #Create a false positive warninglist
+            warninglist1 = {
+                "Warninglist": {
+                    "name": "My false positive",
+                    "description": "some description",
+                    "type": "cidr",
+                    "category": "false_positive",
+                    "matching_attributes": ["ip-src", "ip-dst"],
+                    "entries": "1.1.1.1\n2.2.2.2"
+                }
+            }
+            wl1 = request(self.admin_misp_connector, 'POST', 'warninglists/add', data=warninglist1)
+            check_response(wl1)
+            check_response(self.admin_misp_connector.enable_warninglist(wl1["Warninglist"]["id"]))
+
+
+            #Create a known identifier warninglist
+            warninglist2 = {
+                "Warninglist": {
+                    "name": "My known identifier",
+                    "description": "some description",
+                    "type": "cidr",
+                    "category": "known",
+                    "matching_attributes": ["ip-src", "ip-dst"],
+                    "entries": "3.3.3.3\n4.4.4.4"
+                }
+            }
+            wl2 = request(self.admin_misp_connector, 'POST', 'warninglists/add', data=warninglist2)
+            check_response(wl2)
+            check_response(self.admin_misp_connector.enable_warninglist(wl2["Warninglist"]["id"]))
+
+
+            #Adding attributes to the event
+            event.add_attribute("ip-src", "1.1.1.1", to_ids=True)
+            event.add_attribute("ip-src", "2.2.2.2", to_ids=False)
+            event.add_attribute("ip-src", "3.3.3.3", to_ids=True)
+            event.add_attribute("ip-src", "4.4.4.4", to_ids=True)
+            event = self.admin_misp_connector.update_event(event)
+            check_response(event)
+
+            search_result = self._search_event({
+                'returnFormat': 'json',
+                'eventid': event.id,
+                'includeWarninglistHits' : True
+            })
+            attributes = search_result[0]['Event']['Attribute']
+
+            warning_hits = [attr for attr in attributes if 'warnings' in attr and attr['warnings']]
+            self.assertEqual(len(warning_hits), 3, f"Expected 3 attributes with warninglist hits, got {len(warning_hits)}")
+
+            #Check the warninglist category
+            expected_categories = {
+                "1.1.1.1": "false_positive",
+                "3.3.3.3": "known",
+                "4.4.4.4": "known"
+            }
+            for attr in warning_hits:
+                val = attr['value']
+                if val in expected_categories:
+                    for warning in attr['warnings']:
+                        if warning['warninglist_name'] in ["My false positive", "My known identifier"]:
+                            self.assertEqual(warning['warninglist_category'], expected_categories[val], f"Expected category '{expected_categories[val]}' for {val}, got {warning['warninglist_category']}")
+
+        finally:
+            #Delete the event
+            self.admin_misp_connector.delete_event(event)
+            #Delete the warninglists
+            wl1 = request(self.admin_misp_connector, 'POST', f'warninglists/delete/{wl1["Warninglist"]["id"]}')
+            wl2 = request(self.admin_misp_connector, 'POST', f'warninglists/delete/{wl2["Warninglist"]["id"]}')
+
+
+
+
+
     def _search_event(self, query: dict):
         response = self.admin_misp_connector._prepare_request('POST', 'events/restSearch', data=query)
         response = self.admin_misp_connector._check_response(response)

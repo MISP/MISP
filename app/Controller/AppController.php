@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '169';
-    public $pyMispVersion = '2.5.4';
+    private $__queryVersion = '176';
+    public $pyMispVersion = '2.5.10';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -275,11 +275,17 @@ class AppController extends Controller
         $user = $this->Auth->user();
         if ($user) {
             Configure::write('CurrentUserId', $user['id']);
+            Configure::write('CurrentUserEmail', $user['email']);
+            Configure::write('CurrentUserIP', $this->User->_remoteIp());
             $this->__logAccess($user);
 
             // Try to run updates
             if ($user['Role']['perm_site_admin'] || (!$this->_isRest() && !$isAjax && $this->_isLive())) {
                 $this->User->runUpdates();
+            }
+
+            if ($user['Role']['perm_site_admin'] && $action != 'checkLogs' && !$this->request->is('ajax') && !$this->_isRest()) {
+                $this->Flash->error(__('End of life warning: MISP 2.4 has reached its end of life and will not receive any further updates beyond security fixes (until the end of 2025). Please upgrade to MISP 2.5 as soon as possible.'));
             }
 
             // Put username to response header for webserver or proxy logging
@@ -396,6 +402,12 @@ class AppController extends Controller
                 } else {
                     $this->Flash->warning($deprecationWarnings);
                 }
+            }
+        }
+        $notificationToasts = $this->User->collectNotificationToastForUser(['User' => $user]);
+        if (!empty($notificationToasts)) {
+            foreach ($notificationToasts as $notificationToast) {
+                $this->Flash->set($notificationToast['message'], $notificationToast);
             }
         }
         if (Configure::read('MISP.enable_automatic_garbage_collection') && mt_rand(1,100) % 100 == 0) {
@@ -908,11 +920,16 @@ class AppController extends Controller
     {
         // benchmarking
         if (Configure::read('Plugin.Benchmarking_enable') && isset($this->Benchmark)) {
+            $sql_time = null;
+            if (get_class($this->User->getDataSource()) === 'MysqlObserverExtended') {
+                $sql_time = MysqlObserverExtended::$totalSqlTimeMs;
+            }
             $this->Benchmark->stopBenchmark([
                 'user' => $this->Auth->user('id'),
                 'controller' => $this->request->params['controller'],
                 'action' => $this->request->params['action'],
-                'start_time' => $this->start_time
+                'start_time' => $this->start_time,
+                'sql_time' => $sql_time
             ]);
 
             //if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $key)) {
@@ -1021,7 +1038,7 @@ class AppController extends Controller
 
     private function __captureParam($data, $param, $value)
     {
-        if ($this->modelClass->checkParam($param)) {
+        if ($this->{$this->modelClass}->checkParam($param)) {
             $data[$param] = $value;
         }
         return $data;
@@ -1063,10 +1080,7 @@ class AppController extends Controller
                     $temp = $request->data;
                 }
                 if (empty($options['paramArray'])) {
-                    foreach ($options['paramArray'] as $param => $value) {
-                        $data = $this->__captureParam($data, $param, $value);
-                    }
-                    $data = array_merge($data, $temp);
+                    $data = $temp;
                 } else {
                     foreach ($options['paramArray'] as $param) {
                         if (str_ends_with($param, '*')) {
@@ -1113,6 +1127,11 @@ class AppController extends Controller
                 if (isset($options['named_params'][$p])) {
                     $data[$p] = str_replace(';', ':', $options['named_params'][$p]);
                 }
+            }
+        }
+        if (!empty($options['request']->query)) {
+            foreach ($options['request']->query as $k => $v) {
+                $data[$k] = $v;
             }
         }
         foreach ($data as &$v) {
@@ -1388,12 +1407,46 @@ class AppController extends Controller
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception, $this->_legacyParams);
+        if (isset($this->request->params['named']['search_token'])) {
+            $temp = $this->MispAttribute->getSearchParamsByToken(['search_token' => $this->request->params['named']['search_token']]);
+            foreach ($temp as $k => $temp_data) {
+                if ($temp[$k] === 'ALL' || $temp[$k] === '') {
+                    unset($temp[$k]);
+                    continue;
+                }
+                if ($k === 'limit') {
+                    unset($temp[$k]);
+                    continue;
+                }
+                if (str_contains($temp_data, PHP_EOL)) {
+                    $temp[$k] = explode(PHP_EOL, trim($temp_data));
+                    $temp[$k] = array_map(function($element) {
+                        return trim($element);
+                    }, $temp[$k]);
+                }
+            }
+            $filters = array_merge($filters, $temp);
+        }
         if (empty($filters) && $this->request->is('get')) {
             throw new BadRequestException(__('Restsearch queries using GET and no parameters are not allowed. If you have passed parameters via a JSON body, make sure you use POST requests.'));
         }
+
         if (empty($filters['returnFormat'])) {
-            $filters['returnFormat'] = 'json';
+            $acceptHeader = $this->request->header('Accept');
+
+            if (preg_match('#application/([a-zA-Z0-9\-\+]+)#', $acceptHeader, $matches)) {
+                $format = strtolower(trim($matches[1]));
+            } elseif (preg_match('#text/csv#', $acceptHeader, $matches)) {
+                $format = 'csv';
+            } else {
+                $format = 'json';
+            }
+        
+            if (isset($this->$modelName->validFormats[$format])) {
+                $filters['returnFormat'] = $format;
+            }
         }
+        
         unset($filterData);
         if ($filters === false) {
             return $exception;
@@ -1425,20 +1478,42 @@ class AppController extends Controller
                 ]);
             }
         }
+
+        $roleLimit = $this->User->getUserRestLimit($this->Auth->user(), $this);
+        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
+            $filters['limit'] = $roleLimit;
+        }
+
         /** @var TmpFileTool $final */
         $skippedElementsCounter = 0;
         $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter);
+        $responseTypeMapping = [
+            'json' => 'application/json',
+            'html' => 'text/html',
+            'text' => 'text/plain',
+            'xml' => 'application/xml'
+        ];
         if ($renderView) {
             $this->layout = false;
             $final = JsonTool::decode($final->intoString());
             $this->set($final);
             $this->render('/Events/module_views/' . $renderView);
+            if (isset($responseTypeMapping[$responseType])) {
+                $this->response->type($responseTypeMapping[$responseType]);
+            }
+            return $this->response;
         } else {
             if (!empty($filters['sign'])) {
                 $this->RestResponse->signContents = true;
             }
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
-            $headers = ['X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType, 'X-Skipped-Elements-Count' => $skippedElementsCounter];
+            $headers = [
+                'X-Result-Count' => $elementCounter,
+                'X-Export-Module-Used' => $returnFormat,
+                'X-Response-Format' => $responseType,
+                'X-Skipped-Elements-Count' => $skippedElementsCounter,
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+            ];
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers);
         }
     }

@@ -56,6 +56,7 @@ class ACLComponent extends Component
             'checkAttachments' => array(),
             'checkComposites' => array('perm_site_admin'),
             'checkOrphanedAttributes' => array(),
+            'cleanDefaultFormValues' => ['*'],
             'delete' => array('perm_add'),
             'deleteSelected' => array('perm_add'),
             'describeTypes' => array('*'),
@@ -68,6 +69,7 @@ class ACLComponent extends Component
             'enrich' => ['perm_add'],
             'exportSearch' => array('*'),
             'fetchEditForm' => array('perm_add'),
+
             'fetchViewValue' => array('*'),
             'generateCorrelation' => array(),
             'getMassEditForm' => array('perm_add'),
@@ -98,7 +100,9 @@ class ACLComponent extends Component
             'view' => ['perm_auth'],
         ],
         'benchmarks' => [
-            'index' => []
+            'index' => [],
+            'purgeSqlMetrics' => [],
+            'sqlMetrics' => []
         ],
         'bookmarks' => [
             'add' => ['*'],
@@ -145,6 +149,7 @@ class ACLComponent extends Component
             'index' => [],
             'add' => [],
             'edit' => [],
+            'executeRule' => [],
             'delete' => [],
             'view' => []
         ],
@@ -535,6 +540,13 @@ class ACLComponent extends Component
         'objectTemplateElements' => array(
             'viewElements' => array('*')
         ),
+        'objectRelationships' => array(
+            'index' => array('*'),
+            'add' => array(),
+            'delete' => array(),
+            'edit' => array(),
+            'toggleHighlighted' => array(),
+        ),
         'orgBlocklists' => array(
             'add' => array(),
             'delete' => array(),
@@ -635,6 +647,7 @@ class ACLComponent extends Component
             'stopWorker' => array(),
             'stopZeroMQServer' => array(),
             'testConnection' => array(),
+            'testSyncRules' => [],
             'update' => array(),
             'updateJSON' => array(),
             'updateProgress' => array(),
@@ -743,7 +756,8 @@ class ACLComponent extends Component
             'tagStatistics' => array('*'),
             'view' => array('*'),
             'viewGraph' => array('*'),
-            'viewTag' => array('*')
+            'viewTag' => array('*'),
+            'fastIndex' => array('*'),
         ),
         'tasks' => array(
             'index' => array(),
@@ -832,6 +846,7 @@ class ACLComponent extends Component
             'email_otp' => array('*'),
             'forgot' => ['AND' => ['password_forgotten_enabled', 'password_change_enabled']],
             'heartbeat' => ['*'],
+            'ipUser' => [],
             'otp' => ['otp_enabled'],
             'hotp' => ['otp_enabled'],
             'totp_new' => ['otp_enabled'],
@@ -856,6 +871,7 @@ class ACLComponent extends Component
             'terms' => array('*'),
             'updateLoginTime' => array('*'),
             'updateToAdvancedAuthKeys' => array(),
+            'userIp' => [],
             'verifyCertificate' => array(),
             'verifyGPG' => array(),
             'view' => array('*'),
