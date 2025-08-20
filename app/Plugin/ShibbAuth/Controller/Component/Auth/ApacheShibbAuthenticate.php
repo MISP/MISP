@@ -216,7 +216,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
         // Check the role mapping to get the user's role level and update it if needed
         $roleChanged = false;
         if (isset($_SERVER[$groupTag])) {
-            $groupSeparator = Configure::read('ApacheShibbAuth.GroupSeparator');
+            $groupSeparator = Configure::check('ApacheShibbAuth.GroupSeparator') ? Configure::read('ApacheShibbAuth.GroupSeparator') : ';';
             $groupList = explode($groupSeparator, $_SERVER[$groupTag]);
             // Check user roles and egroup match and update if needed
             foreach ($groupList as $group) {
