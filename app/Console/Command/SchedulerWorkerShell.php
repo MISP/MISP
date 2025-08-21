@@ -530,7 +530,6 @@ class SchedulerWorkerShell extends AppShell
             __('Starting Admin Action execution.')
         );
 
-
         $jobParams = [
             $task['action'],
             $jobId
