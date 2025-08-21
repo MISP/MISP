@@ -761,7 +761,12 @@ class ACLComponent extends Component
         ),
         'tasks' => array(
             'index' => array(),
-            'setTask' => array(),
+            'add' => array(),
+            'edit' => array(),
+            'delete' => array(),
+            'toggleEnabled' => array(),
+            'forceRun' => array(),
+            'viewLogs' => array(),
         ),
         'taxonomies' => array(
             'addTag' => array(),

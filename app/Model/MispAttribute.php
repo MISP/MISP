@@ -44,6 +44,8 @@ class MispAttribute extends AppModel
 
     public $displayField = 'value';
 
+    private $orgs_cache = [];
+
     public $virtualFields = array(
             'value' => "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END",
     );
@@ -454,12 +456,14 @@ class MispAttribute extends AppModel
         if (!$this->fast_update) {
             // update correlation...
             if (isset($attribute['deleted']) && $attribute['deleted']) {
-                $this->Correlation->beforeSaveCorrelation($attribute);
-                $this->Correlation->advancedCorrelationsUpdate($attribute);
+                if ($this->Correlation->getCorrelationModelName() !== 'OnDemand') {
+                    $this->Correlation->beforeSaveCorrelation($attribute);
+                    $this->Correlation->advancedCorrelationsUpdate($attribute);
+                }
                 if (isset($attribute['event_id'])) {
                     $this->__alterAttributeCount($attribute['event_id'], false);
                 }
-            } else if (empty($attribute['skip_correlation'])) {
+            } else if (empty($attribute['skip_correlation']) && $this->Correlation->getCorrelationModelName() !== 'OnDemand') {
                 /*
                 * Only recorrelate if:
                 * - We are dealing with a new attribute OR
@@ -1803,20 +1807,24 @@ class MispAttribute extends AppModel
     public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false, &$skipped_item_count = false)
     {
         if (!empty($options['list'])) {
+            $conditions = $this->buildConditions($user);
+            if (!empty($options['conditions'])) {
+                $conditions['AND'][] = $options['conditions'];
+            }
             if (!empty($options['event_ids'])) {
-                return $this->find('column', [
-                    'fields'     => ['Attribute.event_id'],
-                    'conditions' => $this->buildConditions($user) + (array)($options['conditions'] ?? []),
+                $data = $this->find('column', [
+                    'fields'     => ['event_id'],
+                    'conditions' => $conditions,
                     'recursive'  => -1,
-                    'contain'    => ['Event','Object'],
+                    'contain'    => ['Event', 'Object'],
                     'order'      => false,
-                    'group'      => false,
-                    'unique'     => true
+                    'group'      => false
                 ]);
+                return array_unique($data);
             }
             return $this->find('list', [
                 'fields'     => ['Attribute.event_id','Attribute.event_id'],
-                'conditions' => $this->buildConditions($user) + (array)($options['conditions'] ?? []),
+                'conditions' => $conditions,
                 'recursive'  => -1,
                 'contain'    => ['Event','Object'],
                 'order'      => false
@@ -1866,15 +1874,14 @@ class MispAttribute extends AppModel
 
         $default_fields = [
             'Attribute.*',
-            'Event.id','Event.info','Event.org_id','Event.orgc_id','Event.uuid','Event.user_id',
-            'Object.id','Object.distribution','Object.sharing_group_id'
+            'Event.id','Event.info','Event.org_id','Event.orgc_id','Event.uuid','Event.user_id','Event.threat_level_id', 'Event.distribution', 'Event.analysis', 'Event.date', 'Event.timestamp',
+            'Object.id','Object.distribution','Object.sharing_group_id', 'Object.timestamp'
         ];
         if (!empty($options['fields']) && is_array($options['fields'])) {
             $fields = array_merge($default_fields, $options['fields']);
         } else {
             $fields = $default_fields;
         }
-    
         $sgids     = $this->SharingGroup->authorizedIds($user);
         $params = [
             'fields'     => $fields,
@@ -1971,7 +1978,11 @@ class MispAttribute extends AppModel
         $all    = [];
         $skipped = 0;
         $eventTags = [];
-    
+        $threat_levels = $this->Event->ThreatLevel->find('all', [
+            'fields' => ['id', 'name'],
+            'recursive' => -1
+        ]);
+
         do {
             $batch = $this->find('all', $params);
             if (empty($batch)) {
@@ -2001,6 +2012,17 @@ class MispAttribute extends AppModel
                 if (!empty($options['includeContext'])) {
                     $attr['Event'] = $eventsById[$attr['Attribute']['event_id']];
                 }
+                foreach (['Org' => 'org_id', 'Orgc' => 'orgc_id'] as $event_org_field => $org_field) {
+                    if (empty($this->orgs_cache[$attr['Event'][$org_field]])) {
+                        $this->orgs_cache[$attr['Event'][$org_field]] = $this->Event->Org->find('first', [
+                            'conditions' => ['Org.id' => $attr['Event'][$org_field]],
+                            'fields' => ['id', 'name', 'uuid'],
+                            'recursive' => -1
+                        ]);
+                    }
+                    $attr['Event'][$event_org_field] = $this->orgs_cache[$attr['Event'][$org_field]]['Org'];
+                }
+                $attr['Event']['ThreatLevel'] = $threat_levels[$attr['Event']['threat_level_id']]['ThreatLevel'] ?? '';
                 if (!empty($options['includeSightings'])) {
                     $tmp = $attr['Attribute'];
                     $tmp['Event'] = $attr['Event'];
@@ -2075,7 +2097,6 @@ class MispAttribute extends AppModel
                 }
                 $all[] = $attr;
             }
-    
             // exit batching if done
             if ($loop && count($batch) < $params['limit']) {
                 break;
@@ -2764,6 +2785,7 @@ class MispAttribute extends AppModel
                             'attribute_id' => $this->id,
                             'event_id' => $eventId,
                             'tag_id' => $tag_id,
+                            'local' => !empty($tag['local']) ? $tag['local'] : 0,
                             'relationship_type' => empty($tag['relationship_type']) ? null : $tag['relationship_type']
                         ];
                         $this->AttributeTag->save($at);
@@ -3746,7 +3768,7 @@ class MispAttribute extends AppModel
      * NOTE WHEN MODIFYING: please ensure to run the script 'tools/gen_misp_types_categories.py' to update the new definitions everywhere. (docu, website, RFC, ... )
      * @return array[]
      */
-    private function generateTypeDefinitions()
+    public function generateTypeDefinitions()
     {
         return array(
             'md5' => array('desc' => __('A checksum in MD5 format'), 'formdesc' => __("You are encouraged to use filename|md5 instead. A checksum in md5 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -3785,8 +3807,8 @@ class MispAttribute extends AppModel
             'snort' => array('desc' => __('An IDS rule in Snort rule-format'), 'formdesc' => __("An IDS rule in Snort rule-format. This rule will be automatically rewritten in the NIDS exports."), 'default_category' => 'Network activity', 'to_ids' => 1),
             'bro' => array('desc' => __('An NIDS rule in the Bro rule-format'), 'formdesc' => __("An NIDS rule in the Bro rule-format."), 'default_category' => 'Network activity', 'to_ids' => 1),
             'zeek' => array('desc' => __('An NIDS rule in the Zeek rule-format'), 'formdesc' => __("An NIDS rule in the Zeek rule-format."), 'default_category' => 'Network activity', 'to_ids' => 1),
-	    'community-id' => array('desc' => __('A community ID flow hashing algorithm to map multiple traffic monitors into common flow id'), 'formdesc' => __("a community ID flow hashing algorithm to map multiple traffic monitors into common flow id"), 'default_category' => 'Network activity', 'to_ids' => 1),
-	    'dom-hash' => array('desc' => __('A dom-hash algorithm is a structural fingerprint of an HTML Document Object Model where all tag names are contained in a single string separated by a pipe. The truncated SHA252 value by the first 32-character serves as fingerprint.'), 'formdesc' => __("A dom-hash value is a structural fingerprint to uniquely identify an HTML Document Object Model."), 'default_category' => 'Network activity', 'to_ids' => 1),
+            'community-id' => array('desc' => __('A community ID flow hashing algorithm to map multiple traffic monitors into common flow id'), 'formdesc' => __("a community ID flow hashing algorithm to map multiple traffic monitors into common flow id"), 'default_category' => 'Network activity', 'to_ids' => 1),
+            'dom-hash' => array('desc' => __('A dom-hash algorithm is a structural fingerprint of an HTML Document Object Model where all tag names are contained in a single string separated by a pipe. The truncated SHA252 value by the first 32-character serves as fingerprint.'), 'formdesc' => __("A dom-hash value is a structural fingerprint to uniquely identify an HTML Document Object Model."), 'default_category' => 'Network activity', 'to_ids' => 1),
             'pattern-in-file' => array('desc' => __('Pattern in file that identifies the malware'), 'default_category' => 'Payload installation', 'to_ids' => 1),
             'pattern-in-traffic' => array('desc' => __('Pattern in network traffic that identifies the malware'), 'default_category' => 'Network activity', 'to_ids' => 1),
             'pattern-in-memory' => array('desc' => __('Pattern in memory dump that identifies the malware'), 'default_category' => 'Payload installation', 'to_ids' => 1),

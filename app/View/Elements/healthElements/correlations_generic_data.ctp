@@ -1,12 +1,14 @@
 <?php
 
     $rows = '';
-    $rows .= sprintf(
-        '<tr><td><a href="%s">%s</a></td><td style="text-align:right;">%s</td></tr>',
-        $baseurl . '/correlations/overCorrelations',
-        __('Over correlations'),
-        h($correlation_metrics['over_correlations'])
-    );
+    if ($correlation_metrics['engine'] !== 'OnDemand') {
+        $rows .= sprintf(
+            '<tr><td><a href="%s">%s</a></td><td style="text-align:right;">%s</td></tr>',
+            $baseurl . '/correlations/overCorrelations',
+            __('Over correlations'),
+            h($correlation_metrics['over_correlations'])
+        );
+    }
     $rows .= sprintf(
         '<tr><td><a href="%s">%s</a></td><td style="text-align:right;">%s</td></tr>',
         $baseurl . '/correlation_exclusions/index',

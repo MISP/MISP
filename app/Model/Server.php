@@ -504,7 +504,14 @@ class Server extends AppModel
                     return false;
                 }
             }
-            $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
+            if(isset($event['Event']['protected']) && $event['Event']['protected'] && isset($event['Event']['CryptographicKey'][0])) {
+                $fingerprint = $event['Event']['CryptographicKey'][0]['fingerprint'];
+                $created_id = 0;
+                $validationIssues = array();
+                $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId, $created_id, $validationIssues, $fingerprint);
+            }else{
+                $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
+            }
             if ($result) {
                 $successes[] = $eventId;
                 if ($this->pubToZmq('event')) {
@@ -3885,10 +3892,6 @@ class Server extends AppModel
             'scheduler' => array('ok' => false)
         );
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            unset($worker_array['scheduler']);
-        }
-
         try {
             $workers = $this->getWorkers();
         } catch (Exception $e) {
@@ -5352,7 +5355,8 @@ class Server extends AppModel
                     'null' => true,
                     'options' => [
                         'Default' => __('Default Correlation Engine'),
-                        'NoAcl' => __('No ACL Engine')
+                        'NoAcl' => __('No ACL Engine'),
+                        'OnDemand' => __('On Demand Correlation Engine')
                     ],
                 ],
                 'correlation_limit' => [
@@ -6485,7 +6489,8 @@ class Server extends AppModel
                     'description' => 'Default number of matching result for restSearch API if none is provided when adding a new role. Leave empty(0) to set as unlimited.',
                     'value' => 0,
                     'errorMessage' => '',
-                    'null' => true
+                    'null' => true,
+                    'type' => 'numeric'
                 ),
                 'attribute_filters_block_only' => array(
                     'level' => 1,

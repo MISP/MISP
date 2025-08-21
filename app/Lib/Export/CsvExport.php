@@ -162,7 +162,7 @@ class CsvExport
 		$attribute['event_member_org'] = $attribute_raw['Event']['Org']['name'];
 		$attribute['event_source_org'] = $attribute_raw['Event']['Orgc']['name'];
 		$attribute['event_distribution'] = $attribute_raw['Event']['distribution'];
-		$attribute['event_threat_level_id'] = $attribute_raw['Event']['ThreatLevel']['name'];
+		$attribute['event_threat_level_id'] = $attribute_raw['Event']['threat_level_id'];
 		$attribute['event_analysis'] = $attribute_raw['Event']['analysis'];
 		$attribute['event_date'] = $attribute_raw['Event']['date'];
 		$attribute['event_timestamp'] = $attribute_raw['Event']['timestamp'];

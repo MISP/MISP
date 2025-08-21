@@ -2120,7 +2120,6 @@ class Event extends AppModel
         } else {
             $justExportableTags = false;
         }
-
         $overrideLimit = !empty($options['overrideLimit']);
 
         if (!empty($options['allow_proposal_blocking']) && !Configure::read('MISP.proposals_block_attributes')) {
@@ -2240,7 +2239,7 @@ class Event extends AppModel
                     $event['Attribute'] = $this->__attachSharingGroups($event['Attribute'], $sharingGroupData);
                 }
 
-                if (!empty($options['includeGranularCorrelations'])) {
+                if (!empty($options['includeGranularCorrelations']) && $this->Attribute->Correlation->getCorrelationModelName() !== 'OnDemand') {
                     $event['Attribute'] = $this->Attribute->Correlation->attachCorrelationExclusion($event['Attribute']);
                 }
                 if (!empty($options['includeAnalystData'])) {
@@ -2369,14 +2368,12 @@ class Event extends AppModel
                 }
             }
         }
-
         if ($excludeGalaxy || empty($galaxyTags)) {
             return;
         }
 
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $clusters = $this->GalaxyCluster->getClustersByTags($galaxyTags, $user, true, $fetchFullCluster, $fetchFullRelationship);
-
         if (empty($clusters)) {
             return;
         }
@@ -7882,7 +7879,6 @@ class Event extends AppModel
         if (!empty($exportTool->additional_params)) {
             $filters = array_merge($filters, $exportTool->additional_params);
         }
-
         $exportToolParams = array(
             'user' => $user,
             'params' => array(),

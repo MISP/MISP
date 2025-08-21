@@ -129,13 +129,13 @@ class GalaxyClusterRelation extends AppModel
         return $array;
     }
 
-    public function fetchRelations($user, $options, $full=false)
+    public function fetchRelations($user, $options, $full=false, $renameField = 'SourceCluster')
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
             'recursive' => -1
         );
-        $params = $this->renameClusterTypeInArray($params, 'GalaxyCluster.', 'SourceCluster.');
+        $params = $this->renameClusterTypeInArray($params, 'GalaxyCluster.', $renameField);
         if (!empty($options['contain'])) {
             $params['contain'] = $options['contain'];
         } elseif ($full) {

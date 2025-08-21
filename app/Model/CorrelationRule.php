@@ -14,9 +14,7 @@ class CorrelationRule extends AppModel
         'event_info' => []
     ];
 
-    private $__eventCache = [
-
-    ];
+    private $__eventCache = null;
 
     private $__ruleCache = null;
 
@@ -127,7 +125,7 @@ class CorrelationRule extends AppModel
                             $values[] = '(' . intval($eventId) . ',' . $ruleId . ')';
                         }
                     }
-                    $this->query('INSERT INTO tmp_excludes (event_id, rule_id) VALUES (' . intval($eventId) . ', ' . intval($ruleId) . ')');
+                    $this->query('INSERT INTO tmp_excludes (event_id, rule_id) VALUES ' . implode(", ", $values) . ';');
                 }
                 $this->virtualTable = true;
             } else {
@@ -177,8 +175,6 @@ class CorrelationRule extends AppModel
                     'NOT EXISTS (SELECT 1 FROM tmp_excludes WHERE tmp_excludes.event_id = Event.id AND tmp_excludes.rule_id IN (%s))',
                     implode(', ', $ruleIds)
                 );
-                debug($conditions);
-                throw new Exception();
             }
         } else {
             $filterConditions = $this->generateConditionsForEvent($attribute['Event']);
@@ -345,6 +341,39 @@ class CorrelationRule extends AppModel
         } else {
             throw new InvalidArgumentException(__('Invalid selector type'));
         }
+        $eventIds = array_map(function($id) {
+            return intval($id);
+        }, $eventIds);
         return $eventIds;
+    }
+
+    public function checkEventIds($id1, $id2)
+    {
+        if ($this->__eventCache === null) {
+            $this->__loadEventCache();
+        }
+        foreach ($this->__eventCache as $eventGroup) {
+            if (isset($eventGroup[$id1]) && (isset($eventGroup[$id2]))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private function __loadEventCache()
+    {
+        if ($this->__ruleCache === null) {
+            $this->__loadRuleCache();
+        }
+        $this->__eventCache = [];
+        foreach ($this->__ruleCache as $rule) {
+            $temp = $this->getEventIdsForRule($rule);
+            $ids = [];
+            foreach ($temp as $id) {
+                $ids[$id] = true;
+            }
+            $this->__eventCache[] = $ids;
+        }
+        return true;
     }
 }
