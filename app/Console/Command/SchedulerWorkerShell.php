@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+App::uses('Shell', 'Console');
 App::uses('AppShell', 'Console/Command');
 App::uses('Worker', 'Tools/BackgroundJobs');
 
@@ -11,6 +12,14 @@ class SchedulerWorkerShell extends AppShell
 
     /** @var Worker */
     private $worker;
+
+    public const ADMIN_ACTIONS = [
+        'updateGalaxies',
+        'updateTaxonomies',
+        'updateWarningLists',
+        'updateNoticeLists',
+        'updateObjectTemplates'
+    ];
 
     public function main()
     {
@@ -96,6 +105,8 @@ class SchedulerWorkerShell extends AppShell
             }
 
             $this->runSendPeriodicSummary($task);
+        } elseif ($task['type'] == 'Admin') {
+            $this->runAdminTask($task);
         } else {
             $this->logMessage('error', $task['id'], "unknown type: {$task['type']}");
             return;
@@ -496,5 +507,67 @@ class SchedulerWorkerShell extends AppShell
         ]);
 
         $this->logMessage('info', $task['id'], "enqueued Periodic Summary sending.");
+    }
+
+    public function runAdminTask($task)
+    {
+        if (!in_array($task['action'], self::ADMIN_ACTIONS)) {
+            $this->logMessage('error', $task['id'], "unknown admin action: {$task['action']}");
+            return;
+        }
+
+        $user = $this->User->getAuthUser($task['user_id']);
+        if (empty($user)) {
+            $this->logMessage('error', $task['id'], "user ID do not match an existing user.");
+            return;
+        }
+
+        $jobId = $this->Job->createJob(
+            $user,
+            Job::WORKER_DEFAULT,
+            'admin_action',
+            $task['action'],
+            __('Starting Admin Action execution.')
+        );
+
+
+        $jobParams = [
+            $task['action'],
+            $jobId
+        ];
+
+        if ($task['action'] === 'updateGalaxies') {
+            $jobParams = [
+                $task['action'],
+                false,
+                $jobId
+            ];
+        }
+
+        if ($task['action'] === 'updateObjectTemplates') {
+            $jobParams = [
+                $task['action'],
+                $user['id'],
+                $jobId
+            ];
+        }
+
+        // Enqueue the admin action
+        $this->getBackgroundJobsTool()->enqueue(
+            BackgroundJobsTool::DEFAULT_QUEUE,
+            BackgroundJobsTool::CMD_ADMIN,
+            $jobParams,
+            true,
+            $jobId
+        );
+
+        $this->Task->save([
+            'id' => $task['id'],
+            'last_job_id' => $jobId,
+            'message' => 'Enqueued',
+            'last_run_at' => time()
+        ]);
+
+        $this->logMessage('info', $task['id'], "enqueued Admin Action: {$task['action']}.");
     }
 }
