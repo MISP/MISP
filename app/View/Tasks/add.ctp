@@ -97,6 +97,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'class' => 'span2',
                 'stayInLine' => 1,
                 'default' => 1,
+                'value' => isset($edit) && isset($this->request->data['Task']['time_multiplier']) ? $this->request->data['Task']['time_multiplier'] : null,
             ],
             [
                 'field' => 'time_unit',
@@ -110,6 +111,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'type' => 'dropdown',
                 'class' => 'span2',
                 'default' => 86400,
+                'value' => isset($edit) && isset($this->request->data['Task']['time_unit']) ? $this->request->data['Task']['time_unit'] : null,
                 'placeholder' => __('e.g. 60 for every minute')
             ],
             [
