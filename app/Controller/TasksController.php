@@ -154,6 +154,27 @@ class TasksController extends AppController
                         $task['Task']['next_execution_date'] = '';
                         $task['Task']['next_execution_time'] = '';
                     }
+
+                    if (isset($task['Task']['timer']) && $task['Task']['timer'] > 0) {
+                        $timer = (int)$task['Task']['timer'];
+                        $units = [86400, 3600, 60, 1]; // Days, hours, minutes, seconds
+                        foreach ($units as $unit) {
+                            if ($timer >= $unit && $timer % $unit === 0) {
+                                $task['Task']['time_multiplier'] = $timer / $unit;
+                                $task['Task']['time_unit'] = $unit;
+                                break;
+                            }
+                        }
+                        // Fallback if timer doesn't match a unit
+                        if (!isset($task['Task']['time_multiplier'])) {
+                            $task['Task']['time_multiplier'] = $timer;
+                            $task['Task']['time_unit'] = 1; // Default to seconds
+                        }
+                    } else {
+                        $task['Task']['time_multiplier'] = 1;
+                        $task['Task']['time_unit'] = 86400; // Default to 1 day
+                    }
+
                     return $task;
                 },
                 'fields' => ['type', 'action', 'params', 'timer', 'next_execution_time', 'enabled'],
