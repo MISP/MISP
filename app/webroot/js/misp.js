@@ -6116,5 +6116,8 @@ function taskFormUpdate() {
         case 'Workflow':
             $('#Workflow').show();
             break;
+        case 'Admin':
+            $('#AdminAction').show();
+            break;
         }
 }
