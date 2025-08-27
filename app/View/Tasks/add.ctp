@@ -7,14 +7,24 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'type',
                 'label' => __('Type'),
-                'options' => ['Server' => 'Server', 'Feed' => 'Feed', 'Workflow' => 'Workflow', 'Periodic Summary' => 'Periodic Summary'],
+                'options' => [
+                    'Server' => 'Server',
+                    'Feed' => 'Feed',
+                    'Workflow' => 'Workflow',
+                    'Periodic Summary' => 'Periodic Summary',
+                    'Admin' => 'Admin'
+                ],
                 'type' => 'dropdown',
                 'class' => 'form-control span6',
             ],
             [
                 'field' => 'server_action',
                 'label' => __('Action'),
-                'options' => ['pull' => 'pull', 'push' => 'push', 'cache' => 'cache'],
+                'options' => [
+                    'pull' => 'Pull',
+                    'push' => 'Push',
+                    'cache' => 'Cache'
+                ],
                 'type' => 'dropdown',
                 'class' => 'span6',
                 'div' => ['id' => 'ServerAction', 'style' => 'display:none', 'class' => 'optionalField'],
@@ -34,7 +44,10 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'server_technique',
                 'label' => __('Technique'),
-                'options' => ['full' => 'full', 'update' => 'update'],
+                'options' => [
+                    'full' => 'Full',
+                    'update' => 'Update'
+                ],
                 'type' => 'dropdown',
                 'class' => 'span6',
                 'div' => ['id' => 'ServerTechnique', 'style' => 'display:none', 'class' => 'optionalField'],
@@ -42,7 +55,10 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'feed_action',
                 'label' => __('Action'),
-                'options' => ['fetch' => 'fetch', 'cache' => 'cache'],
+                'options' => [
+                    'fetch' => 'Fetch',
+                    'cache' => 'Cache'
+                ],
                 'type' => 'dropdown',
                 'class' => 'span6',
                 'div' => ['id' => 'FeedAction', 'style' => 'display:none', 'class' => 'optionalField'],
@@ -62,7 +78,12 @@ echo $this->element('genericElements/Form/genericForm', [
             [
                 'field' => 'feed_scope',
                 'label' => __('Scope'),
-                'options' => ['freetext' => 'freetext', 'csv' => 'csv', 'misp' => 'misp', 'all' => 'all'],
+                'options' => [
+                    'freetext' => 'Freetext',
+                    'csv' => 'CSV',
+                    'misp' => 'MISP',
+                    'all' => 'All'
+                ],
                 'type' => 'dropdown',
                 'class' => 'span6',
                 'div' => ['id' => 'FeedScope', 'style' => 'display:none', 'class' => 'optionalField'],
@@ -78,6 +99,20 @@ echo $this->element('genericElements/Form/genericForm', [
                 ],
                 'class' => 'span6',
                 'div' => ['id' => 'Workflow', 'style' => 'display:none', 'class' => 'optionalField'],
+            ],
+            [
+                'field' => 'admin_action',
+                'label' => __('Action'),
+                'options' => [
+                    'updateGalaxies' => 'Update Galaxies',
+                    'updateTaxonomies' => 'Update Taxonomies',
+                    'updateWarningLists' => 'Update Warninglists',
+                    'updateNoticeLists' => 'Update Noticelists',
+                    'updateObjectTemplates' => 'Update Object Templates'
+                ],
+                'type' => 'dropdown',
+                'class' => 'span6',
+                'div' => ['id' => 'AdminAction', 'style' => 'display:none', 'class' => 'optionalField'],
             ],
             [
                 'field' => 'user_id',

@@ -1,6 +1,7 @@
 <?php
 
 App::uses('AppController', 'Controller');
+App::uses('SchedulerWorkerShell', 'Console/Command');
 
 /**
  * @property Task $Task
@@ -396,6 +397,18 @@ class TasksController extends AppController
             $data['Task']['params'] = $data['Task']['workflow'];
         } elseif ($data['Task']['type'] === 'Periodic Summary') {
             $data['Task']['action'] = 'send';
+        } elseif ($data['Task']['type'] === 'Admin') {
+            $data['Task']['action'] = $data['Task']['admin_action'];
+
+            if (!isset($data['Task']['admin_action']) || empty($data['Task']['admin_action'])) {
+                $this->Flash->error(__('Please select an admin action.'));
+                return;
+            }
+
+            if (!in_array($data['Task']['admin_action'], SchedulerWorkerShell::ADMIN_ACTIONS)) {
+                $this->Flash->error(__('Invalid admin action selected.'));
+                return;
+            }
         } else {
             $this->Flash->error(__('Invalid type'));
             return;
