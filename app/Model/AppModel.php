@@ -96,7 +96,7 @@ class AppModel extends Model
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
-        141 => false
+        141 => false, 142 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2547,6 +2547,14 @@ class AppModel extends Model
             case 141:
                 $sqlArray[] = "CREATE TABLE `scheduled_tasks` (`id` INT(11) NOT NULL AUTO_INCREMENT, `type` VARCHAR(100) NOT NULL, `timer` INT(11) NOT NULL, `last_job_id` INT(11) DEFAULT NULL, `description` VARCHAR(255) NOT NULL, `next_execution_time` INT(11) NOT NULL, `message` VARCHAR(255) NOT NULL, `user_id` INT(11) NOT NULL, `action` VARCHAR(40) NOT NULL, `params` VARCHAR(255) DEFAULT NULL, `enabled` TINYINT(1) DEFAULT 0, `last_run_at` INT(11) DEFAULT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 $this->cleanCacheFiles();
+                break;
+            case 142:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS attr_value_counts (
+                    value         VARCHAR(64) NOT NULL,
+                    cnt_v1        BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                    cnt_v2        BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                    PRIMARY KEY (value)
+                  ) ENGINE=InnoDB;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
