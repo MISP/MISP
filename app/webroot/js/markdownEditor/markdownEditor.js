@@ -189,7 +189,6 @@ async function doAsyncMermaidRendering(id, code) {
             .replace(/>/g, "&gt;")
             // Quotes need to be preserved for mermaid to parse some diagrams correctly
     }
-    code = partialEscapeHtml(code)
 
     setTimeout(async () => {
         var html = ''
@@ -197,7 +196,7 @@ async function doAsyncMermaidRendering(id, code) {
             var result = await mermaid.mermaidAPI.render('mermaid-graph' + id, code)
             html = '<div class="mermaid">' + (result !== undefined ? result.svg : '- error while parsing mermaid graph -') + '</div>'
         } catch (err) {
-            html = '<pre>' + 'mermaid error:\n' + err.message + '</pre>'
+            html = '<pre>' + 'mermaid error:\n' + partialEscapeHtml(err.message) + '</pre>'
         }
         $('#'+id).html(html)
     }, 1);

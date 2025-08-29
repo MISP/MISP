@@ -98,7 +98,7 @@ class AttributesController extends AppController
         }
         $params['conditions']['AND'][] = $this->MispAttribute->buildConditions($user);
         $paramArray = [
-            'value' , 'type', 'category', 'org_id', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation'
+            'value' , 'type', 'category', 'org', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation'
         ];
         $filterData = array(
             'request' => $this->request,
@@ -109,12 +109,20 @@ class AttributesController extends AppController
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
         if (!$this->_isRest()) {
+            $search_filters = $this->request->data;
+            if (isset($this->request->data['to_ids']) && $this->request->data['to_ids'] === '0') {
+                $search_filters['to_ids'] = [0,1];
+            }
+            $search_filters['published'] = [0,1];
+            $search_filters['flatten'] = true;
             if ($this->request->is('post') && empty($filters['search_token'])) {
-                $search_token = $this->MispAttribute->setSearchParamsByToken($this->request->data);
+                $search_token = $this->MispAttribute->setSearchParamsByToken($search_filters);
                 $this->set('search_token', $search_token);
-            } else if (!empty($filters['search_token'])) {
-                $filters = $this->MispAttribute->getSearchParamsByToken($filters);
-                $this->set('search_token', $filters['search_token']);
+            } else {
+                if (!empty($filters['search_token'])) {
+                    $filters = $this->MispAttribute->getSearchParamsByToken($filters);
+                    $this->set('search_token', $filters['search_token']);
+                }
             }
         }
         if (!$this->_isRest()) {
@@ -223,13 +231,20 @@ class AttributesController extends AppController
             foreach ($request_filters as $k => $v) {
                 if (is_array($v)) {
                     foreach ($v as $vv) {
-                        $export_filters .= $k . '[]:' . $vv . '/';
+                        $export_filters .= urlencode($k) . '[]:' . urlencode($vv) . '/';
                     }
                 } else {
-                    $export_filters .= $k . ':' . $v . '/';
+                    $export_filters .= urlencode($k) . ':' . urlencode($v) . '/';
                 }
             }
         }
+        if (empty($request_filters['to_ids'])) {
+            $request_filters['to_ids'] = [0,1];
+        }
+        if (empty($request_filters['published'])) {
+            $request_filters['published'] = [0,1];
+        }
+        $this->set('request_filters', $request_filters);
         $this->set('paramArray', $paramArray);
         $this->set('passedArgsArray', $this->passedArgs);
         $this->set('export_filters', $export_filters);

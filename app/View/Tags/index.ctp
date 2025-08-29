@@ -63,6 +63,7 @@
                     'class' => 'short',
                     'element' => 'tags',
                     'data_path' => 'Tag',
+                    'skip_modifications' => true,
                     'scope' => 'tags',
                     'hide_global_scope' => true
                 ],

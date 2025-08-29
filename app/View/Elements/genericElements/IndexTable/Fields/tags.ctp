@@ -11,6 +11,15 @@
     if (isset($field['id_data_path'])) {
         $attributeId = Hash::get($row, $field['id_data_path']);
     }
+    if (!isset($mayModify)) {
+        $mayModify = false;
+    }
+    if ($isSiteAdmin) {
+        $mayModify = true;
+    }
+    if (!empty($field['skip_modifications'])) {
+        $mayModify = false;
+    }
     $event = !empty($row['Event']) ? ['Event' => $row['Event']] : false;
     $tags = Hash::extract($row, $field['data_path']);
     if (!empty($tags)) {
@@ -23,7 +32,7 @@
                 'scope' => $params['searchScope'],
                 'attributeId' => $attributeId,
                 'tags' => $tags,
-                'tagAccess' => $isSiteAdmin || $mayModify,
+                'tagAccess' => $mayModify,
                 'localTagAccess' => $event !== false ? $this->Acl->canModifyTag($event, true) : false,
                 'static_tags_only' => 1,
                 'scope' => isset($field['scope']) ? $field['scope'] : 'event',
@@ -45,7 +54,7 @@
                     'scope' => '',
                     'attributeId' => $attributeId,
                     'tags' => Hash::extract($row['TagCollection'][0]['TagCollectionTag'], '{n}.Tag'),
-                    'tagAccess' => $isSiteAdmin || $mayModify,
+                    'tagAccess' => $mayModify,
                     'localTagAccess' => $event !== false ? $this->Acl->canModifyTag($event, true) : false,
                     'static_tags_only' => 1,
                     'scope' => isset($field['scope']) ? $field['scope'] : 'event',
@@ -62,7 +71,7 @@
                 'scope' => isset($field['scope']) ? $field['scope'] : 'event',
                 'attributeId' => $attributeId,
                 'tags' => [],
-                'tagAccess' => $isSiteAdmin || $mayModify,
+                'tagAccess' =>$mayModify,
                 'localTagAccess' => $this->Acl->canModifyTag($event, true),
                 'static_tags_only' => false,
                 'scope' => isset($field['scope']) ? $field['scope'] : 'event',

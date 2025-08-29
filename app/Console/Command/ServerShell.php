@@ -93,6 +93,12 @@ class ServerShell extends AppShell
             $technique = 'full';
         }
 
+        if (!empty($this->args[2])) {
+            $pullAllJobId = $this->args[2];
+        } else {
+            $pullAllJobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'pullAll', 'All servers', 'Starting pull from all servers.');
+        }
+
         $servers = $this->Server->find('list', array(
             'conditions' => array('Server.pull' => 1),
             'recursive' => -1,
@@ -118,6 +124,8 @@ class ServerShell extends AppShell
 
             $this->out("Enqueued pulling from $serverName server as job $backgroundJobId");
         }
+
+        $this->Job->saveStatus($pullAllJobId, true, 'Job done.');
     }
 
     public function pull()
@@ -195,13 +203,6 @@ class ServerShell extends AppShell
             $message = 'Job done.';
             $this->Job->saveStatus($jobId, true, $message);
         }
-
-        if (isset($this->args[4])) {
-            $this->Task->id = $this->args[5];
-            $message = 'Job(s) started at ' . date('d/m/Y - H:i:s') . '.';
-            $this->Task->saveField('message', $message);
-            echo $message . PHP_EOL;
-        }
     }
 
     public function pushAll()
@@ -211,6 +212,12 @@ class ServerShell extends AppShell
 
         Configure::write('CurrentUserId', $userId);
         $technique = isset($this->args[1]) ? $this->args[1] : 'full';
+
+        if (!empty($this->args[2])) {
+            $pushAllJobId = $this->args[2];
+        } else {
+            $pushAllJobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'pushAll', 'All servers', 'Starting push to all servers.');
+        }
 
         $servers = $this->Server->find('list', array(
             'conditions' => array('Server.push' => 1),
@@ -233,6 +240,8 @@ class ServerShell extends AppShell
 
             $this->out("Enqueued pushing from $serverName server as job $jobId");
         }
+
+        $this->Job->saveStatus($pushAllJobId, true, 'Job done.');
     }
 
     public function listFeeds()
@@ -465,6 +474,12 @@ class ServerShell extends AppShell
         $userId = $this->args[0];
         $user = $this->getUser($userId);
 
+        if (!empty($this->args[1])) {
+            $cacheAllJobId = $this->args[1];
+        } else {
+            $cacheAllJobId = $this->Job->createJob($user, Job::WORKER_DEFAULT, 'cacheServerAll', 'All servers', 'Starting server caching.');
+        }
+
         $servers = $this->Server->find('list', array(
             'conditions' => array('Server.pull' => 1),
             'recursive' => -1,
@@ -485,6 +500,8 @@ class ServerShell extends AppShell
 
             $this->out("Enqueued cacheServer from $serverName server as job $jobId");
         }
+
+        $this->Job->saveStatus($cacheAllJobId, true, 'Job done.');
     }
 
     public function cacheFeed()
@@ -738,7 +755,12 @@ class ServerShell extends AppShell
 
     public function sendPeriodicSummaryToUsers()
     {
-        
+        $jobId = null;
+        if (isset($this->args[0]) && is_numeric($this->args[0])) {
+            $jobId = $this->args[0];
+            $this->Job->read(null, $jobId);
+        }
+
         $periods = $this->__getPeriodsForToday();
         $start_time = time();
         echo __n('Started periodic summary generation for the %s period', 'Started periodic summary generation for periods: %s', count($periods), implode(', ', $periods)) . PHP_EOL;
@@ -755,6 +777,10 @@ class ServerShell extends AppShell
             }
         }
         echo __('All reports sent. Task took %s seconds', time() -  $start_time) . PHP_EOL;
+
+        if ($jobId !== null) {
+            $this->Job->saveStatus($jobId, true, 'Job done.');
+        }
     }
 
     private function __getPeriodsForToday(): array

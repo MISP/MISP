@@ -144,7 +144,7 @@ class LogsController extends AppController
             if ($key == 'page' || $key == 'limit') {
                 continue;
             }
-            if (in_array($key, array_keys($validFilters))) {
+            if (in_array($key, $paramArray)) {
                 $this->paginate['conditions']["Log.$key"] = $value;
             }
         }
