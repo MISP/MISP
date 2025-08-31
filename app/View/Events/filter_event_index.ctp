@@ -1,3 +1,23 @@
+<style>
+.tag-search-results {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border-radius: 4px;
+    background: white;
+}
+
+.tag-result-item:hover {
+    background-color: #f5f5f5;
+}
+
+.tag-result-item:last-child {
+    border-bottom: none !important;
+}
+
+.tag-search-input {
+    position: relative;
+}
+</style>
+
 <div class="events">
     <?php echo $this->Form->create('Event');?>
         <fieldset>
@@ -66,12 +86,15 @@
                     ));
                 }
                 echo $this->Form->input('searchtag', array(
-                        'options' => $tags,
-                        'class' => 'input',
+                        'type' => 'text',
+                        'class' => 'input tag-search-input',
                         'label' => false,
                         'style' => 'width:438px',
-                        'div' => false
+                        'div' => false,
+                        'placeholder' => __('Type to search tags...'),
+                        'autocomplete' => 'off'
                 ));
+                echo '<div id="tag-search-results" class="tag-search-results" style="display:none; position:absolute; z-index:1000; background:white; border:1px solid #ccc; max-height:200px; overflow-y:auto; width:438px;"></div>';
                 echo $this->Form->input('searchdatefrom', array(
                         'class' => 'datepicker',
                         'data-date-format' => 'yyyy-mm-dd',
@@ -227,7 +250,7 @@
 var formInfoValues = {};
 
 var typeArray = {
-        'tag' : <?php echo $tagJSON; ?>,
+        'tag' : [], // Tags will be loaded dynamically via AJAX
         'published' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
         'is_extension' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
         'is_extended' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
@@ -290,10 +313,100 @@ $(function() {
     $('.datepicker').datepicker().on('changeDate', function(ev) {
         $('.dropdown-menu').hide();
     });
-    $('#EventSearchtag, #EventSearchorg, #EventSearchsharinggroup').chosen();
-    $('#EventSearchtag_chosen, #EventSearchorg_chosen, #EventSearchsharinggroup_chosen').css('top', '-5px');
+    $('#EventSearchorg, #EventSearchsharinggroup').chosen();
+    $('#EventSearchorg_chosen, #EventSearchsharinggroup_chosen').css('top', '-5px');
+    
+    // Initialize dynamic tag search functionality
+    initTagSearch();
+    
     indexEvaluateFiltering();
 });
+
+// Dynamic tag search functionality
+function initTagSearch() {
+    var searchTimeout;
+    var $tagInput = $('.tag-search-input');
+    var $tagResults = $('#tag-search-results');
+    
+    $tagInput.on('input', function() {
+        var query = $(this).val().trim();
+        
+        // Clear previous timeout
+        clearTimeout(searchTimeout);
+        
+        if (query.length < 2) {
+            $tagResults.hide();
+            return;
+        }
+        
+        // Debounce the search to avoid excessive API calls
+        searchTimeout = setTimeout(function() {
+            searchTags(query);
+        }, 300);
+    });
+    
+    // Handle tag selection
+    $tagResults.on('click', '.tag-result-item', function() {
+        var tagId = $(this).data('tag-id');
+        var tagName = $(this).data('tag-name');
+        
+        // Set the selected tag
+        $tagInput.val(tagName);
+        $tagResults.hide();
+        
+        // Add the tag to the filtering
+        addTagToFilter(tagId, tagName);
+    });
+    
+    // Hide results when clicking outside
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.tag-search-input, .tag-search-results').length) {
+            $tagResults.hide();
+        }
+    });
+}
+
+function searchTags(query) {
+    $.ajax({
+        url: baseurl + '/tags/search/' + encodeURIComponent(query),
+        method: 'GET',
+        dataType: 'json',
+        success: function(data) {
+            displayTagResults(data);
+        },
+        error: function() {
+            console.error('Failed to search tags');
+        }
+    });
+}
+
+function displayTagResults(tags) {
+    var $tagResults = $('#tag-search-results');
+    var html = '';
+    
+    if (tags.length === 0) {
+        html = '<div class="tag-result-item no-results" style="padding: 8px; color: #666;">No tags found</div>';
+    } else {
+        tags.forEach(function(tag) {
+            html += '<div class="tag-result-item" data-tag-id="' + tag.Tag.id + '" data-tag-name="' + tag.Tag.name + '" style="padding: 8px; cursor: pointer; border-bottom: 1px solid #eee;">' + 
+                    '<span style="color: #' + (tag.Tag.colour || '000000') + ';">' + tag.Tag.name + '</span>' +
+                    '</div>';
+        });
+    }
+    
+    $tagResults.html(html).show();
+}
+
+function addTagToFilter(tagId, tagName) {
+    // This function integrates with the existing filtering system
+    // You may need to adjust this based on how the existing filter system works
+    console.log('Tag selected:', tagId, tagName);
+    
+    // Example: Add to the filtering array
+    if (!typeArray.tag.some(function(tag) { return tag.id == tagId; })) {
+        typeArray.tag.push({ id: tagId, value: tagName });
+    }
+}
 
 </script>
 <?php echo $this->Js->writeBuffer();

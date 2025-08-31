@@ -1186,13 +1186,10 @@ class EventsController extends AppController
         }
         $this->set('filtering', json_encode($filtering));
 
-        $tagNames = $this->Event->EventTag->Tag->find('list', [
-            'fields' => ['Tag.id', 'Tag.name'],
-        ]);
-        $tagJSON = [];
-        foreach ($tagNames as $tagId => $tagName) {
-            $tagJSON[] = array('id' => $tagId, 'value' => $tagName);
-        }
+        // Remove the loading of all tags to improve performance
+        // Tags will now be loaded dynamically via AJAX as the user types
+        $tagNames = array(); // Empty array instead of all tags
+        $tagJSON = array(); // Empty array instead of all tags
 
         $rules = [
             'published' => __('Published'),
