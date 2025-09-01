@@ -113,6 +113,61 @@ Installation
 -------------
 For test- or production-installations we recommend you check out the possible options on [misp-project.org/download](https://www.misp-project.org/download/).
 
+## Kubernetes Deployment
+
+MISP now includes comprehensive Kubernetes deployment options for modern infrastructure:
+
+### Quick Start with Helm
+
+```bash
+# Install using Helm
+helm install my-misp ./helm-charts/misp \
+  --namespace misp \
+  --create-namespace \
+  --set database.mysql.auth.rootPassword=your-root-password \
+  --set database.mysql.auth.password=your-misp-password
+
+# Access MISP
+kubectl port-forward -n misp svc/my-misp-app 8080:80
+# Visit: http://localhost:8080
+```
+
+### Automated Deployment Script
+
+```bash
+# One-command deployment
+./k8s-deploy.sh
+
+# With custom configuration
+./k8s-deploy.sh -f custom-values.yaml -n security
+```
+
+### Features
+
+- **Complete MISP Stack**: Application, MySQL database, Redis cache, worker pods
+- **Production Ready**: Security contexts, resource limits, health checks
+- **Security Hardened**: Non-root containers, secrets management, network policies
+- **Scalable**: Configurable replicas and auto-scaling
+- **Monitoring**: Health checks, Prometheus metrics support
+
+### Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   MISP App      │    │   MISP Workers  │    │   Ingress       │
+│   (PHP/Apache)  │    │   (Background)  │    │   (Optional)    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+         ┌─────────────────┐    ┌─────────────────┐
+         │   MySQL DB      │    │   Redis Cache   │
+         │   (Primary)     │    │   (Sessions)    │
+         └─────────────────┘    └─────────────────┘
+```
+
+For detailed Kubernetes deployment instructions, see the [Kubernetes Deployment Guide](KUBERNETES_DEPLOYMENT_GUIDE.md).
+
 Documentation
 -------------
 
