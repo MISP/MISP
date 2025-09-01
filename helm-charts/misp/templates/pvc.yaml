@@ -1,0 +1,59 @@
+{{- if .Values.misp.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "misp.fullname" . }}-data
+  labels:
+    {{- include "misp.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.misp.persistence.accessMode | quote }}
+  {{- if .Values.misp.persistence.storageClass }}
+  storageClassName: {{ .Values.misp.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.misp.persistence.size }}
+{{- end }}
+
+{{- if .Values.database.mysql.enabled }}
+{{- if .Values.database.mysql.primary.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "misp.fullname" . }}-mysql
+  labels:
+    {{- include "misp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  accessModes:
+    - {{ .Values.database.mysql.primary.persistence.accessMode | quote }}
+  {{- if .Values.database.mysql.primary.persistence.storageClass }}
+  storageClassName: {{ .Values.database.mysql.primary.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.database.mysql.primary.persistence.size }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.redis.enabled }}
+{{- if .Values.redis.master.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "misp.fullname" . }}-redis
+  labels:
+    {{- include "misp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cache
+spec:
+  accessModes:
+    - {{ .Values.redis.master.persistence.accessMode | quote }}
+  {{- if .Values.redis.master.persistence.storageClass }}
+  storageClassName: {{ .Values.redis.master.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.redis.master.persistence.size }}
+{{- end }}
+{{- end }}

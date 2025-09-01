@@ -1,0 +1,21 @@
+apiVersion: v2
+name: misp
+description: A Helm chart for MISP (Malware Information Sharing Platform) - Threat Intelligence Sharing Platform
+type: application
+version: 0.1.0
+appVersion: "2.5"
+keywords:
+  - misp
+  - threat-intelligence
+  - cybersecurity
+  - malware
+  - security
+home: https://www.misp-project.org/
+sources:
+  - https://github.com/MISP/MISP
+maintainers:
+  - name: MISP Community
+    email: info@misp-project.org
+annotations:
+  category: Security
+  licenses: AGPL-3.0

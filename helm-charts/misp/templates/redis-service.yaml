@@ -1,0 +1,19 @@
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "misp.fullname" . }}-redis
+  labels:
+    {{- include "misp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cache
+spec:
+  type: {{ .Values.redis.service.type }}
+  ports:
+    - port: {{ .Values.redis.service.port }}
+      targetPort: redis
+      protocol: TCP
+      name: redis
+  selector:
+    {{- include "misp.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: cache
+{{- end }}

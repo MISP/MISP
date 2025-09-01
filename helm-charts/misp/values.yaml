@@ -1,0 +1,248 @@
+# Default values for MISP Helm chart
+# This is a YAML-formatted file.
+
+# Global configuration
+global:
+  # Global image registry
+  imageRegistry: ""
+  # Global image pull policy
+  imagePullPolicy: IfNotPresent
+  # Global image pull secrets
+  imagePullSecrets: []
+
+# MISP Core Application
+misp:
+  # MISP application configuration
+  enabled: true
+  
+  # Image configuration
+  image:
+    repository: misp/misp
+    tag: "2.5"
+    pullPolicy: IfNotPresent
+  
+  # Replica count for MISP application
+  replicaCount: 1
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+  
+  # Ingress configuration
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: misp.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  
+  # Persistent volume configuration
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    mountPath: /var/www/MISP
+  
+  # Environment variables
+  env:
+    MISP_BASEURL: "https://misp.local"
+    MISP_ORG: "MISP Organization"
+    MISP_EMAIL: "admin@misp.local"
+    MISP_GPG_DISABLE: "false"
+    MISP_SMIME_DISABLE: "false"
+  
+  # Security context
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+  
+  # Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+
+# Database configuration
+database:
+  # Database type (mysql or postgresql)
+  type: mysql
+  
+  # MySQL configuration
+  mysql:
+    enabled: true
+    image:
+      repository: mysql
+      tag: "8.0"
+    auth:
+      rootPassword: ""
+      database: misp
+      username: misp
+      password: ""
+    primary:
+      persistence:
+        enabled: true
+        storageClass: ""
+        accessMode: ReadWriteOnce
+        size: 8Gi
+    service:
+      type: ClusterIP
+      port: 3306
+  
+  # PostgreSQL configuration
+  postgresql:
+    enabled: false
+    image:
+      repository: postgres
+      tag: "15"
+    auth:
+      postgresPassword: ""
+      database: misp
+      username: misp
+      password: ""
+    primary:
+      persistence:
+        enabled: true
+        storageClass: ""
+        accessMode: ReadWriteOnce
+        size: 8Gi
+    service:
+      type: ClusterIP
+      port: 5432
+
+# Redis configuration
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+  auth:
+    enabled: false
+    password: ""
+  master:
+    persistence:
+      enabled: true
+      storageClass: ""
+      accessMode: ReadWriteOnce
+      size: 1Gi
+  service:
+    type: ClusterIP
+    port: 6379
+
+# MISP Workers (for background tasks)
+workers:
+  enabled: true
+  image:
+    repository: misp/misp
+    tag: "2.5"
+    pullPolicy: IfNotPresent
+  
+  # Number of worker replicas
+  replicaCount: 2
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  
+  # Security context
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+  
+  # Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+
+# Secrets configuration
+secrets:
+  # Create secrets automatically
+  create: true
+  
+  # MISP GPG key (base64 encoded)
+  gpgKey: ""
+  
+  # MISP S/MIME certificate (base64 encoded)
+  smimeCert: ""
+  
+  # MISP S/MIME private key (base64 encoded)
+  smimeKey: ""
+
+# ConfigMap configuration
+configMap:
+  # Create configmap automatically
+  create: true
+  
+  # MISP configuration overrides
+  config:
+    # Core configuration
+    MISP:
+      baseurl: "https://misp.local"
+      org: "MISP Organization"
+      email: "admin@misp.local"
+    
+    # Security configuration
+    Security:
+      auth_enforced: false
+      auth_required: false
+    
+    # Database configuration
+    Database:
+      host: "misp-mysql"
+      port: 3306
+      database: "misp"
+      login: "misp"
+    
+    # Redis configuration
+    Redis:
+      host: "misp-redis"
+      port: 6379
+
+# Monitoring and logging
+monitoring:
+  # Prometheus metrics
+  metrics:
+    enabled: false
+    serviceMonitor:
+      enabled: false
+  
+  # Logging configuration
+  logging:
+    enabled: true
+    level: "info"
+
+# Backup configuration
+backup:
+  enabled: false
+  schedule: "0 2 * * *"
+  retention: 7
+  storage:
+    enabled: false
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 5Gi

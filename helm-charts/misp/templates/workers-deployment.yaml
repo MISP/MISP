@@ -1,0 +1,89 @@
+{{- if .Values.workers.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "misp.fullname" . }}-workers
+  labels:
+    {{- include "misp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: workers
+spec:
+  replicas: {{ .Values.workers.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "misp.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: workers
+  template:
+    metadata:
+      labels:
+        {{- include "misp.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: workers
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.workers.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-workers
+          securityContext:
+            {{- toYaml .Values.workers.securityContext | nindent 12 }}
+          image: "{{ .Values.global.imageRegistry | default .Values.workers.image.repository }}/{{ .Values.workers.image.repository }}:{{ .Values.workers.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy | default .Values.workers.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # Start MISP workers
+              cd /var/www/MISP
+              exec php /var/www/MISP/app/Console/worker/start_workers.php
+          env:
+            - name: MISP_BASEURL
+              value: {{ .Values.misp.env.MISP_BASEURL | quote }}
+            - name: MISP_ORG
+              value: {{ .Values.misp.env.MISP_ORG | quote }}
+            - name: MISP_EMAIL
+              value: {{ .Values.misp.env.MISP_EMAIL | quote }}
+            - name: DB_HOST
+              value: {{ include "misp.fullname" . }}-mysql
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_NAME
+              value: {{ .Values.database.mysql.auth.database }}
+            - name: DB_USER
+              value: {{ .Values.database.mysql.auth.username }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "misp.fullname" . }}-mysql
+                  key: mysql-password
+            - name: REDIS_HOST
+              value: {{ include "misp.fullname" . }}-redis
+            - name: REDIS_PORT
+              value: "6379"
+          resources:
+            {{- toYaml .Values.workers.resources | nindent 12 }}
+          {{- if .Values.misp.persistence.enabled }}
+          volumeMounts:
+            - name: {{ .Chart.Name }}-data
+              mountPath: {{ .Values.misp.persistence.mountPath }}
+          {{- end }}
+      {{- if .Values.misp.persistence.enabled }}
+      volumes:
+        - name: {{ .Chart.Name }}-data
+          persistentVolumeClaim:
+            claimName: {{ include "misp.fullname" . }}-data
+      {{- end }}
+      {{- with .Values.workers.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.workers.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.workers.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

@@ -1,0 +1,226 @@
+name: Helm Chart CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'helm-charts/**'
+      - '.github/workflows/helm-chart-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'helm-charts/**'
+      - '.github/workflows/helm-chart-ci.yml'
+
+env:
+  HELM_CHART_PATH: helm-charts/misp
+
+jobs:
+  lint:
+    name: Lint Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+
+      - name: Add Helm repositories
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+
+      - name: Lint Helm chart
+        run: |
+          helm lint ${{ env.HELM_CHART_PATH }}
+          helm template ${{ env.HELM_CHART_PATH }} | kubectl apply --dry-run=client -f -
+
+      - name: Validate Helm chart
+        run: |
+          helm dependency update ${{ env.HELM_CHART_PATH }}
+          helm package ${{ env.HELM_CHART_PATH }}
+
+  test:
+    name: Test Helm Chart
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Setup Minikube
+        uses: medyagh/setup-minikube@master
+        with:
+          driver: docker
+          kubernetes-version: 'v1.27.0'
+
+      - name: Wait for Minikube
+        run: |
+          minikube status
+          kubectl cluster-info
+
+      - name: Add Helm repositories
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+
+      - name: Install dependencies
+        run: |
+          helm dependency update ${{ env.HELM_CHART_PATH }}
+
+      - name: Test Helm chart installation
+        run: |
+          # Test with minimal configuration
+          helm install test-misp ${{ env.HELM_CHART_PATH }} \
+            --set database.mysql.auth.rootPassword=test123 \
+            --set database.mysql.auth.password=test123 \
+            --set misp.persistence.enabled=false \
+            --set database.mysql.primary.persistence.enabled=false \
+            --set redis.master.persistence.enabled=false \
+            --timeout 10m \
+            --wait
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -l app.kubernetes.io/name=misp
+          kubectl get services -l app.kubernetes.io/name=misp
+
+      - name: Cleanup test installation
+        run: |
+          helm uninstall test-misp
+          kubectl delete pvc --all
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+
+      - name: Run Helm security scan
+        run: |
+          helm template ${{ env.HELM_CHART_PATH }} | kubectl apply --dry-run=client -f -
+          
+          # Check for security best practices
+          helm template ${{ env.HELM_CHART_PATH }} | grep -E "(runAsNonRoot|runAsUser|readOnlyRootFilesystem)" || echo "Security contexts should be reviewed"
+
+      - name: Check for secrets in templates
+        run: |
+          # Ensure no hardcoded secrets
+          if grep -r "password\|secret\|key" ${{ env.HELM_CHART_PATH }}/templates/ | grep -v "{{.*}}"; then
+            echo "Warning: Potential hardcoded secrets found in templates"
+            exit 1
+          fi
+
+  documentation:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check README
+        run: |
+          if [ ! -f "${{ env.HELM_CHART_PATH }}/README.md" ]; then
+            echo "README.md is missing"
+            exit 1
+          fi
+
+      - name: Validate Chart.yaml
+        run: |
+          helm lint ${{ env.HELM_CHART_PATH }}
+          
+          # Check required fields
+          yq eval '.name' ${{ env.HELM_CHART_PATH }}/Chart.yaml
+          yq eval '.version' ${{ env.HELM_CHART_PATH }}/Chart.yaml
+          yq eval '.appVersion' ${{ env.HELM_CHART_PATH }}/Chart.yaml
+
+      - name: Check values.yaml
+        run: |
+          if [ ! -f "${{ env.HELM_CHART_PATH }}/values.yaml" ]; then
+            echo "values.yaml is missing"
+            exit 1
+          fi
+
+  release:
+    name: Release Helm Chart
+    runs-on: ubuntu-latest
+    needs: [lint, test, security, documentation]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Package Helm chart
+        run: |
+          helm package ${{ env.HELM_CHART_PATH }}
+          mv misp-*.tgz helm-charts/
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: helm-chart-v${{ github.run_number }}
+          release_name: MISP Helm Chart v${{ github.run_number }}
+          body: |
+            ## MISP Helm Chart Release
+            
+            This release includes the MISP Helm chart for Kubernetes deployment.
+            
+            ### Features:
+            - Complete MISP stack deployment
+            - MySQL and Redis support
+            - Worker pods for background tasks
+            - Persistent storage configuration
+            - Security contexts and non-root containers
+            - Ingress support
+            
+            ### Installation:
+            ```bash
+            helm install my-misp ./helm-charts/misp-*.tgz
+            ```
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./helm-charts/misp-*.tgz
+          asset_name: misp-helm-chart.tgz
+          asset_content_type: application/gzip

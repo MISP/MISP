@@ -1,0 +1,19 @@
+{{- if .Values.database.mysql.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "misp.fullname" . }}-mysql
+  labels:
+    {{- include "misp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  type: {{ .Values.database.mysql.service.type }}
+  ports:
+    - port: {{ .Values.database.mysql.service.port }}
+      targetPort: mysql
+      protocol: TCP
+      name: mysql
+  selector:
+    {{- include "misp.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+{{- end }}

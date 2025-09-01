@@ -1,0 +1,73 @@
+{{- if .Values.redis.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "misp.fullname" . }}-redis
+  labels:
+    {{- include "misp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "misp.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: cache
+  template:
+    metadata:
+      labels:
+        {{- include "misp.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: cache
+    spec:
+      containers:
+        - name: redis
+          image: "{{ .Values.global.imageRegistry | default .Values.redis.image.repository }}/{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy | default .Values.redis.image.pullPolicy }}
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          {{- if .Values.redis.auth.enabled }}
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "misp.fullname" . }}-redis
+                  key: redis-password
+          {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          {{- if .Values.redis.master.persistence.enabled }}
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+          {{- end }}
+      {{- if .Values.redis.master.persistence.enabled }}
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: {{ include "misp.fullname" . }}-redis
+      {{- end }}
+{{- end }}

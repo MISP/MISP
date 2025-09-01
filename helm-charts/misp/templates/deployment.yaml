@@ -1,0 +1,127 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "misp.fullname" . }}-app
+  labels:
+    {{- include "misp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: app
+spec:
+  {{- if not .Values.misp.autoscaling.enabled }}
+  replicas: {{ .Values.misp.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "misp.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: app
+  template:
+    metadata:
+      labels:
+        {{- include "misp.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: app
+      {{- with .Values.misp.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "misp.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.misp.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-app
+          securityContext:
+            {{- toYaml .Values.misp.securityContext | nindent 12 }}
+          image: "{{ .Values.global.imageRegistry | default .Values.misp.image.repository }}/{{ .Values.misp.image.repository }}:{{ .Values.misp.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy | default .Values.misp.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.misp.service.targetPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.misp.resources | nindent 12 }}
+          env:
+            - name: MISP_BASEURL
+              value: {{ .Values.misp.env.MISP_BASEURL | quote }}
+            - name: MISP_ORG
+              value: {{ .Values.misp.env.MISP_ORG | quote }}
+            - name: MISP_EMAIL
+              value: {{ .Values.misp.env.MISP_EMAIL | quote }}
+            - name: MISP_GPG_DISABLE
+              value: {{ .Values.misp.env.MISP_GPG_DISABLE | quote }}
+            - name: MISP_SMIME_DISABLE
+              value: {{ .Values.misp.env.MISP_SMIME_DISABLE | quote }}
+            - name: DB_HOST
+              value: {{ include "misp.fullname" . }}-mysql
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_NAME
+              value: {{ .Values.database.mysql.auth.database }}
+            - name: DB_USER
+              value: {{ .Values.database.mysql.auth.username }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "misp.fullname" . }}-mysql
+                  key: mysql-password
+            - name: REDIS_HOST
+              value: {{ include "misp.fullname" . }}-redis
+            - name: REDIS_PORT
+              value: "6379"
+          {{- if .Values.misp.persistence.enabled }}
+          volumeMounts:
+            - name: {{ .Chart.Name }}-data
+              mountPath: {{ .Values.misp.persistence.mountPath }}
+          {{- end }}
+          {{- if .Values.secrets.create }}
+          - name: gpg-key
+            mountPath: /var/www/MISP/.gnupg
+            readOnly: true
+          - name: smime-cert
+            mountPath: /var/www/MISP/.smime
+            readOnly: true
+          {{- end }}
+      {{- if .Values.misp.persistence.enabled }}
+      volumes:
+        - name: {{ .Chart.Name }}-data
+          persistentVolumeClaim:
+            claimName: {{ include "misp.fullname" . }}-data
+      {{- end }}
+      {{- if .Values.secrets.create }}
+      - name: gpg-key
+        secret:
+          secretName: {{ include "misp.fullname" . }}-gpg
+      - name: smime-cert
+        secret:
+          secretName: {{ include "misp.fullname" . }}-smime
+      {{- end }}
+      {{- with .Values.misp.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.misp.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.misp.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

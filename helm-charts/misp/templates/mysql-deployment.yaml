@@ -1,0 +1,84 @@
+{{- if .Values.database.mysql.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "misp.fullname" . }}-mysql
+  labels:
+    {{- include "misp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "misp.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: database
+  template:
+    metadata:
+      labels:
+        {{- include "misp.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: database
+    spec:
+      containers:
+        - name: mysql
+          image: "{{ .Values.global.imageRegistry | default .Values.database.mysql.image.repository }}/{{ .Values.database.mysql.image.repository }}:{{ .Values.database.mysql.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy | default .Values.database.mysql.image.pullPolicy }}
+          ports:
+            - name: mysql
+              containerPort: 3306
+              protocol: TCP
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "misp.fullname" . }}-mysql
+                  key: mysql-root-password
+            - name: MYSQL_DATABASE
+              value: {{ .Values.database.mysql.auth.database }}
+            - name: MYSQL_USER
+              value: {{ .Values.database.mysql.auth.username }}
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "misp.fullname" . }}-mysql
+                  key: mysql-password
+          livenessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -h
+                - localhost
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -h
+                - localhost
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+            requests:
+              cpu: 500m
+              memory: 512Mi
+          {{- if .Values.database.mysql.primary.persistence.enabled }}
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+          {{- end }}
+      {{- if .Values.database.mysql.primary.persistence.enabled }}
+      volumes:
+        - name: mysql-data
+          persistentVolumeClaim:
+            claimName: {{ include "misp.fullname" . }}-mysql
+      {{- end }}
+{{- end }}
