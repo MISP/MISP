@@ -21523,7 +21523,7 @@ msgstr "L'organisation a un serveur externe avec lequel vous souhaitez vous sync
 
 #: View/Servers/edit.ctp:242
 msgid "A name that will make it clear to your users what this instance is. For example: Organisation A's instance"
-msgstr "Un nom qui définira clairement ce qu'est cette instance. Par exemple: \"Instance de l'organisation A\""
+msgstr "Un nom qui définira clairement ce qu'est cette instance. Par exemple: Instance de l'organisation A"
 
 #: View/Servers/edit.ctp:243
 msgid "You can find the authentication key on your profile on the external server."
