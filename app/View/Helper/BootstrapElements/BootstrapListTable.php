@@ -159,6 +159,9 @@ class BootstrapListTable extends BootstrapGeneric
             'class' => $this->options['bodyClass'],
         ]);
         foreach ($this->fields as $i => $field) {
+            if (isset($field['requirement']) && !$field['requirement']) {
+                continue;
+            }
             $body .= $this->genRow($field);
         }
         $body .= $this->nodeClose('tbody');

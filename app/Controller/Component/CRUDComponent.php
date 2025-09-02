@@ -41,6 +41,13 @@ class CRUDComponent extends Component
                 $query['fields'] = $this->Controller->paginate['fields'];
             }
             $query['includeAnalystData'] = true;
+            if (!empty($options['beforeFind'])) {
+                if (is_callable($options['beforeFind'])) {
+                    $query = $options['beforeFind']($query);
+                } else {
+                    $query = $this->Controller->{$this->Controller->modelClass}->{$options['beforeFind']}($query);
+                }
+            }
             $data = $this->Controller->{$this->Controller->modelClass}->find('all', $query);
             if (isset($options['afterFind'])) {
                 if (is_callable($options['afterFind'])) {
@@ -53,7 +60,14 @@ class CRUDComponent extends Component
         } else {
             $model = $this->Controller->{$this->Controller->defaultModel};
             $query['includeAnalystData'] = true;
-            $this->Controller->paginate = $query;
+            if (!empty($options['beforeFind'])) {
+                if (is_callable($options['beforeFind'])) {
+                    $query = $options['beforeFind']($query);
+                } else {
+                    $query = $this->Controller->{$this->Controller->modelClass}->{$options['beforeFind']}($query);
+                }
+            }
+            $this->Controller->paginate = array_merge($query, $this->Controller->paginate);
             $data = $this->Controller->paginate();
             if (isset($options['afterFind'])) {
                 if (is_callable($options['afterFind'])) {
@@ -62,6 +76,7 @@ class CRUDComponent extends Component
                     $data = $model->{$options['afterFind']}($data);
                 }
             }
+            /*
             if (empty($excludeStats)) { // check if stats are requested
                 $modelStatistics = [];
                 if ($model->Behaviors->enabled('Timestamp')) {
@@ -100,6 +115,7 @@ class CRUDComponent extends Component
                 }
                 $this->Controller->set('modelStatistics', $modelStatistics);
             }
+            */
             $this->Controller->set('data', $data);
         }
     }

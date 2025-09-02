@@ -114,18 +114,18 @@
                 [
                     'key' => __('Tags'),
                     'type' => 'custom',
-                    'function' => function(array $event) use($isSiteAdmin, $mayModify, $me, $missingTaxonomies, $tagConflicts) {
+                    'function' => function(array $event) use($isSiteAdmin, $mayModify, $me, $context) {
                         return sprintf(
                             '<span class="eventTagContainer">%s</span>',
                             $this->element(
                                 'ajaxTags',
                                 [
                                     'event' => $event,
-                                    'tags' => $event['EventTag'],
+                                    'tags' => $event['Event']['EventTag'],
                                     'tagAccess' => $isSiteAdmin || $mayModify,
                                     'localTagAccess' => $this->Acl->canModifyTag($event, true),
-                                    'missingTaxonomies' => $missingTaxonomies,
-                                    'tagConflicts' => $tagConflicts
+                                    'missingTaxonomies' => $context['missingTaxonomies'],
+                                    'tagConflicts' => []
                                 ]
                             )
                         );
@@ -138,15 +138,15 @@
                 [
                     'key' => __('Threat Level'),
                     'path' => 'ThreatLevel.name',
-                    'key_title' => $eventDescriptions['threat_level_id']['desc'],
-                    'class' => 'threat-level-' . h(strtolower($event['ThreatLevel']['name']))
+                    'key_title' => $context['eventDescriptions']['threat_level_id']['desc'],
+                    'class' => 'threat-level-' . h(strtolower($event['Event']['ThreatLevel']['name']))
                 ],
                 [
                     'key' => __('Analysis'),
-                    'key_title' => $eventDescriptions['analysis']['desc'],
+                    'key_title' => $context['eventDescriptions']['analysis']['desc'],
                     'path' => 'Event.analysis',
                     'type' => 'mapping',
-                    'mapping' => $analysisLevels
+                    'mapping' => $context['analysisLevels']
                 ],
                 [
                     'key' => __('Distribution'),
@@ -154,12 +154,6 @@
                     'sg_path' => 'SharingGroup',
                     'event_id_path' => 'Event.id',
                     'type' => 'distribution'
-                ],
-                [
-                    'key' => __('Warnings'),
-                    'type' => 'warnings',
-                    'warnings' => $warnings,
-                    'requirement' => !empty($warnings) && $mayModify,
                 ],
                 [
                     'key' => __('Published'),
@@ -182,29 +176,6 @@
                             );
                         }
                     }
-                ],
-                [
-                    'key' => __('#Attributes'),
-                    'raw' => __n('%s (%s Object)', '%s (%s Objects)', $object_count, $attribute_count, h($object_count))
-                ],
-                [
-                    'key' => __('First recorded change'),
-                    'raw' => !$oldest_timestamp ? '' : $this->Time->time($oldest_timestamp),
-                    'requirement' => $oldest_timestamp,
-                ],
-                [
-                    'key' => __('Last change'),
-                    'raw' => $this->Time->time($event['Event']['timestamp'])
-                ],
-                [
-                    'key' => __('Modification map'),
-                    'type' => 'element',
-                    'element' => 'sparkline_new',
-                    'element_params' => [
-                        'scope' => 'modification',
-                        'id' => $event['Event']['id'],
-                        'csv' => $modificationMapCSV
-                    ]
                 ],
                 [
                     'key' => __('Extends'),
@@ -234,24 +205,6 @@
                     )
                 ],
                 [
-                    'key' => __('Activity'),
-                    'type' => 'element',
-                    'element' => 'sparkline_new',
-                    'element_params' => [
-                        'scope' => 'event',
-                        'id' => $event['Event']['id'],
-                        'csv' => $sightingsData['csv']['all']
-                    ],
-                    'requirement' => isset($sightingsData['data']['all'])
-                ],
-                [
-                    'key' => __('Delegation request'),
-                    'class' => 'background-red bold',
-                    'type' => 'delegationRequest',
-                    'delegationRequest' => isset($delegationRequest) ? $delegationRequest : null,
-                    'requirement' => !empty($delegationRequest)
-                ],
-                [
                     'key' => __('Correlation'),
                     'class' => $event['Event']['disable_correlation'] ? 'background-red bold' : '',
                     'type' => 'custom',
@@ -272,7 +225,7 @@
                         );
                     },
                     'requirement' => (!Configure::read('MISP.completely_disable_correlation') && Configure::read('MISP.allow_disabling_correlation'))
-                ]
+                ],
             ],
             'side_panels' => [
                 [
@@ -295,6 +248,20 @@
                     'type' => 'eventWarnings',
                     'requirement' => !empty($event['warnings'])
                 ]
+            ],
+            'children' => [
+                [
+                    'url' => '/attributes/index/eventid:{{0}}/',
+                    'url_params' => ['Event.id'],
+                    'title' => __('Attributes'),
+                    'elementId' => 'attributes_container',
+                ],
+                [
+                    'url' => '/objects/index/{{0}}/',
+                    'url_params' => ['Event.id'],
+                    'title' => __('Objects'),
+                    'elementId' => 'objects_container'
+                ],
             ],
             'append' => [
                 [

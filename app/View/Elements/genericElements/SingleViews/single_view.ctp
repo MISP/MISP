@@ -39,6 +39,7 @@
     if (!empty($data['MetaTemplates']) && (empty($skip_meta_templates)) && !empty($combinedFieldsView)) {
         $listTableOptions['tableClass'] = '';
     }
+    
     $listTable = $this->Bootstrap->listTable($listTableOptions,[
         'item' => $data,
         'fields' => $fields

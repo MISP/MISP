@@ -1667,6 +1667,208 @@ class EventsController extends AppController
         $this->set('sightingsDbEnabled', (bool)Configure::read('Plugin.Sightings_sighting_db_enable'));
     }
 
+    public function view2($id, $continue = false, $fromEvent = null)
+    {
+        if ($this->request->is('head')) { // Just check if event exists
+            $exists = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['fields' => ['id']]);
+            return new CakeResponse(['status' => $exists ? 200 : 404]);
+        }
+
+        $namedParams = $this->request->params['named'];
+        $isRest = $this->_isRest();
+        $filter_defaults = [
+            'includeAnalystData' => true,
+            'includeAttachments' => true,
+            'includeAllTags' => $isRest ? false : true,
+            'noSightings' => $isRest ? false : true,
+            'noEventReports' => $isRest ? false : true,
+            'noShadowAttributes' => null,
+            'fetchFullClusters' => $isRest ? false : false,
+            'deleted' => 0,
+            'includeRelatedTags' => 1,
+            'includeDecayScore' => 1,
+            'includeWarninglistHits' => true,
+            'excludeLocalTags' => false,
+            'extended' => null,
+            'extending' => null,
+            'toIDS' => null,
+            'to_ids' => null,
+            'includeRelatedTags' => null,
+            'includeDecayScore' => null,
+            'public' => null,
+            'overrideLimit' => null,
+            'excludeGalaxy' => null,
+            'includeFeedCorrelations' => $isRest ? 0 : 1,
+            'includeGranularCorrelations' => $isRest ? 0 : 1,
+            'includeServerCorrelations' => $isRest ? 0 : 1
+        ];
+        $params = $this->IndexFilter->harvestParameters(array_keys($filter_defaults));
+        if (is_numeric($id)) {
+            $params['eventid'] = $id;
+        } else if (Validation::uuid($id)) {
+            $params['event_uuid'] = $id;
+        } else {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $user = $this->Auth->user();
+        $params = $this->__massageViewParams($params, $id, $filter_defaults);
+        if ($this->_isRest()) {
+            return $this->viewAPI($user, $id, $params);
+        } else {
+            return $this->viewUI($user, $id, $params);
+        }
+    }
+
+    private function __massageViewParams($params, $id, $filter_defaults)
+    {
+        $booleanFields = [
+            'includeAnalystData',
+            'includeAttachments',
+            'includeAllTags',
+            'noSightings',
+            'noEventReports',
+            'noShadowAttributes',
+            'fetchFullClusters',
+            'includeRelatedTags',
+            'includeDecayScore',
+            'includeWarninglistHits',
+            'excludeLocalTags',
+            'extended',
+            'extending',
+            'to_ids',
+            'includeRelatedTags',
+            'includeDecayScore',
+            'public',
+            'overrideLimit',
+            'excludeGalaxy',
+            'includeFeedCorrelations',
+            'includeGranularCorrelations',
+            'includeServerCorrelations',
+            'viewAs'
+        ];
+        foreach ($filter_defaults as $key => $default) {
+            if (!isset($params[$key])) {
+                if ($default === null) {
+                    unset($params[$key]);
+                } else {
+                    if (in_array($key, $booleanFields)) {
+                        $params[$key] = $default ? 1 : 0;
+                    } else {
+                        $params[$key] = $default;
+                    }
+                }
+                continue;
+            }
+            if ($key === 'toIDS') {
+                // convert toIDS to to_ids for compatibility
+                $params['to_ids'] = $params['toIDS'] == 2 ? 0 : 1;
+            } else if ($key === 'public') {
+                $params['distribution'] = $params['public'] ? [3, 5] : null;
+            } else if ($key === 'deleted') {
+                if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && !empty($params['deleted'])) {
+                    // workaround for old instances trying to pull events with both deleted / non deleted data
+                    $conditions['deleted'] = [0, 1];
+                } else {
+                    if (is_array($params['deleted'])) {
+                        $params['deleted'] = $params['deleted'];
+                    } else if ($params['deleted'] == 1) {
+                        $params['deleted'] = [0, 1];
+                    }
+                }
+            }
+        }
+        return $params;
+    }
+
+    private function viewAPI($user, $id, $params)
+    {
+        $results = $this->Event->fetchEvent($user, $params);
+        if (empty($results)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        if (!empty($params['includeGranularCorrelations']) && !empty($results[0]['RelatedAttribute'])) {
+            foreach ($results[0]['RelatedAttribute'] as $attribute_id => $relation) {
+                foreach ($results[0]['Attribute'] as $k2 => $attribute) {
+                    if ((int)$attribute['id'] == $attribute_id) {
+                        $results[0]['Attribute'][$k2]['RelatedAttribute'][] = $relation;
+                        break 2;
+                    }
+                }
+                foreach ($results[0]['Object'] as $k2 => $object) {
+                    foreach ($object['Attribute'] as $k3 => $attribute) {
+                        if ((int)$attribute['id'] == $attribute_id) {
+                            $results[0]['Object'][$k2]['Attribute'][$k3]['RelatedAttribute'][] = $relation;
+                            break 3;
+                        }
+                    }
+                }
+            }
+        }
+        if ($results[0]['Event']['protected']) {
+            $this->RestResponse->signContents = true;
+        }
+        return $this->__restResponse($results[0]);
+
+    }
+
+    private function viewUI($user, $id, $params)
+    {
+        $params['metadata'] = 1;
+        $params['includeWarninglistHits'] = false;
+        $results = $this->Event->fetchEvent($user, $params);
+        if (empty($results)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $event = ['Event' => $results[0]['Event']];
+        unset($results[0]['Event']);
+        $event['Event'] = array_merge($event['Event'], $results[0]);
+        $this->set('event', $event);
+        $this->set('extended', empty($params['extended']) ? 0 : 1);
+        $this->set('extending', empty(['$extending']) ? 0 : 1);
+        try {
+            $instanceKey = $event['Event']['protected'] ? $this->Event->CryptographicKey->ingestInstanceKey() : null;
+        } catch (Exception $e) {
+            $instanceKey = null;
+        }
+        $this->loadModel('Taxonomy');
+        $tagConflicts = $this->Taxonomy->checkIfTagInconsistencies($event['Event']['EventTag']);
+        foreach ($tagConflicts['global'] as $tagConflict) {
+            $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+        }
+        foreach ($tagConflicts['local'] as $tagConflict) {
+            $warningTagConflicts[$tagConflict['taxonomy']['Taxonomy']['namespace']] = $tagConflict['taxonomy'];
+        }
+        $this->set('instanceFingerprint', $instanceKey);
+        $contributors = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
+        $this->set('contributors', $contributors);
+        $this->set('mayModify', $this->__canModifyEvent($event, $user));
+        $this->set('mayPublish', $this->__canPublishEvent($event, $user));
+                /*
+        $this->set('missingTaxonomies', $this->Event->missingTaxonomies($event['Event']));
+        $this->set('includeSightingdb', !empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable'));
+        $this->set('includeOrgColumn', $this->viewVars['extended'] || $this->viewVars['extending'] || $containsProposals);
+        $this->set('eventDescriptions', $this->Event->fieldDescriptions);
+        $this->set('analysisLevels', $this->Event->analysisLevels);
+        $this->set('distributionLevels', $this->Event->distributionLevels);
+        $this->set('shortDist', $this->Event->shortDist);
+        */
+        $this->set('shortDist', $this->Event->shortDist);
+        $this->set('context', [
+            'missingTaxonomies' => $this->Event->missingTaxonomies($event['Event']),
+            'includeSightingdb' => !empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable'),
+            'includeOrgColumn' => $this->viewVars['extended'] || $this->viewVars['extending'] || $containsProposals,
+            'eventDescriptions' => $this->Event->fieldDescriptions,
+            'analysisLevels' => $this->Event->analysisLevels,
+            'distributionLevels' => $this->Event->distributionLevels,
+            
+            'distributionData' => $this->__genDistributionGraph(-1),
+            'tagConflicts' => $tagConflicts
+        ]);
+        $this->loadModel('Taxonomy');
+
+        $this->set('tagConflicts', $tagConflicts);
+    }
+
     public function view($id = null, $continue = false, $fromEvent = null)
     {
         if ($this->request->is('head')) { // Just check if event exists

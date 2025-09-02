@@ -1440,4 +1440,35 @@ class ObjectsController extends AppController
         $this->set('object', $object[0]['Object']);
         $this->set('seed', $seed);
     }
+
+    public function index($id = null)
+    {
+        $user_id = $this->Auth->user();
+        $conditions = [];
+        $user = $this->Auth->user();
+        $aclConditions = $this->MispObject->buildConditions($user);
+        if (!empty($aclConditions)) {
+            $conditions['AND'][] = $aclConditions;
+        }
+        if (!empty($id)) {
+            $conditions['AND']['Object.event_id'] = $id;
+        }
+        $this->CRUD->index([
+            'filters' => ['Object.name', 'Object.meta-category', 'Object.template_uuid', 'Object.template_version'],
+            'quickFilters' => ['Object.name', 'Object.meta-category', 'Object.template_uuid', 'Object.template_version'],
+            'contain' => ['Event' => ['fields' => ['Event.id', 'Event.uuid', 'Event.org_id', 'Event.orgc_id', 'Event.info']]],
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'beforeFind' => function (array $objects) {
+                return $objects;
+            }
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+        $this->set('menuData', [
+            'menuList' => $this->_isSiteAdmin() ? 'admin' : 'globalActions',
+            'menuItem' => 'authkeys_index',
+        ]);
+    }
 }
