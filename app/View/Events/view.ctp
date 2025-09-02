@@ -293,7 +293,7 @@
                 ],
                 [
                     'type' => 'eventWarnings',
-                    'requirement' => !empty($event['warnings'])
+                    'requirement' => !empty($event['warnings']['false_positive']) || !empty($event['warnings']['known'])
                 ]
             ],
             'append' => [

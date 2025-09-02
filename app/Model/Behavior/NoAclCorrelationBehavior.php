@@ -51,6 +51,10 @@ class NoAclCorrelationBehavior extends ModelBehavior
         return self::TABLE_NAME;
     }
 
+    public function onDemandEngine() {
+        return false;
+    }
+
     /**
      * @param Model $Model
      * @param string $value
@@ -388,14 +392,13 @@ class NoAclCorrelationBehavior extends ModelBehavior
     {
         if (!$eventId) {
             $Model->query('TRUNCATE TABLE no_acl_correlations;');
-            //$Model->query('TRUNCATE TABLE correlation_values;');
             //$Model->query('TRUNCATE TABLE over_correlating_values;');
         } else {
             $Model->deleteAll([
-                'OR' => array(
-                    'Correlation.1_event_id' => $eventId,
-                    'Correlation.event_id' => $eventId,
-                )
+                'Correlation.event_id' => $eventId
+            ], false);
+            $Model->deleteAll([
+                'Correlation.1_event_id' => $eventId
             ], false);
         }
     }

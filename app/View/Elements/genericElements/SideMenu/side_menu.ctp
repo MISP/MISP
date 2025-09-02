@@ -1760,6 +1760,19 @@ $divider = '<li class="divider"></li>';
                             'text' => __('View Object Template')
                         ));
                     }
+                    echo $divider;
+                    if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'object_relationship_index',
+                            'url' => $baseurl . '/object_relationships/index',
+                            'text' => __('List Object Relationships')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'object_relationship_add',
+                            'url' => $baseurl . '/object_relationships/add',
+                            'text' => __('Add Object Relationships')
+                        ));
+                    }
                     break;
 
                 case 'sightingdb':

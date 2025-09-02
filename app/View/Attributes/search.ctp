@@ -1,5 +1,5 @@
 <div class="attributes form">
-<?php echo $this->Form->create('Attribute', array('url' => array('controller' => 'attributes', 'action' => 'search', 'results')));?>
+<?php echo $this->Form->create('Attribute', array('url' => $baseurl . '/attributes/index'));?>
     <fieldset>
         <legend><?php echo __('Search Attribute'); ?></legend>
         <?= __('You can search for attributes based on contained expression within the value, event ID, submitting organisation, category and type. <br>For the value, event ID and organisation, you can enter several search terms by entering each term as a new line. To exclude things from a result, use the NOT operator (!) in front of the term.'); ?>
@@ -16,6 +16,14 @@
                 'div' => 'input clear',
                 'rows' => 2,
                 'class' => 'input-xxlarge'
+            ));
+            echo $this->Form->input('object_relation', array(
+                'type' => 'textarea',
+                'label' => __('Have the following object relation(s)'),
+                'div' => 'input clear',
+                'rows' => 2,
+                'class' => 'input-xxlarge',
+                'required' => false
             ));
             $typeFormInfo = $this->element('genericElements/Form/formInfo', [
                 'field' => [
@@ -46,6 +54,11 @@
             echo $this->Form->input('to_ids', array(
                 'type' => 'checkbox',
                 'label' => __('Only find IOCs flagged as to IDS'),
+                'div' => ['style' => 'margin-top:1em'],
+            ));
+            echo $this->Form->input('enforceWarninglist', array(
+                'type' => 'checkbox',
+                'label' => __('Exclude IOCs spotted in a warning list'),
                 'div' => ['style' => 'margin-top:1em'],
             ));
             echo $this->Form->input('first_seen', array(

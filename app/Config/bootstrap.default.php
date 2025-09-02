@@ -134,13 +134,39 @@ CakePlugin::load('Assets'); // having Logable
 CakePlugin::load('SysLogLogable');
 
 /**
- * Uncomment the following line to enable client SSL certificate authentication.
- * It's also necessary to configure the plugin — for more information, please read app/Plugin/CertAuth/reame.md
+ * Detect what auth modules need to be loaded based on the loaded config
  */
-// CakePlugin::load('CertAuth');
-// CakePlugin::load('ShibbAuth');
-// CakePlugin::load('LinOTPAuth');
-// CakePlugin::load('LdapAuth');
+
+if (Configure::read('AadAuth')) {
+	CakePlugin::load('AadAuth');
+}
+
+if (Configure::read('CertAuth')) {
+	CakePlugin::load('CertAuth');
+}
+
+if (Configure::read('LdapAuth')) {
+	CakePlugin::load('LdapAuth');
+}
+
+if (Configure::read('LinOTPAuth')) {
+	CakePlugin::load('LinOTPAuth');
+}
+
+if (Configure::read('OidcAuth')) {
+	CakePlugin::load('OidcAuth');
+}
+
+if (empty(Configure::read('SimpleBackgroundJobs.enabled'))) {
+	CakePlugin::loadAll(array(
+		'CakeResque' => array('bootstrap' => true)
+	));
+}
+
+if (Configure::read('ShibbAuth') || Configure::read('ApacheShibbAuth')) {
+	CakePlugin::load('ShibbAuth');
+}
+
 /**
  * You can attach event listeners to the request lifecyle as Dispatcher Filter . By Default CakePHP bundles two filters:
  *
@@ -176,12 +202,6 @@ CakeLog::config('error', array(
 	'types' => array('warning', 'error', 'critical', 'alert', 'emergency'),
 	'file' => 'error',
 ));
-
-// comment the following out if you do not with to use the background processing (not recommended)
-CakePlugin::loadAll(array(
-	'CakeResque' => array('bootstrap' => true)
-));
-
 
 // Enable the additional exception logging for certain failures (timeouts, out of memory, etc)
 Configure::write('Exception.renderer', 'AppExceptionRenderer');

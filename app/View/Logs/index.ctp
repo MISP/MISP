@@ -68,6 +68,11 @@
         'title' => __('Remove filters'),
         'fa-icon' => 'times'
     ];
+    if (isset($search_token)) {
+        $passedArgsArray = [
+            'search_token' => $search_token
+        ];
+    }
     echo sprintf('<div%s>', empty($ajax) ? ' class="index"' : '');
     echo $this->element('genericElements/IndexTable/index_table', [
         'data' => [
@@ -94,12 +99,13 @@
                         'type' => 'simple',
                         'children' => $children
                     ]
-                ]
+                    ]
             ],
             'fields' => $fields,
             'title' => __('Application Logs'),
             'persistUrlParams' => $paramArray
-        ]
+        ],
+        'passedArgsArray' => $passedArgsArray,
     ]);
     echo '</div>';
     if (empty($ajax)) {

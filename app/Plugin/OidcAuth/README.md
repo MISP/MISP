@@ -12,8 +12,12 @@ to login with passwords stored in MISP.
 cd app
 php composer.phar require jakub-onderka/openid-connect-php:1.0.0-rc1
 ```
+2. Enable Oidc plugin in `app/Config/bootstrap.php`, add to the end the following line:
+```php
+CakePlugin::load('OidcAuth');
+```
 
-2. Enable in `app/Config/config.php`
+3. Enable in `app/Config/config.php`
 
 ```php
 $config = array(
@@ -25,7 +29,7 @@ $config = array(
     ...
 ```
 
-3. Configure in `app/Config/config.php` (replace variables in `{{ }}` with your values)
+4. Configure in `app/Config/config.php` (replace variables in `{{ }}` with your values)
 
 ```php
 $config = array(
@@ -45,13 +49,18 @@ $config = array(
     ...
 ```
 
-4. Other MISP settings
+5. Other MISP settings
 
 You might want to change or set the following MISP config values once the single sign on integration works (you can do this via GUI):
 ```
 Security.require_password_confirmation false
 Security.auth_enforced true
 ```
+
+For avoiding redirect loops when trying to logout, you can configure the `Plugin.CustomAuth_custom_logout` setting with the logout url of your IdP.
+
+6. Mixed Auth
+Set `OidcAuth.mixedAuth` to `true` to prevent MISP to automatically redirect to your SSO and instead add a `Login with SSO` button in the login page, this allows users to still login with other authentication methods enabled in MISP.
 
 ## Caveats
 

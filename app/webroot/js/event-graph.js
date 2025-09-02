@@ -1402,7 +1402,7 @@ class DataHandler {
         this.mapping_node_to_from_edges = {};
         this.mapping_node_to_to_edges = {};
         this.selected_type_to_display = "";
-        this.extended_event = $('#eventgraph_network').data('extended') == 1 ? true : false;
+        this.extended_event = $('#eventgraph_network').data('is_extended') == 1 ? true : false;
         this.networkHistoryJsonData = new Map();
         this.scope_name;
     }
@@ -1463,10 +1463,10 @@ class DataHandler {
             var payload = {};
             payload.filtering = filtering_rules;
             payload.keyType = keyType;
-            var extended_text = dataHandler.extended_event ? "extended:1" : "";
+            var extended_text = dataHandler.extended_event ? "/extended:1" : "";
             eventGraph.canDrawHull = false;
             $.ajax({
-                url: baseurl+"/events/"+dataHandler.get_scope_url()+"/"+scope_id+"/"+extended_text+"/event.json",
+                url: baseurl+"/events/"+dataHandler.get_scope_url()+"/"+scope_id+extended_text+"/event.json",
                 dataType: 'json',
                 type: 'post',
                 contentType: 'application/json',

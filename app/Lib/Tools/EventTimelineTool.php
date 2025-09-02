@@ -168,7 +168,7 @@
                 'eventid' => $id,
                 'flatten' => 1,
                 'includeTagRelations' => 1,
-                'extended' => $this->__extended_view
+                'is_extended' => $this->__extended_view
             ));
             $this->__json['items'] = array();
 

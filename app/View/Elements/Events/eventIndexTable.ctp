@@ -17,7 +17,7 @@
                 endif;
             $date = time();
             $day = 86400;
-        ?>
+        ?> 
         <?php if (in_array('owner_org', $columns, true)): ?><th class="filter"><?= $this->Paginator->sort('Org.name', __('Owner org')) ?></th><?php endif; ?>
         <th><?= $this->Paginator->sort('id', __('ID'), ['direction' => 'desc']) ?></th>
         <?php if (in_array('clusters', $columns, true)): ?><th><?= __('Clusters') ?></th><?php endif; ?>
@@ -165,8 +165,40 @@
             <?= $this->Time->time($event['Event']['publish_timestamp']) ?>
         </td>
         <?php endif; ?>
-        <td class="dblclickElement">
+        <?php
+            $extends_uuid = $event['Event']['extends_uuid'] ?? null;
+            $extendedEventsInfoByUuid = array_column($extendedEvents, 'info', 'uuid');
+            $extendedEventsIdByUuid = array_column($extendedEvents, 'id', 'uuid');
+            $extends_info = $extendedEventsInfoByUuid[$extends_uuid] ?? null;
+            $extends_id = $extendedEventsIdByUuid[$extends_uuid] ?? null;
+        ?>
+
+        <td class="dblclickElement" style="min-width: 20vi; white-space: normal;">
             <?= nl2br(h($event['Event']['info']), false) ?>
+
+            <?php if ($extends_info): ?>
+                <?php if (in_array('is_extension', $columns, true)): ?>
+                    <div style="padding-left: 1em;">
+                        <span class="apply_css_arrow">
+                            <p style="display: inline;">
+                                Extends 
+                                <a href="<?= h($baseurl) ?>/events/view/<?= h($extends_id) ?>" 
+                                title="<?= __('See extended event') ?>" 
+                                aria-label="<?= __('See extended event') ?>">
+                                    <?= h($extends_id)?>
+                                </a>
+                                : <?= h($extends_info) ?>
+                            </p>
+                        </span>
+                    </div>
+                <?php else: ?>
+                    <a href="<?= h($baseurl) ?>/events/view/<?= h($extends_id) ?>" 
+                    title="<?= __('Extends event %s', h($extends_id)) ?>"
+                    aria-label="<?= __('Extends event %s', h($extends_id)) ?>">
+                        <i class="fas fa-external-link-square-alt"></i>
+                    </a>
+                <?php endif; ?>
+            <?php endif; ?>
         </td>
         <td class="short dblclickElement<?php if ($event['Event']['distribution'] == 0) echo ' privateRedText';?>" title="<?= $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : __('All');?>">
             <?php if ($event['Event']['distribution'] == 4):?>

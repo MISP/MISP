@@ -27,6 +27,12 @@
             'data_path' => 'Cerebrate.description'
         ],
         [
+            'name' => __('Skip Proxy'),
+            'sort' => 'Cerebrate.skip_proxy',
+            'data_path' => 'Cerebrate.skip_proxy',
+            'element' => 'boolean'
+        ],
+        [
             'name' => __('Pull Orgs'),
             'sort' => 'Cerebrate.pull_orgs',
             'data_path' => 'Cerebrate.pull_orgs',

@@ -172,6 +172,20 @@ class EventTag extends AppModel
         return false;
     }
 
+    // This function help mirroring the tags at event level. It will delete tags that are not present on the receiving event
+    public function pruneOutdatedEventTagsFromSync($newerTags, $originalGlobalEventTags)
+    {
+        $newerTagsName = [];
+        foreach ($newerTags as $tag) {
+            $newerTagsName[] = strtolower($tag['name']);
+        }
+        foreach ($originalGlobalEventTags as $k => $eventTag) {
+            if (!in_array(strtolower($eventTag['Tag']['name']), $newerTagsName)) {
+                $this->softDelete($eventTag['EventTag']['id']);
+            }
+        }
+    }
+
     /**
      * Find all of the event Ids that belong to the accepted tags and the rejected tags
      * @param array $accept

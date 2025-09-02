@@ -21,7 +21,7 @@
         '<hr /><h2 class="overflow label label-success">%s</h2><div style="width:800px;">%s<div>%s</div></div>',
         __('Active engine: %s', $currentEngineData['name']),
         $this->element('/healthElements/correlations_table', ['currentEngineData' => $currentEngineData]),
-        sprintf(
+        $correlation_metrics['engine'] === 'OnDemand' ? '' : sprintf(
             '<div class="btn btn-primary" onClick="simplePopup(\'%s\');">%s</div>',
             $baseurl . '/attributes/generateCorrelation',
             __('Recorrelate')
@@ -37,7 +37,7 @@
                 $baseurl . '/correlations/switchEngine/' . h($engine),
                 __('Activate engine')
             ),
-            sprintf(
+            $engine === 'OnDemand' ? '' : sprintf(
                 '<div class="btn btn-danger" onClick="simplePopup(\'%s\');">%s</div>',
                 $baseurl . '/correlations/truncate/' . h($engine),
                 __('Truncate')

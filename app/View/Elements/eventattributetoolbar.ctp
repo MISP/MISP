@@ -167,6 +167,13 @@
             array(
                 'children' => array(
                     array(
+                        'id' => 'import-button',
+                        'title' => __('Choose import format'),
+                        'fa-icon' => 'bars',
+                        'onClick' => 'getPopup',
+                        'onClickParams' => array($eventId, 'events', 'importChoice'),
+                    ),
+                    array(
                         'id' => 'freetext-button',
                         'title' => __('Populate using the freetext import tool'),
                         'fa-icon' => 'align-left',

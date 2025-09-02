@@ -89,6 +89,9 @@ class Module_distribution_if extends WorkflowBaseLogicModule
         $selected_sharing_groups = !empty($params['sharing_group_id']['value']) ? $params['sharing_group_id']['value'] : [];
         $final_distribution = $this->__getPropagatedDistribution($data['Event']);
         if ($scope == 'attribute') {
+            if (count($data['Event']['Attribute']) == 0) {
+                return false; // No attributes will not pass validation
+            }
             $final_distribution = $this->__getPropagatedDistribution(
                 $data['Event'],
                 $data['Event']['Attribute'][0]['Object'] ?? [],
@@ -99,19 +102,29 @@ class Module_distribution_if extends WorkflowBaseLogicModule
             $errors[] = __('Distribution level not supported');
             return false; // distribution  not supported
         }
-        if ($selected_distribution == 4) {
+        if ($selected_distribution == 4 && $final_distribution == 4) {
             $final_sharing_group = $this->__extractSharingGroupIDs(
                 $data['Event'],
                 $data['Event']['Attribute'][0]['Object'] ?? [],
-                $data['Event']['Attribute'][0],
+                $data['Event']['Attribute'][0] ?? [],
                 $scope
             );
             if ($operator == 'equals') {
-                return empty($selected_sharing_groups) ? !empty($final_sharing_group) :
-                    !array_diff($final_sharing_group, $selected_sharing_groups); // All sharing groups are in the selection
+                if (empty($selected_sharing_groups)) {
+                    return empty($final_sharing_group);
+                } else if (empty($final_sharing_group)) {
+                    return empty($selected_sharing_groups);
+                } else {
+                    return !array_diff($final_sharing_group, $selected_sharing_groups); // All sharing groups are in the selection
+                }
             } else if ($operator == 'not_equals') {
-                return empty($selected_sharing_groups) ? empty($final_sharing_group) :
-                    count(array_diff($final_sharing_group, $selected_sharing_groups)) == count($final_sharing_group); // All sharing groups are in the selection
+                if (empty($selected_sharing_groups)) {
+                    return !empty($final_sharing_group);
+                } else if (empty($final_sharing_group)) {
+                    return !empty($selected_sharing_groups);
+                } else {
+                    return count(array_diff($final_sharing_group, $selected_sharing_groups)) == count($final_sharing_group); // All sharing groups are in the selection
+                }
             }
             $errors[] = __('Condition operator not supported for that distribution level');
             return false;

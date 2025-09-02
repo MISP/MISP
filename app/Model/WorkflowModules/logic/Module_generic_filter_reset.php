@@ -35,6 +35,11 @@ class Module_generic_filter_reset extends WorkflowFilteringLogicModule
         $newRData = $rData['_unfilteredData'];
         if (in_array($filteringLabel, array_keys($this->_genFilteringLabels()))) {
             unset($newRData['enabledFilters'][$filteringLabel]);
+            foreach ($newRData['enabledFilters'] as $fLabels => $filters) { // Also remove additional filter labels, like the `_1` added by filter_tag
+                if (substr($fLabels, 0, strlen($filteringLabel)) == $filteringLabel) {
+                    unset($newRData['enabledFilters'][$fLabels]);
+                }
+            }
         } else if ($filteringLabel === 'all') {
             $newRData['enabledFilters'] = [];
         }

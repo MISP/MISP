@@ -20,6 +20,11 @@ echo $this->element(
                 'url_vars' => ['Cerebrate.url']
             ],
             [
+                'key' => __('Skip Proxy'),
+                'path' => 'Cerebrate.skip_proxy',
+                'type' => 'json'
+            ],
+            [
                 'key' => __('Owner Organisation'),
                 'path' => 'Cerebrate.org_id',
                 'pathName' => 'Organisation.name',

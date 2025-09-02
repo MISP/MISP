@@ -83,6 +83,25 @@ if (!empty($data['html'])) {
 }
 $skipPagination = isset($data['skip_pagination']) ? $data['skip_pagination'] : 0;
 if (!$skipPagination) {
+    if (!empty($data['html'])) {
+        echo sprintf('<div>%s</div>', $data['html']);
+    }
+    if (!empty($data['persistUrlParams'])) {
+        foreach ($data['persistUrlParams'] as $persistedParam) {
+            if ($persistedParam === '?') {
+                $parts = explode('?', $_SERVER['REQUEST_URI'], 2);
+                if (!empty($parts[1])) {
+                    $data['paginatorOptions']['url']['?'] = $parts[1];
+                }
+            } else if (!empty($passedArgsArray[$persistedParam])) {
+                $data['paginatorOptions']['url'][$persistedParam] = $passedArgsArray[$persistedParam];
+            }
+        }
+    }
+    $Paginator = $this->Paginator;
+    if (!empty($data['light_paginator'])) {
+        $Paginator = $this->LightPaginator;
+    }
     $paginationData = !empty($data['paginatorOptions']) ? $data['paginatorOptions'] : [];
     if (!empty($embedInModal)) {
         $paginationData['update'] = ".modal-main-{$tableRandomValue}";

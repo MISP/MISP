@@ -28,13 +28,9 @@
                 'class' => 'form-floating input password'
             ]
         ]);
-        if (!empty(Configure::read('LinOTPAuth')) && Configure::read('LinOTPAuth.enabled')!== false) {
-            echo $this->Form->input('otp', [
-                'autocomplete' => 'off',
-                'type' => 'password',
-                'label' => 'OTP',
-                'class' => 'form-control mb-2'
-            ]);
+        if (!empty(Configure::read('LinOTPAuth')) && Configure::read('LinOTPAuth.enabled')!== FALSE) {
+            echo $this->Form->input('otp', array('autocomplete' => 'off', 'type' => 'password', 'label' => 'OTP'));
+            echo "<div class=\"clear\">";
             echo sprintf(
                 '%s <a href="%s/selfservice" title="LinOTP Selfservice">LinOTP Selfservice</a> %s',
                 __('Visit'),
@@ -70,6 +66,9 @@
         }
         if (Configure::read('AadAuth') == true) {
             echo '<div class="clear"></div><a class="btn btn-info" href="/users/login?AzureAD=enable">Login with AzureAD</a>';
+        }
+        if (Configure::read('OidcAuth') == true && Configure::read('OidcAuth.mixedAuth') == true) {
+            echo '<div class="clear" style="margin-top: 5px;"></div><a class="btn btn-info" href="/users/login?OidcAuth=enable">Login with OIDC</a>';
         }
     }
     ?>

@@ -263,7 +263,7 @@ foreach(array_keys($columnOrders) as $tabName):
 <?php endif; ?>
 </div>
 
-<?php if (!$displayMatrixPicker): ?>
+<?php if ($displayMatrixPicker): ?>
 <script>
 $(document).ready(function() {
     $('[data-toggle="chosen"]')
