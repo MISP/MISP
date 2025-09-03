@@ -127,6 +127,42 @@ class Correlation extends AppModel
         }
     }
 
+        /**
+     * @return int|bool
+     * @throws Exception
+     */
+    public function generateCorrelationRouter($eventId = null)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generateCorrelation',
+                '',
+                $eventId ? __('Starting the recorrelation of event #%d.', $eventId) : 'Starting full recorrelation.'
+            );
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateCorrelation',
+                    $jobId,
+                    $eventId
+                ],
+                true,
+                $jobId
+            );
+
+            return $jobId;
+        } else {
+            $this->generateCorrelation(false, $eventId);
+            return true;
+        }
+    }
+
     /**
      * Generate correlation for given attributes or events.
      *
