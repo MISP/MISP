@@ -2,7 +2,6 @@
 
 $modules = isset($modules) ? $modules : null;
 $cortex_modules = isset($cortex_modules) ? $cortex_modules : null;
-
 $append = $downloadOptions = '';
 foreach ($exports as $k => $v) {
     $downloadOptions .= '<option value="' . h($v) . '" ' . ($v === 'json' ? 'selected="selected"' : '') . '>' . h($v) . '</option>' . PHP_EOL;

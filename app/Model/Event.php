@@ -575,6 +575,7 @@ class Event extends AppModel
         foreach ($events as &$event) {
             foreach ($event['EventTag'] as &$et) {
                 $et['Tag'] = $tags[$et['tag_id']];
+                $et['Tag']['local'] = $et['local'];
             }
         }
         return $events;
@@ -8629,5 +8630,128 @@ class Event extends AppModel
         });
 
         return $coa;
+    }
+
+    public function getStatisticsFromEvent(array $event)
+    {
+        $stat_counts = [
+            'attributes' => 0,
+            'objects' => 0,
+            'proposals' => 0,
+            'eventreports' => 0,
+            'attribute_deleted' => 0,
+            'iocs' => 0,
+            'observables' => 0,
+            'relationships' => 0,
+            'sightings' => 0,
+            'correlations' => 0,
+            'feed_correlations' => 0,
+            'extensions' => 0,
+            'discussions' => 0,
+            'warninglists' => 0,
+        ];
+        $stat_distribution = [
+            0 => 0,
+            1 => 0,
+            2 => 0,
+            3 => 0,
+            4 => 0,
+        ];
+        $stat_objects = [];
+        $stat_attributes = [];
+
+        $stat_counts['correlations'] = count($event['Event']['RelatedEvent'] ?? []);
+        $stat_counts['feed_correlations'] = count($event['Event']['Feed'] ?? []);
+        $stat_counts['attributes'] = count($event['Event']['Attribute'] ?? []);
+        $stat_counts['objects'] = count($event['Event']['Object'] ?? []);
+        $stat_counts['proposals'] = count($event['Event']['ShadowAttribute'] ?? []);
+        $stat_counts['eventreports'] = count($event['Event']['EventReport'] ?? []);
+        $stat_counts['discussions'] = count($event['Event']['Discussion'] ?? []);
+
+        foreach ($event['Event']['Attribute'] as $attribute) {
+            if ($attribute['to_ids']) {
+                $stat_counts['iocs'] += 1;
+            } else {
+                $stat_counts['observables'] += 1;
+            }
+            if (!empty($attribute['deleted'])) {
+                $stat_counts['proposals']['attribute_deleted'] += 1;
+            }
+
+            $attrDistribution = $attribute['distribution'] == '5' ? intval($event['Event']['distribution']) : intval($attribute['distribution']);
+            if (!isset($stat_distribution[$attrDistribution])) {
+                $stat_distribution[$attrDistribution] = 0;
+            }
+            $stat_distribution[$attrDistribution] += 1;
+
+            if (!isset($stat_distribution[$attribute['type']])) {
+                $stat_attributes[$attribute['type']] = 0;
+            }
+            $stat_attributes[$attribute['type']] += 1;
+            if (!empty($attribute['warnings'])) {
+                $stat_counts['warninglists'] += count($attribute['warnings']);
+            }
+            if (!empty($attribute['Sighting'])) {
+                $stat_counts['sightings'] += count($attribute['Sighting']);
+            }
+        }
+
+        foreach ($event['Event']['Object'] as $object) {
+            if (!isset($stat_objects[$object['name']])) {
+                $stat_objects[$object['name']] = 0;
+            }
+            $stat_objects[$object['name']] += 1;
+            $stat_counts['relationships'] += count($object['ObjectReference'] ?? []);
+            $stat_counts['attributes'] += count($object['Attribute']);
+            foreach ($object['Attribute'] as $attribute) {
+                if ($attribute['to_ids']) {
+                    $stat_counts['iocs'] += 1;
+                } else {
+                    $stat_counts['observables'] += 1;
+                }
+                if (!empty($attribute['deleted'])) {
+                    $stat_counts['proposals']['attribute_deleted'] += 1;
+                }
+
+                $attrDistribution = $attribute['distribution'] == '5' ? intval($event['Event']['distribution']) : intval($attribute['distribution']);
+                if (!isset($stat_distribution[$attrDistribution])) {
+                    $stat_distribution[$attrDistribution] = 0;
+                }
+                $stat_distribution[$attrDistribution] += 1;
+
+                if (!isset($stat_distribution[$attribute['type']])) {
+                    $stat_attributes[$attribute['type']] = 0;
+                }
+                $stat_attributes[$attribute['type']] += 1;
+                if (!empty($attribute['warnings'])) {
+                    $stat_counts['warninglists'] += count($attribute['warnings']);
+                }
+                if (!empty($attribute['Sighting'])) {
+                    $stat_counts['sightings'] += count($attribute['Sighting']);
+                }
+            }
+        }
+
+        arsort($stat_objects);
+        arsort($stat_attributes);
+
+        $stat_objects_6 = array_slice($stat_objects, 0, 5);
+        if (count($stat_objects) > 5) {
+            $stat_objects_6['Others'] = array_sum(array_slice($stat_objects, 5));
+        }
+        $stat_attributes_6 = array_slice($stat_attributes, 0, 5);
+        if (count($stat_attributes) > 5) {
+            $stat_attributes_6['Others'] = array_sum(array_slice($stat_attributes, 5));
+        }
+
+        return [
+            'stat_counts' => $stat_counts,
+            'stat_distribution' => $stat_distribution,
+            'distribution_levels' => ['Org. only', 'Community', 'Connected community', 'All community', 'Sharing group'],
+            'stat_objects' => $stat_objects,
+            'stat_objects_6' => $stat_objects_6 ,
+            'stat_attributes' => $stat_attributes,
+            'stat_attributes_6' => $stat_attributes_6,
+        ];
     }
 }

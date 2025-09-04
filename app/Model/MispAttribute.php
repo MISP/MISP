@@ -2095,6 +2095,14 @@ class MispAttribute extends AppModel
                     $skipped++;
                     continue;
                 }
+
+                if (!empty($options['simpleFormat'])) {
+                    $attTags = Hash::extract($attr, 'AttributeTag.{n}.Tag');
+                    $attr = array_merge(
+                        $attr['Attribute'],
+                        ['Tag' => $attTags]
+                    );
+                }
                 $all[] = $attr;
             }
             // exit batching if done

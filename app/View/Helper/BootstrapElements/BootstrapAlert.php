@@ -1,8 +1,5 @@
 <?php
 
-
-use App\View\Helper\BootstrapGeneric;
-
 /**
  * Creates a bootstrap alert
  * 

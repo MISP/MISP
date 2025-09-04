@@ -1,9 +1,5 @@
 <?php
 
-
-use App\View\Helper\BootstrapGeneric;
-
-
 /**
  * Creates a Bootstrap badge
  * 

@@ -83,7 +83,7 @@ if ($canModifyAllTags || ($canModifyLocalTags && $tag['Tag']['local'])) {
     );
 }
 echo sprintf(
-    '<div class="btn-group btn-group-xs" role="group" aria-label="Basic example">%s%s%s%s%s</div> ',
+    '<div class="btn-group btn-group-sm" role="group" aria-label="Basic example">%s%s%s%s%s</div> ',
     !empty($hide_global_scope) ? '' : sprintf(
         '<div type="button" class="btn btn-dark">%s</div>',
         !empty($tag['local']) ? '<i class="fas fa-user"></i>' : '<i class="fas fa-globe-americas"></i>'

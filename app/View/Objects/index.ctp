@@ -1,5 +1,4 @@
 <?php
-
 echo '<div class="index">';
 echo $this->element('/genericElements/IndexTable/index_table', [
     'data' => [
@@ -11,14 +10,9 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                         [
                             'text' => __('Add'),
                             'fa-icon' => 'plus',
-                            'url' => $baseurl . '/admin/organisations/add',
+                            'url' => $baseurl . '/admin/objects/add',
                             'requirement' => $isSiteAdmin,
                         ]
-                    ]
-                ],
-                [
-                    'children' => [
-
                     ]
                 ],
                 [
@@ -33,94 +27,55 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 ]
             ],
         ],
-        'title' => $fullTitle[$scope]['main'] . $fullTitle[$scope]['extra'],
-        'primary_id_path' => 'Organisation.id',
+        'title' => __('Objects'),
+        'primary_id_path' => 'Object.id',
         'fields' => [
             [
                 'name' => __('ID'),
                 'sort' => 'id',
                 'class' => 'short',
-                'data_path' => 'Organisation.id',
+                'data_path' => 'Object.id',
                 'element' => 'links',
-                'url' => $baseurl . '/organisations/view/%s'
+                'url' => $baseurl . '/objects/view/%s'
             ],
             [
                 'name' => __('Name'),
                 'sort' => 'name',
-                'data_path' => 'Organisation',
+                'data_path' => 'Object',
                 'element' => 'org'
             ],
             [
                 'name' => __('UUID'),
                 'sort' => 'uuid',
-                'data_path' => 'Organisation.uuid',
-                'class' => 'quickSelect',
-                'requirements' => $isSiteAdmin
+                'data_path' => 'Object.uuid',
+                'class' => 'quickSelect'
             ],
             [
-                'name' => __('Description'),
-                'data_path' => 'Organisation.description',
+                'name' => __('Value'),
+                'sort' => 'value',
+                'data_path' => 'Attribute.0.value',
+                'class' => 'quickSelect'
+
             ],
             [
-                'name' => __('Nationality'),
-                'sort' => 'Organisation.nationality',
-                'data_path' => 'Organisation',
-                'class' => 'short',
-                'element' => 'country',
-            ],
-            [
-                'name' => __('Sector'),
-                'sort' => 'Organisation.sector',
-                'data_path' => 'Organisation.sector',
-            ],
-            [
-                'name' => __('Type'),
-                'sort' => 'Organisation.type',
-                'data_path' => 'Organisation.type',
-            ],
-            [
-                'name' => __('Contacts'),
-                'data_path' => 'Organisation.contacts',
-            ],
-            [
-                'name' => __('Added by'),
-                'sort' => 'created_by_email',
-                'data_path' => 'Organisation.created_by_email',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'name' => __('Local'),
-                'sort' => 'local',
-                'element' => 'boolean',
-                'data_path' => 'Organisation.local',
-                'colors' => true,
-            ],
-            [
-                'name' => __('Users'),
-                'sort' => 'user_count',
-                'data_path' => 'Organisation.user_count',
-            ],
-            [
-                'name' => __('Restrictions'),
-                'sort' => 'restricted_to_domain',
-                'data_path' => 'Organisation.restricted_to_domain',
-                'array_implode_glue' => '<br>',
+                'name' => __('Comment'),
+                'sort' => 'comment',
+                'data_path' => 'Object.comment'
             ],
         ],
         'actions' => [
             [
-                'url' => '/organisations/view',
+                'url' => '/objects/view',
                 'url_params_data_paths' => [
-                    'Organisation.id'
+                    'Object.id'
                 ],
                 'icon' => 'eye',
                 'title' => __('View'),
-                'dbclickAction' => true,
             ],
             [
-                'url' => '/admin/organisations/edit',
+                'url' => '/admin/objects/edit',
                 'url_params_data_paths' => [
-                    'Organisation.id'
+                    'Object.id'
                 ],
                 'icon' => 'edit',
                 'title' => __('Edit'),
@@ -129,18 +84,30 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'title' => __('Delete'),
                 'icon' => 'trash',
-                'url' => '/admin/organisations/delete',
-                'url_params_data_paths' => array('Organisation.id'),
+                'url' => '/admin/objects/delete',
+                'url_params_data_paths' => array('Object.id'),
                 'postLink' => true,
-                'postLinkConfirm' => __('Are you sure you want to delete the Organisation?'),
+                'postLinkConfirm' => __('Are you sure you want to delete the Object?'),
                 'requirement' => $isSiteAdmin
             ],
+        ],
+        'child_rows' => [
+            'path' => 'Attribute',
+            'fields' => [
+                [
+                    'name' => __('ID'),
+                    'class' => 'short',
+                    'data_path' => 'id',
+                    'element' => 'links',
+                    'url' => $baseurl . '/attributes/view/%s'
+                ],
+                [
+                    'name' => __('Type'),
+                    'class' => 'short',
+                    'data_path' => 'type',
+                ],
+            ]
         ]
     ]
 ]);
 echo '</div>';
-if ($isSiteAdmin) {
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'indexOrg'));
-} else {
-    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexOrg'));
-}

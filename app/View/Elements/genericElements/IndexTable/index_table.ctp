@@ -142,6 +142,7 @@ $options = isset($data['options']) ? $data['options'] : [];
 $actions = isset($data['actions']) ? $data['actions'] : [];
 $dblclickActionArray = !empty($actions) ? $this->Hash->extract($actions, '{n}[dbclickAction]') : [];
 $dbclickAction = '';
+$colspan = count($data['fields']) + (empty($actions) ? 0 : 1) + (empty($data['multi-select']) ? 0 : 1);
 foreach ($data['data'] as $k => $data_row) {
     $primary = null;
     if (!empty($data['primary_id_path'])) {
@@ -151,12 +152,13 @@ foreach ($data['data'] as $k => $data_row) {
         $dbclickAction = sprintf("changeLocationFromIndexDblclick(%s)", $k);
     }
     $rows .= sprintf(
-        '<tr data-row-id="%s" %s %s class="%s %s">%s</tr>',
+        '<tr data-row-id="%s" %s %s class="%s %s" %s>%s</tr>',
         h($k),
         empty($dbclickAction) ? '' : 'ondblclick="' . $dbclickAction . '"',
         empty($primary) ? '' : 'data-primary-id="' . $primary . '"',
         empty($data['row_modifier']) ? '' : h($data['row_modifier']($data_row)),
         empty($data['class']) ? '' : h($data['row_class']),
+        !empty($data['child_rows']) ? 'data-bs-toggle="collapse" data-bs-target="" aria-expanded="false" aria-controls="' . h($k) . '-child-row"' : '',
         $this->element(
             '/genericElements/IndexTable/' . $row_element,
             [
@@ -167,14 +169,33 @@ foreach ($data['data'] as $k => $data_row) {
                 'actions' => $actions,
                 'primary' => $primary,
                 'tableRandomValue' => $tableRandomValue,
-                'multi-select' => $data['multi-select'] ?? false,
+                'multi-select' => $data['multi-select'] ?? false
             ]
         )
     );
+    if (!empty($data['child_rows'])) {
+        $rows .= sprintf(
+            '<tr id="%s" %s %s class="%s %s bg-light ">%s</tr>',
+            h($k) . '-child-row',
+            empty($dbclickAction) ? '' : 'ondblclick="' . $dbclickAction . '"',
+            empty($primary) ? '' : 'data-primary-id="' . $primary . '"',
+            empty($data['row_modifier']) ? '' : h($data['row_modifier']($data_row)),
+            empty($data['class']) ? '' : h($data['row_class']),
+            $this->element('/genericElements/IndexTable/child_rows', [
+                'data' => $data['child_rows'],
+                'data_row' => $data_row,
+                'options' => $options,
+                'k' => $k,
+                'primary' => '',
+                'colspan' => $colspan,
+                'tableRandomValue' => $tableRandomValue,
+            ])
+        );
+    }
 }
 $tbody = '<tbody>' . $rows . '</tbody>';
 $html .= sprintf(
-    '<table class="table table-hover" id="index-table-%s" data-table-random-value="%s" data-reload-url="%s">%s%s</table>',
+    '<div class="table-container"><table class="table table-hover table-fixed" id="index-table-%s" data-table-random-value="%s" data-reload-url="%s">%s%s</table></table></div>',
     $tableRandomValue,
     $tableRandomValue,
     h(Router::url(['action' => $this->request->params['action'],])),

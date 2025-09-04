@@ -114,7 +114,6 @@ class AppController extends Controller
             App::uses('SystemSetting', 'Model');
             SystemSetting::setGlobalSetting();
         }
-
         // Set the baseurl for redirects
         $baseurl = empty(Configure::read('MISP.baseurl')) ? null : Configure::read('MISP.baseurl');
 
@@ -153,6 +152,7 @@ class AppController extends Controller
                 throw new MethodNotAllowedException("POST, PUT and AJAX requests are allowed just from same origin.");
             }
         }
+        $this->set('iconToTableMapping', $this->Navigation->iconToTableMapping);
         if (Configure::read('Security.disable_browser_cache')) {
             $this->response->disableCache();
         }
@@ -160,7 +160,6 @@ class AppController extends Controller
             $this->__contentSecurityPolicy();
             $this->response->header('X-XSS-Protection', '1; mode=block');
         }
-
         $this->_setupDatabaseConnection();
 
         $this->set('debugMode', Configure::read('debug') >= 1 ? 'debugOn' : 'debugOff');

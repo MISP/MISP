@@ -68,12 +68,19 @@
             $url .= '.' . $action['url_extension'];
         }
         if (isset($action['postLink'])) {
+            $class_string = sprintf(
+                'btn btn-sm btn-%s table-link-action %s %s',
+                empty($action['variant']) ? 'outline-text' : h($action['variant']),
+                $this->FontAwesome->getClass($action['icon']),
+                (empty($action['class']) ? '' : h($action['class']))
+            );
             echo $this->Form->postLink(
                 '',
                 $url,
                 array(
-                    'class' => $this->FontAwesome->getClass($action['icon']) . (empty($action['class']) ? '' : h($action['class'])),
+                    'class' => $class_string,
                     'title' => empty($action['title']) ? '' : h($action['title']),
+                    'style' => 'padding-top:6px;',  // compensate for the fact that postlinks will be misaligned due to the icons being directly on the <a> rather than a nested <i>
                     'aria-label' => empty($action['aria-label']) ? '' : h($action['aria-label']),
                 ),
                 empty($action['postLinkConfirm'])? '' : $action['postLinkConfirm']

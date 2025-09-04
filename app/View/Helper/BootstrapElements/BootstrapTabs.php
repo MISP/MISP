@@ -1,10 +1,4 @@
 <?php
-
-
-use App\View\Helper\BootstrapGeneric;
-
-
-
 /**
  * Creates a bootstrap panel with navigation component.
  * 
@@ -292,6 +286,7 @@ class BootstrapTabs extends BootstrapGeneric
                 'aria-controls' => $navItem['id'],
                 'aria-selected' => !empty($navItem['active']),
                 'role' => 'tab',
+                'data-target-url' => $navItem['data-target-url'] ?? null
             ]
         );
         $html .= $navItem['html'] ?? h($navItem['text']);

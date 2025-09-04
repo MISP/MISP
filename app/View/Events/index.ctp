@@ -1,5 +1,4 @@
 <?php
-
 $searchScopes = [
     'searcheventinfo' => __('Event info'),
     'searchall' => __('All fields'),
@@ -34,7 +33,8 @@ $columnsDescription = [
     'discussion' => __('Posts'),
     'report_count' => __('Report count'),
     'timestamp' => __('Last modified at'),
-    'publish_timestamp' => __('Published at')
+    'publish_timestamp' => __('Published at'),
+    'is_extension' => __('Is extension'),
 ];
 
 $columnsMenu = [];
@@ -58,54 +58,27 @@ $fields = [
         ]
     ],
     [
-        'icon' => 'upload',
-        'sort' => 'Event.published',
-        'data_path' => 'Event.published'
-    ],
-    [
-        'name' => __('Source org'),
-        'sort' => 'Orgc',
-        'data_path' => 'Orgc',
-        'element' => 'org',
-        'requirement' => Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg')
-    ],
-    [
-        'name' => __('Member org'),
-        'sort' => 'Org',
-        'data_path' => 'Org',
-        'element' => 'org',
-        'requirement' => Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg')
-    ],
-    [
-        'name' => __('Creator org'),
-        'sort' => 'Orgc',
-        'data_path' => 'Orgc',
-        'element' => 'org',
-        'requirement' => empty(Configure::read('MISP.showorgalternate')) && (Configure::read('MISP.showorg') || $isAdmin)
-    ],
-    [
-        'name' => __('Owner org'),
-        'sort' => 'Org',
-        'data_path' => 'Org',
-        'element' => 'org',
-        'requirement' => empty(Configure::read('MISP.showorgalternate'))
-    ],
-    [
         'name' => __('Id'),
         'sort' => 'Event.id',
         'data_path' => 'Event.id',
         'element' => 'eventid'
     ],
     [
+        'icon' => 'upload',
+        'sort' => 'Event.published',
+        'data_path' => 'Event.published'
+    ],
+    [
+        'name' => __('Orgc/Org'),
+        'sort' => 'Orgc',
+        'element' => 'orgs',
+        'requirement' => Configure::read('MISP.showorg')
+    ],
+    [
         'name' => __('Clusters'),
         'element' => 'galaxy_clusters',
         'sort' => 'Clusters',
         'data_path' => 'GalaxyCluster'
-    ],
-    [
-        'name' => __('Tags'),
-        'element' => 'tags',
-        'data_path' => 'Tag'
     ],
     [
         'name' => __('Tags'),
@@ -116,8 +89,13 @@ $fields = [
             'searchScope' => 'taxonomy',
         ),
         'scope' => 'event',
+        'skip_modifications' => true,
         'addButtonOnly' => false,
         'id_data_path' => 'Event.id',
+    ],
+    [
+        'name' => __('Info'),
+        'data_path' => 'Event.info'
     ],
     [
         'name' => __('#Attr.'),
@@ -159,16 +137,6 @@ $fields = [
         'element' => 'datetime',
         'sort' => 'Event.timestamp',
         'data_path' => 'Event.timestamp'
-    ],
-    [
-        'name' => __('Published'),
-        'element' => 'datetime',
-        'sort' => 'Event.publish_timestamp',
-        'data_path' => 'Event.publish_timestamp'
-    ],
-    [
-        'name' => __('Info'),
-        'data_path' => 'Event.info'
     ],
     [
         'name' => __('Distribution'),

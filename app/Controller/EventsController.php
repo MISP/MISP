@@ -1855,7 +1855,7 @@ class EventsController extends AppController
 
     private function viewUI($user, $id, $params)
     {
-        $params['metadata'] = 1;
+        //$params['metadata'] = 1;
         $params['includeWarninglistHits'] = false;
         $results = $this->Event->fetchEvent($user, $params);
         if (empty($results)) {
@@ -1906,8 +1906,9 @@ class EventsController extends AppController
             'distributionData' => $this->__genDistributionGraph(-1),
             'tagConflicts' => $tagConflicts
         ]);
+        $this->set('stats', $this->Event->getStatisticsFromEvent($event));
         $this->loadModel('Taxonomy');
-
+        $this->render('/Events/view_mockup');
         $this->set('tagConflicts', $tagConflicts);
     }
 

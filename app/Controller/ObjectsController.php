@@ -1473,7 +1473,17 @@ class ObjectsController extends AppController
             'conditions' => $conditions,
             'beforeFind' => function (array $objects) {
                 return $objects;
-            }
+            },
+            'afterFind' => function (array $objects) {
+                foreach ($objects as $k => $object) {
+                    $objects[$k]['Attribute'] = $this->MispObject->Attribute->fetchAttributes($this->Auth->user(), [
+                        'conditions' => ['Attribute.object_id' => $object['Object']['id']],
+                        'flatten' => 1,
+                        'simpleFormat' => 1
+                    ]);
+                }
+                return $objects;
+            },
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;

@@ -92,12 +92,12 @@ input[type="checkbox"]:disabled.change-cursor {
     box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 15%) !important;
 }
 
-<<<<<<< HEAD
 .settings-group.to-be-slided {
     opacity: 0;
     transform: translateX(-15%);
     -webkit-transform: translateX(-15%);
-=======
+}
+
 .fa.helptext-in-cell, .fas.helptext-in-cell {
     position: absolute;
     right: 5px;
@@ -899,7 +899,6 @@ table tr:hover .down-expand-button {
     font-weight: 900;
     font-size: 22px;
     color: white;
->>>>>>> develop
 }
 
 .settings-group.to-be-slided.slide-in {
@@ -952,4 +951,9 @@ table tr:hover .down-expand-button {
     -webkit-mask-size: contain;
     -webkit-mask-repeat: no-repeat;
     -webkit-mask-image: url("data:image/svg+xml,%3C%3Fxml version='1.0' encoding='UTF-8' standalone='no'%3F%3E%3Csvg xmlns='http://www.w3.org/2000/svg' height='223.995' width='383.98752' viewBox='0 0 383.98752 223.995' role='img'%3E%3Cpath d='m 367.9975,0 h -118.06 c -21.38,0 -32.09,25.85 -16.97,40.97 l 32.4,32.4 -73.37,73.38 -73.37,-73.37 c -12.5,-12.5 -32.76,-12.5 -45.25,0 l -68.69,68.69 c -6.25,6.25 -6.25,16.38 0,22.63 l 22.62,22.62 c 6.25,6.25 16.38,6.25 22.63,0 l 46.06,-46.07 73.37,73.37 c 12.5,12.5 32.76,12.5 45.25,0 l 96,-96 32.4,32.4 c 15.12,15.12 40.97,4.41 40.97,-16.97 V 16 c 0.01,-8.84 -7.15,-16 -15.99,-16 z' /%3E%3C/svg%3E%0A");
+}
+
+.table-container {
+    height: 75vh;
+    overflow: auto;
 }

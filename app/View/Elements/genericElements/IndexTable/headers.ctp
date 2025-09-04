@@ -6,14 +6,14 @@
             $header_data = '';
             $icon_html = '';
             if (!empty($header['icon'])) {
-                $icon_html = $this->Bootstrap->icon($header['icon'], ['class' => ['d-inline me-1']]);
+                $icon_html = $this->Bootstrap->icon($header['icon'], ['class' => ['d-inline me-1', 'link-light']]);
             }
             if (!empty($header['sort'])) {
                 if (!empty($header['name'])) {
                     $header_data = $paginator->sort(
                         $header['sort'],
                         sprintf('%s%s', $icon_html, h($header['name'])),
-                        ['escape' => false]
+                        ['escape' => false, 'class' => 'link-light']
                     );
                     $headerName = $header['name'];
                 } else {
@@ -46,20 +46,20 @@
                 $columnName = h(\Inflector::variable(!empty($header['name']) ? $header['name'] : \Inflector::humanize($header['data_path'])));
             }
             $headersHtml .= sprintf(
-                '<th scope="col" data-columnname="%s" %s>%s</th>',
+                '<th scope="col" class="header text-light bg-dark" data-columnname="%s" %s>%s</th>',
                 $columnName,
-                empty($header['header_title']) ? h($headerName) : 'title="' . h($header['header_title']) . '"',
+                empty($header['header_title']) ? 'title="' . h($headerName) . '"' : 'title="' . h($header['header_title']) . '"',
                 $header_data
             );
         }
     }
     if ($actions) {
         $headersHtml .= sprintf(
-            '<th class="actions text-end">%s</th>',
+            '<th scope="col"  class="actions text-end header text-light bg-dark">%s</th>',
             __('Actions')
         );
     }
-    $thead = '<thead>';
+    $thead = '<thead style="position: sticky;top:0">';
     $thead .= $headersHtml;
     $thead .= '</thead>';
     echo $thead;
