@@ -6,13 +6,13 @@ if (!isset($canModifyLocalTags)) {
     $canModifyLocalTags = $isAclTagger && $localTagAccess && empty($static_tags_only);
 }
 if (empty($tag['Tag'])) {
-    $tag['Tag'] = $tag;
+    $tag = ['Tag' => $tag];
 }
 if (empty($tag['Tag']['colour'])) {
     $tag['Tag']['colour'] = '#0088cc';
 }
-$aStyle = 'background-color:' . h($tag['Tag']['colour']) . ';color:' . $this->TextColour->getTextColour($tag['Tag']['colour']);
-$aClass = 'tag nowrap';
+$aStyle = 'text-decoration: none; background-color:' . h($tag['Tag']['colour']) . ';color:' . $this->TextColour->getTextColour($tag['Tag']['colour']);
+$aClass = 'nowrap';
 $aText = trim($tag['Tag']['name']);
 $aTextModified = null;
 if (isset($tag_display_style)) {
@@ -34,19 +34,6 @@ if (isset($tag_display_style)) {
     }
 }
 $aText = h($aText);
-$span_scope = !empty($hide_global_scope) ? '' : sprintf(
-    '<span class="%s" title="%s" role="img" aria-label="%s"><i class="fas fa-%s"></i></span>',
-    'black-white tag',
-    !empty($tag['local']) ? __('Local tag') : __('Global tag'),
-    !empty($tag['local']) ? __('Local tag') : __('Global tag'),
-    !empty($tag['local']) ? 'user' : 'globe-americas'
-);
-$span_relationship_type = empty($tag['relationship_type']) ? '' : sprintf(
-    '<span class="tag nowrap white" style="background-color:black" title="%s" aria-label="%s">%s:</span>',
-    h($tag['relationship_type']),
-    h($tag['relationship_type']),
-    h($tag['relationship_type'])
-);
 if (!empty($tag['Tag']['id'])) {
     $span_tag = sprintf(
         '<a href="%s" style="%s" class="%s"%s data-tag-id="%s">%s</a>',
@@ -69,8 +56,8 @@ $span_delete = '';
 $span_relationship = '';
 if ($canModifyAllTags || ($canModifyLocalTags && $tag['Tag']['local'])) {
     $span_relationship = sprintf(
-        '<a class="%s" title="%s" role="button" tabindex="0" aria-label="%s" href="%s"><i class="fas fa-project-diagram"></i></a>',
-        'black-white tag noPrint modal-open',
+        '<span class="%s" title="%s" role="button" tabindex="0" aria-label="%s" href="%s"><i class="fas fa-project-diagram"></i></span>',
+        'btn btn-dark modal-open',
         __('Modify Tag Relationship'),
         __('Modify relationship for tag %s', h($tag['Tag']['name'])),
         sprintf(
@@ -81,8 +68,8 @@ if ($canModifyAllTags || ($canModifyLocalTags && $tag['Tag']['local'])) {
         )
     );
     $span_delete = sprintf(
-        '<span class="%s" title="%s" role="%s" tabindex="%s" aria-label="%s" onclick="%s">x</span>',
-        'black-white tag useCursorPointer noPrint',
+        '<span class="%s" title="%s" role="%s" tabindex="%s" aria-label="%s" onclick="%s"><i class="fas fa-times"></i></span>',
+        'btn btn-dark',
         __('Remove tag'),
         "button",
         "0",
@@ -95,5 +82,23 @@ if ($canModifyAllTags || ($canModifyLocalTags && $tag['Tag']['local'])) {
         )
     );
 }
-
-echo '<span class="tag-container nowrap">' . $span_scope . $span_relationship_type . $span_tag . $span_relationship . $span_delete . '</span> ';
+echo sprintf(
+    '<div class="btn-group btn-group-xs" role="group" aria-label="Basic example">%s%s%s%s%s</div> ',
+    !empty($hide_global_scope) ? '' : sprintf(
+        '<div type="button" class="btn btn-dark">%s</div>',
+        !empty($tag['local']) ? '<i class="fas fa-user"></i>' : '<i class="fas fa-globe-americas"></i>'
+    ),
+    empty($tag['relationship_type']) ? '' : sprintf(
+        '<div class="btn btn-dark" title="%s" aria-label="%s">%s:</div>',
+        h($tag['relationship_type']),
+        h($tag['relationship_type']),
+        h($tag['relationship_type'])
+    ),
+    sprintf(
+        '<button type="button" class="btn border-top border-bottom border-dark" style="background-color:%s;">%s</button>',
+        h($tag['Tag']['colour']),
+        $span_tag
+    ),
+    $span_relationship,
+    $span_delete
+);

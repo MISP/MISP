@@ -121,6 +121,7 @@
         '<span class="tag-list-container">%s</span>',
         $tagData
     );
+
     if (!empty($tagConflicts['global'])) {
         echo '<div><div class="alert alert-error tag-conflict-notice">';
         echo '<i class="fas fa-globe-americas icon"></i>';
