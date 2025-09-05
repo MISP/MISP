@@ -10,7 +10,8 @@
                         'children' => [
                             [
                                 'type' => 'text',
-                                'text' => __('Cache age: %s%s', $age, $age_unit)
+                                'text' => __('Cache age: %s%s', $age, $age_unit),
+                                'requirement' => !$onDemandEngine
                             ],
                             [
                                 'type' => 'simple',
