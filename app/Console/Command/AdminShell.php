@@ -181,17 +181,18 @@ class AdminShell extends AppShell
     public function jobGenerateCorrelation()
     {
         $jobId = $this->args[0] ?? null;
+        $eventId = $this->args[1] ?? null;
         if (empty($jobId)) {
             $jobId = $this->Job->createJob(
                 'SYSTEM',
                 Job::WORKER_DEFAULT,
                 'generate correlation',
-                'All attributes',
+                $eventId ? __('All attributes of event %d', $eventId) : __('All attributes'),
                 'Job created.'
             );
         }
 
-        $this->Correlation->generateCorrelation($jobId);
+        $this->Correlation->generateCorrelation($jobId, $eventId);
     }
 
     public function jobGenerateOccurrences()

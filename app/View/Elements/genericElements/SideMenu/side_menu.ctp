@@ -249,6 +249,15 @@ $divider = '<li class="divider"></li>';
                             ),
                             'text' => __('Run Ad-Hoc Workflow')
                         ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'onClick' => array(
+                                'function' => 'openGenericModal',
+                                'params' => [
+                                    $baseurl . '/events/recorrelateEvent/' . $eventId,
+                                ]
+                            ),
+                            'text' => __('Recorrelate Event')
+                        ));
                     }
                     if ($this->Acl->canAccess('events', 'pushEventToKafka') &&
                         Configure::read('Plugin.Kafka_enable') &&

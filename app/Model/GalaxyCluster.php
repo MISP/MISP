@@ -1540,6 +1540,17 @@ class GalaxyCluster extends AppModel
             }
             $cluster = $cluster[0];
         }
+        $tag_id = $this->Tag->find(
+            'first',
+            array(
+                'conditions' => array(
+                    'Tag.name' => $cluster[$this->alias]['tag_name']
+                ),
+                'recursive' => -1,
+                'fields' => array('Tag.id')
+            )
+        );
+        $cluster[$this->alias]['tag_id'] = empty($tag_id) ? null : $tag_id['Tag']['id'];
         if ($user['Role']['perm_site_admin']) {
             return $cluster;
         }

@@ -66,6 +66,8 @@ class OnDemandCorrelationBehavior extends ModelBehavior
         ]
     ];
 
+    private $_nonCorrelatingEvents = [];
+
     public function onDemandEngine() {
         return true;
     }
@@ -175,6 +177,9 @@ class OnDemandCorrelationBehavior extends ModelBehavior
      */
     private function __collectCorrelations($eventId)
     {
+        if ($this->_checkEventCanCorrelate($eventId) === false) {
+            return [];
+        }
         $eventId = (int)$eventId;
         $max_correlations = Configure::read('MISP.max_correlations_per_event') ?: 5000;
         $max_value_correlation = Configure::read('MISP.correlation_limit') ?: 20;
@@ -308,6 +313,10 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                         $corrValueCounts[$row['target']['value']] = 1;
                     }
 
+                    if (!$this->_checkEventCanCorrelate($row['target']['event_id'])) {
+                        continue;
+                    }
+
                     // yeet correlations that would trip over correlation rules
                     if (
                         $this->Correlation->CorrelationRule->checkEventIds($eventId, $row['target']['event_id']) &&
@@ -332,6 +341,21 @@ class OnDemandCorrelationBehavior extends ModelBehavior
         }
         $flat = array_values($flat);
         return $flat;
+    }
+
+    public function _checkEventCanCorrelate($eventId)
+    {
+        if (isset($this->__nonCorrelatingEvents[$eventId])) {
+            return !$this->__nonCorrelatingEvents[$eventId];
+        }
+        $result = $this->Correlation->Event->find('column', [
+            'recursive' => -1,
+            'fields' => ['disable_correlation'],
+            'conditions' => [
+                'Event.id' => $eventId
+            ]
+        ]);
+        return isset($result[0]) ? !$result[0] : false;
     }
 
     /**
