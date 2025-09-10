@@ -140,7 +140,7 @@ echo $this->element('genericElements/Form/genericForm', [
                 'options' => [
                     1 => __('second(s)'),
                     60 => __('minute(s)'),
-                    3600 => __('hour(s'),
+                    3600 => __('hour(s)'),
                     86400 => __('day(s)'),
                 ],
                 'type' => 'dropdown',
