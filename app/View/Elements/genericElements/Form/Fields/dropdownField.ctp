@@ -16,9 +16,6 @@ if (!empty($fieldData['field'])) { // used for multi meta-field form
 if (!empty($fieldData['label'])) {
     $controlParams['label'] = $fieldData['label'];
 }
-if ($controlParams['options'] instanceof \Cake\ORM\Query) {
-    $controlParams['options'] = $controlParams['options']->all()->toList();
-}
 $initSelect2 = false;
 if (isset($fieldData['select2']) && $fieldData['select2'] == true) {
     $initSelect2 = true;
@@ -39,10 +36,6 @@ if (in_array('_custom', array_keys($controlParams['options']))) {
         $customInputValue = '';
     }
     $adaptedField = $fieldData['field'] . '_custom';
-    $controlParams['templates']['formGroup'] = sprintf(
-        '<label class="col-sm-2 col-form-label form-label" {{attrs}}>{{label}}</label><div class="col-sm-10 multi-metafield-input-container"><div class="d-flex form-dropdown-with-freetext input-group">{{input}}{{error}}%s</div></div>',
-        sprintf('<input type="text" class="form-control custom-value" field="%s" value="%s">', h($adaptedField), h($customInputValue))
-    );
 }
 echo $this->FormFieldMassage->prepareFormElement($this->Form, $controlParams, $fieldData);
 ?>

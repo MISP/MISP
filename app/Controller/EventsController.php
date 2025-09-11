@@ -1709,7 +1709,7 @@ class EventsController extends AppController
         $this->set('sightingsDbEnabled', (bool)Configure::read('Plugin.Sightings_sighting_db_enable'));
     }
 
-    public function view2($id, $continue = false, $fromEvent = null)
+    public function view($id, $continue = false, $fromEvent = null)
     {
         if ($this->request->is('head')) { // Just check if event exists
             $exists = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['fields' => ['id']]);
@@ -1855,7 +1855,7 @@ class EventsController extends AppController
 
     private function viewUI($user, $id, $params)
     {
-        //$params['metadata'] = 1;
+        $params['metadata'] = 1;
         $params['includeWarninglistHits'] = false;
         $results = $this->Event->fetchEvent($user, $params);
         if (empty($results)) {
@@ -1912,7 +1912,7 @@ class EventsController extends AppController
         $this->set('tagConflicts', $tagConflicts);
     }
 
-    public function view($id = null, $continue = false, $fromEvent = null)
+    public function view2($id = null, $continue = false, $fromEvent = null)
     {
         if ($this->request->is('head')) { // Just check if event exists
             $exists = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['fields' => ['id']]);

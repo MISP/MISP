@@ -8,9 +8,6 @@ class FormFieldMassageHelper extends AppHelper
         $label = '<label class="col-sm-2 col-form-label form-label">' . h($fieldData['label']) . '</label>';
         unset($fieldData['label']);
         if (!empty($fieldData['tooltip'])) {
-            $form->setTemplates([
-                'label' => '{{text}}{{tooltip}}',
-            ]);
             $controlParams['templateVars'] = array_merge(
                 $controlParams['templateVars'] ?? [],
                 ['tooltip' => $fieldData['tooltip'],]

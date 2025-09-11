@@ -102,9 +102,34 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                     'url' => $baseurl . '/attributes/view/%s'
                 ],
                 [
+                    'name' => __('Tags'),
+                    'element' => 'attributeTags',
+                    'class' => 'short'
+                ],
+                [
+                    'name' => __('Galaxies'),
+                    'element' => 'attributeGalaxies',
+                    'class' => 'short'
+                ],
+                [
+                    'name' => __('Object relation'),
+                    'class' => 'short',
+                    'data_path' => 'object_relation',
+                ],
+                [
+                    'name' => __('Category'),
+                    'class' => 'short',
+                    'data_path' => 'category',
+                ],
+                [
                     'name' => __('Type'),
                     'class' => 'short',
                     'data_path' => 'type',
+                ],
+                [
+                    'name' => __('Value'),
+                    'class' => 'short',
+                    'data_path' => 'value',
                 ],
             ]
         ]

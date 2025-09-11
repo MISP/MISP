@@ -20,7 +20,9 @@ foreach ($data as $galaxy) {
     );
 }
 
-echo sprintf(
-    '<div class="card mb-3" style="width: 300px;">%s</div>',
-    $cards
-);
+if (!empty($data)) {
+    echo sprintf(
+        '<div class="card mb-3" style="width: 300px;">%s</div>',
+        $cards
+    );
+}

@@ -21,6 +21,7 @@
                     array(
                         'field' => $field,
                         'row' => $row,
+                        'parent' => isset($parent) ? $parent : null,
                         'column' => $column,
                         'data_path' => empty($field['data_path']) ? '' : $field['data_path'],
                         'k' => $k,

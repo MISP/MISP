@@ -15,6 +15,7 @@ if (!empty($data['path'])) {
                 $this->element('/genericElements/IndexTable/row', [
                     'k' => $k,
                     'row' => $childRow,
+                    'parent' => $data_row,
                     'fields' => $data['fields'],
                     'options' => $options,
                     'actions' => null,
@@ -25,7 +26,7 @@ if (!empty($data['path'])) {
             );
         }
         echo sprintf(
-            '<td colspan=%s><table class="table table-hover">%s<tr>%s</tr></table></td>',
+            '<td colspan=%s><table class="table table-hover mb-0">%s<tr>%s</tr></table></td>',
             h($colspan),
             $fields,
             $content

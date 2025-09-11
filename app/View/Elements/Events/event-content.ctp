@@ -17,7 +17,7 @@ echo $this->Bootstrap->tabs([
         'navs' => [
             [
                 'id' => 'event-objects',
-                'data-target-url' => $baseurl . '/objects/index/eventid:' . intval($event['Event']['id']),
+                'data-target-url' => $baseurl . '/objects/index/' . intval($event['Event']['id']),
                 'html' => sprintf(
                     '%s %s',
                     $this->Bootstrap->icon($iconToTableMapping['Objects']),

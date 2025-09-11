@@ -8659,24 +8659,58 @@ class Event extends AppModel
         ];
         $stat_objects = [];
         $stat_attributes = [];
+        $stat_counts['iocs'] = $this->Attribute->find('count', ['conditions' => ['Attribute.event_id' => $event['Event']['id'], 'Attribute.to_ids' => 1, 'Attribute.deleted' => 0], 'recursive' => -1]);
+        $stat_counts['observables'] = $this->Attribute->find('count', ['conditions' => ['Attribute.event_id' => $event['Event']['id'], 'Attribute.to_ids' => 0, 'Attribute.deleted' => 0], 'recursive' => -1]);
+        $stat_counts['attributes'] = $stat_counts['observables'] + $stat_counts['iocs'];
+        $stat_counts['objects'] = $this->Object->find('count', ['conditions' => ['Object.event_id' => $event['Event']['id'], 'Object.deleted' => 0], 'recursive' => -1]);
+        $stat_counts['proposals'] = $this->ShadowAttribute->find('count', ['conditions' => ['ShadowAttribute.event_id' => $event['Event']['id'], 'ShadowAttribute.deleted' => 0], 'recursive' => -1]);
+        $stat_counts['eventreports'] = $this->EventReport->find('count', ['conditions' => ['EventReport.event_id' => $event['Event']['id'], 'EventReport.deleted' => 0], 'recursive' => -1]);
+        $stat_counts['sightings'] = $this->Sighting->find('count', ['conditions' => ['Sighting.event_id' => $event['Event']['id']], 'recursive' => -1]);
+        $object_types = $this->Object->find(
+            'all', [
+                'conditions' => [
+                    'Object.event_id' => $event['Event']['id'],
+                    'Object.deleted' => 0
+                ],
+                'fields' => [
+                    'Object.name',
+                    'count(Object.id) AS count'
+                ],
+                'group' => 'Object.name',
+                'recursive' => -1
+            ]
+        );
+        $stat_objects = [];
+        foreach ($object_types as $object_type) {
+            $stat_objects[$object_type['Object']['name']] = intval($object_type[0]['count']);
+        }
+
+        $attribute_types = $this->Attribute->find(
+            'all', [
+                'conditions' => [
+                    'Attribute.event_id' => $event['Event']['id'],
+                    'Attribute.deleted' => 0
+                ],
+                'fields' => [
+                    'Attribute.type',
+                    'count(Attribute.id) AS count'
+                ],
+                'group' => 'Attribute.type',
+                'recursive' => -1
+            ]
+        );
+        $stat_attributes = [];
+        foreach ($attribute_types as $attribute_type) {
+            $stat_attributes[$attribute_type['Attribute']['type']] = intval($attribute_type[0]['count']);
+        }
+
 
         $stat_counts['correlations'] = count($event['Event']['RelatedEvent'] ?? []);
         $stat_counts['feed_correlations'] = count($event['Event']['Feed'] ?? []);
-        $stat_counts['attributes'] = count($event['Event']['Attribute'] ?? []);
-        $stat_counts['objects'] = count($event['Event']['Object'] ?? []);
-        $stat_counts['proposals'] = count($event['Event']['ShadowAttribute'] ?? []);
-        $stat_counts['eventreports'] = count($event['Event']['EventReport'] ?? []);
         $stat_counts['discussions'] = count($event['Event']['Discussion'] ?? []);
 
+        /*
         foreach ($event['Event']['Attribute'] as $attribute) {
-            if ($attribute['to_ids']) {
-                $stat_counts['iocs'] += 1;
-            } else {
-                $stat_counts['observables'] += 1;
-            }
-            if (!empty($attribute['deleted'])) {
-                $stat_counts['proposals']['attribute_deleted'] += 1;
-            }
 
             $attrDistribution = $attribute['distribution'] == '5' ? intval($event['Event']['distribution']) : intval($attribute['distribution']);
             if (!isset($stat_distribution[$attrDistribution])) {
@@ -8697,41 +8731,21 @@ class Event extends AppModel
         }
 
         foreach ($event['Event']['Object'] as $object) {
-            if (!isset($stat_objects[$object['name']])) {
-                $stat_objects[$object['name']] = 0;
-            }
-            $stat_objects[$object['name']] += 1;
             $stat_counts['relationships'] += count($object['ObjectReference'] ?? []);
             $stat_counts['attributes'] += count($object['Attribute']);
             foreach ($object['Attribute'] as $attribute) {
-                if ($attribute['to_ids']) {
-                    $stat_counts['iocs'] += 1;
-                } else {
-                    $stat_counts['observables'] += 1;
-                }
-                if (!empty($attribute['deleted'])) {
-                    $stat_counts['proposals']['attribute_deleted'] += 1;
-                }
-
                 $attrDistribution = $attribute['distribution'] == '5' ? intval($event['Event']['distribution']) : intval($attribute['distribution']);
                 if (!isset($stat_distribution[$attrDistribution])) {
                     $stat_distribution[$attrDistribution] = 0;
                 }
                 $stat_distribution[$attrDistribution] += 1;
 
-                if (!isset($stat_distribution[$attribute['type']])) {
-                    $stat_attributes[$attribute['type']] = 0;
-                }
-                $stat_attributes[$attribute['type']] += 1;
                 if (!empty($attribute['warnings'])) {
                     $stat_counts['warninglists'] += count($attribute['warnings']);
                 }
-                if (!empty($attribute['Sighting'])) {
-                    $stat_counts['sightings'] += count($attribute['Sighting']);
-                }
             }
         }
-
+        */
         arsort($stat_objects);
         arsort($stat_attributes);
 

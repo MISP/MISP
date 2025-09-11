@@ -1,15 +1,16 @@
 <?php
-$attribute = $row['Attribute'];
+$attribute = isset($row['Attribute']) ? $row['Attribute'] : $row;
 $objectId = intval($attribute['id']);
+$event = isset($row['Event']) ? $row : (isset($parent['Event']) ? $parent : null);
 ?>
 <div class="attributeTagContainer">
     <?= $this->element(
         'ajaxTags',
         array(
             'attributeId' => $attribute['id'],
-            'tags' => $attribute['AttributeTag'],
-            'tagAccess' => $this->Acl->canModifyTag($row),
-            'localTagAccess' => $this->Acl->canModifyTag($row, true),
+            'tags' => isset($attribute['AttributeTag']) ? $attribute['AttributeTag'] : $attribute['Tag'],
+            'tagAccess' => $this->Acl->canModifyTag($event),
+            'localTagAccess' => $this->Acl->canModifyTag($event, true),
             'context' => 'event',
             'scope' => 'attribute',
             'tagConflicts' => $attribute['tagConflicts'] ?? [],

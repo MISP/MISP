@@ -151,14 +151,24 @@ foreach ($data['data'] as $k => $data_row) {
     if (!empty($dblclickActionArray)) {
         $dbclickAction = sprintf("changeLocationFromIndexDblclick(%s)", $k);
     }
+    $rowclass = !empty($data['class']) ? $data['class'] : '';
+    if (!empty($data['child_rows'])) {
+        $rowclass .= ' table-row-toggle';
+    }
     $rows .= sprintf(
         '<tr data-row-id="%s" %s %s class="%s %s" %s>%s</tr>',
         h($k),
         empty($dbclickAction) ? '' : 'ondblclick="' . $dbclickAction . '"',
         empty($primary) ? '' : 'data-primary-id="' . $primary . '"',
         empty($data['row_modifier']) ? '' : h($data['row_modifier']($data_row)),
-        empty($data['class']) ? '' : h($data['row_class']),
-        !empty($data['child_rows']) ? 'data-bs-toggle="collapse" data-bs-target="" aria-expanded="false" aria-controls="' . h($k) . '-child-row"' : '',
+        $rowclass,
+        !empty($data['child_rows']) ?
+            sprintf(
+                'data-bs-toggle="collapse" data-bs-target="#child-row-%s" aria-expanded="false" aria-controls="child-row-%s"',
+                h($k),
+                h($k)
+            ):
+            '',
         $this->element(
             '/genericElements/IndexTable/' . $row_element,
             [
@@ -175,8 +185,8 @@ foreach ($data['data'] as $k => $data_row) {
     );
     if (!empty($data['child_rows'])) {
         $rows .= sprintf(
-            '<tr id="%s" %s %s class="%s %s bg-light ">%s</tr>',
-            h($k) . '-child-row',
+            '<tr id="%s" %s %s class="%s %s collapse bg-light ">%s</tr>',
+            'child-row-' . h($k),
             empty($dbclickAction) ? '' : 'ondblclick="' . $dbclickAction . '"',
             empty($primary) ? '' : 'data-primary-id="' . $primary . '"',
             empty($data['row_modifier']) ? '' : h($data['row_modifier']($data_row)),
@@ -252,6 +262,24 @@ if (!empty($embedInModal)) {
         var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
         })
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.table-row-toggle').forEach(row => {
+            row.style.cursor = 'pointer';
+
+            row.addEventListener('click', () => {
+            const targetId = row.getAttribute('data-bs-target');
+            if (!targetId) return;
+
+            const collapseEl = document.querySelector(targetId);
+            const collapse = bootstrap.Collapse.getOrCreateInstance(collapseEl, {
+                toggle: false
+            });
+
+            collapse.toggle();
+            });
+        });
     });
 </script>
 

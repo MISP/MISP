@@ -1455,7 +1455,6 @@ class ObjectsController extends AppController
 
     public function index($id = null)
     {
-        $user_id = $this->Auth->user();
         $conditions = [];
         $user = $this->Auth->user();
         $aclConditions = $this->MispObject->buildConditions($user);

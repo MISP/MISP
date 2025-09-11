@@ -20,7 +20,7 @@ if (!empty($data['diagnostics'])) {
 $fields = '';
 if (!empty($data['fields'])) {
     foreach ($data['fields'] as $field) {
-        $fields .= $this->element('genericElements/Configuration/Fields/scaffold.php', ['data' => $field]);
+        $fields .= $this->element('genericElements/Configuration/Fields/scaffold.ctp', ['data' => $field]);
     }
 }
 echo sprintf(

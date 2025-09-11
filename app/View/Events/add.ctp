@@ -59,6 +59,7 @@
                     'default' => isset($extends_uuid) ? $extends_uuid : ''
                 ),
                 array(
+                    'field' => 'event_preview',
                     'type' => 'div',
                     'style' => 'width:446px;',
                     'id' => 'event_preview',

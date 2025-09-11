@@ -6,7 +6,7 @@
             h($data['model']);
         $fieldTemplate = 'genericField';
         if (!empty($fieldData['type'])) {
-            if (file_exists(ROOT . '/templates/element/genericElements/Form/Fields/' . $fieldData['type'] . 'Field.php')) {
+            if (file_exists(APP . 'View/Elements/genericElements/Form/Fields/' . $fieldData['type'] . 'Field.ctp')) {
                 $fieldTemplate = $fieldData['type'] . 'Field';
             }
         }

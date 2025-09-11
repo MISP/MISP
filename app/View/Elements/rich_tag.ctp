@@ -64,7 +64,7 @@ if ($canModifyAllTags || ($canModifyLocalTags && $tag['Tag']['local'])) {
             '%s/tags/modifyTagRelationship/%s/%s',
             $baseurl,
             h($scope),
-            h($tag['id'])
+            h($tag['Tag']['id'])
         )
     );
     $span_delete = sprintf(
