@@ -829,11 +829,19 @@ jobs:
       
           echo "🎉 Inter-instance sync + Sharing Group setup completed successfully"
 
-          
+      - name: Fetch test files
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          repository: MISP/misp-synchronisation
+          path: tests/
 
       - name: Run Python Tests
         shell: bash
         run: |
+          pwd 
+          ls -lisa
+          
           INST=instance-1
 
           cd $WORKSPACE/$INST
