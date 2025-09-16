@@ -577,7 +577,7 @@ jobs:
           declare -A HOSTS
           declare -A AUTHS_ADMIN
       
-         # Prepare HOSTS and AUTHS_ADMIN
+          # Prepare HOSTS and AUTHS_ADMIN
           for ID in $(seq 1 $NUM_INSTANCES); do
             HOSTS[$ID]="localhost:$((8080 + ID))"
             AUTHS_ADMIN[$ID]=$(cat key-$ID.txt)
