@@ -2,9 +2,9 @@
 name: misp-multi-instance
 on:
   push:
-    branches: [ forgejo_CI_test ]
+    branches: [ forgejo_CI ]
   pull_request:
-    branches: [ forgejo_CI_test ]
+    branches: [ forgejo_CI ]
 
 jobs:
   build:
