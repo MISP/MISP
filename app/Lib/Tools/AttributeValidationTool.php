@@ -52,7 +52,10 @@ class AttributeValidationTool
         'var-\d{6}-\d{4}',
         'jvndb-\d{4}-\d{6}',
         'ts-\d{4}-\d{4}',
-        '(open)?suse-su-\d{4}:\d{4,}-\d'
+        '(open)?suse-su-\d{4}:\d{4,}-\d',
+        'cnvd-\d{4}-\d{5}',
+        'certfr-\d{4}-avi-\d{4}',
+        'certfr-\d{4}-ale-\d{3}'
     ];
 
     /**

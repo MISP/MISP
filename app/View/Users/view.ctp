@@ -42,7 +42,7 @@ $tableData = [
 if (!empty($user['Server']['id'])) {
     $tableData[] = [
         'key' => __('Bound Server'),
-        'html' => $this->Html->link($user['Server']['name'], ['controller' => 'servers', 'action' => 'view', $user['Server']['id']]),
+        'html' => $this->Html->link($user['Server']['name'], ['controller' => 'servers', 'action' => 'previewIndex', $user['Server']['id']]),
     ];
 }
 

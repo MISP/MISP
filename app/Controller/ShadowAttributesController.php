@@ -40,14 +40,23 @@ class ShadowAttributesController extends AppController
     {
         $this->loadModel('MispAttribute');
         $this->MispAttribute->Behaviors->detach('SysLogLogable.SysLogLogable');
+
+        $conditions = [
+            'deleted' => 0
+        ];
+        if (is_numeric($id)) {
+            $conditions['ShadowAttribute.id'] = $id;
+        } else if (Validation::uuid($id)) {
+            $conditions['ShadowAttribute.uuid'] = $id;
+        } else {
+            return false;
+        }
+
         $shadow = $this->ShadowAttribute->find(
             'first',
             array(
                 'recursive' => -1,
-                'conditions' => array(
-                    'ShadowAttribute.id' => $id,
-                    'deleted' => 0
-                ),
+                'conditions' => $conditions,
             )
         );
         if (empty($shadow)) {
@@ -117,16 +126,24 @@ class ShadowAttributesController extends AppController
 
     private function __discard($id)
     {
+        $conditions = [
+            'deleted' => 0
+        ];
+        if (is_numeric($id)) {
+            $conditions['ShadowAttribute.id'] = $id;
+        } else if (Validation::uuid($id)) {
+            $conditions['ShadowAttribute.uuid'] = $id;
+        } else {
+            return false;
+        }
+
         $sa = $this->ShadowAttribute->find(
                 'first',
-                array(
+                [
                     'recursive' => -1,
                     'contain' => 'Event',
-                    'conditions' => array(
-                        'ShadowAttribute.id' => $id,
-                        'deleted' => 0
-                    ),
-                )
+                    'conditions' => $conditions,
+                ]
             );
         if (empty($sa)) {
             return false;

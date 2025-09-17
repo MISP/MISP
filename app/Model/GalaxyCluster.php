@@ -995,7 +995,6 @@ class GalaxyCluster extends AppModel
         }
 
         $clusters = $this->fetchGalaxyClusters($user, $options, $fetchFullCluster, $fetchFullRelationship);
-
         if (!empty($clusters) && $postProcess) {
             $tagIds = array_change_key_case(array_flip($tagNames));
             foreach ($clusters as $k => $cluster) {
@@ -1071,12 +1070,6 @@ class GalaxyCluster extends AppModel
             $params['contain'] = array(
                 'Galaxy',
                 'GalaxyElement',
-                'GalaxyClusterRelation' => array(
-                    'conditions' => $this->GalaxyClusterRelation->buildConditions($user, false, 'SourceCluster'),
-                    'GalaxyClusterRelationTag',
-                    'SharingGroup',
-                    'SourceCluster'
-                ),
                 'Orgc',
                 'Org',
                 'SharingGroup'
@@ -1087,9 +1080,9 @@ class GalaxyCluster extends AppModel
             $this->unbindModel(
                 ['hasMany' => ['TargetingClusterRelation']]
             );
-        }
-        if (!empty($includeFullClusterRelationship)) {
-            $params['contain']['GalaxyClusterRelation'][] = 'TargetCluster';
+            $this->unbindModel(
+                ['hasMany' => ['GalaxyClusterRelation']]
+            );
         }
         if (!empty($options['contain'])) {
             $params['contain'] = $options['contain'];
@@ -1127,13 +1120,55 @@ class GalaxyCluster extends AppModel
         } else {
             $clusters = $this->find('all', $params);
         }
-
         if (empty($clusters)) {
             return $clusters;
         }
 
         if (isset($options['first']) && $options['first']) {
             $clusters = [$clusters];
+        }
+
+        // moved the galaxyClusterRelation to a separate part of the function
+        if ($full && empty($options['count']) && empty($options['list'])) {
+            // we'll build a lookup table for faster processing
+            $gCRLookupTable = [];
+            $gCR = ClassRegistry::init('GalaxyClusterRelation');
+            foreach ($clusters as $k => $cluster) {
+                if (isset($gCRLookupTable[$cluster['GalaxyCluster']['id']])) {
+                    $clusters[$k]['GalaxyClusterRelation'] = $gCRLookupTable[$cluster['GalaxyCluster']['id']];
+                    continue;
+                }
+                $galaxyClusterRelationParams = [
+                    'conditions' => [
+                        'GalaxyClusterRelation.galaxy_cluster_id' => $cluster['GalaxyCluster']['id']
+                    ],
+                    'recursive' => -1,
+                    'contain' => [
+                        'GalaxyClusterRelationTag',
+                        'SharingGroup',
+                        'SourceCluster'
+                    ]
+                ];
+                $temp = $this->GalaxyClusterRelation->buildConditions($user, false, 'SourceCluster');
+                if ($temp) {
+                    $galaxyClusterRelationParams['conditions'][] = $temp;
+                }
+        
+                if (!empty($includeFullClusterRelationship)) {
+                    $galaxyClusterRelationParams['contain']['GalaxyClusterRelation'][] = 'TargetCluster';
+                }
+                $gCRData = $gCR->find('all', $galaxyClusterRelationParams);
+                $gCRData = array_map(function ($element) {
+                    $temp = $element['GalaxyClusterRelation'];
+                    unset($element['GalaxyClusterRelation']);
+                    $element = array_merge($element, $temp);
+                    return $element;
+                }, $gCRData);
+
+                $gCRLookupTable[$cluster['GalaxyCluster']['id']] = $gCRData;
+                $clusters[$k]['GalaxyClusterRelation'] = $gCRLookupTable[$cluster['GalaxyCluster']['id']];
+            }
+            unset($gCRLookupTable);
         }
 
         if ($full) {
@@ -1505,6 +1540,17 @@ class GalaxyCluster extends AppModel
             }
             $cluster = $cluster[0];
         }
+        $tag_id = $this->Tag->find(
+            'first',
+            array(
+                'conditions' => array(
+                    'Tag.name' => $cluster[$this->alias]['tag_name']
+                ),
+                'recursive' => -1,
+                'fields' => array('Tag.id')
+            )
+        );
+        $cluster[$this->alias]['tag_id'] = empty($tag_id) ? null : $tag_id['Tag']['id'];
         if ($user['Role']['perm_site_admin']) {
             return $cluster;
         }
@@ -1566,8 +1612,8 @@ class GalaxyCluster extends AppModel
             'conditions' => ['GalaxyCluster.tag_name' => $clusterTagNames],
             'contain' => ['Galaxy', 'GalaxyElement'],
         ];
-        $clusters = $this->fetchGalaxyClusters($user, $options);
 
+        $clusters = $this->fetchGalaxyClusters($user, $options);
         $clustersByTagName = [];
         foreach ($clusters as $cluster) {
             $clustersByTagName[strtolower($cluster['GalaxyCluster']['tag_name'])] = $cluster;
@@ -2053,13 +2099,15 @@ class GalaxyCluster extends AppModel
             return $this->__assetCache['gcOwnerIds'];
         } else {
             $alias = $this->alias;
-            $gcOwnerIds = $this->fetchGalaxyClusters($user, array(
+            $gcOwnerIds = [];
+            $gcOwnerIds = $this->find('list', [
                 'fields' => 'id',
+                'recursive' => -1,
                 'conditions' => [
                     "{$alias}.org_id" => $user['org_id']
                 ]
-            ), false);
-            $gcOwnerIds = Hash::extract($gcOwnerIds, "{n}.{$alias}.id");
+            ]);
+            $gcOwnerIds = array_values($gcOwnerIds);
             if (empty($gcOwnerIds)) {
                 $gcOwnerIds = array(-1);
             }

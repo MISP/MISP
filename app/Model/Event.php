@@ -1437,8 +1437,7 @@ class Event extends AppModel
             $conditions['AND']['OR'] = [
                 [
                     'AND' => [
-                        'Event.distribution >' => 0,
-                        'Event.distribution <' => 4,
+                        'Event.distribution BETWEEN 1 AND 3',
                         $unpublishedPrivate ? array('Event.published' => 1) : [],
                     ],
                 ],
@@ -1546,7 +1545,7 @@ class Event extends AppModel
                     'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
                     'eventinfo' => array('function' => 'set_filter_eventinfo'),
                     'ignore' => array('function' => 'set_filter_ignore'),
-                    'tags' => array('function' => 'set_filter_tags', 'pop' => true),
+                    'tags' => array('function' => 'set_filter_tags', 'pop' => true, 'skip_neg' => true),
                     'event_tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
@@ -1574,7 +1573,7 @@ class Event extends AppModel
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_type'),
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
-                    'tags' => array('function' => 'set_filter_tags', 'pop' => true),
+                    'tags' => array('function' => 'set_filter_tags', 'pop' => true, 'skip_neg' => true),
                     'ignore' => array('function' => 'set_filter_ignore'),
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
@@ -1591,6 +1590,9 @@ class Event extends AppModel
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
                             'context' => 'Event'
                         );
+                        if (!empty($simple_param_scoped[$param]['skip_neg'])) {
+                            $options['skip_neg'] = true;
+                        }
                         if ($scope === 'Event') {
                             $conditions = $this->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
                         } else {
@@ -1606,7 +1608,7 @@ class Event extends AppModel
                                 $subQuery = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
                                 if ($param === 'value') {
                                     $subQuery[0] = explode('WHERE', $subQuery[0]);
-                                    $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
+                                    //$subQuery[0][0] .= ' USE INDEX (value1, value2) ';
                                     $subQuery[0] = implode('WHERE', $subQuery[0]);
                                 }
                                 $conditions['AND'][] = $subQuery;
@@ -2118,7 +2120,6 @@ class Event extends AppModel
         } else {
             $justExportableTags = false;
         }
-
         $overrideLimit = !empty($options['overrideLimit']);
 
         if (!empty($options['allow_proposal_blocking']) && !Configure::read('MISP.proposals_block_attributes')) {
@@ -2238,7 +2239,7 @@ class Event extends AppModel
                     $event['Attribute'] = $this->__attachSharingGroups($event['Attribute'], $sharingGroupData);
                 }
 
-                if (!empty($options['includeGranularCorrelations'])) {
+                if (!empty($options['includeGranularCorrelations']) && $this->Attribute->Correlation->getCorrelationModelName() !== 'OnDemand') {
                     $event['Attribute'] = $this->Attribute->Correlation->attachCorrelationExclusion($event['Attribute']);
                 }
                 if (!empty($options['includeAnalystData'])) {
@@ -2367,14 +2368,12 @@ class Event extends AppModel
                 }
             }
         }
-
         if ($excludeGalaxy || empty($galaxyTags)) {
             return;
         }
 
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $clusters = $this->GalaxyCluster->getClustersByTags($galaxyTags, $user, true, $fetchFullCluster, $fetchFullRelationship);
-
         if (empty($clusters)) {
             return;
         }
@@ -4258,6 +4257,9 @@ class Event extends AppModel
             $values = [$attribute['value']];
         }
         foreach ($values as $value) {
+            if (is_array($value)) {
+                throw new MethodNotAllowedException(__('Attribute value is an array, which is not allowed: [%s]', implode(', ', $attribute['value'])));
+            }
             $value = hash('sha256', $attribute['value']);
             if (!isset($value_table[$value])) {
                 $value_table[$value] = ['v' => $attribute['value'], 'data' => [['o' => $object_id, 'a' => $attribute_id]]];
@@ -6413,7 +6415,18 @@ class Event extends AppModel
                     }
                 }
             }
-            $stixVersion = $decoded['stix_version'];
+            $existingEvent = $this->find('first', ['conditions' => ['Event.uuid' => $data['Event']['uuid']], 'recursive' => -1]);
+            if (!empty($existingEvent)) {
+                if ($user['Role']['perm_modify_org'] && $existingEvent['Event']['orgc_id'] == $user['org_id']) {
+                    $eventid = $existingEvent['Event']['id'];
+                    $result = $this->_edit($data, $user, $eventid, null, null, true);
+                    if ($result === true) {
+                        return $eventid;
+                    }
+                }
+                return __('Event with the same UUID already exists, and you do not have the permission to modify it.');
+            }
+            $stixVersion = 'STIX ' . $decoded['stix_version'];
             $created_id = false;
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
@@ -7866,7 +7879,6 @@ class Event extends AppModel
         if (!empty($exportTool->additional_params)) {
             $filters = array_merge($filters, $exportTool->additional_params);
         }
-
         $exportToolParams = array(
             'user' => $user,
             'params' => array(),

@@ -322,14 +322,6 @@ class Server extends AppModel
                     $event['Event']['distribution'] = '1';
                     break;
             }
-            // We remove local tags obtained via pull
-            if (isset($event['Event']['Tag'])) {
-                foreach ($event['Event']['Tag'] as $key => $a) {
-                    if ($a['local']) {
-                        unset($event['Event']['Tag'][$key]);
-                    }
-                }
-            }
 
             $filterOnTypeEnabled = !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'));
             $attributeTypeFilteringEnabled = $filterOnTypeEnabled && !empty($pullRules['type_attributes']['NOT']);
@@ -349,14 +341,7 @@ class Server extends AppModel
                             $event['Event']['Attribute'][$key]['distribution'] = '1';
                             break;
                     }
-                    // We remove local tags obtained via pull
-                    if (isset($attribute['Tag'])) {
-                        foreach ($attribute['Tag'] as $k => $v) {
-                            if ($v['local']) {
-                                unset($event['Event']['Attribute'][$key]['Tag'][$k]);
-                            }
-                        }
-                    }
+
                 }
                 if ($attributeTypeFilteringEnabled && $originalCount > 0 && empty($event['Event']['Attribute'])) {
                     $pullRulesEmptiedEvent = true;
@@ -397,14 +382,7 @@ class Server extends AppModel
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '1';
                                     break;
                             }
-                            // We remove local tags obtained via pull
-                            if (isset($a['Tag'])) {
-                                foreach ($a['Tag'] as $k => $v) {
-                                    if ($v['local']) {
-                                        unset($event['Event']['Object'][$i]['Attribute'][$j]['Tag'][$k]);
-                                    }
-                                }
-                            }
+
                         }
                         if ($attributeTypeFilteringEnabled && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
                             unset($event['Event']['Object'][$i]); // Object is empty, get rid of it
@@ -504,7 +482,14 @@ class Server extends AppModel
                     return false;
                 }
             }
-            $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
+            if(isset($event['Event']['protected']) && $event['Event']['protected'] && isset($event['Event']['CryptographicKey'][0])) {
+                $fingerprint = $event['Event']['CryptographicKey'][0]['fingerprint'];
+                $created_id = 0;
+                $validationIssues = array();
+                $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId, $created_id, $validationIssues, $fingerprint);
+            }else{
+                $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
+            }
             if ($result) {
                 $successes[] = $eventId;
                 if ($this->pubToZmq('event')) {
@@ -3885,10 +3870,6 @@ class Server extends AppModel
             'scheduler' => array('ok' => false)
         );
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            unset($worker_array['scheduler']);
-        }
-
         try {
             $workers = $this->getWorkers();
         } catch (Exception $e) {
@@ -5352,7 +5333,8 @@ class Server extends AppModel
                     'null' => true,
                     'options' => [
                         'Default' => __('Default Correlation Engine'),
-                        'NoAcl' => __('No ACL Engine')
+                        'NoAcl' => __('No ACL Engine'),
+                        'OnDemand' => __('On Demand Correlation Engine')
                     ],
                 ],
                 'correlation_limit' => [
@@ -5711,7 +5693,7 @@ class Server extends AppModel
                 'cveurl' => array(
                     'level' => 1,
                     'description' => __('Turn Vulnerability type attributes into links linking to the provided CVE lookup'),
-                    'value' => 'https://cve.circl.lu/cve/',
+                    'value' => 'https://vulnerability.circl.lu/vuln/',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'cli_only' => 1
@@ -5719,7 +5701,7 @@ class Server extends AppModel
                 'cweurl' => array(
                     'level' => 1,
                     'description' => __('Turn Weakness type attributes into links linking to the provided CWE lookup'),
-                    'value' => 'https://cve.circl.lu/cwe/',
+                    'value' => 'https://vulnerability.circl.lu/cwes/',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'cli_only' => 1
@@ -6106,6 +6088,22 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
+                'log_errors_ndjson' => [
+                    'level' =>  self::SETTING_RECOMMENDED,
+                    'description' => __('Log errors in ndjson format additionally to error.log.)'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
+                'log_errors_ndjson_path' => [
+                    'level' =>  self::SETTING_RECOMMENDED,
+                    'description' => __('Path for the ndjson error log file - defaults to ' . APP . '/app/tmp/logs/error.log.ndjson.'),
+                    'value' => APP . '/tmp/logs/error.log.ndjson',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'cli' => true,
+                    'null' => true
+                ],
                 'disable_seen_ips_authkeys' => [
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('Disable the storing of IP addresses used to make API calls with an AuthKey against this AuthKey in the database.'),
@@ -6469,7 +6467,8 @@ class Server extends AppModel
                     'description' => 'Default number of matching result for restSearch API if none is provided when adding a new role. Leave empty(0) to set as unlimited.',
                     'value' => 0,
                     'errorMessage' => '',
-                    'null' => true
+                    'null' => true,
+                    'type' => 'numeric'
                 ),
                 'attribute_filters_block_only' => array(
                     'level' => 1,
@@ -7921,6 +7920,27 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ],
+                'Benchmarking_log_query_metrics' => [
+                    'level' => 2,
+                    'description' => __('Enable the logging of SQL query metrics. This setting is required for all slow_log features to work.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
+                'Benchmarking_slow_log_threshold' => [
+                    'level' => 2,
+                    'description' => __('The duration of a query to be considered a slow query. Default: 5000 (=5s)'),
+                    'value' => 5000,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ],
+                'Benchmarking_slow_query_retention' => [
+                    'level' => 2,
+                    'description' => __('The retention of slow query log entries in seconds. Default: 259200 (=3 days)'),
+                    'value' => 259200,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ],
                 'Enrichment_services_enable' => array(
                     'level' => 0,
                     'description' => __('Enable/disable the enrichment services'),
@@ -8385,6 +8405,7 @@ class Server extends AppModel
                     'Dump current database schema' => 'MISP/app/Console/cake Admin dumpCurrentDatabaseSchema',
                     'Scan attachment' => 'MISP/app/Console/cake Admin scanAttachment [input] [attribute_id] [job_id]',
                     'Clean excluded correlations' => 'MISP/app/Console/cake Admin cleanExcludedCorrelations [job_id]',
+                    'Run DB Script' => 'MISP/app/Console/cake Admin runDBScript [script_name]',
                 ),
                 'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
                 'header' => __('Administering MISP via the CLI')

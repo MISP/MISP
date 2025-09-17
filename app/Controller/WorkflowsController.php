@@ -219,7 +219,7 @@ class WorkflowsController extends AppController
                 $errorMessage = implode(', ', $blockingErrors);
                 $this->Workflow->loadLog()->createLogEntry('SYSTEM', $logging['action'], $logging['model'], $logging['id'], $logging['message'], __('Returned message: %s', $errorMessage));
             }
-            if ($this->_isRest()) {
+            if ($this->_isRest() || $this->request->is('ajax')) {
                 return $this->RestResponse->viewData([
                     'success' => $result['success'],
                     'outcome' => $result['outcomeText'],

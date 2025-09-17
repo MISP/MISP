@@ -294,7 +294,7 @@ echo $this->element('genericElements/IndexTable/scaffold', [
                     },
                 ]
             ],
-            'persistUrlParams' => ['search_token']
+            'persistUrlParams' => ['search_token', 'tags']
         ],
         'passedArgsArray' => $passedArgsArray,
         'append' => $append
@@ -311,7 +311,7 @@ echo $this->Form->end();
     $('#downloadResultsButton').click(function(e) {
         e.preventDefault();
         var exportType = $('#downloadFormatSelector').find(":selected").text();
-        var url = '<?= $baseurl ?>/attributes/restSearch/returnFormat:' + exportType + '<?= h($export_filters) ?>';
+        var url = '<?= $baseurl ?>/attributes/restSearch/returnFormat:' + exportType + '/search_token:<?= $search_token?>';
         window.location.href = url;
     });
     // tooltips
