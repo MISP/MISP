@@ -2,9 +2,9 @@
 name: misp-multi-instance
 on:
   push:
-    branches: [ forgejo_CI_test ]
+    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii ]
   pull_request:
-    branches: [ forgejo_CI_test ]
+    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii ]
 
 jobs:
   build:
@@ -71,7 +71,7 @@ jobs:
           submodules: 'recursive'
 
       - name: Setup PHP
-        uses: http://10.0.3.1:3000/thomasl/setup-php@master
+        uses: https://helga.circl.lu/MISP/setup-php@master
         with:
           php-version: ${{ matrix.php }}
           extensions: mysql, mbstring, xml, opcache, readline, redis, gd, apcu
@@ -836,7 +836,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
-          repository: thomasl/misp-synchronisation
+          repository: MISP/misp-synchronisation
           path: synchronisation/
 
           
