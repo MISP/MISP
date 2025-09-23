@@ -34,7 +34,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '178';
-    public $pyMispVersion = '2.5.10';
+    public $pyMispVersion = '2.5.17.1';
     public $phpmin = '8.1';
     public $phprec = '8.2';
     public $phptoonew = '9.0';
@@ -1449,12 +1449,12 @@ class AppController extends Controller
             } else {
                 $format = 'json';
             }
-        
+
             if (isset($this->$modelName->validFormats[$format])) {
                 $filters['returnFormat'] = $format;
             }
         }
-        
+
         unset($filterData);
         $user = $this->_closeSession();
 

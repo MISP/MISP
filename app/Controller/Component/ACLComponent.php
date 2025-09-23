@@ -333,6 +333,7 @@ class ACLComponent extends Component
             'pushEventToKafka' => array('perm_publish_kafka'),
             'pushProposals' => array('perm_sync'),
             'queryEnrichment' => array('perm_add'),
+            'recorrelateEvent' => [],
             'recoverEvent' => array(),
             'removePivot' => array('*'),
             'removeTag' => array('perm_tagger'),

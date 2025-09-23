@@ -5835,6 +5835,31 @@ class EventsController extends AppController
         return $this->response;
     }
 
+    public function recorrelateEvent($id)
+    {
+        $id = intval($id);
+        if ($this->request->is('post')) {
+            $this->Event->Attribute->Correlation->generateCorrelationRouter($id);
+            $message = __('Event recorrelation started.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('events', 'recorrelateEvent', $id, false, $message);
+            } else {
+                $this->Flash->success($message);
+                $this->redirect($this->referer());
+            }
+        } else {
+            $this->set('id', $id);
+            $this->set('title', __('Recorrelate event'));
+            $this->set(
+                'question',
+                __('Do you want to launch the recorrelation of the event? This will reprocess all attributes and may take a while.')
+            );
+            $this->set('actionName', __('Recorrelate event'));
+            $this->layout = false;
+            $this->render('/genericTemplates/confirm');
+        }
+    }
+
     public function toggleCorrelation($id)
     {
         if (!$this->_isSiteAdmin() && !Configure::read('MISP.allow_disabling_correlation')) {

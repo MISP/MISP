@@ -1906,7 +1906,11 @@ class MispAttribute extends AppModel
 
         if (array_key_exists('group',$options)) $params['group']  = $options['group'] ?: false;
 
-        if (!empty($options['includeProposals'])) {
+        if ( 
+            (!empty($options['includeProposals']))
+            || (!empty($options['allow_proposal_blocking'])
+                 && Configure::read('MISP.proposals_block_attributes'))
+        ) {
             $this->bindModel([
                 'hasMany' => [
                     'ShadowAttribute' => [

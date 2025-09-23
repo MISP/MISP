@@ -322,14 +322,6 @@ class Server extends AppModel
                     $event['Event']['distribution'] = '1';
                     break;
             }
-            // We remove local tags obtained via pull
-            if (isset($event['Event']['Tag'])) {
-                foreach ($event['Event']['Tag'] as $key => $a) {
-                    if ($a['local']) {
-                        unset($event['Event']['Tag'][$key]);
-                    }
-                }
-            }
 
             $filterOnTypeEnabled = !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'));
             $attributeTypeFilteringEnabled = $filterOnTypeEnabled && !empty($pullRules['type_attributes']['NOT']);
@@ -349,14 +341,7 @@ class Server extends AppModel
                             $event['Event']['Attribute'][$key]['distribution'] = '1';
                             break;
                     }
-                    // We remove local tags obtained via pull
-                    if (isset($attribute['Tag'])) {
-                        foreach ($attribute['Tag'] as $k => $v) {
-                            if ($v['local']) {
-                                unset($event['Event']['Attribute'][$key]['Tag'][$k]);
-                            }
-                        }
-                    }
+
                 }
                 if ($attributeTypeFilteringEnabled && $originalCount > 0 && empty($event['Event']['Attribute'])) {
                     $pullRulesEmptiedEvent = true;
@@ -397,14 +382,7 @@ class Server extends AppModel
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '1';
                                     break;
                             }
-                            // We remove local tags obtained via pull
-                            if (isset($a['Tag'])) {
-                                foreach ($a['Tag'] as $k => $v) {
-                                    if ($v['local']) {
-                                        unset($event['Event']['Object'][$i]['Attribute'][$j]['Tag'][$k]);
-                                    }
-                                }
-                            }
+
                         }
                         if ($attributeTypeFilteringEnabled && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
                             unset($event['Event']['Object'][$i]); // Object is empty, get rid of it
