@@ -203,7 +203,7 @@ class MispObject extends AppModel
                             'filter' => $param,
                             'scope' => $scope,
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
-                            'context' => 'Attribute'
+                            'context' => 'Object'
                         );
                         if ($scope === 'Attribute') {
                             $subQueryOptions = array(

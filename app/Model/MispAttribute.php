@@ -3522,62 +3522,113 @@ class MispAttribute extends AppModel
         return $export->export($attributes, $orgs, $valueField, $allowedlist, $instanceString);
     }
 
+    private function id_to_uuid($id, $scope = 'Attribute')
+    {
+        if ($scope === 'Attribute') {
+            $result = $this->find('first', array(
+                'conditions' => array('Attribute.id' => $id),
+                'fields' => array('Attribute.uuid'),
+                'recursive' => -1
+            ));
+            if (!empty($result)) {
+                return $result['Attribute']['uuid'];
+            }
+            return false;
+        } else {
+            $result = $this->{$scope}->find('first', array(
+                'conditions' => array($scope . '.id' => $id),
+                'fields' => array($scope . '.uuid', $scope . '.id'),
+                'recursive' => -1
+            ));
+            if (!empty($result)) {
+                return $result[$scope]['uuid'];
+            }
+            return false;
+        }
+    }
+
+    private function ids_to_uuids($ids, $scope = 'Attribute')
+    {
+        $uuids = array();
+        foreach ($ids as $id) {
+            if (Validation::uuid($id)) {
+                $uuids[] = $id;
+            } else {
+                $uuid = $this->id_to_uuid($id, $scope);
+                if ($uuid !== false) {
+                    $uuids[] = $uuid;
+                } else {
+                    $uuids[] = $id;
+                }
+            }
+        }
+        return $uuids;
+    }
+
     public function set_filter_uuid(&$params, $conditions, $options)
     {
         if (!empty($params['uuid'])) {
             $params['uuid'] = $this->convert_filters($params['uuid']);
             if (!empty($params['uuid']['OR'])) {
+                // We don't search for attributes by numeric ID, only events
+                $attributeUuids = $params['uuid']['OR'];
+                $eventUuids = $this->ids_to_uuids($params['uuid']['OR'], 'Event');
                 if ($options['scope'] == 'Attribute') {
                     $subQuery = [
-                        'conditions' => ['uuid' => $params['uuid']['OR']],
+                        'conditions' => ['uuid' => $eventUuids],
                         'fields' => ['id']
                     ];
                     $pre_lookup = $this->Event->find('first', [
-                        'conditions' => ['Event.uuid' => $params['uuid']['OR']],
+                        'conditions' => ['Event.uuid' => $eventUuids],
                         'recursive' => -1,
                         'fields' => ['Event.id']
                     ]);
                     if (empty($pre_lookup)) {
                         $conditions['AND'][] = array(
                             'OR' => array(
-                                'Attribute.uuid' => $params['uuid']['OR']
+                                'Attribute.uuid' => $attributeUuids
                             )
                         );
                     } else {
                         $conditions['AND'][] = array(
                             'OR' => array(
                                 $this->subQueryGenerator($this->Event, $subQuery, 'Attribute.event_id'),
-                                'Attribute.uuid' => $params['uuid']['OR']
+                                'Attribute.uuid' => $attributeUuids
                             )
                         );
                     }
 
                 } else {
+                    $eventUuids = $this->ids_to_uuids($params['uuid']['OR'], 'Event');
+                    // We don't search for attributes by numeric ID, only events
+                    $attributeUuids = $params['uuid']['OR'];
                     $conditions['AND'][] = array(
                         'OR' => array(
-                            'Event.uuid' => $params['uuid']['OR'],
-                            'Attribute.uuid' => $params['uuid']['OR']
+                            'Event.uuid' => $eventUuids,
+                            'Attribute.uuid' => $attributeUuids
                         )
                     );
                 }
             }
             if (!empty($params['uuid']['NOT'])) {
+                    $attributeUuids = $this->ids_to_uuids($params['uuid']['NOT'], 'Attribute');
+                    $eventUuids = $this->ids_to_uuids($params['uuid']['OR'], 'Event');
                 if ($options['scope'] == 'Attribute') {
                     $subQuery = [
-                        'conditions' => ['uuid' => $params['uuid']['OR']],
+                        'conditions' => ['uuid' => $eventUuids],
                         'fields' => ['id']
                     ];
                     $conditions['AND'][] = [
                         'NOT' => [
                             $this->subQueryGenerator($this->Event, $subQuery, 'Attribute.event_id'),
-                            'Attribute.uuid' =>  $params['uuid']['NOT']
+                            'Attribute.uuid' =>  $attributeUuids
                         ]
                     ];
                 } else {
                     $conditions['AND'][] = array(
                         'NOT' => array(
-                            'Event.uuid' => $params['uuid']['NOT'],
-                            'Attribute.uuid' =>  $params['uuid']['NOT']
+                            'Event.uuid' => $eventUuids,
+                            'Attribute.uuid' =>  $attributeUuids
                         )
                     );
                 }
