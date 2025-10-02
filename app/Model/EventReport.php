@@ -594,80 +594,122 @@ class EventReport extends AppModel
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Event'));
         }
-        $event = $event[0];
+        $baseEvent = $event[0];
+        $allEvents = [$baseEvent];
 
-        if (!empty($event['Event']['extends_uuid'])) {
+        $allTagNames = [];
+        $attributes = [];
+        $objects = [];
+        $templateConditions = [];
+
+        if (!empty($baseEvent['Event']['extends_uuid'])) {
             $extendedParentEvent = $this->Event->fetchEvent($user, array_merge([
-                'event_uuid' => $event['Event']['extends_uuid'],
+                'event_uuid' => $baseEvent['Event']['extends_uuid'],
                 'is_extended' => true,
             ], $options));
             if (!empty($extendedParentEvent)) {
-                $event = $extendedParentEvent[0];
-            }
-        }
-
-        $allTagNames = [];
-        foreach ($event['EventTag'] as $eventTag) {
-            // include just tags that belongs to requested event or its parent, not to other child
-            if ($eventTag['event_id'] == $eventid || $eventTag['event_id'] == $event['Event']['id']) {
-                $allTagNames[$eventTag['Tag']['name']] = $eventTag['Tag'];
-            }
-        }
-
-        $attributes = [];
-        foreach ($event['Attribute'] as $attribute) {
-            unset($attribute['ShadowAttribute']);
-            foreach ($attribute['AttributeTag'] as $at) {
-                $allTagNames[$at['Tag']['name']] = $at['Tag'];
-            }
-            $this->Event->Attribute->removeGalaxyClusterTags($attribute);
-            $attributes[$attribute['uuid']] = $attribute;
-        }
-
-        $objects = [];
-        $templateConditions = [];
-        foreach ($event['Object'] as $k => $object) {
-            if (isset($object['Attribute'])) {
-                foreach ($object['Attribute'] as &$objectAttribute) {
-                    unset($objectAttribute['ShadowAttribute']);
-                    $objectAttribute['object_uuid'] = $object['uuid'];
-                    $attributes[$objectAttribute['uuid']] = $objectAttribute;
-
-                    foreach ($objectAttribute['AttributeTag'] as $at) {
-                        $allTagNames[$at['Tag']['name']] = $at['Tag'];
+                $parentEvent = $extendedParentEvent[0];
+                $allEvents[] = $parentEvent;
+                // Add parent's children
+                $childrenUuids = array_unique($this->Event->find('column', array(
+                    'fields' => ['Event.uuid'],
+                    'conditions' => [
+                        'Event.uuid !=' => $baseEvent['Event']['uuid'],
+                        'Event.extends_uuid' => $parentEvent['Event']['uuid'],
+                    ],
+                    'recursive' => -1
+                )));
+                if (!empty($childrenUuids)) {
+                    foreach ($childrenUuids as $uuid) {
+                        $childEvent = $this->Event->fetchEvent($user, array_merge([
+                            'event_uuid' => $uuid,
+                        ], $options));
+                        if (!empty($childEvent)) {
+                            $allEvents[] = $childEvent[0];
+                        }
                     }
-                    $this->Event->Attribute->removeGalaxyClusterTags($objectAttribute);
                 }
             }
-            $objects[$object['uuid']] = $object;
+        }
 
-            $uniqueCondition = "{$object['template_uuid']}.{$object['template_version']}";
-            if (!isset($templateConditions[$uniqueCondition])) {
-                $templateConditions[$uniqueCondition]['AND'] = [
-                    'ObjectTemplate.uuid' => $object['template_uuid'],
-                    'ObjectTemplate.version' => $object['template_version']
-                ];
+        $extendingChildrenUuids = array_unique($this->Event->find('column', array(
+            'fields' => ['Event.uuid'],
+            'conditions' => [
+                'Event.extends_uuid' => $baseEvent['Event']['uuid'],
+            ],
+            'recursive' => -1
+        )));
+        if (!empty($extendingChildrenUuids)) {
+            foreach ($extendingChildrenUuids as $uuid) {
+                $childEvent = $this->Event->fetchEvent($user, array_merge([
+                    'event_uuid' => $uuid,
+                ], $options));
+                if (!empty($childEvent)) {
+                    $allEvents[] = $childEvent[0];
+                }
             }
         }
-        if (!empty($templateConditions)) {
-            // Fetch object templates for event objects
-            $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
-            $templates = $this->ObjectTemplate->find('all', array(
-                'conditions' => ['OR' => array_values($templateConditions)],
-                'recursive' => -1,
-                'contain' => array(
-                    'ObjectTemplateElement' => [
-                        'order' => ['ui-priority' => 'DESC'],
-                        'fields' => ['object_relation', 'type', 'ui-priority']
-                    ]
-                )
-            ));
-            $objectTemplates = [];
-            foreach ($templates as $template) {
-                $objectTemplates["{$template['ObjectTemplate']['uuid']}.{$template['ObjectTemplate']['version']}"] = $template;
+
+        foreach ($allEvents as $event) {
+            foreach ($event['EventTag'] as $eventTag) {
+                // include just tags that belongs to requested event or its parent, not to other child
+                if ($eventTag['event_id'] == $eventid || $eventTag['event_id'] == $event['Event']['id']) {
+                    $allTagNames[$eventTag['Tag']['name']] = $eventTag['Tag'];
+                }
             }
-        } else {
-            $objectTemplates = [];
+
+            foreach ($event['Attribute'] as $attribute) {
+                unset($attribute['ShadowAttribute']);
+                foreach ($attribute['AttributeTag'] as $at) {
+                    $allTagNames[$at['Tag']['name']] = $at['Tag'];
+                }
+                $this->Event->Attribute->removeGalaxyClusterTags($attribute);
+                $attributes[$attribute['uuid']] = $attribute;
+            }
+
+            foreach ($event['Object'] as $k => $object) {
+                if (isset($object['Attribute'])) {
+                    foreach ($object['Attribute'] as &$objectAttribute) {
+                        unset($objectAttribute['ShadowAttribute']);
+                        $objectAttribute['object_uuid'] = $object['uuid'];
+                        $attributes[$objectAttribute['uuid']] = $objectAttribute;
+
+                        foreach ($objectAttribute['AttributeTag'] as $at) {
+                            $allTagNames[$at['Tag']['name']] = $at['Tag'];
+                        }
+                        $this->Event->Attribute->removeGalaxyClusterTags($objectAttribute);
+                    }
+                }
+                $objects[$object['uuid']] = $object;
+
+                $uniqueCondition = "{$object['template_uuid']}.{$object['template_version']}";
+                if (!isset($templateConditions[$uniqueCondition])) {
+                    $templateConditions[$uniqueCondition]['AND'] = [
+                        'ObjectTemplate.uuid' => $object['template_uuid'],
+                        'ObjectTemplate.version' => $object['template_version']
+                    ];
+                }
+            }
+            if (!empty($templateConditions)) {
+                // Fetch object templates for event objects
+                $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+                $templates = $this->ObjectTemplate->find('all', array(
+                    'conditions' => ['OR' => array_values($templateConditions)],
+                    'recursive' => -1,
+                    'contain' => array(
+                        'ObjectTemplateElement' => [
+                            'order' => ['ui-priority' => 'DESC'],
+                            'fields' => ['object_relation', 'type', 'ui-priority']
+                        ]
+                    )
+                ));
+                $objectTemplates = [];
+                foreach ($templates as $template) {
+                    $objectTemplates["{$template['ObjectTemplate']['uuid']}.{$template['ObjectTemplate']['version']}"] = $template;
+                }
+            } else {
+                $objectTemplates = [];
+            }
         }
         $this->Galaxy = ClassRegistry::init('Galaxy');
         $allowedGalaxies = $this->Galaxy->getAllowedMatrixGalaxies($user);

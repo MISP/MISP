@@ -96,7 +96,7 @@ class AppModel extends Model
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
-        141 => false, 142 => false
+        141 => false, 142 => false, 143 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2560,6 +2560,9 @@ class AppModel extends Model
                     PRIMARY KEY (value)
                   ) ENGINE=InnoDB;";
                 break;
+            case 143:
+                $sqlArray[] = "ALTER TABLE `feeds` ADD `lock_events` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -4819,7 +4822,7 @@ class AppModel extends Model
     public function getIndexNameForColumn($column)
     {
         $table = $this->table;
-        
+
         $indexes = $this->query("SHOW INDEX FROM `$table`");
 
         foreach ($indexes as $index) {
@@ -4836,7 +4839,7 @@ class AppModel extends Model
     public function indexExists($table, $indexName) {
         $db = $this->getDataSource();
         $databaseName = $db->config['database'];
-    
+
         $query = "
             SELECT COUNT(1) AS found
             FROM information_schema.STATISTICS
@@ -4844,7 +4847,7 @@ class AppModel extends Model
             AND TABLE_NAME = ?
             AND INDEX_NAME = ?
         ";
-    
+
         return (bool)$this->query($query, [$databaseName, $table, $indexName])[0][0]['found'];
     }
 }
