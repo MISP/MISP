@@ -608,7 +608,45 @@ class EventReport extends AppModel
                 'is_extended' => true,
             ], $options));
             if (!empty($extendedParentEvent)) {
-                $allEvents[] = $extendedParentEvent[0];
+                $parentEvent = $extendedParentEvent[0];
+                $allEvents[] = $parentEvent;
+                // Add parent's children
+                $childrenUuids = array_unique($this->Event->find('column', array(
+                    'fields' => ['Event.uuid'],
+                    'conditions' => [
+                        'Event.uuid !=' => $baseEvent['Event']['uuid'],
+                        'Event.extends_uuid' => $parentEvent['Event']['uuid'],
+                    ],
+                    'recursive' => -1
+                )));
+                if (!empty($childrenUuids)) {
+                    foreach ($childrenUuids as $uuid) {
+                        $childEvent = $this->Event->fetchEvent($user, array_merge([
+                            'event_uuid' => $uuid,
+                        ], $options));
+                        if (!empty($childEvent)) {
+                            $allEvents[] = $childEvent[0];
+                        }
+                    }
+                }
+            }
+        }
+
+        $extendingChildrenUuids = array_unique($this->Event->find('column', array(
+            'fields' => ['Event.uuid'],
+            'conditions' => [
+                'Event.extends_uuid' => $baseEvent['Event']['uuid'],
+            ],
+            'recursive' => -1
+        )));
+        if (!empty($extendingChildrenUuids)) {
+            foreach ($extendingChildrenUuids as $uuid) {
+                $childEvent = $this->Event->fetchEvent($user, array_merge([
+                    'event_uuid' => $uuid,
+                ], $options));
+                if (!empty($childEvent)) {
+                    $allEvents[] = $childEvent[0];
+                }
             }
         }
 
