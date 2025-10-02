@@ -3204,9 +3204,12 @@ class Event extends AppModel
                   $lookup_field,
                   $operand === 'NOT'
                 );
-                $subQuery[0] = explode('WHERE', $subQuery[0]);
-                $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
-                $subQuery[0] = implode('WHERE', $subQuery[0]);
+                // Check if value1/value2 indeces exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
+                if ($this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
+                    $subQuery[0] = explode('WHERE', $subQuery[0]);
+                    $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
+                    $subQuery[0] = implode('WHERE', $subQuery[0]);
+                }
                 $conditions['AND'][] = $subQuery;
                 break;
             case 'AND':
@@ -3231,9 +3234,12 @@ class Event extends AppModel
                       $subquery_options,
                       $lookup_field
                     );
-                    $subQuery[0] = explode('WHERE', $subQuery[0]);
-                    $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
-                    $subQuery[0] = implode('WHERE', $subQuery[0]);
+                    // Check if value1/value2 indeces exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
+                    if ($this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
+                        $subQuery[0] = explode('WHERE', $subQuery[0]);
+                        $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
+                        $subQuery[0] = implode('WHERE', $subQuery[0]);
+                    }
                     $conditions['AND'][] = $subQuery;
                 }
                 break;
