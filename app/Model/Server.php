@@ -2530,7 +2530,9 @@ class Server extends AppModel
         if (!$fileOnly && Configure::read('MISP.system_setting_db')) {
             /** @var SystemSetting $systemSetting */
             $systemSetting = ClassRegistry::init('SystemSetting');
-            return $systemSetting->setSetting($setting, $value);
+            if (!in_array($setting, $systemSetting::BLOCKED_SETTINGS)) {
+                return $systemSetting->setSetting($setting, $value);
+            }
         }
 
         $configFilePath = APP . 'Config' . DS . 'config.php';
