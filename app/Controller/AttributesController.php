@@ -2592,16 +2592,7 @@ class AttributesController extends AppController
 
     public function describeTypes()
     {
-        $result = array();
-        foreach ($this->MispAttribute->typeDefinitions as $key => $value) {
-            $result['sane_defaults'][$key] = array('default_category' => $value['default_category'], 'to_ids' => $value['to_ids']);
-        }
-        $result['types'] = array_keys($this->MispAttribute->typeDefinitions);
-        $result['categories'] = array_keys($this->MispAttribute->categoryDefinitions);
-        foreach ($this->MispAttribute->categoryDefinitions as $cat => $data) {
-            $result['category_type_mappings'][$cat] = $data['types'];
-        }
-        return $this->RestResponse->viewData(['result' => $result], 'json');
+        return $this->RestResponse->viewData(['result' => $this->MispAttribute->describeTypes()], 'json');
     }
 
     public function attributeStatistics($type = 'type', $percentage = false)

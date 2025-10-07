@@ -4194,4 +4194,18 @@ class MispAttribute extends AppModel
         }
         return $attributes_added;
     }
+
+    public function describeTypes()
+    {
+        $result = array();
+        foreach ($this->typeDefinitions as $key => $value) {
+            $result['sane_defaults'][$key] = array('default_category' => $value['default_category'], 'to_ids' => $value['to_ids']);
+        }
+        $result['types'] = array_keys($this->typeDefinitions);
+        $result['categories'] = array_keys($this->categoryDefinitions);
+        foreach ($this->categoryDefinitions as $cat => $data) {
+            $result['category_type_mappings'][$cat] = $data['types'];
+        }
+        return $result;
+    }
 }
