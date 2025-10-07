@@ -407,7 +407,7 @@ class TagCollectionsController extends AppController
             if (empty($tagCollection)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Invalid tag collection.'))), 'status' => 200, 'type' => 'json'));
             }
-            if ($this->ACL->canModifyTagCollection($this->Auth->user(), $tagCollection)) {
+            if (!$this->ACL->canModifyTagCollection($this->Auth->user(), $tagCollection)) {
                 throw new ForbiddenException(__('You dont have a permission to do that'));
             }
             $found = false;
