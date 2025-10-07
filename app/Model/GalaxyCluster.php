@@ -1410,11 +1410,23 @@ class GalaxyCluster extends AppModel
         }
 
         $simpleParams = array(
-            'uuid', 'galaxy_id', 'version', 'distribution', 'type', 'value', 'default', 'extends_uuid', 'tag_name', 'published', 'id',
+            'uuid', 'galaxy_id', 'version', 'distribution', 'type', 'value', 'default', 'tag_name', 'published', 'id',
         );
         foreach ($simpleParams as $k => $simpleParam) {
             if (isset($filters[$simpleParam])) {
-                $conditions['AND']["GalaxyCluster.${simpleParam}"] = $filters[$simpleParam];
+                $current_filter = $filters[$simpleParam];
+                if (!is_array($current_filter)) {
+                    $current_filter = array($current_filter);
+                }
+                $temp = [];
+                foreach ($current_filter as $v) {
+                    if (strpos($v, '%') !== false) {
+                        $temp[] = ["GalaxyCluster." . $simpleParam . " LIKE" => $v];
+                    } else {
+                        $temp[] = ["GalaxyCluster." . $simpleParam => $v];
+                    }
+                }
+                $conditions['AND'][] = ['OR' => $temp];
             }
         }
 
