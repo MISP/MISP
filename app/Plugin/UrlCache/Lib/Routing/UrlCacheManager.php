@@ -116,9 +116,9 @@ class UrlCacheManager {
 		$keyUrl = $url;
 		if (is_array($keyUrl)) {
 			$keyUrl += self::$extras;
-			# prevent different hashs on different orders
+			# prevent different hashes on different orders
 			ksort($keyUrl, SORT_STRING);
-			# prevent different hashs on different types (int/string/bool)
+			# prevent different hashes on different types (int/string/bool)
 			foreach ($keyUrl as $key => $val) {
 				$keyUrl[$key] = (String) $val;
 			}
