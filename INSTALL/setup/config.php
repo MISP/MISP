@@ -131,7 +131,7 @@ $config['CakeResque'] = array(
 	// In that case, you'll need a handler to manage your logs
 	// All logs outputted by resque will go to the handler.
 	// The classic log file (above) will still be used, for logging
-	// stuff likes php error, or other STDOUT outputted by your job classses
+	// stuff likes php error, or other STDOUT outputted by your job classes
 	//
 	// php-resque-ex uses Monolog to manage all the logging stuff
 	// If you uses the original php-resque library, these settings
