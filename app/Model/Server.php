@@ -142,7 +142,7 @@ class Server extends AppModel
         'innodb_dedicated_server' => [
             'default' => '0',
             'recommended' => '',
-            'explanation' => 'Set to `1` if the database is running in a dedicated server. The database engine will examine the available memory and dynamically set `innodb_buffer_pool_size`, `innodb_log_file_size`, `innodb_log_files_in_group` and `innodb_flush_method`. It is particularly useful in cloud enviroments that can be auto-scaled.',
+            'explanation' => 'Set to `1` if the database is running in a dedicated server. The database engine will examine the available memory and dynamically set `innodb_buffer_pool_size`, `innodb_log_file_size`, `innodb_log_files_in_group` and `innodb_flush_method`. It is particularly useful in cloud environments that can be auto-scaled.',
         ],
         'innodb_log_file_size' => [
             'default' => '100663296',
