@@ -513,7 +513,7 @@
                     this.overriddenTags.forEach(function(entry) {
                         var cur_namespace_predicate = entry.AttributeTag.Tag.name.split('=')[0];
                         if (namespace_predicate == cur_namespace_predicate) {
-                            overridden_html += '<div class="overriden_tag_wrapper" style="filter: grayscale(80%);">' + that._create_tag_html(entry.EventTag) + '</div>';
+                            overridden_html += '<div class="overridden_tag_wrapper" style="filter: grayscale(80%);">' + that._create_tag_html(entry.EventTag) + '</div>';
                         }
                     });
                     if (overridden_html !== '') {
@@ -606,7 +606,7 @@
                         if (col_i == 0 && $div.hasClass('overridden_tags_container')) {
                             $('.overridden_tags_container[data-row="' + row_i + '"]').popover({
                                 title: 'Event tag overridden by Attribute tag',
-                                content: that._generateOverridenExplanationPopoverHTML($div),
+                                content: that._generateOverriddenExplanationPopoverHTML($div),
                                 html: true,
                                 trigger: 'hover',
                                 placement: 'left',
@@ -616,8 +616,8 @@
                     });
             },
 
-            _generateOverridenExplanationPopoverHTML: function($div) {
-                var $tags_event = $div.find('.overriden_tag_wrapper .tag');
+            _generateOverriddenExplanationPopoverHTML: function($div) {
+                var $tags_event = $div.find('.overridden_tag_wrapper .tag');
                 var $tag_attribute = $div.find('.attribute_tag_wrapper .tag');
                 var html = '<div style="text-align: center;">';
                     $tags_event.each(function() {
