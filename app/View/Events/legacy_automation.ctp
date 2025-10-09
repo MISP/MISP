@@ -8,7 +8,7 @@
     You can %s this key.', $me['authkey'], $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', 'me')));?>
     </p>
     <p style="color:red;"><?php echo __('Since version 2.2 the usage of the authentication key in the URL is deprecated. Instead, pass the auth key in an Authorization header in the request. The legacy option of having the auth key in the URL is temporarily still supported but not recommended.');?></p>
-    <p><?php echo __('Please use the use the following header');?>:<br />
+    <p><?php echo __('Please use the following header');?>:<br />
     <code><?php echo __('Authorization');?>: <?php echo $me['authkey']; ?></code></p>
     <h3><?php echo __('XML Export');?></h3>
     <p><?php echo __('An automatic export of all events and attributes <small>(except file attachments)</small> is available under a custom XML format.');?></p>
