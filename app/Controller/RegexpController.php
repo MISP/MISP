@@ -216,7 +216,7 @@ class RegexpController extends AppController
                 $changes++;
             }
         }
-        $this->Flash->info(__('All done! Found and cleaned ' . $changes . ' potentially malcious regexes.'));
+        $this->Flash->info(__('All done! Found and cleaned ' . $changes . ' potentially malicious regexes.'));
         $this->redirect('/pages/display/administration');
     }
 }
