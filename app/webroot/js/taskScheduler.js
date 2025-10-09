@@ -21,7 +21,7 @@
             checkboxLabel: '',              // The label accompanying the switch
             animation: {
                 onExecution: true,          // Perform an animation whenever the task is being run
-                remainingTime: false,       // Perfim an animation showing how much time is needed for the next task run
+                remainingTime: false,       // Perform an animation showing how much time is needed for the next task run
                 noAnimThreshold: 700        //  Animation with interval lower thatn this threshold will not be played 
             }
         };
