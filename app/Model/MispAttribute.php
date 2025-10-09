@@ -3985,7 +3985,7 @@ class MispAttribute extends AppModel
             'email-thread-index' => array('desc' => __('The email thread index header'), 'default_category' => 'Payload delivery', 'to_ids' => 0),
             'email-message-id' => array('desc' => __('The email message ID'), 'default_category' => 'Payload delivery', 'to_ids' => 0),
             'github-username' => array('desc' => __('A GitHub user name'), 'default_category' => 'Social network', 'to_ids' => 0),
-            'github-repository' => array('desc' => __('A Github repository'), 'default_category' => 'Social network', 'to_ids' => 0),
+            'github-repository' => array('desc' => __('A GitHub repository'), 'default_category' => 'Social network', 'to_ids' => 0),
             'github-organisation' => array('desc' => __('A GitHub organisation'), 'default_category' => 'Social network', 'to_ids' => 0),
             'jabber-id' => array('desc' => __('Jabber ID'), 'default_category' => 'Social network', 'to_ids' => 0),
             'twitter-id' => array('desc' => __('Twitter ID'), 'default_category' => 'Social network', 'to_ids' => 0),

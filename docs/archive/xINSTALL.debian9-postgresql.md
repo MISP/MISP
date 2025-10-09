@@ -15,7 +15,7 @@
     If you want to help improving PostgreSQL-support,
     Please make sure you have tried the newest commit from GitHub first.
     Also, please activate debug mode.
-    After that, you may open an issue on Github and provide us with as much information on the issue as possible.
+    After that, you may open an issue on GitHub and provide us with as much information on the issue as possible.
 
 
 

@@ -7655,7 +7655,7 @@ New
 - [diagnostic] Check extensions version. [Jakub Onderka]
 - [internal] JSON stream convert. [Jakub Onderka]
 - [eventReport] Report from event. [mokaddem]
-- Github action. [Raphaël Vinot]
+- GitHub action. [Raphaël Vinot]
 - [diagnostic] Show installed GnuPG version. [Jakub Onderka]
 - [user] Setting `disable_user_add` to disable user creation by org
   admins. [Jakub Onderka]
