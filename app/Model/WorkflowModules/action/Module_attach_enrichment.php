@@ -159,6 +159,6 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
                 $options[$conf] = Configure::read('Plugin.' . $type . '_' . $moduleConfig['name'] . '_' . $conf);
             }
         }
-        return !empty($options) ? $options : ['_' => '_']; // avoid casting empty associative array in to empty list
+        return !empty($options) ? $options : ['_' => '_']; // avoid casting empty associative array into empty list
     }
 }
