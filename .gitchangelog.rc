@@ -203,7 +203,7 @@ include_merge = True
 
 ## ``log_encoding`` is a string identifier
 ##
-## This option tells gitchangelog what encoding is outputed by ``git log``.
+## This option tells gitchangelog what encoding is outputted by ``git log``.
 ## The default is to be clever about it: it checks ``git config`` for
 ## ``i18n.logOutputEncoding``, and if not found will default to git's own
 ## default: ``utf-8``.
