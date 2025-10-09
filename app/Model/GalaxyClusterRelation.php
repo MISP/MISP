@@ -310,7 +310,7 @@ class GalaxyClusterRelation extends AppModel
             $errors[] = __('UUID not provided');
         }
         if (empty($existingRelation)) {
-            $errors[] = __('Unkown ID');
+            $errors[] = __('Unknown ID');
         } else {
             $options = array('conditions' => array(
                 "{$this->SourceCluster->alias}.uuid" => $relation['GalaxyClusterRelation']['galaxy_cluster_uuid']

@@ -393,7 +393,7 @@ class GalaxyCluster extends AppModel
             $errors[] = __('UUID not provided');
         }
         if (empty($existingCluster)) {
-            $errors[] = __('Unkown UUID');
+            $errors[] = __('Unknown UUID');
         } else {
             // For users that are of the creating org of the cluster, always allow the edit
             // For users that are sync users, only allow the edit if the cluster is locked

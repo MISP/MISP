@@ -41,7 +41,7 @@ var options = {
                     return build_sighting_template(item);
                 } else {
                     console.log(item)
-                    console.log('Error: Unkown group');
+                    console.log('Error: Unknown group');
                 }
                 break;
         }

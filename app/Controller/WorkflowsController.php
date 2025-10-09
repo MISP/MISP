@@ -151,7 +151,7 @@ class WorkflowsController extends AppController
             $trigger_ids = Hash::extract($modules['modules_trigger'], '{n}.id');
             if (!in_array($trigger_id, $trigger_ids)) {
                 return $this->__getFailResponseBasedOnContext(
-                    [__('Unkown trigger %s', $trigger_id)],
+                    [__('Unknown trigger %s', $trigger_id)],
                     null,
                     'add',
                     $trigger_id,

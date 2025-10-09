@@ -1453,7 +1453,7 @@ class MispObject extends AppModel
             'updateable_attribute' => false,
             'not_updateable_attribute' => false,
             'newer_template_version' => false,
-            'original_template_unkown' => false,
+            'original_template_unknown' => false,
             'template' => $template
         );
         $newer_template = $this->ObjectTemplate->find('first', array(
@@ -1489,8 +1489,8 @@ class MispObject extends AppModel
                         $template_difference[] = $cur_obj_rel;
                     }
                 }
-            } else { // original template unkown
-                $toReturn['original_template_unkown'] = true;
+            } else { // original template unknown
+                $toReturn['original_template_unknown'] = true;
                 $unmatched_attributes = array();
                 foreach ($object['Attribute'] as $i => $attribute) {
                     $flag_match = false;
@@ -1508,7 +1508,7 @@ class MispObject extends AppModel
                     }
                 }
 
-                // simulate unkown template from the attribute
+                // simulate unknown template from the attribute
                 foreach ($unmatched_attributes as $unmatched_attribute) {
                     $template_difference[] = [
                         'object_relation' => $unmatched_attribute['object_relation'],

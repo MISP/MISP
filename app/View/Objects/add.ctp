@@ -233,9 +233,9 @@
                             <div style="background-color: #fcf8e3; color: black; padding: 2px; border-radius: 3px;">
                                 <span class="bold"><?php echo __('Template version') . ':'; ?></span>
                                 <span><?php echo h($object['Object']['template_version']); ?></span>
-                                <?php if ($original_template_unkown): ?>
+                                <?php if ($original_template_unknown): ?>
                                     <span class="label label-important" title="<?= __('The original object\'s template is unknown and some attributes might be lost. Please review carefully'); ?>">
-                                    <?= __('Unkown original template'); ?>
+                                    <?= __('Unknown original template'); ?>
                                     </span>
                                 <?php endif; ?>
                             </div>

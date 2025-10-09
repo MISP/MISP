@@ -2436,7 +2436,7 @@ class Event extends AppModel
 
     private function __pruneUnknownClusters(array &$event, array $user)
     {
-        if (!Configure::read('MISP.hide_unkown_cluster', true) || $user['Role']['perm_sync']) {
+        if (!Configure::read('MISP.hide_unknown_cluster', true) || $user['Role']['perm_sync']) {
             return;
         }
         foreach ($event['EventTag'] as $i => $eventTag) {
