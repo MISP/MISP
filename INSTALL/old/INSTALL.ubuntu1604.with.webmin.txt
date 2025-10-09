@@ -214,7 +214,7 @@ haveged -n 0 | pv > /dev/null
 gpg --homedir /home/misp/public_html/MISP/.gnupg --gen-key
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
 
-# You can now Ctrel+C the running haveged in the other shell
+# You can now Ctrl+C the running haveged in the other shell
 # and return to the "install" shell
 
 # Export the public key to the webroot
