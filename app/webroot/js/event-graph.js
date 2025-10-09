@@ -971,7 +971,7 @@ class EventGraph {
     remove_leaves() {
         var nodeIds = []
         eventGraph.nodes.forEach(function (node) {
-            // Hide node that have no outgoing references and are not being targetted by others
+            // Hide node that have no outgoing references and are not being targeted by others
             if (
                 dataHandler.mapping_node_to_from_edges[node.id] === undefined &&
                 (
