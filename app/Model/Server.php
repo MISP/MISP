@@ -5326,7 +5326,7 @@ class Server extends AppModel
                 ],
                 'correlation_engine' => [
                     'level' => 0,
-                    'description' => __('Choose which correlation engine to use. MISP defaults to the default engine, maintaining all data in the database whilst enforcing ACL rules on any non site-admin user. This is recommended for any MISP instnace with multiple organisations. If you are an endpoint MISP, consider switching to the much leaner and faster No ACL engine.'),
+                    'description' => __('Choose which correlation engine to use. MISP defaults to the default engine, maintaining all data in the database whilst enforcing ACL rules on any non site-admin user. This is recommended for any MISP instance with multiple organisations. If you are an endpoint MISP, consider switching to the much leaner and faster No ACL engine.'),
                     'value' => 'default',
                     'test' => 'testForCorrelationEngine',
                     'type' => 'string',
