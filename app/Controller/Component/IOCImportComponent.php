@@ -118,7 +118,7 @@ class IOCImportComponent extends Component
 
     private $tempLeaves = array();
 
-    // used to store the event id and the distribution, so that they can be added to attribtes during the conversion
+    // used to store the event id and the distribution, so that they can be added to attributes during the conversion
     private $event_id = null;
     private $distribution = array();
 
