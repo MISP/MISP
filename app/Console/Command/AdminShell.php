@@ -706,7 +706,7 @@ class AdminShell extends AppShell
                 'scripts' => [
                     'OnDemandCorrelationTuning',
                 ],
-                'help' => __('Additional indeces specifically to help with the unusual search patterns of the on demand correlation tuning.'),
+                'help' => __('Additional indices specifically to help with the unusual search patterns of the on demand correlation tuning.'),
             ]
         ];
 
