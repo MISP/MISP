@@ -532,7 +532,7 @@ class GalaxyClusterRelation extends AppModel
      *
      * @param  array $user
      * @param  array $relation
-     * @return array The adpated relation
+     * @return array The adapted relation
      */
     private function syncUUIDsAndIDs(array $user, array $relation)
     {
