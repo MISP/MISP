@@ -1347,7 +1347,7 @@ class Galaxy extends AppModel
      *  - version: Takes the higher version number of all clusters
      *  - uuid: Is actually the collection_uuid. Takes the last one
      *  - source (since all clusters have their own, takes the last one)
-     *  - category (not saved in MISP nor used)
+     *  - category (neither saved in MISP nor used)
      *  - description (not used as the description in the galaxy.json is used instead)
      */
     public function convertToMISPGalaxyFormat($galaxy, $clusters)
