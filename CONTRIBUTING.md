@@ -11,7 +11,7 @@ Get familiar with [how we use GitHub at MISP Project](/GITWORKFLOW.md), then rea
 
 The most common way to contribute to the MISP project is to report bugs, issues or suggest features. 
 
-Each project ([MISP core](https://github.com/MISP/MISP/issues), [misp-modules](https://github.com/MISP/misp-modules/issues), [misp-book](https://github.com/MISP/misp-book/issues), [misp-taxonomies](https://github.com/MISP/misp-taxonomies/issues), [misp-galaxy](https://github.com/MISP/misp-galaxy/issues) or any of the other projects within the [MISP project organanisation](https://github.com/MISP/)) had their own issue management. 
+Each project ([MISP core](https://github.com/MISP/MISP/issues), [misp-modules](https://github.com/MISP/misp-modules/issues), [misp-book](https://github.com/MISP/misp-book/issues), [misp-taxonomies](https://github.com/MISP/misp-taxonomies/issues), [misp-galaxy](https://github.com/MISP/misp-galaxy/issues) or any of the other projects within the [MISP project organisation](https://github.com/MISP/)) had their own issue management. 
 Don’t forget that you can cross-reference issues from other sub-projects.
 
 ### Issue tracker guidelines
