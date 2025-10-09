@@ -4451,7 +4451,7 @@ class AppModel extends Model
      *
      * @param string $trigger_id
      * @param array $data Data to be passed to the workflow
-     * @param array $blockingErrors Errors will be appened if any
+     * @param array $blockingErrors Errors will be appended if any
      * @param array $logging If the execution failure should be logged
      * @return boolean If the execution for the blocking path was a success
      */
