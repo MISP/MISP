@@ -49,7 +49,7 @@ var dotBlock_trigger = doT.template(' \
             </strong> \
             <span style="margin-left: auto; display: flex; align-items: center; gap: 3px;"> \
                 {{? it.module_data.blocking }} \
-                    <span class="label label-important" style="line-height: 20px;" title="This workflow is a blocking worklow and can prevent the default MISP behavior to execute"> \
+                    <span class="label label-important" style="line-height: 20px;" title="This workflow is a blocking workflow and can prevent the default MISP behavior to execute"> \
                         <i class="fa-lg fa-fw fas fa-stop-circle"></i> \
                         Blocking \
                     </span> \

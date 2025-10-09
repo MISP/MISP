@@ -305,8 +305,8 @@ class Workflow extends AppModel
         $workflows = $this->fetchWorkflows();
         $keys = $redis->keys(Workflow::REDIS_KEY_WORKFLOW_NAMESPACE . ':*');
         $redis->delete($keys);
-        foreach ($workflows as $wokflow) {
-            $this->updateListeningTriggers($wokflow);
+        foreach ($workflows as $workflow) {
+            $this->updateListeningTriggers($workflow);
         }
     }
 
@@ -696,9 +696,9 @@ class Workflow extends AppModel
     /**
      * walkGraph Walk the graph for the provided trigger and execute each nodes
      *
-     * @param array $workflow The worflow to walk
+     * @param array $workflow The workflow to walk
      * @param int $startNode The ID of the trigger to start from
-     * @param string|null $for_path If provided, execute the workflow for the provided path. If not provided, execute the worflow regardless of the path
+     * @param string|null $for_path If provided, execute the workflow for the provided path. If not provided, execute the workflow regardless of the path
      * @param array $data
      * @param array $errors
      * @return boolean If all module returned a successful response
@@ -1471,7 +1471,7 @@ class Workflow extends AppModel
     }
 
     /**
-     * addWorkflow Add a worflow
+     * addWorkflow Add a workflow
      *
      * @param  array $trigger
      * @return array Any errors preventing the edition
@@ -1488,7 +1488,7 @@ class Workflow extends AppModel
     }
 
     /**
-     * editWorkflow Edit a worflow
+     * editWorkflow Edit a workflow
      *
      * @param  array $workflow
      * @return array Any errors preventing the edition

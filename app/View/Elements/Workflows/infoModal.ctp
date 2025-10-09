@@ -35,12 +35,12 @@
                 </ul>
                 <h1><?= __('Concepts') ?></h1>
                 <h2>
-                    <span class="label label-important" style="line-height: 20px; vertical-align: middle;" title="<?= __('This workflow is a blocking worklow and can prevent the default MISP behavior to execute') ?>">
+                    <span class="label label-important" style="line-height: 20px; vertical-align: middle;" title="<?= __('This workflow is a blocking workflow and can prevent the default MISP behavior to execute') ?>">
                         <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('stop-circle') ?>"></i>
                         <?= __('Blocking') ?>
                     </span>
                     <?= __('and') ?>
-                    <span class="label label-success" style="line-height: 20px; vertical-align: middle;" title="<?= __('This workflow is a not blocking worklow. The default MISP behavior will or has already happened') ?>">
+                    <span class="label label-success" style="line-height: 20px; vertical-align: middle;" title="<?= __('This workflow is a not blocking workflow. The default MISP behavior will or has already happened') ?>">
                         <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('check-circle') ?>"></i>
                         <?= __('Non blocking') ?>
                     </span>
