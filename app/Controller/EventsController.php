@@ -3319,7 +3319,7 @@ class EventsController extends AppController
         return $event;
     }
 
-    // Send out an contact email to the person who posted the event.
+    // Send out a contact email to the person who posted the event.
     // Users with a GnuPG key will get the mail encrypted, other users will get the mail unencrypted
     public function contact($id = null)
     {

@@ -102,7 +102,7 @@ class RestResponseComponent extends Component
         ),
         'EventGraph' => array(
             'add' => array(
-                'description' => "POST a network in JSON format to this API to to keep an history of it",
+                'description' => "POST a network in JSON format to this API to to keep a history of it",
                 'mandatory' => array('event_id', 'network_json'),
                 'optional' => array('network_name')
             )
@@ -1372,7 +1372,7 @@ class RestResponseComponent extends Component
                 'type' => 'string',
                 'operators' => array('equal'),
                 'values' => array( 'network' => 'Network', 'local' => 'Local'),
-                'help' => __('Specify whether the source (url field) is a directory (local) or an geniun url (network)')
+                'help' => __('Specify whether the source (url field) is a directory (local) or a geniun url (network)')
             ),
             'ip' => array(
                 'input' => 'text',

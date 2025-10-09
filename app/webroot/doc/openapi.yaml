@@ -5329,7 +5329,7 @@ components:
         - "misp"
 
     FeedInputSource:
-      description: "Specify whether the source (url field) is a directory (local) or an genuine url (network)."
+      description: "Specify whether the source (url field) is a directory (local) or a genuine url (network)."
       type: string
       enum:
         - "local"

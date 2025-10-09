@@ -61,7 +61,7 @@ Install a minimal CentOS 7.x system with the software:
 
 
 ```bash
-# Make sure you set your hostname CORRECTLY vs. like an brute (manually in /etc/hostname)
+# Make sure you set your hostname CORRECTLY vs. like a brute (manually in /etc/hostname)
 sudo hostnamectl set-hostname misp.local # Your choice, in a production environment, it's best to use a FQDN
 
 # Make sure your system is up2date:

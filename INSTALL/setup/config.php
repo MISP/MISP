@@ -82,7 +82,7 @@ $config['CakeResque'] = array(
 		// Path to the log file
 		// Can be an
 		// - absolute path,
-		// - an relative path, that will be relative to
+		// - a relative path, that will be relative to
 		//	app/tmp/logs folder
 		// - a simple filename, file will be created inside app/tmp/logs
 		'log' => TMP . 'logs' . DS . 'resque-worker-error.log',

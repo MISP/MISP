@@ -588,7 +588,7 @@ class GalaxyCluster extends AppModel
 
     /**
      * wipe_default Delete all default galaxy clusters and their associations.
-     *  Relying on the cake's recursive deletion for the associations adds an non-negligible overhead.
+     *  Relying on the cake's recursive deletion for the associations adds a non-negligible overhead.
      *  Same for cake's before/afterDelete callbacks. We do it by hand to speed up the process
      *
      */
@@ -814,7 +814,7 @@ class GalaxyCluster extends AppModel
             $saveSuccess = $this->save($cluster);
         } else {
             if (!$existingGalaxyCluster['GalaxyCluster']['locked'] && empty($server['Server']['internal'])) {
-                $results['errors'][] = __('Blocked an edit to an cluster that was created locally. This can happen if a synchronised cluster that was created on this instance was modified by an administrator on the remote side.');
+                $results['errors'][] = __('Blocked an edit to a cluster that was created locally. This can happen if a synchronised cluster that was created on this instance was modified by an administrator on the remote side.');
                 $results['failed']++;
                 return $results;
             }

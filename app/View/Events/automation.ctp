@@ -107,7 +107,7 @@
             'title' => __('Galaxy Cluster Search'),
             'description' => array(
                 __('It is possible to search the database for galaxy clusters based on a list of criteria.'),
-                __('To return an cluster or a list of clusters in the JSON format, use the following syntax.'),
+                __('To return a cluster or a list of clusters in the JSON format, use the following syntax.'),
                 __('Whilst a list of parameters is provided below, it isn\'t necessarily exhaustive')
             ),
             'parameters' => array(

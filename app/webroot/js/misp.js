@@ -5835,7 +5835,7 @@ function redirectIdSelection(scope, action) {
     if (id.length > 0) {
         window.location = baseurl + '/' + scope + '/' + action + '/' + id
     } else {
-        showMessage('fail', 'Not an valid event id');
+        showMessage('fail', 'Not a valid event id');
     }
 }
 
