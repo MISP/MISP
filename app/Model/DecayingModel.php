@@ -393,7 +393,7 @@ class DecayingModel extends AppModel
         );
     }
 
-    // Include a PHP file and return an instanciation of the formula class
+    // Include a PHP file and return an instantiation of the formula class
     private function __include_formula_file_and_return_instance($filename='Polynomial.php')
     {
         $formula_files = $this->__listPHPFormulaFiles(); // redundant in some cases but better be safe than sorry
