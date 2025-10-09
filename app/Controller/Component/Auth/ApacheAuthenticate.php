@@ -26,7 +26,7 @@ class ApacheAuthenticate extends BaseAuthenticate
      */
     private function isUserMemberOf($group, $ldapUserData)
     {
-        // return true of false depending on if user is a member of group.
+        // return true or false depending on if user is a member of group.
         $returnCode = false;
         unset($ldapUserData[0]['memberof']["count"]);
         foreach ($ldapUserData[0]['memberof'] as $result) {
