@@ -5035,7 +5035,7 @@ components:
     ServerName:
       type: string
       maxLength: 255
-      example: "Phising Server"
+      example: "Phishing Server"
 
     ServerNoId:
       type: object
