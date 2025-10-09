@@ -59,7 +59,7 @@ servers:
   - url: https://misp.local
 tags:
   - name: Analyst Data
-    description: "Analyst Data allows analysts to share and add their own analysis to any MISP data having an UUID. They can be one of these three type: Analyst Note, Analyst Opionion or Analyst Relationship."
+    description: "Analyst Data allows analysts to share and add their own analysis to any MISP data having an UUID. They can be one of these three type: Analyst Note, Analyst Opinion or Analyst Relationship."
   - name: Attributes
     description: "Attributes in MISP can be network indicators (e.g. IP address), system indicators (e.g. a string in memory) or even bank account details."
     externalDocs:
