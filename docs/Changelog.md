@@ -3412,7 +3412,7 @@ Fix
 - Add missing returnFormat to restSearch endpoints, move the parameter
   as requestBody property. [Luciano Righetti]
 - [getSettings] include the options. [iglocska]
-- [API] Taxonomy namespace is case insensitive. [Jakub Onderka]
+- [API] Taxonomy namespace is case-insensitive. [Jakub Onderka]
 - Copy/pasta, rename galaxy clusters tag, move restSearch endpoints to
   resource 1st. [Luciano Righetti]
 - [server:edit] Typo in index. [Sami Mokaddem]
@@ -4864,7 +4864,7 @@ Changes
 - [PyMISP] Bump before release. [Raphaël Vinot]
 - [internal] Set cookie name just when no name is set. [Jakub Onderka]
 - [schema] Add index for EventReport.event_id. [Jakub Onderka]
-- [schema] Convert GalaxyCluster tag name to case insensitive. [Jakub
+- [schema] Convert GalaxyCluster tag name to case-insensitive. [Jakub
   Onderka]
 - [UI] Do not show published for default galaxy clusters. [Jakub
   Onderka]
@@ -5237,7 +5237,7 @@ Other
 - Merge pull request #7060 from JakubOnderka/galaxy-cluster-tag-name-ci.
   [Jakub Onderka]
 
-  chg: [schema] Convert GalaxyCluster tag name to case insensitive
+  chg: [schema] Convert GalaxyCluster tag name to case-insensitive
 - Merge pull request #7112 from JakubOnderka/galaxy-cluster-md. [Jakub
   Onderka]
 
