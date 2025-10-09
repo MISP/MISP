@@ -120,7 +120,7 @@ read -e wait
 
 # CHECK GIT STATUS BEFORE RUNNING UPDATE
 cd $misp_folder
-echo -n "--> Checking for uncommited files: "; log_date
+echo -n "--> Checking for uncommitted files: "; log_date
 git status | grep "nothing to commit" >> /dev/null
 OutStatus=$?
 if [ $OutStatus == 0 ]; then
