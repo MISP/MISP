@@ -140,5 +140,5 @@ cat /etc/pki/ca-trust/corporate.pem >> /var/www/MISP/app/Lib/cakephp/lib/Cake/Co
 Because users already need to exist in MISP before they can authenticate with AAD it can be useful to provision them in an automated fashion. This can be done by creating the users via the MISP REST API. The below `curl` command provides an example on how to do this. Note that you need an API key.
 
 ```
-curl -k -d '{"email":"newuser@mycompany.com", "role_id":"3", "org_id":"1", "enable_password":"1", "change_pw":"0"}' -H "Authorization: API_KEY"  -H "Accept: application/json" -H "Content-type: application/json" -X POST htps://misp.mycompany.com/admin/users/add
+curl -k -d '{"email":"newuser@mycompany.com", "role_id":"3", "org_id":"1", "enable_password":"1", "change_pw":"0"}' -H "Authorization: API_KEY"  -H "Accept: application/json" -H "Content-type: application/json" -X POST https://misp.mycompany.com/admin/users/add
 ```
