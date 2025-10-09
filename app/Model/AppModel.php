@@ -1486,7 +1486,7 @@ class AppModel extends Model
                     `show_result` tinyint(1) DEFAULT 0,
                     `skip_ssl` tinyint(1) DEFAULT 0,
                     `outcome` int(11) NOT NULL,
-                    `bookmark` tinyint(1) NOT NULL DEFAUlT 0,
+                    `bookmark` tinyint(1) NOT NULL DEFAULT 0,
                     `bookmark_name` varchar(255) NULL DEFAULT '',
                     PRIMARY KEY (`id`),
                     KEY `org_id` (`org_id`),
