@@ -961,7 +961,7 @@ POST a Tag object in JSON format to this API to create a new tag.
 | user_id |integer | |
 
 ## Edit
-POST or PUT a Tag object in JSON format to this API to create a edit an existing tag.
+POST or PUT a Tag object in JSON format to this API to create and edit an existing tag.
 ```
 /tags/edit/[tag_id]
 ```

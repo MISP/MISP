@@ -286,7 +286,7 @@ class RestResponseComponent extends Component
                 'optional' => array('colour', 'exportable', 'hide_tag', 'org_id', 'user_id')
             ),
             'edit' => array(
-                'description' => "POST or PUT a Tag object in JSON format to this API to create a edit an existing tag.",
+                'description' => "POST or PUT a Tag object in JSON format to this API to create and edit an existing tag.",
                 'optional' => array('name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'),
                 'params' => array('tag_id')
             ),
