@@ -231,7 +231,7 @@ class IOCImportComponent extends Component
         $event['Graph'] = $this->graph;
         // attach the failures to the event
         $event['Fails'] = $this->fails;
-        // Set the initual OR branch to being successful (= green on the graph)
+        // Set the initial OR branch to being successful (= green on the graph)
         if (count($this->saved_uuids) > 1) {
             $event['Graph'][0][1] = true;
         }
