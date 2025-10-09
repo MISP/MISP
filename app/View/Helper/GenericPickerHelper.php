@@ -46,7 +46,7 @@ class GenericPickerHelper extends AppHelper
         $param_html = ' ';
         if (!$ignoreFunction && isset($param['functionName'])) {
             $param_html .= sprintf('onclick="execAndClose(this);%s" ', h($param['functionName']));
-        } else { // fallback to default submit function
+        } else { // fall back to default submit function
             if (!$ignoreFunction && $defaults['functionName'] !== '') {
                 $param_html .= 'onclick="submitFunction(this, ' . h($defaults['functionName']) . ')" ';
             } else {

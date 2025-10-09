@@ -148,7 +148,7 @@ yumInstallCoreDeps8 () {
   # Install the dependencies:
   PHP_BASE="/etc/"
   PHP_INI="/etc/php.ini"
-  # If the install group @httpd is not existent, fallback to httpd
+  # If the install group @httpd is not existent, fall back to httpd
   sudo dnf install @httpd -y || sudo dnf install httpd -y
   sudo dnf install gcc git zip unzip \
                    httpd \
