@@ -8522,7 +8522,7 @@ class Event extends AppModel
                 'scope' => 'Attribute',
                 'requiresPublished' => 1,
                 'params' => array('returnFormat' => 'text', 'includeAttachments' => 1),
-                'description' => __('Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.')
+                'description' => __('Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for suspicious files. Only published events and attributes marked as IDS Signature are exported.')
             ),
             'yara' => array(
                 'extension' => '.yara',
