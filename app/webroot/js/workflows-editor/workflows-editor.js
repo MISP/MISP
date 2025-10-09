@@ -1899,7 +1899,7 @@ function genSelect(options, forNode = true) {
     var $label = $('<label>')
         .css({
             marginLeft: '0.25em',
-            marginBbottom: 0,
+            marginBottom: 0,
         })
         .append(
             $('<span>').text(options.label),
@@ -1995,7 +1995,7 @@ function genInput(options, isTextArea, forNode = true) {
     var $label = $('<label>')
         .css({
             marginLeft: '0.25em',
-            marginBbottom: 0,
+            marginBottom: 0,
         })
         .append(
             genJinjaIconIfSupported(options),
@@ -2090,7 +2090,7 @@ function genHashpathInput(options, forNode = true) {
     var $label = $('<label>')
         .css({
             marginLeft: '0.25em',
-            marginBbottom: 0,
+            marginBottom: 0,
         })
         .append(
             $('<span>').text(options.label),
@@ -2128,7 +2128,7 @@ function genCheckbox(options, forNode = true) {
     var $label = $('<label>')
         .css({
             marginLeft: '0.25em',
-            marginBbottom: 0,
+            marginBottom: 0,
         })
         .append(
             $('<span>').text(options.label),
@@ -2171,7 +2171,7 @@ function genRadio(options, forNode = true) {
     var $rootLabel = $('<label>')
         .css({
             marginLeft: '0.25em',
-            marginBbottom: 0,
+            marginBottom: 0,
         })
         .append(
             $('<span>').text(options.label),
@@ -2212,7 +2212,7 @@ function genRadio(options, forNode = true) {
             .addClass('radio')
             .css({
                 marginLeft: '0.25em',
-                marginBbottom: 0,
+                marginBottom: 0,
             })
         $label
             .append($input)
