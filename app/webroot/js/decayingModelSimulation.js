@@ -233,20 +233,20 @@
                         that.tooltipText(false);
                     });
                 this.line_guide_now.exit().remove();
-                this.carret_line_guide_now = this.svg
-                    .selectAll('.carret-time-now')
+                this.caret_line_guide_now = this.svg
+                    .selectAll('.caret-time-now')
                     .data([new Date()]);
-                this.carret_line_guide_now
+                this.caret_line_guide_now
                     .enter()
                     .append('text')
-                    .attr('class', 'carret-time-now')
-                this.carret_line_guide_now
+                    .attr('class', 'caret-time-now')
+                this.caret_line_guide_now
                     .attr('x', that.x(new Date())-5.5)
                     .attr('y', that.y(99))
                     .attr('font-family', 'FontAwesome')
                     .attr('font-size', '20px')
                     .text(function(d) { return '\uf0d7' });
-                this.carret_line_guide_now.exit().remove();
+                this.caret_line_guide_now.exit().remove();
 
                 this.svg.append('rect')
                     .attr('class', 'decayingGraphAreaThres')
