@@ -247,7 +247,7 @@ checkInstaller () {
       checkAptLock
       sudo apt install libdigest-sha-perl -qyy
     fi
-    # SHAsums to be computed, not the -- notation is for ease of use with rhash
+    # SHAsums to be computed, note the -- notation is for ease of use with rhash
     SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
     for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
       /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
