@@ -57,7 +57,7 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
         $rData = $roamingData->getData();
         $params = $this->getParamsWithValues($node, $rData);
         if (empty($params['modules']['value'])) {
-            $errors[] = __('No enrichmnent module selected');
+            $errors[] = __('No enrichment module selected');
             return false;
         } else if (is_string($params['modules']['value'])) {
             $params['modules']['value'] = [$params['modules']['value']];
