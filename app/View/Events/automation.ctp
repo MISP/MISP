@@ -66,7 +66,7 @@
                 "extended" => __('Set whether events that are extended or not should be returned. Do not set the parameter if you want both.'),
                 "enforceWarninglist" => __('Remove any attributes from the result that would cause a hit on a warninglist entry.'),
                 "to_ids" => __('By default (0) all attributes are returned that match the other filter parameters, regardless of their to_ids setting. To restrict the returned data set to to_ids only attributes set this parameter to 1. You can only use the special "exclude" setting to only return attributes that have the to_ids flag disabled.'),
-                "deleted" => __('Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes wil be returned.'),
+                "deleted" => __('Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes will be returned.'),
                 "includeEventUuid" => __('Instead of just including the event ID, also include the event UUID in each of the attributes.'),
                 "event_timestamp" => __('Only return attributes from events that have received a modification after the given timestamp. The input can be a timestamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
                 "sgReferenceOnly" => __('If this flag is set, sharing group objects will not be included, instead only the sharing group ID is set.'),

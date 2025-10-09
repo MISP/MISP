@@ -6265,7 +6265,7 @@ components:
       default: false
 
     SoftDeletedFlagValuesToInclude:
-      description: 'Whether to include soft-deleted attributes. Default value 0. If set to 1, only deleted attributes will be returned. If set to [0,1], both deleted and non-deleted attributes wil be returned.'
+      description: 'Whether to include soft-deleted attributes. Default value 0. If set to 1, only deleted attributes will be returned. If set to [0,1], both deleted and non-deleted attributes will be returned.'
       type: boolean
       default: false
 
