@@ -2155,11 +2155,11 @@ class Drawflow {
     return dataExport;
   }
 
-  import(data, notifi = true) {
+  import(data, notify = true) {
     this.clear();
     this.drawflow = JSON.parse(JSON.stringify(data));
     this.load();
-    if (notifi) {
+    if (notify) {
       this.dispatch('import', 'import');
     }
   }
