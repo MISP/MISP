@@ -7127,7 +7127,7 @@ class Server extends AppModel
                 ),
                 'cors_origins' => array(
                     'level' => 1,
-                    'description' => __('Set the origins from which MISP will allow cross-origin requests. Useful for external integration. Comma seperate if you need more than one.'),
+                    'description' => __('Set the origins from which MISP will allow cross-origin requests. Useful for external integration. Comma separate if you need more than one.'),
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
