@@ -59,7 +59,7 @@ class Role extends AppModel
         'publish' => 3
     );
 
-    public $premissionLevelName = array('Read Only', 'Manage Own Events', 'Manage Organisation Events', 'Manage and Publish Organisation Events');
+    public $permissionLevelName = array('Read Only', 'Manage Own Events', 'Manage Organisation Events', 'Manage and Publish Organisation Events');
 
     public function beforeSave($options = array())
     {
