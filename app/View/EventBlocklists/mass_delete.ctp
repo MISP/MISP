@@ -9,7 +9,7 @@
     ?>
     <legend><?php echo __('Delete blocklisted events'); ?></legend>
     <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-        <p><?php echo __('Are you sure you want to delete from the blocklist the selected events?'); ?></p>
+        <p><?php echo __('Are you sure you want to delete the selected events from the blocklist?'); ?></p>
         <table>
             <tr>
                 <td style="vertical-align:top">
