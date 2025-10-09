@@ -1092,16 +1092,16 @@ function mergeNodeAndModuleParams(node, moduleParams) {
             value: val
         }
     })
-    var procesedParams = {}
+    var processedParams = {}
     var finalParams = []
     var fakeNodeFullParams = Object.values(nodeParamsById)
     var nodeAndModuleParams = moduleParams.concat(fakeNodeFullParams)
     nodeAndModuleParams.forEach(function (param) {
         var finalParam
-        if (procesedParams[param.id]) { // param has already been processed
+        if (processedParams[param.id]) { // param has already been processed
             return;
         }
-        procesedParams[param.id] = true
+        processedParams[param.id] = true
         if (moduleParamsById[param.id] === undefined) { // Param do not exist in the module (anymore or never did)
             param.is_invalid = true
             finalParam = Object.assign({}, nodeParamsById[param.id])
