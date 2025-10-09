@@ -5722,7 +5722,7 @@ class Server extends AppModel
                 ),
                 'forceHTTPSforPreLoginRequestedURL' => array(
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('If enabled, any requested URL before login will have their HTTP part replaced by HTTPS. This can be usefull if MISP is running behind a reverse proxy responsible for SSL and communicating unencrypted with MISP.'),
+                    'description' => __('If enabled, any requested URL before login will have their HTTP part replaced by HTTPS. This can be useful if MISP is running behind a reverse proxy responsible for SSL and communicating unencrypted with MISP.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'
