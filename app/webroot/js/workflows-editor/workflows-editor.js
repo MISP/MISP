@@ -338,7 +338,7 @@ function initDrawflow() {
             if (event.pageX < 340) { // dirty hack to avoid drops on the sidebar
                 return
             }
-            ui.position.top += 96 // take padding/marging/position into account
+            ui.position.top += 96 // take padding/margin/position into account
             if (ui.draggable.data('blueprint')) {
                 addWorkflowBlueprint(ui.draggable.data('blueprint').WorkflowBlueprint.id, ui.position)
             } else {
