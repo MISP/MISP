@@ -986,7 +986,7 @@ function fetchTagInfo(tagNames, callback) {
 
                 proxyMISPElements['tag'][tagName] = tag;
 
-                $tag = getTagReprensentation(tag);
+                $tag = getTagRepresentation(tag);
                 cache_tag[tagName] = $tag[0].outerHTML;
             }
 
@@ -1768,7 +1768,7 @@ function constructTag(tagName) {
     return $('<div/>').append($info)
 }
 
-function getTagReprensentation(tagData) {
+function getTagRepresentation(tagData) {
     var $tag
     if (tagData.GalaxyCluster !== undefined) {
         $tag = constructClusterTagHtml(tagData)
