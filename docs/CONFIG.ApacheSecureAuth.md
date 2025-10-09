@@ -24,7 +24,7 @@ there is no "log out", other than invalidating the user's Kerberos tickets.
 You can hide the GUI "Log out" link by setting `Plugin.CustomAuth_disable_logout` to `true`.
 
 If you just want to log in as another user, you should be able to do this in an ingonito window. 
-Most browser will not allow Kerberos/SPNEGO/Negotiate authentification when in ingognito mode, 
+Most browser will not allow Kerberos/SPNEGO/Negotiate authentication when in ingognito mode, 
 and i.e. Apache will fall back to having  the user input his credentials in a HTTP Basic Auth 
 popup, for then to authenticate the user with AD using these credentials.
 
