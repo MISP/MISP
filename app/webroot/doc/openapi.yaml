@@ -4771,7 +4771,7 @@ components:
                     - "tlp:red"
                     - "%privint%"
 
-    TagNumbericalValueOverrideUserSetting:
+    TagNumericalValueOverrideUserSetting:
       type: object
       example:
         - "false-positive:risk='medium'": 99
@@ -4813,7 +4813,7 @@ components:
             - $ref: "#/components/schemas/DashboardAccessUserSetting"
             - $ref: "#/components/schemas/HomepageUserSetting"
             - $ref: "#/components/schemas/DefaultRestSearchParametersUserSetting"
-            - $ref: "#/components/schemas/TagNumbericalValueOverrideUserSetting"
+            - $ref: "#/components/schemas/TagNumericalValueOverrideUserSetting"
             - $ref: "#/components/schemas/EventIndexHideColumnsUserSetting"
         user_id:
           $ref: "#/components/schemas/UserId"
@@ -4836,7 +4836,7 @@ components:
         default_restsearch_parameters:
           $ref: "#/components/schemas/DefaultRestSearchParametersUserSetting"
         tag_numerical_value_override:
-          $ref: "#/components/schemas/TagNumbericalValueOverrideUserSetting"
+          $ref: "#/components/schemas/TagNumericalValueOverrideUserSetting"
         event_index_hide_columns:
           $ref: "#/components/schemas/EventIndexHideColumnsUserSetting"
 
@@ -8138,7 +8138,7 @@ components:
               - $ref: "#/components/schemas/DashboardAccessUserSetting"
               - $ref: "#/components/schemas/HomepageUserSetting"
               - $ref: "#/components/schemas/DefaultRestSearchParametersUserSetting"
-              - $ref: "#/components/schemas/TagNumbericalValueOverrideUserSetting"
+              - $ref: "#/components/schemas/TagNumericalValueOverrideUserSetting"
               - $ref: "#/components/schemas/EventIndexHideColumnsUserSetting"
 
     AddEventReportRequest:
