@@ -609,7 +609,7 @@ class Galaxy extends AppModel
             $params['order'] = $this->findOrder(
                 $options['order'],
                 'GalaxyCluster',
-                ['id', 'version', 'name', 'namesapce', 'distribution', 'orgc_id', 'org_id']
+                ['id', 'version', 'name', 'namespace', 'distribution', 'orgc_id', 'org_id']
             );
         }
         if (isset($options['page'])) {
