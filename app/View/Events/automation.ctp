@@ -8,7 +8,7 @@
     To make this functionality available for automated tools an authentication key is used.');?>
     <br /><?php echo __('You can use the <a href="' . $baseurl . '/api/rest">REST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.');?>
     <strong><?php echo __('Make sure you keep your API key secret as it gives access to all of the data that you normally have access to in MISP.');?></strong>
-    <?php echo __('To view the old MISP automation page, click <a href="' . $baseurl . '/automation/1">here</a>.');?>
+    <?php echo __('You can view the <a href="' . $baseurl . '/automation/1">old MISP automation page</a>.');?>
     </p>
     <span>
         <?php
