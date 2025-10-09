@@ -1819,7 +1819,7 @@ function toggleCoreFormatPicker(btn) {
         .attr({
             id: 'selected-hashpath-input',
             type: 'text',
-            placeholder: 'Click on an elemet on the JSON to show the path',
+            placeholder: 'Click on an element on the JSON to show the path',
             onchange: 'setValueOnAssociatedInput(this.value, "' + associatedParamId + '")',
         })
         .css({ margin: '0 0.75em 0 0', 'flex-grow': 2 })
