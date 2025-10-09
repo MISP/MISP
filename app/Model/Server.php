@@ -5371,7 +5371,7 @@ class Server extends AppModel
                 ],
                 'server_settings_skip_backup_rotate' => array(
                     'level' => 1,
-                    'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
+                    'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurrency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -6448,7 +6448,7 @@ class Server extends AppModel
                 ),
                 'deadlock_avoidance' => array(
                     'level' => 1,
-                    'description' => __('Only enable this if you have some tools using MISP with extreme high concurency. General performance will be lower as normal as certain transactional queries are avoided in favour of shorter table locks.'),
+                    'description' => __('Only enable this if you have some tools using MISP with extreme high concurrency. General performance will be lower as normal as certain transactional queries are avoided in favour of shorter table locks.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
