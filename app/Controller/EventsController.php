@@ -6446,7 +6446,7 @@ class EventsController extends AppController
             if ($this->request->is('post')) {
                 $job_type = 'recover_event';
                 $function = 'recoverEvent';
-                $message = __('Bootstraping recovering of event %s', $id);
+                $message = __('Bootstrapping recovering of event %s', $id);
                 $job = ClassRegistry::init('Job');
                 $job->create();
                 $data = array(
