@@ -6,7 +6,7 @@
 ## Authored by daverstephens@gmail.com
 ## https://github.com/daverstephens/The-SOC-Shop
 ##
-## added some more studd by @alexanderjaeger
+## added some more stuff by @alexanderjaeger
 ## https://github.com/deralexxx/misp-backup
 ##
 ## more amendments by @SteveClement
