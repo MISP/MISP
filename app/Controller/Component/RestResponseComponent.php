@@ -1226,13 +1226,13 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Only shows events that are extending an other one')
+                'help' => __('Only shows events that are extending another one')
             ),
             'is_extended' => array(
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Only shows events that are extended by an other one')
+                'help' => __('Only shows events that are extended by another one')
             ),
             'external_auth_required' => array(
                 'input' => 'radio',
