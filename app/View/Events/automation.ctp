@@ -278,7 +278,7 @@
     <pre><?php  echo $baseurl.'/events/removeTag'; ?></pre>
     <p><?php echo __('Just POST a json object in the following format (to the appropriate API depending on whether you want to add or delete a tag from an event)');?>:</p>
     <code>{"event":228, "tag":8}</code><br /><br />
-    <p><?php echo __('Where "tag" is the ID of the tag. You can also use the name of the tag the following way');?>:</p>
+    <p><?php echo __('Where "tag" is the ID of the tag. You can also use a tag name the following way');?>:</p>
     <code>{"event":228, "tag":"OSINT"}</code>
     <h3><?php echo __('Proposals and the API');?></h3>
     <p><?php echo __('You can interact with the proposals via the API directly since version 2.3.148');?></p>
