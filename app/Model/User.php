@@ -1172,7 +1172,7 @@ class User extends AppModel
                 $user,
                 Job::WORKER_PRIO,
                 'reset_all_sync_api_keys',
-                __('Reseting all API keys'),
+                __('Resetting all API keys'),
                 'Issuing new API keys to all sync users.'
             );
 
