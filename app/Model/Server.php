@@ -814,7 +814,7 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
+    public function getEligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
     {
         $serverSync->debug("Fetching eligible clusters for pull: " . JsonTool::encode($conditions));
 
@@ -870,7 +870,7 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    private function getElligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
+    private function getEligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
     {
         $serverSync->debug("Fetching eligible clusters for push: " . JsonTool::encode($conditions));
         $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
@@ -1380,7 +1380,7 @@ class Server extends AppModel
         $this->Event = ClassRegistry::init('Event');
 
         if ($technique === 'full') {
-            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
+            $clusters = $this->GalaxyCluster->getEligibleClustersToPush($user, $conditions=array(), $full=true);
         } else {
             if ($event === false) {
                 throw new InvalidArgumentException('The event from which the cluster should be taken must be provided.');
@@ -1396,14 +1396,14 @@ class Server extends AppModel
             if (empty($customGalaxyClusterTags)) {
                 return [];
             }
-            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $customGalaxyClusterTags), $full=true);
+            $clusters = $this->GalaxyCluster->getEligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $customGalaxyClusterTags), $full=true);
         }
         if (empty($clusters)) {
             return []; // no local clusters eligible for push
         }
         $localClusterUUIDs = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
         try {
-            $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($serverSync, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
+            $clustersToPush = $this->getEligibleClusterIdsFromServerForPush($serverSync, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
         } catch (Exception $e) {
             $this->logException("Could not get eligible cluster IDs from server #{$server['Server']['id']} for push.", $e);
             return [];
