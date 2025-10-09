@@ -1401,7 +1401,7 @@ class AdminShell extends AppShell
         if (!empty($this->args[0])) {
             $target = trim($this->args[0]);
         }
-        if (!is_numeric($target) && !in_array($target, ['all', 'attached', 'deteached'])) {
+        if (!is_numeric($target) && !in_array($target, ['all', 'attached', 'detached'])) {
             $this->error(__('Invalid target. Either pass a blueprint ID or one of the following filters: all, attached, detached.'));
         }
         $conditions = [];
