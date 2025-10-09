@@ -8474,7 +8474,7 @@ class Event extends AppModel
                 'scope' => 'Attribute',
                 'requiresPublished' => 1,
                 'params' => array('returnFormat' => 'suricata'),
-                'description' => __('Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
+                'description' => __('Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain an allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
             ),
             'snort' => array(
                 'extension' => '.rules',
@@ -8482,7 +8482,7 @@ class Event extends AppModel
                 'scope' => 'Attribute',
                 'requiresPublished' => 1,
                 'params' => array('returnFormat' => 'snort'),
-                'description' => __('Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
+                'description' => __('Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain an allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
             ),
             'bro' => array(
                 'extension' => '.intel',
@@ -8490,7 +8490,7 @@ class Event extends AppModel
                 'scope' => 'Attribute',
                 'requiresPublished' => 1,
                 'params' => array('returnFormat' => 'bro'),
-                'description' => __('Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
+                'description' => __('Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain an allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
             ),
             'stix' => array(
                 'extension' => '.xml',

@@ -257,7 +257,7 @@
                     + '<input type="text" id="sharingNetworkTargetId" class="center-in-network-header network-typeahead" style="width: 200px;" disabled>';
                 if (allow_interactive_picking) {
                     $div += '<div class="form-group" style="margin: auto 10px;"><div class="checkbox">'
-                        + '<label style="user-select: none;"><input id="interactive_picking_mode" type="checkbox" title="Click on a element to see how it is distributed" style="margin-top: 4px;">Enable interactive picking mode</label>'
+                        + '<label style="user-select: none;"><input id="interactive_picking_mode" type="checkbox" title="Click on an element to see how it is distributed" style="margin-top: 4px;">Enable interactive picking mode</label>'
                         + '</div></div>'
                 }
                 $div += '<select type="text" id="sharingNetworkOrgFinder" class="center-in-network-header network-typeahead sharingNetworkOrgFinder" style="width: 200px;"></select>'

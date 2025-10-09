@@ -5,7 +5,7 @@
  *
  * Requires the following to work as intended :
  *
- * - "Log" model ( empty but for a order variable [created DESC]
+ * - "Log" model ( empty but for an order variable [created DESC]
  * - "logs" table with these fields required :
  * - id			[int]			:
  * - title		[string]		: automagically filled with the display field of the model that was modified.
@@ -139,7 +139,7 @@ class LogableBehavior extends ModelBehavior {
 	 * 'action'	: string (NULL) String with action (add/edit/delete), NULL gets all
 	 * 'order'		: string ('created DESC') String with custom order
 	 * 'conditions  : array  (array()) Add custom conditions
-	 * 'model_id'	: int	 (NULL) Add a int
+	 * 'model_id'	: int	 (NULL) Add an int
 	 *
 	 * (remember to use your own user key if you're not using 'user_id')
 	 * 'user_id'	: int	 (NULL) Defaults to all users, supply id if you want for only one User
