@@ -163,7 +163,7 @@ class ContextualMenu {
             template: '<div class="popover" id="popover-contextual-menu-'+this.trigger_container.id+'" role="tooltip" style="'+additional_styling+'"><div class="arrow"></div></h3><div class="popover-content"></div></div>'
         })
 
-        // Overwrite the default popover behavior: hidding cause the popover to be detached from the DOM, making impossible to fetch input values in the form
+        // Overwrite the default popover behavior: hiding cause the popover to be detached from the DOM, making impossible to fetch input values in the form
         $(this.trigger_container).click (function(e) {
             $(this).popover('toggle');
             // if (that.has_been_shown_once) {
