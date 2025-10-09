@@ -21,7 +21,7 @@
         'select_threshold' => 7, // threshold above which pills will be replace by a select (unused if multiple is > 1)
         'functionName' => '', // function to be called on submit
         'submitButtonText' => 'Submit',
-        'disabledSubmitButton' => false, // wether to not draw the submit button
+        'disabledSubmitButton' => false, // whether to not draw the submit button
         'flag_redraw_chosen' => false, // should chosen picker be redraw at drawing time
         'redraw_debounce_time' => 200,
         'autofocus' => true,
