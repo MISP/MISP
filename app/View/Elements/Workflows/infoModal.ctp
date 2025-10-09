@@ -786,7 +786,7 @@ $data_passed_to_if_module = [
                     <?= __('Jinja2 Syntax') ?>
                 </h3>
                 <p><i class="fa-fw <?= $this->FontAwesome->getClass('exclamation-triangle') ?>"></i> <?= __('For these examples, we consider the module received data under the MISP core format.') ?></p>
-                <p><i class="fa-fw <?= $this->FontAwesome->getClass('link') ?>"></i> <?= __('More documenation available on Jinja2 template designer documentation\'s') ?> <a href="https://jinja.palletsprojects.com/en/3.1.x/templates/"><?= __('website') ?></a></p>
+                <p><i class="fa-fw <?= $this->FontAwesome->getClass('link') ?>"></i> <?= __('More documentation available on Jinja2 template designer documentation\'s') ?> <a href="https://jinja.palletsprojects.com/en/3.1.x/templates/"><?= __('website') ?></a></p>
                 <h4><?= __('You can use the dot <code>`.` </code> notation or the subscript syntax <code>`[]`</code> to access attributes of a variable') ?></h4>
                 <ul>
                     <li><code>{{ Event.info }}</code>: <?= __('Shows the title of the event') ?></li>
