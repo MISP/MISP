@@ -9,7 +9,7 @@ info:
 
     MISP API allows you to query, create, modify data models, such as [Events](https://www.circl.lu/doc/misp/GLOSSARY.html#misp-event),
     [Objects](https://www.circl.lu/doc/misp/misp-objects/), [Attributes](https://www.circl.lu/doc/misp/GLOSSARY.html#misp-attribute).
-    This is extremly useful for interconnecting MISP with external tools and feeding other systems with threat intel data.
+    This is extremely useful for interconnecting MISP with external tools and feeding other systems with threat intel data.
 
     It also lets you perform administrative tasks such as creating users, organisations, altering MISP settings, and much more.
 
