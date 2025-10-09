@@ -33,7 +33,7 @@ var nodes_ask_threshold = 300;
 // network class (handle the event graph manipulation and events)
 class EventGraph {
     constructor(network_options, nodes, edges) {
-        // FIXME: Do the mapping between meta-catory and fa-icons.
+        // FIXME: Do the mapping between meta-category and fa-icons.
         // Should be replaced later on.
         this.mapping_meta_fa = new Map();
         this.mapping_meta_fa.set('file', {"meta-category": "file","fa_text": "file","fa-hex": "f15b"});
