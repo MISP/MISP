@@ -7422,7 +7422,7 @@ components:
                 description: "Filter events by matching the event info text"
                 type: string
                 nullable: true
-                example: "Phishing campaing"
+                example: "Phishing campaign"
               tag:
                 $ref: "#/components/schemas/TagName"
               tags:
