@@ -110,7 +110,7 @@ class SightingsController extends AppController
                 $this->loadModel('MispAttribute');
                 $attributes = $this->MispAttribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
                 if (empty($attributes)) {
-                    throw new MethodNotAllowedExeption('Invalid Attribute.');
+                    throw new MethodNotAllowedException('Invalid Attribute.');
                 }
                 $this->set('event_id', $attributes[0]['Attribute']['event_id']);
                 $this->set('id', $id);
