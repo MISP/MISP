@@ -509,7 +509,7 @@ class IOCImportComponent extends Component
                 $ors++;
             }
 
-            // if the number of possible combinations is higher than the hard limit, don't even attempt trying to resolve the AND branch
+            // if the number of possible combinations exceeds the hard limit, don't even attempt trying to resolve the AND branch
             if ($combinations > $this->hardLimit) {
                 $hope = false;
             }
