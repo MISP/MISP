@@ -282,7 +282,7 @@ class Workflow extends AppModel
         $workflow = $this->fetchWorkflow($workflow_id);
         $workflow['Workflow']['debug_enabled'] = !empty($enable);
         $result = $this->editWorkflow($workflow);
-        return empty($result['errrors']);
+        return empty($result['errors']);
     }
 
     public function toggleModules($module_ids, $enable, $is_trigger=false): int
