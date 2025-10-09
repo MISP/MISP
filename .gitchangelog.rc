@@ -253,7 +253,7 @@ include_merge = True
 ## callable will be called to resolve as strings and allow dynamical
 ## computation of these. The result will be used as revisions for
 ## gitchangelog (as if directly stated on the command line). This allows
-## to filter exaclty which commits will be read by gitchangelog.
+## to filter exactly which commits will be read by gitchangelog.
 ##
 ## To get a full documentation on the format of these strings, please
 ## refer to the ``git rev-list`` arguments. There are many examples.
