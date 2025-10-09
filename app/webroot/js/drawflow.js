@@ -1896,9 +1896,9 @@ class Drawflow {
 
     // Update connection
     const connections = [];
-    const connectionsOuputs = this.drawflow.drawflow[moduleName].data[id].outputs
-    Object.keys(connectionsOuputs).map(function (key, index) {
-      connections.push(connectionsOuputs[key]);
+    const connectionsOutputs = this.drawflow.drawflow[moduleName].data[id].outputs
+    Object.keys(connectionsOutputs).map(function (key, index) {
+      connections.push(connectionsOutputs[key]);
     });
     this.drawflow.drawflow[moduleName].data[id].outputs = {};
     const output_class_id = output_class.slice(7);
