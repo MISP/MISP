@@ -155,7 +155,7 @@ foreach(array_keys($columnOrders) as $tabName):
         ?>
         <?php
         if (!empty($static) && $tabName != $defaultTabName) {
-            // We cannot hide other tabs without JS. Only releave the default one for now.
+            // We cannot hide other tabs without JS. Only reveal the default one for now.
             continue;
         }
         ?>
