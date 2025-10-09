@@ -205,7 +205,7 @@ class AppModel extends Model
             case '2.4.71':
                 $this->OrgBlocklist = Classregistry::init('OrgBlocklist');
                 $values = array(
-                    array('org_uuid' => '58d38339-7b24-4386-b4b4-4c0f950d210f', 'org_name' => 'Setec Astrononomy', 'comment' => 'default example'),
+                    array('org_uuid' => '58d38339-7b24-4386-b4b4-4c0f950d210f', 'org_name' => 'Setec Astronomy', 'comment' => 'default example'),
                     array('org_uuid' => '58d38326-eda8-443a-9fa8-4e12950d210f', 'org_name' => 'Acme Finance', 'comment' => 'default example')
                 );
                 foreach ($values as $value) {
