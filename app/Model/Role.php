@@ -367,7 +367,7 @@ class Role extends AppModel
                 'id' => 'RolePermServerSign',
                 'text' => 'Server Signing',
                 'readonlyenabled' => false,
-                'title' => __('Users using a role with this permission will have access to the CryptographicsKeys/serverSign endpoint. This can be useful for internal services that need to sign data, though use it with care.'),
+                'title' => __('Users using a role with this permission will have access to the CryptographicKeys/serverSign endpoint. This can be useful for internal services that need to sign data, though use it with care.'),
             ]
         );
     }
