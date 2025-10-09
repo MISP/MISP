@@ -7096,7 +7096,7 @@ Other
   Add the possibility to have a '-' in the baseurl
 - Add the possibility to have a '-' in the baseurl. [Fafner [_KeyZee_]]
 
-  With the actual regex in testBaseURL, we can not have a '-' inside the BaseURL, I did a quick fix
+  With the actual regex in testBaseURL, we cannot have a '-' inside the BaseURL, I did a quick fix
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #6767 from SteveClement/guides. [Steve Clement]
 - Merge pull request #6764 from Natsec/patch-1. [Andras Iklody]
@@ -15907,7 +15907,7 @@ Changes
 
   This makes the beforeFilter function a bit smaller while keeping all the
   functionality. It will also help with reusing the setup logic in views
-  that can not execute all of AppComponent::beforeFilter, like the
+  that cannot execute all of AppComponent::beforeFilter, like the
   LinOTPAuth plugin.
 - [AppController] move loading and initialisation of Auth plugins to
   reuseable method. [Andreas Rammhold]
@@ -43856,7 +43856,7 @@ v2.2.1 (2014-02-19)
 - Merge branch 'feature/sync/timestamp' of https://github.com/MISP/MISP
   into feature/sync/timestamp. [Christophe Vandeplas]
 - Bugfix in UI. [Christophe Vandeplas]
-- Pull can not edit events / attributes. [Iglocska]
+- Pull cannot edit events / attributes. [Iglocska]
 
   - added the _edit method in EventsController
 - Merge branch 'feature/sync/timestamp' of https://github.com/MISP/MISP
@@ -44816,7 +44816,7 @@ v2.2.1 (2014-02-19)
   'escape' option was removed.
 - Sanitize. [Noud de Brouwer]
 
-  Sanitize can not be used in PGP key.
+  Sanitize cannot be used in PGP key.
 - GPG. [Noud de Brouwer]
 
   start of check/correct.
@@ -46188,7 +46188,7 @@ v2.2.1 (2014-02-19)
   Vandeplas]
 - Whitelist. [noud]
 
-  Seemingly we can not do name resolving(?),
+  Seemingly we cannot do name resolving(?),
   function nametoipl containing gethostbynamel removed.
 - GFI sandbox import. [noud]
 
