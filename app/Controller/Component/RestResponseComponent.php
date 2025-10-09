@@ -1985,7 +1985,7 @@ class RestResponseComponent extends Component
         );
     }
 
-    // create dictionnary mapping between fields constraints and scope->action
+    // create dictionary mapping between fields constraints and scope->action
     private function __setupFieldsConstraint() {
         foreach ($this->__descriptions as $scope => $desc) {
             foreach ($desc as $action => $params) {
