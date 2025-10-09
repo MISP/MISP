@@ -39,7 +39,7 @@ if (0 == count($pulledSightings)):?>
     <?php
 else:?>
     <ul>
-    <?php foreach ($pulledSightins as $e => $p) echo '<li>Event ' . $e . ' : ' . $p . ' sighting(s).</li>'; ?>
+    <?php foreach ($pulledSightings as $e => $p) echo '<li>Event ' . $e . ' : ' . $p . ' sighting(s).</li>'; ?>
     </ul>
     <?php
 endif;?>
