@@ -1915,7 +1915,7 @@ class GalaxyCluster extends AppModel
      *
      * @param array $user
      * @param ServerSyncTool $serverSync
-     * @param string|int $technique The technique startegy used for pulling
+     * @param string|int $technique The technique strategy used for pulling
      *      allowed:
      *          - int <event id>                    event containing the clusters to pulled
      *          - string <full>                     pull everything
