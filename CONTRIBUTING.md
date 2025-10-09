@@ -73,7 +73,7 @@ This prompts the JSON validation tests (via `jq`) using [TravisCI](https://travi
 If the checks fail, review your JSON. 
 Once everything works, commit your code and make a pull request against the specific library.
 
-Documentation (in PDF and HTML format) for the librairies are automatically generated from the JSON via [asciidoctor](https://asciidoctor.org/). Look at [this example](https://github.com/MISP/misp-galaxy/blob/main/tools/adoc_galaxy.py). 
+Documentation (in PDF and HTML format) for the libraries are automatically generated from the JSON via [asciidoctor](https://asciidoctor.org/). Look at [this example](https://github.com/MISP/misp-galaxy/blob/main/tools/adoc_galaxy.py). 
 
 ## Contributing to MISP taxonomies
 
