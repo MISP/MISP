@@ -46,7 +46,7 @@
         $params['mayModify'] = $mayModify;
         $params['mayPublish'] = $mayPublish;
     } else if ($scope === 'tag') {
-        if (!empty($taxoomy)) {
+        if (!empty($taxonomy)) {
             $params['taxonomy'] = $taxonomy['Taxonomy']['id'];
         }
     }
