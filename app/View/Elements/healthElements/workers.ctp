@@ -110,7 +110,7 @@
                     }
                 } else if ($worker['alive'] === 'N/A') {
                         $process = __('Unknown');
-                        $message = __('Cannot check whether the worker is alive or dead.');
+                        $message = __('Cannot check whether the worker is dead or alive.');
                         $style = "color:white;background-color:orange;";
                         $icon_modifier = ' icon-white';
                 } else if (!$worker['alive']) {
