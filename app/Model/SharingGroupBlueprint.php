@@ -211,7 +211,7 @@ class SharingGroupBlueprint extends AppModel
             foreach ($rules as $key => $value) {
                 if (in_array($key, $this->operands)) {
                     if ($operand === 'NOT') {
-                        throw new MethodNotAllwedException(__('Boolean branches within a NOT branch are not supported.'));
+                        throw new MethodNotAllowedException(__('Boolean branches within a NOT branch are not supported.'));
                     }
                     $temp = $this->__recursiveEvaluate($user, $rules[$key], $key);
                 } else {
