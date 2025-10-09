@@ -23,7 +23,7 @@ Nevertheless here is a very rough **food for thoughts** bulletpoint list for you
 
 ## Apache
 
-To make Apache less verbose in terms of sending banners, the belo might help.
+To make Apache less verbose in terms of sending banners, the below might help.
 
 ```
 diff --git a/apache2/conf-available/security.conf b/apache2/conf-available/security.conf

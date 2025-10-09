@@ -23,7 +23,7 @@
  * - "model"    	[string] : automagically filled with the class name of the model that generated the activity.
  * - "model_id"	[int]	: automagically filled with the primary key of the model that was modified.
  * - "action"   	[string] : automagically filled with what action is made (add/edit/delete)
- * - "user_id"  	[int]    : populated with the supplied user info. (May be renamed. See bellow.)
+ * - "user_id"  	[int]    : populated with the supplied user info. (May be renamed. See below.)
  * - "change"   	[string] : depending on setting either :
  * [name (alek) => (Alek), age (28) => (29)] or [name, age]
  *
