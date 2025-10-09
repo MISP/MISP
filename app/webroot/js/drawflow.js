@@ -526,7 +526,7 @@ class Drawflow {
         if (output_id !== input_id && input_class !== false) {
 
           if (this.container.querySelectorAll('.connection.node_in_' + input_id + '.node_out_' + output_id + '.' + output_class + '.' + input_class).length === 0) {
-            // Conection no exist save connection
+            // Connection no exist save connection
 
             this.connection_ele.classList.add("node_in_" + input_id);
             this.connection_ele.classList.add("node_out_" + output_id);
