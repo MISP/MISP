@@ -2906,7 +2906,7 @@ class MispAttribute extends AppModel
             'validate' => 'only'
         ];
 
-        // run the beforevalidation massage at this point so we can skip validation in round 2
+        // run the before validation massage at this point so we can skip validation in round 2
         foreach ($attributes as $k => $attribute) {
             $attributes[$k] = $this->beforeValidateMassage($attribute);
         }
