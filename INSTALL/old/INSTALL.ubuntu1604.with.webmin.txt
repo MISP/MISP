@@ -2,7 +2,7 @@ INSTALLATION INSTRUCTIONS
 ------------------------- 
 # For Ubuntu 16.04-server with Webmin preinstalled
 
-# Assuming you created the subdomanin misp.yourserver.tld to where MISP will be installed
+# Assuming you created the subdomain misp.yourserver.tld to where MISP will be installed
 # and that the user "misp" is in the sudoers group
 # and that you have already configured SSL with Lets Encrypt on the subdomain
 
@@ -43,7 +43,7 @@ sudo systemctl restart apache2
 
 3/ MISP code
 ------------
-# Assuming you created the subdomanin misp.yourserver.tld 
+# Assuming you created the subdomain misp.yourserver.tld 
 # Download MISP using git in the /home/misp/public_html/.
 
 git clone https://github.com/MISP/MISP.git /home/misp/public_html/MISP
