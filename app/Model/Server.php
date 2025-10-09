@@ -212,7 +212,7 @@ class Server extends AppModel
         ),
         'releaseUpdateLock' => array(
             'title' => 'Release update lock',
-            'description' => 'If your your database is locked and is not updating, unlock it here.',
+            'description' => 'If your database is locked and is not updating, unlock it here.',
             'ignore_disabled' => true,
             'url' => '/servers/releaseUpdateLock/'
         ),
