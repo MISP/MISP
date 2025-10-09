@@ -4521,7 +4521,7 @@ function loadTagTreemap() {
     });
 }
 
-function selectAllInbetween(last, current) {
+function selectAllInBetween(last, current) {
     if (last === false || last === current) {
         return false;
     }
