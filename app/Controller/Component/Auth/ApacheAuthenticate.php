@@ -41,7 +41,7 @@ class ApacheAuthenticate extends BaseAuthenticate
 
     private function getEmailAddress($ldapEmailField, $ldapUserData)
     {
-        // return the email address of an LDAP user if one of the fields in $ldapEmaiLField exists
+        // return the email address of an LDAP user if one of the fields in $ldapEmailField exists
         foreach($ldapEmailField as $field) {
             if (isset($ldapUserData[0][$field][0])) {
                 return $ldapUserData[0][$field][0];
