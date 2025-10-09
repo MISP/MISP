@@ -1243,7 +1243,7 @@ class Workflow extends AppModel
             try {
                 $reflection = new \ReflectionClass($className);
             } catch (\ReflectionException $e) {
-                $message = __('Could not load module for path %s. Could not instanciate class', $filepath);
+                $message = __('Could not load module for path %s. Could not instantiate class', $filepath);
                 $this->logException($message, $e);
                 return $message;
             }
