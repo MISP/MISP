@@ -139,7 +139,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
         }
 
         CakeLog::info("User `$mispUsername` not found in database.");
-        // Insert user in database if not existent
+        // Insert user in database if nonexistent
         $userData = array('User' => array(
             'email' => $mispUsername,
             'org_id' => $org,

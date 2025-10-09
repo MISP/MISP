@@ -127,7 +127,7 @@ class ApacheAuthenticate extends BaseAuthenticate
             }
         }
 
-        // insert user in database if not existent
+        // insert user in database if nonexistent
         $userModel = ClassRegistry::init($this->settings['userModel']);
         $org_id = Configure::read('ApacheSecureAuth.ldapDefaultOrg');
         // If not in config, take default org
