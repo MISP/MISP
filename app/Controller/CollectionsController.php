@@ -66,7 +66,7 @@ class CollectionsController extends AppController
         $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
         $this->Collection->current_user = $this->Auth->user();
         if (!$this->Collection->mayModify($this->Auth->user('id'), $id)) {
-            throw new MethodNotAllowedException(__('Invalid Collection or insuficient privileges'));
+            throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
         }
         $params = [];
         if ($this->request->is('post') || $this->request->is('put')) {
@@ -120,7 +120,7 @@ class CollectionsController extends AppController
     {
         $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
         if (!$this->Collection->mayModify($this->Auth->user('id'), $id)) {
-            throw new MethodNotAllowedException(__('Invalid Collection or insuficient privileges'));
+            throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
         }
         $this->CRUD->delete($id);
         if ($this->IndexFilter->isRest()) {
@@ -133,7 +133,7 @@ class CollectionsController extends AppController
         $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
         $this->set('mayModify', $this->Collection->mayModify($this->Auth->user('id'), $id));
         if (!$this->Collection->mayView($this->Auth->user('id'), $id)) {
-            throw new MethodNotAllowedException(__('Invalid Collection or insuficient privileges'));
+            throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
         }
         $this->set('menuData', array('menuList' => 'collections', 'menuItem' => 'view'));
         $params = [
