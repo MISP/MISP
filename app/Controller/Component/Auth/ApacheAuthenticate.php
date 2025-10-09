@@ -89,11 +89,11 @@ class ApacheAuthenticate extends BaseAuthenticate
                 die("LDAP bind failed");
             }
             // example for searchFiler: '(objectclass=InetOrgPerson)(!(nsaccountlock=True))(memberOf=cn=misp,cn=groups,cn=accounts,dc=example,dc=com)'
-            // example for searchAttribut: '(uuid=ApacheUser)'
+            // example for searchAttribute: '(uuid=ApacheUser)'
             if (!empty($ldapSearchFilter)) {
-                $filter = '(&' . $ldapSearchFilter . '(' . Configure::read('ApacheSecureAuth.ldapSearchAttribut') . '=' . $_SERVER[$envvar] . '))';
+                $filter = '(&' . $ldapSearchFilter . '(' . Configure::read('ApacheSecureAuth.ldapSearchAttribute') . '=' . $_SERVER[$envvar] . '))';
             } else {
-                $filter = '(' . Configure::read('ApacheSecureAuth.ldapSearchAttribut') . '=' . $_SERVER[$envvar] . ')';
+                $filter = '(' . Configure::read('ApacheSecureAuth.ldapSearchAttribute') . '=' . $_SERVER[$envvar] . ')';
             }
             // example: mail
             $getLdapUserInfo = Configure::read('ApacheSecureAuth.ldapFilter');
