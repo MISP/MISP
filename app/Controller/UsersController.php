@@ -877,6 +877,7 @@ class UsersController extends AppController
         if (empty($userToEdit)) {
             throw new NotFoundException(__('Invalid user'));
         }
+        $userToEdit['User']['password'] = '';
         if (!$this->_isSiteAdmin()) {
             // Org admins should be able to select the role that is already assigned to an org user when editing them.
             // What happened previously:
@@ -1081,7 +1082,6 @@ class UsersController extends AppController
                 $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
             }
             $this->request->data = $userToEdit;
-            $this->request->data['User']['password'] = '';
         }
         if ($this->_isSiteAdmin()) {
             $orgs = $this->User->Organisation->find('list', array(
