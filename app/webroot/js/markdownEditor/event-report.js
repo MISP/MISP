@@ -1456,8 +1456,8 @@ function getContentWithCheckedElements(isReplacement) {
         var suggestion = suggestions[value][suggestionKey]
         contentWithPickedSuggestions += content.substr(nextIndex, suggestion.startIndex.index - nextIndex)
         nextIndex = suggestion.startIndex.index
-        var renderedInMardown = $('.misp-element-wrapper.suggestion[data-suggestionkey="' + suggestionKey + '"]').length > 0;
-        if (suggestion.checked && renderedInMardown) { // If the suggestion is not rendered, ignore it (could happen if parent block is escaped)
+        var renderedInMarkdown = $('.misp-element-wrapper.suggestion[data-suggestionkey="' + suggestionKey + '"]').length > 0;
+        if (suggestion.checked && renderedInMarkdown) { // If the suggestion is not rendered, ignore it (could happen if parent block is escaped)
             if (isReplacement) {
                 if (pickedSuggestion.isContext === true) {
                     contentWithPickedSuggestions += '@[tag](' + suggestion.complexTypeToolResult.replacement + ')'
