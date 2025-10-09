@@ -1,4 +1,4 @@
-<div class="generic-picker-embeded-block">
+<div class="generic-picker-embedded-block">
     <?php
         $url = '/objects/quickAddAttributeForm/' . $object['id'];
         $element = $template_element;
