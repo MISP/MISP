@@ -1372,7 +1372,7 @@ class RestResponseComponent extends Component
                 'type' => 'string',
                 'operators' => array('equal'),
                 'values' => array( 'network' => 'Network', 'local' => 'Local'),
-                'help' => __('Specify whether the source (url field) is a directory (local) or a geniun url (network)')
+                'help' => __('Specify whether the source (url field) is a directory (local) or a genuine url (network)')
             ),
             'ip' => array(
                 'input' => 'text',
