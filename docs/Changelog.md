@@ -20415,7 +20415,7 @@ Other
   Install doc fixes
 - LD_LIBRARY_PATH setting needed for rh-git218. [Franky Van Liedekerke]
 - Update INSTALL.rhel7.md. [Franky Van Liedekerke]
-- Redhat install doc updates. [Franky Van Liedekerke]
+- Red Hat install doc updates. [Franky Van Liedekerke]
 
   Selinux simplications (otherwise web-based update won't work anyway)
   haveged is optional
@@ -23408,7 +23408,7 @@ Other
   fix: [doc] Added note about WSGI issues on Ubuntu 16.04
 - Merge pull request #3823 from SteveClement/guides. [Steve Clement]
 
-  chg: [doc] Updates to guides: Ubuntu 16.04 - CentOS 6/7 - RedHat EL and updated mkdocs creation script
+  chg: [doc] Updates to guides: Ubuntu 16.04 - CentOS 6/7 - Red Hat EL and updated mkdocs creation script
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [mokaddem]
 - Merge pull request #3822 from Rafiot/travis. [Raphaël Vinot]

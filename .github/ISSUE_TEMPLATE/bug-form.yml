@@ -40,7 +40,7 @@ body:
     id: os
     attributes:
       label: Operating System
-      placeholder: "Ubuntu, RedHat, CentOS ..."
+      placeholder: "Ubuntu, Red Hat, CentOS ..."
     validations:
       required: true
   - type: input

@@ -102,7 +102,7 @@ command_exists () {
 # TODO: fix os detection mess
 # Try to detect what we are running on
 checkCoreOS () {
-  # lsb_release can exist on any platform. RedHat package: redhat-lsb
+  # lsb_release can exist on any platform. Red Hat package: redhat-lsb
   LSB_RELEASE=$(which lsb_release > /dev/null ; echo $?)
   APT=$(which apt > /dev/null 2>&1; echo -n $?)
   APT_GET=$(which apt-get > /dev/null 2>&1; echo $?)
@@ -112,7 +112,7 @@ checkCoreOS () {
   ## os-release #generic
   # /etc/os-release
 
-  # Redhat checks
+  # Red Hat checks
   if [[ -f "/etc/redhat-release" ]]; then
     echo "This is some redhat flavour"
     REDHAT=1
