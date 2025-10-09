@@ -1812,7 +1812,7 @@ class AttributesController extends AppController
             $user = $this->Auth->user();
         }
         // if the user is authorised to use the api key then user will be populated with the user's account
-        // in addition we also set a flag indicating whether the user is a site admin or not.
+        // in addition we also set a flag indicating whether or not the user is a site admin.
         if (!$user) {
             throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
         }
