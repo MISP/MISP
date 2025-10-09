@@ -5268,7 +5268,7 @@ class EventsController extends AppController
         $this->set('target_id', $scope_id);
         if ($matrixData['galaxy']['id'] == $mitreAttackGalaxyId) {
             $this->set('defaultTabName', 'attack-enterprise');
-            $this->set('removeTrailling', 2);
+            $this->set('removeTrailing', 2);
         }
         $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies($this->Auth->user());
         $this->set('matrixGalaxies', $matrixGalaxies);

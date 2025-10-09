@@ -832,7 +832,7 @@ class GalaxyClustersController extends AppController
         }
         $this->set('pickingMode', false);
         $this->set('defaultTabName', 'mitre-enterprise-attack');
-        $this->set('removeTrailling', 2);
+        $this->set('removeTrailing', 2);
         $this->render('cluster_matrix');
     }
 

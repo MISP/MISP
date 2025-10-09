@@ -647,17 +647,17 @@ function MISPElementRule(state, startLine, endLine, silent) {
             // parseLinkDestination does not support trailing characters such as `.` after the link
             // so we have to find the matching `)`
             var destinationEnd = res.str.length - 1
-            var traillingCharNumber = 0
+            var trailingCharNumber = 0
             for (var i = res.str.length-1; i > 1; i--) {
                 var code = res.str.charCodeAt(i)
                 if (code === 0x29 /* ) */) {
                     destinationEnd = i
                     break
                 }
-                traillingCharNumber++
+                trailingCharNumber++
             }
             elementID = res.str.substring(1, destinationEnd);
-            pos = res.pos - 1 - traillingCharNumber;
+            pos = res.pos - 1 - trailingCharNumber;
         }
     }
 
