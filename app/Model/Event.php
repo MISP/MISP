@@ -5373,7 +5373,7 @@ class Event extends AppModel
 
     // expects a date string in the YYYY-MM-DD format
     // returns the passed string or false if the format is invalid
-    // based on the fix provided by stevengoosensB
+    // based on the fix provided by stevengoossensB
     public function dateFieldCheck($date)
     {
         // regex check for from / to field by stevengoossensB
