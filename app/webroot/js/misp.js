@@ -620,7 +620,7 @@ function inputFieldButtonActive(selector) {
 
 function inputFieldButtonPassive(selector) {
     $(selector).closest('.inline-input-container').children('.inline-input-accept').addClass('inline-input-passive').removeClass('inline-input-active');
-    $(selector).closest('.inline-input-container').children('.inline-input-daecline').addClass('inline-input-passive').removeClass('inline-input-active');
+    $(selector).closest('.inline-input-container').children('.inline-input-decline').addClass('inline-input-passive').removeClass('inline-input-active');
 }
 
 function autoresize(textarea) {
