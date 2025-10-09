@@ -109,7 +109,7 @@ class AppModel extends Model
             'requirements' => 'MySQL version must be >= 5.6', # message stating the requirements necessary for the update
             'record' => false, # should the update success be saved in the admin_table
             // 'preUpdate' => 'seenOnAttributeAndObjectPreUpdate', # Function to execute before the update. If it throws an error, it cancels the update
-            'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
+            'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the function performing the update
         ),
     );
 
