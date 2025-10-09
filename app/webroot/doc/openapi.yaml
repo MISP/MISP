@@ -3416,7 +3416,7 @@ components:
         $ref: "#/components/schemas/AttributeRestSearchListItem"
 
     AttributeStatisticsResponse:
-      description: Dictionary of attribute types/categories showing the amount of occurences/percentage.
+      description: Dictionary of attribute types/categories showing the amount of occurrences/percentage.
       type: object
       example:
         - "Antivirus detection": "10"

@@ -864,7 +864,7 @@ function build_time_chart(data) {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Time Occurences'
+                    text: 'Time Occurrences'
                 }
             },
             scales: {
