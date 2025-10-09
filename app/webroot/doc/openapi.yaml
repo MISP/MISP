@@ -8053,10 +8053,10 @@ components:
               uuid:
                 $ref: "#/components/schemas/UUID"
               authkey_start:
-                description: "Search term matching the first 4 characers of the authkey"
+                description: "Search term matching the first 4 characters of the authkey"
                 type: string
               authkey_end:
-                description: "Search term matching the last 4 characers of the authkey"
+                description: "Search term matching the last 4 characters of the authkey"
                 type: string
               created:
                 $ref: "#/components/schemas/DateRestSearchFilter"
