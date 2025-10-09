@@ -67,11 +67,11 @@ checkDiskFree () {
       exit 126
     fi
   fi
-  threshhold=90
+  threshold=90
   free=$(df -l --sync --output=pcent $1 |tail -1|cut -f 1 -d% | tr -d \ )
-  if [[ "$free" > "$threshhold" ]]; then
+  if [[ "$free" > "$threshold" ]]; then
     space
-    echo "Your destination folder is $threshhold% full."
+    echo "Your destination folder is $threshold% full."
     space
     exit 1
   fi
