@@ -118,7 +118,7 @@ CakePlugin::load('UrlCache');
 
 /**
  * Uncomment the following line to enable client SSL certificate authentication.
- * It's also necessary to configure the plugin — for more information, please read app/Plugin/CertAuth/reame.md
+ * It's also necessary to configure the plugin — for more information, please read app/Plugin/CertAuth/readme.md
  */
 // CakePlugin::load('CertAuth');
 
