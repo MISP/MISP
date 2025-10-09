@@ -6,7 +6,7 @@
      * - modelName: The model of the deleted element
      * - value: The value being deleted
      * - id: the ID of the value being deleted
-     * - additionaMessage: array of message to be inserted
+     * - additionalMessage: array of message to be inserted
      * - softDeleteURL: The optional soft delete URL to POST to
      * - hardDeleteURL: The hard delete URL to POST to
      * - doNotShowHelp: If help text for soft/hard deleting should not be shown

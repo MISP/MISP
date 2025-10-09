@@ -26,7 +26,7 @@
 ##
 ##   COMMIT_MSG is ... well ... the commit message itself.
 ##
-##   TAGs are additionnal adjective as 'refactor' 'minor' 'cosmetic'
+##   TAGs are additional adjective as 'refactor' 'minor' 'cosmetic'
 ##
 ##       They are preceded with a '!' or a '@' (prefer the former, as the
 ##       latter is wrongly interpreted in github.) Commonly used tags are:
