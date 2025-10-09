@@ -39,7 +39,7 @@
 ## Example:
 ##
 ##   new: usr: support of bazaar implemented
-##   chg: re-indentend some lines !cosmetic
+##   chg: re-indented some lines !cosmetic
 ##   new: dev: updated code to be compatible with last version of killer lib.
 ##   fix: pkg: updated year of licence coverage.
 ##   new: test: added a bunch of test around user usability of feature X.
