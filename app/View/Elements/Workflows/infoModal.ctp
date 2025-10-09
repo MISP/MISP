@@ -909,7 +909,7 @@ $data_passed_to_if_module = [
                         </tr>
                         <tr>
                             <td><code>Ctrl + d</code></td>
-                            <td> <?= __('Duptrcate selection') ?></td>
+                            <td> <?= __('Duplicate selection') ?></td>
                         </tr>
                         <tr>
                             <td><code>delete</code></td>
