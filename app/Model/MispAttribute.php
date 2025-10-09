@@ -725,7 +725,7 @@ class MispAttribute extends AppModel
         if ($type === 'attachment') {
             $this->checkAttachmentExtension($attribute);
 
-            // Disable correlation for image attachment filename that often leads to false positive correlation becuase of
+            // Disable correlation for image attachment filename that often leads to false positive correlation because of
             // generic names
             if (!isset($attribute['disable_correlation']) && $this->isImage($attribute)) {
                 $attribute['disable_correlation'] = true;
