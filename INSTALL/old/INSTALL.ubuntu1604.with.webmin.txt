@@ -151,7 +151,7 @@ sh -c "mysql -u misp -p misp < /home/misp/public_html/MISP/INSTALL/MYSQL.sql"
 
         <Directory /home/misp/public_html/MISP/app/webroot>
 
-# The rest should't require modifications. Restart Apache
+# The rest shouldn't require modifications. Restart Apache
 
 sudo service apache2 restart
 
