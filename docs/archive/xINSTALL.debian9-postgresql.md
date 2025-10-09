@@ -2,7 +2,7 @@
 ## for Debian --->8<--- "jessie" server + PostgreSQL
 
 !!! note
-    This is the old Deian 8 jessie Guide, needs updating.
+    This is the old Debian 8 jessie Guide, needs updating.
 
 !!! warning
     PostgreSQL support in MISP is experimental.
