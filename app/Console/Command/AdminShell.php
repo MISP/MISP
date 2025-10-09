@@ -877,7 +877,7 @@ class AdminShell extends AppShell
             'conditions' => array(
                 'action' => 'update_database',
                 'title LIKE ' => array(
-                    'Successfuly executed the SQL query for %',
+                    'Successfully executed the SQL query for %',
                     'Issues executing the SQL query for %'
                 )
             ),

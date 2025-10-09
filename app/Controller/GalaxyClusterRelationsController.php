@@ -287,7 +287,7 @@ class GalaxyClusterRelationsController extends AppController
             if ($result) {
                 $this->GalaxyClusterRelation->SourceCluster->touchTimestamp($clusterSource['GalaxyCluster']['id']);
                 $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['GalaxyCluster']['id']);
-                $message = __('Galaxy cluster relationship successfuly deleted.');
+                $message = __('Galaxy cluster relationship successfully deleted.');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'delete', $id, $this->response->type());
                 } else {

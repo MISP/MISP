@@ -4878,7 +4878,7 @@ class EventsController extends AppController
             $this->set('errors', $errors);
             if ($successCount > 0) {
                 $this->set('name', 'Partial success');
-                $this->set('message', 'Successfuly saved ' . $successCount . ' sample(s), but some samples could not be saved.');
+                $this->set('message', 'Successfully saved ' . $successCount . ' sample(s), but some samples could not be saved.');
                 $this->set('url', $this->baseurl . '/events/view/' . $data['settings']['event_id']);
                 $this->set('id', $data['settings']['event_id']);
                 $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
