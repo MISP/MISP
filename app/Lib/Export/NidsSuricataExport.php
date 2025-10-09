@@ -511,7 +511,7 @@ class NidsSuricataExport extends NidsExport
                     $content = 'flow:to_server; app-layer-protocol:ssh;';
                     $tag = '';
                 }
-                # Cannot create a satisfaisant rule (user could create a domain attribute if needed)
+                # Cannot create a satisfying rule (user could create a domain attribute if needed)
                 else {
                     $createRule = false;
                 }
@@ -528,7 +528,7 @@ class NidsSuricataExport extends NidsExport
                     $content = 'flow:to_server; app-layer-protocol:ftp;';
                     $tag = '';
                 }
-                # Cannot create a satisfaisant rule (user could create a domain attribute if needed)
+                # Cannot create a satisfying rule (user could create a domain attribute if needed)
                 else {
                     $createRule = false;
                 }
