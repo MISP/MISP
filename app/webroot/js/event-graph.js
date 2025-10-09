@@ -661,7 +661,7 @@ class EventGraph {
     }
     // Graph interaction
 
-    // Clusterize the specified node with its connected childs
+    // Clusterize the specified node with its connected children
     clusterize(rootID) {
         var that = eventGraph;
         var type = mapping_root_id_to_type[rootID];
