@@ -989,7 +989,7 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('The user will be prompted the change the password')
+                'help' => __('The user will be prompted the change their password')
             ),
             'colour' => array(
                 'input' => 'text',
