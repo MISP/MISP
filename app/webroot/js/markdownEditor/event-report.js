@@ -166,9 +166,9 @@ function pasteImg(cm, event) {
     if (!fileList[0]) {
         return
     }
-    const dataTransfert = new DataTransfer()
-    dataTransfert.items.add(fileList[0])
-    fileList = dataTransfert.files
+    const dataTransfer = new DataTransfer()
+    dataTransfer.items.add(fileList[0])
+    fileList = dataTransfer.files
     if (fileList.length > 0) { // pasting contains a picture to be uploaded
         event.preventDefault();
         const $picture = $('<div style="display: flex; justify-content: center; align-items: center; margin: 1em; border: 1px solid #aaaaaa99;">').append($('<img id="pastedPicturePreview">'))
