@@ -4283,7 +4283,7 @@ class EventsController extends AppController
         if (empty(Configure::read('MISP.background_jobs'))) {
             $attributes = $temp;
         }
-        // FIXME $attributes does not contain the onteflyattributes
+        // FIXME $attributes does not contain the ontheflyattributes
         $attributes = array_values($attributes);
         return $this->RestResponse->viewData($attributes, $this->response->type());
     }

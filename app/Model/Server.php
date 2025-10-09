@@ -5294,7 +5294,7 @@ class Server extends AppModel
                 ),
                 'object_fetch_hard_limit'=> [
                     'level' => 1,
-                    'description' => __('This value controls the the maximum number of objects that can be fetched in one shot via /objects/restSearch. If a query would exceed the given limit, it will iterate internally to build the result-set, so it will only effect the internals, however, it can resolve object restSearch failures due to high memory allocation to php.ini. Setting this to 0 will disable the cap altogether and revert to the old behaviour. Defaults to 0 (disabled).'),
+                    'description' => __('This value controls the maximum number of objects that can be fetched in one shot via /objects/restSearch. If a query would exceed the given limit, it will iterate internally to build the result-set, so it will only effect the internals, however, it can resolve object restSearch failures due to high memory allocation to php.ini. Setting this to 0 will disable the cap altogether and revert to the old behaviour. Defaults to 0 (disabled).'),
                     'value' => 0,
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
