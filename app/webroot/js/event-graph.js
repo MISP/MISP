@@ -2229,7 +2229,7 @@ function enable_interactive_graph() {
                     eventGraph.network.disableEditMode(); // un-toggle edit mode
                     $('#network-typeahead').focus();
                     $('#network-typeahead').text('');
-                    evt.preventDefault(); // avoid writting a 'F' in the input field
+                    evt.preventDefault(); // avoid writing a 'F' in the input field
                 }
                 break;
 
