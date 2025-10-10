@@ -141,7 +141,7 @@ class UrlCacheManager {
 	}
 
 	/**
-	 * Stores a ney key in memory cache
+	 * Stores a new key in memory cache
 	 *
 	 * @param string $key
 	 * @param mixed data to be stored
