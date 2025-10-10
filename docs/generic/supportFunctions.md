@@ -38,7 +38,7 @@ usage () {
   echo -e "                -u | Do an unattended Install, no questions asked"      # UNATTENDED
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
-  echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
+  echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS shim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
   echo -e "Options can be combined: ${SCRIPT_NAME} -c -D # Will install Core+Dashboard"
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
