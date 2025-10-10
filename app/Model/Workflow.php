@@ -1652,7 +1652,7 @@ class Workflow extends AppModel
         return $workflow;
     }
     /**
-     * moduleSattelesExecution Executes a module using the provided configuration and returns back the result
+     * moduleStatelessExecution Executes a module using the provided configuration and returns back the result
      *
      * @param string $module_id
      * @param string|array $input_data
