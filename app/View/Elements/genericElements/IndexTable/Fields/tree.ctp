@@ -24,7 +24,7 @@ if (isset($field['parent'])) {
 
 $htmlExtended = '';
 $datapathLevels = $field['fields']['tree_data'];
-$levelSkiped = 0;
+$levelSkipped = 0;
 foreach ($datapathLevels as $level => $datapathLevel) {
     $dataForLevel = Hash::extract($row, $datapathLevel['main_data_path']);
     if (!empty($dataForLevel)) {
@@ -33,15 +33,15 @@ foreach ($datapathLevels as $level => $datapathLevel) {
             array(
                 'datapath' => $datapathLevel,
                 'data' => $dataForLevel,
-                'level' => $level - $levelSkiped,
+                'level' => $level - $levelSkipped,
             )
         );
     } else {
-        $levelSkiped++;
+        $levelSkipped++;
     }
 }
 
-if ($levelSkiped + 1 < count($datapathLevels)) { // only print if at least 2 level were displayed
+if ($levelSkipped + 1 < count($datapathLevels)) { // only print if at least 2 level were displayed
     echo $htmlExtended;
 }
 ?>
