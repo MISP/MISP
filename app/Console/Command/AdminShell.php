@@ -748,7 +748,7 @@ class AdminShell extends AppShell
     public function getAuthkey()
     {
         if (Configure::read("Security.advanced_authkeys")) {
-            $this->error('Advanced autkeys enabled, it is not possible to get user authkey.');
+            $this->error('Advanced authkeys enabled, it is not possible to get user authkey.');
         }
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get authkey'] . PHP_EOL);
