@@ -625,11 +625,16 @@ class MispObject extends AppModel
             );
         }
         if ($this->checkDbSupport('reverseJoin')) {
+            $fields = ['Object.*'];
+            if (isset($options['contain']['Event']['fields'])) {
+                foreach ($options['contain']['Event']['fields'] as $key => $field) {
+                    if (is_numeric($key)) {
+                        $fields[] = 'Event.' . $field;
+                    }
+                }
+            }
             $params = array(
-                'fields' => array(
-                    'Object.*',          // or explicitly list them
-                    'Event.id', 'Event.info', 'Event.org_id', 'Event.orgc_id'
-                ),
+                'fields' => $fields,
                 'conditions' => $this->buildConditions($user),
                 'recursive' => -1,
                 'joins' => array(
@@ -658,7 +663,7 @@ class MispObject extends AppModel
                 'recursive' => -1,
                 'contain' => array(
                     'Event' => array(
-                        'fields' => array('id', 'info', 'org_id', 'orgc_id'),
+                        'fields' => isset($options['contain']['Event']['fields']) ? $options['contain']['Event']['fields'] : array('id', 'info', 'org_id', 'orgc_id'),
                     ),
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
@@ -678,6 +683,10 @@ class MispObject extends AppModel
             $params['contain']['Attribute']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
         }
         if (isset($options['contain'])) {
+            if (isset($options['contain']['Event'])) {
+                // we include this manually insted to allow for the reverse join
+                unset($options['contain']['Event']);
+            }
             $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
         }
         if (
