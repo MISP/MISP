@@ -12,7 +12,7 @@ to login with passwords stored in MISP.
 cd app
 php composer.phar require jakub-onderka/openid-connect-php:1.0.0-rc1
 ```
-2. Enable Oidc plugin in `app/Config/bootstrap.php`, add to the end the following line:
+2. Enable Oidc plugin in `app/Config/bootstrap.php`, add the following line to the end:
 ```php
 CakePlugin::load('OidcAuth');
 ```

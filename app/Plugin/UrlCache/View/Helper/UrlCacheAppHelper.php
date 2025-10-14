@@ -53,7 +53,7 @@ class UrlCacheAppHelper extends Helper {
 	 * Intercepts the parent url function to first look if the cache was already generated for the same params
 	 *
 	 * @param mixed $url url to generate using cakephp array syntax
-	 * @param boolean $full wheter to generate a full url or not (http scheme)
+	 * @param boolean $full whether to generate a full url or not (http scheme)
 	 * @return string
 	 * @see Helper::url()
 	 */

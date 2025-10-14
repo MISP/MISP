@@ -103,7 +103,7 @@
                         $icon_modifier = ' icon-white';
                         $process = __('OK');
                     } else {
-                        $message = __('The worker was started with a user other than the apache user. MISP cannot check whether the worker is alive or not.');
+                        $message = __('The worker was started with a user other than the apache user. MISP cannot check whether or not the worker is alive.');
                         $style = "color:white;background-color:red;";
                         $icon_modifier = ' icon-white';
                         $process = __('Unknown');

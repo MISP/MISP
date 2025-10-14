@@ -56,12 +56,12 @@ def main():
 
     # Check connectivity
     if test_connectivity(source_instance):
-        logger.debug(f'Connection to MISP source<{source_instance.base_url}> successfull')
+        logger.debug(f'Connection to MISP source<{source_instance.base_url}> successful')
     else:
         logger.error('Could not connect to source MISP instance')
         return 1
     if test_connectivity(destination_instance):
-        logger.debug(f'Connection to MISP remote<{destination_instance.base_url}> successfull')
+        logger.debug(f'Connection to MISP remote<{destination_instance.base_url}> successful')
     else:
         logger.error('Could not connect to remote MISP instance')
         return 1

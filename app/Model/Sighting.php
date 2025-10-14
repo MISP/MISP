@@ -1284,7 +1284,7 @@ class Sighting extends AppModel
             if (!isset($attributes[$s['attribute_uuid']])) {
                 continue; // attribute doesn't exists or user don't have permission to access it
             }
-            $existingSighting[$s['uuid']] = true; // just to be sure that there are no sigthings with duplicated UUID
+            $existingSighting[$s['uuid']] = true; // just to be sure that there are no sightings with duplicated UUID
 
             list($attributeId, $eventId) = $attributes[$s['attribute_uuid']];
 

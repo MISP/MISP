@@ -490,7 +490,7 @@ class Correlation extends AppModel
             return true;
         }
         /* 
-         *Removed this check for now, it assumed that correlatioan rules COMPLETELY blocked correlation, which is not the case.
+         *Removed this check for now, it assumed that correlation rules COMPLETELY blocked correlation, which is not the case.
         if (!$this->CorrelationRule->canCorrelate($a)) {
             return true;
         }

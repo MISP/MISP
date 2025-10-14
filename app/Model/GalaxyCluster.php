@@ -393,7 +393,7 @@ class GalaxyCluster extends AppModel
             $errors[] = __('UUID not provided');
         }
         if (empty($existingCluster)) {
-            $errors[] = __('Unkown UUID');
+            $errors[] = __('Unknown UUID');
         } else {
             // For users that are of the creating org of the cluster, always allow the edit
             // For users that are sync users, only allow the edit if the cluster is locked
@@ -1929,7 +1929,7 @@ class GalaxyCluster extends AppModel
      *
      * @param array $user
      * @param ServerSyncTool $serverSync
-     * @param string|int $technique The technique startegy used for pulling
+     * @param string|int $technique The technique strategy used for pulling
      *      allowed:
      *          - int <event id>                    event containing the clusters to pulled
      *          - string <full>                     pull everything

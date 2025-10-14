@@ -19,7 +19,7 @@
                 <ul>
                     <li><strong><?= __('Workflow Execution path:') ?></strong> <?= __('A path composed of actions to be executed sequentially. A workflow can have multiple execution paths if it has condition modules') ?></li>
                     <li><strong><?= __('Trigger:') ?></strong> <?= __('Starting point of an execution path. Triggers are called when specific actions happened in MISP like Event publishing or data creation.') ?></li>
-                    <li><strong><?= __('Condition module:') ?></strong> <?= __('Special type of module that can hange the the execution path. An IF module can produce two execution paths, one if the condition is satisfied and another one if it isn\'t.') ?></li>
+                    <li><strong><?= __('Condition module:') ?></strong> <?= __('Special type of module that can hange the execution path. An IF module can produce two execution paths, one if the condition is satisfied and another one if it isn\'t.') ?></li>
                     <li><strong><?= __('Action module:') ?></strong> <?= __('Module that are executed that can additional actions than the default MISP behavior.') ?></li>
                     <li><strong><?= __('Blueprints:') ?></strong> <?= __('Saved collection of modules that can be re-used and shared.') ?></li>
                     <li><strong><?= __('MISP Core format:') ?></strong> <?= __('Standardized format specification used in MISP. Also called MISP standard, the %s is currently an RFC draft.', sprintf('<a href="%s" target="_blank">%s</a>', __('MISP Core format'), 'https://github.com/MISP/misp-rfc')) ?></li>
@@ -35,12 +35,12 @@
                 </ul>
                 <h1><?= __('Concepts') ?></h1>
                 <h2>
-                    <span class="label label-important" style="line-height: 20px; vertical-align: middle;" title="<?= __('This workflow is a blocking worklow and can prevent the default MISP behavior to execute') ?>">
+                    <span class="label label-important" style="line-height: 20px; vertical-align: middle;" title="<?= __('This workflow is a blocking workflow and can prevent the default MISP behavior to execute') ?>">
                         <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('stop-circle') ?>"></i>
                         <?= __('Blocking') ?>
                     </span>
                     <?= __('and') ?>
-                    <span class="label label-success" style="line-height: 20px; vertical-align: middle;" title="<?= __('This workflow is a not blocking worklow. The default MISP behavior will or has already happened') ?>">
+                    <span class="label label-success" style="line-height: 20px; vertical-align: middle;" title="<?= __('This workflow is a not blocking workflow. The default MISP behavior will or has already happened') ?>">
                         <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('check-circle') ?>"></i>
                         <?= __('Non blocking') ?>
                     </span>

@@ -1054,7 +1054,7 @@ POST a User object in JSON format to this API to create a new user.
 | autoalert |integer |The user receive alerts when events are published |
 | contactalert |integer |The user receive alerts from `contact reporter` requests |
 | disabled |integer |Disable the user account |
-| change_pw |integer |The user will be prompted the change the password |
+| change_pw |integer |The user will be prompted the change their password |
 | termsaccepted |integer | |
 | newsread |integer |The news are read |
 
@@ -1083,7 +1083,7 @@ POST a User object in JSON format to this API to edit a user.
 | autoalert |integer |The user receive alerts when events are published |
 | contactalert |integer |The user receive alerts from `contact reporter` requests |
 | disabled |integer |Disable the user account |
-| change_pw |integer |The user will be prompted the change the password |
+| change_pw |integer |The user will be prompted the change their password |
 | termsaccepted |integer | |
 | newsread |integer |The news are read |
 

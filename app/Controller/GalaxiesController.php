@@ -69,8 +69,8 @@ class GalaxiesController extends AppController
             $this->set('galaxyList', $galaxies);
             $this->set('passedArgsArray', $this->passedArgs);
             $this->set('searchall', $filters['value']);
-            $unkownClustersDetails = $this->_isSiteAdmin() ? $this->Galaxy->getUnknownClustersDetails() : '';
-            $this->set('unkownClustersDetails', $unkownClustersDetails);
+            $unknownClustersDetails = $this->_isSiteAdmin() ? $this->Galaxy->getUnknownClustersDetails() : '';
+            $this->set('unknownClustersDetails', $unknownClustersDetails);
         }
     }
 

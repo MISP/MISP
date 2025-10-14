@@ -2438,7 +2438,7 @@ class Event extends AppModel
 
     private function __pruneUnknownClusters(array &$event, array $user)
     {
-        if (!Configure::read('MISP.hide_unkown_cluster', true) || $user['Role']['perm_sync']) {
+        if (!Configure::read('MISP.hide_unknown_cluster', true) || $user['Role']['perm_sync']) {
             return;
         }
         foreach ($event['EventTag'] as $i => $eventTag) {
@@ -5380,7 +5380,7 @@ class Event extends AppModel
 
     // expects a date string in the YYYY-MM-DD format
     // returns the passed string or false if the format is invalid
-    // based on the fix provided by stevengoosensB
+    // based on the fix provided by stevengoossensB
     public function dateFieldCheck($date)
     {
         // regex check for from / to field by stevengoossensB
@@ -8529,7 +8529,7 @@ class Event extends AppModel
                 'scope' => 'Attribute',
                 'requiresPublished' => 1,
                 'params' => array('returnFormat' => 'text', 'includeAttachments' => 1),
-                'description' => __('Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.')
+                'description' => __('Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for suspicious files. Only published events and attributes marked as IDS Signature are exported.')
             ),
             'yara' => array(
                 'extension' => '.yara',

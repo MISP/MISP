@@ -15,7 +15,7 @@
         var default_config = {
             interval: 300,                  // Interval between each task execution
             slowInterval: 3000,             // Interval between each task execution when the task is throttled
-            autoThrottle: false,            // If the task fails (i.e. return false), engage a slow throtlle - WIP
+            autoThrottle: false,            // If the task fails (i.e. return false), engage a slow throttle - WIP
             checkboxLink: false,            // Link the provided checkbox to the task. The link is done if jQuery object or ID is provided
             container: false,               // Insert an HTML switch and link it to the task
             checkboxLabel: '',              // The label accompanying the switch

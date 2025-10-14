@@ -108,7 +108,7 @@ class GalaxyElement extends AppModel
      * getClusterIDsFromMatchingElements
      *
      * @param array $user
-     * @param array $elements an associative array containg the elements to search for
+     * @param array $elements an associative array containing the elements to search for
      *  Example: {"synonyms": "apt42"}
      * @return array
      */

@@ -1,28 +1,28 @@
 <?php
 
-class TresholdSightingsWidget
+class ThresholdSightingsWidget
 {
     public $title = 'Threshold Sightings';
     public $render = 'SimpleList';
     public $width = 8;
     public $height = 4;
     public $params = array(
-        'treshold' => 'Threshold for sightings'
+        'threshold' => 'Threshold for sightings'
     );
     public $description = 'Widget showing information on sightings above certain threshold';
     public $cacheLifetime = false;
     public $autoRefreshDelay = 30;
     public $placeholder = 
     '{
-        "treshold": "10"
+        "threshold": "10"
     }';
 
 	public function handler($user, $options = array())
 	{
         $params = array(
-            'treshold' => empty($options['treshold']) ? 10 : $options['treshold'],
+            'threshold' => empty($options['threshold']) ? 10 : $options['threshold'],
         );
-        $treshold = $params['treshold'];
+        $threshold = $params['threshold'];
 
         /** @var Sighting $Sighting */
         $Sighting = ClassRegistry::init('Sighting');
@@ -49,7 +49,7 @@ class TresholdSightingsWidget
         }
 
         foreach ($sightings_score as $attribute_id => $s) {
-            if ((int)$s['score'] >= (int)$treshold ) {
+            if ((int)$s['score'] >= (int)$threshold ) {
                 $output = "Score: " . $s['score'] . ": " . $s['value'] . " (id: " . $attribute_id . ") in " . $s['event_title'] . " (id: " . $s['event_id'] . ")";
                 $data[] = array( 'title' => __("False positive above threshold"), 'value' => $output, 
                                     'html' => sprintf(

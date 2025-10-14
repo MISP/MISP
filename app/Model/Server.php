@@ -212,7 +212,7 @@ class Server extends AppModel
         ),
         'releaseUpdateLock' => array(
             'title' => 'Release update lock',
-            'description' => 'If your your database is locked and is not updating, unlock it here.',
+            'description' => 'If your database is locked and is not updating, unlock it here.',
             'ignore_disabled' => true,
             'url' => '/servers/releaseUpdateLock/'
         ),
@@ -5296,7 +5296,7 @@ class Server extends AppModel
                 ),
                 'object_fetch_hard_limit'=> [
                     'level' => 1,
-                    'description' => __('This value controls the the maximum number of objects that can be fetched in one shot via /objects/restSearch. If a query would exceed the given limit, it will iterate internally to build the result-set, so it will only effect the internals, however, it can resolve object restSearch failures due to high memory allocation to php.ini. Setting this to 0 will disable the cap altogether and revert to the old behaviour. Defaults to 0 (disabled).'),
+                    'description' => __('This value controls the maximum number of objects that can be fetched in one shot via /objects/restSearch. If a query would exceed the given limit, it will iterate internally to build the result-set, so it will only effect the internals, however, it can resolve object restSearch failures due to high memory allocation to php.ini. Setting this to 0 will disable the cap altogether and revert to the old behaviour. Defaults to 0 (disabled).'),
                     'value' => 0,
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
@@ -5724,7 +5724,7 @@ class Server extends AppModel
                 ),
                 'forceHTTPSforPreLoginRequestedURL' => array(
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('If enabled, any requested URL before login will have their HTTP part replaced by HTTPS. This can be usefull if MISP is running behind a reverse proxy responsible for SSL and communicating unencrypted with MISP.'),
+                    'description' => __('If enabled, any requested URL before login will have their HTTP part replaced by HTTPS. This can be useful if MISP is running behind a reverse proxy responsible for SSL and communicating unencrypted with MISP.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'
@@ -6511,7 +6511,7 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
-                'hide_unkown_cluster' => [
+                'hide_unknown_cluster' => [
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('This will hide unknown cluster to all users expect those having the sync permission.'),
                     'value' => true,
@@ -7129,7 +7129,7 @@ class Server extends AppModel
                 ),
                 'cors_origins' => array(
                     'level' => 1,
-                    'description' => __('Set the origins from which MISP will allow cross-origin requests. Useful for external integration. Comma seperate if you need more than one.'),
+                    'description' => __('Set the origins from which MISP will allow cross-origin requests. Useful for external integration. Comma separate if you need more than one.'),
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',

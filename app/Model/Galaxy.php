@@ -717,7 +717,7 @@ class Galaxy extends AppModel
             $errors[] = __('UUID not provided');
         }
         if (empty($existingGalaxy)) {
-            $errors[] = __('Unkown UUID');
+            $errors[] = __('Unknown UUID');
         } else {
             if (!empty($existingGalaxy['Galaxy']['default'])) {
                 $errors[] = __('Cannot edit default Galaxy');

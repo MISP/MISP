@@ -4283,7 +4283,7 @@ class EventsController extends AppController
         if (empty(Configure::read('MISP.background_jobs'))) {
             $attributes = $temp;
         }
-        // FIXME $attributes does not contain the onteflyattributes
+        // FIXME $attributes does not contain the ontheflyattributes
         $attributes = array_values($attributes);
         return $this->RestResponse->viewData($attributes, $this->response->type());
     }
@@ -4878,7 +4878,7 @@ class EventsController extends AppController
             $this->set('errors', $errors);
             if ($successCount > 0) {
                 $this->set('name', 'Partial success');
-                $this->set('message', 'Successfuly saved ' . $successCount . ' sample(s), but some samples could not be saved.');
+                $this->set('message', 'Successfully saved ' . $successCount . ' sample(s), but some samples could not be saved.');
                 $this->set('url', $this->baseurl . '/events/view/' . $data['settings']['event_id']);
                 $this->set('id', $data['settings']['event_id']);
                 $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
@@ -5268,7 +5268,7 @@ class EventsController extends AppController
         $this->set('target_id', $scope_id);
         if ($matrixData['galaxy']['id'] == $mitreAttackGalaxyId) {
             $this->set('defaultTabName', 'attack-enterprise');
-            $this->set('removeTrailling', 2);
+            $this->set('removeTrailing', 2);
         }
         $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies($this->Auth->user());
         $this->set('matrixGalaxies', $matrixGalaxies);

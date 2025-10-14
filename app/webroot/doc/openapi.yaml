@@ -16,7 +16,7 @@ info:
     To get an API key there are several options:
     * **[UI]** Go to [My Profile -> Auth Keys](/auth_keys/index) section and click on `+ Add authentication key`
 
-    * **[UI]** As an admin go to the the [Administration -> List Users -> View](/admin/users/view/[id]) page of the user you want to create an auth key for and on the `Auth keys` section click on `+ Add authentication key`
+    * **[UI]** As an admin go to the [Administration -> List Users -> View](/admin/users/view/[id]) page of the user you want to create an auth key for and on the `Auth keys` section click on `+ Add authentication key`
 
     * **[CLI]** Use the following command: `./app/Console/cake user change_authkey [e-mail/user_id]`
 
@@ -6428,7 +6428,7 @@ components:
       default: false
 
     SoftDeletedFlagValuesToInclude:
-      description: 'Whether to include soft-deleted attributes. Default value 0. If set to 1, only deleted attributes will be returned. If set to [0,1], both deleted and non-deleted attributes wil be returned.'
+      description: 'Whether to include soft-deleted attributes. Default value 0. If set to 1, only deleted attributes will be returned. If set to [0,1], both deleted and non-deleted attributes will be returned.'
       type: boolean
       default: false
 
@@ -8438,11 +8438,11 @@ components:
             type: object
             properties:
               saved:
-                description: "`true` if the tag was succesfully added, `false` if it failed"
+                description: "`true` if the tag was successfully added, `false` if it failed"
                 type: boolean
                 nullable: false
               success:
-                description: "Present if the tag was succesfully added"
+                description: "Present if the tag was successfully added"
                 type: string
                 nullable: true
                 example: "Tag added."
@@ -8462,11 +8462,11 @@ components:
             type: object
             properties:
               saved:
-                description: "`true` if the tag was succesfully removed, `false` if it failed"
+                description: "`true` if the tag was successfully removed, `false` if it failed"
                 type: boolean
                 nullable: false
               success:
-                description: "Present if the tag was succesfully added"
+                description: "Present if the tag was successfully added"
                 type: string
                 nullable: true
                 example: "Tag removed."
@@ -8520,7 +8520,7 @@ components:
             type: object
             properties:
               saved:
-                description: "Present and `true` if the attribute was succesfully enriched."
+                description: "Present and `true` if the attribute was successfully enriched."
                 type: boolean
               success:
                 description: "Status message of the operation."
@@ -8557,10 +8557,10 @@ components:
             type: object
             properties:
               saved:
-                description: "`true` if the event was succesfully deleted, `false` if it failed"
+                description: "`true` if the event was successfully deleted, `false` if it failed"
                 type: boolean
               success:
-                description: "`true` if the event was succesfully deleted, `false` if it failed"
+                description: "`true` if the event was successfully deleted, `false` if it failed"
                 nullable: true
                 type: boolean
               name:
@@ -8586,10 +8586,10 @@ components:
             type: object
             properties:
               saved:
-                description: "`true` if the event was succesfully deleted, `false` if it failed"
+                description: "`true` if the event was successfully deleted, `false` if it failed"
                 type: boolean
               success:
-                description: "`true` if the event was succesfully deleted, `false` if it failed"
+                description: "`true` if the event was successfully deleted, `false` if it failed"
                 nullable: true
                 type: boolean
               name:
@@ -8615,10 +8615,10 @@ components:
             type: object
             properties:
               saved:
-                description: "`true` if the event was succesfully deleted, `false` if it failed"
+                description: "`true` if the event was successfully deleted, `false` if it failed"
                 type: boolean
               success:
-                description: "`true` if the event was succesfully deleted, `false` if it failed"
+                description: "`true` if the event was successfully deleted, `false` if it failed"
                 nullable: true
                 type: boolean
               name:
@@ -8644,10 +8644,10 @@ components:
             type: object
             properties:
               saved:
-                description: "`true` if the event report was succesfully created, `false` if it failed"
+                description: "`true` if the event report was successfully created, `false` if it failed"
                 type: boolean
               success:
-                description: "`true` if the event report was succesfully created, `false` if it failed"
+                description: "`true` if the event report was successfully created, `false` if it failed"
                 nullable: true
                 type: boolean
               name:
@@ -8673,11 +8673,11 @@ components:
             type: object
             properties:
               saved:
-                description: "`true` if the tag was succesfully added, `false` if it failed"
+                description: "`true` if the tag was successfully added, `false` if it failed"
                 type: boolean
                 nullable: false
               success:
-                description: "Present if the tag was succesfully added"
+                description: "Present if the tag was successfully added"
                 type: string
                 nullable: true
                 example: "Tag added."
@@ -8697,11 +8697,11 @@ components:
             type: object
             properties:
               saved:
-                description: "`true` if the tag was succesfully removed, `false` if it failed"
+                description: "`true` if the tag was successfully removed, `false` if it failed"
                 type: boolean
                 nullable: false
               success:
-                description: "Present if the tag was succesfully added"
+                description: "Present if the tag was successfully added"
                 type: string
                 nullable: true
                 example: "Tag removed."
@@ -8821,7 +8821,7 @@ components:
             type: object
             properties:
               saved:
-                description: "Present and `true` if the event was succesfully enriched."
+                description: "Present and `true` if the event was successfully enriched."
                 type: boolean
               success:
                 description: "Status message of the operation."
@@ -8869,11 +8869,11 @@ components:
             type: object
             properties:
               saved:
-                description: "Present and `true` if the galaxies were succesfully updated."
+                description: "Present and `true` if the galaxies were successfully updated."
                 nullable: true
                 type: boolean
               success:
-                description: "Present and `true` if the galaxies were succesfully updated."
+                description: "Present and `true` if the galaxies were successfully updated."
                 nullable: true
                 type: boolean
               name:
@@ -8894,11 +8894,11 @@ components:
             type: object
             properties:
               saved:
-                description: "Present and `true` if the galaxy was succesfully removed."
+                description: "Present and `true` if the galaxy was successfully removed."
                 nullable: true
                 type: boolean
               success:
-                description: "Present and `true` if the galaxy was succesfully removed."
+                description: "Present and `true` if the galaxy was successfully removed."
                 nullable: true
                 type: boolean
               name:
@@ -8919,11 +8919,11 @@ components:
             type: object
             properties:
               saved:
-                description: "Present and `true` if the galaxy was succesfully imported."
+                description: "Present and `true` if the galaxy was successfully imported."
                 nullable: true
                 type: boolean
               success:
-                description: "Present and `true` if the galaxy was succesfully imported."
+                description: "Present and `true` if the galaxy was successfully imported."
                 nullable: true
                 type: boolean
               name:
@@ -8955,7 +8955,7 @@ components:
             type: object
             properties:
               saved:
-                description: "Present and `true` if the galaxy cluster was succesfully attached."
+                description: "Present and `true` if the galaxy cluster was successfully attached."
                 type: boolean
               success:
                 description: "Status message of the operation."
@@ -9041,10 +9041,10 @@ components:
                 type: boolean
               name:
                 type: string
-                example: "Galaxy cluster successfuly soft deleted."
+                example: "Galaxy cluster successfully soft deleted."
               message:
                 type: string
-                example: "Galaxy cluster successfuly soft deleted."
+                example: "Galaxy cluster successfully soft deleted."
               url:
                 type: string
                 example: "/galaxy_clusters/delete/1"

@@ -629,7 +629,7 @@ class GalaxyClustersController extends AppController
             $galaxyId = $cluster['GalaxyCluster']['galaxy_id'];
             if ($result) {
                 $message = __(
-                    'Galaxy cluster successfuly %s deleted%s.',
+                    'Galaxy cluster successfully %s deleted%s.',
                     $hard ? __('hard') : __('soft'),
                     $hard ? __(' and added to the block list') : ''
                 );
@@ -666,7 +666,7 @@ class GalaxyClustersController extends AppController
             $result = $this->GalaxyCluster->restoreCluster($cluster['GalaxyCluster']['id']);
             $galaxyId = $cluster['GalaxyCluster']['galaxy_id'];
             if ($result) {
-                $message = __('Galaxy cluster successfuly restored.');
+                $message = __('Galaxy cluster successfully restored.');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'restore', $cluster['GalaxyCluster']['id'], $this->response->type());
                 } else {
@@ -832,7 +832,7 @@ class GalaxyClustersController extends AppController
         }
         $this->set('pickingMode', false);
         $this->set('defaultTabName', 'mitre-enterprise-attack');
-        $this->set('removeTrailling', 2);
+        $this->set('removeTrailing', 2);
         $this->render('cluster_matrix');
     }
 

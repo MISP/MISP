@@ -377,7 +377,7 @@ class SecurityAudit
             if (str_starts_with($enabledServer['Server']['url'], 'http://')) {
                 $output['Remote servers'][] = ['warning', __('Server %s uses insecure (HTTP) connection.', $enabledServer['Server']['name'])];
             } else if ($enabledServer['Server']['self_signed']) {
-                $output['Remote servers'][] = ['warning', __('Server %s uses self signed certificate. This is considered insecure.', $enabledServer['Server']['name'])];
+                $output['Remote servers'][] = ['warning', __('Server %s uses self-signed certificate. This is considered insecure.', $enabledServer['Server']['name'])];
             }
 
             try {

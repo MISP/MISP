@@ -46,7 +46,7 @@ function init<?= $seed ?>() { // variables and functions have their own scope (n
     var default_options = {
         time_format: '%Y-%m-%d',
         abscissa_linear: false,
-        show_crossair: true,
+        show_crosshair: true,
         show_datapoints: true,
         show_legend: true,
         style: {
@@ -105,7 +105,7 @@ function init<?= $seed ?>() { // variables and functions have their own scope (n
 
     function _validateOptions(options) {
         options.abscissa_linear = __parseTextBoolean(options.abscissa_linear);
-        options.show_crossair = __parseTextBoolean(options.show_crossair);
+        options.show_crosshair = __parseTextBoolean(options.show_crosshair);
         options.show_datapoints = __parseTextBoolean(options.show_datapoints);
         options.show_legend = __parseTextBoolean(options.show_legend);
         options.style.hideXAxis = __parseTextBoolean(options.style.hideXAxis);
@@ -234,7 +234,7 @@ function init<?= $seed ?>() { // variables and functions have their own scope (n
         svg.append('g')
             .classed('line-group', true);
 
-        if (options.show_crossair) {
+        if (options.show_crosshair) {
             var cursorStrokeConfig = {
                 dasharray: 5,
                 opacity: 0.3,

@@ -166,9 +166,9 @@ function pasteImg(cm, event) {
     if (!fileList[0]) {
         return
     }
-    const dataTransfert = new DataTransfer()
-    dataTransfert.items.add(fileList[0])
-    fileList = dataTransfert.files
+    const dataTransfer = new DataTransfer()
+    dataTransfer.items.add(fileList[0])
+    fileList = dataTransfer.files
     if (fileList.length > 0) { // pasting contains a picture to be uploaded
         event.preventDefault();
         const $picture = $('<div style="display: flex; justify-content: center; align-items: center; margin: 1em; border: 1px solid #aaaaaa99;">').append($('<img id="pastedPicturePreview">'))
@@ -647,17 +647,17 @@ function MISPElementRule(state, startLine, endLine, silent) {
             // parseLinkDestination does not support trailing characters such as `.` after the link
             // so we have to find the matching `)`
             var destinationEnd = res.str.length - 1
-            var traillingCharNumber = 0
+            var trailingCharNumber = 0
             for (var i = res.str.length-1; i > 1; i--) {
                 var code = res.str.charCodeAt(i)
                 if (code === 0x29 /* ) */) {
                     destinationEnd = i
                     break
                 }
-                traillingCharNumber++
+                trailingCharNumber++
             }
             elementID = res.str.substring(1, destinationEnd);
-            pos = res.pos - 1 - traillingCharNumber;
+            pos = res.pos - 1 - trailingCharNumber;
         }
     }
 
