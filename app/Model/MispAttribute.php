@@ -3184,6 +3184,7 @@ class MispAttribute extends AppModel
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp'),
+                    'first_publication' => array('function' => 'set_filter_timestamp'),
                     'org' => array('function' => 'set_filter_org'),
                     'published' => array('function' => 'set_filter_published'),
                     'threat_level_id' => array('function' => 'set_filter_threat_level_id')

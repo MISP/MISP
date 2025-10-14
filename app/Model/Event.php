@@ -1554,6 +1554,7 @@ class Event extends AppModel
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'first_publication' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'org' => array('function' => 'set_filter_org', 'pop' => true),
                     'orgc_id' => array('function' => 'set_filter_orgc_id', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
@@ -1716,6 +1717,7 @@ class Event extends AppModel
             'last' => 'Event.publish_timestamp >=',
             'timestamp' => 'Event.timestamp >=',
             'publish_timestamp' => 'Event.publish_timestamp >=',
+            'first_publication' => 'Event.first_publication >=',
             'eventIdList' => 'Event.id',
         ];
         foreach ($paramMapping as $paramName => $paramLookup) {
@@ -2016,7 +2018,7 @@ class Event extends AppModel
         // $conditions['AND'][] = array('Event.published =' => 1);
 
         // do not expose all the data ...
-        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected');
+        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.first_publication', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected');
         $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
@@ -4184,6 +4186,7 @@ class Event extends AppModel
             'published',
             'uuid',
             'timestamp',
+            'first_publication',
             'distribution',
             'sharing_group_id',
             'locked',
@@ -4553,6 +4556,7 @@ class Event extends AppModel
             'uuid',
             'distribution',
             'timestamp',
+            'first_publication',
             'sharing_group_id',
             'disable_correlation',
             'extends_uuid',
@@ -5191,9 +5195,12 @@ class Event extends AppModel
         } else {
             // update the DB to set the published flag
             // for background jobs, this should be done already
-            $fieldList = array('published', 'id', 'info', 'publish_timestamp');
+            $fieldList = array('published', 'id', 'info', 'publish_timestamp', 'first_publication');
             $event['Event']['published'] = 1;
             $event['Event']['publish_timestamp'] = time();
+            if (empty($event['Event']['first_publication'])) {
+                $event['Event']['first_publication'] = $event['Event']['publish_timestamp'];
+            };
             $event['Event']['skip_zmq'] = 1;
             $event['Event']['skip_kafka'] = 1;
             $result = $this->save($event, array('fieldList' => $fieldList));

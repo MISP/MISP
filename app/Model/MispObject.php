@@ -176,6 +176,7 @@ class MispObject extends AppModel
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp'),
+                    'first_publication' => array('function' => 'set_filter_timestamp'),
                     'org' => array('function' => 'set_filter_org'),
                     'uuid' => array('function' => 'set_filter_uuid'),
                     'published' => array('function' => 'set_filter_published')
