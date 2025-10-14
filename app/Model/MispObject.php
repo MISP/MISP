@@ -632,6 +632,8 @@ class MispObject extends AppModel
                         $fields[] = 'Event.' . $field;
                     }
                 }
+            } else {
+                $fields = array_merge($fields, array('Event.distribution', 'Event.id', 'Event.user_id', 'Event.orgc_id', 'Event.org_id'));
             }
             $params = array(
                 'fields' => $fields,
@@ -683,11 +685,13 @@ class MispObject extends AppModel
             $params['contain']['Attribute']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
         }
         if (isset($options['contain'])) {
+            $tempOptions = $options;
             if (isset($options['contain']['Event'])) {
                 // we include this manually insted to allow for the reverse join
-                unset($options['contain']['Event']);
+                unset($tempOptions['contain']['Event']);
             }
-            $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
+            debug($params);
+            $params['contain'] = array_merge_recursive($params['contain'], $tempOptions['contain']);
         }
         if (
             empty($options['metadata']) &&
