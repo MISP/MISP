@@ -854,7 +854,7 @@ $data_passed_to_if_module = [
                 <h3><?= __('Blueprints') ?></h3>
                 <ul>
                     <li><?= __('Blueprints allow user to saved a collection of modules and how they are connected together so that they can be re-used and shared.') ?></li>
-                    <li><?= __('Blueprints can either come from the `misp-workflow-blueprints` reposity or be imported via the UI or API.') ?></li>
+                    <li><?= __('Blueprints can either come from the `misp-workflow-blueprints` repository or be imported via the UI or API.') ?></li>
                     <li><?= __('To create a blueprint, use the multi-select tool in the editor then click on the `save blueprint` button.') ?></li>
                     <li><?= __('To include an existing blueprint in the workflow being edited, simply drag the blueprint from the sidebar to the workflow.') ?></li>
                 </ul>

@@ -18,7 +18,7 @@ git_misp="https://github.com/MISP/MISP.git"
 web_perms_deb_u="www-data"
 web_perms_deb_g="www-data"
 
-# Permissions of web user for RedHat flavoured and standard Apache installs
+# Permissions of web user for Red Hat flavoured and standard Apache installs
 web_perms_rh_u="root"
 web_perms_rh_g="apache"
 
@@ -52,7 +52,7 @@ if [ -e "/bin/rpm" ]; then
         scl_rh="rh-php70"
         redhat=1
     else
-        echo "You have neither a RedHat or CentOS flavoured OS. Set the permissions of the web user by hand."
+        echo "You have neither a Red Hat or CentOS flavoured OS. Set the permissions of the web user by hand."
         exit 1
     fi
 fi
@@ -190,7 +190,7 @@ elif [ $OutPull == 0 ]; then
 	apply_permissions
 	cd $misp_folder/app && php composer.phar update
 else
-	echo -n "    [ERROR] An unexepected error occured: "; log_date
+	echo -n "    [ERROR] An unexepected error occurred: "; log_date
 	exit 1
 fi
 

@@ -87,7 +87,7 @@ abstract class DecayingModelBase
                         );
                         if ($i === 0)  { // override first one
                             $tags[$eventtag_index] = $tag;
-                        } else { // remove remaining overriden
+                        } else { // remove remaining overridden
                             unset($tags[$eventtag_index]);
                         }
                     }

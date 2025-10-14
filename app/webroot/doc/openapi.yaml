@@ -59,7 +59,7 @@ servers:
   - url: https://misp.local
 tags:
   - name: Analyst Data
-    description: "Analyst Data allows analysts to share and add their own analysis to any MISP data having an UUID. They can be one of these three type: Analyst Note, Analyst Opionion or Analyst Relationship."
+    description: "Analyst Data allows analysts to share and add their own analysis to any MISP data having an UUID. They can be one of these three type: Analyst Note, Analyst Opinion or Analyst Relationship."
   - name: Attributes
     description: "Attributes in MISP can be network indicators (e.g. IP address), system indicators (e.g. a string in memory) or even bank account details."
     externalDocs:
@@ -4883,7 +4883,7 @@ components:
                     - "tlp:red"
                     - "%privint%"
 
-    TagNumbericalValueOverrideUserSetting:
+    TagNumericalValueOverrideUserSetting:
       type: object
       example:
         - "false-positive:risk='medium'": 99
@@ -4925,7 +4925,7 @@ components:
             - $ref: "#/components/schemas/DashboardAccessUserSetting"
             - $ref: "#/components/schemas/HomepageUserSetting"
             - $ref: "#/components/schemas/DefaultRestSearchParametersUserSetting"
-            - $ref: "#/components/schemas/TagNumbericalValueOverrideUserSetting"
+            - $ref: "#/components/schemas/TagNumericalValueOverrideUserSetting"
             - $ref: "#/components/schemas/EventIndexHideColumnsUserSetting"
         user_id:
           $ref: "#/components/schemas/UserId"
@@ -4948,7 +4948,7 @@ components:
         default_restsearch_parameters:
           $ref: "#/components/schemas/DefaultRestSearchParametersUserSetting"
         tag_numerical_value_override:
-          $ref: "#/components/schemas/TagNumbericalValueOverrideUserSetting"
+          $ref: "#/components/schemas/TagNumericalValueOverrideUserSetting"
         event_index_hide_columns:
           $ref: "#/components/schemas/EventIndexHideColumnsUserSetting"
 
@@ -5147,7 +5147,7 @@ components:
     ServerName:
       type: string
       maxLength: 255
-      example: "Phising Server"
+      example: "Phishing Server"
 
     ServerNoId:
       type: object
@@ -8328,7 +8328,7 @@ components:
               - $ref: "#/components/schemas/DashboardAccessUserSetting"
               - $ref: "#/components/schemas/HomepageUserSetting"
               - $ref: "#/components/schemas/DefaultRestSearchParametersUserSetting"
-              - $ref: "#/components/schemas/TagNumbericalValueOverrideUserSetting"
+              - $ref: "#/components/schemas/TagNumericalValueOverrideUserSetting"
               - $ref: "#/components/schemas/EventIndexHideColumnsUserSetting"
 
     AddEventReportRequest:

@@ -44,8 +44,8 @@ MISP-RESTORE
 
 This script aims at restoring a backup made with `misp-backup.sh` script found in this folder.
 
-Pre-requisites
-==============
+Prerequisites
+=============
 - Apache, MISP and mariaDB/MySQL should be installed before running this script.
 - The versions of MISP software backed up and restored should be the same.  (e.g. restore files database of a MISP v2.4.86 on a server with the same version of MISP)
 - This script only restores the data on a database installed on localhost.

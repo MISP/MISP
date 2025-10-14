@@ -21,7 +21,7 @@
             checkboxLabel: '',              // The label accompanying the switch
             animation: {
                 onExecution: true,          // Perform an animation whenever the task is being run
-                remainingTime: false,       // Perfim an animation showing how much time is needed for the next task run
+                remainingTime: false,       // Perform an animation showing how much time is needed for the next task run
                 noAnimThreshold: 700        //  Animation with interval lower thatn this threshold will not be played 
             }
         };
@@ -207,7 +207,7 @@
             var htmlString = '<div class="toggle-switch-wrapper"> \
                                 <input type="checkbox" style="display:none" id="' + this.config.checkboxLink + '" ' + (checked ? 'checked="checked"' : '') + '> \
                                 <label id="' + label_id + '" class="toggle-switch" for="' + this.config.checkboxLink + '"> \
-                                    <span class="toggle-switch-handle"><span id="switchTimeRemainig" class="toggle-switch-handle toggle-switch-handle-timer"></span></span> \
+                                    <span class="toggle-switch-handle"><span id="switchTimeRemaining" class="toggle-switch-handle toggle-switch-handle-timer"></span></span> \
                                 </label> \
                             </div> \
                             <label class="toggle-switch-label" for="' + this.config.checkboxLink + '"> \

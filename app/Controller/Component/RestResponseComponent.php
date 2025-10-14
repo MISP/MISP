@@ -184,12 +184,12 @@ class RestResponseComponent extends Component
         ),
         'Organisation' => array(
             'admin_add' => array(
-                'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
+                'description' => "POST an Organisation object in JSON format to this API to create a new organisation.",
                 'mandatory' => array('name'),
                 'optional' => array('description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
             ),
             'admin_edit' => array(
-                'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
+                'description' => "POST an Organisation object in JSON format to this API to create a new organisation.",
                 'mandatory' => array('name'),
                 'optional' => array('description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
             )

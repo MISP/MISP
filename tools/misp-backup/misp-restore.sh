@@ -208,7 +208,7 @@ cp -p $BackupDir/Config/core.php $PATH_TO_MISP/app/Config
 cp -p $BackupDir/Config/database.php $PATH_TO_MISP/app/Config
 
 # Permissions
-echo "--- Setting persmissions"
+echo "--- Setting permissions"
 chown -R $WWW_USER:$WWW_USER /var/www/MISP
 chmod -R 750 /var/www/MISP
 chmod -R g+ws /var/www/MISP/app/tmp

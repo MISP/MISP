@@ -22,7 +22,7 @@
     <ul>
         <?php if (!isset($doNotShowHelp) || !$doNotShowHelp ): ?>
             <li><?= sprintf(__('%s a %s propagates the deletion to other instances and lets you restore it in the future'), sprintf('<strong class="blue">%s</strong>', __('Soft-deleting')), h($modelName)) ?></li>
-            <li><?= sprintf(__('%s a %s permanentaly deletes it'), sprintf('<strong class="red">%s</strong>', __('Hard-deleting')), h($modelName)) ?></li>
+            <li><?= sprintf(__('%s a %s permanently deletes it'), sprintf('<strong class="red">%s</strong>', __('Hard-deleting')), h($modelName)) ?></li>
         <?php endif; ?>
     </ul>
     <?php if (!empty($additionalMessage)): ?>

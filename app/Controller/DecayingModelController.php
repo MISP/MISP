@@ -472,7 +472,7 @@ class DecayingModelController extends AppController
                 'max' => 10,
                 'greek' => '',
                 'name' => __('Decay speed'),
-                'info' => __('Decay speed at which an indicator will loose score')
+                'info' => __('Decay speed at which an indicator will lose score')
             ),
             'threshold' => array(
                 'value' => 30,

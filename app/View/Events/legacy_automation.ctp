@@ -173,7 +173,7 @@
         <b>to</b>: <?php echo __('Events with the date set to a date before the one specified in the to field (format: 2015-02-03)');?><br />
         <b>enforceWarninglist</b>: <?php echo __('All attributes that have a hit on a warninglist will be excluded.');?>
     </p>
-    <p><?php echo __('MISP will inject header values into the zone file as well as define the action taken for each of the values that can all be overriden. By default these values are either the default values shipped with the application, or ones that are overriden by your site administrator. The values are as follows');?>:</p>
+    <p><?php echo __('MISP will inject header values into the zone file as well as define the action taken for each of the values that can all be overridden. By default these values are either the default values shipped with the application, or ones that are overridden by your site administrator. The values are as follows');?>:</p>
     <?php foreach ($rpzSettings as $k => $v): ?>
     <b><?php echo h($k);?></b>: <?php echo h($v);?><br />
     <?php endforeach; ?>

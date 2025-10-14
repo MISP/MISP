@@ -107,7 +107,7 @@ def main():
         return 1
     logger.debug(f'Collected {len(events_on_remote)} events from remote')
 
-    # Peform event diff for source and remote
+    # Perform event diff for source and remote
     logger.debug('Finding events missing on the remote by diffing with the source...')
     events_to_push = get_outdated_or_non_existing_events(events_on_source, events_on_remote)
     if not events_to_push:

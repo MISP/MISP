@@ -1,6 +1,6 @@
 <?php
 /**
-* Org Events widget which reportes the number of events created monthly by each local organizations
+* Org Events widget which reports the number of events created monthly by each local organizations
 *
 */
 class OrgEventsWidget

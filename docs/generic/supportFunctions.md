@@ -102,7 +102,7 @@ command_exists () {
 # TODO: fix os detection mess
 # Try to detect what we are running on
 checkCoreOS () {
-  # lsb_release can exist on any platform. RedHat package: redhat-lsb
+  # lsb_release can exist on any platform. Red Hat package: redhat-lsb
   LSB_RELEASE=$(which lsb_release > /dev/null ; echo $?)
   APT=$(which apt > /dev/null 2>&1; echo -n $?)
   APT_GET=$(which apt-get > /dev/null 2>&1; echo $?)
@@ -112,7 +112,7 @@ checkCoreOS () {
   ## os-release #generic
   # /etc/os-release
 
-  # Redhat checks
+  # Red Hat checks
   if [[ -f "/etc/redhat-release" ]]; then
     echo "This is some redhat flavour"
     REDHAT=1
@@ -247,7 +247,7 @@ checkInstaller () {
       checkAptLock
       sudo apt install libdigest-sha-perl -qyy
     fi
-    # SHAsums to be computed, not the -- notatiation is for ease of use with rhash
+    # SHAsums to be computed, note the -- notation is for ease of use with rhash
     SHA_SUMS="--sha1 --sha256 --sha384 --sha512"
     for sum in $(echo ${SHA_SUMS} |sed 's/--sha//g'); do
       /usr/bin/wget --no-cache -q -O /tmp/INSTALL.sh.sha${sum} https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.sh.sha${sum}
