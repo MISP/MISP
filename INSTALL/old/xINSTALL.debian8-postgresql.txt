@@ -67,8 +67,15 @@ sudo apt-get remove mysql-server mysql-client mariadb-client mariadb-server php5
 ### MIGRATION from MySQL/MariaDB
 # migration of data is done using latest "pgloader" release (3.2.2 at the time of writing)
 
+# install some dependencies
+sudo apt-get install wget ca-certificates
+
+# add repository signing key
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
+gpg --dearmor --yes --output /usr/share/keyrings/pgsql-ACCC4CF8.gpg
+
 # add official postgres repository to apt sources
-sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/pgsql-ACCC4CF8.gpg] http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
 
 # make sure packages from official postgres repository aren't used by default, only when explicitly specifying it
 sudo cat <<EOF > /etc/apt/preferences.d/pgdg.pref
@@ -76,12 +83,6 @@ Package: *
 Pin: release o=apt.postgresql.org
 Pin-Priority: 200
 EOF
-
-# install some dependencies
-sudo apt-get install wget ca-certificates
-
-# add repository signing key
-wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
 
 # update cache
 sudo apt-get update
