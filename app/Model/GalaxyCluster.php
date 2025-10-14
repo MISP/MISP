@@ -1112,7 +1112,6 @@ class GalaxyCluster extends AppModel
         if (isset($options['list']) && $options['list']) {
             return $this->find('list', $params);
         }
-
         if (isset($options['first']) && $options['first']) {
             $clusters = $this->find('first', $params);
         } else if (isset($options['count']) && $options['count']) {
@@ -1406,9 +1405,12 @@ class GalaxyCluster extends AppModel
 
         if (isset($filters['elements'])) {
             $matchingIDs = $this->GalaxyElement->getClusterIDsFromMatchingElements($user, $filters['elements']);
+            if (empty($matchingIDs)) {
+                $matchingIDs = -1;
+            }
             $filters['id'] = $matchingIDs;
         }
-
+        
         $simpleParams = array(
             'uuid', 'galaxy_id', 'version', 'distribution', 'type', 'value', 'default', 'tag_name', 'published', 'id',
         );
