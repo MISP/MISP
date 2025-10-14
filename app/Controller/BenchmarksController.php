@@ -153,7 +153,7 @@ class BenchmarksController extends AppController
                             if (!empty($params['action']) && $params['action'] !== $action) {
                                 continue;
                             }
-                            $entries[] = ['duration' => $duration, 'sql' => $sql, 'controller' => $controller, $action => $action, 'key' => $key];
+                            $entries[] = ['duration' => $duration, 'sql' => $sql, 'controller' => $controller, 'action' => $action, 'key' => $key];
                         }
                     }
                 }
