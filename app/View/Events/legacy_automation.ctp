@@ -124,7 +124,7 @@
     <pre><?php echo $baseurl;?>/events/hids/sha1/download/tag1</pre>
 
     <h3><?php echo __('STIX export');?></h3>
-    <p><?php echo __('You can export MISP events in Mitre\'s STIX format (to read more about STIX, click <a href="https://stix.mitre.org/">here</a>). The STIX XML export is currently very slow and can lead to timeouts with larger events or collections of events. The JSON return format does not suffer from this issue. Usage');?>:</p>
+    <p><?php echo __('You can export MISP events in Mitre\'s <a href="https://stix.mitre.org/">STIX format</a>. The STIX XML export is currently very slow and can lead to timeouts with larger events or collections of events. The JSON return format does not suffer from this issue. Usage');?>:</p>
     <pre><?php echo $baseurl;?>/events/stix/download</pre>
     <p><?php echo __('Search parameters can be passed to the function via URL parameters or by POSTing an XML or JSON object (depending on the return type). The following parameters can be passed to the STIX export tool: <code>id</code>, <code>withAttachments</code>, <code>tags</code>. Both <code>id</code> and <code>tags</code> can use the <code>&amp;&amp;</code> (and) and <code>!</code> (not) operators to build queries. Using the URL parameters, the syntax is as follows');?>:</p>
     <pre><?php echo $baseurl;?>/events/stix/download/[id]/[withAttachments]/[tags]/[from]/[to]/[last]</pre>

@@ -12,7 +12,7 @@
 {% include_relative generic/manual-install-notes.md %}
 
 !!! notice
-    If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel8).
+    If the next line is `[!generic/community.md!]()`, see [Installation instructions for RHEL 8.x based distros](https://misp.github.io/MISP/INSTALL.rhel8).
 
 {% include_relative generic/community.md %}
 
