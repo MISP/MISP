@@ -111,7 +111,7 @@ Add the information we made a note of earlier when creating the `App Registratio
 
 ![AadAuth.configuration](.images/Picture38.png)
 
-All fields need to match explicitly without any leading or trailing whitespace, if you added the groups these are case sensitive.
+All fields need to match explicitly without any leading or trailing whitespace, if you added the groups these are case-sensitive.
 
 ### Disable users password change
 By default MISP will still create a password for the user, when enrolling a new user on MISP, uncheck the _"Send credentials automatically"_ checkbox.

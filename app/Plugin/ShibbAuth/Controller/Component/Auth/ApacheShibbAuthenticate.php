@@ -208,7 +208,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
             // Check user roles and egroup match and update if needed
             foreach ($groupList as $group) {
                 // TODO: Can be optimized inverting the search group and using only array_key_exists
-                if (array_key_exists($group, $groupRoleMatching)) { //In case there is an group not defined in the config.php file
+                if (array_key_exists($group, $groupRoleMatching)) { //In case there is a group not defined in the config.php file
                     CakeLog::write('info', "User group $group found.");
                     $roleVal = $groupRoleMatching[$group];
                     if ($roleVal <= $roleId || $roleId == -1) {

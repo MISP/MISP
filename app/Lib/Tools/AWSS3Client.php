@@ -73,7 +73,7 @@ class AWSS3Client
         // -- Do not verify certificate, securitywise, this option is not recommended, however due to 
         //    internal deployment scheme it is acceptable risk to set this to false
         //    'http'    => ['verify' => false],
-        // -- Verify againts  built in CA certificates
+        // -- Verify against  built in CA certificates
         //    'http'    => ['verify' => true],
         if ($settings['aws_validate_ca']) {
             $s3Config['http']['verify'] = true;

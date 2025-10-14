@@ -26,7 +26,7 @@
 ##
 ##   COMMIT_MSG is ... well ... the commit message itself.
 ##
-##   TAGs are additionnal adjective as 'refactor' 'minor' 'cosmetic'
+##   TAGs are additional adjective as 'refactor' 'minor' 'cosmetic'
 ##
 ##       They are preceded with a '!' or a '@' (prefer the former, as the
 ##       latter is wrongly interpreted in github.) Commonly used tags are:
@@ -230,7 +230,7 @@ include_merge = True
 ##        Creates a callable that will parse given file for the given
 ##        regex pattern and will insert the output in the file.
 ##        ``idx`` is a callable that receive the matching object and
-##        must return a integer index point where to insert the
+##        must return an integer index point where to insert the
 ##        the output in the file. Default is to return the position of
 ##        the start of the matched string.
 ##

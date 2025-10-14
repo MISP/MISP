@@ -102,7 +102,7 @@ class RestResponseComponent extends Component
         ),
         'EventGraph' => array(
             'add' => array(
-                'description' => "POST a network in JSON format to this API to to keep an history of it",
+                'description' => "POST a network in JSON format to this API to to keep a history of it",
                 'mandatory' => array('event_id', 'network_json'),
                 'optional' => array('network_name')
             )
@@ -286,7 +286,7 @@ class RestResponseComponent extends Component
                 'optional' => array('colour', 'exportable', 'hide_tag', 'org_id', 'user_id')
             ),
             'edit' => array(
-                'description' => "POST or PUT a Tag object in JSON format to this API to create a edit an existing tag.",
+                'description' => "POST or PUT a Tag object in JSON format to this API to create and edit an existing tag.",
                 'optional' => array('name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'),
                 'params' => array('tag_id')
             ),
@@ -1226,13 +1226,13 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Only shows events that are extending an other one')
+                'help' => __('Only shows events that are extending another one')
             ),
             'is_extended' => array(
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Only shows events that are extended by an other one')
+                'help' => __('Only shows events that are extended by another one')
             ),
             'external_auth_required' => array(
                 'input' => 'radio',
@@ -1372,7 +1372,7 @@ class RestResponseComponent extends Component
                 'type' => 'string',
                 'operators' => array('equal'),
                 'values' => array( 'network' => 'Network', 'local' => 'Local'),
-                'help' => __('Specify whether the source (url field) is a directory (local) or an geniun url (network)')
+                'help' => __('Specify whether the source (url field) is a directory (local) or a genuine url (network)')
             ),
             'ip' => array(
                 'input' => 'text',

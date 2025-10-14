@@ -131,7 +131,7 @@ else
 fi
 
 # BACKUP EXISTANT CONFIGURATION
-echo -n "--> Backuping existent files: "; log_date
+echo -n "--> Backing up existent files: "; log_date
 echo -ne "    Current release is: "; for verold in `cat $misp_folder/VERSION.json | grep -Po "\d{1,2},?" | sed -e 's/,/\./g'`; do echo -ne $verold; done; echo ""
 echo -ne "    Current commit is: "; cat $misp_folder/.git/refs/heads/*
 mkdir -p $backup_folder

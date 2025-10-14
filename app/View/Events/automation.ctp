@@ -107,7 +107,7 @@
             'title' => __('Galaxy Cluster Search'),
             'description' => array(
                 __('It is possible to search the database for galaxy clusters based on a list of criteria.'),
-                __('To return an cluster or a list of clusters in the JSON format, use the following syntax.'),
+                __('To return a cluster or a list of clusters in the JSON format, use the following syntax.'),
                 __('Whilst a list of parameters is provided below, it isn\'t necessarily exhaustive')
             ),
             'parameters' => array(
@@ -278,7 +278,7 @@
     <pre><?php  echo $baseurl.'/events/removeTag'; ?></pre>
     <p><?php echo __('Just POST a json object in the following format (to the appropriate API depending on whether you want to add or delete a tag from an event)');?>:</p>
     <code>{"event":228, "tag":8}</code><br /><br />
-    <p><?php echo __('Where "tag" is the ID of the tag. You can also use the name of the tag the following way');?>:</p>
+    <p><?php echo __('Where "tag" is the ID of the tag. You can also use a tag name the following way');?>:</p>
     <code>{"event":228, "tag":"OSINT"}</code>
     <h3><?php echo __('Proposals and the API');?></h3>
     <p><?php echo __('You can interact with the proposals via the API directly since version 2.3.148');?></p>

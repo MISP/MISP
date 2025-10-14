@@ -3528,7 +3528,7 @@ components:
         $ref: "#/components/schemas/AttributeRestSearchListItem"
 
     AttributeStatisticsResponse:
-      description: Dictionary of attribute types/categories showing the ammount of occurences/percentage.
+      description: Dictionary of attribute types/categories showing the amount of occurrences/percentage.
       type: object
       example:
         - "Antivirus detection": "10"
@@ -5441,7 +5441,7 @@ components:
         - "misp"
 
     FeedInputSource:
-      description: "Specify whether the source (url field) is a directory (local) or an genuine url (network)."
+      description: "Specify whether the source (url field) is a directory (local) or a genuine url (network)."
       type: string
       enum:
         - "local"
@@ -7595,7 +7595,7 @@ components:
                 description: "Filter events by matching the event info text"
                 type: string
                 nullable: true
-                example: "Phishing campaing"
+                example: "Phishing campaign"
               tag:
                 $ref: "#/components/schemas/TagName"
               tags:
@@ -8243,10 +8243,10 @@ components:
               uuid:
                 $ref: "#/components/schemas/UUID"
               authkey_start:
-                description: "Search term matching the first 4 characers of the authkey"
+                description: "Search term matching the first 4 characters of the authkey"
                 type: string
               authkey_end:
-                description: "Search term matching the last 4 characers of the authkey"
+                description: "Search term matching the last 4 characters of the authkey"
                 type: string
               created:
                 $ref: "#/components/schemas/DateRestSearchFilter"

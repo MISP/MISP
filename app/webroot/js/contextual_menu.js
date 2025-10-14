@@ -11,8 +11,8 @@ class ContextualMenu {
         this.__globalCounter = 0;
 
     if (this.bootstrap_popover) {
-            if (typeof $.fn.popover != 'function') { // boostrap loaded
-                console.log("Boostrap not loaded or does not support popover");
+            if (typeof $.fn.popover != 'function') { // bootstrap loaded
+                console.log("Bootstrap not loaded or does not support popover");
                 this.menu = this.__create_menu_div();
             } else {
                 this.menu = this.__create_menu_div_bootstrap_popover();

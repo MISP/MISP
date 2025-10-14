@@ -3412,7 +3412,7 @@ Fix
 - Add missing returnFormat to restSearch endpoints, move the parameter
   as requestBody property. [Luciano Righetti]
 - [getSettings] include the options. [iglocska]
-- [API] Taxonomy namespace is case insensitive. [Jakub Onderka]
+- [API] Taxonomy namespace is case-insensitive. [Jakub Onderka]
 - Copy/pasta, rename galaxy clusters tag, move restSearch endpoints to
   resource 1st. [Luciano Righetti]
 - [server:edit] Typo in index. [Sami Mokaddem]
@@ -4864,7 +4864,7 @@ Changes
 - [PyMISP] Bump before release. [Raphaël Vinot]
 - [internal] Set cookie name just when no name is set. [Jakub Onderka]
 - [schema] Add index for EventReport.event_id. [Jakub Onderka]
-- [schema] Convert GalaxyCluster tag name to case insensitive. [Jakub
+- [schema] Convert GalaxyCluster tag name to case-insensitive. [Jakub
   Onderka]
 - [UI] Do not show published for default galaxy clusters. [Jakub
   Onderka]
@@ -5237,7 +5237,7 @@ Other
 - Merge pull request #7060 from JakubOnderka/galaxy-cluster-tag-name-ci.
   [Jakub Onderka]
 
-  chg: [schema] Convert GalaxyCluster tag name to case insensitive
+  chg: [schema] Convert GalaxyCluster tag name to case-insensitive
 - Merge pull request #7112 from JakubOnderka/galaxy-cluster-md. [Jakub
   Onderka]
 
@@ -7096,7 +7096,7 @@ Other
   Add the possibility to have a '-' in the baseurl
 - Add the possibility to have a '-' in the baseurl. [Fafner [_KeyZee_]]
 
-  With the actual regex in testBaseURL, we can not have a '-' inside the BaseURL, I did a quick fix
+  With the actual regex in testBaseURL, we cannot have a '-' inside the BaseURL, I did a quick fix
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #6767 from SteveClement/guides. [Steve Clement]
 - Merge pull request #6764 from Natsec/patch-1. [Andras Iklody]
@@ -15907,7 +15907,7 @@ Changes
 
   This makes the beforeFilter function a bit smaller while keeping all the
   functionality. It will also help with reusing the setup logic in views
-  that can not execute all of AppComponent::beforeFilter, like the
+  that cannot execute all of AppComponent::beforeFilter, like the
   LinOTPAuth plugin.
 - [AppController] move loading and initialisation of Auth plugins to
   reuseable method. [Andreas Rammhold]
@@ -21149,7 +21149,7 @@ New
 - [Tag API] New tag search api to search for tags. [iglocska]
 
   - simply pass the value you want to search for. Use % for wildcards
-  - case insensitive
+  - case-insensitive
   - taxonomy and galaxy metadata returned with tag
 - [CLI] execute all db updates to bring MISP up to date with any
   changes. [iglocska]
@@ -37293,7 +37293,7 @@ v2.4.34 (2016-04-08)
 
   - store fetched data in a variable, only fetch it once / view
   - better handling of arrays returned, can still use improvements
-- Organisation filter field was case sensitive. Fixed. [Iglocska]
+- Organisation filter field was case-sensitive. Fixed. [Iglocska]
 - Some cleanup for the sync. [Iglocska]
 
   - fixed some issues with the error detection on synced events
@@ -37754,7 +37754,7 @@ v2.4.20 (2016-02-17)
 
   - all distribution rules are adhered to
   - further improvements on the upgrade mechanism pipeline
-- Changed the tag matching when capturing them case insensitive.
+- Changed the tag matching when capturing them case-insensitive.
   [Iglocska]
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [Iglocska]
@@ -38155,7 +38155,7 @@ v2.4.9 (2016-01-19)
 - Removed lowercasing of parsed strings in the freetext import.
   [Iglocska]
 
-  - case sensitive values also got lower-cased
+  - case-sensitive values also got lower-cased
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [Iglocska]
 - Pdb attribute - format is not checked. [Alexandre Dulaunoy]
@@ -39896,7 +39896,7 @@ v2.3.131 (2015-09-21)
   non-IDS flagged data, fixes #646. [iglocska]
 - Fixes to the user index, fixes #556. [iglocska]
 
-  - index can now be sorted case insensitive
+  - index can now be sorted case-insensitive
   - removed a notice error during sorting (sorting parameters should not be displayed as a filter)
 - Started admin FAQ section, added info on resetting a password using
   the command line, fixes #624. [iglocska]
@@ -43279,7 +43279,7 @@ v2.2.1 (2014-02-19)
   The attribute HTTP method added. By default, the values
   must match the known HTTP method from RFC2616, RFC2518,
   RFC3253, RFC3648, RFC3744, RFC5789, RFC5323. The method
-  is case sensitive.
+  is case-sensitive.
 - Terms and conditions separated from the template. [Alexandre Dulaunoy]
 
   If a file terms exists in app/View/Users, the terms are included.
@@ -43856,7 +43856,7 @@ v2.2.1 (2014-02-19)
 - Merge branch 'feature/sync/timestamp' of https://github.com/MISP/MISP
   into feature/sync/timestamp. [Christophe Vandeplas]
 - Bugfix in UI. [Christophe Vandeplas]
-- Pull can not edit events / attributes. [Iglocska]
+- Pull cannot edit events / attributes. [Iglocska]
 
   - added the _edit method in EventsController
 - Merge branch 'feature/sync/timestamp' of https://github.com/MISP/MISP
@@ -44531,7 +44531,7 @@ v2.2.1 (2014-02-19)
 
   - fixes an issue where the escaping of slashes showed up with a //
 
-  - made the found results more visible and case insensitive
+  - made the found results more visible and case-insensitive
 - Slight update to the filename regex. [Andras Iklody]
 
   - accept extensions from 2 to 4 characters in length
@@ -44816,7 +44816,7 @@ v2.2.1 (2014-02-19)
   'escape' option was removed.
 - Sanitize. [Noud de Brouwer]
 
-  Sanitize can not be used in PGP key.
+  Sanitize cannot be used in PGP key.
 - GPG. [Noud de Brouwer]
 
   start of check/correct.
@@ -46188,7 +46188,7 @@ v2.2.1 (2014-02-19)
   Vandeplas]
 - Whitelist. [noud]
 
-  Seemingly we can not do name resolving(?),
+  Seemingly we cannot do name resolving(?),
   function nametoipl containing gethostbynamel removed.
 - GFI sandbox import. [noud]
 

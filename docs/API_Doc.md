@@ -348,7 +348,7 @@ Remove a tag from an event.
 
 # Event Graph
 ## Add
-POST a network in JSON format to this API to to keep an history of it
+POST a network in JSON format to this API to to keep a history of it
 ```
 /event_graph/add
 ```
@@ -416,7 +416,7 @@ POST a MISP Feed descriptor JSON to this API to add a Feed.
 | source_format |string | |
 | url |string | |
 | name |string | |
-| input_source |string |Specify whether the source (url field) is a directory (local) or an geniun url (network) |
+| input_source |string |Specify whether the source (url field) is a directory (local) or a genuine url (network) |
 | provider |string |The name of the feed provider |
 
 #### Optional
@@ -461,7 +461,7 @@ POST a MISP Feed descriptor JSON to this API to edit a Feed.
 | caching_enabled |integer |The feed is cached |
 | lookup_visible |integer |The lookup will not be visible in the feed correlation |
 | provider |string |The name of the feed provider |
-| input_source |string |Specify whether the source (url field) is a directory (local) or an geniun url (network) |
+| input_source |string |Specify whether the source (url field) is a directory (local) or a genuine url (network) |
 | delete_local_file |integer |Remove file after ingestion |
 | headers |string |Headers to be passed with the requests. All separated by `\n` |
 | fixed_event |integer |target_event option might be considered |
@@ -961,7 +961,7 @@ POST a Tag object in JSON format to this API to create a new tag.
 | user_id |integer | |
 
 ## Edit
-POST or PUT a Tag object in JSON format to this API to create a edit an existing tag.
+POST or PUT a Tag object in JSON format to this API to create and edit an existing tag.
 ```
 /tags/edit/[tag_id]
 ```

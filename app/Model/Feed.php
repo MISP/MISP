@@ -85,7 +85,7 @@ class Feed extends AppModel
     const CACHE_DIR = APP . 'tmp' . DS . 'cache' . DS . 'feeds' . DS;
 
     /*
-     *  Cleanup of empty belongsto relationships
+     *  Cleanup of empty belongsTo relationships
      */
     public function afterFind($results, $primary = false)
     {
