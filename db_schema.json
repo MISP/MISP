@@ -2668,6 +2668,17 @@
                 "column_type": "tinyint(1)",
                 "column_default": "NULL",
                 "extra": ""
+            },
+            {
+                "column_name": "first_publication",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0",
+                "extra": ""
             }
         ],
         "event_blocklists": [
@@ -10757,6 +10768,7 @@
         },
         "events": {
             "extends_uuid": false,
+            "first_publication": false,
             "id": true,
             "info": false,
             "orgc_id": false,
@@ -11214,5 +11226,5 @@
             "uuid": false
         }
     },
-    "db_version": "143"
+    "db_version": "144"
 }

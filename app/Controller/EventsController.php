@@ -15,7 +15,7 @@ class EventsController extends AppController
 
     public $paginate = array(
         'limit' => 60,
-        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
         'order' => array(
             'Event.timestamp' => 'DESC'
         ),
@@ -164,7 +164,7 @@ class EventsController extends AppController
         }
 
         // get all of the attributes that have a hit on the search term, in either the value or the comment field
-        // This is not perfect, the search will be case insensitive, but value1 and value2 are searched separately. lower() doesn't seem to work on virtualfields
+        // This is not perfect, the search will be case-insensitive, but value1 and value2 are searched separately. lower() doesn't seem to work on virtualfields
         $subconditions = array();
         foreach ($values as $v) {
             $subconditions[] = array('Attribute.value1 LIKE' => $v);
@@ -3522,7 +3522,7 @@ class EventsController extends AppController
         return $event;
     }
 
-    // Send out an contact email to the person who posted the event.
+    // Send out a contact email to the person who posted the event.
     // Users with a GnuPG key will get the mail encrypted, other users will get the mail unencrypted
     public function contact($id = null)
     {
@@ -5528,7 +5528,7 @@ class EventsController extends AppController
         $this->set('tags', $tagNames);
         $this->paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
             'order' => array(
                     'Event.timestamp' => 'DESC'
             ),
@@ -6649,7 +6649,7 @@ class EventsController extends AppController
             if ($this->request->is('post')) {
                 $job_type = 'recover_event';
                 $function = 'recoverEvent';
-                $message = __('Bootstraping recovering of event %s', $id);
+                $message = __('Bootstrapping recovering of event %s', $id);
                 $job = ClassRegistry::init('Job');
                 $job->create();
                 $data = array(

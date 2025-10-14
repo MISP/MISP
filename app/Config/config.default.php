@@ -228,7 +228,7 @@ $config = array(
         'ldapDN'             => 'dc=example,dc=com',
         'ldapSearchFilter'   => '', // Search filter to limit results from ldapsearh fx to specific group. FX
         //'ldapSearchFilter'   => '(objectclass=InetOrgPerson)(!(nsaccountlock=True))(memberOf=cn=misp,cn=groups,cn=accounts,dc=example,dc=com)',
-        'ldapSearchAttribut' => 'uid',          // filter for search
+        'ldapSearchAttribut' => 'uid',          // filter for search - typo left in for backward compatibility
         'ldapFilter'         => array(
             'mail',
             //	'memberOf', //Needed filter if roles should be added depending on group membership.

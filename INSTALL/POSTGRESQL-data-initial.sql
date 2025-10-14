@@ -247,7 +247,7 @@ COPY public.objects (id, name, "meta-category", description, template_uuid, temp
 --
 
 COPY public.org_blacklists (id, org_uuid, created, org_name, comment) FROM stdin;
-1	58d38339-7b24-4386-b4b4-4c0f950d210f	2018-11-27 06:22:00+00	Setec Astrononomy	default example
+1	58d38339-7b24-4386-b4b4-4c0f950d210f	2018-11-27 06:22:00+00	Setec Astronomy	default example
 2	58d38326-eda8-443a-9fa8-4e12950d210f	2018-11-27 06:22:00+00	Acme Finance	default example
 \.
 

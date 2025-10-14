@@ -9,7 +9,7 @@ There's a massive caveat here so let me make this incredibly clear
 ##############################################
 #        WARNING WARNING WARNING             #
 #                                            #
-#    Storing malware is against amazon's     #
+#    Storing malware is against Amazon's     #
 #            terms of service.               #
 #                                            #
 #    DO NOT USE THIS UNLESS YOU HAVE         # 

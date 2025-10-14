@@ -19,7 +19,7 @@ class WorkflowsController extends AppController
             $requirementErrors[] = __('Background workers must be enabled to use workflows');
         }
         if (empty(Configure::read('Plugin.Workflow_enable'))) {
-            $requirementErrors[] = __('The workflow plugin must be enabled to use workflows. Go to `/servers/serverSettings/Plugin` the enable the `Plugin.Workflow` setting');
+            $requirementErrors[] = __('The workflow plugin must be enabled to use workflows. Go to `/servers/serverSettings/Plugin` and enable the `Plugin.Workflow` setting');
         }
         try {
             $this->Workflow->setupRedisWithException();

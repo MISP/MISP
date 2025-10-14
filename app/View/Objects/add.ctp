@@ -251,7 +251,7 @@
                             </thead>
                             <tbody>
                                 <?php foreach ($not_updateable_attribute as $attribute): ?>
-                                    <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
+                                    <tr class="error" title="<?php echo __('Cannot be merged automatically'); ?>">
                                         <td style="white-space: nowrap;">
                                             <?php if ($attribute['merge-possible']): ?>
                                                 <i class="fas fa-sign-in-alt fa-flip-horizontal useCursorPointer" style="margin-right: 3px;"></i>
@@ -311,7 +311,7 @@
                         <table class="table table-striped table-condensed" style="margin-bottom: 0px;">
                             <tbody>
                                 <?php foreach ($revised_object['notMergeable'] as $attribute): ?>
-                                    <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
+                                    <tr class="error" title="<?php echo __('Cannot be merged automatically'); ?>">
                                         <td style="white-space: nowrap;">
                                             <?php if ($attribute['merge-possible']): ?>
                                                 <i class="fas fa-sign-in-alt fa-flip-horizontal useCursorPointer" style="margin-right: 3px;" title="<?php echo __('Overwrite the current attribute value with this one'); ?>" data-valueold="<?php echo h($attribute['current_value']); ?>" data-valuerevised="<?php echo h($attribute['value']); ?>" data-objectrelation="<?php echo h($attribute['object_relation']); ?>" data-type="<?php echo h($attribute['type']); ?>" onclick="swapValue(this);"></i>

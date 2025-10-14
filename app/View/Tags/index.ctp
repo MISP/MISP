@@ -101,7 +101,7 @@
                     'class' => 'short',
                     'element' => 'count',
                     'data_path' => 'Tag.attribute_count',
-                    'url' => '/attributes/search/tags:%d',
+                    'url' => '/attributes/index/tags:%d',
                     'url_params_data_path' => ['Tag.id'],
                     'requirement' => empty($exclude_statistics)
                 ],

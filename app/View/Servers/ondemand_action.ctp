@@ -35,7 +35,7 @@ $disabledBtnText = $updateLocked ? 'title="' . __('An action is already in progr
 
                 <?php if ($action['recommendBackup']): ?>
                 <div class="alert alert-block">
-                    <i class="icon-warning-sign"></i> <?php echo __('Running this script may take a very long time depending of the size of your database. It is adviced that you <b>back your database up</b> before running it.'); ?>
+                    <i class="icon-warning-sign"></i> <?php echo __('Running this script may take a very long time depending of the size of your database. It is advised that you <b>back your database up</b> before running it.'); ?>
                 </div>
                 <?php endif; ?>
 

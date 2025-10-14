@@ -588,7 +588,7 @@ class GalaxyCluster extends AppModel
 
     /**
      * wipe_default Delete all default galaxy clusters and their associations.
-     *  Relying on the cake's recursive deletion for the associations adds an non-negligible overhead.
+     *  Relying on the cake's recursive deletion for the associations adds a non-negligible overhead.
      *  Same for cake's before/afterDelete callbacks. We do it by hand to speed up the process
      *
      */
@@ -814,7 +814,7 @@ class GalaxyCluster extends AppModel
             $saveSuccess = $this->save($cluster);
         } else {
             if (!$existingGalaxyCluster['GalaxyCluster']['locked'] && empty($server['Server']['internal'])) {
-                $results['errors'][] = __('Blocked an edit to an cluster that was created locally. This can happen if a synchronised cluster that was created on this instance was modified by an administrator on the remote side.');
+                $results['errors'][] = __('Blocked an edit to a cluster that was created locally. This can happen if a synchronised cluster that was created on this instance was modified by an administrator on the remote side.');
                 $results['failed']++;
                 return $results;
             }
@@ -1006,13 +1006,13 @@ class GalaxyCluster extends AppModel
         return $clusters;
     }
 
-    public function buildConditions($user, $useGalaxyContiainedIDsConditions=false, $alias = false)
+    public function buildConditions($user, $useGalaxyContainedIDsConditions=false, $alias = false)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
             $alias = $alias ? $alias : $this->alias;
-            if ($useGalaxyContiainedIDsConditions) {
+            if ($useGalaxyContainedIDsConditions) {
                 $galaxyIDs = $this->Galaxy->fetchGalaxies($user, ['column' => true]);
                 $galaxyIDs = !empty($galaxyIDs) ? $galaxyIDs : [-1];
                 $galaxyConditions = [
@@ -1112,7 +1112,6 @@ class GalaxyCluster extends AppModel
         if (isset($options['list']) && $options['list']) {
             return $this->find('list', $params);
         }
-
         if (isset($options['first']) && $options['first']) {
             $clusters = $this->find('first', $params);
         } else if (isset($options['count']) && $options['count']) {
@@ -1406,15 +1405,30 @@ class GalaxyCluster extends AppModel
 
         if (isset($filters['elements'])) {
             $matchingIDs = $this->GalaxyElement->getClusterIDsFromMatchingElements($user, $filters['elements']);
+            if (empty($matchingIDs)) {
+                $matchingIDs = -1;
+            }
             $filters['id'] = $matchingIDs;
         }
-
+        
         $simpleParams = array(
-            'uuid', 'galaxy_id', 'version', 'distribution', 'type', 'value', 'default', 'extends_uuid', 'tag_name', 'published', 'id',
+            'uuid', 'galaxy_id', 'version', 'distribution', 'type', 'value', 'default', 'tag_name', 'published', 'id',
         );
         foreach ($simpleParams as $k => $simpleParam) {
             if (isset($filters[$simpleParam])) {
-                $conditions['AND']["GalaxyCluster.${simpleParam}"] = $filters[$simpleParam];
+                $current_filter = $filters[$simpleParam];
+                if (!is_array($current_filter)) {
+                    $current_filter = array($current_filter);
+                }
+                $temp = [];
+                foreach ($current_filter as $v) {
+                    if (strpos($v, '%') !== false) {
+                        $temp[] = ["GalaxyCluster." . $simpleParam . " LIKE" => $v];
+                    } else {
+                        $temp[] = ["GalaxyCluster." . $simpleParam => $v];
+                    }
+                }
+                $conditions['AND'][] = ['OR' => $temp];
             }
         }
 

@@ -160,6 +160,9 @@ class AdminShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('preRelease', [
+            'help' => __('Run the pre-release tasks (for developers).'),
+        ]);
         $parser->addSubcommand('schemaDiagnostics', [
             'help' => __('Check differences between current and expected database schema')
         ]);
@@ -748,7 +751,7 @@ class AdminShell extends AppShell
     public function getAuthkey()
     {
         if (Configure::read("Security.advanced_authkeys")) {
-            $this->error('Advanced autkeys enabled, it is not possible to get user authkey.');
+            $this->error('Advanced authkeys enabled, it is not possible to get user authkey.');
         }
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get authkey'] . PHP_EOL);
@@ -975,6 +978,22 @@ class AdminShell extends AppShell
         } else {
             $this->error(__('Something went wrong.'), __('Could not find the existing db version or fetch the current database schema.'));
         }
+    }
+
+    public function dumpDescribeTypes()
+    {
+        $data = $this->MispAttribute->describeTypes();
+        $data = ['result' => $data];
+        FileAccessTool::writeToFile(ROOT . DS . 'describeTypes.json', JsonTool::encode($data, true));
+        $this->out(__("> describeTypes.json dumped to disk"));
+    }
+
+    public function preRelease()
+    {
+        $this->out(__("Dumping database schema to disk"));
+        $this->dumpCurrentDatabaseSchema();
+        $this->out(__("Dumping describeTypes.json to disk"));
+        $this->dumpDescribeTypes();
     }
 
     /**

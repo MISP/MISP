@@ -6,7 +6,7 @@
      *  - data: data-* fields
      *  - searchKey: data-search-key, specifying the key to be used (defaults to searchall)
      *  - fa-icon: an icon to use for the lookup $button
-     *  - buttong: Text to use for the lookup button
+     *  - button: Text to use for the lookup button
      *  - cancel: Button for quickly removing the filters
      *  - placeholder: optional placeholder for the text field
      *  - id: element ID for the input field - defaults to quickFilterField

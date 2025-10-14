@@ -90,6 +90,7 @@ class ApacheAuthenticate extends BaseAuthenticate
             }
             // example for searchFiler: '(objectclass=InetOrgPerson)(!(nsaccountlock=True))(memberOf=cn=misp,cn=groups,cn=accounts,dc=example,dc=com)'
             // example for searchAttribut: '(uuid=ApacheUser)'
+            // searchAttribut is a typo left in for backward compatibility
             if (!empty($ldapSearchFilter)) {
                 $filter = '(&' . $ldapSearchFilter . '(' . Configure::read('ApacheSecureAuth.ldapSearchAttribut') . '=' . $_SERVER[$envvar] . '))';
             } else {

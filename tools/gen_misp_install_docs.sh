@@ -18,7 +18,7 @@ fi
 
 [[ -e "$(which gsed)" ]] && xSED="gsed" || xSED="sed"
 
-# Fixing ASCII aborration introduced in: https://github.com/MISP/MISP/commit/1b028ee15a3bd2f209102cd6204e6c4bb519be97
+# Fixing ASCII aberration introduced in: https://github.com/MISP/MISP/commit/1b028ee15a3bd2f209102cd6204e6c4bb519be97
 ${PWD}/mkdocs/bin/gitchangelog |grep -v -e "  ,," -e "\.\.," > ../docs/Changelog.md
 # Removing consecutive dupe lines
 ${PWD}/gen_misp_changelog.py

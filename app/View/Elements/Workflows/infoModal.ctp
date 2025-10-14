@@ -900,7 +900,7 @@ $data_passed_to_if_module = [
                             <td> <?= __('Zoom in / out') ?></td>
                         </tr>
                         <tr>
-                            <td><code>Shift + Ctrck</code></td>
+                            <td><code>Shift + Click</code></td>
                             <td> <?= __('Multi-select tool') ?></td>
                         </tr>
                         <tr>

@@ -1,7 +1,7 @@
 #!/bin/bash
-# MISP 2.5 installation for Debian 12
+# MISP 2.5 installation for Debian 13
 
-# This guide is meant to be a simply installation of MISP on a pristine Debian 12 server.
+# This guide is meant to be a simply installation of MISP on a pristine Debian 13 server.
 # Keep in mind that whilst this installs the software along with all of its dependencies, it's up to you to properly secure it.
 
 # This guide liberally borrows from three sources:
@@ -121,8 +121,8 @@ function os_version_check ()
 {
     # Check if we're on Debian 12 as expected:
     DEBIAN_VERSION=$(lsb_release -a | grep Release | grep -oP '[\d-]+$')
-    if [[ "$DEBIAN_VERSION" != "12" ]]; then
-        print_error "This upgrade tool expects you to be running Debian 12. If you are on a prior upgrade of Debian, please make sure that you upgrade your distribution first, then execute this script again."
+    if [[ "$DEBIAN_VERSION" != "13" ]]; then
+        print_error "This upgrade tool expects you to be running Debian 13. If you are on a prior upgrade of Debian, please make sure that you upgrade your distribution first, then execute this script again."
         exit 1
     fi
 }
@@ -135,7 +135,7 @@ echo -e "${BLUE}██╔████╔██║${NC}██║█████�
 echo -e "${BLUE}██║╚██╔╝██║${NC}██║╚════██║██╔═══╝ "
 echo -e "${BLUE}██║ ╚═╝ ██║${NC}██║███████║██║     "
 echo -e "${BLUE}╚═╝     ╚═╝${NC}╚═╝╚══════╝╚═╝     "
-echo -e "v2.5 Setup on Debian 12"
+echo -e "v2.5 Setup on Debian 13"
 
 os_version_check
 
@@ -173,7 +173,7 @@ sudo apt-get upgrade -y &>> $logfile
 error_check "Base system update"
 
 print_status "Installing apt packages (git curl python3 python3-pip python3-virtualenv apache2 zip gcc sudo binutils openssl supervisor)..."
-declare -a packages=( git curl python3 python3-pip python3-virtualenv apache2 zip gcc sudo binutils openssl supervisor );
+declare -a packages=( git curl python3 python3-pip python3-virtualenv apache2 zip gcc sudo binutils openssl supervisor libfuzzy-dev);
 install_packages ${packages[@]}
 error_check "Basic dependencies installation"
 
@@ -184,10 +184,10 @@ error_check "MariaDB installation"
 
 
 print_status "Installing PHP and the list of required extensions..."
-declare -a packages=( redis-server php8.2 php8.2-cli php8.2-dev php8.2-xml php8.2-mysql php8.2-opcache php8.2-readline php8.2-mbstring php8.2-zip \
-  php8.2-intl php8.2-bcmath php8.2-gd php8.2-redis php8.2-gnupg php8.2-apcu libapache2-mod-php8.2 php8.2-curl );
+declare -a packages=( redis-server php8.4 php8.4-cli php8.4-dev php8.4-xml php8.4-mysql php8.4-opcache php8.4-readline php8.4-mbstring php8.4-zip \
+  php8.4-intl php8.4-bcmath php8.4-gd php8.4-redis php8.4-gnupg php8.4-apcu libapache2-mod-php8.4 php8.4-curl );
 install_packages ${packages[@]}
-PHP_ETC_BASE=/etc/php/8.2
+PHP_ETC_BASE=/etc/php/8.4
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 error_check "PHP and required extensions installation."
 
@@ -441,7 +441,7 @@ username=$SUPERVISOR_USER
 password=$SUPERVISOR_PASSWORD" | sudo tee -a /etc/supervisor/supervisord.conf  &>> $logfile
 
 sudo echo "[group:misp-workers]
-programs=default,email,cache,prio,update
+programs=default,email,cache,prio,update,scheduler
 
 [program:default]
 directory=$MISP_PATH

@@ -275,7 +275,7 @@ checkManufacturer () {
   debug ${MANUFACTURER}
 }
 
-# Dynamic horizontal spacer if needed, for autonomeous an no progress bar install, we are static.
+# Dynamic horizontal spacer if needed, for autonomous and no progress bar install, we are static.
 space () {
   if [[ "$NO_PROGRESS" == "1" ]] || [[ "$PACKER" == "1" ]]; then
     echo "--------------------------------------------------------------------------------"

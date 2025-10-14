@@ -526,7 +526,7 @@ class Drawflow {
         if (output_id !== input_id && input_class !== false) {
 
           if (this.container.querySelectorAll('.connection.node_in_' + input_id + '.node_out_' + output_id + '.' + output_class + '.' + input_class).length === 0) {
-            // Conection no exist save connection
+            // Connection no exist save connection
 
             this.connection_ele.classList.add("node_in_" + input_id);
             this.connection_ele.classList.add("node_out_" + output_id);
@@ -1377,7 +1377,7 @@ class Drawflow {
       }
     })
 
-    function insertObjectkeys(object, name, completname) {
+    function insertObjectkeys(object, name, completename) {
       if (object === null) {
         var object = data[name];
       } else {
@@ -1386,9 +1386,9 @@ class Drawflow {
       if (object !== null) {
         Object.entries(object).forEach(function (key, value) {
           if (typeof key[1] === "object") {
-            insertObjectkeys(object, key[0], completname + '-' + key[0]);
+            insertObjectkeys(object, key[0], completename + '-' + key[0]);
           } else {
-            var elems = content.querySelectorAll('[df-' + completname + '-' + key[0] + ']');
+            var elems = content.querySelectorAll('[df-' + completename + '-' + key[0] + ']');
             for (var i = 0; i < elems.length; i++) {
               elems[i].value = key[1];
               if (elems[i].isContentEditable) {
@@ -1520,7 +1520,7 @@ class Drawflow {
       }
     })
 
-    function insertObjectkeys(object, name, completname) {
+    function insertObjectkeys(object, name, completename) {
       if (object === null) {
         var object = dataNode.data[name];
       } else {
@@ -1529,9 +1529,9 @@ class Drawflow {
       if (object !== null) {
         Object.entries(object).forEach(function (key, value) {
           if (typeof key[1] === "object") {
-            insertObjectkeys(object, key[0], completname + '-' + key[0]);
+            insertObjectkeys(object, key[0], completename + '-' + key[0]);
           } else {
-            var elems = content.querySelectorAll('[df-' + completname + '-' + key[0] + ']');
+            var elems = content.querySelectorAll('[df-' + completename + '-' + key[0] + ']');
             for (var i = 0; i < elems.length; i++) {
               elems[i].value = key[1];
               if (elems[i].isContentEditable) {
@@ -1744,7 +1744,7 @@ class Drawflow {
         }
       })
 
-      function insertObjectkeys(object, name, completname) {
+      function insertObjectkeys(object, name, completename) {
         if (object === null) {
           var object = data[name];
         } else {
@@ -1753,9 +1753,9 @@ class Drawflow {
         if (object !== null) {
           Object.entries(object).forEach(function (key, value) {
             if (typeof key[1] === "object") {
-              insertObjectkeys(object, key[0], completname + '-' + key[0]);
+              insertObjectkeys(object, key[0], completename + '-' + key[0]);
             } else {
-              var elems = content.querySelectorAll('[df-' + completname + '-' + key[0] + ']');
+              var elems = content.querySelectorAll('[df-' + completename + '-' + key[0] + ']');
               for (var i = 0; i < elems.length; i++) {
                 elems[i].value = key[1];
                 if (elems[i].isContentEditable) {

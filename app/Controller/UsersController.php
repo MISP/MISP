@@ -871,12 +871,13 @@ class UsersController extends AppController
         $userToEdit = $this->User->find('first', array(
             'conditions' => $this->__adminFetchConditions($id),
             'recursive' => -1,
-            'fields' => array('User.id', 'User.role_id', 'User.email', 'User.org_id', 'Role.perm_site_admin'),
+            'fields' => array('User.*', 'Role.perm_site_admin'),
             'contain' => array('Role')
         ));
         if (empty($userToEdit)) {
             throw new NotFoundException(__('Invalid user'));
         }
+        $userToEdit['User']['password'] = '';
         if (!$this->_isSiteAdmin()) {
             // Org admins should be able to select the role that is already assigned to an org user when editing them.
             // What happened previously:
@@ -1077,12 +1078,10 @@ class UsersController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->describe('Users', 'admin_edit', $id, $this->response->type());
             }
-            $this->User->read(null, $id);
             if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $this->User->data['User']['org_id']) {
                 $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
             }
-            $this->User->set('password', '');
-            $this->request->data = $this->User->data;
+            $this->request->data = $userToEdit;
         }
         if ($this->_isSiteAdmin()) {
             $orgs = $this->User->Organisation->find('list', array(
@@ -1862,7 +1861,7 @@ class UsersController extends AppController
         if ($this->request->is('get')) {
             $totp = \OTPHP\TOTP::create();
             $secret = $totp->getSecret();
-            $this->Session->write('otp_secret', $secret);  // Store in session, we want to create a new secret each time the totp_new() function is queried via a GET (this will not impede incorrect confirmation attempty)
+            $this->Session->write('otp_secret', $secret);  // Store in session, we want to create a new secret each time the totp_new() function is queried via a GET (this will not impede incorrect confirmation attempt)
         } else {
             $secret = $this->Session->read('otp_secret');  // Reload secret from session.
             if ($secret) {

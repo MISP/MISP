@@ -170,15 +170,35 @@
                     'function' => function() use($event) {
                         if (!$event['Event']['published']) {
                             $string = '<span class="label label-important label-padding">' . __('No') . '</span>';
+                            if (!empty($event['Event']['first_publication'])) {
+                                $string .= sprintf(
+                                    '<br /><span class="bold">%s</span>: %s',
+                                    __('First published at'),
+                                    $this->Time->time($event['Event']['first_publication'])
+                                );
+                            }
                             if (!empty($event['Event']['publish_timestamp'])) {
-                                $string .= __(' (last published at %s)', $this->Time->time($event['Event']['publish_timestamp']));
+                                $string .= sprintf(
+                                    '<br /><span class="bold">%s</span>: %s',
+                                    __('Last published at'),
+                                    $this->Time->time($event['Event']['publish_timestamp'])
+                                );
                             }
                             return $string;
                         } else {
                             return sprintf(
-                                '<span class="label label-success label-padding">%s</span> %s',
+                                '<span class="label label-success label-padding">%s</span> %s%s',
                                 __('Yes'),
-                                empty($event['Event']['publish_timestamp']) ? __('N/A') : $this->Time->time($event['Event']['publish_timestamp'])
+                                empty($event['Event']['first_publication']) ? '' : sprintf(
+                                    '<br /><span class="bold">%s</span>: %s',
+                                    __('First published at'),
+                                    $this->Time->time($event['Event']['first_publication']
+                                )),
+                                empty($event['Event']['publish_timestamp']) ? '' : sprintf(
+                                    '<br /><span class="bold">%s</span>: %s',
+                                    __('Last published at'),
+                                    $this->Time->time($event['Event']['publish_timestamp']),
+                                )
                             );
                         }
                     }

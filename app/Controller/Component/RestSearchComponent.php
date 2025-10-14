@@ -226,7 +226,10 @@ class RestSearchComponent extends Component
             'list',
             'first',
             'count',
-            'order'
+            'order',
+            'elements',
+            'value',
+            'type'
         ],
     );
 

@@ -2010,7 +2010,7 @@ INSERT IGNORE INTO `template_element_texts` (`id`, `name`, `template_element_id`
 (12, 'Indicators', 45, 'Just paste your list of indicators based on type into the appropriate field. All of the fields are optional, so inputting a list of IP addresses into the Network indicator field for example is sufficient to complete this template.');
 
 INSERT IGNORE INTO `org_blocklists` (`org_uuid`, `created`, `org_name`, `comment`) VALUES
-('58d38339-7b24-4386-b4b4-4c0f950d210f', NOW(), 'Setec Astrononomy', 'default example'),
+('58d38339-7b24-4386-b4b4-4c0f950d210f', NOW(), 'Setec Astronomy', 'default example'),
 ('58d38326-eda8-443a-9fa8-4e12950d210f', NOW(), 'Acme Finance', 'default example');
 
 INSERT IGNORE INTO `admin_settings` (`setting`, `value`) VALUES 

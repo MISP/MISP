@@ -74,11 +74,11 @@ class Galaxy extends AppModel
     public function beforeSave($options = [])
     {
         parent::beforeSave($options);
-        if (empty($this->data['Galaxy']['created'])) {
+        if (empty($this->data['Galaxy']['created']) || $this->data['Galaxy']['created'] === '0000-00-00 00:00:00') {
             $this->data['Galaxy']['created'] = (new DateTime())->format('Y-m-d H:i:s');
             $this->data['Galaxy']['created'] = (new DateTime($this->data['Galaxy']['created'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
         }
-        if (empty($this->data['Galaxy']['modified'])) {
+        if (empty($this->data['Galaxy']['modified']) || $this->data['Galaxy']['modified'] === '0000-00-00 00:00:00') {
             $this->data['Galaxy']['modified'] = (new DateTime())->format('Y-m-d H:i:s');
             $this->data['Galaxy']['modified'] = (new DateTime($this->data['Galaxy']['modified'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
         }

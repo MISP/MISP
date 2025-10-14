@@ -122,6 +122,7 @@ class BenchmarksController extends AppController
 
     public function sqlMetrics()
     {
+        $metric_options = $this->request->params['pass'];
         $params = $this->IndexFilter->harvestParameters([
             'controller',
             'action',
@@ -153,7 +154,7 @@ class BenchmarksController extends AppController
                             if (!empty($params['action']) && $params['action'] !== $action) {
                                 continue;
                             }
-                            $entries[] = ['duration' => $duration, 'sql' => $sql, 'controller' => $controller, $action => $action, 'key' => $key];
+                            $entries[] = ['duration' => $duration, 'sql' => $sql, 'controller' => $controller, 'action' => $action, 'key' => $key];
                         }
                     }
                 }
@@ -166,6 +167,20 @@ class BenchmarksController extends AppController
 
         if (!empty($params['page']) && is_numeric($params['page']) && $params['page'] > 0) {
             $start = ($params['page'] - 1) * $limit;
+        }
+        foreach ($entries as $k => $entry) {
+            $command_pattern = '/^(?:\s*\/\*.*?\*\/\s*)*([A-Z]+)/i';
+            preg_match($command_pattern, $entry['sql'], $matches);
+            if ($matches[1] !== 'EXPLAIN' && $matches[1] !== 'ANALYZE') {
+                if (in_array('explain', $metric_options)) {
+                    $entries[$k]['explain'] = $this->User->query('EXPLAIN ' . $entry['sql']);
+                }
+                if (in_array('analyze', $metric_options)) {
+                    $entries[$k]['analyze'] = $this->User->query('ANALYZE ' . $entry['sql']);
+                }
+                
+            }
+            
         }
         return $this->RestResponse->viewData(array_slice($entries, $start, $limit));
     }

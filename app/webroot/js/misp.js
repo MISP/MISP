@@ -3750,15 +3750,15 @@ function testSyncRule(id, method) {
                     $('<div>').css({'text-wrap': 'nowrap'}).append(
                         $('<div>').append(
                             $('<span>')
-                                .attr('class', 'blue bold')
-                                .text('# Filtered Events'),
+                                .attr('class', 'red bold')
+                                .text('# Dropped Events'),
                             $('<span>')
                                 .text(': ' + resultTextFiltered)
                         ),
                         $('<div>').append(
                             $('<span>')
-                                .attr('class', 'blue bold')
-                                .text('# Events to be Sync'),
+                                .attr('class', 'green bold')
+                                .text('# Events to be Synced'),
                             $('<span>')
                                 .text(': ' + resultTextSync)
                         ),
@@ -5835,7 +5835,7 @@ function redirectIdSelection(scope, action) {
     if (id.length > 0) {
         window.location = baseurl + '/' + scope + '/' + action + '/' + id
     } else {
-        showMessage('fail', 'Not an valid event id');
+        showMessage('fail', 'Not a valid event id');
     }
 }
 

@@ -5,7 +5,7 @@
 
 ### -1/ Installer and Manual install instructions
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004).
+Make sure you are reading the parsed version of this Document. When in doubt, see [Installation instructions for Ubuntu 20.04.6-server](https://misp.github.io/MISP/INSTALL.ubuntu2004).
 
 ### 0/ MISP Ubuntu 20.04-server install - status
 -------------------------
@@ -13,7 +13,7 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20230502.
 
 !!! notice
-    If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu2004).
+    If the next line is `[!generic/core.md!]()`, see [Installation instructions for Ubuntu 20.04.6-server](https://misp.github.io/MISP/INSTALL.ubuntu2004).
 
 {% include_relative generic/core.md %}
 

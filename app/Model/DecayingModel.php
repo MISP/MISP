@@ -453,7 +453,7 @@ class DecayingModel extends AppModel
         return $available_formulas;
     }
 
-    // Get a instance of the class associated to a model
+    // Get an instance of the class associated to a model
     public function getModelClass($model)
     {
         $formula_name = $model['DecayingModel']['formula'] === '' ? 'polynomial' : $model['DecayingModel']['formula'];

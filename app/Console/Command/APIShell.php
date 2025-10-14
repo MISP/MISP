@@ -26,7 +26,7 @@ class APIShell extends AppShell {
             ]
         ];
         $api = $this->RestResponseComponent->getScopedApiInfo($basicUser);
-        $apiFieldsContraint = $this->RestResponseComponent->getAllApisFieldsConstraint($basicUser);
+        $apiFieldsConstraint = $this->RestResponseComponent->getAllApisFieldsConstraint($basicUser);
 
         $doc = $this->genNoticeDoc();
         foreach ($api as $model => $apiEntries) {
@@ -37,7 +37,7 @@ class APIShell extends AppShell {
                 if ($offset !== false) {
                     $baseURL = substr($baseURL, 0, $offset);
                 }
-                $fieldsConstraints = $apiFieldsContraint[$baseURL];
+                $fieldsConstraints = $apiFieldsConstraint[$baseURL];
                 $doc .= $this->genEndpointDoc($apiEntry, $fieldsConstraints);
             }
         }

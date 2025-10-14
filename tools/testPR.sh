@@ -13,7 +13,7 @@ DATE=$(date +%Y%m%d)
 
 re='^[0-9]+$'
 if ! [[ $1 =~ $re ]]; then
-  echo "PR needs to be an numerical ID, you entered: $1"
+  echo "PR needs to be a numerical ID, you entered: $1"
   exit 1
 fi
 

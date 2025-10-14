@@ -182,7 +182,7 @@ class Sightingdb extends AppModel
     }
 
     /*
-     * Reattach the sightingDB results where applicable to all attriutes in an event
+     * Reattach the sightingDB results where applicable to all attributes in an event
      */
     private function __attachValuesToEvent($event, $values)
     {

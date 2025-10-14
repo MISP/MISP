@@ -124,8 +124,12 @@ class SharingGroupBlueprintsController extends AppController
             'fields' => ['id', 'uuid', 'name', 'sector', 'type', 'nationality'],
             'conditions' => ['id' => $temp['orgs']]
         ]);
-        $this->set('data', $orgs);
-        $this->set('menuData', array('menuList' => 'SharingGroupBlueprints', 'menuItem' => 'viewOrgs'));
+        if ($this->IndexFilter->isRest()) {
+            return $this->RestResponse->viewData($orgs, 'json');
+        } else {
+            $this->set('data', $orgs);
+            $this->set('menuData', array('menuList' => 'SharingGroupBlueprints', 'menuItem' => 'viewOrgs'));
+        }
     }
 
     public function execute($id = false)

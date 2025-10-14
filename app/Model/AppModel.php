@@ -96,7 +96,7 @@ class AppModel extends Model
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
-        141 => false, 142 => false, 143 => false
+        141 => false, 142 => false, 143 => false, 144 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -209,7 +209,7 @@ class AppModel extends Model
             case '2.4.71':
                 $this->OrgBlocklist = Classregistry::init('OrgBlocklist');
                 $values = array(
-                    array('org_uuid' => '58d38339-7b24-4386-b4b4-4c0f950d210f', 'org_name' => 'Setec Astrononomy', 'comment' => 'default example'),
+                    array('org_uuid' => '58d38339-7b24-4386-b4b4-4c0f950d210f', 'org_name' => 'Setec Astronomy', 'comment' => 'default example'),
                     array('org_uuid' => '58d38326-eda8-443a-9fa8-4e12950d210f', 'org_name' => 'Acme Finance', 'comment' => 'default example')
                 );
                 foreach ($values as $value) {
@@ -2563,6 +2563,10 @@ class AppModel extends Model
             case 143:
                 $sqlArray[] = "ALTER TABLE `feeds` ADD `lock_events` tinyint(1) NOT NULL DEFAULT 0;";
                 break;
+            case 144:
+                $sqlArray[] = "ALTER TABLE `events` ADD `first_publication` int(11) NOT NULL DEFAULT 0;";
+                $indexArray[] = array('events', 'first_publication');
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -4455,7 +4459,7 @@ class AppModel extends Model
      *
      * @param string $trigger_id
      * @param array $data Data to be passed to the workflow
-     * @param array $blockingErrors Errors will be appened if any
+     * @param array $blockingErrors Errors will be appended if any
      * @param array $logging If the execution failure should be logged
      * @return boolean If the execution for the blocking path was a success
      */
