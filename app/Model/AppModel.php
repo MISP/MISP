@@ -109,7 +109,7 @@ class AppModel extends Model
             'requirements' => 'MySQL version must be >= 5.6', # message stating the requirements necessary for the update
             'record' => false, # should the update success be saved in the admin_table
             // 'preUpdate' => 'seenOnAttributeAndObjectPreUpdate', # Function to execute before the update. If it throws an error, it cancels the update
-            'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
+            'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the function performing the update
         ),
     );
 
@@ -531,21 +531,21 @@ class AppModel extends Model
             case 'highPerformanceIndexingEvents':
                 $temp = "ALTER TABLE events";
                 $notEmpty = false;
-                $indeces = [
+                $indices = [
                     'idx_evt_acl' => '(distribution, sharing_group_id)',
                     'idx_evt_ts_pub' => '(timestamp, published)',
                     'idx_evt_id_acl' => '(id, org_id, distribution, sharing_group_id)',
                 ];
-                $indeces_to_delete = [
+                $indices_to_delete = [
                     'sharing_group_id'
                 ];
-                foreach ($indeces as $index => $data) {
+                foreach ($indices as $index => $data) {
                     if (!$this->checkNamedIndexExists('events', $index)) {
                         $temp .= " ADD INDEX $index $data,";
                         $notEmpty = true;
                     }
                 }
-                foreach ($indeces_to_delete as $index) {
+                foreach ($indices_to_delete as $index) {
                     if ($this->checkNamedIndexExists('events', $index)) {
                         $temp .= " DROP INDEX $index,";
                         $notEmpty = true;
@@ -559,7 +559,7 @@ class AppModel extends Model
             case 'highPerformanceIndexingAttributes':
                 $temp = "ALTER TABLE attributes";
                 $notEmpty = false;
-                $indeces = [
+                $indices = [
                     'idx_attr_acl_type' => '(event_id, distribution, sharing_group_id, deleted, type(16))',
                     'idx_attr_type_ts' => '(type(16), timestamp)',
                     'idx_attr_type_event' => '(type(16), event_id)',
@@ -570,7 +570,7 @@ class AppModel extends Model
                     'idx_attr_evt_dist' => '(event_id, distribution)',
                     'idx_attr_objrel_acl' => '(object_relation(32), event_id, distribution, sharing_group_id, deleted)',
                 ];
-                $indeces_to_delete = [
+                $indices_to_delete = [
                     'deleted',
                     'value1',
                     'value2',
@@ -579,13 +579,13 @@ class AppModel extends Model
                     'object_id',
                     'object_relation'
                 ];
-                foreach ($indeces as $index => $data) {
+                foreach ($indices as $index => $data) {
                     if (!$this->checkNamedIndexExists('attributes', $index)) {
                         $temp .= " ADD INDEX $index $data,";
                         $notEmpty = true;
                     }
                 }
-                foreach ($indeces_to_delete as $index) {
+                foreach ($indices_to_delete as $index) {
                     if ($this->checkNamedIndexExists('attributes', $index)) {
                         $temp .= " DROP INDEX $index,";
                         $notEmpty = true;
@@ -599,24 +599,24 @@ class AppModel extends Model
             case 'highPerformanceIndexingObjects':
                 $temp = "ALTER TABLE objects";
                 $notEmpty = false;
-                $indeces = [
+                $indices = [
                     'idx_obj_acl' => '(event_id, distribution, sharing_group_id, deleted)',
                     'idx_obj_id_acl' => '(id, event_id, distribution)',
                     'idx_obj_meta' => '(' . $this->dbiq() . 'meta-category' . $this->dbiq() . '(16), timestamp)'
                 ];
-                $indeces_to_delete = [
+                $indices_to_delete = [
                     'event_id',
                     'distribution',
                     'sharing_group_id',
                     $this->dbiq() . 'meta-category' . $this->dbiq()
                 ];
-                foreach ($indeces as $index => $data) {
+                foreach ($indices as $index => $data) {
                     if (!$this->checkNamedIndexExists('objects', $index)) {
                         $temp .= " ADD INDEX $index $data,";
                         $notEmpty = true;
                     }
                 }
-                foreach ($indeces_to_delete as $index) {
+                foreach ($indices_to_delete as $index) {
                     if ($this->checkNamedIndexExists('objects', $index)) {
                         $temp .= " DROP INDEX $index,";
                         $notEmpty = true;
@@ -630,14 +630,14 @@ class AppModel extends Model
             case 'highPerformanceIndexingDefaultCorrelations':
                 $temp = "ALTER TABLE default_correlations";
                 $notEmpty = false;
-                $indeces = [
+                $indices = [
                     'idx_corr_acl_src' => '(object_id, org_id, distribution, sharing_group_id, event_distribution, event_sharing_group_id)',
                     'idx_corr_acl_dst' => '(1_object_id, 1_org_id, 1_distribution, 1_sharing_group_id, 1_event_distribution, 1_event_sharing_group_id)',
                     'idx_corr_acl_src_obj' => '(object_id, org_id, distribution, sharing_group_id, object_distribution, object_sharing_group_id, event_distribution, event_sharing_group_id)',
                     'idx_corr_acl_dst_obj' => '(1_object_id, 1_org_id, 1_distribution, 1_sharing_group_id, 1_object_distribution, 1_object_sharing_group_id, 1_event_distribution, 1_event_sharing_group_id)',
                     'idx_corr_evt_1evt'   => '(event_id, 1_event_id)',
                 ];
-                foreach ($indeces as $index => $data) {
+                foreach ($indices as $index => $data) {
                     if (!$this->checkNamedIndexExists('default_correlations', $index)) {
                         $temp .= " ADD INDEX $index $data,";
                         $notEmpty = true;
@@ -651,14 +651,14 @@ class AppModel extends Model
             case 'highPerformanceIndexingNoAclCorrelations':
                 $temp = "ALTER TABLE no_acl_correlations";
                 $notEmpty = false;
-                $indeces = [
+                $indices = [
                     'idx_nac_attr_evt'    => '(attribute_id, event_id)',
                     'idx_nac_1attr_1evt'  => '(1_attribute_id, 1_event_id)',
                     'idx_nac_val_attr'    => '(value_id, attribute_id)',
                     'idx_nac_val_1attr'   => '(value_id, 1_attribute_id)',
                     'idx_nac_evt_1evt'   => '(event_id, 1_event_id)',
                 ];
-                foreach ($indeces as $index => $data) {
+                foreach ($indices as $index => $data) {
                     if (!$this->checkNamedIndexExists('no_acl_correlations', $index)) {
                         $temp .= " ADD INDEX $index $data,";
                         $notEmpty = true;
@@ -670,7 +670,7 @@ class AppModel extends Model
                 }
                 break;
             case 'highPerformanceIndexingConnectorTags':
-                $indeces = [
+                $indices = [
                     'event_tags' => [
                         'idx_event_tags_event_tag' => '(event_id, tag_id)'
                     ],
@@ -679,7 +679,7 @@ class AppModel extends Model
                         'idx_attr_tags_attr_tag' => '(attribute_id, tag_id)'
                     ]
                 ];
-                foreach ($indeces as $table => $indexes) {
+                foreach ($indices as $table => $indexes) {
                     $temp = "ALTER TABLE $table";
                     $notEmpty = false;
                     foreach ($indexes as $index => $data) {
@@ -695,12 +695,12 @@ class AppModel extends Model
                 }
                 break;
             case 'highPerformanceIndexWarninglists':
-                $indeces = [
+                $indices = [
                     'warninglist_entries' => [
                         'idx_warn_values' => '(value(64))'
                     ]
                 ];
-                foreach ($indeces as $table => $indexes) {
+                foreach ($indices as $table => $indexes) {
                     $temp = "ALTER TABLE $table";
                     $notEmpty = false;
                     foreach ($indexes as $index => $data) {
@@ -718,7 +718,7 @@ class AppModel extends Model
             case 'highPerformanceLogSearchIndexing':
                 $temp = "ALTER TABLE logs";
                 $notEmpty = false;
-                $indeces = [
+                $indices = [
                     'idx_logs_org' => '(org(64))',
                     'idx_logs_email' => '(email(64))',
                     'idx_logs_model' => '(model(32))',
@@ -726,7 +726,7 @@ class AppModel extends Model
                     'idx_logs_action' => '(action(16))',
                     'idx_logs_created' => '(created)',
                 ];
-                foreach ($indeces as $index => $data) {
+                foreach ($indices as $index => $data) {
                     if (!$this->checkNamedIndexExists('logs', $index)) {
                         $temp .= " ADD INDEX $index $data,";
                         $notEmpty = true;
@@ -740,13 +740,13 @@ class AppModel extends Model
             case 'OnDemandCorrelationTuning':
                 $temp = "ALTER TABLE attributes";
                 $notEmpty = false;
-                $indeces = [
+                $indices = [
                     'idx_val1_source' => '(event_id, value1(64), deleted, disable_correlation, type, id)',
                     'idx_val1_target' => '(value1(64), event_id, deleted, disable_correlation, type, id)',
                     'idx_val2_source' => '(event_id, value2(64), deleted, disable_correlation, type, id)',
                     'idx_val2_target' => '(value2(64), event_id, deleted, disable_correlation, type, id)'
                 ];
-                foreach ($indeces as $index => $data) {
+                foreach ($indices as $index => $data) {
                     if (!$this->checkNamedIndexExists('attributes', $index)) {
                         $temp .= " ADD INDEX $index $data,";
                         $notEmpty = true;
@@ -996,7 +996,7 @@ class AppModel extends Model
                 break;
             case '2.4.57':
                 $sqlArray[] = 'ALTER TABLE tags ADD hide_tag tinyint(1) NOT NULL DEFAULT 0;';
-                // new indeces to match the changes in #1766
+                // new indices to match the changes in #1766
                 $this->__dropIndex('correlations', '1_event_id');
                 $this->__addIndex('correlations', '1_event_id');
                 $this->__addIndex('warninglist_entries', 'warninglist_id');
@@ -1486,7 +1486,7 @@ class AppModel extends Model
                     `show_result` tinyint(1) DEFAULT 0,
                     `skip_ssl` tinyint(1) DEFAULT 0,
                     `outcome` int(11) NOT NULL,
-                    `bookmark` tinyint(1) NOT NULL DEFAUlT 0,
+                    `bookmark` tinyint(1) NOT NULL DEFAULT 0,
                     `bookmark_name` varchar(255) NULL DEFAULT '',
                     PRIMARY KEY (`id`),
                     KEY `org_id` (`org_id`),

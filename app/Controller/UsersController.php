@@ -2580,12 +2580,12 @@ class UsersController extends AppController
             throw new NotFoundException("Public key not found.");
         }
 
-        list($fingeprint, $publicKey) = $key;
+        list($fingerprint, $publicKey) = $key;
         $response = new CakeResponse(array(
             'body' => $publicKey,
             'type' => 'text/plain',
         ));
-        $response->download($fingeprint . '.asc');
+        $response->download($fingerprint . '.asc');
         return $response;
     }
 

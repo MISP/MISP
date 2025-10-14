@@ -274,7 +274,7 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 					if (self::$check_ad_groups) {
 						if ($this->_checkAdGroup($authdata)) {
 							$mispUsername = $authProperty;
-							$this->_log("info", "Successful AAD group check for for ${mispUsername}");
+							$this->_log("info", "Successful AAD group check for ${mispUsername}");
 						}
 					} else {
 						$mispUsername = $authProperty;

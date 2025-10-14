@@ -41,7 +41,7 @@ class PermissivePlyara():
         # with mock.patch.object(re, 'match', overridden_match):
         try:
             # res = super(Plyara, self).parse_string(input_string) # weird failures, couldn't debug. possibly due to internal state
-            # re-instanciating playra to avoid internal state errors
+            # re-instantiating playra to avoid internal state errors
             res = _MultilinePlyara().parse_string(input_string)
             if fix_notes:
                 for r in res:

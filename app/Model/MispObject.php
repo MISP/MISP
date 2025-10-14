@@ -1533,7 +1533,7 @@ class MispObject extends AppModel
             $toReturn['updateable_attribute'] = $object['Attribute'];
             $toReturn['not_updateable_attribute'] = array();
 
-            if (!empty($template_difference)) { // older template not completely embeded in newer
+            if (!empty($template_difference)) { // older template not completely embedded in newer
                 foreach ($template_difference as $temp_diff_element) {
                     foreach ($object['Attribute'] as $i => $attribute) {
                         if (

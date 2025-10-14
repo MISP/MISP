@@ -142,7 +142,7 @@ class Server extends AppModel
         'innodb_dedicated_server' => [
             'default' => '0',
             'recommended' => '',
-            'explanation' => 'Set to `1` if the database is running in a dedicated server. The database engine will examine the available memory and dynamically set `innodb_buffer_pool_size`, `innodb_log_file_size`, `innodb_log_files_in_group` and `innodb_flush_method`. It is particularly useful in cloud enviroments that can be auto-scaled.',
+            'explanation' => 'Set to `1` if the database is running in a dedicated server. The database engine will examine the available memory and dynamically set `innodb_buffer_pool_size`, `innodb_log_file_size`, `innodb_log_files_in_group` and `innodb_flush_method`. It is particularly useful in cloud environments that can be auto-scaled.',
         ],
         'innodb_log_file_size' => [
             'default' => '100663296',
@@ -814,7 +814,7 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
+    public function getEligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
     {
         $serverSync->debug("Fetching eligible clusters for pull: " . JsonTool::encode($conditions));
 
@@ -870,7 +870,7 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    private function getElligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
+    private function getEligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
     {
         $serverSync->debug("Fetching eligible clusters for push: " . JsonTool::encode($conditions));
         $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
@@ -1380,7 +1380,7 @@ class Server extends AppModel
         $this->Event = ClassRegistry::init('Event');
 
         if ($technique === 'full') {
-            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
+            $clusters = $this->GalaxyCluster->getEligibleClustersToPush($user, $conditions=array(), $full=true);
         } else {
             if ($event === false) {
                 throw new InvalidArgumentException('The event from which the cluster should be taken must be provided.');
@@ -1396,14 +1396,14 @@ class Server extends AppModel
             if (empty($customGalaxyClusterTags)) {
                 return [];
             }
-            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $customGalaxyClusterTags), $full=true);
+            $clusters = $this->GalaxyCluster->getEligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $customGalaxyClusterTags), $full=true);
         }
         if (empty($clusters)) {
             return []; // no local clusters eligible for push
         }
         $localClusterUUIDs = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
         try {
-            $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($serverSync, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
+            $clustersToPush = $this->getEligibleClusterIdsFromServerForPush($serverSync, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
         } catch (Exception $e) {
             $this->logException("Could not get eligible cluster IDs from server #{$server['Server']['id']} for push.", $e);
             return [];
@@ -5328,7 +5328,7 @@ class Server extends AppModel
                 ],
                 'correlation_engine' => [
                     'level' => 0,
-                    'description' => __('Choose which correlation engine to use. MISP defaults to the default engine, maintaining all data in the database whilst enforcing ACL rules on any non site-admin user. This is recommended for any MISP instnace with multiple organisations. If you are an endpoint MISP, consider switching to the much leaner and faster No ACL engine.'),
+                    'description' => __('Choose which correlation engine to use. MISP defaults to the default engine, maintaining all data in the database whilst enforcing ACL rules on any non site-admin user. This is recommended for any MISP instance with multiple organisations. If you are an endpoint MISP, consider switching to the much leaner and faster No ACL engine.'),
                     'value' => 'default',
                     'test' => 'testForCorrelationEngine',
                     'type' => 'string',

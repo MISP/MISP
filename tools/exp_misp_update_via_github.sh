@@ -4,7 +4,7 @@
 ### /!\ WARNING /!\ This is WiP and not useable as of now! /!\ We have been warned.
 
 ## TODO, FIX:
-# Must be launch in the parent directoy of your MISP installation
+# Must be launch in the parent directory of your MISP installation
 
 # VAR AFFECTATION
 ver="1.1-20181025"

@@ -256,7 +256,7 @@ class RestResponseComponent extends Component
         ),
         'Sighting' => array(
             'add' => array(
-                'description' => "POST a simplified sighting object in JSON format to this API to add a or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.",
+                'description' => "POST a simplified sighting object in JSON format to this API to add it or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.",
                 'mandatory' => array('OR' => array('values', 'id')),
                 'optional' => array('type', 'source', 'timestamp', 'date', 'time', 'filters')
             ),
@@ -1985,7 +1985,7 @@ class RestResponseComponent extends Component
         );
     }
 
-    // create dictionnary mapping between fields constraints and scope->action
+    // create dictionary mapping between fields constraints and scope->action
     private function __setupFieldsConstraint() {
         foreach ($this->__descriptions as $scope => $desc) {
             foreach ($desc as $action => $params) {

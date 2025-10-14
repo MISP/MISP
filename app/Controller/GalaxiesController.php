@@ -135,7 +135,7 @@ class GalaxiesController extends AppController
     {
         $currentUser = $this->Auth->user();
         if (!$currentUser['Role']['perm_site_admin'] && !$currentUser['Role']['perm_galaxy_editor']) {
-            throw new MethodNotAllowedException(__('Insuficient privileges'));
+            throw new MethodNotAllowedException(__('Insufficient privileges'));
         }
         $params = [
             'beforeSave' => function($data) use ($currentUser) {

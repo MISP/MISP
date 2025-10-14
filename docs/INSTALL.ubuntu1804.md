@@ -436,7 +436,7 @@ configMISP () {
 {% include_relative generic/gnupg.md %}
 
 !!! notice
-    If entropy is not high enough, you can install havegd and then start the service
+    If entropy is not high enough, you can install haveged and then start the service
     ```bash
     sudo apt install haveged -qy
     sudo service haveged start

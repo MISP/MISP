@@ -85,7 +85,7 @@ class LogableBehavior extends ModelBehavior {
 	public $schema = array();
 
 	/**
-	 * Cake called intializer
+	 * Cake called initializer
 	 * Config options are :
 	 * userModel		: 'User'. Class name of the user model you want to use (User by default), if you want to save User in log
 	 * userKey   		: 'user_id'. The field for saving the user to (user_id by default).

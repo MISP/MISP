@@ -835,7 +835,7 @@ Send a GET request to this endpoint to get a full diagnostic along with all curr
 
 # Sightings
 ## Add
-POST a simplified sighting object in JSON format to this API to add a or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.
+POST a simplified sighting object in JSON format to this API to add it or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.
 ```
 /sightings/add
 ```

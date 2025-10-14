@@ -282,7 +282,7 @@ class Workflow extends AppModel
         $workflow = $this->fetchWorkflow($workflow_id);
         $workflow['Workflow']['debug_enabled'] = !empty($enable);
         $result = $this->editWorkflow($workflow);
-        return empty($result['errrors']);
+        return empty($result['errors']);
     }
 
     public function toggleModules($module_ids, $enable, $is_trigger=false): int
@@ -1243,7 +1243,7 @@ class Workflow extends AppModel
             try {
                 $reflection = new \ReflectionClass($className);
             } catch (\ReflectionException $e) {
-                $message = __('Could not load module for path %s. Could not instanciate class', $filepath);
+                $message = __('Could not load module for path %s. Could not instantiate class', $filepath);
                 $this->logException($message, $e);
                 return $message;
             }

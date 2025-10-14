@@ -1597,7 +1597,7 @@ class MispInteraction {
         this.nodes = nodes;
         this.edges = edges;
         // Dirty way to know what modif was successful as the callback gives no information
-        // May be changed in the futur
+        // May be changed in the future
         this.callback_to_be_called = null;
     }
 

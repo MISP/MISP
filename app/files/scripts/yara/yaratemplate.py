@@ -251,7 +251,7 @@ class YaraRuleTemplate:
         elif len(value.splitlines()) > 1:
             for line in value.splitlines():
                 self._strings('text', name, line, modifiers)
-                # TODO: imporvement: group lines with 'all of $*'
+                # TODO: improvement: group lines with 'all of $*'
                 # instead of (\r|\r\n|\n|\x1E)
         else:
             self._strings('text', name, value, modifiers)
