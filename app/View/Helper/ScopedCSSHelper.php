@@ -13,7 +13,7 @@ App::uses('AppHelper', 'View/Helper');
             return (substr($haystack, -$length) === $needle);
         }
 
-        private function preppendScopedId($css, $seed)
+        private function prependScopedId($css, $seed)
         {
             $prependSelector = sprintf('[data-scoped="%s"]', $seed);
             $cssLines = explode(PHP_EOL, $css);
@@ -75,7 +75,7 @@ App::uses('AppHelper', 'View/Helper');
                 $html = str_replace($css, "", $html); // remove CSS part
                 $css = str_replace($htmlStyleTag, "", $css); // remove the style node
                 $css = str_replace($styleClosingTag, "", $css); // remove closing style node
-                $scopedCss = $this->preppendScopedId($css, $seed);
+                $scopedCss = $this->prependScopedId($css, $seed);
                 $scopedHtml = sprintf("<div %s>%s</div>", sprintf("data-scoped=\"%s\" ", $seed), $html);
                 $bundle = sprintf("%s %s", $scopedHtml, $scopedCss);
             }

@@ -60,7 +60,7 @@ class AttachmentScan extends AppModel
     }
 
     /**
-     * Checks configuration and connection to module wth AV engine and returns an array of scanning software.
+     * Checks configuration and connection to module with AV engine and returns an array of scanning software.
      *
      * @return array
      * @throws Exception

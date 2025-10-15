@@ -27,10 +27,10 @@
             ));
             // add relation info between the two clusters
             foreach ($cluster['GalaxyCluster']['GalaxyClusterRelation'] as $relation) {
-                if (empty($relation['GalaxyCluster'])) { // unkown cluster, create placeholder
+                if (empty($relation['GalaxyCluster'])) { // unknown cluster, create placeholder
                     $relation['GalaxyCluster'] = array(
                         'uuid' => $relation['referenced_galaxy_cluster_uuid'],
-                        'type' => 'unkown galaxy',
+                        'type' => 'unknown galaxy',
                         'value' => $relation['referenced_galaxy_cluster_uuid'],
                     );
                 }
@@ -49,7 +49,7 @@
             ));
             if (!empty($cluster['GalaxyCluster']['TargetingClusterRelation'])) {
                 foreach ($cluster['GalaxyCluster']['TargetingClusterRelation'] as $relation) {
-                    if (isset($relation['GalaxyCluster']) && !isset($relationCache[$relation['GalaxyCluster']['uuid']])) { // not set if cluster is unkown
+                    if (isset($relation['GalaxyCluster']) && !isset($relationCache[$relation['GalaxyCluster']['uuid']])) { // not set if cluster is unknown
                         $relationCache[$relation['GalaxyCluster']['uuid']] = true;
                         $tmp = array(
                             'Relation' => array_diff_key($relation, array_flip(array('GalaxyCluster'))),

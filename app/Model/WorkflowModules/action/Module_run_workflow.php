@@ -6,7 +6,7 @@ class Module_run_workflow extends WorkflowBaseActionModule
     public $id = 'run-workflow';
     public $name = 'Run Workflow';
     public $version = '0.1';
-    public $description = 'Run a Worflow.';
+    public $description = 'Run a Workflow.';
     public $icon = 'project-diagram';
     public $inputs = 1;
     public $outputs = 1;
@@ -44,7 +44,7 @@ class Module_run_workflow extends WorkflowBaseActionModule
                 'type' => 'select',
                 'options' => [
                     'nothing' => 'No data passed',
-                    'roaming_data' => 'Roaming Data (Data of this Worflow)',
+                    'roaming_data' => 'Roaming Data (Data of this Workflow)',
                     'event_ids' => 'Event IDs from filters or Extracted from Roaming Data'
                 ],
                 'default' => 'yes',

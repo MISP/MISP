@@ -244,7 +244,7 @@
         }).click(function(e) {
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
-                    selectAllInbetween(lastSelected, this);
+                    selectAllInBetween(lastSelected, this);
                 }
                 lastSelected = this;
             }

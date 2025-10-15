@@ -176,6 +176,7 @@ class MispObject extends AppModel
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp'),
+                    'first_publication' => array('function' => 'set_filter_timestamp'),
                     'org' => array('function' => 'set_filter_org'),
                     'uuid' => array('function' => 'set_filter_uuid'),
                     'published' => array('function' => 'set_filter_published')
@@ -625,11 +626,18 @@ class MispObject extends AppModel
             );
         }
         if ($this->checkDbSupport('reverseJoin')) {
+            $fields = ['Object.*'];
+            if (isset($options['contain']['Event']['fields'])) {
+                foreach ($options['contain']['Event']['fields'] as $key => $field) {
+                    if (is_numeric($key)) {
+                        $fields[] = 'Event.' . $field;
+                    }
+                }
+            } else {
+                $fields = array_merge($fields, array('Event.distribution', 'Event.id', 'Event.user_id', 'Event.orgc_id', 'Event.org_id'));
+            }
             $params = array(
-                'fields' => array(
-                    'Object.*',          // or explicitly list them
-                    'Event.id', 'Event.info', 'Event.org_id', 'Event.orgc_id'
-                ),
+                'fields' => $fields,
                 'conditions' => $this->buildConditions($user),
                 'recursive' => -1,
                 'joins' => array(
@@ -658,7 +666,7 @@ class MispObject extends AppModel
                 'recursive' => -1,
                 'contain' => array(
                     'Event' => array(
-                        'fields' => array('id', 'info', 'org_id', 'orgc_id'),
+                        'fields' => isset($options['contain']['Event']['fields']) ? $options['contain']['Event']['fields'] : array('id', 'info', 'org_id', 'orgc_id'),
                     ),
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
@@ -678,7 +686,13 @@ class MispObject extends AppModel
             $params['contain']['Attribute']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
         }
         if (isset($options['contain'])) {
-            $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
+            $tempOptions = $options;
+            if (isset($options['contain']['Event'])) {
+                // we include this manually insted to allow for the reverse join
+                unset($tempOptions['contain']['Event']);
+            }
+            debug($params);
+            $params['contain'] = array_merge_recursive($params['contain'], $tempOptions['contain']);
         }
         if (
             empty($options['metadata']) &&
@@ -1453,7 +1467,7 @@ class MispObject extends AppModel
             'updateable_attribute' => false,
             'not_updateable_attribute' => false,
             'newer_template_version' => false,
-            'original_template_unkown' => false,
+            'original_template_unknown' => false,
             'template' => $template
         );
         $newer_template = $this->ObjectTemplate->find('first', array(
@@ -1489,8 +1503,8 @@ class MispObject extends AppModel
                         $template_difference[] = $cur_obj_rel;
                     }
                 }
-            } else { // original template unkown
-                $toReturn['original_template_unkown'] = true;
+            } else { // original template unknown
+                $toReturn['original_template_unknown'] = true;
                 $unmatched_attributes = array();
                 foreach ($object['Attribute'] as $i => $attribute) {
                     $flag_match = false;
@@ -1508,7 +1522,7 @@ class MispObject extends AppModel
                     }
                 }
 
-                // simulate unkown template from the attribute
+                // simulate unknown template from the attribute
                 foreach ($unmatched_attributes as $unmatched_attribute) {
                     $template_difference[] = [
                         'object_relation' => $unmatched_attribute['object_relation'],
@@ -1519,7 +1533,7 @@ class MispObject extends AppModel
             $toReturn['updateable_attribute'] = $object['Attribute'];
             $toReturn['not_updateable_attribute'] = array();
 
-            if (!empty($template_difference)) { // older template not completely embeded in newer
+            if (!empty($template_difference)) { // older template not completely embedded in newer
                 foreach ($template_difference as $temp_diff_element) {
                     foreach ($object['Attribute'] as $i => $attribute) {
                         if (

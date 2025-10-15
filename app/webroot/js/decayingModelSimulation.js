@@ -233,20 +233,20 @@
                         that.tooltipText(false);
                     });
                 this.line_guide_now.exit().remove();
-                this.carret_line_guide_now = this.svg
-                    .selectAll('.carret-time-now')
+                this.caret_line_guide_now = this.svg
+                    .selectAll('.caret-time-now')
                     .data([new Date()]);
-                this.carret_line_guide_now
+                this.caret_line_guide_now
                     .enter()
                     .append('text')
-                    .attr('class', 'carret-time-now')
-                this.carret_line_guide_now
+                    .attr('class', 'caret-time-now')
+                this.caret_line_guide_now
                     .attr('x', that.x(new Date())-5.5)
                     .attr('y', that.y(99))
                     .attr('font-family', 'FontAwesome')
                     .attr('font-size', '20px')
                     .text(function(d) { return '\uf0d7' });
-                this.carret_line_guide_now.exit().remove();
+                this.caret_line_guide_now.exit().remove();
 
                 this.svg.append('rect')
                     .attr('class', 'decayingGraphAreaThres')
@@ -513,7 +513,7 @@
                     this.overriddenTags.forEach(function(entry) {
                         var cur_namespace_predicate = entry.AttributeTag.Tag.name.split('=')[0];
                         if (namespace_predicate == cur_namespace_predicate) {
-                            overridden_html += '<div class="overriden_tag_wrapper" style="filter: grayscale(80%);">' + that._create_tag_html(entry.EventTag) + '</div>';
+                            overridden_html += '<div class="overridden_tag_wrapper" style="filter: grayscale(80%);">' + that._create_tag_html(entry.EventTag) + '</div>';
                         }
                     });
                     if (overridden_html !== '') {
@@ -606,7 +606,7 @@
                         if (col_i == 0 && $div.hasClass('overridden_tags_container')) {
                             $('.overridden_tags_container[data-row="' + row_i + '"]').popover({
                                 title: 'Event tag overridden by Attribute tag',
-                                content: that._generateOverridenExplanationPopoverHTML($div),
+                                content: that._generateOverriddenExplanationPopoverHTML($div),
                                 html: true,
                                 trigger: 'hover',
                                 placement: 'left',
@@ -616,8 +616,8 @@
                     });
             },
 
-            _generateOverridenExplanationPopoverHTML: function($div) {
-                var $tags_event = $div.find('.overriden_tag_wrapper .tag');
+            _generateOverriddenExplanationPopoverHTML: function($div) {
+                var $tags_event = $div.find('.overridden_tag_wrapper .tag');
                 var $tag_attribute = $div.find('.attribute_tag_wrapper .tag');
                 var html = '<div style="text-align: center;">';
                     $tags_event.each(function() {

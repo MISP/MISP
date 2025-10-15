@@ -129,7 +129,7 @@ if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'
                                 <td><?php echo $rowIcon; ?></td>
                                 <td>
                                     <div>
-                                        <a style="cursor: pointer; maring-bottom: 2px;" onclick="toggleVisiblity(<?php echo $i;?>)">
+                                        <a style="cursor: pointer; margin-bottom: 2px;" onclick="toggleVisiblity(<?php echo $i;?>)">
                                             <span class="foldable fa fa-terminal"></span>
                                             <?php echo __('Update ') . ($i+1); ?>
                                             <span class="inline-term"><?php echo h(substr($cmd, 0, 60)) . (strlen($cmd) > 60 ? '[...]' : '' );?></span>

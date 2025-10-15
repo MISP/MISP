@@ -57,7 +57,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
         'fullMatch' => []
     ];
 
-    private $customIndeces = [
+    private $customIndices = [
         'attributes' => [
             'idx_val1_source' => false,
             'idx_val1_target' => false,
@@ -95,9 +95,9 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                 $this->correlationExclusions['fullMatch'][] = $exclusion;
             }
         }
-        foreach ($this->customIndeces as $table => $indeces) {
-            foreach ($indeces as $index => $status) {
-                $this->customIndeces[$table][$index] = $this->Correlation->indexExists($table, $index);
+        foreach ($this->customIndices as $table => $indices) {
+            foreach ($indices as $index => $status) {
+                $this->customIndices[$table][$index] = $this->Correlation->indexExists($table, $index);
             }
         }
     }
@@ -217,7 +217,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                     ",
                     [$eventId]
                 );
-                $use_index = $this->customIndeces['attributes']['idx_val2_target'] ? 'FORCE INDEX (`idx_val2_target`)' : '';
+                $use_index = $this->customIndices['attributes']['idx_val2_target'] ? 'FORCE INDEX (`idx_val2_target`)' : '';
                 $sql = "
                     SELECT 
                         target.id AS id,
@@ -275,8 +275,8 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                 ];
                 
                 $key = "{$pair['a']}:{$pair['b']}";
-                $sourceIndex = $this->customIndeces['attributes'][$indexHints[$key]['source']] ? "FORCE INDEX (`{$indexHints[$key]['source']}`)" : '';
-                $targetIndex = $this->customIndeces['attributes'][$indexHints[$key]['source']] ? "FORCE INDEX (`{$indexHints[$key]['target']}`)" : '';
+                $sourceIndex = $this->customIndices['attributes'][$indexHints[$key]['source']] ? "FORCE INDEX (`{$indexHints[$key]['source']}`)" : '';
+                $targetIndex = $this->customIndices['attributes'][$indexHints[$key]['source']] ? "FORCE INDEX (`{$indexHints[$key]['target']}`)" : '';
 
 
                 $sql = "

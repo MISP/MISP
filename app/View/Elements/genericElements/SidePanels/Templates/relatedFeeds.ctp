@@ -65,7 +65,7 @@
         $htmlElements[] = sprintf(
             '<span>%s</span>',
             __(
-                'This event has %s correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click <a href="%s\/overrideLimit:1">here</a> to refresh the page with the feed data loaded.',
+                'This event has %s correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. <a href="%s\/overrideLimit:1">Refresh the page with the feed data loaded.</a>',
                 h($event['Event']['FeedCount']),
                 h(Router::url(null, true))
             )

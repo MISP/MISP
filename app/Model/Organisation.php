@@ -449,7 +449,7 @@ class Organisation extends AppModel
     }
 
     /**
-     * Attach organisations to evnet
+     * Attach organisations to event
      * @param array $data
      * @param array $fields
      * @return array

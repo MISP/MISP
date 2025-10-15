@@ -5,7 +5,7 @@
 
 ### -1/ Installer and Manual install instructions
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/xINSTALL.ubuntu2204).
+Make sure you are reading the parsed version of this Document. When in doubt, see [Installation instructions for Ubuntu 20.04-server](https://misp.github.io/MISP/xINSTALL.ubuntu2204).
 
 ### 0/ MISP Ubuntu 22.04-server install - status
 -------------------------
@@ -13,7 +13,7 @@ Make sure you are reading the parsed version of this Document. When in doubt [cl
     Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20211002
 
 !!! notice
-    If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/xINSTALL.ubuntu2204).
+    If the next line is `[!generic/core.md!]()`, see [Installation instructions for Ubuntu 20.04-server](https://misp.github.io/MISP/xINSTALL.ubuntu2204).
 
 {% include_relative generic/core.md %}
 
@@ -441,7 +441,7 @@ configMISP () {
 {% include_relative generic/gnupg.md %}
 
 !!! notice
-    If entropy is not high enough, you can install havegd and then start the service
+    If entropy is not high enough, you can install haveged and then start the service
     ```bash
     sudo apt install haveged -qy
     sudo service haveged start

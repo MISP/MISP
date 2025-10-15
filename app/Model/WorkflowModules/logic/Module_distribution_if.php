@@ -19,7 +19,7 @@ class Module_distribution_if extends WorkflowBaseLogicModule
         'equals' => 'Is',
         'not_equals' => 'Is not',
         'more_restrictive_or_equal_than' => 'More restrictive or equal than',
-        'more_permisive_or_equal_than' => 'More permisive or equal than',
+        'more_permissive_or_equal_than' => 'More permissive or equal than',
     ];
 
     public function __construct()
@@ -132,7 +132,7 @@ class Module_distribution_if extends WorkflowBaseLogicModule
             if ($operator == 'more_restrictive_or_equal_than') {
                 $operator = 'in';
                 $distribution_range = range(0, $selected_distribution);
-            } else if ($operator == 'more_permisive_or_equal_than') {
+            } else if ($operator == 'more_permissive_or_equal_than') {
                 $operator = 'in';
                 $distribution_range = range($selected_distribution, 3);
             } else {

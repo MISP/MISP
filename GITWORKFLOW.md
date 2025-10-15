@@ -43,7 +43,7 @@ On GitHub, issues and merge requests have metadata.
 Being consistent in the use of GitHub metadata makes collective work smoother.
 
 ### Title and description
-The title should be a short but clear description of what this is about. Some people are case sensitive, please try to consider that.
+The title should be a short but clear description of what this is about. Some people are case-sensitive, please try to consider that.
 
 ### Status and resolution
 

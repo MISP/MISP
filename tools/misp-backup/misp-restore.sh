@@ -60,11 +60,11 @@ checkDiskFree () {
     echo "$1 does not exist, creating"
     mkdir -p $1
   fi
-  threshhold=90
+  threshold=90
   free=$(df -l --sync --output=pcent $1 |tail -1|cut -f 1 -d% | tr -d \ )
-  if [[ "$free" > "$threshhold" ]]; then
+  if [[ "$free" > "$threshold" ]]; then
     space
-    echo "Your destination folder is $threshhold% full."
+    echo "Your destination folder is $threshold% full."
     space
     exit 1
   fi
@@ -146,7 +146,7 @@ if [[ -z $UNATTENDED ]]; then
   if [[ -z $PATH_TO_MISP ]]; then
     if [[ "$(locate > /dev/null 2> /dev/null ; echo $?)" != "127" ]]; then
       if [[ "$(locate MISP/app/webroot/index.php |wc -l)" > 1 ]]; then
-        echo "We located more then 1 MISP/app/webroot, reverting to manual"
+        echo "We located more than 1 MISP/app/webroot, reverting to manual"
         PATH_TO_MISP=${PATH_TO_MISP:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')}
         echo -n 'Please enter the base path of your MISP install (e.g /var/www/MISP): '
         read PATH_TO_MISP
@@ -208,7 +208,7 @@ cp -p $BackupDir/Config/core.php $PATH_TO_MISP/app/Config
 cp -p $BackupDir/Config/database.php $PATH_TO_MISP/app/Config
 
 # Permissions
-echo "--- Setting persmissions"
+echo "--- Setting permissions"
 chown -R $WWW_USER:$WWW_USER /var/www/MISP
 chmod -R 750 /var/www/MISP
 chmod -R g+ws /var/www/MISP/app/tmp

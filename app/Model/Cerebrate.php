@@ -212,7 +212,7 @@ class Cerebrate extends AppModel
     /*
      *  Checks remote for the current status of each organisation
      *  Adds the exists_locally field with a boolean status
-     *  If exists_loally is true, adds a list with the differences (keynames)
+     *  If exists_locally is true, adds a list with the differences (keynames)
      */
     public function checkRemoteOrgs($orgs)
     {
@@ -287,7 +287,7 @@ class Cerebrate extends AppModel
     /*
      *  Checks remote for the current status of each sharing groups
      *  Adds the exists_locally field with a boolean status
-     *  If exists_loally is true, adds a list with the differences (keynames)
+     *  If exists_locally is true, adds a list with the differences (keynames)
      */
     public function checkRemoteSharingGroups($sgs)
     {

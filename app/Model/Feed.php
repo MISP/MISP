@@ -85,7 +85,7 @@ class Feed extends AppModel
     const CACHE_DIR = APP . 'tmp' . DS . 'cache' . DS . 'feeds' . DS;
 
     /*
-     *  Cleanup of empty belongsto relationships
+     *  Cleanup of empty belongsTo relationships
      */
     public function afterFind($results, $primary = false)
     {
@@ -244,7 +244,7 @@ class Feed extends AppModel
             }
             unset($manifest[$eventUuid]);
         }
-        // Rest events in manifest does't exists, they will be added
+        // Rest events in manifest don't exist, they will be added
         $result['add'] = array_keys($manifest);
         return $result;
     }
