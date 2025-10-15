@@ -2122,6 +2122,23 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /sharing_group_blueprints/viewOrgs/{sharingGroupBlueprintId}:
+    get:
+      summary: "View a sharing group blueprint's organisation filter result"
+      description: "View the list of organisations that would become part of the sharing group, on execution of the blueprint. This allows you to check the results of the currently set filters in a blueprint."
+      operationId: viewOrgsSharingGroupBlueprint
+      tags:
+        - Sharing Group Blueprints
+      parameters:
+        - $ref: "#/components/parameters/sharingGroupBlueprintIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/SharingGroupBlueprintViewOrgsResponse"
+        "404":
+          $ref: "#/components/responses/SharingGroupBlueprintNotFoundResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /feeds:
     get:
       summary: "Get a list of feeds"
@@ -9894,6 +9911,35 @@ components:
             properties:
               SharingGroupBlueprint:
                 $ref: "#/components/schemas/FullSharingGroupBlueprint"
+
+    SharingGroupBlueprintViewOrgsResponse:
+      description: "Sharing group blueprint viewOrgs response"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                Organisation:
+                  type: object
+                  properties:
+                    id:
+                      $ref: "#/components/schemas/OrganisationId"
+                    uuid:
+                      $ref: "#/components/schemas/UUID"
+                    name:
+                      type: string
+                      example: "Axiom"
+                    sector:
+                      type: string
+                      example: "Esports"
+                    type:
+                      type: string
+                      example: "Commercial"
+                    nationality:
+                      type: string
+                      example: "South Korea"
 
     SharingGroupBlueprintIndexResponse:
       description: "Sharing group blueprint index response"
