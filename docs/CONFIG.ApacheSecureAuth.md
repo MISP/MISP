@@ -1,6 +1,6 @@
 # ApacheSecureAuth
 <!---
-Ugly diff hack to render text as red using Github's markdown parser
+Ugly diff hack to render text as red using GitHub's markdown parser
 -->
 ```diff
 - BE AWARE: The ApacheSecureAuth / LDAP login code is a 

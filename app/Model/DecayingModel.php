@@ -302,7 +302,7 @@ class DecayingModel extends AppModel
     }
 
     // filter out taxonomies and entries not having a numerical value
-    // create_non_existing_tags will create (on-the-fly/non-presistent) tags that are present in the taxonomy but not created yet
+    // create_non_existing_tags will create (on-the-fly/non-persistent) tags that are present in the taxonomy but not created yet
     public function listTaxonomiesWithNumericalValue($create_non_existing_tags=1)
     {
         $this->Taxonomy = ClassRegistry::init('Taxonomy');
@@ -393,7 +393,7 @@ class DecayingModel extends AppModel
         );
     }
 
-    // Include a PHP file and return an instanciation of the formula class
+    // Include a PHP file and return an instantiation of the formula class
     private function __include_formula_file_and_return_instance($filename='Polynomial.php')
     {
         $formula_files = $this->__listPHPFormulaFiles(); // redundant in some cases but better be safe than sorry

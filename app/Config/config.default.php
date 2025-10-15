@@ -226,7 +226,7 @@ $config = array(
         'ldapReaderUser'     => 'cn=userWithReadAccess,ou=users,dc=example,dc=com', // DN ou RDN LDAP with reader user right
         'ldapReaderPassword' => 'UserPassword', // the LDAP reader user password
         'ldapDN'             => 'dc=example,dc=com',
-        'ldapSearchFilter'   => '', // Search filter to limit results from ldapsearh fx to specific group. FX
+        'ldapSearchFilter'   => '', // Search filter to limit results from ldapsearch fx to specific group. FX
         //'ldapSearchFilter'   => '(objectclass=InetOrgPerson)(!(nsaccountlock=True))(memberOf=cn=misp,cn=groups,cn=accounts,dc=example,dc=com)',
         'ldapSearchAttribut' => 'uid',          // filter for search - typo left in for backward compatibility
         'ldapFilter'         => array(

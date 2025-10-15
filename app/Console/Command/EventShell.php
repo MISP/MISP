@@ -394,7 +394,7 @@ class EventShell extends AppShell
 
         if ($task['Task']['timer'] > 0)    $this->Task->reQueue($task, 'cache', 'EventShell', 'enqueueCaching', false, false);
 
-        // Queue a set of exports for admins. This "ADMIN" organisation. The organisation of the admin users doesn't actually matter, it is only used to indentify
+        // Queue a set of exports for admins. This "ADMIN" organisation. The organisation of the admin users doesn't actually matter, it is only used to identify
         // the special cache files containing all events
         $i = 0;
         foreach ($users as $user) {

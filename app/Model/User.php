@@ -1199,7 +1199,7 @@ class User extends AppModel
                 $user,
                 Job::WORKER_PRIO,
                 'reset_all_sync_api_keys',
-                __('Reseting all API keys'),
+                __('Resetting all API keys'),
                 'Issuing new API keys to all sync users.'
             );
 
@@ -2388,6 +2388,11 @@ class User extends AppModel
 
     public function getUserRestLimit($user, $Controller)
     {
+        $divisors = [
+            'Attributes' => 1,
+            'Objects' => 3,
+            'Events' => 10
+        ];
         if (!empty($user['Role'])){
             $role = $user['Role'];
         } else {
@@ -2402,6 +2407,9 @@ class User extends AppModel
             $roleLimit = (int)$role['restsearch_limit_result'];
         } else {
             $roleLimit = $role['perm_site_admin'] ? 0 : (int) Configure::read('MISP.default_restsearch_limit');
+        }
+        if ($roleLimit > 0 && isset($divisors[$Controller->name])) {
+            $roleLimit = (int)ceil($roleLimit / $divisors[$Controller->name]);
         }
         return $roleLimit;
     }

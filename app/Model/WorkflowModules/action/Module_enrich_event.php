@@ -45,7 +45,7 @@ class Module_enrich_event extends WorkflowBaseActionModule
         $rData = $roamingData->getData();
         $params = $this->getParamsWithValues($node, $rData);
         if (empty($params['modules']['value'])) {
-            $errors[] = __('No enrichmnent module selected');
+            $errors[] = __('No enrichment module selected');
             return false;
         }
         $event_id = $rData['Event']['id'];

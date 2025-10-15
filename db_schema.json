@@ -6983,6 +6983,17 @@
                 "column_type": "tinyint(1)",
                 "column_default": "0",
                 "extra": ""
+            },
+            {
+                "column_name": "restsearch_limit_result",
+                "is_nullable": "YES",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "0",
+                "extra": ""
             }
         ],
         "scheduled_tasks": [
@@ -11226,5 +11237,5 @@
             "uuid": false
         }
     },
-    "db_version": "144"
+    "db_version": "145"
 }

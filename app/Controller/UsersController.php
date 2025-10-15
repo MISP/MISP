@@ -2514,7 +2514,7 @@ class UsersController extends AppController
             $this->set('pickingMode', false);
             if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
                 $this->set('defaultTabName', "attack-enterprise");
-                $this->set('removeTrailling', 2);
+                $this->set('removeTrailing', 2);
             }
 
             $this->set('galaxyName', $matrixData['galaxy']['name']);
@@ -2581,12 +2581,12 @@ class UsersController extends AppController
             throw new NotFoundException("Public key not found.");
         }
 
-        list($fingeprint, $publicKey) = $key;
+        list($fingerprint, $publicKey) = $key;
         $response = new CakeResponse(array(
             'body' => $publicKey,
             'type' => 'text/plain',
         ));
-        $response->download($fingeprint . '.asc');
+        $response->download($fingerprint . '.asc');
         return $response;
     }
 

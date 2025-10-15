@@ -686,7 +686,7 @@ abstract class NidsExport
             $extraForRule .= $ruleFormatReference . ';';
         }
         $tmpRule = preg_replace('/;\s*\)/', '; ' . $extraForRule . ')', $tmpRule);
-        // finally the rule is cleaned up and can be outputed
+        // finally the rule is cleaned up and can be outputted
         $this->rules[] = $tmpRule;
         return true;
     }

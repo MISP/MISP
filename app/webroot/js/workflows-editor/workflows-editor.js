@@ -49,7 +49,7 @@ var dotBlock_trigger = doT.template(' \
             </strong> \
             <span style="margin-left: auto; display: flex; align-items: center; gap: 3px;"> \
                 {{? it.module_data.blocking }} \
-                    <span class="label label-important" style="line-height: 20px;" title="This workflow is a blocking worklow and can prevent the default MISP behavior to execute"> \
+                    <span class="label label-important" style="line-height: 20px;" title="This workflow is a blocking workflow and can prevent the default MISP behavior to execute"> \
                         <i class="fa-lg fa-fw fas fa-stop-circle"></i> \
                         Blocking \
                     </span> \
@@ -338,7 +338,7 @@ function initDrawflow() {
             if (event.pageX < 340) { // dirty hack to avoid drops on the sidebar
                 return
             }
-            ui.position.top += 96 // take padding/marging/position into account
+            ui.position.top += 96 // take padding/margin/position into account
             if (ui.draggable.data('blueprint')) {
                 addWorkflowBlueprint(ui.draggable.data('blueprint').WorkflowBlueprint.id, ui.position)
             } else {
@@ -1092,16 +1092,16 @@ function mergeNodeAndModuleParams(node, moduleParams) {
             value: val
         }
     })
-    var procesedParams = {}
+    var processedParams = {}
     var finalParams = []
     var fakeNodeFullParams = Object.values(nodeParamsById)
     var nodeAndModuleParams = moduleParams.concat(fakeNodeFullParams)
     nodeAndModuleParams.forEach(function (param) {
         var finalParam
-        if (procesedParams[param.id]) { // param has already been processed
+        if (processedParams[param.id]) { // param has already been processed
             return;
         }
-        procesedParams[param.id] = true
+        processedParams[param.id] = true
         if (moduleParamsById[param.id] === undefined) { // Param do not exist in the module (anymore or never did)
             param.is_invalid = true
             finalParam = Object.assign({}, nodeParamsById[param.id])

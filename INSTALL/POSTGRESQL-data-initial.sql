@@ -431,7 +431,7 @@ COPY public.template_element_attributes (id, template_element_id, name, descript
 9	17	E-mail Source IP	The IP address from which the e-mail was sent.	t	Payload delivery	f	ip-src	f	t
 10	18	X-mailer header	It could be useful to capture which application and which version thereof was used to send the message, as described by the X-mailer header.	t	Payload delivery	f	text	f	f
 11	19	Malicious URL in the e-mail	If there was a malicious URL (or several), please specify it here	t	Payload delivery	f	ip-dst	f	t
-12	20	Exploited vulnerablity	The vulnerabilities exploited during the payload delivery.	f	Payload delivery	f	vulnerability	f	t
+12	20	Exploited vulnerability	The vulnerabilities exploited during the payload delivery.	f	Payload delivery	f	vulnerability	f	t
 13	22	C2 information	Command and Control information detected during the analysis.	t	Network activity	t	CnC	f	t
 14	23	Artifacts dropped (File)	Any information about the files dropped during the analysis	t	Artifacts dropped	t	File	f	t
 15	24	Artifacts dropped (Registry key)	Any registry keys touched during the analysis	t	Artifacts dropped	f	regkey	f	t

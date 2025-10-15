@@ -609,7 +609,7 @@ class Galaxy extends AppModel
             $params['order'] = $this->findOrder(
                 $options['order'],
                 'GalaxyCluster',
-                ['id', 'version', 'name', 'namesapce', 'distribution', 'orgc_id', 'org_id']
+                ['id', 'version', 'name', 'namespace', 'distribution', 'orgc_id', 'org_id']
             );
         }
         if (isset($options['page'])) {
@@ -717,7 +717,7 @@ class Galaxy extends AppModel
             $errors[] = __('UUID not provided');
         }
         if (empty($existingGalaxy)) {
-            $errors[] = __('Unkown UUID');
+            $errors[] = __('Unknown UUID');
         } else {
             if (!empty($existingGalaxy['Galaxy']['default'])) {
                 $errors[] = __('Cannot edit default Galaxy');
@@ -1281,7 +1281,7 @@ class Galaxy extends AppModel
         $tree = array();
         $lookup = array();
         $lastNodeAdded = array();
-        // generate the lookup table used to immediatly get the correct cluster
+        // generate the lookup table used to immediately get the correct cluster
         foreach ($clusters as $i => $cluster) {
             $clusters[$i]['children'] = array();
             $lookup[$cluster['GalaxyCluster']['id']] = &$clusters[$i];
@@ -1347,7 +1347,7 @@ class Galaxy extends AppModel
      *  - version: Takes the higher version number of all clusters
      *  - uuid: Is actually the collection_uuid. Takes the last one
      *  - source (since all clusters have their own, takes the last one)
-     *  - category (not saved in MISP nor used)
+     *  - category (neither saved in MISP nor used)
      *  - description (not used as the description in the galaxy.json is used instead)
      */
     public function convertToMISPGalaxyFormat($galaxy, $clusters)

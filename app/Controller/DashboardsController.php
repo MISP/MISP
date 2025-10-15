@@ -210,8 +210,8 @@ class DashboardsController extends AppController
                     $csv = array_map(function($row) {
                         $flattened = array_values(Hash::flatten($row));
                         $stringified = array_map('strval', $flattened);
-                        $quotified = array_map(function($item) { return sprintf('"%s"', $item); }, $stringified);
-                        return implode(',', $quotified);
+                        $quoted = array_map(function($item) { return sprintf('"%s"', $item); }, $stringified);
+                        return implode(',', $quoted);
                     }, $toConvert);
                     $rowKey = implode(',', array_map(function ($item) {
                         return sprintf('"%s"', $item);

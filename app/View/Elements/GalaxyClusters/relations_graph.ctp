@@ -629,7 +629,7 @@ function filterGraph() {
             })
             newLink.target = tmpNode[0];
             newLink.id = link.source.uuid + ':' + link.target.uuid + ':' + link.type;
-            /* Hopefully it will be fixed whener we bump d3.js */
+            /* Hopefully it will be fixed whenever we bump d3.js */
 
             graph.links.push(newLink);
         } else if (!(visibleLabels[(link.source.group)] && visibleLabels[(link.target.group)]) && !link.isFiltered) {

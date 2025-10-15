@@ -1592,7 +1592,7 @@ class TestSecurity(unittest.TestCase):
 
         private_event = check_response(user1.add_event(self.__generate_event(Distribution.your_organisation_only)))
         check_response(user1.add_sighting(s, private_event.Attribute[0]))
-        self.assertEqual(len(user1.sightings(private_event)), 1, "User should see hos own sighting")
+        self.assertEqual(len(user1.sightings(private_event)), 1, "User should see their own sighting")
 
         sightings = user1.search_sightings("event", private_event.id)
         self.assertEqual(len(sightings), 1, sightings)

@@ -971,7 +971,7 @@ class EventGraph {
     remove_leaves() {
         var nodeIds = []
         eventGraph.nodes.forEach(function (node) {
-            // Hide node that have no outgoing references and are not being targetted by others
+            // Hide node that have no outgoing references and are not being targeted by others
             if (
                 dataHandler.mapping_node_to_from_edges[node.id] === undefined &&
                 (
@@ -1597,7 +1597,7 @@ class MispInteraction {
         this.nodes = nodes;
         this.edges = edges;
         // Dirty way to know what modif was successful as the callback gives no information
-        // May be changed in the futur
+        // May be changed in the future
         this.callback_to_be_called = null;
     }
 
@@ -1954,7 +1954,7 @@ function getTextColour(hex) {
 
 
 function genericPopupCallback(result) {
-    // sucess and eventgraph is enabled
+    // success and eventgraph is enabled
     if (result == "success" && dataHandler !== undefined) {
         mispInteraction.apply_callback();
         dataHandler.fetch_data_and_update(false, true);
@@ -2229,7 +2229,7 @@ function enable_interactive_graph() {
                     eventGraph.network.disableEditMode(); // un-toggle edit mode
                     $('#network-typeahead').focus();
                     $('#network-typeahead').text('');
-                    evt.preventDefault(); // avoid writting a 'F' in the input field
+                    evt.preventDefault(); // avoid writing a 'F' in the input field
                 }
                 break;
 

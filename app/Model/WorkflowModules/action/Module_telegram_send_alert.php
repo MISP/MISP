@@ -31,7 +31,7 @@ class Module_telegram_send_alert extends Module_webhook
                 'id' => 'message_body_template',
                 'label' => 'Message Body Template',
                 'type' => 'textarea',
-                'placeholder' => __('Template redendered using Jinja2'),
+                'placeholder' => __('Template rendered using Jinja2'),
                 'jinja_supported' => true,
             ],
         ];

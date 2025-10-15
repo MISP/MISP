@@ -118,12 +118,12 @@ CakePlugin::load('UrlCache');
 
 /**
  * Uncomment the following line to enable client SSL certificate authentication.
- * It's also necessary to configure the plugin — for more information, please read app/Plugin/CertAuth/reame.md
+ * It's also necessary to configure the plugin — for more information, please read app/Plugin/CertAuth/readme.md
  */
 // CakePlugin::load('CertAuth');
 
 /**
- * You can attach event listeners to the request lifecyle as Dispatcher Filter . By Default CakePHP bundles two filters:
+ * You can attach event listeners to the request lifecycle as Dispatcher Filter . By Default CakePHP bundles two filters:
  *
  * - AssetDispatcher filter will serve your asset files (css, images, js, etc) from your themes and plugins
  * - CacheDispatcher filter will read the Cache.check configure variable and try to serve cached content generated from controllers

@@ -107,7 +107,7 @@
         echo '<div class="input clear"></div>';
         echo $this->Form->input('self_signed', array(
             'type' => 'checkbox',
-            'label' => 'Allow self signed certificates (unsecure)'
+            'label' => 'Allow self-signed certificates (unsecure)'
         ));
         echo '<div class="input clear"></div>';
         echo $this->Form->input('skip_proxy', array('type' => 'checkbox', 'label' => 'Skip proxy (if applicable)'));

@@ -620,7 +620,7 @@ function inputFieldButtonActive(selector) {
 
 function inputFieldButtonPassive(selector) {
     $(selector).closest('.inline-input-container').children('.inline-input-accept').addClass('inline-input-passive').removeClass('inline-input-active');
-    $(selector).closest('.inline-input-container').children('.inline-input-daecline').addClass('inline-input-passive').removeClass('inline-input-active');
+    $(selector).closest('.inline-input-container').children('.inline-input-decline').addClass('inline-input-passive').removeClass('inline-input-active');
 }
 
 function autoresize(textarea) {
@@ -1379,7 +1379,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                     $("#gray_out").fadeOut();
                     $("#popover_form").fadeOut();
                     if (popover_dismiss_id_to_close !== undefined) {
-                        $('[data-dismissid="' + popover_dismiss_id_to_close + '"]').popover('destroy');
+                        $('[data-dismissId="' + popover_dismiss_id_to_close + '"]').popover('destroy');
                     }
                     $(".loading").show();
                 }
@@ -1781,9 +1781,9 @@ function openPopover(clicked, data, hover, placement, callback) {
     placement = placement === undefined ? 'right' : placement;
     /* popup handling */
     var $clicked = $(clicked);
-    var randomId = $clicked.attr('data-dismissid') !== undefined ? $clicked.attr('data-dismissid') : Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
+    var randomId = $clicked.attr('data-dismissId') !== undefined ? $clicked.attr('data-dismissId') : Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
     var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
-    $clicked.attr('data-dismissid', randomId);
+    $clicked.attr('data-dismissId', randomId);
     var closeButtonHtml = '<button class="close" style="margin-left: 5px;">×</button>';
 
     if (!$clicked.data('popover')) { // true when popover was already created defined
@@ -1794,7 +1794,7 @@ function openPopover(clicked, data, hover, placement, callback) {
             trigger: 'manual',
             content: loadingHtml,
             container: 'body',
-            template: '<div class="popover" role="tooltip" data-dismissid="' + randomId + '"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"><div class="data-content"></div></div></div>'
+            template: '<div class="popover" role="tooltip" data-dismissId="' + randomId + '"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"><div class="data-content"></div></div></div>'
         };
         $clicked.popover(popoverOptions)
         .on('shown.bs.popover', function() {
@@ -4521,7 +4521,7 @@ function loadTagTreemap() {
     });
 }
 
-function selectAllInbetween(last, current) {
+function selectAllInBetween(last, current) {
     if (last === false || last === current) {
         return false;
     }
@@ -5206,7 +5206,7 @@ $(document).ready(function () {
 });
 
 function destroyPopovers($element) {
-    $element.find('[data-dismissid]').each(function() {
+    $element.find('[data-dismissId]').each(function() {
         $(this).popover('destroy');
     });
 }

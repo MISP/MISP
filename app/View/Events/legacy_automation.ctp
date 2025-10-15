@@ -8,7 +8,7 @@
     You can %s this key.', $me['authkey'], $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', 'me')));?>
     </p>
     <p style="color:red;"><?php echo __('Since version 2.2 the usage of the authentication key in the URL is deprecated. Instead, pass the auth key in an Authorization header in the request. The legacy option of having the auth key in the URL is temporarily still supported but not recommended.');?></p>
-    <p><?php echo __('Please use the use the following header');?>:<br />
+    <p><?php echo __('Please use the following header');?>:<br />
     <code><?php echo __('Authorization');?>: <?php echo $me['authkey']; ?></code></p>
     <h3><?php echo __('XML Export');?></h3>
     <p><?php echo __('An automatic export of all events and attributes <small>(except file attachments)</small> is available under a custom XML format.');?></p>
@@ -173,7 +173,7 @@
         <b>to</b>: <?php echo __('Events with the date set to a date before the one specified in the to field (format: 2015-02-03)');?><br />
         <b>enforceWarninglist</b>: <?php echo __('All attributes that have a hit on a warninglist will be excluded.');?>
     </p>
-    <p><?php echo __('MISP will inject header values into the zone file as well as define the action taken for each of the values that can all be overriden. By default these values are either the default values shipped with the application, or ones that are overriden by your site administrator. The values are as follows');?>:</p>
+    <p><?php echo __('MISP will inject header values into the zone file as well as define the action taken for each of the values that can all be overridden. By default these values are either the default values shipped with the application, or ones that are overridden by your site administrator. The values are as follows');?>:</p>
     <?php foreach ($rpzSettings as $k => $v): ?>
     <b><?php echo h($k);?></b>: <?php echo h($v);?><br />
     <?php endforeach; ?>
@@ -312,7 +312,7 @@
     <b>timestamp</b>: <?php echo __('Restrict the results by the timestamp (of the attribute). Any attributes with a timestamp newer than the given timestamp will be returned.');?><br />
     <b>enforceWarninglist</b>: <?php echo __('Remove any attributes from the result that would cause a hit on a warninglist entry.');?><br />
     <b>to_ids</b>: <?php echo __('By default (0) all attributes are returned that match the other filter parameters, irregardless of their to_ids setting. To restrict the returned data set to to_ids only attributes set this parameter to 1. You can only use the special "exclude" setting to only return attributes that have the to_ids flag disabled.'); ?> <br />
-    <b>deleted</b>: <?php echo __('Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes wil be returned.'); ?> <br />
+    <b>deleted</b>: <?php echo __('Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes will be returned.'); ?> <br />
     <b>includeEventUuid</b>: <?php echo __('Instead of just including the event ID, also include the event UUID in each of the attributes.'); ?> <br />
     <b>event_timestamp</b>: <?php echo __('Only return attributes from events that have received a modification after the given timestamp.'); ?> <br /><br />
     <p>For example, to get all attributes of events modified after a given timestamp, simply POST to:</p>

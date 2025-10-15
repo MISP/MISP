@@ -2,7 +2,7 @@ INSTALLATION INSTRUCTIONS
 ------------------------- 
 # For Ubuntu 16.04-server with Webmin preinstalled
 
-# Assuming you created the subdomanin misp.yourserver.tld to where MISP will be installed
+# Assuming you created the subdomain misp.yourserver.tld to where MISP will be installed
 # and that the user "misp" is in the sudoers group
 # and that you have already configured SSL with Lets Encrypt on the subdomain
 
@@ -43,7 +43,7 @@ sudo systemctl restart apache2
 
 3/ MISP code
 ------------
-# Assuming you created the subdomanin misp.yourserver.tld 
+# Assuming you created the subdomain misp.yourserver.tld 
 # Download MISP using git in the /home/misp/public_html/.
 
 git clone https://github.com/MISP/MISP.git /home/misp/public_html/MISP
@@ -151,7 +151,7 @@ sh -c "mysql -u misp -p misp < /home/misp/public_html/MISP/INSTALL/MYSQL.sql"
 
         <Directory /home/misp/public_html/MISP/app/webroot>
 
-# The rest should't require modifications. Restart Apache
+# The rest shouldn't require modifications. Restart Apache
 
 sudo service apache2 restart
 
@@ -214,7 +214,7 @@ haveged -n 0 | pv > /dev/null
 gpg --homedir /home/misp/public_html/MISP/.gnupg --gen-key
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
 
-# You can now Ctrel+C the running haveged in the other shell
+# You can now Ctrl+C the running haveged in the other shell
 # and return to the "install" shell
 
 # Export the public key to the webroot

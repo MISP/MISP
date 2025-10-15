@@ -32,7 +32,7 @@
             'data_path' => 'Bookmark.comment',
         ],
         [
-            'name' => __('Exposed to Organsation'),
+            'name' => __('Exposed to Organisation'),
             'title' => __('Is this bookmark exposed to all users belonging to the bookmark\'s organisation'),
             'sort' => 'Bookmark.exposed_to_org',
             'data_path' => 'Bookmark.exposed_to_org',

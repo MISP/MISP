@@ -477,7 +477,7 @@ class EventReport extends AppModel
      * @param  array $user
      * @param  int|string|array $report
      * @param  mixed $authorizations the requested actions to be performed on the report
-     * @param  bool  $throwErrors Should the function throws excpetion if users is not allowed to perform the action
+     * @param  bool  $throwErrors Should the function throws exception if users is not allowed to perform the action
      * @param  bool  $full
      * @return array The report or an error message
      */

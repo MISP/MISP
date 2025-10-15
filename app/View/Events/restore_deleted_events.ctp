@@ -46,7 +46,7 @@
                 ]
             ],
             'title' => __('Restore Deleted Events'),
-            'description' => __('Below are a list of events that can be recovered via the log entries. Make sure that your log table is well indexed (adding indeces to `model`, `model_id`, `created` and `action` highly recommended).'),
+            'description' => __('Below are a list of events that can be recovered via the log entries. Make sure that your log table is well indexed (adding indices to `model`, `model_id`, `created` and `action` highly recommended).'),
             'actions' => [
                 [
                     'url' => $baseurl . '/events/recoverEvent',

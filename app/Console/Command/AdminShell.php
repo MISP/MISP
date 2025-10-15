@@ -709,7 +709,7 @@ class AdminShell extends AppShell
                 'scripts' => [
                     'OnDemandCorrelationTuning',
                 ],
-                'help' => __('Additional indeces specifically to help with the unusual search patterns of the on demand correlation tuning.'),
+                'help' => __('Additional indices specifically to help with the unusual search patterns of the on demand correlation tuning.'),
             ]
         ];
 
@@ -880,7 +880,7 @@ class AdminShell extends AppShell
             'conditions' => array(
                 'action' => 'update_database',
                 'title LIKE ' => array(
-                    'Successfuly executed the SQL query for %',
+                    'Successfully executed the SQL query for %',
                     'Issues executing the SQL query for %'
                 )
             ),
@@ -1420,7 +1420,7 @@ class AdminShell extends AppShell
         if (!empty($this->args[0])) {
             $target = trim($this->args[0]);
         }
-        if (!is_numeric($target) && !in_array($target, ['all', 'attached', 'deteached'])) {
+        if (!is_numeric($target) && !in_array($target, ['all', 'attached', 'detached'])) {
             $this->error(__('Invalid target. Either pass a blueprint ID or one of the following filters: all, attached, detached.'));
         }
         $conditions = [];

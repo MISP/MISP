@@ -271,7 +271,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
         $('.select_attribute').prop('checked', false).click(function(e) {
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
-                    selectAllInbetween(lastSelected, this);
+                    selectAllInBetween(lastSelected, this);
                 }
                 lastSelected = this;
             }
@@ -280,7 +280,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
         $('.select_proposal').prop('checked', false).click(function(e){
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
-                    selectAllInbetween(lastSelected, this);
+                    selectAllInBetween(lastSelected, this);
                 }
                 lastSelected = this;
             }

@@ -7655,7 +7655,7 @@ New
 - [diagnostic] Check extensions version. [Jakub Onderka]
 - [internal] JSON stream convert. [Jakub Onderka]
 - [eventReport] Report from event. [mokaddem]
-- Github action. [Raphaël Vinot]
+- GitHub action. [Raphaël Vinot]
 - [diagnostic] Show installed GnuPG version. [Jakub Onderka]
 - [user] Setting `disable_user_add` to disable user creation by org
   admins. [Jakub Onderka]
@@ -20415,7 +20415,7 @@ Other
   Install doc fixes
 - LD_LIBRARY_PATH setting needed for rh-git218. [Franky Van Liedekerke]
 - Update INSTALL.rhel7.md. [Franky Van Liedekerke]
-- Redhat install doc updates. [Franky Van Liedekerke]
+- Red Hat install doc updates. [Franky Van Liedekerke]
 
   Selinux simplications (otherwise web-based update won't work anyway)
   haveged is optional
@@ -20892,7 +20892,7 @@ Fix
 - [Training] Cause I'm a lumberjack and I'm ok. [iglocska]
 - [Training] AAARGH. [iglocska]
 - [training] Further work on the script. [iglocska]
-- [training] Allow for self signed certs. [iglocska]
+- [training] Allow for self-signed certs. [iglocska]
 - [training] Siplified key management. [iglocska]
 - [Training] Further fixes. [iglocska]
 - [training script] Added some resilience to prior partial executions.
@@ -23408,7 +23408,7 @@ Other
   fix: [doc] Added note about WSGI issues on Ubuntu 16.04
 - Merge pull request #3823 from SteveClement/guides. [Steve Clement]
 
-  chg: [doc] Updates to guides: Ubuntu 16.04 - CentOS 6/7 - RedHat EL and updated mkdocs creation script
+  chg: [doc] Updates to guides: Ubuntu 16.04 - CentOS 6/7 - Red Hat EL and updated mkdocs creation script
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [mokaddem]
 - Merge pull request #3822 from Rafiot/travis. [Raphaël Vinot]
@@ -30025,7 +30025,7 @@ Fix
 
   - Scope was limited due to the audit log access restrictions to site/org admins
 - Expose /users/view/me to the API, fixes #2679. [iglocska]
-- Don't verify peer name on self signed certs; don't verify self signed
+- Don't verify peer name on self-signed certs; don't verify self-signed
   peer if cert is missing. [Milan Pikula]
 - Settings editor not working on touch devices. [Milan Pikula]
 - Refresh rows in settings editor. [Jan Skalny]
@@ -30190,7 +30190,7 @@ Other
 - Merge pull request #2670 from milankowww/self-signed-certificate-
   verification. [Andras Iklody]
 
-  fix: self signed cert verification
+  fix: self-signed cert verification
 - Merge pull request #2669 from milankowww/support-touch-screens.
   [Andras Iklody]
 
@@ -42616,7 +42616,7 @@ v2.2.1 (2014-02-19)
   - it is not possible to discard / accept a proposal with a GET request anymore
 - SSL certificate changes. [iglocska]
 
-  - you can now upload a certificate file and allow a server link to use a provided self signed certificate. This should solve the issues that some organisations are having when trying to connect their instances
+  - you can now upload a certificate file and allow a server link to use a provided self-signed certificate. This should solve the issues that some organisations are having when trying to connect their instances
 - Small change to CVE notation fixes #186. [iglocska]
 - Cosmetic changes. [iglocska]
 

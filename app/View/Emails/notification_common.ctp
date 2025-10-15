@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Available template block that can be overriden using $this->assign('table-overview', ' ');
+ * Available template block that can be overridden using $this->assign('table-overview', ' ');
  *  - `prepend-html`
  *  - `table-overview`
  *  - `detailed-summary-full`
