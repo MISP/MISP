@@ -328,7 +328,7 @@ ldap_msgfree
 ```
 
 Additionally, you can install `ldap-utils` and use the `ldapsearch` tool to verify the connection.
-In this scenairo you may have to edit the `/etc/ldap/ldap.conf` to match the LDAP settings used by MISP
+In this scenario you may have to edit the `/etc/ldap/ldap.conf` to match the LDAP settings used by MISP
 
 Example `/etc/ldap/ldap.conf` configuration using a custom CA, equivalent to setting `LdapAuthldapTlsCustomCaCert`:
 ```

@@ -69,7 +69,7 @@
                     }
                 }
 
-                if ($includeReferencingRelation) { // fetch and add clusters referrencing the current graph
+                if ($includeReferencingRelation) { // fetch and add clusters referencing the current graph
                     $referencingRelations = $this->GalaxyCluster->GalaxyClusterRelation->fetchRelations($this->user, array(
                         'conditions' => array(
                             'referenced_galaxy_cluster_uuid' => $cluster['GalaxyCluster']['uuid']

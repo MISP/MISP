@@ -55,8 +55,8 @@
     $Paginator->options($paginationData);
     $skipPagination = !empty($data['skip_pagination']);
     if (!$skipPagination) {
-        $paginatonLinks = $this->element('/genericElements/IndexTable/pagination_links', ['options' => ['paginator' => $Paginator]]);
-        echo $paginatonLinks;
+        $paginationLinks = $this->element('/genericElements/IndexTable/pagination_links', ['options' => ['paginator' => $Paginator]]);
+        echo $paginationLinks;
     }
 
     $hasSearch = false;
@@ -108,7 +108,7 @@
     echo '</div>';
     if (!$skipPagination) {
         echo $this->element('/genericElements/IndexTable/pagination_counter', ['options' => ['paginator' => $Paginator]]);
-        echo $paginatonLinks;
+        echo $paginationLinks;
     }
     $url = $baseurl . '/' . $this->params['controller'] . '/' . $this->params['action'];
 ?>

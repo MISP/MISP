@@ -390,7 +390,7 @@ class AuthKey extends AppModel
 
     /**
      * When key is deleted, update after `date_modified` for user that was assigned to that key, so session data
-     * will be realoaded and canceled.
+     * will be reloaded and canceled.
      * @see AppController::_refreshAuth
      */
     public function afterDelete()

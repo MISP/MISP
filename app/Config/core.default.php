@@ -251,8 +251,8 @@ Configure::write('Acl.database', 'default');
  * If running via cli - apc is disabled by default. ensure it's available and enabled in this case
  *
  * Note: 'default' and other application caches should be configured in app/Config/bootstrap.php.
- *       Please check the comments in boostrap.php for more info on the cache engines available
- *       and their setttings.
+ *       Please check the comments in bootstrap.php for more info on the cache engines available
+ *       and their settings.
  */
 $engine = 'File';
 if (function_exists('apcu_dec') && (PHP_SAPI !== 'cli' || ini_get('apc.enable_cli'))) {

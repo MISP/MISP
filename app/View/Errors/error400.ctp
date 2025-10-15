@@ -28,7 +28,7 @@
             <?= __('This happens usually when you try to resubmit the same form with invalidated CSRF tokens or you had a form open too long and the CSRF tokens simply expired. Just go back to the previous page and refresh the form (by reloading the same url) so that the tokens get refreshed.');?>
         </p>
         <p>
-            <?= __('Alternatively, click <a href="%s">here</a> to continue to the start page.', $baseurl);?>
+            <?= __('Alternatively, <a href="%s">continue to the start page</a>.', $baseurl);?>
         </p>
         <?php
         if (Configure::read('debug') > 0):

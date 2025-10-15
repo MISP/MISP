@@ -5,7 +5,7 @@
  *
  * Requires the following to work as intended :
  *
- * - "Log" model ( empty but for a order variable [created DESC]
+ * - "Log" model ( empty but for an order variable [created DESC]
  * - "logs" table with these fields required :
  * - id			[int]			:
  * - title		[string]		: automagically filled with the display field of the model that was modified.
@@ -23,7 +23,7 @@
  * - "model"    	[string] : automagically filled with the class name of the model that generated the activity.
  * - "model_id"	[int]	: automagically filled with the primary key of the model that was modified.
  * - "action"   	[string] : automagically filled with what action is made (add/edit/delete)
- * - "user_id"  	[int]    : populated with the supplied user info. (May be renamed. See bellow.)
+ * - "user_id"  	[int]    : populated with the supplied user info. (May be renamed. See below.)
  * - "change"   	[string] : depending on setting either :
  * [name (alek) => (Alek), age (28) => (29)] or [name, age]
  *
@@ -85,7 +85,7 @@ class LogableBehavior extends ModelBehavior {
 	public $schema = array();
 
 	/**
-	 * Cake called intializer
+	 * Cake called initializer
 	 * Config options are :
 	 * userModel		: 'User'. Class name of the user model you want to use (User by default), if you want to save User in log
 	 * userKey   		: 'user_id'. The field for saving the user to (user_id by default).
@@ -139,7 +139,7 @@ class LogableBehavior extends ModelBehavior {
 	 * 'action'	: string (NULL) String with action (add/edit/delete), NULL gets all
 	 * 'order'		: string ('created DESC') String with custom order
 	 * 'conditions  : array  (array()) Add custom conditions
-	 * 'model_id'	: int	 (NULL) Add a int
+	 * 'model_id'	: int	 (NULL) Add an int
 	 *
 	 * (remember to use your own user key if you're not using 'user_id')
 	 * 'user_id'	: int	 (NULL) Defaults to all users, supply id if you want for only one User

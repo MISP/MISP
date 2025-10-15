@@ -122,7 +122,7 @@ class Warninglist extends AppModel
         try {
             $redis = RedisTool::init();
         } catch (Exception $e) {
-            // fallback to default implementation when redis is not available
+            // fall back to default implementation when redis is not available
             $eventWarnings = [];
             foreach ($attributes as $pos => $attribute) {
                 $attributes[$pos] = $this->checkForWarning($attribute, $enabledWarninglists);

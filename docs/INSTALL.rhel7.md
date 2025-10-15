@@ -10,7 +10,7 @@
 {% include_relative generic/manual-install-notes.md %}
 
 !!! notice
-    If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel7).
+    If the next line is `[!generic/community.md!]()`, see [Installation instructions for RHEL 7.x and CentOS 7.x](https://misp.github.io/MISP/INSTALL.rhel7).
 
 {% include_relative generic/community.md %}
 

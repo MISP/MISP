@@ -57,7 +57,7 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
         $rData = $roamingData->getData();
         $params = $this->getParamsWithValues($node, $rData);
         if (empty($params['modules']['value'])) {
-            $errors[] = __('No enrichmnent module selected');
+            $errors[] = __('No enrichment module selected');
             return false;
         } else if (is_string($params['modules']['value'])) {
             $params['modules']['value'] = [$params['modules']['value']];
@@ -159,6 +159,6 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
                 $options[$conf] = Configure::read('Plugin.' . $type . '_' . $moduleConfig['name'] . '_' . $conf);
             }
         }
-        return !empty($options) ? $options : ['_' => '_']; // avoid casting empty associative array in to empty list
+        return !empty($options) ? $options : ['_' => '_']; // avoid casting empty associative array into empty list
     }
 }

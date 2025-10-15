@@ -1225,13 +1225,13 @@ a.pill-pre-picker {
     position: absolute;
 }
 
-div.generic-picker-wrapper > div.generic-picker-embeded-block {
+div.generic-picker-wrapper > div.generic-picker-embedded-block {
     margin-left: 15px;
     margin-top: -12px;
     display: inline-block;
 }
 
-div.generic-picker-embeded-block legend {
+div.generic-picker-embedded-block legend {
     margin-bottom: 0px;
 }
 

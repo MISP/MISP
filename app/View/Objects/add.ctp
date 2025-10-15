@@ -233,9 +233,9 @@
                             <div style="background-color: #fcf8e3; color: black; padding: 2px; border-radius: 3px;">
                                 <span class="bold"><?php echo __('Template version') . ':'; ?></span>
                                 <span><?php echo h($object['Object']['template_version']); ?></span>
-                                <?php if ($original_template_unkown): ?>
+                                <?php if ($original_template_unknown): ?>
                                     <span class="label label-important" title="<?= __('The original object\'s template is unknown and some attributes might be lost. Please review carefully'); ?>">
-                                    <?= __('Unkown original template'); ?>
+                                    <?= __('Unknown original template'); ?>
                                     </span>
                                 <?php endif; ?>
                             </div>
@@ -251,7 +251,7 @@
                             </thead>
                             <tbody>
                                 <?php foreach ($not_updateable_attribute as $attribute): ?>
-                                    <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
+                                    <tr class="error" title="<?php echo __('Cannot be merged automatically'); ?>">
                                         <td style="white-space: nowrap;">
                                             <?php if ($attribute['merge-possible']): ?>
                                                 <i class="fas fa-sign-in-alt fa-flip-horizontal useCursorPointer" style="margin-right: 3px;"></i>
@@ -311,7 +311,7 @@
                         <table class="table table-striped table-condensed" style="margin-bottom: 0px;">
                             <tbody>
                                 <?php foreach ($revised_object['notMergeable'] as $attribute): ?>
-                                    <tr class="error" title="<?php echo __('Can not be merged automatically'); ?>">
+                                    <tr class="error" title="<?php echo __('Cannot be merged automatically'); ?>">
                                         <td style="white-space: nowrap;">
                                             <?php if ($attribute['merge-possible']): ?>
                                                 <i class="fas fa-sign-in-alt fa-flip-horizontal useCursorPointer" style="margin-right: 3px;" title="<?php echo __('Overwrite the current attribute value with this one'); ?>" data-valueold="<?php echo h($attribute['current_value']); ?>" data-valuerevised="<?php echo h($attribute['value']); ?>" data-objectrelation="<?php echo h($attribute['object_relation']); ?>" data-type="<?php echo h($attribute['type']); ?>" onclick="swapValue(this);"></i>

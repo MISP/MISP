@@ -251,7 +251,7 @@ class YaraRuleTemplate:
         elif len(value.splitlines()) > 1:
             for line in value.splitlines():
                 self._strings('text', name, line, modifiers)
-                # TODO: imporvement: group lines with 'all of $*'
+                # TODO: improvement: group lines with 'all of $*'
                 # instead of (\r|\r\n|\n|\x1E)
         else:
             self._strings('text', name, value, modifiers)
@@ -278,7 +278,7 @@ class YaraRuleTemplate:
             self.file_dependencies.append(file_name)
         return self
 
-    # adds an rule dependency, useful to determine the order in a group of rules
+    # adds a rule dependency, useful to determine the order in a group of rules
     def add_rule_dependency(self, rule_name):
         if rule_name not in self.rule_dependencies:
             self.rule_dependencies.append(rule_name)

@@ -253,7 +253,7 @@ class ShadowAttributesController extends AppController
                     $this->request->data['ShadowAttribute']['event_org_id'] = $event['Event']['org_id'];
                     // TODO loopholes
                     // there seems to be a loophole in MISP here
-                    // be it an create and not an update
+                    // be it a create and not an update
                     $this->ShadowAttribute->id = null;
                     if ($this->ShadowAttribute->save($this->request->data)) {
                         $successes .= " " . ($key + 1);

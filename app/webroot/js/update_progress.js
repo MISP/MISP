@@ -197,7 +197,7 @@ function update_single_update_progress(i, data) {
             state.text('Failed');
             perc = 0;
         } else {
-            state.text('Unkown or No state');
+            state.text('Unknown or No state');
             pb.addClass('back-and-forth-animation');
         }
     } else {

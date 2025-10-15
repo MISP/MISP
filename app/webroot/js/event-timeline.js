@@ -41,7 +41,7 @@ var options = {
                     return build_sighting_template(item);
                 } else {
                     console.log(item)
-                    console.log('Error: Unkown group');
+                    console.log('Error: Unknown group');
                 }
                 break;
         }
@@ -864,7 +864,7 @@ function build_time_chart(data) {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Time Occurences'
+                    text: 'Time Occurrences'
                 }
             },
             scales: {

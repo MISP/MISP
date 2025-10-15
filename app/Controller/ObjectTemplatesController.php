@@ -284,7 +284,7 @@ class ObjectTemplatesController extends AppController
         }
         $result = $this->ObjectTemplate->setActive($id);
         if ($result === false) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Template\'s state could not be toggeled.')), 'status' => 200, 'type' => 'json'));
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Template\'s state could not be toggled.')), 'status' => 200, 'type' => 'json'));
         }
         $message = (($result == 1) ? 'activated' : 'disabled');
         return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Template ' . $message . '.')), 'status' => 200, 'type' => 'json'));

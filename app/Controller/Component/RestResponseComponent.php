@@ -102,7 +102,7 @@ class RestResponseComponent extends Component
         ),
         'EventGraph' => array(
             'add' => array(
-                'description' => "POST a network in JSON format to this API to to keep an history of it",
+                'description' => "POST a network in JSON format to this API to to keep a history of it",
                 'mandatory' => array('event_id', 'network_json'),
                 'optional' => array('network_name')
             )
@@ -184,12 +184,12 @@ class RestResponseComponent extends Component
         ),
         'Organisation' => array(
             'admin_add' => array(
-                'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
+                'description' => "POST an Organisation object in JSON format to this API to create a new organisation.",
                 'mandatory' => array('name'),
                 'optional' => array('description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
             ),
             'admin_edit' => array(
-                'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
+                'description' => "POST an Organisation object in JSON format to this API to create a new organisation.",
                 'mandatory' => array('name'),
                 'optional' => array('description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
             )
@@ -256,7 +256,7 @@ class RestResponseComponent extends Component
         ),
         'Sighting' => array(
             'add' => array(
-                'description' => "POST a simplified sighting object in JSON format to this API to add a or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.",
+                'description' => "POST a simplified sighting object in JSON format to this API to add it or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.",
                 'mandatory' => array('OR' => array('values', 'id')),
                 'optional' => array('type', 'source', 'timestamp', 'date', 'time', 'filters')
             ),
@@ -286,7 +286,7 @@ class RestResponseComponent extends Component
                 'optional' => array('colour', 'exportable', 'hide_tag', 'org_id', 'user_id')
             ),
             'edit' => array(
-                'description' => "POST or PUT a Tag object in JSON format to this API to create a edit an existing tag.",
+                'description' => "POST or PUT a Tag object in JSON format to this API to create and edit an existing tag.",
                 'optional' => array('name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'),
                 'params' => array('tag_id')
             ),
@@ -989,7 +989,7 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('The user will be prompted the change the password')
+                'help' => __('The user will be prompted the change their password')
             ),
             'colour' => array(
                 'input' => 'text',
@@ -1088,7 +1088,7 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes wil be returned')
+                'help' => __('Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes will be returned')
             ),
             'delta_merge' => array(
                 'input' => 'radio',
@@ -1226,13 +1226,13 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Only shows events that are extending an other one')
+                'help' => __('Only shows events that are extending another one')
             ),
             'is_extended' => array(
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Only shows events that are extended by an other one')
+                'help' => __('Only shows events that are extended by another one')
             ),
             'external_auth_required' => array(
                 'input' => 'radio',
@@ -1372,7 +1372,7 @@ class RestResponseComponent extends Component
                 'type' => 'string',
                 'operators' => array('equal'),
                 'values' => array( 'network' => 'Network', 'local' => 'Local'),
-                'help' => __('Specify whether the source (url field) is a directory (local) or an geniun url (network)')
+                'help' => __('Specify whether the source (url field) is a directory (local) or a genuine url (network)')
             ),
             'ip' => array(
                 'input' => 'text',
@@ -1985,7 +1985,7 @@ class RestResponseComponent extends Component
         );
     }
 
-    // create dictionnary mapping between fields constraints and scope->action
+    // create dictionary mapping between fields constraints and scope->action
     private function __setupFieldsConstraint() {
         foreach ($this->__descriptions as $scope => $desc) {
             foreach ($desc as $action => $params) {

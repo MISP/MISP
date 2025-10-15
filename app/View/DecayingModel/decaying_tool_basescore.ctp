@@ -46,8 +46,8 @@
                                                             <?php if(isset($entry['original_numerical_value'])): ?>
                                                                 <i
                                                                     class="<?= $this->FontAwesome->getClass('exclamation-triangle') ?> fa-exclamation-triangle"
-                                                                    title="<?= __('Numerical value overriden by userSetting.&#10;Original numerical_value = %s', h($entry['original_numerical_value'])) ?>"
-                                                                    data-value-overriden="1"
+                                                                    title="<?= __('Numerical value overridden by userSetting.&#10;Original numerical_value = %s', h($entry['original_numerical_value'])) ?>"
+                                                                    data-value-overridden="1"
                                                                 ></i>
                                                             <?php endif; ?>
                                                         </span>

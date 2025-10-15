@@ -491,7 +491,7 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     </div>
 
     <h3><?php echo __('GnuPG');?></h3>
-    <p><?php echo __('This tool tests whether your GnuPG is set up correctly or not.');?></p>
+    <p><?php echo __('This tool tests whether or not your GnuPG is set up correctly.');?></p>
     <div class="diagnostics-box">
         <?php
             $message = $gpgErrors[$gpgStatus['status']];

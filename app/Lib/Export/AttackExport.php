@@ -123,7 +123,7 @@ class AttackExport
         }
         if ($this->__galaxy_id == $this->__GalaxyModel->getMitreAttackGalaxyId()) {
             $result['defaultTabName'] = 'attack-enterprise';
-            $result['removeTrailling'] = 2;
+            $result['removeTrailing'] = 2;
         }
         $result['galaxyName'] = $this->__galaxy_name;
         $result['galaxyId'] = $this->__galaxy_id;

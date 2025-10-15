@@ -82,7 +82,7 @@ $config['CakeResque'] = array(
 		// Path to the log file
 		// Can be an
 		// - absolute path,
-		// - an relative path, that will be relative to
+		// - a relative path, that will be relative to
 		//	app/tmp/logs folder
 		// - a simple filename, file will be created inside app/tmp/logs
 		'log' => TMP . 'logs' . DS . 'resque-worker-error.log',
@@ -118,7 +118,7 @@ $config['CakeResque'] = array(
 		'tmpdir' => App::pluginPath('CakeResque') . 'tmp' . DS
 	),
 
-	// Other usefull environment variable you wish to set
+	// Other useful environment variable you wish to set
 	// Passing a key only will search for its value in the $_SERVER scope
 	// eg : array('SERVER_NAME'); => will search for the value in $_SERVER['SERVER_NAME']
 	// Passing a key and a value will set the env variable to this value
@@ -131,7 +131,7 @@ $config['CakeResque'] = array(
 	// In that case, you'll need a handler to manage your logs
 	// All logs outputted by resque will go to the handler.
 	// The classic log file (above) will still be used, for logging
-	// stuff likes php error, or other STDOUT outputted by your job classses
+	// stuff likes php error, or other STDOUT outputted by your job classes
 	//
 	// php-resque-ex uses Monolog to manage all the logging stuff
 	// If you uses the original php-resque library, these settings

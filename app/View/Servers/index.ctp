@@ -135,7 +135,7 @@ foreach ($servers as $server):
         <td>
             <span class="<?= $server['Server']['pull']? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['pull']? __('Yes') : __('No') ?>"></span>
             <span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?= $ruleDescription['pull'] ?>"> (<?= __('Rules') ?>)</span>
-            <span role="button" tabindex="0" aria-label="<?php echo __('Test Rules');?>" title="<?php echo __('Test how many Events can be access with the filter rules enabled');?>" class="btn btn-primary <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" style="line-height:10px; padding: 4px 4px; text-wrap: nowrap;" onClick="testSyncRule('<?php echo $server['Server']['id'];?>', 'pull');"><?php echo __('Test Pull Rules');?></span>
+            <span role="button" tabindex="0" aria-label="<?php echo __('Test Rules');?>" title="<?php echo __('Test how many Events can be access with the filter rules enabled');?>" class="btn btn-primary <?php if (!$server['Server']['pull']) echo "hidden"; ?>" style="line-height:10px; padding: 4px 4px; text-wrap: nowrap;" onClick="testSyncRule('<?php echo $server['Server']['id'];?>', 'pull');"><?php echo __('Test Pull Rules');?></span>
             <span id="sync_rule_pull_test_<?php echo $server['Server']['id'];?>"></span>
         </td>
         <td class="short"><span class="<?= $server['Server']['push_sightings'] ? 'fa fa-check' : 'fa fa-times' ?>" role="img" aria-label="<?= $server['Server']['push_sightings'] ? __('Yes') : __('No'); ?>"></span></td>

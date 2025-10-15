@@ -80,7 +80,7 @@ class MysqlExtended extends Mysql
         if (!empty($data['type']) && strtoupper($data['type']) === 'STRAIGHT_REVERSE') {
             return "STRAIGHT_JOIN {$data['table']} {$data['alias']} ON ({$data['conditions']})";
         }
-        //Fixed deprecation notice in PHP8.1 - fallback to empty string
+        //Fixed deprecation notice in PHP8.1 - fall back to empty string
         if (strtoupper($data['type'] ?? "") === 'CROSS' || empty($data['conditions'])) {
             return "{$data['type']} JOIN {$data['table']} {$data['alias']}";
         }

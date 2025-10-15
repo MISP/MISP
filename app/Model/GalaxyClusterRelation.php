@@ -194,7 +194,7 @@ class GalaxyClusterRelation extends AppModel
 
     /**
      * saveRelation Respecting ACL saves a relation and set correct fields where applicable.
-     * Contrary to its capture equivalent, trying to save a relation for a unknown target cluster will fail.
+     * Contrary to its capture equivalent, trying to save a relation for an unknown target cluster will fail.
      *
      * @param  array $user
      * @param  array $cluster       The cluster from which the relation is originating
@@ -282,7 +282,7 @@ class GalaxyClusterRelation extends AppModel
 
     /**
      * editRelation Respecting ACL edits a relation and set correct fields where applicable.
-     * Contrary to its capture equivalent, trying to save a relation for a unknown target cluster will fail.
+     * Contrary to its capture equivalent, trying to save a relation for an unknown target cluster will fail.
      *
      * @param  array $user
      * @param  array $relation      The relation to be saved
@@ -310,7 +310,7 @@ class GalaxyClusterRelation extends AppModel
             $errors[] = __('UUID not provided');
         }
         if (empty($existingRelation)) {
-            $errors[] = __('Unkown ID');
+            $errors[] = __('Unknown ID');
         } else {
             $options = array('conditions' => array(
                 "{$this->SourceCluster->alias}.uuid" => $relation['GalaxyClusterRelation']['galaxy_cluster_uuid']
@@ -532,7 +532,7 @@ class GalaxyClusterRelation extends AppModel
      *
      * @param  array $user
      * @param  array $relation
-     * @return array The adpated relation
+     * @return array The adapted relation
      */
     private function syncUUIDsAndIDs(array $user, array $relation)
     {

@@ -11,8 +11,8 @@ class ContextualMenu {
         this.__globalCounter = 0;
 
     if (this.bootstrap_popover) {
-            if (typeof $.fn.popover != 'function') { // boostrap loaded
-                console.log("Boostrap not loaded or does not support popover");
+            if (typeof $.fn.popover != 'function') { // bootstrap loaded
+                console.log("Bootstrap not loaded or does not support popover");
                 this.menu = this.__create_menu_div();
             } else {
                 this.menu = this.__create_menu_div_bootstrap_popover();
@@ -163,7 +163,7 @@ class ContextualMenu {
             template: '<div class="popover" id="popover-contextual-menu-'+this.trigger_container.id+'" role="tooltip" style="'+additional_styling+'"><div class="arrow"></div></h3><div class="popover-content"></div></div>'
         })
 
-        // Overwrite the default popover behavior: hidding cause the popover to be detached from the DOM, making impossible to fetch input values in the form
+        // Overwrite the default popover behavior: hiding cause the popover to be detached from the DOM, making impossible to fetch input values in the form
         $(this.trigger_container).click (function(e) {
             $(this).popover('toggle');
             // if (that.has_been_shown_once) {

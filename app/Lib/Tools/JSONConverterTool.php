@@ -158,7 +158,7 @@ class JSONConverterTool
     {
         $event = self::convert($event, false, true);
 
-        // Fast and inaccurate way how to check if event is too big for to convert in one call. This can be changed in future.
+        // Fast and inaccurate way to check if event is too big to convert in one call. This can be changed in future.
         $isBigEvent = (isset($event['Event']['Attribute']) ? count($event['Event']['Attribute']) : 0) +
             (isset($event['Event']['Object']) ? count($event['Event']['Object']) : 0) > 100;
         if (!$isBigEvent) {

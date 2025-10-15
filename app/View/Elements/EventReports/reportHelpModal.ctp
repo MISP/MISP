@@ -38,7 +38,7 @@
 <h4><?= __('Pictures from attachment-type attributes') ?></h4>
 <p><?= __('Syntax for pictures is like the syntax for referencing MISP elements but with two differences:') ?></p>
 <ul>
-    <li><?= __('The addition of the %s character to indicate that the picture should be displayed and not the atttribute', '<code>!</code>') ?></li>
+    <li><?= __('The addition of the %s character to indicate that the picture should be displayed and not the attribute', '<code>!</code>') ?></li>
     <li><?= __('The scope is fixed to %s as only attributes can contain a file', '<code>attribute</code>') ?></li>
 </ul>
 

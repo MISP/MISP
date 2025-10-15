@@ -108,7 +108,7 @@ class GalaxyElement extends AppModel
      * getClusterIDsFromMatchingElements
      *
      * @param array $user
-     * @param array $elements an associative array containg the elements to search for
+     * @param array $elements an associative array containing the elements to search for
      *  Example: {"synonyms": "apt42"}
      * @return array
      */
@@ -117,11 +117,35 @@ class GalaxyElement extends AppModel
         $conditionCount = 0;
         $elementConditions = [];
         foreach ($elements as $key => $value) {
-            $elementConditions['OR'][] = [
-                'GalaxyElement.key' => $key,
-                'GalaxyElement.value' => $value,
-            ];
-            $conditionCount += is_array($value) ? count($value) : 1;
+            if (is_array($value)) {
+                foreach ($value as $arrayElement) {
+                    if (strpos($arrayElement, '%') !== false) {
+                        $elementConditions['OR'][] = [
+                            'GalaxyElement.key' => $key,
+                            'GalaxyElement.value LIKE' => $arrayElement,
+                        ];
+                    } else {
+                        $elementConditions['OR'][] = [
+                            'GalaxyElement.key' => $key,
+                            'GalaxyElement.value' => $arrayElement,
+                        ];
+                    }
+                }
+                $conditionCount++;
+            } else {
+                    if (strpos($value, '%') !== false) {
+                        $elementConditions['OR'][] = [
+                            'GalaxyElement.key' => $key,
+                            'GalaxyElement.value LIKE' => $value,
+                        ];
+                    } else {
+                        $elementConditions['OR'][] = [
+                            'GalaxyElement.key' => $key,
+                            'GalaxyElement.value' => $value,
+                        ];
+                    }
+                    $conditionCount++;
+            }
         }
         $conditions = [
             $this->buildACLConditions($user),
@@ -132,7 +156,7 @@ class GalaxyElement extends AppModel
             'conditions' => $conditions,
             'contain' => ['GalaxyCluster' => ['fields' => ['id', 'distribution', 'org_id']]],
             'group' => ['GalaxyElement.galaxy_cluster_id'],
-            'having' => ['COUNT(GalaxyElement.id) =' => $conditionCount],
+            'having' => ['COUNT(GalaxyElement.id) >=' => $conditionCount],
             'recursive' => -1
         ]);
         $clusterIDs = [];
