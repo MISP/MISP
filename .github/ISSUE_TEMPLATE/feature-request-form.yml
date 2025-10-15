@@ -31,7 +31,7 @@ body:
     id: terms
     attributes:
       label: Code of Conduct
-      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/MISP/MISP/blob/2.4/code_of_conduct.md)
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/MISP/MISP/blob/2.5/code_of_conduct.md)
       options:
         - label: I agree to follow this project's Code of Conduct
           required: true
