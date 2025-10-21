@@ -6466,7 +6466,7 @@ class Server extends AppModel
                 ),
                 'default_restsearch_limit' => array(
                     'level' => 1,
-                    'description' => 'Default number of matching result for restSearch API if none is provided when adding a new role. Leave empty(0) to set as unlimited.',
+                    'description' => 'Default number of attributes returned for the given restSearch API. For the Event and Object scopes, a divisor is used to further limit the given value (dividing by 10 and 3 respectively). Can be overriden via the role configurations. Leave empty(0) to set it as unlimited.',
                     'value' => 0,
                     'errorMessage' => '',
                     'null' => true,

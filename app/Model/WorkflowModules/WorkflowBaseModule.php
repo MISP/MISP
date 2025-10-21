@@ -540,7 +540,7 @@ class WorkflowBaseActionModule extends WorkflowBaseModule
     {
         if ($scope == 'event') {
             if ($operation == 'add') {
-                $newTagList = array_merge($rData['Event']['Tag'], $tags);
+                $newTagList = array_merge(is_array($rData['Event']['Tag']) ? $rData['Event']['Tag'] : [], $tags);
             } else {
                 $newTagList = $this->getNewTagList(
                     $rData['Event']['Tag'],
