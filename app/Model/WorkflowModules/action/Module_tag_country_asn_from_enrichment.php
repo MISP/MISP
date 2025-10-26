@@ -132,11 +132,30 @@ class Module_tag_country_asn_from_enrichment extends WorkflowBaseActionModule
                 ];
                 $tagAttached = [];
                 $saveSuccess = $this->Attribute->attachTagsToAttributeAndTouch($attribute['id'], $attribute['event_id'], $options, $user, $tagAttached);
+                if ($saveSuccess) { 
+                    $this->_buildFastLookupForRoamingData($roamingData->getData()); // Ensure fast lookup is updated before adding tags
+                    $tags = $this->genTagObjectsFromTagNames($tagAttached, $options); 
+                    $updatedRData = $this->_addTag($tags, 'attribute', $roamingData->getData(), $attribute); 
+                    $roamingData->setData($updatedRData); 
+                    $this->_buildFastLookupForRoamingData($roamingData->getData()); // Rebuild fast lookup after adding tags
+                }
                 $success = $success || !empty($saveSuccess);
             }
         }
 
         return $success;
+    }
+
+    /* copied from private function in Module_tag_operation.php */
+    private function genTagObjectsFromTagNames($tagNames, $options): array
+    {
+        return array_map(function ($tagName) use ($options) {
+            return [
+                'name' => $tagName,
+                'relationship_type' => $options['relationship_type'],
+                'local' => $options['local'],
+            ];
+        }, $tagNames);
     }
 
     private function firstNonEmpty($arrays)

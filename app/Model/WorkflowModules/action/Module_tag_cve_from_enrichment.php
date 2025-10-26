@@ -19,10 +19,12 @@ class Module_tag_cve_from_enrichment extends Module_webhook
     private $Tag;
     private $Attribute;
     private $Note;
-    private $cveEndpoint = 'https://cvepremium.circl.lu/api/cve/';
+    private $cveEndpoint = 'https://vulnerability.circl.lu/api/cve/';
     private $cveKeys = ["cvssV3_1", "cvssV4", "cvssV3", "cvssV2"];
     private $threatHigh = 7.0;
     private $threatMedium = 4.0;
+    private $vulnerability_ttp = 'misp-galaxy:mitre-attack-pattern="Vulnerabilities - T1588.006"';
+    
 
     public function __construct()
     {
@@ -33,14 +35,14 @@ class Module_tag_cve_from_enrichment extends Module_webhook
         $this->params = [
                 [
                     'id' => 'locality',
-                    'label' => __('Tag Locality'),
+                    'label' => __('Tag locality'),
                     'type' => 'select',
                     'options' => array('local' => __('Local'), 'global' => __('Global')),
                     'default' => 'local',
                 ],
                 [
-                    'id' => 'add_t1588_006',
-                    'label' => 'Add attack pattern T1588.006',
+                    'id' => 'add_vulnerability_ttp',
+                    'label' => 'Add vulnerability TTP (T1588.006)',
                     'type' => 'select',
                     'default' => '1',
                     'options' => [
@@ -76,7 +78,11 @@ class Module_tag_cve_from_enrichment extends Module_webhook
         foreach ($matchingAttributes as $attribute) {
             $cve_summary = 'No summary found';
             $cvss_base_score = null;
-                        
+                       
+            if ($attribute['type'] !== 'vulnerability') {
+                continue;
+            }
+
             $cve = isset($attribute['value']) ? $attribute['value'] : null;
             if (empty($cve)) {
                 continue;
@@ -117,9 +123,9 @@ class Module_tag_cve_from_enrichment extends Module_webhook
                     $cve_data = json_decode($clean, true) ?: array();
                 }
             }
-             $containers = is_array($cve_data['containers'] ?? null) ? $cve_data['containers'] : array();
-             $cna = is_array($containers['cna'] ?? null) ? $containers['cna'] : array();
-             $adp = is_array($containers['adp'] ?? null) ? $containers['adp'] : array();
+            $containers = is_array($cve_data['containers'] ?? null) ? $cve_data['containers'] : array();
+            $cna = is_array($containers['cna'] ?? null) ? $containers['cna'] : array();
+            $adp = is_array($containers['adp'] ?? null) ? $containers['adp'] : array();
 
             $descs = array();
             if (isset($cna['descriptions']) && is_array($cna['descriptions'])) {
@@ -158,33 +164,33 @@ class Module_tag_cve_from_enrichment extends Module_webhook
                 $cve_summary = trim($first['value'] ?? $first['description'] ?? $cve_summary);
             }
 
-             if (is_array($cna)) {
-                 foreach ($cna['metrics'] ?? array() as $metric) {
-                     foreach ($this->cveKeys as $key) {
-                         if (isset($metric[$key]['baseScore'])) {
-                             $cvss_base_score = $metric[$key]['baseScore'];
-                             break 2;
-                         }
-                     }
-                 }
-             }
+            if (is_array($cna)) {
+                foreach ($cna['metrics'] ?? array() as $metric) {
+                    foreach ($this->cveKeys as $key) {
+                        if (isset($metric[$key]['baseScore'])) {
+                            $cvss_base_score = $metric[$key]['baseScore'];
+                            break 2;
+                        }
+                    }
+                }
+            }
  
-             if ($cvss_base_score === null && is_array($adp)) {
-                 foreach ($adp as $adp_entry) {
-                     foreach ($adp_entry['metrics'] ?? array() as $metric) {
-                         foreach ($this->cveKeys as $key) {
-                             if (isset($metric[$key]['baseScore'])) {
-                                 $cvss_base_score = $metric[$key]['baseScore'];
-                                 break 3;
-                             }
-                         }
-                     }
-                 }
-             }
+            if ($cvss_base_score === null && is_array($adp)) {
+                foreach ($adp as $adp_entry) {
+                    foreach ($adp_entry['metrics'] ?? array() as $metric) {
+                        foreach ($this->cveKeys as $key) {
+                            if (isset($metric[$key]['baseScore'])) {
+                                $cvss_base_score = $metric[$key]['baseScore'];
+                                break 3;
+                            }
+                        }
+                    }
+                }
+            }
 
             $moduleTags = array();
-            if ((isset($params['add_t1588_006']['value']) && $params['add_t1588_006']['value'] === 'yes')) {
-                $moduleTags[] = 'misp-galaxy:mitre-attack-pattern="Vulnerabilities - T1588.006"';
+            if ((isset($params['add_vulnerability_ttp']['value']) && $params['add_vulnerability_ttp']['value'] === 'yes')) {
+                $moduleTags[] = $this->vulnerability_ttp; 
             }            
             if (is_numeric($cvss_base_score)) {
                 $moduleTags[] = 'CVSS:' . $cvss_base_score;
@@ -209,22 +215,47 @@ class Module_tag_cve_from_enrichment extends Module_webhook
                 );
                 $tagAttached = array();
                 $saveSuccess = $this->Attribute->attachTagsToAttributeAndTouch($attribute['id'], $attribute['event_id'], $options, $user, $tagAttached);
+                if ($saveSuccess) { 
+                    $this->_buildFastLookupForRoamingData($roamingData->getData()); // Ensure fast lookup is updated before adding tags
+                    $tags = $this->genTagObjectsFromTagNames($tagAttached, $options); 
+                    $updatedRData = $this->_addTag($tags, 'attribute', $roamingData->getData(), $attribute); 
+                    $roamingData->setData($updatedRData); 
+                    $this->_buildFastLookupForRoamingData($roamingData->getData()); // Rebuild fast lookup after adding tags
+                }                
                 $success = $success || !empty($saveSuccess);
             }
 
-            if (strlen(trim($cve_summary)) > 0 && (strpos($attribute['comment'], 'CVE Summary:') === false)) {
+            if ($success && strlen(trim($cve_summary)) > 0 && (strpos($attribute['comment'], 'CVE Summary:') === false)) {
                 $newAttribute = $attribute;
                 unset($newAttribute['timestamp']);
                 $existingComment = isset($attribute['comment']) ? $attribute['comment'] : '';
                 $newComment = trim($existingComment . ' CVE Summary: ' . $cve_summary);
                 $newAttribute['comment'] = mb_substr($newComment, 0, 65535);
                 $saveSuccess = $this->Attribute->editAttribute($newAttribute, $rData, $user, isset($newAttribute['object_id']) ? $newAttribute['object_id'] : null);
-                $this->Attribute->editAttributeBulk(array($newAttribute), array('Event' => $rData['Event']), $user);
+                $this->Attribute->editAttributeBulk([$newAttribute], $rData , $user);                
                 $success = $success || !empty($saveSuccess);
+                if ($success) {
+                    $this->_buildFastLookupForRoamingData($roamingData->getData()); // Ensure fast lookup is updated before overriding
+                    $rData = $this->_overrideAttribute($attribute, $newAttribute, $rData);
+                    $roamingData->setData($rData);
+                    $this->_buildFastLookupForRoamingData($roamingData->getData()); // Rebuild fast lookup after overriding
+                }
             }
 
         }
 
         return $success;
+    }
+
+    /* copied from private function in Module_tag_operation.php */
+    private function genTagObjectsFromTagNames($tagNames, $options): array
+    {
+        return array_map(function ($tagName) use ($options) {
+            return [
+                'name' => $tagName,
+                'relationship_type' => $options['relationship_type'],
+                'local' => $options['local'],
+            ];
+        }, $tagNames);
     }
 }
