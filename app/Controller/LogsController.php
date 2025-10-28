@@ -61,6 +61,7 @@ class LogsController extends AppController
                 $this->set('search_token', $filters['search_token']);
             }
         }
+        $filters = array_filter($filters, fn($value) => !empty($value));
         if ($this->_isRest()) {
             if ($filters === false) {
                 return $exception;
@@ -86,7 +87,7 @@ class LogsController extends AppController
                         $conditions['AND'][] = array('created <= ' => date("Y-m-d H:i:s", $tempData[0]));
                         $conditions['AND'][] = array('created >= ' => date("Y-m-d H:i:s", $tempData[1]));
                     }
-                } else if ($filter !== 'limit' && $filter !== 'page') {
+                } else if ($filter !== 'limit' && $filter !== 'page'  && $filter !== 'search_token') {
                     $data = array('OR' => $data);
                     $conditions = $this->Log->generic_add_filter($conditions, $data, 'Log.' . $filter);
                 }
@@ -135,14 +136,11 @@ class LogsController extends AppController
             $this->paginate['conditions']['Log.action'] = $validFilters[$this->params['named']['filter']]['values'];
         }
         foreach ($filters as $key => $value) {
-            if ($key == 'page' || $key == 'limit') { // These should not be part of the condition parameter
+            if ($key == 'page' || $key == 'limit' || $key == 'search_token') { // These should not be part of the condition parameter
                 continue;
             }
             if ($key === 'created') {
                 $key = 'created >=';
-            }
-            if ($key == 'page' || $key == 'limit') {
-                continue;
             }
             if (in_array($key, $paramArray)) {
                 $this->paginate['conditions']["Log.$key"] = $value;
