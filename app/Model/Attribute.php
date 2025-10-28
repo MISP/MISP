@@ -166,6 +166,7 @@ class Attribute extends AppModel
         'netfilter' => array('txt', 'NetfilterExport', 'sh'),
         'opendata' => array('txt', 'OpendataExport', 'txt'),
         'openioc' => array('xml', 'OpeniocExport', 'ioc'),
+        'pihole' => ['txt', 'PiholeExport', 'txt'],
         'rpz' => array('txt', 'RPZExport', 'rpz'),
         'snort' => array('txt', 'NidsSnortExport', 'rules'),
         'stix' => array('xml', 'Stix1Export', 'xml'),
@@ -1542,7 +1543,7 @@ class Attribute extends AppModel
             $element['to_ids'] = 0;
         }
         foreach ($files as $file) {
-            if (!$this->checkFilename($file['filename'])) {
+            if (!$this->checkFilename($file['filename']) || !$this->checkFilename($file['tmp_name'])) {
                 $errors = 'Filename not allowed.';
                 continue;
             }
