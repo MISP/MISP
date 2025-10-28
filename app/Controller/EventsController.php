@@ -5741,7 +5741,16 @@ class EventsController extends AppController
                             $fail = __('Invalid file upload.');
                         } else {
                             $fileupload = $requestData['fileupload'];
-                            if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($fileupload['tmp_name'])) {
+                            if (
+                                (
+                                    !isset($fileupload['error']) || $fileupload['error'] == 0
+                                ) &&
+                                (
+                                    !empty($fileupload['tmp_name']) &&
+                                    $fileupload['tmp_name'] != 'none'
+                                ) && 
+                                is_uploaded_file($fileupload['tmp_name'])
+                            ) {
                                 $filename = basename($fileupload['name']);
                                 $modulePayload['data'] = FileAccessTool::readAndDelete($fileupload['tmp_name']);
                             } else {
