@@ -6237,7 +6237,7 @@ class EventsController extends AppController
             $this->set('file_uploaded', "1");
             $this->set('file_name', $this->request['data']['Event']['analysis_file']['name']);
             $tmp_name = $this->request['data']['Event']['analysis_file']['tmp_name'];
-            if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($tmp_name) && $tmp_name != 'none') && is_uploaded_file($tmp_name)) {
+            if (((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($tmp_name) && $tmp_name != 'none')) && is_uploaded_file($tmp_name)) {
                 $this->set('file_content', file_get_contents($tmp_name)); 
             } else {
                 throw new InternalErrorException('Upload failed or invalid file name.');
