@@ -1908,6 +1908,9 @@ class User extends AppModel
         $periodicSettings = $this->fetchPeriodicSettingForUser($userId, true);
         $filters = $this->getUsablePeriodicSettingForUser($periodicSettings, $period, $lastdays);
         $filtersForRestSearch = $filters; // filters for restSearch are slightly different than fetchEvent
+        $filtersForfilterEventIds = $filters; // filters for restSearch are slightly different than fetchEvent
+        $eventid = $this->Event->filterEventIds($user, $filtersForfilterEventIds);
+        unset($filters['tags']);
         $filters['last'] = $this->resolveTimeDelta($filters['last']);
         $filters['sgReferenceOnly'] = true;
         $filters['includeEventCorrelations'] = !empty($periodicSettings['include_correlations']);
@@ -1916,6 +1919,7 @@ class User extends AppModel
         $filters['fetchFullClusters'] = true;
         $filters['fetchFullClusterRelationship'] = true;
         $filters['includeScoresOnEvent'] = true;
+        $filters['eventid'] = empty($eventid) ? -1 : $eventid;
         $events = $this->Event->fetchEvent($user, $filters);
 
         if (empty($events)) {
