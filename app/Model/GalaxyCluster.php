@@ -1154,7 +1154,7 @@ class GalaxyCluster extends AppModel
                 }
         
                 if (!empty($includeFullClusterRelationship)) {
-                    $galaxyClusterRelationParams['contain']['GalaxyClusterRelation'][] = 'TargetCluster';
+                    $galaxyClusterRelationParams['contain'][] = 'TargetCluster';
                 }
                 $gCRData = $gCR->find('all', $galaxyClusterRelationParams);
                 $gCRData = array_map(function ($element) {
