@@ -1542,7 +1542,7 @@ class Attribute extends AppModel
             $element['to_ids'] = 0;
         }
         foreach ($files as $file) {
-            if (!$this->checkFilename($file['filename'])) {
+            if (!$this->checkFilename($file['filename']) || !$this->checkFilename($file['tmp_name'])) {
                 $errors = 'Filename not allowed.';
                 continue;
             }
@@ -2767,6 +2767,7 @@ class Attribute extends AppModel
                             'attribute_id' => $this->id,
                             'event_id' => $eventId,
                             'tag_id' => $tag_id,
+                            'local' => !empty($tag['local']) ? $tag['local'] : 0,
                             'relationship_type' => empty($tag['relationship_type']) ? null : $tag['relationship_type']
                         ];
                         $this->AttributeTag->save($at);

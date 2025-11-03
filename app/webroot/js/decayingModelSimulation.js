@@ -391,7 +391,7 @@
 
             _generate_tooltip: function(datum) {
                 var formated_date = d3.time.format("%e %B @ %H:%M")(datum.date);
-                var html = 'Sighting on ' + formated_date + ' by ' + datum.org;
+                var html = 'Sighting on ' + formated_date + ' by ' + escapeHtml(datum.org);
                 return html;
             },
 

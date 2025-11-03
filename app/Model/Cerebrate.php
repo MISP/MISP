@@ -386,9 +386,10 @@ class Cerebrate extends AppModel
             $sg['SharingGroupOrg'] = $sg_data['sharing_group_orgs'];
             foreach ($sg['SharingGroupOrg'] as $k => $org) {
                 if (isset($org['_joinData'])) {
+                    $sg['SharingGroupOrg'][$k]['extend'] = $org['_joinData']['extend'] ?? false;
                     unset($sg['SharingGroupOrg'][$k]['_joinData']);
                 }
-                if (!isset($org['extend'])) {
+                if (!isset($sg['SharingGroupOrg'][$k]['extend'])) {
                     $sg['SharingGroupOrg'][$k]['extend'] = false;
                 }
             }

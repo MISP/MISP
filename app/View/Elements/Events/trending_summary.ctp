@@ -50,6 +50,7 @@ foreach ($allUniqueTags as $i => $tag) {
 }
 $canvasWidth = 600;
 $canvasHeight = 150;
+
 foreach (array_keys($chartData) as $tag) {
     $lastIndex = count($chartData[$tag]) - 1;
     $canvasSubWidth = $lastIndex;
@@ -167,7 +168,7 @@ if (!function_exists('getColorFromYlOrBr')) {
                 </div>
                 <div class="x-axis-container">
                     <?php foreach ($reversedPeriods as $i => $period) : ?>
-                        <span class="x-axis-label" style="<?= sprintf('left: %spx; top: %spx;', $i * $canvasWidth / $canvasSubWidth, 0) ?>"><?= DateTime::createFromFormat('U', $period)->format('M. d, o') ?></span>
+                        <span class="x-axis-label" style="<?= sprintf('left: %spx; top: %spx;', $i * $canvasWidth / ($periodCount-1), 0) ?>"><?= DateTime::createFromFormat('U', $period)->format('M. d, o') ?></span>
                     <?php endforeach; ?>
                 </div>
             </div>
