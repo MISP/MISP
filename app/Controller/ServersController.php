@@ -2392,7 +2392,7 @@ class ServersController extends AppController
         }
         $this->loadModel('MispAttribute');
         $duplicates = $this->MispAttribute->find('all', array(
-            'fields' => array('Attribute.uuid', 'count(*) as occurance'),
+            'fields' => array('Attribute.uuid', 'count(*) as occurrence'),
             'recursive' => -1,
             'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
         ));
@@ -2421,7 +2421,7 @@ class ServersController extends AppController
         }
         $this->loadModel('Event');
         $duplicates = $this->Event->find('all', array(
-            'fields' => array('Event.uuid', 'count(*) as occurance'),
+            'fields' => array('Event.uuid', 'count(*) as occurrence'),
             'recursive' => -1,
             'group' => array('Event.uuid HAVING COUNT(*) > 1'),
         ));

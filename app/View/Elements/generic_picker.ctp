@@ -21,7 +21,7 @@
         'select_threshold' => 7, // threshold above which pills will be replace by a select (unused if multiple is > 1)
         'functionName' => '', // function to be called on submit
         'submitButtonText' => 'Submit',
-        'disabledSubmitButton' => false, // wether to not draw the submit button
+        'disabledSubmitButton' => false, // whether to not draw the submit button
         'flag_redraw_chosen' => false, // should chosen picker be redraw at drawing time
         'redraw_debounce_time' => 200,
         'autofocus' => true,
@@ -56,15 +56,15 @@
 ?>
 
 <style>
-.popover[data-dismissid] {
+.popover[data-dismissId] {
     max-width: 60%;
 }
 </style>
 
 <script>
 function execAndClose(elem) {
-    var dismissid = $(elem).closest('div.popover').attr('data-dismissid');
-    $('[data-dismissid="' + dismissid + '"]').popover('destroy');
+    var dismissId = $(elem).closest('div.popover').attr('data-dismissId');
+    $('[data-dismissId="' + dismissId + '"]').popover('destroy');
 }
 
 function setupChosen(id, redrawChosen) {
@@ -232,8 +232,8 @@ function submitFunction(clicked, callback) {
     additionalDataOption = options_additionalData[$select.attr('id')];
     additionalData['itemOptions'] = additionalDataOption;
     // callback function defined in the controller can be overridden in the JS
-    var dismissId = $clicked.closest('.popover[data-dismissid]').data('dismissid');
-    var callingButton = $('button[data-dismissid="' + dismissId + '"]');
+    var dismissId = $clicked.closest('.popover[data-dismissId]').data('dismissId');
+    var callingButton = $('button[data-dismissId="' + dismissId + '"]');
     if (callingButton.data('popover-no-submit') && callingButton.data('popover-callback-function') !== undefined) {
         var callbackFunction = callingButton.data('popover-callback-function');
         execAndClose(clicked);

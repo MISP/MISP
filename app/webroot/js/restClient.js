@@ -242,7 +242,7 @@ var debounceTimerUpdate;
             }
         });
         $('#btn-inject').on('click', function() {
-            injectQuerybuilterRulesToBody();
+            injectQuerybuilderRulesToBody();
         });
 
         /* Apply jquery chosen where applicable */
@@ -379,7 +379,7 @@ function updateQueryTool(url, isEmpty) {
     querybuilderTool.setRules(rules, false);
 }
 
-function injectQuerybuilterRulesToBody() {
+function injectQuerybuilderRulesToBody() {
     var rules_root = querybuilderTool.getRules();
     var result = {};
     recursiveInject(result, rules_root, false);

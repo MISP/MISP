@@ -484,7 +484,7 @@ class TagsController extends AppController
             // This method removes banned and hidden tags
             $tagCollections = $this->TagCollection->fetchTagCollection($this->Auth->user());
             $tags = array();
-            $inludedTagListString = array();
+            $includedTagListString = array();
             $expanded = array();
             foreach ($tagCollections as &$tagCollection) {
                 $tags[$tagCollection['TagCollection']['id']] = $tagCollection['TagCollection'];
@@ -496,7 +496,7 @@ class TagsController extends AppController
                         $tagCollection['TagCollectionTag'] = array_values($tagCollection['TagCollectionTag']);
                     }
                     $tagList = implode(', ', $tagList);
-                    $inludedTagListString[$tagCollection['TagCollection']['id']] = $tagList;
+                    $includedTagListString[$tagCollection['TagCollection']['id']] = $tagList;
                     $expanded[$tagCollection['TagCollection']['id']] .= sprintf(' (%s)', $tagList);
                 }
             }
@@ -609,7 +609,7 @@ class TagsController extends AppController
                 )
             );
             if ($taxonomy_id === 'collections') {
-                $itemParam['template']['infoContextual'] = __('Includes: ') . $inludedTagListString[$tag['id']];
+                $itemParam['template']['infoContextual'] = __('Includes: ') . $includedTagListString[$tag['id']];
             }
             $items[] = $itemParam;
         }

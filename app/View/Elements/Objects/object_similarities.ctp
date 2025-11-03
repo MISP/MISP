@@ -3,7 +3,7 @@
     View that can be used to concisely display an object and potentially highlight differences/similarities with another one
 
     Required  Args:
-        - object => The object to be drawed
+        - object => The object to be drawn
         - attributes
 
     Optional Args:

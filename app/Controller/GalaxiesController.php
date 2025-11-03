@@ -10,7 +10,7 @@ class GalaxiesController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
             'contain' => array(
 
             ),
@@ -69,8 +69,8 @@ class GalaxiesController extends AppController
             $this->set('galaxyList', $galaxies);
             $this->set('passedArgsArray', $this->passedArgs);
             $this->set('searchall', $filters['value']);
-            $unkownClustersDetails = $this->_isSiteAdmin() ? $this->Galaxy->getUnknownClustersDetails() : '';
-            $this->set('unkownClustersDetails', $unkownClustersDetails);
+            $unknownClustersDetails = $this->_isSiteAdmin() ? $this->Galaxy->getUnknownClustersDetails() : '';
+            $this->set('unknownClustersDetails', $unknownClustersDetails);
         }
     }
 
@@ -135,7 +135,7 @@ class GalaxiesController extends AppController
     {
         $currentUser = $this->Auth->user();
         if (!$currentUser['Role']['perm_site_admin'] && !$currentUser['Role']['perm_galaxy_editor']) {
-            throw new MethodNotAllowedException(__('Insuficient privileges'));
+            throw new MethodNotAllowedException(__('Insufficient privileges'));
         }
         $params = [
             'beforeSave' => function($data) use ($currentUser) {

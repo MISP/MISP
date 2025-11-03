@@ -696,7 +696,7 @@ class AnalystData extends AppModel
     }
 
     /**
-     * Push Analyst Data to remote server. Collect elligible data locally and propose the list to the remote.
+     * Push Analyst Data to remote server. Collect eligible data locally and propose the list to the remote.
      * Remote will then return the list of UUIDs it's willing to get. Then, upload these entries.
      * 
      * @param array $user
@@ -750,7 +750,7 @@ class AnalystData extends AppModel
     }
 
     /**
-     * Collect elligible data to be pushed on a server
+     * Collect eligible data to be pushed on a server
      *
      * @param array $user
      * @return array

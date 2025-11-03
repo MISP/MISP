@@ -472,7 +472,7 @@ class SharingGroup extends AppModel
     /**
      * Returns true if the SG exists and the user is allowed to see it, from the parent element
      * @param array $user
-     * @param array $element Parent element containg the SG data
+     * @param array $element Parent element containing the SG data
      * @return bool|str
      * @throws MethodNotAllowedException
      */

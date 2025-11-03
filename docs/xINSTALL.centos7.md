@@ -2,11 +2,11 @@
 ## for CentOS 7.x
 
 
-Please use the Red Hat Enterprise Linux 7 Instructions for a CentOS 7 install. [click here](https://misp.github.io/MISP/INSTALL.rhel7).
+Please use the Red Hat Enterprise Linux 7 Instructions for a CentOS 7 install. See [Installation instructions for RHEL 7.x and CentOS 7.x](https://misp.github.io/MISP/INSTALL.rhel7).
 
 ### -1/ Installer and Manual install instructions
 
-Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.rhel7).
+Make sure you are reading the parsed version of this Document. When in doubt, see [Installation instructions for RHEL 7.x and CentOS 7.x](https://misp.github.io/MISP/INSTALL.rhel7).
 
 !!! warning
     In the **future**, to install MISP on a fresh CentOS 7 install all you need to do is:
@@ -61,7 +61,7 @@ Install a minimal CentOS 7.x system with the software:
 
 
 ```bash
-# Make sure you set your hostname CORRECTLY vs. like an brute (manually in /etc/hostname)
+# Make sure you set your hostname CORRECTLY vs. like a brute (manually in /etc/hostname)
 sudo hostnamectl set-hostname misp.local # Your choice, in a production environment, it's best to use a FQDN
 
 # Make sure your system is up2date:

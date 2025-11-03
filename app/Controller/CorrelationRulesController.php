@@ -57,7 +57,7 @@ class CorrelationRulesController extends AppController
     {
         $this->set('mayModify', $this->Collection->mayModify($this->Auth->user('id'), $id));
         if (!$this->Collection->mayView($this->Auth->user('id'), $id)) {
-            throw new MethodNotAllowedException(__('Invalid Collection or insuficient privileges'));
+            throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
         }
         $this->set('menuData', array('menuList' => 'correlationRules', 'menuItem' => 'view'));
         $params = [

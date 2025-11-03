@@ -127,6 +127,42 @@ class Correlation extends AppModel
         }
     }
 
+        /**
+     * @return int|bool
+     * @throws Exception
+     */
+    public function generateCorrelationRouter($eventId = null)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            /** @var Job $job */
+            $job = ClassRegistry::init('Job');
+            $jobId = $job->createJob(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                'generateCorrelation',
+                '',
+                $eventId ? __('Starting the recorrelation of event #%d.', $eventId) : 'Starting full recorrelation.'
+            );
+
+            $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::DEFAULT_QUEUE,
+                BackgroundJobsTool::CMD_ADMIN,
+                [
+                    'jobGenerateCorrelation',
+                    $jobId,
+                    $eventId
+                ],
+                true,
+                $jobId
+            );
+
+            return $jobId;
+        } else {
+            $this->generateCorrelation(false, $eventId);
+            return true;
+        }
+    }
+
     /**
      * Generate correlation for given attributes or events.
      *
@@ -454,7 +490,7 @@ class Correlation extends AppModel
             return true;
         }
         /* 
-         *Removed this check for now, it assumed that correlatioan rules COMPLETELY blocked correlation, which is not the case.
+         *Removed this check for now, it assumed that correlation rules COMPLETELY blocked correlation, which is not the case.
         if (!$this->CorrelationRule->canCorrelate($a)) {
             return true;
         }
@@ -790,9 +826,6 @@ class Correlation extends AppModel
      */
     public function generateTopCorrelationsRouter()
     {
-        if ($this->onDemandEngine()) {
-            return true;
-        }
         if (Configure::read('MISP.background_jobs')) {
             /** @var Job $job */
             $job = ClassRegistry::init('Job');
@@ -824,6 +857,7 @@ class Correlation extends AppModel
     public function generateTopCorrelations($jobId = false)
     {
         if ($this->onDemandEngine()) {
+            $this->generateTopOnDemand();
             return true;
         }
         try {
@@ -879,82 +913,65 @@ class Correlation extends AppModel
         return true;
     }
 
-    private function findTopOnDemand($query)
+    public function generateTopOnDemand()
+    {
+        $this->query('TRUNCATE TABLE attr_value_counts');
+
+        $this->query(
+            "INSERT INTO attr_value_counts (value, cnt_v1)
+            SELECT LEFT(a.value1, 64) AS value, COUNT(*) AS c
+            FROM attributes a
+            WHERE a.deleted = 0
+            AND a.disable_correlation = 0
+            AND a.value1 <> ''
+            GROUP BY LEFT(a.value1, 64)
+            ON DUPLICATE KEY UPDATE cnt_v1 = VALUES(cnt_v1);"
+        );
+
+        $this->query(
+            "INSERT INTO attr_value_counts (value, cnt_v2)
+            SELECT LEFT(a.value2, 64) AS value, COUNT(*) AS c
+            FROM attributes a
+            WHERE a.deleted = 0
+            AND a.disable_correlation = 0
+            AND a.value2 <> ''
+            GROUP BY LEFT(a.value2, 64)
+            ON DUPLICATE KEY UPDATE cnt_v2 = VALUES(cnt_v2);"
+        );
+        
+    }
+
+    private function findTopOnDemand(array $query)
     {
         $limit  = (int)($query['limit'] ?? 100);
         $page   = max(1, (int)($query['page'] ?? 1));
         $offset = $limit * ($page - 1);
 
-        // Count occurrences of each value across value1 and value2.
-        // Matches cover:
-        //  a.value1 = b.value1, a.value1 = b.value2, a.value2 = b.value1, a.value2 = b.value2
-        // by simply pooling both columns then GROUP BY.
-
         $sql = "
-            WITH
-            top1 AS (
-                SELECT value1 AS val, COUNT(*) cnt
-                FROM attributes
-                WHERE deleted=0 AND disable_correlation=0 AND value1 <> ''
-                GROUP BY value1
-                ORDER BY cnt DESC
-                LIMIT " . intval($limit) . "
-            ),
-            top2 AS (
-                SELECT value2 AS val, COUNT(*) cnt
-                FROM attributes
-                WHERE deleted=0 AND disable_correlation=0 AND value2 <> ''
-                GROUP BY value2
-                ORDER BY cnt DESC
-                LIMIT " . intval($limit) . "
-            )
-            SELECT v.val, SUM(v.cnt) AS cnt
-            FROM (
-                SELECT * FROM top1
-                UNION ALL
-                SELECT * FROM top2
-            ) v
-            GROUP BY v.val
-            ORDER BY cnt DESC
-            LIMIT " . intval($limit);
-        /*
-        $sql = "
-            SELECT v.val AS value, COUNT(*) AS cnt
-            FROM (
-                SELECT a.value1 AS val
-                FROM attributes a
-                WHERE a.deleted = 0
-                  AND a.disable_correlation = 0
-                  AND a.value1 != ''
-                UNION ALL
-                SELECT a.value2 AS val
-                FROM attributes a
-                WHERE a.deleted = 0
-                  AND a.disable_correlation = 0
-                  AND a.value2 != ''
-            ) AS v
-            GROUP BY v.val
+            SELECT value, (cnt_v1 + cnt_v2) AS cnt
+            FROM attr_value_counts
+            WHERE (cnt_v1 + cnt_v2) > 0
             ORDER BY cnt DESC
             LIMIT " . intval($limit) . " OFFSET " . intval($offset);
-*/
+
         $rows = $this->query($sql);
-        $rows = array_map (function ($row) {
-            return [
-                'value' => $row['v']['value'], 'cnt' => $row[0]['cnt']
-            ];
-        }, $rows);
-        foreach ($rows as $r) {
+
+        $results = [];
+        foreach ($rows as $row) {
+            $v   = $row[0]['value'] ?? $row['attr_value_counts']['value'];
+            $cnt = (int)($row[0]['cnt']   ?? $row['attr_value_counts']['cnt']);
+
             $results[] = [
                 'Correlation' => [
-                    'value'     => $r['value'],
-                    'count'     => $r['cnt'],
-                    'excluded'  => $this->__preventExcludedCorrelations($r['value']),
+                    'value'    => (string)$v,
+                    'count'    => $cnt,
+                    'excluded' => $this->__preventExcludedCorrelations((string)$v),
                 ]
             ];
         }
         return $results;
     }
-
+    
     /**
      * @param array $query
      * @return array|false

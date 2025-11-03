@@ -10,7 +10,7 @@ class GalaxyClusterRelationsController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
             'recursive' => -1,
     );
 
@@ -287,7 +287,7 @@ class GalaxyClusterRelationsController extends AppController
             if ($result) {
                 $this->GalaxyClusterRelation->SourceCluster->touchTimestamp($clusterSource['GalaxyCluster']['id']);
                 $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['GalaxyCluster']['id']);
-                $message = __('Galaxy cluster relationship successfuly deleted.');
+                $message = __('Galaxy cluster relationship successfully deleted.');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'delete', $id, $this->response->type());
                 } else {

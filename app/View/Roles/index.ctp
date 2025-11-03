@@ -88,6 +88,7 @@ $fields[] = [
 
 $fields[] = [
     'name' => __('Max result by restSearch'),
+    'header_title' => __('Maximum number of attributes returned by restSearch calls. For Objects and Events, this limit is divided by 3 and 10 respectively. If undefined, the server default is used.'),
     'sort' => 'Role.restsearch_limit_result',
     'element' => 'custom',
     'function' => function (array $row){

@@ -24,7 +24,7 @@ class YaraExport
         $this->__JsonExporter = new JsonExport();
     }
 
-    private static function __count_atributes($data)
+    private static function __count_attributes($data)
     {
         $attributes_count = count($data['Attribute']);
         foreach ($data['Object'] as $_object) {
@@ -63,7 +63,7 @@ class YaraExport
         if ($options['scope'] === 'Attribute') {
             $attr_count = 1;
         } else if ($options['scope'] === 'Event') {
-            $attr_count = $this->__count_atributes($data);
+            $attr_count = $this->__count_attributes($data);
         }
         if (!empty($data)) {
             if (!$this->__curr_input_is_empty) {

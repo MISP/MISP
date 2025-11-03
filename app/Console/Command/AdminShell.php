@@ -160,6 +160,9 @@ class AdminShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('preRelease', [
+            'help' => __('Run the pre-release tasks (for developers).'),
+        ]);
         $parser->addSubcommand('schemaDiagnostics', [
             'help' => __('Check differences between current and expected database schema')
         ]);
@@ -181,17 +184,18 @@ class AdminShell extends AppShell
     public function jobGenerateCorrelation()
     {
         $jobId = $this->args[0] ?? null;
+        $eventId = $this->args[1] ?? null;
         if (empty($jobId)) {
             $jobId = $this->Job->createJob(
                 'SYSTEM',
                 Job::WORKER_DEFAULT,
                 'generate correlation',
-                'All attributes',
+                $eventId ? __('All attributes of event %d', $eventId) : __('All attributes'),
                 'Job created.'
             );
         }
 
-        $this->Correlation->generateCorrelation($jobId);
+        $this->Correlation->generateCorrelation($jobId, $eventId);
     }
 
     public function jobGenerateOccurrences()
@@ -705,7 +709,7 @@ class AdminShell extends AppShell
                 'scripts' => [
                     'OnDemandCorrelationTuning',
                 ],
-                'help' => __('Additional indeces specifically to help with the unusual search patterns of the on demand correlation tuning.'),
+                'help' => __('Additional indices specifically to help with the unusual search patterns of the on demand correlation tuning.'),
             ]
         ];
 
@@ -747,7 +751,7 @@ class AdminShell extends AppShell
     public function getAuthkey()
     {
         if (Configure::read("Security.advanced_authkeys")) {
-            $this->error('Advanced autkeys enabled, it is not possible to get user authkey.');
+            $this->error('Advanced authkeys enabled, it is not possible to get user authkey.');
         }
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get authkey'] . PHP_EOL);
@@ -876,7 +880,7 @@ class AdminShell extends AppShell
             'conditions' => array(
                 'action' => 'update_database',
                 'title LIKE ' => array(
-                    'Successfuly executed the SQL query for %',
+                    'Successfully executed the SQL query for %',
                     'Issues executing the SQL query for %'
                 )
             ),
@@ -974,6 +978,22 @@ class AdminShell extends AppShell
         } else {
             $this->error(__('Something went wrong.'), __('Could not find the existing db version or fetch the current database schema.'));
         }
+    }
+
+    public function dumpDescribeTypes()
+    {
+        $data = $this->MispAttribute->describeTypes();
+        $data = ['result' => $data];
+        FileAccessTool::writeToFile(ROOT . DS . 'describeTypes.json', JsonTool::encode($data, true));
+        $this->out(__("> describeTypes.json dumped to disk"));
+    }
+
+    public function preRelease()
+    {
+        $this->out(__("Dumping database schema to disk"));
+        $this->dumpCurrentDatabaseSchema();
+        $this->out(__("Dumping describeTypes.json to disk"));
+        $this->dumpDescribeTypes();
     }
 
     /**
@@ -1400,7 +1420,7 @@ class AdminShell extends AppShell
         if (!empty($this->args[0])) {
             $target = trim($this->args[0]);
         }
-        if (!is_numeric($target) && !in_array($target, ['all', 'attached', 'deteached'])) {
+        if (!is_numeric($target) && !in_array($target, ['all', 'attached', 'detached'])) {
             $this->error(__('Invalid target. Either pass a blueprint ID or one of the following filters: all, attached, detached.'));
         }
         $conditions = [];

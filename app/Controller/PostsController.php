@@ -105,7 +105,7 @@ class PostsController extends AppController
                 throw new MethodNotAllowedException(__('Cannot post an empty message.'));
             }
             // Set the default values that we'll alter before actually saving data. These are the default values unless specifically modified.
-            // By default, all discussions will be visibile to everyone on the platform
+            // By default, all discussions will be visible to everyone on the platform
 
             // Set the title if it is setable in the add view.
             if (empty($thread_id) && empty($target_type)) {

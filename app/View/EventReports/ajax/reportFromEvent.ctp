@@ -3,7 +3,7 @@
         'form' => $this->Form,
         'data' => array(
             'title' => __('Create report from event', h($event_id)),
-            'description' => __('Generate a report based on filtering criterias.'),
+            'description' => __('Generate a report based on filtering criteria.'),
             'model' => 'EventReport',
             'fields' => array(
                 array(
@@ -12,7 +12,7 @@
                     'class' => 'input span6',
                     'div' => 'text',
                     'label' =>  __('REST search filters'),
-                    'title' => __('Provide the filtering criterias for attributes to be taken into account in the report')
+                    'title' => __('Provide the filtering criteria for attributes to be taken into account in the report')
                 ),
                 array(
                     'type' => 'checkbox',

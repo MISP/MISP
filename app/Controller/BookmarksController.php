@@ -83,7 +83,7 @@ class BookmarksController extends AppController
     public function edit($id)
     {
         if (!$this->Bookmark->mayModify($this->Auth->user(), intval($id))) {
-            throw new MethodNotAllowedException(__('Invalid Bookmark or insuficient privileges'));
+            throw new MethodNotAllowedException(__('Invalid Bookmark or insufficient privileges'));
         }
         $params = [
         ];
@@ -99,7 +99,7 @@ class BookmarksController extends AppController
     public function delete($id)
     {
         if (!$this->Bookmark->mayModify($this->Auth->user(), intval($id))) {
-            throw new MethodNotAllowedException(__('Invalid Bookmark or insuficient privileges'));
+            throw new MethodNotAllowedException(__('Invalid Bookmark or insufficient privileges'));
         }
         $this->CRUD->delete($id);
         if ($this->restResponsePayload) {
@@ -111,7 +111,7 @@ class BookmarksController extends AppController
     public function view($id)
     {
         if (!$this->Bookmark->mayModify($this->Auth->user(), intval($id))) {
-            throw new MethodNotAllowedException(__('Invalid Bookmark or insuficient privileges'));
+            throw new MethodNotAllowedException(__('Invalid Bookmark or insufficient privileges'));
         }
         $canSeeUser = false;
         $params = [

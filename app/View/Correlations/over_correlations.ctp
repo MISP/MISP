@@ -47,7 +47,7 @@ echo $this->element('genericElements/IndexTable/index_table', [
                 'name' => 'Value',
                 'element' => 'postlink',
                 'data_path' => 'OverCorrelatingValue.value',
-                'url' => '/attributes/search/results',
+                'url' => '/attributes/index',
                 'payload_paths' => [
                     'value' => 'OverCorrelatingValue.value'
                 ]

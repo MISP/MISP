@@ -7,7 +7,7 @@
     GnuPG also needs some more TLC.
     misp-modules are broken because of the python-opencv dependency.
 
-### 0/ WIP! You are warned, this does only partially work!
+### 0/ WIP! You are warned, this only partially works!
 ------------
 
 !!! notice

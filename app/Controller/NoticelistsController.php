@@ -201,7 +201,7 @@ class NoticelistsController extends AppController
             $id = intval($id);
             $result = $this->Noticelist->quickDelete($id);
             if ($result) {
-                $this->Flash->success('Noticelist successfuly deleted.');
+                $this->Flash->success('Noticelist successfully deleted.');
                 $this->redirect(array('controller' => 'noticelists', 'action' => 'index'));
             } else {
                 $this->Flash->error('Noticelists could not be deleted.');

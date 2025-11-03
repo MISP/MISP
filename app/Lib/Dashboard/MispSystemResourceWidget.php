@@ -20,7 +20,7 @@ class MispSystemResourceWidget
 	public function handler(array $user, $options = array())
 	{
 	    // Keep BC with typo value
-        $threshold = isset($options['threshold']) ? $options['threshold'] : (isset($options['treshold']) ? $options['treshold'] : 85);
+        $threshold = isset($options['threshold']) ? $options['threshold'] : (isset($options['threshold']) ? $options['threshold'] : 85);
 
         $cwd = getcwd();
         $drive = round((1 - disk_free_space($cwd)/disk_total_space($cwd))*100,2);

@@ -428,10 +428,10 @@
     font-size: smaller;
     border-radius: 3px;
 }
-#core-format-picker .collaspe-button {
+#core-format-picker .collapse-button {
     cursor: pointer;
 }
-#core-format-picker .collaspe-button:hover {
+#core-format-picker .collapse-button:hover {
     color: #292929;
     cursor: pointer;
 }

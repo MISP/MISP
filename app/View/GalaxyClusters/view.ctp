@@ -124,10 +124,10 @@ if (!empty($extendedByHtml)) {
             <div id="analyst_data_thread" class="panel-container"></div>
         </div>
     </div>
-    <div class="row-fuild">
+    <div class="row-fluid">
         <div id="matrix_container"></div>
     </div>
-    <div class="row-fuild">
+    <div class="row-fluid">
         <div id="relations_container"></div>
     </div>
     <?php

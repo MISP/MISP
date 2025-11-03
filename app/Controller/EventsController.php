@@ -15,7 +15,7 @@ class EventsController extends AppController
 
     public $paginate = array(
         'limit' => 60,
-        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
         'order' => array(
             'Event.timestamp' => 'DESC'
         ),
@@ -164,7 +164,7 @@ class EventsController extends AppController
         }
 
         // get all of the attributes that have a hit on the search term, in either the value or the comment field
-        // This is not perfect, the search will be case insensitive, but value1 and value2 are searched separately. lower() doesn't seem to work on virtualfields
+        // This is not perfect, the search will be case-insensitive, but value1 and value2 are searched separately. lower() doesn't seem to work on virtualfields
         $subconditions = array();
         foreach ($values as $v) {
             $subconditions[] = array('Attribute.value1 LIKE' => $v);
@@ -3319,7 +3319,7 @@ class EventsController extends AppController
         return $event;
     }
 
-    // Send out an contact email to the person who posted the event.
+    // Send out a contact email to the person who posted the event.
     // Users with a GnuPG key will get the mail encrypted, other users will get the mail unencrypted
     public function contact($id = null)
     {
@@ -4283,7 +4283,7 @@ class EventsController extends AppController
         if (empty(Configure::read('MISP.background_jobs'))) {
             $attributes = $temp;
         }
-        // FIXME $attributes does not contain the onteflyattributes
+        // FIXME $attributes does not contain the ontheflyattributes
         $attributes = array_values($attributes);
         return $this->RestResponse->viewData($attributes, $this->response->type());
     }
@@ -4878,7 +4878,7 @@ class EventsController extends AppController
             $this->set('errors', $errors);
             if ($successCount > 0) {
                 $this->set('name', 'Partial success');
-                $this->set('message', 'Successfuly saved ' . $successCount . ' sample(s), but some samples could not be saved.');
+                $this->set('message', 'Successfully saved ' . $successCount . ' sample(s), but some samples could not be saved.');
                 $this->set('url', $this->baseurl . '/events/view/' . $data['settings']['event_id']);
                 $this->set('id', $data['settings']['event_id']);
                 $this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
@@ -5268,7 +5268,7 @@ class EventsController extends AppController
         $this->set('target_id', $scope_id);
         if ($matrixData['galaxy']['id'] == $mitreAttackGalaxyId) {
             $this->set('defaultTabName', 'attack-enterprise');
-            $this->set('removeTrailling', 2);
+            $this->set('removeTrailing', 2);
         }
         $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies($this->Auth->user());
         $this->set('matrixGalaxies', $matrixGalaxies);
@@ -5325,7 +5325,7 @@ class EventsController extends AppController
         $this->set('tags', $tagNames);
         $this->paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
             'order' => array(
                     'Event.timestamp' => 'DESC'
             ),
@@ -5833,6 +5833,31 @@ class EventsController extends AppController
         $this->response->type($result['response']);
         $this->response->download('misp.event.' . $id . '.' . $module . '.export.' . $result['extension']);
         return $this->response;
+    }
+
+    public function recorrelateEvent($id)
+    {
+        $id = intval($id);
+        if ($this->request->is('post')) {
+            $this->Event->Attribute->Correlation->generateCorrelationRouter($id);
+            $message = __('Event recorrelation started.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('events', 'recorrelateEvent', $id, false, $message);
+            } else {
+                $this->Flash->success($message);
+                $this->redirect($this->referer());
+            }
+        } else {
+            $this->set('id', $id);
+            $this->set('title', __('Recorrelate event'));
+            $this->set(
+                'question',
+                __('Do you want to launch the recorrelation of the event? This will reprocess all attributes and may take a while.')
+            );
+            $this->set('actionName', __('Recorrelate event'));
+            $this->layout = false;
+            $this->render('/genericTemplates/confirm');
+        }
     }
 
     public function toggleCorrelation($id)
@@ -6421,7 +6446,7 @@ class EventsController extends AppController
             if ($this->request->is('post')) {
                 $job_type = 'recover_event';
                 $function = 'recoverEvent';
-                $message = __('Bootstraping recovering of event %s', $id);
+                $message = __('Bootstrapping recovering of event %s', $id);
                 $job = ClassRegistry::init('Job');
                 $job->create();
                 $data = array(

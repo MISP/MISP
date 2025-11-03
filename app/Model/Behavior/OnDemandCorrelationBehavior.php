@@ -57,7 +57,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
         'fullMatch' => []
     ];
 
-    private $customIndeces = [
+    private $customIndices = [
         'attributes' => [
             'idx_val1_source' => false,
             'idx_val1_target' => false,
@@ -65,6 +65,8 @@ class OnDemandCorrelationBehavior extends ModelBehavior
             'idx_val2_source' => false
         ]
     ];
+
+    private $_nonCorrelatingEvents = [];
 
     public function onDemandEngine() {
         return true;
@@ -93,9 +95,9 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                 $this->correlationExclusions['fullMatch'][] = $exclusion;
             }
         }
-        foreach ($this->customIndeces as $table => $indeces) {
-            foreach ($indeces as $index => $status) {
-                $this->customIndeces[$table][$index] = $this->Correlation->indexExists($table, $index);
+        foreach ($this->customIndices as $table => $indices) {
+            foreach ($indices as $index => $status) {
+                $this->customIndices[$table][$index] = $this->Correlation->indexExists($table, $index);
             }
         }
     }
@@ -175,6 +177,9 @@ class OnDemandCorrelationBehavior extends ModelBehavior
      */
     private function __collectCorrelations($eventId)
     {
+        if ($this->_checkEventCanCorrelate($eventId) === false) {
+            return [];
+        }
         $eventId = (int)$eventId;
         $max_correlations = Configure::read('MISP.max_correlations_per_event') ?: 5000;
         $max_value_correlation = Configure::read('MISP.correlation_limit') ?: 20;
@@ -212,7 +217,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                     ",
                     [$eventId]
                 );
-                $use_index = $this->customIndeces['attributes']['idx_val2_target'] ? 'FORCE INDEX (`idx_val2_target`)' : '';
+                $use_index = $this->customIndices['attributes']['idx_val2_target'] ? 'FORCE INDEX (`idx_val2_target`)' : '';
                 $sql = "
                     SELECT 
                         target.id AS id,
@@ -270,8 +275,8 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                 ];
                 
                 $key = "{$pair['a']}:{$pair['b']}";
-                $sourceIndex = $this->customIndeces['attributes'][$indexHints[$key]['source']] ? "FORCE INDEX (`{$indexHints[$key]['source']}`)" : '';
-                $targetIndex = $this->customIndeces['attributes'][$indexHints[$key]['source']] ? "FORCE INDEX (`{$indexHints[$key]['target']}`)" : '';
+                $sourceIndex = $this->customIndices['attributes'][$indexHints[$key]['source']] ? "FORCE INDEX (`{$indexHints[$key]['source']}`)" : '';
+                $targetIndex = $this->customIndices['attributes'][$indexHints[$key]['source']] ? "FORCE INDEX (`{$indexHints[$key]['target']}`)" : '';
 
 
                 $sql = "
@@ -308,6 +313,10 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                         $corrValueCounts[$row['target']['value']] = 1;
                     }
 
+                    if (!$this->_checkEventCanCorrelate($row['target']['event_id'])) {
+                        continue;
+                    }
+
                     // yeet correlations that would trip over correlation rules
                     if (
                         $this->Correlation->CorrelationRule->checkEventIds($eventId, $row['target']['event_id']) &&
@@ -332,6 +341,21 @@ class OnDemandCorrelationBehavior extends ModelBehavior
         }
         $flat = array_values($flat);
         return $flat;
+    }
+
+    public function _checkEventCanCorrelate($eventId)
+    {
+        if (isset($this->__nonCorrelatingEvents[$eventId])) {
+            return !$this->__nonCorrelatingEvents[$eventId];
+        }
+        $result = $this->Correlation->Event->find('column', [
+            'recursive' => -1,
+            'fields' => ['disable_correlation'],
+            'conditions' => [
+                'Event.id' => $eventId
+            ]
+        ]);
+        return isset($result[0]) ? !$result[0] : false;
     }
 
     /**

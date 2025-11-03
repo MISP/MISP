@@ -71,7 +71,7 @@ class Module_add_eventblocklist_entry extends WorkflowBaseActionModule
         $entry = [
             'event_uuid' => $eventUUID,
             'event_info' => $eventInfo,
-            'event_orgc' => !empty($org['Organisation']['name']) ? $org['Organisation']['name'] : 'unkwown',
+            'event_orgc' => !empty($org['Organisation']['name']) ? $org['Organisation']['name'] : 'unknown',
             'comment' => $comment,
         ];
         $r = $this->EventBlocklist->addEntry($entry);

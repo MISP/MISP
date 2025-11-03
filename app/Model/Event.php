@@ -1554,6 +1554,7 @@ class Event extends AppModel
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'first_publication' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'org' => array('function' => 'set_filter_org', 'pop' => true),
                     'orgc_id' => array('function' => 'set_filter_orgc_id', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
@@ -1608,7 +1609,7 @@ class Event extends AppModel
                                 $subQuery = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
                                 if ($param === 'value') {
                                     $subQuery[0] = explode('WHERE', $subQuery[0]);
-                                    $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
+                                    //$subQuery[0][0] .= ' USE INDEX (value1, value2) ';
                                     $subQuery[0] = implode('WHERE', $subQuery[0]);
                                 }
                                 $conditions['AND'][] = $subQuery;
@@ -1716,6 +1717,7 @@ class Event extends AppModel
             'last' => 'Event.publish_timestamp >=',
             'timestamp' => 'Event.timestamp >=',
             'publish_timestamp' => 'Event.publish_timestamp >=',
+            'first_publication' => 'Event.first_publication >=',
             'eventIdList' => 'Event.id',
         ];
         foreach ($paramMapping as $paramName => $paramLookup) {
@@ -2016,7 +2018,7 @@ class Event extends AppModel
         // $conditions['AND'][] = array('Event.published =' => 1);
 
         // do not expose all the data ...
-        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected');
+        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.first_publication', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected');
         $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
@@ -2436,7 +2438,7 @@ class Event extends AppModel
 
     private function __pruneUnknownClusters(array &$event, array $user)
     {
-        if (!Configure::read('MISP.hide_unkown_cluster', true) || $user['Role']['perm_sync']) {
+        if (!Configure::read('MISP.hide_unknown_cluster', true) || $user['Role']['perm_sync']) {
             return;
         }
         foreach ($event['EventTag'] as $i => $eventTag) {
@@ -3143,13 +3145,112 @@ class Event extends AppModel
                     }
                 }
             }
-            $conditions = $this->generic_add_filter($conditions, $params['value'], ['Attribute.value1', 'Attribute.value2']);
+
+            if ($options['context'] !== 'Attribute') {
+                foreach (['OR', 'AND', 'NOT'] as $operand) {
+                    if (!empty($params[$options['filter']][$operand])) {
+                        $values = $params[$options['filter']][$operand];
+                        $conditions = $this->add_value_filter_subquery($conditions, $operand, $values, $options);
+                        unset($params[$options['filter']][$operand]);
+                    }
+                }
+            } else {
+                $conditions = $this->generic_add_filter($conditions, $params['value'], ['Attribute.value1', 'Attribute.value2']);
+            }
+
         }
         return $conditions;
     }
 
-    public function set_filter_object_name(&$params, $conditions, $options)
-    {
+    private function add_value_filter_subquery(
+      $conditions,
+      $operand,
+      $values,
+      $options
+    ) {
+        $lookup_field = null;
+        $field = null;
+        switch ($options['context']) {
+            case 'Object':
+                $lookup_field = 'Object.id';
+                $field = 'object_id';
+                break;
+            case 'Event':
+                $lookup_field = 'Event.id';
+                $field = 'event_id';
+                break;
+            default:
+                return $conditions;
+        }
+        switch ($operand) {
+            case 'OR':
+            case 'NOT':
+                $sub_filter = ['OR' => $values];
+                $subconditions_value1 = $this->generic_add_filter([], $sub_filter, ['Attribute.value1']);
+                $sub_filter = ['OR' => $values];
+                $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
+                $subquery_options = [
+                  'conditions' => [
+                    'OR' => [
+                      ...$subconditions_value1['AND'],
+                      ...$subconditions_value2['AND'],
+                    ],
+                  ],
+                  'fields' => [
+                    $field,
+                  ],
+                ];
+                $subQuery = $this->subQueryGenerator(
+                  $this->Attribute,
+                  $subquery_options,
+                  $lookup_field,
+                  $operand === 'NOT'
+                );
+                // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
+                if ($this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
+                    $subQuery[0] = explode('WHERE', $subQuery[0]);
+                    $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
+                    $subQuery[0] = implode('WHERE', $subQuery[0]);
+                }
+                $conditions['AND'][] = $subQuery;
+                break;
+            case 'AND':
+                foreach ($values as $v) {
+                    $sub_filter = ['OR' => $v];
+                    $subconditions_value1 = $this->generic_add_filter([], $sub_filter, ['Attribute.value1']);
+                    $sub_filter = ['OR' => $v];
+                    $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
+                    $subquery_options = [
+                      'conditions' => [
+                        'OR' => [
+                          ...$subconditions_value1['AND'],
+                          ...$subconditions_value2['AND'],
+                        ],
+                      ],
+                      'fields' => [
+                        $field,
+                      ],
+                    ];
+                    $subQuery = $this->subQueryGenerator(
+                      $this->Attribute,
+                      $subquery_options,
+                      $lookup_field
+                    );
+                    // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
+                    if ($this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
+                        $subQuery[0] = explode('WHERE', $subQuery[0]);
+                        $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
+                        $subQuery[0] = implode('WHERE', $subQuery[0]);
+                    }
+                    $conditions['AND'][] = $subQuery;
+                }
+                break;
+        }
+
+        return $conditions;
+    }
+
+    public function set_filter_object_name(&$params, $conditions, $options) {
         if (!empty($params['object_name'])) {
             $params['object_name'] = $this->convert_filters($params['object_name']);
             $conditions = $this->generic_add_filter($conditions, $params['object_name'], 'Object.name');
@@ -4085,6 +4186,7 @@ class Event extends AppModel
             'published',
             'uuid',
             'timestamp',
+            'first_publication',
             'distribution',
             'sharing_group_id',
             'locked',
@@ -4454,6 +4556,7 @@ class Event extends AppModel
             'uuid',
             'distribution',
             'timestamp',
+            'first_publication',
             'sharing_group_id',
             'disable_correlation',
             'extends_uuid',
@@ -5092,9 +5195,12 @@ class Event extends AppModel
         } else {
             // update the DB to set the published flag
             // for background jobs, this should be done already
-            $fieldList = array('published', 'id', 'info', 'publish_timestamp');
+            $fieldList = array('published', 'id', 'info', 'publish_timestamp', 'first_publication');
             $event['Event']['published'] = 1;
             $event['Event']['publish_timestamp'] = time();
+            if (empty($event['Event']['first_publication'])) {
+                $event['Event']['first_publication'] = $event['Event']['publish_timestamp'];
+            };
             $event['Event']['skip_zmq'] = 1;
             $event['Event']['skip_kafka'] = 1;
             $result = $this->save($event, array('fieldList' => $fieldList));
@@ -5274,7 +5380,7 @@ class Event extends AppModel
 
     // expects a date string in the YYYY-MM-DD format
     // returns the passed string or false if the format is invalid
-    // based on the fix provided by stevengoosensB
+    // based on the fix provided by stevengoossensB
     public function dateFieldCheck($date)
     {
         // regex check for from / to field by stevengoossensB
@@ -7230,7 +7336,7 @@ class Event extends AppModel
                     if ($current_reference) {
                         continue; // Reference already exists, skip.
                     }
-                    list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
+                    [$referenced_id, $referenced_uuid, $referenced_type] = $this->Object->ObjectReference->getReferencedInfo(
                         $reference['referenced_uuid'],
                         array('Event' => array('id' => $id)),
                         false,
@@ -8375,7 +8481,7 @@ class Event extends AppModel
                 'scope' => 'Attribute',
                 'requiresPublished' => 1,
                 'params' => array('returnFormat' => 'suricata'),
-                'description' => __('Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
+                'description' => __('Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain an allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
             ),
             'snort' => array(
                 'extension' => '.rules',
@@ -8383,7 +8489,7 @@ class Event extends AppModel
                 'scope' => 'Attribute',
                 'requiresPublished' => 1,
                 'params' => array('returnFormat' => 'snort'),
-                'description' => __('Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
+                'description' => __('Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain an allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
             ),
             'bro' => array(
                 'extension' => '.intel',
@@ -8391,7 +8497,7 @@ class Event extends AppModel
                 'scope' => 'Attribute',
                 'requiresPublished' => 1,
                 'params' => array('returnFormat' => 'bro'),
-                'description' => __('Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
+                'description' => __('Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain an allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
             ),
             'stix' => array(
                 'extension' => '.xml',
@@ -8423,7 +8529,7 @@ class Event extends AppModel
                 'scope' => 'Attribute',
                 'requiresPublished' => 1,
                 'params' => array('returnFormat' => 'text', 'includeAttachments' => 1),
-                'description' => __('Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.')
+                'description' => __('Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for suspicious files. Only published events and attributes marked as IDS Signature are exported.')
             ),
             'yara' => array(
                 'extension' => '.yara',

@@ -142,7 +142,7 @@ class Server extends AppModel
         'innodb_dedicated_server' => [
             'default' => '0',
             'recommended' => '',
-            'explanation' => 'Set to `1` if the database is running in a dedicated server. The database engine will examine the available memory and dynamically set `innodb_buffer_pool_size`, `innodb_log_file_size`, `innodb_log_files_in_group` and `innodb_flush_method`. It is particularly useful in cloud enviroments that can be auto-scaled.',
+            'explanation' => 'Set to `1` if the database is running in a dedicated server. The database engine will examine the available memory and dynamically set `innodb_buffer_pool_size`, `innodb_log_file_size`, `innodb_log_files_in_group` and `innodb_flush_method`. It is particularly useful in cloud environments that can be auto-scaled.',
         ],
         'innodb_log_file_size' => [
             'default' => '100663296',
@@ -212,7 +212,7 @@ class Server extends AppModel
         ),
         'releaseUpdateLock' => array(
             'title' => 'Release update lock',
-            'description' => 'If your your database is locked and is not updating, unlock it here.',
+            'description' => 'If your database is locked and is not updating, unlock it here.',
             'ignore_disabled' => true,
             'url' => '/servers/releaseUpdateLock/'
         ),
@@ -322,14 +322,6 @@ class Server extends AppModel
                     $event['Event']['distribution'] = '1';
                     break;
             }
-            // We remove local tags obtained via pull
-            if (isset($event['Event']['Tag'])) {
-                foreach ($event['Event']['Tag'] as $key => $a) {
-                    if ($a['local']) {
-                        unset($event['Event']['Tag'][$key]);
-                    }
-                }
-            }
 
             $filterOnTypeEnabled = !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'));
             $attributeTypeFilteringEnabled = $filterOnTypeEnabled && !empty($pullRules['type_attributes']['NOT']);
@@ -349,14 +341,7 @@ class Server extends AppModel
                             $event['Event']['Attribute'][$key]['distribution'] = '1';
                             break;
                     }
-                    // We remove local tags obtained via pull
-                    if (isset($attribute['Tag'])) {
-                        foreach ($attribute['Tag'] as $k => $v) {
-                            if ($v['local']) {
-                                unset($event['Event']['Attribute'][$key]['Tag'][$k]);
-                            }
-                        }
-                    }
+
                 }
                 if ($attributeTypeFilteringEnabled && $originalCount > 0 && empty($event['Event']['Attribute'])) {
                     $pullRulesEmptiedEvent = true;
@@ -397,14 +382,7 @@ class Server extends AppModel
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '1';
                                     break;
                             }
-                            // We remove local tags obtained via pull
-                            if (isset($a['Tag'])) {
-                                foreach ($a['Tag'] as $k => $v) {
-                                    if ($v['local']) {
-                                        unset($event['Event']['Object'][$i]['Attribute'][$j]['Tag'][$k]);
-                                    }
-                                }
-                            }
+
                         }
                         if ($attributeTypeFilteringEnabled && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
                             unset($event['Event']['Object'][$i]); // Object is empty, get rid of it
@@ -836,7 +814,7 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
+    public function getEligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
     {
         $serverSync->debug("Fetching eligible clusters for pull: " . JsonTool::encode($conditions));
 
@@ -892,7 +870,7 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    private function getElligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
+    private function getEligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
     {
         $serverSync->debug("Fetching eligible clusters for push: " . JsonTool::encode($conditions));
         $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
@@ -1402,7 +1380,7 @@ class Server extends AppModel
         $this->Event = ClassRegistry::init('Event');
 
         if ($technique === 'full') {
-            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
+            $clusters = $this->GalaxyCluster->getEligibleClustersToPush($user, $conditions=array(), $full=true);
         } else {
             if ($event === false) {
                 throw new InvalidArgumentException('The event from which the cluster should be taken must be provided.');
@@ -1418,14 +1396,14 @@ class Server extends AppModel
             if (empty($customGalaxyClusterTags)) {
                 return [];
             }
-            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $customGalaxyClusterTags), $full=true);
+            $clusters = $this->GalaxyCluster->getEligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $customGalaxyClusterTags), $full=true);
         }
         if (empty($clusters)) {
             return []; // no local clusters eligible for push
         }
         $localClusterUUIDs = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
         try {
-            $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($serverSync, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
+            $clustersToPush = $this->getEligibleClusterIdsFromServerForPush($serverSync, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
         } catch (Exception $e) {
             $this->logException("Could not get eligible cluster IDs from server #{$server['Server']['id']} for push.", $e);
             return [];
@@ -2552,7 +2530,9 @@ class Server extends AppModel
         if (!$fileOnly && Configure::read('MISP.system_setting_db')) {
             /** @var SystemSetting $systemSetting */
             $systemSetting = ClassRegistry::init('SystemSetting');
-            return $systemSetting->setSetting($setting, $value);
+            if (!in_array($setting, $systemSetting::BLOCKED_SETTINGS)) {
+                return $systemSetting->setSetting($setting, $value);
+            }
         }
 
         $configFilePath = APP . 'Config' . DS . 'config.php';
@@ -5316,7 +5296,7 @@ class Server extends AppModel
                 ),
                 'object_fetch_hard_limit'=> [
                     'level' => 1,
-                    'description' => __('This value controls the the maximum number of objects that can be fetched in one shot via /objects/restSearch. If a query would exceed the given limit, it will iterate internally to build the result-set, so it will only effect the internals, however, it can resolve object restSearch failures due to high memory allocation to php.ini. Setting this to 0 will disable the cap altogether and revert to the old behaviour. Defaults to 0 (disabled).'),
+                    'description' => __('This value controls the maximum number of objects that can be fetched in one shot via /objects/restSearch. If a query would exceed the given limit, it will iterate internally to build the result-set, so it will only effect the internals, however, it can resolve object restSearch failures due to high memory allocation to php.ini. Setting this to 0 will disable the cap altogether and revert to the old behaviour. Defaults to 0 (disabled).'),
                     'value' => 0,
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
@@ -5348,7 +5328,7 @@ class Server extends AppModel
                 ],
                 'correlation_engine' => [
                     'level' => 0,
-                    'description' => __('Choose which correlation engine to use. MISP defaults to the default engine, maintaining all data in the database whilst enforcing ACL rules on any non site-admin user. This is recommended for any MISP instnace with multiple organisations. If you are an endpoint MISP, consider switching to the much leaner and faster No ACL engine.'),
+                    'description' => __('Choose which correlation engine to use. MISP defaults to the default engine, maintaining all data in the database whilst enforcing ACL rules on any non site-admin user. This is recommended for any MISP instance with multiple organisations. If you are an endpoint MISP, consider switching to the much leaner and faster No ACL engine.'),
                     'value' => 'default',
                     'test' => 'testForCorrelationEngine',
                     'type' => 'string',
@@ -5393,7 +5373,7 @@ class Server extends AppModel
                 ],
                 'server_settings_skip_backup_rotate' => array(
                     'level' => 1,
-                    'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
+                    'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurrency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -5744,7 +5724,7 @@ class Server extends AppModel
                 ),
                 'forceHTTPSforPreLoginRequestedURL' => array(
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('If enabled, any requested URL before login will have their HTTP part replaced by HTTPS. This can be usefull if MISP is running behind a reverse proxy responsible for SSL and communicating unencrypted with MISP.'),
+                    'description' => __('If enabled, any requested URL before login will have their HTTP part replaced by HTTPS. This can be useful if MISP is running behind a reverse proxy responsible for SSL and communicating unencrypted with MISP.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'
@@ -5931,7 +5911,7 @@ class Server extends AppModel
                 ),
                 'allow_users_override_locked_field_when_importing_events' => array(
                     'level' => 2,
-                    'description' => __('Allows users to override the state of the `locked` field of an event uploaded via the "Import from MISP Export File" functionality. This allows unlocking manually imported event. Updates to these Events coming from synchronisation might be rejected since it will appear as these Events were originaly created on this instance.'),
+                    'description' => __('Allows users to override the state of the `locked` field of an event uploaded via the "Import from MISP Export File" functionality. This allows unlocking manually imported event. Updates to these Events coming from synchronisation might be rejected since it will appear as these Events were originally created on this instance.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -6470,7 +6450,7 @@ class Server extends AppModel
                 ),
                 'deadlock_avoidance' => array(
                     'level' => 1,
-                    'description' => __('Only enable this if you have some tools using MISP with extreme high concurency. General performance will be lower as normal as certain transactional queries are avoided in favour of shorter table locks.'),
+                    'description' => __('Only enable this if you have some tools using MISP with extreme high concurrency. General performance will be lower as normal as certain transactional queries are avoided in favour of shorter table locks.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -6486,7 +6466,7 @@ class Server extends AppModel
                 ),
                 'default_restsearch_limit' => array(
                     'level' => 1,
-                    'description' => 'Default number of matching result for restSearch API if none is provided when adding a new role. Leave empty(0) to set as unlimited.',
+                    'description' => 'Default number of attributes returned for the given restSearch API. For the Event and Object scopes, a divisor is used to further limit the given value (dividing by 10 and 3 respectively). Can be overriden via the role configurations. Leave empty(0) to set it as unlimited.',
                     'value' => 0,
                     'errorMessage' => '',
                     'null' => true,
@@ -6531,7 +6511,7 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
-                'hide_unkown_cluster' => [
+                'hide_unknown_cluster' => [
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('This will hide unknown cluster to all users expect those having the sync permission.'),
                     'value' => true,
@@ -7149,7 +7129,7 @@ class Server extends AppModel
                 ),
                 'cors_origins' => array(
                     'level' => 1,
-                    'description' => __('Set the origins from which MISP will allow cross-origin requests. Useful for external integration. Comma seperate if you need more than one.'),
+                    'description' => __('Set the origins from which MISP will allow cross-origin requests. Useful for external integration. Comma separate if you need more than one.'),
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',

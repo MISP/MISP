@@ -1,5 +1,5 @@
 <?php
-// Include addation CSS and scripts to layout
+// Include additional CSS and scripts to layout
 $this->viewVars["additionalCss"] = ["gridstack.min"];
 $this->viewVars["additionalJs"] = ["gridstack.all"];
 ?>

@@ -192,9 +192,9 @@ function processString(text)
         }
 
         text = text.replace(/[\n\r]/g, '').trim();
-        seperate_analysis = text.split(/[  ]+/);
-        size = seperate_analysis[0];
-        activity_type = seperate_analysis[1];
+        separate_analysis = text.split(/[  ]+/);
+        size = separate_analysis[0];
+        activity_type = separate_analysis[1];
         if(activity_type.includes('a'))
         {
             activity = "Accessed";
@@ -215,11 +215,11 @@ function processString(text)
             activity += "Modified";
         }
 
-        permissions = seperate_analysis[2];
-        filepath = seperate_analysis[6]
-        if(seperate_analysis[7])
+        permissions = separate_analysis[2];
+        filepath = separate_analysis[6]
+        if(separate_analysis[7])
         {
-            filepath += seperate_analysis[7];
+            filepath += separate_analysis[7];
         }
         $("#individualLines").find('tbody')
             .append($('<tr>')

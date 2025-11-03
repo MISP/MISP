@@ -203,7 +203,7 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 				exit; // we need to exit once the header to redirect to Azure is sent
 
 			} elseif (isset($_GET["error"])) {  //Second load of this page begins, but hopefully we end up to the next elseif section...
-				$this->_log("warning", "Return from Aure redirect. Error received at the beginning of second stage. _GET: " . http_build_query($_GET, '', '  -  '));
+				$this->_log("warning", "Return from Azure redirect. Error received at the beginning of second stage. _GET: " . http_build_query($_GET, '', '  -  '));
 				return false;
 			} elseif (strcmp(session_id(), $_GET["state"]) == 0) {
 				//Verifying the received tokens with Azure and finalizing the authentication part
@@ -274,7 +274,7 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 					if (self::$check_ad_groups) {
 						if ($this->_checkAdGroup($authdata)) {
 							$mispUsername = $authProperty;
-							$this->_log("info", "Successful AAD group check for for ${mispUsername}");
+							$this->_log("info", "Successful AAD group check for ${mispUsername}");
 						}
 					} else {
 						$mispUsername = $authProperty;
