@@ -498,6 +498,9 @@ class EventReportsController extends AppController
                 throw new MethodNotAllowedException(__('A URL must be provided'));
             }
             $url = $this->data['EventReport']['url'];
+            if (!preg_match('/^https?:\/\//i', $url)) {
+                throw new InvalidArgumentException('Invalid URL: must start with http:// or https://');
+            }
             $format = 'html';
             
             $parsed_formats = ['pdf', 'xlsx', 'pptx', 'ods', 'odt', 'docx'];
