@@ -36,11 +36,18 @@ class SharingGroupBlueprintsController extends AppController
     public function add()
     {
         $currentUser = $this->Auth->user();
+        $model = $this->SharingGroupBlueprint;
         $params = [
-            'beforeSave' => function($data) use ($currentUser) {
+            'beforeSave' => function($data) use ($currentUser, $model) {
                 $data['SharingGroupBlueprint']['uuid'] = CakeText::uuid();
                 $data['SharingGroupBlueprint']['user_id'] = $currentUser['id'];
                 $data['SharingGroupBlueprint']['org_id'] = $currentUser['org_id'];
+                if (!empty($data['SharingGroupBlueprint']['sharing_group_id'])) {
+                    if (!$model->validateBlueprintPermissions($data['SharingGroupBlueprint'], $currentUser)) {
+                        throw new MethodNotAllowedException(__('You are not allowed to modify the target sharing group.'));
+                    }
+                    $data['SharingGroupBlueprint']['rules'] = json_encode($data['SharingGroupBlueprint']['rules']);
+                }
                 return $data;
             }
         ];

@@ -1542,7 +1542,7 @@ class Attribute extends AppModel
             $element['to_ids'] = 0;
         }
         foreach ($files as $file) {
-            if (!$this->checkFilename($file['filename'])) {
+            if (!$this->checkFilename($file['filename']) || !$this->checkFilename($file['tmp_name'])) {
                 $errors = 'Filename not allowed.';
                 continue;
             }
