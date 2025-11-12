@@ -1122,44 +1122,43 @@ class MispAttribute extends AppModel
                 $tagArray[2] = [-1];
             }
         }
+        
 
-        //
-        // 1) Positive tags (OR-group): must have at least one of tagArray[0]
-        //
         if (!empty($tagArray[0])) {
-            // if we forced a "no-match" hack
             if ($tagArray[0][0] === -1) {
                 $conditions[] = ['Event.id' => -1];
             } else {
-                // sanitize
                 $posIds    = array_map('intval', $tagArray[0]);
                 $inPosList = implode(',', $posIds);
 
-                // choose lookup fields by scope
-                $evtField = $options['scope'] === 'Event'
-                        ? 'Event.id' : 'Attribute.event_id';
-                $attrField = $options['scope'] === 'Event'
-                        ? 'AT.event_id = Event.id' : 'AT.attribute_id = Attribute.id';
-
-                // EXISTS on event_tags
-                $existsEvent = 
-                "EXISTS (
-                    SELECT 1 FROM event_tags ET
-                    WHERE ET.event_id = {$evtField}
-                        AND ET.tag_id    IN ({$inPosList})
-                )";
-                if ($tag_key !== 'event_tags') {
-                    // EXISTS on attribute_tags
-                    $existsAttr = 
-                    "EXISTS (
-                        SELECT 1 FROM attribute_tags AT
-                        WHERE {$attrField}
-                            AND AT.tag_id       IN ({$inPosList})
-                    )";
-                    $conditions['AND'][] = ['OR' => [$existsEvent, $existsAttr]];
+                if ($options['scope'] === 'Event') {
+                    $subquery = "
+                        SELECT id FROM (
+                            SELECT et.event_id AS id
+                            FROM event_tags et
+                            WHERE et.tag_id IN ({$inPosList})
+                            UNION ALL
+                            SELECT a.event_id AS id
+                            FROM attributes a
+                            JOIN attribute_tags at ON at.attribute_id = a.id
+                            WHERE at.tag_id IN ({$inPosList})
+                        ) AS t
+                    ";
+                    $conditions['AND'][] = "Event.id IN ({$subquery})";
                 } else {
-                    // event_tags only
-                    $conditions['AND'][] = $existsEvent;
+                    $subquery = "
+                        SELECT id FROM (
+                            SELECT at.attribute_id AS id
+                            FROM attribute_tags at
+                            WHERE at.tag_id IN ({$inPosList})
+                            UNION ALL
+                            SELECT a2.id
+                            FROM attributes a2
+                            JOIN event_tags et ON et.event_id = a2.event_id
+                            WHERE et.tag_id IN ({$inPosList})
+                        ) AS t
+                    ";
+                    $conditions['AND'][] = "Attribute.id IN ({$subquery})";
                 }
             }
         }
@@ -1201,41 +1200,40 @@ class MispAttribute extends AppModel
 
         //
         // 3) AND-group tags: must have *each* tag in tagArray[2]
-        //
+        // ----------------------------------------------------------------------
         if (!empty($tagArray[2])) {
             if ($tagArray[2][0] === -1) {
-                // forced no-match
                 $conditions[] = ['Event.id' => -1];
             } else {
                 foreach ($tagArray[2] as $t) {
                     $t = (int)$t;
-                    $evtFieldAnd  = $options['scope'] === 'Event'
-                                ? 'Event.id' : 'Attribute.event_id';
-                    $attrFieldAnd = $options['scope'] === 'Event'
-                                ? 'AT3.event_id = Event.id' : 'AT3.attribute_id = Attribute.id';
 
-                    $existsEvtAnd = 
-                    "EXISTS (
-                        SELECT 1 FROM event_tags ET3
-                        WHERE ET3.event_id = {$evtFieldAnd}
-                            AND ET3.tag_id   = {$t}
-                    )";
-
-                    if ($tag_key !== 'event_tags') {
-                        $existsAttrAnd =
-                        "EXISTS (
-                            SELECT 1 FROM attribute_tags AT3
-                            WHERE {$attrFieldAnd}
-                                AND AT3.tag_id        = {$t}
-                        )";
+                    if ($options['scope'] === 'Event') {
                         $conditions['AND'][] =
-                        ['OR' => [$existsEvtAnd, $existsAttrAnd]];
+                            "Event.id IN (
+                                SELECT et.event_id
+                                FROM event_tags et
+                                WHERE et.tag_id = {$t}
+                            )";
                     } else {
-                        $conditions['AND'][] = $existsEvtAnd;
+                        $subquery = "
+                            SELECT id FROM (
+                                SELECT at.attribute_id AS id
+                                FROM attribute_tags at
+                                WHERE at.tag_id = {$t}
+                                UNION ALL
+                                SELECT a2.id
+                                FROM attributes a2
+                                JOIN event_tags et ON et.event_id = a2.event_id
+                                WHERE et.tag_id = {$t}
+                            ) AS t
+                        ";
+                        $conditions['AND'][] = "Attribute.id IN ({$subquery})";
                     }
                 }
             }
         }
+
 
         //
         // 4) Clean up the $params[$tag_key] array for UI/state
@@ -1892,7 +1890,8 @@ class MispAttribute extends AppModel
                 [
                     'table'      => 'events',
                     'alias'      => 'Event',
-                    'type'       => $this->checkDbSupport('straightJoin') ? 'STRAIGHT' : 'LEFT',
+                    // Remove this for now, seems to hurt more than it helps 
+                    //'type'       => $this->checkDbSupport('straightJoin') ? 'STRAIGHT' : 'LEFT',
                     'conditions' => ['Event.id = Attribute.event_id']
                 ],
                 [
