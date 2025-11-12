@@ -1122,6 +1122,7 @@ class MispAttribute extends AppModel
                 $tagArray[2] = [-1];
             }
         }
+        
 
         if (!empty($tagArray[0])) {
             if ($tagArray[0][0] === -1) {
@@ -1131,26 +1132,32 @@ class MispAttribute extends AppModel
                 $inPosList = implode(',', $posIds);
 
                 if ($options['scope'] === 'Event') {
-                    $conditions['AND'][] =
-                        "Event.id IN (
-                            SELECT et.event_id
+                    $subquery = "
+                        SELECT id FROM (
+                            SELECT et.event_id AS id
                             FROM event_tags et
                             WHERE et.tag_id IN ({$inPosList})
-                        )";
+                            UNION ALL
+                            SELECT a.event_id AS id
+                            FROM attributes a
+                            JOIN attribute_tags at ON at.attribute_id = a.id
+                            WHERE at.tag_id IN ({$inPosList})
+                        ) AS t
+                    ";
+                    $conditions['AND'][] = "Event.id IN ({$subquery})";
                 } else {
                     $subquery = "
-                    SELECT id FROM (
-                        SELECT at.attribute_id AS id
-                        FROM attribute_tags at
-                        WHERE at.tag_id IN ({$inPosList})
-                        UNION ALL
-                        SELECT a2.id
-                        FROM attributes a2
-                        JOIN event_tags et ON et.event_id = a2.event_id
-                        WHERE et.tag_id IN ({$inPosList})
-                    ) AS t
+                        SELECT id FROM (
+                            SELECT at.attribute_id AS id
+                            FROM attribute_tags at
+                            WHERE at.tag_id IN ({$inPosList})
+                            UNION ALL
+                            SELECT a2.id
+                            FROM attributes a2
+                            JOIN event_tags et ON et.event_id = a2.event_id
+                            WHERE et.tag_id IN ({$inPosList})
+                        ) AS t
                     ";
-
                     $conditions['AND'][] = "Attribute.id IN ({$subquery})";
                 }
             }
