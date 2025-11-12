@@ -134,6 +134,14 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <div class="input sharinggroup-container">
+                    <label for="RelationshipSharingGroup"><?= __('Sharing Group') ?></label>
+                    <select id="RelationshipSharingGroup" name="sharing_group_id">
+                        <?php foreach ($sharingGroups as $k => $sg): ?>
+                            <option value="<?= h($k) ?>"><?= h($sg) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <div class="input input-append">
                     <label for="RelationshipTags"><?= __('Tags') ?></label>
                     <input id="RelationshipTags" name="tags" type="text"></input>
@@ -187,6 +195,10 @@ $(document).ready(function() {
         toggleFreeText();
     });
     toggleFreeText();
+    $('#relationsQuickAddForm #RelationshipDistribution').change(function() {
+        toggleSharinggroups();
+    });
+    toggleSharinggroups();
 
     $('#buttonAddRelationship').click(function() {
         submitRelationshipForm();
@@ -234,6 +246,14 @@ function toggleFreeText() {
         $('#relationsQuickAddForm #RelationshipTypeFreetext').show();
     } else {
         $('#relationsQuickAddForm #RelationshipTypeFreetext').hide();
+    }
+}
+
+function toggleSharinggroups() {
+    if ($('#relationsQuickAddForm #RelationshipDistribution').val() == '4') {
+        $('#relationsQuickAddForm .sharinggroup-container').show();
+    } else {
+        $('#relationsQuickAddForm .sharinggroup-container').hide();
     }
 }
 
