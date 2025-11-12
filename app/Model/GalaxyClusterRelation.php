@@ -321,8 +321,8 @@ class GalaxyClusterRelation extends AppModel
             }
             $cluster = $cluster[0];
             $relation['GalaxyClusterRelation']['id'] = $existingRelation['GalaxyClusterRelation']['id'];
-            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $cluster['SourceCluster']['id'];
-            $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $cluster['SourceCluster']['uuid'];
+            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $cluster[$this->SourceCluster->alias]['id'];
+            $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $cluster[$this->SourceCluster->alias]['uuid'];
 
             if (isset($relation['GalaxyClusterRelation']['distribution']) && $relation['GalaxyClusterRelation']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $relation['GalaxyClusterRelation']['sharing_group_id'])) {
                 $errors[] = array(__('Galaxy Cluster Relation could not be saved: The user has to have access to the sharing group in order to be able to edit it.'));
@@ -338,8 +338,8 @@ class GalaxyClusterRelation extends AppModel
                     $errors[] = array(__('Invalid referenced galaxy cluster'));
                     return $errors;
                 }
-                $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $targetCluster['TargetCluster']['id'];
-                $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'] = $targetCluster['TargetCluster']['uuid'];
+                $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $targetCluster[$this->TargetCluster->alias]['id'];
+                $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'] = $targetCluster[$this->TargetCluster->alias]['uuid'];
                 $relation['GalaxyClusterRelation']['default'] = false;
                 if (empty($fieldList)) {
                     $fieldList = array('galaxy_cluster_id', 'galaxy_cluster_uuid', 'referenced_galaxy_cluster_id', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type', 'distribution', 'sharing_group_id', 'default');
