@@ -7535,7 +7535,7 @@ class Event extends AppModel
                 )
             )
         );
-        return (!empty($original_uuid)) ? $original_uuid['Object']['uuid'] : $original_uuid;
+        return (!empty($original_uuid)) ? ['uuid' => $original_uuid['Object']['uuid']] : $original_uuid;
     }
 
     /**
