@@ -516,9 +516,9 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
         ?>
     </div>
     <div>
-        <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Start ZMQ service');?>" title="<?php echo __('Start ZeroMQ service');?>" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('start')"><?php echo __('Start');?></span>
-        <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Stop ZeroMQ service');?>" title="<?php echo __('Stop ZeroMQ service');?>" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('stop')"><?php echo __('Stop');?></span>
-        <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check ZeroMQ service status');?>" title="<?php echo __('Check ZeroMQ service status');?>" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('status')"><?php echo __('Status');?></span>
+        <button type="button" class="btn btn-primary" tabindex="0" aria-label="<?php echo __('Start ZMQ service');?>" title="<?php echo __('Start ZeroMQ service');?>" onClick = "zeroMQServerAction('start')"><?php echo __('Start');?></button>
+        <button type="button" class="btn btn-primary" tabindex="0" aria-label="<?php echo __('Stop ZeroMQ service');?>" title="<?php echo __('Stop ZeroMQ service');?>" onClick = "zeroMQServerAction('stop')"><?php echo __('Stop');?></button>
+        <button type="button" class="btn btn-primary" tabindex="0" aria-label="<?php echo __('Check ZeroMQ service status');?>" title="<?php echo __('Check ZeroMQ service status');?>" onClick = "zeroMQServerAction('status')"><?php echo __('Status');?></button>
     </div>
     <h3><?php echo __('Proxy');?></h3>
     <p><?php echo __('This tool tests whether your HTTP proxy settings are correct.');?></p>
@@ -575,7 +575,7 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     </p>
     <h3><?php echo __('Clean model cache');?></h3>
     <p><?php echo __('If you ever run into issues with missing database fields / tables, please run the following script to clean the model cache.');?></p>
-    <?php echo $this->Form->postLink('<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">' . __('Clean cache') . '</span>', $baseurl . '/servers/cleanModelCaches', array('escape' => false));?>
+    <?php echo $this->Form->postLink('<span class="btn btn-primary" type="button">' . __('Clean cache') . '</span>', $baseurl . '/servers/cleanModelCaches', array('escape' => false));?>
     <?php
         echo sprintf(
             '<h3>%s</h3><p>%s</p><div id="deprecationResults"></div>%s',
@@ -595,10 +595,15 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     <div class="diagnostics-box">
         <?php echo __('Orphaned attributes');?>…<span id="orphanedAttributeCount"><span style="color:orange;"><?php echo __('Run the test below');?></span></span>
     </div><br />
-    <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
-    <?php echo $this->Form->postButton(__('Remove orphaned attributes'), $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
-    <?php echo $this->Form->postButton(__('Remove orphaned correlations'), $baseurl . '/servers/removeOrphanedCorrelations', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
-    <?php echo $this->Form->postButton(__('Remove published empty events'), $baseurl . '/events/cullEmptyEvents', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
+    <button class="btn btn-primary rounded-0" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></button>
+    <div class="btn-group mx-4 rounded-0">
+        <div class="input-group-text rounded-0">Remove</div>
+    <?php
+        echo $this->Form->postButton(__('Orphaned attributes'), $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary rounded-0'));
+        echo $this->Form->postButton(__('Orphaned correlations'), $baseurl . '/servers/removeOrphanedCorrelations', $options = array('class' => 'btn btn-primary rounded-0'));
+        echo $this->Form->postButton(__('Published empty events'), $baseurl . '/events/cullEmptyEvents', $options = array('class' => 'btn btn-primary rounded-0')); 
+    ?>
+    </div>
     <h3><?php echo __('Administrator On-demand Action');?></h3>
     <p><?php echo __('Click the following button to go to the Administrator On-demand Action page.');?></p>
     <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/servers/ondemandAction/';"><?php echo __('Administrator On-demand Action');?></span>
