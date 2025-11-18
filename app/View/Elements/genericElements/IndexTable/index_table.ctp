@@ -118,7 +118,7 @@ if (!$skipPagination) {
     );
 }
 if (!empty($data['top_bar']) && empty($skipTableToolbar)) {
-    $multiSelectData = getMultiSelectData($data['top_bar']);
+    $multiSelectData = $this->MultiSelect->getMultiSelectData($data['top_bar']);
     if (!empty($multiSelectData)) {
         $multiSelectField = [
             'element' => 'selector',
@@ -283,13 +283,3 @@ if (!empty($embedInModal)) {
     });
 </script>
 
-<?php
-function getMultiSelectData($topbar)
-{
-    foreach ($topbar['children'] as $child) {
-        if (!empty($child['type']) && $child['type'] == 'multi_select_actions') {
-            return $child;
-        }
-    }
-    return [];
-}
