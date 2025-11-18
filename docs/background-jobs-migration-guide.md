@@ -54,7 +54,7 @@ Run on your MISP instance the following commands.
     `/etc/supervisor/conf.d/misp-workers.conf`
     ```
     [group:misp-workers]
-    programs=default,email,cache,prio,update
+    programs=default,email,cache,prio,update,scheduler
 
     [program:default]
     directory=/var/www/MISP
@@ -114,6 +114,18 @@ Run on your MISP instance the following commands.
     process_name=%(program_name)s_%(process_num)02d
     numprocs=5
     autostart=true
+    autorestart=true
+    redirect_stderr=false
+    stderr_logfile=/var/www/MISP/app/tmp/logs/misp-workers-errors.log
+    stdout_logfile=/var/www/MISP/app/tmp/logs/misp-workers.log
+    user=www-data
+
+    [program:scheduler]
+    directory=/var/www/MISP
+    command=/var/www/MISP/app/Console/cake scheduler_worker
+    process_name=%(program_name)s_%(process_num)02d
+    numprocs=1
+    autostart=false
     autorestart=true
     redirect_stderr=false
     stderr_logfile=/var/www/MISP/app/tmp/logs/misp-workers-errors.log

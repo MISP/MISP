@@ -315,13 +315,18 @@ class User extends AppModel
             $user_id = $action === 'add' ? 0 : $user['id'];
             $trigger_id = 'user-before-save';
             $workflowErrors = [];
+            $workflowData = $user;
+            if (isset($workflowData['password'])) {
+                unset($workflowData['password']);
+                unset($workflowData['confirm_password']);
+            }
             $logging = [
                 'model' => 'User',
                 'action' => $action,
                 'id' => $user_id,
                 'message' => __('The workflow `%s` prevented the saving of user %s', $trigger_id, $user_id),
             ];
-            return $this->executeTrigger($trigger_id, $user, $workflowErrors, $logging);
+            return $this->executeTrigger($trigger_id, $workflowData, $workflowErrors, $logging);
         }
         return true;
     }
@@ -340,12 +345,17 @@ class User extends AppModel
             )
         ) {
             $workflowErrors = [];
+            $workflowData = $user['User'];
+            if (isset($workflowData['password'])) {
+                unset($workflowData['password']);
+                unset($workflowData['confirm_password']);
+            }
             $logging = [
                 'model' => 'User',
                 'action' => $action,
                 'id' => $user['User']['id'],
             ];
-            $this->executeTrigger('user-after-save', $user['User'], $workflowErrors, $logging);
+            $this->executeTrigger('user-after-save', $workflowData, $workflowErrors, $logging);
         }
         if ($pubToZmq || $kafkaTopic) {
             if (!empty($this->data)) {

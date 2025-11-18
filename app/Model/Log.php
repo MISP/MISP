@@ -490,14 +490,22 @@ class Log extends AppModel
                 }
             }
 
-            $entry = sprintf(
-                '%s -- %s -- %s',
-                $data['Log']['action'],
-                empty($data['Log']['title']) ? '' : $formatted_title = preg_replace('/\s+/', " ", $data['Log']['title']),
-                empty($data['Log']['description']) ? 
-                    (empty($data['Log']['change']) ? '' : preg_replace('/\s+/', " ", $data['Log']['change'])) :
-                    preg_replace('/\s+/', " ", $data['Log']['description'])
-            );
+            if (Configure::read('Security.syslog_json_format')) {
+                if (isset($data['Log']['change']) && mb_strlen($data['Log']['change']) > 4096) {
+                    $data['Log']['change'] = mb_strcut($data['Log']['change'], 0, 4096, 'UTF-8');
+                    $data['Log']['_truncated'] = true;
+                }
+                $entry = JsonTool::encode($data['Log']);
+            } else {
+                $entry = sprintf(
+                    '%s -- %s -- %s',
+                    $data['Log']['action'],
+                    empty($data['Log']['title']) ? '' : preg_replace('/\s+/', " ", $data['Log']['title']),
+                    empty($data['Log']['description']) ? 
+                        (empty($data['Log']['change']) ? '' : preg_replace('/\s+/', " ", $data['Log']['change'])) :
+                        preg_replace('/\s+/', " ", $data['Log']['description'])
+                );
+            }
             $this->syslog->write($action, $entry);
         }
     }

@@ -6888,6 +6888,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'syslog_json_format' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('If enabled, syslog messages will be formatted in JSON rather than the custom format used by MISP historically.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'syslog_to_stderr' => array(
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('Write syslog messages also to standard error output.'),
