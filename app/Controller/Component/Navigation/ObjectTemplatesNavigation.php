@@ -7,7 +7,7 @@ class ObjectTemplatesNavigation extends BaseNavigation
     {
         $this->bcf->addRoute('ObjectTemplates', 'update', [
             'label' => __('Update ObjectTemplates'),
-            'url' => '/object-templates/update',
+            'url' => '/object_templates/update',
             'icon' => 'circle-up',
             'isPOST' => true,
         ]);

@@ -92,7 +92,7 @@ class SidemenuNavigation
                         'ObjectTemplates' => [
                             'label' => __('Object Templates'),
                             'icon' => $this->iconTable['ObjectTemplates'],
-                            'url' => '/object-templates/index',
+                            'url' => '/object_templates/index',
                         ],
                         'TagCollections' => [
                             'label' => __('Tag Collections'),
