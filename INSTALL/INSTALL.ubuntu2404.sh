@@ -392,6 +392,7 @@ print_status "Creating Apache configuration file for MISP..."
           ServerSignature Off
           Header set X-Content-Type-Options nosniff
           Header set X-Frame-Options DENY
+          SSLCipherSuite HIGH:!aNULL:!SHA1:!MD5:!DHE:!DH:!ADH
   </VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-ssl.conf  &>> $logfile
 
 error_check "Apache configuration file creation"  &>> $logfile
