@@ -698,7 +698,7 @@ class AttributeValidationTool
      */
     private static function isTelfhashValid($value)
     {
-        return strlen($value) == 70 || strlen($value) == 72;
+        return (strlen($value) == 70 || strlen($value) == 72) && ctype_xdigit($value);
     }
 
 
