@@ -103,6 +103,7 @@ class AttributeValidationTool
             case 'whois-registrant-email':
             case 'dom-hash':
             case 'onion-address':
+            case 'uuid':
                 return strtolower($value);
             case 'domain':
                 $value = strtolower($value);
@@ -633,6 +634,8 @@ class AttributeValidationTool
                     return true;
                 }
                 return __('AS number have to be integer between 1 and 4294967295');
+            case 'uuid':
+                return preg_match('/[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$/', $value) === 1;
         }
         throw new InvalidArgumentException("Unknown attribute type $type.");
     }
