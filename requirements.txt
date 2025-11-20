@@ -12,4 +12,4 @@ python-magic>=0.4.27
 pyzmq>=25.1.1
 redis>=5.0.1
 stix>=1.2.0.11
-taxii2-client
+taxii2-client>=2.3.0
