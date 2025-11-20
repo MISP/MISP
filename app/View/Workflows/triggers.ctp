@@ -131,7 +131,7 @@
         __( 'Missing a trigger? Feel free to open a %s!',
             sprintf('<a href="%s">%s %s</a>', 'https://github.com/MISP/MISP/issues/new?assignees=&labels=feature+request%2Cneeds+triage&template=feature-request-form.yml&title=Feature+Request%3A+',
                 sprintf('<i class="%s"></i>', $this->FontAwesome->getClass('github')),
-                __('Github issue')
+                __('GitHub issue')
             )
         ),
         sprintf(

@@ -203,7 +203,7 @@
             rules: {
                 condition: 'AND',
                 not: false,
-                rules: <?= JsonTool::encode($qbRules) ?>,
+                rules: <?= json_encode($qbRules) ?>,
                 flags: {
                     no_add_group: true,
                     condition_readonly: true,

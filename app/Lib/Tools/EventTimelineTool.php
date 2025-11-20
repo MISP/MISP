@@ -168,7 +168,7 @@
                 'eventid' => $id,
                 'flatten' => 1,
                 'includeTagRelations' => 1,
-                'extended' => $this->__extended_view
+                'is_extended' => $this->__extended_view
             ));
             $this->__json['items'] = array();
 
@@ -273,7 +273,7 @@
                             } else {
                                 $firstSeenNegative = $fpSighting['date_sighting'];
                             }
-                            // set down until next postive
+                            // set down until next positive
                             $secondNextPSighting = $sightings[$secondNextPSightingIndex];
                             $this->__json['items'][] = array(
                                 'attribute_id' => $attributeId,

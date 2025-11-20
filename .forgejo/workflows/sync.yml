@@ -1,0 +1,901 @@
+# Multi-instance MISP workflow for Forgejo Actions - Single Run
+name: misp-multi-instance
+on:
+  push:
+    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii ]
+  pull_request:
+    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii ]
+
+jobs:
+  build:
+    runs-on: lxc
+    container:
+      image: ubuntu:jammy
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.1']
+
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      NUM_INSTANCES: 7
+      CONNECTION_SCHEMA: '{"1": [2,5], "2": [1,3], "3": [2,4], "4": [3], "5": [1,6], "6": [7], "7": [6]}'
+
+
+
+    steps:
+      - name: Initialize env variables
+        run: |
+          echo "USER=$(id -u -n)" >> $GITHUB_ENV
+          echo "HOST=localhost" >> $GITHUB_ENV
+          echo "WORKSPACE=$(pwd)" >> $GITHUB_ENV
+          echo "Variables initialized"          
+
+      - name: Install system dependencies
+        run: |
+          # Update package list and install in one go to reduce layers 
+          apt-get update && apt-get install -y --no-install-recommends \
+            curl \
+            ca-certificates \
+            gnupg \
+
+          # Add NodeJS repository (needed for actions/checkout)
+          mkdir -p /etc/apt/keyrings
+          curl -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x jammy main" | tee /etc/apt/sources.list.d/nodesource.list
+
+          # Install all packages 
+          apt-get update && apt-get install -y --no-install-recommends \
+            git \
+            nodejs \
+            mariadb-server \
+            mariadb-client \
+            redis-server \
+            python3 \
+            python3-pip \
+            python3-virtualenv \
+            apache2 \
+            jq \
+            zip \
+            unzip \
+            sudo \
+            uuid-runtime \
+            net-tools
+
+          # Clean up to reduce image size
+          apt-get clean && rm -rf /var/lib/apt/lists/*
+          echo "System dependencies installed"          
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Setup PHP
+        uses: https://helga.circl.lu/MISP/setup-php@master
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysql, mbstring, xml, opcache, readline, redis, gd, apcu
+
+      - name: Install Composer and php dependencies
+        run: |
+          # Install Composer globally with verification
+          curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+          chmod +x /usr/local/bin/composer
+          composer --version
+
+          # Install PHP Apache module
+          apt-get update && apt-get install -y --no-install-recommends libapache2-mod-php${{ matrix.php }}
+          apt-get clean && rm -rf /var/lib/apt/lists/*
+          echo "Composer installed"
+
+      - name: Install custom dependencies
+        shell: bash
+        env:
+          COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.TOKEN }}"}}'
+        run: |
+          # Create composer cache directory
+          chown $USER:www-data $HOME/.composer
+          pushd app
+          composer config --no-plugins allow-plugins.composer/installers true
+          composer install --no-progress
+          popd
+          cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
+          echo "Custom dependencies installed"
+
+      - name: Setup MariaDB
+        run: |
+          # Initialize MariaDB with process management
+          mysqld_safe --datadir=/var/lib/mysql &
+
+          # Wait for MySQL to be ready with timeout
+          for i in {1..30}; do
+            if mysqladmin ping --silent; then
+              echo "MySQL is ready"
+              break
+            fi
+            echo "Waiting for MySQL... ($i/30)"
+            sleep 2
+          done
+
+          #  Set root password and switch to mysql_native_password
+          mysql -u root <<EOF
+          ALTER USER 'root'@'localhost' IDENTIFIED BY 'bar';
+          FLUSH PRIVILEGES;
+          EOF
+          
+      - name: Setup Redis
+        run: |
+          # Configure Redis for CI environment
+          sed -i -e 's/^supervised .*/supervised no/' \
+                 -e 's/^daemonize .*/daemonize yes/' \
+                 -e 's/^save .*/# save disabled/' /etc/redis/redis.conf
+
+          redis-server /etc/redis/redis.conf
+
+          # Wait for Redis with timeout
+          for i in {1..10}; do
+            if redis-cli ping > /dev/null 2>&1; then
+              echo "Redis is ready"
+              break
+            fi
+            echo "Waiting for Redis... ($i/10)"
+            sleep 1
+          done
+
+          redis-cli ping || (echo "Redis unavailable!" && netstat -tulpn && exit 1)
+      
+
+      - name: Deploy multiple MISP instances
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "Deploying $NUM_INSTANCES MISP instances"
+          echo "=========================================="
+          for ID in $(seq 1 $NUM_INSTANCES); do
+            INST=instance-$ID
+            DB=misp_$ID
+            DBPASS=dbpass_$ID
+            APACHE_PORT=$((8080 + ID))
+            
+            # First create the instance directory
+            mkdir -p $WORKSPACE/$INST
+            cp -r $WORKSPACE/app $WORKSPACE/$INST/
+            cp -r $WORKSPACE/build $WORKSPACE/$INST/
+            cp -r $WORKSPACE/INSTALL $WORKSPACE/$INST/
+            cp -r $WORKSPACE/tests $WORKSPACE/$INST/
+            cp $WORKSPACE/VERSION.json $WORKSPACE/$INST/
+        
+            # Set perms
+            chown -R $USER:www-data $WORKSPACE/$INST
+            chmod -R 775 $WORKSPACE/$INST
+            chmod -R g+ws $WORKSPACE/$INST/app/tmp
+            chmod -R g+ws $WORKSPACE/$INST/app/tmp/cache
+            chmod -R g+ws $WORKSPACE/$INST/app/tmp/cache/persistent
+            chmod -R g+ws $WORKSPACE/$INST/app/tmp/cache/models
+            chmod -R g+ws $WORKSPACE/$INST/app/tmp/logs
+            chmod -R g+ws $WORKSPACE/$INST/app/files
+            chmod -R g+ws $WORKSPACE/$INST/app/files/scripts/tmp
+            chown -R $USER:www-data $WORKSPACE/$INST
+            
+            # Fill database with basic MISP schema
+            mysql -h 127.0.0.1 --port 3306 -u root -pbar -e  "
+              CREATE DATABASE IF NOT EXISTS $DB CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+              CREATE USER IF NOT EXISTS '$DB'@'localhost' IDENTIFIED BY '$DBPASS';
+              GRANT ALL PRIVILEGES ON $DB.* TO '$DB'@'localhost';
+              FLUSH PRIVILEGES;"
+    
+            mysql -uroot -pbar $DB < $WORKSPACE/INSTALL/MYSQL.sql
+            
+            # Apache site configuration with different ports
+            mkdir -p /etc/apache2/sites-available
+            cat > /etc/apache2/sites-available/misp$ID.conf <<EOF
+          <VirtualHost *:$APACHE_PORT>
+              ServerName localhost
+              DocumentRoot $WORKSPACE/$INST/app/webroot
+              
+              <Directory $WORKSPACE/$INST/app/webroot>
+                  Options -Indexes
+                  AllowOverride all
+                  Require all granted
+                  Order allow,deny
+                  allow from all
+              </Directory>
+              
+              LogLevel warn
+              ErrorLog /var/log/apache2/misp$ID_error.log
+              CustomLog /var/log/apache2/misp$ID_access.log combined
+          </VirtualHost>
+          EOF
+            
+            # Add Listen directive for the new port
+            echo "Listen $APACHE_PORT" >> /etc/apache2/ports.conf
+            a2ensite misp$ID.conf
+
+            # Configure MISP instance - first with database config
+            cp $WORKSPACE/$INST/app/Config/bootstrap.default.php $WORKSPACE/$INST/app/Config/bootstrap.php
+
+            cat > $WORKSPACE/$INST/app/Config/database.php <<EOF
+          <?php
+          class DATABASE_CONFIG {
+              public \$default = array(
+                  'datasource' => 'Database/MysqlObserverExtended',
+                  'persistent' => false,
+                  'host' => '127.0.0.1',
+                  'port' => 3306,
+                  'login' => '$DB',
+                  'password' => '$DBPASS',
+                  'database' => '$DB',
+                  'prefix' => '',
+                  'encoding' => 'utf8',
+                  'flags' => array(
+                      PDO::ATTR_STRINGIFY_FETCHES => true
+                  )
+              );
+          }
+          EOF
+          
+            # Using default config for other files
+            cp $WORKSPACE/$INST/app/Config/core.default.php $WORKSPACE/$INST/app/Config/core.php
+            cp $WORKSPACE/$INST/app/Config/config.default.php $WORKSPACE/$INST/app/Config/config.php
+            cp $WORKSPACE/$INST/build/email.php $WORKSPACE/$INST/app/Config/email.php
+            
+            # CORRECTED REDIS CONFIGURATION in config.php
+            MISP_CONF=$WORKSPACE/$INST/app/Config/config.php
+            
+            # Configuring the base URL for each instance
+            sed -i "s/'baseurl' => ''/'baseurl' => 'http:\/\/localhost:$APACHE_PORT'/g" $MISP_CONF
+
+            # Enable ShibbAuth plugin for tests
+            sudo chmod 666 $WORKSPACE/$INST/app/Config/bootstrap.php
+            echo "CakePlugin::load('ShibbAuth');" >> $WORKSPACE/$INST/app/Config/bootstrap.php
+
+            # GPG setup for instance
+            mkdir -p $WORKSPACE/$INST/.gnupg
+            cp -a /dev/urandom /dev/random
+            gpg --no-tty --no-permission-warning --pinentry-mode=loopback --passphrase "travistest$ID" --homedir $WORKSPACE/$INST/.gnupg --gen-key --batch $WORKSPACE/build/gpg
+            gpg --list-secret-keys --homedir $WORKSPACE/$INST/.gnupg
+
+            # Set ownership and permissions
+            chown -R $USER:www-data $WORKSPACE/$INST
+            chown -R www-data:www-data $WORKSPACE/$INST/.gnupg
+            chmod -R 700 $WORKSPACE/$INST/.gnupg
+            usermod -a -G www-data $USER
+
+            # Ensure config files permissions
+            chown -R $USER:www-data $WORKSPACE/$INST/app/Config
+            chmod -R 755 $WORKSPACE/$INST/app/Config
+          done
+          
+          echo "Deployment completed for $NUM_INSTANCES instances"
+  
+      # Enable Apache modules once
+      - name: Configure and start Apache
+        run: |
+          a2dissite 000-default
+          a2enmod rewrite
+          
+          # Restart Apache to take into account the new ports
+          apache2ctl configtest
+          apache2ctl restart
+          
+          # Check that all ports are listening
+          sleep 5
+          netstat -tulpn | grep apache2
+          echo "Apache configured and started with multiple ports"
+
+
+
+      - name: Setup Python environments
+        run: |
+          # Create a Python environment
+          python3 -m virtualenv -p python3 ./venv
+
+          # Install Python dependencies
+          . ./venv/bin/activate
+          export PYTHONPATH=$PYTHONPATH:./app/files/scripts
+          pip install --upgrade pip wheel
+          pip install --no-cache-dir -r $WORKSPACE/requirements.txt -r $WORKSPACE/requirements-dev.txt
+          deactivate
+            
+          # Set the Python environment for each instance
+          for ID in $(seq 1 $NUM_INSTANCES); do
+            INST=instance-$ID
+            echo "Setting up Python environment for $INST..."
+            
+            cd $WORKSPACE/$INST
+          
+            # Python configuration in MISP
+            app/Console/cake Admin setSetting "MISP.python_bin" "$WORKSPACE/venv/bin/python"
+            
+            cd $WORKSPACE
+            echo "Python environment ready for $INST"
+          done
+
+      - name: Initialize and configure MISP instances
+        run: |
+          for ID in $(seq 1 $NUM_INSTANCES); do
+            INST=instance-$ID
+            DB=misp_$ID
+            DBPASS=dbpass_$ID
+            APACHE_PORT=$((8080 + ID))
+
+            cd $WORKSPACE/$INST
+            
+            # Database update
+            app/Console/cake Admin setSetting "MISP.osuser" $USER
+            app/Console/cake Admin runUpdates
+            
+            # Init user and fetch the token
+            app/Console/cake User init | tee ../key-$ID.txt
+            echo "HOST_$ID=localhost:$APACHE_PORT" >> $GITHUB_ENV
+            echo "AUTH_ADMIN_$ID=$(cat ../key-$ID.txt)" >> $GITHUB_ENV
+            
+            # Configuring MISP settings with correct baseurl
+            app/Console/cake Admin setSetting "MISP.baseurl" "http://localhost:$APACHE_PORT"
+            app/Console/cake Admin setSetting "Session.autoRegenerate" 0
+            app/Console/cake Admin setSetting "Session.timeout" 600
+            app/Console/cake Admin setSetting "Session.cookieTimeout" 3600
+            app/Console/cake Admin setSetting "MISP.host_org_id" 1
+            app/Console/cake Admin setSetting "MISP.email" "info@admin.test"
+            app/Console/cake Admin setSetting "MISP.disable_emailing" false
+            app/Console/cake Admin setSetting --force "debug" true
+            app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false
+            
+            # Configuring Redis 
+            app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"
+            app/Console/cake Admin setSetting "MISP.redis_port" 6379
+            app/Console/cake Admin setSetting "MISP.redis_database" $((NUM_INSTANCES + ID))
+            app/Console/cake Admin setSetting "MISP.redis_password" ""
+            
+            # Configuring GPG
+            app/Console/cake Admin setSetting "GnuPG.email" "info@admin.test"
+            app/Console/cake Admin setSetting "GnuPG.homedir" "$WORKSPACE/$INST/.gnupg"
+            app/Console/cake Admin setSetting "GnuPG.password" "travistest$ID"
+            app/Console/cake Admin setSetting "MISP.download_gpg_from_homedir" 1
+            
+            # ZeroMQ and Background Jobs
+            app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "127.0.0.1"
+            app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+            app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+            app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""
+            app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1
+            app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1
+            
+            app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" 1
+            app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_host" "127.0.0.1"
+            app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_port" 6379
+            app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_password" ""
+            app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_database" $ID
+            app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_namespace" "background_jobs_$ID"
+            app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_host" "127.0.0.1"
+            app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_port" 9001
+            app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_user" "supervisor"
+            app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_password" "supervisor"
+            app/Console/cake Admin setSetting "SimpleBackgroundJobs.max_job_history_ttl" 86400
+            
+            cd $WORKSPACE
+            echo "MISP instance $ID initialized on port $APACHE_PORT"
+          done
+
+      - name: Check if Redis is ready
+        run: |
+          for ID in $(seq 1 $NUM_INSTANCES); do
+            INST=instance-$ID
+            cd $WORKSPACE/$INST
+            app/Console/cake Admin redisReady
+            cd $WORKSPACE/
+          done
+          
+      - name: Start workers
+        run: |
+          echo "♻️ Setting up supervisord for all instances..."
+
+          # Installer supervisor
+          pip install --no-cache-dir supervisor
+
+          # Fichier principal supervisord.conf
+          cat > /etc/supervisord.conf <<EOF
+          [unix_http_server]
+          file=/tmp/supervisor.sock
+          chmod=0700
+
+          [supervisord]
+          pidfile=/tmp/supervisord.pid
+          logfile=/tmp/supervisord.log
+          childlogdir=/tmp
+
+          [rpcinterface:supervisor]
+          supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+          [supervisorctl]
+          serverurl=unix:///tmp/supervisor.sock
+
+          [inet_http_server]
+          port=127.0.0.1:9001
+          username=supervisor
+          password=supervisor
+
+          [include]
+          files = /etc/supervisor/conf.d/*.conf
+          EOF
+
+          mkdir -p /etc/supervisor/conf.d
+
+          # Dynamically generate the workers file for all instances
+          WORKERS_CONF=/etc/supervisor/conf.d/50-workers.conf
+          echo "" > $WORKERS_CONF
+
+          for ID in $(seq 1 $NUM_INSTANCES); do
+            INSTANCE_DIR="$WORKSPACE/instance-$ID"
+
+            cat >> $WORKERS_CONF <<EOF
+
+            [group:misp-workers-$ID]
+            programs=default$ID,email$ID,cache$ID,prio$ID,update$ID
+
+            [program:default$ID]
+            directory=$INSTANCE_DIR
+            command=$INSTANCE_DIR/app/Console/cake start_worker default
+            user=www-data
+            autostart=false
+            autorestart=true
+            stdout_logfile=/tmp/misp-workers-$ID-default.log
+            stderr_logfile=/tmp/misp-workers-$ID-default-error.log
+
+            [program:prio$ID]
+            directory=$INSTANCE_DIR
+            command=$INSTANCE_DIR/app/Console/cake start_worker prio
+            user=www-data
+            autostart=false
+            autorestart=true
+            stdout_logfile=/tmp/misp-workers-$ID-prio.log
+            stderr_logfile=/tmp/misp-workers-$ID-prio-error.log
+
+            [program:email$ID]
+            directory=$INSTANCE_DIR
+            command=$INSTANCE_DIR/app/Console/cake start_worker email
+            user=www-data
+            autostart=false
+            autorestart=true
+            stdout_logfile=/tmp/misp-workers-$ID-email.log
+            stderr_logfile=/tmp/misp-workers-$ID-email-error.log
+
+            [program:update$ID]
+            directory=$INSTANCE_DIR
+            command=$INSTANCE_DIR/app/Console/cake start_worker update
+            user=www-data
+            autostart=false
+            autorestart=true
+            stdout_logfile=/tmp/misp-workers-$ID-update.log
+            stderr_logfile=/tmp/misp-workers-$ID-update-error.log
+
+            [program:cache$ID]
+            directory=$INSTANCE_DIR
+            command=$INSTANCE_DIR/app/Console/cake start_worker cache
+            user=www-data
+            autostart=false
+            autorestart=true
+            stdout_logfile=/tmp/misp-workers-$ID-cache.log
+            stderr_logfile=/tmp/misp-workers-$ID-cache-error.log
+          EOF
+          done
+
+          echo "✅ Supervisor config generated for $NUM_INSTANCES instances"
+
+          # Run supervisord only once
+          python3 -m supervisor.supervisord -c /etc/supervisord.conf
+          sleep 2
+
+          # Start all workers
+          python3 -m supervisor.supervisorctl -c /etc/supervisord.conf start all
+          python3 -m supervisor.supervisorctl -c /etc/supervisord.conf status
+
+
+      - name: Update JSON
+        run: |
+          echo 'Skipping this step allow to gain 3 minutes per instance'
+          #for ID in $(seq 1 $NUM_INSTANCES); do
+          #  INST=instance-$ID
+          #  cd $WORKSPACE/$INST
+          #  app/Console/cake Admin updateJSON
+          #  cd $WORKSPACE/
+          #done
+
+      - name: Turn MISP live
+        run: |
+          for ID in $(seq 1 $NUM_INSTANCES); do
+            INST=instance-$ID
+            cd $WORKSPACE/$INST
+            app/Console/cake Admin live 1
+            cd $WORKSPACE/
+          done
+
+      - name: Test if apache is working
+        run: |
+          apache2ctl -S
+          echo "Testing all MISP instances..."
+          for ID in $(seq 1 $NUM_INSTANCES); do
+            APACHE_PORT=$((8080 + ID))
+            echo "Testing instance $ID on port $APACHE_PORT..."
+            timeout 10 curl -sS http://localhost:$APACHE_PORT || echo "Instance $ID may not be fully ready yet"
+          done
+
+
+      - name: Deployment summary
+        run: |
+          echo "=========================================="
+          echo "MULTI-INSTANCE MISP DEPLOYMENT SUMMARY"
+          echo "=========================================="
+          
+          for INSTANCE_ID in $(seq 1 $NUM_INSTANCES); do
+            APACHE_PORT=$((8080 + INSTANCE_ID))
+            REDIS_DB_JOBS=$(($NUM_INSTANCES + INSTANCE_ID))
+            echo "Instance $INSTANCE_ID:"
+            echo "  - URL: http://localhost:$APACHE_PORT"
+            echo "  - Database: misp_$INSTANCE_ID"
+            echo "  - MySQL User: misp_$INSTANCE_ID"
+            echo "  - Redis Database Jobs: $REDIS_DB_JOBS"
+            echo "  - Auth Key: $(cat key-$INSTANCE_ID.txt 2>/dev/null || echo 'Not generated')"
+            echo "  - Workspace: $WORKSPACE/instance-$INSTANCE_ID"
+            echo "----------------------------------------"
+          done
+          
+          echo "All instances deployed on shared MariaDB, Redis, and Apache!"
+          echo "=========================================="
+      
+      - name: Test instances connectivity
+        run: |
+          echo "Testing HTTP connectivity to each MISP instance..."
+          for ID in $(seq 1 $NUM_INSTANCES); do
+            PORT=$((8080 + ID))
+            URL="http://localhost:$PORT"
+            echo "Testing instance $ID on $URL"
+            if curl -s --fail "$URL"; then
+              echo "Instance $ID is reachable"
+            else
+              echo "❌ Instance $ID not reachable!"
+              exit 1
+            fi
+          done
+
+      - name: Test inter-instance connectivity
+        shell: bash
+        run: |
+          echo "🔁 Starting inter-instance sync setup with correct logic..."
+      
+          misp_api() {
+            local METHOD=$1
+            local URL=$2
+            local API_KEY=$3
+            local DATA=$4
+            curl -s -X $METHOD "$URL" \
+              -H "Authorization: $API_KEY" \
+              -H "Accept: application/json" \
+              -H "Content-Type: application/json" \
+              -d "$DATA"
+          }
+      
+          declare -A ORG_UUIDS
+          declare -A HOSTS
+          declare -A AUTHS_ADMIN
+      
+          # Prepare HOSTS and AUTHS_ADMIN
+          for ID in $(seq 1 $NUM_INSTANCES); do
+            HOSTS[$ID]="localhost:$((8080 + ID))"
+            AUTHS_ADMIN[$ID]=$(cat key-$ID.txt)
+          done
+
+          
+          echo "🆔 Generating UUIDs for all organisations..."
+          for ID in $(seq 1 $NUM_INSTANCES); do
+            ORG_UUIDS[$ID]=$(uuidgen)
+            echo "ORG_$ID UUID = ${ORG_UUIDS[$ID]}"
+          done
+      
+          # Create all ORGs on each instance with fixed UUID
+          for ID in $(seq 1 $NUM_INSTANCES); do
+            BASEURL="http://${HOSTS[$ID]}"
+            API_KEY="${AUTHS_ADMIN[$ID]}"
+            echo "🏗️ Creating all ORGs on instance $ID..."
+            for ORG_ID in $(seq 1 $NUM_INSTANCES); do
+              PAYLOAD=$(jq -n \
+                --arg name "ORG_$ORG_ID" \
+                --arg uuid "${ORG_UUIDS[$ORG_ID]}" \
+                --arg desc "Organisation $ORG_ID sur instance $ID" \
+                '{name: $name, uuid: $uuid, description: $desc}')
+              misp_api POST "$BASEURL/admin/organisations/add" "$API_KEY" "$PAYLOAD" > /dev/null
+            done
+          done
+      
+          # Set host organization on each instance + create org admins
+          for ID in $(seq 1 $NUM_INSTANCES); do
+            BASEURL="http://${HOSTS[$ID]}"
+            API_KEY="${AUTHS_ADMIN[$ID]}"
+          
+            if [ "$ID" -eq "$NUM_INSTANCES" ]; then
+              REF_ID=$((ID - 1))
+              echo "🏠 [INTERNAL] Setting host org for instance $ID to ORG_$REF_ID"
+            else
+              REF_ID=$ID
+              echo "🏠 Setting host org for instance $ID to ORG_$REF_ID"
+            fi
+          
+            UUID="${ORG_UUIDS[$REF_ID]}"
+            ORG_RESPONSE=$(misp_api GET "$BASEURL/organisations/index.json" "$API_KEY" "")
+            ORG_ID=$(echo "$ORG_RESPONSE" | jq -r ".[] | select(.Organisation.uuid==\"$UUID\") | .Organisation.id")
+          
+            if [[ -z "$ORG_ID" || "$ORG_ID" == "null" ]]; then
+              echo "❌ ERROR: Cannot find ORG_$REF_ID on instance $ID"
+              exit 1
+            fi
+          
+            echo "✅ Found host org ID=$ORG_ID on instance $ID"
+            cd $WORKSPACE/instance-$ID
+            app/Console/cake Admin setSetting "MISP.host_org_id" "$ORG_ID"
+          
+     
+            echo "👤 Creating Org Admin user for ORG_$REF_ID on instance $ID..."
+            ADMIN_PAYLOAD=$(jq -n \
+              --arg email "orgadmin_$ID@user.test" \
+              --argjson org_id "$ORG_ID" \
+              '{email: $email, org_id: $org_id, role_id: 2, termsaccepted: true}')
+            ADMIN_RESPONSE=$(misp_api POST "$BASEURL/admin/users/add" "$API_KEY" "$ADMIN_PAYLOAD")
+      
+            ADMIN_ID=$(echo "$ADMIN_RESPONSE" | jq -r ".User.id")
+            if [[ -z "$ADMIN_ID" || "$ADMIN_ID" == "null" ]]; then
+              echo "❌ ERROR: Failed to create org admin user for instance $ID"
+              exit 1
+            fi
+      
+            ORG_KEY_RESPONSE=$(misp_api POST "$BASEURL/auth_keys/add/$ADMIN_ID" "$API_KEY" \
+              "$(jq -n --arg comment "Key for orgadmin_$ID" '{comment: $comment}')")
+            ORG_API_KEY=$(echo "$ORG_KEY_RESPONSE" | jq -r ".AuthKey.authkey_raw")
+      
+            if [[ -z "$ORG_API_KEY" || "$ORG_API_KEY" == "null" ]]; then
+              echo "❌ ERROR: Failed to generate API key for org admin on instance $ID"
+              exit 1
+            fi
+      
+            echo "AUTH_ORG_$ID=$ORG_API_KEY" >> $GITHUB_ENV
+            echo "✅ Org Admin API key for instance $ID exported"
+      
+            cd $WORKSPACE
+          done
+
+      
+          echo "👤 Creating sync users and generating API keys..."
+          declare -A SYNC_KEYS
+          while IFS="=" read -r FROM TO_LIST; do
+            for TO in $TO_LIST; do
+              FROM_URL="http://${HOSTS[$FROM]}"
+              TO_URL="http://${HOSTS[$TO]}"
+              TO_API_KEY="${AUTHS_ADMIN[$TO]}"
+          
+              UUID="${ORG_UUIDS[$FROM]}"
+              if [ "$TO" -eq "$((NUM_INSTANCES - 1))" ]; then
+                UUID="${ORG_UUIDS[$TO]}"
+              elif [ "$TO" -eq "$NUM_INSTANCES" ]; then
+                UUID="${ORG_UUIDS[$FROM]}"
+              fi
+          
+              ORG_RESPONSE=$(misp_api GET "$TO_URL/organisations/index.json" "$TO_API_KEY" "")
+              ORG_ID=$(echo "$ORG_RESPONSE" | jq -r ".[] | select(.Organisation.uuid==\"$UUID\") | .Organisation.id")
+          
+              if [[ -z "$ORG_ID" || "$ORG_ID" == "null" ]]; then
+                echo "❌ ERROR: ORG UUID $UUID not found on instance $TO"
+                exit 1
+              fi
+          
+              echo "➕ Creating user sync${FROM}on${TO}@user.test (ORG ID: $ORG_ID) on instance $TO..."
+              USER_PAYLOAD=$(jq -n \
+                --arg email "sync${FROM}on${TO}@user.test" \
+                --argjson org_id "$ORG_ID" \
+                '{email: $email, org_id: $org_id, role_id: 5, termsaccepted: true}')
+              USER_RESPONSE=$(misp_api POST "$TO_URL/admin/users/add" "$TO_API_KEY" "$USER_PAYLOAD")
+          
+              USER_ID=$(echo "$USER_RESPONSE" | jq -r ".User.id")
+              if [[ -z "$USER_ID" || "$USER_ID" == "null" ]]; then
+                echo "❌ ERROR: Failed to create sync user"
+                exit 1
+              fi
+          
+              KEY_RESPONSE=$(misp_api POST "$TO_URL/auth_keys/add/$USER_ID" "$TO_API_KEY" \
+                "$(jq -n --arg comment "Key for sync${FROM}on${TO}" '{comment: $comment}')")
+              API_KEY=$(echo "$KEY_RESPONSE" | jq -r ".AuthKey.authkey_raw")
+          
+              if [[ -z "$API_KEY" || "$API_KEY" == "null" ]]; then
+                echo "❌ ERROR: Failed to generate API key"
+                exit 1
+              fi
+          
+              SYNC_KEYS["$FROM-$TO"]=$API_KEY
+              echo "✅ API key created: ${SYNC_KEYS[$FROM-$TO]}"
+            done
+          done < <(echo "$CONNECTION_SCHEMA" | jq -r 'to_entries[] | "\(.key)=\(.value | join(" "))"')
+      
+  
+          echo "🌐 Creating remote sync servers..."
+          while IFS="=" read -r FROM TO_LIST; do
+            for TO in $TO_LIST; do
+              FROM_URL="http://${HOSTS[$FROM]}"
+              TO_URL="http://${HOSTS[$TO]}"
+              FROM_API_KEY="${AUTHS_ADMIN[$FROM]}"
+              AUTHKEY="${SYNC_KEYS[$FROM-$TO]}"
+          
+              UUID="${ORG_UUIDS[$TO]}"
+              internal_flag=false
+              if [ "$TO" -eq "$((NUM_INSTANCES - 1))" ]; then
+                UUID="${ORG_UUIDS[$TO]}"
+                internal_flag=true
+              elif [ "$TO" -eq "$NUM_INSTANCES" ]; then
+                UUID="${ORG_UUIDS[$FROM]}"
+                internal_flag=true
+              fi
+          
+              ORG_RESPONSE=$(misp_api GET "$FROM_URL/organisations/index.json" "$FROM_API_KEY" "")
+              ORG_ID=$(echo "$ORG_RESPONSE" | jq -r ".[] | select(.Organisation.uuid==\"$UUID\") | .Organisation.id")
+          
+              if [[ -z "$ORG_ID" || "$ORG_ID" == "null" ]]; then
+                echo "❌ ERROR: ORG UUID $UUID not found on instance $FROM"
+                exit 1
+              fi
+          
+              echo "🔗 Creating remote server on instance $FROM pointing to instance $TO"
+          
+              SERVER_PAYLOAD=$(jq -n \
+                --arg name "MISP_$TO" \
+                --arg url "$TO_URL" \
+                --arg authkey "$AUTHKEY" \
+                --arg remote_org_id "$ORG_ID" \
+                --argjson internal "$internal_flag" \
+                '{
+                  name: $name,
+                  url: $url,
+                  remote_org_id: $remote_org_id,
+                  authkey: $authkey,
+                  push: true,
+                  pull: true,
+                  push_sightings: true,
+                  push_galaxy_clusters: true,
+                  pull_galaxy_clusters: true,
+                  push_analyst_data: true,
+                  pull_analyst_data: true,
+                  internal: $internal,
+                  self_signed: true,
+                  skip_proxy: true,
+                  organization_type: "remote"
+                }')
+          
+              SERVER_RESPONSE=$(misp_api POST "$FROM_URL/servers/add" "$FROM_API_KEY" "$SERVER_PAYLOAD")
+              echo "📡 Server $FROM → $TO created"
+          
+              SERVER_ID=$(echo "$SERVER_RESPONSE" | jq -r ".Server.id")
+              if curl -s --fail -k "$FROM_URL/servers/testConnection/$SERVER_ID" \
+                -H "Authorization: $FROM_API_KEY" \
+                -H "Accept: application/json" \
+                -H "Content-type: application/json"; then
+                echo "✅ Connection $FROM → $TO OK"
+              else
+                echo "❌ Connection $FROM → $TO FAILED"
+                exit 1
+              fi
+            done
+          done < <(echo "$CONNECTION_SCHEMA" | jq -r 'to_entries[] | "\(.key)=\(.value | join(" "))"')
+      
+          ########################################################
+          # 📦 Adding Sharing Group (on instance 1)
+          ########################################################
+      
+          echo "📦 Creating Sharing Group on instance 1..."
+          SHARING_GROUP_UUID=$(uuidgen)
+          BASEURL="http://${HOSTS[1]}"
+          API_KEY="${AUTHS_ADMIN[1]}"
+      
+          SG_PAYLOAD=$(jq -n \
+            --arg uuid "$SHARING_GROUP_UUID" \
+            --arg name "My Sharing Group" \
+            --arg desc "Sharing Group with X Banking Institutions" \
+            --arg rel "Banking Institutions" \
+            '{uuid:$uuid, name:$name, description:$desc, releasability:$rel}')
+      
+          SG_RESPONSE=$(misp_api POST "$BASEURL/sharing_groups/add" "$API_KEY" "$SG_PAYLOAD")
+          SHARING_GROUP_ID=$(echo "$SG_RESPONSE" | jq -r '.SharingGroup.id')
+      
+          if [[ -z "$SHARING_GROUP_ID" || "$SHARING_GROUP_ID" == "null" ]]; then
+            echo "❌ ERROR: Sharing group creation failed"
+            exit 1
+          fi
+          echo "✅ Sharing group created with ID $SHARING_GROUP_ID"
+      
+          echo "➕ Adding ORGs to sharing group..."
+          curl -s -X POST "$BASEURL/sharing_groups/addOrg/$SHARING_GROUP_ID/${ORG_UUIDS[1]}" \
+            -H "Authorization: $API_KEY" -H "Accept: application/json" -H "Content-Type: application/json" > /dev/null
+      
+          FIRST_TARGET=$(echo "$CONNECTION_SCHEMA" | jq -r 'to_entries[0].value[0]')
+          if [[ -n "$FIRST_TARGET" ]]; then
+            TARGET_UUID="${ORG_UUIDS[$FIRST_TARGET]}"
+            curl -s -X POST "$BASEURL/sharing_groups/addOrg/$SHARING_GROUP_ID/$TARGET_UUID" \
+              -H "Authorization: $API_KEY" -H "Accept: application/json" -H "Content-Type: application/json" > /dev/null
+          fi
+      
+          echo "➕ Adding servers to sharing group..."
+          SERVERS=$(misp_api GET "$BASEURL/servers/index.json" "$API_KEY" "")
+          for target in $(echo "$CONNECTION_SCHEMA" | jq -r 'to_entries[0].value[]'); do
+            SERVER_ID=$(echo "$SERVERS" | jq -r ".[] | select(.Server.name==\"MISP_${target}\") | .Server.id")
+            if [[ -n "$SERVER_ID" && "$SERVER_ID" != "null" ]]; then
+              curl -s -X POST "$BASEURL/sharing_groups/addServer/$SHARING_GROUP_ID/$SERVER_ID" \
+                -H "Authorization: $API_KEY" -H "Accept: application/json" -H "Content-Type: application/json" > /dev/null
+              echo "   → Server $SERVER_ID (MISP_$target) added"
+            fi
+          done
+      
+          echo "🎉 Inter-instance sync + Sharing Group setup completed successfully"
+
+          
+      - name: Fetch test files
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          repository: MISP/misp-synchronisation
+          path: synchronisation/
+
+          
+      - name: Run Python Tests
+        shell: bash
+        run: |      
+          sudo chmod -R g+ws ./app/tmp/logs
+      
+          . ./venv/bin/activate
+          python -m unittest discover -s synchronisation/tests -p "test_sync_*.py" -v
+
+          deactivate
+
+
+
+      - name: System logs
+        if: ${{ always() }
+        run: |
+          for INSTANCE_ID in $(seq 1 $NUM_INSTANCES); do
+            echo "=== Application logs for instance $INSTANCE_ID ==="
+            find $WORKSPACE/instance-$INSTANCE_ID/app/tmp/logs -name "*.log" -exec echo "--- {} ---" \; -exec tail -n 50 {} \; 2>/dev/null || true
+          done
+          
+          echo "=== Apache logs ==="
+          find /var/log/apache2 -name "*.log" -exec echo "--- {} ---" \; -exec tail -n 50 {} \; 2>/dev/null || true          
+
+      - name: Application logs
+        if: ${{ always() }}
+        run: |
+          for INSTANCE_ID in $(seq 1 $NUM_INSTANCES); do
+            cd $WORKSPACE/instance-$INSTANCE_ID
+            app/Console/cake Log export /tmp/logs-$INSTANCE_ID.json.gz --without-changes
+            zcat /tmp/logs-$INSTANCE_ID.json.gz 2>/dev/null || echo "No application logs found for instance $INSTANCE_ID"
+            cd $WORKSPACE
+          done
+
+      - name: Errors in Logs
+        if: ${{ always() }}
+        run: |
+          for INSTANCE_ID in $(seq 1 $NUM_INSTANCES); do
+            cd $WORKSPACE/instance-$INSTANCE_ID
+            ./tests/logs_tests.sh
+            cd $WORKSPACE
+          done
+
+      - name: error.log
+        if: ${{ always() }}
+        run: |
+          for INSTANCE_ID in $(seq 1 $NUM_INSTANCES); do
+            cd $WORKSPACE/instance-$INSTANCE_ID
+            if [ -f "app/tmp/logs/error.log" ]; then
+              cat app/tmp/logs/error.log
+            else
+              echo "No error.log found"
+            fi
+          done 
+
+
+
+
+
+

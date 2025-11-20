@@ -47,7 +47,7 @@ Copy your identity provider metadata to /etc/shibboleth, for example to /etc/shi
 <MetadataProvider type="XML" validate="true" path="idp-metadata.xml"/>
 ```
 
-Optionally, you can make sure the service provider does not create a session if some attributes, like OrgTag and GroupTag are missing. If users attempt to login an this happens, they will receive a pre-configured reply (default at /etc/shibboleth/attrChecker.html).
+Optionally, you can make sure the service provider does not create a session if some attributes, like OrgTag and GroupTag are missing. If users attempt to login and this happens, they will receive a pre-configured reply (default at /etc/shibboleth/attrChecker.html).
 In /etc/shibboleth/shibboleth2.xml, edit ApplicationDefaults by adding the sessionHook:
 ```xml
 <ApplicationDefaults entityID="https://<HOST>/shibboleth"
@@ -97,13 +97,7 @@ You may need to tell the rewriterules for MISP in its `.htaccess` file not to ap
     RewriteRule ^(.*)$ index.php?/$1 [QSA,L]
 ```
 
-Enable the plugin at bootstrap.php:
-
-```php
-CakePlugin::load('ShibbAuth');
-```
-
-And configure it at config.php:
+Configure it at config.php:
 
 Uncomment the following line to enable SSO authorization
 ```php

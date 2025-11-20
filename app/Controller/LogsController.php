@@ -25,15 +25,19 @@ class LogsController extends AppController
         parent::beforeFilter();
 
         // No need for CSRF tokens for a search
-        if ('admin_search' === $this->request->params['action']) {
+        if ('search' === $this->request->params['action'] || 'index' === $this->request->params['action']) {
             $this->Security->csrfCheck = false;
-            $this->Security->unlockedActions[] = 'admin_search';
+            $this->Security->unlockedActions[] = $this->request->params['action'];
         }
     }
 
     public function index()
     {
-        $paramArray = array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip');
+        $paramArray = array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip', 'search_token');
+        $passedArgs = $this->passedArgs;
+        if (isset($this->request->data['Log'])) {
+            $this->request->data = $this->request->data['Log'];
+        }
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->request->params['named'],
@@ -42,8 +46,22 @@ class LogsController extends AppController
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
+        foreach ($filters as $k => $filter) {
+            if ($filter === '') {
+                unset($filters[$k]);
+            }
+        }
         unset($filterData);
-
+        if (!$this->_isRest()) {
+            if ($this->request->is('post') && empty($filters['search_token'])) {
+                $search_token = $this->Log->setSearchParamsByToken($this->request->data);
+                $this->set('search_token', $search_token);
+            } else if (!empty($filters['search_token'])) {
+                $filters = $this->Log->getSearchParamsByToken($filters);
+                $this->set('search_token', $filters['search_token']);
+            }
+        }
+        $filters = array_filter($filters, fn($value) => !empty($value));
         if ($this->_isRest()) {
             if ($filters === false) {
                 return $exception;
@@ -69,7 +87,7 @@ class LogsController extends AppController
                         $conditions['AND'][] = array('created <= ' => date("Y-m-d H:i:s", $tempData[0]));
                         $conditions['AND'][] = array('created >= ' => date("Y-m-d H:i:s", $tempData[1]));
                     }
-                } else if ($filter !== 'limit' && $filter !== 'page') {
+                } else if ($filter !== 'limit' && $filter !== 'page'  && $filter !== 'search_token') {
                     $data = array('OR' => $data);
                     $conditions = $this->Log->generic_add_filter($conditions, $data, 'Log.' . $filter);
                 }
@@ -108,30 +126,32 @@ class LogsController extends AppController
             // ORG admins can see their own org info
             $orgRestriction = $this->Auth->user('Organisation')['name'];
             $conditions['Log.org'] = $orgRestriction;
-            $this->paginate['conditions'] = $conditions;
+            $this->paginate['conditions']['AND'][] = $conditions;
         } else {
             // users can see their own info
-            $conditions['Log.email'] = $this->Auth->user('email');
-            $this->paginate['conditions'] = $conditions;
+            $conditions['Log.user_id'] = $this->Auth->user('id');
+            $this->paginate['conditions']['AND'][] = $conditions;
         }
         if (isset($this->params['named']['filter']) && in_array($this->params['named']['filter'], array_keys($validFilters))) {
             $this->paginate['conditions']['Log.action'] = $validFilters[$this->params['named']['filter']]['values'];
         }
         foreach ($filters as $key => $value) {
-            if ($key == 'page' || $key == 'limit') { // These should not be part of the condition parameter
+            if ($key == 'page' || $key == 'limit' || $key == 'search_token') { // These should not be part of the condition parameter
                 continue;
             }
             if ($key === 'created') {
                 $key = 'created >=';
             }
-            if ($key == 'page' || $key == 'limit') {
-                continue;
+            if (in_array($key, $paramArray)) {
+                $this->paginate['conditions']["Log.$key"] = $value;
             }
-            $this->paginate['conditions']["Log.$key"] = $value;
         }
         $this->set('validFilters', $validFilters);
-        $this->set('filter', isset($this->params['named']['filter']) ? $this->params['named']['filter'] : false);
-        $this->set('list', $this->paginate());
+        $this->set('filter', $filters);
+        $this->set('data', $this->paginate());
+        $this->set('paramArray', $paramArray);
+        $this->set('passedArgsArray', $passedArgs);
+        $this->set('menuData', ['menuList' => 'logs', 'menuItem' => 'index']);
     }
 
     public function admin_index()
@@ -261,150 +281,28 @@ class LogsController extends AppController
         $this->set('mayModify', $mayModify);
     }
 
-    public function admin_search($new = false)
+    public function search()
     {
-        $orgRestriction = null;
-        if ($this->_isSiteAdmin()) {
-            $orgRestriction = false;
-        } else {
-            $orgRestriction = $this->Auth->user('Organisation')['name'];
-        }
-        $this->set('orgRestriction', $orgRestriction);
-        $validFilters = $this->Log->logMeta;
-        if ($this->_isSiteAdmin()) {
-            $validFilters = array_merge_recursive($validFilters, $this->Log->logMetaAdmin);
-        }
-        $this->set('validFilters', $validFilters);
-        $this->set('filters', false);
-        $filtersToExtract = [
-            'email',
-            'action',
-            'model',
-            'model_id',
-            'title',
-            'change',
-            'from',
-            'to',
-            'from_time',
-            'to_time'
-        ];
-        if ($new !== false) {
-            $this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
+        $this->set('orgRestriction', $this->_isSiteAdmin() ? false : $this->Auth->user('Organisation')['name']);
+        $models = $this->Log->searchModelList;
+        sort($models);
+        $models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);
+        $actions = array('' => 'ALL') + $this->_arrayToValuesIndexArray($this->Log->validate['action']['rule'][1]);
+        $this->set('dropdownData', [
+            'model' => $models,
+            'actions' => $actions
 
-            // reset the paginate_conditions
-            //$this->Session->write('paginate_conditions_log', array());
-            if ($this->request->is('post')) {
-                if (empty($this->request->data['Log'])) {
-                    $this->request->data = ['Log' => $this->request->data];
-                }
-                if (Configure::read('MISP.log_client_ip')) {
-                    $filtersToExtract[] = 'ip';
-                }
-                if (!$orgRestriction) {
-                    $filtersToExtract[] = 'org';
-                } else {
-                    $filters['org'] = $this->Auth->user('Organisation')['name'];
-                }
-                foreach ($filtersToExtract as $filter) {
-                    $filters[$filter] = $this->request->data['Log'][$filter] ?? null;
-                    $this->set($filter . 'Search', $filters[$filter] ?? null);
-                }
-                $this->set('isSearch', 1);
-
-                // search the db
-                $conditions = $this->__buildSearchConditions($filters);
-                $this->{$this->defaultModel}->recursive = 0;
-                $this->paginate = array(
-                    'limit' => 60,
-                    'conditions' => $conditions,
-                    'order' => array('Log.id' => 'DESC')
-                );
-                $list = $this->paginate();
-                if (empty($this->Auth->user('Role')['perm_site_admin'])) {
-                    $list = $this->Log->filterSiteAdminSensitiveLogs($list);
-                }
-                $this->set('list', $list);
-
-                if ($this->_isRest()) {
-                    return $this->RestResponse->viewData($list, $this->response->type());
-                } else {
-                    // and store into session
-                    $this->Session->write('paginate_conditions_log', $this->paginate);
-                    foreach ($filtersToExtract as $filter) {
-                        $this->Session->write('paginate_conditions_log_' . $filter, $filters[$filter]);
-                    }
-                    // set the same view as the index page
-                    $this->render('index');
-                }
-            } else {
-                // get from Session
-                foreach ($filtersToExtract as $filter) {
-                    $filters[$filter] = $this->Session->read('paginate_conditions_log_' . $filter);
-                    $this->set($filter . 'Search', $filters[$filter]);
-                }
-                $this->set('isSearch', 1);
-
-                // re-get pagination
-                $this->{$this->defaultModel}->recursive = 0;
-                $this->paginate = array_replace_recursive($this->paginate, $this->Session->read('paginate_conditions_log'));
-                if (!isset($this->paginate['order'])) {
-                    $this->paginate['order'] = array('Log.id' => 'DESC');
-                }
-                $conditions = $this->__buildSearchConditions($filters);
-                $this->paginate['conditions'] = $conditions;
-                $list = $this->paginate();
-                if (empty($this->Auth->user('Role')['perm_site_admin'])) {
-                    $list = $this->Log->filterSiteAdminSensitiveLogs($list);
-                }
-                $this->set('list', $list);
-
-                // set the same view as the index page
-                $this->render('index');
-            }
-        } else {
-            // no search keyword is given, show the search form
-
-            // combobox for actions
-            $actions = array('' => array('ALL' => 'ALL'), 'actions' => array());
-            $actions['actions'] = array_merge($actions['actions'], $this->_arrayToValuesIndexArray($this->{$this->defaultModel}->validate['action']['rule'][1]));
-            $this->set('actions', $actions);
-
-            // combobox for models
-            $models = [
-                'Attribute',
-                'Allowedlist',
-                'AuthKey',
-                'Event',
-                'EventBlocklist',
-                'EventTag',
-                'Feed',
-                'DecayingModel',
-                'EventGraph',
-                'EventReport',
-                'MispObject',
-                'Organisation',
-                'Post',
-                'Regexp',
-                'Role',
-                'Server',
-                'ShadowAttribute',
-                'SharingGroup',
-                'Tag',
-                'Task',
-                'Taxonomy',
-                'Template',
-                'Thread',
-                'User',
-                'Galaxy',
-                'GalaxyCluster',
-                'GalaxyClusterRelation',
-                'Workflow',
-            ];
-            sort($models);
-            $models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);
-            $this->set('models', $models);
-            $this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
-        }
+        ]);
+        $this->set('models', $models);
+        $this->set('fieldDesc', [
+            'email' => __('The e-mail address of the user that triggered the log entry.'),
+            'org' => __('The organisation name of the user that triggered the log entry (at the time when the entry was added).'),
+            'model' => __('The log entry\'s target object type. When a modification to a user is made, this would be "User".'),
+            'model_id' => __('The log entry\'s target object ID. When a modification to a specific attribute is made, this would be the Attribute\'s local ID.'),
+            'from' => __('Format is YYYY-MM-DD'),
+            'to' => __('Format is YYYY-MM-DD')
+        ]);
+        $this->set('menuData', ['menuList' => 'logs', 'menuItem' => 'search']);
     }
 
     private function __buildSearchConditions($filters)

@@ -21,5 +21,5 @@ The following information relates to the login:
 
 Follow this link to confirm if was you: <?php echo $baseurl . '/users/view_login_history/'; ?>
 
-I you don't recognize this activity, please markt the login as suspicious and IMMEDIATELY to reset your password. 
+I you don't recognize this activity, please mark the login as suspicious and IMMEDIATELY to reset your password. 
 

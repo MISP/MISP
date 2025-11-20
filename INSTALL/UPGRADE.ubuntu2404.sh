@@ -1,7 +1,7 @@
 #!/bin/bash
 # MISP 2.5 upgrade for MISP 2.4 installations on Ubuntu 24.04 LTS
 
-# For other Ubuntu versions, make sure that you first dist-upgrade to 24.04. 
+# For other Ubuntu versions, make sure that you first dist-upgrade to 24.04.
 
 # This guide liberally borrows from three sources:
 # - The previous iterations of the official MISP installation guide, which can be found at: https://misp.github.io/MISP
@@ -10,6 +10,9 @@
 # Thanks to both Tony Robinson (@da667), Stefano Ortolani (@ostefano) and Steve Clement (@SteveClement) for their awesome work!
 
 # This installation script assumes that you are installing as root, or a user with sudo access.
+#
+# To upgrade from an existing 2.4 install you can use the following command:
+# $ wget --no-cache -O /tmp/UPGRADE.ubuntu2404.sh https://raw.githubusercontent.com/MISP/MISP/refs/heads/2.5/INSTALL/UPGRADE.ubuntu2404.sh ; sudo bash /tmp/UPGRADE.ubuntu2404.sh
 
 random_string() {
     cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1
@@ -182,19 +185,19 @@ print_status "Installing PECL extensions..."
 
 sudo pecl channel-update pecl.php.net &>> $logfile
 sudo pecl install brotli &>> $logfile
-error_check "PECL brotli extension installation"
+error_check_soft "PECL brotli extension installation"
 sudo pecl install simdjson &>> $logfile
-error_check "PECL simdjson extension installation"
+error_check_soft "PECL simdjson extension installation"
 sudo pecl install zstd &>> $logfile
-error_check "PECL zstd extension installation"
+error_check_soft "PECL zstd extension installation"
 
-if [ $INSTALL_SSDEEP ]; then
+if [ "$INSTALL_SSDEEP" = "true" ]; then
     sudo apt install make -y &>> $logfile
-    error_check "The installation of make"
+    error_check_soft "The installation of make"
     git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
-    error_check "Jakub Onderka's PHP8 SSDEEP extension cloning"
+    error_check_soft "Jakub Onderka's PHP8 SSDEEP extension cloning"
     cd /tmp/pecl-text-ssdeep && phpize && ./configure && make && make install
-    error_check "Jakub Onderka's PHP8 SSDEEP extension compilation and installation"
+    error_check_soft "Jakub Onderka's PHP8 SSDEEP extension compilation and installation"
 fi
 
 
@@ -243,9 +246,12 @@ error_check "MISP schema updates"
 
 print_status "Setting up background workers"
 
+sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_serializer" "JSON" &>> $logfile
+error_check_soft "Switching to JSON redis serializer"
+
 SUPERVISOR_ALREADY_ENABLED=$(${MISP_PATH}/app/Console/cake Admin getSetting SimpleBackgroundJobs.enabled | jq -r '.value')
 
-if [ $SWITCH_TO_SUPERVISOR ] && [ $SUPERVISOR_ALREADY_ENABLED != true ]; then
+if [ "$SWITCH_TO_SUPERVISOR" = "true" ] && [ "$SUPERVISOR_ALREADY_ENABLED" != "true" ]; then
 
 sudo echo "
 [inet_http_server]
@@ -329,6 +335,7 @@ sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBac
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_database" 13 &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_password" "" &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_namespace" "background_jobs" &>> $logfile
+sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_serializer" "JSON" &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_host" "localhost" &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_port" 9001 &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_user" ${SUPERVISOR_USER} &>> $logfile
@@ -353,5 +360,9 @@ sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>> $logfile
 sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git &>> $logfile
 
 save_settings
+
+print_status "Doing some cleanup to avoid some potential post upgrade caching fuck-ups"
+sudo rm -f ${MISP_PATH}/app/tmp/cache/models/myapp* &>> $logfile
+sudo rm -f ${MISP_PATH}/app/tmp/cache/persistent/myapp* &>> $logfile
 
 print_notification "MISP setup complete. Thank you, and have a very safe, and productive day."

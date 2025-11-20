@@ -19,9 +19,27 @@ App::uses('JsonTool', 'Tools');
 class AdminShell extends AppShell
 {
     public $uses = [
-        'Event', 'Post', 'MispAttribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation',
-        'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce',
-        'Role', 'Feed', 'SharingGroupBlueprint', 'Correlation', 'OverCorrelatingValue'
+        'Event',
+        'Post',
+        'MispAttribute',
+        'Job',
+        'User',
+        'Task',
+        'Allowedlist',
+        'Server',
+        'Organisation',
+        'AdminSetting',
+        'Galaxy',
+        'Taxonomy',
+        'Warninglist',
+        'Noticelist',
+        'ObjectTemplate',
+        'Bruteforce',
+        'Role',
+        'Feed',
+        'SharingGroupBlueprint',
+        'Correlation',
+        'OverCorrelatingValue'
     ];
 
     public function getOptionParser()
@@ -134,6 +152,20 @@ class AdminShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('runDBScript', [
+            'help' => __('Run a specific db script.'),
+            'parser' => [
+                'arguments' => [
+                    'script' => ['help' => __('The name of the script to execute'), 'required' => false]
+                ],
+            ],
+        ]);
+        $parser->addSubcommand('preRelease', [
+            'help' => __('Run the pre-release tasks (for developers).'),
+        ]);
+        $parser->addSubcommand('schemaDiagnostics', [
+            'help' => __('Check differences between current and expected database schema')
+        ]);
         return $parser;
     }
 
@@ -152,17 +184,18 @@ class AdminShell extends AppShell
     public function jobGenerateCorrelation()
     {
         $jobId = $this->args[0] ?? null;
+        $eventId = $this->args[1] ?? null;
         if (empty($jobId)) {
             $jobId = $this->Job->createJob(
                 'SYSTEM',
                 Job::WORKER_DEFAULT,
                 'generate correlation',
-                'All attributes',
+                $eventId ? __('All attributes of event %d', $eventId) : __('All attributes'),
                 'Job created.'
             );
         }
 
-        $this->Correlation->generateCorrelation($jobId);
+        $this->Correlation->generateCorrelation($jobId, $eventId);
     }
 
     public function jobGenerateOccurrences()
@@ -349,6 +382,7 @@ class AdminShell extends AppShell
         // The following is 7.x upwards only
         //$value = $this->args[0] ?? $this->args[0] ?? 0;
         $value = empty($this->args[0])  ? null : $this->args[0];
+        $jobId = empty($this->args[1])  ? null : $this->args[1];
         if ($value === 'false') $value = 0;
         if ($value === 'true') $value = 1;
         if ($value === 'force') $value = 1;
@@ -359,10 +393,14 @@ class AdminShell extends AppShell
         } else {
             echo 'Could not update Galaxies' . PHP_EOL;
         }
+        if (!is_null($jobId)) {
+            $this->Job->saveStatus($jobId, true, 'Galaxies updated');
+        }
     }
 
     public function updateTaxonomies()
     {
+        $jobId = empty($this->args[0])  ? null : $this->args[0];
         $result = $this->Taxonomy->update();
         $successes = empty($result['success']) ? 0 : count($result['success']);
         $fails = empty($result['fails']) ? 0 : count($result['fails']);
@@ -384,17 +422,20 @@ class AdminShell extends AppShell
                 $this->out("{$fail['namespace']}: {$fail['fail']}");
             }
         }
+        if (!is_null($jobId)) {
+            $this->Job->saveStatus($jobId, true, $message);
+        }
     }
 
     public function enableTaxonomyTags()
     {
         if (empty($this->args[0]) || !is_numeric($this->args[0])) {
             echo 'Usage: ' . APP . '/cake ' . 'Admin enableTaxonomyTags [taxonomy_id]' . PHP_EOL;
-	} else {
+        } else {
             $result = $this->Taxonomy->addTags(intval($this->args[0]));
-	    if ($result) {
+            if ($result) {
                 echo 'Taxonomy tags enabled' . PHP_EOL;
-	    } else {
+            } else {
                 echo 'Could not enable taxonomy tags' . PHP_EOL;
             }
         }
@@ -402,6 +443,7 @@ class AdminShell extends AppShell
 
     public function updateWarningLists()
     {
+        $jobId = empty($this->args[0]) ? null : $this->args[0];
         $result = $this->Warninglist->update();
 
         if ($this->params['verbose']) {
@@ -409,7 +451,11 @@ class AdminShell extends AppShell
         } else {
             $success = count($result['success']);
             $fails = count($result['fails']);
-            $this->out("$success warninglists updated, $fails fails");
+            $message = "$success warninglists updated, $fails fails";
+            $this->out($message);
+            if (!is_null($jobId)) {
+                $this->Job->saveStatus($jobId, true, $message);
+            }
             if ($fails) {
                 $this->out(__('Fails:'));
                 foreach ($result['fails'] as $fail) {
@@ -422,11 +468,18 @@ class AdminShell extends AppShell
 
     public function updateNoticeLists()
     {
+        $jobId = empty($this->args[0]) ? null : $this->args[0];
         $result = $this->Noticelist->update();
         if ($result) {
             echo 'Notice lists updated' . PHP_EOL;
+            if (!is_null($jobId)) {
+                $this->Job->saveStatus($jobId, true, 'Notice lists updated');
+            }
         } else {
             echo 'Could not update notice lists' . PHP_EOL;
+            if (!is_null($jobId)) {
+                $this->Job->saveStatus($jobId, false, 'Could not update notice lists');
+            }
         }
     }
 
@@ -443,8 +496,9 @@ class AdminShell extends AppShell
                 echo 'User with ID: ' . $userId . ' not found' . PHP_EOL;
                 $result = $this->ObjectTemplate->update();
             } else {
-                $result = $this->ObjectTemplate->update($user, false,false);
+                $result = $this->ObjectTemplate->update($user, false, false);
             }
+            $jobId = empty($this->args[1]) ? null : $this->args[1];
 
             $successes = count(!empty($result['success']) ? $result['success'] : []);
             $fails = count(!empty($result['fails']) ? $result['fails'] : []);
@@ -453,13 +507,17 @@ class AdminShell extends AppShell
                 $message = __('All object templates are up to date already.');
             } elseif ($successes == 0 && $fails > 0) {
                 $message = __('Could not update any of the object templates.');
-            } elseif ($successes > 0 ) {
+            } elseif ($successes > 0) {
                 $message = __('Successfully updated %s object templates.', $successes);
                 if ($fails != 0) {
                     $message .= __(' However, could not update %s object templates.', $fails);
                 }
             }
             echo $message . PHP_EOL;
+
+            if (!is_null($jobId)) {
+                $this->Job->saveStatus($jobId, true, $message);
+            }
         }
     }
 
@@ -538,7 +596,7 @@ class AdminShell extends AppShell
             }
         }
         $this->out($this->json($result));
-  }
+    }
 
     public function setSetting()
     {
@@ -620,10 +678,80 @@ class AdminShell extends AppShell
         }
     }
 
+    public function runDBScript()
+    {
+        if (empty($this->args[0])) {
+            $script = 'help';
+        } else {
+            $script = $this->args[0];
+        }
+
+        $aliasList = [
+            'highPerformance' => [
+                'scripts' => [
+                    'highPerformanceIndexingEvents',
+                    'highPerformanceIndexingAttributes',
+                    'highPerformanceIndexingObjects',
+                    'highPerformanceIndexingDefaultCorrelations',
+                    'highPerformanceIndexingNoAclCorrelations',
+                    'highPerformanceIndexingConnectorTags',
+                    'highPerformanceIndexWarninglists'
+                ],
+                'help' => __('High performance indexing of events, attributes, objects and default correlations. Drastically improves view and search operations. This is a slow reindexing process and is meant for servers with abundant RAM and innodb_buffer_pool_size set to a high value.'),
+            ],
+            'indexLogs' => [
+                'scripts' => [
+                    'highPerformanceLogSearchIndexing',
+                ],
+                'help' => __('High performance indexing of logs. Drastically improves log search performance as well  as functionalities such as checking the past 10 logins. This is a slow reindexing process and is meant for servers with abundant RAM and innodb_buffer_pool_size set to a high value.'),
+            ],
+            'OnDemandCorrelationTuning' => [
+                'scripts' => [
+                    'OnDemandCorrelationTuning',
+                ],
+                'help' => __('Additional indices specifically to help with the unusual search patterns of the on demand correlation tuning.'),
+            ]
+        ];
+
+        if (strtolower($script) === 'help') {
+            $this->out('<info>' . __('Available scripts') . '</info>' . PHP_EOL);
+            foreach ($aliasList as $alias => $data) {
+                $this->out('<info>' . $alias . ':</info> <comment>' . $data['help'] . '</comment>' . PHP_EOL);
+            }
+            die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Run DB Script'] . PHP_EOL);
+            die();
+        }
+
+        if (isset($aliasList[$script])) {
+            $scripts = $aliasList[$script]['scripts'];
+            $count = count($scripts);
+            foreach ($scripts as $i => $script) {
+                $this->out('<info>' . sprintf('Executing script %s of %s: %s', $i + 1, $count, $script) . '</info>' . PHP_EOL);
+                try {
+                    $executed = $this->Server->updateDatabase($script);
+                } catch (Exception $e) {
+                    $this->out('<error>' . sprintf('Script %s of %s failed to execute. Skipping for now, check the audit logs for more.', $i + 1, $count) . '</error>' . PHP_EOL);
+                    continue;
+                }
+                if ($executed) {
+                    $this->out('<info>' . sprintf('Script %s of %s completed.', $i + 1, $count) . '</info>' . PHP_EOL);
+                } else {
+                    $this->out('<error>' . sprintf('Script %s of %s failed.', $i + 1, $count) . '</error>' . PHP_EOL);
+                    $this->out(PHP_EOL . '<error>' . __('Invalid script') . '</error>' . PHP_EOL);
+                    die();
+                }
+            }
+        } else {
+            $this->out(PHP_EOL . '<error>' . __('Invalid script') . '</error>' . PHP_EOL);
+            die();
+        }
+        $this->Server->updateDatabase($script);
+    }
+
     public function getAuthkey()
     {
         if (Configure::read("Security.advanced_authkeys")) {
-            $this->error('Advanced autkeys enabled, it is not possible to get user authkey.');
+            $this->error('Advanced authkeys enabled, it is not possible to get user authkey.');
         }
         if (empty($this->args[0])) {
             die('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Get authkey'] . PHP_EOL);
@@ -752,7 +880,7 @@ class AdminShell extends AppShell
             'conditions' => array(
                 'action' => 'update_database',
                 'title LIKE ' => array(
-                    'Successfuly executed the SQL query for %',
+                    'Successfully executed the SQL query for %',
                     'Issues executing the SQL query for %'
                 )
             ),
@@ -794,7 +922,8 @@ class AdminShell extends AppShell
     {
         if (empty($this->args[0])) {
             echo sprintf(
-                __("MISP mass sync authkey reset command line tool" . PHP_EOL . "Usage: %sConsole/cake Admin resetSyncAuthkeys [user_id]" . PHP_EOL), APP
+                __("MISP mass sync authkey reset command line tool" . PHP_EOL . "Usage: %sConsole/cake Admin resetSyncAuthkeys [user_id]" . PHP_EOL),
+                APP
             );
             die();
         } else {
@@ -851,6 +980,22 @@ class AdminShell extends AppShell
         }
     }
 
+    public function dumpDescribeTypes()
+    {
+        $data = $this->MispAttribute->describeTypes();
+        $data = ['result' => $data];
+        FileAccessTool::writeToFile(ROOT . DS . 'describeTypes.json', JsonTool::encode($data, true));
+        $this->out(__("> describeTypes.json dumped to disk"));
+    }
+
+    public function preRelease()
+    {
+        $this->out(__("Dumping database schema to disk"));
+        $this->dumpCurrentDatabaseSchema();
+        $this->out(__("Dumping describeTypes.json to disk"));
+        $this->dumpDescribeTypes();
+    }
+
     /**
      * @deprecated Use UserShell instead
      */
@@ -863,20 +1008,19 @@ class AdminShell extends AppShell
         }
 
         $user_id = trim($this->args[0]);
-        $redis = $this->Server->setupRedis();
-        $user = $this->User->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('User.id' => $user_id)
-        ));
-        if (empty($user)) {
-            echo PHP_EOL . 'Invalid user ID.' . PHP_EOL;
-            die();
-        }
-        $ips = $redis->smembers('misp:user_ip:' . $user_id);
-        $ips = implode(PHP_EOL, $ips);
+        $results = $this->User->userIP($user_id);
+        $ips = implode(PHP_EOL, $results['ips']);
         echo sprintf(
             '%s==============================%sUser #%s: %s%s==============================%s%s%s==============================%s',
-            PHP_EOL, PHP_EOL, $user['User']['id'], $user['User']['email'], PHP_EOL, PHP_EOL, $ips, PHP_EOL, PHP_EOL
+            PHP_EOL,
+            PHP_EOL,
+            $results['User']['id'],
+            $results['User']['email'],
+            PHP_EOL,
+            PHP_EOL,
+            $ips,
+            PHP_EOL,
+            PHP_EOL
         );
     }
 
@@ -892,20 +1036,18 @@ class AdminShell extends AppShell
         }
 
         $ip = trim($this->args[0]);
-        $redis = $this->Server->setupRedis();
-        $user_id = $redis->get('misp:ip_user:' . $ip);
-        if (empty($user_id)) {
-            echo PHP_EOL . 'No hits.' . PHP_EOL;
-            die();
-        }
-        $user = $this->User->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('User.id' => $user_id)
-        ));
-
+        $results = $this->User->IPuser($ip);
         echo sprintf(
             '%s==============================%sIP: %s%s==============================%sUser #%s: %s%s==============================%s',
-            PHP_EOL, PHP_EOL, $ip, PHP_EOL, PHP_EOL, $user['User']['id'], $user['User']['email'], PHP_EOL, PHP_EOL
+            PHP_EOL,
+            PHP_EOL,
+            $results['ip'],
+            PHP_EOL,
+            PHP_EOL,
+            $results['User']['id'],
+            $results['User']['email'],
+            PHP_EOL,
+            PHP_EOL
         );
     }
 
@@ -987,8 +1129,8 @@ class AdminShell extends AppShell
     public function schemaDiagnostics()
     {
         $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
-        $this->out('# Columns diagnostics');
 
+        $this->out('# Columns diagnostics');
         foreach ($dbSchemaDiagnostics['diagnostic'] as $tableName => $diagnostics) {
             $diagnostics = array_filter($diagnostics, function ($c) {
                 return $c['is_critical'];
@@ -997,7 +1139,7 @@ class AdminShell extends AppShell
                 continue;
             }
             $this->out();
-            $this->out('Table ' . $tableName . ':');
+            $this->out("Table `$tableName`:");
             foreach ($diagnostics as $diagnostic) {
                 $this->out(' - ' . $diagnostic['description']);
                 $this->out('   Expected: ' . implode(' ', $diagnostic['expected']));
@@ -1007,13 +1149,15 @@ class AdminShell extends AppShell
             }
         }
 
-        $this->out();
-        $this->out('# Index diagnostics');
-        foreach ($dbSchemaDiagnostics['diagnostic_index'] as $tableName => $diagnostics) {
+        if (!empty($dbSchemaDiagnostics['diagnostic_index'])) {
             $this->out();
-            $this->out('Table ' . $tableName . ':');
-            foreach ($diagnostics as $info) {
-                $this->out(' - ' . $info['message']);
+            $this->out('# Index diagnostics');
+            foreach ($dbSchemaDiagnostics['diagnostic_index'] as $tableName => $diagnostics) {
+                $this->out();
+                $this->out('Table ' . $tableName . ':');
+                foreach ($diagnostics as $info) {
+                    $this->out(' - ' . $info['message']);
+                }
             }
         }
     }
@@ -1276,7 +1420,7 @@ class AdminShell extends AppShell
         if (!empty($this->args[0])) {
             $target = trim($this->args[0]);
         }
-        if (!is_numeric($target) && !in_array($target, ['all', 'attached', 'deteached'])) {
+        if (!is_numeric($target) && !in_array($target, ['all', 'attached', 'detached'])) {
             $this->error(__('Invalid target. Either pass a blueprint ID or one of the following filters: all, attached, detached.'));
         }
         $conditions = [];

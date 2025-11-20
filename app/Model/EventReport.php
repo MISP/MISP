@@ -1,6 +1,8 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('SyncTool', 'Tools');
+App::uses('MISPElementHTMLFormatterTool', 'Tools');
+App::uses('Folder', 'Utility');
 
 /**
  * @property Event $Event
@@ -69,6 +71,26 @@ class EventReport extends AppModel
         ),
     );
 
+    public $hasMany = [
+        'EventReportTag' => [
+            'dependent' => true
+        ],
+    ];
+
+    const PICTURE_FOLDER_PATH =  APP . 'files/img/eventreports';
+    const REDIS_KEY_PICTURE_ALIAS =  'eventreport_picture_alias';
+    const REDIS_KEY_PICTURE_FILENAME_FROM_ALIAS =  'eventreport_picture_filename_from_alias';
+
+    const SUPPORTED_IMAGES = ['gif', 'jpg', 'jpeg', 'png', 'svg',];
+    private $imageCache = [];
+
+    public function __construct($id = false, $table = null, $ds = null)
+    {
+        parent::__construct();
+        $this->schema();
+        $this->_schema['distribution']['default'] = Configure::read('MISP.default_eventreport_distribution') ?? 5;
+    }
+
     public function beforeValidate($options = array())
     {
         $eventReport = &$this->data['EventReport'];
@@ -84,11 +106,6 @@ class EventReport extends AppModel
         }
         if ($eventReport['distribution'] != 4) {
             $eventReport['sharing_group_id'] = 0;
-        }
-        // Set defaults for when some of the mandatory fields don't have defaults
-        // These fields all have sane defaults either based on another field, or due to server settings
-        if (!isset($eventReport['distribution'])) {
-            $eventReport['distribution'] = $this->Event->Attribute->defaultDistribution();
         }
         return true;
     }
@@ -122,7 +139,7 @@ class EventReport extends AppModel
      * @return array Any errors preventing the capture
      * @throws Exception
      */
-    public function captureReport(array $user, array $report, $eventId)
+    public function captureReport(array $user, array $report, $eventId, $server = false)
     {
         if (!isset($report['EventReport'])) {
             $report = ['EventReport' => $report];
@@ -135,7 +152,11 @@ class EventReport extends AppModel
         $this->create();
         $errors = $this->saveAndReturnErrors($report, ['fieldList' => self::CAPTURE_FIELDS]);
         if (!empty($errors)) {
-            $this->loadLog()->createLogEntry($user, 'add', 'EventReport', 0,
+            $this->loadLog()->createLogEntry(
+                $user,
+                'add',
+                'EventReport',
+                0,
                 __('Event Report dropped due to validation for Event report %s failed: %s', $this->data['EventReport']['uuid'], $this->data['EventReport']['name']),
                 __('Validation errors: %s.%sFull report: %s', json_encode($errors), PHP_EOL, json_encode($report['EventReport']))
             );
@@ -146,7 +167,29 @@ class EventReport extends AppModel
                 'conditions' => ['id' => $this->id],
             ]);
             if ($savedReport) {
-                $this->Event->captureAnalystData($user, $report, 'EventReport', $savedReport['EventReport']['uuid']);
+                if ($user['Role']['perm_tagger']) {
+                    $passedReportTags = isset($report['EventReport']['Tag']) ? $report['EventReport']['Tag'] : [];
+                    if (
+                        (isset($server) && isset($server['Server']['remove_missing_tags']) && $server['Server']['remove_missing_tags']) ||
+                        ($user['Role']['perm_sync'] && !empty($user['Role']['perm_sync_authoritative']))
+                    ) {
+                        $existingGlobalTags = $this->EventReportTag->find('all', [
+                            'recursive' => -1,
+                            'conditions' => [
+                                'event_report_id' => $savedReport['EventReport']['id'],
+                                'local' => 0,
+                            ],
+                            'contain' => [
+                                'Tag' => ['fields' => ['Tag.id', 'Tag.name']],
+                            ]
+                        ]);
+                        $this->EventReportTag->pruneOutdatedTagsFromSync($passedReportTags, $existingGlobalTags);
+                    }
+                    $this->EventReportTag->captureEventReportTags($user, $savedReport['EventReport']['id'], $passedReportTags);
+                }
+            }
+            if ($savedReport) {
+                $this->Event->captureAnalystData($user, $report['EventReport'], 'EventReport', $savedReport['EventReport']['uuid']);
             }
         }
         return $errors;
@@ -179,7 +222,7 @@ class EventReport extends AppModel
      * @param  bool  $nothingToChange
      * @return array Any errors preventing the edition
      */
-    public function editReport(array $user, array $report, $eventId, $fromPull = false, &$nothingToChange = false)
+    public function editReport(array $user, array $report, $eventId, $fromPull = false, $server = false, &$nothingToChange = false)
     {
         $errors = array();
         if (!isset($report['EventReport']['uuid'])) {
@@ -197,7 +240,7 @@ class EventReport extends AppModel
         ));
         if (empty($existingReport)) {
             if ($fromPull) {
-                return $this->captureReport($user, $report, $eventId);
+                return $this->captureReport($user, $report, $eventId, $server);
             } else {
                 $errors[] = __('Event Report not found.');
                 return $errors;
@@ -218,6 +261,23 @@ class EventReport extends AppModel
         }
         $errors = $this->saveAndReturnErrors($report, ['fieldList' => self::CAPTURE_FIELDS], $errors);
         if (empty($errors)) {
+            if ($user['Role']['perm_tagger']) {
+                $passedReportTags = isset($report['EventReport']['Tag']) ? $report['EventReport']['Tag'] : [];
+                if (
+                    (isset($server) && isset($server['Server']['remove_missing_tags']) && $server['Server']['remove_missing_tags']) ||
+                    ($user['Role']['perm_sync'] && !empty($user['Role']['perm_sync_authoritative']))
+                ) {
+                    $existingTags = $this->EventReportTag->find('all', [
+                        'recursive' => -1,
+                        'conditions' => ['event_report_id' => $report['EventReport']['id']],
+                        'contain' => [
+                            'Tag' => ['fields' => ['Tag.id', 'Tag.name']],
+                        ]
+                    ]);
+                    $this->EventReportTag->pruneOutdatedTagsFromSync($passedReportTags, $existingTags);
+                }
+                $this->EventReportTag->captureEventReportTags($user, $report['EventReport']['id'], $passedReportTags);
+            }
             $this->Event->captureAnalystData($user, $report['EventReport'], 'EventReport', $report['EventReport']['uuid']);
             if (!$fromPull) {
                 $this->Event->unpublishEvent($eventId);
@@ -234,9 +294,9 @@ class EventReport extends AppModel
      * @param  bool $hard
      * @return array Any errors preventing the deletion
      */
-    public function deleteReport(array $user, $report, $hard=false)
+    public function deleteReport(array $user, $report, $hard = false)
     {
-        $report = $this->fetchIfAuthorized($user, $report, 'delete', $throwErrors=true, $full=false);
+        $report = $this->fetchIfAuthorized($user, $report, 'delete', $throwErrors = true, $full = false);
         $errors = [];
         if ($hard) {
             $deleted = $this->delete($report['EventReport']['id'], true);
@@ -262,7 +322,7 @@ class EventReport extends AppModel
      */
     public function restoreReport(array $user, $id)
     {
-        $report = $this->fetchIfAuthorized($user, $id, 'edit', $throwErrors=true, $full=false);
+        $report = $this->fetchIfAuthorized($user, $id, 'edit', $throwErrors = true, $full = false);
         $report['EventReport']['deleted'] = false;
         $errors = $this->saveAndReturnErrors($report, ['fieldList' => ['deleted']]);
         if (empty($errors)) {
@@ -299,7 +359,7 @@ class EventReport extends AppModel
                         'OR' => array(
                             'Event.org_id' => $user['org_id'],
                             'EventReport.distribution' => array('1', '2', '3', '5'),
-                            'AND '=> array(
+                            'AND' => array(
                                 'EventReport.distribution' => 4,
                                 'EventReport.sharing_group_id' => $sgids,
                             )
@@ -334,7 +394,7 @@ class EventReport extends AppModel
             if (!$user['Role']['perm_site_admin'] && $event['Event']['org_id'] != $user['org_id']) {
                 $conditions['AND'][] = [
                     'EventReport.distribution' => [1, 2, 3, 5],
-                    'AND '=> [
+                    'AND' => [
                         'EventReport.distribution' => 4,
                         'EventReport.sharing_group_id' => $sgids,
                     ]
@@ -357,7 +417,7 @@ class EventReport extends AppModel
      * @param  bool  $full
      * @return array
      */
-    public function simpleFetchById(array $user, $reportId, $throwErrors=true, $full=false)
+    public function simpleFetchById(array $user, $reportId, $throwErrors = true, $full = false)
     {
         if (is_numeric($reportId)) {
             $options = array('conditions' => array("EventReport.id" => $reportId));
@@ -388,7 +448,7 @@ class EventReport extends AppModel
      * @param  bool  $full
      * @return array
      */
-    public function fetchReports(array $user, array $options = array(), $full=false)
+    public function fetchReports(array $user, array $options = array(), $full = false)
     {
         $params = array(
             'conditions' => $this->buildACLConditions($user),
@@ -417,11 +477,11 @@ class EventReport extends AppModel
      * @param  array $user
      * @param  int|string|array $report
      * @param  mixed $authorizations the requested actions to be performed on the report
-     * @param  bool  $throwErrors Should the function throws excpetion if users is not allowed to perform the action
+     * @param  bool  $throwErrors Should the function throws exception if users is not allowed to perform the action
      * @param  bool  $full
      * @return array The report or an error message
      */
-    public function fetchIfAuthorized(array $user, $report, $authorizations, $throwErrors=true, $full=false)
+    public function fetchIfAuthorized(array $user, $report, $authorizations, $throwErrors = true, $full = false)
     {
         $authorizations = is_array($authorizations) ? $authorizations : array($authorizations);
         $possibleAuthorizations = array('view', 'edit', 'delete');
@@ -432,7 +492,7 @@ class EventReport extends AppModel
             $report['EventReport'] = $report;
         }
         if (!isset($report['EventReport']['uuid'])) {
-            $report = $this->simpleFetchById($user, $report, $throwErrors=$throwErrors, $full=$full);
+            $report = $this->simpleFetchById($user, $report, $throwErrors = $throwErrors, $full = $full);
             if (empty($report)) {
                 $message = __('Invalid report');
                 return array('authorized' => false, 'error' => $message);
@@ -472,6 +532,47 @@ class EventReport extends AppModel
         return $report;
     }
 
+    public function touch($eventReportID)
+    {
+        $report = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'EventReport.id' => $eventReportID,
+            ],
+        ]);
+        $fields = ['timestamp'];
+        $report['EventReport']['timestamp'] = time();;
+        $success = $this->save($report, true, $fields);
+        if ($success) {
+            $this->Event->unpublishEvent($report['EventReport']['event_id']);
+        }
+    }
+
+    public function attachTags($user, $eventReport, $tag_id_list, $local = false)
+    {
+        $saveResult = $this->EventReportTag->attachTags($user, $eventReport['EventReport']['id'], $tag_id_list, $local);
+        $successes = $saveResult['successes'];
+        if ($successes > 0) {
+            if (empty($local)) {
+                $this->touch($eventReport['EventReport']['id']);
+            }
+            return $saveResult;
+        }
+        return $saveResult;
+    }
+
+    public function detachTag($eventReportTagID, $eventReportID, $local = false): bool
+    {
+        $success = $this->EventReportTag->delete($eventReportTagID);
+        if ($success) {
+            if (empty($local)) {
+                $this->touch($eventReportID);
+            }
+            return true;
+        }
+        return false;
+    }
+
     /**
      * getProxyMISPElements Extract MISP Elements from an event and make them accessible by their UUID
      *
@@ -493,91 +594,360 @@ class EventReport extends AppModel
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Event'));
         }
-        $event = $event[0];
-
-        if (!empty($event['Event']['extends_uuid'])) {
-            $extendedParentEvent = $this->Event->fetchEvent($user, array_merge([
-                'event_uuid' => $event['Event']['extends_uuid'],
-                'extended' => true,
-            ], $options));
-            if (!empty($extendedParentEvent)) {
-                $event = $extendedParentEvent[0];
-            }
-        }
+        $baseEvent = $event[0];
+        $allEvents = [$baseEvent];
 
         $allTagNames = [];
-        foreach ($event['EventTag'] as $eventTag) {
-            // include just tags that belongs to requested event or its parent, not to other child
-            if ($eventTag['event_id'] == $eventid || $eventTag['event_id'] == $event['Event']['id']) {
-                $allTagNames[$eventTag['Tag']['name']] = $eventTag['Tag'];
-            }
-        }
-
         $attributes = [];
-        foreach ($event['Attribute'] as $attribute) {
-            unset($attribute['ShadowAttribute']);
-            foreach ($attribute['AttributeTag'] as $at) {
-                $allTagNames[$at['Tag']['name']] = $at['Tag'];
-            }
-            $this->Event->Attribute->removeGalaxyClusterTags($attribute);
-            $attributes[$attribute['uuid']] = $attribute;
-        }
-
         $objects = [];
         $templateConditions = [];
-        foreach ($event['Object'] as $k => $object) {
-            if (isset($object['Attribute'])) {
-                foreach ($object['Attribute'] as &$objectAttribute) {
-                    unset($objectAttribute['ShadowAttribute']);
-                    $objectAttribute['object_uuid'] = $object['uuid'];
-                    $attributes[$objectAttribute['uuid']] = $objectAttribute;
 
-                    foreach ($objectAttribute['AttributeTag'] as $at) {
-                        $allTagNames[$at['Tag']['name']] = $at['Tag'];
+        if (!empty($baseEvent['Event']['extends_uuid'])) {
+            $extendedParentEvent = $this->Event->fetchEvent($user, array_merge([
+                'event_uuid' => $baseEvent['Event']['extends_uuid'],
+                'is_extended' => true,
+            ], $options));
+            if (!empty($extendedParentEvent)) {
+                $parentEvent = $extendedParentEvent[0];
+                $allEvents[] = $parentEvent;
+                // Add parent's children
+                $childrenUuids = array_unique($this->Event->find('column', array(
+                    'fields' => ['Event.uuid'],
+                    'conditions' => [
+                        'Event.uuid !=' => $baseEvent['Event']['uuid'],
+                        'Event.extends_uuid' => $parentEvent['Event']['uuid'],
+                    ],
+                    'recursive' => -1
+                )));
+                if (!empty($childrenUuids)) {
+                    foreach ($childrenUuids as $uuid) {
+                        $childEvent = $this->Event->fetchEvent($user, array_merge([
+                            'event_uuid' => $uuid,
+                        ], $options));
+                        if (!empty($childEvent)) {
+                            $allEvents[] = $childEvent[0];
+                        }
                     }
-                    $this->Event->Attribute->removeGalaxyClusterTags($objectAttribute);
                 }
             }
-            $objects[$object['uuid']] = $object;
+        }
 
-            $uniqueCondition = "{$object['template_uuid']}.{$object['template_version']}";
-            if (!isset($templateConditions[$uniqueCondition])) {
-                $templateConditions[$uniqueCondition]['AND'] = [
-                    'ObjectTemplate.uuid' => $object['template_uuid'],
-                    'ObjectTemplate.version' => $object['template_version']
-                ];
+        $extendingChildrenUuids = array_unique($this->Event->find('column', array(
+            'fields' => ['Event.uuid'],
+            'conditions' => [
+                'Event.extends_uuid' => $baseEvent['Event']['uuid'],
+            ],
+            'recursive' => -1
+        )));
+        if (!empty($extendingChildrenUuids)) {
+            foreach ($extendingChildrenUuids as $uuid) {
+                $childEvent = $this->Event->fetchEvent($user, array_merge([
+                    'event_uuid' => $uuid,
+                ], $options));
+                if (!empty($childEvent)) {
+                    $allEvents[] = $childEvent[0];
+                }
             }
         }
-        if (!empty($templateConditions)) {
-            // Fetch object templates for event objects
-            $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
-            $templates = $this->ObjectTemplate->find('all', array(
-                'conditions' => ['OR' => array_values($templateConditions)],
-                'recursive' => -1,
-                'contain' => array(
-                    'ObjectTemplateElement' => [
-                        'order' => ['ui-priority' => 'DESC'],
-                        'fields' => ['object_relation', 'type', 'ui-priority']
-                    ]
-                )
-            ));
-            $objectTemplates = [];
-            foreach ($templates as $template) {
-                $objectTemplates["{$template['ObjectTemplate']['uuid']}.{$template['ObjectTemplate']['version']}"] = $template;
+
+        foreach ($allEvents as $event) {
+            foreach ($event['EventTag'] as $eventTag) {
+                // include just tags that belongs to requested event or its parent, not to other child
+                if ($eventTag['event_id'] == $eventid || $eventTag['event_id'] == $event['Event']['id']) {
+                    $allTagNames[$eventTag['Tag']['name']] = $eventTag['Tag'];
+                }
             }
-        } else {
-            $objectTemplates = [];
+
+            foreach ($event['Attribute'] as $attribute) {
+                unset($attribute['ShadowAttribute']);
+                foreach ($attribute['AttributeTag'] as $at) {
+                    $allTagNames[$at['Tag']['name']] = $at['Tag'];
+                }
+                $this->Event->Attribute->removeGalaxyClusterTags($attribute);
+                $attributes[$attribute['uuid']] = $attribute;
+            }
+
+            foreach ($event['Object'] as $k => $object) {
+                if (isset($object['Attribute'])) {
+                    foreach ($object['Attribute'] as &$objectAttribute) {
+                        unset($objectAttribute['ShadowAttribute']);
+                        $objectAttribute['object_uuid'] = $object['uuid'];
+                        $attributes[$objectAttribute['uuid']] = $objectAttribute;
+
+                        foreach ($objectAttribute['AttributeTag'] as $at) {
+                            $allTagNames[$at['Tag']['name']] = $at['Tag'];
+                        }
+                        $this->Event->Attribute->removeGalaxyClusterTags($objectAttribute);
+                    }
+                }
+                $objects[$object['uuid']] = $object;
+
+                $uniqueCondition = "{$object['template_uuid']}.{$object['template_version']}";
+                if (!isset($templateConditions[$uniqueCondition])) {
+                    $templateConditions[$uniqueCondition]['AND'] = [
+                        'ObjectTemplate.uuid' => $object['template_uuid'],
+                        'ObjectTemplate.version' => $object['template_version']
+                    ];
+                }
+            }
+            if (!empty($templateConditions)) {
+                // Fetch object templates for event objects
+                $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+                $templates = $this->ObjectTemplate->find('all', array(
+                    'conditions' => ['OR' => array_values($templateConditions)],
+                    'recursive' => -1,
+                    'contain' => array(
+                        'ObjectTemplateElement' => [
+                            'order' => ['ui-priority' => 'DESC'],
+                            'fields' => ['object_relation', 'type', 'ui-priority']
+                        ]
+                    )
+                ));
+                $objectTemplates = [];
+                foreach ($templates as $template) {
+                    $objectTemplates["{$template['ObjectTemplate']['uuid']}.{$template['ObjectTemplate']['version']}"] = $template;
+                }
+            } else {
+                $objectTemplates = [];
+            }
         }
         $this->Galaxy = ClassRegistry::init('Galaxy');
-        $allowedGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
+        $allowedGalaxies = $this->Galaxy->getAllowedMatrixGalaxies($user);
         $allowedGalaxies = Hash::combine($allowedGalaxies, '{n}.Galaxy.uuid', '{n}.Galaxy');
+        $pictureAliases = $this->getAllAliases();
         return [
             'attribute' => $attributes,
             'object' => $objects,
             'objectTemplates' => $objectTemplates,
             'galaxymatrix' => $allowedGalaxies,
-            'tagname' => $allTagNames
+            'tagname' => $allTagNames,
+            'picture_aliases' => $pictureAliases,
         ];
+    }
+
+    public function replaceWithTemplateVars($content, $user)
+    {
+        $this->EventReportTemplateVariable = ClassRegistry::init('EventReportTemplateVariable');
+        $templateVariables = $this->EventReportTemplateVariable->getAll();
+        $templateVarProxy = !empty($templateVariables) ? Hash::combine($templateVariables, '{n}.name', '{n}.value') : [];
+        foreach ($templateVarProxy as $varName => $replacementValue) {
+            $varSyntax = '/{{\s*' . preg_quote($varName, '/') . '\s*}}/';
+            $content = preg_replace($varSyntax, $replacementValue, $content);
+        }
+        return $content;
+    }
+
+    public function replaceMISPElementByTheirValue($content, $event_id, $user, $useHtml = false)
+    {
+        $elementFormatter = new MISPElementHTMLFormatterTool();
+        $proxyMISPElements = $this->getProxyMISPElements($user, $event_id);
+        $replaceContent = '';
+        $authorizedMISPElements = ['attribute', 'object', 'tag'];
+        $reMISPElement = '/@\[(?<scope>' . implode('|', $authorizedMISPElements) . ')\]\((?<elementid>[^\)]+)\)/';
+        $offset = 0;
+
+        if (preg_match_all($reMISPElement, $content, $matches, PREG_OFFSET_CAPTURE)) {
+            foreach ($matches[0] as $index => $match) {
+                $scope = $matches['scope'][$index][0];
+                $elementId = $matches['elementid'][$index][0];
+                $matchPosition = $matches[0][$index][1];
+
+                $scopeProxy = $scope == 'tag' ? 'tagname' : $scope;
+                if ($scope == 'tag' && empty($proxyMISPElements['tagname'][$elementId])) {
+                    $proxyMISPElements['tagname'][$elementId] = $this->fetchTagDataIfExists($elementId);
+                }
+                $element = isset($proxyMISPElements[$scopeProxy][$elementId]) ? $proxyMISPElements[$scopeProxy][$elementId] : null;
+                if ($element !== null) {
+                    if ($scope == 'attribute') {
+                        if (!empty($element['object_relation'])) {
+                            if (empty($useHtml)) {
+                                $replacement = $scope . '[type:' . $element['object_relation'] . '][value:' . $element['value'] . ']';
+                            } else {
+                                $relatedObject = $proxyMISPElements['object'][$element['object_uuid']];
+                                $replacement = $elementFormatter->objectAttribute($relatedObject, $element);
+                            }
+                        } else {
+                            if (empty($useHtml)) {
+                                $replacement = $scope . '[type:' . $element['type'] . '][value:' . $element['value'] . ']';
+                            } else {
+                                $replacement = $elementFormatter->attribute($element);
+                            }
+                        }
+                    } elseif ($scope == 'object') {
+                        if (empty($useHtml)) {
+                            $replacement = $scope . '[name:' . $element['name'] . '][value:' . $element['Attribute'][0]['value'] . ']';
+                        } else {
+                            $replacement = $elementFormatter->object($element);
+                        }
+                    } elseif ($scope == 'tag') {
+                        if (empty($useHtml)) {
+                            $replacement = $scope . '[' . $element['name'] . ']';
+                        } else {
+                            $replacement = $elementFormatter->tag($element);
+                        }
+                    }
+                } else {
+                    $replacement = $scope . '-' . $elementId;
+                }
+
+                $replaceContent .= substr($content, $offset, $matchPosition - $offset) . $replacement;
+                $offset = $matchPosition + strlen($match[0]);
+            }
+        }
+
+        $replaceContent .= substr($content, $offset);
+        return $replaceContent;
+    }
+
+    public function replacePicturesReferenceWithB64Value($content, $event_id, $user)
+    {
+        $this->MispAttribute = ClassRegistry::init('MispAttribute');
+        $matches = [];
+        $rePictureElement = sprintf('/(?<!@)!\[[^\[\]\(\)]+\]\((?<filename>[a-zA-Z0-9_\/\-]+(?>\.(?>%s))?)\)/m', implode('|', self::SUPPORTED_IMAGES));
+        $reUUID4 = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+        $reFilenameWithoutPath = sprintf('/\/eventReports\/viewPicture\/(?<uuid>%s(?>\.(?>%s))?)/', $reUUID4, implode('|', self::SUPPORTED_IMAGES));
+
+        // Get all usage of `![]()` and replace it with `<img src="data:image/$ext;base64`
+        preg_match_all($rePictureElement, $content, $matches, PREG_SET_ORDER);
+        foreach ($matches as $match) {
+            $search = $match[0];
+            $trueFilenameMatches = [];
+            $hasMatched = preg_match($reFilenameWithoutPath, $match['filename'], $trueFilenameMatches);
+            if ($hasMatched) {
+                if (empty($trueFilenameMatches['uuid'])) {
+                    continue;
+                }
+                $trueFilename = $trueFilenameMatches['uuid'];
+            } else {
+                $trueFilename = str_replace('/eventReports/viewPicture/', '', $match['filename']);
+            }
+
+            try {
+                $file = $this->getPicture($trueFilename);
+            } catch (NotFoundException $e) {
+                continue;
+            }
+            $b64 = $this->getBase64FromFile(self::PICTURE_FOLDER_PATH . '/' . $file['filename']);
+            $replacement = sprintf('<img src="%s"/>', $b64);
+            $content = str_replace($search, $replacement, $content);
+        }
+
+        $reAttributePicture = sprintf('/@!\[[^\[\]\(\)]+\]\((?<uuid>%s)?\)/m', $reUUID4);
+        preg_match_all($reAttributePicture, $content, $matches, PREG_SET_ORDER);
+        foreach ($matches as $match) {
+            $search = $match[0];
+            $uuid = $match['uuid'];
+
+            try {
+                $attribute = $this->MispAttribute->fetchAttributeSimple($user, [
+                    'conditions' => [
+                        'Attribute.uuid' => $uuid,
+                    ]
+                ]);
+                $b64 = $this->MispAttribute->base64EncodeAttachment($attribute['Attribute']);
+                $ext = strtolower(pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION));
+                if ($ext === 'svg') {
+                    $mime = 'image/svg+xml';
+                } else if (in_array($ext, self::SUPPORTED_IMAGES)) {
+                    $mime = 'image/' . $ext;
+                } else {
+                    throw new InvalidArgumentException(sprintf("Only SVG, %s images are supported, '$ext' file provided.", implode(', ', self::SUPPORTED_IMAGES)));
+                }
+                $encodedPicture = "data:$mime;base64," . $b64;
+            } catch (Exception $e) {
+                continue;
+            }
+            $replacement = sprintf('<img src="%s"/>', $encodedPicture);
+            $content = str_replace($search, $replacement, $content);
+        }
+
+        return $content;
+    }
+
+    private function getBase64FromFile($filepath)
+    {
+        if (isset($this->imageCache[$filepath])) {
+            return $this->imageCache[$filepath];
+        }
+
+        try {
+            $fileContent = FileAccessTool::readFromFile($filepath);
+        } catch (Exception $e) {
+            return 'data:null'; // in case file doesn't exists or is not readable
+        }
+
+        $ext = strtolower(pathinfo($filepath, PATHINFO_EXTENSION));
+        $fileContentEncoded = base64_encode($fileContent);
+        if ($ext === 'svg') {
+            $mime = 'image/svg+xml';
+        } else if (in_array($ext, self::SUPPORTED_IMAGES)) {
+            $mime = 'image/' . $ext;
+        } else {
+            throw new InvalidArgumentException(sprintf("Only SVG, %s images are supported, '$ext' file provided.", implode(', ', self::SUPPORTED_IMAGES)));
+        }
+        $base64 = "data:$mime;base64,$fileContentEncoded";
+
+        return $this->imageCache[$filepath] = $base64;
+    }
+
+    public function convertToPDF(array $user, array $report)
+    {
+        $convertedReport = $this->doReplacementOfCustomSyntax($report, $user);
+        $moduleName = 'convert_markdown_to_pdf';
+        $mispModule = ClassRegistry::init('Module');
+        $postData = [
+            'module' => $moduleName,
+            'text' => JsonTool::encode([
+                'markdown' => $convertedReport,
+            ])
+        ];
+
+        $module = $mispModule->getEnabledModule($moduleName, 'expansion');
+        if (isset($module['meta']['config'])) {
+            foreach ($module['meta']['config'] as $conf) {
+                $postData['config'][$conf] = Configure::read('Plugin.Enrichment_' . $moduleName . '_' . $conf);
+            }
+        }
+
+        $result = $mispModule->queryModuleServer($postData, false, 'Enrichment', false, [], true);
+        if (!empty($result['error'])) {
+            throw new BadRequestException('Error Processing Request: ' . $result['error']);
+        } else if (empty($result)) {
+            throw new BadRequestException('Error Processing Request: Error while querying misp-module `convert_markdown_to_pdf` module.');
+        }
+        $converted = $result['results'][0]['values'][0]; // The pdf file is base64 encoded
+        $pdfFile = base64_decode($converted);
+        return $pdfFile;
+    }
+
+    private function doReplacementOfCustomSyntax(array $report, array $user)
+    {
+        $content = $report['EventReport']['content'];
+        $contentWithTemplateVars = $this->replaceWithTemplateVars($content, $user);
+        $contentWithVarsUnderGFM = $this->replaceMISPElementByTheirValue($contentWithTemplateVars, $report['EventReport']['event_id'], $user, true);
+        $contentWithEncodedPictures = $this->replacePicturesReferenceWithB64Value($contentWithVarsUnderGFM, $report['EventReport']['event_id'], $user);
+        return $contentWithEncodedPictures;
+    }
+
+    private function fetchTagDataIfExists($tagname)
+    {
+        $this->Tag = ClassRegistry::init('Tag');
+        $tag = $this->Tag->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'name' => $tagname
+            ],
+        ]);
+        if (!empty($tag)) {
+            $tag = $tag['Tag'];
+        } else {
+            $colour = '#658cc9';
+            $tag = [
+                'name' => $tagname,
+                'colour' => $colour,
+            ];
+        }
+        return $tag;
     }
 
     private function saveAndReturnErrors($data, $saveOptions = [], $errors = [])
@@ -723,12 +1093,12 @@ class EventReport extends AppModel
 
         // Sort by original value string length, longest values first
         usort($complexTypeToolResult, function ($a, $b) {
-           $strlenA = strlen($a['original_value']);
-           $strlenB = strlen($b['original_value']);
-           if ($strlenA === $strlenB) {
-               return 0;
-           }
-           return ($strlenA < $strlenB) ? 1 : -1;
+            $strlenA = strlen($a['original_value']);
+            $strlenB = strlen($b['original_value']);
+            if ($strlenA === $strlenB) {
+                return 0;
+            }
+            return ($strlenA < $strlenB) ? 1 : -1;
         });
 
         $suggestionsMapping = [];
@@ -749,7 +1119,8 @@ class EventReport extends AppModel
         ];
     }
 
-    public function injectImportRegexOnComplexTypeToolResult($complexTypeToolResult) {
+    public function injectImportRegexOnComplexTypeToolResult($complexTypeToolResult)
+    {
         foreach ($complexTypeToolResult as $i => $complexTypeToolEntry) {
             $transformedValue = $this->runRegexp($complexTypeToolEntry['default_type'], $complexTypeToolEntry['value']);
             if ($transformedValue !== false) {
@@ -934,7 +1305,7 @@ class EventReport extends AppModel
         return $toReturn;
     }
 
-    public function downloadMarkdownFromURL($event_id, $url, $format = 'html')
+    public function downloadMarkdownFromURL($user, $event_id, $url, $format = 'html')
     {
         $this->Module = ClassRegistry::init('Module');
         $formatMapping = [
@@ -946,7 +1317,7 @@ class EventReport extends AppModel
             'odt' => 'odt_enrich',
             'docx' => 'docx_enrich'
         ];
-        $module = $this->isFetchURLModuleEnabled($formatMapping[$format]);
+        $module = $this->isFetchURLModuleEnabledAndAllowed($user, $formatMapping[$format]);
         if (!is_array($module)) {
             return false;
         }
@@ -978,10 +1349,44 @@ class EventReport extends AppModel
         return false;
     }
 
-    public function isFetchURLModuleEnabled($moduleName = 'html_to_markdown') {
+    public function isFetchURLModuleEnabled($moduleName = 'html_to_markdown')
+    {
         $this->Module = ClassRegistry::init('Module');
         $module = $this->Module->getEnabledModule($moduleName, 'expansion');
         return !empty($module) ? $module : false;
+    }
+
+    public function getEnabledFetchURLModules($user)
+    {
+        $formatMapping = [
+            'html' => 'html_to_markdown',
+            'pdf' => 'pdf_enrich',
+            'pptx' => 'pptx_enrich',
+            'xlsx' => 'xlsx_enrich',
+            'ods' => 'ods_enrich',
+            'odt' => 'odt_enrich',
+            'docx' => 'docx_enrich'
+        ];
+        $results = [];
+        foreach ($formatMapping as $format => $moduleName) {
+            $module = $this->isFetchURLModuleEnabledAndAllowed($user, $moduleName);
+            if (!empty($module)) {
+                $results[$format] = $moduleName;
+            }
+        }
+        return $results;
+    }
+
+    public function isFetchURLModuleEnabledAndAllowed($user, $moduleName = 'html_to_markdown')
+    {
+        $module = $this->isFetchURLModuleEnabled($moduleName);
+        if (empty($module)) {
+            return false;
+        }
+        if (!$this->Module->canUse($user, 'Enrichment', ['name' => $moduleName])) {
+            return false;
+        }
+        return $module;
     }
 
     /**
@@ -1021,8 +1426,15 @@ class EventReport extends AppModel
         return $report;
     }
 
-    public function sendToLLM($report, $user, &$errors)
+    public function sendToLLM($report, $user, &$errors, $options = [])
     {
+        $defaultOptions = [
+            'insert_executive_summary' => true,
+            'tag_event_with_threat_actor' => true,
+            'tag_event_with_threat_actor_country' => true,
+            'tag_event_with_threat_actor_motivation' => true,
+        ];
+        $options = array_merge($defaultOptions, $options);
         $syncTool = new SyncTool();
         $config = [];
         $HttpSocket = $syncTool->setupHttpSocket($config, $this->timeout);
@@ -1044,7 +1456,7 @@ class EventReport extends AppModel
                 'x-api-key' => $apiKey,
             ])
         ];
-        
+
         $response = $HttpSocket->post($url, $data, $request);
         if (!$response->isOk()) {
             $errors[] = __('LLM server failed to process the request, code: %s.', $response->code);
@@ -1055,7 +1467,7 @@ class EventReport extends AppModel
             $errors[] = $data['error'];
             return false;
         }
-/*
+        /*
         debug($data);
         
         $data = array(
@@ -1067,29 +1479,276 @@ class EventReport extends AppModel
 	'AI_CouldWeBeAffected' => true
 );
 */
-        
-        if (!empty($data['AI_ExecutiveSummary'])) {
-            $report['EventReport']['content'] = '# Executive Summary' . PHP_EOL . $data['AI_ExecutiveSummary'] . PHP_EOL . PHP_EOL . '# Report' . PHP_EOL . $report['EventReport']['content'];
+        if ($options['insert_executive_summary']) {
+            if (!empty($data['AI_ExecutiveSummary'])) {
+                $report['EventReport']['content'] = '# Executive Summary' . PHP_EOL . $data['AI_ExecutiveSummary'] . PHP_EOL . PHP_EOL . '# Report' . PHP_EOL . $report['EventReport']['content'];
+            }
+            $this->save($report);
         }
-        $this->save($report);
         $event = $this->Event->find('first', [
             'conditions' => ['Event.id' => $report['EventReport']['event_id']],
             'recursive' => -1
         ]);
-        if (!empty($data['AI_ThreatActor'])) {
-            $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor="' . $data['AI_ThreatActor'] . '"'], $user);
-            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
+        if ($options['tag_event_with_threat_actor']) {
+            if (!empty($data['AI_ThreatActor'])) {
+                $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor="' . $data['AI_ThreatActor'] . '"'], $user);
+                $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
+            }
         }
 
-        if (!empty($data['AI_AttributedCountry'])) {
-            $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor-country="' . $data['AI_AttributedCountry'] . '"'], $user);
-            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
+        if ($options['tag_event_with_threat_actor_country']) {
+            if (!empty($data['AI_AttributedCountry'])) {
+                $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor-country="' . $data['AI_AttributedCountry'] . '"'], $user);
+                $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
+            }
         }
 
-        if (!empty($data['AI_Motivation'])) {
-            $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor-motivation="' . $data['AI_Motivation'] . '"'], $user);
-            $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
+        if ($options['tag_event_with_threat_actor_motivation']) {
+            if (!empty($data['AI_Motivation'])) {
+                $tag_id = $this->Event->EventTag->Tag->captureTag(['name' => 'misp-galaxy:threat-actor-motivation="' . $data['AI_Motivation'] . '"'], $user);
+                $this->Event->EventTag->attachTagToEvent($event['Event']['id'], ['id' => $tag_id]);
+            }
         }
         return $report;
+    }
+
+    public function uploadPicture($picture, $report, $saveAsAttachmentConfig = false)
+    {
+        $saveResult = [
+            'success' => false,
+            'image_filename' => null,
+            'image_name' => null,
+            'errors' => [],
+        ];
+        if (!isset($picture['size'])) {
+            $saveResult['errors'][] = __('Picture has not size');
+            return $saveResult;
+        }
+
+
+
+        if ($picture['size'] > 0 && $picture['error'] == 0) {
+            $extension = pathinfo($picture['name'], PATHINFO_EXTENSION);
+            $pictureUUID = CakeText::uuid();
+            $filename = sprintf('%s.%s', $pictureUUID, $extension);
+
+            if (!in_array($extension, self::SUPPORTED_IMAGES)) {
+                $saveResult['errors'][] = __('Invalid file extension, Only images with the following extensions are allowed: ' . implode(',', self::SUPPORTED_IMAGES));
+                return $saveResult;
+            }
+            $matches = null;
+            $tmp_name = $picture['tmp_name'];
+            if (preg_match_all('/[\w\/\-\.]*/', $tmp_name, $matches) && file_exists($picture['tmp_name'])) {
+                $tmp_name = $matches[0][0];
+                $imgMime = mime_content_type($tmp_name);
+            } else {
+                $saveResult['errors'][] = __('Invalid file.');
+                return $saveResult;
+            }
+            if ($extension !== 'svg' && (function_exists('exif_imagetype') && !exif_imagetype($picture['tmp_name']))) {
+                $saveResult['errors'][] = __('This is not a valid image format.');
+                return $saveResult;
+            }
+
+            if ($extension === 'svg' && !($imgMime === 'image/svg+xml' || $imgMime === 'image/svg')) {
+                $saveResult['errors'][] = __('This is not a valid SVG image.');
+                return $saveResult;
+            }
+
+            if ($extension === 'svg' && !Configure::read('Security.enable_svg_logos')) {
+                $saveResult['errors'][] = __('Invalid file extension, SVG images are not allowed.');
+                return $saveResult;
+            }
+
+            if (!empty($tmp_name) && is_uploaded_file($tmp_name)) {
+                if (!empty($saveAsAttachmentConfig)) {
+                    $this->MispAttribute = ClassRegistry::init('MispAttribute');
+                    $tmpfile = new File($tmp_name);
+                    $attribute = [
+                        'Attribute' => [
+                            'value' => $filename,
+                            'category' => 'External analysis',
+                            'type' => 'attachment',
+                            'event_id' => $report['EventReport']['event_id'],
+                            'data_raw' => $tmpfile->read(),
+                            'comment' => $saveAsAttachmentConfig['comment'],
+                            'to_ids' => 0,
+                            'distribution' => $saveAsAttachmentConfig['distribution'],
+                            'sharing_group_id' => isset($saveAsAttachmentConfig['sharing_group_id']) ? $saveAsAttachmentConfig['sharing_group_id'] : 0,
+                        ]
+                    ];
+                    $this->MispAttribute->create();
+                    $attributeSaveResult = $this->MispAttribute->save($attribute);
+                    if (!empty($attributeSaveResult)) {
+                        $saveResult['success'] = true;
+                        $saveResult['attribute_uuid'] = $attributeSaveResult['Attribute']['uuid'];
+                    } else {
+                        $saveResult['errors'][] = __('Could not create the Attribute');
+                    }
+                } else {
+                    $pictureFolder = new Folder(self::PICTURE_FOLDER_PATH);
+                    if (is_null($pictureFolder->path)) {
+                        $pictureFolder->create(self::PICTURE_FOLDER_PATH, 0770);
+                    }
+                    $success = move_uploaded_file($tmp_name, self::PICTURE_FOLDER_PATH . '/' . $filename);
+                    if ($success) {
+                        $saveResult['success'] = true;
+                        $saveResult['image_filename'] = $filename;
+                        $saveResult['image_name'] = $picture['name'];
+                    } else {
+                        $saveResult['errors'][] = __('Could not move file');
+                    }
+                }
+                return $saveResult;
+            }
+            $saveResult['errors'][] = __('File was not uploaded correctly');
+            return $saveResult;
+        }
+    }
+
+    public function getPicture($filename)
+    {
+        $imageFromAlias = $this->getImageFromAlias($filename);
+        if (!empty($imageFromAlias)) {
+            $filename = $imageFromAlias;
+        }
+        $filepath = self::PICTURE_FOLDER_PATH . '/' . $filename;
+        $file = new File($filepath);
+        if (!is_file($file->path)) {
+            throw new NotFoundException("File '$filepath' does not exist.");
+        }
+        return [
+            'filename' => $file->name,
+            'file' => $file,
+        ];
+    }
+
+    public function collectImportedPicturesStats()
+    {
+        $pictureFolder = new Folder(self::PICTURE_FOLDER_PATH);
+        $files = $pictureFolder->find();
+        $fileReferenced = [];
+        $fileNotReferenced = [];
+        $aliases = [];
+
+        foreach ($files as $filename) {
+            $theAlias = $this->getAliasForImage($filename);
+            // check if this file is used in at least one report
+            $reportCount = $this->find('count', [
+                'recursive' => -1,
+                'conditions' => [
+                    'content LIKE' => sprintf('%%/eventReports/viewPicture/%s%%', $filename),
+                    'content LIKE' => sprintf('%%/eventReports/viewPicture/%s%%', $theAlias),
+                ]
+            ]);
+            if (empty($reportCount)) {
+                $fileNotReferenced[] = $filename;
+            } else {
+                $fileReferenced[$filename] = $reportCount;
+            }
+            $aliases[$filename] = $theAlias;
+        }
+        return [
+            'all_files' => $files,
+            'file_referenced_count' => $fileReferenced,
+            'file_not_referenced' => $fileNotReferenced,
+            'picture_aliases' => $aliases,
+        ];
+    }
+
+    public function purgeUnusedPictures()
+    {
+        $pictureFolder = new Folder(self::PICTURE_FOLDER_PATH);
+        $files = $pictureFolder->find();
+        foreach ($files as $filename) {
+            // check if this file is used in at least one report
+            $reportCount = $this->find('count', [
+                'recursive' => -1,
+                'conditions' => [
+                    'content LIKE' => sprintf('%%/eventReports/viewPicture/%s%%', $filename)
+                ]
+            ]);
+            if (empty($reportCount)) {
+                $this->purgeImage($filename);
+            }
+        }
+    }
+
+    public function purgeImage($filename)
+    {
+        $filename = basename($filename);
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            $redis = null;
+        }
+        $alias = $this->getAliasForImage($filename);
+        if (!is_null($redis)) {
+            $redis->del(sprintf('%s:%s', self::REDIS_KEY_PICTURE_ALIAS, $filename));
+            $redis->del(sprintf('%s:%s', self::REDIS_KEY_PICTURE_FILENAME_FROM_ALIAS, $alias));
+        }
+        $file = new File(self::PICTURE_FOLDER_PATH . '/' . $filename);
+        return $file->delete();
+    }
+
+    public function setFileAlias($data): array
+    {
+        $errors = [];
+        $redis = $this->setupRedisWithException();
+        $filenameForNewAlias = $redis->exists(sprintf('%s:%s', self::REDIS_KEY_PICTURE_FILENAME_FROM_ALIAS, $data['alias']));
+        if (!empty($filenameForNewAlias)) {
+            $errors[] = _('This alias is already in used');
+            return $errors;
+        }
+        $oldAlias = $redis->get(sprintf('%s:%s', self::REDIS_KEY_PICTURE_ALIAS, $data['filename']));
+        if (!empty($oldAlias)) {
+            $redis->del(sprintf('%s:%s', self::REDIS_KEY_PICTURE_FILENAME_FROM_ALIAS, $oldAlias));
+        }
+        $redis->set(sprintf('%s:%s', self::REDIS_KEY_PICTURE_ALIAS, $data['filename']), $data['alias']);
+        $redis->set(sprintf('%s:%s', self::REDIS_KEY_PICTURE_FILENAME_FROM_ALIAS, $data['alias']), $data['filename']);
+        return $errors;
+    }
+
+    public function getAllAliases()
+    {
+        try {
+            $redis = $this->setupRedisWithException();
+        } catch (Exception $e) {
+            $redis = null;
+            return null;
+        }
+        $allKeys = $redis->keys(sprintf('%s:*', self::REDIS_KEY_PICTURE_ALIAS));
+        $pipeline = $redis->pipeline();
+        foreach ($allKeys as $key) {
+            $pipeline->get($key);
+        }
+        $allAliases = $pipeline->exec();
+        return $allAliases;
+    }
+
+    public function getAliasForImage($filename)
+    {
+        if (!isset($this->redis)) {
+            try {
+                $this->redis = $this->setupRedisWithException();
+            } catch (Exception $e) {
+                $this->redis = null;
+                return null;
+            }
+        }
+        return $this->redis->get(sprintf('%s:%s', self::REDIS_KEY_PICTURE_ALIAS, $filename));
+    }
+
+    public function getImageFromAlias($alias)
+    {
+        if (!isset($this->redis)) {
+            try {
+                $this->redis = $this->setupRedisWithException();
+            } catch (Exception $e) {
+                $this->redis = null;
+                return null;
+            }
+        }
+        return $this->redis->get(sprintf('%s:%s', self::REDIS_KEY_PICTURE_FILENAME_FROM_ALIAS, $alias));
     }
 }

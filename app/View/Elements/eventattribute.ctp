@@ -70,6 +70,8 @@
     ?>
 </div>
 <div id="tempnotecontainer"></div>
+<?php
+?>
 <div id="attributeList">
     <?php
         echo $this->element('eventattributetoolbar', [
@@ -93,7 +95,7 @@
             <th class="context hidden"><?= $this->Paginator->sort('first_seen', __('First seen')) ?> <i class="fas fa-arrow-right"></i> <?= $this->Paginator->sort('last_seen', __('Last seen')) ?></th>
             <th><?php echo $this->Paginator->sort('timestamp', __('Date'), array('direction' => 'desc'));?></th>
             <th class="context"><?= __('Context') ?></th>
-            <?php if ($extended): ?>
+            <?php if ($extended || $extending): ?>
                 <th class="event_id"><?php echo $this->Paginator->sort('event_id', __('Event'));?></th>
             <?php endif; ?>
             <?php if ($includeOrgColumn): $fieldCount++; ?>
@@ -269,7 +271,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
         $('.select_attribute').prop('checked', false).click(function(e) {
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
-                    selectAllInbetween(lastSelected, this);
+                    selectAllInBetween(lastSelected, this);
                 }
                 lastSelected = this;
             }
@@ -278,7 +280,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
         $('.select_proposal').prop('checked', false).click(function(e){
             if ($(this).is(':checked')) {
                 if (e.shiftKey) {
-                    selectAllInbetween(lastSelected, this);
+                    selectAllInBetween(lastSelected, this);
                 }
                 lastSelected = this;
             }

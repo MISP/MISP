@@ -30,16 +30,18 @@
         - $maxScore:
         - $pickingMode: Interactive picking mode, add a form and the chosen input
         - $scores: The score associate with either the value or the tag name (if provided)
-        - $removeTrailling: How much part of the name of the cell should be remove: e.g. $removeTrailling=2 => "abc def ghi", will be: "abc"
+        - $removeTrailing: How much part of the name of the cell should be remove: e.g. $removeTrailing=2 => "abc def ghi", will be: "abc"
         - $colours: The colour associated with the tag name (if provided)
         - $static: Should the output be inert. Used for embedding in other webpages or mails
 *
 *
 *
 */
-if (!empty($static)) {
+if (!empty($static) && !isset($pickingMode)) {
     $pickingMode = false;
 }
+
+$displayMatrixPicker = !$pickingMode && !empty($galaxy_id);
 
 if (empty($static)) {
     echo $this->element('genericElements/assetLoader', [
@@ -62,6 +64,19 @@ if (isset($interpolation) && !empty($interpolation)) {
 }
 ?>
 
+<?php if ($displayMatrixPicker): ?>
+<div style="position: absolute; left: 1em; top: 0.25em;">
+    <span>Galaxy Matrix: </span>
+    <select id="galaxyMatrixPicker" data-toggle="chosen">
+        <?php foreach ($matrixGalaxies as $k => $galaxy): ?>
+            <option value="<?php echo h($galaxy['Galaxy']['id']); ?>" <?= $galaxy_id == $galaxy['Galaxy']['id'] ? 'selected' : '' ?>><?php echo h($galaxy['Galaxy']['name']); ?></option>
+        <?php endforeach; ?>
+    </select>
+</div>
+<?php endif; ?>
+
+
+<div style="position: relative; <?= $displayMatrixPicker ? 'margin-top: 4.5em;' : '' ?>">
 <?php if (empty($static)): ?>
 <div class="attack-matrix-options" style="right: initial; background: transparent;">
 <ul id="attack-matrix-tabscontroller" class="nav nav-tabs" style="margin-bottom: 2px;">
@@ -74,7 +89,12 @@ if (!isset($defaultTabName)) {
 if (empty($static)):
 foreach(array_keys($columnOrders) as $tabName):
 ?>
-<?php $column = $tabs[$tabName]; ?>
+<?php 
+    if (empty($tabs[$tabName])) {
+        continue;
+    }
+    $column = $tabs[$tabName];
+?>
     <li class="tactic <?php echo $tabName==$defaultTabName ? "active" : ""; ?>"><span href="#tabMatrix-<?php echo h($tabName); ?>" data-toggle="tab" style="padding-top: 3px; padding-bottom: 3px;"><?php echo h($tabName); ?></span></li>
 <?php endforeach; ?>
 <?php endif; ?>
@@ -124,13 +144,18 @@ foreach(array_keys($columnOrders) as $tabName):
 </div>
 <?php endif; ?>
 
-<div id="matrix_container" class="fixed-table-container-inner" style="" data-picking-mode="<?php echo $pickingMode ? 'true' : 'false'; ?>">
+<div id="matrix_container" class="fixed-table-container-inner" style="margin-top: <?= $displayMatrixPicker ? '60' : '0' ?>px;" data-picking-mode="<?php echo $pickingMode ? 'true' : 'false'; ?>">
     <div class="tab-content">
     <?php foreach(array_keys($columnOrders) as $tabName): ?>
-        <?php $column = $tabs[$tabName]; ?>
+        <?php 
+            if (empty($tabs[$tabName])) {
+                continue;
+            }
+            $column = $tabs[$tabName];
+        ?>
         <?php
         if (!empty($static) && $tabName != $defaultTabName) {
-            // We cannot hide other tabs without JS. Only releave the default one for now.
+            // We cannot hide other tabs without JS. Only reveal the default one for now.
             continue;
         }
         ?>
@@ -170,9 +195,9 @@ foreach(array_keys($columnOrders) as $tabName):
                                 $cell = array('value' => $cell);
                             }
                             $value = isset($cell['value']) ? $cell['value'] : 0;
-                            if (isset($removeTrailling) && $removeTrailling > 0) {
+                            if (isset($removeTrailing) && $removeTrailing > 0) {
                                 $name = explode(" ", $value);
-                                $name = join(" ", array_slice($name, 0, -$removeTrailling)); // remove " - external_id"
+                                $name = join(" ", array_slice($name, 0, -$removeTrailing)); // remove " - external_id"
                             } else {
                                 $name = $value;
                             }
@@ -235,4 +260,24 @@ foreach(array_keys($columnOrders) as $tabName):
 </div>
 <div class="templateChoiceButton btn-matrix-submit submit-container hide"><?php echo __('Submit'); ?></div>
 <div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onclick="cancelPopoverForm('#popover_matrix');"><?php echo __('Cancel'); ?></div>
+<?php endif; ?>
+</div>
+
+<?php if ($displayMatrixPicker): ?>
+<script>
+$(document).ready(function() {
+    $('[data-toggle="chosen"]')
+        .chosen()
+        .change(reloadGalaxyMatrix)
+})
+
+function reloadGalaxyMatrix() {
+    var event_id = '<?= $eventId ?>'
+    var galaxyName = $('select[data-toggle="chosen"]').val()
+    var url = "<?= $baseurl; ?>/events/viewGalaxyMatrix/" + event_id + "/" + galaxyName + "/event/1/<?= $extended ? '1' : '0'?>"
+    $.get(url, function(html) {
+        $('#attackmatrix_div').html(html)
+    })
+}
+</script>
 <?php endif; ?>

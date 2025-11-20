@@ -484,7 +484,7 @@ class TagsController extends AppController
             // This method removes banned and hidden tags
             $tagCollections = $this->TagCollection->fetchTagCollection($this->Auth->user());
             $tags = array();
-            $inludedTagListString = array();
+            $includedTagListString = array();
             $expanded = array();
             foreach ($tagCollections as &$tagCollection) {
                 $tags[$tagCollection['TagCollection']['id']] = $tagCollection['TagCollection'];
@@ -496,7 +496,7 @@ class TagsController extends AppController
                         $tagCollection['TagCollectionTag'] = array_values($tagCollection['TagCollectionTag']);
                     }
                     $tagList = implode(', ', $tagList);
-                    $inludedTagListString[$tagCollection['TagCollection']['id']] = $tagList;
+                    $includedTagListString[$tagCollection['TagCollection']['id']] = $tagList;
                     $expanded[$tagCollection['TagCollection']['id']] .= sprintf(' (%s)', $tagList);
                 }
             }
@@ -579,6 +579,8 @@ class TagsController extends AppController
             $onClickForm = 'quickSubmitAttributeTagForm';
         } elseif ($scope === 'tag_collection') {
             $onClickForm = 'quickSubmitTagCollectionTagForm';
+        } elseif ($scope === 'event_report') {
+            $onClickForm = 'quickSubmitEventReportTagForm';
         } else {
             $onClickForm = 'quickSubmitTagForm';
         }
@@ -607,7 +609,7 @@ class TagsController extends AppController
                 )
             );
             if ($taxonomy_id === 'collections') {
-                $itemParam['template']['infoContextual'] = __('Includes: ') . $inludedTagListString[$tag['id']];
+                $itemParam['template']['infoContextual'] = __('Includes: ') . $includedTagListString[$tag['id']];
             }
             $items[] = $itemParam;
         }
@@ -922,7 +924,7 @@ class TagsController extends AppController
                 if ($objectType === 'Attribute') {
                     $this->MispAttribute->touch($object['Attribute']['id']);
                 } elseif ($objectType === 'Event') {
-                    $this->Event->unpublishEvent($object['Event']['id']);
+                    $this->Event->touch($object['Event']['id']);
                 }
             }
             return $this->RestResponse->saveSuccessResponse('Tags', 'removeTagFromObject', false, $this->response->type(), $message);
@@ -1032,7 +1034,7 @@ class TagsController extends AppController
 
     public function modifyTagRelationship($scope, $id)
     {
-        $validScopes = ['event', 'attribute'];
+        $validScopes = ['event', 'attribute', 'event_report'];
         if (!in_array($scope, $validScopes, true)) {
             throw new InvalidArgumentException(__('Invalid scope. Valid options: %s', implode(', ', $validScopes)));
         }
@@ -1045,7 +1047,12 @@ class TagsController extends AppController
         if (empty($tagConnector)) {
             throw new NotFoundException(__('Tag not found.'));
         }
-        $event = $this->Tag->EventTag->Event->fetchSimpleEvent($this->Auth->user(), $tagConnector[$model_name]['event_id']);
+        if ($scope == 'event_report') {
+            $eventReport = $this->Tag->EventReportTag->EventReport->simpleFetchById($this->Auth->user(), $tagConnector[$model_name]['event_report_id'], true);
+            $event = ['Event' => $eventReport['Event']];
+        } else {
+            $event = $this->Tag->EventTag->Event->fetchSimpleEvent($this->Auth->user(), $tagConnector[$model_name]['event_id']);
+        }
         if (empty($event)) {
             throw new NotFoundException(__('Event not found.'));
         }
@@ -1054,7 +1061,14 @@ class TagsController extends AppController
         }
         if ($this->request->is('post')) {
             if (isset($this->request->data['Tag']['relationship_type'])) {
-                $tagConnector[$model_name]['relationship_type'] = $this->request->data['Tag']['relationship_type'];
+                if (
+                    $this->request->data['Tag']['relationship_type'] == 'custom' &&
+                    !empty($this->request->data['Tag']['relationship_type_custom'])
+                ) {
+                    $tagConnector[$model_name]['relationship_type'] = $this->request->data['Tag']['relationship_type_custom'];
+                } else {
+                    $tagConnector[$model_name]['relationship_type'] = $this->request->data['Tag']['relationship_type'];
+                }
             } else {
                 $tagConnector[$model_name]['relationship_type'] = '';
             }
@@ -1079,14 +1093,24 @@ class TagsController extends AppController
 
         } else {
             $this->loadModel('ObjectRelationship');
-            $relationships = $this->ObjectRelationship->find('column', array(
+            $relationships = $this->ObjectRelationship->find('all', array(
                 'recursive' => -1,
-                'fields' => ['name'],
+                'fields' => ['name', 'highlighted', 'description'],
+                'order' => ['highlighted DESC']
             ));
-            $relationships = array_combine($relationships, $relationships);
-            $relationships['custom'] = 'custom';
-            $relationships[null] = 'Unspecified';
-            ksort($relationships);
+            $relationships = Hash::extract($relationships, '{n}.ObjectRelationship');
+            array_unshift($relationships, [
+                'name' => 'custom',
+                'value' => 'custom',
+                'description' => __('Allow to set a custom relationship'),
+                'highlighted' => false,
+            ]);
+            array_unshift($relationships, [
+                'name' => 'Unspecified',
+                'value' => '',
+                'description' => __('No relationship'),
+                'highlighted' => false,
+            ]);
 
             $this->set('title', __('Modify Tag Relationship'));
             $this->set(
@@ -1100,12 +1124,28 @@ class TagsController extends AppController
                 )
             );
             $this->set('options', $relationships);
-            $this->set('default', $tagConnector[$model_name]['relationship_type']);
+            if (!in_array($tagConnector[$model_name]['relationship_type'], array_column($relationships, 'name')) && $tagConnector[$model_name]['relationship_type'] !== '') {
+                $this->set('default', 'custom');
+                $this->set('default_custom', $tagConnector[$model_name]['relationship_type']);
+            } else {
+                $this->set('default', $tagConnector[$model_name]['relationship_type']);
+                $this->set('default_custom', '');
+            }
             $this->set('model', 'Tag');
             $this->set('onsubmit', 'modifyTagRelationship()');
             $this->set('field', 'relationship_type');
             $this->layout = false;
             $this->render('/genericTemplates/select');
         }
+    }
+
+    public function fastIndex($includeClusters=false)
+    {
+        if (!$this->_isRest() && !$this->request->is('ajax')) {
+            throw new MethodNotAllowedException('This action is only for REST users.');
+        }
+        $tags = $this->Tag->getCachedTags($includeClusters);
+        $tags = array_column(array_column($tags, 'Tag'), 'name');
+        return $this->RestResponse->viewData($tags, $this->response->type());
     }
 }

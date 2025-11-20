@@ -12,21 +12,30 @@ $debugEnabled = !empty($selectedWorkflow['Workflow']['debug_enabled']);
 ?>
 <div class="root-container">
     <div class="topbar">
-        <a href="<?= $baseurl . '/workflows/triggers' ?>">
-            <i class="fa-fw <?= $this->FontAwesome->getClass('caret-left') ?>"></i><?= __('Trigger index') ?>
-        </a>
+        <?php if (!empty($selectedTrigger['is_adhoc'])): ?>
+            <a href="<?= $baseurl . '/workflows/adhoc' ?>">
+                <i class="fa-fw <?= $this->FontAwesome->getClass('caret-left') ?>"></i><?= __('Ad-Hoc index') ?>
+            </a>
+        <?php else: ?>
+            <a href="<?= $baseurl . '/workflows/triggers' ?>">
+                <i class="fa-fw <?= $this->FontAwesome->getClass('caret-left') ?>"></i><?= __('Trigger index') ?>
+            </a>
+        <?php endif; ?>
         <span style="display: flex; align-items: center; min-width: 220px; gap: 5px;">
             <h3 style="display: inline-block;">
                 <span style="font-weight:normal;"><?= __('Workflow:') ?></span>
                 <strong><?= h($selectedWorkflow['Workflow']['trigger_id']) ?></strong>
+                <?php if (!empty($selectedTrigger['is_adhoc'])): ?>
+                    - <span style="margin-right: 1em;";><?= h($selectedWorkflow['Workflow']['name']) ?></span>
+                <?php endif; ?>
             </h3>
             <?php if (!empty($isBlockingTrigger)) : ?>
-                <span class="label label-important" style="line-height: 20px;" title="<?= __('This workflow is a blocking worklow and can prevent the default MISP behavior to execute') ?>">
+                <span class="label label-important" style="line-height: 20px;" title="<?= __('This workflow is a blocking workflow and can prevent the default MISP behavior to execute') ?>">
                     <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('stop-circle') ?>"></i>
                     <?= __('Blocking') ?>
                 </span>
             <?php else : ?>
-                <span class="label label-success" style="line-height: 20px;" title="<?= __('This workflow is a not blocking worklow. The default MISP behavior will or has already happened') ?>">
+                <span class="label label-success" style="line-height: 20px;" title="<?= __('This workflow is a not blocking workflow. The default MISP behavior will or has already happened') ?>">
                     <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('check-circle') ?>"></i>
                     <?= __('Non blocking') ?>
                 </span>
@@ -292,6 +301,7 @@ echo $this->element('genericElements/assetLoader', [
     'js' => array(
         'codemirror/codemirror',
         'codemirror/addons/closebrackets',
+        'codemirror/addons/placeholder',
     ),
     'css' => array(
         'codemirror',

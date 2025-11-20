@@ -234,6 +234,12 @@ class AuditLog extends AppModel
         }
 
         if (isset($auditLog['change'])) {
+            $sanitiseFields = ['password', 'api_key', 'authkey', 'headers', 'api_token', 'token', 'key'];
+            foreach ($sanitiseFields as $field) {
+                if (isset($auditLog['change'][$field])) {
+                    $auditLog['change'][$field] = '***';
+                }
+            }
             $auditLog['change'] = $this->encodeChange($auditLog['change']);
             if (strlen($auditLog['change']) > self::CHANGE_MAX_SIZE) {
                 // Change is too big to save in database, skipping
@@ -306,6 +312,7 @@ class AuditLog extends AppModel
                 $userFromDb = $this->User->find('first', [
                     'conditions' => ['User.id' => $currentUserId],
                     'fields' => ['User.org_id'],
+                    'recursive' => -1,
                 ]);
                 $this->user['org_id'] = $userFromDb['User']['org_id'];
             }

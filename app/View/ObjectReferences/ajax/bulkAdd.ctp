@@ -60,7 +60,7 @@ echo $this->element('genericElements/Form/genericForm', [
 ]);
 ?>
 <script>
-    var validSourceUuid = <?= JsonTool::encode($eventObjects) ?>;
+    var validSourceUuid = <?= json_encode($eventObjects) ?>;
     $(function() {
         $("#ObjectReferenceRelationshipTypeSelect").change(function() {
             objectReferenceCheckForCustomRelationship()

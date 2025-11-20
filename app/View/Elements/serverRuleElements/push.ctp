@@ -82,7 +82,7 @@
     var pullRemoteRules404Error = '<?= __('Connection error or the remote version is not supporting remote filter lookups (v2.4.142+). Make sure that the remote instance is accessible and that it is up to date.') ?>'
     var cm;
     $(function() {
-        var serverID = "<?= isset($id) ? $id : '' ?>"
+        var serverID = "<?= isset($id) ? h($id) : '' ?>"
         <?php if (empty($attributeTypeBlockRules) && empty($objectTypeBlockRules)) : ?>
             $('div.server-rule-container-push .type-filtering-subcontainer').hide()
         <?php else : ?>

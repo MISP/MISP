@@ -10,7 +10,7 @@
 ##
 ## This script can be used to reset a MISP instance
 ## by clearing all events, orgs and users.
-## It is highy recommended to run misp-backup.sh first!
+## It is highly recommended to run misp-backup.sh first!
 ##
 ## Tested against MISP 2.4.96
 ##

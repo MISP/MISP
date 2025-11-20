@@ -4,7 +4,7 @@ abstract class NidsExport
 {
     public $rules = array();
 
-    public $classtype = 'trojan-activity';
+    public $classtype = 'bad-unknown';
 
     protected $format;   // suricata (default), snort
 
@@ -340,7 +340,7 @@ abstract class NidsExport
                 $ipport[0],         // dst_ip
                 $ipport[1],                         // dst_port
                 'Outgoing To IP: ' . $attribute['value'],       // msg
-                '',                             // rule_content
+                'flow:not_established,to_server; flowbits:isnotset,outbound_ioc; flowbits:set,outbound_ioc;',                             // rule_content
                 '',                             // tag
                 $sid,                           // sid
                 1                               // rev
@@ -686,7 +686,7 @@ abstract class NidsExport
             $extraForRule .= $ruleFormatReference . ';';
         }
         $tmpRule = preg_replace('/;\s*\)/', '; ' . $extraForRule . ')', $tmpRule);
-        // finally the rule is cleaned up and can be outputed
+        // finally the rule is cleaned up and can be outputted
         $this->rules[] = $tmpRule;
         return true;
     }

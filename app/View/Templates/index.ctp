@@ -26,7 +26,7 @@ echo $this->element('genericElements/IndexTable/scaffold', [
                     'class' => 'short'
                 ],
                 [
-                    'name' => 'Share',
+                    'name' => 'Shared',
                     'sort' => 'Template.share',
                     'data_path' => 'Template.share',
                     'element' => 'boolean',
@@ -34,8 +34,8 @@ echo $this->element('genericElements/IndexTable/scaffold', [
                 ],
                 [
                     'name' => 'Name',
-                    'sort' => 'Template.org',
-                    'data_path' => 'Template.org',
+                    'sort' => 'Template.name',
+                    'data_path' => 'Template.name',
                     'class' => 'short'
                 ],
                 [

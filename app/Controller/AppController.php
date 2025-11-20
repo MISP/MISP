@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '165';
-    public $pyMispVersion = '2.5.1';
+    private $__queryVersion = '181';
+    public $pyMispVersion = '2.5.17.2';
     public $phpmin = '8.1';
     public $phprec = '8.2';
     public $phptoonew = '9.0';
@@ -115,11 +115,11 @@ class AppController extends Controller
 
         // Set the baseurl for redirects
         $baseurl = empty(Configure::read('MISP.baseurl')) ? null : Configure::read('MISP.baseurl');
-        if (!empty($baseurl)) {
+
+        if (!empty($baseurl) && empty(Configure::read('MISP.disable_baseurl_coercion'))) {
             Configure::write('App.fullBaseUrl', $baseurl);
             Router::fullBaseUrl($baseurl);
         }
-
         $this->_setupBaseurl();
         $this->User = ClassRegistry::init('User');
         if (Configure::read('Plugin.Benchmarking_enable')) {
@@ -233,6 +233,7 @@ class AppController extends Controller
                 }
                 return $this->_jsonDecode($dataToDecode);
             };
+
             //  Throw exception if JSON in request is invalid. Default CakePHP behaviour would just ignore that error.
             $this->RequestHandler->addInputType('json', [$jsonDecode]);
             $this->Security->unlockedActions = [$action];
@@ -274,6 +275,8 @@ class AppController extends Controller
         $user = $this->Auth->user();
         if ($user) {
             Configure::write('CurrentUserId', $user['id']);
+            Configure::write('CurrentUserEmail', $user['email']);
+            Configure::write('CurrentUserIP', $this->User->_remoteIp());
             $this->__logAccess($user);
 
             // Try to run updates
@@ -395,6 +398,12 @@ class AppController extends Controller
                 } else {
                     $this->Flash->warning($deprecationWarnings);
                 }
+            }
+        }
+        $notificationToasts = $this->User->collectNotificationToastForUser(['User' => $user]);
+        if (!empty($notificationToasts)) {
+            foreach ($notificationToasts as $notificationToast) {
+                $this->Flash->set($notificationToast['message'], $notificationToast);
             }
         }
         if (Configure::read('MISP.enable_automatic_garbage_collection') && mt_rand(1,100) % 100 == 0) {
@@ -907,11 +916,16 @@ class AppController extends Controller
     {
         // benchmarking
         if (Configure::read('Plugin.Benchmarking_enable') && isset($this->Benchmark)) {
+            $sql_time = null;
+            if (get_class($this->User->getDataSource()) === 'MysqlObserverExtended') {
+                $sql_time = MysqlObserverExtended::$totalSqlTimeMs;
+            }
             $this->Benchmark->stopBenchmark([
                 'user' => $this->Auth->user('id'),
                 'controller' => $this->request->params['controller'],
                 'action' => $this->request->params['action'],
-                'start_time' => $this->start_time
+                'start_time' => $this->start_time,
+                'sql_time' => $sql_time
             ]);
 
             //if ($redis && !$redis->exists('misp:auth_fail_throttling:' . $key)) {
@@ -1020,7 +1034,7 @@ class AppController extends Controller
 
     private function __captureParam($data, $param, $value)
     {
-        if ($this->modelClass->checkParam($param)) {
+        if ($this->{$this->modelClass}->checkParam($param)) {
             $data[$param] = $value;
         }
         return $data;
@@ -1042,6 +1056,9 @@ class AppController extends Controller
             if (!in_array('limit', $options['paramArray'])) {
                 $options['paramArray'][] = 'limit';
             }
+            if (!in_array('sign', $options['paramArray'])) {
+                $options['paramArray'][] = 'sign';
+            }
         }
         $request = $options['request'] ?? $this->request;
         if ($request->is('post')) {
@@ -1059,10 +1076,7 @@ class AppController extends Controller
                     $temp = $request->data;
                 }
                 if (empty($options['paramArray'])) {
-                    foreach ($options['paramArray'] as $param => $value) {
-                        $data = $this->__captureParam($data, $param, $value);
-                    }
-                    $data = array_merge($data, $temp);
+                    $data = $temp;
                 } else {
                     foreach ($options['paramArray'] as $param) {
                         if (str_ends_with($param, '*')) {
@@ -1109,6 +1123,11 @@ class AppController extends Controller
                 if (isset($options['named_params'][$p])) {
                     $data[$p] = str_replace(';', ':', $options['named_params'][$p]);
                 }
+            }
+        }
+        if (!empty($options['request']->query)) {
+            foreach ($options['request']->query as $k => $v) {
+                $data[$k] = $v;
             }
         }
         foreach ($data as &$v) {
@@ -1217,6 +1236,9 @@ class AppController extends Controller
                 }
             } else {
                 $headerNamespace = '';
+            }
+            if (empty($server[$headerNamespace . $header])) {
+                return false;
             }
             if (isset($server[$headerNamespace . $header]) && !empty($server[$headerNamespace . $header])) {
                 if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $this->User->_remoteIp()) {
@@ -1364,8 +1386,7 @@ class AppController extends Controller
         $scope = empty($this->scopeOverride) ? $this->modelClass : $this->scopeOverride;
         if ($scope === 'MispObject') {
             $scope = 'Object';
-        }
-        if ($scope === 'MispAttribute') {
+        } else if ($scope === 'MispAttribute') {
             $scope = 'Attribute';
         }
         if (!isset($this->RestSearch->paramArray[$scope])) {
@@ -1375,7 +1396,7 @@ class AppController extends Controller
             $modelName = 'MispObject';
         } else if ($scope === 'Attribute') {
             $modelName = 'MispAttribute';
-        }else {
+        } else {
             $modelName = $scope;
         }
         if (!isset($this->$modelName)) {
@@ -1392,17 +1413,49 @@ class AppController extends Controller
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception, $this->_legacyParams);
+        if (isset($this->request->params['named']['search_token'])) {
+            $temp = $this->MispAttribute->getSearchParamsByToken(['search_token' => $this->request->params['named']['search_token']]);
+            foreach ($temp as $k => $temp_data) {
+                if ($temp[$k] === 'ALL' || $temp[$k] === '') {
+                    unset($temp[$k]);
+                    continue;
+                }
+                if ($k === 'limit') {
+                    unset($temp[$k]);
+                    continue;
+                }
+                if (!is_array($temp[$k]) && str_contains($temp_data, PHP_EOL)) {
+                    $temp[$k] = explode(PHP_EOL, trim($temp_data));
+                    $temp[$k] = array_map(function($element) {
+                        return trim($element);
+                    }, $temp[$k]);
+                }
+            }
+            $filters = array_merge($filters, $temp);
+        }
         if (empty($filters) && $this->request->is('get')) {
             throw new BadRequestException(__('Restsearch queries using GET and no parameters are not allowed. If you have passed parameters via a JSON body, make sure you use POST requests.'));
         }
-        if (empty($filters['returnFormat'])) {
-            $filters['returnFormat'] = 'json';
-        }
-        unset($filterData);
         if ($filters === false) {
             return $exception;
         }
+        if (empty($filters['returnFormat'])) {
+            $acceptHeader = $this->request->header('Accept');
 
+            if (preg_match('#application/([a-zA-Z0-9\-\+]+)#', $acceptHeader, $matches)) {
+                $format = strtolower(trim($matches[1]));
+            } elseif (preg_match('#text/csv#', $acceptHeader, $matches)) {
+                $format = 'csv';
+            } else {
+                $format = 'json';
+            }
+
+            if (isset($this->$modelName->validFormats[$format])) {
+                $filters['returnFormat'] = $format;
+            }
+        }
+
+        unset($filterData);
         $user = $this->_closeSession();
 
         if (isset($filters['returnFormat'])) {
@@ -1420,7 +1473,7 @@ class AppController extends Controller
         $responseType = empty($model->validFormats[$returnFormat][0]) ? 'json' : $model->validFormats[$returnFormat][0];
         // halt execution if we were to query for items above the ID. Blocks the endless caching bug
         if (!empty($filters['page']) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
-            if ($this->__cachingOverflow($filters, $scope)) {
+            if ($this->__cachingOverflow($filters, $modelName, $scope)) {
                 $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
                 return $this->RestResponse->viewData('', $responseType, false, true, $filename, [
                     'X-Result-Count' => 0,
@@ -1429,17 +1482,42 @@ class AppController extends Controller
                 ]);
             }
         }
+
+        $roleLimit = $this->User->getUserRestLimit($this->Auth->user(), $this);
+        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
+            $filters['limit'] = $roleLimit;
+        }
+
         /** @var TmpFileTool $final */
         $skippedElementsCounter = 0;
         $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter);
+        $responseTypeMapping = [
+            'json' => 'application/json',
+            'html' => 'text/html',
+            'text' => 'text/plain',
+            'xml' => 'application/xml'
+        ];
         if ($renderView) {
             $this->layout = false;
             $final = JsonTool::decode($final->intoString());
             $this->set($final);
             $this->render('/Events/module_views/' . $renderView);
+            if (isset($responseTypeMapping[$responseType])) {
+                $this->response->type($responseTypeMapping[$responseType]);
+            }
+            return $this->response;
         } else {
+            if (!empty($filters['sign'])) {
+                $this->RestResponse->signContents = true;
+            }
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
-            $headers = ['X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType, 'X-Skipped-Elements-Count' => $skippedElementsCounter];
+            $headers = [
+                'X-Result-Count' => $elementCounter,
+                'X-Export-Module-Used' => $returnFormat,
+                'X-Response-Format' => $responseType,
+                'X-Skipped-Elements-Count' => $skippedElementsCounter,
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+            ];
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers);
         }
     }
@@ -1448,13 +1526,14 @@ class AppController extends Controller
      * Halt execution if we were to query for items above the ID. Blocks the endless caching bug.
      *
      * @param array $filters
+     * @param string $modelName
      * @param string $scope
      * @return bool
      */
-    private function __cachingOverflow($filters, $scope)
+    private function __cachingOverflow(array $filters, $modelName, $scope)
     {
         $offset = ($filters['page'] * (empty($filters['limit']) ? 60 : $filters['limit'])) + 1;
-        $max_id = $this->$scope->query(sprintf('SELECT max(id) as max_id from %s;', Inflector::tableize($scope)));
+        $max_id = $this->$modelName->query(sprintf('SELECT max(id) as max_id from %s;', Inflector::tableize($scope)));
         $max_id = intval($max_id[0][0]['max_id']);
         if ($max_id < $offset) {
             return true;

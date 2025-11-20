@@ -109,14 +109,22 @@ class AuthKey extends AppModel
     {
         foreach ($results as $key => $val) {
             if (isset($val['AuthKey']['allowed_ips'])) {
-                $results[$key]['AuthKey']['allowed_ips'] = JsonTool::decode($val['AuthKey']['allowed_ips']);
+                try {
+                    $results[$key]['AuthKey']['allowed_ips'] = JsonTool::decode($val['AuthKey']['allowed_ips']);
+                } catch (JsonException $e) {
+                    $results[$key]['AuthKey']['allowed_ips'] = array_map('trim', explode(',', $val['AuthKey']['allowed_ips']));
+                }
             }
             if (isset($val['AuthKey']['unique_ips'])) {
-                $results[$key]['AuthKey']['unique_ips'] = JsonTool::decode($val['AuthKey']['unique_ips']);
+                try {
+                    $results[$key]['AuthKey']['unique_ips'] = JsonTool::decode($val['AuthKey']['unique_ips']);
+                } catch (JsonException $e) {
+                    $results[$key]['AuthKey']['unique_ips'] = array_map('trim', explode(',', $val['AuthKey']['unique_ips']));
+                }
             } else {
                 $results[$key]['AuthKey']['unique_ips'] = [];
             }
-            
+
         }
         return $results;
     }
@@ -382,7 +390,7 @@ class AuthKey extends AppModel
 
     /**
      * When key is deleted, update after `date_modified` for user that was assigned to that key, so session data
-     * will be realoaded and canceled.
+     * will be reloaded and canceled.
      * @see AppController::_refreshAuth
      */
     public function afterDelete()
@@ -424,5 +432,60 @@ class AuthKey extends AppModel
     private function getHasher()
     {
         return new BlowfishConstantPasswordHasher();
+    }
+
+    public function canCreateAuthKeyForUser($currentUser, $user_id)
+    {
+        if (!empty($currentUser['Role']['perm_site_admin'])) {
+            return true;
+        }
+        if (!empty($currentUser['Role']['perm_admin'])) {
+            // org admin only for non-admin users and themselves
+            $user = $this->User->find('first', [
+                'recursive' => -1,
+                'conditions' => [
+                    'User.id' => $user_id,
+                    'User.disabled' => false,
+                    'User.org_id' => $currentUser['org_id']
+                ],
+                'fields' => ['User.id', 'User.org_id', 'User.disabled'],
+                'contain' => [
+                    'Role' => [
+                        'fields' => [
+                            'Role.perm_site_admin', 'Role.perm_admin', 'Role.perm_auth'
+                        ]
+                    ]
+                ]
+            ]);
+            // Make sure that we can't create keys for disabled users
+            if (empty($user)) {
+                return false;
+            }
+            if ($user['Role']['perm_site_admin'] || 
+                ($user['Role']['perm_admin'] && $user['User']['id'] !== $currentUser['id']) ||
+                !$user['Role']['perm_auth']) {
+                // no create/edit for site_admin or other org admin
+                return false;
+            } else {
+                // ok for themselves or users
+                return true;
+            }
+        } else {
+            // user for themselves
+            return (int)$user_id === (int)$currentUser['id'];
+        }
+    }
+
+    public function canEditAuthKey($currentUser, $key_id)
+    {
+        $user_id = $this->find('column', [
+            'fields' => ['AuthKey.user_id'],
+            'conditions' => [
+                'AuthKey.id' => $key_id
+            ]]);
+        if (!empty($user_id)) {
+            $user_id = $user_id[0];
+        }
+        return $this->canCreateAuthKeyForUser($currentUser, $user_id);
     }
 }

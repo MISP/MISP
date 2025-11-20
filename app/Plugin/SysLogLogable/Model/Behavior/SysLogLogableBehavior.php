@@ -79,9 +79,10 @@ class SysLogLogableBehavior extends LogableBehavior
 				}
 				// TODO Audit, removed 'revision' as well
 				if ($key != 'lastpushedid' && $key!= 'timestamp' && $key != 'revision' && $key != 'modified' && !in_array($key, $this->settings[$Model->alias]['ignore']) && $value != $old && in_array($key, $db_fields)) {
-                    if ($key === 'authkey' && Configure::read('Security.do_not_log_authkeys')) {
-                        $old = $value = '*****';
-                    }
+					$sanitiseFields = ['password', 'api_key', 'authkey', 'headers', 'api_token', 'token', 'key'];
+					if (in_array($key, $sanitiseFields) || $key === 'authkey' && Configure::read('Security.do_not_log_authkeys')) {
+						$old = $value = '*****';
+					}
 
 				    if ($this->settings[$Model->alias]['change'] == 'full') {
 						if (($key != 'published') || (($key == 'published') && ($value == '1'))) { // remove (un-)published from edit
@@ -168,7 +169,7 @@ class SysLogLogableBehavior extends LogableBehavior
 			}
 			$logData['Log']['description'] .= '.';
 		}
-		if (isset($this->schema['email'])) {	// TODO Audit, LogableBehevior email
+		if (isset($this->schema['email'])) {	// TODO Audit, LogableBehavior email
 		if ($this->user && $this->UserModel) {
 			$logData['Log']['email'] = $this->user[$this->UserModel->alias][$this->UserModel->displayField];
 		} else {
@@ -176,7 +177,7 @@ class SysLogLogableBehavior extends LogableBehavior
 			$logData['Log']['email'] = 'SYS';
 		}
 		}
-		if (isset($this->schema['org'])) {	// TODO Audit, LogableBehevior org CHECK!!!
+		if (isset($this->schema['org'])) {	// TODO Audit, LogableBehavior org CHECK!!!
 		if ($this->user && $this->UserModel) {
 			$logData['Log']['org'] = $this->user[$this->UserModel->alias]['Organisation']['name'];
 		} else {
@@ -184,7 +185,7 @@ class SysLogLogableBehavior extends LogableBehavior
 			$logData['Log']['org'] = 'SYS';
 		}
 		}
-		if (isset($this->schema['title'])) {	// TODO LogableBehevior title
+		if (isset($this->schema['title'])) {	// TODO LogableBehavior title
 		if ($this->user && $this->UserModel) {	//  $Model->data[$Model->alias][$Model->displayField]
 			switch ($Model->alias) {
 				case "Attribute":

@@ -17,11 +17,9 @@ class WorkflowsController extends AppController
         $requirementErrors = [];
         if (empty(Configure::read('MISP.background_jobs'))) {
             $requirementErrors[] = __('Background workers must be enabled to use workflows');
-            $this->render('error');
         }
         if (empty(Configure::read('Plugin.Workflow_enable'))) {
-            $requirementErrors[] = __('The workflow plugin must be enabled to use workflows. Go to `/servers/serverSettings/Plugin` the enable the `Plugin.Workflow` setting');
-            $this->render('error');
+            $requirementErrors[] = __('The workflow plugin must be enabled to use workflows. Go to `/servers/serverSettings/Plugin` and enable the `Plugin.Workflow` setting');
         }
         try {
             $this->Workflow->setupRedisWithException();
@@ -50,6 +48,32 @@ class WorkflowsController extends AppController
     public function rebuildRedis()
     {
         $this->Workflow->rebuildRedis();
+    }
+
+    public function add()
+    {
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $newWorkflow = $this->request->data;
+            $newWorkflow['Workflow']['data'] = empty($newWorkflow['Workflow']['data']) ? [] : JsonTool::decode($newWorkflow['Workflow']['data']);
+            if (empty($newWorkflow['Workflow']['data'])) {
+                $trigger_id = $this->Workflow->genAdHocTriggerID();
+                $newWorkflow['Workflow']['trigger_id'] = $trigger_id;
+                $newWorkflow['Workflow']['data'] = $this->Workflow->genGraphDataForTrigger($trigger_id);
+            }
+            $result = $this->Workflow->addWorkflow($newWorkflow);
+            if (!empty($result['errors'])) {
+                $redirectTarget = null;
+                return $this->__getFailResponseBasedOnContext($result['errors'], null, 'edit', $this->Workflow->id, $redirectTarget);
+            } else {
+                $redirectTarget = ['action' => 'view', $result['saved']['Workflow']['id']];
+                $successMessage = __('Workflow saved.');
+                $savedWorkflow = $result['saved'];
+                $savedWorkflow = $this->Workflow->attachLabelToConnections($savedWorkflow);
+                return $this->__getSuccessResponseBasedOnContext($successMessage, $savedWorkflow, 'edit', false, $redirectTarget);
+            }
+        }
+
+        $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'add']);
     }
 
     public function edit($id)
@@ -127,7 +151,7 @@ class WorkflowsController extends AppController
             $trigger_ids = Hash::extract($modules['modules_trigger'], '{n}.id');
             if (!in_array($trigger_id, $trigger_ids)) {
                 return $this->__getFailResponseBasedOnContext(
-                    [__('Unkown trigger %s', $trigger_id)],
+                    [__('Unknown trigger %s', $trigger_id)],
                     null,
                     'add',
                     $trigger_id,
@@ -157,6 +181,13 @@ class WorkflowsController extends AppController
         }
         $workflow = $this->Workflow->attachLabelToConnections($workflow, $trigger_id);
         $modules = $this->Workflow->attachNotificationToModules($modules, $workflow);
+        // Override description placeholder with the workflow's name
+        foreach ($modules['modules_trigger'] as $i => $trigger) {
+            if ($trigger['id'] == $workflow['Workflow']['trigger_id']) {
+                $modules['modules_trigger'][$i]['description'] = sprintf('%s - %s', $workflow['Workflow']['name'], $workflow['Workflow']['description']);
+                break;
+            }
+        }
         $this->loadModel('WorkflowBlueprint');
         $workflowBlueprints = $this->WorkflowBlueprint->find('all');
         $workflowBlueprints = array_map(function($blueprint) {
@@ -172,6 +203,9 @@ class WorkflowsController extends AppController
     {
         if ($this->request->is('post') || $this->request->is('put')) {
             $blockingErrors = [];
+            if (empty($this->request->data['Workflow']['data'])) {
+                $this->request->data['Workflow']['data'] = '[]';
+            }
             if (!JsonTool::isValid($this->request->data['Workflow']['data'])) {
                 return $this->RestResponse->viewData([
                     'success' => false,
@@ -185,12 +219,48 @@ class WorkflowsController extends AppController
                 $errorMessage = implode(', ', $blockingErrors);
                 $this->Workflow->loadLog()->createLogEntry('SYSTEM', $logging['action'], $logging['model'], $logging['id'], $logging['message'], __('Returned message: %s', $errorMessage));
             }
-            return $this->RestResponse->viewData([
-                'success' => $result['success'],
-                'outcome' => $result['outcomeText'],
-            ], $this->response->type());
+            if ($this->_isRest() || $this->request->is('ajax')) {
+                return $this->RestResponse->viewData([
+                    'success' => $result['success'],
+                    'outcome' => $result['outcomeText'],
+                ], $this->response->type());
+            } else {
+                if (empty($result['success'])) {
+                    $this->Flash->error($result['outcomeText']);
+                } else {
+                    $this->Flash->success('Workflow successfully executed.');
+                }
+                $this->redirect(['scope' => 'workflows', 'action' => 'adhoc']);
+            }
         }
         $this->render('ajax/executeWorkflow');
+    }
+
+
+    public function adhoc()
+    {
+        $triggers = $this->Workflow->getModulesByType('trigger');
+        $triggers = array_filter($triggers, function($trigger) {
+            return !empty($trigger['is_adhoc']);
+        });
+        $triggers = $this->Workflow->attachWorkflowToTriggers($triggers);
+        $triggers = $this->Workflow->attachTriggerParamsToWorkflow($triggers);
+        $scopes = array_unique(Hash::extract($triggers, '{n}.scope'));
+        sort($scopes);
+        if (isset($filters['enabled'])) {
+            $triggers = array_filter($triggers, function($trigger) use ($filters) {
+                return $trigger['disabled'] != $filters['enabled'];
+            });
+        }
+        App::uses('CustomPaginationTool', 'Tools');
+        $customPagination = new CustomPaginationTool();
+        $customPagination->truncateAndPaginate($triggers, $this->params, 'Workflow', true);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($triggers, $this->response->type());
+        }
+
+        $this->set('data', $triggers);
+        $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_adhoc']);
     }
 
     public function triggers()
@@ -199,6 +269,9 @@ class WorkflowsController extends AppController
         $triggers = $this->Workflow->attachWorkflowToTriggers($triggers);
         $scopes = array_unique(Hash::extract($triggers, '{n}.scope'));
         sort($scopes);
+        $triggers = array_filter($triggers, function($trigger) {
+            return empty($trigger['is_adhoc']);
+        });
         $filters = $this->IndexFilter->harvestParameters(['scope', 'enabled', 'blocking']);
         if (!empty($filters['scope'])) {
             $triggers = array_filter($triggers, function($trigger) use ($filters) {
@@ -306,13 +379,14 @@ class WorkflowsController extends AppController
     {
         $this->request->allowMethod(['post', 'put']);
         $saved = $this->Workflow->toggleModule($module_id, $enabled, $is_trigger);
+        $is_adhoc_workflow = $this->Workflow->isAdHocTrigger($module_id);
         if ($saved) {
             return $this->__getSuccessResponseBasedOnContext(
                 __('%s module %s', ($enabled ? 'Enabled' : 'Disabled'), $module_id),
                 null,
                 'toggle_module',
                 $module_id,
-                ['action' => (!empty($is_trigger) ? 'triggers' : 'moduleIndex')]
+                ['action' => (!empty($is_trigger) ? ($is_adhoc_workflow ? 'adhoc' : 'triggers') : 'moduleIndex')]
             );
         } else {
             return $this->__getFailResponseBasedOnContext(
@@ -320,7 +394,7 @@ class WorkflowsController extends AppController
                 null,
                 'toggle_module',
                 $module_id,
-                ['action' => (!empty($is_trigger) ? 'triggers' : 'moduleIndex')]
+                ['action' => (!empty($is_trigger) ? ($is_adhoc_workflow ? 'adhoc' : 'triggers') : 'moduleIndex')]
             );
         }
     }

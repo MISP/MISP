@@ -1,3 +1,8 @@
+/* Placeholder */
+.CodeMirror pre.CodeMirror-placeholder {
+  color: #999 !important;
+}
+
 /* BASICS */
 
 .CodeMirror {
@@ -345,5 +350,5 @@ div.CodeMirror-dragcursors {
 /* See issue #2901 */
 .cm-tab-wrap-hack:after { content: ''; }
 
-/* Help users use markselection to safely style text background */
+/* Help users use mark selection to safely style text background */
 span.CodeMirror-selectedtext { background: none; }

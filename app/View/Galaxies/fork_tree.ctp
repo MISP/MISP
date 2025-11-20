@@ -17,7 +17,7 @@ echo $this->element('genericElements/assetLoader', array(
 
 
 <script type="text/javascript">
-var transparentImg = ' data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAC4jAAAuIwF4pT92AAAAB3RJTUUH5AQVCQsbtQbZ8QAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAC5SURBVGje7dcxCoNAEIXhNyoKnkDvfwtP4QUsrWURJCbrTgrLNIakcOF/MP1+8IZlzN2VcwplHgAAAAAAAAAAAABX4y6ldCtAdfXhHqN83+UxyppGVteysswD4Ckprate86wUgqq+V9V1sraVzDKoUIw6lkX7OOoxDHpOk9K2nZViiX+LXTkp/TiUQvioUHGDCl0C3HmJ7auj3v2cosirQvzEAAAAAAAAAAAAAAAAAAAAAAAAAAD8OW/IQVbE0efUAQAAAABJRU5ErkJggg==';
+var transparentImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAC4jAAAuIwF4pT92AAAAB3RJTUUH5AQVCQsbtQbZ8QAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAC5SURBVGje7dcxCoNAEIXhNyoKnkDvfwtP4QUsrWURJCbrTgrLNIakcOF/MP1+8IZlzN2VcwplHgAAAAAAAAAAAABX4y6ldCtAdfXhHqN83+UxyppGVteysswD4Ckprate86wUgqq+V9V1sraVzDKoUIw6lkX7OOoxDHpOk9K2nZViiX+LXTkp/TiUQvioUHGDCl0C3HmJ7auj3v2cosirQvzEAAAAAAAAAAAAAAAAAAAAAAAAAAD8OW/IQVbE0efUAQAAAABJRU5ErkJggg==';
 var data = <?= json_encode($tree) ?>;
 var margin = {top: 10, right: 10, bottom: 10, left: 20};
 var width, height;

@@ -116,7 +116,7 @@ class OrphansProtectableBehavior extends ModelBehavior {
 		$messageParts = array();
 		if ($Model->orphansProtectableOptions['htmlError']) {
 		foreach ($ids as $id) {
-			$messageParts[] = '<a href="'.Inflector::pluralize(strtolower($orphanModel)).'/view/'.$id.'">'.$id.'</a>'; // TODO: Noch unschÃ¶n! --zivi-muh
+			$messageParts[] = '<a href="'.Inflector::pluralize(strtolower($orphanModel)).'/view/'.$id.'">'.$id.'</a>'; // TODO: Noch unschön! --zivi-muh
 		}
 		} else {
 		$messageParts = $ids;

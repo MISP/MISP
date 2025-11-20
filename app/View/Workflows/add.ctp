@@ -13,8 +13,18 @@ $fields = [
     [
         'field' => 'data',
         'type' => 'textarea',
-        'class' => 'input span6'
-    ]
+        'class' => 'input span6',
+        'div' => 'hidden',
+    ],
+    [
+        'field' => 'debug_enabled',
+        'type' => 'checkbox',
+        'stayInLine' => 1
+    ],
+    [
+        'field' => 'disabled',
+        'type' => 'checkbox',
+    ],
 ];
 echo $this->element('genericElements/Form/genericForm', [
     'data' => [

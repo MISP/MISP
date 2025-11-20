@@ -17,7 +17,7 @@
 
     <div id="summary-filters" class="collapse">
         <pre>
-<?= JsonTool::encode($periodic_settings, true) ?>
+<?= h(json_encode($periodic_settings, JSON_PRETTY_PRINT))?>
         </pre>
     </div>
     <div class="report-container" style="margin-top: 2em;">
@@ -31,7 +31,7 @@
     var link = document.getElementById('link-custom');
     var input = document.getElementById('btn-custom');
     input.onchange = input.onkeyup = function() {
-        var ressource = '<?= $baseurl ?>/users/viewPeriodicSummary/custom/lastdays:' + encodeURIComponent(this.value)
-        link.setAttribute('href', ressource)
+        var resource = '<?= $baseurl ?>/users/viewPeriodicSummary/custom/lastdays:' + encodeURIComponent(this.value)
+        link.setAttribute('href', resource)
     };
 </script>

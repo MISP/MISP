@@ -36,6 +36,10 @@ abstract class AppShell extends Shell
 
     public function initialize()
     {
+        if (PHP_VERSION_ID < 80000) {
+            require_once ROOT . DS . APP_DIR . DS . 'Lib' . DS . 'polyfill.php';
+        }
+
         $configLoad = $this->Tasks->load('ConfigLoad');
         $configLoad->execute();
         if (Configure::read('Plugin.Benchmarking_enable')) {

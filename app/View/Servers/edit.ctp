@@ -107,14 +107,14 @@
         echo '<div class="input clear"></div>';
         echo $this->Form->input('self_signed', array(
             'type' => 'checkbox',
-            'label' => 'Allow self signed certificates (unsecure)'
+            'label' => 'Allow self-signed certificates (unsecure)'
         ));
         echo '<div class="input clear"></div>';
         echo $this->Form->input('skip_proxy', array('type' => 'checkbox', 'label' => 'Skip proxy (if applicable)'));
         echo '<div class="input clear"></div>';
         echo $this->Form->input('remove_missing_tags', array(
             'type' => 'checkbox',
-            'label' => __('Remove Missing Attribute Tags (not recommended)'),
+            'label' => __('Remove Missing Tags (not recommended)'),
         ));
     ?>
     <div class="clear">

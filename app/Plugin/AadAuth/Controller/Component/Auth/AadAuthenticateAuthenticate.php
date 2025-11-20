@@ -57,6 +57,13 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 	protected static $auth_provider_user;
 
 	/**
+	 * Name of the property to use for authentication.
+	 *
+	 * @var string
+	 */
+	protected static $auth_property_name;
+
+	/**
 	 * Flag that indicates if we need to check for AD groups for defining MISP access
 	 *
 	 * @var bool
@@ -96,6 +103,7 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 		self::$misp_orgadmin =  Configure::read('AadAuth.misp_orgadmin');
 		self::$misp_siteadmin =  Configure::read('AadAuth.misp_siteadmin');
 		self::$check_ad_groups =  Configure::read('AadAuth.check_ad_groups');
+		self::$auth_property_name =  Configure::read('AadAuth.auth_property_name') ?? 'userPrincipalName';
 
 		$this->Log = ClassRegistry::init('Log');
 		$this->Log->create();
@@ -195,7 +203,7 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 				exit; // we need to exit once the header to redirect to Azure is sent
 
 			} elseif (isset($_GET["error"])) {  //Second load of this page begins, but hopefully we end up to the next elseif section...
-				$this->_log("warning", "Return from Aure redirect. Error received at the beginning of second stage. _GET: " . http_build_query($_GET, '', '  -  '));
+				$this->_log("warning", "Return from Azure redirect. Error received at the beginning of second stage. _GET: " . http_build_query($_GET, '', '  -  '));
 				return false;
 			} elseif (strcmp(session_id(), $_GET["state"]) == 0) {
 				//Verifying the received tokens with Azure and finalizing the authentication part
@@ -255,8 +263,8 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 				}
 
 				$mispUsername = false;
-				if (isset($userdata["userPrincipalName"])) {
-					$userPrincipalName = $userdata["userPrincipalName"];
+				if (isset($userdata[self::$auth_property_name])) {
+					$authProperty = $userdata[self::$auth_property_name];
 
 					/*
 					 * TODO: add code to create users that exist in AAD but not in MISP
@@ -265,11 +273,11 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 
 					if (self::$check_ad_groups) {
 						if ($this->_checkAdGroup($authdata)) {
-							$mispUsername = $userPrincipalName;
-							$this->_log("info", "Successful AAD group check for for ${mispUsername}");
+							$mispUsername = $authProperty;
+							$this->_log("info", "Successful AAD group check for ${mispUsername}");
 						}
 					} else {
-						$mispUsername = $userPrincipalName;
+						$mispUsername = $authProperty;
 					}
 
 					if ($mispUsername) {

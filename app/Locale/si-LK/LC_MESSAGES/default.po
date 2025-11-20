@@ -7301,7 +7301,7 @@ msgid "If enabled, HTTP headers that block browser cache will be send. Static fi
 msgstr "සබල කර ඇත්නම්, බ්‍රවුසර හැඹිලිය අවහිර කරන HTTP ශීර්ෂ යවනු ලැබේ. ස්ථිතික ගොනු (පින්තූර හෝ JavaScripts වැනි) තවමත් හැඹිලිගත වනු ඇත, නමුත් පිටු ජනනය නොවේ."
 
 #: Model/Server.php:5959
-msgid "If enabled, any POST, PUT or AJAX request will be allow just when Sec-Fetch-Site header is not defined or contains \"same-origin\"."
+msgid "If enabled, any POST, PUT or AJAX request will only be allowed when Sec-Fetch-Site header is not defined or contains \"same-origin\"."
 msgstr "සබල කර ඇත්නම්, ඕනෑම POST, PUT හෝ AJAX ඉල්ලීමක් Sec-Fetch-Site ශීර්ෂකය නිර්වචනය කර නොමැති විට හෝ \"එකම-සම්භවය\" අඩංගු විට පමණක් ඉඩ දෙනු ඇත."
 
 #: Model/Server.php:5967
@@ -11169,7 +11169,7 @@ msgid "Markdown format"
 msgstr "සලකුණු කිරීමේ ආකෘතිය"
 
 #: View/Elements/EventReports/reportHelpModal.ctp:11
-msgid "The suported markdown format is similar to %s with some differences:"
+msgid "The supported markdown format is similar to %s with some differences:"
 msgstr "සහාය දක්වන සලකුණු කිරීමේ ආකෘතිය %s ට සමාන වෙනස්කම් සහිතව:"
 
 #: View/Elements/EventReports/reportHelpModal.ctp:18

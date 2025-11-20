@@ -1,7 +1,7 @@
 <?php
 class CompressedRequestHandlerComponent extends Component
 {
-    public function startup(Controller $controller)
+    public function initialize(Controller $controller)
     {
         $contentEncoding = $_SERVER['HTTP_CONTENT_ENCODING'] ?? null;
         if (!empty($contentEncoding)) {

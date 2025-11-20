@@ -83,9 +83,9 @@ if __name__ == "__main__":
                         asis_valid += curr_asis_valid
                         asis_broken += curr_asis_broken
                     else:
-                        raise Exception('Json doesn\'t seem to be an list of attributes or events')
+                        raise Exception('Json doesn\'t seem to be a list of attributes or events')
             else:
-                raise Exception('Json doesn\'t seem to be an list of attributes or events')
+                raise Exception('Json doesn\'t seem to be a list of attributes or events')
             if raw_mode:
                 output_raw(out_path_gen, generated)
                 output_raw(out_path_asis, asis_valid + asis_broken)

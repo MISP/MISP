@@ -5,7 +5,7 @@ App::uses('File', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 
 /**
- * @property MispAttribute $MispAttribute
+ * @property MispAttribute $Attribute
  */
 class AttributesController extends AppController
 {
@@ -41,6 +41,7 @@ class AttributesController extends AppController
         }
         $this->Security->unlockedActions[] = 'getMassEditForm';
         $this->Security->unlockedActions[] = 'search';
+        $this->Security->unlockedActions[] = 'index';
 
         if ($this->request->action === 'add_attachment') {
             $this->Security->unlockedFields = array('values');
@@ -49,14 +50,147 @@ class AttributesController extends AppController
         }
     }
 
+    private function __massageSearchFilters(array $filters): array
+    {
+        $multiLineFields = ['value', 'tags', 'org_id', 'sharing_group_id', 'uuid'];
+        foreach ($multiLineFields as $field) {
+            if (isset($filters[$field]) && strstr($filters[$field], "\n")) {
+                $filters[$field] = preg_split('/\n|\r\n?/', $filters[$field]);
+            }
+        }
+        return $filters;
+    }
+
+    private function __cleanDefaultFormValues(array $filters): array
+    {
+        foreach ($filters as $key => $value) {
+            if (in_array($key, ['type', 'category']) && $value === 'ALL') {
+                unset($filters[$key]);
+            }
+            if ($value === '') {
+                unset($filters[$key]);
+            }
+            if ($key === 'to_ids' && $value === '0') {
+                unset($filters[$key]);
+            }
+            if ($key === 'enforceWarninglist' && $value === '0') {
+                unset($filters[$key]);
+            }
+            if (is_array($value)) {
+                $filters[$key] = $this->__cleanDefaultFormValues($value);
+            } elseif ($value === '') {
+                unset($filters[$key]);
+            }
+        }
+        return $filters;
+    }
+
     public function index()
     {
+        if (isset($this->request->data['Attribute'])) {
+            $this->request->data = $this->request->data['Attribute'];
+        }
         $user = $this->Auth->user();
-        $this->paginate['conditions']['AND'][] = $this->MispAttribute->buildConditions($user);
-
-        $this->__setIndexFilterConditions();
-
-        $attributes = $this->paginate();
+        $params = [];
+        $params['conditions'][] = ['AND' => array('Attribute.deleted' => 0)];
+        if (!$this->_isRest()) {
+            $params = array_merge_recursive($params, $this->paginate);
+        }
+        $params['conditions']['AND'][] = $this->MispAttribute->buildConditions($user);
+        $paramArray = [
+            'value' , 'type', 'category', 'org', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation'
+        ];
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->request->params['named'],
+            'paramArray' => $paramArray,
+            'ordered_url_params' => func_get_args()
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        if (!$this->_isRest()) {
+            $search_filters = $this->request->data;
+            if (isset($this->request->data['to_ids']) && $this->request->data['to_ids'] === '0') {
+                $search_filters['to_ids'] = [0,1];
+            }
+            $search_filters['published'] = [0,1];
+            $search_filters['flatten'] = true;
+            if ($this->request->is('post') && empty($filters['search_token'])) {
+                $search_token = $this->MispAttribute->setSearchParamsByToken($search_filters);
+                $this->set('search_token', $search_token);
+            } else {
+                if (!empty($filters['search_token'])) {
+                    $filters = $this->MispAttribute->getSearchParamsByToken($filters);
+                    $this->set('search_token', $filters['search_token']);
+                }
+            }
+        }
+        if (!$this->_isRest()) {
+            $filters = $this->__cleanDefaultFormValues($filters);
+            $filters = $this->__massageSearchFilters($filters);
+        }
+        $request_filters = $filters;
+        $conditions = $this->paginate['conditions'];
+        $subqueryElements = $this->MispAttribute->Event->harvestSubqueryElements($filters);
+        $filters = $this->MispAttribute->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
+        $roleLimit = $this->User->getUserRestLimit($this->Auth->user(), $this);
+        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
+            $filters['limit'] = $roleLimit;
+        }
+        $request_filters = $filters;
+        $params = array_merge($filters, [
+            'limit' => $this->paginate['limit'] ?? null,
+            'page' => $this->paginate['page'] ?? 1
+        ]);
+        if (empty($params['deleted'])) {
+            $params['deleted'] = 1;
+        }
+        $this->set('params', $params);
+        $conditions = $this->MispAttribute->buildFilterConditions($user, $filters, false);
+        $params = !empty($params['enforceWarninglist']) ? ['enforceWarninglist' => 1] : [];
+        if (!empty($filters['direction'])) {
+            $params['direction'] = $filters['direction'];
+        }
+        if (!empty($filters['sort'])) {
+            $params['sort'] = $filters['sort'];
+            $valid_sort_keys = ['Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Event.orgc_id', 'Attribute.timestamp'];
+            if (in_array($filters['sort'], $valid_sort_keys)) {
+                $params['order'] = array_combine($valid_sort_keys, $valid_sort_keys)[$filters['sort']] . ' ' . ($params['direction'] === 'asc' ? 'asc' : 'desc');
+            }
+        }
+        if (!empty($conditions)) {
+            $params['conditions'] = $conditions;
+        }
+        $params['flatten'] = 1;
+        $params['includeWarninglistHits'] = 1;
+        if ($this->_isRest()) {
+            if (!empty($filters['page'])) {
+                $params['page'] = $filters['page'];
+            }
+            if (!empty($filters['limit'])) {
+                $params['limit'] = $filters['limit'];
+            }
+            $attributes = $this->MispAttribute->fetchAttributes($user, $params);
+        } else {
+            $params['page'] = !empty($filters['page']) ? $filters['page'] : 1;
+            $params['limit'] = !empty($filters['limit']) ? $filters['limit'] : 60;
+            $this->paginate['conditions'] = $conditions;
+            $attributes = $this->MispAttribute->fetchAttributes($user, $params);
+            App::uses('CustomPaginationTool', 'Tools');
+            $customPagination = new CustomPaginationTool();
+            $params = $customPagination->createPaginationRules($attributes, $params, $this->modelClass);
+            if (count($attributes) >= $params['limit']) {
+                $params['nextPage'] = true;
+                $params['prevPage'] = ($params['page'] > 1) ? true : false;
+                $params['current'] = count($attributes);
+            }
+            $this->params->params['paging'] = array($this->modelClass => $params);
+            $parts = explode('?', $_SERVER['REQUEST_URI'], 2);
+            if (count($parts) == 2) {
+                $url['?'] = $parts[1];
+            }
+            $this->MispAttribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
+        }
 
         if ($this->_isRest()) {
             $attributes = array_column($attributes, 'Attribute');
@@ -89,7 +223,31 @@ class AttributesController extends AppController
         }
 
         list($attributes, $sightingsData) = $this->__searchUI($attributes, $user);
-        $this->set('isSearch', 0);
+        $exports = array_keys($this->MispAttribute->validFormats);
+        $this->set('exports', $exports);
+        $request_filters = array_diff_key($request_filters, array_flip(['direction', 'page', 'limit', 'sort']));
+        $export_filters = '/';
+        if (!empty($request_filters)) {
+            foreach ($request_filters as $k => $v) {
+                if (is_array($v)) {
+                    foreach ($v as $vv) {
+                        $export_filters .= urlencode($k) . '[]:' . urlencode($vv) . '/';
+                    }
+                } else {
+                    $export_filters .= urlencode($k) . ':' . urlencode($v) . '/';
+                }
+            }
+        }
+        if (empty($request_filters['to_ids'])) {
+            $request_filters['to_ids'] = [0,1];
+        }
+        if (empty($request_filters['published'])) {
+            $request_filters['published'] = [0,1];
+        }
+        $this->set('request_filters', $request_filters);
+        $this->set('paramArray', $paramArray);
+        $this->set('passedArgsArray', $this->passedArgs);
+        $this->set('export_filters', $export_filters);
         $this->set('sightingsData', $sightingsData);
         $this->set('orgTable', array_column($orgTable, 'name', 'id'));
         $this->set('shortDist', $this->MispAttribute->shortDist);
@@ -98,6 +256,7 @@ class AttributesController extends AppController
         $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
         $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
+        $this->set('menuData',  ['menuList' => 'event-collection', 'menuItem' => 'listAttributes']);
     }
 
     public function add($eventId = false)
@@ -1516,125 +1675,33 @@ class AttributesController extends AppController
         return $filters;
     }
 
-    public function search($continue = false)
+    public function search()
     {
-        $user = $this->Auth->user();
-        $exception = null;
-        $filters = $this->__getSearchFilters($exception);
-        $this->set('passedArgsArray', ['results' => $continue]);
-        if ($this->request->is('post') || !empty($this->request->params['named']['tags'])) {
-            if ($filters === false) {
-                return $exception;
-            }
-            $this->Session->write('search_attributes_filters', json_encode($filters));
-        } elseif ($continue === 'results') {
-            $filters = $this->Session->read('search_attributes_filters');
-            $filters = empty($filters) ? [] : $this->_jsonDecode($filters);
-        } else {
-            $types = $this->_arrayToValuesIndexArray(array_keys($this->MispAttribute->typeDefinitions));
-            ksort($types);
-            $this->set('types', array_merge(['ALL' => 'ALL'], $types));
-            // combobox for categories
-            $categories = array_merge(['ALL' => 'ALL'], $this->_arrayToValuesIndexArray(array_keys($this->MispAttribute->categoryDefinitions)));
-            $this->set('categories', $categories);
-
-            $categoryDefinition = $this->MispAttribute->categoryDefinitions;
-            $categoryDefinition = array_merge(["ALL" => ['types' => array_keys($this->MispAttribute->typeDefinitions), 'formdesc' => '']], $categoryDefinition);
-            foreach ($categoryDefinition as &$def) {
-                $def['types'] = array_merge(['ALL'], $def['types']);
-            }
-            $this->set('categoryDefinitions', $categoryDefinition);
-            $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
-            $this->set('fieldDesc', $this->__fieldDesc());
-
-            $this->Session->write('search_attributes_filters', null);
+        if ($this->_isRest()) {
+            // This functionality no longer does any searching, pass it simply on to the index method
+            return call_user_func_array([$this, 'index'], func_get_args());
         }
-        if (!empty($filters)) {
-            $filters['includeCorrelations'] = 1;
-            $params = $this->MispAttribute->restSearch($user, 'json', $filters, true);
-            if (!isset($params['conditions']['Attribute.deleted'])) {
-                $params['conditions']['Attribute.deleted'] = 0;
-            }
-
-            // Force index for performance reasons see #3321
-            if (isset($filters['value'])) {
-                $this->paginate['forceIndexHint'] = 'value1, value2';
-            }
-
-            $this->paginate['conditions'] = $params['conditions'];
-            $index = $this->MispAttribute->query("SHOW index from attributes where Key_name = 'deleted'");
-            if (!empty($index)) {
-                $this->paginate['ignoreIndexHint'] = 'deleted';
-            }
-            $attributes = $this->paginate();
-            $this->MispAttribute->attachTagsToAttributes($attributes, ['includeAllTags' => true]);
-
-            $orgTable = $this->MispAttribute->Event->Orgc->find('all', [
-                'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
-            ]);
-            $orgTable = array_column(array_column($orgTable, 'Orgc'), null, 'id');
-            $sgids = $this->MispAttribute->SharingGroup->authorizedIds($user);
-            foreach ($attributes as &$attribute) {
-                if (isset($orgTable[$attribute['Event']['orgc_id']])) {
-                    $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
-                }
-                if (isset($orgTable[$attribute['Event']['org_id']])) {
-                    $attribute['Event']['Org'] = $orgTable[$attribute['Event']['org_id']];
-                }
-                if (isset($filters['includeCorrelations'])) {
-                    $temp = $this->MispAttribute->Correlation->getRelatedAttributes(
-                        $user,
-                        $sgids,
-                        $attribute['Attribute'],
-                        [],
-                        true
-                    );
-                    foreach ($temp as &$t) {
-                        $t['info'] = $t['Event']['info'];
-                        $t['org_id'] = $t['Event']['org_id'];
-                        $t['date'] = $t['Event']['date'];
-                    }
-                    $attribute['Event']['RelatedAttribute'][$attribute['Attribute']['id']] = $temp;
-                }
-            }
-            if ($this->_isRest()) {
-                return $this->RestResponse->viewData($attributes, $this->response->type());
-            }
-
-            list($attributes, $sightingsData) = $this->__searchUI($attributes, $user);
-            $this->set('sightingsData', $sightingsData);
-
-            if (isset($filters['tags']) && !empty($filters['tags'])) {
-                // if the tag is passed by ID - show its name in the view
-                $this->loadModel('Tag');
-                if (!is_array($filters['tags'])) {
-                    $filters['tags'] = array($filters['tags']);
-                }
-                foreach ($filters['tags'] as &$v) {
-                    if (!is_numeric($v))
-                        continue;
-                    $tag = $this->Tag->find('first', [
-                        'conditions' => ['Tag.id' => $v],
-                        'fields' => ['name'],
-                        'recursive' => -1
-                        ]);
-                    if (!empty($tag)) {
-                        $v = $tag['Tag']['name'];
-                    }
-                }
-            }
-            $this->set('orgTable', array_column($orgTable, 'name', 'id'));
-            $this->set('filters', $filters);
-            $this->set('attributes', $attributes);
-            $this->set('isSearch', 1);
-            $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
-            $this->set('shortDist', $this->MispAttribute->shortDist);
-            $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
-            $this->render('index');
+        $orgTable = $this->MispAttribute->Event->Orgc->find('all', [
+            'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
+        ]);
+        $types = $this->_arrayToValuesIndexArray(array_keys($this->MispAttribute->typeDefinitions));
+        ksort($types);
+        $this->set('types', array_merge(['ALL' => 'ALL'], $types));
+        $categories = array_merge(['ALL' => 'ALL'], $this->_arrayToValuesIndexArray(array_keys($this->MispAttribute->categoryDefinitions)));
+        $this->set('categories', $categories);
+        $categoryDefinition = $this->MispAttribute->categoryDefinitions;
+        $categoryDefinition = array_merge(["ALL" => ['types' => array_keys($this->MispAttribute->typeDefinitions), 'formdesc' => '']], $categoryDefinition);
+        foreach ($categoryDefinition as &$def) {
+            $def['types'] = array_merge(['ALL'], $def['types']);
         }
-        if (isset($attributeTags)) {
-            $this->set('attributeTags', $attributeTags);
-        }
+        $this->set('categoryDefinitions', $categoryDefinition);
+        $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
+        $this->set('fieldDesc', $this->__fieldDesc());
+        $this->set('orgTable', array_column($orgTable, 'name', 'id'));
+        $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
+        $this->set('shortDist', $this->MispAttribute->shortDist);
+        $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
+        $this->render('search');
     }
 
     /**
@@ -1745,7 +1812,7 @@ class AttributesController extends AppController
             $user = $this->Auth->user();
         }
         // if the user is authorised to use the api key then user will be populated with the user's account
-        // in addition we also set a flag indicating whether the user is a site admin or not.
+        // in addition we also set a flag indicating whether or not the user is a site admin.
         if (!$user) {
             throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
         }
@@ -2525,16 +2592,7 @@ class AttributesController extends AppController
 
     public function describeTypes()
     {
-        $result = array();
-        foreach ($this->MispAttribute->typeDefinitions as $key => $value) {
-            $result['sane_defaults'][$key] = array('default_category' => $value['default_category'], 'to_ids' => $value['to_ids']);
-        }
-        $result['types'] = array_keys($this->MispAttribute->typeDefinitions);
-        $result['categories'] = array_keys($this->MispAttribute->categoryDefinitions);
-        foreach ($this->MispAttribute->categoryDefinitions as $cat => $data) {
-            $result['category_type_mappings'][$cat] = $data['types'];
-        }
-        return $this->RestResponse->viewData(['result' => $result], 'json');
+        return $this->RestResponse->viewData(['result' => $this->MispAttribute->describeTypes()], 'json');
     }
 
     public function attributeStatistics($type = 'type', $percentage = false)
@@ -2625,9 +2683,15 @@ class AttributesController extends AppController
                                 if (empty($tagCollection)) {
                                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
                                 }
-                                $tag_id_list = array_column($tagCollection[0]['TagCollectionTag'], 'tag_id');
-                            } else {
+                                $tag_id_list = array_merge($tag_id_list, array_column($tagCollection[0]['TagCollectionTag'], 'tag_id'));
+                            } else if(is_numeric($tag_id)){
                                 $tag_id_list[] = $tag_id;
+                            } else {
+                                $tagId = $this->Attribute->AttributeTag->Tag->lookupTagIdForUser($this->Auth->user(), trim($tag_id));
+                                if (empty($tagId)) {
+                                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                                }
+                                $tag_id_list[] = $tagId;
                             }
                         }
                     } else {
@@ -2803,7 +2867,7 @@ class AttributesController extends AppController
             $attribute = $this->MispAttribute->find('first', [
                 'recursive' => -1,
                 'conditions' => ['Attribute.id' => $id],
-                'fields' => ['Attribute.deleted', 'Attribute.event_id', 'Attribute.id', 'Attribute.object_id', 'Event.orgc_id', 'Event.user_id'],
+                'fields' => ['Attribute.deleted', 'Attribute.event_id', 'Attribute.id', 'Attribute.object_id', 'Attribute.type', 'Attribute.disable_correlation', 'Attribute.value', 'Event.orgc_id', 'Event.user_id'],
                 'contain' => ['Event'],
             ]);
             if (empty($attribute) || $attribute['Attribute']['deleted']) {
@@ -2884,6 +2948,7 @@ class AttributesController extends AppController
                 $attribute['Attribute']['disable_correlation'] = 1;
             }
             $this->MispAttribute->save($attribute, ['parentEvent' => $attribute]);
+            $this->MispAttribute->touch($attribute);
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('attributes', 'toggleCorrelation', $id, false, 'Correlation ' . ($attribute['Attribute']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
             } else {
@@ -3011,7 +3076,7 @@ class AttributesController extends AppController
         return !empty($sg);
     }
 
-    private function __setIndexFilterConditions()
+    private function __setIndexFilterConditions($filters = [])
     {
         // search by attribute value
         if (isset($this->request->params['named']['searchvalue'])) {
@@ -3022,6 +3087,15 @@ class AttributesController extends AppController
                     ['Attribute.value2' => $v],
                 ]
             ];
+        }
+        foreach ($filters as $filter => $value) {
+            if (($filter === 'type' || $filter === 'category') && $value = 'ALL') {
+                continue;
+            }
+            if ($value === '') {
+                continue;
+            }
+            $this->paginate['conditions']['AND'][] = ['Attribute.' . $filter => $value];
         }
     }
 

@@ -7,12 +7,12 @@ $removeActions = [
     AuditLog::ACTION_REMOVE_TAG_LOCAL => true,
 ];
 
-$full = isset($full) ? $full : false;
+$full = $full ?? false;
 $formatValue = function($field, $value) use ($full) {
-    if ((strpos($field, 'timestamp') !== false || in_array($field, ['expiration', 'created', 'date_created'], true)) && is_numeric($value)) {
+    if ((str_contains($field, 'timestamp') || in_array($field, ['expiration', 'created', 'date_created'], true)) && is_numeric($value)) {
         $date = date('Y-m-d H:i:s', $value);
         if ($date !== false) {
-            return '<span title="Original value: ' . h($value) . '">' . h($date) . '</span>';
+            return '<span title="Original value: ' . h($value) . '">' . $date . '</span>';
         }
     } else if ($field === 'last_seen' || $field === 'first_seen') {
         $ls_sec = intval($value / 1000000); // $ls is in micro (10^6)
@@ -20,10 +20,11 @@ $formatValue = function($field, $value) use ($full) {
         $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
         $ls = $ls_sec . '.' . $ls_micro;
         $date = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.u');
-        return '<span title="Original value: ' . h($value) . '">' . h($date) . '</span>';
+        return '<span title="Original value: ' . h($value) . '">' . $date . '</span>';
     }
 
-    if ($full && is_string($value) && !empty($value) && ($value[0] === '{' || $value[0] === '[') && json_decode($value) !== null) {
+    // Check if value is JSON
+    if ($full && is_string($value) && !empty($value) && ($value[0] === '{' || $value[0] === '[') && JsonTool::isValid($value)) {
         return '<span class="json">' . h($value) . '</span>';
     }
 

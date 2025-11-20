@@ -10,6 +10,7 @@
     echo $this->element('genericElements/assetLoader', [
         'js' => [
             'markdownEditor/event-report',
+            'font-awesome-helper',
         ],
         'css' => [
             'markdownEditor/event-report',

@@ -36,6 +36,11 @@ class CRUDComponent extends Component
         if (!empty($options['conditions'])) {
             $query['conditions']['AND'][] = $options['conditions'];
         }
+        if (!empty($options['order'])) {
+            $query['order'] = $options['order'];
+        } else if (!empty($this->Controller->paginate['order'])) {
+            $query['order'] = $this->Controller->paginate['order'];
+        }
         if ($this->Controller->IndexFilter->isRest()) {
             if (!empty($this->Controller->paginate['fields'])) {
                 $query['fields'] = $this->Controller->paginate['fields'];
@@ -69,7 +74,7 @@ class CRUDComponent extends Component
     {
         $modelName = $this->Controller->modelClass;
         $data = [];
-        if ($this->Controller->request->is('post')) {
+        if ($this->Controller->request->is('post') || $this->Controller->request->is('put')) {
             $input = $this->Controller->request->data;
             if (empty($input[$modelName])) {
                 $input = [$modelName => $input];
@@ -93,6 +98,7 @@ class CRUDComponent extends Component
             }
             /** @var Model $model */
             $model = $this->Controller->{$modelName};
+            $model->create();
             $savedData = $model->save($data);
             if ($savedData) {
                 if (isset($params['afterSave'])) {
@@ -139,7 +145,7 @@ class CRUDComponent extends Component
                     }
                 }
             } else {
-                $message = __('%s could not be added.', $modelName);
+                $message = __('%s could not be added. Errors %s', $modelName, implode(', ', Hash::flatten($model->validationErrors)));
                 if ($this->Controller->IndexFilter->isRest()) {
                     $controllerName = $this->Controller->params['controller'];
                     $actionName = $this->Controller->params['action'];
@@ -314,7 +320,15 @@ class CRUDComponent extends Component
                     return;
                 } else {
                     $this->Controller->Flash->success($message);
-                    $this->Controller->redirect($this->Controller->referer(['action' => 'index']));
+                    $redirect = isset($params['redirect']) ? $params['redirect'] : ['action' => 'index'];
+                    if (!empty($params['redirect_controller'])) {
+                        if (is_array($redirect)) {
+                            $redirect['controller'] = $params['redirect_controller'];
+                        } else {
+                            $redirect = '/' . $params['redirect_controller'] . '/' . $redirect;
+                        }
+                    }
+                    $this->Controller->redirect($this->Controller->referer($redirect));
                 }
             }
         }

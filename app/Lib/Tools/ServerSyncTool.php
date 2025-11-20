@@ -31,6 +31,8 @@ class ServerSyncTool
 
     /** @var array|null */
     private $info;
+    /** @var array|null */
+    private $userInfo;
 
     /**
      * @param array $server
@@ -214,7 +216,7 @@ class ServerSyncTool
      */
     public function pushGalaxyCluster(array $cluster)
     {
-        $logMessage = "Pushing Galaxy Cluster #{$cluster['GalaxyCluster']['id']} to Server #{$this->serverId()}";
+        $logMessage = "Pushing Galaxy Cluster #{$cluster['GalaxyCluster']['uuid']} to Server #{$this->serverId()}";
         return $this->post('/galaxies/pushCluster', [$cluster], $logMessage);
     }
 
@@ -398,6 +400,22 @@ class ServerSyncTool
     /**
      * @return HttpSocketResponseExtended
      * @throws HttpSocketHttpException
+     */
+    public function cachedUserInfo()
+    {
+        if ($this->userInfo) {
+            return $this->userInfo;
+        }
+
+        $response = $this->userInfo();
+        $userInfo = $response->json();
+        $this->userInfo = $userInfo;
+        return $userInfo;
+    }
+
+    /**
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      */
     public function resetAuthKey()
@@ -515,7 +533,8 @@ class ServerSyncTool
     public function debug($message)
     {
         $memoryUsage = round(memory_get_usage() / 1024 / 1024, 2);
-        CakeLog::debug("[Server sync #{$this->serverId()}]: $message. Memory: $memoryUsage MB");
+        $memoryUsageReal = round(memory_get_usage(true) / 1024 / 1024, 2);
+        CakeLog::debug("[Server sync #{$this->serverId()}]: $message. Memory usage: $memoryUsage MB (real $memoryUsageReal MB)");
     }
 
     /**

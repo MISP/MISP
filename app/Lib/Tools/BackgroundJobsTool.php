@@ -393,7 +393,7 @@ class BackgroundJobsTool
                     $workers[] = new Worker([
                         'pid' => $proc->offsetGet('pid'),
                         'queue' => explode("_", $proc->offsetGet('name'))[0],
-                        'user' => $this->processUser((int) $proc->offsetGet('pid')),
+                        'user' => $this->processUser((int) $proc->offsetGet('pid')) ?? 'unknown',
                         'createdAt' => $proc->offsetGet('start'),
                         'updatedAt' => $proc->offsetGet('now'),
                         'status' => $this->convertProcessStatus($proc->offsetGet('state'))

@@ -59,7 +59,7 @@ class CsseCovidWidget
             $data['output_decorator'] = 'percentage';
         }
         if ($options['type'] !== 'mortality' && !empty($options['relative'])) {
-            $this->__getPopulationData();
+            $this->__getPopulationData($user);
             if (!empty($this->__populationData)) {
                 foreach ($data['data'] as $country => $value) {
                     if (isset($this->__nameReplacements[$country])) {
@@ -93,14 +93,15 @@ class CsseCovidWidget
         return $data;
     }
 
-    private function __getPopulationData()
+    private function __getPopulationData($user)
     {
         $this->Galaxy = ClassRegistry::init('Galaxy');
-        $galaxy = $this->Galaxy->find('first', array(
-            'recursive' => -1,
-            'contain' => array('GalaxyCluster' => array('GalaxyElement')),
-            'conditions' => array('Galaxy.name' => 'Country')
-        ));
+        $options = [
+            'first' => true,
+            'contain' => ['GalaxyCluster' => ['GalaxyElement']],
+            'conditions' => ['Galaxy.name' => 'Country'],
+        ];
+        $galaxy = $this->Galaxy->fetchGalaxies($user, $options, false, false);
         if (empty($galaxy)) {
             return false;
         }

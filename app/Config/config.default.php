@@ -22,6 +22,7 @@ $config = array(
         //'auth'                            => array('ShibbAuth.ApacheShibb'),
         //'auth'                            => array('AadAuth.AadAuthenticate'),
         //'auth'                            => array('LinOTPAuth.LinOTP'),
+        //'auth'                            => array('LdapAuth.Ldap'),
     ),
     'MISP' => array(
         'baseurl'                        => '',
@@ -37,8 +38,8 @@ $config = array(
         'osuser'                         => 'www-data',
         'email'                          => 'email@example.com',
         'contact'                        => 'email@example.com',
-        'cveurl'                         => 'https://cve.circl.lu/cve/',
-        'cweurl'                         => 'https://cve.circl.lu/cwe/',
+        'cveurl'                         => 'https://vulnerability.circl.lu/vuln/',
+        'cweurl'                         => 'https://vulnerability.circl.lu/cwes/',
         'disablerestalert'               => false,
         'default_event_distribution'     => '1',
         'default_attribute_distribution' => 'event',
@@ -225,9 +226,9 @@ $config = array(
         'ldapReaderUser'     => 'cn=userWithReadAccess,ou=users,dc=example,dc=com', // DN ou RDN LDAP with reader user right
         'ldapReaderPassword' => 'UserPassword', // the LDAP reader user password
         'ldapDN'             => 'dc=example,dc=com',
-        'ldapSearchFilter'   => '', // Search filter to limit results from ldapsearh fx to specific group. FX
+        'ldapSearchFilter'   => '', // Search filter to limit results from ldapsearch fx to specific group. FX
         //'ldapSearchFilter'   => '(objectclass=InetOrgPerson)(!(nsaccountlock=True))(memberOf=cn=misp,cn=groups,cn=accounts,dc=example,dc=com)',
-        'ldapSearchAttribut' => 'uid',          // filter for search
+        'ldapSearchAttribut' => 'uid',          // filter for search - typo left in for backward compatibility
         'ldapFilter'         => array(
             'mail',
             //	'memberOf', //Needed filter if roles should be added depending on group membership.

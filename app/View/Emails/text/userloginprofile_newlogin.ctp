@@ -1,6 +1,6 @@
 Hello,
 
-Your account on MISP <?= $misp_org; ?> was just signed into from a new device or location.
+Your account on <?= $misp_org; ?> MISP was just accessed from a new device or location.
 
 - When: <?= $date_time; ?>
 
@@ -13,7 +13,7 @@ Your account on MISP <?= $misp_org; ?> was just signed into from a new device or
 - IP: <?= $userLoginProfile['ip']; ?>
 
 
-Follow this link to confirm if was you: <?php echo $baseurl . '/users/view_login_history/'; ?>
+Follow this link to confirm it was you or report as malicious: <?php echo $baseurl . '/users/view_login_history/'; ?>
 
-I you don't recognize this activity, please markt the login as suspicious and IMMEDIATELY to reset your password. 
+If you don't recognize this activity, please mark the login as malicious and IMMEDIATELY reset your password. 
 

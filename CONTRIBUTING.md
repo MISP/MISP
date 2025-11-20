@@ -1,6 +1,6 @@
 # Contributing to MISP Project
 
-MISP project is a large free software project composed of multiple sub-projects which are contributed by different contributors who are generally active users of the MISP project. MISP project fully supports the [Contributor Covenant Code of Conduct](https://github.com/MISP/MISP/blob/2.4/code_of_conduct.md) to foster an open and dynamic environment for contributing and the exchange in the threat intelligence and information exchange field.
+MISP project is a large free software project composed of multiple sub-projects which are contributed by different contributors who are generally active users of the MISP project. MISP project fully supports the [Contributor Covenant Code of Conduct](https://github.com/MISP/MISP/blob/2.5/code_of_conduct.md) to foster an open and dynamic environment for contributing and the exchange in the threat intelligence and information exchange field.
 
 The [MISP roadmap](/ROADMAP.md) is mostly based on the user communities (e.g. private communities, CSIRTs communities, security researchers, ISACs - Information Sharing and Analysis Center, security providers, governmental or military organisations) relying on MISP to perform their duties of information sharing and analysis.
 
@@ -11,7 +11,7 @@ Get familiar with [how we use GitHub at MISP Project](/GITWORKFLOW.md), then rea
 
 The most common way to contribute to the MISP project is to report bugs, issues or suggest features. 
 
-Each project ([MISP core](https://github.com/MISP/MISP/issues), [misp-modules](https://github.com/MISP/misp-modules/issues), [misp-book](https://github.com/MISP/misp-book/issues), [misp-taxonomies](https://github.com/MISP/misp-taxonomies/issues), [misp-galaxy](https://github.com/MISP/misp-galaxy/issues) or any of the other projects within the [MISP project organanisation](https://github.com/MISP/)) had their own issue management. 
+Each project ([MISP core](https://github.com/MISP/MISP/issues), [misp-modules](https://github.com/MISP/misp-modules/issues), [misp-book](https://github.com/MISP/misp-book/issues), [misp-taxonomies](https://github.com/MISP/misp-taxonomies/issues), [misp-galaxy](https://github.com/MISP/misp-galaxy/issues) or any of the other projects within the [MISP project organisation](https://github.com/MISP/)) had their own issue management. 
 Don’t forget that you can cross-reference issues from other sub-projects.
 
 ### Issue tracker guidelines
@@ -24,7 +24,7 @@ Don’t forget that you can cross-reference issues from other sub-projects.
 ### Following up afterward
 
 If the MISP developers make a code change that resolves your issue, then your GitHub issue will typically be closed from the relevant patch message. 
-There is one main MISP core branch, `2.4` (current stable version), that we consider as stable with frequent updates as hotfixes.
+There is one main MISP core branch, `2.5` (current stable version), that we consider as stable with frequent updates as hotfixes.
 Features are developed in separated branches and then regularly merged into the stable branch. 
 If you so choose, you can test the fix while it’s in the feature branch, or you can wait for it to land in the stable repository. 
 If, after testing the fix, you find that it does not fix your bug, please leave a comment on your issue explaining the situation. 
@@ -47,7 +47,7 @@ Before you get started, read our [coding guidelines](/CODINGSTYLE.md).
 If you want to contribute to the [MISP core](https://github.com/MISP/MISP) project:
 
 - First fork the [MISP core project](https://github.com/MISP/MISP)
-- Branch off from 2.4 (2.4 branch is the main branch of development in MISP) `git checkout 2.4`
+- Branch off from 2.5 (2.5 branch is the main branch of development in MISP) `git checkout 2.5`
 - Then create a branch for your own contribution (bug fixes, enhancement, new features) by typing `git checkout -b fix-glossy-user-interface`
 - Work on your fix or feature (only work on that, avoid committing any debug functionalities, testing, or unused code)
 - Commit your fix or feature (and sign it with GnuPG -- if you have a GnuPG key) with a meaningful commit message as recommended in our [Commit Messages Best Practices](https://github.com/MISP/MISP/wiki/CommitMessageBestPractices). MISP uses [gitchangelog](https://github.com/vaab/gitchangelog/blob/master/src/gitchangelog/gitchangelog.rc.reference) to generate changelog, so it's recommended that when writing commit messages, use `new:` for new features, `fix:` when it's a bug-fix or `chg` when it's re-factoring or clean-up.
@@ -73,7 +73,7 @@ This prompts the JSON validation tests (via `jq`) using [TravisCI](https://travi
 If the checks fail, review your JSON. 
 Once everything works, commit your code and make a pull request against the specific library.
 
-Documentation (in PDF and HTML format) for the librairies are automatically generated from the JSON via [asciidoctor](https://asciidoctor.org/). Look at [this example](https://github.com/MISP/misp-galaxy/blob/main/tools/adoc_galaxy.py). 
+Documentation (in PDF and HTML format) for the libraries are automatically generated from the JSON via [asciidoctor](https://asciidoctor.org/). Look at [this example](https://github.com/MISP/misp-galaxy/blob/main/tools/adoc_galaxy.py). 
 
 ## Contributing to MISP taxonomies
 

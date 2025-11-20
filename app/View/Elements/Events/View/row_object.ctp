@@ -1,9 +1,27 @@
 <?php
+  $truncateLongText = function ($text, $maxLength = 500, $maxLines = 10) {
+    $truncated = false;
+    if (mb_strlen($text) > $maxLength) {
+        $text = mb_substr($text, 0, 500);
+        $truncated = true;
+    }
+
+    if (substr_count($text, "\n") > $maxLines) {
+        $lines = explode("\n", $text);
+        $text = implode("\n", array_slice($lines, 0, $maxLines));
+        $truncated = true;
+    }
+
+    if ($truncated) {
+        return $text;
+    }
+    return false;
+  };
   $tr_class = 'tableHighlightBorderTop borderBlue';
   if ($event['Event']['id'] != $object['event_id']) {
       $objectEvent = $event['extensionEvents'][$object['event_id']];
       $objectEvent = ['Event' => $objectEvent, 'Orgc' => $objectEvent['Orgc']]; // fix format to match standard event format
-      $mayModify = $this->Acl->canMofiyEvent($objectEvent);
+      $mayModify = $this->Acl->canModifyEvent($objectEvent);
   } else {
       $objectEvent = $event;
   }
@@ -23,10 +41,10 @@ $quickEdit = function($fieldName) use ($mayModify) {
 $objectId = intval($object['id']);
 ?>
 <tr id="Object_<?= $objectId ?>_tr" data-primary-id="<?= $objectId ?>" class="<?php echo $tr_class; ?>" tabindex="0" data-uuid="<?= h($object['uuid']) ?>">
-  <?php
+    <?php
     if ($mayModify || $extended):
-  ?>
-    <td style="width:10px;"></td>
+      ?>
+    <td style="width:10px;"> <input class="select_all_object_attributes_<?= h($object['id']) ?>" type="checkbox" title="<?php echo __('Select all object attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all object attributes');?>" onclick="toggleAllObjectAttributeCheckboxes(<?= h($object['id']) ?>);"></td>
   <?php
     endif;
   ?>
@@ -66,7 +84,7 @@ $objectId = intval($object['id']);
       ?>
       </td>
   <?php
-    if ($extended):
+    if ($extended || $extending):
   ?>
     <td class="short">
       <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '" class="white">' . h($object['event_id']) . '</a>'; ?>
@@ -77,7 +95,7 @@ $objectId = intval($object['id']);
   <?php if ($includeOrgColumn): ?>
   <td class="short">
     <?php
-      if ($extended):
+      if ($extended || $extending):
           echo $this->OrgImg->getOrgImg(array('name' => $objectEvent['Orgc']['name'], 'id' => $objectEvent['Orgc']['id'], 'size' => 24));
       endif;
     ?>
@@ -120,7 +138,12 @@ $objectId = intval($object['id']);
             <span style="border: 1px solid #2f5a93; background-color: #5184c8; border-radius: 5px 5px 0 0; padding: 2px 4px; margin-left: -1px;">
               <strong><?= h($firstAttr['object_relation']) ?></strong> :: <span><?= h($firstAttr['type']) ?></span>
             </span>
-            <span><pre style="margin-bottom: 0; padding: 0.25em 0.5em; border-radius: 0 5px 5px 5px;"><?= h($firstAttr['value']) ?></pre></span>
+            <span>
+              <?php
+                $truncated = $truncateLongText($firstAttr['value']);
+              ?>
+                <pre style="margin-bottom: 0; padding: 0.25em 0.5em; border-radius: 0 5px 5px 5px;"><?= $truncated !== false ? h($truncated) : h($firstAttr['value']) ?><?= $truncated !== false ? '&hellip;' : '' ?></pre>
+            </span>
             <div style="margin-top: 0.25em;">
               <button class="btn btn-mini btn-primary <?= $attributeInObjectCollapsed ? 'content-hidden' : '' ?>" title="<?php echo __('Toggle Attributes visibility');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Attributes visibility');?>" data-toggle="quickcollapse" data-target=".Object_<?php echo $objectId ?>_collapsible_attr">
                 <span class="fa fa-angle-double-<?= $attributeInObjectCollapsed ? 'down' : 'up' ?>" data-text-show="fa-angle-double-down" data-class-hide="fa-angle-double-up"></span>

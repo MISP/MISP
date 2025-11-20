@@ -101,7 +101,6 @@ class FeedsController extends AppController
                 if ($this->_isSiteAdmin()) {
                     $feeds = $this->Feed->attachFeedCacheTimestamps($feeds);
                 }
-
                 if ($this->IndexFilter->isRest()) {
                     foreach ($feeds as &$feed) {
                         unset($feed['SharingGroup']);
@@ -112,6 +111,9 @@ class FeedsController extends AppController
                 }
 
                 foreach ($feeds as &$feed) {
+                    if (!empty($feed['Feed']['headers'])) {
+                        $feed['Feed']['headers'] = '****';
+                    }
                     if (!empty($feed['Feed']['tag_collection_id'])) {
                         $tagCollection = $this->TagCollection->fetchTagCollection($loggedUser, [
                             'conditions' => [
@@ -152,7 +154,9 @@ class FeedsController extends AppController
                 if (!$this->_isSiteAdmin()) {
                     unset($feed['Feed']['headers']);
                 }
-
+                if (!empty($feed['Feed']['headers'])) {
+                    $feed['Feed']['headers'] = '****';
+                }
                 $feed['Feed']['cached_elements'] = $this->Feed->getCachedElements($feed['Feed']['id']);
                 $feed['Feed']['coverage_by_other_feeds'] = $this->Feed->getFeedCoverage($feed['Feed']['id'], 'feed', 'all') . '%';
 
@@ -276,6 +280,9 @@ class FeedsController extends AppController
                 if (empty($feed['Feed']['lookup_visible'])) {
                     $feed['Feed']['lookup_visible'] = 0;
                 }
+                if (empty($feed['Feed']['lock_events'])) {
+                    $feed['Feed']['lock_events'] = 0;
+                }
                 if (empty($feed['Feed']['input_source'])) {
                     $feed['Feed']['input_source'] = 'network';
                 } else {
@@ -375,7 +382,8 @@ class FeedsController extends AppController
                 'lookup_visible',
                 'headers',
                 'orgc_id',
-                'fixed_event'
+                'fixed_event',
+                'lock_events'
             ],
             'afterFind' => function (array $feed) {
                 $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
@@ -669,10 +677,6 @@ class FeedsController extends AppController
             throw new NotFoundException(__('Invalid feed.'));
         }
         $this->Feed->read();
-        if (!$this->Feed->data['Feed']['enabled']) {
-            $this->Flash->error(__('Feed is currently not enabled. Make sure you enable it.'));
-            $this->redirect(array('action' => 'previewIndex', $feedId));
-        }
         try {
             $result = $this->Feed->downloadAndSaveEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
         } catch (Exception $e) {
@@ -882,12 +886,16 @@ class FeedsController extends AppController
             throw new NotFoundException(__('Invalid feed.'));
         }
         try {
-            $event = $this->Feed->downloadEventFromFeed($feed, $eventUuid);
+            $error_message = null;
+            $event = $this->Feed->downloadEventFromFeed($feed, $eventUuid, true, $error_message);
         } catch (Exception $e) {
-            throw new Exception(__('Could not download the selected Event'), 0, $e);
+            throw new Exception($e->getMessage(), 0, $e);
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($event, $this->response->type());
+        }
+        if (!empty($event['Event']['error_message'])) {
+            $this->Flash->error('ERROR: ' . $event['Event']['error_message']);
         }
         if (is_array($event)) {
             if (isset($event['Event']['Attribute'])) {

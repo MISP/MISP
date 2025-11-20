@@ -204,7 +204,7 @@ class UserSettingsController extends AppController
                 } else {
                     /*
                      * if we are dealing with a UI request, simply set an error in a flash message
-                     * and render the view of this endpoint, pre-populated with the submitted values.
+                     * and render the view of this endpoint, prepopulated with the submitted values.
                      */
                     $this->Flash->error(__('Setting could not be saved.'));
                 }

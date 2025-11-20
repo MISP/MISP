@@ -12,7 +12,7 @@ Nevertheless here is a very rough **food for thoughts** bulletpoint list for you
 - Are we using SSL by default? (Especially when syncing over the internet and exposing the API)
 - How to we access the machine remotely? Via ssh? What is the path to get there? Does a [bastion host](https://en.wikipedia.org/wiki/Bastion_host) make sense?
 - Is the machine shared with other user accounts? Do I need to care about useri-land security due to this sharing?
-- Is the instance deployed in the "**cloud**"? Is it a VPS? AWS? docker? ansible? kubernetes? whateverCloudContainterMagicIsFancibleNow?
+- Is the instance deployed in the "**cloud**"? Is it a VPS? AWS? docker? ansible? kubernetes? whateverCloudContainerMagicIsFanciableNow?
 - Do we need to encrypt the partitions where some data is stored?
 - Are we redundant in case one MISP instance might fail?
 - Is the database server and any other servers running on the machine bound to **localhost**? Do we need to expose because our setup is more complex?
@@ -23,7 +23,7 @@ Nevertheless here is a very rough **food for thoughts** bulletpoint list for you
 
 ## Apache
 
-To make Apache less verbose in terms of sending banners, the belo might help.
+To make Apache less verbose in terms of sending banners, the below might help.
 
 ```
 diff --git a/apache2/conf-available/security.conf b/apache2/conf-available/security.conf

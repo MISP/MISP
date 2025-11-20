@@ -3,12 +3,12 @@
 ?>
 <div class="event index">
     <h2><?php echo __('Automation');?></h2>
-    <p class="bold"><?php echo __('Check out the OpenAPI spec of the MISP Automation API <a href="%s">here</a>.', $baseurl . '/api/openapi');?></p>
+    <p class="bold"><?php echo __('Check out the <a href="%s">OpenAPI spec of the MISP Automation API</a>.', $baseurl . '/api/openapi');?></p>
     <p><?php echo __('Automation functionality is designed to automatically feed other tools and systems with the data in your MISP repository.
     To make this functionality available for automated tools an authentication key is used.');?>
     <br /><?php echo __('You can use the <a href="' . $baseurl . '/api/rest">REST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.');?>
     <strong><?php echo __('Make sure you keep your API key secret as it gives access to all of the data that you normally have access to in MISP.');?></strong>
-    <?php echo __('To view the old MISP automation page, click <a href="' . $baseurl . '/automation/1">here</a>.');?>
+    <?php echo __('You can view the <a href="' . $baseurl . '/automation/1">old MISP automation page</a>.');?>
     </p>
     <span>
         <?php
@@ -62,9 +62,11 @@
                 "last" => __('(Deprecated synonym for publish_timestamp) Restrict the results by the timestamp of the last publishing of the event. The input can be a timestamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
                 "timestamp" => __('Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned. In case you are dealing with /attributes as scope, the attribute\'s timestamp will be used for the lookup. The input can be a timestamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
                 "published" => __('Set whether published or unpublished events should be returned. Do not set the parameter if you want both.'),
+                "extending" => __("Set whether events that extend another or events that don't should be returned. Do not set the parameter if you want both."),
+                "extended" => __('Set whether events that are extended or not should be returned. Do not set the parameter if you want both.'),
                 "enforceWarninglist" => __('Remove any attributes from the result that would cause a hit on a warninglist entry.'),
                 "to_ids" => __('By default (0) all attributes are returned that match the other filter parameters, regardless of their to_ids setting. To restrict the returned data set to to_ids only attributes set this parameter to 1. You can only use the special "exclude" setting to only return attributes that have the to_ids flag disabled.'),
-                "deleted" => __('Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes wil be returned.'),
+                "deleted" => __('Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes will be returned.'),
                 "includeEventUuid" => __('Instead of just including the event ID, also include the event UUID in each of the attributes.'),
                 "event_timestamp" => __('Only return attributes from events that have received a modification after the given timestamp. The input can be a timestamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
                 "sgReferenceOnly" => __('If this flag is set, sharing group objects will not be included, instead only the sharing group ID is set.'),
@@ -105,7 +107,7 @@
             'title' => __('Galaxy Cluster Search'),
             'description' => array(
                 __('It is possible to search the database for galaxy clusters based on a list of criteria.'),
-                __('To return an cluster or a list of clusters in the JSON format, use the following syntax.'),
+                __('To return a cluster or a list of clusters in the JSON format, use the following syntax.'),
                 __('Whilst a list of parameters is provided below, it isn\'t necessarily exhaustive')
             ),
             'parameters' => array(
@@ -113,8 +115,8 @@
                 'page' => __('If a limit is set, sets the page to be returned. page 3, limit 100 will return records 201->300).'),
                 'id' => __('Specify the exact local ID the be returned'),
                 'uuid' => __('Specify the exact local UUID the be returned'),
-                'galaxy_id' => __('Specify the exact local ID of the galaxy containing all the clusters the be returned'),
-                'galaxy_uuid' => __('Specify the exact local UUID of the galaxy containing all the clusters the be returned'),
+                'galaxy_id' => __('Specify the exact local ID of the galaxy containing all the clusters to be returned'),
+                'galaxy_uuid' => __('Specify the exact local UUID of the galaxy containing all the clusters to be returned'),
                 'published' => __('Specify the publication state of the clusters to be returned'),
                 'value' => __('Specify the value of the clusters to be returned'),
                 'extends_uuid' => __('Specify the UUID of the cluster that was forked by the returned clusters'),
@@ -276,7 +278,7 @@
     <pre><?php  echo $baseurl.'/events/removeTag'; ?></pre>
     <p><?php echo __('Just POST a json object in the following format (to the appropriate API depending on whether you want to add or delete a tag from an event)');?>:</p>
     <code>{"event":228, "tag":8}</code><br /><br />
-    <p><?php echo __('Where "tag" is the ID of the tag. You can also use the name of the tag the following way');?>:</p>
+    <p><?php echo __('Where "tag" is the ID of the tag. You can also use a tag name the following way');?>:</p>
     <code>{"event":228, "tag":"OSINT"}</code>
     <h3><?php echo __('Proposals and the API');?></h3>
     <p><?php echo __('You can interact with the proposals via the API directly since version 2.3.148');?></p>
@@ -370,6 +372,8 @@
     <b>searcheventid</b>: <?php echo __('Filters on specific event IDs - negatable');?><br />
     <b>searchthreatlevel</b>: <?php echo __('Filters on a given event threat level [1,2,3,4] - negatable');?><br />
     <b>searchdistribution</b>: <?php echo __('Filters on the distribution level [0,1,2,3] - negatable');?><br />
+    <b>searchextending</b>: <?php echo __("Filters on extending events or ones that don't [0,1] ");?><br />
+    <b>searchextended</b>: <?php echo __('Filters on events that are extended or not [0,1] ');?><br />
     <b>searchanalysis</b>: <?php echo __('Filters on the given analysis phase of the event [0,1,2] - negatable');?><br />
     <b>searchattribute</b>: <?php echo __('Filters on a contained attribute value - negatable');?><br />
     <b>searchvalue</b>: <?php echo __('Filter exact matches on the attribute value');?><br />

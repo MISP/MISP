@@ -16,7 +16,7 @@
         <span class="fas fa-plus" title="<?php echo __('Toggle Correlation graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Correlation graph');?>"></span><?php echo __('Correlation graph');?>
     </button>
     <button class="btn btn-inverse toggle qet" id="attackmatrix_toggle" data-toggle-type="attackmatrix" data-load-url="<?= $baseurl; ?>/events/viewGalaxyMatrix/<?= h($event['Event']['id']) ?>/mitre-attack/event/1/<?= $extended ? '1' : '0'?>">
-        <span class="fas fa-plus" title="<?php echo __('Toggle ATT&CK matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle ATT&CK matrix');?>"></span><?php echo __('ATT&CK matrix');?>
+        <span class="fas fa-plus" title="<?php echo __('Toggle Galaxy matrix');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Galaxy matrix');?>"></span><?php echo __('Galaxy matrix');?>
     </button>
     <button class="btn btn-inverse toggle qet" id="eventreport_toggle" data-toggle-type="eventreport">
         <span class="fas fa-plus" title="<?php echo __('Toggle reports');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle reports');?>"></span><?php echo __('Event reports');?>
@@ -52,7 +52,7 @@
 </div>
 <div id="correlationgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
 </div>
-<div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
+<div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none; overflow: hidden;" data-fullscreen="false">
 </div>
 <div id="eventreport_div" style="display: none;">
     <span class="report-title-section"><?php echo __('Event Reports');?></span>
@@ -92,7 +92,7 @@ $.get("<?php echo $baseurl; ?>/threads/view/<?php echo h($event['Event']['id']);
 });
 <?php endif; ?>
 
-$.get("<?php echo $baseurl; ?>/eventReports/index/event_id:<?= h($event['Event']['id']); ?>/index_for_event:1<?= $extended ? '/extended_event:1' : ''?>", function(data) {
+$.get("<?php echo $baseurl; ?>/eventReports/index/event_id:<?= h($event['Event']['id']); ?>/index_for_event:1<?= $extended ? '/extended_event:1' : ''?><?= $extending ? '/extending_event:1' : ''?>", function(data) {
     $("#eventreport_content").html(data);
     if ($('#eventreport_content table tbody > tr').length) { // open if contain a report
         $('#eventreport_toggle').click()

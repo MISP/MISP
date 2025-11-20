@@ -104,6 +104,37 @@ class Log extends AppModel
         )
     );
 
+    public $searchModelList = [
+        'Attribute',
+        'Allowedlist',
+        'AuthKey',
+        'Event',
+        'EventBlocklist',
+        'EventTag',
+        'Feed',
+        'DecayingModel',
+        'EventGraph',
+        'EventReport',
+        'MispObject',
+        'Organisation',
+        'Post',
+        'Regexp',
+        'Role',
+        'Server',
+        'ShadowAttribute',
+        'SharingGroup',
+        'Tag',
+        'Task',
+        'Taxonomy',
+        'Template',
+        'Thread',
+        'User',
+        'Galaxy',
+        'GalaxyCluster',
+        'GalaxyClusterRelation',
+        'Workflow',
+    ];
+
     public $actionDefinitions = array(
         'login' => array('desc' => 'Login action', 'formdesc' => "Login action"),
         'logout' => array('desc' => 'Logout action', 'formdesc' => "Logout action"),
@@ -135,6 +166,28 @@ class Log extends AppModel
      * @var Syslog|null|false
      */
     private $syslog;
+
+    public function beforeValidate($options = [])
+    {
+        if (empty($this->data['Log']['change'])) {
+            if (is_array($this->data['Log']['change'])) {
+                $output = [];
+                foreach ($this->data['Log']['change'] as $field => $values) {
+                    $sanitiseFields = ['password', 'api_key', 'authkey', 'headers', 'api_token', 'token', 'key'];
+                    $isSecret = in_array($field, $sanitiseFields) || ($field === 'authkey' && Configure::read('Security.do_not_log_authkeys'));
+                    if ($isSecret) {
+                        $oldValue = $newValue = "*****";
+                    } else {
+                        list($oldValue, $newValue) = $values;
+                    }
+                    $output[] = "$field ($oldValue) => ($newValue)";
+                }
+                $this->data['Log']['change'] = implode(", ", $output);
+            }
+    
+        }
+        return true;
+    }
 
     public function beforeSave($options = array())
     {
@@ -249,7 +302,7 @@ class Log extends AppModel
         if (is_array($change)) {
             $output = [];
             foreach ($change as $field => $values) {
-                $isSecret = str_contains($field, 'password') || ($field === 'authkey' && Configure::read('Security.do_not_log_authkeys'));
+                $isSecret = str_contains($field, 'password') || $field === 'api_key' || $field === 'headers' || ($field === 'authkey' && Configure::read('Security.do_not_log_authkeys'));
                 if ($isSecret) {
                     $oldValue = $newValue = "*****";
                 } else {
@@ -437,14 +490,22 @@ class Log extends AppModel
                 }
             }
 
-            $entry = sprintf(
-                '%s -- %s -- %s',
-                $data['Log']['action'],
-                empty($data['Log']['title']) ? '' : $formatted_title = preg_replace('/\s+/', " ", $data['Log']['title']),
-                empty($data['Log']['description']) ? 
-                    (empty($data['Log']['change']) ? '' : preg_replace('/\s+/', " ", $data['Log']['change'])) :
-                    preg_replace('/\s+/', " ", $data['Log']['description'])
-            );
+            if (Configure::read('Security.syslog_json_format')) {
+                if (isset($data['Log']['change']) && mb_strlen($data['Log']['change']) > 4096) {
+                    $data['Log']['change'] = mb_strcut($data['Log']['change'], 0, 4096, 'UTF-8');
+                    $data['Log']['_truncated'] = true;
+                }
+                $entry = JsonTool::encode($data['Log']);
+            } else {
+                $entry = sprintf(
+                    '%s -- %s -- %s',
+                    $data['Log']['action'],
+                    empty($data['Log']['title']) ? '' : preg_replace('/\s+/', " ", $data['Log']['title']),
+                    empty($data['Log']['description']) ? 
+                        (empty($data['Log']['change']) ? '' : preg_replace('/\s+/', " ", $data['Log']['change'])) :
+                        preg_replace('/\s+/', " ", $data['Log']['description'])
+                );
+            }
             $this->syslog->write($action, $entry);
         }
     }

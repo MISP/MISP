@@ -510,7 +510,7 @@ class ShadowAttribute extends AppModel
     public function setDeleted($id)
     {
         $this->Behaviors->detach('SysLogLogable.SysLogLogable');
-        $sa = $this->find('first', array('conditions' => array('ShadowAttribute.id' => $id), 'recusive' => -1));
+        $sa = $this->find('first', array('conditions' => array('ShadowAttribute.id' => $id), 'recursive' => -1));
         if (empty($sa)) {
             return false;
         }
@@ -958,7 +958,7 @@ class ShadowAttribute extends AppModel
         if (empty($shadow)) {
             return ['success' => true, 'message' => 'Proposal not found or you are not authorised to accept it.'];
         }
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
         $this->Event = ClassRegistry::init('Event');
         $this->Log = ClassRegistry::init('Log');
 

@@ -92,7 +92,7 @@ To view the values that are overcorrelating head over to administration -> over-
 
 By clicking any of the values above, you will be redirected to the attribute search's results for the value, giving you a live result set.
 
-In addition to the values being blocked based on the threshold the state of this table will also show whether a value has an exclusion entry in the Correlation exclusions system.
+In addition to the values being blocked based on the threshold, the state of this table will also show whether a value has an exclusion entry in the Correlation exclusions system.
 
 ![](https://raw.githubusercontent.com/MISP/MISP/2.4/docs/img/2.4.160/over_correlations2.png)
 

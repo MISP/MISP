@@ -7,7 +7,7 @@ class Module_tag_replacement_pap extends Module_tag_replacement_generic
     public $blocking = false;
     public $id = 'tag_replacement_pap';
     public $name = 'Tag Replacement - PAP';
-    public $description = 'Attach a tag (or substitue) a tag by another for the PAP taxonomy';
+    public $description = 'Attach a tag (or substitute) a tag by another for the PAP taxonomy';
     public $icon = 'tags';
     public $inputs = 1;
     public $outputs = 1;

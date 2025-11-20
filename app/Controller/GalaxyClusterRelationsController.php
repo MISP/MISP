@@ -10,7 +10,7 @@ class GalaxyClusterRelationsController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
             'recursive' => -1,
     );
 
@@ -141,19 +141,19 @@ class GalaxyClusterRelationsController extends AppController
             }
 
             if (empty($errors)) {
-                $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['SourceCluster'], $relation);
+                $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['GalaxyCluster'], $relation);
             }
 
             if (empty($errors)) {
                 $message = __('Relationship added.');
-                $this->GalaxyClusterRelation->SourceCluster->touchTimestamp($clusterSource['SourceCluster']['id']);
-                $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['SourceCluster']['id']);
+                $this->GalaxyClusterRelation->SourceCluster->touchTimestamp($clusterSource['GalaxyCluster']['id']);
+                $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['GalaxyCluster']['id']);
             } else {
                 $message = __('Relationship could not be added.');
             }
             if ($this->_isRest()) {
                 if (empty($errors)) {
-                    return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'add', $this->response->type(), $message);
+                    return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'add', $this->GalaxyClusterRelation->id, $this->response->type(), $message);
                 } else {
                     $message .= sprintf('Reasons: %s', json_encode(array_merge($errors, $this->GalaxyClusterRelation->validationErrors)));
                     return $this->RestResponse->saveFailResponse('GalaxyClusterRelation', 'add', $message, $this->response->type());
@@ -225,7 +225,7 @@ class GalaxyClusterRelationsController extends AppController
             if (isset($clusterSource['authorized']) && !$clusterSource['authorized']) {
                 $errors = array($clusterSource['error']);
             }
-            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $clusterSource['SourceCluster']['id'];
+            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $clusterSource['GalaxyCluster']['id'];
 
             if (!empty($relation['GalaxyClusterRelation']['tags'])) {
                 $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
@@ -240,15 +240,15 @@ class GalaxyClusterRelationsController extends AppController
             }
 
             if (empty($errors)) {
-                $message = __('Relationship added.');
-                $this->GalaxyClusterRelation->SourceCluster->touchTimestamp($clusterSource['SourceCluster']['id']);
-                $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['SourceCluster']['id']);
+                $message = __('Relationship changed.');
+                $this->GalaxyClusterRelation->SourceCluster->touchTimestamp($clusterSource['GalaxyCluster']['id']);
+                $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['GalaxyCluster']['id']);
             } else {
-                $message = __('Relationship could not be added.');
+                $message = __('Relationship could not be changed.');
             }
             if ($this->_isRest()) {
                 if (empty($errors)) {
-                    return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'edit', $this->response->type(), $message);
+                    return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'edit', $id, $this->response->type(), $message);
                 } else {
                     return $this->RestResponse->saveFailResponse('GalaxyClusterRelation', 'edit', false, $message, $this->response->type());
                 }
@@ -285,9 +285,9 @@ class GalaxyClusterRelationsController extends AppController
             $clusterSource = $this->GalaxyClusterRelation->SourceCluster->fetchIfAuthorized($this->Auth->user(), $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'], array('edit', 'publish'), $throwErrors=true, $full=false);
             $result = $this->GalaxyClusterRelation->delete($id, true);
             if ($result) {
-                $this->GalaxyClusterRelation->SourceCluster->touchTimestamp($clusterSource['SourceCluster']['id']);
-                $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['SourceCluster']['id']);
-                $message = __('Galaxy cluster relationship successfuly deleted.');
+                $this->GalaxyClusterRelation->SourceCluster->touchTimestamp($clusterSource['GalaxyCluster']['id']);
+                $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['GalaxyCluster']['id']);
+                $message = __('Galaxy cluster relationship successfully deleted.');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyClusterRelation', 'delete', $id, $this->response->type());
                 } else {

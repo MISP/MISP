@@ -1,4 +1,4 @@
-<div class="generic-picker-embeded-block">
+<div class="generic-picker-embedded-block">
     <?php
         $url = '/objects/quickAddAttributeForm/' . $object['id'];
         $element = $template_element;
@@ -7,6 +7,7 @@
         echo $this->Form->create('Object', array(
             'id' => 'Object_' . $object['id'] . '_quick_add_attribute_form',
             'url' => $url,
+            'enctype' => 'multipart/form-data',
             'class' => 'allDiv'
         ));
     ?>
@@ -130,7 +131,7 @@
 
         <div class="overlay_spacing">
         <?php if ($ajax): ?>
-            <span id="submitButton" class="btn btn-primary" style="margin-bottom:5px;float:left;" title="<?php echo __('Submit'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>" onClick="submitPopoverForm('<?php echo h($object['id']); ?>', 'quickAddAttributeForm', <?php echo h($object['event_id']); ?>, 0, $(this).closest('div.popover').attr('data-dismissid'))"><?php echo __('Submit'); ?></span>
+            <span id="submitButton" class="btn btn-primary" style="margin-bottom:5px;float:left;" title="<?php echo __('Submit'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>" onClick="submitPopoverForm('<?php echo h($object['id']); ?>', 'quickAddAttributeForm', <?php echo h($object['event_id']); ?>, 0, $(this).closest('div.popover').attr('data-dismissId'))"><?php echo __('Submit'); ?></span>
         <?php else:
                 echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
             endif;

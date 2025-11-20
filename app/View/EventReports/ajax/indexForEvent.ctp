@@ -1,6 +1,9 @@
 <div id="eventReportQuickIndex">
     <?php if ($extendedEvent): ?>
-        <div class="alert alert-info"><?= __('Viewing reports in extended event view') ?></div>
+        <div class="alert alert-info"><?= __('Viewing reports in extended mode event view') ?></div>
+    <?php endif; ?>
+    <?php if ($extendingEvent): ?>
+        <div class="alert alert-info"><?= __('Viewing reports in extending mode event view') ?></div>
     <?php endif; ?>
     <?php
         echo $this->element('/genericElements/IndexTable/index_table', array(
@@ -92,11 +95,23 @@
                     ),
                     array(
                         'name' => __('Event ID'),
-                        'requirement' => $extendedEvent,
+                        'requirement' => $extendedEvent || $extendingEvent,
                         'class' => 'short',
                         'element' => 'links',
                         'data_path' => 'EventReport.event_id',
                         'url' => $baseurl . '/events/view/%s'
+                    ),
+                    array(
+                        'name' => __('Tags'),
+                        'class' => 'short',
+                        'data_path' => 'EventReportTag',
+                        'element' => 'tags',
+                        'elementParams' => array(
+                            'searchScope' => 'taxonomy',
+                        ),
+                        'scope' => 'event_report',
+                        'addButtonOnly' => true,
+                        'id_data_path' => 'EventReport.id',
                     ),
                     array(
                         'name' => __('Last update'),

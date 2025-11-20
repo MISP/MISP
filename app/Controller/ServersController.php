@@ -93,7 +93,7 @@ class ServersController extends AppController
             $this->set('servers', $servers);
             $collection = array();
             $collection['orgs'] = $this->Server->Organisation->find('list', array(
-                  'fields' => array('id', 'name'),
+                  'fields' => array('uuid', 'name'),
             ));
             $this->loadModel('Tag');
             $collection['tags'] = $this->Tag->find('list', array(
@@ -628,7 +628,7 @@ class ServersController extends AppController
             $organisationOptions = array(0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation');
 
             $temp = $this->Server->Organisation->find('all', array(
-                'fields' => array('id', 'name', 'local'),
+                'fields' => array('id', 'name', 'local', 'uuid'),
                 'order' => array('lower(Organisation.name) ASC')
             ));
             $allOrgs = [];
@@ -640,7 +640,7 @@ class ServersController extends AppController
                 } else {
                     $externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
                 }
-                $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+                $allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name'], 'uuid' => $o['Organisation']['uuid']);
             }
 
             $allTypes = $this->Server->getAllTypes();
@@ -1562,7 +1562,7 @@ class ServersController extends AppController
                     'action' => 'serverSettingsEdit',
                     'user_id' => $this->Auth->user('id'),
                     'title' => 'Server setting issue',
-                    'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
+                    'change' => 'There was an issue with changing ' . $setting['name'] . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
                 ));
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'app/Config.config.php is not writeable to the apache user.', $this->response->type());
@@ -1641,6 +1641,9 @@ class ServersController extends AppController
     {
         if ($this->request->is('post')) {
             $validItems = $this->Server->getFileRules();
+            if (!isset($validItems[$type])) {
+                throw new NotFoundException(__('Invalid type.'));
+            }
             App::uses('File', 'Utility');
             $existingFile = new File($validItems[$type]['path'] . DS . $filename);
             if (!$existingFile->exists()) {
@@ -1667,6 +1670,10 @@ class ServersController extends AppController
             throw new MethodNotAllowedException(__('Feature disabled.'));
         }
         $validItems = $this->Server->getFileRules();
+
+        if (!isset($validItems[$type])) {
+            throw new NotFoundException(__('Invalid type.'));
+        }
 
         // Check if there were problems with the file upload
         // only keep the last part of the filename, this should prevent directory attacks
@@ -1785,7 +1792,7 @@ class ServersController extends AppController
                         }
                     }
                 }
-                if (!$mismatch && $version[2] < 111) {
+                if (!$mismatch && $version[1] == 4 && $version[2] < 111) {
                     $mismatch = 'proposal';
                 }
                 if (!$perm_sync && !$perm_sighting) {
@@ -1795,6 +1802,13 @@ class ServersController extends AppController
                 if (!$perm_sync && $perm_sighting) {
                     $result['status'] = 8;
                     return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
+                }
+                // Handle 2.5 <-> 2.4 compatibility
+                if ($mismatch && ($version[1] == 4 && $local_version['minor'] == 5) || ($version[1] == 5 && $local_version['minor'] == 4)) {
+                    $mismatch = 'minor_compatible';
+                    if ($version[1] == 4 && $version[2] < 111) {
+                            $mismatch = 'proposal';
+                    }
                 }
                 return $this->RestResponse->viewData([
                     'status' => 1,
@@ -1813,6 +1827,15 @@ class ServersController extends AppController
             }
         }
         return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
+    }
+
+    public function testSyncRules($id, $method)
+    {
+        $result = $this->Server->runTestSyncRules($id, $method);
+        if ($result === null) {
+            throw new NotFoundException(__('Invalid server'));
+        }
+        return $this->RestResponse->viewData($result);
     }
 
     public function startZeroMQServer()
@@ -2369,7 +2392,7 @@ class ServersController extends AppController
         }
         $this->loadModel('MispAttribute');
         $duplicates = $this->MispAttribute->find('all', array(
-            'fields' => array('Attribute.uuid', 'count(*) as occurance'),
+            'fields' => array('Attribute.uuid', 'count(*) as occurrence'),
             'recursive' => -1,
             'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
         ));
@@ -2398,7 +2421,7 @@ class ServersController extends AppController
         }
         $this->loadModel('Event');
         $duplicates = $this->Event->find('all', array(
-            'fields' => array('Event.uuid', 'count(*) as occurance'),
+            'fields' => array('Event.uuid', 'count(*) as occurrence'),
             'recursive' => -1,
             'group' => array('Event.uuid HAVING COUNT(*) > 1'),
         ));

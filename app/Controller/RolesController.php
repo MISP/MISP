@@ -27,7 +27,7 @@ class RolesController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
-        $this->set('permissionLevelName', $this->Role->premissionLevelName);
+        $this->set('permissionLevelName', $this->Role->permissionLevelName);
         $this->set('permFlags', $this->Role->permFlags);
         $this->set('menuData', ['menuList' => 'globalActions', 'menuItem' => 'roles']);
     }
@@ -41,7 +41,7 @@ class RolesController extends AppController
         }
         $this->set('permFlags', $this->Role->permFlags);
         $dropdownData = [
-            'options' => $this->Role->premissionLevelName,
+            'options' => $this->Role->permissionLevelName,
         ];
         $this->set(compact('dropdownData'));
         $this->set('menuData', array('menuList' => 'admin', 'menuItem' => 'addRole'));
@@ -85,7 +85,7 @@ class RolesController extends AppController
             $this->request->data['Role']['id'] = $id;
             $this->request->data = $this->Role->read(null, $id);
         }
-        $this->set('options', $this->Role->premissionLevelName);
+        $this->set('options', $this->Role->permissionLevelName);
         $this->set('permFlags', $this->Role->permFlags);
         $this->set('id', $id);
     }
@@ -126,7 +126,7 @@ class RolesController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
-        $this->set('options', $this->Role->premissionLevelName);
+        $this->set('options', $this->Role->permissionLevelName);
         $this->set('permFlags', $this->Role->permFlags);
         $this->set('menuData', $this->_isAdmin() ?
             ['menuList' => 'admin', 'menuItem' => 'indexRole'] :

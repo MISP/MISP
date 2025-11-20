@@ -45,7 +45,7 @@ class Module_enrich_event extends WorkflowBaseActionModule
         $rData = $roamingData->getData();
         $params = $this->getParamsWithValues($node, $rData);
         if (empty($params['modules']['value'])) {
-            $errors[] = __('No enrichmnent module selected');
+            $errors[] = __('No enrichment module selected');
             return false;
         }
         $event_id = $rData['Event']['id'];
@@ -82,12 +82,8 @@ class Module_enrich_event extends WorkflowBaseActionModule
                 'Enriching event' => $event_id,
                 'Attribute added' => $result
             ]);
-            $fullEvent = $this->Event->fetchEvent($roamingData->getUser(), [
-                'eventid' => $event_id,
-                'includeAttachments' => 1
-            ]);
-            $roamingData->setData($fullEvent[0]);
         }
+        $this->reloadRoamingData($roamingData);
         return true;
     }
 }

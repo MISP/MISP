@@ -32,6 +32,13 @@ echo $this->element('genericElements/IndexTable/index_table', [
                             'text' => __('Regenerate occurrence counts')
                         ]
                     ]
+                ],
+                [
+                    'type' => 'search',
+                    'button' => __('Filter'),
+                    'placeholder' => __('Enter value to search'),
+                    'data' => '',
+                    'searchKey' => 'quickFilter'
                 ]
             ]
         ],
@@ -40,7 +47,7 @@ echo $this->element('genericElements/IndexTable/index_table', [
                 'name' => 'Value',
                 'element' => 'postlink',
                 'data_path' => 'OverCorrelatingValue.value',
-                'url' => '/attributes/search/results',
+                'url' => '/attributes/index',
                 'payload_paths' => [
                     'value' => 'OverCorrelatingValue.value'
                 ]

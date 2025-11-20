@@ -76,21 +76,41 @@
             <td style="background-color:red; color:white;"><?php echo __('Worker not running!');?></td>
             <td style="background-color:red; color:white;">&nbsp;</td>
         </tr>
+        <?php
+            if ($type == 'scheduler'):
+                ?>
+            <tr>
+                <td colspan="5">
+                    <div class="alert alert-danger">
+                         <p>The task scheduler is not enabled. To enable it please add the missing <code>scheduler</code> program configuration to your supervisor configuration file (<code>/etc/supervisor/conf.d/*-workers.conf</code>).</p>
+                         <p>You can find the sample configuration file in <code>build/supervisor/50-workers.conf</code>.</p>
+                         <p>For more information, please refer to the <a href="https://github.com/MISP/MISP/wiki/Supervisor-Task-Scheduler-Guide-(2.5)">MISP documentation</a>.</p>
+                    </div>
+                </td>
+            </tr>
     <?php
+            endif;
         else:
             foreach ($data['workers'] as $worker):
                 $style = "color:green;";
                 $process = __('OK');
                 $message = __('The worker appears to be healthy.');
                 $icon_modifier = '';
-                if (!$worker['correct_user']) {
-                    $message = __('The worker was started with a user other than the apache user. MISP cannot check whether the worker is alive or not.');
-                    $style = "color:white;background-color:red;";
-                    $icon_modifier = ' icon-white';
-                    $process = __('Unknown');
+                if ($worker['correct_user'] !== true) {
+                    if ($worker['alive']) {
+                        $message = __('The worker appears to be healthy, but cannot determine the user of the process, most likely due to SELinux blocking MISP\'s access to it.');
+                        $style = "color:white;background-color:YellowGreen;";
+                        $icon_modifier = ' icon-white';
+                        $process = __('OK');
+                    } else {
+                        $message = __('The worker was started with a user other than the apache user. MISP cannot check whether or not the worker is alive.');
+                        $style = "color:white;background-color:red;";
+                        $icon_modifier = ' icon-white';
+                        $process = __('Unknown');
+                    }
                 } else if ($worker['alive'] === 'N/A') {
                         $process = __('Unknown');
-                        $message = __('Cannot check whether the worker is alive or dead.');
+                        $message = __('Cannot check whether the worker is dead or alive.');
                         $style = "color:white;background-color:orange;";
                         $icon_modifier = ' icon-white';
                 } else if (!$worker['alive']) {

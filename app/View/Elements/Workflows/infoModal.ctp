@@ -19,7 +19,7 @@
                 <ul>
                     <li><strong><?= __('Workflow Execution path:') ?></strong> <?= __('A path composed of actions to be executed sequentially. A workflow can have multiple execution paths if it has condition modules') ?></li>
                     <li><strong><?= __('Trigger:') ?></strong> <?= __('Starting point of an execution path. Triggers are called when specific actions happened in MISP like Event publishing or data creation.') ?></li>
-                    <li><strong><?= __('Condition module:') ?></strong> <?= __('Special type of module that can hange the the execution path. An IF module can produce two execution paths, one if the condition is satisfied and another one if it isn\'t.') ?></li>
+                    <li><strong><?= __('Condition module:') ?></strong> <?= __('Special type of module that can hange the execution path. An IF module can produce two execution paths, one if the condition is satisfied and another one if it isn\'t.') ?></li>
                     <li><strong><?= __('Action module:') ?></strong> <?= __('Module that are executed that can additional actions than the default MISP behavior.') ?></li>
                     <li><strong><?= __('Blueprints:') ?></strong> <?= __('Saved collection of modules that can be re-used and shared.') ?></li>
                     <li><strong><?= __('MISP Core format:') ?></strong> <?= __('Standardized format specification used in MISP. Also called MISP standard, the %s is currently an RFC draft.', sprintf('<a href="%s" target="_blank">%s</a>', __('MISP Core format'), 'https://github.com/MISP/misp-rfc')) ?></li>
@@ -35,12 +35,12 @@
                 </ul>
                 <h1><?= __('Concepts') ?></h1>
                 <h2>
-                    <span class="label label-important" style="line-height: 20px; vertical-align: middle;" title="<?= __('This workflow is a blocking worklow and can prevent the default MISP behavior to execute') ?>">
+                    <span class="label label-important" style="line-height: 20px; vertical-align: middle;" title="<?= __('This workflow is a blocking workflow and can prevent the default MISP behavior to execute') ?>">
                         <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('stop-circle') ?>"></i>
                         <?= __('Blocking') ?>
                     </span>
                     <?= __('and') ?>
-                    <span class="label label-success" style="line-height: 20px; vertical-align: middle;" title="<?= __('This workflow is a not blocking worklow. The default MISP behavior will or has already happened') ?>">
+                    <span class="label label-success" style="line-height: 20px; vertical-align: middle;" title="<?= __('This workflow is a not blocking workflow. The default MISP behavior will or has already happened') ?>">
                         <i class="fa-lg fa-fw <?= $this->FontAwesome->getClass('check-circle') ?>"></i>
                         <?= __('Non blocking') ?>
                     </span>
@@ -253,8 +253,74 @@ $data_passed_to_if_module = [
                         "inherited": false
                     }
                 ],
+                "warnings": [
+                    {
+                        "match": "8.8.8.8/32",
+                        "value": "8.8.8.8",
+                        "warninglist_id": "60",
+                        "warninglist_name": "List of known IPv4 public DNS resolvers",
+                        "warninglist_category": "false_positive"
+                    }
+                ],
                 "enrichment": [
-                    {}
+                    {
+                        "Attribute": [
+                            {
+                                "uuid": "fe476827-a8de-4f90-9e24-7ada8381b6f3",
+                                "type": "ip-dst",
+                                "value": "8.8.8.8",
+                                "category": "Network activity",
+                                "to_ids": true,
+                                "distribution": "5",
+                                "id": "4763",
+                                "event_id": "144",
+                                "timestamp": "1744375057",
+                                "sharing_group_id": "0",
+                                "disable_correlation": false,
+                                "comment": "",
+                                "deleted": false,
+                                "object_id": "0"
+                            }
+                        ],
+                        "Object": [
+                            {
+                                "name": "geolocation",
+                                "meta-category": "misc",
+                                "template_uuid": "cd6f2238-ba55-4888-82c4-104e6e1acf21",
+                                "description": "An object to describe a geographic location.",
+                                "template_version": "7",
+                                "uuid": "e2998143-6e03-4184-8e08-d001c8e62e7c",
+                                "ObjectReference": [
+                                {
+                                    "uuid": "1bf1384e-dc13-4fd6-8fef-c9765926e960",
+                                    "object_uuid": "e2998143-6e03-4184-8e08-d001c8e62e7c",
+                                    "referenced_uuid": "fe476827-a8de-4f90-9e24-7ada8381b6f3",
+                                    "relationship_type": "related-to"
+                                }
+                                ],
+                                "Attribute": [
+                                    {
+                                        "uuid": "22fa277a-7426-4596-a728-1732f0bf9855",
+                                        "object_relation": "country",
+                                        "value": "United States",
+                                        "type": "text",
+                                        "disable_correlation": false,
+                                        "to_ids": false,
+                                        "category": "Other"
+                                    },
+                                    {
+                                        "uuid": "a9326ab1-1bde-4975-96e4-745676884986",
+                                        "object_relation": "countrycode",
+                                        "value": "US",
+                                        "type": "text",
+                                        "disable_correlation": false,
+                                        "to_ids": false,
+                                        "category": "Other"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
                 ]
             }
         ],
@@ -584,8 +650,74 @@ $data_passed_to_if_module = [
                         "inherited": false
                     }
                 ],
+                "warnings": [
+                    {
+                        "match": "8.8.8.8/32",
+                        "value": "8.8.8.8",
+                        "warninglist_id": "60",
+                        "warninglist_name": "List of known IPv4 public DNS resolvers",
+                        "warninglist_category": "false_positive"
+                    }
+                ],
                 "enrichment": [
-                    {}
+                    {
+                        "Attribute": [
+                            {
+                                "uuid": "fe476827-a8de-4f90-9e24-7ada8381b6f3",
+                                "type": "ip-dst",
+                                "value": "8.8.8.8",
+                                "category": "Network activity",
+                                "to_ids": true,
+                                "distribution": "5",
+                                "id": "4763",
+                                "event_id": "144",
+                                "timestamp": "1744375057",
+                                "sharing_group_id": "0",
+                                "disable_correlation": false,
+                                "comment": "",
+                                "deleted": false,
+                                "object_id": "0"
+                            }
+                        ],
+                        "Object": [
+                            {
+                                "name": "geolocation",
+                                "meta-category": "misc",
+                                "template_uuid": "cd6f2238-ba55-4888-82c4-104e6e1acf21",
+                                "description": "An object to describe a geographic location.",
+                                "template_version": "7",
+                                "uuid": "e2998143-6e03-4184-8e08-d001c8e62e7c",
+                                "ObjectReference": [
+                                {
+                                    "uuid": "1bf1384e-dc13-4fd6-8fef-c9765926e960",
+                                    "object_uuid": "e2998143-6e03-4184-8e08-d001c8e62e7c",
+                                    "referenced_uuid": "fe476827-a8de-4f90-9e24-7ada8381b6f3",
+                                    "relationship_type": "related-to"
+                                }
+                                ],
+                                "Attribute": [
+                                    {
+                                        "uuid": "22fa277a-7426-4596-a728-1732f0bf9855",
+                                        "object_relation": "country",
+                                        "value": "United States",
+                                        "type": "text",
+                                        "disable_correlation": false,
+                                        "to_ids": false,
+                                        "category": "Other"
+                                    },
+                                    {
+                                        "uuid": "a9326ab1-1bde-4975-96e4-745676884986",
+                                        "object_relation": "countrycode",
+                                        "value": "US",
+                                        "type": "text",
+                                        "disable_correlation": false,
+                                        "to_ids": false,
+                                        "category": "Other"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
                 ]
             },
             {
@@ -654,7 +786,7 @@ $data_passed_to_if_module = [
                     <?= __('Jinja2 Syntax') ?>
                 </h3>
                 <p><i class="fa-fw <?= $this->FontAwesome->getClass('exclamation-triangle') ?>"></i> <?= __('For these examples, we consider the module received data under the MISP core format.') ?></p>
-                <p><i class="fa-fw <?= $this->FontAwesome->getClass('link') ?>"></i> <?= __('More documenation available on Jinja2 template designer documentation\'s') ?> <a href="https://jinja.palletsprojects.com/en/3.1.x/templates/"><?= __('website') ?></a></p>
+                <p><i class="fa-fw <?= $this->FontAwesome->getClass('link') ?>"></i> <?= __('More documentation available on Jinja2 template designer documentation\'s') ?> <a href="https://jinja.palletsprojects.com/en/3.1.x/templates/"><?= __('website') ?></a></p>
                 <h4><?= __('You can use the dot <code>`.` </code> notation or the subscript syntax <code>`[]`</code> to access attributes of a variable') ?></h4>
                 <ul>
                     <li><code>{{ Event.info }}</code>: <?= __('Shows the title of the event') ?></li>
@@ -697,6 +829,24 @@ $data_passed_to_if_module = [
 {{ attribute | tojson }}
 -> The complete attribute json encoded
 </pre>
+                <h4><?= __('Additional keys available') ?></h4>
+                <ul>
+                    <li><?= __('Additional key') ?> <code>_env</code> contains environment variable</li>
+                    <ul>
+                        <li><code>baseurl</code> <?= __('contains the baseurl of the instance as defined in the setting MISP.baseurl') ?></li>
+                    </ul>
+                </ul>
+                <p><strong><?= __('Sample:') ?></strong></p>
+                <pre>
+{
+    "_env" {
+        "baseurl": "https://misp.local"
+    }
+    "Event": {
+        ...
+    }
+}
+</pre>
 
             </div>
 
@@ -704,7 +854,7 @@ $data_passed_to_if_module = [
                 <h3><?= __('Blueprints') ?></h3>
                 <ul>
                     <li><?= __('Blueprints allow user to saved a collection of modules and how they are connected together so that they can be re-used and shared.') ?></li>
-                    <li><?= __('Blueprints can either come from the `misp-workflow-blueprints` reposity or be imported via the UI or API.') ?></li>
+                    <li><?= __('Blueprints can either come from the `misp-workflow-blueprints` repository or be imported via the UI or API.') ?></li>
                     <li><?= __('To create a blueprint, use the multi-select tool in the editor then click on the `save blueprint` button.') ?></li>
                     <li><?= __('To include an existing blueprint in the workflow being edited, simply drag the blueprint from the sidebar to the workflow.') ?></li>
                 </ul>
@@ -750,7 +900,7 @@ $data_passed_to_if_module = [
                             <td> <?= __('Zoom in / out') ?></td>
                         </tr>
                         <tr>
-                            <td><code>Shift + Ctrck</code></td>
+                            <td><code>Shift + Click</code></td>
                             <td> <?= __('Multi-select tool') ?></td>
                         </tr>
                         <tr>
@@ -759,7 +909,7 @@ $data_passed_to_if_module = [
                         </tr>
                         <tr>
                             <td><code>Ctrl + d</code></td>
-                            <td> <?= __('Duptrcate selection') ?></td>
+                            <td> <?= __('Duplicate selection') ?></td>
                         </tr>
                         <tr>
                             <td><code>delete</code></td>

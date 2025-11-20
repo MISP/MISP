@@ -1,4 +1,7 @@
 <?php
+
+use MaxMind\Exception\InvalidInputException;
+
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
@@ -82,7 +85,7 @@ class Feed extends AppModel
     const CACHE_DIR = APP . 'tmp' . DS . 'cache' . DS . 'feeds' . DS;
 
     /*
-     *  Cleanup of empty belongsto relationships
+     *  Cleanup of empty belongsTo relationships
      */
     public function afterFind($results, $primary = false)
     {
@@ -241,7 +244,7 @@ class Feed extends AppModel
             }
             unset($manifest[$eventUuid]);
         }
-        // Rest events in manifest does't exists, they will be added
+        // Rest events in manifest don't exist, they will be added
         $result['add'] = array_keys($manifest);
         return $result;
     }
@@ -984,11 +987,14 @@ class Feed extends AppModel
      * @return bool|string|array
      * @throws Exception
      */
-    public function downloadEventFromFeed(array $feed, $uuid)
+    public function downloadEventFromFeed(array $feed, $uuid, $permissive = false, &$error_message = null)
     {
         $filerRules = $this->__prepareFilterRules($feed);
         $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
-        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
+        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket, $permissive, $error_message);
+        if ($permissive) {
+            $event['Event']['error_message'] = $error_message;
+        }
         return $this->__prepareEvent($event, $feed, $filerRules);
     }
 
@@ -1055,6 +1061,7 @@ class Feed extends AppModel
             } else {
                 $event['Event']['distribution'] = $feed['Feed']['distribution'];
                 $event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
+                $event['Event']['locked'] = !empty($feed['Feed']['lock_events']) ? 1 : 0;
                 if ($feed['Feed']['sharing_group_id']) {
                     $sg = $this->SharingGroup->find('first', array(
                         'recursive' => -1,
@@ -1156,12 +1163,9 @@ class Feed extends AppModel
     private function __prepareFilterRules($feed)
     {
         $filterRules = false;
-        if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) {
-            $filterRules = json_decode($feed['Feed']['rules'], true);
-            if ($filterRules === null) {
-                throw new Exception('Could not parse feed filter rules JSON: ' . json_last_error_msg(), json_last_error());
-            }
-            $filterRules['url_params'] = !empty($filterRules['url_params']) ? $this->jsonDecode($filterRules['url_params']) : [];
+        if (!empty($feed['Feed']['rules'])) {
+            $filterRules = JsonTool::decode($feed['Feed']['rules']);
+            $filterRules['url_params'] = !empty($filterRules['url_params']) ? JsonTool::decodeArray($filterRules['url_params']) : [];
         }
         return $filterRules;
     }
@@ -2103,19 +2107,38 @@ class Feed extends AppModel
      * @return array
      * @throws Exception
      */
-    private function downloadAndParseEventFromFeed($feed, $eventUuid, HttpSocket $HttpSocket = null)
+    private function downloadAndParseEventFromFeed($feed, $eventUuid, HttpSocket $HttpSocket = null, $permissive = false, &$error_message = null)
     {
         if (!Validation::uuid($eventUuid)) {
             throw new InvalidArgumentException("Given event UUID '$eventUuid' is invalid.");
         }
 
         $path = $feed['Feed']['url'] . '/' . $eventUuid . '.json';
-        $data = $this->feedGetUri($feed, $path, $HttpSocket);
+        $raw_data = $this->feedGetUri($feed, $path, $HttpSocket);
 
         try {
-            return JsonTool::decodeArray($data);
+            $error_message = "Could not parse event JSON with UUID '$eventUuid' from feed";
+            $data = JsonTool::decodeArray($raw_data);
+            if (!empty($data['Event']['protected'])) {
+                $path = $feed['Feed']['url'] . '/' . $eventUuid . '.asc';
+                $sig = $this->feedGetUri($feed, $path, $HttpSocket);
+                if (empty($sig)) {
+                    $error_message = __('Signature file for protected event %s not found.', $eventUuid);
+                    if (!$permissive) {
+                        throw new NotFoundException($error_message);
+                    }
+                }
+                $this->Event = ClassRegistry::init('Event');
+                if (!$this->Event->CryptographicKey->validateAndCheckLocalProtectedEvent($raw_data, [], $sig, $data)) {
+                    $error_message = __('Protected event %s signature validation failed.', $eventUuid);
+                    if (!$permissive) {
+                        throw new InvalidInputException($error_message);
+                    }
+                }
+            }
+            return $data;
         } catch (Exception $e) {
-            throw new Exception("Could not parse event JSON with UUID '$eventUuid' from feed", 0, $e);
+            throw new Exception($error_message, 0, $e);
         }
     }
 
@@ -2196,7 +2219,7 @@ class Feed extends AppModel
     private function getFollowRedirect(HttpSocket $HttpSocket, $url, $request, $iterations = 5)
     {
         for ($i = 0; $i < $iterations; $i++) {
-            $response = $HttpSocket->get($url, array(), $request);
+            $response = $HttpSocket->get($url, [], $request);
             if ($response->isRedirect()) {
                 $HttpSocket = $this->__setupHttpSocket(); // Replace $HttpSocket with fresh instance
                 $url = trim($response->getHeader('Location'), '=');
@@ -2205,7 +2228,7 @@ class Feed extends AppModel
             }
         }
 
-        throw new Exception("Maximum number of iteration reached.");
+        throw new Exception("Too many redirects when fetching $url.");
     }
 
     /**

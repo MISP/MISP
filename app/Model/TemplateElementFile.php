@@ -18,8 +18,8 @@ class TemplateElementFile extends AppModel
             ),
             'category' => array(
                 'notDefault' => array(
-                    'rule'    => array('comparison', '!=', 'Select Category'),
-                    'message' => 'Please choose a category.'
+                    'rule'    => array('notDefaultCategory'),
+                    'message' => 'Please choose a category, do not leave it on Select Category.'
                 ),
                 'valueNotEmpty' => array(
                     'rule' => array('valueNotEmpty'),
@@ -30,5 +30,10 @@ class TemplateElementFile extends AppModel
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
+    }
+
+    public function notDefaultCategory($check)
+    {
+        return $check['category'] != 'Select Category';
     }
 }

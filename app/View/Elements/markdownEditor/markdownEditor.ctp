@@ -22,7 +22,7 @@
     }
 ?>
 
-<div id="mardown-viewer-toolbar" class="btn-toolbar">
+<div id="markdown-viewer-toolbar" class="btn-toolbar">
     <div class="btn-group">
         <?php if ($canEdit && !$insideModal): ?>
             <button type="button" class="btn" data-togglemode="editor" onclick="setMode('editor')">
@@ -62,7 +62,18 @@
                         <?= __('Download') ?>
                     </a>
                     <ul class="dropdown-menu">
-                        <li><a tabindex="-1" href="#" onclick="downloadMarkdown('pdf')">
+                        <li
+                            class="<?= empty($isDownloadAsPDFModuleAvailable) ? 'disabled' : '' ?>">
+                            <a tabindex="-1" href="#" onclick="<?= !empty($isDownloadAsPDFModuleAvailable) ? sprintf("downloadMarkdown('pdf-module', %s)", h($report['EventReport']['id'])) : '' ?>">
+                            <span class="icon"><i class="<?= $this->FontAwesome->getClass('file-pdf') ?>"></i></span>
+                            <?php if (!empty($isDownloadAsPDFModuleAvailable)): ?>
+                                <?= __('Download PDF (via misp-module)') ?>
+                            <?php else: ?>
+                                <span style="text-decoration: line-through;"><?= __('Download PDF (via misp-module)') ?></span>
+                                <i class="<?= $this->FontAwesome->getClass('info-circle') ?>" title="<?= __('Module `convert_markdown_to_pdf` not available') ?>"></i>
+                            <?php endif; ?>
+                        </a></li>
+                        <li><a tabindex="-1" href="#" onclick="downloadMarkdown('pdf-print')">
                             <span class="icon"><i class="<?= $this->FontAwesome->getClass('file-pdf') ?>"></i></span>
                             <?= __('Download PDF (via print)') ?>
                         </a></li>
@@ -178,12 +189,21 @@
     var saveConfirmMessage = '<?= __('You are about to save the document. Do you wish to proceed?') ?>'
     var saveSuccessMessage = '<?= 'Markdown saved' ?>'
     var saveFailedMessage = '<?= 'Could not save markdown. Reason' ?>'
-    var savePDFConfirmMessage = '<?= __('In order to save the PDF, you have to set the print destination to `Save as PDF`.') ?>'
+    var imgPictureFailedMessage = '<?= 'Could not upload picture. Reason' ?>'
+    var savePDFConfirmMessage = '<?= __('In order to save the PDF, you have to set the print destination to `Save as PDF`. Warning: The preferred way to download as PDF is to use the misp-module download.') ?>'
     var confirmationMessageUnsavedChanges = '<?= __('You are about to leave the page with unsaved changes. Do you want to proceed?') ?>'
     var changeDetectedMessage = '<?= __('Unsaved changes') ?>'
     var canEdit = <?= $canEdit ? 'true' : 'false' ?>;
+    var isSiteAdmin = <?= $isSiteAdmin ? 'true' : 'false' ?>;
     var originalRaw = <?= json_encode(is_array($markdown) ? $markdown : array($markdown), JSON_HEX_TAG); ?>[0];
     var lastModified = '<?= h($lastModified) ?>' + '000'
+    var templateVariables = <?= json_encode($templateVariables, JSON_HEX_TAG); ?>;
+    var templateVariablesProxy = {}
+    templateVariables.forEach(entry => {
+        templateVariablesProxy[entry.name] = entry.value
+    });
+    var markdownOverrideEnabledParsingRules = [<?= Configure::read('MISP.enableEventReportImageParsingRule') === true ? '"image"' : '' ?>]
+    
 </script>
 
 <?php

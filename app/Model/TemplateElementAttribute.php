@@ -20,16 +20,38 @@ class TemplateElementAttribute extends AppModel
                 ),
             ),
             'category' => array(
-                'rule'    => array('comparison', '!=', 'Select Category'),
-                'message' => 'Please choose a category.'
+                'notDefault' => array(
+                    'rule'    => array('notDefaultCategory'),
+                    'message' => 'Please choose a category, do not leave it on Select Category.'
+                ),
+                'valueNotEmpty' => array(
+                    'rule' => array('valueNotEmpty'),
+                    'message' => 'Please choose a type.'
+                )
             ),
             'type' => array(
-                'rule'    => array('comparison', '!=', 'Select Type'),
-                'message' => 'Please choose a type.'
+                'notDefault' => array(
+                    'rule'    => array('notDefaultType'),
+                    'message' => 'Please choose a type, do not leave it on Select Type.'
+                 ),
+                'valueNotEmpty' => array(
+                    'rule' => array('valueNotEmpty'),
+                    'message' => 'Please choose a type.'
+                )
             ),
     );
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
+    }
+
+    public function notDefaultCategory($check)
+    {
+        return $check['category'] != 'Select Category';
+    }
+
+    public function notDefaultType($check)
+    {
+        return $check['type'] != 'Select Type';
     }
 }

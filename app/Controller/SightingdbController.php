@@ -7,7 +7,7 @@ class SightingdbController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
             'order' => array(
                     'Sightingdb.id' => 'DESC'
             ),
@@ -37,7 +37,7 @@ class SightingdbController extends AppController
             }
             if ($this->_isRest()) {
                 if ($result) {
-                    return $this->RestResponse->saveSuccessResponse('Sightingdb', 'add', $this->response->type(), $message);
+                    return $this->RestResponse->saveSuccessResponse('Sightingdb', 'add', $this->Sightingdb->id, $this->response->type(), $message);
                 } else {
                     return $this->RestResponse->saveFailResponse('Sightingdb', 'add', $message, $this->response->type());
                 }

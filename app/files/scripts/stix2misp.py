@@ -1580,6 +1580,8 @@ def is_from_misp(event):
         title = event.stix_header.title
     except AttributeError:
         return False
+    if title is None:
+        return False
     return 'Export from ' in title and 'MISP' in title
 
 

@@ -29,7 +29,7 @@ $tableData = [
     echo $this->Form->create('Object', array('id', 'url' => $url));
     $formSettings = array(
       'type' => 'hidden',
-      'value' => JsonTool::encode($data),
+      'value' => json_encode($data),
       'label' => false,
       'div' => false
     );

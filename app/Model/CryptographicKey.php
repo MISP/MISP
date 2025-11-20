@@ -181,6 +181,27 @@ class CryptographicKey extends AppModel
         return $signature;
     }
 
+    public function verifySignatureAndGetFingerprint($data, $signature)
+    {
+        $this->error = false;
+        $data = preg_replace("/\s+/", "", $data);
+        try {
+            $verifiedSignature = $this->getGpg()->verify($data, $signature);
+        } catch (Exception $e) {
+            $this->error = self::ERROR_WRONG_KEY;
+            return false;
+        }
+        if (empty($verifiedSignature)) {
+            $this->error = self::ERROR_MALFORMED_SIGNATURE;
+            return false;
+        }
+        if (!$verifiedSignature[0]->isValid()) {
+            $this->error = self::ERROR_INVALID_SIGNATURE;
+            return false;
+        }
+        return $verifiedSignature[0]->getKeyFingerprint();
+    }
+
     /**
      * @param string $data
      * @param string $signature
@@ -270,8 +291,40 @@ class CryptographicKey extends AppModel
         ]);
     }
 
+    public function validateString($data, $pgp_signature, $user = null)
+    {
+        $pgp_signature = base64_decode($pgp_signature);
+        $fingerprint = $this->verifySignatureAndGetFingerprint($data, $pgp_signature);
+        if ($fingerprint) {
+            return $fingerprint;
+        }
+        $message = __('Could not validate the signature.');
+        $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', 0, $message);
+        return false;
+    }
+
+    public function validateAndCheckLocalProtectedEvent($raw_data, array $user, $pgp_signature, array $event)
+    {
+        $eventModel = ClassRegistry::init('Event');
+        $existingEvent = $eventModel->find('first', [
+            'recursive' => -1,
+            'contain' => ['CryptographicKey'],
+            'conditions' => ['Event.uuid' => $event['Event']['uuid']]
+        ]);
+        if (empty($event)) {
+            // No existing event found, simply validate the signatures provided
+            return $this->validateProtectedEvent($raw_data, $user, $pgp_signature, $event);
+        } else {
+            // Existing event found, check if the user has the right to update the event
+            return $this->validateProtectedEvent($raw_data, $user, $pgp_signature, $existingEvent);
+        }
+    }
+
     public function validateProtectedEvent($raw_data, array $user, $pgp_signature, array $event)
     {
+        if (empty($user)) {
+            $user = 'SYSTEM';
+        }
         $eventCryptoGraphicKey = [];
         if (!empty($event['Event']['CryptographicKey'])) { // Depending if $event comes from fetchEvent or from pushed data
             $eventCryptoGraphicKey = $event['Event']['CryptographicKey'];
@@ -280,16 +333,17 @@ class CryptographicKey extends AppModel
         }
         if (empty($eventCryptoGraphicKey)) {
             $message = __('No valid signatures found for validating the signature.');
-            $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', $event['Event']['id'], $message);
+            $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', $event['Event']['uuid'], $message);
             return false;
         }
+        $pgp_signature = base64_decode($pgp_signature);
         foreach ($eventCryptoGraphicKey as $supplied_key) {
-            if ($this->verifySignature($raw_data, base64_decode($pgp_signature), $supplied_key['key_data'])) {
+            if ($this->verifySignature($raw_data, $pgp_signature, $supplied_key['key_data'])) {
                 return true;
             }
         }
         $message = __('Could not validate the signature.');
-        $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', $event['Event']['id'], $message);
+        $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', 0, $message);
         return false;
     }
 
@@ -367,7 +421,7 @@ class CryptographicKey extends AppModel
      * @return CryptGpgExtended|null
      * @throws Exception
      */
-    private function getGpg()
+    public function getGpg()
     {
         if ($this->gpg) {
             return $this->gpg;

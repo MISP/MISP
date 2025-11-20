@@ -22,7 +22,7 @@
                     <tr>
                         <td><input type="text" value="<?= h($element['key']) ?>"></input></td>
                         <td><input type="text" value="<?= h($element['value']) ?>"></input></td>
-                        <td><buton type="button" class="btn btn-danger btn-small" onclick="deleteCurrentRow(this)">&times;</buton></td>
+                        <td><button type="button" class="btn btn-danger btn-small" onclick="deleteCurrentRow(this)">&times;</button></td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -59,7 +59,7 @@
         $('#elementTableBody').append($('<tr></tr>').append(
             $('<td></td>').append($('<input type="text" class="elementKey"></input>').val(key)),
             $('<td></td>').append($('<input type="text" class="elementValue"></input>').val(value)),
-            $('<td></td>').append('<buton type="button" class="btn btn-danger btn-small" onclick="deleteCurrentRow(this)">&times;</buton>'),
+            $('<td></td>').append('<button type="button" class="btn btn-danger btn-small" onclick="deleteCurrentRow(this)">&times;</button>'),
         ))
     }
 

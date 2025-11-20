@@ -472,7 +472,7 @@ class DecayingModelController extends AppController
                 'max' => 10,
                 'greek' => '',
                 'name' => __('Decay speed'),
-                'info' => __('Decay speed at which an indicator will loose score')
+                'info' => __('Decay speed at which an indicator will lose score')
             ),
             'threshold' => array(
                 'value' => 30,
@@ -540,7 +540,7 @@ class DecayingModelController extends AppController
         $this->set('all_models', $allowed_models);
     }
 
-    // TODO: Consider using the export tool to perform the post treatement
+    // TODO: Consider using the export tool to perform the post treatment
     // as this does not mirror a complete restSearch (not using fetchAttribute)
     public function decayingToolRestSearch($continue = false)
     {

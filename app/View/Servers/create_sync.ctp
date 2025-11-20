@@ -4,7 +4,7 @@
         __('Server configuration'),
         sprintf(
             '<pre style="width:600px;">%s</pre>',
-            json_encode($server, JSON_PRETTY_PRINT)
+            h(json_encode($server, JSON_PRETTY_PRINT))
         )
     );
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'createSync'));

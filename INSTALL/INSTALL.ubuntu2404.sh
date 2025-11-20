@@ -1,7 +1,7 @@
 #!/bin/bash
 # MISP 2.5 installation for Ubuntu 24.04 LTS
 
-# This guide is meant to be a simply installation of MISP on a pristine Ubuntu 20.04 LTS server.
+# This guide is meant to be a simply installation of MISP on a pristine Ubuntu 24.04 LTS server.
 # Keep in mind that whilst this installs the software along with all of its dependencies, it's up to you to properly secure it.
 
 # This guide liberally borrows from three sources:
@@ -85,6 +85,15 @@ function error_check
     else
         print_error "$1 failed. Please check $logfile for more details."
     exit 1
+    fi
+}
+
+function error_check_soft
+{
+    if [ $? -eq 0 ]; then
+        print_ok "$1 successfully completed."
+    else
+        print_error "$1 failed. Please check $logfile for more details. This is not a blocking failure though, proceeding..."
     fi
 }
 
@@ -192,7 +201,7 @@ sudo chown -R ${APACHE_USER}:${APACHE_USER} /var/www/.cache/
 
 curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php &>> $logfile
 COMPOSER_HASH=`curl -sS https://composer.github.io/installer.sig`
-php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '$HASH') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"  &>> $logfile
+php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '$COMPOSER_HASH') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"  &>> $logfile
 sudo php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer  &>> $logfile
 error_check "Composer installation"
 
@@ -231,27 +240,32 @@ print_ok "PHP and MySQL configured..."
 
 print_status "Installing PECL extensions..."
 
-sudo pecl channel-update pecl.php.net &>> $logfile
+sudo pecl channel-update pecl.php.net &>> $logfile || echo "Continuing despite error in updating PECL channel"
 sudo pecl install brotli &>> $logfile
-error_check "PECL brotli extension installation"
+error_check_soft "PECL brotli extension installation" || echo "Continuing despite error in installing PECL brotli extension"
 sudo pecl install simdjson &>> $logfile
-error_check "PECL simdjson extension installation"
+error_check_soft "PECL simdjson extension installation" || echo "Continuing despite error in installing PECL simdjson extension"
 sudo pecl install zstd &>> $logfile
-error_check "PECL zstd extension installation"
+error_check_soft "PECL zstd extension installation" || echo "Continuing despite error in installing PECL zstd extension"
 
 if [ $INSTALL_SSDEEP == "y" ]; then
     sudo apt install make -y &>> $logfile
-    error_check "The installation of make"
+    error_check "The installation of make" || echo "Continuing despite error in installing make"
+
+    # Install libfuzzy-dev and link the .so to somewhere ./configure can pick it up
+    sudo apt install libfuzzy-dev
+    sudo ln -s /usr/lib/x86_64-linux-gnu/libfuzzy.so /usr/lib/libfuzzy.so
     git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
-    error_check "Jakub Onderka's PHP8 SSDEEP extension cloning"
+    error_check "Jakub Onderka's PHP8 SSDEEP extension cloning" || echo "Continuing despite error in cloning SSDEEP extension"
+
     cd /tmp/pecl-text-ssdeep && phpize && ./configure && make && make install
-    error_check "Jakub Onderka's PHP8 SSDEEP extension compilation and installation"
+    error_check "Jakub Onderka's PHP8 SSDEEP extension compilation and installation" || echo "Continuing despite error in SSDEEP compilation and installation"
 fi
 
 
 print_status "Cloning MISP"
 sudo git clone https://github.com/MISP/MISP.git ${MISP_PATH}  &>> $logfile
-error_check "MISP clonining"
+error_check "MISP cloning"
 cd ${MISP_PATH}
 git fetch origin 2.5 &>> $logfile
 error_check "Fetching 2.5 branch"
@@ -429,7 +443,7 @@ username=$SUPERVISOR_USER
 password=$SUPERVISOR_PASSWORD" | sudo tee -a /etc/supervisor/supervisord.conf  &>> $logfile
 
 sudo echo "[group:misp-workers]
-programs=default,email,cache,prio,update
+programs=default,email,cache,prio,update,scheduler
 
 [program:default]
 directory=$MISP_PATH
@@ -493,6 +507,18 @@ autorestart=true
 redirect_stderr=false
 stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
 stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
+user=$APACHE_USER
+
+[program:scheduler]
+directory=$MISP_PATH
+command=$MISP_PATH/app/Console/cake scheduler_worker
+process_name=%(program_name)s_%(process_num)02d
+numprocs=1
+autostart=true
+autorestart=true
+redirect_stderr=false
+stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
+stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
 user=$APACHE_USER"  | sudo tee -a /etc/supervisor/conf.d/misp-workers.conf  &>> $logfile
 
 sudo systemctl restart supervisor  &>> $logfile
@@ -511,7 +537,7 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.tmpdir" "${MISP_PATH}/app/tmp" &>> $logfile
 
   # Change base url, either with this CLI command or in the UI
-  [[ ! -z ${MISP_DOMAIN} ]] && sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Baseurl $MISP_DOMAIN &>> $logfile
+  [[ ! -z ${MISP_DOMAIN} ]] && sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake admin setSetting MISP.baseurl "https://${MISP_DOMAIN}" &>> $logfile
   [[ ! -z ${MISP_DOMAIN} ]] && sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.external_baseurl" ${MISP_BASEURL} &>> $logfile
 
   # Enable GnuPG
@@ -544,6 +570,7 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_port" 9001 &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_user" ${SUPERVISOR_USER} &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_password" ${SUPERVISOR_PASSWORD} &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_serializer" "JSON" &>> $logfile
 
   # Various plugin sightings settings
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.Sightings_policy" 0 &>> $logfile
@@ -579,6 +606,7 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_port" 6379 &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_database" 13 &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_password" "" &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_serializer" "JSON" &>> $logfile
 
   # Force defaults to make MISP Server Settings less YELLOW
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.ssdeep_correlation_threshold" 40 &>> $logfile
@@ -617,7 +645,7 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.rest_client_baseurl" "" &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.advanced_authkeys" true &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.password_policy_length" 12 &>> $logfile
-  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/' &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.password_policy_complexity" '/^((?=.*\\d)|(?=.*\\W+))(?![\\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/' &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators." &>> $logfile
 
   # Appease the security audit, #hardening

@@ -18,7 +18,7 @@
 
 <div id="eventgraph_shortcuts_background" class="eventgraph_network_background"></div>
 <div id="eventgraph_network" class="eventgraph_network" data-event-id="<?php echo h($event['Event']['id']); ?>" data-event-timestamp="<?php echo h($event['Event']['timestamp']); ?>" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>" data-extended="<?php echo $extended; ?>" data-user-email="<?php echo h($me['email']);?>" data-is-site-admin="<?php echo $isSiteAdmin ? 'true' : 'false'; ?>"></div>
-<div class="loading-network-div" id="refecences_network_loading_div" style="display: none;">
+<div class="loading-network-div" id="references_network_loading_div" style="display: none;">
     <div class="spinner-network" data-original-title="" title=""></div>
     <div class="loadingText-network" data-original-title="" title=""></div>
 </div>

@@ -23,7 +23,7 @@ class Module_shadow_attribute_after_save extends WorkflowBaseTriggerModule
     public function normalizeData(array $data)
     {
         $this->Event = ClassRegistry::init('Event');
-        $this->Attribute = ClassRegistry::init('Attribute');
+        $this->MispAttribute = ClassRegistry::init('MispAttribute');
 
         if (empty($data['ShadowAttribute'])) {
             return false;
@@ -31,7 +31,7 @@ class Module_shadow_attribute_after_save extends WorkflowBaseTriggerModule
 
         // If we're dealing with a proposed edit, we retrieve the data about the attribute 
         if ($data['ShadowAttribute']['old_id']) {
-            $event = $this->Attribute->fetchAttribute($data['ShadowAttribute']['old_id']);
+            $event = $this->MispAttribute->fetchAttribute($data['ShadowAttribute']['old_id']);
             $event['Attribute']['ShadowAttribute'] = [$data['ShadowAttribute']];
         } else {
             // If it is a proposal to add a new attribute, we retrieve only the data about the event

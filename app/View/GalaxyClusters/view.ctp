@@ -98,6 +98,13 @@ $table_data[] = array('key' => __('Events'), 'html' => isset($cluster['GalaxyClu
                     ):
                     '<span>0</span>'
                 );
+$table_data[] = array('key' => __('Attributes'), 'html' => isset($cluster['GalaxyCluster']['tag_att_count']) ?
+                    sprintf('<a href="%s">%s</a>',
+                        sprintf('%s/attributes/index?tags=%s', $baseurl, h($cluster['GalaxyCluster']['tag_id'])),
+                        __n('%s attribute', '%s attributes', $cluster['GalaxyCluster']['tag_att_count'], h($cluster['GalaxyCluster']['tag_att_count']))
+                    ):
+                    '<span>0</span>'
+);
 if (!empty($extendedFromHtml)) {
     $table_data[] = array('key' => __('Forked From'), 'html' => $extendedFromHtml);
 }
@@ -117,10 +124,10 @@ if (!empty($extendedByHtml)) {
             <div id="analyst_data_thread" class="panel-container"></div>
         </div>
     </div>
-    <div class="row-fuild">
+    <div class="row-fluid">
         <div id="matrix_container"></div>
     </div>
-    <div class="row-fuild">
+    <div class="row-fluid">
         <div id="relations_container"></div>
     </div>
     <?php

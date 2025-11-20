@@ -8,7 +8,7 @@
 ?>
 
 <h2><?= __('Markdown format') ?></h2>
-<p><?= __('The suported markdown format is similar to %s with some differences:', sprintf('<a href="%s" target="_blank">GFM</a>', 'https://github.github.com/gfm/')) ?></p>
+<p><?= __('The supported markdown format is similar to %s with some differences:', sprintf('<a href="%s" target="_blank">GFM</a>', 'https://github.github.com/gfm/')) ?></p>
 <ul>
     <?php foreach($formatDifferences as $formatDifference): ?>
         <li><?= $formatDifference ?></li>
@@ -38,7 +38,7 @@
 <h4><?= __('Pictures from attachment-type attributes') ?></h4>
 <p><?= __('Syntax for pictures is like the syntax for referencing MISP elements but with two differences:') ?></p>
 <ul>
-    <li><?= __('The addition of the %s character to indicate that the picture should be displayed and not the atttribute', '<code>!</code>') ?></li>
+    <li><?= __('The addition of the %s character to indicate that the picture should be displayed and not the attribute', '<code>!</code>') ?></li>
     <li><?= __('The scope is fixed to %s as only attributes can contain a file', '<code>attribute</code>') ?></li>
 </ul>
 
@@ -71,4 +71,19 @@
 <span><?= __('Examples:') ?></span>
 <ul>
     <li><code>@[galaxymatrix](5f1accda-cde4-47fc-baf1-6ab8f331dc3b)</code></li>
+</ul>
+
+<h4><?= __('Template Variables') ?></h4>
+<p><?=  __('Syntax for providing injecting user-defined template variables:') ?></p>
+<ul>
+    <li><?= __('Variables are specified using the Handlebars-style notation') ?></li>
+    <li><?= __('That variable will be replace by whatever is defined in the user\'s settings for that name, or nothing if undefined.') ?></li>
+</ul>
+<h4 style="text-align: center;">
+    <code style="font-size: 14px;">{{var_name}}</code>
+</h4>
+<span><?= __('Examples:') ?></span>
+<ul>
+    <li><code>{{banner_tlp_green}}</code></li>
+    <li><code>{{my_company_logo}}</code></li>
 </ul>

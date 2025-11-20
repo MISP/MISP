@@ -20,7 +20,7 @@ $fields = [
         'function' => function (array $row) {
             $html = isset($row['numerical_value']) ? h($row['numerical_value']) : '';
             if (isset($row['original_numerical_value'])) {
-                $html .= sprintf(' <i class="%s" title="%s" data-value-overriden="1"></i>',
+                $html .= sprintf(' <i class="%s" title="%s" data-value-overridden="1"></i>',
                     $this->FontAwesome->getClass('exclamation-triangle'),
                     __('Numerical value overridden by userSetting.&#10;Original numerical_value = %s',
                         empty($row['original_numerical_value']) ? __('None') : h($row['original_numerical_value'])

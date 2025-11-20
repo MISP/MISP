@@ -43,7 +43,7 @@
                 'value' => isset($this->request->data['DecayingModel']['parameters']['lifetime']) ? $this->request->data['DecayingModel']['parameters']['lifetime'] : ''
             ));
             echo $this->Form->input('DecayingModel.parameters.decay_speed', array(
-                'label' => sprintf('<b>%s</b> [%s]: %s', __('Decay speed'), __('float'),  __('Decay speed at which an indicator will loose score')),
+                'label' => sprintf('<b>%s</b> [%s]: %s', __('Decay speed'), __('float'),  __('Decay speed at which an indicator will lose score')),
                 'type' => 'number',
                 'min' => 0,
                 'step' => 0.01,

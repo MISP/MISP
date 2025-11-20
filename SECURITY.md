@@ -1,3 +1,6 @@
+## MISP security advisories
+You can find the MISP security advisories on the [MISP project website](https://www.misp-project.org/security#advisories).
+
 ## Reporting security vulnerabilities for MISP or related MISP project repositories
 
 Reporting security vulnerabilities is of great importance for us, as MISP is used in multiple critical infrastructures. 

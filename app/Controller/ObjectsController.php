@@ -249,6 +249,12 @@ class ObjectsController extends AppController
                 }
                 if (empty($error)) {
                     unset($object['Object']['id']);
+                    if (isset($this->request->data['Object']['distribution']) && $this->request->data['Object']['distribution'] == 4) {
+                        $canSGBeUsed = $this->MispObject->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data, 'Object');
+                        if ($canSGBeUsed !== true) {
+                            throw new MethodNotAllowedException($canSGBeUsed);
+                        }
+                    }
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), 'halt', $breakOnDuplicate);
                     if (is_numeric($result)) {
                         $this->MispObject->Event->unpublishEvent($event);
@@ -373,7 +379,7 @@ class ObjectsController extends AppController
             $templateData = $this->MispObject->resolveUpdatedTemplate($template, $object, $update_template_available);
             $this->set('updateable_attribute', $templateData['updateable_attribute']);
             $this->set('not_updateable_attribute', $templateData['not_updateable_attribute']);
-            $this->set('original_template_unkown', $templateData['original_template_unkown']);
+            $this->set('original_template_unknown', $templateData['original_template_unknown']);
             if (!empty($this->Session->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
                 $revisedObjectData = $this->Session->read('object_being_created');
                 if ($this->params['named']['cur_object_tmp_uuid'] == $revisedObjectData['cur_object_tmp_uuid']) { // ensure that the passed session data is for the correct object
@@ -406,6 +412,12 @@ class ObjectsController extends AppController
             if (isset($this->request->data['Object'])) {
                 $this->request->data = array_merge($this->request->data, $this->request->data['Object']);
                 unset($this->request->data['Object']);
+            }
+            if (isset($this->request->data['Object']['distribution']) && $this->request->data['Object']['distribution'] == 4) {
+                $canSGBeUsed = $this->MispObject->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data, 'Object');
+                if ($canSGBeUsed !== true) {
+                    throw new MethodNotAllowedException($canSGBeUsed);
+                }
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
             $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute, $user);
@@ -1260,7 +1272,7 @@ class ObjectsController extends AppController
 
         $event = $this->MispObject->Event->find('first', array(
             'recursive' => -1,
-            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id', 'Event.publish_timestamp'),
+            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.user_id', 'Event.publish_timestamp', 'Event.distribution', 'Event.sharing_group_id'),
             'conditions' => array('Event.id' => $eventId)
         ));
         if (empty($event)) {

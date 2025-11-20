@@ -122,7 +122,7 @@ class Warninglist extends AppModel
         try {
             $redis = RedisTool::init();
         } catch (Exception $e) {
-            // fallback to default implementation when redis is not available
+            // fall back to default implementation when redis is not available
             $eventWarnings = [];
             foreach ($attributes as $pos => $attribute) {
                 $attributes[$pos] = $this->checkForWarning($attribute, $enabledWarninglists);
@@ -180,7 +180,12 @@ class Warninglist extends AppModel
                             'warninglist_name' => $warninglists[$warninglistId]['name'],
                             'warninglist_category' => $warninglists[$warninglistId]['category'],
                         ];
-                        $eventWarnings[$warninglistId] = $warninglists[$warninglistId]['name'];
+                        $category = $warninglists[$warninglistId]['category'];
+                        if ($category === "false_positive") {
+                            $eventWarnings["false_positive"][$warninglistId] = $warninglists[$warninglistId]['name'];
+                        } else {
+                            $eventWarnings["known"][$warninglistId] = $warninglists[$warninglistId]['name'];
+                        }
 
                         $store[$warninglistId] = [$match['value'], $match['match']];
                     }
@@ -190,7 +195,14 @@ class Warninglist extends AppModel
                 $saveToCache[$attributeKey] = empty($store) ? '' : RedisTool::serialize($store);
 
             } elseif (!empty($result)) { // skip empty string that means no warning list match
-                $matchedWarningList = RedisTool::deserialize($result);
+                try {
+                    $matchedWarningList = RedisTool::deserialize($result);
+                } catch (Exception $e) {
+                    // Something went wrong with the cache, let's just skip this attribute
+                    // We also want to log this
+                    CakeLog::write('error', 'Failed to deserialize warninglist cache: ' . $result);
+                    $matchedWarningList = [];
+                }
                 foreach ($matchedWarningList as $warninglistId => $matched) {
                     $attributes[$redisResultToAttributePos[$pos]]['warnings'][] = [
                         'value' => $matched[0],
@@ -199,7 +211,12 @@ class Warninglist extends AppModel
                         'warninglist_name' => $warninglists[$warninglistId]['name'],
                         'warninglist_category' => $warninglists[$warninglistId]['category'],
                     ];
-                    $eventWarnings[$warninglistId] = $warninglists[$warninglistId]['name'];
+                    $category = $warninglists[$warninglistId]['category'];
+                    if ($category === "false_positive") {
+                        $eventWarnings["false_positive"][$warninglistId] = $warninglists[$warninglistId]['name'];
+                    } else {
+                        $eventWarnings["known"][$warninglistId] = $warninglists[$warninglistId]['name'];
+                    }
                 }
             }
         }
@@ -894,8 +911,10 @@ class Warninglist extends AppModel
                     'comment' => isset($entry['comment']) ? $entry['comment'] : null,
                 ];
             } else {
+                $valueAndComment = explode("#", $entry, 2);
                 $entries[] = [
-                    'value' => $entry
+                    'value' => trim($valueAndComment[0]),
+                    'comment' => count($valueAndComment) === 2 ? trim($valueAndComment[1]) : null,
                 ];
             }
         }

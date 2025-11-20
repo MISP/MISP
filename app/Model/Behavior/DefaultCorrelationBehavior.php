@@ -55,6 +55,10 @@ class DefaultCorrelationBehavior extends ModelBehavior
         $this->deadlockAvoidance = $settings['deadlockAvoidance'];
     }
 
+    public function onDemandEngine() {
+        return false;
+    }
+
     public function getTableName(Model $Model)
     {
         return self::TABLE_NAME;

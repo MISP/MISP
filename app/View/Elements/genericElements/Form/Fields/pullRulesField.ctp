@@ -9,7 +9,12 @@
 
 <div id="hiddenRuleForms">
     <?php
-    $pullRules = json_decode($fieldData['pull_rules'], true);
+    if (empty($fieldData['pull_rules'])) {
+        $pullRules = [];
+    } else {
+        $pullRules = json_decode($fieldData['pull_rules'], true);
+    }
+    
     if (array_key_exists('url_params', $pullRules))
         $pullRules['url_params'] = json_decode($pullRules['url_params'], true);
 

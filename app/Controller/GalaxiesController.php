@@ -10,7 +10,7 @@ class GalaxiesController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
             'contain' => array(
 
             ),
@@ -21,7 +21,9 @@ class GalaxiesController extends AppController
 
     public function index()
     {
-        $aclConditions = array();
+        $aclConditions = [
+            'AND' => $this->Galaxy->buildConditions($this->Auth->user())
+        ];
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->params['named'],
@@ -67,6 +69,8 @@ class GalaxiesController extends AppController
             $this->set('galaxyList', $galaxies);
             $this->set('passedArgsArray', $this->passedArgs);
             $this->set('searchall', $filters['value']);
+            $unknownClustersDetails = $this->_isSiteAdmin() ? $this->Galaxy->getUnknownClustersDetails() : '';
+            $this->set('unknownClustersDetails', $unknownClustersDetails);
         }
     }
 
@@ -115,26 +119,95 @@ class GalaxiesController extends AppController
             $passedArgsArray['searchall'] = $this->params['named']['searchall'];
         }
         $this->set('passedArgsArray', $passedArgsArray);
+        $galaxy = $this->Galaxy->fetchIfAuthorized($this->Auth->user(), $id, 'view', true, $this->_isRest(), !$this->_isRest());
         if ($this->_isRest()) {
-            $galaxy = $this->Galaxy->find('first', array(
-                    'contain' => array('GalaxyCluster' => array('GalaxyElement'/*, 'GalaxyReference'*/)),
-                    'recursive' => -1,
-                    'conditions' => array('Galaxy.id' => $id)
-            ));
-            if (empty($galaxy)) {
-                throw new NotFoundException('Galaxy not found.');
-            }
             return $this->RestResponse->viewData($galaxy, $this->response->type());
         } else {
-            $galaxy = $this->Galaxy->find('first', array(
-                    'recursive' => -1,
-                    'conditions' => array('Galaxy.id' => $id)
-            ));
-            if (empty($galaxy)) {
-                throw new NotFoundException('Galaxy not found.');
-            }
             $this->set('galaxy', $galaxy);
+            $this->loadModel('MispAttribute');
+            $distributionLevels = $this->MispAttribute->distributionLevels;
+            $this->set('distributionLevels', $distributionLevels);
+            $this->set('shortDist', $this->MispAttribute->shortDist);
         }
+    }
+
+    public function add()
+    {
+        $currentUser = $this->Auth->user();
+        if (!$currentUser['Role']['perm_site_admin'] && !$currentUser['Role']['perm_galaxy_editor']) {
+            throw new MethodNotAllowedException(__('Insufficient privileges'));
+        }
+        $params = [
+            'beforeSave' => function($data) use ($currentUser) {
+                $data['Galaxy']['default'] = false;
+                if (empty($data['Galaxy']['org_id']) || !$currentUser['Role']['perm_site_admin']) {
+                    $data['Galaxy']['org_id'] = $currentUser['org_id'];
+                }
+                if (empty($data['Galaxy']['orgc_id']) || !$currentUser['Role']['perm_site_admin']) {
+                    $data['Galaxy']['orgc_id'] = $currentUser['org_id'];
+                }
+                return $data;
+            } 
+        ];
+        $this->CRUD->add($params);
+        if ($this->restResponsePayload) {
+            return $this->restResponsePayload;
+        }
+
+        $this->__setDistribution();
+        $this->set('action', 'add');
+    }
+
+    public function edit($id)
+    {
+        $galaxy = $this->Galaxy->fetchIfAuthorized($this->Auth->user(), $id, 'edit', true, false);
+        if ($galaxy['Galaxy']['default']) {
+            throw new MethodNotAllowedException('Default galaxy cluster cannot be edited');
+        }
+        $this->Galaxy->data = $galaxy;
+        $this->Galaxy->data['Galaxy']['kill_chain_order'] = JsonTool::encode($this->Galaxy->data['Galaxy']['kill_chain_order'], true);
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $galaxy = $this->request->data;
+            $errors = $this->Galaxy->editGalaxy($this->Auth->user(), $galaxy);
+            if (!empty($errors)) {
+                $message = implode(', ', $errors);
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Galaxy', 'edit', $galaxy['Galaxy']['id'], $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                }
+            } else {
+                $message = __('Galaxy saved');
+                if ($this->request->is('ajax')) {
+                    return $this->RestResponse->saveSuccessResponse('Galaxy', 'edit', $galaxy['Galaxy']['id'], $this->response->type());
+                } else if ($this->_isRest()) {
+                    $saved_cluster = $this->Galaxy->fetchIfAuthorized($this->Auth->user(), $id, 'view', true, true);
+                    return $this->RestResponse->viewData($saved_cluster);
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect(['controller' => 'galaxies', 'action' => 'view', $id]);
+                }
+            }
+        } else {
+            $this->request->data = $this->Galaxy->data;
+        }
+
+        
+        $this->set('id', $galaxy['Galaxy']['id']);
+        $this->set('galaxy', $galaxy);
+        $this->set('action', 'edit');
+        $this->__setDistribution();
+        $this->render('add');
+    }
+
+    private function __setDistribution()
+    {
+        $this->loadModel('MispAttribute');
+        $distributionLevels = $this->MispAttribute->distributionLevels;
+        unset($distributionLevels[4], $distributionLevels[5]);
+        $this->set('distributionLevels', $distributionLevels);
+        $this->set('initialDistribution', 0);
     }
 
     public function delete($id)
@@ -145,29 +218,25 @@ class GalaxiesController extends AppController
             throw new NotFoundException('Invalid galaxy.');
         }
 
-        $galaxy = $this->Galaxy->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Galaxy.id' => $id)
-        ));
-        if (empty($galaxy)) {
-            throw new NotFoundException('Invalid galaxy.');
-        }
-        $result = $this->Galaxy->delete($id);
-        if ($result) {
-            $message = __('Galaxy deleted');
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Galaxy', 'delete', false, $this->response->type(), $message);
+        $galaxy = $this->Galaxy->fetchIfAuthorized($this->Auth->user(), $id, 'delete', true);
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $result = $this->Galaxy->delete($id);
+            if ($result) {
+                $message = __('Galaxy deleted');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('Galaxy', 'delete', false, $this->response->type(), $message);
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+                }
             } else {
-                $this->Flash->success($message);
-                $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
-            }
-        } else {
-            $message = __('Could not delete Galaxy.');
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveFailResponse('Galaxy', 'delete', false, $message);
-            } else {
-                $this->Flash->success($message);
-                $this->redirect($this->referer());
+                $message = __('Could not delete Galaxy.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Galaxy', 'delete', false, $message);
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect($this->referer());
+                }
             }
         }
     }
@@ -182,40 +251,30 @@ class GalaxiesController extends AppController
 
     public function toggle($id, $enabled=null)
     {
-        if (Validation::uuid($id)) {
-            $id = $this->Toolbox->findIdByUuid($this->Galaxy, $id);
-        } elseif (!is_numeric($id)) {
-            throw new NotFoundException('Invalid galaxy.');
-        }
-
-        $galaxy = $this->Galaxy->find('first', array(
-                'recursive' => -1,
-                'conditions' => array('Galaxy.id' => $id)
-        ));
-        if (empty($galaxy)) {
-            throw new NotFoundException('Invalid galaxy.');
-        }
-        if (is_null($enabled)) {
-            $galaxy['Galaxy']['enabled'] = !$galaxy['Galaxy']['enabled'];
-        } else {
-            $galaxy['Galaxy']['enabled'] = $enabled;
-        }
-        $result = $this->Galaxy->save($galaxy);
-        if ($result) {
-            $message = __('Galaxy %s', $enabled ? __('enabled') : __('disabled'));
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Galaxy', 'toggle', false, $this->response->type(), $message);
+        $galaxy = $this->Galaxy->fetchIfAuthorized($this->Auth->user(), $id, 'edit', true);
+        if ($this->request->is('post') || $this->request->is('put')) {
+            if (is_null($enabled)) {
+                $galaxy['Galaxy']['enabled'] = !$galaxy['Galaxy']['enabled'];
             } else {
-                $this->Flash->success($message);
-                $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+                $galaxy['Galaxy']['enabled'] = $enabled;
             }
-        } else {
-            $message = __('Could not enable Galaxy.');
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveFailResponse('Galaxy', 'toggle', false, $message);
+            $result = $this->Galaxy->save($galaxy);
+            if ($result) {
+                $message = __('Galaxy %s', $enabled ? __('enabled') : __('disabled'));
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('Galaxy', 'toggle', false, $this->response->type(), $message);
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+                }
             } else {
-                $this->Flash->success($message);
-                $this->redirect($this->referer());
+                $message = __('Could not enable Galaxy.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Galaxy', 'toggle', false, $message);
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect($this->referer());
+                }
             }
         }
     }
@@ -280,13 +339,7 @@ class GalaxiesController extends AppController
 
     public function export($galaxyId)
     {
-        $galaxy = $this->Galaxy->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Galaxy.id' => $galaxyId)
-        ));
-        if (empty($galaxy) && $galaxyId !== null) {
-            throw new NotFoundException('Galaxy not found.');
-        }
+        $galaxy = $this->Galaxy->fetchIfAuthorized($this->Auth->user(), $galaxyId, 'view', true);
         if ($this->request->is('post') || $this->request->is('put')) {
             $this->request->data = $this->request->data['Galaxy'];
             $clusterType = array();
@@ -340,6 +393,7 @@ class GalaxiesController extends AppController
         if (!$local) {
             $conditions['local_only'] = false;
         }
+        $conditions['AND'] = $this->Galaxy->buildConditions($this->Auth->user());
         $galaxies = $this->Galaxy->find('all', array(
             'recursive' => -1,
             'fields' => array('MAX(Galaxy.version) as latest_version', 'id', 'kill_chain_order', 'name', 'icon', 'description'),
@@ -396,7 +450,12 @@ class GalaxiesController extends AppController
         $namespaces = $this->Galaxy->find('column', array(
             'recursive' => -1,
             'fields' => array('namespace'),
-            'conditions' => array('enabled' => 1),
+            'conditions' => array(
+                'AND' => [
+                    'enabled' => 1,
+                    $this->Galaxy->buildConditions($this->Auth->user()),
+                ]
+            ),
             'unique' => true,
             'order' => array('namespace asc')
         ));
@@ -684,10 +743,7 @@ class GalaxiesController extends AppController
         foreach ($clusters as $k => $cluster) {
             $clusters[$k] = $this->Galaxy->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
         }
-        $galaxy = $this->Galaxy->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Galaxy.id' => $galaxyId)
-        ));
+        $galaxy = $this->Galaxy->fetchIfAuthorized($this->Auth->user(), $galaxyId, 'view', true);
         $tree = $this->Galaxy->generateForkTree($clusters, $galaxy, $pruneRootLeaves=$pruneRootLeaves);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($tree, $this->response->type());
@@ -703,10 +759,7 @@ class GalaxiesController extends AppController
         if (empty($clusters)) {
             throw new MethodNotAllowedException('Invalid Galaxy.');
         }
-        $galaxy = $this->Galaxy->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Galaxy.id' => $galaxyId)
-        ));
+        $galaxy = $this->Galaxy->fetchIfAuthorized($this->Auth->user(), $galaxyId, 'view', true);
         App::uses('ClusterRelationsGraphTool', 'Tools');
         $grapher = new ClusterRelationsGraphTool($this->Auth->user(), $this->Galaxy->GalaxyCluster);
         $relations = $grapher->getNetwork($clusters, $includeInbound, $includeInbound);

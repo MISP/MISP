@@ -14,14 +14,14 @@ class AuthKeysController extends AppController
     public $paginate = array(
         'limit' => 60,
         'order' => array(
-            'AuthKey.name' => 'ASC',
+            'AuthKey.id' => 'ASC',
         )
     );
 
     public function index($user_id = false)
     {
         $conditions = $this->__prepareConditions();
-        $canCreateAuthkey = $this->__canCreateAuthKeyForUser($user_id);
+        $canCreateAuthkey = $user_id ? $this->AuthKey->canCreateAuthKeyForUser($this->Auth->user(), $user_id) : true;
         if ($user_id) {
             $this->set('user_id', $user_id);
             $conditions['AND'][] = ['AuthKey.user_id' => $user_id];
@@ -62,7 +62,7 @@ class AuthKeysController extends AppController
 
     public function delete($id)
     {
-        if(!$this->__canEditAuthKey($id)) {
+        if(!$this->AuthKey->canEditAuthKey($this->Auth->user(), $id)) {
             throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
         }
         $this->CRUD->delete($id, [
@@ -76,7 +76,7 @@ class AuthKeysController extends AppController
 
     public function edit($id)
     {
-        if(!$this->__canEditAuthKey($id)) {
+        if(!$this->AuthKey->canEditAuthKey($this->Auth->user(), $id)) {
             throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
         }
         $this->CRUD->edit($id, [
@@ -114,7 +114,7 @@ class AuthKeysController extends AppController
     public function add($user_id = false)
     {
         $options = $this->IndexFilter->harvestParameters(['user_id']);
-        if (!empty($params['user_id'])) {
+        if (!empty($options['user_id'])) {
             $user_id = $options['user_id'];
         }
         $params = [
@@ -131,7 +131,7 @@ class AuthKeysController extends AppController
         }
         $selectConditions = [];
         if ($user_id) {
-            if ($this->__canCreateAuthKeyForUser($user_id)) {
+            if ($this->AuthKey->canCreateAuthKeyForUser($this->Auth->user(), $user_id)) {
                 $selectConditions['AND'][] = ['User.id' => $user_id];
                 $params['override']['user_id'] = $user_id;
             } else {
@@ -189,7 +189,7 @@ class AuthKeysController extends AppController
     }
 
     public function pin($id, $ip) {
-        if(!$this->__canEditAuthKey($id)) {
+        if(!$this->AuthKey->canEditAuthKey($this->Auth->user(), $id)) {
             throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
         }
         if ($this->request->is('post')) {
@@ -230,56 +230,5 @@ class AuthKeysController extends AppController
             $conditions['AND'][]['User.id'] = $user['id'];
         }
         return $conditions;
-    }
-
-    private function __canCreateAuthKeyForUser($user_id)
-    {
-        if (!$user_id) 
-            return true;
-        if ($this->_isAdmin()) {
-            if ($this->_isSiteAdmin()) {
-                return true;   // site admin is OK for all
-            } else {
-                // org admin only for non-admin users and themselves
-                $user = $this->AuthKey->User->find('first', [
-                    'recursive' => -1,
-                    'conditions' => [
-                        'User.id' => $user_id,
-                        'User.disabled' => false
-                    ],
-                    'fields' => ['User.id', 'User.org_id', 'User.disabled'],
-                    'contain' => [
-                        'Role' => [
-                            'fields' => [
-                                'Role.perm_site_admin', 'Role.perm_admin', 'Role.perm_auth'
-                            ]
-                        ]
-                    ]
-                ]);
-                if ($user['Role']['perm_site_admin'] || 
-                    ($user['Role']['perm_admin'] && $user['User']['id'] !== $this->Auth->user('id')) ||
-                    !$user['Role']['perm_auth']) {
-                    // no create/edit for site_admin or other org admin
-                    return false;
-                } else {
-                    // ok for themselves or users
-                    return true;
-                }
-            }
-        } else {
-            // user for themselves
-            return (int)$user_id === (int)$this->Auth->user('id');
-        }
-    }
-
-    private function __canEditAuthKey($key_id)
-    {
-        $user_id = $this->AuthKey->find('column', [
-            'fields' => ['AuthKey.user_id'],
-            'conditions' => [
-                'AuthKey.id' => $key_id
-            ]]);
-        if(!empty($user_id)) $user_id = $user_id[0];
-        return $this->__canCreateAuthKeyForUser($user_id);
     }
 }

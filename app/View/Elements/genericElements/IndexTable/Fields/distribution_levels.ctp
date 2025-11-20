@@ -21,16 +21,24 @@ if ($quickedit) {
     echo "<div class='inline-field-solid'>";
 }
 
+if (empty($sg)) {
+    $sgHtml = sprintf(
+        '<span class="red bold" title="%s">%s</span>',
+        __('your organisation is the local owner of this event, however it is not explicitly listed in the sharing group.'),
+        __('Undisclosed sharing group')
+    );
+} else {
+    $sgHtml = sprintf(
+        '<a href="%s/sharing_groups/view/%s">%s</a>',
+        $baseurl,
+        h($sg['id']),
+        h($sg['name'])
+    );
+}
 echo sprintf(
     '<span class="%s">%s</span>',
     $distributionLevel == 0 ? 'red bold' : '',
-    $distributionLevel != 4 ? $distributionLevels[$distributionLevel] :
-        sprintf(
-            '<a href="%s/sharing_groups/view/%s">%s</a>',
-            $baseurl,
-            h($sg['id']),
-            h($sg['name'])
-        )
+    $distributionLevel != 4 ? $distributionLevels[$distributionLevel] : $sgHtml
 );
 if ($quickedit) {
     echo '</div></div>';

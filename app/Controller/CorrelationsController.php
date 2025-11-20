@@ -46,7 +46,7 @@ class CorrelationsController extends AppController
             }
 
             $this->__setPagingParams($query['page'], $query['limit'], count($data), 'named');
-
+            $this->set('onDemandEngine', $this->Correlation->onDemandEngine());
             $this->set('age', $age);
             $this->set('age_unit', $unit);
             $this->set('data', $data);
@@ -99,6 +99,9 @@ class CorrelationsController extends AppController
             }
         } else {
             $scope = 'all';
+        }
+        if (!empty($this->request->params['named']['quickFilter'])) {
+            $query['conditions'][] = ['value LIKE' => '%' . $this->request->params['named']['quickFilter'] . '%'];
         }
         $data = $this->Correlation->OverCorrelatingValue->getOverCorrelations($query);
         $data = $this->Correlation->attachExclusionsToOverCorrelations($data);

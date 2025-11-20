@@ -49,6 +49,12 @@
                         'data_path' => 'TaxiiServer.baseurl'
                     ],
                     [
+                        'name' => __('Skip Proxy'),
+                        'sort' => 'TaxiiServer.skip_proxy',
+                        'data_path' => 'TaxiiServer.skip_proxy',
+                        'element' => 'boolean'
+                    ],
+                    [
                         'name' => __('API root'),
                         'sort' => 'TaxiiServer.api_root',
                         'data_path' => 'TaxiiServer.api_root'
@@ -89,7 +95,7 @@
                             $baseurl
                         ),
                         'onclick_params_data_path' => 'TaxiiServer.id',
-                        'title' => __('Pull all filtered data to TAXII server'),
+                        'title' => __('Push all filtered data to TAXII server'),
                         'icon' => 'upload'
                     ],
                     [

@@ -105,7 +105,7 @@
     - "/opt/misp-server/misp/app/files/scripts/python-cybox"
     - "/opt/misp-server/misp/app/files/scripts/python-stix"
 
-- name: Clone MISP depedencies | Python-Cybox
+- name: Clone MISP dependencies | Python-Cybox
   become: true
   become_user: misp
   git: 
@@ -116,7 +116,7 @@
     version: v2.1.0.12
     accept_hostkey: yes
 
-- name: Clone MISP depedencies | Python-Stix
+- name: Clone MISP dependencies | Python-Stix
   become: true
   become_user: misp
   git: 
@@ -127,7 +127,7 @@
     version: v1.1.1.4
     accept_hostkey: yes
 
-- name: Install MISP depedencies | Python-Cybox
+- name: Install MISP dependencies | Python-Cybox
   become: true
   shell: "{{ item }}"
   args:
@@ -136,7 +136,7 @@
   with_items:
     - python setup.py install > /home/misp/ansible/ansible_shell_pythoncybox_setup.log
 
-- name: Install MISP depedencies | Python-Stix
+- name: Install MISP dependencies | Python-Stix
   become: true
   shell: "{{ item }}"
   args:

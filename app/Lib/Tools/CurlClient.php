@@ -261,6 +261,11 @@ class CurlClient extends HttpSocketExtended
         }
 
         $code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
+
+        // Try to release pointer to local function to avoid circular reference and releasing memory
+        // See https://github.com/php-mod/curl/issues/95
+        curl_reset($this->ch);
+
         return $this->constructResponse($output, $responseHeaders, $code);
     }
 

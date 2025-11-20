@@ -1,7 +1,7 @@
 <div>
 <?php
 /*
-* This layout is split in two parts, the top part is the achiements already
+* This layout is split in two parts, the top part is the achievements already
 * unlocked and the bottom part contains the one to get next.
 *
 * The data array to be passed has therefore 2 root keys: locked and unlocked.

@@ -228,4 +228,25 @@ class FileAccessTool
         }
         return $text;
     }
+
+    /**
+     * @param string $filePath
+     * @param string $newName
+     * @return bool
+     */
+    public static function renameFile($filePath, $newName)
+    {
+        $directory = dirname($filePath);
+        $newPath = $directory . DS . $newName;
+
+        if (!file_exists($filePath)) {
+            return false;
+        }
+
+        if (rename($filePath, $newPath)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

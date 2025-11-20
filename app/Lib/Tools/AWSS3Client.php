@@ -73,7 +73,7 @@ class AWSS3Client
         // -- Do not verify certificate, securitywise, this option is not recommended, however due to 
         //    internal deployment scheme it is acceptable risk to set this to false
         //    'http'    => ['verify' => false],
-        // -- Verify againts  built in CA certificates
+        // -- Verify against  built in CA certificates
         //    'http'    => ['verify' => true],
         if ($settings['aws_validate_ca']) {
             $s3Config['http']['verify'] = true;
@@ -104,6 +104,18 @@ class AWSS3Client
             'Key' => $key,
             'Body' => $data
        ]);
+    }
+
+    public function rename($key, $newKey)
+    {
+        // Copy the object to the new key
+        $this->__client->copyObject([
+            'Bucket' => $this->__settings['bucket_name'],
+            'CopySource' => $this->__settings['bucket_name'] . '/' . $key,
+            'Key' => $newKey
+        ]);
+
+        $this->delete($key); // Delete the old object
     }
 
     public function download($key)

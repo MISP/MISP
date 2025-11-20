@@ -34,7 +34,12 @@
     }
     if (!empty($data['persistUrlParams'])) {
         foreach ($data['persistUrlParams'] as $persistedParam) {
-            if (!empty($passedArgsArray[$persistedParam])) {
+            if ($persistedParam === '?') {
+                $parts = explode('?', $_SERVER['REQUEST_URI'], 2);
+                if (!empty($parts[1])) {
+                    $data['paginatorOptions']['url']['?'] = $parts[1];
+                }
+            } else if (!empty($passedArgsArray[$persistedParam])) {
                 $data['paginatorOptions']['url'][$persistedParam] = $passedArgsArray[$persistedParam];
             }
         }
@@ -50,8 +55,8 @@
     $Paginator->options($paginationData);
     $skipPagination = !empty($data['skip_pagination']);
     if (!$skipPagination) {
-        $paginatonLinks = $this->element('/genericElements/IndexTable/pagination_links', ['options' => ['paginator' => $Paginator]]);
-        echo $paginatonLinks;
+        $paginationLinks = $this->element('/genericElements/IndexTable/pagination_links', ['options' => ['paginator' => $Paginator]]);
+        echo $paginationLinks;
     }
 
     $hasSearch = false;
@@ -97,13 +102,13 @@
     );
     echo sprintf(
         '<table class="table table-striped table-hover table-condensed">%s%s</table>',
-        $this->element('/genericElements/IndexTable/headers', array('fields' => $data['fields'], 'paginator' => $this->Paginator, 'actions' => empty($data['actions']) ? false : true)),
+        $this->element('/genericElements/IndexTable/headers', array('fields' => $data['fields'], 'paginator' => $Paginator, 'actions' => empty($data['actions']) ? false : true)),
         $tbody
     );
     echo '</div>';
     if (!$skipPagination) {
         echo $this->element('/genericElements/IndexTable/pagination_counter', ['options' => ['paginator' => $Paginator]]);
-        echo $paginatonLinks;
+        echo $paginationLinks;
     }
     $url = $baseurl . '/' . $this->params['controller'] . '/' . $this->params['action'];
 ?>

@@ -6,6 +6,7 @@
 class AnalystDataParentBehavior extends ModelBehavior
 {
     private $__currentUser = null;
+    private $__isRest = null;
 
     public $User;
 
@@ -24,6 +25,45 @@ class AnalystDataParentBehavior extends ModelBehavior
                 $this->__currentUser = $this->User->getAuthUser($user_id);
             }
         }
+        if (empty($this->__isRest)) {
+            $this->__isRest = Configure::read('CurrentRequestIsRest');
+        }
+
+        $method = 'attach' . ($this->__isRest ? 'Flat' : 'Nested') . 'AnalystData';
+        $fetchRecursive = !empty($model->includeAnalystDataRecursive);
+        $data = $this->$method($object, $types, $fetchRecursive);
+
+        // include inbound relationship
+        $data['RelationshipInbound'] = Hash::extract($this->Relationship->getInboundRelationships($this->__currentUser, $model->alias, $object['uuid']), '{n}.Relationship');
+        return $data;
+    }
+
+    private function attachFlatAnalystData(array $object, array $types, $fetchRecursive): array
+    {
+        $data = [];
+        foreach ($types as $type) {
+            $this->{$type} = ClassRegistry::init($type);
+            $this->{$type}->fetchRecursive = $fetchRecursive;
+            $temp = $this->{$type}->fetchForUuid($object['uuid'], $this->__currentUser);
+            if (!empty($temp)) {
+                foreach ($temp as $k => $temp_element) {
+                    $data[$type][] = $temp_element[$type];
+                    $childNotesAndOpinions = $this->{$type}->fetchChildNotesAndOpinions($this->__currentUser, $temp_element[$type], $this->__isRest);
+                    if (!empty($childNotesAndOpinions)) {
+                        foreach ($childNotesAndOpinions as $item) {
+                            foreach ($item as $childType => $childElement) {
+                                $data[$childType][] = $childElement;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return $data;
+    }
+
+    private function attachNestedAnalystData(array $object, array $types, $fetchRecursive): array
+    {
         $data = [];
         foreach ($types as $type) {
             $this->{$type} = ClassRegistry::init($type);
@@ -32,15 +72,12 @@ class AnalystDataParentBehavior extends ModelBehavior
             if (!empty($temp)) {
                 foreach ($temp as $k => $temp_element) {
                     if (in_array($type, ['Note', 'Opinion', 'Relationship'])) {
-                        $temp_element[$type] = $this->{$type}->fetchChildNotesAndOpinions($this->__currentUser, $temp_element[$type], 1);
+                        $temp_element[$type] = $this->{$type}->fetchChildNotesAndOpinions($this->__currentUser, $temp_element[$type], $this->__isRest, 5);
                     }
                     $data[$type][] = $temp_element[$type];
                 }
             }
         }
-
-        // include inbound relationship
-        $data['RelationshipInbound'] = Hash::extract($this->Relationship->getInboundRelationships($this->__currentUser, $model->alias, $object['uuid']), '{n}.Relationship');
         return $data;
     }
 
@@ -93,8 +130,17 @@ class AnalystDataParentBehavior extends ModelBehavior
                 if (!empty($temp)) {
                     foreach ($chunked_objects as $k => $object) {
                         if (!empty($temp[$object['uuid']])) {
-                            $objects[$chunk][$k][$type] = !empty($objects[$chunk][$k][$type]) ? $objects[$chunk][$k][$type] : [];
-                            $objects[$chunk][$k][$type] = array_merge($objects[$chunk][$k][$type], $temp[$object['uuid']][$type]);
+                            foreach ($temp[$object['uuid']][$type] as $analystData) {
+                                $objects[$chunk][$k][$type][] = $analystData;
+                                $childNotesAndOpinions = $this->{$type}->fetchChildNotesAndOpinions($this->__currentUser, $analystData, $this->__isRest, 1);
+                                if (!empty($childNotesAndOpinions)) {
+                                    foreach ($childNotesAndOpinions as $item) {
+                                        foreach ($item as $childType => $childElement) {
+                                            $objects[$chunk][$k][$childType][] = $childElement;
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

@@ -8,7 +8,7 @@
                     'canEdit' => $canEdit,
                     'markdown' => $report['EventReport']['content'],
                     'modelName' => 'EventReport',
-                    'mardownModelFieldName' => 'content',
+                    'markdownModelFieldName' => 'content',
                     'lastModified' => $report['EventReport']['timestamp'],
                     'additionalMarkdownElements' => [
                         'path' => 'EventReports/reportEditor',
