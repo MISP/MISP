@@ -92,7 +92,7 @@
         ?>
       </td>
       <?php
-        if (!empty($extended)):
+        if (!empty($extended || $extending)):
       ?>
         <td class="short">
           <?php
@@ -109,7 +109,7 @@
       <?php if ($includeOrgColumn): ?>
       <td class="short">
         <?php
-          if (!empty($extended)):
+          if (!empty($extended) || !empty($extending)):
               echo $this->OrgImg->getOrgLogo($attributeEvent['Orgc'], 24);
           endif;
         ?>

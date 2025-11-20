@@ -500,6 +500,13 @@ $divider = '<li class="divider"></li>';
                             ),
                         ));
                     }
+                    if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'managed_imported_pictures',
+                            'url' => '/eventReports/managedImportedPictures',
+                            'text' => __('Managed Imported Pictures')
+                        ));
+                    }
                     if ($menuItem === 'view' || $menuItem === 'edit') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
@@ -517,6 +524,26 @@ $divider = '<li class="divider"></li>';
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'url' => '/admin/audit_logs/index/model:EventReport/model_id:' . h($id),
                                 'text' => __('View report history'),
+                            ));
+                        }
+                    }
+                    echo $divider;
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'template_variable_index',
+                        'url' => '/EventReportTemplateVariables/index',
+                        'text' => __('List Template Variables')
+                    ));
+                    if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'template_variable_add',
+                            'url' => '/EventReportTemplateVariables/add',
+                            'text' => __('Add Template Variable')
+                        ));
+                        if ($menuItem === 'edit') {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'template_variable_edit',
+                                'url' => '/EventReportTemplateVariables/edit',
+                                'text' => __('Edit Template Variable')
                             ));
                         }
                     }
@@ -1212,9 +1239,9 @@ $divider = '<li class="divider"></li>';
                             'text' => __('Access Logs'),
                         ));
                     }
-                    if ($isAdmin) {
+                    if ($me['Role']['perm_audit']) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/admin/logs/search',
+                            'url' => $baseurl . '/logs/search',
                             'text' => __('Search Logs')
                         ));
                     }
@@ -1731,6 +1758,19 @@ $divider = '<li class="divider"></li>';
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
                             'text' => __('View Object Template')
+                        ));
+                    }
+                    echo $divider;
+                    if ($isSiteAdmin) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'object_relationship_index',
+                            'url' => $baseurl . '/object_relationships/index',
+                            'text' => __('List Object Relationships')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'object_relationship_add',
+                            'url' => $baseurl . '/object_relationships/add',
+                            'text' => __('Add Object Relationships')
                         ));
                     }
                     break;

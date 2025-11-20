@@ -1,4 +1,38 @@
 <?php
+    $html_description = '';
+    $noticeTitle = '<p>' . __('This information is purely informational and is typically part of the normal operation of the system.') . '</p>';
+    if ($isSiteAdmin) {
+        $notices = [];
+        $severity = '';
+        $hasUnkwownCustomClusters = $unkownClustersDetails['unknownCustomClusters'] > 0;
+        $hasUnkwownDefaultClusters = $unkownClustersDetails['unknownDefaultClusters'] > 0;
+        if ($hasUnkwownCustomClusters) {
+            $severity = 'info';
+            $content = sprintf(' %s', __('Your instance has detected <b style="font-size: larger;">%s</b> <b>custom cluster(s)</b> that it doesn\'t recognize. This may indicate one of two things: either these clusters haven\'t been properly synchronized, or you weren\'t authorized to view them during the synchronization process. In most cases, you can safely ignore this message. However, if you believe you should have access to these clusters, please check your synchronization settings and ask the instances sending data to you to review theirs as well. Sample(s):', $unkownClustersDetails['unknownCustomClusters']));
+            $tagSampleHTML = sprintf('<li>%s</li>', implode('</li><li>', $unkownClustersDetails['unknownCustomClustersSamples']));
+            $content .= $tagSampleHTML;
+            $notices[] = sprintf('<div class="alert alert-%s" style="max-width: 960px; margin-bottom: 0.25em;"><b style="font-size: larger;">%s:</b>%s</div>', $severity, __('Info'), $content);
+        }
+        if ($hasUnkwownDefaultClusters) {
+            $severity = 'info';
+            $content = sprintf(' %s', __('Your instance has detected <b style="font-size: larger;">%s</b> <b>default cluster(s)</b> that it doesn\'t recognize, which may mean your galaxies are outdated. To fix this, update to the latest version from the misp-galaxy repository and load the JSON files into your database by clicking the "Update Galaxies" button. Sample(s):', $unkownClustersDetails['unknownDefaultClusters']));
+            $tagSampleHTML = sprintf('<li>%s</li>', implode('</li><li>', $unkownClustersDetails['unknownDefaultClustersSamples']));
+            $content .= $tagSampleHTML;
+            $notices[] = sprintf('<div class="alert alert-%s" style="max-width: 960px; margin-bottom: 0.25em;"><b style="font-size: larger;">%s:</b>%s</div>', $severity, __('Info'), $content);
+        }
+        if (!empty($notices)) {
+            array_unshift($notices, $noticeTitle);
+            $html_description = implode('', $notices);
+            $bootstrapAccordionBlueprint = '<div class="accordion" id="accordionClusterInfo" style="margin-bottom: 0.5em;">
+                <div class="accordion-group"><div class="accordion-heading"><a class="accordion-toggle" data-toggle="collapse" data-parent="#accordionClusterInfo" href="#collapseOne"><i class="fas fa-caret-down"></i> %s</a></div>
+                <div id="collapseOne" class="accordion-body collapse"><div class="accordion-inner">%s</div></div></div>
+            </div>';
+            $html_description = sprintf($bootstrapAccordionBlueprint, __('Show information about your clusters'), $html_description);
+        }
+    }
+?>
+
+<?php
     echo '<div class="index">';
     echo $this->element('/genericElements/IndexTable/index_table', array(
         'data' => array(
@@ -90,6 +124,7 @@
                 ),
             ),
             'title' => __('Galaxy index'),
+            'html' => $html_description,
             'actions' => array(
                 array(
                     'url' => '/galaxies/view',

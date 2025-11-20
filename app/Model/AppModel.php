@@ -51,6 +51,8 @@ class AppModel extends Model
     public $includeAnalystData;
     public $includeAnalystDataRecursive;
 
+    private $dbiq = null;
+
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
     const OLD_DB_CHANGES = array(
@@ -92,7 +94,9 @@ class AppModel extends Model
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
         117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
-        129 => false, 130 => false, 131 => false, 132 => false,
+        129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
+        135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
+        141 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -116,6 +120,19 @@ class AppModel extends Model
         if (in_array('phar', stream_get_wrappers(), true)) {
             stream_wrapper_unregister('phar');
         }
+    }
+
+    public function dbiq()
+    {
+        if (!empty($this->dbiq)) {
+            return $this->dbiq;
+        }
+        $db = ConnectionManager::getDataSource('default');
+        if (!empty($db->dbiq)) {
+            $this->dbiq = $db->dbiq;
+            return $this->dbiq;
+        }
+        return '`';
     }
 
     public function isAcceptedDatabaseError($errorMessage)
@@ -280,6 +297,9 @@ class AppModel extends Model
                 break;
             case 120:
                 $dbUpdateSuccess = $this->moveImages();
+                break;
+            case 139:
+                $dbUpdateSuccess = $this->fixUpdatedGalaxyID();
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -507,6 +527,233 @@ class AppModel extends Model
                     KEY `org_id` (`org_id`),
                     KEY `event_id` (`event_id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                break;
+            case 'highPerformanceIndexingEvents':
+                $temp = "ALTER TABLE events";
+                $notEmpty = false;
+                $indeces = [
+                    'idx_evt_acl' => '(distribution, sharing_group_id)',
+                    'idx_evt_ts_pub' => '(timestamp, published)',
+                    'idx_evt_id_acl' => '(id, org_id, distribution, sharing_group_id)',
+                ];
+                $indeces_to_delete = [
+                    'sharing_group_id'
+                ];
+                foreach ($indeces as $index => $data) {
+                    if (!$this->checkNamedIndexExists('events', $index)) {
+                        $temp .= " ADD INDEX $index $data,";
+                        $notEmpty = true;
+                    }
+                }
+                foreach ($indeces_to_delete as $index) {
+                    if ($this->checkNamedIndexExists('events', $index)) {
+                        $temp .= " DROP INDEX $index,";
+                        $notEmpty = true;
+                    }
+                }
+                if ($notEmpty) {
+                    $temp = rtrim($temp, ',') . " ;";
+                    $sqlArray[] = $temp;
+                }
+                break;
+            case 'highPerformanceIndexingAttributes':
+                $temp = "ALTER TABLE attributes";
+                $notEmpty = false;
+                $indeces = [
+                    'idx_attr_acl_type' => '(event_id, distribution, sharing_group_id, deleted, type(16))',
+                    'idx_attr_type_ts' => '(type(16), timestamp)',
+                    'idx_attr_type_event' => '(type(16), event_id)',
+                    'idx_attr_value_combo' => '(value1(64), value2(64))',
+                    'idx_attr_value1_only' => '(value1(64))',
+                    'idx_attr_value2_only' => '(value2(64))',
+                    'idx_attr_obj_dist' => '(object_id, distribution)',
+                    'idx_attr_evt_dist' => '(event_id, distribution)',
+                    'idx_attr_objrel_acl' => '(object_relation(32), event_id, distribution, sharing_group_id, deleted)',
+                ];
+                $indeces_to_delete = [
+                    'deleted',
+                    'value1',
+                    'value2',
+                    'type',
+                    'event_id',
+                    'object_id',
+                    'object_relation'
+                ];
+                foreach ($indeces as $index => $data) {
+                    if (!$this->checkNamedIndexExists('attributes', $index)) {
+                        $temp .= " ADD INDEX $index $data,";
+                        $notEmpty = true;
+                    }
+                }
+                foreach ($indeces_to_delete as $index) {
+                    if ($this->checkNamedIndexExists('attributes', $index)) {
+                        $temp .= " DROP INDEX $index,";
+                        $notEmpty = true;
+                    }
+                }
+                if ($notEmpty) {
+                    $temp = rtrim($temp, ',') . " ;";
+                    $sqlArray[] = $temp;
+                }
+                break;
+            case 'highPerformanceIndexingObjects':
+                $temp = "ALTER TABLE objects";
+                $notEmpty = false;
+                $indeces = [
+                    'idx_obj_acl' => '(event_id, distribution, sharing_group_id, deleted)',
+                    'idx_obj_id_acl' => '(id, event_id, distribution)',
+                    'idx_obj_meta' => '(' . $this->dbiq() . 'meta-category' . $this->dbiq() . '(16), timestamp)'
+                ];
+                $indeces_to_delete = [
+                    'event_id',
+                    'distribution',
+                    'sharing_group_id',
+                    $this->dbiq() . 'meta-category' . $this->dbiq()
+                ];
+                foreach ($indeces as $index => $data) {
+                    if (!$this->checkNamedIndexExists('objects', $index)) {
+                        $temp .= " ADD INDEX $index $data,";
+                        $notEmpty = true;
+                    }
+                }
+                foreach ($indeces_to_delete as $index) {
+                    if ($this->checkNamedIndexExists('objects', $index)) {
+                        $temp .= " DROP INDEX $index,";
+                        $notEmpty = true;
+                    }
+                }
+                if ($notEmpty) {
+                    $temp = rtrim($temp, ',') . " ;";
+                    $sqlArray[] = $temp;
+                }
+                break;
+            case 'highPerformanceIndexingDefaultCorrelations':
+                $temp = "ALTER TABLE default_correlations";
+                $notEmpty = false;
+                $indeces = [
+                    'idx_corr_acl_src' => '(object_id, org_id, distribution, sharing_group_id, event_distribution, event_sharing_group_id)',
+                    'idx_corr_acl_dst' => '(1_object_id, 1_org_id, 1_distribution, 1_sharing_group_id, 1_event_distribution, 1_event_sharing_group_id)',
+                    'idx_corr_acl_src_obj' => '(object_id, org_id, distribution, sharing_group_id, object_distribution, object_sharing_group_id, event_distribution, event_sharing_group_id)',
+                    'idx_corr_acl_dst_obj' => '(1_object_id, 1_org_id, 1_distribution, 1_sharing_group_id, 1_object_distribution, 1_object_sharing_group_id, 1_event_distribution, 1_event_sharing_group_id)',
+                    'idx_corr_evt_1evt'   => '(event_id, 1_event_id)',
+                ];
+                foreach ($indeces as $index => $data) {
+                    if (!$this->checkNamedIndexExists('default_correlations', $index)) {
+                        $temp .= " ADD INDEX $index $data,";
+                        $notEmpty = true;
+                    }
+                }
+                if ($notEmpty) {
+                    $temp = rtrim($temp, ',') . " ;";
+                    $sqlArray[] = $temp;
+                }
+            break;
+            case 'highPerformanceIndexingNoAclCorrelations':
+                $temp = "ALTER TABLE no_acl_correlations";
+                $notEmpty = false;
+                $indeces = [
+                    'idx_nac_attr_evt'    => '(attribute_id, event_id)',
+                    'idx_nac_1attr_1evt'  => '(1_attribute_id, 1_event_id)',
+                    'idx_nac_val_attr'    => '(value_id, attribute_id)',
+                    'idx_nac_val_1attr'   => '(value_id, 1_attribute_id)',
+                    'idx_nac_evt_1evt'   => '(event_id, 1_event_id)',
+                ];
+                foreach ($indeces as $index => $data) {
+                    if (!$this->checkNamedIndexExists('no_acl_correlations', $index)) {
+                        $temp .= " ADD INDEX $index $data,";
+                        $notEmpty = true;
+                    }
+                }
+                if ($notEmpty) {
+                    $temp = rtrim($temp, ',') . " ;";
+                    $sqlArray[] = $temp;
+                }
+                break;
+            case 'highPerformanceIndexingConnectorTags':
+                $indeces = [
+                    'event_tags' => [
+                        'idx_event_tags_event_tag' => '(event_id, tag_id)'
+                    ],
+                    'attribute_tags' => [
+                        'idx_attr_tags_event_tag' => '(event_id, tag_id)',
+                        'idx_attr_tags_attr_tag' => '(attribute_id, tag_id)'
+                    ]
+                ];
+                foreach ($indeces as $table => $indexes) {
+                    $temp = "ALTER TABLE $table";
+                    $notEmpty = false;
+                    foreach ($indexes as $index => $data) {
+                        if (!$this->checkNamedIndexExists($table, $index)) {
+                            $temp .= " ADD INDEX $index $data,";
+                            $notEmpty = true;
+                        }
+                    }
+                    if ($notEmpty) {
+                        $temp = rtrim($temp, ',') . " ;";
+                        $sqlArray[] = $temp;
+                    }
+                }
+                break;
+            case 'highPerformanceIndexWarninglists':
+                $indeces = [
+                    'warninglist_entries' => [
+                        'idx_warn_values' => '(value(64))'
+                    ]
+                ];
+                foreach ($indeces as $table => $indexes) {
+                    $temp = "ALTER TABLE $table";
+                    $notEmpty = false;
+                    foreach ($indexes as $index => $data) {
+                        if (!$this->checkNamedIndexExists($table, $index)) {
+                            $temp .= " ADD INDEX $index $data,";
+                            $notEmpty = true;
+                        }
+                    }
+                    if ($notEmpty) {
+                        $temp = rtrim($temp, ',') . " ;";
+                        $sqlArray[] = $temp;
+                    }
+                }
+                break;
+            case 'highPerformanceLogSearchIndexing':
+                $temp = "ALTER TABLE logs";
+                $notEmpty = false;
+                $indeces = [
+                    'idx_logs_org' => '(org(64))',
+                    'idx_logs_email' => '(email(64))',
+                    'idx_logs_model' => '(model(32))',
+                    'idx_logs_model_id' => '(model(32), model_id)',
+                    'idx_logs_action' => '(action(16))',
+                    'idx_logs_created' => '(created)',
+                ];
+                foreach ($indeces as $index => $data) {
+                    if (!$this->checkNamedIndexExists('logs', $index)) {
+                        $temp .= " ADD INDEX $index $data,";
+                        $notEmpty = true;
+                    }
+                }
+                if ($notEmpty) {
+                    $temp = rtrim($temp, ',') . " ;";
+                    $sqlArray[] = $temp;
+                }
+                break;
+            case 'OnDemandCorrelationTuning':
+                $indeces = [
+                    'idx_val1_source' => '(event_id, value1(64), deleted, disable_correlation, type, id)',
+                    'idx_val1_target' => '(value1(64), event_id, deleted, disable_correlation, type, id)',
+                    'idx_val2_source' => '(event_id, value2(64), deleted, disable_correlation, type, id)',
+                    'idx_val2_target' => '(value2(64), event_id, deleted, disable_correlation, type, id)'
+                ];
+                foreach ($indeces as $index => $data) {
+                    if (!$this->checkNamedIndexExists('logs', $index)) {
+                        $temp .= " ADD INDEX $index $data,";
+                        $notEmpty = true;
+                    }
+                }
+                if ($notEmpty) {
+                    $temp = rtrim($temp, ',') . " ;";
+                    $sqlArray[] = $temp;
+                }
                 break;
             case '2.4.19':
                 $sqlArray[] = "DELETE FROM `shadow_attributes` WHERE `event_uuid` = '';";
@@ -2220,7 +2467,7 @@ class AppModel extends Model
                 // change bookmarks' table's comment field to utf8_mb4
                 $sqlArray[] = "ALTER TABLE `bookmarks` MODIFY `comment` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
                 break;
-            case 131;
+            case 131:
                 $sqlArray[] = "ALTER TABLE `galaxies` ADD `default` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `galaxies` ADD `org_id` int(10) unsigned NOT NULL";
                 $sqlArray[] = "ALTER TABLE `galaxies` ADD `orgc_id` int(10) unsigned NOT NULL";
@@ -2262,6 +2509,42 @@ class AppModel extends Model
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $indexArray[] = array('event_report_tags', 'event_report_id');
                 $indexArray[] = array('event_report_tags', 'tag_id');
+                break;
+            case 133:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_report_template_variables` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `name` varchar(191) NOT NULL,
+                    `value` text,
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                $indexArray[] = array('event_report_template_variables', 'name');
+                break;
+            case 134:
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_server_sign` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "UPDATE `roles` SET `perm_server_sign`=1 WHERE `perm_site_admin` = 1;";
+                break;
+            case 135:
+                $sqlArray[] = "ALTER TABLE `taxii_servers` ADD `skip_proxy` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 136:
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_sync_internal` tinyint(1) NOT NULL DEFAULT 0;";
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_sync_authoritative` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 137:
+                $sqlArray[] = "ALTER TABLE `object_relationships` ADD `highlighted` tinyint(1) DEFAULT 0;";
+                break;
+            case 138:
+                $sqlArray[] = "ALTER TABLE `events` MODIFY info text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;";
+                break;
+            case 139:
+                $sqlArray[] = "ALTER TABLE `roles` ADD `restsearch_limit_result` int(11) NULL DEFAULT NULL;";
+                break;
+            case 140:
+                $sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `api_key` TEXT NOT NULL";
+                break;
+            case 141:
+                $sqlArray[] = "CREATE TABLE `scheduled_tasks` (`id` INT(11) NOT NULL AUTO_INCREMENT, `type` VARCHAR(100) NOT NULL, `timer` INT(11) NOT NULL, `last_job_id` INT(11) DEFAULT NULL, `description` VARCHAR(255) NOT NULL, `next_execution_time` INT(11) NOT NULL, `message` VARCHAR(255) NOT NULL, `user_id` INT(11) NOT NULL, `action` VARCHAR(40) NOT NULL, `params` VARCHAR(255) DEFAULT NULL, `enabled` TINYINT(1) DEFAULT 0, `last_run_at` INT(11) DEFAULT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                $this->cleanCacheFiles();
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -2334,7 +2617,7 @@ class AppModel extends Model
             case 'createUUIDsConstraints':
                 $tables_to_check = ['events', 'attributes', 'objects', 'sightings', 'dashboards', 'inbox', 'organisations', 'tag_collections'];
                 foreach ($tables_to_check as $table) {
-                    if (!$this->__checkIndexExists($table, 'uuid', true)) {
+                    if (!$this->checkIndexExists($table, 'uuid', true)) {
                         $this->__dropIndex($table, 'uuid');
                         $this->__addIndex($table, 'uuid', null, true);
                     }
@@ -2590,13 +2873,24 @@ class AppModel extends Model
         return $additionResult;
     }
 
-    private function __checkIndexExists($table, $column_name, $is_unique = false): bool
+    public function checkIndexExists($table, $column_name, $is_unique = false): bool
     {
         $query = sprintf(
             'SHOW INDEX FROM %s WHERE Column_name = \'%s\' and Non_unique = %s;',
             $table,
             $column_name,
             !empty($is_unique) ? '0' : '1'
+        );
+        $existing_index = $this->query($query);
+        return !empty($existing_index);
+    }
+
+    public function checkNamedIndexExists($table, $index_name): bool
+    {
+        $query = sprintf(
+            'SHOW INDEX FROM %s WHERE Key_name = \'%s\';',
+            $table,
+            $index_name
         );
         $existing_index = $this->query($query);
         return !empty($existing_index);
@@ -3483,16 +3777,21 @@ class AppModel extends Model
         return true;
     }
 
-    public function setupHttpSocket($server, $HttpSocket = null, $timeout = false)
+    public function setupHttpSocket($server, $HttpSocket = null, $timeout = false, $model = null)
     {
         if (empty($HttpSocket)) {
             App::uses('SyncTool', 'Tools');
             $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server, $timeout);
+
+            if ($model !== null) {
+                $HttpSocket = $syncTool->setupHttpSocket($server, $timeout, $model);
+            } else {
+                $HttpSocket = $syncTool->setupHttpSocket($server, $timeout);
+            }
         }
         return $HttpSocket;
     }
-
+    
     /**
      * @param array $server
      * @param string $model
@@ -4377,7 +4676,7 @@ class AppModel extends Model
         return false;
     }
 
-    private function checkParam($param)
+    protected function checkParam($param)
     {
         return preg_match('/^[\w\_\-\. ]+$/', $param);
     }
@@ -4407,5 +4706,131 @@ class AppModel extends Model
             $oldCustomDir->delete();
         }
         return true;
+    }
+
+    public function getSearchParamsByToken($filters)
+    {
+        $token = $filters['search_token'];
+        $redis = $this->setupRedis();
+        if (!$redis) {
+            throw new Exception('Could not connect to Redis server');
+        }
+        $path = 'misp:search_tokens:' . $token;
+        $params = $redis->get($path);
+        if (empty($params)) {
+            throw new NotFoundException(__('Invalid search token or already expired.'));
+        }
+        $params = json_decode($params, true);
+        $params['search_token'] = $token;
+        $toUnset = ['page', 'limit', 'sort', 'direction'];
+        foreach ($toUnset as $unset) {
+            if (isset($params[$unset])) {
+                unset($params[$unset]);
+            }
+        }
+        return array_merge($filters, $params);
+    }
+
+    public function setSearchParamsByToken($params)
+    {
+        $redis = $this->setupRedis();
+        if (!$redis) {
+            throw new Exception('Could not connect to Redis server');
+        }
+        $token = bin2hex(Security::randomBytes(32));
+        $path = 'misp:search_tokens:' . $token;
+        $params = json_encode($params);
+        $redis->set($path, $params);
+        $redis->expire($path, 3600);
+        return $token;
+    }
+    
+    public function fixUpdatedGalaxyID()
+    {
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $this->AuditLog = ClassRegistry::init('AuditLog');
+        $allUpdatedClusters = $this->AuditLog->find('all', [
+            'conditions' => [
+                'model' => 'GalaxyCluster',
+                'user_id !=' => 0, // Ignore clusters from misp-galaxy
+                'action' => ['edit',],
+            ],
+            'recursive' => -1,
+        ]);
+        $clusterIDsThatGotTheirGalaxyIDChanged = [];
+        foreach ($allUpdatedClusters as $cluster) {
+            if (!empty($cluster['AuditLog']['change']['galaxy_id'])) {
+                $oldID = $cluster['AuditLog']['change']['galaxy_id'][0];
+                $newID = $cluster['AuditLog']['change']['galaxy_id'][1];
+                $clusterIDsThatGotTheirGalaxyIDChanged[$cluster['AuditLog']['model_id']] = [$oldID, $newID];
+            }
+        }
+        $clustersThatGotTheirGalaxyIDChanged = $this->GalaxyCluster->find('all', [
+            'conditions' => [
+                'id' => array_keys($clusterIDsThatGotTheirGalaxyIDChanged),
+            ],
+            'recursive' => -1,
+        ]);
+        $toUpdate = [];
+        foreach ($clustersThatGotTheirGalaxyIDChanged as $cluster) {
+            $oldID = $clusterIDsThatGotTheirGalaxyIDChanged[$cluster['GalaxyCluster']['id']][0];
+            $newID = $clusterIDsThatGotTheirGalaxyIDChanged[$cluster['GalaxyCluster']['id']][1];
+            if ($oldID !== $newID) {
+                $toUpdate[] = [
+                    'id' => $cluster['GalaxyCluster']['id'],
+                    'galaxy_id' => $oldID,
+                ];
+                $this->GalaxyCluster->saveMany($toUpdate);
+            }
+        }
+
+        $options = [
+            'validate' => false,
+            'callbacks' => false,
+        ];
+        foreach (array_chunk($toUpdate, 1000) as $chunk) {
+            $this->GalaxyCluster->saveMany($chunk, $options);
+        }
+        return true;
+    }
+
+    public function checkDbSupport($functionality)
+    {
+        if (isset($this->getDataSource()->supports) && !empty($this->getDataSource()->supports[$functionality])) {
+            return $this->getDataSource()->supports[$functionality];
+        }
+        return false;
+    }
+
+    public function getIndexNameForColumn($column)
+    {
+        $table = $this->table;
+        
+        $indexes = $this->query("SHOW INDEX FROM `$table`");
+
+        foreach ($indexes as $index) {
+            if (
+                isset($index['STATISTICS']['Column_name']) &&
+                $index['STATISTICS']['Column_name'] === $column
+            ) {
+                return $index['STATISTICS']['Key_name'];
+            }
+        }
+        return null;
+    }
+
+    public function indexExists($table, $indexName) {
+        $db = $this->getDataSource();
+        $databaseName = $db->config['database'];
+    
+        $query = "
+            SELECT COUNT(1) AS found
+            FROM information_schema.STATISTICS
+            WHERE TABLE_SCHEMA = ?
+            AND TABLE_NAME = ?
+            AND INDEX_NAME = ?
+        ";
+    
+        return (bool)$this->query($query, [$databaseName, $table, $indexName])[0][0]['found'];
     }
 }

@@ -47,7 +47,7 @@
                 array('class' => 'btn btn-danger')
             );
         ?>
-        <button type="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" class="btn btn-inverse" style="margin-left: auto; height: fit-content;" id="PromptNoButton" onClick="cancelPrompt();"><?php echo __('No');?></span>
+        <button type="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" class="btn btn-inverse" style="margin-left: auto; height: fit-content;" id="PromptNoButton" onClick="cancelPrompt();"><?php echo __('No');?></button>
     </div>
 </div>
 <?php

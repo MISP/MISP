@@ -20,7 +20,7 @@ class SharingGroupsController extends AppController
         'limit' => 60,
         'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
         'order' => array(
-            'SharingGroup.name' => 'ASC'
+            'SharingGroup.id' => 'ASC'
         ),
         'fields' => array('SharingGroup.id', 'SharingGroup.uuid', 'SharingGroup.name', 'SharingGroup.description', 'SharingGroup.releasability', 'SharingGroup.local', 'SharingGroup.active', 'SharingGroup.roaming'),
         'contain' => array(

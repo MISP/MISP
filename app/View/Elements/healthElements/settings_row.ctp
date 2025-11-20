@@ -95,7 +95,7 @@
             sprintf(
                 '%s_%s_row',
                 h($subGroup),
-                $k
+                h($k)
             ),
             h($subGroup),
             !empty($setting['error']) ? $colour_coding[$setting['level']] : '',

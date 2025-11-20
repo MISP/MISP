@@ -7,6 +7,8 @@ App::uses('JSONConverterTool', 'Tools');
  * - Events have an additional key `_AttributeFlattened` which combines both Attribute and ObjectAttribute in the same array
  * - Attributes have an additional key `_allTags` which group both AttributeTag and EventTag.
  *      - Tags in this `_allTags` key have an additional flag `inherited` indicating if the tag has been propagated from the Event to the Attribute
+ * - Event reports have an additional key `_allTags` which group both EventReportTag and EventTag.
+ *      - Tags in this `_allTags` key have an additional flag `inherited` indicating if the tag has been propagated from the Event to the report
  */
 class WorkflowFormatConverterTool
 {
@@ -47,12 +49,17 @@ class WorkflowFormatConverterTool
         $eventTags = !empty($converted['Event']['Tag']) ? $converted['Event']['Tag'] : [];
         if (!empty($converted['Event']['Attribute'])) {
             foreach ($converted['Event']['Attribute'] as $i => $attribute) {
-                $converted['Event']['Attribute'][$i] = self::__propagateTagToAttributes($attribute, $eventTags);
+                $converted['Event']['Attribute'][$i] = self::__propagateTagToEntity($attribute, $eventTags);
             }
         }
         if (!empty($converted['Event']['Object'])) {
             foreach ($converted['Event']['Object'] as $i => $object) {
                 $converted['Event']['Object'][$i] = self::__propagateTagToObjectAttributes($object, $eventTags);
+            }
+        }
+        if (!empty($converted['Event']['EventReport'])) {
+            foreach ($converted['Event']['EventReport'] as $i => $report) {
+                $converted['Event']['EventReport'][$i] = self::__propagateTagToEntity($report, $eventTags);
             }
         }
         return $converted;
@@ -112,7 +119,7 @@ class WorkflowFormatConverterTool
         return $converted;
     }
 
-    private static function __propagateTagToAttributes(array $attribute, array $eventTags): array
+    private static function __propagateTagToEntity(array $entity, array $eventTags): array
     {
         $allTags = [];
         if (!empty($eventTags)) {
@@ -121,20 +128,20 @@ class WorkflowFormatConverterTool
                 $allTags[] = $eventTag;
             }
         }
-        if (!empty($attribute['Tag'])) {
-            foreach ($attribute['Tag'] as $tag) {
+        if (!empty($entity['Tag'])) {
+            foreach ($entity['Tag'] as $tag) {
                 $tag['inherited'] = false;
                 $allTags[] = $tag;
             }
         }
-        $attribute['_allTags'] = $allTags;
-        return $attribute;
+        $entity['_allTags'] = $allTags;
+        return $entity;
     }
 
     private static function __propagateTagToObjectAttributes(array $object, array $eventTags): array
     {
         foreach ($object['Attribute'] as $i => $attribute) {
-            $object['Attribute'][$i] = self::__propagateTagToAttributes($attribute, $eventTags);
+            $object['Attribute'][$i] = self::__propagateTagToEntity($attribute, $eventTags);
         }
         return $object;
     }

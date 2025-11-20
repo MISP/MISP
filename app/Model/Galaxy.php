@@ -40,8 +40,17 @@ class Galaxy extends AppModel
             'rule' => 'valueIsJson',
             'message' => 'The provided Kill Chain Order is not a valid json format',
             'required' => false,
+            'allowEmpty' => true
         ),
     );
+
+    public function __construct($id = false, $table = null, $ds = null)
+    {
+        parent::__construct();
+        $this->schema();
+        $this->_schema['distribution']['default'] = Configure::read('MISP.default_galaxy_distribution') ?? 1;
+    }
+
 
     public function beforeValidate($options = array())
     {
@@ -101,7 +110,7 @@ class Galaxy extends AppModel
             if (isset($v['Galaxy']['kill_chain_order']) && $v['Galaxy']['kill_chain_order'] !== '') {
                 $results[$k]['Galaxy']['kill_chain_order'] = json_decode($v['Galaxy']['kill_chain_order'], true);
             } else {
-                unset($results[$k]['Galaxy']['kill_chain_order']);
+                $results[$k]['Galaxy']['kill_chain_order'] = null;
             }
             if (isset($v['Galaxy']['org_id']) && $v['Galaxy']['org_id'] == 0) {
                 if (isset($results[$k]['Org'])) {
@@ -136,6 +145,9 @@ class Galaxy extends AppModel
         $existingGalaxies = array_column(array_column($existingGalaxies, 'Galaxy'), null, 'uuid');
         foreach ($galaxies as $galaxy) {
             $galaxy['default'] = true;
+            $galaxy['org_id'] = 0;
+            $galaxy['orgc_id'] = 0;
+            $galaxy['distribution'] = 3;
             if (isset($existingGalaxies[$galaxy['uuid']])) {
                 if (
                     $force ||
@@ -345,12 +357,49 @@ class Galaxy extends AppModel
      * @param array $galaxy The galaxy to be captured
      * @return array|false the captured galaxy or false on error
      */
-    public function captureGalaxy(array $user, array $galaxy)
+    public function captureGalaxy(array $user, array $galaxy, $fromPull=false, $orgId=0)
     {
         if (empty($galaxy['uuid'])) {
             return false;
         }
 
+        if ($fromPull) {
+            $galaxy['org_id'] = $orgId;
+        } else {
+            $galaxy['org_id'] = $user['Organisation']['id'];
+        }
+
+        if (!isset($galaxy['orgc_id']) && !isset($galaxy['Orgc'])) {
+            $galaxy['orgc_id'] = $galaxy['org_id'];
+        } else {
+            if (!isset($galaxy['Orgc'])) {
+                if (isset($galaxy['orgc_id']) && $galaxy['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+                    $galaxy['orgc_id'] = $galaxy['org_id']; // Only sync user can create cluster on behalf of other users
+                }
+            } else {
+                if ($galaxy['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+                    $galaxy['orgc_id'] = $galaxy['org_id']; // Only sync user can create cluster on behalf of other users
+                }
+            }
+            if (isset($galaxy['orgc_id']) && $galaxy['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+                $galaxy['orgc_id'] = $galaxy['org_id']; // Only sync user can create cluster on behalf of other users
+            }
+        }
+
+        if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
+            $OrgBlocklist = ClassRegistry::init('OrgBlocklist');
+            if (!isset($galaxy['Orgc']['uuid'])) {
+                $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $galaxy['orgc_id']), 'fields' => array('Orgc.uuid'), 'recursive' => -1));
+            } else {
+                $orgc = array('Orgc' => array('uuid' => $galaxy['Orgc']['uuid']));
+            }
+            if ($galaxy['orgc_id'] != 0 && $OrgBlocklist->hasAny(array('OrgBlocklist.org_uuid' => $orgc['Orgc']['uuid']))) {
+                return false;
+            }
+        }
+
+        $galaxy = $this->GalaxyCluster->captureOrganisationAndSG(['Galaxy' => $galaxy], 'Galaxy', $user);
+        $galaxy = $galaxy['Galaxy'];
         $existingGalaxy = $this->find('first', [
             'recursive' => -1,
             'conditions' => ['Galaxy.uuid' => $galaxy['uuid']],
@@ -444,7 +493,7 @@ class Galaxy extends AppModel
      * @param  bool  $full
      * @return array The galaxy or an error message
      */
-    public function fetchIfAuthorized(array $user, $galaxy, $authorizations, $throwErrors=true, $full=false)
+    public function fetchIfAuthorized(array $user, $galaxy, $authorizations, $throwErrors=true, $full=false, $rearrangeData=true)
     {
         $authorizations = is_array($authorizations) ? $authorizations : [$authorizations];
         $possibleAuthorizations = ['view', 'edit', 'delete'];
@@ -455,7 +504,7 @@ class Galaxy extends AppModel
             $galaxy[$this->alias] = $galaxy;
         }
         if (!isset($galaxy[$this->alias]['uuid'])) {
-            $galaxy = $this->fetchGalaxyById($user, $galaxy, $throwErrors, $full);
+            $galaxy = $this->fetchGalaxyById($user, $galaxy, $throwErrors, $full, $rearrangeData);
             if (empty($galaxy)) {
                 $message = __('Invalid galaxy');
                 if ($throwErrors) {
@@ -509,7 +558,7 @@ class Galaxy extends AppModel
      * @param bool $full
      * @return array
      */
-    public function fetchGalaxyById(array $user, $id, $throwErrors=true, $full=false)
+    public function fetchGalaxyById(array $user, $id, $throwErrors=true, $full=false, $rearrangeData=true)
     {
         $alias = $this->alias;
         if (Validation::uuid($id)) {
@@ -523,7 +572,7 @@ class Galaxy extends AppModel
             return array();
         }
 
-        return $this->fetchGalaxies($user, ['conditions' => $conditions, 'first' => true], $full=$full);
+        return $this->fetchGalaxies($user, ['conditions' => $conditions, 'first' => true], $full=$full, false, $rearrangeData);
     }
 
     /**
@@ -534,7 +583,7 @@ class Galaxy extends AppModel
      * @param  bool  $full
      * @return array
      */
-    public function fetchGalaxies(array $user, array $options, $full=false, $includeFullClusterRelationship=false)
+    public function fetchGalaxies(array $user, array $options, $full=false, $includeFullClusterRelationship=false, $rearrangeData=true)
     {
         $params = [
             'conditions' => $this->buildConditions($user),
@@ -594,16 +643,21 @@ class Galaxy extends AppModel
 
         if ($full) {
             foreach ($galaxies as $i => $galaxy) {
-                $galaxies[$i]['GalaxyCluster'] = $this->GalaxyCluster->fetchGalaxyClusters($user, [
+                $clusters = $this->GalaxyCluster->fetchGalaxyClusters($user, [
                     'conditions' => [
                         'galaxy_id' => $galaxy['Galaxy']['id'],
                     ],
                 ], true);
+                $galaxies[$i]['GalaxyCluster'] = array_map(function($cluster) {
+                    return $cluster['GalaxyCluster'];
+                }, $clusters);
             }
         }
 
-        foreach ($galaxies as $i => $galaxy) {
-            $galaxies[$i] = $this->arrangeData($galaxies[$i]);
+        if (!empty($rearrangeData)) {
+            foreach ($galaxies as $i => $galaxy) {
+                $galaxies[$i] = $this->arrangeData($galaxies[$i]);
+            }
         }
         if (isset($options['first']) && $options['first']) {
             return $galaxies[0];
@@ -767,9 +821,9 @@ class Galaxy extends AppModel
         if ($result) {
             if (!$local) {
                 if ($targetType === 'attribute') {
-                    $this->Tag->AttributeTag->Attribute->touch($target);
+                    $this->Tag->AttributeTag->Attribute->touch($target_id);
                 } elseif ($targetType === 'event') {
-                    $this->Tag->EventTag->Event->unpublishEvent($target);
+                    $this->Tag->EventTag->Event->touch($target_id);
                 }
             }
             if ($targetType === 'attribute' || $targetType === 'event') {
@@ -835,6 +889,7 @@ class Galaxy extends AppModel
 
         $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
 
+        $connectorModel = Inflector::camelize($target_type) . 'Tag';
         if ($target_type === 'attribute') {
             $existingTargetTag = $this->Tag->AttributeTag->find('first', array(
                 'conditions' => array('AttributeTag.tag_id' => $tag_id, 'AttributeTag.attribute_id' => $target_id),
@@ -858,11 +913,18 @@ class Galaxy extends AppModel
         if (empty($existingTargetTag)) {
             return 'Cluster not attached.';
         }
+        $local = isset($existingTargetTag[$connectorModel]['local']) ? $existingTargetTag[$connectorModel]['local'] : 0;
 
         if ($target_type === 'event') {
             $result = $this->Tag->EventTag->delete($existingTargetTag['EventTag']['id']);
+            if (!$local) {
+                $this->GalaxyCluster->Tag->EventTag->Event->touch($target_id);
+            }
         } elseif ($target_type === 'attribute') {
             $result = $this->Tag->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
+            if (!$local) {
+                $this->GalaxyCluster->Tag->AttributeTag->Attribute->touch($target_id);
+            }
         } elseif ($target_type === 'tag_collection') {
             $result = $this->Tag->TagCollectionTag->delete($existingTargetTag['TagCollectionTag']['id']);
         }
@@ -891,6 +953,7 @@ class Galaxy extends AppModel
      */
     public function detachClusterByTagId(array $user, $targetId, $targetType, $tagId)
     {
+        $local = false;
         if ($targetType === 'attribute') {
             $attribute = $this->GalaxyCluster->Tag->EventTag->Event->Attribute->find('first', array(
                 'recursive' => -1,
@@ -932,13 +995,14 @@ class Galaxy extends AppModel
                 }
             }
         }
-
+        $connectorModel = Inflector::camelize($targetType) . 'Tag';
         if ($targetType === 'attribute') {
             $existingTargetTag = $this->GalaxyCluster->Tag->AttributeTag->find('first', array(
                 'conditions' => array('AttributeTag.tag_id' => $tagId, 'AttributeTag.attribute_id' => $targetId),
                 'recursive' => -1,
                 'contain' => array('Tag')
             ));
+
         } elseif ($targetType === 'event') {
             $existingTargetTag = $this->GalaxyCluster->Tag->EventTag->find('first', array(
                 'conditions' => array('EventTag.tag_id' => $tagId, 'EventTag.event_id' => $targetId),
@@ -956,7 +1020,7 @@ class Galaxy extends AppModel
         if (empty($existingTargetTag)) {
             throw new NotFoundException('Galaxy not attached.');
         }
-
+        $local = isset($existingTargetTag[$connectorModel]['local']) ? $existingTargetTag[$connectorModel]['local'] : 0;
         $cluster = $this->GalaxyCluster->find('first', array(
             'recursive' => -1,
             'conditions' => array('GalaxyCluster.tag_name' => $existingTargetTag['Tag']['name'])
@@ -967,8 +1031,12 @@ class Galaxy extends AppModel
 
         if ($targetType === 'event') {
             $result = $this->GalaxyCluster->Tag->EventTag->delete($existingTargetTag['EventTag']['id']);
+            $this->GalaxyCluster->Tag->EventTag->Event->touch($targetId);
         } elseif ($targetType === 'attribute') {
             $result = $this->GalaxyCluster->Tag->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
+            if (!$local) {
+                $this->GalaxyCluster->Tag->AttributeTag->Attribute->touch($targetId);
+            }
         } elseif ($targetType === 'tag_collection') {
             $result = $this->GalaxyCluster->Tag->TagCollectionTag->delete($existingTargetTag['TagCollectionTag']['id']);
         }
@@ -1011,6 +1079,56 @@ class Galaxy extends AppModel
             'conditions' => $conditions,
         ));
         return $galaxies;
+    }
+
+    public function getUnknownClustersDetails(): array
+    {
+        $allGalaxyTags = $this->GalaxyCluster->Tag->find('list', [
+            'recursive' => -1,
+            'conditions' => [
+                'is_galaxy' => true,
+            ],
+            'fields' => ['name'],
+        ]);
+        $allCreatedClusterTags = $this->GalaxyCluster->find('list', [
+            'recursive' => -1,
+            'conditions' => [],
+            'fields' => ['tag_name'],
+            'joins' => [
+                [
+                    'table' => 'tags',
+                    'alias' => 'Tag',
+                    'type' => 'INNER',
+                    'conditions' => [
+                        'Tag.name = GalaxyCluster.tag_name',
+                    ],
+                ]
+            ]
+        ]);
+        $flippedCreatedClusterTags = array_flip($allCreatedClusterTags);
+        $count = [
+            'unknownCustomClusters' => 0,
+            'unknownCustomClustersSamples' => [],
+            'unknownDefaultClusters' => 0,
+            'unknownDefaultClustersSamples' => [],
+        ];
+        foreach ($allGalaxyTags as $tagName) {
+            if (empty($flippedCreatedClusterTags[$tagName])) {
+                if (!preg_match($this->GalaxyCluster->Tag::RE_CUSTOM_CLUSTER_FROM_DEFAULT_GALAXY, $tagName)) {
+                    $count['unknownCustomClusters'] += 1;
+                    if (count($count['unknownCustomClustersSamples']) < 5) {
+                        $count['unknownCustomClustersSamples'][] = $tagName;
+                    }
+                } else {
+                    $count['unknownDefaultClusters'] += 1;
+                    if (count($count['unknownDefaultClustersSamples']) < 5) {
+                        $count['unknownDefaultClustersSamples'][] = $tagName;
+                    }
+                }
+            }
+        }
+        $count['unknownClusters'] = $count['unknownCustomClusters'] + $count['unknownDefaultClusters'];
+        return $count;
     }
 
     public function getMatrix($user, $galaxy_id, $scores=[])

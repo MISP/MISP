@@ -88,7 +88,7 @@
                     ],
                 ],
                 'fields' => $fields,
-                'title' => __('Workflows'),
+                'title' => __('Ad-Hoc Workflows'),
                 'description' => __('You can create ad-hoc workflows that needs to be launch manually'),
                 'actions' => [
                     [

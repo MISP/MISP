@@ -21,6 +21,24 @@ var insertCustomToolbarButtons = insertMISPElementToolbarButtons
 var modelNameForSave = 'EventReport';
 // Key of the field used by the form when saving
 var markdownModelFieldNameForSave = 'content';
+// Key of the field used by the form when saving
+var markdownModelFieldNameForPictureSave = 'picture';
+var markdownModelFieldNameForPictureSaveAsAttachment = 'save_as_attachment';
+var markdownModelFieldNameForPictureComment = 'comment';
+var markdownModelFieldNameForPictureDistribution = 'distribution';
+// Parsing rules to be enabled
+if (markdownOverrideEnabledParsingRules === undefined) {
+    var markdownOverrideEnabledParsingRules = []
+}
+var currentFileList = null
+const reader = new FileReader()
+reader.addEventListener(
+    "load",
+    () => {
+      $('#pastedPicturePreview')[0].src = reader.result;
+    },
+    false,
+);
 
 var dotTemplateAttribute = doT.template("<span class=\"misp-element-wrapper attribute\" data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\"><span class=\"bold\"><span class=\"attr-type\"><span>{{=it.type}}</span></span><span class=\"blue\"><span class=\"attr-value\"><span>{{=it.value}}</span></span></span></span></span>");
 var dotTemplateAttributePicture = doT.template("<div class=\"misp-picture-wrapper attributePicture\"><img data-scope=\"{{=it.scope}}\" data-elementid=\"{{=it.elementid}}\" href=\"#\" src=\"{{=it.src}}\" alt=\"{{=it.alt}}\" title=\"\"/></div>");
@@ -44,6 +62,7 @@ var renderingRules = {
 }
 var galaxyMatrixTimer = {}, tagTimers = {};
 var cache_matrix = {}, cache_tag = {};
+var draw_matrix_timer
 var firstCustomPostRenderCall = true;
 var contentBeforeSuggestions
 var typeToCategoryMapping
@@ -137,6 +156,102 @@ function insertMISPElementToolbarButtons() {
     insertTopToolbarButton('atlas', 'galaxy-matrix', 'Galaxy matrix')
 }
 
+/* Pasting Picture */
+
+function pasteImg(cm, event) {
+    const isUserSiteAdmin = isSiteAdmin ? isSiteAdmin : false;
+    const dT = event.clipboardData || window.clipboardData;
+    let fileList = dT.files;
+    // For now, only allow pasting one picture at a time
+    if (!fileList[0]) {
+        return
+    }
+    const dataTransfert = new DataTransfer()
+    dataTransfert.items.add(fileList[0])
+    fileList = dataTransfert.files
+    if (fileList.length > 0) { // pasting contains a picture to be uploaded
+        event.preventDefault();
+        const $picture = $('<div style="display: flex; justify-content: center; align-items: center; margin: 1em; border: 1px solid #aaaaaa99;">').append($('<img id="pastedPicturePreview">'))
+        const $checkbox = $('<input type="checkbox" name="saveAsAttachment" value="1" id="checkboxSaveAsAttachment" checked="checked" onclick="toggleAttributeFormVisibility()">')
+        const $checkboxLabel = $('<label for="checkboxSaveAsAttachment">').text('Save the picture as an attachment (create an Attribute).')
+        if (!isUserSiteAdmin) {
+            $checkbox.prop('disabled', true)
+            $checkboxLabel.css('cursor', 'not-allowed').title('You must be a site-admin to use local instance picture.')
+        }
+        const $checkboxContainer = $('<div>').addClass('checkbox').append(
+            $checkbox,
+            $checkboxLabel,
+        )
+        const $commentContainer = $('<div class=" clear"><label for="AttributeComment">Contextual Comment</label><input name="data[Attribute][comment]" class="input span6 form-control" type="text" id="AttributeComment"></div>')
+        const $distributionContainer = $('<div class="select"></div>').append(
+            $('<label for="AttributeDistribution">Distribution</label>'),
+            $('<select name="data[Attribute][distribution]" field="distribution" class="" id="AttributeDistribution" required="required"><option value="0">Your organisation only</option><option value="1">This community only</option><option value="2">Connected communities</option><option value="3">All communities</option><option value="5" selected="selected">Inherit event</option></select>'),
+        )
+        const $attributeFormContainer = $('<div id="attributeFormContainer" style="padding: 0.5em 1em; border: 1px solid #aaa; border-radius: 3px;">')
+            .append(
+                $('<b style="display: block; font-size: larger; margin-bottom: 0.5em;">').text('Attribute parameters'),
+                $distributionContainer,
+                $commentContainer,
+            )
+        const $localImageContainer = $('<div id="localImageContainer" class="alert alert-info" style="display: none">').append(
+            $('<b>').text('Saved as a local instance picture: '),
+            $('<span>').text('Note that these pictures are not synchronized.')
+        )
+        const $modalBody = $('<div>').append(
+            $('<p>').text('You\'re about to include a picture in your report. Would you like to add it as an attachment to the event (This will create an attachment Attribute) or should it be saved as a local image (this will not be synchronized)?'),
+            $picture,
+            $('<div>').append($checkboxContainer),
+            $attributeFormContainer,
+            $localImageContainer
+        )
+        currentFileList = fileList
+        var $confirmButton = $('<a href="#" class="btn btn-primary" onclick="confirmPictureSubmission()">Upload picture</a>')
+        var $closeButton = $('<a href="#" class="btn" onclick="dismissPictureSubmissionModal()">Close</a>')
+        const $footer = $('<div>').css({display: 'flex'}).append($('<span>').css({'margin-left': 'auto'}).append($confirmButton, $closeButton))
+        const confirmModal = openModal('Choose picture import type', $modalBody[0].outerHTML, $footer[0].outerHTML, undefined, undefined, 'max-height: 800px;')
+        confirmModal.on('hidden', function () {
+            confirmModal.remove()
+            currentFileList = null
+        })
+        confirmModal.on('shown', function () {
+            reader.readAsDataURL(fileList[0])
+        })
+    }
+}
+
+function toggleAttributeFormVisibility() {
+    $('#attributeFormContainer').toggle($('#checkboxSaveAsAttachment').prop('checked'))
+    $('#localImageContainer').toggle(!$('#checkboxSaveAsAttachment').prop('checked'))
+}
+
+function dismissPictureSubmissionModal() {
+    const $confirmModals = $('div[id^="dynamic_modal_"]')
+    $confirmModals.each(function() {
+        $(this).modal('hide')
+    })
+}
+
+function confirmPictureSubmission() {
+    const saveAsAttachment = $('#checkboxSaveAsAttachment').prop('checked')
+    const attributeForm = {
+        comment: $('#AttributeComment').val(),
+        distribution: $('#AttributeDistribution').val(),
+    }
+    uploadPicture(currentFileList, saveAsAttachment, attributeForm, function(pictureReference) {
+        fetchProxyMISPElements(function() {
+            insertPictureReferenceText(cm, pictureReference)
+        })
+    })
+    dismissPictureSubmissionModal()
+}
+
+function insertPictureReferenceText(cm, pictureReference) {
+    var start = cm.getCursor('start')
+    var end = cm.getCursor('end')
+    cm.replaceRange(pictureReference, start, end)
+    cm.focus()
+}
+
 /* Hints */
 var MISPElementHints = {}
 function buildMISPElementHints() {
@@ -182,9 +297,59 @@ function buildMISPElementHints() {
 function hintMISPandTemplateVars(cm, options) {
     var hints = hintMISPElements(cm, options)
     if (hints === null) {
-        return hintTemplateVars(cm, options)
+        hints = hintTemplateVars(cm, options)
+    }
+    if (hints === null || hints === undefined) {
+        hints = hintPictureAlias(cm, options)
     }
     return hints
+}
+
+function hintPictureAlias(cm, options) {
+    var rePictureAlias = RegExp('!\[\S+\]\(\/eventReports\/viewPicture\/(?<alias>\S+)\)');
+    var availableAliases = proxyMISPElements['picture_aliases']
+
+    var reExtendedWord = /\S/
+    var hintList = []
+    var cursor = cm.getCursor()
+    var line = cm.getLine(cursor.line)
+    var start = cursor.ch
+    var end = cursor.ch
+    while (start && reExtendedWord.test(line.charAt(start - 1))) --start
+    while (end < line.length && reExtendedWord.test(line.charAt(end))) ++end
+    var word = line.slice(start, end).toLowerCase()
+
+    if (word === '![') {
+        availableAliases.forEach(function(alias) {
+            hintList.push({
+                text: `![${alias}](/eventReports/viewPicture/${alias})`
+            })
+        });
+        return {
+            list: hintList,
+            from: CodeMirror.Pos(cursor.line, start),
+            to: CodeMirror.Pos(cursor.line, end)
+        }
+    }
+
+    var resTemplateVar = rePictureAlias.exec(word)
+    if (resTemplateVar !== null) {
+        var foundAlias = resTemplateVar.groups.alias
+        availableAliases.forEach(function(alias) {
+            if (templateVar.startsWith(foundAlias) && alias !== foundAlias) {
+                hintList.push({
+                    text: `![${alias}](/eventReports/viewPicture/${alias})`
+                })
+            }
+        });
+        if (hintList.length > 0) {
+            return {
+                list: hintList,
+                from: CodeMirror.Pos(cursor.line, start),
+                to: CodeMirror.Pos(cursor.line, end)
+            }
+        }
+    }
 }
 
 function hintTemplateVars(cm, options) {
@@ -616,7 +781,7 @@ function renderMISPElement(scope, elementID, indexes) {
             if (mispObject !== undefined) {
                 var associatedTemplate = mispObject.template_uuid + '.' + mispObject.template_version
                 var objectTemplate = proxyMISPElements['objectTemplates'][associatedTemplate]
-                var topPriorityValue = mispObject.Attribute.length
+                var topPriorityValue = mispObject.Attribute !== undefined ? mispObject.Attribute.length : '- no Attributes -'
                 if (objectTemplate !== undefined) {
                     var temp = getPriorityValue(mispObject, objectTemplate)
                     topPriorityValue = temp !== false ? temp : topPriorityValue
@@ -722,7 +887,10 @@ function attachRemoteMISPElements() {
                 attachGalaxyMatrix($div, eventID, elementID)
             }, firstCustomPostRenderCall ? 0 : slowDebounceDelay);
         } else {
-            $div.html(cache_matrix[cacheKey])
+            clearTimeout(draw_matrix_timer);
+            draw_matrix_timer = setTimeout(function() {
+                $div.html(cache_matrix[cacheKey])
+            }, 2000);
         }
     })
 
@@ -870,7 +1038,7 @@ function replaceMISPElementByTheirValue(raw) {
     var match, replacement, element
     var final = ''
     var authorizedMISPElements = ['attribute', 'object', 'tag']
-    var reMISPElement = RegExp('@\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[^\\)]+)\\)', 'g');
+    var reMISPElement = RegExp('@!?\\[(?<scope>' + authorizedMISPElements.join('|') + ')\\]\\((?<elementid>[^\\)]+)\\)', 'g');
     var offset = 0
     while ((match = reMISPElement.exec(raw)) !== null) {
         element = proxyMISPElements[match.groups.scope][match.groups.elementid]
@@ -890,6 +1058,59 @@ function replaceMISPElementByTheirValue(raw) {
     }
     final += raw.substring(offset)
     return final
+}
+
+function uploadPicture(fileList, saveAsAttachment, attributeForm, successCallback) {
+    if (modelNameForSave === undefined || markdownModelFieldNameForPictureSaveAsAttachment === undefined) {
+        console.log('Model or field for picture saving not defined. Upload not possible')
+        return
+    }
+    var url = baseurl + "/eventReports/uploadPicture/" + reportid
+    fetchFormDataAjax(url, function(formHTML) {
+        $('body').append($('<div id="temp" style="display: none"/>').html(formHTML))
+        var $tmpForm = $('#temp form')
+        var formUrl = $tmpForm.attr('action')
+        $tmpForm.find('[name="data[' + modelNameForSave + '][' + markdownModelFieldNameForPictureSaveAsAttachment + ']"]').prop("checked", saveAsAttachment)
+        if (attributeForm.comment) {
+            $tmpForm.find('[name="data[' + modelNameForSave + '][' + markdownModelFieldNameForPictureComment + ']"]').val(attributeForm.comment)
+        }
+        if (attributeForm.distribution) {
+            $tmpForm.find('[name="data[' + modelNameForSave + '][' + markdownModelFieldNameForPictureDistribution + ']"]').val(attributeForm.distribution)
+        }
+        var fileInput = $tmpForm.find('[name="data[' + modelNameForSave + '][' + markdownModelFieldNameForPictureSave + ']"]')[0]
+
+        fileInput.files = fileList
+        $.ajax({
+            data: new FormData( $tmpForm[0] ),
+            processData: false,
+            contentType: false,
+            beforeSend: function() {
+                $editor.prop('disabled', true);
+            },
+            success:function(uploadResult) {
+                if (uploadResult.data) {
+                    if (uploadResult.data.image_filename) {
+                        let pictureReference = `![${uploadResult.data.image_name}](/eventReports/viewPicture/${uploadResult.data.image_filename})`
+                        successCallback(pictureReference)
+                    } else if (uploadResult.data.attribute_uuid) {
+                        let pictureReference = `@![attribute](${uploadResult.data.attribute_uuid})`
+                        successCallback(pictureReference)
+                    } else {
+                        showMessage('fail', 'Something went wrong. Image was uploaded but could not get the generated UUID.');
+                    }
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                showMessage('fail', imgPictureFailedMessage + ': ' + errorThrown);
+            },
+            complete:function() {
+                $('#temp').remove();
+                $editor.prop('disabled', false);
+            },
+            type:"post",
+            url: formUrl
+        })
+    })
 }
 
 /**
@@ -1136,7 +1357,7 @@ function toggleSuggestionInterface(enabled) {
         setEditorData(originalRaw)
         $('#editor-subcontainer').show()
         $suggestionContainer.hide()
-        $mardownViewerToolbar.find('.btn-group:first button').css('visibility', 'visible')
+        $markdownViewerToolbar.find('.btn-group:first button').css('visibility', 'visible')
         $('#suggestionCloseButton').remove()
         cm.refresh()
     }
@@ -1341,8 +1562,8 @@ function sendToLLM() {
 }
 
 function configureTemplateVariable() {
-    var url = baseurl + '/eventReports/configureTemplateVariable'
-    openGenericModal(url)
+    var url = baseurl + '/eventReportTemplateVariables/index'
+    window.open(url)
 }
 
 /**
@@ -1498,9 +1719,11 @@ function constructObject(object) {
         .css({'margin-bottom': '3px'})
     var $thead = constructAttributeHeader({}, true, true)
     var $tbody = $('<tbody/>')
-    object.Attribute.forEach(function(attribute) {
-        $tbody.append(constructAttributeRow(attribute, true))
-    })
+    if (object.Attribute !== undefined) {
+        object.Attribute.forEach(function(attribute) {
+            $tbody.append(constructAttributeRow(attribute, true))
+        })
+    }
     $attributeTable.append($thead, $tbody)
     $object.append($top, $attributeTable)
     return $('<div/>').append($object)
@@ -1509,10 +1732,12 @@ function constructObject(object) {
 function getPriorityValue(mispObject, objectTemplate) {
     for (var i = 0; i < objectTemplate.ObjectTemplateElement.length; i++) {
         var object_relation = objectTemplate.ObjectTemplateElement[i].object_relation;
-        for (var j = 0; j < mispObject.Attribute.length; j++) {
-            var attribute = mispObject.Attribute[j];
-            if (attribute.object_relation === object_relation) {
-                return attribute.value
+        if (mispObject.Attribute !== undefined) {
+            for (var j = 0; j < mispObject.Attribute.length; j++) {
+                var attribute = mispObject.Attribute[j];
+                if (attribute.object_relation === object_relation) {
+                    return attribute.value
+                }
             }
         }
     }
@@ -1522,7 +1747,7 @@ function getPriorityValue(mispObject, objectTemplate) {
 function getTopPriorityValue(object) {
     var associatedTemplate = object.template_uuid + '.' + object.template_version
     var objectTemplate = proxyMISPElements['objectTemplates'][associatedTemplate]
-    var topPriorityValue = object.Attribute.length > 0 ? object.Attribute[0].value : ''
+    var topPriorityValue = object.Attribute !== undefined && object.Attribute.length > 0 ? object.Attribute[0].value : ''
     if (objectTemplate !== undefined) {
         var temp = getPriorityValue(object, objectTemplate)
         topPriorityValue = temp !== false ? temp : topPriorityValue
@@ -1573,8 +1798,9 @@ function constructClusterTagHtml(tagData) {
         tagData.Tag.colour = '#ffffff'
         addBorder = true
     }
+    var faNamespace = getFontAwesomeNamespace(tagData.GalaxyCluster.Galaxy.icon);
     var $tag = $('<span/>').append(
-        $('<i/>').addClass('fa fa-' + tagData.GalaxyCluster.Galaxy.icon).css('margin-right', '5px'),
+        $('<i/>').addClass(faNamespace + ' fa-' + tagData.GalaxyCluster.Galaxy.icon).css('margin-right', '5px'),
         $('<span/>').text(tagData.GalaxyCluster.type + ' ↦ ' + tagData.GalaxyCluster.value)
     )
         .addClass('tag')
@@ -2054,7 +2280,7 @@ function constructContextReplacementTable(unreferencedContext) {
 }
 
 function addCloseSuggestionButtonToToolbar() {
-    var $toolbarMode = $mardownViewerToolbar.find('.btn-group:first')
+    var $toolbarMode = $markdownViewerToolbar.find('.btn-group:first')
     if ($toolbarMode.find('#suggestionCloseButton').length == 0) {
         $toolbarMode.find('button').css('visibility', 'hidden')
         var $closeButton = $('<button id="suggestionCloseButton" type="button"/>').addClass('btn btn-danger').css({

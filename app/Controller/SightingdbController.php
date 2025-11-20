@@ -37,7 +37,7 @@ class SightingdbController extends AppController
             }
             if ($this->_isRest()) {
                 if ($result) {
-                    return $this->RestResponse->saveSuccessResponse('Sightingdb', 'add', $this->response->type(), $message);
+                    return $this->RestResponse->saveSuccessResponse('Sightingdb', 'add', $this->Sightingdb->id, $this->response->type(), $message);
                 } else {
                     return $this->RestResponse->saveFailResponse('Sightingdb', 'add', $message, $this->response->type());
                 }

@@ -17,7 +17,7 @@ if (!empty($params['description'])) {
 ?>
 <?php if (!empty($fieldData['picker'])): ?>
     <script>
-        var chosenOptions = <?= JsonTool::encode($fieldData['_chosenOptions'] ?? []) ?>;
+        var chosenOptions = <?= json_encode($fieldData['_chosenOptions'] ?? []) ?>;
         $('select.<?= $seed ?>').chosen(chosenOptions)
     </script>
 <?php endif; ?>

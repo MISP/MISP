@@ -97,7 +97,7 @@
                     ],
                     [
                         'class' => 'modal-open',
-                        'url' => $baseurl . '/bookmarks/delete/',
+                        'url' => $baseurl . '/bookmarks/delete',
                         'url_params_data_paths' => 'Bookmark.id',
                         'icon' => 'trash',
                         'title' => __('Delete'),

@@ -91,7 +91,7 @@ class AnalystData extends AppModel
                 'Orgc' => [
                     'className' => 'Organisation',
                     'fields' => [
-                        'id', 'name', 'uuid','type', 'sector', 'nationality', 'local'
+                        'id', 'name', 'uuid','type', 'description', 'sector', 'nationality', 'local'
                     ],
                     'foreignKey' => false,
                     'conditions' => [
@@ -112,6 +112,10 @@ class AnalystData extends AppModel
         ]);
         $this->Org = ClassRegistry::init('Organisation');
         $this->Orgc = ClassRegistry::init('Organisation');
+        if (in_array($this->alias, self::ANALYST_DATA_TYPES)) {
+            $this->schema();
+            $this->_schema['distribution']['default'] = Configure::read('MISP.default_analyst_data_distribution') ?? 1;
+        }
     }
 
     public function afterFind($results, $primary = false)
@@ -127,15 +131,6 @@ class AnalystData extends AppModel
             $results[$i] = $this->rearrangeSharingGroup($results[$i], $this->current_user);
 
             $results[$i][$this->alias]['_canEdit'] = $this->canEditAnalystData($this->current_user, $v, $this->alias);
-            if (!empty($this->fetchRecursive) && !empty($results[$i][$this->alias]['uuid'])) {
-                $this->Note = ClassRegistry::init('Note');
-                $this->Opinion = ClassRegistry::init('Opinion');
-                $this->Note->fetchRecursive = false;
-                $this->Opinion->fetchRecursive = false;
-                $results[$i][$this->alias] = $this->fetchChildNotesAndOpinions($this->current_user, $results[$i][$this->alias]);
-                $this->Note->fetchRecursive = true;
-                $this->Opinion->fetchRecursive = true;
-            }
         }
         return $results;
     }
@@ -182,9 +177,6 @@ class AnalystData extends AppModel
         $this->data[$this->current_type]['created'] = (new DateTime($this->data[$this->current_type]['created'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
 
         if (empty($this->data[$this->current_type]['id'])) {
-            if (!isset($this->data[$this->current_type]['distribution'])) {
-                $this->data[$this->current_type]['distribution'] = Configure::read('MISP.default_event_distribution'); // use default event distribution
-            }
             if ($this->data[$this->current_type]['distribution'] != 4) {
                 $this->data[$this->current_type]['sharing_group_id'] = null;
             }
@@ -259,7 +251,10 @@ class AnalystData extends AppModel
     {
         if (!empty($analystData[$this->alias]['orgc_uuid'])) {
             if (!isset($analystData['Orgc'])) {
-                $analystData[$this->alias]['Orgc'] = $this->Orgc->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['orgc_uuid']]])['Organisation'];
+                $orgFound = $this->Orgc->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['orgc_uuid']]]);
+                if (!empty($orgFound)) {
+                    $analystData[$this->alias]['Orgc'] = $orgFound['Organisation'];
+                }
             } else {
                 $analystData[$this->alias]['Orgc'] = $analystData['Orgc'];
             }
@@ -267,7 +262,10 @@ class AnalystData extends AppModel
         }
         if (!empty($analystData[$this->alias]['org_uuid'])) {
             if (!isset($analystData['Org'])) {
-                $analystData[$this->alias]['Org'] = $this->Org->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['org_uuid']]])['Organisation'];
+                $orgFound = $this->Org->find('first', ['conditions' => ['uuid' => $analystData[$this->alias]['org_uuid']]]);
+                if (!empty($orgFound)) {
+                    $analystData[$this->alias]['Org'] = $orgFound['Organisation'];
+                }
             } else {
                 $analystData[$this->alias]['Org'] = $analystData['Org'];
             }
@@ -283,15 +281,17 @@ class AnalystData extends AppModel
                 if (!isset($analystData['SharingGroup'])) {
                     $this->SharingGroup = ClassRegistry::init('SharingGroup');
                     $sg = $this->SharingGroup->fetchSG($analystData[$this->alias]['sharing_group_id'], $user, true);
-                    $sgData = array_intersect_key(
-                        $sg['SharingGroup'], array_flip(
-                            [
-                                'id', 'name', 'uuid', 'releasability', 'description', 'org_id',
-                                'active', 'roaming', 'local'
-                            ]
-                        )
-                    );
-                    $analystData[$this->alias]['SharingGroup'] = $sgData;
+                    if (!empty($sg)) {
+                        $sgData = array_intersect_key(
+                            $sg['SharingGroup'], array_flip(
+                                [
+                                    'id', 'name', 'uuid', 'releasability', 'description', 'org_id',
+                                    'active', 'roaming', 'local'
+                                ]
+                            )
+                        );
+                        $analystData[$this->alias]['SharingGroup'] = $sgData;
+                    }
                 } else {
                     $analystData[$this->alias]['SharingGroup'] = $analystData['SharingGroup'];
                 }
@@ -378,12 +378,12 @@ class AnalystData extends AppModel
         ]);
     }
 
-    public function fetchChildNotesAndOpinions(array $user, array $analystData, $depth = 2): array
+    public function fetchChildNotesAndOpinions(array $user, array $analystData, $isRest = true, $depth = 2): array
     {
         if ($depth == 0 || !empty($this->fetchedUUIDFromRecursion[$analystData['uuid']])) {
             $hasMoreNotesOrOpinions =  $this->hasMoreNotesOrOpinions($analystData, $user);
             $analystData['_max_depth_reached'] = $hasMoreNotesOrOpinions;
-            return $analystData;
+            return $isRest ? [] : $analystData;
         }
         $this->fetchedUUIDFromRecursion[$analystData['uuid']] = true;
         $this->Note = ClassRegistry::init('Note');
@@ -412,13 +412,58 @@ class AnalystData extends AppModel
             ]
         ];
 
+        if ($isRest) {
+            // fetch notes and opinions as lists
+            $childNotesAndOpinions = [];
+            $childNotes = $this->Note->find('all', $paramsNote);
+            $childOpinions = $this->Opinion->find('all', $paramsOpinion);
+            $orgFields = ['id', 'uuid', 'name', 'type', 'description', 'sector', 'national', 'local'];
+            $orgTypes = ['Org', 'Orgc'];
+            if (!empty($childNotes)) {
+                foreach ($childNotes as $childNote) {
+                    foreach ($orgTypes as $orgType) {
+                        if (!empty($childOpinion['Note'][$orgType])) {
+                            $childNote['Note'][$orgType] = array_filter($childNote['Note'][$orgType], function ($key) use ($orgFields) {
+                                return in_array($key, $orgFields);
+                            }, ARRAY_FILTER_USE_KEY);    
+                        }
+                    }
+                    $childNotesAndOpinions[] = $childNote;
+                    $expandedNotesAndOpinions = $this->fetchChildNotesAndOpinions($user, $childNote['Note'], $isRest, $depth-1);
+                    if (!empty($expandedNotesAndOpinions)) {
+                        foreach ($expandedNotesAndOpinions as $expandedNoteOrOpinion) {
+                            $childNotesAndOpinions[] = $expandedNoteOrOpinion;
+                        }
+                    }
+                }
+            }
+            if (!empty($childOpinions)) {
+                foreach ($childOpinions as $childOpinion) {
+                    foreach ($orgTypes as $orgType) {
+                        if (!empty($childOpinion['Opinion'][$orgType])) {
+                            $childOpinion['Opinion'][$orgType] = array_filter($childOpinion['Opinion'][$orgType], function ($key) use ($orgFields) {
+                                return in_array($key, $orgFields);
+                            }, ARRAY_FILTER_USE_KEY);
+                        }
+                    }
+                    $childNotesAndOpinions[] = $childOpinion;
+                    $expandedNotesAndOpinions = $this->fetchChildNotesAndOpinions($user, $childOpinion['Opinion'], $isRest, $depth-1);
+                    if (!empty($expandedNotesAndOpinions)) {
+                        foreach ($expandedNotesAndOpinions as $expandedNoteOrOpinion) {
+                            $childNotesAndOpinions[] = $expandedNoteOrOpinion;
+                        }
+                    }
+                }
+            }
+            return $childNotesAndOpinions;
+        }
         // recursively fetch and include nested notes and opinions
-        $childNotes = array_map(function ($item) use ($user, $depth) {
-            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item['Note'], $depth-1);
+        $childNotes = array_map(function ($item) use ($user, $isRest, $depth) {
+            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item['Note'], $isRest, $depth-1);
             return $expandedNotes;
         }, $this->Note->find('all', $paramsNote));
-        $childOpinions = array_map(function ($item) use ($user, $depth) {
-            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item['Opinion'], $depth-1);
+        $childOpinions = array_map(function ($item) use ($user, $isRest, $depth) {
+            $expandedNotes = $this->fetchChildNotesAndOpinions($user, $item['Opinion'], $isRest, $depth-1);
             return $expandedNotes;
         }, $this->Opinion->find('all', $paramsOpinion));
 
@@ -429,8 +474,8 @@ class AnalystData extends AppModel
             $analystData['Note'] = $childNotes;
         }
         if (!empty($childOpinions)) {
-            foreach ($childNotes as $childNote) {
-                $this->fetchedUUIDFromRecursion[$childNote['uuid']] = true;
+            foreach ($childOpinions as $childOpinion) {
+                $this->fetchedUUIDFromRecursion[$childOpinion['uuid']] = true;
             }
             $analystData['Opinion'] = $childOpinions;
         }
@@ -493,7 +538,7 @@ class AnalystData extends AppModel
         $analystData = $analystData[$this->alias];
         $this->Note = ClassRegistry::init('Note');
         $this->Opinion = ClassRegistry::init('Opinion');
-        $analystData = $this->fetchChildNotesAndOpinions($user, $analystData, $depth);
+        $analystData = $this->fetchChildNotesAndOpinions($user, $analystData, isset($this->__isRest) ? $this->__isRest : false, $depth);
         return $analystData;
     }
 
@@ -796,12 +841,12 @@ class AnalystData extends AppModel
     {
         $push_rules = json_decode($server['Server']['push_rules'], true);
         if (!empty($push_rules['orgs']['OR'])) {
-            if (!in_array($analystData['Orgc']['id'], $push_rules['orgs']['OR'])) {
+            if (!in_array($analystData['Orgc']['uuid'], $push_rules['orgs']['OR'])) {
                 return false;
             }
         }
         if (!empty($push_rules['orgs']['NOT'])) {
-            if (in_array($analystData['Orgc']['id'], $push_rules['orgs']['NOT'])) {
+            if (in_array($analystData['Orgc']['uuid'], $push_rules['orgs']['NOT'])) {
                 return false;
             }
         }
@@ -1075,6 +1120,9 @@ class AnalystData extends AppModel
             'fields' => ['id', 'uuid']
         ])['Organisation']['uuid'];
 
+        $remoteUser = $serverSync->cachedUserInfo();
+        $remotePermSyncInternal = !empty($remoteUser['Role']['perm_sync_internal']);
+
         foreach ($analystDataUuids as $type => $entries) {
             $uuids = array_keys($entries);
             if (empty($uuids)) {
@@ -1090,7 +1138,7 @@ class AnalystData extends AppModel
                 }
     
                 foreach ($chunkedAnalystData as $analystData) {
-                    $analystData = $this->updatePulledBeforeInsert($analystData, $type, $serverSync->server(), $user, $serverSync->pullRules());
+                    $analystData = $this->updatePulledBeforeInsert($analystData, $type, $serverSync->server(), $user, $serverSync->pullRules(), $remotePermSyncInternal);
                     $savedResult = $this->captureAnalystData($user, $analystData, true, $serverOrgUUID, $serverSync->server());
                     if ($savedResult['success']) {
                         $saved += $savedResult['imported'];
@@ -1102,11 +1150,11 @@ class AnalystData extends AppModel
         return $saved;
     }
 
-    private function updatePulledBeforeInsert(array $analystData, $type, array $server, array $user, array $pullRules): array
+    private function updatePulledBeforeInsert(array $analystData, $type, array $server, array $user, array $pullRules, $remotePermSyncInternal = false): array
     {
         $analystData[$type]['locked'] = true;
 
-        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || !$remotePermSyncInternal) {
             switch ($analystData[$type]['distribution']) {
                 case 1:
                     // if community only, downgrade to org only after pull

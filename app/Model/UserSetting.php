@@ -69,6 +69,7 @@ class UserSetting extends AppModel
         ),
         'homepage' => array(
             'placeholder' => ['path' => '/events/index'],
+            'validation' => 'validate_homepage',
         ),
         'default_restsearch_parameters' => array(
             'placeholder' => array(
@@ -109,10 +110,16 @@ class UserSetting extends AppModel
                 'tags' => '["tlp:red"]',
             ],
         ],
-        'eventreport_template_variables' => [
-            'placeholder' => [['name' => 'banner','value' => 'MY_BANNER']],
-        ],
     );
+
+    public static function validate_homepage($value, $user)
+    {
+        $path = json_decode($value, true);
+        if (empty($path['path'])) {
+            return false;
+        }
+        return str_starts_with($path['path'], '/');
+    }
 
     // massage the data before we send it off for validation before saving anything
     public function beforeValidate($options = array())
@@ -222,6 +229,26 @@ class UserSetting extends AppModel
     }
 
     /**
+     * @param array $user
+     * @param string $setting
+     * @return bool|string
+     */
+    public function checkSettingValidation(array $user, $setting, $value)
+    {
+        if (!isset(self::VALID_SETTINGS[$setting]['validation'])) {
+            return true;
+        }
+
+        $funName = self::VALID_SETTINGS[$setting]['validation'];
+        $validationFn = ['UserSetting', $funName];
+        if (!empty($funName) && is_callable($validationFn)) {
+            $check = call_user_func($validationFn, $value, $user);
+            return $check;
+        }
+        return true;
+    }
+
+    /**
      * canModify expects an auth user object or a user ID and a loaded setting as input parameters
      * check if the user can modify/remove the given entry
      * returns true for site admins
@@ -266,7 +293,7 @@ class UserSetting extends AppModel
          } else {
              if (
                  $user['id'] === $setting['UserSetting']['user_id'] &&
-                 (!Configure::check('MISP.disableUserSelfManagement') || Configure::check('MISP.disableUserSelfManagement'))
+                 (empty(Configure::read('MISP.disableUserSelfManagement')))
              ) {
                  return true;
              }
@@ -441,6 +468,9 @@ class UserSetting extends AppModel
     public function setSetting(array $user, array $data)
     {
         $userSetting = array();
+        if (empty($user['Role']['perm_admin']) && !empty(Configure::read('MISP.disableUserSelfManagement'))) {
+            throw new MethodNotAllowedException(__('User self-management is disabled on this instance.'));
+        }
         if (!empty($data['UserSetting']['user_id']) && is_numeric($data['UserSetting']['user_id'])) {
             $user_to_edit = $this->User->find('first', array(
                 'recursive' => -1,
@@ -466,6 +496,10 @@ class UserSetting extends AppModel
         $settingPermCheck = $this->checkSettingAccess($user, $data['UserSetting']['setting']);
         if ($settingPermCheck !== true) {
             throw new MethodNotAllowedException(__('This setting is restricted and requires the following permission(s): %s', $settingPermCheck));
+        }
+        $settingValidationCheck = $this->checkSettingValidation($user, $data['UserSetting']['setting'], $data['UserSetting']['value']);
+        if ($settingValidationCheck !== true) {
+            throw new MethodNotAllowedException(__('Invalid setting value', $settingValidationCheck));
         }
         $userSetting['setting'] = $data['UserSetting']['setting'];
         if ($data['UserSetting']['value'] !== '') {

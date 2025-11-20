@@ -139,7 +139,13 @@
     </fieldset>
 
     <?php
-        $formats = array('Raw', 'JSON', 'HTML', 'Download');
+        $responseFormat = isset($data['headers']['Content-Type']) ? $data['headers']['Content-Type'] : 'application/json';
+        $formats = ['Raw', 'Download'];
+        if (str_starts_with($responseFormat, 'application/json')) {
+            $formats[] = 'JSON';
+        } elseif (str_starts_with($responseFormat, 'text/html')) {
+            $formats[] = 'HTML';
+        }
         if (!empty($data['code']) && $data['code'] < 300) {
             $query_formats = array('curl' => 'cURL', 'python' => 'PyMISP');
             echo '<ul class="nav nav-tabs" style="margin-bottom:5px;">';
@@ -183,7 +189,7 @@
                 if ($k == (count($formats) -1)) {
                     $position = '-right';
                 }
-                $format_toggles .= sprintf('<span class="btn btn-inverse qet toggle%s format-toggle-button" data-toggle-type="%s">%s</span>', $position, $format, $format);
+                $format_toggles .= sprintf('<span id="' . $format . '-format-request-button" class="btn btn-inverse qet toggle%s format-toggle-button" data-toggle-type="%s">%s</span>', $position, $format, $format);
             }
             echo sprintf('<div style="padding-bottom:24px;">%s</div>', $format_toggles);
             echo '<div class="hidden" id="rest-response-hidden-container">';

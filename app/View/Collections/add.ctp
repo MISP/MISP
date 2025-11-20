@@ -40,8 +40,7 @@ echo $this->element('genericElements/Form/genericForm', [
         'title' => $edit ? __('Edit collection') : __('Add new collection'),
         'fields' => $fields,
         'submit' => [
-            'action' => $this->request->params['action'],
-            'ajaxSubmit' => 'submitGenericFormInPlace();'
+            'action' => $this->request->params['action']
         ]
     ]
 ]);

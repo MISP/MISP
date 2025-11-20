@@ -30,7 +30,7 @@ class TrendingAttributesWidget
         "sector": ["Financial"]
     }
 }';
-    public $description = 'Widget showing the trending tags over the past x seconds, along with the possibility to include/exclude tags.';
+    public $description = 'Widget showing the trending attributes over the past x seconds, along with the possibility to include/exclude attributes.';
     public $cacheLifetime = 3;
 
     private function getOrgList($options)

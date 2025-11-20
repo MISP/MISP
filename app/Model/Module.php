@@ -237,7 +237,7 @@ class Module extends AppModel
         } else if (empty($triggerData) && !empty($postData['event_id'])) {
             $this->Event = ClassRegistry::init('Event');
             $event = $this->Event->quickFetchEvent($postData['event_id']);
-            $triggerData =$event;
+            $triggerData = $event;
             $logging['message'] = __('The workflow `%s` prevented event `%s` to query the module `%s`', $trigger_id, $postData['event_id'], $postData['module']);
         } else {
             if (isset($triggerData['Attribute'])) {

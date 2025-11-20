@@ -52,7 +52,7 @@
 </div>
 <div id="correlationgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
 </div>
-<div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
+<div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none; overflow: hidden;" data-fullscreen="false">
 </div>
 <div id="eventreport_div" style="display: none;">
     <span class="report-title-section"><?php echo __('Event Reports');?></span>
@@ -92,7 +92,7 @@ $.get("<?php echo $baseurl; ?>/threads/view/<?php echo h($event['Event']['id']);
 });
 <?php endif; ?>
 
-$.get("<?php echo $baseurl; ?>/eventReports/index/event_id:<?= h($event['Event']['id']); ?>/index_for_event:1<?= $extended ? '/extended_event:1' : ''?>", function(data) {
+$.get("<?php echo $baseurl; ?>/eventReports/index/event_id:<?= h($event['Event']['id']); ?>/index_for_event:1<?= $extended ? '/extended_event:1' : ''?><?= $extending ? '/extending_event:1' : ''?>", function(data) {
     $("#eventreport_content").html(data);
     if ($('#eventreport_content table tbody > tr').length) { // open if contain a report
         $('#eventreport_toggle').click()

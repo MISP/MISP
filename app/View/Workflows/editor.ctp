@@ -301,6 +301,7 @@ echo $this->element('genericElements/assetLoader', [
     'js' => array(
         'codemirror/codemirror',
         'codemirror/addons/closebrackets',
+        'codemirror/addons/placeholder',
     ),
     'css' => array(
         'codemirror',

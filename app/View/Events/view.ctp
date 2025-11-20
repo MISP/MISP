@@ -3,10 +3,16 @@
         'css' => ['query-builder.default', 'attack_matrix', 'analyst-data'],
         'js' => ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph', 'd3', 'd3.custom', 'jquery-ui.min'],
     ]);
+    $pageTitle = $event['Event']['info'];
+    if ($extended) {
+        $pageTitle = '[' . __('Extended view') . '] ' . $pageTitle;
+    } else if ($extending) {
+        $pageTitle = '[' . __('Extending view') . '] ' . $pageTitle;
+    }
     echo $this->element(
         'genericElements/SingleViews/single_view',
         [
-            'title' => ($extended ? '[' . __('Extended view') . '] ' : '') . $event['Event']['info'],
+            'title' => $pageTitle,
             'data' => $event,
             'fields' => [
                 [
@@ -204,6 +210,7 @@
                     'key' => __('Extends'),
                     'type' => 'extends',
                     'path' => 'Event.extends_uuid',
+                    'extending' => $extending,
                     'extendedEvent' => isset($extendedEvent) ? $extendedEvent : null,
                     'class' => 'break-word',
                     'requirement' => !empty($extendedEvent)
@@ -286,7 +293,7 @@
                 ],
                 [
                     'type' => 'eventWarnings',
-                    'requirement' => !empty($event['warnings'])
+                    'requirement' => !empty($event['warnings']['false_positive']) || !empty($event['warnings']['known'])
                 ]
             ],
             'append' => [

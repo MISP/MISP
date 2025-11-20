@@ -100,7 +100,7 @@ Search MISP using a list of filter parameters and return the data in the selecte
 | Name |Type |Description |
 | -- |-- |-- |
 | page |integer |Page number for the pagination |
-| limit |integer |Limit on the pagination |
+| limit |integer |Limit on the pagination. Lower bounded by the one set for your role|
 | value |string | |
 | type |string |The type of the attribute |
 | category |string | |
@@ -293,7 +293,7 @@ Search MISP using a list of filter parameters and return the data in the selecte
 | Name |Type |Description |
 | -- |-- |-- |
 | page |integer |Page number for the pagination |
-| limit |integer |Limit on the pagination |
+| limit |integer |Limit on the pagination. Lower bounded by the one set for your role |
 | value |string | |
 | type |string |The type of the attribute |
 | category |string | |
@@ -559,7 +559,7 @@ Search MISP using a list of filter parameters and return the data in the selecte
 | Name |Type |Description |
 | -- |-- |-- |
 | page |integer |Page number for the pagination |
-| limit |integer |Limit on the pagination |
+| limit |integer |Limit on the pagination. Lower bounded by the one set for your role |
 | id |integer | |
 | uuid |string | |
 | galaxy_id | | |

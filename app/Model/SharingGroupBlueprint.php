@@ -126,18 +126,26 @@ class SharingGroupBlueprint extends AppModel
             $sg = $this->SharingGroup->find('first', [
                 'recursive' => -1,
                 'contain' => ['SharingGroupOrg'],
-                'conditions' => ['SharingGroup.id' => $sharingGroupBlueprint['SharingGroupBlueprint']['sharing_group_id']]
+                'conditions' => [
+                    'SharingGroup.id' => $sharingGroupBlueprint['SharingGroupBlueprint']['sharing_group_id']
+                ]
             ]);
             $existingOrgs = [];
+            $editors = [
+                $sg['SharingGroup']['org_id']
+            ];
             foreach ($sg['SharingGroupOrg'] as $sgo) {
                 $existingOrgs[] = $sgo['org_id'];
+                if (!empty($sgo['extend'])) {
+                    $editors[] = $sgo['org_id'];
+                }
             }
             $existingOrgs = array_unique($existingOrgs);
             $id = $sg['SharingGroup']['id'];
         }
         return [
             'id' => $id,
-            'changed' => $this->__handleSharingGroupOrgs($existingOrgs, $data['orgs'], $id) || $created,
+            'changed' => $failed ? false : ($this->__handleSharingGroupOrgs($existingOrgs, $data['orgs'], $id) || $created),
             'created' => $created,
             'failed' => $failed
         ];
@@ -304,5 +312,20 @@ class SharingGroupBlueprint extends AppModel
             ];
         }
         return [];
+    }
+
+    public function validateBlueprintPermissions($sg, $user)
+    {
+        if ($user['Role']['perm_site_admin']) {
+            // site admins can do anything
+            return true;
+        }
+        // creating a new sharing group, always allowed
+        if (!empty($sg['sharing_group_id'])) {
+            if (!$this->SharingGroup->checkIfAuthorisedExtend($user, $sg['sharing_group_id'])) {
+                return false;
+            }
+        }
+        return true;
     }
 }

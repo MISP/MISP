@@ -17,9 +17,14 @@ class SharingGroupBlueprintsController extends AppController
 
     public function index()
     {
+        $conditions = [];
+        if (!$this->Auth->user('Role')['perm_site_admin']) {
+            $conditions['SharingGroupBlueprint.org_id'] = $this->Auth->user('org_id');
+        }
         $params = [
             'filters' => ['name', 'uuid'],
-            'quickFilters' => ['name']
+            'quickFilters' => ['name'],
+            'conditions' => $conditions
         ];
         $this->CRUD->index($params);
         if ($this->IndexFilter->isRest()) {
@@ -31,11 +36,18 @@ class SharingGroupBlueprintsController extends AppController
     public function add()
     {
         $currentUser = $this->Auth->user();
+        $model = $this->SharingGroupBlueprint;
         $params = [
-            'beforeSave' => function($data) use ($currentUser) {
+            'beforeSave' => function($data) use ($currentUser, $model) {
                 $data['SharingGroupBlueprint']['uuid'] = CakeText::uuid();
                 $data['SharingGroupBlueprint']['user_id'] = $currentUser['id'];
                 $data['SharingGroupBlueprint']['org_id'] = $currentUser['org_id'];
+                if (!empty($data['SharingGroupBlueprint']['sharing_group_id'])) {
+                    if (!$model->validateBlueprintPermissions($data['SharingGroupBlueprint'], $currentUser)) {
+                        throw new MethodNotAllowedException(__('You are not allowed to modify the target sharing group.'));
+                    }
+                    $data['SharingGroupBlueprint']['rules'] = json_encode($data['SharingGroupBlueprint']['rules']);
+                }
                 return $data;
             }
         ];
@@ -50,8 +62,13 @@ class SharingGroupBlueprintsController extends AppController
     {
         $this->set('menuData', array('menuList' => 'globalActions', 'menuItem' => 'editMG'));
         $this->set('id', $id);
+        $conditions = [];
+        if (!$this->_isSiteAdmin()) {
+            $conditions['SharingGroupBlueprint.org_id'] = $this->Auth->user('org_id');
+        }
         $params = [
-            'fields' => ['rules', 'name']
+            'fields' => ['rules', 'name'],
+            'conditions' => $conditions
         ];
         $this->CRUD->edit($id, $params);
         if ($this->IndexFilter->isRest()) {
@@ -62,7 +79,11 @@ class SharingGroupBlueprintsController extends AppController
 
     public function delete($id)
     {
-        $this->CRUD->delete($id);
+        $conditions = [];
+        if (!$this->_isSiteAdmin()) {
+            $conditions['SharingGroupBlueprint.org_id'] = $this->Auth->user('org_id');
+        }
+        $this->CRUD->delete($id, ['conditions' => $conditions]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
@@ -71,7 +92,14 @@ class SharingGroupBlueprintsController extends AppController
     public function view($id)
     {
         $this->set('menuData', ['menuList' => 'sync', 'menuItem' => 'view_cerebrate']);
-        $this->CRUD->view($id, ['contain' => ['Organisation.name', 'Organisation.uuid', 'Organisation.id', 'SharingGroup.id', 'SharingGroup.name']]);
+        $conditions = [];
+        if (!$this->Auth->user('Role')['perm_site_admin']) {
+            $conditions['SharingGroupBlueprint.org_id'] = $this->Auth->user('org_id');
+        }
+        $this->CRUD->view($id, [
+            'contain' => ['Organisation.name', 'Organisation.uuid', 'Organisation.id', 'SharingGroup.id', 'SharingGroup.name'],
+            'conditions' => $conditions
+        ]);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
@@ -113,7 +141,7 @@ class SharingGroupBlueprintsController extends AppController
         if (!empty($id)) {
             $conditions['SharingGroupBlueprint.id'] = $id;
         }
-        if (!$this->Auth->user('Role')['perm_admin']) {
+        if (!$this->Auth->user('Role')['perm_site_admin']) {
             $conditions['SharingGroupBlueprint.org_id'] = $this->Auth->user('org_id');
         }
         $sharingGroupBlueprints = $this->SharingGroupBlueprint->find('all', ['conditions' => $conditions, 'recursive' => 0]);
@@ -163,7 +191,7 @@ class SharingGroupBlueprintsController extends AppController
             throw new MethodNotAllowedException(__('No ID specified.'));
         }
         $conditions['SharingGroupBlueprint.id'] = $id;
-        if (!$this->Auth->user('Role')['perm_admin']) {
+        if (!$this->Auth->user('Role')['perm_site_admin']) {
             $conditions['SharingGroupBlueprint.org_id'] = $this->Auth->user('org_id');
         }
         $sharingGroupBlueprint = $this->SharingGroupBlueprint->find('first', ['conditions' => $conditions, 'recursive' => -1]);
@@ -207,7 +235,7 @@ class SharingGroupBlueprintsController extends AppController
             throw new MethodNotAllowedException(__('No ID specified.'));
         }
         $conditions['SharingGroupBlueprint.id'] = $id;
-        if (!$this->Auth->user('Role')['perm_admin']) {
+        if (!$this->Auth->user('Role')['perm_site_admin']) {
             $conditions['SharingGroupBlueprint.org_id'] = $this->Auth->user('org_id');
         }
         $sharingGroupBlueprint = $this->SharingGroupBlueprint->find('first', ['conditions' => $conditions, 'recursive' => -1]);

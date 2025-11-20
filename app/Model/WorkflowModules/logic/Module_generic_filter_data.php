@@ -4,6 +4,7 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 class Module_generic_filter_data extends WorkflowFilteringLogicModule
 {
     public $id = 'generic-filter-data';
+    public $isFiltering = true;
     public $name = 'Filter :: Generic';
     public $version = '0.2';
     public $description = 'Generic data filtering block. The module filters incoming data and forward the matching data to its output.';

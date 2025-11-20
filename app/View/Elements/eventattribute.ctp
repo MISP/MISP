@@ -70,6 +70,8 @@
     ?>
 </div>
 <div id="tempnotecontainer"></div>
+<?php
+?>
 <div id="attributeList">
     <?php
         echo $this->element('eventattributetoolbar', [
@@ -93,7 +95,7 @@
             <th class="context hidden"><?= $this->Paginator->sort('first_seen', __('First seen')) ?> <i class="fas fa-arrow-right"></i> <?= $this->Paginator->sort('last_seen', __('Last seen')) ?></th>
             <th><?php echo $this->Paginator->sort('timestamp', __('Date'), array('direction' => 'desc'));?></th>
             <th class="context"><?= __('Context') ?></th>
-            <?php if ($extended): ?>
+            <?php if ($extended || $extending): ?>
                 <th class="event_id"><?php echo $this->Paginator->sort('event_id', __('Event'));?></th>
             <?php endif; ?>
             <?php if ($includeOrgColumn): $fieldCount++; ?>

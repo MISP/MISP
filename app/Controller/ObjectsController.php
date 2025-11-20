@@ -249,6 +249,12 @@ class ObjectsController extends AppController
                 }
                 if (empty($error)) {
                     unset($object['Object']['id']);
+                    if (isset($this->request->data['Object']['distribution']) && $this->request->data['Object']['distribution'] == 4) {
+                        $canSGBeUsed = $this->MispObject->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data, 'Object');
+                        if ($canSGBeUsed !== true) {
+                            throw new MethodNotAllowedException($canSGBeUsed);
+                        }
+                    }
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), 'halt', $breakOnDuplicate);
                     if (is_numeric($result)) {
                         $this->MispObject->Event->unpublishEvent($event);
@@ -406,6 +412,12 @@ class ObjectsController extends AppController
             if (isset($this->request->data['Object'])) {
                 $this->request->data = array_merge($this->request->data, $this->request->data['Object']);
                 unset($this->request->data['Object']);
+            }
+            if (isset($this->request->data['Object']['distribution']) && $this->request->data['Object']['distribution'] == 4) {
+                $canSGBeUsed = $this->MispObject->Event->SharingGroup->checkIfCanBeUsed($this->Auth->user(), $this->_isRest(), $this->request->data, 'Object');
+                if ($canSGBeUsed !== true) {
+                    throw new MethodNotAllowedException($canSGBeUsed);
+                }
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
             $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute, $user);
@@ -1260,7 +1272,7 @@ class ObjectsController extends AppController
 
         $event = $this->MispObject->Event->find('first', array(
             'recursive' => -1,
-            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id', 'Event.publish_timestamp'),
+            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.user_id', 'Event.publish_timestamp', 'Event.distribution', 'Event.sharing_group_id'),
             'conditions' => array('Event.id' => $eventId)
         ));
         if (empty($event)) {

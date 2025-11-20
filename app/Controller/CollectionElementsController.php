@@ -24,6 +24,7 @@ class CollectionElementsController extends AppController
             throw new MethodNotAllowedException(__('Invalid Collection or insuficient privileges'));
         }
         $this->CRUD->add([
+            'redirect' => ['controller' => 'collections', 'action' => 'view', $collection_id],
             'beforeSave' => function (array $collectionElement) use ($collection_id) {
                 $collectionElement['CollectionElement']['collection_id'] = intval($collection_id);
                 return $collectionElement;
@@ -51,7 +52,9 @@ class CollectionElementsController extends AppController
         if (!$this->CollectionElement->Collection->mayModify($this->Auth->user('id'), $collection_id)) {
             throw new MethodNotAllowedException(__('Invalid Collection or insuficient privileges'));
         }
-        $this->CRUD->delete($element_id);
+        $this->CRUD->delete($element_id, [
+            'redirect' => ['controller' => 'collections', 'action' => 'view', $collection_id]
+        ]);
         if ($this->restResponsePayload) {
             return $this->restResponsePayload;
         }

@@ -50,6 +50,7 @@ class TemplateElementsController extends AppController
 
     public function templateElementAddChoices($id)
     {
+        $id = intval($id);
         if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), true)) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
@@ -64,6 +65,7 @@ class TemplateElementsController extends AppController
     public function add($type, $id)
     {
         $ModelType = 'TemplateElement' . ucfirst($type);
+        $id = intval($id);
         if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), true)) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You are not authorised to do that.')), 'status' => 200, 'type' => 'json'));
         }
@@ -147,6 +149,7 @@ class TemplateElementsController extends AppController
 
     public function edit($type, $id)
     {
+        $id = intval($id);
         $ModelType = 'TemplateElement' . ucfirst($type);
         $templateElement = $this->TemplateElement->find('first', array(
             'conditions' => array('TemplateElement.id' => $id),
@@ -227,6 +230,7 @@ class TemplateElementsController extends AppController
 
     public function delete($id)
     {
+        $id = intval($id);
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException('This action is for ajax requests only.');
         }

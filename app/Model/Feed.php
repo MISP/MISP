@@ -1,4 +1,7 @@
 <?php
+
+use MaxMind\Exception\InvalidInputException;
+
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
@@ -984,11 +987,14 @@ class Feed extends AppModel
      * @return bool|string|array
      * @throws Exception
      */
-    public function downloadEventFromFeed(array $feed, $uuid)
+    public function downloadEventFromFeed(array $feed, $uuid, $permissive = false, &$error_message = null)
     {
         $filerRules = $this->__prepareFilterRules($feed);
         $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
-        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
+        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket, $permissive, $error_message);
+        if ($permissive) {
+            $event['Event']['error_message'] = $error_message;
+        }
         return $this->__prepareEvent($event, $feed, $filerRules);
     }
 
@@ -2103,19 +2109,38 @@ class Feed extends AppModel
      * @return array
      * @throws Exception
      */
-    private function downloadAndParseEventFromFeed($feed, $eventUuid, HttpSocket $HttpSocket = null)
+    private function downloadAndParseEventFromFeed($feed, $eventUuid, HttpSocket $HttpSocket = null, $permissive = false, &$error_message = null)
     {
         if (!Validation::uuid($eventUuid)) {
             throw new InvalidArgumentException("Given event UUID '$eventUuid' is invalid.");
         }
 
         $path = $feed['Feed']['url'] . '/' . $eventUuid . '.json';
-        $data = $this->feedGetUri($feed, $path, $HttpSocket);
+        $raw_data = $this->feedGetUri($feed, $path, $HttpSocket);
 
         try {
-            return JsonTool::decodeArray($data);
+            $error_message = "Could not parse event JSON with UUID '$eventUuid' from feed";
+            $data = JsonTool::decodeArray($raw_data);
+            if (!empty($data['Event']['protected'])) {
+                $path = $feed['Feed']['url'] . '/' . $eventUuid . '.asc';
+                $sig = $this->feedGetUri($feed, $path, $HttpSocket);
+                if (empty($sig)) {
+                    $error_message = __('Signature file for protected event %s not found.', $eventUuid);
+                    if (!$permissive) {
+                        throw new NotFoundException($error_message);
+                    }
+                }
+                $this->Event = ClassRegistry::init('Event');
+                if (!$this->Event->CryptographicKey->validateAndCheckLocalProtectedEvent($raw_data, [], $sig, $data)) {
+                    $error_message = __('Protected event %s signature validation failed.', $eventUuid);
+                    if (!$permissive) {
+                        throw new InvalidInputException($error_message);
+                    }
+                }
+            }
+            return $data;
         } catch (Exception $e) {
-            throw new Exception("Could not parse event JSON with UUID '$eventUuid' from feed", 0, $e);
+            throw new Exception($error_message, 0, $e);
         }
     }
 

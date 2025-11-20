@@ -220,6 +220,21 @@
                         'colors' => true,
                     ),
                     array(
+                        'name' => '',
+                        'header_title' => __('Server Bound'),
+                        'icon' => 'server',
+                        'element' => 'boolean',
+                        'sort' => 'User.termsaccepted',
+                        'element' => 'custom',
+                        'class' => 'short',
+                        'function' => function (array $user) {
+                            if (!empty($user['Server'])) {
+                                return $this->Html->link($user['Server']['name'], ['controller' => 'servers', 'action' => 'view', $user['Server']['id']]);
+                            }
+                            return '';
+                        }
+                    ),
+                    array(
                         'name' => __('Last Login'),
                         'sort' => 'User.current_login',
                         'element' => 'datetime',

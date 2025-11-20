@@ -6828,8 +6828,8 @@ msgid "Turn Weakness type attributes into links linking to the provided CWE look
 msgstr ""
 
 #: Model/Server.php:5067
-msgid "This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to disable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull. Quick recap: True = Emails are NOT sent, False = Emails are sent on events published via sync / REST."
-msgstr "Ce paramètre contrôle si les mails de notification vont être envoyés ou non lorsqu'un événement est créé par l'interface REST. Cela peut être une bonne idée de désactivé ce paramètre lors du premier paramétrage d'un lien à une autre instance pour éviter le spam des utilisateurs durant la première récupération. Récapitulatif rapide: True = Les mails ne sont pas envoyés, False, les mail sont envoyé pour les événements publiés par synchronisation/REST API."
+msgid "This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to enable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull. Quick recap: True = Emails are NOT sent, False = Emails are sent on events published via sync / REST."
+msgstr "Ce paramètre contrôle si les mails de notification vont être envoyés ou non lorsqu'un événement est créé par l'interface REST. Cela peut être une bonne idée de activé ce paramètre lors du premier paramétrage d'un lien à une autre instance pour éviter le spam des utilisateurs durant la première récupération. Récapitulatif rapide: True = Les mails ne sont pas envoyés, False, les mail sont envoyé pour les événements publiés par synchronisation/REST API."
 
 #: Model/Server.php:5074
 msgid "Enabling this flag will allow the event description to be transmitted in the alert e-mail's subject. Be aware that this is not encrypted by GnuPG, so only enable it if you accept that part of the event description will be sent out in clear-text."
@@ -7300,7 +7300,7 @@ msgid "If enabled, HTTP headers that block browser cache will be send. Static fi
 msgstr ""
 
 #: Model/Server.php:5959
-msgid "If enabled, any POST, PUT or AJAX request will be allow just when Sec-Fetch-Site header is not defined or contains \"same-origin\"."
+msgid "If enabled, any POST, PUT or AJAX request will only be allowed when Sec-Fetch-Site header is not defined or contains \"same-origin\"."
 msgstr ""
 
 #: Model/Server.php:5967
@@ -11158,7 +11158,7 @@ msgid "Markdown format"
 msgstr ""
 
 #: View/Elements/EventReports/reportHelpModal.ctp:11
-msgid "The suported markdown format is similar to %s with some differences:"
+msgid "The supported markdown format is similar to %s with some differences:"
 msgstr ""
 
 #: View/Elements/EventReports/reportHelpModal.ctp:18

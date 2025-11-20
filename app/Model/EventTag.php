@@ -31,7 +31,7 @@ class EventTag extends AppModel
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
         $kafkaTopic = $this->kafkaTopic('tag');
         $triggerCallable = $this->isTriggerCallable('tag-attached-after-save');
-        if ($pubToZmq || $kafkaTopic) {
+        if ($pubToZmq || $kafkaTopic || $triggerCallable) {
             $tag = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('EventTag.id' => $this->id),
@@ -170,6 +170,20 @@ class EventTag extends AppModel
             $nothingToChange = true;
         }
         return false;
+    }
+
+    // This function help mirroring the tags at event level. It will delete tags that are not present on the receiving event
+    public function pruneOutdatedEventTagsFromSync($newerTags, $originalGlobalEventTags)
+    {
+        $newerTagsName = [];
+        foreach ($newerTags as $tag) {
+            $newerTagsName[] = strtolower($tag['name']);
+        }
+        foreach ($originalGlobalEventTags as $k => $eventTag) {
+            if (!in_array(strtolower($eventTag['Tag']['name']), $newerTagsName)) {
+                $this->softDelete($eventTag['EventTag']['id']);
+            }
+        }
     }
 
     /**

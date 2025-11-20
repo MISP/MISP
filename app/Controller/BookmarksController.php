@@ -71,14 +71,7 @@ class BookmarksController extends AppController
 
     public function add()
     {
-        $currentUser = $this->Auth->user();
         $params = [
-            'beforeSave' => function($data) use ($currentUser) {
-                if (!empty($currentUser['Role']['perm_admin'])) {
-                    $data['Bookmark']['exposed_to_org'] = false;
-                }
-                return $data;
-            }
         ];
         $this->CRUD->add($params);
         if ($this->restResponsePayload) {

@@ -39,6 +39,13 @@ $tableData = [
     ),
 ];
 
+if (!empty($user['Server']['id'])) {
+    $tableData[] = [
+        'key' => __('Bound Server'),
+        'html' => $this->Html->link($user['Server']['name'], ['controller' => 'servers', 'action' => 'view', $user['Server']['id']]),
+    ];
+}
+
 if (empty(Configure::read('Security.otp_disabled'))) {
     $isTotp = isset($user['User']['totp']);
     $boolean = sprintf(
@@ -192,14 +199,13 @@ if (Configure::read('MISP.log_new_audit')) {
     );
 } else {
     $searchHtml = sprintf(
-        '&nbsp;<form action="%s" method="post" style="display:inline;">%s%s%s</form>',
-        $baseurl . '/admin/logs/search/search',
-        '<input type="hidden" value="User" name="model" />',
-        '<input type="hidden" value="' . h($user['User']['id']) . '" name="model_id" />',
+        '&nbsp;<a href="%s" class="btn btn-inverse">%s</a>',
         sprintf(
-            '<input type="submit" value="%s" class="btn btn-inverse">',
-            __('Review user logs')
-        )
+            '%s/admin/logs?model=User&model_id=%s',
+            $baseurl,
+            h($user['User']['id'])
+        ),
+        __('Review user logs')
     );
 }
 echo sprintf(

@@ -39,7 +39,7 @@
             <div class="hidden">
                 <?php
                 echo $this->Form->input('selectedTemplateId', array('type' => 'hidden', 'value' => $template['ObjectTemplate']['id']));
-                echo $this->Form->input('attributes', array('type' => 'hidden', 'value' => JsonTool::encode($attributes)));
+                echo $this->Form->input('attributes', array('type' => 'hidden', 'value' => json_encode($attributes)));
                 echo $this->Form->input('selectedObjectRelationMapping', ['value' => '', 'label' => false]);
                 echo $this->Form->end();
                 ?>

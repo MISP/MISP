@@ -98,4 +98,17 @@ class CryptographicKeysController extends AppController
         $this->layout = false;
         $this->render('/genericTemplates/display');
     }
+
+    public function serverSign()
+    {
+        if ($this->request->is('post')) {
+            $data = file_get_contents('php://input');
+            $signature = $this->CryptographicKey->signWithInstanceKey($data);
+            if (!$signature) {
+                throw new Exception('Could not sign data.');
+            }
+            return $this->RestResponse->viewData(base64_encode($signature), false, false, true);
+        }
+        
+    }
 }

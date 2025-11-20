@@ -4424,7 +4424,7 @@ msgid "Turn Weakness type attributes into links linking to the provided CWE look
 msgstr ""
 
 #: Model/Server.php:595
-msgid "This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to disable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull. Quick recap: True = Emails are NOT sent, False = Emails are sent on events published via sync / REST."
+msgid "This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to enable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull. Quick recap: True = Emails are NOT sent, False = Emails are sent on events published via sync / REST."
 msgstr ""
 
 #: Model/Server.php:603

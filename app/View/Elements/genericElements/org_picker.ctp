@@ -11,10 +11,10 @@
         );
     }
     $select = sprintf(
-        '<select id="OrgPickerEntry" style="margin-bottom:0px;>%s</select>',
+        '<select id="OrgPickerEntry" style="margin-bottom:0px;">%s</select>',
         $options
     );
-    $addOrgButton = '<span class="OrgPickerEntrySubmit btn btn-inverse"">' . __('Add') . '</span>';
+    $addOrgButton = '<span class="OrgPickerEntrySubmit btn btn-inverse">' . __('Add') . '</span>';
     echo sprintf(
         '<div id="OrgPickerEntryList" class="tag-list-container" style="margin-bottom:10px;"></div>'
     );

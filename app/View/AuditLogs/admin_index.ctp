@@ -50,7 +50,7 @@
                     unique: true,
                     id: "action",
                     label: "Action",
-                    values: <?= JsonTool::encode($actions) ?>
+                    values: <?= json_encode($actions) ?>
                 },
                 {
                     input: "select",
@@ -61,7 +61,7 @@
                     unique: true,
                     id: "model",
                     label: "Model type",
-                    values: <?= JsonTool::encode($models) ?>
+                    values: <?= json_encode($models) ?>
                 },
                 {
                     input: "text",
@@ -161,7 +161,7 @@
             rules: {
                 condition: 'AND',
                 not: false,
-                rules: <?= JsonTool::encode($qbRules) ?>,
+                rules: <?= json_encode($qbRules) ?>,
                 flags: {
                     no_add_group: true,
                     condition_readonly: true,
@@ -228,6 +228,9 @@
     <div class="pagination">
         <ul>
             <?php
+            $this->LightPaginator->options([
+                'url' => array('controller' => 'admin/audit_logs', 'action' => 'index')
+            ]);
             $paginator = $this->LightPaginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
             $paginator .= $this->LightPaginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
             $paginator .= $this->LightPaginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));

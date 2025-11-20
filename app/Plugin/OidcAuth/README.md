@@ -12,20 +12,24 @@ to login with passwords stored in MISP.
 cd app
 php composer.phar require jakub-onderka/openid-connect-php:1.0.0-rc1
 ```
+2. Enable Oidc plugin in `app/Config/bootstrap.php`, add to the end the following line:
+```php
+CakePlugin::load('OidcAuth');
+```
 
-2. Enable in `app/Config/config.php`
+3. Enable in `app/Config/config.php`
 
 ```php
 $config = array(
     ...
     'Security' => array(
         ...
-        'auth' => 'array('OidcAuth.Oidc')',
+        'auth' => array('OidcAuth.Oidc'),
     ),
     ...
 ```
 
-3. Configure in `app/Config/config.php` (replace variables in `{{ }}` with your values)
+4. Configure in `app/Config/config.php` (replace variables in `{{ }}` with your values)
 
 ```php
 $config = array(
@@ -35,15 +39,28 @@ $config = array(
         'issuer' => '{{ OIDC_ISSUER }}', // If omitted, it defaults to provider_url
         'client_id' => '{{ OIDC_CLIENT_ID }}',
         'client_secret' => '{{ OIDC_CLIENT_SECRET }}',
-        'role_mapper' => [ // if user has multiple roles, first role that match will be assigned to user
+        'role_mapper' => [ // if user has multiple roles, first role that matches will be assigned to user. In below example, lowest privileged role (misp-user) will be assigned, if the IdP says the user has both misp-user and misp-admin role. You might want to sort the opposite way, if you want the highest privileged role to get priority.
             'misp-user' => 3, // User
             'misp-admin' => 1, // Admin
         ],
         'default_org' => '{{ MISP_ORG }}',
-        'scopes' => ['profile', 'email'],
+        'scopes' => ['profile', 'email'], // Make sure to add your custom scope here if you set any
     ],
     ...
 ```
+
+5. Other MISP settings
+
+You might want to change or set the following MISP config values once the single sign on integration works (you can do this via GUI):
+```
+Security.require_password_confirmation false
+Security.auth_enforced true
+```
+
+For avoiding redirect loops when trying to logout, you can configure the `Plugin.CustomAuth_custom_logout` setting with the logout url of your IdP.
+
+6. Mixed Auth
+Set `OidcAuth.mixedAuth` to `true` to prevent MISP to automatically redirect to your SSO and instead add a `Login with SSO` button in the login page, this allows users to still login with other authentication methods enabled in MISP.
 
 ## Caveats
 

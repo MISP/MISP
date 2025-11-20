@@ -28,6 +28,12 @@ $fields = [
         'class' => 'input span6'
     ],
     [
+        'field' => 'skip_proxy',
+        'label' => 'Skip Proxy (if applicable)',
+        'type' => 'checkbox',
+        'default' => false
+    ],
+    [
         'field' => 'pull_orgs',
         'label' => __('Pull Organisations'),
         'type' => 'checkbox',

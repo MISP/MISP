@@ -101,7 +101,6 @@ class FeedsController extends AppController
                 if ($this->_isSiteAdmin()) {
                     $feeds = $this->Feed->attachFeedCacheTimestamps($feeds);
                 }
-
                 if ($this->IndexFilter->isRest()) {
                     foreach ($feeds as &$feed) {
                         unset($feed['SharingGroup']);
@@ -112,6 +111,9 @@ class FeedsController extends AppController
                 }
 
                 foreach ($feeds as &$feed) {
+                    if (!empty($feed['Feed']['headers'])) {
+                        $feed['Feed']['headers'] = '****';
+                    }
                     if (!empty($feed['Feed']['tag_collection_id'])) {
                         $tagCollection = $this->TagCollection->fetchTagCollection($loggedUser, [
                             'conditions' => [
@@ -152,7 +154,9 @@ class FeedsController extends AppController
                 if (!$this->_isSiteAdmin()) {
                     unset($feed['Feed']['headers']);
                 }
-
+                if (!empty($feed['Feed']['headers'])) {
+                    $feed['Feed']['headers'] = '****';
+                }
                 $feed['Feed']['cached_elements'] = $this->Feed->getCachedElements($feed['Feed']['id']);
                 $feed['Feed']['coverage_by_other_feeds'] = $this->Feed->getFeedCoverage($feed['Feed']['id'], 'feed', 'all') . '%';
 
@@ -878,12 +882,16 @@ class FeedsController extends AppController
             throw new NotFoundException(__('Invalid feed.'));
         }
         try {
-            $event = $this->Feed->downloadEventFromFeed($feed, $eventUuid);
+            $error_message = null;
+            $event = $this->Feed->downloadEventFromFeed($feed, $eventUuid, true, $error_message);
         } catch (Exception $e) {
-            throw new Exception(__('Could not download the selected Event'), 0, $e);
+            throw new Exception($e->getMessage(), 0, $e);
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($event, $this->response->type());
+        }
+        if (!empty($event['Event']['error_message'])) {
+            $this->Flash->error('ERROR: ' . $event['Event']['error_message']);
         }
         if (is_array($event)) {
             if (isset($event['Event']['Attribute'])) {

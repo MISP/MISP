@@ -72,9 +72,24 @@ class TagCollection extends AppModel
         }
         if (empty($params['contain'])) {
             $params['contain'] = array(
-                'Organisation',
-                'User',
-                'TagCollectionTag' => array('Tag')
+                'Organisation' => [
+                    'id',
+                    'name',
+                    'local'
+                ],
+                'User' => [
+                    'fields' => [
+                        'id',
+                        'org_id',
+                        'email'
+                    ]
+                ],
+                'TagCollectionTag' => [
+                    'Tag' => [
+                        'id',
+                        'name'
+                    ]
+                ]
             );
         }
         $tagCollections = $this->find('all', $params);

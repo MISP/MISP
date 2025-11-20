@@ -5,7 +5,7 @@ var renderTimer, scrollTimer, attackMatrixTimer, eventgraphTimer;
 var scrollMap;
 var $splitContainer, $editorContainer, $rawContainer, $viewerContainer, $fullContainer, $resizableHandle, $autocompletionCB, $syncScrollCB, $autoRenderMarkdownCB, $topBar, $lastModifiedField, $markdownDropdownRulesMenu, $markdownDropdownGeneralMenu, $toggleFullScreenMode, $loadingBackdrop
 var $editor, $viewer, $raw
-var $saveMarkdownButton, $mardownViewerToolbar
+var $saveMarkdownButton, $markdownViewerToolbar
 var loadingSpanAnimation = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
 
 var contentChanged = false
@@ -13,6 +13,20 @@ var defaultMode = 'viewer'
 var currentMode
 var splitEdit = true
 var noEditorScroll = false // Necessary as onscroll cannot be unbound from CM
+
+var markdownDisabledParsingRules = ['link', 'image']
+var markdownEnabledParsingRules = []
+
+if (markdownOverrideEnabledParsingRules && markdownOverrideEnabledParsingRules.length > 0) {
+    markdownOverrideEnabledParsingRules.forEach((rule) => {
+        markdownEnabledParsingRules.push(rule)
+        const ind = markdownDisabledParsingRules.indexOf(rule)
+        if (ind !== -1) {
+            markdownDisabledParsingRules.splice(ind, 1);
+        }
+    })
+}
+
 $(document).ready(function() {
     $splitContainer = $('.split-container')
     $editorContainer = $('#editor-container')
@@ -23,7 +37,7 @@ $(document).ready(function() {
     $editor = $('#editor')
     $viewer = $('#viewer')
     $raw = $('#raw')
-    $mardownViewerToolbar = $('#mardown-viewer-toolbar')
+    $markdownViewerToolbar = $('#markdown-viewer-toolbar')
     $loadingBackdrop = $('#loadingBackdrop')
     $saveMarkdownButton = $('#saveMarkdownButton')
     $autocompletionCB = $('#autocompletionCB')
@@ -128,7 +142,8 @@ function initMarkdownIt() {
         }
     }
     md = window.markdownit('default', mdOptions);
-    md.disable([ 'link', 'image' ])
+    // md.disable([ 'link', 'image' ])
+    md.disable(markdownDisabledParsingRules)
     md.renderer.rules.table_open = function () {
         return '<table class="table table-striped">\n';
     };
@@ -161,12 +176,44 @@ function initMarkdownIt() {
 }
 
 function renderMermaid(code) {
-    try {
-        var result = mermaid.mermaidAPI.render('mermaid-graph', code)
-        return '<div class="mermaid">' + (result !== undefined ? result : '- error while parsing mermaid graph -') + '</div>'
-    } catch (err) {
-        return '<pre>' + 'mermaid error:\n' + err.message + '</pre>'
+    var id = 'm-' + Math.random().toString().split('.')[1]
+    doAsyncMermaidRendering(id, code)
+    return '<div id="' + id + '"></div>'
+}
+
+async function doAsyncMermaidRendering(id, code) {
+    function partialEscapeHtml(unsafe) {
+        return unsafe
+            .replace(/<-->/g, '§ARROW_BOTH§')
+            .replace(/-->/g, '§ARROW_RIGHT§')
+            .replace(/<--/g, '§ARROW_LEFT§')
+            .replace(/--\|>/g, '§ARROW_LABEL_RIGHT§')
+            .replace(/<\|--/g, '§ARROW_LABEL_LEFT§')
+
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+
+            .replace(/§ARROW_LABEL_RIGHT§/g, '-->|')
+            .replace(/§ARROW_LABEL_LEFT§/g, '<|--')
+            .replace(/§ARROW_BOTH§/g, '<-->')
+            .replace(/§ARROW_RIGHT§/g, '-->')
+            .replace(/§ARROW_LEFT§/g, '<--');
     }
+    // Quotes need to be preserved for mermaid to parse some diagrams correctly
+
+    code = partialEscapeHtml(code)
+
+    setTimeout(async () => {
+        var html = ''
+        try {
+            var result = await mermaid.mermaidAPI.render('mermaid-graph' + id, code)
+            html = '<div class="mermaid">' + (result !== undefined ? result.svg : '- error while parsing mermaid graph -') + '</div>'
+        } catch (err) {
+            html = '<pre>' + 'mermaid error:\n' + partialEscapeHtml(err.message) + '</pre>'
+        }
+        $('#'+id).html(html)
+    }, 1);
 }
 
 function initCodeMirror() {
@@ -215,6 +262,11 @@ function initCodeMirror() {
             cm.showHint()
         }
     });
+    if (pasteImg !== undefined) {
+        cm.on("paste", function(cm, event) {
+            pasteImg(cm, event)
+        })
+    }
     checkIfFullScreenEnabled()
 }
 
@@ -371,8 +423,8 @@ function hideAll() {
 
 function setMode(mode) {
     currentMode = mode
-    $mardownViewerToolbar.find('button').removeClass('btn-inverse')
-    $mardownViewerToolbar.find('button[data-togglemode="' + mode + '"]').addClass('btn-inverse')
+    $markdownViewerToolbar.find('button').removeClass('btn-inverse')
+    $markdownViewerToolbar.find('button[data-togglemode="' + mode + '"]').addClass('btn-inverse')
     hideAll()
     $editorContainer.css('width', '');
     if (mode === 'raw') {

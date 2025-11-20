@@ -152,7 +152,7 @@ function genericPopup(url, popupTarget, callback) {
 }
 
 function screenshotPopup(url, title) {
-    if (!url.startsWith('data:image/')) {
+    if (!url.startsWith('data:image/') && url.split('.').pop() != 'png') {
         url = url.slice(0, -1);
     }
     url = $('<div>').text(url).html();
@@ -946,6 +946,14 @@ function toggleAllCheckboxes() {
     }
 }
 
+function toggleAllObjectAttributeCheckboxes(object_id){
+    if ($(".select_all_object_attributes_" + object_id).is(":checked")) {
+        $('.Object_' + object_id + '_collapsible_attr input.select_attribute').prop("checked", true);
+    } else {
+        $('.Object_' + object_id + '_collapsible_attr input.select_attribute').prop("checked", false);
+    }
+}
+
 function toggleAllTaxonomyCheckboxes() {
     if ($(".select_all").is(":checked")) {
         $(".select_taxonomy").prop("checked", true);
@@ -1359,6 +1367,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
     if (!url.startsWith('http')) {
         url = baseurl + url;
     }
+    var formData = new FormData($form[0])
     $.ajax({
         beforeSend: function () {
             if (modal) {
@@ -1375,8 +1384,10 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                     $(".loading").show();
                 }
             }
-        },
-        data: $form.serialize(),
+        }, 
+        data: formData,
+        processData: false,
+        contentType: false,
         success: function (data) {
             if (closePopover) {
                 if (modal) {
@@ -2053,7 +2064,7 @@ function openModal(heading, body, footer, modal_option, css_container, css_body,
     }
     modal_html += '</div>';
     $('body').append($(modal_html));
-    $('#'+modal_id).modal(modal_option !== undefined ? modal_option : {});
+    return $('#'+modal_id).modal(modal_option !== undefined ? modal_option : {});
 }
 
 function resizePopoverBody() {
@@ -2168,9 +2179,19 @@ function indexEvaluateFiltering() {
             $('#value_published').html("");
         }
         if (filtering.hasproposal != 2) {
-            $('#value_hasproposal').html(publishedOptions[filtering.hasproposal]);
+            $('#value_hasproposal').html(hasproposalOptions[filtering.hasproposal]);
         } else {
             $('#value_hasproposal').html("");
+        }
+        if (filtering.extending != 2) {
+            $('#value_extending').html(extendsOptions[filtering.extending]);
+        } else {
+            $('#value_extending').html("");
+        }
+        if (filtering.extended != 2) {
+            $('#value_extended').html(extendsOptions[filtering.extended]);
+        } else {
+            $('#value_extended').html("");
         }
         if (filtering.date.from != null) {
             var text = "";
@@ -2408,6 +2429,14 @@ function indexCreateFilters() {
             if (text != "") text += "/";
             text += "searchhasproposal:" + filtering.hasproposal;
         }
+        if (filtering.extending != "2") {
+            if (text != "") text += "/";
+            text += "searchextending:" + filtering.extending;
+        }
+        if (filtering.extended != "2") {
+            if (text != "") text += "/";
+            text += "searchextended:" + filtering.extended;
+        }
     } else {
         for (var i = 0; i < differentFilters.length; i++) {
             if (filtering[differentFilters[i]]) {
@@ -2530,6 +2559,12 @@ function indexAddRule(param) {
         } else if (param.data.param1 == "hasproposal") {
             var value = encodeURIComponent($('#EventSearchhasproposal').val());
             if (value != "") filtering.hasproposal = value;
+        } else if (param.data.param1 == "extending") {
+            var value = encodeURIComponent($('#EventSearchextending').val());
+            if (value != "") filtering.extending = value; 
+        } else if (param.data.param1 == "extended") {
+            var value = encodeURIComponent($('#EventSearchextended').val());
+            if (value != "") filtering.extended = value;
         } else {
             var value = encodeURIComponent($('#EventSearch' + param.data.param1).val());
             var operator = operators[encodeURIComponent($('#EventSearchbool').val())];
@@ -2595,6 +2630,10 @@ function indexFilterClearRow(field) {
         filtering.published = 2;
     } else if (field == "hasproposal") {
         filtering.hasproposal = 2;
+    } else if (field == "extending") {
+        filtering.extending = 2;
+    } else if (field == "extended") {
+        filtering.extended = 2;
     } else if (differentFilters.indexOf(field) != -1) {
         filtering[field] = "";
     } else {
@@ -2954,7 +2993,9 @@ function moduleResultsSubmit(id) {
                 meta_category: $(this).find('.ObjectMetaCategory').text(),
                 distribution: $(this).find('.ObjectDistribution').val(),
                 sharing_group_id: $(this).find('.ObjectSharingGroup').val(),
-                comment: $(this).find('.ObjectComment').val()
+                comment: $(this).find('.ObjectComment').val(),
+                first_seen: $(this).find('.ObjectFirstSeen').val(),
+                last_seen: $(this).find('.ObjectLastSeen').val(),
             }
             if (!temp['import_object']) {
                 return true;
@@ -3007,7 +3048,9 @@ function moduleResultsSubmit(id) {
                         disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
                         comment: $(this).find('.AttributeComment').val(),
                         distribution: $(this).find('.AttributeDistribution').val(),
-                        sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                        sharing_group_id: $(this).find('.AttributeSharingGroup').val(),
+                        first_seen: $(this).find('.AttributeFirstSeen').val(),
+                        last_seen: $(this).find('.AttributeLastSeen').val(),
                     }
                     if (!attribute['import_attribute']) {
                         return true;
@@ -3067,7 +3110,9 @@ function moduleResultsSubmit(id) {
                 disable_correlation: $(this).find('.AttributeDisableCorrelation')[0].checked,
                 comment: $(this).find('.AttributeComment').val(),
                 distribution: $(this).find('.AttributeDistribution').val(),
-                sharing_group_id: $(this).find('.AttributeSharingGroup').val()
+                sharing_group_id: $(this).find('.AttributeSharingGroup').val(),
+                first_seen: $(this).find('.AttributeFirstSeen').val(),
+                last_seen: $(this).find('.AttributeLastSeen').val(),
             }
             if (!temp['import_attribute']) {
                 return true;
@@ -3659,6 +3704,62 @@ function testConnection(id) {
     })
 }
 
+function testSyncRule(id, method) {
+    var resultContainer = $("#sync_rule_" + method + "_test_" + id);
+    $.ajax({
+        url: baseurl + '/servers/testSyncRules/' + id + '/' + method,
+        type: 'GET',
+        beforeSend: function () {
+            resultContainer.text('Running test...');
+        },
+        error: function () {
+            resultContainer.html('<span class="red bold">Internal error</span>');
+        },
+        success: function (response) {
+            resultContainer.empty();
+            if (typeof response !== 'object') {
+                resultContainer.html('<span class="red bold">Internal error</span>');
+            } else if ("error" in response) {
+                resultContainer.append(
+                    $('<span>')
+                        .attr('class', 'red bold')
+                        .text('Error')
+                ).append(
+                    $('<span>')
+                        .text(': #' + response.error)
+                );
+            } else {
+                var resultTextFiltered = response.without_rules - response.with_rules
+                if (resultTextFiltered != 0) {
+                    resultTextFiltered += ' (' + (((response.without_rules - response.with_rules) / response.without_rules) * 100).toFixed(1) + '%' + ')'
+                }
+                var resultTextSync = response.with_rules
+                if (resultTextSync != 0) {
+                    resultTextSync += ' (' + ((response.with_rules / response.without_rules) * 100).toFixed(1) + '%' + ')'
+                }
+                resultContainer.append(
+                    $('<div>').css({'text-wrap': 'nowrap'}).append(
+                        $('<div>').append(
+                            $('<span>')
+                                .attr('class', 'blue bold')
+                                .text('# Filtered Events'),
+                            $('<span>')
+                                .text(': ' + resultTextFiltered)
+                        ),
+                        $('<div>').append(
+                            $('<span>')
+                                .attr('class', 'blue bold')
+                                .text('# Events to be Sync'),
+                            $('<span>')
+                                .text(': ' + resultTextSync)
+                        ),
+                    )
+                )
+            }
+        }
+    });
+}
+
 function getTextColour(hex) {
     hex = hex.slice(1);
     var r = parseInt(hex.substring(0,2), 16);
@@ -3726,10 +3827,14 @@ function serverRuleUpdate() {
     validOptions.forEach(function(type) {
         validFields.forEach(function(field) {
             var indexedList = {};
-            if (type === 'push' || field == 'type_objects') {
+            if (type === 'push' || field == 'type_objects' || field == 'orgs') {
                 if (window[field] !== undefined) {
                     window[field].forEach(function(item) {
-                        indexedList[item.id] = item.name;
+                        if (field == 'orgs') {
+                            indexedList[item.uuid] = item.name + ' (' + item.uuid + ')';
+                        } else {
+                            indexedList[item.id] = item.name;
+                        }
                     });
                 }
             }
@@ -3901,6 +4006,36 @@ function toggleBoolFilter(param) {
     }
     fetchAttributes(currentUri, res);
 }
+
+function toggleWarningFilter(param) { 
+    if (querybuilderTool === undefined) {
+        triggerEventFilteringTool(true); // allows to fetch rules
+    }
+    var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
+    var res = cleanRules(rules);
+
+    var [key, value] = param.split(':');
+
+    if (key === "warning" && res["warninglistId"] !== undefined) {
+        res["warninglistId"] = 0;
+        res["warning"] = value;
+    } else if (key === "warninglistId" && res["warning"] !== undefined) {
+        res["warning"] = 0;
+        res["warninglistId"] = value;
+    } else {
+        var current = res[key];
+
+        if (current !== undefined) {
+            res[key] = (current == value) ? 0 : value;
+        } else {
+            res[key] = value;
+        }
+    }
+
+    fetchAttributes(currentUri, res);
+}
+
+
 
 function resetPaginationParameters(currentUri) {
     var newUri = []
@@ -5378,6 +5513,15 @@ function checkRoleEnforceRateLimit() {
     }
 }
 
+function toggleIsRestsearchLimitedField() {
+    if ($('#RoleIsRestsearchLimited').is(':checked')) {
+        $('#restsearchLimitValueContainer').show();
+    } else {
+        $('#restsearchLimitValueContainer').hide();
+    }
+}
+
+
 function queryDeprecatedEndpointUsage() {
     $.ajax({
         url: baseurl + '/api/viewDeprecatedFunctionUse',
@@ -5931,4 +6075,14 @@ function filterSearch(callback) {
             $div.remove();
         });
     });
+}
+
+function submitLogSearch() {
+    var url = baseurl + '/logs/index';
+    $('.log-search-field').each(function() {
+        if ($(this).val() !== '') {
+            url += '/' + encodeURIComponent($(this).data('field')) + ':' + encodeURIComponent($(this).val().replace("/", ""));
+        }
+    });
+    $(location).prop('href', url);
 }

@@ -15,13 +15,18 @@
             )
         );
     } else {
-        echo sprintf(
-            '<button onClick="%s" class="btn btn-%s">%s</button>',
-            sprintf(
+        if (!empty($submitFunction)) {
+            $submitAction = $submitFunction;
+        } else {
+            $submitAction = sprintf(
                 "$('#%s%sForm').submit();",
                 h($model),
                 h(Inflector::classify($action))
-            ),
+            );
+        }
+        echo sprintf(
+            '<button onClick="%s" class="btn btn-%s">%s</button>',
+            $submitAction,
             empty($type) ? 'primary' : h($type),
             empty($text) ? __('Submit') : h($text)
         );

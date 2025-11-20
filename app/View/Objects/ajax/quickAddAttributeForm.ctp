@@ -7,6 +7,7 @@
         echo $this->Form->create('Object', array(
             'id' => 'Object_' . $object['id'] . '_quick_add_attribute_form',
             'url' => $url,
+            'enctype' => 'multipart/form-data',
             'class' => 'allDiv'
         ));
     ?>
