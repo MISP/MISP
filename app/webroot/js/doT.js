@@ -37,7 +37,7 @@
 		};
 	};
 
-	_globals = (function(){ return this || (0,eval)("this"); }());
+	_globals = globalThis;
 
 	/* istanbul ignore else */
 	if (typeof module !== "undefined" && module.exports) {
