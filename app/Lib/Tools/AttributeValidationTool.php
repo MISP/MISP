@@ -419,9 +419,9 @@ class AttributeValidationTool
                 }
                 return __('Onion address has an invalid format.');
             case 'mac-address':
-                return preg_match('/^([a-fA-F0-9]{2}[:]?){6}$/', $value) === 1;
+                return preg_match('/^([a-f0-9]{2}:){5}[a-f0-9]{2}$/', $value) === 1;
             case 'mac-eui-64':
-                return preg_match('/^([a-fA-F0-9]{2}[:]?){8}$/', $value) === 1;
+                return preg_match('/^([a-f0-9]{2}:){3}ff:fe(:[a-f0-9]{2}){3}$/', $value) === 1;
             case 'hostname':
             case 'domain':
                 if (self::isDomainValid($value)) {
