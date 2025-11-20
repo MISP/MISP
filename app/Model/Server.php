@@ -5371,6 +5371,14 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                 ],
+                'use_uuids_in_urls' => [
+                    'level' => 1,
+                    'description' => __('Changes the urls on the event index to /UUID instead of /ID.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
                 'server_settings_skip_backup_rotate' => array(
                     'level' => 1,
                     'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurrency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
