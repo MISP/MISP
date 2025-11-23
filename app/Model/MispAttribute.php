@@ -1828,21 +1828,67 @@ class MispAttribute extends AppModel
                 'order'      => false
             ]);
         }
-    
-        $conditions = $this->buildConditions($user);
-        if (!empty($options['conditions'])) {
-            $conditions['AND'][] = $options['conditions'];
+
+        $attrSpecific = [];
+        $eventSpecific = [];
+        $objectSpecific = [];
+        $other = [];
+
+        foreach ($options['conditions'] ?? [] as $k => $v) {
+            if (strpos($k, 'Attribute.') === 0) {
+                $attrSpecific[$k] = $v;
+            } elseif (strpos($k, 'Event.') === 0) {
+                $eventSpecific[$k] = $v;
+            } elseif (strpos($k, 'Object.') === 0) {
+                $objectSpecific[$k] = $v;
+            } else {
+                $other[$k] = $v;
+            }
         }
     
+        $aclConditions = $this->buildConditions($user);
+        $conditions = ['AND' => []];
+
+
+        // reworked filter pipeline, nudging mariadb/mysql optimizers to be a bit less stupid
+
+        // 1. Deletion status - still not convinced by this one, but let's try. May move this further down the line, perhaps after 2.
+        if (isset($options['deleted']) && $options['deleted'] === 'only') {
+            $conditions['AND'][] = ['Attribute.deleted' => 1];
+        } elseif (!$user['Role']['perm_sync'] || empty($options['deleted'])) {
+            $conditions['AND'][] = ['Attribute.deleted' => 0];
+        }
+
+        // 2. Attribute conditions
+        if (!empty($attrSpecific)) {
+            $conditions['AND'][] = $attrSpecific;
+        }
+
         if (empty($options['flatten'])) {
             $conditions['AND'][] = ['Attribute.object_id' => 0];
         }
-    
-        if (isset($options['deleted']) && $options['deleted'] === 'only') {
-            $conditions['AND']['Attribute.deleted'] = 1;
-        } elseif (!$user['Role']['perm_sync'] || empty($options['deleted'])) {
-            $conditions['AND']['Attribute.deleted'] = 0;
+
+        // 3. Object-specific conditions, closest parent filter to 2., but rarely used (until we properly document the object filters at least...)
+        if (!empty($objectSpecific)) {
+            $conditions['AND'][] = $objectSpecific;
         }
+
+        // 4. Event conditions
+        if (!empty($eventSpecific)) {
+            $conditions['AND'][] = $eventSpecific;
+        }
+
+        // 5. Everything else
+        if (!empty($other)) {
+            foreach ($other as $k => $v) {
+                $conditions['AND'][] = [$k => $v];
+            }
+        }
+
+        // 6. ACL - this one isn't very selective, we don't want this to be the driving filter.
+        // With that said, there might be edge cases with a user specifically looking for data related to a sharing group....
+        $conditions['AND'][] = $aclConditions;
+
         $flags = [
             'withAttachments','includeSightings','includeCorrelations',
             'includeContext','includeEventTags','includeWarninglistHits',

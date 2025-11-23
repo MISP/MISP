@@ -571,6 +571,8 @@ class AppModel extends Model
                     'idx_attr_evt_dist' => '(event_id, distribution)',
                     'idx_attr_objrel_acl' => '(object_relation(32), event_id, distribution, sharing_group_id, deleted)',
                     'idx_attr_search_core' => '(type(16), to_ids, deleted, distribution, sharing_group_id, event_id)',
+                    'idx_attr_acl_primary' => '(deleted, distribution, sharing_group_id, event_id)',
+                    'idx_attr_ts_acl' => '(timestamp, deleted, distribution, sharing_group_id, event_id)',
                 ];
                 $indices_to_delete = [
                     'deleted',
