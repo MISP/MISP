@@ -1859,29 +1859,30 @@ class MispAttribute extends AppModel
                 $conditions['AND'][] = ['Attribute.deleted' => 0];
             }
 
-            // 2. Flatten attributes added
-            if (empty($options['flatten'])) {
-                $conditions['AND'][] = ['Attribute.object_id' => 0];
-            }
-
-            // 3. ACL - this one isn't very selective, we don't want this to be the driving filter.
-            // With that said, there might be edge cases with a user specifically looking for data related to a sharing group....
-            $conditions['AND'][] = $aclConditions;
-
-            // 4. Attribute conditions
+            // 2. Attribute conditions
             if (!empty($attrSpecific)) {
                 $conditions['AND'][] = $attrSpecific;
             }
 
-            // 5. Object-specific conditions, closest parent filter to 2., but rarely used (until we properly document the object filters at least...)
+            // 3. Flatten attributes added
+            if (empty($options['flatten'])) {
+                $conditions['AND'][] = ['Attribute.object_id' => 0];
+            }
+
+
+            // 4. Object-specific conditions, closest parent filter to 2., but rarely used (until we properly document the object filters at least...)
             if (!empty($objectSpecific)) {
                 $conditions['AND'][] = $objectSpecific;
             }
 
-            // 6. Event conditions
+            // 5. Event conditions
             if (!empty($eventSpecific)) {
                 $conditions['AND'][] = $eventSpecific;
             }
+
+            // 6. ACL - this one isn't very selective, we don't want this to be the driving filter.
+            // With that said, there might be edge cases with a user specifically looking for data related to a sharing group....
+            $conditions['AND'][] = $aclConditions;
 
             // 7. Everything else
             if (!empty($other)) {
