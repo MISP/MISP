@@ -1078,7 +1078,7 @@ class UsersController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->describe('Users', 'admin_edit', $id, $this->response->type());
             }
-            if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $this->User->data['User']['org_id']) {
+            if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $userToEdit['User']['org_id']) {
                 $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
             }
             $this->request->data = $userToEdit;
