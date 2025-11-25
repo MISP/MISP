@@ -4304,7 +4304,8 @@ class Event extends AppModel
                 if (('true' != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($this->id, $user);
                 }
-                $this->publish($this->id, $passAlong);
+
+                $this->publishRouter($this->id, $passAlong, $user);
             }
             if (empty($data['Event']['locked']) && !empty(Configure::read('MISP.default_event_tag_collection'))) {
                 $this->TagCollection = ClassRegistry::init('TagCollection');
@@ -4693,7 +4694,7 @@ class Event extends AppModel
                 if ((true != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($id, $user, $existingEvent['Event']['publish_timestamp']);
                 }
-                $this->publish($existingEvent['Event']['id'], $passAlong);
+                $this->publishRouter($existingEvent['Event']['id'], $passAlong, $user);
             }
             if ($jobId) {
                 $eventLock->deleteBackgroundJobLock($data['Event']['id'], $jobId);
@@ -5074,7 +5075,14 @@ class Event extends AppModel
     public function publishRouter($id, $passAlong = null, $user)
     {
         if (Configure::read('MISP.background_jobs')) {
-
+            //Tentatively set the publish flag to 1
+            $event = $this->find('first', array(
+                'conditions' => array('Event.id' => $id),
+                'recursive' => -1
+            ));
+            $event['Event']['published'] = 1;
+            $event['Event']['publish_timestamp'] = time();
+            $this->save($event);
             /** @var Job $job */
             $job = ClassRegistry::init('Job');
             $jobId = $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", 'Publishing.');
@@ -7527,7 +7535,7 @@ class Event extends AppModel
                 )
             )
         );
-        return (!empty($original_uuid)) ? $original_uuid['Object']['uuid'] : $original_uuid;
+        return (!empty($original_uuid)) ? ['uuid' => $original_uuid['Object']['uuid']] : $original_uuid;
     }
 
     /**

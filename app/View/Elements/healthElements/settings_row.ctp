@@ -22,7 +22,13 @@
                 'class' => 'short live_filter_target'
             ),
             'setting' => array(
-                'html' => h($setting['setting']),
+                'html' => sprintf(
+                    '%s<span %s></span>',
+                    h($setting['setting']),
+                    sprintf('role="button" tabindex="0" aria-label="%s" aria-controls="setting_%s_%s_placeholder" onclick="serverSettingsActivateField(\'%s\',\'%s\');"',
+                        h('edit'),
+                        h($subGroup), h($k),
+                        h($setting['setting']), h($k))),
                 'class' => 'short live_filter_target',
                 'ondblclick' => 'serverSettingsActivateField',
                 'ondblclickParams' => array(h($setting['setting']), h($k))

@@ -206,7 +206,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                 ) ENGINE=MEMORY;");
                 $this->Correlation->query("
                         INSERT INTO tmp_source_values (value2, id)
-                        SELECT a.value2, a.id
+                        SELECT a.value2, MIN(a.id) as id
                         FROM attributes a
                         WHERE
                             a.event_id = ? AND
@@ -214,6 +214,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                             a.deleted = 0 AND
                             a.disable_correlation = 0 AND
                             a.type IN ('" . implode("','", $this->value2CorrelatingTypes) . "')
+                        GROUP BY a.value2
                     ",
                     [$eventId]
                 );
