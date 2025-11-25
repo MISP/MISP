@@ -1081,26 +1081,6 @@
   },
   {
     "Feed": {
-      "name": "mirai.security.gives",
-      "provider": "security.gives",
-      "url": "https://mirai.security.gives/data/ip_list.txt",
-      "rules": "",
-      "enabled": false,
-      "distribution": "3",
-      "default": false,
-      "source_format": "freetext",
-      "fixed_event": true,
-      "delta_merge": false,
-      "publish": false,
-      "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
-      "input_source": "network",
-      "delete_local_file": false,
-      "lookup_visible": true
-    }
-  },
-  {
-    "Feed": {
       "name": "malsilo.url",
       "provider": "MalSilo",
       "url": "https://malsilo.gitlab.io/feeds/dumps/url_list.txt",
@@ -2175,5 +2155,77 @@
     "caching_enabled": false,
     "force_to_ids": false
       }
-  }  
+  },
+  {
+  "Feed": {
+    "name": "hideNseek LAB - Threat Intelligence JSON",
+    "provider": "hideNseek LAB",
+    "url": "https://data.hidenseek.dev/download/cti/hns_cti.json",
+    "rules": "",
+    "enabled": false,
+    "distribution": "3",
+    "default": false,
+    "source_format": "freetext",
+    "fixed_event": true,
+    "delta_merge": false,
+    "publish": false,
+    "override_ids": false,
+    "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"^#\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": true,
+    "headers": "",
+    "caching_enabled": true,
+    "force_to_ids": false,
+    "orgc_id": "0"
+      }
+  },
+  {
+  "Feed": {
+    "name": "hideNseek LAB - CSV Threat Feed",
+    "provider": "hideNseek LAB",
+    "url": "https://data.hidenseek.dev/download/cti/hns_cti.csv",
+    "rules": "",
+    "enabled": false,
+    "distribution": "3",
+    "default": false,
+    "source_format": "csv",
+    "fixed_event": true,
+    "delta_merge": false,
+    "publish": false,
+    "override_ids": false,
+    "settings": "{\"csv\":{\"value\":\"1\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": true,
+    "headers": "",
+    "caching_enabled": true,
+    "force_to_ids": false,
+    "orgc_id": "0"
+      }
+  },
+  {
+  "Feed": {
+    "name": "hideNseek LAB - IP Blocklist",
+    "provider": "hideNseek LAB",
+    "url": "https://data.hidenseek.dev/download/cti/hns_blocklist.txt",
+    "rules": "",
+    "enabled": false,
+    "distribution": "3",
+    "default": false,
+    "source_format": "freetext",
+    "fixed_event": true,
+    "delta_merge": false,
+    "publish": false,
+    "override_ids": false,
+    "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"^#\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": true,
+    "headers": "",
+    "caching_enabled": true,
+    "force_to_ids": false,
+    "orgc_id": "0"
+      }
+  }
 ]
