@@ -1570,6 +1570,7 @@ class EventReport extends AppModel
         if (!empty($imageFromAlias)) {
             $filename = $imageFromAlias;
         }
+        $filename = basename($filename);
         $filepath = self::PICTURE_FOLDER_PATH . '/' . $filename;
         $file = new File($filepath);
         if (!is_file($file->path)) {
