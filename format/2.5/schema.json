@@ -1,0 +1,678 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Validator for misp events",
+  "id": "https://github.com/MISP/MISP/blob/2.5/format/2.5/schema.json",
+  "defs": {
+    "org": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "uuid"
+      ]
+    },
+    "orgc": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "uuid"
+      ]
+    },
+    "sharing_group": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "releasability": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "organisation_uuid": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "sync_user_id": {
+          "type": "string"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "created": {
+          "type": "string"
+        },
+        "modified": {
+          "type": "string"
+        },
+        "local": {
+          "type": "boolean"
+        },
+        "roaming": {
+          "type": "boolean"
+        },
+        "Organisation": {
+          "$ref": "#/defs/org"
+        },
+        "SharingGroupOrg": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/sharing_group_org"
+          }
+        },
+        "SharingGroupServer": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/sharing_group_server"
+          }
+        },
+        "required": [
+          "uuid"
+        ]
+      },
+      "required": [
+        "uuid"
+      ]
+    },
+    "sharing_group_org": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sharing_group_id": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "extend": {
+          "type": "boolean"
+        },
+        "Organisation": {
+          "$ref": "#/defs/org"
+        }
+      }
+    },
+    "sharing_group_server": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sharing_group_id": {
+          "type": "string"
+        },
+        "server_id": {
+          "type": "string"
+        },
+        "all_orgs": {
+          "type": "boolean"
+        },
+        "Server": {
+          "$ref": "#/defs/server"
+        }
+      }
+    },
+    "server": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "event_id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "template_uuid": {
+          "type": "string"
+        },
+        "template_version": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "meta-category": {
+          "type": "string"
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "first_seen": {
+          "type": "string"
+        },
+        "last_seen": {
+          "type": "string"
+        },
+        "distribution": {
+          "type": "string"
+        },
+        "sharing_group_id": {
+          "type": "string"
+        },
+        "comment": {
+          "type": "string"
+        },
+        "ObjectReference": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/defs/objectreference"
+            }
+        },
+        "Attribute": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/attribute"
+          }
+        }
+      }
+    },
+    "sighthing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "attribute_id": {
+          "type": "string"
+        },
+        "event_id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "date_sighting": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "Organisation": {
+            "$ref": "#/defs/organisation"
+        }
+      }
+    },
+    "organisation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "objectreference": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deleted": {
+          "type": "boolean"
+        },
+        "object_id": {
+          "type": "string"
+        },
+        "event_id": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "referenced_id": {
+          "type": "string"
+        },
+        "referenced_uuid": {
+          "type": "string"
+        },
+        "referenced_type": {
+          "type": "string"
+        },
+        "relationship_type": {
+          "type": "string"
+        },
+        "object_uuid": {
+          "type": "string"
+        },
+        "comment": {
+          "type": "string"
+        },
+        "Object": {
+          "$ref": "#/defs/object"
+        }
+      }
+    },
+    "attribute": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "old_id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "to_ids": {
+          "type": "boolean"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "event_id": {
+          "type": "string"
+        },
+        "event_uuid": {
+          "type": "string"
+        },
+        "proposal_to_delete": {
+          "type": "boolean"
+        },
+        "validationIssue": {
+          "type": "boolean"
+        },
+        "Org": {
+          "$ref": "#/defs/organisation"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "distribution": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "first_seen": {
+          "type": "string"
+        },
+        "last_seen": {
+          "type": "string"
+        },
+        "comment": {
+          "type": "string"
+        },
+        "sharing_group_id": {
+          "type": "string"
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "disable_correlation": {
+          "type": "boolean"
+        },
+        "value": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string"
+        },
+        "object_relation": {
+          "type": ["string", "null"]
+        },
+        "object_id": {
+          "type": "string"
+        },
+        "SharingGroup": {
+          "$ref": "#/defs/sharing_group"
+        },
+        "ShadowAttribute": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/attribute"
+          }
+        },
+        "Sighting": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/defs/sighthing"
+            }
+        },
+        "Galaxy": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/galaxy"
+          }
+        },
+        "Tag": {
+          "uniqueItems": true,
+          "type": "array",
+          "items": {
+            "$ref": "#/defs/tag"
+          }
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "orgc_id": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string"
+        },
+        "extends_uuid": {
+            "type": "string"
+        },
+        "threat_level_id": {
+          "type": "string"
+        },
+        "info": {
+          "type": "string"
+        },
+        "published": {
+          "type": "boolean"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "attribute_count": {
+          "type": "string"
+        },
+        "analysis": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "first_publication": {
+          "type": "string"
+        }
+        ,
+        "distribution": {
+          "type": "string"
+        },
+        "proposal_email_lock": {
+          "type": "boolean"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "publish_timestamp": {
+          "type": "string"
+        },
+        "sharing_group_id": {
+          "type": "string"
+        },
+        "disable_correlation": {
+          "type": "boolean"
+        },
+        "event_creator_email": {
+          "type": "string"
+        },
+        "Org": {
+          "$ref": "#/defs/org"
+        },
+        "Orgc": {
+          "$ref": "#/defs/org"
+        },
+        "SharingGroup": {
+          "$ref": "#/defs/sharing_group"
+        },
+        "Attribute": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/attribute"
+          }
+        },
+        "ShadowAttribute": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/attribute"
+          }
+        },
+        "RelatedEvent": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Event":{
+                  "$ref": "#/defs/event"
+                }
+            }
+          }
+        },
+        "Galaxy": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/galaxy"
+          }
+        },
+        "Object": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+                "$ref": "#/defs/object"
+            }
+        },
+        "Tag": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/tag"
+          }
+        }
+      }
+    },
+    "tag": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "colour": {
+          "type": "string"
+        },
+        "exportable": {
+          "type": "boolean"
+        },
+        "hide_tag": {
+          "type": "boolean"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      }
+    },
+    "galaxy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "GalaxyCluster": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/galaxy_cluster"
+          }
+        }
+      }
+    },
+    "galaxy_cluster": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "tag_name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "galaxy_id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "authors": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "tag_id": {
+          "type": "string"
+        },
+        "meta": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "Event": {
+      "$ref": "#/defs/event"
+    }
+  },
+  "required": [
+    "Event"
+  ]
+}
