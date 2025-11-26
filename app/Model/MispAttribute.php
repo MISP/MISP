@@ -1164,39 +1164,67 @@ class MispAttribute extends AppModel
         }
 
         //
-        // 2) Negative tags (NOT IN / anti-join): must NOT have any of tagArray[1]
+        // 2) Negative tags (exclude any element that has any tag in tagArray[1])
+        //    Implemented using LEFT JOIN anti-joins for optimizer friendliness.
         //
         if (!empty($tagArray[1])) {
-            // skip the “no-match” hack ([-1]) case
+            // skip the no-match hack [-1]
             if (!(count($tagArray[1]) === 1 && $tagArray[1][0] === -1)) {
+
                 $negIds    = array_map('intval', $tagArray[1]);
                 $inNegList = implode(',', $negIds);
 
-                // for events
+                //
+                // Event-level scope
+                //
                 if ($options['scope'] === 'all' || $options['scope'] === 'Event') {
-                    $evtFieldNeg = $options['scope'] === 'Event'
-                                ? 'Event.id' : 'Attribute.event_id';
-                    $conditions['AND'][] =
-                    "NOT EXISTS (
-                        SELECT 1 FROM event_tags ET2
-                        WHERE ET2.event_id = {$evtFieldNeg}
-                            AND ET2.tag_id   IN ({$inNegList})
-                    )";
+                    // We join event_tags on the proper event key depending on scope.
+
+                    $evtJoinField = ($options['scope'] === 'Event')
+                        ? 'Event.id'
+                        : 'Attribute.event_id';
+
+                    $options['joins'][] = [
+                        'table' => 'event_tags',
+                        'alias' => 'ET2',
+                        'type'  => 'LEFT',
+                        'conditions' => [
+                            "ET2.event_id = {$evtJoinField}",
+                            "ET2.tag_id IN ({$inNegList})"
+                        ]
+                    ];
+
+                    // Anti-join condition
+                    $conditions['AND'][] = 'ET2.id IS NULL';
                 }
 
-                // for attributes
-                if (empty($options['skip_neg']) && ($options['scope'] === 'all' || $options['scope'] === 'Attribute')) {
-                    $attrFieldNeg = $options['scope'] === 'Event'
-                                ? 'AT2.event_id = Event.id' : 'AT2.attribute_id = Attribute.id';
-                    $conditions['AND'][] =
-                    "NOT EXISTS (
-                        SELECT 1 FROM attribute_tags AT2
-                        WHERE {$attrFieldNeg}
-                            AND AT2.tag_id        IN ({$inNegList})
-                    )";
+                //
+                // Attribute-level scope
+                //
+                if (empty($options['skip_neg']) &&
+                    ($options['scope'] === 'all' || $options['scope'] === 'Attribute')) {
+
+                    // Attribute negation: either direct attribute-tag or via event-scope
+                    $attrJoinCond = ($options['scope'] === 'Event')
+                        ? 'AT2.event_id = Event.id'
+                        : 'AT2.attribute_id = Attribute.id';
+
+                    $options['joins'][] = [
+                        'table' => 'attribute_tags',
+                        'alias' => 'AT2',
+                        'type'  => 'LEFT',
+                        'conditions' => [
+                            $attrJoinCond,
+                            "AT2.tag_id IN ({$inNegList})"
+                        ]
+                    ];
+
+                    // Anti-join condition
+                    $conditions['AND'][] = 'AT2.id IS NULL';
                 }
             }
         }
+
 
         //
         // 3) AND-group tags: must have *each* tag in tagArray[2]
