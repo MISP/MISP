@@ -8,7 +8,7 @@ class Module_webhook extends WorkflowBaseActionModule
 {
     public $id = 'webhook';
     public $name = 'Webhook';
-    public $version = '0.7';
+    public $version = '0.8';
     public $description = 'Allow to perform custom callbacks to the provided URL';
     public $icon_path = 'webhook.png';
     public $inputs = 1;
@@ -114,12 +114,12 @@ class Module_webhook extends WorkflowBaseActionModule
         }
 
         $payload = '';
-        if (strlen($params['payload']['value']) > 0) {
+        if (isset($params['payload']) && strlen($params['payload']['value']) > 0) {
             $payload = $params['payload']['value'];
         } else {
             $payload = $rData;
         }
-        if ($params['content_type']['value'] == 'json') {
+        if (!isset($params['content_type']) || $params['content_type']['value'] == 'json') {
             try {
                 if (is_string($payload)) {
                     $payload = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
@@ -128,17 +128,19 @@ class Module_webhook extends WorkflowBaseActionModule
                 // Do nothing. simply send the payload as is
             }
         }
-        $tmpHeaders = explode(PHP_EOL, $params['headers']['value']);
+        $tmpHeaders = isset($params['headers']) ? explode(PHP_EOL, $params['headers']['value']) : [];
         $headers = [];
-        $selfSignedAllowed = $params['self_signed']['value'] == 'allow';
+        $selfSignedAllowed = isset($params['self_signed']) ? $params['self_signed']['value'] == 'allow' : true;
         foreach ($tmpHeaders as $entry) {
             $entry = explode(':', $entry, 2);
             if (count($entry) == 2) {
                 $headers[trim($entry[0])] = trim($entry[1]);
             }
         }
+        $requestMethod = isset($params['request_method']) ? $params['request_method']['value'] : 'post';
+        $contentType = isset($params['content_type']) ? $params['content_type']['value'] : 'json';
         try {
-            $response = $this->doRequest($params['url']['value'], $params['content_type']['value'], $payload, $headers, $params['request_method']['value'], ['self_signed' => $selfSignedAllowed]);
+            $response = $this->doRequest($params['url']['value'], $contentType, $payload, $headers, $requestMethod, ['self_signed' => $selfSignedAllowed]);
             if ($response->isOk()) {
                 return true;
             }
