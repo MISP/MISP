@@ -1,4 +1,5 @@
 <?php
+$element_id = intval($element_id);
 if ($batch == 'yes') {
     $buttonText = __('Upload Files');
     $multiple = true;

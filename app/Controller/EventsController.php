@@ -5764,7 +5764,7 @@ class EventsController extends AppController
                     $modulePayload['data'] = '';
                 }
                 if (!$fail) {
-                    $modulePayload['data'] = base64_encode($modulePayload['data']);
+                    $modulePayload['data'] = JsonTool::base64Encode($modulePayload['data']);
                     if (!empty($filename)) {
                         $modulePayload['filename'] = $filename;
                     }
@@ -6588,13 +6588,8 @@ class EventsController extends AppController
 
         if ($this->request->is('json')) {
             App::uses('JSONConverterTool', 'Tools');
-            if ($this->RestResponse->isAutomaticTool() && empty($event['Event']['protected'])) {
-                foreach (JSONConverterTool::streamConvert($event) as $part) {
-                    $tmpFile->write($part);
-                }
-            } else {
-                $tmpFile->write(JSONConverterTool::convert($event));
-            }
+            $prettyPrint = !($this->RestResponse->isAutomaticTool() && empty($event['Event']['protected']));
+            JSONConverterTool::convertToTmpFile($event, $tmpFile, $prettyPrint);
             $format = 'json';
         } elseif ($this->request->is('xml')) {
             App::uses('XMLConverterTool', 'Tools');
