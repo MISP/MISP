@@ -173,12 +173,25 @@ class TmpFileTool
     }
 
     /**
+     * Seek to start of file.
+     *
+     * @throws Exception
+     */
+    public function rewind()
+    {
+        $this->isOpen();
+        if (fseek($this->tmpfile, 0) === -1) {
+            throw new Exception('Could not seek to start of temporary file.');
+        }
+    }
+
+    /**
      * @return resource
      * @throws Exception
      */
     public function resource()
     {
-        $this->rewind();
+        $this->isOpen();
         return $this->tmpfile;
     }
 
@@ -234,19 +247,6 @@ class TmpFileTool
     {
         if ($this->tmpfile === null) {
             throw new Exception('Temporary file is already closed.');
-        }
-    }
-
-    /**
-     * Seek to start of file.
-     *
-     * @throws Exception
-     */
-    private function rewind()
-    {
-        $this->isOpen();
-        if (fseek($this->tmpfile, 0) === -1) {
-            throw new Exception('Could not seek to start of temporary file.');
         }
     }
 }
