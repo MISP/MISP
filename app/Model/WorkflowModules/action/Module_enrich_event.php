@@ -5,7 +5,7 @@ class Module_enrich_event extends WorkflowBaseActionModule
 {
     public $id = 'enrich-event';
     public $name = 'Enrich Event';
-    public $version = '0.2';
+    public $version = '0.3';
     public $description = 'Enrich all Attributes contained in the Event with the provided module.';
     public $icon = 'asterisk';
     public $inputs = 1;
@@ -62,13 +62,18 @@ class Module_enrich_event extends WorkflowBaseActionModule
         $matchingItems = $this->getItemsMatchingCondition($extracted, $filters['value'], $filters['operator'], $filters['path']);
         if ($this->filtersEnabled($node) && empty($matchingItems)) {
             return true; // Filters are enabled and no matching items was found
-        } else if (!empty($matchingItems)) {
-            $extractedUUIDs = $this->extractData($matchingItems, '{n}.uuid');
-            if ($extractedUUIDs === false) {
-                return false;
-            }
-            $options['attribute_uuids'] = $extractedUUIDs;
         }
+
+        $extractedUUIDs = false;
+        if (!empty($matchingItems)) {
+            $extractedUUIDs = $this->extractData($matchingItems, '{n}.uuid');
+        } else {
+            $extractedUUIDs = $this->extractData($rData, '{n}.uuid');
+        }
+        if ($extractedUUIDs === false) {
+            return false;
+        }
+        $options['attribute_uuids'] = $extractedUUIDs;
 
         $this->Event = ClassRegistry::init('Event');
         $result = $this->Event->enrichment($options);

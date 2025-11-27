@@ -1078,7 +1078,7 @@ class UsersController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->describe('Users', 'admin_edit', $id, $this->response->type());
             }
-            if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $this->User->data['User']['org_id']) {
+            if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $userToEdit['User']['org_id']) {
                 $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
             }
             $this->request->data = $userToEdit;
@@ -1291,7 +1291,7 @@ class UsersController extends AppController
         if (empty($authUser['disabled'])) {
             $this->User->extralog($authUser, "login");
         }
-        
+
         $this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
         $user = $this->User->find('first', array(
             'conditions' => array(
@@ -1302,10 +1302,14 @@ class UsersController extends AppController
         ));
         // update login timestamp and welcome user
         if (empty($authUser['disabled'])) {
-            $this->User->updateLoginTimes($user['User']);
+            $updatedUser = $this->User->updateLoginTimes($user['User']);
+            if ($updatedUser) {
+                $user['User'] = $updatedUser['User'];
+            }
         }
         $this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
 
+        // Show the last login timestamp (which was updated by updateLoginTimes)
         $lastUserLogin = $user['User']['last_login'];
         if ($lastUserLogin) {
             $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
@@ -2112,7 +2116,7 @@ class UsersController extends AppController
         $stats['analyst_data_count'] = $this->Note->find('count', array('recursive' => -1)) +
             $this->Opinion->find('count', array('recursive' => -1)) +
             $this->Relationship->find('count', array('recursive' => -1));
-        $stats['analyst_data_count_month'] = $this->Note->find('count', array('conditions' => array('Note.modified >' => $this_month), 'recursive' => -1)) + 
+        $stats['analyst_data_count_month'] = $this->Note->find('count', array('conditions' => array('Note.modified >' => $this_month), 'recursive' => -1)) +
             $this->Opinion->find('count', array('conditions' => array('Opinion.modified >' => $this_month), 'recursive' => -1)) +
             $this->Relationship->find('count', array('conditions' => array('Relationship.modified >' => $this_month), 'recursive' => -1));
 
