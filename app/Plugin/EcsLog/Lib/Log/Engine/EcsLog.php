@@ -57,7 +57,7 @@ class EcsLog implements CakeLogInterface
             'log' => [
                 'level' => $type,
             ],
-            'message' => JsonTool::escapeNonUnicode($message),
+            'message' => $message,
         ];
 
         static::writeMessage($message);
@@ -370,7 +370,7 @@ class EcsLog implements CakeLogInterface
     {
         $message = array_merge($message, self::createLogMeta());
         try {
-            $data = JsonTool::encode($message) . "\n";
+            $data = JsonTool::encode($message, false, true, true);
         } catch (JsonException $e) {
             CakeLog::error('Could not convert ECS log message into JSON: ' . $e->getMessage());
             return null;
