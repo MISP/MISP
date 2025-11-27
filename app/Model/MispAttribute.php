@@ -1122,43 +1122,136 @@ class MispAttribute extends AppModel
                 $tagArray[2] = [-1];
             }
         }
+
+        $attributeHeavyQuery = function($params) {
+            $attributeDrivingFields = ['value', 'type', 'category'];
+            $toReturn = false;
+            foreach ($attributeDrivingFields as $field) {
+                if (isset($params[$field])) {
+                    return true;
+                }
+            }
+            return false;
+        };
         
 
-        if (!empty($tagArray[0])) {
-            if ($tagArray[0][0] === -1) {
-                $conditions[] = ['Event.id' => -1];
-            } else {
-                $posIds    = array_map('intval', $tagArray[0]);
-                $inPosList = implode(',', $posIds);
+    //
+    // 1) Positive OR-tags: event/attribute must have *any* of these tags
+    //
+    if (!empty($tagArray[0])) {
 
+        // No-match sentinel
+        if ($tagArray[0][0] === -1) {
+            $conditions[] = ['Event.id' => -1];
+        } else {
+
+            $posIds    = array_map('intval', $tagArray[0]);
+            $inPosList = implode(',', $posIds);
+
+            //
+            // Attribute-heavy detection: use EXISTS for selective queries
+            //
+            $attributeHeavyQuery = function(array $params) {
+                $fields = [
+                    'value',
+                    'value1',
+                    'value2',
+                    'type',
+                    'category',
+                    'object_relation',
+                    'uuid',
+                    'timestamp',
+                    'attribute_timestamp',
+                    'first_seen',
+                    'last_seen'
+                ];
+                foreach ($fields as $field) {
+                    if (isset($params[$field]) && $params[$field] !== '' && $params[$field] !== false) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+            $isAttributeHeavy = $attributeHeavyQuery($params);
+
+
+            //
+            // ──────────────────────────────────────────────
+            // MODE A: EXISTS (attribute-heavy, selective)
+            // ──────────────────────────────────────────────
+            //
+            if ($isAttributeHeavy) {
                 if ($options['scope'] === 'Event') {
-                    $subquery = "
-                        SELECT id FROM (
-                            SELECT et.event_id AS id
-                            FROM event_tags et
-                            WHERE et.tag_id IN ({$inPosList})
-                            UNION ALL
-                            SELECT a.event_id AS id
-                            FROM attributes a
-                            JOIN attribute_tags at ON at.attribute_id = a.id
-                            WHERE at.tag_id IN ({$inPosList})
-                        ) AS t
-                    ";
-                    $conditions['AND'][] = "Event.id IN ({$subquery})";
+                    // Event scope: event has tag OR any attribute has tag
+                    $conditions['AND'][] =
+                    "(EXISTS (
+                        SELECT 1
+                        FROM event_tags et_pos
+                        WHERE et_pos.event_id = Event.id
+                        AND et_pos.tag_id   IN ({$inPosList})
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM attributes a_pos
+                        JOIN attribute_tags at_pos ON at_pos.attribute_id = a_pos.id
+                        WHERE a_pos.event_id = Event.id
+                        AND at_pos.tag_id  IN ({$inPosList})
+                    ))";
                 } else {
-                    $subquery = "
-                        SELECT id FROM (
-                            SELECT at.attribute_id AS id
-                            FROM attribute_tags at
-                            WHERE at.tag_id IN ({$inPosList})
-                            UNION ALL
-                            SELECT a2.id
-                            FROM attributes a2
-                            JOIN event_tags et ON et.event_id = a2.event_id
-                            WHERE et.tag_id IN ({$inPosList})
-                        ) AS t
-                    ";
-                    $conditions['AND'][] = "Attribute.id IN ({$subquery})";
+                    // Attribute scope: attribute has tag OR event has tag
+                    $conditions['AND'][] =
+                    "(EXISTS (
+                        SELECT 1
+                        FROM attribute_tags at_pos
+                        WHERE at_pos.attribute_id = Attribute.id
+                        AND at_pos.tag_id      IN ({$inPosList})
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM event_tags et_pos
+                        WHERE et_pos.event_id = Attribute.event_id
+                        AND et_pos.tag_id    IN ({$inPosList})
+                    ))";
+                }
+
+                //
+                // ──────────────────────────────────────────────
+                // MODE B: UNION (tag-only or non-selective)
+                // ──────────────────────────────────────────────
+                //
+                } else {
+                    if ($options['scope'] === 'Event') {
+                        // Event scope: by event_id
+                        $subquery = "
+                            SELECT id FROM (
+                                SELECT et.event_id AS id
+                                FROM event_tags et
+                                WHERE et.tag_id IN ({$inPosList})
+                                UNION ALL
+                                SELECT a.event_id AS id
+                                FROM attributes a
+                                JOIN attribute_tags at ON at.attribute_id = a.id
+                                WHERE at.tag_id IN ({$inPosList})
+                            ) AS t
+                        ";
+                        $conditions['AND'][] = "Event.id IN ({$subquery})";
+                    } else {
+                        // Attribute scope: by attribute_id
+                        $subquery = "
+                            SELECT id FROM (
+                                SELECT at.attribute_id AS id
+                                FROM attribute_tags at
+                                WHERE at.tag_id IN ({$inPosList})
+                                UNION ALL
+                                SELECT a2.id
+                                FROM attributes a2
+                                JOIN event_tags et ON et.event_id = a2.event_id
+                                WHERE et.tag_id IN ({$inPosList})
+                            ) AS t
+                        ";
+                        $conditions['AND'][] = "Attribute.id IN ({$subquery})";
+                    }
                 }
             }
         }
