@@ -181,10 +181,12 @@ class CryptGpgExtended extends Crypt_GPG
      * @return resource|string|null
      * @throws Crypt_GPG_FileException
      * @throws Crypt_GPG_NoDataException
+     * @throws Exception
      */
     protected function _prepareInput($data, $isFile = false, $allowEmpty = true)
     {
         if ($isFile && $data instanceof TmpFileTool) {
+            $data->rewind();
             return $data->resource();
         }
 
