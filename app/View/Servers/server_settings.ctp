@@ -29,4 +29,3 @@
     });
 
 </script>
-<?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'serverSettings'));
