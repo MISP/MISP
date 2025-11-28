@@ -6,7 +6,7 @@
         $passwordPopover = '<span class="blue bold">' . __('Minimal length') . '</span>: ' . h($length) . '<br>';
         $passwordPopover .= '<span class="blue bold">' . __('Complexity') . '</span>: ' . h($complexity);
         echo $this->Form->input('password', array(
-            'label' => __('New password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) . '" class="fas fa-info-circle"></span>', 'autofocus'
+            'label' => __('New password') . ' <span id="PasswordPopover" data-content="' . h($passwordPopover) . '" class="fas fa-info-circle"></span>', 'autofocus', 'error' => false
         ));
         echo $this->Form->input('confirm_password', [
             'type' => 'password',
@@ -15,6 +15,7 @@
         ]);
     ?>
     </fieldset>
+    <?php echo $this->Form->error('password', null); ?>
     <div style="border-bottom: 1px solid #e5e5e5;width:100%;">&nbsp;</div>
     <div class="clear" style="margin-top:10px;">
 <?php
