@@ -295,5 +295,6 @@
     "misp_project_vetted": false,
     "scope_of_data_to_be_shared": "Cybersecurity Threat Intelligence provided by CSIRT.SK and its partners, including indicators, threat intelligence information, reports, contextual threat actor information, releasable incident data, and financial fraud information.",
     "self_registration": true
+    "logo": "https://misp-project.org/img/communities/csirtsk_full_logo.jpeg"
   }
 ]
