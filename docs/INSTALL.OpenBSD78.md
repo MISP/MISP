@@ -501,26 +501,26 @@ ${SUDO_WWW} bash /var/www/htdocs/MISP/app/Console/worker/start.sh
 
 
 
-!!! warning 
-        Not tested after this point
+
 #### MISP Modules
-```
+```bash
 doas pkg_add -v jpeg yara
 mkdir -p /usr/local/src/
 cd /usr/local/src/
-doas chown ${MISP_USER} /usr/local/src
+doas chown misp /usr/local/src
 doas -u misp git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
-$SUDO_WWW git config core.filemode false
+doas -u misp git config core.filemode false
+
 # pip3 install
-doas /usr/local/virtualenvs/MISP/bin/pip install -I -r REQUIREMENTS
+doas /usr/local/virtualenvs/MISP/bin/pip install misp-lib-stix2 
 doas /usr/local/virtualenvs/MISP/bin/pip install -I .
 doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/VirusTotal/yara-python.git
 doas /usr/local/virtualenvs/MISP/bin/pip install wand
-##doas gem install pygments.rb
-##doas gem install asciidoctor-pdf --pre
+
 ${SUDO_WWW} /usr/local/virtualenvs/MISP/bin/misp-modules -l 0.0.0.0 -s &
 echo "${SUDO_WWW} /usr/local/virtualenvs/MISP/bin/misp-modules -l 0.0.0.0 -s &" |doas tee -a /etc/rc.local
+
 ```
 
 !!! notice
@@ -539,9 +539,9 @@ echo "${SUDO_WWW} /usr/local/virtualenvs/MISP/bin/misp-modules -l 0.0.0.0 -s &" 
 ```bash
 doas $CAKE Live $MISP_LIVE
 AUTH_KEY=$(mysql -u misp -p${DBPASSWORD_MISP} misp -e "SELECT authkey FROM users;" | tail -1)
-$CAKE userInit -q
-$CAKE Admin runUpdates
-$CAKE Admin setSetting "MISP.python_bin" "/usr/local/virtualenvs/MISP/bin/python"
+doas $CAKE userInit -q
+doas $CAKE Admin runUpdates
+doas $CAKE Admin setSetting "MISP.python_bin" "/usr/local/virtualenvs/MISP/bin/python"
 
 # Update the galaxies…
 doas $CAKE Admin updateGalaxies
@@ -689,6 +689,9 @@ doas $CAKE Admin setSetting "Session.cookie_timeout" 3600
 
 ### Optional features
 -------------------
+
+!!! warning 
+        Not tested after this point
 
 !!! notice
     MISP has a pub/sub feature, using ZeroMQ.
