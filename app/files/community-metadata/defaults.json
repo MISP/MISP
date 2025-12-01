@@ -279,5 +279,22 @@
     "misp_project_vetted": false,
     "scope_of_data_to_be_shared": "Cybersecurity Threat Intelligence including indicators, threat intelligence information, reports, contextual threat actor information or financial fraud information.",
     "self_registration": false
+  },
+  {
+    "name": "CSIRT.SK MISP Community",
+    "uuid": "c72b0e96-1c3d-4e70-867e-2f7c9a3cbb0e",
+    "org_uuid": "1a162d74-1a46-4492-82f4-46efbb44834d",
+    "org_name": "CSIRT.SK",
+    "description": "The Slovak CSIRT team operates a system of interconnected MISP instances, providing governmental, public, and security organisations in Slovakia with a threat intelligence sharing platform.",
+    "url": "https://csirt.sk/registracia-afrodita.html",
+    "sector": "Government",
+    "nationality": "Slovak",
+    "type": "Information Sharing Community",
+    "email": "cti@csirt.sk",
+    "pgp_key": null,
+    "misp_project_vetted": false,
+    "scope_of_data_to_be_shared": "Cybersecurity Threat Intelligence provided by CSIRT.SK and its partners, including indicators, threat intelligence information, reports, contextual threat actor information, releasable incident data, and financial fraud information.",
+    "self_registration": true,
+    "logo": "https://misp-project.org/img/communities/csirtsk_full_logo.jpeg"
   }
 ]

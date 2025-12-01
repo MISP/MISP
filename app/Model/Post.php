@@ -58,6 +58,7 @@ class Post extends AppModel
                 'Sending...'
             );
 
+            $filePath = $this->getBackgroundJobsTool()->enqueueDataFile(['title' => $title, 'message' => $message]);
             $this->getBackgroundJobsTool()->enqueue(
                 BackgroundJobsTool::EMAIL_QUEUE,
                 BackgroundJobsTool::CMD_EVENT,
@@ -66,8 +67,7 @@ class Post extends AppModel
                     $user_id,
                     $post_id,
                     $event_id,
-                    $title,
-                    $message,
+                    $filePath,
                     $jobId
                 ],
                 true,
