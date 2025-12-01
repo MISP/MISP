@@ -35,14 +35,25 @@ class Galaxy extends AppModel
         ],
     ];
 
-    public $validate = array(
-        'kill_chain_order' => array(
+    public $validate = [
+        'uuid' => [
+            'uuid' => [
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ],
+            'unique' => [
+                'rule' => 'isUnique',
+                'message' => 'The UUID provided is not unique',
+                'on' => 'create'
+            ],
+        ],
+        'kill_chain_order' => [
             'rule' => 'valueIsJson',
             'message' => 'The provided Kill Chain Order is not a valid json format',
             'required' => false,
             'allowEmpty' => true
-        ),
-    );
+        ],
+    ];
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -66,7 +77,6 @@ class Galaxy extends AppModel
             } else {
                 unset($this->data['Galaxy']['kill_chain_order']);
             }
-            
         }
         return true;
     }
@@ -95,6 +105,9 @@ class Galaxy extends AppModel
 
         if (!isset($this->data['Galaxy']['default'])) {
             $this->data['Galaxy']['default'] = false;
+        }
+        if (!isset($this->data['Galaxy']['description'])) {
+            $this->data['Galaxy']['description'] = '';
         }
         return true;
     }
