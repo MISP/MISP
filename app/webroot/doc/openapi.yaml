@@ -2,7 +2,7 @@ openapi: 3.0.0
 
 info:
   title: MISP Automation API
-  version: "2.4"
+  version: "2.5"
   description: |
 
     ### Getting Started
