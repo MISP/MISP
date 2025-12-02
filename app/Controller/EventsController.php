@@ -171,9 +171,12 @@ class EventsController extends AppController
             $subconditions[] = array('Attribute.value2 LIKE' => $v);
             $subconditions[] = array('Attribute.comment LIKE' => $v);
         }
-        $conditions = array(
-            'OR' => $subconditions,
-        );
+        $conditions = [
+            'AND' => [
+                'OR' => $subconditions,
+                'Attribute.deleted' => 0,
+            ]
+        ];
         $result = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
             'conditions' => $conditions,
             'flatten' => 1,
