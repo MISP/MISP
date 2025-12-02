@@ -4436,6 +4436,8 @@ class EventsController extends AppController
                     if (isset($sa['id'])) {
                         unset($sa['id']);
                     }
+                    $sa['org_id'] = $this->Event->Orgc->captureOrg($sa['Org'], $this->Auth->user());
+                    unset($proposal['Org']);
                     $this->Event->ShadowAttribute->create();
                     if (!$this->Event->ShadowAttribute->save(array('ShadowAttribute' => $sa))) {
                         $message = "Some of the proposals could not be saved.";
