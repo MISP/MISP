@@ -939,9 +939,10 @@ class GalaxyClustersController extends AppController
         $this->set('includeInbound', $includeInbound);
         $this->loadModel('MispAttribute');
         $distributionLevels = $this->MispAttribute->distributionLevels;
-        unset($distributionLevels[4]);
         unset($distributionLevels[5]);
         $this->set('distributionLevels', $distributionLevels);
+        $sgs = $this->GalaxyCluster->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+        $this->set('sharingGroups', $sgs);
     }
 
     /**

@@ -40,9 +40,8 @@ for module_name, dir_path in MODULE_TO_DIRECTORY.items():
         sys.path.insert(_CURRENT_PATH_IDX, str(_CURRENT_PATH / dir_path))
         _CURRENT_PATH_IDX += 1
 from misp_stix_converter import (
-    ExternalSTIX2toMISPParser, InternalSTIX2toMISPParser,
-    MISP_org_uuid, _is_stix2_from_misp)
-from stix2.parsing import parse as stix2_parser
+    ExternalSTIX2toMISPParser, InternalSTIX2toMISPParser, MISP_org_uuid)
+from misp_stix_converter.tools import is_stix2_from_misp, load_stix2_file
 
 
 def _get_stix_parser(from_misp, args):
@@ -79,13 +78,10 @@ def _handle_return_message(traceback):
 
 def _process_stix_file(args: argparse.Namespace):
     try:
-        with open(args.input, 'rt', encoding='utf-8') as f:
-            bundle = stix2_parser(
-                f.read(), allow_custom=True, interoperability=True
-            )
+        bundle = load_stix2_file(args.input)
         stix_version = getattr(bundle, 'version', '2.1')
         to_call, arguments = _get_stix_parser(
-            _is_stix2_from_misp(bundle.objects), args
+            is_stix2_from_misp(bundle.objects), args
         )
         parser = globals()[to_call]()
         parser.load_stix_bundle(bundle)

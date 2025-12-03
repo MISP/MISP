@@ -56,15 +56,15 @@
 ?>
 
 <style>
-.popover[data-dismissId] {
+.popover[data-dismissid] {
     max-width: 60%;
 }
 </style>
 
 <script>
 function execAndClose(elem) {
-    var dismissId = $(elem).closest('div.popover').attr('data-dismissId');
-    $('[data-dismissId="' + dismissId + '"]').popover('destroy');
+    var dismissid = $(elem).closest('div.popover').attr('data-dismissid');
+    $('[data-dismissid="' + dismissid + '"]').popover('destroy');
 }
 
 function setupChosen(id, redrawChosen) {
@@ -232,8 +232,8 @@ function submitFunction(clicked, callback) {
     additionalDataOption = options_additionalData[$select.attr('id')];
     additionalData['itemOptions'] = additionalDataOption;
     // callback function defined in the controller can be overridden in the JS
-    var dismissId = $clicked.closest('.popover[data-dismissId]').data('dismissId');
-    var callingButton = $('button[data-dismissId="' + dismissId + '"]');
+    var dismissid = $clicked.closest('.popover[data-dismissid]').data('dismissid');
+    var callingButton = $('button[data-dismissid="' + dismissid + '"]');
     if (callingButton.data('popover-no-submit') && callingButton.data('popover-callback-function') !== undefined) {
         var callbackFunction = callingButton.data('popover-callback-function');
         execAndClose(clicked);

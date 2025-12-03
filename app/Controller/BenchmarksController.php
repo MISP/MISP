@@ -200,7 +200,7 @@ class BenchmarksController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Benchmarks', 'purgeSqlMetrics', false, $this->response->type(), $message);
             } else {
-                $this->flash->success($message);
+                $this->Flash->success($message);
                 $this->redirect(Router::url($this->referer(), true));
             }
         } else {

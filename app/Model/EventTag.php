@@ -31,7 +31,7 @@ class EventTag extends AppModel
         $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
         $kafkaTopic = $this->kafkaTopic('tag');
         $triggerCallable = $this->isTriggerCallable('tag-attached-after-save');
-        if ($pubToZmq || $kafkaTopic) {
+        if ($pubToZmq || $kafkaTopic || $triggerCallable) {
             $tag = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('EventTag.id' => $this->id),

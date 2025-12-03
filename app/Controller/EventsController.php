@@ -5741,7 +5741,16 @@ class EventsController extends AppController
                             $fail = __('Invalid file upload.');
                         } else {
                             $fileupload = $requestData['fileupload'];
-                            if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($fileupload['tmp_name'])) {
+                            if (
+                                (
+                                    !isset($fileupload['error']) || $fileupload['error'] == 0
+                                ) &&
+                                (
+                                    !empty($fileupload['tmp_name']) &&
+                                    $fileupload['tmp_name'] != 'none'
+                                ) && 
+                                is_uploaded_file($fileupload['tmp_name'])
+                            ) {
                                 $filename = basename($fileupload['name']);
                                 $modulePayload['data'] = FileAccessTool::readAndDelete($fileupload['tmp_name']);
                             } else {
@@ -5755,7 +5764,7 @@ class EventsController extends AppController
                     $modulePayload['data'] = '';
                 }
                 if (!$fail) {
-                    $modulePayload['data'] = base64_encode($modulePayload['data']);
+                    $modulePayload['data'] = JsonTool::base64Encode($modulePayload['data']);
                     if (!empty($filename)) {
                         $modulePayload['filename'] = $filename;
                     }
@@ -6228,7 +6237,7 @@ class EventsController extends AppController
             $this->set('file_uploaded', "1");
             $this->set('file_name', $this->request['data']['Event']['analysis_file']['name']);
             $tmp_name = $this->request['data']['Event']['analysis_file']['tmp_name'];
-            if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($tmp_name) && $tmp_name != 'none') && is_uploaded_file($tmp_name)) {
+            if (((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($tmp_name) && $tmp_name != 'none')) && is_uploaded_file($tmp_name)) {
                 $this->set('file_content', file_get_contents($tmp_name)); 
             } else {
                 throw new InternalErrorException('Upload failed or invalid file name.');
@@ -6579,13 +6588,8 @@ class EventsController extends AppController
 
         if ($this->request->is('json')) {
             App::uses('JSONConverterTool', 'Tools');
-            if ($this->RestResponse->isAutomaticTool() && empty($event['Event']['protected'])) {
-                foreach (JSONConverterTool::streamConvert($event) as $part) {
-                    $tmpFile->write($part);
-                }
-            } else {
-                $tmpFile->write(JSONConverterTool::convert($event));
-            }
+            $prettyPrint = !($this->RestResponse->isAutomaticTool() && empty($event['Event']['protected']));
+            JSONConverterTool::convertToTmpFile($event, $tmpFile, $prettyPrint);
             $format = 'json';
         } elseif ($this->request->is('xml')) {
             App::uses('XMLConverterTool', 'Tools');

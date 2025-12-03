@@ -535,6 +535,7 @@ class AppModel extends Model
                     'idx_evt_acl' => '(distribution, sharing_group_id)',
                     'idx_evt_ts_pub' => '(timestamp, published)',
                     'idx_evt_id_acl' => '(id, org_id, distribution, sharing_group_id)',
+                    'idx_evt_acl_flex' => '(org_id, distribution, sharing_group_id, id)',
                 ];
                 $indices_to_delete = [
                     'sharing_group_id'
@@ -569,6 +570,10 @@ class AppModel extends Model
                     'idx_attr_obj_dist' => '(object_id, distribution)',
                     'idx_attr_evt_dist' => '(event_id, distribution)',
                     'idx_attr_objrel_acl' => '(object_relation(32), event_id, distribution, sharing_group_id, deleted)',
+                    'idx_attr_search_core' => '(type(16), to_ids, deleted, distribution, sharing_group_id, event_id)',
+                    'idx_attr_acl_primary' => '(deleted, distribution, sharing_group_id, event_id)',
+                    'idx_attr_ts_acl' => '(timestamp, deleted, distribution, sharing_group_id, event_id)',
+                    'idx_attr_deleted_ts' => '(deleted, timestamp, id)'
                 ];
                 $indices_to_delete = [
                     'deleted',
@@ -577,7 +582,8 @@ class AppModel extends Model
                     'type',
                     'event_id',
                     'object_id',
-                    'object_relation'
+                    'object_relation',
+                    'idx_attr_type_ts', // this hurt more than it helped...
                 ];
                 foreach ($indices as $index => $data) {
                     if (!$this->checkNamedIndexExists('attributes', $index)) {

@@ -1,5 +1,9 @@
 <div class="confirmation">
 <?php
+    $id = intval($id);
+    if (!$id) {
+        throw new InvalidArgumentException('Invalid eventGraph id');
+    }
     echo $this->Form->create('EventGraph', array('style' => 'margin:0px;', 'id' => 'PromptForm'));
 ?>
 <legend><?php echo __('EventGraph Deletion'); ?></legend>
