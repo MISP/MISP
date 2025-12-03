@@ -32,7 +32,7 @@ class AnalystDataController extends AppController
         $dropdownData['distributionLevels'] = $this->Event->distributionLevels;
         $this->set('initialDistribution', Configure::read('MISP.default_event_distribution'));
         $dropdownData['sgs'] = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
-        $dropdownData['valid_targets'] = array_combine($this->AnalystData->valid_targets, $this->AnalystData->valid_targets);
+        $dropdownData['valid_targets'] = array_combine($this->AnalystData::valid_targets, $this->AnalystData::valid_targets);
         $this->set(compact('dropdownData'));
         $this->set('modelSelection', $this->modelSelection);
         $this->set('distributionLevels', $this->Event->distributionLevels);
