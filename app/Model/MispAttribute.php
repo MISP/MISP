@@ -1218,138 +1218,138 @@ class MispAttribute extends AppModel
                 // MODE B: UNION (tag-only or non-selective)
                 // ──────────────────────────────────────────────
                 //
-                } else {
-                    if ($options['scope'] === 'Event') {
-                        // Event scope: by event_id
-                        $subquery = "
-                            SELECT id FROM (
-                                SELECT et.event_id AS id
-                                FROM event_tags et
-                                WHERE et.tag_id IN ({$inPosList})
-                                UNION ALL
-                                SELECT a.event_id AS id
-                                FROM attributes a
-                                JOIN attribute_tags at ON at.attribute_id = a.id
-                                WHERE at.tag_id IN ({$inPosList})
-                            ) AS t
-                        ";
-                        $conditions['AND'][] = "Event.id IN ({$subquery})";
-                    } else {
-                        // Attribute scope: by attribute_id
-                        $subquery = "
-                            SELECT id FROM (
-                                SELECT at.attribute_id AS id
-                                FROM attribute_tags at
-                                WHERE at.tag_id IN ({$inPosList})
-                                UNION ALL
-                                SELECT a2.id
-                                FROM attributes a2
-                                JOIN event_tags et ON et.event_id = a2.event_id
-                                WHERE et.tag_id IN ({$inPosList})
-                            ) AS t
-                        ";
-                        $conditions['AND'][] = "Attribute.id IN ({$subquery})";
-                    }
-                }
-            }
-        }
-
-        //
-        // 2) Negative tags (exclude elements that have any tag in tagArray[1])
-        //
-        if (!empty($tagArray[1])) {
-            if (!(count($tagArray[1]) === 1 && $tagArray[1][0] === -1)) {
-
-                $negIds    = array_map('intval', $tagArray[1]);
-                $inNegList = implode(',', $negIds);
-
-                // Event-level negation
-                if ($options['scope'] === 'all' || $options['scope'] === 'Event') {
-                    $evtField = ($options['scope'] === 'Event')
-                        ? 'Event.id'
-                        : 'Attribute.event_id';
-
-                    $conditions['AND'][] =
-                        "{$evtField} NOT IN (
-                            SELECT event_id
-                            FROM event_tags
-                            WHERE tag_id IN ({$inNegList})
-                        )";
-                }
-
-                // Attribute-level negation
-                if (empty($options['skip_neg']) &&
-                    ($options['scope'] === 'all' || $options['scope'] === 'Attribute')) {
-
-                    $attrField = ($options['scope'] === 'Event')
-                        ? 'Event.id'
-                        : 'Attribute.id';
-
-                    $conditions['AND'][] =
-                        "{$attrField} NOT IN (
-                            SELECT attribute_id
-                            FROM attribute_tags
-                            WHERE tag_id IN ({$inNegList})
-                        )";
-                }
-            }
-        }
-
-        //
-        // 3) AND-group tags: must have *each* tag in tagArray[2]
-        // ----------------------------------------------------------------------
-        if (!empty($tagArray[2])) {
-            if ($tagArray[2][0] === -1) {
-                $conditions[] = ['Event.id' => -1];
             } else {
-                foreach ($tagArray[2] as $t) {
-                    $t = (int)$t;
-
-                    if ($options['scope'] === 'Event') {
-                        $conditions['AND'][] =
-                            "Event.id IN (
-                                SELECT et.event_id
-                                FROM event_tags et
-                                WHERE et.tag_id = {$t}
-                            )";
-                    } else {
-                        $subquery = "
-                            SELECT id FROM (
-                                SELECT at.attribute_id AS id
-                                FROM attribute_tags at
-                                WHERE at.tag_id = {$t}
-                                UNION ALL
-                                SELECT a2.id
-                                FROM attributes a2
-                                JOIN event_tags et ON et.event_id = a2.event_id
-                                WHERE et.tag_id = {$t}
-                            ) AS t
-                        ";
-                        $conditions['AND'][] = "Attribute.id IN ({$subquery})";
-                    }
+                if ($options['scope'] === 'Event') {
+                    // Event scope: by event_id
+                    $subquery = "
+                        SELECT id FROM (
+                            SELECT et.event_id AS id
+                            FROM event_tags et
+                            WHERE et.tag_id IN ({$inPosList})
+                            UNION ALL
+                            SELECT a.event_id AS id
+                            FROM attributes a
+                            JOIN attribute_tags at ON at.attribute_id = a.id
+                            WHERE at.tag_id IN ({$inPosList})
+                        ) AS t
+                    ";
+                    $conditions['AND'][] = "Event.id IN ({$subquery})";
+                } else {
+                    // Attribute scope: by attribute_id
+                    $subquery = "
+                        SELECT id FROM (
+                            SELECT at.attribute_id AS id
+                            FROM attribute_tags at
+                            WHERE at.tag_id IN ({$inPosList})
+                            UNION ALL
+                            SELECT a2.id
+                            FROM attributes a2
+                            JOIN event_tags et ON et.event_id = a2.event_id
+                            WHERE et.tag_id IN ({$inPosList})
+                        ) AS t
+                    ";
+                    $conditions['AND'][] = "Attribute.id IN ({$subquery})";
                 }
             }
         }
-
-
-        //
-        // 4) Clean up the $params[$tag_key] array for UI/state
-        //
-        $params[$tag_key] = [];
-        if (!empty($tagArray[0]) && empty($options['pop'])) {
-            $params[$tag_key]['OR'] = $tagArray[0];
-        }
-        if (!empty($tagArray[1])) {
-            $params[$tag_key]['NOT'] = $tagArray[1];
-        }
-        if (!empty($tagArray[2]) && empty($options['pop'])) {
-            $params[$tag_key]['AND'] = $tagArray[2];
-        }
-        if (empty($params[$tag_key])) {
-            unset($params[$tag_key]);
-        }
-        return $conditions;
     }
+
+    //
+    // 2) Negative tags (exclude elements that have any tag in tagArray[1])
+    //
+    if (!empty($tagArray[1])) {
+        if (!(count($tagArray[1]) === 1 && $tagArray[1][0] === -1)) {
+
+            $negIds    = array_map('intval', $tagArray[1]);
+            $inNegList = implode(',', $negIds);
+
+            // Event-level negation
+            if ($options['scope'] === 'all' || $options['scope'] === 'Event') {
+                $evtField = ($options['scope'] === 'Event')
+                    ? 'Event.id'
+                    : 'Attribute.event_id';
+
+                $conditions['AND'][] =
+                    "{$evtField} NOT IN (
+                        SELECT event_id
+                        FROM event_tags
+                        WHERE tag_id IN ({$inNegList})
+                    )";
+            }
+
+            // Attribute-level negation
+            if (empty($options['skip_neg']) &&
+                ($options['scope'] === 'all' || $options['scope'] === 'Attribute')) {
+
+                $attrField = ($options['scope'] === 'Event')
+                    ? 'Event.id'
+                    : 'Attribute.id';
+
+                $conditions['AND'][] =
+                    "{$attrField} NOT IN (
+                        SELECT attribute_id
+                        FROM attribute_tags
+                        WHERE tag_id IN ({$inNegList})
+                    )";
+            }
+        }
+    }
+
+    //
+    // 3) AND-group tags: must have *each* tag in tagArray[2]
+    // ----------------------------------------------------------------------
+    if (!empty($tagArray[2])) {
+        if ($tagArray[2][0] === -1) {
+            $conditions[] = ['Event.id' => -1];
+        } else {
+            foreach ($tagArray[2] as $t) {
+                $t = (int)$t;
+
+                if ($options['scope'] === 'Event') {
+                    $conditions['AND'][] =
+                        "Event.id IN (
+                            SELECT et.event_id
+                            FROM event_tags et
+                            WHERE et.tag_id = {$t}
+                        )";
+                } else {
+                    $subquery = "
+                        SELECT id FROM (
+                            SELECT at.attribute_id AS id
+                            FROM attribute_tags at
+                            WHERE at.tag_id = {$t}
+                            UNION ALL
+                            SELECT a2.id
+                            FROM attributes a2
+                            JOIN event_tags et ON et.event_id = a2.event_id
+                            WHERE et.tag_id = {$t}
+                        ) AS t
+                    ";
+                    $conditions['AND'][] = "Attribute.id IN ({$subquery})";
+                }
+            }
+        }
+    }
+
+
+    //
+    // 4) Clean up the $params[$tag_key] array for UI/state
+    //
+    $params[$tag_key] = [];
+    if (!empty($tagArray[0]) && empty($options['pop'])) {
+        $params[$tag_key]['OR'] = $tagArray[0];
+    }
+    if (!empty($tagArray[1])) {
+        $params[$tag_key]['NOT'] = $tagArray[1];
+    }
+    if (!empty($tagArray[2]) && empty($options['pop'])) {
+        $params[$tag_key]['AND'] = $tagArray[2];
+    }
+    if (empty($params[$tag_key])) {
+        unset($params[$tag_key]);
+    }
+    return $conditions;
+}
 
 
 
