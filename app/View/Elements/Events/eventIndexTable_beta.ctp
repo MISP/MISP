@@ -84,6 +84,7 @@
             $extends_uuid = $event['Event']['extends_uuid'] ?? null;
             $extendedEventsInfoByUuid = array_column($extendedEvents, 'info', 'uuid');
             $extendedEventsIdByUuid = array_column($extendedEvents, 'id', 'uuid');
+            $extends_info = $extendedEventsInfoByUuid[$extends_uuid] ?? null;
         ?>
         <td class="dblclickElement beta-info-cell" style="min-width: 20vi; white-space: normal;">
             <div class="beta-info-wrapper">
