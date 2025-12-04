@@ -110,6 +110,9 @@ class UserSetting extends AppModel
                 'tags' => '["tlp:red"]',
             ],
         ],
+        'ui_beta_opt_in' => [
+            'placeholder' => false,
+        ],
     );
 
     public static function validate_homepage($value, $user)
@@ -309,6 +312,17 @@ class UserSetting extends AppModel
      public function getTagNumericalValueOverride($userId)
      {
          return $this->getValueForUser($userId, 'tag_numerical_value_override') ?: [];
+     }
+
+    /**
+     * Check if a user has opted into the beta UI
+     * @param int $userId
+     * @return bool
+     */
+     public function isUiBetaEnabled($userId)
+     {
+         $value = $this->getValueForUser($userId, 'ui_beta_opt_in');
+         return !empty($value);
      }
 
     /**
