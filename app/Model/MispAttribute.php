@@ -1156,8 +1156,6 @@ class MispAttribute extends AppModel
                     'value',
                     'value1',
                     'value2',
-                    'type',
-                    'category',
                     'object_relation',
                     'uuid',
                     'timestamp',
