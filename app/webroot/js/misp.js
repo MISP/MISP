@@ -1619,7 +1619,7 @@ function addAllTags(tagArray) {
     });
 }
 
-function removeTemplateTag(id, name) {
+function removeTemplateTag(id) {
     selectedTags.forEach(function(tag) {
         if (tag == id) {
             var index = selectedTags.indexOf(id);
