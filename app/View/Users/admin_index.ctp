@@ -53,7 +53,7 @@
                             'title' => __('Modify filters'),
                             'fa-icon' => 'search',
                             'onClick' => 'getPopup',
-                            'onClickParams' => array($urlparams, 'admin/users', 'filterUserIndex')
+                            'onClickParams' => array(h($urlparams), 'admin/users', 'filterUserIndex')
                         )
                     )
                 ),
