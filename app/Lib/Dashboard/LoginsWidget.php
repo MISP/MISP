@@ -82,7 +82,7 @@ class LoginsWidget
         }
         $results = [];
         arsort($counts);
-        $baseurl = empty(Configure::read('MISP.external_baseurl')) ? h(Configure::read('MISP.baseurl')) : Configure::read('MISP.external_baseurl');
+        $baseurl = empty(Configure::read('MISP.external_baseurl')) ? h(Configure::read('MISP.baseurl')) : h(Configure::read('MISP.external_baseurl'));
         foreach ($counts as $user_id => $count) {
             $results[] = [
                 'html_title' => sprintf(
