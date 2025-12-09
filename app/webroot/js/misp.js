@@ -5570,7 +5570,7 @@ function submitDashboardForm(id) {
     configData = JSON.stringify(configData);
     $('#' + id).attr('config', configData);
     $('#genericModal').modal('hide');
-    saveDashboardState();
+    resetDashboardGrid(grid, true);
 }
 
 function saveDashboardState() {
@@ -5618,20 +5618,31 @@ function resetDashboardGrid(grid, save = true) {
     if (save) {
         saveDashboardState();
     }
-    $('.edit-widget').click(function() {
-        var el = $(this).closest('.grid-stack-item');
+    $(document).on('click', '.edit-widget', function (e) {
+        e.preventDefault();
+
+        var el = $(this).closest('.widget-wrapper');
+
         var data = {
             id: el.attr('id'),
             config: JSON.parse(el.attr('config')),
             widget: el.attr('widget'),
             alias: el.attr('alias')
-        }
+        };
+
         openGenericModalPost(baseurl + '/dashboards/getForm/edit', data);
     });
-    $('.remove-widget').click(function() {
-        var el = $(this).closest('.grid-stack-item');
-        grid.removeWidget(el);
-        saveDashboardState();
+
+    $(document).on('click', '.remove-widget', function (e) {
+        e.preventDefault();
+
+        var gridItem = $(this).closest('.grid-stack-item').get(0);
+        if (gridItem && grid) {
+            grid.removeWidget(gridItem);
+            if (typeof saveDashboardState === 'function') {
+                saveDashboardState();
+            }
+        }
     });
     $('.widget-export-menu').find('a[data-exporttype]').click(function() {
         var $element = $(this).closest('div[widget]');
