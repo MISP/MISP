@@ -71,7 +71,7 @@
                 .vectorMap('get','mapObject').updateSize();
         }
         $(document).ready(function() {
-            resizeDashboardWorldMap();
+            setTimeout(() => {resizeDashboardWorldMap()} , 200);
             window.addEventListener("resize", function() {
                 if (resize_timeout !== undefined) {
                     clearTimeout(resize_timeout);

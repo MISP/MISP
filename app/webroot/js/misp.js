@@ -5564,50 +5564,6 @@ function submitDashboardForm(id) {
     saveDashboardState();
 }
 
-function submitDashboardAddWidget() {
-    var widget = $('#DashboardWidget').val();
-    var config = $('#DashboardConfig').val();
-    var width = $('#DashboardWidth').val();
-    var height = $('#DashboardHeight').val();
-    var el = null;
-    var k = $('#last-element-counter').data('element-counter');
-
-    if (config === '') {
-        config = '[]'
-    }
-    try {
-        config = JSON.parse(config);
-    } catch (error) {
-        showMessage('fail', error.message)
-        return
-    }
-    config = JSON.stringify(config);
-
-    $.ajax({
-        url: baseurl + '/dashboards/getEmptyWidget/' + widget + '/' + (k+1),
-        type: 'GET',
-        success: function(data) {
-            el = data;
-            grid.addWidget(
-                el,
-                {
-                    "width": width,
-                    "height": height,
-                    "autoposition": 1
-                }
-            );
-            $('#widget_' + (k+1)).attr('config', config);
-            $('#last-element-counter').data('element-counter', (k+1));
-        },
-        complete: function(data) {
-            $('#genericModal').modal('hide');
-        },
-        error: function(data) {
-            handleGenericAjaxResponse({'saved':false, 'errors':['Could not fetch empty widget.']});
-        }
-    });
-}
-
 function saveDashboardState() {
     var dashBoardSettings = [];
     $('.grid-stack-item').each(function() {
@@ -5618,10 +5574,10 @@ function saveDashboardState() {
                 'widget': $(this).attr('widget'),
                 'config': config,
                 'position': {
-                    'x': $(this).attr('data-gs-x'),
-                    'y': $(this).attr('data-gs-y'),
-                    'width': $(this).attr('data-gs-width'),
-                    'height': $(this).attr('data-gs-height')
+                    'x': $(this).attr('gs-x'),
+                    'y': $(this).attr('gs-y'),
+                    'width': $(this).attr('gs-w'),
+                    'height': $(this).attr('gs-h')
                 }
             };
             dashBoardSettings.push(temp);
@@ -5645,29 +5601,6 @@ function saveDashboardState() {
     })
 }
 
-function updateDashboardWidget(element) {
-    var $element = $(element);
-    if ($element.length) {
-        var container_id = $element.attr('id').substring(7);
-        var container = $element.find('.widgetContent');
-        var titleText = $element.find('.widgetTitleText');
-        var temp = JSON.parse($element.attr('config'));
-        if (temp['alias'] !== undefined) {
-            titleText.text(temp['alias']);
-        }
-        $.ajax({
-            type: 'POST',
-            url: baseurl + '/dashboards/renderWidget/' + container_id,
-            data: {
-                config: $element.attr('config'),
-                widget: $element.attr('widget')
-            },
-            success:function (data) {
-                container.html(data);
-            }
-        });
-    }
-}
 
 function resetDashboardGrid(grid, save = true) {
     $('.grid-stack-item').each(function() {

@@ -2714,6 +2714,13 @@ ul.correlations li .popover span {
     max-width: 400px;
 }
 
+/* GridStack widget structure fix */
+.widget-wrapper {
+    height: calc(100% - 2px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
 .widgetTitle {
     font-weight: bold;
     color: #0088cc;
@@ -2722,16 +2729,23 @@ ul.correlations li .popover span {
     margin:5px;
 }
 
-.grid-stack-item-content {
-    display: flex;
-    flex-direction: column;
+.widgetContent {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
 }
 
-.widgetContent, .widgetContentInner, .widgetContentInner > div {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
+.widgetContentInner {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
 }
+
+.grid-stack-item-content {
+    overflow: hidden !important;
+}
+
+
 
 /* Threat levels */
 .threat-level-high::before, .threat-level-medium::before, .threat-level-low::before, .threat-level-undefined::before {
