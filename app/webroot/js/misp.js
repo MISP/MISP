@@ -1261,6 +1261,7 @@ function redirectAddObject(templateId, additionalData) {
 }
 
 function openGenericModal(url, modalData, callback) {
+    url = sanitizeUrlForTraversal(url);
     $.ajax({
         type: "get",
         url: url,
@@ -1304,6 +1305,7 @@ function openGenericModal(url, modalData, callback) {
 }
 
 function openGenericModalPost(url, body) {
+    url = sanitizeUrlForTraversal(url);
     $.ajax({
         data: body,
         type: "post",
@@ -2006,6 +2008,7 @@ function popoverConfirm(clicked, message, placement, callback) {
 }
 
 function simplePopup(url, requestType, data) {
+    url = sanitizeUrlForTraversal(url);
     requestType = requestType === undefined ? 'GET' : requestType
     data = data === undefined ? [] : data
     $("#gray_out").fadeIn();
@@ -2853,6 +2856,7 @@ function exportChoiceSelect(e) {
 }
 
 function importChoiceSelect(url, ajax) {
+    url = sanitizeUrlForTraversal(url);
     if (ajax == 'false') {
         document.location.href = url;
     } else {
@@ -6120,4 +6124,38 @@ function taskFormUpdate() {
             $('#AdminAction').show();
             break;
         }
+}
+function sanitizeUrlForTraversal(url) {
+    // First decode repeatedly to expose double-encoding etc.
+    let decoded = url;
+    for (let i = 0; i < 3; i++) {
+        try {
+            decoded = decodeURIComponent(decoded);
+        } catch (e) { break; }
+    }
+
+    // Normalise slashes (decode %2f etc.)
+    decoded = decoded
+        .replace(/%2f/gi, '/')
+        .replace(/%5c/gi, '\\');
+
+    // Collapse repeated slashes to reveal hidden traversal
+    const collapsed = decoded.replace(/\/{2,}/g, '/');
+
+    // Strict traversal detection
+    const traversalPattern =
+        /(^|\/)(\.\.|%2e%2e|%2e\.|\.%2e|%252e%252e)(\/|$)/i;
+
+    // Also block multi-dot padding attempts: ".../" which reduces to "../"
+    const dotPaddingPattern = /(^|\/)\.{3,}/;
+
+    // Any form of traversal found? Reject.
+    if (traversalPattern.test(decoded) ||
+        traversalPattern.test(collapsed) ||
+        dotPaddingPattern.test(decoded) ||
+        dotPaddingPattern.test(collapsed)) {
+        throw new Error("Unsafe URL: path traversal detected");
+    }
+
+    return url;
 }
