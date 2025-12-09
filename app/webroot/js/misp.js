@@ -1261,6 +1261,7 @@ function redirectAddObject(templateId, additionalData) {
 }
 
 function openGenericModal(url, modalData, callback) {
+    url = sanitizeUrlForTraversal(url);
     $.ajax({
         type: "get",
         url: url,
@@ -1304,6 +1305,7 @@ function openGenericModal(url, modalData, callback) {
 }
 
 function openGenericModalPost(url, body) {
+    url = sanitizeUrlForTraversal(url);
     $.ajax({
         data: body,
         type: "post",
@@ -1617,7 +1619,7 @@ function addAllTags(tagArray) {
     });
 }
 
-function removeTemplateTag(id, name) {
+function removeTemplateTag(id) {
     selectedTags.forEach(function(tag) {
         if (tag == id) {
             var index = selectedTags.indexOf(id);
@@ -2006,6 +2008,7 @@ function popoverConfirm(clicked, message, placement, callback) {
 }
 
 function simplePopup(url, requestType, data) {
+    url = sanitizeUrlForTraversal(url);
     requestType = requestType === undefined ? 'GET' : requestType
     data = data === undefined ? [] : data
     $("#gray_out").fadeIn();
@@ -2853,6 +2856,7 @@ function exportChoiceSelect(e) {
 }
 
 function importChoiceSelect(url, ajax) {
+    url = sanitizeUrlForTraversal(url);
     if (ajax == 'false') {
         document.location.href = url;
     } else {
@@ -5566,51 +5570,7 @@ function submitDashboardForm(id) {
     configData = JSON.stringify(configData);
     $('#' + id).attr('config', configData);
     $('#genericModal').modal('hide');
-    saveDashboardState();
-}
-
-function submitDashboardAddWidget() {
-    var widget = $('#DashboardWidget').val();
-    var config = $('#DashboardConfig').val();
-    var width = $('#DashboardWidth').val();
-    var height = $('#DashboardHeight').val();
-    var el = null;
-    var k = $('#last-element-counter').data('element-counter');
-
-    if (config === '') {
-        config = '[]'
-    }
-    try {
-        config = JSON.parse(config);
-    } catch (error) {
-        showMessage('fail', error.message)
-        return
-    }
-    config = JSON.stringify(config);
-
-    $.ajax({
-        url: baseurl + '/dashboards/getEmptyWidget/' + widget + '/' + (k+1),
-        type: 'GET',
-        success: function(data) {
-            el = data;
-            grid.addWidget(
-                el,
-                {
-                    "width": width,
-                    "height": height,
-                    "autoposition": 1
-                }
-            );
-            $('#widget_' + (k+1)).attr('config', config);
-            $('#last-element-counter').data('element-counter', (k+1));
-        },
-        complete: function(data) {
-            $('#genericModal').modal('hide');
-        },
-        error: function(data) {
-            handleGenericAjaxResponse({'saved':false, 'errors':['Could not fetch empty widget.']});
-        }
-    });
+    resetDashboardGrid(grid, true);
 }
 
 function saveDashboardState() {
@@ -5623,10 +5583,10 @@ function saveDashboardState() {
                 'widget': $(this).attr('widget'),
                 'config': config,
                 'position': {
-                    'x': $(this).attr('data-gs-x'),
-                    'y': $(this).attr('data-gs-y'),
-                    'width': $(this).attr('data-gs-width'),
-                    'height': $(this).attr('data-gs-height')
+                    'x': $(this).attr('gs-x'),
+                    'y': $(this).attr('gs-y'),
+                    'width': $(this).attr('gs-w'),
+                    'height': $(this).attr('gs-h')
                 }
             };
             dashBoardSettings.push(temp);
@@ -5650,29 +5610,6 @@ function saveDashboardState() {
     })
 }
 
-function updateDashboardWidget(element) {
-    var $element = $(element);
-    if ($element.length) {
-        var container_id = $element.attr('id').substring(7);
-        var container = $element.find('.widgetContent');
-        var titleText = $element.find('.widgetTitleText');
-        var temp = JSON.parse($element.attr('config'));
-        if (temp['alias'] !== undefined) {
-            titleText.text(temp['alias']);
-        }
-        $.ajax({
-            type: 'POST',
-            url: baseurl + '/dashboards/renderWidget/' + container_id,
-            data: {
-                config: $element.attr('config'),
-                widget: $element.attr('widget')
-            },
-            success:function (data) {
-                container.html(data);
-            }
-        });
-    }
-}
 
 function resetDashboardGrid(grid, save = true) {
     $('.grid-stack-item').each(function() {
@@ -5681,20 +5618,31 @@ function resetDashboardGrid(grid, save = true) {
     if (save) {
         saveDashboardState();
     }
-    $('.edit-widget').click(function() {
-        var el = $(this).closest('.grid-stack-item');
+    $(document).on('click', '.edit-widget', function (e) {
+        e.preventDefault();
+
+        var el = $(this).closest('.widget-wrapper');
+
         var data = {
             id: el.attr('id'),
             config: JSON.parse(el.attr('config')),
             widget: el.attr('widget'),
             alias: el.attr('alias')
-        }
+        };
+
         openGenericModalPost(baseurl + '/dashboards/getForm/edit', data);
     });
-    $('.remove-widget').click(function() {
-        var el = $(this).closest('.grid-stack-item');
-        grid.removeWidget(el);
-        saveDashboardState();
+
+    $(document).on('click', '.remove-widget', function (e) {
+        e.preventDefault();
+
+        var gridItem = $(this).closest('.grid-stack-item').get(0);
+        if (gridItem && grid) {
+            grid.removeWidget(gridItem);
+            if (typeof saveDashboardState === 'function') {
+                saveDashboardState();
+            }
+        }
     });
     $('.widget-export-menu').find('a[data-exporttype]').click(function() {
         var $element = $(this).closest('div[widget]');
@@ -6120,4 +6068,38 @@ function taskFormUpdate() {
             $('#AdminAction').show();
             break;
         }
+}
+function sanitizeUrlForTraversal(url) {
+    // First decode repeatedly to expose double-encoding etc.
+    let decoded = url;
+    for (let i = 0; i < 3; i++) {
+        try {
+            decoded = decodeURIComponent(decoded);
+        } catch (e) { break; }
+    }
+
+    // Normalise slashes (decode %2f etc.)
+    decoded = decoded
+        .replace(/%2f/gi, '/')
+        .replace(/%5c/gi, '\\');
+
+    // Collapse repeated slashes to reveal hidden traversal
+    const collapsed = decoded.replace(/\/{2,}/g, '/');
+
+    // Strict traversal detection
+    const traversalPattern =
+        /(^|\/)(\.\.|%2e%2e|%2e\.|\.%2e|%252e%252e)(\/|$)/i;
+
+    // Also block multi-dot padding attempts: ".../" which reduces to "../"
+    const dotPaddingPattern = /(^|\/)\.{3,}/;
+
+    // Any form of traversal found? Reject.
+    if (traversalPattern.test(decoded) ||
+        traversalPattern.test(collapsed) ||
+        dotPaddingPattern.test(decoded) ||
+        dotPaddingPattern.test(collapsed)) {
+        throw new Error("Unsafe URL: path traversal detected");
+    }
+
+    return url;
 }

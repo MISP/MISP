@@ -23,7 +23,7 @@ class Note extends AnalystData
         'note',
     ];
 
-    public $validate = [];
+    public $childValidate = [];
 
     public function beforeValidate($options = array())
     {

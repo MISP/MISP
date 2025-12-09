@@ -1440,7 +1440,7 @@ class Server extends AppModel
             $events = $eventModel->find('all', array(
                     'conditions' => $conditions,
                     'recursive' => 1,
-                    'contain' => 'ShadowAttribute',
+                    'contain' => ['ShadowAttribute' => 'Org'],
                     'fields' => array('Event.uuid')
             ));
 

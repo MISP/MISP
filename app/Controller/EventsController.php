@@ -171,9 +171,12 @@ class EventsController extends AppController
             $subconditions[] = array('Attribute.value2 LIKE' => $v);
             $subconditions[] = array('Attribute.comment LIKE' => $v);
         }
-        $conditions = array(
-            'OR' => $subconditions,
-        );
+        $conditions = [
+            'AND' => [
+                'OR' => $subconditions,
+                'Attribute.deleted' => 0,
+            ]
+        ];
         $result = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
             'conditions' => $conditions,
             'flatten' => 1,
@@ -4433,6 +4436,8 @@ class EventsController extends AppController
                     if (isset($sa['id'])) {
                         unset($sa['id']);
                     }
+                    $sa['org_id'] = $this->Event->Orgc->captureOrg($sa['Org'], $this->Auth->user());
+                    unset($proposal['Org']);
                     $this->Event->ShadowAttribute->create();
                     if (!$this->Event->ShadowAttribute->save(array('ShadowAttribute' => $sa))) {
                         $message = "Some of the proposals could not be saved.";
