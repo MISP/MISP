@@ -112,7 +112,7 @@ function submitDashboardAddWidget() {
             // parse returned widget-wrapper HTML
             var tmp = document.createElement('div');
             tmp.innerHTML = html.trim();
-            var wrapper = tmp.firstElementChild; // .widget-wrapper
+            var wrapper = tmp.querySelector('.widget-wrapper'); // .widget-wrapper
 
             // create grid item
             var item = grid.addWidget({ w: width, h: height, autoPosition: true });
@@ -129,6 +129,7 @@ function submitDashboardAddWidget() {
 
             // load initial content for the new widget
             updateDashboardWidget(item);
+            saveDashboardState();
         },
         complete: function () {
             $('#genericModal').modal('hide');
