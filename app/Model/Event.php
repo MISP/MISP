@@ -6829,7 +6829,7 @@ class Event extends AppModel
                         } else if (!is_array($result)) {
                             continue 2;
                         } else if (!isset($result['results'])) {
-                            throw new RuntimeException("Invalid response received from module {$module['name']}, response data do not contains results field.");
+                            return 0;
                         }
                         //if (isset($result['error'])) $this->Session->setFlash($result['error']);
                         if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {

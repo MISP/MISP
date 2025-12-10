@@ -2,7 +2,7 @@ openapi: 3.0.0
 
 info:
   title: MISP Automation API
-  version: "2.4"
+  version: "2.5"
   description: |
 
     ### Getting Started
@@ -4508,6 +4508,17 @@ components:
           items:
             $ref: "#/components/schemas/GalaxyElement"
 
+    GalaxyClusterNoIdWithGalaxy:
+      allOf:
+        - $ref: "#/components/schemas/GalaxyClusterNoId"
+        - type: object
+          properties:
+            Galaxy:
+              type: object
+              properties:
+                uuid:
+                  $ref: "#/components/schemas/UUID"
+
     GalaxyCluster:
       description: "MISP galaxy is a simple method to express a large object called cluster that can be attached to MISP events or attributes."
       allOf:
@@ -4605,12 +4616,7 @@ components:
       type: object
       properties:
         GalaxyCluster:
-          $ref: "#/components/schemas/GalaxyClusterNoId"
-        Galaxy:
-          type: object
-          properties:
-            uuid:
-              $ref: "#/components/schemas/UUID"
+          $ref: "#/components/schemas/GalaxyClusterNoIdWithGalaxy"
 
     # Tags
     TagId:

@@ -562,6 +562,7 @@ class ACLComponent extends Component
             'admin_merge' => array(),
             'fetchOrgsForSG' => array('perm_sharing_group'),
             'fetchSGOrgRow' => array('*'),
+            'getOrgLogo' => array('*'),
             'getUUIDs' => array('perm_sync'),
             'index' => ['organisation_index'],
             'view' => array('*'),

@@ -24,7 +24,7 @@ class Opinion extends AnalystData
         'comment',
     ];
 
-    public $validate = [];
+    public $childValidate = [];
 
     public function beforeValidate($options = array())
     {

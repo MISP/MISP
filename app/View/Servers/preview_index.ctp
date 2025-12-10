@@ -33,7 +33,7 @@
                             'title' => __('Modify filters'),
                             'fa-icon' => 'search',
                             'onClick' => 'getPopup',
-                            'onClickParams' => array($urlparams, 'servers', 'filterEventIndex/' . h($server['Server']['id']))
+                            'onClickParams' => array(h($urlparams), 'servers', 'filterEventIndex/' . h($server['Server']['id']))
                         )
                     )
                 ),

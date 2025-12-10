@@ -928,7 +928,120 @@ table tr:hover .down-expand-button {
     width: 100%;
     height: 100%;
     content: " ";
-    background-size: contain;
+}
+
+.fork-cluster-preview {
+    display: inline-block;
+    position: absolute;
+    right: 0px;
+    top: 100px;
+    max-width: 400px;
+}
+
+/* GridStack widget structure fix */
+.widget-wrapper {
+    height: calc(100% - 2px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.widgetTitle {
+    font-weight: bold;
+    color: #0088cc;
+    width: 100%;
+    font-size: 125%;
+    margin:5px;
+}
+
+.widgetContent {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.widgetContentInner {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+}
+
+.grid-stack-item-content {
+    overflow: hidden !important;
+}
+
+.grid-stack-item .grid-stack-item-content {
+    height: 100%;
+}
+
+.grid-stack-item .widget-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.grid-stack-item .widgetContent {
+    flex: 1 1 auto;
+    height: 100%;
+}
+
+/* Threat levels */
+.threat-level-high::before, .threat-level-medium::before, .threat-level-low::before, .threat-level-undefined::before {
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+    padding-right: .3em;
+}
+
+.threat-level-high::before {
+    content: "\f102";
+    color: rgb(192,0,0);
+}
+
+.threat-level-medium::before {
+    content: "\f068";
+    color: #3465a4;
+}
+
+.threat-level-low::before {
+    content: "\f103";
+    color: rgb(35,120,40);
+}
+
+.threat-level-undefined::before {
+    content: "\f128";
+    color: gray;
+}
+
+#UserGpgkey, #UserCertifPublic {
+    font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+    font-size: 100%;
+    width: 45em;
+}
+
+.authkey {
+    font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+    font-size: 11px;
+}
+
+/*
+ Make user edit checkboxes nicer
+ */
+.user-edit-checkboxes div.input {
+    float: none;
+    width: inherit;
+    margin-top: 3px;
+}
+
+.user-edit-checkboxes label {
+    display: inline;
+}
+
+a.orgImg {
     background-repeat: no-repeat;
     background-image: url("data:image/svg+xml,%3C%3Fxml version='1.0' encoding='UTF-8' standalone='no'%3F%3E%3Csvg xmlns='http://www.w3.org/2000/svg' height='223.995' width='383.98752' viewBox='0 0 383.98752 223.995' role='img'%3E%3Cpath d='m 367.9975,0 h -118.06 c -21.38,0 -32.09,25.85 -16.97,40.97 l 32.4,32.4 -73.37,73.38 -73.37,-73.37 c -12.5,-12.5 -32.76,-12.5 -45.25,0 l -68.69,68.69 c -6.25,6.25 -6.25,16.38 0,22.63 l 22.62,22.62 c 6.25,6.25 16.38,6.25 22.63,0 l 46.06,-46.07 73.37,73.37 c 12.5,12.5 32.76,12.5 45.25,0 l 96,-96 32.4,32.4 c 15.12,15.12 40.97,4.41 40.97,-16.97 V 16 c 0.01,-8.84 -7.15,-16 -15.99,-16 z' /%3E%3C/svg%3E%0A");.97,-16.97 V 16 c 0.01,-8.84 -7.15,-16 -15.99,-16 z' /%3E%3C/svg%3E%0A");
 }
