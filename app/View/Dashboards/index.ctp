@@ -80,9 +80,8 @@ function updateDashboardWidget(el) {
             widget: widgetName
         },
         success: function (data) {
-            // IMPORTANT: renderWidget must NOT wrap content in .widgetContentInner
-            // data is plain HTML, we insert it into the single inner wrapper
             $inner.html(data);
+            $wrapper.removeAttr('config');
         }
     });
 }
@@ -92,11 +91,11 @@ function updateDashboardWidget(el) {
  * Uses /dashboards/getEmptyWidget/<widget>/<k+1> which returns the widget element above.
  */
 function submitDashboardAddWidget() {
-    var widget   = $('#DashboardWidget').val();
-    var rawConfig = $('#DashboardConfig').val() || '[]';
-    var width    = parseInt($('#DashboardWidth').val(), 10);
-    var height   = parseInt($('#DashboardHeight').val(), 10);
-    var k        = $('#last-element-counter').data('element-counter') || 0;
+    var widget     = $('#DashboardWidget').val();
+    var rawConfig  = $('#DashboardConfig').val() || '[]';
+    var width      = parseInt($('#DashboardWidth').val(), 10);
+    var height     = parseInt($('#DashboardHeight').val(), 10);
+    var k          = $('#last-element-counter').data('element-counter') || 0;
 
     try {
         rawConfig = JSON.stringify(JSON.parse(rawConfig));
@@ -109,26 +108,32 @@ function submitDashboardAddWidget() {
         url: baseurl + '/dashboards/getEmptyWidget/' + widget + '/' + (k + 1),
         type: 'GET',
         success: function (html) {
-            // parse returned widget-wrapper HTML
             var tmp = document.createElement('div');
             tmp.innerHTML = html.trim();
-            var wrapper = tmp.querySelector('.widget-wrapper'); // .widget-wrapper
 
-            // create grid item
+            var wrapper = tmp.querySelector('.widget-wrapper');
+            if (!wrapper) {
+                showMessage('fail', 'Returned widget HTML does not contain .widget-wrapper');
+                return;
+            }
+
+            // IMPORTANT: write widget + config to the wrapper, NOT the grid item!
+            wrapper.setAttribute('widget', widget);
+            wrapper.setAttribute('config', rawConfig);
+
+            // add empty grid item
             var item = grid.addWidget({ w: width, h: height, autoPosition: true });
-
-            // inject widget wrapper
             var container = item.querySelector('.grid-stack-item-content');
+
             container.appendChild(wrapper);
 
-            // propagate metadata to the grid item
-            item.setAttribute('widget', widget);
-            item.setAttribute('config', rawConfig);
-
+            // update the counter
             $('#last-element-counter').data('element-counter', k + 1);
 
-            // load initial content for the new widget
+            // load widget content
             updateDashboardWidget(item);
+
+            // persist new layout
             saveDashboardState();
         },
         complete: function () {
@@ -142,6 +147,7 @@ function submitDashboardAddWidget() {
         }
     });
 }
+
 
 /**
  * Initialize GridStack and wire everything together.
