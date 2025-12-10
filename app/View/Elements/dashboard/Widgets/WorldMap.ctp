@@ -68,7 +68,7 @@ if (!empty($config['widget_config']['colour_scale'])) {
             },
             onRegionTipShow: function(e, el, code) {
                 const amount = mapData[code] ?? 0;
-                el.html(el.html() + " (" + scope + " - " + amount + ")");
+                el.html(el.html() + " (" + htmlEncode(scope) + " - " + amount + ")");
             }
         });
 
