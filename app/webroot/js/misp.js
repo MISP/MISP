@@ -5568,30 +5568,39 @@ function submitDashboardForm(id) {
         configData = {};
     }
     configData = JSON.stringify(configData);
-    $('#' + id).attr('config', configData);
+    $('#' + id).closest('.grid-stack-item').attr('config', configData);
     $('#genericModal').modal('hide');
     resetDashboardGrid(grid, true);
 }
 
 function saveDashboardState() {
     var dashBoardSettings = [];
+
     $('.grid-stack-item').each(function() {
-        if ($(this).attr('config') !== undefined && $(this).attr('widget') !== undefined) {
-            var config = $(this).attr('config');
-            config = JSON.parse(config);
-            var temp = {
-                'widget': $(this).attr('widget'),
-                'config': config,
-                'position': {
-                    'x': $(this).attr('gs-x'),
-                    'y': $(this).attr('gs-y'),
-                    'width': $(this).attr('gs-w'),
-                    'height': $(this).attr('gs-h')
-                }
-            };
-            dashBoardSettings.push(temp);
-        }
+        var $item    = $(this);
+        var $wrapper = $item.find('.widget-wrapper').first();
+
+        if ($wrapper.length === 0) return;
+        console.log($wrapper.attr('config'));
+        var configAttr = $item.attr('config');
+        var widgetAttr = $wrapper.attr('widget');
+
+        if (!configAttr || !widgetAttr) return;
+
+        var temp = {
+            widget: widgetAttr,
+            config: JSON.parse(configAttr),
+            position: {
+                x: $item.attr('gs-x'),
+                y: $item.attr('gs-y'),
+                width:  $item.attr('gs-w'),
+                height: $item.attr('gs-h')
+            }
+        };
+
+        dashBoardSettings.push(temp);
     });
+
     var url = baseurl + '/dashboards/updateSettings'
     fetchFormDataAjax(url, function(formData) {
         var $formContainer = $(formData)
@@ -5602,13 +5611,12 @@ function saveDashboardState() {
             success:function () {
                 showMessage('success', 'Dashboard settings saved.');
             },
-            beforeSend:function() {
-            },
             type:"post",
             url: $theForm.attr('action')
         });
     })
 }
+
 
 
 function resetDashboardGrid(grid, save = true) {
@@ -5621,13 +5629,14 @@ function resetDashboardGrid(grid, save = true) {
     $(document).on('click', '.edit-widget', function (e) {
         e.preventDefault();
 
-        var el = $(this).closest('.widget-wrapper');
+        var wrapper = $(this).closest('.widget-wrapper');
+        var item    = wrapper.closest('.grid-stack-item');
 
         var data = {
-            id: el.attr('id'),
-            config: JSON.parse(el.attr('config')),
-            widget: el.attr('widget'),
-            alias: el.attr('alias')
+            id: wrapper.attr('id'),
+            config: JSON.parse(item.attr('config') || '{}'),
+            widget: item.attr('widget'),
+            alias: item.attr('alias')
         };
 
         openGenericModalPost(baseurl + '/dashboards/getForm/edit', data);
