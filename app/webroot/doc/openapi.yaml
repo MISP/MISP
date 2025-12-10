@@ -6005,12 +6005,7 @@ components:
       properties:
         SharingGroupBlueprint:
           allOf:
-            - type: object
-              properties:
-                sharing_group_id:
-                  required: false
-                  type: integer
-                  minimum: 1
+            - $ref: "#/components/schemas/SharingGroupId"
             - $ref: "#/components/schemas/SharingGroupBlueprintEdit"
 
     SharingGroupBlueprintEdit:
