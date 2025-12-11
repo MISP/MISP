@@ -6015,8 +6015,11 @@ components:
       properties:
         SharingGroupBlueprint:
           allOf:
-            - $ref: "#/components/schemas/SharingGroupIntId"
             - $ref: "#/components/schemas/SharingGroupBlueprintEdit"
+            - type: object
+              properties:
+                sharing_group_id:
+                  $ref: "#/components/schemas/SharingGroupIntId"
 
     SharingGroupBlueprintEdit:
       type: object
