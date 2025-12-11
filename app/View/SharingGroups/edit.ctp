@@ -156,8 +156,8 @@
                 } else {
                     $server_json = json_encode([
                         'id' => $s['server_id'],
-                        'name' => $s['Server']['name'],
-                        'url' => $s['Server']['url'],
+                        'name' => h($s['Server']['name']),
+                        'url' => h($s['Server']['url']),
                         'all_orgs' => $s['all_orgs'] ? 1 : 0,
                         'removable' => 1
                     ]);
@@ -171,7 +171,7 @@
             $org_json = json_encode([
                 'id' => $s['org_id'],
                 'type' => ($s['Organisation']['local'] == 1 ? 'local' : 'remote'),
-                'name' => $s['Organisation']['name'],
+                'name' => h($s['Organisation']['name']),
                 'extend' => $s['extend'],
                 'uuid' => '',
                 'removable' => $sharingGroup['Organisation']['id'] == $s['org_id'] ? 0 : 1
