@@ -768,7 +768,7 @@ class Correlation extends AppModel
             $ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
             $cidrList = $this->getCidrList();
             foreach ($cidrList as $cidr) {
-                if (str_contains($cidr, '.')) {
+                if (filter_var(explode("/",$cidr)[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
                     if ($ip_version === 4 && $this->__ipv4InCidr($ip, $cidr)) {
                         $ipValues[] = $cidr;
                     }
