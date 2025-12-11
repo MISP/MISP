@@ -3319,8 +3319,8 @@ function sharingGroupPopulateServers() {
     var html = '';
     servers.forEach(function(server) {
         html = '<tr id="serverRow' + id + '" class="serverRow">';
-        html += '<td>' + server.name + '&nbsp;</td>';
-        html += '<td>' + server.url + '&nbsp;</td>';
+        html += '<td>' + $('<div>').text(server.name).html() + '&nbsp;</td>';
+        html += '<td>' + $('<div>').text(server.url).html() + '&nbsp;</td>';
         html += '<td>';
         html += '<input id="serverAddOrgs' + id + '" type="checkbox" onClick="sharingGroupServerAddOrgs(' + id + ')" ';
         if (server.all_orgs) html += 'checked';
