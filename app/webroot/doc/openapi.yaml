@@ -5838,12 +5838,22 @@ components:
           example: "publish"
 
     # Sharing Groups
-    SharingGroupId:
+    SharingGroupIntId:
       type: string
       nullable: true
       pattern: '^\d+$|^$'
       maxLength: 10
       example: "1"
+
+    SharingGroupUuidId:
+      type: string
+      format: uuid
+      nullable: true
+
+    SharingGroupId:
+      oneOf:
+        - $ref: "#/components/schemas/SharingGroupIntId"
+        - $ref: "#/components/schemas/SharingGroupUuidId"
 
     SharingGroupServerId:
       type: string
@@ -6005,12 +6015,7 @@ components:
       properties:
         SharingGroupBlueprint:
           allOf:
-            - type: object
-              properties:
-                sharing_group_id:
-                  required: false
-                  type: integer
-                  minimum: 1
+            - $ref: "#/components/schemas/SharingGroupIntId"
             - $ref: "#/components/schemas/SharingGroupBlueprintEdit"
 
     SharingGroupBlueprintEdit:
