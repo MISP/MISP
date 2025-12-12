@@ -33,8 +33,8 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '176';
-    public $pyMispVersion = '2.5.10';
+    private $__queryVersion = '178';
+    public $pyMispVersion = '2.5.17.1';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -282,6 +282,10 @@ class AppController extends Controller
             // Try to run updates
             if ($user['Role']['perm_site_admin'] || (!$this->_isRest() && !$isAjax && $this->_isLive())) {
                 $this->User->runUpdates();
+            }
+
+            if ($user['Role']['perm_site_admin'] && $action != 'checkLogs' && !$this->request->is('ajax') && !$this->_isRest()) {
+                $this->Flash->error(__('End of life warning: MISP 2.4 has reached its end of life and will not receive any further updates beyond security fixes (until the end of 2025). Please upgrade to MISP 2.5 as soon as possible.'));
             }
 
             // Put username to response header for webserver or proxy logging

@@ -240,11 +240,11 @@ class GalaxyClusterRelationsController extends AppController
             }
 
             if (empty($errors)) {
-                $message = __('Relationship added.');
+                $message = __('Relationship changed.');
                 $this->GalaxyClusterRelation->SourceCluster->touchTimestamp($clusterSource['GalaxyCluster']['id']);
                 $this->GalaxyClusterRelation->SourceCluster->unpublish($clusterSource['GalaxyCluster']['id']);
             } else {
-                $message = __('Relationship could not be added.');
+                $message = __('Relationship could not be changed.');
             }
             if ($this->_isRest()) {
                 if (empty($errors)) {
