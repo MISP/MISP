@@ -125,22 +125,28 @@
 <script type="text/javascript">
     var lastPage = 4;
     var roaming = false;
-    var organisations = [{
-        id: '<?php echo h($user['Organisation']['id'])?>',
-        type: 'local',
-        name: '<?php echo h($user['Organisation']['name'])?>',
-        extend: true,
-        uuid: '',
-        removable: 0
-    }];
-    var orgids = ['<?php echo h($user['Organisation']['id'])?>'];
-    var servers = [{
-        id: '0',
-        name: '<?php echo __('Local instance');?>',
-        url: '<?php echo h($localInstance); ?>',
-        all_orgs: false,
-        removable: 0
-    }];
+    <?php
+        $org_json = json_encode([[
+            'id' => h($user['Organisation']['id']),
+            'type' => 'local',
+            'name' => h($user['Organisation']['name']),
+            'extend' => true,
+            'uuid' => '',
+            'removable' => 0
+        ]]);
+    ?>
+    var organisations = <?= $org_json ?>;
+    var orgids = ['<?= h($user['Organisation']['id'])?>'];
+    <?php
+        $server_json = json_encode([[
+            'id' => '0',
+            'name' => __('Local instance'),
+            'url' => h(Configure::read('MISP.baseurl')),
+            'all_orgs' => false,
+            'removable' => 0
+        ]]);
+    ?>
+    var servers = <?= $server_json ?>;
     var serverids = [0];
     $(function() {
         if ($('#SharingGroupJson').val()) sharingGroupPopulateFromJson();
