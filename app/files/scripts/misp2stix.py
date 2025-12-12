@@ -43,14 +43,15 @@ for module_name, dir_path in MODULE_TO_DIRECTORY.items():
 from cybox.core.observable import Observables
 from stix.core import Campaigns, CoursesOfAction, ExploitTargets, Indicators, ThreatActors
 from stix.core.ttps import TTPs
-from misp_stix_converter import (
-    MISPtoSTIX1AttributesParser, MISPtoSTIX1EventsParser, _get_events,
-    _get_campaigns, _get_campaigns_footer, _get_campaigns_header,
-    _get_courses_of_action, _get_courses_of_action_footer, _get_courses_of_action_header,
-    _get_indicators, _get_indicators_footer, _get_indicators_header,
-    _get_observables, _get_observables_footer, _get_observables_header,
-    _get_threat_actors, _get_threat_actors_footer, _get_threat_actors_header,
-    _get_ttps, _get_ttps_footer, _get_ttps_header
+from misp_stix_converter import MISPtoSTIX1AttributesParser, MISPtoSTIX1EventsParser
+from misp_stix_converter.tools import (
+    write_campaigns, write_campaigns_footer, write_campaigns_header,
+    write_courses_of_action, write_courses_of_action_footer,
+    write_courses_of_action_header, write_events,
+    write_indicators, write_indicators_footer, write_indicators_header,
+    write_observables, write_observables_footer, write_observables_header,
+    write_threat_actors, write_threat_actors_footer, write_threat_actors_header,
+    write_ttps, write_ttps_footer, write_ttps_header
 )
 
 
@@ -83,9 +84,8 @@ class StixExport:
             if hasattr(self, '_output_files'):
                 for feature, filename in self._output_files.items():
                     with open(filename, 'at', encoding='utf-8') as f:
-                        f.write(globals()[f'_get_{feature}_footer'](self.return_format))
+                        f.write(globals()[f'write_{feature}_footer'](self.return_format))
                 results['filenames'] = tuple(self._output_files.values())
-            errors = self._parser.errors
             if self._parser.errors:
                 self._handle_errors()
             print(json.dumps(results))
@@ -147,13 +147,13 @@ class StixAttributesExport(StixExport):
                 if feature not in self._output_files:
                     output_file = f'{filename}_{feature}'
                     with open(output_file, 'wt', encoding='utf-8') as f:
-                        f.write(globals()[f'_get_{feature}_header'](self.return_format))
+                        f.write(globals()[f'write_{feature}_header'](self.return_format))
                     self._output_files[feature] = output_file
                     with open(self._output_files[feature], 'at', encoding='utf-8') as f:
-                        f.write(globals()[f'_get_{feature}'](values, self.return_format))
+                        f.write(globals()[f'write_{feature}'](values, self.return_format))
                     continue
                 with open(self._output_files[feature], 'at', encoding='utf-8') as f:
-                    values = globals()[f'_get_{feature}'](values, self.return_format)
+                    values = globals()[f'write_{feature}'](values, self.return_format)
                     if self.return_format == 'json':
                         values = f', {values}'
                     f.write(values)
@@ -166,7 +166,7 @@ class StixEventsExport(StixExport):
 
     def _handle_stix_output(self, filename: str):
         with open(f'{filename}.out', 'wt', encoding='utf-8') as f:
-            package = _get_events(self._parser.stix_package, self.return_format)
+            package = write_events(self._parser.stix_package, self.return_format)
             f.write(package if self.return_format == 'xml' else package.replace('stix:STIX_Package', 'stix:Package'))
 
 
