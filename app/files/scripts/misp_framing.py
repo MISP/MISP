@@ -22,7 +22,8 @@ for module_name, dir_path in MODULE_TO_DIRECTORY.items():
     except ImportError:
         sys.path.insert(_CURRENT_PATH_IDX, str(_CURRENT_PATH / dir_path))
         _CURRENT_PATH_IDX += 1
-from misp_stix_converter import stix1_attributes_framing, stix1_framing, stix20_framing, stix21_framing
+from misp_stix_converter.tools import (
+    stix1_attributes_framing, stix1_framing, stix20_framing, stix21_framing)
 
 
 def stix_framing(args: argparse.Namespace) -> dict:
