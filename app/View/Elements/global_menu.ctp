@@ -233,6 +233,15 @@ if (!empty($me)) {
                     'url' => $baseurl . '/user_settings/index/user_id:me'
                 ),
                 array(
+                    'html' => sprintf(
+                        '<span id="betaUiToggle" style="cursor: pointer;"><i class="fas fa-flask"></i> %s <span class="label %s">%s</span></span>',
+                        __('Beta UI'),
+                        !empty($uiBetaEnabled) ? 'label-success' : 'label-default',
+                        !empty($uiBetaEnabled) ? __('ON') : __('OFF')
+                    ),
+                    'url' => '#'
+                ),
+                array(
                     'text' => __('Set Setting'),
                     'url' => $baseurl . '/user_settings/setSetting'
                 ),
@@ -647,3 +656,23 @@ if ($isHal) {
         echo $this->element('hal-ee');
     }
   ?>
+</div>
+<script>
+$(document).ready(function() {
+    $('#betaUiToggle').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $.ajax({
+            type: 'POST',
+            url: '<?php echo $baseurl; ?>/user_settings/toggleBetaUi',
+            success: function(data) {
+                location.reload();
+            },
+            error: function(xhr, status, error) {
+                alert('<?php echo __('Failed to toggle Beta UI. Please try again.'); ?>');
+            }
+        });
+    });
+});
+</script>
+

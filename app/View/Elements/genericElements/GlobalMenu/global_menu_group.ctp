@@ -14,10 +14,10 @@
      foreach ($data['children'] as $child) {
          $child_data .= $this->element('/genericElements/GlobalMenu/global_menu_single', array('data' => $child));
      }
-     if (!isset($data['requirement']) || $data['requirement']) {
+     if ((!isset($data['requirement']) || $data['requirement']) && !empty($child_data)) {
          echo sprintf(
              '<li class="dropdown-submenu"><a tabindex="-1" href="#">%s%s</a><ul class="dropdown-menu">%s</ul></li>',
-             (empty($data['html']) ? '' : h($data['html'])),
+             (empty($data['html']) ? '' : $data['html']),
              (empty($data['text']) ? '' : h($data['text'])),
              $child_data
          );
