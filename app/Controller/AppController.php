@@ -33,7 +33,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
-    private $__queryVersion = '181';
+    private $__queryVersion = '182';
     public $pyMispVersion = '2.5.17.2';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -427,6 +427,10 @@ class AppController extends Controller
             if (!empty($homepage)) {
                 $this->set('homepage', $homepage);
             }
+            
+            $uiBetaEnabled = $this->User->UserSetting->isUiBetaEnabled($user['id']);
+            $this->set('uiBetaEnabled', $uiBetaEnabled);
+            
             if (PHP_MAJOR_VERSION < 8) {
                 $this->Flash->error(__('WARNING: MISP 2.5.x is currently running under PHP 7.x, which is unsupported. Make sure that you upgrade to PHP 8.x as soon as possible.'));
             }

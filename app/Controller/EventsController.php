@@ -171,9 +171,12 @@ class EventsController extends AppController
             $subconditions[] = array('Attribute.value2 LIKE' => $v);
             $subconditions[] = array('Attribute.comment LIKE' => $v);
         }
-        $conditions = array(
-            'OR' => $subconditions,
-        );
+        $conditions = [
+            'AND' => [
+                'OR' => $subconditions,
+                'Attribute.deleted' => 0,
+            ]
+        ];
         $result = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
             'conditions' => $conditions,
             'flatten' => 1,
@@ -799,6 +802,16 @@ class EventsController extends AppController
             $this->autoRender = false;
             $this->layout = false;
             $this->render('ajax/index');
+        } else {
+            // Check if user has beta UI enabled and use beta view if available
+            $this->loadModel('UserSetting');
+            $uiBetaEnabled = $this->UserSetting->isUiBetaEnabled($this->Auth->user('id'));
+            
+            if ($uiBetaEnabled) {
+                App::uses('BetaUiHelper', 'Lib/Tools');
+                $viewPath = BetaUiHelper::getViewPath($uiBetaEnabled, 'Events/index');
+                $this->render(str_replace('Events/', '', $viewPath));
+            }
         }
     }
 
@@ -1009,6 +1022,7 @@ class EventsController extends AppController
         if (Configure::read('MISP.tagging')) {
             $possibleColumns[] = 'clusters';
             $possibleColumns[] = 'tags';
+            $possibleColumns[] = 'highlights';
         }
 
         $possibleColumns[] = 'attribute_count';
@@ -1058,7 +1072,7 @@ class EventsController extends AppController
 
         $user = $this->Auth->user();
 
-        if (in_array('tags', $columns, true) || in_array('clusters', $columns, true)) {
+        if (in_array('tags', $columns, true) || in_array('clusters', $columns, true) || in_array('highlights', $columns, true)) {
             $events = $this->Event->attachTagsToEvents($events);
             $events = $this->GalaxyCluster->attachClustersToEventIndex($user, $events, true);
             $events = $this->__attachHighlightedTagsToEvents($events);
@@ -4433,6 +4447,8 @@ class EventsController extends AppController
                     if (isset($sa['id'])) {
                         unset($sa['id']);
                     }
+                    $sa['org_id'] = $this->Event->Orgc->captureOrg($sa['Org'], $this->Auth->user());
+                    unset($proposal['Org']);
                     $this->Event->ShadowAttribute->create();
                     if (!$this->Event->ShadowAttribute->save(array('ShadowAttribute' => $sa))) {
                         $message = "Some of the proposals could not be saved.";

@@ -148,6 +148,7 @@ class RegexpController extends AppController
             $this->set('value', $values);
         }
         $this->set('types', $types);
+        $this->render('admin_add');
     }
 
     public function admin_delete($id = null)

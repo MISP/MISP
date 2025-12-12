@@ -12,7 +12,7 @@ class AnalystData extends AppModel
         'Containable'
     );
 
-    public $valid_targets = [
+    const valid_targets = [
         'Attribute',
         'Event',
         'EventReport',
@@ -73,6 +73,43 @@ class AnalystData extends AppModel
         ],
     ];
 
+    public $validate = [
+        'uuid' => [
+            'uuid' => [
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ],
+            'unique' => [
+                'rule' => 'isUnique',
+                'message' => 'The UUID provided is not unique',
+                'on' => 'create'
+            ],
+        ],
+        'object_uuid' => [
+            'uuid' => [
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ],
+        ],
+        'org_uuid' => [
+            'uuid' => [
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ],
+        ],
+        'orgc_uuid' => [
+            'uuid' => [
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ],
+        ],
+        'distribution' => [
+            'rule' => ['inList', ['0', '1', '2', '3', '4']],
+            'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group',
+            'required' => true
+        ],
+    ];
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -114,6 +151,10 @@ class AnalystData extends AppModel
         if (in_array($this->alias, self::ANALYST_DATA_TYPES)) {
             $this->schema();
             $this->_schema['distribution']['default'] = Configure::read('MISP.default_analyst_data_distribution') ?? 1;
+        }
+
+        if (!empty($this->childValidate)) {
+            $this->validate = array_merge_recursive($this->validate, $this->childValidate);
         }
     }
 

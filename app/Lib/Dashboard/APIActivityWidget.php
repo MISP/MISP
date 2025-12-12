@@ -100,7 +100,10 @@ class APIActivityWidget
             ]);
         }
         $results = [];
-        $baseurl = empty(Configure::read('MISP.external_baseurl')) ? h(Configure::read('MISP.baseurl')) : Configure::read('MISP.external_baseurl');
+        $baseurl = empty(Configure::read('MISP.external_baseurl')) ? h(Configure::read('MISP.baseurl')) : h(Configure::read('MISP.external_baseurl'));
+        if (!empty($baseurl) && !preg_match('/^http(s)?:\/\//i', $baseurl)) {
+            $baseurl = '';
+        }
         foreach ($counts as $key => $junk) {
             $data = $temp_apikeys[$key];
             if (!empty($data)) {

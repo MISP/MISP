@@ -133,65 +133,53 @@
     var servers = [];
     var serverids = [0];
     <?php
-        if (empty($sharingGroup['SharingGroupServer'])):
-    ?>
-        var servers = [{
-            id: '0',
-            name: 'Local instance',
-            url: '<?php echo h($localInstance); ?>',
-            all_orgs: true,
-            removable: 0
-        }];
-        var serverids = [0];
-    <?php
-        else:
+        if (empty($sharingGroup['SharingGroupServer'])) {
+            $server_json = json_encode([[
+                'id' => 0,
+                'name' => 'Local instance',
+                'url' => h($localInstance),
+                'all_orgs' => 1,
+                'removable' => 0
+            ]]);
+            echo 'var servers = ' . $server_json . ';';
+        } else {
 
-            foreach ($sharingGroup['SharingGroupServer'] as $s):
-    ?>
-            serverids.push(<?php echo h($s['server_id']);?>);
-    <?php
-                if ($s['server_id'] == 0):
-    ?>
-                    servers.push({
-                        id: '<?php echo h($s['server_id']);?>',
-                        name: 'Local instance',
-                        url: '<?php echo empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl');?>',
-                        all_orgs: '<?php echo h($s['all_orgs']); ?>',
-                        removable:0,
-                    });
-    <?php
-                else:
-    ?>
-                    servers.push({
-                        id: '<?php echo h($s['server_id']);?>',
-                        name: '<?php echo h($s['Server']['name']); ?>',
-                        url: '<?php echo h($s['Server']['url']); ?>',
-                        all_orgs: '<?php echo h($s['all_orgs']); ?>',
-                        removable:1,
-                    });
-    <?php
-                endif;
-            endforeach;
-        endif;
-    ?>
+            foreach ($sharingGroup['SharingGroupServer'] as $s) {
+                if ($s['server_id'] == 0) {
+                    $server_json = json_encode([
+                        'id' => $s['server_id'],
+                        'name' => 'Local instance',
+                        'url' => empty(Configure::read('MISP.external_baseurl')) ? h(Configure::read('MISP.baseurl')) : h(Configure::read('MISP.external_baseurl')),
+                        'all_orgs' => $s['all_orgs'] ? 1 : 0,
+                        'removable' => 0
+                    ]);
+                } else {
+                    $server_json = json_encode([
+                        'id' => $s['server_id'],
+                        'name' => h($s['Server']['name']),
+                        'url' => h($s['Server']['url']),
+                        'all_orgs' => $s['all_orgs'] ? 1 : 0,
+                        'removable' => 1
+                    ]);
+                }
+                echo 'serverids.push(' . h($s['server_id']) . ');';
+                echo 'servers.push(' . $server_json . ');';
+            }
+        }
 
-    <?php
-            foreach ($sharingGroup['SharingGroupOrg'] as $s):
-        ?>
-                orgids.push(<?php echo h($s['org_id']);?>);
-                var removable = 1;
-                if (<?php echo h($sharingGroup['Organisation']['id']);?> == <?php echo h($s['org_id'])?>) removable = 0;
-                organisations.push({
-                    id: '<?php echo h($s['org_id']);?>',
-                    type: '<?php echo ($s['Organisation']['local'] == 1 ? 'local' : 'remote'); ?>',
-                    name: '<?php echo h($s['Organisation']['name'])?>',
-                    extend: '<?php echo h($s['extend']);?>',
-                    uuid: '',
-                    removable:removable
-                });
-        <?php
-            endforeach;
-        ?>
+        foreach ($sharingGroup['SharingGroupOrg'] as $s) {
+            $org_json = json_encode([
+                'id' => $s['org_id'],
+                'type' => ($s['Organisation']['local'] == 1 ? 'local' : 'remote'),
+                'name' => h($s['Organisation']['name']),
+                'extend' => $s['extend'],
+                'uuid' => '',
+                'removable' => $sharingGroup['Organisation']['id'] == $s['org_id'] ? 0 : 1
+            ]);
+            echo 'orgids.push(' . h($s['org_id']) . ');';
+            echo 'organisations.push(' . $org_json . ');';
+        }
+    ?>
 
     $(function() {
         if ($('#SharingGroupJson').val()) sharingGroupPopulateFromJson();
