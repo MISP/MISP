@@ -11,7 +11,7 @@ class GitTool
      */
     public static function getLatestTags(HttpSocketExtended $HttpSocket)
     {
-        $url = 'https://api.github.com/repos/MISP/MISP/tags?per_page=20';
+        $url = 'https://api.github.com/repos/MISP/MISP/tags?per_page=200';
         return self::gitHubRequest($HttpSocket, $url);
     }
 
