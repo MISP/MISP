@@ -26,6 +26,7 @@ echo $this->element('genericElements/Form/genericForm', [
                     'label' => __('Replacement')
                 ],
                 [
+                    'label' => __('Types to be affected by the filter'),
                     'type' => 'html',
                     'html' => '<div class="clear">' .
                               __('Types to be affected by the filter (Setting \'all\' will override the other settings)') .
