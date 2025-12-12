@@ -4400,7 +4400,11 @@ class Server extends AppModel
         }
         $version_array = $this->checkMISPVersion();
         $current = implode('.', $version_array);
-        $latest_version_string = sprintf('v%s.%s.%s', $version_array['major'], $version_array['minor'], $latest_versions[$version_array['major']][$version_array['minor']]);
+        if (!isset($latest_versions[$version_array['major']][$version_array['minor']])) {
+            $latest_version_string = '2.4.???';
+        } else {
+            $latest_version_string = sprintf('v%s.%s.%s', $version_array['major'], $version_array['minor'], $latest_versions[$version_array['major']][$version_array['minor']]);
+        }
         $latest_major = 0;
         $latest_minor = 0;
         foreach ($latest_versions as $major => $minor) {
