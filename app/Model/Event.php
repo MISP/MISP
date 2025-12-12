@@ -1557,6 +1557,7 @@ class Event extends AppModel
                     'first_publication' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'org' => array('function' => 'set_filter_org', 'pop' => true),
                     'orgc_id' => array('function' => 'set_filter_orgc_id', 'pop' => true),
+                    'org_id' => array('function' => 'set_filter_org_id', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
                     'published' => array('function' => 'set_filter_published', 'pop' => true),
                     'is_extended' => array('function' => 'set_filter_extended', 'pop' => true),
@@ -2762,6 +2763,15 @@ class Event extends AppModel
         if (!empty($params['orgc_id'])) {
             $orgFilter = ['OR' => $params['orgc_id']];
             $conditions = $this->generic_add_filter($conditions, $orgFilter, 'Event.orgc_id');
+        }
+        return $conditions;
+    }
+
+    public function set_filter_org_id(&$params, $conditions, $options)
+    {
+        if (!empty($params['org_id'])) {
+            $orgFilter = ['OR' => $params['org_id']];
+            $conditions = $this->generic_add_filter($conditions, $orgFilter, 'Event.org_id');
         }
         return $conditions;
     }
