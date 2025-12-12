@@ -132,22 +132,32 @@
         <?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
         <td class="short col-creator-org" ondblclick="document.location.href ='<?php echo $baseurl . "/events/index/searchorg:" . $event['Orgc']['id'];?>'">
             <a href="<?= $baseurl ?>/organisations/view/<?= (int)$event['Orgc']['id'] ?>" class="beta-org-link" title="<?= h($event['Orgc']['name']) ?>">
-
-                <span class="beta-org-name"><?= h($event['Orgc']['name']) ?></span>
-                <?php
-                    $orgLogo = $this->OrgImg->getOrgLogo($event['Orgc'], 24, false);
-                    if (strpos($orgLogo, '<img') !== false): // Check if the output contains an image tag
-                        echo $orgLogo;
-                    endif;
-            ?>
+                <img 
+                    src="<?= $baseurl ?>/organisations/getOrgLogo/<?= h($event['Orgc']['id']) ?>.json"
+                    title="<?= h($event['Org']['name']) ?>"
+                    onError="this.onerror=null; this.outerHTML='';"
+                    width=24
+                    height=24
+                >
+                <span>
+                    <?= h($event['Orgc']['name']) ?>
+                </span>
             </a>
         </td>
         <?php endif;?>
         <?php if (in_array('owner_org', $columns, true) || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))): ?>
         <td class="short col-owner-org" ondblclick="document.location.href ='<?php echo $baseurl . "/events/index/searchorg:" . $event['Org']['id'];?>'">
             <a href="<?= $baseurl ?>/organisations/view/<?= (int)$event['Org']['id'] ?>" class="beta-org-link" title="<?= h($event['Org']['name']) ?>">
-                <span class="beta-org-name"><?= h($event['Org']['name']) ?></span>
-                <?= $this->OrgImg->getOrgLogo($event['Org'], 24, false) ?>
+                <img 
+                    src="<?= $baseurl ?>/organisations/getOrgLogo/<?= h($event['Org']['id']) ?>.json"
+                    title="<?= h($event['Org']['name']) ?>"
+                    onError="this.onerror=null; this.outerHTML='';"
+                    width=24
+                    height=24
+                >
+                <span>
+                    <?= h($event['Org']['name']) ?>
+                </span>
             </a>
         </td>
         <?php endif; ?>
