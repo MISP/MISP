@@ -32,6 +32,7 @@ class UserSettingsController extends AppController
     {
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'eventIndexColumnToggle';
+        $this->Security->unlockedActions[] = 'toggleBetaUi';
     }
 
     public function index()
@@ -401,5 +402,62 @@ class UserSettingsController extends AppController
         ];
         $this->UserSetting->setSetting($this->Auth->user(), $setting);
         return $this->RestResponse->saveSuccessResponse('UserSettings', 'eventIndexColumnToggle', false, 'json', 'Column visibility switched');
+    }
+
+    /**
+     * Toggle Beta UI setting for the current user
+     * Provides a quick way to enable/disable beta UI without navigating to settings
+     */
+    public function toggleBetaUi()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('Expecting POST request.'));
+        }
+
+        $userId = $this->Auth->user('id');
+        $currentValue = $this->UserSetting->isUiBetaEnabled($userId);
+        $newValue = !$currentValue;
+
+        // Find existing setting
+        $existingSetting = $this->UserSetting->find('first', [
+            'recursive' => -1,
+            'conditions' => [
+                'UserSetting.user_id' => $userId,
+                'UserSetting.setting' => 'ui_beta_opt_in',
+            ],
+        ]);
+
+        if (empty($existingSetting)) {
+            // Create new setting
+            $this->UserSetting->create();
+            $data = [
+                'UserSetting' => [
+                    'user_id' => $userId,
+                    'setting' => 'ui_beta_opt_in',
+                    'value' => json_encode($newValue),
+                ]
+            ];
+        } else {
+            // Update existing setting
+            $data = [
+                'UserSetting' => [
+                    'id' => $existingSetting['UserSetting']['id'],
+                    'value' => json_encode($newValue),
+                ]
+            ];
+        }
+
+        $result = $this->UserSetting->save($data);
+
+        if ($result) {
+            $message = $newValue
+                ? __('Beta UI enabled. The page will now reload.')
+                : __('Beta UI disabled. The page will now reload.');
+            
+            return $this->RestResponse->saveSuccessResponse('UserSettings', 'toggleBetaUi', false, 'json', $message);
+        } else {
+            $message = __('Failed to toggle Beta UI setting.');
+            return $this->RestResponse->saveFailResponse('UserSettings', 'toggleBetaUi', false, $message, 'json');
+        }
     }
 }
