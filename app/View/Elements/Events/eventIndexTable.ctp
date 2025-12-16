@@ -53,7 +53,7 @@
                 <img 
                     src="<?= $baseurl ?>/organisations/getOrgLogo/<?= h($event['Orgc']['id']) ?>.json"
                     title="<?= h($event['Orgc']['name']) ?>"
-                    alt="<?= h($event['Orgc']['name']) ?>';"
+                    alt="<?= h($event['Orgc']['name']) ?>"
                     width=24
                     height=24
                     onError="this.onerror=null; this.replaceWith(document.createTextNode(this.alt));"
@@ -67,7 +67,7 @@
                 <img 
                     src="<?= $baseurl ?>/organisations/getOrgLogo/<?= h($event['Org']['id']) ?>.json"
                     title="<?= h($event['Org']['name']) ?>"
-                    alt="<?= h($event['Org']['name']) ?>';"
+                    alt="<?= h($event['Org']['name']) ?>"
                     width=24
                     height=24
                     onError="this.onerror=null; this.replaceWith(document.createTextNode(this.alt));"
