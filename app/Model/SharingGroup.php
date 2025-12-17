@@ -396,14 +396,7 @@ class SharingGroup extends AppModel
             return false;
         }
         if ($user['Role']['perm_sync']) {
-            $sg = $this->find('first', array(
-                'conditions' => array(
-                    'id' => $id,
-                    'sync_user_id' => $user['id'],
-                ),
-                'recursive' => -1,
-            ));
-            if (!empty($sg)) {
+            if ($this->checkIfAuthorised($user, $id)) {
                 return true;
             }
         }
