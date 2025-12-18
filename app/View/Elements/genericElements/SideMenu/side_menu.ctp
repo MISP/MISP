@@ -109,7 +109,7 @@ $divider = '<li class="divider"></li>';
                             'text' => __('Add Object'),
                             'onClick' => array(
                                 'function' => 'popoverPopup',
-                                'params' => array('this', $eventId, 'objectTemplates', 'objectMetaChoice')
+                                'params' => array('this', $eventId, 'objectTemplates', 'objectChoice')
                             ),
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
