@@ -25,6 +25,7 @@
         'flag_redraw_chosen' => false, // should chosen picker be redraw at drawing time
         'redraw_debounce_time' => 200,
         'autofocus' => true,
+        'auto_open' => false, // whether to automatically open dropdown for single-select on autofocus
     );
     /**
     * Supported default option in <Option> fields:
@@ -109,7 +110,8 @@ function setupChosen(id, redrawChosen) {
     if ($elem.prop('multiple')) {
         $elem.filter('[autofocus]').trigger('chosen:open');
     } else {
-        $elem.filter('[autofocus]').trigger('chosen:activate');
+        var autoOpen = <?php echo json_encode($defaults['auto_open']); ?>;
+        $elem.filter('[autofocus]').trigger(autoOpen ? 'chosen:open' : 'chosen:activate');
     }
 
     // Hide popover when pressing ESC on closed chosen
