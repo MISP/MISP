@@ -25,8 +25,9 @@ class Module_threat_level_if extends WorkflowBaseLogicModule
     public function __construct()
     {
         parent::__construct();
-	$this->Event = ClassRegistry::init('Event');
-	$this->threatlevels_mapping = $this->Event->ThreatLevel->listThreatLevels();
+
+        $this->Event = ClassRegistry::init('Event');
+        $this->threatlevels_mapping = $this->Event->ThreatLevel->listThreatLevels();
 
         $this->params = [
             [
@@ -40,57 +41,41 @@ class Module_threat_level_if extends WorkflowBaseLogicModule
                 'id' => 'threatlevel',
                 'label' => 'Threat Level',
                 'type' => 'select',
-		'default' => 'Low',
+                'default' => 3, // ✅ FIX: use option key, not label
                 'options' => $this->threatlevels_mapping,
                 'placeholder' => __('Pick a threat level'),
             ],
         ];
     }
 
-    public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors=[]): bool
+    public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);
+
         $data = $roamingData->getData();
         $params = $this->getParamsWithValues($node, $data);
 
-	    $operator = $params['condition']['value'];
+        $operator = $params['condition']['value'];
         $selected_threatlevel = $params['threatlevel']['value'];
 
-	$threatlevel_id = $data['Event']['threat_level_id'];
+        $threatlevel_id = $data['Event']['threat_level_id'];
 
-	if ($operator == 'equals') {
-	    if ($threatlevel_id == $selected_threatlevel) {
-		return true;
-	    } else {
-		return false;
-	    }
-	} 
+        if ($operator == 'equals') {
+            return $threatlevel_id == $selected_threatlevel;
+        }
 
-	if ($operator == 'not_equals') {
-	    if ($threatlevel_id != $selected_threatlevel) {
-		return true;
-	    } else {
-		return false;
-	    }
-	}
+        if ($operator == 'not_equals') {
+            return $threatlevel_id != $selected_threatlevel;
+        }
 
-	if ($operator == 'greater_or_equal_than') {
-	    if($threatlevel_id <= $selected_threatlevel) {
-		return true;
-	    } else {
-		return false;
-	    }
-	}
+        if ($operator == 'greater_or_equal_than') {
+            return $threatlevel_id <= $selected_threatlevel;
+        }
 
-	if ($operator == 'less_or_equal_than') {
-	    if($threatlevel_id >= $selected_threatlevel) {
-		return true;
-	    } else {
-		return false;
-	    }
-	}
+        if ($operator == 'less_or_equal_than') {
+            return $threatlevel_id >= $selected_threatlevel;
+        }
 
-	return false;
+        return false;
     }
-
 }
