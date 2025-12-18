@@ -89,7 +89,7 @@ class ObjectTemplatesController extends AppController
         $this->set('items', $items);
         $this->set('options', array(
             'functionName' => 'redirectAddObject',
-            'multiple' => 0,
+            'multiple' => -1,
             'select_options' => array(
                 'additionalData' => array('event_id' => $event_id),
             ),
