@@ -7820,7 +7820,7 @@ class Server extends AppModel
                 'Sightings_policy' => array(
                     'level' => 1,
                     'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner organisation alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and any organisation that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
-                    'value' => 0,
+                    'value' => 2,
                     'type' => 'numeric',
                     'options' => array(
                         0 => __('Event Owner Organisation'),
