@@ -36,7 +36,8 @@
                 'localTagAccess' => $event !== false ? $this->Acl->canModifyTag($event, true) : false,
                 'static_tags_only' => 1,
                 'scope' => isset($field['scope']) ? $field['scope'] : 'event',
-                'hide_global_scope' => isset($field['hide_global_scope']) ? $field['hide_global_scope'] : false
+                'hide_global_scope' => isset($field['hide_global_scope']) ? $field['hide_global_scope'] : false,
+                'tag_display_style' => Configure::read('MISP.full_tags_on_event_index')
             ]
         );
     } else if (!empty($field['includeTagCollection']) && empty($tags)) {
