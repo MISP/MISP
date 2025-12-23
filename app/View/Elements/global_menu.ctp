@@ -563,7 +563,7 @@ if (!empty($me)) {
     if ($today >= 1222 && $today <= 1226) {
         $logo = '<span class="logoBlueStatic bold" id="smallLogo" title="' . __('Happy holidays!') .'">M🎄SP</span>';
 
-    } else if ($today == 1231 || $today == 0102) {
+    } else if ($today == 1231 || $today == 0101 || $today == 0102) {
         echo $this->element('genericElements/assetLoader', [
             'js' => ['nye'],
             'css' => ['nye',],
