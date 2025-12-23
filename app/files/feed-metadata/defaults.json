@@ -2157,6 +2157,32 @@
       }
   },
   {
+    "Feed": {
+      "name": "SERPRO: Reputation IP Feed",
+      "provider": "SERPRO",
+      "url": "https://s3.i02.estaleiro.serpro.gov.br/blocklist/blocklist.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "3",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": true,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"defaultType\":\"ip-src\",\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
   "Feed": {
     "name": "hideNseek LAB - Threat Intelligence JSON",
     "provider": "hideNseek LAB",
