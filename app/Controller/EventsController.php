@@ -802,6 +802,16 @@ class EventsController extends AppController
             $this->autoRender = false;
             $this->layout = false;
             $this->render('ajax/index');
+        } else {
+            // Check if user has beta UI enabled and use beta view if available
+            $this->loadModel('UserSetting');
+            $uiBetaEnabled = $this->UserSetting->isUiBetaEnabled($this->Auth->user('id'));
+            
+            if ($uiBetaEnabled) {
+                App::uses('BetaUiHelper', 'Lib/Tools');
+                $viewPath = BetaUiHelper::getViewPath($uiBetaEnabled, 'Events/index');
+                $this->render(str_replace('Events/', '', $viewPath));
+            }
         }
     }
 
@@ -1012,6 +1022,7 @@ class EventsController extends AppController
         if (Configure::read('MISP.tagging')) {
             $possibleColumns[] = 'clusters';
             $possibleColumns[] = 'tags';
+            $possibleColumns[] = 'highlights';
         }
 
         $possibleColumns[] = 'attribute_count';
@@ -1061,7 +1072,7 @@ class EventsController extends AppController
 
         $user = $this->Auth->user();
 
-        if (in_array('tags', $columns, true) || in_array('clusters', $columns, true)) {
+        if (in_array('tags', $columns, true) || in_array('clusters', $columns, true) || in_array('highlights', $columns, true)) {
             $events = $this->Event->attachTagsToEvents($events);
             $events = $this->GalaxyCluster->attachClustersToEventIndex($user, $events, true);
             $events = $this->__attachHighlightedTagsToEvents($events);

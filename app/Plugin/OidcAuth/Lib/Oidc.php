@@ -334,6 +334,31 @@ class Oidc
 
         $oidc->setRedirectURL(Configure::read('MISP.baseurl') . '/users/login');
         $this->oidcClient = $oidc;
+
+        // set proxy
+        $proxy = Configure::read('Proxy');
+        if (!empty($proxy['host'])) {
+            // construct CURLOPT_PROXY string
+            // format from man 3 CURLOPT_PROXY: scheme://username:password@hostname:port
+            $proxystr = $proxy['host'];
+            if (!empty($proxy['port'])) {
+                $proxystr .= ":" . $proxy['port'];
+            }
+            if (!empty($proxy['username'])) {
+                $proxystr = "@" . $proxystr;
+                if (!empty($proxy['password'])) {
+                    $proxystr = ":" . $proxy['password'] . $proxystr;
+                }
+                $proxystr = $proxy['username'] . $proxystr;
+            }
+            if (!empty($proxy['method'])) {
+                $proxystr = $proxy['method'] . "://" . $proxystr;
+            }
+
+            // set in OpenID client
+            $oidc->setHttpProxy($proxystr);
+        }
+
         return $oidc;
     }
 

@@ -103,18 +103,8 @@ class TagsController extends AppController
             $attributeCount = $this->Tag->AttributeTag->countForTags($tagList, $this->Auth->user());
             // TODO: this must be called before `tagsSparkline`!
             $eventCount = $this->Tag->EventTag->countForTags($tagList, $this->Auth->user());
-
-            if ($this->_isRest()) {
-                $csvForTags = []; // Sightings sparkline doesn't make sense for REST requests
-            } else {
-                $this->loadModel('Sighting');
-                $csvForTags = $this->Sighting->tagsSparkline($tagList, $this->Auth->user(), '0');
-            }
             foreach ($paginated as $k => $tag) {
                 $tagId = $tag['Tag']['id'];
-                if (isset($csvForTags[$tagId])) {
-                    $paginated[$k]['Tag']['csv'] = $csvForTags[$tagId];
-                }
                 $paginated[$k]['Tag']['count'] = isset($eventCount[$tagId]) ? (int)$eventCount[$tagId] : 0;
                 $paginated[$k]['Tag']['attribute_count'] = isset($attributeCount[$tagId]) ? (int)$attributeCount[$tagId] : 0;
             }

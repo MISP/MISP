@@ -106,14 +106,6 @@
                     'requirement' => empty($exclude_statistics)
                 ],
                 [
-                    'name' => __('Activity'),
-                    'class' => 'short',
-                    'element' => 'sparkline',
-                    'data_path' => 'Tag.id',
-                    'csv_data_path' => 'Tag.csv',
-                    'requirement' => empty($exclude_statistics)
-                ],
-                [
                     'name' => __('Favourite'),
                     'data_path' => 'Tag.favourite',
                     'element' => 'checkbox_action',

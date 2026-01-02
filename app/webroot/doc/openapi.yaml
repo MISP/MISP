@@ -5838,12 +5838,22 @@ components:
           example: "publish"
 
     # Sharing Groups
-    SharingGroupId:
+    SharingGroupIntId:
       type: string
       nullable: true
       pattern: '^\d+$|^$'
       maxLength: 10
       example: "1"
+
+    SharingGroupUuidId:
+      type: string
+      format: uuid
+      nullable: true
+
+    SharingGroupId:
+      oneOf:
+        - $ref: "#/components/schemas/SharingGroupIntId"
+        - $ref: "#/components/schemas/SharingGroupUuidId"
 
     SharingGroupServerId:
       type: string
@@ -6005,13 +6015,11 @@ components:
       properties:
         SharingGroupBlueprint:
           allOf:
+            - $ref: "#/components/schemas/SharingGroupBlueprintEdit"
             - type: object
               properties:
                 sharing_group_id:
-                  required: false
-                  type: integer
-                  minimum: 1
-            - $ref: "#/components/schemas/SharingGroupBlueprintEdit"
+                  $ref: "#/components/schemas/SharingGroupIntId"
 
     SharingGroupBlueprintEdit:
       type: object
@@ -7804,22 +7812,44 @@ components:
                 type: object
                 properties:
                   default:
-                    description: "`true` to filter out galaxy clusters with `default=true` set."
                     type: boolean
+                    description: >
+                      Include default galaxy clusters (`GalaxyCluster.default = true`).
+                      This flag is additive with `custom`. If both are true, both default
+                      and custom clusters are included. If neither is true, no clusters
+                      are returned.
                   custom:
-                    description: "`true` to filter out galaxy clusters with `default=false` set"
                     type: boolean
+                    description: >
+                      Include custom galaxy clusters (`GalaxyCluster.default = false`).
+                      This flag is additive with `default`. If both are true, both default
+                      and custom clusters are included. If neither is true, no clusters
+                      are returned.
                   distribution:
-                    $ref: "#/components/schemas/DistributionLevelId"
+                    description: >
+                      Filter galaxy clusters by exact distribution level.
+                      May be provided as a single distribution ID or as a list of IDs.
+                      When a list is provided, clusters matching any of the given
+                      distribution levels are returned. This parameter is an exact
+                      metadata filter and does not perform access control.
+                    oneOf:
+                      - $ref: "#/components/schemas/DistributionLevelId"
+                      - type: array
+                        items:
+                          $ref: "#/components/schemas/DistributionLevelId"
                   format:
-                    description: "If set to `misp-galaxy` result set is in the misp-galaxy format."
                     type: string
                     enum:
                       - "default"
                       - "misp-galaxy"
+                    description: >
+                      Output format of the export. If set to `misp-galaxy`,
+                      the result set is returned in the canonical misp-galaxy format.
                   download:
-                    description: "`true` returns the response as a json file attachment, `false` returns the response in the response body."
                     type: boolean
+                    description: >
+                      If true, return the response as a downloadable JSON attachment.
+                      If false, return the response body inline.
 
     AttachGalaxyClusterRequest:
       content:

@@ -352,7 +352,7 @@ def convert_misp_file(misp_file):
     log = logging.getLogger(_LOGGER_NAME)
 
     converter = misp_stix_converter.MISPtoSTIX21Parser()
-    converter.parse_json_content(str(misp_file))
+    converter.parse_json_content(Path(misp_file).read_text())
 
     # Log conversion warnings as warnings; errors as errors?
     if log.isEnabledFor(logging.WARNING):

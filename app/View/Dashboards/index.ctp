@@ -117,18 +117,19 @@ function submitDashboardAddWidget() {
                 return;
             }
 
-            // IMPORTANT: write widget + config to the wrapper, NOT the grid item!
-            wrapper.setAttribute('widget', widget);
-            wrapper.setAttribute('config', rawConfig);
+            var item = grid.addWidget({
+                w: width,
+                h: height,
+                autoPosition: true
+            });
 
-            // add empty grid item
-            var item = grid.addWidget({ w: width, h: height, autoPosition: true });
             var container = item.querySelector('.grid-stack-item-content');
-
             container.appendChild(wrapper);
 
-            // update the counter
-            $('#last-element-counter').data('element-counter', k + 1);
+            wrapper.removeAttribute('config');
+
+            item.setAttribute('widget', widget);
+            item.setAttribute('config', rawConfig);
 
             // load widget content
             updateDashboardWidget(item);

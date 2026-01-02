@@ -35,6 +35,7 @@ $columnsDescription = [
     'timestamp' => __('Last modified at'),
     'publish_timestamp' => __('Published at'),
     'is_extension' => __('Is extension'),
+    'highlights' => __('Highlights'),
 ];
 
 $columnsMenu = [];

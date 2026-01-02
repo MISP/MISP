@@ -96,7 +96,7 @@ class AppModel extends Model
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
-        141 => false, 142 => false, 143 => false, 144 => false, 145 => false
+        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2575,6 +2575,9 @@ class AppModel extends Model
                 break;
             case 145:
                 $sqlArray[] = "ALTER TABLE `roles` ADD `restsearch_limit_result` int(11) NULL DEFAULT 0;";
+                break;
+            case 146:
+                $sqlArray[] = "ALTER TABLE `bookmarks` MODIFY `url` TEXT NOT NULL;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
