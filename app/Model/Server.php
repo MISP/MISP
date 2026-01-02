@@ -5665,6 +5665,13 @@ class Server extends AppModel
                     'type' => 'string',
                     'cli_only' => 1
                 ),
+                'attachments_bucketed' => [
+                    'level' => 2,
+                    'description' => __('By default, MISP stores attachments in a flat structure. Enabling this setting will store attachments in a bucketed structure based on event IDs. This can help improve performance on filesystems that struggle with large numbers of subdirectories in a single directory.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
                 'download_attachments_on_load' => array(
                     'level' => 2,
                     'description' => __('Always download attachments when loaded by a user in a browser. It is highly recommended to leave this setting on true, as otherwise opening an attachment can lead to the execution of malicious code via XSS.'),
