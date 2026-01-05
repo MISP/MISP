@@ -72,10 +72,13 @@ class RegexpController extends AppController
             unset($this->request->data['Regexp']['id']);
             // If 'all' is set, it overrides all other type settings. Create an attribute with the "all" setting and save it. Also, delete the original(s)
             if ($this->request->data['Regexp']['all'] == 1) {
+                $oldArray = $this->Regexp->find_similar($id);
                 $this->Regexp->create();
-                $this->request->data['Regexp']['type'] = 'ALL';
+                $this->request->data['Regexp']['type'] = 'All';
                 if ($this->Regexp->save($this->request->data)) {
-                    $this->Regexp->find_similar($id, true);
+                    foreach ($oldArray as $old) {
+                        $this->Regexp->delete($old[0]);
+                    }
                     $this->Flash->success('The Regexp has been saved');
                     $this->redirect(array('action' => 'index'));
                 } else {

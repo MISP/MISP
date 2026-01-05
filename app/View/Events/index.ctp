@@ -46,7 +46,8 @@
             'discussion' => __('Posts'),
             'report_count' => __('Report count'),
             'timestamp' => __('Last modified at'),
-            'publish_timestamp' => __('Published at')
+            'publish_timestamp' => __('Published at'),
+            'highlights' => __('Highlights'),
         ];
 
         $columnsMenu = [];
