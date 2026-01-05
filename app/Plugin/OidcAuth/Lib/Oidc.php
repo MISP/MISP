@@ -205,7 +205,7 @@ class Oidc
 
         try {
             $oidc->refreshToken($userInfo['refresh_token']);
-        } catch (JakubOnderka\ErrorResponse $e) {
+        } catch (CertMichelin\ErrorResponse $e) {
             if ($e->getError() === 'invalid_grant') {
                 $this->log($user['email'], "Refreshing token is not possible because of `{$e->getMessage()}`, considering user is not valid");
                 return false;
@@ -290,7 +290,7 @@ class Oidc
     }
     
     /**
-     * @return \JakubOnderka\OpenIDConnectClient
+     * @return \CertMichelin\OpenIDConnectClient
      * @throws Exception
      */
     private function prepareClient()
@@ -304,8 +304,10 @@ class Oidc
         $clientSecret = $this->getConfig('client_secret');
         $issuer = $this->getConfig('issuer', null, false);
 
-        if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
-            $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret, $issuer);
+        if (class_exists("\CertMichelin\OpenIDConnectClient")) {
+            $oidc = new \CertMichelin\OpenIDConnectClient($providerUrl, $clientId, $clientSecret, $issuer);
+        } else if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
+            throw new Exception("JakubOnderka OIDC implementation is not supported anymore, please use CertMichelin's client");
         } else if (class_exists("\Jumbojett\OpenIDConnectClient")) {
             throw new Exception("Jumbojett OIDC implementation is not supported anymore, please use JakubOnderka's client");
         } else {
@@ -334,6 +336,10 @@ class Oidc
 
         $oidc->setRedirectURL(Configure::read('MISP.baseurl') . '/users/login');
         $this->oidcClient = $oidc;
+
+        $disable_request_object = $this->getConfig('disable_request_object', false);
+        $oidc->setDisableRequestObject($disable_request_object);
+
 
         // set proxy
         $proxy = Configure::read('Proxy');
