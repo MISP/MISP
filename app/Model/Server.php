@@ -2193,6 +2193,22 @@ class Server extends AppModel
         return true;
     }
 
+    public function testForgotPasswordText($value)
+    {
+        if (strpos($value, '$misp') === false || strpos($value, '$reset_link') === false || strpos($value, '$ip') === false) {
+            return 'The text served to the users must include the following replacement strings: "$misp", "$reset_link", "$ip"';
+        }
+        return true;
+    }
+
+    public function testForgotPasswordTextNoEnc($value)
+    {
+        if (strpos($value, '$misp') === false || strpos($value, '$ip') === false) {
+            return 'The text served to the users must include the following replacement strings: "$misp", "$ip". It can also optionally include "$reset_link".';
+        }
+        return true;
+    }
+
     public function testForGPGBinary($value)
     {
         if (empty($value)) {
@@ -5649,6 +5665,13 @@ class Server extends AppModel
                     'type' => 'string',
                     'cli_only' => 1
                 ),
+                'attachments_bucketed' => [
+                    'level' => 2,
+                    'description' => __('By default, MISP stores attachments in a flat structure. Enabling this setting will store attachments in a bucketed structure based on event IDs. This can help improve performance on filesystems that struggle with large numbers of subdirectories in a single directory.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
                 'download_attachments_on_load' => array(
                     'level' => 2,
                     'description' => __('Always download attachments when loaded by a user in a browser. It is highly recommended to leave this setting on true, as otherwise opening an attachment can lead to the execution of malicious code via XSS.'),
@@ -5968,6 +5991,22 @@ class Server extends AppModel
                     'test' => 'testPasswordResetText',
                     'type' => 'string'
                 ),
+                'forgotPasswordText' => [
+                    'level' => 1,
+                    'bigField' => true,
+                    'description' => __('The message sent to the users when when they trigger a password reset. The following variables can be used in the message: $misp (misp baseurl), $ip (requestor IP), $reset_link (the link including the reset token for the user to carry out the reset).'),
+                    'value' => 'Dear MISP user,\n\nyou have requested a password reset on the MISP instance at $misp. Click the link below to change your password.\n\n\$reset_link\n\nThe link above is only valid for 10 minutes, feel free to request a new one if it has expired.\n\nIf you haven\'t requested a password reset, reach out to your admin team and let them know that someone has attempted it in your stead.\n\nMake sure you keep the contents of this e-mail confidential, do NOT ever forward it as it contains a reset token that is equivalent of a password if acted upon. The IP used to trigger the request was: $ip\n\nBest regards,\nYour MISP admin team',
+                    'test' => 'testForgotPasswordText',
+                    'type' => 'string'
+                ],
+                'forgotPasswordTextNoEnc' => [
+                    'level' => 1,
+                    'bigField' => true,
+                    'description' => __('The message sent to the users when when they trigger a password reset and no suitable encryption key is found for the user. The following variables can be used in the message: $misp (misp baseurl), $ip (requestor IP). By default no reset_link is sent when the message cannot be encrypted, but you can override this behaviour by also adding the following variable to the message: $reset_link (the link including the reset token for the user to carry out the reset).'),
+                    'value' => 'Dear MISP user,\n\nyou have requested a password reset on the MISP instance at $misp, however, no valid encryption key was found for your user and thus we cannot deliver your reset token. Please get in touch with your org admin / with an instance site admin to ask for a reset.\n\nThe IP used to trigger the request was: $ip\n\nBest regards,\nYour MISP admin team',
+                    'test' => 'testForgotPasswordTextNoEnc',
+                    'type' => 'string'
+                ],
                 'enableEventBlocklisting' => array(
                     'level' => 1,
                     'description' => __('Since version 2.3.107 you can start blocklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.'),
