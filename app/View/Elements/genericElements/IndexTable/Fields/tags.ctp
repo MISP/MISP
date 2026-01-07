@@ -33,7 +33,7 @@
                 'attributeId' => $attributeId,
                 'tags' => $tags,
                 'tagAccess' => $mayModify,
-                'localTagAccess' => $event !== false ? $this->Acl->canModifyTag($event, true) : false,
+                'localTagAccess' => $event !== false ? $this->Acl->canModifyTag($event, true) && !$field['skip_modifications'] : false,
                 'static_tags_only' => 1,
                 'scope' => isset($field['scope']) ? $field['scope'] : 'event',
                 'hide_global_scope' => isset($field['hide_global_scope']) ? $field['hide_global_scope'] : false,
