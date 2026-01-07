@@ -7,7 +7,7 @@ $analysisLevels = [
     2 => __('Completed'),
 ];
 
-$cssClass = $analysisLevels[$analysisLevel] ?? '';
+$cssClass = $analysisLevels[$analysis] ?? '';
 
 echo sprintf(
     '<span class="%s">%s</span>',
