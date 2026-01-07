@@ -93,6 +93,7 @@
                     'requirement' => Configure::read('MISP.tagging'),
                     'class' => 'short',
                     'element' => 'tags',
+                    'scope' => 'attribute',
                     'skip_modifications' => true,
                     'data_path' => 'Event.EventTag',
                 ],
