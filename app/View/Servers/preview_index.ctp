@@ -17,6 +17,9 @@
         'data' => [
             'title' => '',
             'data' => $events,
+            'paginatorOptions' => [
+                'url' => $server['Server']['id'],
+            ],
             'top_bar' => [
                 'children' => [
                     [
