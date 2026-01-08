@@ -205,7 +205,7 @@ class Oidc
 
         try {
             $oidc->refreshToken($userInfo['refresh_token']);
-        } catch (CertMichelin\ErrorResponse $e) {
+        } catch (CertMichelin\ErrorResponse | JakubOnderka\ErrorResponse $e) {
             if ($e->getError() === 'invalid_grant') {
                 $this->log($user['email'], "Refreshing token is not possible because of `{$e->getMessage()}`, considering user is not valid");
                 return false;
@@ -290,7 +290,7 @@ class Oidc
     }
     
     /**
-     * @return \CertMichelin\OpenIDConnectClient
+     * @return OpenIDConnectClient CertMichelin if available, otherwise JakubOnderka for keeping backward compatibility.
      * @throws Exception
      */
     private function prepareClient()
@@ -306,8 +306,13 @@ class Oidc
 
         if (class_exists("\CertMichelin\OpenIDConnectClient")) {
             $oidc = new \CertMichelin\OpenIDConnectClient($providerUrl, $clientId, $clientSecret, $issuer);
+
+            // Load specific settings for CertMichelin's client.
+            $disable_request_object = $this->getConfig('disable_request_object', false);
+            $oidc->setDisableRequestObject($disable_request_object);
+            
         } else if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
-            throw new Exception("JakubOnderka OIDC implementation is not supported anymore, please use CertMichelin's client");
+            $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret, $issuer);
         } else if (class_exists("\Jumbojett\OpenIDConnectClient")) {
             throw new Exception("Jumbojett OIDC implementation is not supported anymore, please use JakubOnderka's client");
         } else {
@@ -336,10 +341,6 @@ class Oidc
 
         $oidc->setRedirectURL(Configure::read('MISP.baseurl') . '/users/login');
         $this->oidcClient = $oidc;
-
-        $disable_request_object = $this->getConfig('disable_request_object', false);
-        $oidc->setDisableRequestObject($disable_request_object);
-
 
         // set proxy
         $proxy = Configure::read('Proxy');
