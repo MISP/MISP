@@ -10,7 +10,7 @@ to login with passwords stored in MISP.
 
 ```bash 
 cd app
-php composer.phar require certmichelin/openid-connect-php:1.0.0
+php composer.phar require certmichelin/openid-connect-php:1.3.0
 ```
 
 2. Enable Oidc plugin in `app/Config/bootstrap.php`, add the following line to the end:
