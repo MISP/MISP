@@ -346,6 +346,9 @@ class UsersController extends AppController
             'conditions' => array('User.id' => $id),
             'recursive' => -1
         ));
+        $this->loadModel('Server');
+        $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
+        $this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
         if ($this->request->is('post') || $this->request->is('put')) {
             $abortPost = false;
             return $this->__pw_change($user, 'change_pw', $abortPost);
@@ -353,9 +356,7 @@ class UsersController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->describe('Users', 'change_pw', false, $this->response->type());
         }
-        $this->loadModel('Server');
-        $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
-        $this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
+    
         $this->User->recursive = 0;
         $this->User->read(null, $id);
         $this->User->set('password', '');
