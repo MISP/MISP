@@ -749,6 +749,10 @@
                 "default_category": "Payload delivery",
                 "to_ids": 1
             },
+            "edge-extension-id": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },            
             "cortex": {
                 "default_category": "External analysis",
                 "to_ids": 0
