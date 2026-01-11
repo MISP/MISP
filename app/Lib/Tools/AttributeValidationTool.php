@@ -573,6 +573,9 @@ class AttributeValidationTool
             case 'dkim-signature':
             case 'favicon-mmh3':
             case 'chrome-extension-id':
+                return preg_match('/^[a-p]{32}$/', $value) === 1;
+            case 'edge-extension-id':
+                return preg_match('/^[a-p]{32}$/', $value) === 1;            
             case 'mobile-application-id':
             case 'azure-application-id':
             case 'named pipe':
