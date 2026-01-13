@@ -20,6 +20,7 @@ App::uses('Oidc', 'OidcAuth.Lib');
  *  - OidcAuth.check_user_validity (integer, default `0`)
  *  - OidcAuth.update_user_role (boolean, default: true) - if disabled, manually modified role in MISP admin interface will be not changed from OIDC
  *  - OidcAuth.mixedAuth (boolean, default: false) - if enabled, MISP will not automatically redirect to SSO portal and allow other authentication methods
+ *  - OidcAuth.disable_request_object (boolean, default: false) Disable the Request Object approach in authorization requests, allowing users to fallback to plain parameters when needed for compatibility with certain OpenID Connect providers.
  */
 class OidcAuthenticate extends BaseAuthenticate
 {

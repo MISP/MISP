@@ -8,11 +8,13 @@ to login with passwords stored in MISP.
 
 1. Install required library using composer
 
-```
+```bash 
 cd app
-php composer.phar require jakub-onderka/openid-connect-php:1.0.0-rc1
+php composer.phar require certmichelin/openid-connect-php:1.3.0
 ```
+
 2. Enable Oidc plugin in `app/Config/bootstrap.php`, add the following line to the end:
+
 ```php
 CakePlugin::load('OidcAuth');
 ```
@@ -44,6 +46,7 @@ $config = array(
             'misp-admin' => 1, // Admin
         ],
         'default_org' => '{{ MISP_ORG }}',
+        'disable_request_object' => true, //Disable the Request Object approach in authorization requests, allowing users to fallback to plain parameters when needed for compatibility with certain OpenID Connect providers. (False by default)
         'scopes' => ['profile', 'email'], // Make sure to add your custom scope here if you set any
     ],
     ...
@@ -52,7 +55,8 @@ $config = array(
 5. Other MISP settings
 
 You might want to change or set the following MISP config values once the single sign on integration works (you can do this via GUI):
-```
+
+```generic
 Security.require_password_confirmation false
 Security.auth_enforced true
 ```
@@ -60,6 +64,7 @@ Security.auth_enforced true
 For avoiding redirect loops when trying to logout, you can configure the `Plugin.CustomAuth_custom_logout` setting with the logout url of your IdP.
 
 6. Mixed Auth
+
 Set `OidcAuth.mixedAuth` to `true` to prevent MISP to automatically redirect to your SSO and instead add a `Login with SSO` button in the login page, this allows users to still login with other authentication methods enabled in MISP.
 
 ## Caveats
@@ -67,6 +72,7 @@ Set `OidcAuth.mixedAuth` to `true` to prevent MISP to automatically redirect to 
 When user is blocked in SSO (IdM), he/she will be not blocked in MISP. He could not log in, but users authentication keys will still work and also he/she will still receive all emails. 
 
 To solve this problem:
+
 1) set `OidcAuth.offline_access` to `true` - with that, IdP will be requested to provide offline access token
 2) set `OidcAuth.check_user_validity` to number of seconds, after which user will be revalidated if he is still active in IdP. Zero means that this functionality is disabled. Recommended value is `300`.
 3) because offline tokens will expire when not used, you can run `cake user check_user_validity` to check all user in one call
