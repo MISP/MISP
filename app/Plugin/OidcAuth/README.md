@@ -67,6 +67,9 @@ For avoiding redirect loops when trying to logout, you can configure the `Plugin
 
 Set `OidcAuth.mixedAuth` to `true` to prevent MISP to automatically redirect to your SSO and instead add a `Login with SSO` button in the login page, this allows users to still login with other authentication methods enabled in MISP.
 
+7. Proxy
+Set `OidcAuth.skipProxy` to `false` to use global MISP proxy settings when sending requests to your OIDC provider. By default global proxy settings are ignored. 
+
 ## Caveats
 
 When user is blocked in SSO (IdM), he/she will be not blocked in MISP. He could not log in, but users authentication keys will still work and also he/she will still receive all emails. 
