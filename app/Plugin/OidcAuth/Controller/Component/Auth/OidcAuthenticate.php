@@ -20,6 +20,7 @@ App::uses('Oidc', 'OidcAuth.Lib');
  *  - OidcAuth.check_user_validity (integer, default `0`)
  *  - OidcAuth.update_user_role (boolean, default: true) - if disabled, manually modified role in MISP admin interface will be not changed from OIDC
  *  - OidcAuth.mixedAuth (boolean, default: false) - if enabled, MISP will not automatically redirect to SSO portal and allow other authentication methods
+ *  - OidcAuth.skipProxy (boolean, default: true) - if enabled, MISP will disable global proxy settings for OIDC requests
  */
 class OidcAuthenticate extends BaseAuthenticate
 {

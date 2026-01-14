@@ -337,7 +337,7 @@ class Oidc
 
         // set proxy
         $proxy = Configure::read('Proxy');
-        if (!empty($proxy['host'])) {
+        if (!$this->getConfig('skipProxy', true) && !empty($proxy['host'])) {
             // construct CURLOPT_PROXY string
             // format from man 3 CURLOPT_PROXY: scheme://username:password@hostname:port
             $proxystr = $proxy['host'];
@@ -350,9 +350,6 @@ class Oidc
                     $proxystr = ":" . $proxy['password'] . $proxystr;
                 }
                 $proxystr = $proxy['username'] . $proxystr;
-            }
-            if (!empty($proxy['method'])) {
-                $proxystr = $proxy['method'] . "://" . $proxystr;
             }
 
             // set in OpenID client
