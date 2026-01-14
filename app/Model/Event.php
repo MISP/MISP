@@ -407,6 +407,23 @@ class Event extends AppModel
                     }
                 }
             }
+
+            $trigger_id = 'event-before-delete';
+            if ($this->isTriggerCallable($trigger_id)) {
+                $event = $this->data;
+                $workflowErrors = [];
+                $logging = [
+                    'model' => 'Event',
+                    'action' => 'delete',
+                    'id' => $this->data['Event']['id'],
+                    'message' => __('The workflow `%s` prevented the deletion of event (%s)', $trigger_id, $event['Event']['uuid']),
+                ];
+                $triggerData = $event;
+                $workflowSuccess = $this->executeTrigger($trigger_id, $triggerData, $workflowErrors, $logging);
+                if (!$workflowSuccess) {
+                    return false;
+                }
+            }
         }
 
         try {
