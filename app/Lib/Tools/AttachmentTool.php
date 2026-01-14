@@ -157,6 +157,16 @@ class AttachmentTool
             $filepath = $this->attachmentDir() . DS . $path;
             $file = new File($filepath);
             if (!is_file($file->path)) {
+                if (Configure::read('MISP.attachments_bucketed')) {
+                    // Try non-bucketed path for backward compatibility
+                    $nonBucketedPath = $this->getPath($shadow, $eventId, $attributeId, $pathSuffix, true);
+                    $filepath_unbucketed = $this->attachmentDir() . DS . $nonBucketedPath;
+                    $file = new File($filepath_unbucketed);
+                    if (!is_file($file->path)) {
+                        throw new NotFoundException("Neither file '$filepath_unbucketed' nor '$filepath' exists.");
+                    }
+                    return $file;
+                }
                 throw new NotFoundException("File '$filepath' does not exist.");
             }
         }
@@ -551,9 +561,12 @@ class AttachmentTool
      * @param string $pathSuffix
      * @return string
      */
-    private function getPath($shadow, $eventId, $attributeId, $pathSuffix)
+    private function getPath($shadow, $eventId, $attributeId, $pathSuffix, $forceNonBucketed = false)
     {
         $path = $shadow ? ('shadow' . DS) : '';
+        if (Configure::read('MISP.attachments_bucketed') && empty($forceNonBucketed) && !$this->attachmentDirIsS3()) {
+            return $path . 'bucket_' . (1000*(floor($eventId / 1000))) . DS . $eventId . DS . $attributeId . $pathSuffix;
+        }
         return $path . $eventId . DS . $attributeId . $pathSuffix;
     }
 
