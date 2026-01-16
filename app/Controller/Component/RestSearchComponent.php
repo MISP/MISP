@@ -17,6 +17,7 @@ class RestSearchComponent extends Component
             'org_id',
             'orgc_id',
             'tags',
+            'searchall',
             'from',
             'to',
             'last',
