@@ -5,7 +5,7 @@ class Module_threat_level_if extends WorkflowBaseLogicModule
 {
     public $id = 'threat-level-if';
     public $name = 'IF :: Threat Level';
-    public $version = '0.1';
+    public $version = '0.2';
     public $description = 'Threat Level IF / ELSE condition block. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used.';
     public $icon = 'code-branch';
     public $inputs = 1;
@@ -41,7 +41,7 @@ class Module_threat_level_if extends WorkflowBaseLogicModule
                 'id' => 'threatlevel',
                 'label' => 'Threat Level',
                 'type' => 'select',
-                'default' => 3, // ✅ FIX: use option key, not label
+                'default' => 3,
                 'options' => $this->threatlevels_mapping,
                 'placeholder' => __('Pick a threat level'),
             ],
