@@ -432,7 +432,7 @@ class Taxonomy extends AppModel
         if (empty($taxonomy)) {
             return false;
         }
-        $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
+        $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace'], false);
         $colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
         foreach ($taxonomy['entries'] as $k => $entry) {
             $colour = $colours[$k];
