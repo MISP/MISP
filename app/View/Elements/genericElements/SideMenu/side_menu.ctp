@@ -1047,7 +1047,7 @@ $divider = '<li class="divider"></li>';
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'onClick' => array(
                                     'function' => 'initiatePasswordReset',
-                                    'params' => array($id)
+                                    'params' => array(h($id))
                                 ),
                                 'text' => __('Reset Password')
                             ));

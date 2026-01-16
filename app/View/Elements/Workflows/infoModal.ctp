@@ -169,6 +169,38 @@ $data_passed_to_if_module = [
             "uuid": "c5de83b4-36ba-49d6-9530-2a315caeece6",
             "local": true
         },
+        "Opinion": [
+            {
+                "id": "15",
+                "uuid": "57215b05-05e7-49e9-8a54-300ad2f4a33e",
+                "object_uuid": "b9557473-bb46-4c65-b69e-974b3c93c1f4",
+                "object_type": "Event",
+                "authors": "admin@admin.test",
+                "org_uuid": "c5de83b4-36ba-49d6-9530-2a315caeece6",
+                "orgc_uuid": "c5de83b4-36ba-49d6-9530-2a315caeece6",
+                "created": "2026-01-14 10:24:53",
+                "modified": "2026-01-14 10:24:53",
+                "distribution": "1",
+                "sharing_group_id": null,
+                "locked": false,
+                "opinion": "80",
+                "comment": "Good event",
+                "note_type": 1,
+                "note_type_name": "Opinion",
+                "Org": {
+                    "id": "1",
+                    "name": "ORGNAME",
+                    "uuid": "c5de83b4-36ba-49d6-9530-2a315caeece6",
+                    "local": true
+                },
+                "Orgc": {
+                    "id": "1",
+                    "name": "ORGNAME",
+                    "uuid": "c5de83b4-36ba-49d6-9530-2a315caeece6",
+                    "local": true
+                }
+            }
+        ],
         "Attribute": [
             {
                 "id": "1695",
