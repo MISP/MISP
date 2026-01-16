@@ -158,7 +158,15 @@
                 ?>
             </td>
             <td class="short action-links">
-                <?php if ($event['Event']['published']) echo $this->Form->postLink('', $baseurl . '/servers/pull/' . $server['Server']['id'] . '/' . $event['Event']['id'], array('class' => 'fa fa-arrow-circle-down', 'title' => __('Fetch the event')), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Server.id'))); ?>
+                <?= 
+                $this->Form->postLink('', $baseurl . '/servers/pull/' . $server['Server']['id'] . '/' . $event['Event']['id'], [
+                        'class' => 'fa fa-arrow-circle-down',
+                        'title' => __('Fetch the event'),
+                        'style' => (!$event['Event']['published'] ? 'color: gray;' : ''),
+                    ],
+                    __('Are you sure you want to fetch and save this event on your instance?') . (!$event['Event']['published'] ? __(' Warning: This event is not published on the remote end.') : '')
+                );
+                ?>
                 <a href="<?php echo $eventViewURL . h($event['Event']['id']);?>" class="fa fa-eye" title="<?php echo __('View');?>"></a>
             </td>
         </tr>
