@@ -126,7 +126,7 @@ foreach ($events as $event) {
     }
 
     foreach ($event['Object'] as $object) {
-        if (!empty($object['Attribute'])) {
+        if (empty($object['Attribute'])) {
             continue;
         }
 
