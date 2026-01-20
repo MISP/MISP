@@ -96,12 +96,17 @@
         if (!empty($action['url_extension'])) {
             $url .= '.' . $action['url_extension'];
         }
+        if (!empty($action['color'])) {
+            $colors = $action['color'];
+        } else {
+            $colors = 'black';
+        }
         if (isset($action['postLink'])) {
             echo $this->Form->postLink(
                 '',
                 $url,
                 array(
-                    'class' => $this->FontAwesome->getClass($action['icon']) . ' black ' . (empty($action['class']) ? '' : h($action['class'])),
+                    'class' => $this->FontAwesome->getClass($action['icon']) . ' ' . $colors . ' ' . (empty($action['class']) ? '' : h($action['class'])),
                     'title' => empty($action['title']) ? '' : h($action['title']),
                     'aria-label' => empty($action['title']) ? '' : h($action['title']),
                 ),

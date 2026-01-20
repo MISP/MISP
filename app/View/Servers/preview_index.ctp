@@ -148,13 +148,31 @@
                 [
                     'url' => $eventPullURL,
                     'url_params_data_paths' => [
-                        'Event.id',
+                        'Event.id'
                     ],
                     'icon' => 'arrow-circle-down',
                     'title' => __('Fetch the event'),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to fetch and save this event on your instance?'),
                     'complex_requirement' => [
                         'function' => function ($row) {
-                            return $row['Event']['published'];
+                            return !empty($row['Event']['published']);
+                        }
+                    ]
+                ],
+                [
+                    'url' => $eventPullURL,
+                    'url_params_data_paths' => [
+                        'Event.id'
+                    ],
+                    'icon' => 'arrow-circle-down',
+                    'title' => __('Fetch the event'),
+                    'color' => 'grey',
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to fetch and save this event on your instance?  Warning: This event is not published on the remote end.'),
+                    'complex_requirement' => [
+                        'function' => function ($row) {
+                            return empty($row['Event']['published']);
                         }
                     ]
                 ],
