@@ -7,6 +7,7 @@ foreach ($types as $key => $label) {
         'field' => $key,
         'label' => $label,
         'type' => 'checkbox',
+        'default' => !empty($value[$key]) ? 1 : 0,
         'stayInLine' => true
     ];
 }
@@ -26,6 +27,7 @@ echo $this->element('genericElements/Form/genericForm', [
                     'label' => __('Replacement')
                 ],
                 [
+                    'label' => __('Types to be affected by the filter'),
                     'type' => 'html',
                     'html' => '<div class="clear">' .
                               __('Types to be affected by the filter (Setting \'all\' will override the other settings)') .
@@ -34,7 +36,9 @@ echo $this->element('genericElements/Form/genericForm', [
                 [
                     'field' => 'all',
                     'label' => __('All'),
-                    'type' => 'checkbox'
+                    'type' => 'checkbox',
+                    'data_path' => 'Regexp.id',
+                    'default' => !empty($all) ? 1 : 0
                 ]
             ],
             $typeCheckboxes

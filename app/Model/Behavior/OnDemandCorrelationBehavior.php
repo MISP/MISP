@@ -201,7 +201,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                 }
                 $this->Correlation->query("
                 CREATE TEMPORARY TABLE tmp_source_values (
-                    value2 VARCHAR(64) PRIMARY KEY,
+                    value2 VARCHAR(255) PRIMARY KEY,
                     id INT(10) UNSIGNED NOT NULL
                 ) ENGINE=MEMORY;");
                 $this->Correlation->query("

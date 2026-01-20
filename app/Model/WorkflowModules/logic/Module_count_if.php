@@ -3,9 +3,10 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 
 class Module_count_if extends WorkflowBaseLogicModule
 {
+    public $version = '0.2';
     public $id = 'count-if';
     public $name = 'IF :: Count';
-    public $description = 'Count IF / ELSE condition block. It counts the amount of entry selected by the provided hashpath. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used.';
+    public $description = '/!\\ Deprecated module, use IF :: Aggregate Comparator instead /!\\\n Count IF / ELSE condition block. It counts the amount of entry selected by the provided hashpath. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used.';
     public $icon = 'code-branch';
     public $inputs = 1;
     public $outputs = 2;

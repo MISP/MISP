@@ -170,7 +170,7 @@ class WorkflowBaseModule
             $filters = $this->getFilters($node);
             $extracted = $this->extractData($rData, $filters['selector']);
             if ($extracted === false) {
-                return false;
+                return [];
             }
             $matchingItems = $this->getItemsMatchingCondition($extracted, $filters['value'], $filters['operator'], $filters['path']);
         } else {
@@ -207,6 +207,14 @@ class WorkflowBaseModule
             return !is_array($data) && $data == $value;
         } elseif ($operator == 'not_equals') {
             return !is_array($data) && $data != $value;
+        } elseif ($operator == 'greater') {
+            return !is_array($data) && $data > $value;
+        } elseif ($operator == 'greater_equals') {
+            return !is_array($data) && $data >= $value;
+        } elseif ($operator == 'less') {
+            return !is_array($data) && $data < $value;
+        } elseif ($operator == 'less_equals') {
+            return !is_array($data) && $data <= $value;
         } elseif ($operator == 'in_or' || $operator == 'in_and' || $operator == 'not_in_or' || $operator == 'not_in_and') {
             if (!is_array($data) || !is_array($value)) {
                 return false;
@@ -233,7 +241,7 @@ class WorkflowBaseModule
     {
         foreach ($items as $i => $item) {
             $subItem = $this->extractData($item, $path);
-            if (in_array($operator, ['equals', 'not_equals'])) {
+            if (in_array($operator, ['equals', 'not_equals', 'greater', 'greater_equals', 'less', 'less_equals'])) {
                 $subItem = !empty($subItem) ? $subItem[0] : $subItem;
             }
             if ($operator == 'any_value' && !empty($subItem)) {
@@ -404,6 +412,7 @@ class AdHocTrigger extends WorkflowBaseTriggerModule
         if (!empty($passedFilters['Event'])) {
             return []; // Passed filter is an Event and not restSearch filters
         }
+        $passedFilters['includeAnalystData'] = true;
         $final = $this->Event->restSearch($user, 'json', $passedFilters);
         return JsonTool::decode($final->intoString())['response'];
     }

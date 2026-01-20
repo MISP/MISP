@@ -3,7 +3,7 @@ include_once APP . 'Model/WorkflowModules/action/Module_attribute_edition_operat
 
 class Module_attribute_ids_flag_operation extends Module_attribute_edition_operation
 {
-    public $version = '0.1';
+    public $version = '0.2';
     public $blocking = false;
     public $id = 'attribute_ids_flag_operation';
     public $name = 'Attribute IDS Flag operation';
@@ -25,7 +25,7 @@ class Module_attribute_ids_flag_operation extends Module_attribute_edition_opera
                 'label' => __('To IDS Flag'),
                 'type' => 'select',
                 'options' => [
-                    'add' => __('Toggle IDS flag'),
+                    'add' => __('Enable IDS flag'),
                     'remove' => __('Remove IDS flag'),
                 ],
                 'default' => 'add',

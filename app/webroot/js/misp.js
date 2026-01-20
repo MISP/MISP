@@ -3319,8 +3319,8 @@ function sharingGroupPopulateServers() {
     var html = '';
     servers.forEach(function(server) {
         html = '<tr id="serverRow' + id + '" class="serverRow">';
-        html += '<td>' + server.name + '&nbsp;</td>';
-        html += '<td>' + server.url + '&nbsp;</td>';
+        html += '<td>' + $('<div>').text(server.name).html() + '&nbsp;</td>';
+        html += '<td>' + $('<div>').text(server.url).html() + '&nbsp;</td>';
         html += '<td>';
         html += '<input id="serverAddOrgs' + id + '" type="checkbox" onClick="sharingGroupServerAddOrgs(' + id + ')" ';
         if (server.all_orgs) html += 'checked';
@@ -5653,29 +5653,44 @@ function resetDashboardGrid(grid, save = true) {
             }
         }
     });
-    $('.widget-export-menu').find('a[data-exporttype]').click(function() {
-        var $element = $(this).closest('div[widget]');
-        var container_id = $element.attr('id').substring(7);
-        var export_type = $(this).data('exporttype')
-          $.ajax({
+    $(document).on('click', '.widget-export-menu a[data-exporttype]', function(e) {
+        e.preventDefault();
+
+        var $link    = $(this);
+        var $item    = $link.closest('.grid-stack-item');                 // metadata lives here
+        var $wrapper = $link.closest('.grid-stack-item').find('.widget-wrapper').first(); // id lives here
+
+        var export_type = $link.data('exporttype');
+
+        var widget = $item.attr('widget');
+        var config = $item.attr('config') || '[]';
+
+        if (!widget) return;
+
+        var wrapperId = $wrapper.attr('id') || '';
+        if (!wrapperId.startsWith('widget_')) return;
+
+        var container_id = wrapperId.substring(7);
+
+        $.ajax({
             type: 'POST',
             url: baseurl + '/dashboards/renderWidget/' + container_id + '/export' + export_type + ':1',
             data: {
-                config: $element.attr('config'),
-                widget: $element.attr('widget')
+                config: config,
+                widget: widget
             },
-            success:function (data) {
-                if (export_type == 'json') {
+            success: function (data) {
+                if (export_type === 'json') {
                     data = JSON.stringify(data, null, 2);
                 }
-                var blob = new Blob([data], { type: (export_type == 'json' ? 'application/json' : 'text/csv') });
-                var link=window.document.createElement('a');
-                link.href=window.URL.createObjectURL(blob);
-                link.download=$element.attr('widget') + "_" + container_id + "_export." + export_type;
+                var blob = new Blob([data], { type: (export_type === 'json' ? 'application/json' : 'text/csv') });
+                var link = window.document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = widget + "_" + container_id + "_export." + export_type;
                 link.click();
             }
         });
-    })
+    });
 }
 
 function setHomePage() {
