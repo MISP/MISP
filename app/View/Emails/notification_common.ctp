@@ -126,6 +126,10 @@ foreach ($events as $event) {
     }
 
     foreach ($event['Object'] as $object) {
+        if (!empty($object['Attribute'])) {
+            continue;
+        }
+
         if (empty($object_types[$object['name']])) {
             $object_types[$object['name']] = 0;
         }
