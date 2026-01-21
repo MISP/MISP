@@ -146,6 +146,9 @@ class GalaxiesController extends AppController
                 if (empty($data['Galaxy']['orgc_id']) || !$currentUser['Role']['perm_site_admin']) {
                     $data['Galaxy']['orgc_id'] = $currentUser['org_id'];
                 }
+                if (empty($data['Galaxy']['uuid'])) {
+                    $data['Galaxy']['uuid'] = CakeText::uuid();
+                }
                 return $data;
             } 
         ];
