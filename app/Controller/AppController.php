@@ -34,7 +34,7 @@ class AppController extends Controller
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
 
     private $__queryVersion = '178';
-    public $pyMispVersion = '2.5.17.2';
+    public $pyMispVersion = '2.5.17.3';
     public $phpmin = '7.2';
     public $phprec = '7.4';
     public $phptoonew = '8.0';
@@ -1408,7 +1408,7 @@ class AppController extends Controller
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception, $this->_legacyParams);
         if (isset($this->request->params['named']['search_token'])) {
-            $temp = $this->MispAttribute->getSearchParamsByToken(['search_token' => $this->request->params['named']['search_token']]);
+            $temp = $this->Attribute->getSearchParamsByToken(['search_token' => $this->request->params['named']['search_token']]);
             foreach ($temp as $k => $temp_data) {
                 if ($temp[$k] === 'ALL' || $temp[$k] === '') {
                     unset($temp[$k]);
