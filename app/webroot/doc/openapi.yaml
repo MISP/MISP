@@ -3610,6 +3610,8 @@ components:
             - $ref: "#/components/schemas/OrganisationName"
         tags:
           $ref: "#/components/schemas/TagsRestSearchFilter"
+        searchall:
+          $ref: "#/components/schemas/SearchAllRestSearchFilter"
         from:
           $ref: "#/components/schemas/DateRestSearchFilter"
         to:
