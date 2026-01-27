@@ -46,6 +46,9 @@ class MispAttribute extends AppModel
 
     private $orgs_cache = [];
 
+    /** @var bool|null Cached result of checking if 'deleted' index exists on attributes table */
+    private static $hasDeletedIndex = null;
+
     public $virtualFields = array(
             'value' => "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END",
     );
@@ -2090,8 +2093,11 @@ class MispAttribute extends AppModel
                 $params['order'] = [];
             }
 
-            $idx = $this->query("SHOW INDEX FROM attributes WHERE Key_name='deleted'");
-            if (!empty($idx)) {
+            if (self::$hasDeletedIndex === null) {
+                $idx = $this->query("SHOW INDEX FROM attributes WHERE Key_name='deleted'");
+                self::$hasDeletedIndex = !empty($idx);
+            }
+            if (self::$hasDeletedIndex) {
                 $params['ignoreIndexHint'] = 'deleted';
             }
         
