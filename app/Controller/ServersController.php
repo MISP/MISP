@@ -90,7 +90,6 @@ class ServersController extends AppController
             $this->paginate['conditions'] = $conditions;
             $servers = $this->paginate();
             $servers = $this->Server->attachServerCacheTimestamps($servers);
-            $this->set('servers', $servers);
             $collection = array();
             $collection['orgs'] = $this->Server->Organisation->find('list', array(
                   'fields' => array('uuid', 'name'),
@@ -99,6 +98,8 @@ class ServersController extends AppController
             $collection['tags'] = $this->Tag->find('list', array(
                   'fields' => array('id', 'name'),
             ));
+            $servers = $this->Server->attachRuleDescriptions($servers, $collection);
+            $this->set('servers', $servers);
             $this->set('collection', $collection);
         }
     }
