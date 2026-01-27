@@ -22,6 +22,10 @@ The objective of MISP is to foster the sharing of structured information within 
   <td><a href="https://github.com/MISP/MISP/actions?query=workflow%3Amisp"><img src="https://img.shields.io/github/actions/workflow/status/MISP/MISP/main.yml?label=test" height="25" /></a></td>
 </tr>
 <tr>
+  <td>OpenSSF Scorecard</td>
+  <td><a href="https://scorecard.dev/viewer/?uri=github.com/MISP/MISP"><img src="https://api.securityscorecards.dev/projects/github.com/MISP/MISP/badge" height="25" /></a></td>
+</tr>
+<tr>
   <td>Gitter</td>
   <td><a href="https://gitter.im/MISP/MISP?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"><img src="https://badges.gitter.im/MISP/MISP.svg" height="25" /></a></td>
 </tr>
