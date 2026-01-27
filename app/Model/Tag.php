@@ -14,6 +14,9 @@ class Tag extends AppModel
 
     public $displayField = 'name';
 
+    /** @var array Cache for tag name pattern → IDs lookups */
+    private $tagNameToIdsCache = [];
+
     public $actsAs = array(
         'AuditLog',
             'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
@@ -284,26 +287,37 @@ class Tag extends AppModel
         }
         $tagIds = [];
         $tagNames = [];
-        foreach ($array as  $tag) {
+        $uncachedTagNames = [];
+
+        foreach ($array as $tag) {
             if (is_numeric($tag)) {
                 $tagIds[] = $tag;
             } else {
                 $tagNames[] = $tag;
+                // Check if this tag name pattern is already cached
+                if (isset($this->tagNameToIdsCache[$tag])) {
+                    $tagIds = array_merge($tagIds, $this->tagNameToIdsCache[$tag]);
+                } else {
+                    $uncachedTagNames[] = $tag;
+                }
             }
         }
-        if (!empty($tagNames)) {
-            $conditions = [];
-            foreach ($tagNames as $tagName) {
-                $conditions[] = array('Tag.name LIKE' => $tagName);
+
+        // Only query DB for uncached tag names
+        if (!empty($uncachedTagNames)) {
+            // Query each uncached tag name individually to enable per-pattern caching
+            foreach ($uncachedTagNames as $tagName) {
+                $result = $this->find('column', array(
+                    'recursive' => -1,
+                    'conditions' => ['Tag.name LIKE' => $tagName],
+                    'fields' => array('Tag.id')
+                ));
+                $this->tagNameToIdsCache[$tagName] = $result;
+                $tagIds = array_merge($tagIds, $result);
             }
-            $result = $this->find('column', array(
-                'recursive' => -1,
-                'conditions' => ['OR' => $conditions],
-                'fields' => array('Tag.id')
-            ));
-            $tagIds = array_merge($result, $tagIds);
         }
-        return $tagIds;
+
+        return array_values(array_unique($tagIds));
     }
 
     /**
