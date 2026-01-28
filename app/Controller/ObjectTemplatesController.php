@@ -6,8 +6,6 @@ App::uses('AppController', 'Controller');
  */
 class ObjectTemplatesController extends AppController
 {
-    public $components = array('RequestHandler', 'Session');
-
     public $paginate = array(
         'limit' => 60,
         'order' => array(
@@ -140,27 +138,10 @@ class ObjectTemplatesController extends AppController
 
     public function delete($id)
     {
-        if (!$this->request->is('post') && !$this->request->is('put') && !$this->request->is('delete')) {
-            throw new MethodNotAllowedException();
+        $this->CRUD->delete($id);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        $this->ObjectTemplate->id = $id;
-        if (!$this->ObjectTemplate->exists()) {
-            throw new NotFoundException('Invalid Object Template');
-        }
-        if ($this->ObjectTemplate->delete()) {
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('ObjectTemplates', 'admin_delete', $id, $this->response->type());
-            } else {
-                $this->Flash->success(__('Object Template deleted'));
-            }
-        } else {
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveFailResponse('ObjectTemplates', 'admin_delete', $id, $this->ObjectTemplate->validationErrors, $this->response->type());
-            } else {
-                $this->Flash->error('Object Template could not be deleted');
-            }
-        }
-        $this->redirect($this->referer());
     }
 
     public function index($all = false)
