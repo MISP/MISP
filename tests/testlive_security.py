@@ -142,7 +142,7 @@ class TestSecurity(unittest.TestCase):
         cls.admin_misp_connector = PyMISP(url, key)
 
         # Since the generation of initial authkeys has been fixed and no longer generates the same legacy and advanced authkey, we need to be clever
-        cls.secondary_admin = cls.__create_user(cls, 1, 1)
+        cls.secondary_admin = cls.__create_user(1, 1)
         cls.admin_misp_connector_legacy = PyMISP(url, cls.secondary_admin.authkey)
 
         # Set expected config values
@@ -1693,6 +1693,7 @@ class TestSecurity(unittest.TestCase):
 
         return r
 
+    @classmethod
     def __create_user(self, org_id: int, role_id: Union[int, ROLE]) -> MISPUser:
         if isinstance(role_id, ROLE):
             role_id = role_id.value
