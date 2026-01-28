@@ -9,6 +9,11 @@ App::uses('AppController', 'Controller');
  */
 class RolesController extends AppController
 {
+    public $components = array(
+        'Session',
+        'RequestHandler'
+    );
+
     public $paginate = array(
             'limit' => 60,
             'order' => array(

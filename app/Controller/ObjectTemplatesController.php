@@ -6,6 +6,9 @@ App::uses('AppController', 'Controller');
  */
 class ObjectTemplatesController extends AppController
 {
+
+    public $components = array('RequestHandler', 'Session');
+    
     public $paginate = array(
         'limit' => 60,
         'order' => array(

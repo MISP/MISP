@@ -6,6 +6,8 @@ App::uses('AppController', 'Controller');
  */
 class NewsController extends AppController
 {
+    public $components = array('Session', 'RequestHandler');
+
     public $paginate = array(
         'limit' => 5,
         'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
