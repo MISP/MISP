@@ -156,7 +156,7 @@
                 $title,
                 $title,
                 empty($classes) ? '' : ' class="' . implode(' ', $classes) . '"',
-                empty($action['onclick']) ? '' : sprintf(' onclick="event.preventDefault();%s"', $action['onclick']),
+                empty($action['onclick']) ? '' : sprintf(' onclick="event.preventDefault();%s"', h($action['onclick'])),
                 $this->FontAwesome->getClass($action['icon'])
             );
         }

@@ -1377,17 +1377,20 @@ class TestSecurity(unittest.TestCase):
 
         send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")
 
-        with self.assertRaises(Exception):
-            send(logged_in, "POST", f"/sharingGroups/edit/{sg.id}", {"name": "New name1"})
-        self.assertEqual(sg.name, send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]["name"])
+        # This was a logic bug that has been corrected by 26ec3274374c4771e6996272c8108422f0fec34e
+        # A sync user should in fact be able to update a sharing group that they can view, even if they're not the creator user
+        # Otherwise race conditions via multiple sync paths may block future updates to the sharing group.
+        # with self.assertRaises(Exception):
+        #    send(logged_in, "POST", f"/sharingGroups/edit/{sg.id}", {"name": "New name1"})
+        # self.assertEqual(sg.name, send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]["name"])
 
-        with self.assertRaises(Exception):
-            send(logged_in, "POST", f"/sharingGroups/edit/{sg.uuid}", {"name": "New name2"})
-        self.assertEqual(sg.name, send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]["name"])
+        # with self.assertRaises(Exception):
+        #     send(logged_in, "POST", f"/sharingGroups/edit/{sg.uuid}", {"name": "New name2"})
+        # self.assertEqual(sg.name, send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]["name"])
 
-        self.assertErrorResponse(logged_in.add_org_to_sharing_group(sg, self.test_org.uuid))
-        self.assertErrorResponse(logged_in.remove_org_from_sharing_group(sg, org.uuid))
-        self.assertErrorResponse(logged_in.delete_sharing_group(sg))
+        # self.assertErrorResponse(logged_in.add_org_to_sharing_group(sg, self.test_org.uuid))
+        # self.assertErrorResponse(logged_in.remove_org_from_sharing_group(sg, org.uuid))
+        # self.assertErrorResponse(logged_in.delete_sharing_group(sg))
 
         self.admin_misp_connector.delete_sharing_group(sg)
         self.admin_misp_connector.delete_user(sync_user)

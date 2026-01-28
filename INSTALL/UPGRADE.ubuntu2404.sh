@@ -138,8 +138,6 @@ if [ $CURRENT_MISP_BRANCH != "2.4" ]; then
 fi
 sudo -u ${APACHE_USER} git pull origin 2.4 &>> $logfile
 error_check "Updating MISP to the latest 2.4 release"
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin runUpdates &>> $logfile
-error_check_soft "Updating MISP's database to the latest 2.4 release's schema"
 
 print_status "Installing apt packages (supervisor jq)..."
 declare -a packages=( supervisor jq );
@@ -238,11 +236,6 @@ do
 done
 
 print_ok "MISP database.php file rewritten."
-
-print_status "Running MISP updates"
-
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin runUpdates &>> $logfile
-error_check "MISP schema updates"
 
 print_status "Setting up background workers"
 

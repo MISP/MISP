@@ -119,6 +119,9 @@ class GalaxyCluster extends AppModel
         if (!isset($cluster['published'])) {
             $cluster['published'] = false;
         }
+        if (!isset($cluster['collection_uuid'])) {
+            $cluster['collection_uuid'] = '';
+        }
         if (!isset($cluster['authors'])) {
             $cluster['authors'] = '';
         } elseif (is_array($cluster['authors'])) {
@@ -308,9 +311,6 @@ class GalaxyCluster extends AppModel
         }
         if (!isset($cluster['GalaxyCluster']['published'])) {
             $cluster['GalaxyCluster']['published'] = false;
-        }
-        if (!isset($cluster['GalaxyCluster']['collection_uuid'])) {
-            $cluster['GalaxyCluster']['collection_uuid'] = '';
         }
         if (!empty($cluster['GalaxyCluster']['extends_uuid'])) {
             $forkedCluster = $this->find('first', array('conditions' => array('GalaxyCluster.uuid' => $cluster['GalaxyCluster']['extends_uuid'])));

@@ -53,34 +53,6 @@ class CorrelationRulesController extends AppController
         }   
     }
 
-    public function view($id)
-    {
-        $this->set('mayModify', $this->Collection->mayModify($this->Auth->user('id'), $id));
-        if (!$this->Collection->mayView($this->Auth->user('id'), $id)) {
-            throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
-        }
-        $this->set('menuData', array('menuList' => 'correlationRules', 'menuItem' => 'view'));
-        $params = [
-            'contain' => [
-                'Orgc',
-                'Org',
-                'User',
-                'CollectionElement'
-            ],
-            'afterFind' => function (array $collection){
-                return $this->Collection->rearrangeCollection($collection);
-            }
-        ];
-        $this->CRUD->view($id, $params);
-        if ($this->IndexFilter->isRest()) {
-            return $this->restResponsePayload;
-        }
-        $this->set('id', $id);
-        $this->loadModel('Event');
-        $this->set('distributionLevels', $this->Event->distributionLevels);
-        $this->render('view');
-    }
-
     public function index($filter = null)
     {
         $this->set('menuData', array('menuList' => 'correlationRules', 'menuItem' => 'index'));

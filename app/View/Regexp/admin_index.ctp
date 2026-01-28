@@ -1,53 +1,59 @@
-<div class="regexp index">
-    <h2><?php echo __('Import Regexp');?></h2>
-    <div class="pagination">
-        <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-    <table class="table table-striped table-hover table-condensed">
-    <tr>
-            <th><?php echo $this->Paginator->sort('id');?></th>
-            <th><?php echo $this->Paginator->sort('regexp', __('Regexp'));?></th>
-            <th><?php echo $this->Paginator->sort('replacement', __('Replacement'));?></th>
-            <th><?php echo $this->Paginator->sort('type');?></th>
-            <th class="actions"><?php echo __('Actions');?></th>
-    </tr><?php
-foreach ($list as $item):?>
-    <tr>
-        <td class="short"><?php echo h($item['Regexp']['id']);?>&nbsp;</td>
-        <td><?php echo h($item['Regexp']['regexp']);?>&nbsp;</td>
-        <td><?php echo h($item['Regexp']['replacement']);?>&nbsp;</td>
-        <td class="short"><?php echo h($item['Regexp']['type']);?>&nbsp;</td>
-        <td class="short action-links">
-            <?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Regexp']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit'), 'aria-label' => __('Edit')));?>
-            <?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Regexp']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete %s?', h($item['Regexp']['regexp'])));?>
-        </td>
-    </tr><?php
-endforeach;?>
-    </table>
-    <p>
-    <?php
-    echo $this->Paginator->counter(array(
-    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-    ));
-    ?>
-    </p>
-
-    <div class="pagination">
-        <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-</div>
 <?php
+    echo '<div class="regexp index">';
+    echo $this->element('/genericElements/IndexTable/index_table', [
+        'data' => [
+            'title' => __('Import Regexp'),
+            'data' => $list,
+            'fields' => [
+                [
+                    'name' => __('ID'),
+                    'sort' => 'Regexp.id',
+                    'class' => 'short',
+                    'data_path' => 'Regexp.id',
+                ],
+                [
+                    'name' => __('Exportable'),
+                    'sort' => 'Regexp.regexp',
+                    'class' => 'custom-element',
+                    'data_path' => 'Regexp.regexp',
+                ],
+                [
+                    'name' => __('Replacement'),
+                    'sort' => 'Regexp.replacement',
+                    'class' => 'custom-element',
+                    'data_path' => 'Regexp.replacement',
+                ],
+                [
+                    'name' => __('Type'),
+                    'sort' => 'Regexp.type',
+                    'class' => 'short',
+                    'data_path' => 'Regexp.type',
+                ]
+            ],
+            'actions' => [
+            [
+                'url' => "$baseurl/admin/regexp/edit",
+                'url_params_data_paths' => [
+                    'Regexp.id'
+                ],
+                'icon' => 'edit',
+                'title' => __('Edit'),
+                'requirement' => $isSiteAdmin,
+            ],
+            [
+                'url' => "$baseurl/admin/regexp/delete",
+                'url_params_data_paths' => [
+                    'Regexp.id'
+                ],
+                'postLink' => '',
+                'postLinkConfirm' => __('Are you sure you want to delete this Regexp?'),
+                'icon' => 'trash',
+                'title' => __('Delete Regexp'),
+                'requirement' => $isSiteAdmin,
+            ],
+            ]
+        ]
+    ]);
+    echo '</div>';
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'regexp', 'menuItem' => 'index'));
 ?>

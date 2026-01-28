@@ -502,13 +502,22 @@ class Workflow extends AppModel
         $startNodeID = $startNode['id'];
         $trigger_id = $startNode['data']['id'];
         if ($startNode  == -1) {
-            $blockingErrors[] = __('Invalid start node `%s`', $startNodeID);
-            return false;
+            $message = __('Invalid start node `%s`', $startNodeID);
+            $blockingErrors[] = $message;
+            return [
+                'outcomeText' => 'failure' . sprintf(' %s', $message),
+                'walkResult' => [],
+                'success' => false,
+            ];
         }
 
         $triggerModule = $this->getModuleClassByType('trigger', $trigger_id, true);
         if (!empty($triggerModule->disabled)) {
-            return true;
+            return [
+                'outcomeText' => __('Module disabled'),
+                'walkResult' => [],
+                'success' => true,
+            ];
         }
         if (!empty($triggerModule->is_adhoc)) {
             return $this->__runAdHocWorkflow($workflow, $trigger_id, $triggerModule, $startNodeID, $blockingErrors, $data);
@@ -523,7 +532,7 @@ class Workflow extends AppModel
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $indexed_params = $graphData[$startNodeID]['data']['indexed_params'];
         $data = $triggerModule->collectData($userForWorkflow, $indexed_params, $passedData);
-        $lastResult = ['success' => false, 'message' => __('No data collected.')];
+        $lastResult = ['success' => false, 'outcomeText' => __('No data collected.'), 'walkResult' => []];
         foreach ($data as $dataPiece) {
             $lastResult = $this->executeWorkflowForTrigger($trigger_id, $dataPiece, $blockingErrors, true); // FIXME: reuse passed user
         }

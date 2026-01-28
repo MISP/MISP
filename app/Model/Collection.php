@@ -170,12 +170,15 @@ class Collection extends AppModel
         return $conditions;
     }
 
-    public function rearrangeCollection(array $collection) {
+    public function rearrangeCollection(array $collection, $user = null) {
         foreach ($collection as $key => $elements) {
             if ($key !== 'Collection') {
                 $collection['Collection'][$key] = $elements;
                 unset($collection[$key]);
             }
+        }
+        if (empty($user) || empty($user['Role']['perm_site_admin'])) {
+            unset($collection['Collection']['User']);
         }
         return $collection;
     }

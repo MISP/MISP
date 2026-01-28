@@ -691,7 +691,6 @@ class MispObject extends AppModel
                 // we include this manually insted to allow for the reverse join
                 unset($tempOptions['contain']['Event']);
             }
-            debug($params);
             $params['contain'] = array_merge_recursive($params['contain'], $tempOptions['contain']);
         }
         if (

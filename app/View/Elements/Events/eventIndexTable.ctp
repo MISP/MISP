@@ -49,12 +49,30 @@
         </td>
         <?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/events/index/searchorg:" . $event['Orgc']['id'];?>'">
-            <?= $this->OrgImg->getOrgLogo($event['Orgc'], 24) ?>
+            <a href="<?= $baseurl . '/organisations/view/' . h($event['Orgc']['id']) ?>" class="org-logo" title="<?= __('View organisation %s', h($event['Orgc']['name'])) ?>" aria-label="<?= __('View organisation %s', h($event['Orgc']['name'])) ?>">
+                <img 
+                    src="<?= $baseurl ?>/organisations/getOrgLogo/<?= h($event['Orgc']['id']) ?>.json"
+                    title="<?= h($event['Orgc']['name']) ?>"
+                    alt="<?= h($event['Orgc']['name']) ?>"
+                    width=24
+                    height=24
+                    onError="this.onerror=null; this.replaceWith(document.createTextNode(this.alt));"
+                >
+            </a>
         </td>
         <?php endif;?>
         <?php if (in_array('owner_org', $columns, true) || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))): ?>
         <td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/events/index/searchorg:" . $event['Org']['id'];?>'">
-            <?= $this->OrgImg->getOrgLogo($event['Org'], 24) ?>
+            <a href="<?= $baseurl . '/organisations/view/' . h($event['Org']['id']) ?>" class="org-logo" title="<?= __('View organisation %s', h($event['Org']['name'])) ?>" aria-label="<?= __('View organisation %s', h($event['Org']['name'])) ?>">
+                <img 
+                    src="<?= $baseurl ?>/organisations/getOrgLogo/<?= h($event['Org']['id']) ?>.json"
+                    title="<?= h($event['Org']['name']) ?>"
+                    alt="<?= h($event['Org']['name']) ?>"
+                    width=24
+                    height=24
+                    onError="this.onerror=null; this.replaceWith(document.createTextNode(this.alt));"
+                >
+            </a>
         </td>
         <?php endif; ?>
         <td class="short">

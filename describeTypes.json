@@ -757,6 +757,10 @@
                 "default_category": "Other",
                 "to_ids": 0
             },
+            "uuid": {
+                "default_category": "Other",
+                "to_ids": 0
+            },
             "anonymised": {
                 "default_category": "Other",
                 "to_ids": 0
@@ -956,6 +960,7 @@
             "chrome-extension-id",
             "cortex",
             "boolean",
+            "uuid",
             "anonymised",
             "onion-address"
         ],
@@ -1489,7 +1494,8 @@
                 "boolean",
                 "anonymised",
                 "pgp-public-key",
-                "pgp-private-key"
+                "pgp-private-key",
+                "uuid"
             ]
         }
     }
