@@ -1707,9 +1707,9 @@ class TestSecurity(unittest.TestCase):
         user = self.admin_misp_connector.add_user(user)
         check_response(user)
         if org_id:
-            self.assertEqual(int(org_id), int(user.org_id))
+            assert int(org_id) == int(user.org_id)
         if role_id:
-            self.assertEqual(int(role_id), int(user.role_id))
+            assert int(role_id) == int(user.role_id)
         return user
 
     def __create_advanced_authkey(self, user_id: int, data: Optional[dict] = None) -> dict:
