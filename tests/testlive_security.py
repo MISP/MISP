@@ -142,6 +142,7 @@ class TestSecurity(unittest.TestCase):
         cls.admin_misp_connector = PyMISP(url, key)
 
         # Since the generation of initial authkeys has been fixed and no longer generates the same legacy and advanced authkey, we need to be clever
+        cls.admin_misp_connector.global_pythonify = True
         cls.secondary_admin = cls.__create_user(1, 1)
         cls.admin_misp_connector_legacy = PyMISP(url, cls.secondary_admin.authkey)
 
@@ -155,7 +156,6 @@ class TestSecurity(unittest.TestCase):
         # we switch back earlier to advanced authkeys after having ensured that the legacy key still works
         check_response(cls.admin_misp_connector_legacy.set_server_setting('Security.advanced_authkeys', True, force=True))
 
-        cls.admin_misp_connector.global_pythonify = True
         # Check if admin is really site admin
         assert cls.admin_misp_connector._current_role.perm_site_admin
 
