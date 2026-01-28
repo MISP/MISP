@@ -35,6 +35,12 @@ class TaxonomiesController extends AppController
         $params = [
             'filters' => ['enabled'],
             'conditions' => $conditions,
+            'contain' => [
+                'TaxonomyPredicate' => [
+                    'fields' => ['TaxonomyPredicate.id', 'TaxonomyPredicate.value'],
+                    'TaxonomyEntry' => ['fields' => ['TaxonomyEntry.id', 'TaxonomyEntry.value']]
+                ]
+            ],
             'afterFind' => function ($taxonomies) {
                 return $this->__tagCount($taxonomies);
             }
