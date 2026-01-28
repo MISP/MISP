@@ -5646,13 +5646,14 @@ function resetDashboardGrid(grid, save = true) {
     });
     $('.widget-export-menu').find('a[data-exporttype]').click(function() {
         var $element = $(this).closest('div[widget]');
+        var $elementForConfig = $(this).closest('div[config]');
         var container_id = $element.attr('id').substring(7);
         var export_type = $(this).data('exporttype')
           $.ajax({
             type: 'POST',
             url: baseurl + '/dashboards/renderWidget/' + container_id + '/export' + export_type + ':1',
             data: {
-                config: $element.attr('config'),
+                config: $elementForConfig.attr('config'),
                 widget: $element.attr('widget')
             },
             success:function (data) {
