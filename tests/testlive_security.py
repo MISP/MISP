@@ -141,8 +141,6 @@ class TestSecurity(unittest.TestCase):
         # Connect as site admin
         cls.admin_misp_connector = PyMISP(url, key)
 
-        cls.admin_misp_connector_legacy = PyMISP(url, cls.secondary_admin.authkey)
-
         # Set expected config values
         check_response(cls.admin_misp_connector.set_server_setting('debug', 1, force=True))
 
