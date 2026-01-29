@@ -6,7 +6,7 @@ App::uses('AppController', 'Controller');
  */
 class GalaxiesController extends AppController
 {
-    public $components = array('Session', 'RequestHandler');
+    public $components = array('Session', 'RequestHandler', 'CRUD');
 
     public $paginate = array(
             'limit' => 60,

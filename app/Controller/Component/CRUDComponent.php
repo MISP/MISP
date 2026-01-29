@@ -30,7 +30,7 @@ class CRUDComponent extends Component
         $params = $this->Controller->IndexFilter->harvestParameters(empty($options['filters']) ? [] : $options['filters']);
         $query = [];
         $query = $this->setFilters($params, $query, $quickFilterParameter);
-        $query = $this->setQuickFilters($params, $query, empty($options[$quickFilterParameter]) ? [] : $options[$quickFilterParameter], $quickFilterParameter);
+        $query = $this->setQuickFilters($params, $query, empty($options['quickFilters']) ? [] : $options['quickFilters'], $quickFilterParameter);
         if (!empty($options['contain'])) {
             $query['contain'] = $options['contain'];
         }
