@@ -21,57 +21,22 @@ class GalaxiesController extends AppController
 
     public function index()
     {
-        $aclConditions = [
-            'AND' => $this->Galaxy->buildConditions($this->Auth->user())
+        $aclConditions = $this->Galaxy->buildConditions($this->Auth->user());
+        $params = [
+            'filters' => ['name', 'namespace', 'description', 'kill_chain_order', 'uuid', 'enabled'],
+            'quickFilters' => ['name', 'namespace', 'description', 'kill_chain_order', 'uuid'],
+            'conditions' => ['AND' => $aclConditions]
         ];
-        $filterData = array(
-            'request' => $this->request,
-            'named_params' => $this->params['named'],
-            'paramArray' => ['value', 'enabled'],
-            'ordered_url_params' => [],
-            'additional_delimiters' => PHP_EOL
-        );
-        $exception = false;
-        $filters = $this->_harvestParameters($filterData, $exception);
-        $searchConditions = [];
-        if (empty($filters['value'])) {
-            $filters['value'] = '';
-        } else {
-            $searchall = '%' . strtolower($filters['value']) . '%';
-            $searchConditions = array(
-                'OR' => array(
-                    'LOWER(Galaxy.name) LIKE' => $searchall,
-                    'LOWER(Galaxy.namespace) LIKE' => $searchall,
-                    'LOWER(Galaxy.description) LIKE' => $searchall,
-                    'LOWER(Galaxy.kill_chain_order) LIKE' => $searchall,
-                    'Galaxy.uuid LIKE' => $searchall
-                )
-            );
+        $this->CRUD->index($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        if (isset($filters['enabled'])) {
-            $searchConditions[]['enabled'] = $filters['enabled'] ? 1 : 0;
-        }
-        if ($this->_isRest()) {
-            $galaxies = $this->Galaxy->find(
-                'all',
-                array(
-                    'recursive' => -1,
-                    'conditions' => array(
-                        'AND' => array($searchConditions, $aclConditions)
-                    )
-                )
-            );
-            return $this->RestResponse->viewData($galaxies, $this->response->type());
-        } else {
-            $this->paginate['conditions']['AND'][] = $searchConditions;
-            $this->paginate['conditions']['AND'][] = $aclConditions;
-            $galaxies = $this->paginate();
-            $this->set('galaxyList', $galaxies);
-            $this->set('passedArgsArray', $this->passedArgs);
-            $this->set('searchall', $filters['value']);
-            $unknownClustersDetails = $this->_isSiteAdmin() ? $this->Galaxy->getUnknownClustersDetails() : '';
-            $this->set('unknownClustersDetails', $unknownClustersDetails);
-        }
+        $this->set('galaxyList', $this->viewVars['data']);
+        $this->set('passedArgsArray', $this->passedArgs);
+        $filters = $this->IndexFilter->harvestParameters(['quickFilter']);
+        $this->set('searchall', $filters['quickFilter'] ?? '');
+        $unknownClustersDetails = $this->_isSiteAdmin() ? $this->Galaxy->getUnknownClustersDetails() : '';
+        $this->set('unknownClustersDetails', $unknownClustersDetails);
     }
 
     public function update()
@@ -221,26 +186,14 @@ class GalaxiesController extends AppController
             throw new NotFoundException('Invalid galaxy.');
         }
 
-        $galaxy = $this->Galaxy->fetchIfAuthorized($this->Auth->user(), $id, 'delete', true);
-        if ($this->request->is('post') || $this->request->is('put')) {
-            $result = $this->Galaxy->delete($id);
-            if ($result) {
-                $message = __('Galaxy deleted');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('Galaxy', 'delete', false, $this->response->type(), $message);
-                } else {
-                    $this->Flash->success($message);
-                    $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
-                }
-            } else {
-                $message = __('Could not delete Galaxy.');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Galaxy', 'delete', false, $message);
-                } else {
-                    $this->Flash->success($message);
-                    $this->redirect($this->referer());
-                }
-            }
+        $this->CRUD->delete($id, [
+            'validate' => function () use ($id) {
+                $this->Galaxy->fetchIfAuthorized($this->Auth->user(), $id, 'delete', true);
+            },
+            'redirect' => ['controller' => 'galaxies', 'action' => 'index']
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
 
