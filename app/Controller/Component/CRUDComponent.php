@@ -19,17 +19,18 @@ class CRUDComponent extends Component
     public function index(array $options)
     {
         $this->prepareResponse();
-        if (!empty($options['quickFilters'])) {
+        $quickFilterParameter = empty($options['quickFilterParameter']) ? 'quickFilter' : $options['quickFilterParameter'];
+        if (!empty($options[$quickFilterParameter])) {
             if (empty($options['filters'])) {
                 $options['filters'] = [];
             }
-            $options['filters'][] = 'quickFilter';
+            $options['filters'][] = $options[$quickFilterParameter];
         }
         $this->Controller->{$this->Controller->modelClass}->includeAnalystData = true;
         $params = $this->Controller->IndexFilter->harvestParameters(empty($options['filters']) ? [] : $options['filters']);
         $query = [];
-        $query = $this->setFilters($params, $query);
-        $query = $this->setQuickFilters($params, $query, empty($options['quickFilters']) ? [] : $options['quickFilters']);
+        $query = $this->setFilters($params, $query, $quickFilterParameter);
+        $query = $this->setQuickFilters($params, $query, empty($options[$quickFilterParameter]) ? [] : $options[$quickFilterParameter], $quickFilterParameter);
         if (!empty($options['contain'])) {
             $query['contain'] = $options['contain'];
         }
@@ -339,11 +340,11 @@ class CRUDComponent extends Component
         $this->Controller->render('/genericTemplates/delete');
     }
 
-    public function setQuickFilters($params, array $query, $quickFilterFields)
+    public function setQuickFilters($params, array $query, $quickFilterFields, $quickFilterParameter = 'quickFilter')
     {
-        if (!empty($params['quickFilter']) && !empty($quickFilterFields)) {
+        if (!empty($params[$quickFilterParameter]) && !empty($quickFilterFields)) {
             $queryConditions = [];
-            $filter = '%' . strtolower($params['quickFilter']) . '%';
+            $filter = '%' . strtolower($params[$quickFilterParameter]) . '%';
             foreach ($quickFilterFields as $filterField) {
                 $queryConditions["LOWER($filterField) LIKE"] = $filter;
             }
@@ -352,13 +353,13 @@ class CRUDComponent extends Component
         return $query;
     }
 
-    public function setFilters(array $params, array $query)
+    public function setFilters(array $params, array $query, $quickFilterParameter = 'quickFilter')
     {
         // For CakePHP 2, we don't need to distinguish between simpleFilters and relatedFilters
         //$params = $this->massageFilters($params);
         if (!empty($params)) {
             foreach ($params as $filter => $filterValue) {
-                if ($filter === 'quickFilter') {
+                if ($filter === $quickFilterParameter) {
                     continue;
                 }
                 if (is_array($filterValue)) {
