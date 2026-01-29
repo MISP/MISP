@@ -28,12 +28,10 @@ class TaxonomiesController extends AppController
         if (!empty($this->passedArgs['value'])) {
             $conditions['Taxonomy.id'] = $this->__search($this->passedArgs['value']);
         }
-        if (isset($this->passedArgs['enabled'])) {
-            $conditions['Taxonomy.enabled'] = $this->passedArgs['enabled'] ? 1 : 0;
-        }
 
         $params = [
-            'filters' => ['enabled'],
+            'filters' => ['enabled', 'namespace', 'description'],
+            'quickFilters' => ['namespace', 'description'],
             'conditions' => $conditions,
             'contain' => [
                 'TaxonomyPredicate' => [
