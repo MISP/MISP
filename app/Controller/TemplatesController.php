@@ -23,19 +23,22 @@ class TemplatesController extends AppController
 
     public function index()
     {
-        $conditions = array();
+        $conditions = [];
         if (!$this->_isSiteAdmin()) {
-            $conditions['OR'] = array('org' => $this->Auth->user('Organisation')['name'], 'share' => 1);
+            $conditions['OR'] = [
+                'Template.org' => $this->Auth->user('Organisation')['name'],
+                'Template.share' => 1
+            ];
         }
-        if (!$this->_isSiteAdmin()) {
-            $this->paginate = Set::merge($this->paginate, array(
-                    'conditions' =>
-                    array("OR" => array(
-                            array('org' => $this->Auth->user('Organisation')['name']),
-                            array('share' => 1),
-            ))));
+        $this->CRUD->index([
+            'filters' => ['name', 'description', 'org', 'share'],
+            'quickFilters' => ['name', 'description'],
+            'conditions' => $conditions
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        $this->set('list', $this->paginate());
+        $this->set('list', $this->viewVars['data']);
     }
 
     public function edit($id)
