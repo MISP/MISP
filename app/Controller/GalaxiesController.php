@@ -23,8 +23,9 @@ class GalaxiesController extends AppController
     {
         $aclConditions = $this->Galaxy->buildConditions($this->Auth->user());
         $params = [
-            'filters' => ['name', 'namespace', 'description', 'kill_chain_order', 'uuid', 'enabled'],
+            'filters' => ['name', 'namespace', 'description', 'kill_chain_order', 'uuid', 'enabled', 'value'],
             'quickFilters' => ['name', 'namespace', 'description', 'kill_chain_order', 'uuid'],
+            'quickFilterParameter' => 'value',
             'conditions' => ['AND' => $aclConditions]
         ];
         $this->CRUD->index($params);
@@ -33,8 +34,8 @@ class GalaxiesController extends AppController
         }
         $this->set('galaxyList', $this->viewVars['data']);
         $this->set('passedArgsArray', $this->passedArgs);
-        $filters = $this->IndexFilter->harvestParameters(['quickFilter']);
-        $this->set('searchall', $filters['quickFilter'] ?? '');
+        $filters = $this->IndexFilter->harvestParameters(['value']);
+        $this->set('searchall', $filters['value'] ?? '');
         $unknownClustersDetails = $this->_isSiteAdmin() ? $this->Galaxy->getUnknownClustersDetails() : '';
         $this->set('unknownClustersDetails', $unknownClustersDetails);
     }
