@@ -26,7 +26,8 @@ class GalaxiesController extends AppController
             'filters' => ['name', 'namespace', 'description', 'kill_chain_order', 'uuid', 'enabled', 'value'],
             'quickFilters' => ['name', 'namespace', 'description', 'kill_chain_order', 'uuid'],
             'quickFilterParameter' => 'value',
-            'conditions' => ['AND' => $aclConditions]
+            'conditions' => ['AND' => $aclConditions],
+            'order' => ['Galaxy.id' => 'DESC']
         ];
         $this->CRUD->index($params);
         if ($this->IndexFilter->isRest()) {
