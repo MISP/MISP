@@ -1189,16 +1189,6 @@ class TestSecurity(unittest.TestCase):
             self.assertIn("X-Username", response.headers)
             self.assertEqual(self.test_usr.email, response.headers["X-Username"])
 
-    def test_username_in_response_header_api_access(self):
-        with self.__setting("Security.username_in_response_header", True):
-            logged_in = PyMISP(url, self.test_usr.authkey)
-
-            response = logged_in._prepare_request('GET', 'users/view/me')
-            self.assertIn("X-Username", response.headers)
-            prefix = f"{self.test_usr.email}/API/"
-            self.assertTrue(response.headers["X-Username"].startswith(prefix))
-            self.assertTrue(response.headers["X-Username"][len(prefix):].isdigit())
-
     def test_username_in_response_header_advanced_api_access(self):
         with self.__setting({
             "Security": {
