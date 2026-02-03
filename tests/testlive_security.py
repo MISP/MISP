@@ -1195,7 +1195,9 @@ class TestSecurity(unittest.TestCase):
 
             response = logged_in._prepare_request('GET', 'users/view/me')
             self.assertIn("X-Username", response.headers)
-            self.assertEqual(self.test_usr.email + "/API/default", response.headers["X-Username"])
+            prefix = f"{self.test_usr.email}/API/"
+            self.assertTrue(response.headers["X-Username"].startswith(prefix))
+            self.assertTrue(response.headers["X-Username"][len(prefix):].isdigit())
 
     def test_username_in_response_header_advanced_api_access(self):
         with self.__setting({
