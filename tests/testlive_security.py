@@ -143,6 +143,7 @@ class TestSecurity(unittest.TestCase):
 
         # Set expected config values
         check_response(cls.admin_misp_connector.set_server_setting('debug', 1, force=True))
+        cls.admin_misp_connector.global_pythonify = True
 
         # we get rid of the legacy authkey checks as those are currently broken since the fix to not having the same keys in the old + new system
 
