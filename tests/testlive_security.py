@@ -143,6 +143,7 @@ class TestSecurity(unittest.TestCase):
 
         # Set expected config values
         check_response(cls.admin_misp_connector.set_server_setting('debug', 1, force=True))
+        check_response(cls.admin_misp_connector.set_server_setting('Security.advanced_authkeys', True, force=True))
         cls.admin_misp_connector.global_pythonify = True
 
         # we get rid of the legacy authkey checks as those are currently broken since the fix to not having the same keys in the old + new system
@@ -185,6 +186,7 @@ class TestSecurity(unittest.TestCase):
 
         test_usr_key = cls.__create_advanced_authkey(cls, cls.test_usr.id)
         cls.test_usr.authkey = test_usr_key["authkey_raw"]
+        assert(cls.test_usr.authkey == test_usr_key["authkey_raw"])
 
         # Try to connect as user to check if everything works
         PyMISP(url, cls.test_usr.authkey)
@@ -495,6 +497,7 @@ class TestSecurity(unittest.TestCase):
             # Reset auth key from org admin account
             new_auth_key = send(self.org_admin_misp_connector, "POST", f"users/resetauthkey/{self.test_usr.id}")
             new_auth_key = new_auth_key["message"].replace("Authkey updated: ", "")
+            self.test_usr.authkey = new_auth_key
 
             # Try to login with old key
             with self.assertRaises(PyMISPError):
@@ -1687,7 +1690,6 @@ class TestSecurity(unittest.TestCase):
 
         return r
 
-    @classmethod
     def __create_user(self, org_id: int, role_id: Union[int, ROLE]) -> MISPUser:
         if isinstance(role_id, ROLE):
             role_id = role_id.value
