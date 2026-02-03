@@ -183,6 +183,9 @@ class TestSecurity(unittest.TestCase):
         cls.test_usr = cls.admin_misp_connector.add_user(user)
         check_response(cls.test_usr)
 
+        test_usr_key = cls.__create_advanced_authkey(cls, cls.test_usr.id)
+        cls.test_usr.authkey = test_usr_key["authkey_raw"]
+
         # Try to connect as user to check if everything works
         PyMISP(url, cls.test_usr.authkey)
         # Check if user can login with given password
