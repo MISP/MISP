@@ -20,9 +20,6 @@ class OrganisationsController extends AppController
             'limit' => 60,
             'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
             'order' => 'LOWER(Organisation.name)'
-            //'order' => array(
-            //      'Organisation.name' => 'ASC'
-            //),
     );
 
     public function index()
@@ -38,6 +35,7 @@ class OrganisationsController extends AppController
         $params = [
             'filters' => ['name', 'description', 'nationality', 'sector', 'type', 'uuid', 'local'],
             'quickFilters' => ['name', 'description', 'nationality', 'sector', 'type', 'contacts', 'restricted_to_domain', 'uuid'],
+            'quickFilterParameter' => 'searchall',
             'conditions' => $conditions,
             'afterFind' => function (array $orgs) {
                 $this->loadModel('User');
