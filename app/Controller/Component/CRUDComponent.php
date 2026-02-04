@@ -28,14 +28,16 @@ class CRUDComponent extends Component
         }
         $this->Controller->{$this->Controller->modelClass}->includeAnalystData = true;
         $foundQuickFilter = false;
-        foreach ($options['filters'] as $filter) {
-            if ($filter === $quickFilterParameter) {
-                $foundQuickFilter = true;
-                continue;
+        if (!empty($options['filters'])) {
+            foreach ($options['filters'] as $filter) {
+                if ($filter === $quickFilterParameter) {
+                    $foundQuickFilter = true;
+                    continue;
+                }
             }
-        }
-        if (!$foundQuickFilter && !empty($options['quickFilters'])) {
-            $options['filters'][] = $quickFilterParameter;
+            if (!$foundQuickFilter && !empty($options['quickFilters'])) {
+                $options['filters'][] = $quickFilterParameter;
+            }
         }
         $params = $this->Controller->IndexFilter->harvestParameters(empty($options['filters']) ? [] : $options['filters']);
         $query = [];
