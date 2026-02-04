@@ -6,7 +6,7 @@ App::uses('AppController', 'Controller');
  */
 class OrganisationsController extends AppController
 {
-    public $components = array('Session', 'RequestHandler');
+    public $components = array('Session', 'RequestHandler', 'CRUD');
 
     public function beforeFilter()
     {
@@ -27,135 +27,88 @@ class OrganisationsController extends AppController
 
     public function index()
     {
-        $conditions = array();
-        // We can either index all of the organisations existing on this instance (default)
-        // or we can pass the 'external' keyword in the URL to look at the added external organisations
         $scope = isset($this->passedArgs['scope']) ? $this->passedArgs['scope'] : 'local';
+        $conditions = [];
         if ($scope !== 'all') {
-            $conditions['AND'][] = array('Organisation.local' => $scope === 'external' ? 0 : 1);
+            $conditions['Organisation.local'] = $scope === 'external' ? 0 : 1;
         }
-        $passedArgs = $this->passedArgs;
-
-        if (isset($this->request->data['searchall'])) {
-            $searchall = $this->request->data['searchall'];
-        } elseif (isset($this->passedArgs['all'])) {
-            $searchall = $this->passedArgs['all'];
-        } elseif (isset($this->passedArgs['searchall'])) {
-            $searchall = $this->passedArgs['searchall'];
-        } elseif (isset($this->passedArgs['quickFilter'])) {
-            $searchall = $this->passedArgs['quickFilter'];
-        }
-
-        if (isset($searchall) && !empty($searchall)) {
-            $passedArgs['searchall'] = $searchall;
-            $allSearchFields = array('name', 'description', 'nationality', 'sector', 'type', 'contacts', 'restricted_to_domain', 'uuid');
-            $searchTerm = '%' . strtolower($passedArgs['searchall']) . '%';
-            foreach ($allSearchFields as $field) {
-                $conditions['OR'][] = array('LOWER(Organisation.' . $field . ') LIKE' => $searchTerm);
-            }
-        }
-
-        $this->paginate['conditions'] = $conditions;
 
         $this->Organisation->addCountField('user_count', $this->User, ['User.org_id = Organisation.id']);
-        if ($this->_isRest()) {
-            unset($this->paginate['limit']);
-            $orgs = $this->Organisation->find('all', $this->paginate);
-        } else {
-            $viewAll = isset($this->params['named']['viewall']) && $this->params['named']['viewall'];
-            if ($viewAll) {
-                unset($this->paginate['limit']);
-            }
-            $this->set('viewall', $viewAll);
-            $orgs = $this->paginate();
-        }
 
-        $this->loadModel('User');
-        $org_creator_ids = array();
-        foreach ($orgs as $k => $org) {
-            if ($this->_isSiteAdmin()) {
-                if (!isset($org_creator_ids[$org['Organisation']['created_by']])) {
-                    $email = $this->User->find('first', array(
-                        'recursive' => -1,
-                        'fields' => array('id', 'email'),
-                        'conditions' => array('id' => $org['Organisation']['created_by']))
-                    );
-                    if (!empty($email)) {
-                        $org_creator_ids[$org['Organisation']['created_by']] = $email['User']['email'];
+        $params = [
+            'filters' => ['name', 'description', 'nationality', 'sector', 'type', 'uuid', 'local'],
+            'quickFilters' => ['name', 'description', 'nationality', 'sector', 'type', 'contacts', 'restricted_to_domain', 'uuid'],
+            'conditions' => $conditions,
+            'afterFind' => function (array $orgs) {
+                $this->loadModel('User');
+                $orgCreatorIds = [];
+                foreach ($orgs as $k => $org) {
+                    if ($this->_isSiteAdmin()) {
+                        $createdBy = $org['Organisation']['created_by'];
+                        if (!isset($orgCreatorIds[$createdBy])) {
+                            $email = $this->User->find('first', [
+                                'recursive' => -1,
+                                'fields' => ['id', 'email'],
+                                'conditions' => ['id' => $createdBy]
+                            ]);
+                            $orgCreatorIds[$createdBy] = !empty($email) ? $email['User']['email'] : __('Unknown');
+                        }
+                        $orgs[$k]['Organisation']['created_by_email'] = $orgCreatorIds[$createdBy];
                     } else {
-                        $org_creator_ids[$org['Organisation']['created_by']] = __('Unknown');
+                        unset($orgs[$k]['Organisation']['created_by']);
+                    }
+                    if (!$this->IndexFilter->isRest()) {
+                        $orgs[$k]['Organisation']['country_code'] = $this->Organisation->getCountryCode($org['Organisation']['nationality']);
                     }
                 }
-                $orgs[$k]['Organisation']['created_by_email'] = $org_creator_ids[$org['Organisation']['created_by']];
-            } else {
-                unset($orgs[$k]['Organisation']['created_by']);
+                return $orgs;
             }
-        }
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($orgs, $this->response->type());
-        }
-        foreach ($orgs as &$org) {
-            $org['Organisation']['country_code'] = $this->Organisation->getCountryCode($org['Organisation']['nationality']);
+        ];
+
+        $this->CRUD->index($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
 
         $this->set('named', $this->params['named']);
         $this->set('scope', $scope);
-        $this->set('orgs', $orgs);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('orgs', $this->viewVars['data']);
+        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('viewall', isset($this->params['named']['viewall']) && $this->params['named']['viewall']);
     }
 
     public function admin_add()
     {
-        if ($this->request->is('post')) {
-            if ($this->_isRest()) {
-                if (isset($this->request->data['request'])) {
-                    $this->request->data = $this->request->data['request'];
+        $params = [
+            'beforeSave' => function (array $data) {
+                $data['Organisation']['created_by'] = $this->Auth->user('id');
+                if ($this->IndexFilter->isRest() && !isset($data['Organisation']['local'])) {
+                    $data['Organisation']['local'] = true;
                 }
-                if (!isset($this->request->data['Organisation'])) {
-                    $this->request->data['Organisation'] = $this->request->data;
-                }
-                if (isset($this->request->data['Organisation']['id'])) {
-                    unset($this->request->data['Organisation']['id']);
-                }
-            }
-            $this->Organisation->create();
-            $this->request->data['Organisation']['created_by'] = $this->Auth->user('id');
-            if ($this->_isRest()) {
-                if (!isset($this->request->data['Organisation']['local'])) {
-                    $this->request->data['Organisation']['local'] = true;
-                }
-            }
-            if ($this->Organisation->save($this->request->data)) {
+                return $data;
+            },
+            'afterSave' => function (array $data) {
                 $this->__uploadLogo($this->Organisation->id);
-                if ($this->_isRest()) {
-                    $org = $this->Organisation->find('first', array(
-                        'conditions' => array('Organisation.id' => $this->Organisation->id),
-                        'recursive' => -1
-                    ));
-                    return $this->RestResponse->viewData($org, $this->response->type());
-                } else {
+                if (!$this->IndexFilter->isRest()) {
                     $this->Flash->success(__('The organisation has been successfully added.'));
-                    $this->redirect(array('admin' => false, 'action' => 'view', $this->Organisation->id));
-                }
-            } else {
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Organisations', 'admin_add', false, $this->Organisation->validationErrors, $this->response->type());
-                } else {
-                    $this->Flash->error(__('The organisation could not be added.'));
+                    $this->redirect(['admin' => false, 'action' => 'view', $this->Organisation->id]);
                 }
             }
-        } else {
-            if ($this->_isRest()) {
-                return $this->RestResponse->describe('Organisations', 'admin_add', false, $this->response->type());
-            } else {
-                if (!empty($this->params['named']['name'])) {
-                    $this->request->data['Organisation']['name'] = $this->params['named']['name'];
-                }
-                if (!empty($this->params['named']['uuid'])) {
-                    $this->request->data['Organisation']['uuid'] = $this->params['named']['uuid'];
-                }
-            }
+        ];
+
+        $this->CRUD->add($params);
+        if ($this->restResponsePayload) {
+            return $this->restResponsePayload;
         }
+
+        // Pre-fill from named parameters
+        if (!empty($this->params['named']['name'])) {
+            $this->request->data['Organisation']['name'] = $this->params['named']['name'];
+        }
+        if (!empty($this->params['named']['uuid'])) {
+            $this->request->data['Organisation']['uuid'] = $this->params['named']['uuid'];
+        }
+
         $countries = array_merge(['' => __('Not specified')], $this->_arrayToValuesIndexArray($this->Organisation->getCountries()));
         $this->set('countries', $countries);
         $this->set('action', 'add');
@@ -163,85 +116,47 @@ class OrganisationsController extends AppController
 
     public function admin_edit($id)
     {
-        if (Validation::uuid($id)) {
-            $temp = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('Organisation.id'), 'conditions' => array('Organisation.uuid' => $id)));
-            if (empty($temp)) {
-                throw new NotFoundException(__('Invalid organisation.'));
-            }
-            $id = $temp['Organisation']['id'];
-        }
-        $this->Organisation->id = $id;
-        if (!$this->Organisation->exists()) {
-            throw new NotFoundException(__('Invalid organisation'));
-        }
-        if ($this->request->is('post') || $this->request->is('put')) {
-            if ($this->_isRest()) {
-                if (isset($this->request->data['request'])) {
-                    $this->request->data = $this->request->data['request'];
-                }
-                if (!isset($this->request->data['Organisation'])) {
-                    $this->request->data['Organisation'] = $this->request->data;
-                }
-                $existingOrg = $this->Organisation->find('first', array('conditions' => array('Organisation.id' => $id)));
-                $changeFields = array('name', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid', 'restricted_to_domain');
-                $temp = array('Organisation' => array());
-                foreach ($changeFields as $field) {
-                    if (isset($this->request->data['Organisation'][$field])) {
-                        $temp['Organisation'][$field] = $this->request->data['Organisation'][$field];
-                    } else {
-                        $temp['Organisation'][$field] = $existingOrg['Organisation'][$field];
-                    }
-                }
-                $this->request->data = $temp;
-            }
-            $this->request->data['Organisation']['id'] = $id;
-            if ($this->Organisation->save($this->request->data)) {
+        $id = $this->Toolbox->findIdByUuid($this->Organisation, $id);
+
+        $params = [
+            'fields' => ['name', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid', 'restricted_to_domain'],
+            'afterSave' => function (array $data) use ($id) {
                 $this->__uploadLogo($this->Organisation->id);
-                if ($this->_isRest()) {
-                    $org = $this->Organisation->find('first', array(
-                            'conditions' => array('Organisation.id' => $this->Organisation->id),
-                            'recursive' => -1
-                    ));
-                    return $this->RestResponse->viewData($org, $this->response->type());
-                } else {
+                if (!$this->IndexFilter->isRest()) {
                     $this->Flash->success(__('Organisation updated.'));
-                    $this->redirect(array('admin' => false, 'action' => 'view', $this->Organisation->id));
-                }
-            } else {
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Organisations', 'admin_edit', false, $this->Organisation->validationErrors, $this->response->type());
-                } else {
-                    if (isset($this->Organisation->validationErrors['uuid'])) {
-                        $duplicate_org = $this->Organisation->find('first', array(
-                            'recursive' => -1,
-                            'conditions' => array('Organisation.uuid' => trim($this->request->data['Organisation']['uuid'])),
-                            'fields' => array('Organisation.id')
-                        ));
-                        $this->set('duplicate_org', $duplicate_org['Organisation']['id']);
-                    }
-                    $this->Flash->error(__('The organisation could not be updated.'));
+                    $this->redirect(['admin' => false, 'action' => 'view', $id]);
                 }
             }
-        } else {
-            if ($this->_isRest()) {
-                return $this->RestResponse->describe('Organisations', 'admin_edit', false, $this->response->type());
+        ];
+
+        $this->CRUD->edit($id, $params);
+        if ($this->restResponsePayload) {
+            return $this->restResponsePayload;
+        }
+
+        // Handle duplicate UUID error display
+        if (isset($this->Organisation->validationErrors['uuid'])) {
+            $duplicateOrg = $this->Organisation->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Organisation.uuid' => trim($this->request->data['Organisation']['uuid'])],
+                'fields' => ['Organisation.id']
+            ]);
+            if (!empty($duplicateOrg)) {
+                $this->set('duplicate_org', $duplicateOrg['Organisation']['id']);
             }
-            $this->Organisation->read(null, $id);
-            $this->request->data = $this->Organisation->data;
         }
 
         $countries = array_merge(['' => __('Not specified')], $this->_arrayToValuesIndexArray($this->Organisation->getCountries()));
-        if (!empty($this->Organisation->data['Organisation']['nationality'])) {
-            $currentCountry = $this->Organisation->data['Organisation']['nationality'];
+        if (!empty($this->request->data['Organisation']['nationality'])) {
+            $currentCountry = $this->request->data['Organisation']['nationality'];
             if (!isset($countries[$currentCountry])) {
-                // Append old country name to list to keep backward compatibility
                 $countries[$currentCountry] = $currentCountry;
             }
         }
 
         $this->set('countries', $countries);
         $this->set('orgId', $id);
-        if (is_array($this->request->data['Organisation']['restricted_to_domain'])) {
+        if (isset($this->request->data['Organisation']['restricted_to_domain']) && is_array($this->request->data['Organisation']['restricted_to_domain'])) {
             $this->request->data['Organisation']['restricted_to_domain'] = implode("\n", $this->request->data['Organisation']['restricted_to_domain']);
         }
         $this->set('id', $id);
@@ -251,45 +166,13 @@ class OrganisationsController extends AppController
 
     public function admin_delete($id)
     {
-        if (!$this->request->is('post') && !$this->request->is('delete')) {
-            throw new MethodNotAllowedException(__('Action not allowed, post or delete request expected.'));
-        }
-        if (Validation::uuid($id)) {
-            $temp = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('Organisation.id'), 'conditions' => array('Organisation.uuid' => $id)));
-            if (empty($temp)) {
-                throw new NotFoundException(__('Invalid organisation'));
-            }
-            $id = $temp['Organisation']['id'];
-        }
-        $this->Organisation->id = $id;
-        if (!$this->Organisation->exists()) {
-            throw new NotFoundException(__('Invalid organisation'));
-        }
+        $id = $this->Toolbox->findIdByUuid($this->Organisation, $id);
 
-        $org = $this->Organisation->find('first', array(
-                'conditions' => array('id' => $id),
-                'recursive' => -1,
-                'fields' => array('local')
-        ));
-        if ($org['Organisation']['local']) {
-            $url = '/organisations/index';
-        } else {
-            $url = '/organisations/index/remote';
-        }
-        if ($this->Organisation->delete()) {
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Organisations', 'admin_delete', $id, $this->response->type());
-            } else {
-                $this->Flash->success(__('Organisation deleted'));
-                $this->redirect($url);
-            }
-        } else {
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveFailResponse('Organisations', 'admin_delete', $id, $this->Organisation->validationErrors, $this->response->type());
-            } else {
-                $this->Flash->error(__('Organisation could not be deleted. Generally organisations should never be deleted, instead consider moving them to the known remote organisations list. Alternatively, if you are certain that you would like to remove an organisation and are aware of the impact, make sure that there are no users or events still tied to this organisation before deleting it.'));
-                $this->redirect($url);
-            }
+        $this->CRUD->delete($id, [
+            'redirect' => ['controller' => 'organisations', 'action' => 'index']
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
 
