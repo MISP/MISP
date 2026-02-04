@@ -383,8 +383,9 @@ class DashboardsController extends AppController
 
         $currentUserId = $this->Auth->user('id');
         $params = [
-            'filters' => ['name', 'description', 'uuid'],
+            'filters' => ['name', 'description', 'uuid', 'value'],
             'quickFilters' => ['name', 'description', 'uuid'],
+            'quickFilterParameter' => 'value',
             'conditions' => $conditions,
             'contain' => ['User.id', 'User.email'],
             'afterFind' => function ($data) use ($accessible_widgets, $currentUserId) {

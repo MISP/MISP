@@ -452,22 +452,12 @@ class WarninglistsController extends AppController
 
     public function delete($id)
     {
-        if ($this->request->is('post')) {
-            $id = (int)$id;
-            $result = $this->Warninglist->quickDelete($id);
-            if ($result) {
-                $this->Flash->success(__('Warninglist successfully deleted.'));
-            } else {
-                $this->Flash->error(__('Warninglist could not be deleted.'));
-            }
-            $this->redirect(['controller' => 'warninglists', 'action' => 'index']);
-        } else {
-            if ($this->request->is('ajax')) {
-                $this->set('id', $id);
-                $this->render('ajax/delete_confirmation');
-            } else {
-                throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
-            }
+        $this->CRUD->delete($id, [
+            'modelFunction' => 'quickDelete',
+            'redirect' => ['controller' => 'warninglists', 'action' => 'index']
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
 
