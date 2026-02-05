@@ -343,6 +343,12 @@ class CRUDComponent extends Component
                     }
                     $this->Controller->redirect($this->Controller->referer($redirect));
                 }
+            } else {
+                if ($this->Controller->IndexFilter->isRest()) {
+                    $validationError = __('%s could not be deleted.', $modelName);
+                    $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveFailResponse($modelName, 'delete', $id, $validationError);
+                    return;
+                }
             }
         }
         $this->Controller->set('validationError', $validationError);
