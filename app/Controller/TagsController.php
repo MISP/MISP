@@ -105,11 +105,13 @@ class TagsController extends AppController
                     }
                 }
 
-                // Flatten for REST
+                // For REST, flatten and wrap in 'Tag' key for backwards compatibility
                 if ($this->IndexFilter->isRest()) {
-                    foreach ($tags as $key => $tag) {
-                        $tags[$key] = $tag['Tag'];
+                    $flattened = [];
+                    foreach ($tags as $tag) {
+                        $flattened[] = $tag['Tag'];
                     }
+                    return ['Tag' => $flattened];
                 }
 
                 return $tags;
