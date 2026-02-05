@@ -157,6 +157,9 @@ class ObjectTemplatesController extends AppController
             'quickFilters' => ['name', 'uuid', 'description', 'meta-category'],
             'quickFilterParameter' => 'searchall',
             'conditions' => $conditions,
+            'contain' => [
+                'Organisation' => ['fields' => ['Organisation.id', 'Organisation.name', 'Organisation.uuid']]
+            ],
             'order' => ['ObjectTemplate.name' => 'ASC']
         ];
         $this->CRUD->index($params);
