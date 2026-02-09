@@ -450,6 +450,135 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+
+  /attributes/searchByValue:
+    post:
+      summary: "Search attributes by exact value"
+      description: |
+        Search for attributes by their exact value and return matching attribute details.
+        
+        This endpoint provides a streamlined alternative to `/attributes/restSearch` for simple 
+        value-based lookups, returning a cleaner response format focused on the essential 
+        attribute information.
+        
+        **Use cases:**
+        - Check if an attribute already exists before adding
+        - Get the ID of an attribute for further operations (tagging, deletion, etc.)
+        - Quick lookups in automation scripts and integrations
+        
+        **Example request:**
+        ```json
+        {
+            "value": "192.168.1.1",
+            "limit": 50,
+            "includeEventInfo": true
+        }
+        ```
+      operationId: searchAttributesByValue
+      tags:
+        - Attributes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - value
+              properties:
+                value:
+                  type: string
+                  description: "The exact attribute value to search for"
+                  example: "192.168.1.1"
+                limit:
+                  type: integer
+                  description: "Maximum number of results to return (default: 100, max: 1000)"
+                  default: 100
+                  minimum: 1
+                  maximum: 1000
+                  example: 50
+                includeEventInfo:
+                  type: boolean
+                  description: "Include basic event information in response"
+                  default: false
+                  example: true
+      responses:
+        "200":
+          description: "Matching attributes found"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Attribute:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "12345"
+                        event_id:
+                          type: string
+                          example: "100"
+                        uuid:
+                          type: string
+                          format: uuid
+                        type:
+                          type: string
+                          example: "ip-src"
+                        category:
+                          type: string
+                          example: "Network activity"
+                        value:
+                          type: string
+                          example: "192.168.1.1"
+                        to_ids:
+                          type: boolean
+                        timestamp:
+                          type: string
+                        distribution:
+                          type: string
+                        comment:
+                          type: string
+                        Event:
+                          type: object
+                          description: "Only present if includeEventInfo is true"
+                          properties:
+                            id:
+                              type: string
+                            uuid:
+                              type: string
+                            info:
+                              type: string
+                            date:
+                              type: string
+                  count:
+                    type: integer
+                    description: "Number of matching attributes"
+                    example: 1
+        "400":
+          description: "Bad request - missing required 'value' parameter"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: "No attributes found matching the given value"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          description: "Method not allowed - requires POST request via API"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
   /attributes/attributeStatistics/{context}/{percentage}:
     get:
       summary: "Get the count of attributes per category"
