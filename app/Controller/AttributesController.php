@@ -3154,4 +3154,112 @@ class AttributesController extends AppController
         ]);
         return $this->RestResponse->successResponse(0, $result);
     }
+
+    /**
+     * Search for attributes by value and return matching attribute details.
+     * 
+     * This endpoint provides a streamlined way to look up attributes by their exact value,
+     * returning essential attribute information. Useful for checking if an attribute exists
+     * or retrieving its ID for further operations.
+     * 
+     * POST body (JSON):
+     * {
+     *     "value": "192.168.1.1",           // Required: The attribute value to search for
+     *     "limit": 100,                      // Optional: Maximum results (default: 100, max: 1000)
+     *     "includeEventInfo": false          // Optional: Include basic event info (default: false)
+     * }
+     *
+     * @return CakeResponse
+     * @throws MethodNotAllowedException If not a POST API request
+     * @throws BadRequestException If value parameter is missing
+     * @throws NotFoundException If no matching attributes found
+     */
+    public function searchByValue()
+    {
+        if (!$this->request->is('post') || !$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This endpoint requires a POST request via the API.'));
+        }
+
+        $data = $this->request->data;
+        
+        // Validate required parameter
+        if (empty($data['value'])) {
+            throw new BadRequestException(__('The "value" parameter is required.'));
+        }
+        
+        $value = $data['value'];
+        $limit = isset($data['limit']) ? min((int)$data['limit'], 1000) : 100;
+        $includeEventInfo = !empty($data['includeEventInfo']);
+        
+        $user = $this->Auth->user();
+        
+        // Build efficient query conditions using indexed columns
+        $conditions = [
+            'AND' => [
+                $this->MispAttribute->buildConditions($user),
+                'Attribute.deleted' => 0,
+                'OR' => [
+                    'Attribute.value1' => $value,
+                    'Attribute.value2' => $value,
+                ]
+            ]
+        ];
+        
+        // Also search for exact composite value match
+        if (strpos($value, '|') !== false) {
+            $conditions['AND']['OR'][] = [
+                "CONCAT(Attribute.value1, '|', Attribute.value2)" => $value
+            ];
+        }
+        
+        // Determine what to include in the response
+        $params = [
+            'conditions' => $conditions,
+            'flatten' => true,
+            'limit' => $limit,
+        ];
+        
+        if ($includeEventInfo) {
+            $params['contain'] = ['Event' => ['fields' => ['id', 'uuid', 'info', 'org_id', 'orgc_id', 'date']]];
+        }
+        
+        $attributes = $this->MispAttribute->fetchAttributes($user, $params);
+        
+        if (empty($attributes)) {
+            throw new NotFoundException(__('No attributes found matching the given value.'));
+        }
+        
+        // Format response - clean and minimal
+        $results = [];
+        foreach ($attributes as $attr) {
+            $attribute = [
+                'id' => $attr['Attribute']['id'],
+                'event_id' => $attr['Attribute']['event_id'],
+                'uuid' => $attr['Attribute']['uuid'],
+                'type' => $attr['Attribute']['type'],
+                'category' => $attr['Attribute']['category'],
+                'value' => $attr['Attribute']['value'],
+                'to_ids' => $attr['Attribute']['to_ids'],
+                'timestamp' => $attr['Attribute']['timestamp'],
+                'distribution' => $attr['Attribute']['distribution'],
+                'comment' => $attr['Attribute']['comment'],
+            ];
+            
+            if ($includeEventInfo && !empty($attr['Event'])) {
+                $attribute['Event'] = [
+                    'id' => $attr['Event']['id'],
+                    'uuid' => $attr['Event']['uuid'],
+                    'info' => $attr['Event']['info'],
+                    'date' => $attr['Event']['date'],
+                ];
+            }
+            
+            $results[] = $attribute;
+        }
+        
+        return $this->RestResponse->viewData(
+            ['Attribute' => $results, 'count' => count($results)],
+            $this->response->type()
+        );
+    }
 }
