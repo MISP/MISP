@@ -4,7 +4,7 @@
         $this->Form->create('UserSetting'),
         __('Set User Setting'),
         sprintf(
-            '%s%s%s',
+            '%s%s%s%s',
             $this->Form->input(
                 'user_id',
                 array(
@@ -30,6 +30,18 @@
                     'div' => 'clear',
                     'class' => 'input input-xxlarge',
                     'type' => 'textarea',
+                    'default' => isset($current_setting) ? $current_setting : null
+                )
+            ),
+            $this->Form->input(
+                'value_select',
+                array(
+                    'label' => __('Value'),
+                    'div' => 'clear',
+                    'class' => 'input input-xxlarge',
+                    'default' => isset($current_setting) ? $current_setting : null,
+                    'options' => isset($current_setting) ? $validSettings[$setting]['options'] : null,
+
                 )
             )
         ),
@@ -42,11 +54,15 @@
     var validSettings = <?= json_encode($validSettings); ?>;
 
     $(function() {
+        $('#UserSettingValueSelect').parent().hide();
         loadUserSettingValue();
         changeUserSettingPlaceholder();
         $('#UserSettingSetting, #UserSettingUserId').on('change', function() {
             loadUserSettingValue();
             changeUserSettingPlaceholder();
+        });
+        $('#UserSettingValueSelect').on('change', function() {
+            $('#UserSettingValue').val($(this).val());
         });
     });
 
@@ -64,10 +80,16 @@
                     data = JSON.stringify(data, undefined, 4);
                 }
                 $('#UserSettingValue').val(data);
+                if ($('#UserSettingValueSelect').is(':visible')) {
+                    $('#UserSettingValueSelect').val(data);
+                }
             },
             error: function (xhr) {
                 if (xhr.status === 404) {
                     $('#UserSettingValue').val('');
+                    if ($('#UserSettingValueSelect').is(':visible')) {
+                        $('#UserSettingValueSelect').val('');
+                    }
                 } else {
                     xhrFailCallback(xhr);
                 }
@@ -78,7 +100,23 @@
     function changeUserSettingPlaceholder() {
         var setting = $('#UserSettingSetting').val();
         if (setting in validSettings) {
-            $('#UserSettingValue').attr("placeholder", "Example:\n" + JSON.stringify(validSettings[setting], undefined, 4));
+            $('#UserSettingValue').attr("placeholder", "Example:\n" + JSON.stringify(validSettings[setting]["placeholder"], undefined, 4));
+            if ('options' in validSettings[setting]) {
+                $('#UserSettingValueSelect').empty();
+                validSettings[setting]['options'].forEach(function(option) {
+                    $('#UserSettingValueSelect').append($('<option>', {
+                        value: option,
+                        text: option
+                    }));
+                });
+                $('#UserSettingValueSelect').prop('selectedIndex', 0);
+                $('#UserSettingValueSelect').parent().show();
+                $('#UserSettingValue').parent().hide();
+            } else {
+                $('#UserSettingValueSelect').empty();
+                $('#UserSettingValueSelect').parent().hide();
+                $('#UserSettingValue').parent().show();
+            }
         }
     }
 </script>

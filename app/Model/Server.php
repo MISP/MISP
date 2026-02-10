@@ -5370,6 +5370,14 @@ class Server extends AppModel
                     },
                     'afterHook' => 'cleanCacheFiles'
                 ),
+                'enable_themes' => array(
+                    'level' => 0,
+                    'description' => __('Enable themes for users of the instance. Currently this is used to allow users to opt-in to a the various preview/beta modes.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
                 'default_attribute_memory_coefficient' => array(
                     'level' => 1,
                     'description' => __('This values controls the internal fetcher\'s memory envelope when it comes to attributes. The number provided is the amount of attributes that can be loaded for each MB of PHP memory available in one shot. Consider lowering this number if your instance has a lot of attribute tags / attribute galaxies attached.'),

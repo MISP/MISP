@@ -20,7 +20,7 @@ class UserSetting extends AppModel
     );
 
     public $validate = array(
-        'value' => 'valueIsJson',
+        'value' => 'valueIsJsonOrString',
     );
 
     public $belongsTo = array(
@@ -46,11 +46,13 @@ class UserSetting extends AppModel
                         )
                     )
                 )
-            )
+            ),
+            'validation' => 'validate_json',
         ),
         'dashboard_access' => array(
             'placeholder' => 1,
-            'restricted' => 'perm_site_admin'
+            'restricted' => 'perm_site_admin',
+            'validation' => 'validate_json',
         ),
         'dashboard' => array(
             'placeholder' => array(
@@ -65,7 +67,8 @@ class UserSetting extends AppModel
                         'height' => 2
                     )
                 )
-            )
+            ),
+            'validation' => 'validate_json',
         ),
         'homepage' => array(
             'placeholder' => ['path' => '/events/index'],
@@ -88,18 +91,22 @@ class UserSetting extends AppModel
                         )
                     )
                 )
-            )
+            ),
+            'validation' => 'validate_json',
         ),
         'tag_numerical_value_override' => array(
             'placeholder' => array(
                 'false-positive:risk="medium"' => 99
-            )
+            ),
+            'validation' => 'validate_json',
         ),
         'event_index_hide_columns' => [
             'placeholder' => ['clusters'],
+            'validation' => 'validate_json',
         ],
         'oidc' => [ // Data saved by OIDC plugin
             'internal' => true,
+            'validation' => 'validate_json',
         ],
         'periodic_notification_filters' => [
             'placeholder' => [
@@ -109,9 +116,16 @@ class UserSetting extends AppModel
                 'event_info' => 'phishing',
                 'tags' => '["tlp:red"]',
             ],
+            'validation' => 'validate_json',
         ],
         'ui_beta_opt_in' => [
             'placeholder' => false,
+            'validation' => 'validate_json',
+        ],
+        'ui_theme' => [
+            'placeholder' => 'default, 3.x, uiBeta',
+            'options' => ['default', '3.x', 'uiBeta'],
+            'validation' => 'validate_theme',
         ],
     );
 
@@ -122,6 +136,28 @@ class UserSetting extends AppModel
             return false;
         }
         return str_starts_with($path['path'], '/');
+    }
+
+    public static function validate_theme($value, $user)
+    {
+        if (empty($value)) {
+            return true;
+        }
+        if (!in_array($value, ['default', '3.x', 'uiBeta'])) {
+            return false;
+        }
+        return true;
+    }
+
+    public static function validate_json($value, $user)
+    {
+        if (is_array($value)) {
+            $value = current($value);
+            if (!JsonTool::isValid($value)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // massage the data before we send it off for validation before saving anything
@@ -136,9 +172,7 @@ class UserSetting extends AppModel
             $this->data['UserSetting']['value'] !== '' &&
             $this->data['UserSetting']['value'] !== 'null'
         ) {
-            if (is_array($this->data['UserSetting']['value'])) {
-                $this->data['UserSetting']['value'] = json_encode($this->data['UserSetting']['value']);
-            }
+            $this->data['UserSetting']['value'] = json_encode($this->data['UserSetting']['value']);
         } else {
             $this->data['UserSetting']['value'] = '[]';
         }
@@ -186,7 +220,10 @@ class UserSetting extends AppModel
         $output = [];
         foreach (self::VALID_SETTINGS as $setting => $config) {
             if ($this->checkSettingAccess($user, $setting) === true) {
-                $output[$setting] = $config['placeholder'];
+                $output[$setting]['placeholder'] = $config['placeholder'];
+                if (!empty($config['options'])) {
+                    $output[$setting]['options'] = $config['options'];
+                }
             }
         }
         return $output;
@@ -241,7 +278,6 @@ class UserSetting extends AppModel
         if (!isset(self::VALID_SETTINGS[$setting]['validation'])) {
             return true;
         }
-
         $funName = self::VALID_SETTINGS[$setting]['validation'];
         $validationFn = ['UserSetting', $funName];
         if (!empty($funName) && is_callable($validationFn)) {
@@ -324,6 +360,17 @@ class UserSetting extends AppModel
          $value = $this->getValueForUser($userId, 'ui_beta_opt_in');
          return !empty($value);
      }
+
+    /**
+     * Check if a user has opted into the beta UI
+     * @param int $userId
+     * @return bool
+     */
+    public function getUserTheme($userId)
+    {
+        $value = $this->getValueForUser($userId, 'ui_theme');
+        return $value ?: null;
+    }
 
     /**
      * @param int $userId
@@ -516,12 +563,13 @@ class UserSetting extends AppModel
             throw new MethodNotAllowedException(__('Invalid setting value', $settingValidationCheck));
         }
         $userSetting['setting'] = $data['UserSetting']['setting'];
-        if ($data['UserSetting']['value'] !== '') {
+        if (!empty($data['UserSetting']['value_select'])) {
+            $userSetting['value'] = $data['UserSetting']['value_select'];
+        } else if ($data['UserSetting']['value'] !== '') {
             $userSetting['value'] = $data['UserSetting']['value'];
         } else {
             $userSetting['value'] = '';
         }
-
         return $this->setSettingInternal($userSetting['user_id'], $userSetting['setting'], $userSetting['value']);
     }
 
@@ -555,7 +603,6 @@ class UserSetting extends AppModel
         } else {
             $userSetting['id'] = $existingSetting['UserSetting']['id'];
         }
-
         return $this->save($userSetting, ['skipAuditLog' => $this->isInternal($setting)]);
     }
 

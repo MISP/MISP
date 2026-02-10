@@ -434,6 +434,12 @@ class AppController extends Controller
             if (PHP_MAJOR_VERSION < 8) {
                 $this->Flash->error(__('WARNING: MISP 2.5.x is currently running under PHP 7.x, which is unsupported. Make sure that you upgrade to PHP 8.x as soon as possible.'));
             }
+            if (Configure::read('MISP.enable_themes')) {
+                $userTheme = $this->User->UserSetting->getUserTheme($user['id']);
+                if ($userTheme) {
+                    $this->theme = $userTheme;
+                }
+            }
         }
     }
 

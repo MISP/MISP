@@ -33,6 +33,9 @@ class UserSettingsController extends AppController
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'eventIndexColumnToggle';
         $this->Security->unlockedActions[] = 'toggleBetaUi';
+        if ($this->action === 'setSetting') {
+            $this->Security->unlockedFields = array('value', 'value_select');
+        }
     }
 
     public function index()
@@ -167,6 +170,18 @@ class UserSettingsController extends AppController
             $settingPermCheck = $this->UserSetting->checkSettingAccess($this->Auth->user(), $setting);
             if ($settingPermCheck !== true) {
                 throw new MethodNotAllowedException(__('This setting is restricted and requires the following permission(s): %s', $settingPermCheck));
+            }
+        }
+        if (!empty($user_id) && !empty($setting) && !$this->_isRest()) {
+            $current_setting = $this->UserSetting->find('first', array(
+                'recursive' => -1,
+                'conditions' => array(
+                    'UserSetting.user_id' => $user_id,
+                    'UserSetting.setting' => $setting
+                )
+            ));
+            if (!empty($current_setting)) {
+                $this->set('current_setting', $current_setting['UserSetting']['value']);
             }
         }
         // handle POST requests
