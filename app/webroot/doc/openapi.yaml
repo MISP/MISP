@@ -3409,6 +3409,7 @@ components:
         - "passenger-name-record-locator-number"
         - "mobile-application-id"
         - "chrome-extension-id"
+        - "edge-extension-id"
         - "cortex"
         - "boolean"
         - "anonymised"
