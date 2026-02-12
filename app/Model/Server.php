@@ -5376,7 +5376,8 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
-                    'null' => true
+                    'null' => true,
+                    'cli_only' => 1
                 ),
                 'default_attribute_memory_coefficient' => array(
                     'level' => 1,
