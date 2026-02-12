@@ -30,6 +30,7 @@
                     'div' => 'clear',
                     'class' => 'input input-xxlarge',
                     'type' => 'textarea',
+                    'required' => false,
                 )
             ),
             $this->Form->input(

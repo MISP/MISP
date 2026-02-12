@@ -172,7 +172,11 @@ class UserSetting extends AppModel
             $this->data['UserSetting']['value'] !== '' &&
             $this->data['UserSetting']['value'] !== 'null'
         ) {
-            $this->data['UserSetting']['value'] = json_encode($this->data['UserSetting']['value']);
+            if (is_string($this->data['UserSetting']['value']) && JsonTool::isValid($this->data['UserSetting']['value'])) {
+                // Value is already a valid JSON string, keep as is
+            } else {
+                $this->data['UserSetting']['value'] = json_encode($this->data['UserSetting']['value']);
+            }
         } else {
             $this->data['UserSetting']['value'] = '[]';
         }
