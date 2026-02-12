@@ -335,6 +335,10 @@ class ComplexTypeTool
 
         $input = ['raw' => $raw_input];
 
+        if ($result = $this->__checkForBrowserExtensionIDs($input)) {
+            return $result;
+        }
+
         // Check hashes before refang and port extracting, it is not necessary for hashes. This speedups parsing
         // freetexts or CSVs with a lot of hashes.
         if ($result = $this->__checkForHashes($input)) {
@@ -374,6 +378,18 @@ class ComplexTypeTool
             return [
                 'types' => ['btc'],
                 'default_type' => 'btc',
+                'value' => $input['raw'],
+            ];
+        }
+        return false;
+    }
+
+    private function __checkForBrowserExtensionIDs($input)
+    {
+        if (preg_match('/^[a-p]{32}$/', $input['raw'])) {
+            return [
+                'types' => ['chrome-extension-id'],
+                'default_type' => 'chrome-extension-id',
                 'value' => $input['raw'],
             ];
         }
