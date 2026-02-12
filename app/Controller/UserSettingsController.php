@@ -206,7 +206,7 @@ class UserSettingsController extends AppController
                         'recursive' => -1,
                         'conditions' => array('UserSetting.id' => $this->UserSetting->id)
                     ));
-                    return $this->RestResponse->viewData($userSetting, $this->response->type());
+                    return $this->RestResponse->viewData($userSetting['UserSetting'], $this->response->type());
                 } else {
                     // if we are dealing with a UI request, redirect the user to the user view with the proper flash message
                     $this->Flash->success(__('Setting saved.'));
