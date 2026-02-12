@@ -802,16 +802,6 @@ class EventsController extends AppController
             $this->autoRender = false;
             $this->layout = false;
             $this->render('ajax/index');
-        } else {
-            // Check if user has beta UI enabled and use beta view if available
-            $this->loadModel('UserSetting');
-            $uiBetaEnabled = $this->UserSetting->isUiBetaEnabled($this->Auth->user('id'));
-            
-            if ($uiBetaEnabled) {
-                App::uses('BetaUiHelper', 'Lib/Tools');
-                $viewPath = BetaUiHelper::getViewPath($uiBetaEnabled, 'Events/index');
-                $this->render(str_replace('Events/', '', $viewPath));
-            }
         }
     }
 

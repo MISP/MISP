@@ -30,7 +30,6 @@
                     'div' => 'clear',
                     'class' => 'input input-xxlarge',
                     'type' => 'textarea',
-                    'default' => isset($current_setting) ? $current_setting : null
                 )
             ),
             $this->Form->input(
@@ -40,8 +39,7 @@
                     'div' => 'clear',
                     'class' => 'input input-xxlarge',
                     'default' => isset($current_setting) ? $current_setting : null,
-                    'options' => isset($current_setting) ? $validSettings[$setting]['options'] : null,
-
+                    'options' => !empty($validSettings[$setting]['options']) ? $validSettings[$setting]['options'] : [],
                 )
             )
         ),
@@ -71,17 +69,16 @@
         var setting = $('#UserSettingSetting').val();
         $.ajax({
             type: "get",
-            url: baseurl + "/user_settings/getSetting/" + user_id + "/" + setting,
+            url: baseurl + "/user_settings/getSetting/" + user_id + "/" + setting + ".json",
             success: function (data) {
-                if (data === '[]') {
-                    data = '';
+                var value = data['UserSetting']['value'];
+                if (typeof value === 'object' && value !== null) {
+                    $('#UserSettingValue').val(JSON.stringify(value, undefined, 4));
                 } else {
-                    data = JSON.parse(data);
-                    data = JSON.stringify(data, undefined, 4);
+                    $('#UserSettingValue').val(value);
                 }
-                $('#UserSettingValue').val(data);
                 if ($('#UserSettingValueSelect').is(':visible')) {
-                    $('#UserSettingValueSelect').val(data);
+                    $('#UserSettingValueSelect').val(value);
                 }
             },
             error: function (xhr) {

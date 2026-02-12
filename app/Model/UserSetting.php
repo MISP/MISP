@@ -123,8 +123,8 @@ class UserSetting extends AppModel
             'validation' => 'validate_json',
         ],
         'ui_theme' => [
-            'placeholder' => 'default, 3.x, uiBeta',
-            'options' => ['default', '3.x', 'uiBeta'],
+            'placeholder' => 'Default, Overmind, UiBeta',
+            'options' => ['Default', 'Overmind', 'UiBeta'],
             'validation' => 'validate_theme',
         ],
     );
@@ -143,7 +143,7 @@ class UserSetting extends AppModel
         if (empty($value)) {
             return true;
         }
-        if (!in_array($value, ['default', '3.x', 'uiBeta'])) {
+        if (!in_array($value, self::VALID_SETTINGS['ui_theme']['options'])) {
             return false;
         }
         return true;
@@ -558,10 +558,6 @@ class UserSetting extends AppModel
         if ($settingPermCheck !== true) {
             throw new MethodNotAllowedException(__('This setting is restricted and requires the following permission(s): %s', $settingPermCheck));
         }
-        $settingValidationCheck = $this->checkSettingValidation($user, $data['UserSetting']['setting'], $data['UserSetting']['value']);
-        if ($settingValidationCheck !== true) {
-            throw new MethodNotAllowedException(__('Invalid setting value', $settingValidationCheck));
-        }
         $userSetting['setting'] = $data['UserSetting']['setting'];
         if (!empty($data['UserSetting']['value_select'])) {
             $userSetting['value'] = $data['UserSetting']['value_select'];
@@ -570,7 +566,21 @@ class UserSetting extends AppModel
         } else {
             $userSetting['value'] = '';
         }
-        return $this->setSettingInternal($userSetting['user_id'], $userSetting['setting'], $userSetting['value']);
+        $settingValidationCheck = $this->checkSettingValidation(
+            $user,
+            $userSetting['setting'],
+            $userSetting['value']
+        );
+        if ($settingValidationCheck !== true) {
+            throw new MethodNotAllowedException(
+                __('Invalid setting value.')
+            );
+        }
+        return $this->setSettingInternal(
+            $userSetting['user_id'],
+            $userSetting['setting'],
+            $userSetting['value']
+        );
     }
 
     /**

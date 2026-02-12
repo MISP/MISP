@@ -32,7 +32,7 @@ class UserSettingsController extends AppController
     {
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'eventIndexColumnToggle';
-        $this->Security->unlockedActions[] = 'toggleBetaUi';
+        $this->Security->unlockedActions[] = 'setTheme';
         if ($this->action === 'setSetting') {
             $this->Security->unlockedFields = array('value', 'value_select');
         }
@@ -420,59 +420,31 @@ class UserSettingsController extends AppController
     }
 
     /**
-     * Toggle Beta UI setting for the current user
-     * Provides a quick way to enable/disable beta UI without navigating to settings
+     * Toggle UI theme setting for the current user
+     * Provides a quick way to enable alternate UIs without navigating to settings
      */
-    public function toggleBetaUi()
+    public function setTheme($theme)
     {
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException(__('Expecting POST request.'));
         }
 
         $userId = $this->Auth->user('id');
-        $currentValue = $this->UserSetting->isUiBetaEnabled($userId);
-        $newValue = !$currentValue;
-
-        // Find existing setting
-        $existingSetting = $this->UserSetting->find('first', [
-            'recursive' => -1,
-            'conditions' => [
-                'UserSetting.user_id' => $userId,
-                'UserSetting.setting' => 'ui_beta_opt_in',
-            ],
-        ]);
-
-        if (empty($existingSetting)) {
-            // Create new setting
-            $this->UserSetting->create();
-            $data = [
-                'UserSetting' => [
-                    'user_id' => $userId,
-                    'setting' => 'ui_beta_opt_in',
-                    'value' => json_encode($newValue),
-                ]
-            ];
-        } else {
-            // Update existing setting
-            $data = [
-                'UserSetting' => [
-                    'id' => $existingSetting['UserSetting']['id'],
-                    'value' => json_encode($newValue),
-                ]
-            ];
+        $validThemes = array_flip($this->UserSetting::VALID_SETTINGS['ui_theme']['options']);
+        if (!isset($validThemes[$theme])) {
+            throw new BadRequestException(__('Invalid theme option provided.'));
         }
 
-        $result = $this->UserSetting->save($data);
+        $result = $this->UserSetting->setSettingInternal(
+            $userId, 'ui_theme', $theme
+        );
 
         if ($result) {
-            $message = $newValue
-                ? __('Beta UI enabled. The page will now reload.')
-                : __('Beta UI disabled. The page will now reload.');
-            
-            return $this->RestResponse->saveSuccessResponse('UserSettings', 'toggleBetaUi', false, 'json', $message);
+            $message = __('%s theme set. The page will now reload.', $theme);
+            return $this->RestResponse->saveSuccessResponse('UserSettings', 'setTheme', false, 'json', $message);
         } else {
-            $message = __('Failed to toggle Beta UI setting.');
-            return $this->RestResponse->saveFailResponse('UserSettings', 'toggleBetaUi', false, $message, 'json');
+            $message = __('Failed to set %s theme.', $theme);
+            return $this->RestResponse->saveFailResponse('UserSettings', 'setTheme', false, $message, 'json');
         }
     }
 }
