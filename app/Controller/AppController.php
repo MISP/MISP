@@ -294,7 +294,8 @@ class AppController extends Controller
                     $this->set('theme', $default_theme);
                 }
             }
-            $this->set('themes', UserSetting::VALID_SETTINGS['ui_theme']['options']);
+            $userSetting = ClassRegistry::init('UserSetting');
+            $this->set('themes', $userSetting::VALID_SETTINGS['ui_theme']['options']);
         }
 
         $user = $this->Auth->user();

@@ -5395,7 +5395,7 @@ class Server extends AppModel
                     'cli_only' => 1
                 ),
                 'default_theme' => array(
-                    'level' => 3,
+                    'level' => 2,
                     'description' => __('Set a default theme for the instance. This is mostly used for developer purposes for now, but will be more interesting in the future.'),
                     'value' => false,
                     'test' => 'testTheme',
