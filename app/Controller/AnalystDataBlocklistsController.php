@@ -80,7 +80,7 @@ class AnalystDataBlocklistsController extends AppController
                     return $this->RestResponse->saveSuccessResponse('AnalystDataBlocklist', 'Deleted', $ids, $this->response->type());
                 } else {
                     $this->Flash->success('Blocklist entry removed');
-                    $this->redirect(array('controller' => 'AnalystDataBlocklist', 'action' => 'index'));
+                    $this->redirect(array('controller' => 'AnalystDataBlocklists', 'action' => 'index'));
                 }
             } else {
                 $error = __('Failed to delete Analyst Data from AnalystDataBlocklist. Error: ') . PHP_EOL . h($result);
