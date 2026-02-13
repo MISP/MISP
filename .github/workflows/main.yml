@@ -40,12 +40,44 @@ jobs:
           --health-timeout=3s
           --health-retries=30
 
+      redis:
+        image: redis:5
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=30
+
+
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
+
+      - name: Stop default MySQL (if present)
+        run: sudo service mysql stop || true
+
+      - name: Wait for MariaDB service
+        run: |
+          for i in {1..60}; do
+            mariadb-admin ping -h 127.0.0.1 -uroot -pbar && exit 0
+            sleep 2
+          done
+          echo "MariaDB did not become ready in time"
+          exit 1
+
+      - name: Wait for Redis service
+        run: |
+          for i in {1..60}; do
+            redis-cli -h 127.0.0.1 -p 6379 ping | grep -q PONG && exit 0
+            sleep 2
+          done
+          echo "Redis did not become ready in time"
+          exit 1
 
       - uses: zhulik/redis-action@1.1.0
         with:
