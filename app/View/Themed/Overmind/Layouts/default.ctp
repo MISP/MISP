@@ -3,26 +3,55 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
-    <title><?= h($title_for_layout), ' - ', h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
+    <title><?= h($title_for_layout) .  ' - ' . h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php
-        $css = [
-            ['bootstrap', ['preload' => true]],
-            ['bootstrap-datepicker', ['preload' => true]],
-            ['bootstrap-colorpicker', ['preload' => true]],
-            ['font-awesome', ['preload' => true]],
-            ['chosen.min', ['preload' => true]],
-            ['main', ['preload' => true]],
-            ['print', ['media' => 'print']],
+        $bootstrap5Pages = [
+            ['controller' => 'users', 'action' => 'login'],
         ];
+
+        $currentController = $this->params['controller'];
+        $currentAction = $this->params['action'];
+
+        $useBootstrap5 = false;
+
+        foreach ($bootstrap5Pages as $page) {
+            if (
+                $currentController === $page['controller'] &&
+                $currentAction === $page['action']
+            ) {
+                $useBootstrap5 = true;
+                break;
+            }
+        }
+
+        if ($useBootstrap5) {
+            $css = [
+                ['bootstrap5-custom.min', ['preload' => true]],
+                ['mainOvermind', ['preload' => true]],
+                ['fontawesome7.min', ['preload' => true]],
+                ['print', ['media' => 'print']],
+            ];
+            $js = [];
+        } else {
+            $css = [
+                ['bootstrap', ['preload' => true]],
+                ['main', ['preload' => true]],
+                ['bootstrap-datepicker', ['preload' => true]],
+                ['bootstrap-colorpicker', ['preload' => true]],
+                ['font-awesome', ['preload' => true]],
+                ['chosen.min', ['preload' => true]],
+                ['print', ['media' => 'print']],
+            ];
+            $js = [
+                ['jquery', ['preload' => true]],
+                ['chosen.jquery.min', ['preload' => true]],
+        ];
+        }
         if (Configure::read('MISP.custom_css')) {
             $css[] = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
         }
-        $js = [
-            ['jquery', ['preload' => true]],
-            ['chosen.jquery.min', ['preload' => true]],
-        ];
         if (!empty($additionalCss)) {
             $css = array_merge($css, $additionalCss);
         }
@@ -35,7 +64,36 @@
         ]);
     ?>
 </head>
-<body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>" class="beta-ui-enabled">
+<body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
+    <div class="main-wrapper">
+        <!-- Global Menu -->
+        <!-- TO DO <header class="navbar top-navbar navbar-dark">
+        </header>-->
+        <header>
+            <?php
+                echo $this->element('global_menu');
+                $topPadding = '50';
+                if (!empty($debugMode) && $debugMode != 'debugOff') {
+                    $topPadding = '0';
+                }
+            ?>
+        </header> 
+        <!-- Flash & Content -->
+        <main role="main" class="content">
+            <div id="flashContainer" style="padding-top:<?= (int)$topPadding ?>px;">
+                <?= $this->Flash->render(); ?>
+            </div>
+            <div>
+                <?= $this->fetch('content') ?>
+            </div>
+        </main>
+    </div>
+
+
+    <!-- TO DO Footer & SQL dump -->
+    <?= $this->element('sql_dump') ?>
+
+    <!-- Modals, Toasts and Popovers -->
     <div id="popover_form" class="ajax_popover_form"></div>
     <div id="popover_form_large" class="ajax_popover_form ajax_popover_form_large"></div>
     <div id="popover_form_x_large" class="ajax_popover_form ajax_popover_form_x_large"></div>
@@ -43,53 +101,57 @@
     <div id="popover_box" class="popover_box"></div>
     <div id="confirmation_box"></div>
     <div id="gray_out"></div>
-    <div id="container">
-        <?php
-            echo $this->element('global_menu');
-            $topPadding = '50';
-            if (!empty($debugMode) && $debugMode != 'debugOff') {
-                $topPadding = '0';
-            }
-        ?>
-    </div>
-    <div id="flashContainer" style="padding-top:<?php echo $topPadding; ?>px; !important;">
-        <div id="main-view-container" class="container-fluid">
-            <?php
-                echo $this->Flash->render();
-            ?>
-        </div>
-    </div>
-    <div>
-        <?php
-            echo $this->fetch('content');
-        ?>
-    </div>
-    <?php
-    echo $this->element('genericElements/assetLoader', [
-        'js' => [
-            'misp-touch',
-            'bootstrap',
-            'bootstrap-timepicker',
-            'bootstrap-datepicker',
-            'bootstrap-colorpicker',
-            'misp',
-            'keyboard-shortcuts-definition',
-            'keyboard-shortcuts',
-        ],
-    ]);
-    echo $this->element('footer');
-    echo $this->element('sql_dump');
-    ?>
+    <div id="mainModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true"></div>
+    <div id="mainToastContainer" class="main-toast-container"></div>
+    <div id="mainModalContainer"></div>
+
+
+    <!-- Ajax Results -->
     <div id="ajax_success_container" class="ajax_container">
         <div id="ajax_success" class="ajax_result ajax_success"></div>
     </div>
     <div id="ajax_fail_container" class="ajax_container">
         <div id="ajax_fail" class="ajax_result ajax_fail"></div>
     </div>
+
+
+     <!-- Loading -->
     <div class="loading">
         <div class="spinner"></div>
-        <div class="loadingText"><?php echo __('Loading');?></div>
+        <div class="loadingText"><?= __('Loading'); ?></div>
     </div>
+
+
+    <!-- Additional JS for MISP -->
+    <?php
+        if ($useBootstrap5) {
+            // Bootstrap 5 JS 
+            echo $this->element('genericElements/assetLoader', [
+                'js' => [
+                    'misp-touch',
+                    'bootstrap.bundle.min',
+                    'misp',
+                    'keyboard-shortcuts-definition',
+                    'keyboard-shortcuts',
+                ],
+            ]);
+        } else {
+            // Bootstrap 2 JS
+            echo $this->element('genericElements/assetLoader', [
+                'js' => [
+                    'misp-touch',
+                    'bootstrap',
+                    'bootstrap-timepicker',
+                    'bootstrap-datepicker',
+                    'bootstrap-colorpicker',
+                    'misp',
+                    'keyboard-shortcuts-definition',
+                    'keyboard-shortcuts',
+                ],
+            ]);
+        }
+    ?>
+
     <script>
     <?php
         if (!isset($debugMode)):
