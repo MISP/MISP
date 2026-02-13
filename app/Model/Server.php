@@ -544,6 +544,7 @@ class Server extends AppModel
             'includeEventCorrelations' => 0, // we don't need remote correlations
             'includeFeedCorrelations' => 0,
             'includeWarninglistHits' => 0, // we don't need remote warninglist hits
+            'noSightings' => 1
         ];
         if (empty($serverSync->server()['Server']['internal'])) {
             $params['excludeLocalTags'] = 1;
