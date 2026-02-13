@@ -6601,7 +6601,7 @@ class Server extends AppModel
                 ],
                 'download_gpg_from_homedir' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Fetch GPG instance key from GPG homedir.'),
+                    'description' => __('Fetch GPG instance key from GPG keyring. Be careful a user with the email address used for the instance key can override the instance key when using the keyring.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',

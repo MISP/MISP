@@ -1362,13 +1362,9 @@ class User extends AppModel
      */
     public function getGpgPublicKey()
     {
-        $email = Configure::read('GnuPG.email');
-        if (!$email) {
-            throw new Exception("Configuration option 'GnuPG.email' is not set, public key cannot be exported.");
-        }
-
         $cryptGpg = $this->initializeGpg();
-        $fingerprint = $cryptGpg->getFingerprint($email);
+        $this->CryptoGraphicKey = ClassRegistry::init('CrytpographicKey');
+        $fingerprint = $this->CryptoGraphicKey->ingestInstanceKey();
         if (!$fingerprint) {
             return null;
         }

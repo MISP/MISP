@@ -111,11 +111,11 @@ class CryptographicKey extends AppModel
             $file = new File(APP . '/webroot/gpg.asc');
             $instanceKey = $file->read();
             try {
-                $this->getGpg()->importKey($instanceKey);
+                $key = $this->getGpg()->importKey($instanceKey);
             } catch (Crypt_GPG_NoDataException $e) {
                 throw new MethodNotAllowedException("Could not import the instance key.");
             }
-            $fingerprint = $this->getGpg()->getFingerprint(Configure::read('GnuPG.email'));
+            $fingerprint = $key['fingerprint'];
             if ($redis) {
                 $redis->setEx($redisKey, 300, $fingerprint);
             }
