@@ -1715,6 +1715,12 @@ class Server extends AppModel
         return $languages;
     }
 
+    public function loadAvailableThemes()
+    {
+        $this->UserSetting = ClassRegistry::init('UserSetting');
+        return array_flip($this->UserSetting::VALID_SETTINGS['ui_theme']['options']);
+    }
+
     public function testLanguage($value)
     {
         $languages = $this->loadAvailableLanguages();
@@ -1768,6 +1774,15 @@ class Server extends AppModel
     {
         if (!is_numeric($value)) {
             return __('This setting has to be a number.');
+        }
+        return true;
+    }
+
+    public function testTheme($value)
+    {
+        $themes = $this->loadAvailableThemes();
+        if (!isset($themes[$value])) {
+            return __('Invalid theme.');
         }
         return true;
     }
@@ -5376,6 +5391,18 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => 1
+                ),
+                'default_theme' => array(
+                    'level' => 3,
+                    'description' => __('Set a default theme for the instance. This is mostly used for developer purposes for now, but will be more interesting in the future.'),
+                    'value' => false,
+                    'test' => 'testTheme',
+                    'type' => 'string',
+                    'optionsSource' => function () {
+                        return $this->loadAvailableThemes();
+                    },
                     'null' => true,
                     'cli_only' => 1
                 ),

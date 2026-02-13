@@ -272,17 +272,33 @@ class AppController extends Controller
             }
         }
 
-        $user = $this->Auth->user();
-        if ($user) {
-            if (!$this->_isRest() && Configure::read('MISP.enable_themes')) {
+        if (!$this->_isRest() && Configure::read('MISP.enable_themes')) {
+            if ($this->Auth->user()) {
                 $userTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id'));
                 if ($userTheme) {
                     $this->theme = $userTheme;
                     $this->viewClass = 'Theme';
+                } else {
+                    $default_theme = Configure::read('MISP.default_ui_theme');
+                    if ($default_theme) {
+                        $this->theme = $default_theme;
+                        $this->viewClass = 'Theme';
+                    }
                 }
-                $this->set('themes', UserSetting::VALID_SETTINGS['ui_theme']['options']);
                 $this->set('theme', $userTheme);
+            } else {
+                $default_theme = Configure::read('MISP.default_ui_theme');
+                if ($default_theme) {
+                    $this->theme = $default_theme;
+                    $this->viewClass = 'Theme';
+                    $this->set('theme', $default_theme);
+                }
             }
+            $this->set('themes', UserSetting::VALID_SETTINGS['ui_theme']['options']);
+        }
+
+        $user = $this->Auth->user();
+        if ($user) {
             Configure::write('CurrentUserId', $user['id']);
             Configure::write('CurrentUserEmail', $user['email']);
             Configure::write('CurrentUserIP', $this->User->_remoteIp());
