@@ -23,22 +23,29 @@ jobs:
         os: [ubuntu-22.04]
         php: ['8.1', '8.3']
 
+    # Run MariaDB as a service container (avoids docker client API mismatch in getong/mariadb-action)
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: bar
+          MARIADB_DATABASE: misp
+          MARIADB_USER: misp
+          MARIADB_PASSWORD: blah
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -uroot -pbar"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=30
+
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-
-      # Run mariadb
-      - uses: getong/mariadb-action@v1.11
-        with:
-          host port: 3306
-          container port: 3306
-          mysql root password: 'bar'
-          mysql database: 'misp'
-          mysql user: 'misp'
-          mysql password: 'blah'
 
       - uses: zhulik/redis-action@1.1.0
         with:
