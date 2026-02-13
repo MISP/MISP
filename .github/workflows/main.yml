@@ -69,26 +69,23 @@ jobs:
           done
           echo "MariaDB did not become ready in time"
           exit 1
+          
+      - name: Install system deps
+        env:
+          php_version: ${{ matrix.php }}
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install curl python3 python3-pip python3-virtualenv apache2 libapache2-mod-php$php_version
+          sudo apt-get -y install redis-tools
 
       - name: Wait for Redis service
         run: |
-          python3 - <<'PY'
-          import socket, time, sys
-          host, port = "127.0.0.1", 6379
-          for _ in range(60):
-            try:
-              with socket.create_connection((host, port), timeout=1) as s:
-                s.sendall(b"*1\r\n$4\r\nPING\r\n")
-                data = s.recv(1024)
-                if b"PONG" in data:
-                  sys.exit(0)
-            except OSError:
-              pass
-            time.sleep(2)
-          print("Redis did not become ready in time", file=sys.stderr)
-          sys.exit(1)
-          PY
-
+          for i in {1..60}; do
+            redis-cli -h 127.0.0.1 -p 6379 ping | grep -q PONG && exit 0
+            sleep 2
+          done
+          echo "Redis did not become ready in time"
+          exit 1
 
       - uses: zhulik/redis-action@1.1.0
         with:
@@ -106,14 +103,6 @@ jobs:
         run: |
           echo "USER=`id -u -n`" >> $GITHUB_ENV
           echo "HOST=localhost" >> $GITHUB_ENV
-
-      - name: Install system deps
-        env:
-          php_version: ${{ matrix.php }}
-        run: |
-          sudo apt-get -y update
-          sudo apt-get -y install curl python3 python3-pip python3-virtualenv apache2 libapache2-mod-php$php_version
-          sudo apt-get -y install redis-tools
 
       # Runs a set of commands using the runners shell
       - name: Install deps
