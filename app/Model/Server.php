@@ -6713,7 +6713,7 @@ class Server extends AppModel
                 ],
                 'download_gpg_from_homedir' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Fetch GPG instance key from GPG homedir.'),
+                    'description' => __('Fetch GPG instance key from GPG keyring. Be careful a user with the email address used for the instance key can override the instance key when using the keyring.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -7037,6 +7037,15 @@ class Server extends AppModel
                     'value' => false,
                     'test' => null,
                     'type' => 'string',
+                    'cli_only' => 1
+                ),
+                'workflow_enable_arbitrary_urls' => array(
+                    'level' => 0,
+                    'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via workflows. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable. Only a compromised site-admin account could cause damage.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
                     'cli_only' => 1
                 ),
                 'syslog' => array(

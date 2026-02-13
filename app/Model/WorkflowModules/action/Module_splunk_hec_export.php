@@ -73,8 +73,8 @@ class Module_splunk_hec_export extends Module_webhook
 
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
-        if (empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
-            $errors[] = __('`Security.rest_client_enable_arbitrary_urls` is turned off');
+        if (empty(Configure::read('Security.workflow_enable_arbitrary_urls'))) {
+            $errors[] = __('`Security.workflow_enable_arbitrary_urls` is turned off');
             return false;
         }
         $rData = $roamingData->getData();
