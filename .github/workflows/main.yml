@@ -86,11 +86,6 @@ jobs:
           echo "Redis did not become ready in time"
           exit 1
 
-      - uses: zhulik/redis-action@1.1.0
-        with:
-          redis version: '5'
-          number of databases: 100
-
       # prepare php stuff
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
