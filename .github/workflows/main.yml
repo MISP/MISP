@@ -64,7 +64,7 @@ jobs:
       - name: Wait for MariaDB service
         run: |
           for i in {1..60}; do
-            mariadb-admin ping -h 127.0.0.1 -uroot -pbar && exit 0
+            mysqladmin ping -h 127.0.0.1 -uroot -pbar && exit 0
             sleep 2
           done
           echo "MariaDB did not become ready in time"
