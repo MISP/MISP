@@ -46,6 +46,12 @@ class MispAttribute extends AppModel
 
     private $orgs_cache = [];
 
+    /** @var bool|null Cached result of checking if 'deleted' index exists on attributes table */
+    private static $hasDeletedIndex = null;
+
+    /** @var array Cached ACL conditions keyed by "{perm_site_admin}-{org_id}" */
+    private $aclConditionsCache = [];
+
     public $virtualFields = array(
             'value' => "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END",
     );
@@ -1707,6 +1713,11 @@ class MispAttribute extends AppModel
 
     public function buildConditions($user)
     {
+        $cacheKey = ($user['Role']['perm_site_admin'] ? '1' : '0') . '-' . $user['org_id'];
+        if (isset($this->aclConditionsCache[$cacheKey])) {
+            return $this->aclConditionsCache[$cacheKey];
+        }
+
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
@@ -1780,6 +1791,8 @@ class MispAttribute extends AppModel
                 ]
             ];
         }
+
+        $this->aclConditionsCache[$cacheKey] = $conditions;
         return $conditions;
     }
 
@@ -2090,8 +2103,11 @@ class MispAttribute extends AppModel
                 $params['order'] = [];
             }
 
-            $idx = $this->query("SHOW INDEX FROM attributes WHERE Key_name='deleted'");
-            if (!empty($idx)) {
+            if (self::$hasDeletedIndex === null) {
+                $idx = $this->query("SHOW INDEX FROM attributes WHERE Key_name='deleted'");
+                self::$hasDeletedIndex = !empty($idx);
+            }
+            if (self::$hasDeletedIndex) {
                 $params['ignoreIndexHint'] = 'deleted';
             }
         

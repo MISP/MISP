@@ -347,130 +347,98 @@ class DashboardsController extends AppController
 
     public function listTemplates()
     {
-        $conditions = array();
-        // load all widgets for internal use, won't be displayed to the user. Thus we circumvent the ACL on it.
+        $conditions = [];
         $accessible_widgets = array_keys($this->Dashboard->loadAllWidgets($this->Auth->user()));
+
         if (!$this->_isSiteAdmin()) {
-            $permission_flags = array();
+            $permission_flags = [];
             foreach ($this->Auth->user('Role') as $perm => $value) {
                 if (strpos($perm, 'perm_') !== false && !empty($value)) {
                     $permission_flags[] = $perm;
                 }
             }
-            $conditions['AND'] = array(
-                array(
-                    'OR' => array(
+            $conditions['AND'] = [
+                [
+                    'OR' => [
                         'Dashboard.user_id' => $this->Auth->user('id'),
-                        'AND' => array(
+                        'AND' => [
                             'Dashboard.selectable' => 1,
-                            array(
-                                'OR' => array(
-                                    array('Dashboard.restrict_to_org_id' => $this->Auth->user('org_id')),
-                                    array('Dashboard.restrict_to_org_id' => 0)
-                                )
-                            ),
-                            array(
-                                'OR' => array(
-                                    array('Dashboard.restrict_to_role_id' => $this->Auth->user('role_id')),
-                                    array('Dashboard.restrict_to_role_id' => 0)
-                                )
-                            ),
-                            array(
-                                'OR' => array(
-                                    array('Dashboard.restrict_to_permission_flag' => $permission_flags),
-                                    array('Dashboard.restrict_to_permission_flag' => 0)
-                                )
-                            )
-                        )
-                    )
-                )
-            );
+                            ['OR' => [
+                                ['Dashboard.restrict_to_org_id' => $this->Auth->user('org_id')],
+                                ['Dashboard.restrict_to_org_id' => 0]
+                            ]],
+                            ['OR' => [
+                                ['Dashboard.restrict_to_role_id' => $this->Auth->user('role_id')],
+                                ['Dashboard.restrict_to_role_id' => 0]
+                            ]],
+                            ['OR' => [
+                                ['Dashboard.restrict_to_permission_flag' => $permission_flags],
+                                ['Dashboard.restrict_to_permission_flag' => 0]
+                            ]]
+                        ]
+                    ]
+                ]
+            ];
         }
-        if (!empty($this->passedArgs['value'])) {
-            $conditions['AND'][] = array(
-                'OR' => array(
-                    'LOWER(Dashboard.name) LIKE' => '%' . strtolower(trim($this->passedArgs['value'])) . '%',
-                    'LOWER(Dashboard.description) LIKE' => '%' . strtolower(trim($this->passedArgs['value'])) . '%',
-                    'LOWER(Dashboard.uuid) LIKE' => strtolower(trim($this->passedArgs['value']))
-                )
-            );
-        }
-        $this->paginate['conditions'] = $conditions;
-        if ($this->_isRest()) {
-            $params = array(
-                'conditions' => $conditions,
-                'recursive' => -1
-            );
-            $paramsToPass = array('limit', 'page');
-            foreach ($paramsToPass as $p) {
-                if (!empty($this->passedArgs[$p])) {
-                    $params[$p] = $this->passedArgs[$p];
-                }
-            }
-            $data = $this->Dashboard->find('all', $params);
-            foreach ($data as &$element) {
-                $element['Dashboard']['value'] = json_decode($element['Dashboard']['value'], true);
-            }
-            return $this->RestResponse->viewData(
-                $data,
-                $this->response->type()
-            );
-        } else {
-            $this->paginate['contain'] = array(
-                'User.id', 'User.email'
-            );
-            $data = $this->paginate();
-            foreach ($data as &$element) {
-                $element['Dashboard']['value'] = json_decode($element['Dashboard']['value'], true);
-                $widgets = array();
-                foreach ($element['Dashboard']['value'] as $val) {
-                    $widgets[$val['widget']] = 1;
-                }
-                $element['Dashboard']['widgets'] = array_keys($widgets);
-                sort($element['Dashboard']['widgets']);
-                $temp = [];
-                foreach ($element['Dashboard']['widgets'] as $widget) {
-                    if (in_array($widget, $accessible_widgets)) {
-                        $temp['allow'][] = $widget;
-                    } else {
-                        $temp['deny'][] = $widget;
+
+        $currentUserId = $this->Auth->user('id');
+        $params = [
+            'filters' => ['name', 'description', 'uuid', 'value'],
+            'quickFilters' => ['name', 'description', 'uuid'],
+            'quickFilterParameter' => 'value',
+            'conditions' => $conditions,
+            'contain' => ['User.id', 'User.email'],
+            'afterFind' => function ($data) use ($accessible_widgets, $currentUserId) {
+                foreach ($data as &$element) {
+                    $element['Dashboard']['value'] = json_decode($element['Dashboard']['value'], true);
+                    if (!$this->_isRest()) {
+                        $widgets = [];
+                        foreach ($element['Dashboard']['value'] as $val) {
+                            $widgets[$val['widget']] = 1;
+                        }
+                        $element['Dashboard']['widgets'] = array_keys($widgets);
+                        sort($element['Dashboard']['widgets']);
+                        $temp = [];
+                        foreach ($element['Dashboard']['widgets'] as $widget) {
+                            if (in_array($widget, $accessible_widgets)) {
+                                $temp['allow'][] = $widget;
+                            } else {
+                                $temp['deny'][] = $widget;
+                            }
+                        }
+                        $element['Dashboard']['widgets'] = $temp;
+                        if ($element['Dashboard']['user_id'] != $currentUserId) {
+                            $element['User']['email'] = '';
+                        }
                     }
                 }
-                $element['Dashboard']['widgets'] = $temp;
-                if ($element['Dashboard']['user_id'] != $this->Auth->user('id')) {
-                    $element['User']['email'] = '';
-                }
+                return $data;
             }
-            $this->set('passedArgs', json_encode($this->passedArgs));
-            $this->set('data', $data);
+        ];
+        $this->CRUD->index($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
+        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('data', $this->viewVars['data']);
     }
 
     public function deleteTemplate($id)
     {
-        $conditions = array();
+        $conditions = [];
         if (Validation::uuid($id)) {
-            $conditions['AND'][] = array('Dashboard.uuid' => $id);
-        } else {
-            $conditions['AND'][] = array('Dashboard.id' => $id);
+            $conditions['Dashboard.uuid'] = $id;
         }
         if (!$this->_isSiteAdmin()) {
-            $conditions['AND'][] = array('Dashboard.user_id' => $this->Auth->user('id'));
+            $conditions['Dashboard.user_id'] = $this->Auth->user('id');
         }
-        $dashboard = $this->Dashboard->find('first', array(
+        $params = [
             'conditions' => $conditions,
-            'recursive' => -1
-        ));
-        if (empty($dashboard)) {
-            throw new NotFoundException(__('Invalid dashboard template.'));
-        }
-        $this->Dashboard->delete($dashboard['Dashboard']['id']);
-        $message = __('Dashboard template removed.');
-        if ($this->_isRest()) {
-            return $this->RestResponse->saveSuccessResponse('Dashboard', 'delete', $id, false, $message);
-        } else {
-            $this->Flash->success($message);
-            $this->redirect($this->baseurl . '/dashboards/listTemplates');
+            'redirect' => $this->baseurl . '/dashboards/listTemplates'
+        ];
+        $this->CRUD->delete($id, $params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
 }

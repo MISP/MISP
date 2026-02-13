@@ -901,7 +901,7 @@ class ACLComponent extends Component
             'delete' => array('not_read_only_authkey'),
             'setHomePage' => array('not_read_only_authkey'),
             'eventIndexColumnToggle' => ['*'],
-            'toggleBetaUi' => ['*'],
+            'setTheme' => ['*'],
         ),
         'warninglists' => array(
             'checkValue' => ['*'],

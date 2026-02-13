@@ -1386,7 +1386,7 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
                     $(".loading").show();
                 }
             }
-        }, 
+        },
         data: formData,
         processData: false,
         contentType: false,
@@ -2186,15 +2186,15 @@ function indexEvaluateFiltering() {
         } else {
             $('#value_hasproposal').html("");
         }
-        if (filtering.extending != 2) {
-            $('#value_extending').html(extendsOptions[filtering.extending]);
+        if (filtering.is_extension != 2) {
+            $('#value_is_extension').html(extendsOptions[filtering.is_extension]);
         } else {
-            $('#value_extending').html("");
+            $('#value_is_extension').html("");
         }
-        if (filtering.extended != 2) {
-            $('#value_extended').html(extendsOptions[filtering.extended]);
+        if (filtering.is_extended != 2) {
+            $('#value_is_extended').html(extendsOptions[filtering.is_extended]);
         } else {
-            $('#value_extended').html("");
+            $('#value_is_extended').html("");
         }
         if (filtering.date.from != null) {
             var text = "";
@@ -2432,13 +2432,13 @@ function indexCreateFilters() {
             if (text != "") text += "/";
             text += "searchhasproposal:" + filtering.hasproposal;
         }
-        if (filtering.extending != "2") {
+        if (filtering.is_extension != "2") {
             if (text != "") text += "/";
-            text += "searchextending:" + filtering.extending;
+            text += "searchis_extension:" + filtering.is_extension;
         }
-        if (filtering.extended != "2") {
+        if (filtering.is_extended != "2") {
             if (text != "") text += "/";
-            text += "searchextended:" + filtering.extended;
+            text += "searchis_extended:" + filtering.is_extended;
         }
     } else {
         for (var i = 0; i < differentFilters.length; i++) {
@@ -2562,12 +2562,12 @@ function indexAddRule(param) {
         } else if (param.data.param1 == "hasproposal") {
             var value = encodeURIComponent($('#EventSearchhasproposal').val());
             if (value != "") filtering.hasproposal = value;
-        } else if (param.data.param1 == "extending") {
-            var value = encodeURIComponent($('#EventSearchextending').val());
-            if (value != "") filtering.extending = value; 
-        } else if (param.data.param1 == "extended") {
-            var value = encodeURIComponent($('#EventSearchextended').val());
-            if (value != "") filtering.extended = value;
+        } else if (param.data.param1 == "is_extension") {
+            var value = encodeURIComponent($('#EventSearchisExtension').val());
+            if (value != "") filtering.is_extension = value;
+        } else if (param.data.param1 == "is_extended") {
+            var value = encodeURIComponent($('#EventSearchisExtended').val());
+            if (value != "") filtering.is_extended = value;
         } else {
             var value = encodeURIComponent($('#EventSearch' + param.data.param1).val());
             var operator = operators[encodeURIComponent($('#EventSearchbool').val())];
@@ -2599,7 +2599,10 @@ function indexRuleChange() {
     var context = filterContext.charAt(0).toUpperCase() + filterContext.slice(1);
     $('[id^=' + context + 'Search]').hide();
     var rule = $('#' + context + 'Rule').val();
-    var fieldName = '#' + context + 'Search' + rule;
+    var camelCaseRule = rule.replace(/_([a-z])/g, function(match, letter) {
+        return letter.toUpperCase();
+    });
+    var fieldName = '#' + context + 'Search' + camelCaseRule;
     if (fieldName === '#' + context + 'Searchdate' || fieldName === '#' + context + 'Searchtimestamp' || fieldName === '#' + context + 'Searchpublishtimestamp') {
         $(fieldName + 'from').show();
         $(fieldName + 'until').show();
@@ -2634,9 +2637,9 @@ function indexFilterClearRow(field) {
     } else if (field == "hasproposal") {
         filtering.hasproposal = 2;
     } else if (field == "extending") {
-        filtering.extending = 2;
+        filtering.is_extension = 2;
     } else if (field == "extended") {
-        filtering.extended = 2;
+        filtering.is_extended = 2;
     } else if (differentFilters.indexOf(field) != -1) {
         filtering[field] = "";
     } else {
@@ -4020,7 +4023,7 @@ function toggleBoolFilter(param) {
     fetchAttributes(currentUri, res);
 }
 
-function toggleWarningFilter(param) { 
+function toggleWarningFilter(param) {
     if (querybuilderTool === undefined) {
         triggerEventFilteringTool(true); // allows to fetch rules
     }
@@ -5496,7 +5499,7 @@ function fetchFormDataAjax(url, callback, errorCallback) {
 }
 
 function moveIndexRow(id, direction, endpoint) {
-    var row = $('#row_' + id);
+    var row = $('tr[data-row-id="' + (id-1) + '"]');
     $.ajax({
         url: baseurl + endpoint + '/' + id + '/' + direction,
         type: 'GET',

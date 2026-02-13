@@ -274,6 +274,15 @@ class AppController extends Controller
 
         $user = $this->Auth->user();
         if ($user) {
+            if (!$this->_isRest() && Configure::read('MISP.enable_themes')) {
+                $userTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id'));
+                if ($userTheme) {
+                    $this->theme = $userTheme;
+                    $this->viewClass = 'Theme';
+                }
+                $this->set('themes', UserSetting::VALID_SETTINGS['ui_theme']['options']);
+                $this->set('theme', $userTheme);
+            }
             Configure::write('CurrentUserId', $user['id']);
             Configure::write('CurrentUserEmail', $user['email']);
             Configure::write('CurrentUserIP', $this->User->_remoteIp());
@@ -346,7 +355,6 @@ class AppController extends Controller
             $this->loadModel('Bookmark');
             $this->set('bookmarks', $this->Bookmark->getBookmarksForUser($user));
             $this->userRole = $role;
-
             $this->__accessMonitor($user);
 
         } else {
@@ -427,9 +435,6 @@ class AppController extends Controller
             if (!empty($homepage)) {
                 $this->set('homepage', $homepage);
             }
-
-            $uiBetaEnabled = $this->User->UserSetting->isUiBetaEnabled($user['id']);
-            $this->set('uiBetaEnabled', $uiBetaEnabled);
 
             if (PHP_MAJOR_VERSION < 8) {
                 $this->Flash->error(__('WARNING: MISP 2.5.x is currently running under PHP 7.x, which is unsupported. Make sure that you upgrade to PHP 8.x as soon as possible.'));

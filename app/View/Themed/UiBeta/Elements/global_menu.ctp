@@ -675,21 +675,45 @@ if (!empty($me)) {
 
                     )
                 ),
-                array(
-                    'type' => 'separator'
-                ),
-                array(
-                    'html' => sprintf(
-                        '<span id="betaUiToggle" style="cursor: pointer;"><i class="fas fa-flask"></i> %s <span class="label %s">%s</span></span>',
-                        __('Beta UI'),
-                        !empty($uiBetaEnabled) ? 'label-success' : 'label-default',
-                        !empty($uiBetaEnabled) ? __('ON') : __('OFF')
-                    ),
-                    'url' => '#'
-                )
             )
         )
     );
+    $menu[] = [
+        'type' => 'separator'
+    ];
+    $temp_menu_item = [
+        'html' => '<i class="fas fa-person-digging fa-fw"></i> ' . __('Themes'),
+        'children' => [],
+        'html' => sprintf(
+            '<span id="betaUiToggle" style="cursor: pointer;"><i class="fas fa-person-digging"></i> %s <span class="label label-success">%s</span></span>',
+            __('Beta UI'),
+            'label-success',
+            __('ON')
+        ),
+        'url' => '#'
+    ];
+    $temp_menu_item = [
+    'html' => '<i class="fas fa-flask fa-fw"></i> ' . __('Themes'),
+    'children' => [],
+    'html' => sprintf(
+        '<span id="betaUiToggle" style="cursor: pointer;"><i class="fas fa-flask"></i> %s <span class="label label-success">%s</span></span>',
+        __('Beta UI'),
+        'label-default',
+        __('OFF')
+    ),
+    'url' => '#'
+    ];
+    foreach ($themes as $theme) {
+        $temp_menu_item['children'][] = [
+            'html' => sprintf(
+                '<span class="%s" data-theme="%s">%s</span>',
+                'theme-option',
+                h($theme),
+                h($theme)
+            ),
+            'url' => $baseurl . '/users/setTheme/' . h($theme)
+        ];
+    }
 
     $logo = '<span class="logoBlueStatic bold" id="smallLogo">MISP</span>';
     $today = date('md');

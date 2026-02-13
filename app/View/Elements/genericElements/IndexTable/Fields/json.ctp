@@ -15,7 +15,9 @@
         if ($temp !== null) {
             $data = $temp;
         } else {
-            $data = [$data];
+            $data = json_encode($data);
+            // commented out this weirdness and added the above. I agree with myself from 7 months ago, wtf is this
+            //$data = [$data];
         }
     }
 ?>

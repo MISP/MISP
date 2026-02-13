@@ -2964,6 +2964,17 @@ class AppModel extends Model
         return ucfirst($field) . ' cannot be empty.';
     }
 
+    public function valueIsJsonOrString($value)
+    {
+        $value = current($value);
+        if (is_array($value)) {
+            if (!JsonTool::isValid($value)) {
+                return __('Invalid JSON.');
+            }
+        }
+        return true;
+    }
+
     public function valueIsJson(array $value)
     {
         $value = current($value);

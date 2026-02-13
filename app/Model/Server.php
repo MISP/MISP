@@ -4911,6 +4911,82 @@ class Server extends AppModel
         return $servers;
     }
 
+
+
+    /**
+     * @param array $servers
+     * @return array
+     */
+    public function attachRuleDescriptions(array $servers, array $collection): array
+    {
+        $syncOptions = ['pull', 'push'];
+        $fieldOptions = ['tags', 'orgs'];
+
+        if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))) {
+            $fieldOptions = array_merge($fieldOptions, ['type_attributes', 'type_objects']);
+        }
+
+        $typeOptions = [
+            'OR'  => ['colour' => 'green', 'text' => 'allowed'],
+            'NOT' => ['colour' => 'red',   'text' => 'blocked'],
+        ];
+
+        foreach ($servers as &$server) {
+            $rules = [
+                'push' => json_decode($server['Server']['push_rules'], true),
+                'pull' => json_decode($server['Server']['pull_rules'], true),
+            ];
+
+            $ruleDescription = ['pull' => '', 'push' => ''];
+
+            foreach ($syncOptions as $syncOption) {
+                foreach ($fieldOptions as $fieldOption) {
+                    foreach ($typeOptions as $typeOption => $typeData) {
+                        if (!empty($rules[$syncOption][$fieldOption][$typeOption])) {
+                            $ruleDescription[$syncOption] .=
+                                '<span class="bold">' .
+                                ucfirst($fieldOption) . ' ' . $typeData['text'] .
+                                '</span>: <span class="' . $typeData['colour'] . '">';
+
+                            foreach ($rules[$syncOption][$fieldOption][$typeOption] as $k => $temp) {
+                                if ($k !== 0) {
+                                    $ruleDescription[$syncOption] .= ', ';
+                                }
+
+                                if ($fieldOption === 'orgs') {
+                                    if (!empty($collection[$fieldOption][$temp])) {
+                                        $temp = $collection[$fieldOption][$temp] . ' (' . $temp . ')';
+                                    }
+                                } elseif ($syncOption === 'push') {
+                                    if (!empty($collection[$fieldOption][$temp])) {
+                                        $temp = $collection[$fieldOption][$temp];
+                                    }
+                                }
+
+                                $ruleDescription[$syncOption] .= h($temp);
+                            }
+
+                            $ruleDescription[$syncOption] .= '</span><br>';
+                        }
+                    }
+                }
+
+                if ($syncOption === 'pull' && !empty($rules['pull']['url_params'])) {
+                    $ruleDescription[$syncOption] .= sprintf(
+                        "<span class='bold'>%s</span>: <pre class='jsonify'>%s</pre>",
+                        __('URL params'),
+                        h(json_encode(json_decode($rules['pull']['url_params']), JSON_PRETTY_PRINT))
+                    );
+                }
+            }
+
+            $server['RuleDescription'] = $ruleDescription;
+        }
+
+        unset($server);
+        return $servers;
+    }
+
     /**
      * @return Generator[string, array]
      */
@@ -5293,6 +5369,15 @@ class Server extends AppModel
                         return $this->loadAvailableLanguages();
                     },
                     'afterHook' => 'cleanCacheFiles'
+                ),
+                'enable_themes' => array(
+                    'level' => 0,
+                    'description' => __('Enable themes for users of the instance. Currently this is used to allow users to opt-in to a the various preview/beta modes.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => 1
                 ),
                 'default_attribute_memory_coefficient' => array(
                     'level' => 1,
