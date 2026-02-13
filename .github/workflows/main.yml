@@ -72,12 +72,23 @@ jobs:
 
       - name: Wait for Redis service
         run: |
-          for i in {1..60}; do
-            redis-cli -h 127.0.0.1 -p 6379 ping | grep -q PONG && exit 0
-            sleep 2
-          done
-          echo "Redis did not become ready in time"
-          exit 1
+          python3 - <<'PY'
+          import socket, time, sys
+          host, port = "127.0.0.1", 6379
+          for _ in range(60):
+            try:
+              with socket.create_connection((host, port), timeout=1) as s:
+                s.sendall(b"*1\r\n$4\r\nPING\r\n")
+                data = s.recv(1024)
+                if b"PONG" in data:
+                  sys.exit(0)
+            except OSError:
+              pass
+            time.sleep(2)
+          print("Redis did not become ready in time", file=sys.stderr)
+          sys.exit(1)
+          PY
+
 
       - uses: zhulik/redis-action@1.1.0
         with:
