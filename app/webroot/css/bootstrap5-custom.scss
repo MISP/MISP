@@ -1,0 +1,29 @@
+// 1️⃣ Import functions first (replace by the path to your local Bootstrap SCSS files)
+@import "my_path/node_modules/bootstrap/scss/functions";
+
+
+// 2️⃣ Redefine current variables
+$theme-colors: (
+  "primary": #1892B1,
+  "secondary": #6c757d,
+  "success": #198754,
+  "info": #0dcaf0,
+  "warning": #ffc107,
+  "danger": #dc3545,
+  "light": #f8f9fa,
+  "dark": #212529
+);
+
+// 3️⃣ Add custom variables
+$custom-colors: (
+  "mycolor": #ff5733
+);
+
+$theme-colors: map-merge($theme-colors, $custom-colors);
+
+// 4️⃣ Import Bootstrap's SCSS 
+@import "my_path/node_modules/bootstrap/scss/bootstrap";
+
+
+// 5️⃣ Compile to CSS
+// npx sass app/webroot/css/bootstrap5-custom.scss app/webroot/css/bootstrap5-custom.min.css --style compressed
