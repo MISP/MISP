@@ -279,7 +279,7 @@ class AppController extends Controller
                     $this->theme = $userTheme;
                     $this->viewClass = 'Theme';
                 } else {
-                    $default_theme = Configure::read('MISP.default_ui_theme');
+                    $default_theme = Configure::read('MISP.default_theme');
                     if ($default_theme) {
                         $this->theme = $default_theme;
                         $this->viewClass = 'Theme';
@@ -287,7 +287,7 @@ class AppController extends Controller
                 }
                 $this->set('theme', $userTheme);
             } else {
-                $default_theme = Configure::read('MISP.default_ui_theme');
+                $default_theme = Configure::read('MISP.default_theme');
                 if ($default_theme) {
                     $this->theme = $default_theme;
                     $this->viewClass = 'Theme';
