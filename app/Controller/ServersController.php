@@ -938,7 +938,7 @@ class ServersController extends AppController
                         $this->redirect(array('action' => 'index'));
                     }
 
-                    if (!$server['Server'][$subm]['size'] > 0) {
+                    if (!($server['Server'][$subm]['size'] > 0)) {
                         $this->Flash->error(__('Incorrect extension or empty file.'));
                         $this->redirect(array('action' => 'index'));
                     }
