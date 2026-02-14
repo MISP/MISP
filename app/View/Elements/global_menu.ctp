@@ -232,30 +232,24 @@ if (!empty($me)) {
                     'text' => __('My Settings'),
                     'url' => $baseurl . '/user_settings/index/user_id:me'
                 ),
-                array(
-                    'type' => 'group',
-                    'text' => __('Themes'),
-                    'children' => array(
                         array(
-                            'html' => sprintf(
-                                '<span id="betaUiToggle" class="setTheme" style="cursor: pointer;" data-theme="UiBeta"><i class="fas fa-flask"></i> %s <span class="label %s">%s</span></span>',
-                                __('Beta UI'),
-                                'label-default',
-                                __('OFF')
-                            ),
-                            'url' => '#'
-                        ),
-                        array(
-                            'html' => sprintf(
-                                '<span id="OvermindToggle" class="setTheme" style="cursor: pointer;" data-theme="Overmind"><i class="fas fa-flask"></i> %s <span class="label %s">%s</span></span>',
-                                __('Overmind UI'),
-                                'label-default',
-                                __('OFF')
-                            ),
-                            'url' => '#'
-                        ),
-                    ),
-                )
+                            'type' => 'group',
+                            'html' => '<i class="fas fa-palette fa-fw"></i> ' . __('Themes'),
+                            'children' => array_map(function($t) use ($theme, $themeLabels) {
+                                $label = isset($themeLabels[$t]) ? $themeLabels[$t] : $t . ' UI';
+                                return array(
+                                    'html' => sprintf(
+                                        '<span id="%sToggle" class="setTheme" style="cursor: pointer;" data-theme="%s"><i class="fas fa-brush"></i> %s <span class="label %s">%s</span></span>',
+                                        strtolower($t),
+                                        h($t),
+                                        $label,
+                                        $theme === $t ? 'label-success' : 'label-default',
+                                        $theme === $t ? __('ON') : __('OFF')
+                                    ),
+                                    'url' => '#'
+                                );
+                            }, $themes)
+                        )
             ),
             array(
                 'text' => __('Set Setting'),
