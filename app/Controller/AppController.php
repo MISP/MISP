@@ -5,6 +5,7 @@ App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 App::uses('BetterCakeEventManager', 'Tools');
+App::uses('MispTheme', 'Lib/MispTheme');
 
 /**
  * Application Controller
@@ -272,30 +273,27 @@ class AppController extends Controller
             }
         }
 
-        if (!$this->_isRest() && Configure::read('MISP.enable_themes')) {
-            if ($this->Auth->user()) {
-                $userTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id'));
-                if ($userTheme) {
-                    $this->theme = $userTheme;
-                    $this->viewClass = 'Theme';
-                } else {
-                    $default_theme = Configure::read('MISP.default_theme');
-                    if ($default_theme) {
-                        $this->theme = $default_theme;
-                        $this->viewClass = 'Theme';
-                    }
+        if (!$this->_isRest()) {
+            $themesEnabled = (bool)Configure::read('MISP.enable_themes');
+            $currentTheme = 'Default';
+            if ($themesEnabled) {
+                if ($this->Auth->user()) {
+                    $currentTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id')) ?? 'Default';
                 }
-                $this->set('theme', $userTheme);
-            } else {
-                $default_theme = Configure::read('MISP.default_theme');
-                if ($default_theme) {
-                    $this->theme = $default_theme;
+                if ($currentTheme === 'Default') {
+                    $currentTheme = Configure::read('MISP.default_theme') ?? 'Default';
+                }
+                if (!empty($this->request->params['named']['beta'])) {
+                    $currentTheme = 'UiBeta';
+                }
+                if ($currentTheme !== 'Default') {
+                    $this->theme = $currentTheme;
                     $this->viewClass = 'Theme';
-                    $this->set('theme', $default_theme);
                 }
             }
-            $userSetting = ClassRegistry::init('UserSetting');
-            $this->set('themes', $userSetting::VALID_SETTINGS['ui_theme']['options']);
+            $this->set('theme', $currentTheme);
+            $this->set('themesEnabled', $themesEnabled);
+            $this->set('themes', MispTheme::getAvailableThemes($currentTheme, (bool)Configure::read('debug')));
         }
 
         $user = $this->Auth->user();
