@@ -428,7 +428,7 @@ class Cerebrate extends AppModel
                 ]);
                 return $savedSg;
             }
-            return __('The organisation could not be saved.');
+            return __('The sharing group could not be saved.');
         }
         return __('The retrieved data isn\'t a valid sharing group.');
     }
