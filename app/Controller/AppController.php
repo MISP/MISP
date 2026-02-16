@@ -295,7 +295,25 @@ class AppController extends Controller
                 }
             }
             $userSetting = ClassRegistry::init('UserSetting');
-            $this->set('themes', $userSetting::VALID_SETTINGS['ui_theme']['options']);
+            $themes = $userSetting::VALID_SETTINGS['ui_theme']['options'];
+            $themeLabels = ['Default' => __('Default UI')];
+            foreach ($themes as $t) {
+                if ($t === 'Default') {
+                    continue;
+                }
+                $themeFile = APP . 'View' . DS . 'Themed' . DS . $t . DS . 'theme.php';
+                if (file_exists($themeFile)) {
+                    $themeConfig = include $themeFile;
+                    if (!empty($themeConfig['label'])) {
+                        $themeLabels[$t] = $themeConfig['label'];
+                    }
+                }
+                if (!isset($themeLabels[$t])) {
+                    $themeLabels[$t] = $t . ' UI';
+                }
+            }
+            $this->set('themes', $themes);
+            $this->set('themeLabels', $themeLabels);
         }
 
         $user = $this->Auth->user();

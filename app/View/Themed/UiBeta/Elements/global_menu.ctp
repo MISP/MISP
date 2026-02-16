@@ -677,67 +677,25 @@ if (!empty($me)) {
                 ),
                 array(
                     'type' => 'group',
-                    'html' => '<i class="fas fa-book fa-fw"></i> ' . __('Themes'),
-                    'children' => array(
-                        array(
+                    'html' => '<i class="fas fa-palette fa-fw"></i> ' . __('Themes'),
+                    'children' => array_map(function($t) use ($theme, $themeLabels) {
+                        $label = isset($themeLabels[$t]) ? $themeLabels[$t] : $t . ' UI';
+                        return array(
                             'html' => sprintf(
-                                '<span id="defaultUiToggle" class="setTheme" style="cursor: pointer;" data-theme="Default"><i class="fas fa-flask"></i> %s <span class="label %s">%s</span></span>',
-                                __('Default UI'),
-                                'label-default',
-                                __('OFF')
+                                '<span id="%sToggle" class="setTheme" style="cursor: pointer;" data-theme="%s"><i class="fas fa-brush"></i> %s <span class="label %s">%s</span></span>',
+                                strtolower($t),
+                                h($t),
+                                $label,
+                                $theme === $t ? 'label-success' : 'label-default',
+                                $theme === $t ? __('ON') : __('OFF')
                             ),
                             'url' => '#'
-                        ),
-                        array(
-                            'html' => sprintf(
-                                '<span id="OvermindToggle" class="setTheme" style="cursor: pointer;" data-theme="Overmind"><i class="fas fa-flask"></i> %s <span class="label %s">%s</span></span>',
-                                __('Overmind UI'),
-                                'label-default',
-                                __('OFF')
-                            ),
-                            'url' => '#'
-                        ),
-                    )
+                        );
+                    }, $themes)
                 )
             )
         )
     );
-    $menu[] = [
-        'type' => 'separator'
-    ];
-    $temp_menu_item = [
-        'html' => '<i class="fas fa-person-digging fa-fw"></i> ' . __('Themes'),
-        'children' => [],
-        'html' => sprintf(
-            '<span id="betaUiToggle" style="cursor: pointer;"><i class="fas fa-person-digging"></i> %s <span class="label label-success">%s</span></span>',
-            __('Beta UI'),
-            'label-success',
-            __('ON')
-        ),
-        'url' => '#'
-    ];
-    $temp_menu_item = [
-    'html' => '<i class="fas fa-flask fa-fw"></i> ' . __('Themes'),
-    'children' => [],
-    'html' => sprintf(
-        '<span id="betaUiToggle" style="cursor: pointer;"><i class="fas fa-flask"></i> %s <span class="label label-success">%s</span></span>',
-        __('Beta UI'),
-        'label-default',
-        __('OFF')
-    ),
-    'url' => '#'
-    ];
-    foreach ($themes as $theme) {
-        $temp_menu_item['children'][] = [
-            'html' => sprintf(
-                '<span class="%s" data-theme="%s">%s</span>',
-                'theme-option',
-                h($theme),
-                h($theme)
-            ),
-            'url' => $baseurl . '/users/setTheme/' . h($theme)
-        ];
-    }
 
     $logo = '<span class="logoBlueStatic bold" id="smallLogo">MISP</span>';
     $today = date('md');

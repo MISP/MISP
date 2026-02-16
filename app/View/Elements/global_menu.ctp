@@ -234,29 +234,27 @@ if (!empty($me)) {
                 ),
                 array(
                     'type' => 'group',
-                    'text' => __('Themes'),
-                    'children' => array(
-                        array(
+                    'html' => '<i class="fas fa-palette fa-fw"></i> ' . __('Themes'),
+                    'children' => array_map(function($t) use ($theme, $themeLabels) {
+                        $label = isset($themeLabels[$t]) ? $themeLabels[$t] : $t . ' UI';
+                        return array(
                             'html' => sprintf(
-                                '<span id="betaUiToggle" class="setTheme" style="cursor: pointer;" data-theme="UiBeta"><i class="fas fa-flask"></i> %s <span class="label %s">%s</span></span>',
-                                __('Beta UI'),
-                                'label-default',
-                                __('OFF')
+                                '<span id="%sToggle" class="setTheme" style="cursor: pointer;" data-theme="%s"><i class="fas fa-brush"></i> %s <span class="label %s">%s</span></span>',
+                                strtolower($t),
+                                h($t),
+                                $label,
+                                $theme === $t ? 'label-success' : 'label-default',
+                                $theme === $t ? __('ON') : __('OFF')
                             ),
                             'url' => '#'
-                        ),
-                        array(
-                            'html' => sprintf(
-                                '<span id="OvermindToggle" class="setTheme" style="cursor: pointer;" data-theme="Overmind"><i class="fas fa-flask"></i> %s <span class="label %s">%s</span></span>',
-                                __('Overmind UI'),
-                                'label-default',
-                                __('OFF')
-                            ),
-                            'url' => '#'
-                        ),
-                    ),
+                        );
+                    }, $themes)
                 ),
-                                array(
+                array(
+                    'text' => __('Set Setting'),
+                    'url' => $baseurl . '/user_settings/setSetting'
+                ),
+                array(
                     'text' => __('Organisations'),
                     'url' => $baseurl . '/organisations/index',
                     'requirement' => $this->Acl->canAccess('organisations', 'index'),
@@ -339,93 +337,6 @@ if (!empty($me)) {
                     'url' => $baseurl . '/posts/add',
                     'requirement' => $this->Acl->canAccess('posts', 'add'),
                 )
-            ),
-            array(
-                'text' => __('Set Setting'),
-                'url' => $baseurl . '/user_settings/setSetting'
-            ),
-            array(
-                'text' => __('Organisations'),
-                'url' => $baseurl . '/organisations/index',
-                'requirement' => $this->Acl->canAccess('organisations', 'index'),
-            ),
-            array(
-                'text' => __('Role Permissions'),
-                'url' => $baseurl . '/roles/index'
-            ),
-            array(
-                'type' => 'separator'
-            ),
-            array(
-                'text' => __('List Object Templates'),
-                'url' => $baseurl . '/objectTemplates/index'
-            ),
-            array(
-                'type' => 'separator'
-            ),
-            array(
-                'text' => __('List Sharing Groups'),
-                'url' => $baseurl . '/sharing_groups/index'
-            ),
-            array(
-                'text' => __('Add Sharing Group'),
-                'url' => $baseurl . '/sharing_groups/add',
-                'requirement' => $this->Acl->canAccess('sharing_groups', 'add'),
-            ),
-            array(
-                'text' => __('List Sharing Groups Blueprints'),
-                'url' => $baseurl . '/sharing_group_blueprints/index',
-                'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'index'),
-            ),
-            array(
-                'text' => __('Add Sharing Group Blueprint'),
-                'url' => $baseurl . '/sharing_group_blueprints/add',
-                'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'add'),
-            ),
-            array(
-                'type' => 'separator'
-            ),
-            array(
-                'text' => __('Decaying Models Tool'),
-                'url' => $baseurl . '/decayingModel/decayingTool',
-                'requirement' => $isAdmin
-            ),
-            array(
-                'text' => __('List Decaying Models'),
-                'url' => $baseurl . '/decayingModel/index',
-            ),
-            array(
-                'type' => 'separator'
-            ),
-            array(
-                'text' => __('User Guide'),
-                'url' => 'https://www.circl.lu/doc/misp/'
-            ),
-            array(
-                'text' => __('Categories & Types'),
-                'url' => $baseurl . '/pages/display/doc/categories_and_types'
-            ),
-            array(
-                'text' => __('Terms & Conditions'),
-                'url' => $baseurl . '/users/terms'
-            ),
-            array(
-                'text' => __('Statistics'),
-                'url' => $baseurl . '/users/statistics'
-            ),
-            array(
-                'type' => 'separator',
-                'requirement' => $this->Acl->canAccess('threads', 'index'),
-            ),
-            array(
-                'text' => __('List Discussions'),
-                'url' => $baseurl . '/threads/index',
-                'requirement' => $this->Acl->canAccess('threads', 'index'),
-            ),
-            array(
-                'text' => __('Start Discussion'),
-                'url' => $baseurl . '/posts/add',
-                'requirement' => $this->Acl->canAccess('posts', 'add'),
             )
         ),
         array(
