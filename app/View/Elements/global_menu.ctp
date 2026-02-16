@@ -248,7 +248,8 @@ if (!empty($me)) {
                             ),
                             'url' => '#'
                         );
-                    }, $themes)
+                    }, $themes),
+                    'requirement' => Configure::read('MISP.enable_themes'),
                 ),
                 array(
                     'text' => __('Set Setting'),
