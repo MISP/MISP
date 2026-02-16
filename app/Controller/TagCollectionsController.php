@@ -206,7 +206,7 @@ class TagCollectionsController extends AppController
                     if (is_numeric($temp)) {
                         $tag_lookups['OR']['Tag.id'][] = $temp;
                     } else {
-                        $tag_lookups['OR']['LOWER(Tag.name) LIKE'][] = strtolower(trim($tag_id));
+                        $tag_lookups['OR'][] = array('LOWER(Tag.name) LIKE' => strtolower(trim($temp)));
                     }
                 }
                 if ($tag_ids !== null && is_array($tag_ids)) { // can decode json
@@ -217,7 +217,7 @@ class TagCollectionsController extends AppController
                                 $tag_lookups
                             )
                         ),
-                        'fields' => array('Tag.id', 'Tag.id')
+                        'fields' => array('Tag.id')
                     ));
                     $tag_id_list = array_values($tag_ids);
                     if (empty($tag_id_list)) {
