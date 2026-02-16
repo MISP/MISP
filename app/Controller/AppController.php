@@ -272,6 +272,9 @@ class AppController extends Controller
             }
         }
 
+        $themes = [];
+        $themeLabels = [];
+        $this->set('theme', 'default'); // fallback to be overriden
         if (!$this->_isRest() && Configure::read('MISP.enable_themes')) {
             if ($this->Auth->user()) {
                 $userTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id'));
@@ -312,9 +315,9 @@ class AppController extends Controller
                     $themeLabels[$t] = $t . ' UI';
                 }
             }
-            $this->set('themes', $themes);
-            $this->set('themeLabels', $themeLabels);
         }
+        $this->set('themes', $themes);
+        $this->set('themeLabels', $themeLabels);
 
         $user = $this->Auth->user();
         if ($user) {
