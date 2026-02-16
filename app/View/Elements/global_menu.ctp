@@ -237,6 +237,9 @@ if (!empty($me)) {
                     'html' => '<i class="fas fa-palette fa-fw"></i> ' . __('Themes'),
                     'children' => array_map(function($t) use ($theme, $themeLabels) {
                         $label = isset($themeLabels[$t]) ? $themeLabels[$t] : $t . ' UI';
+                        if (!$theme) {
+                            $theme = Configure::check('MISP.default_theme') ? Configure::read('MISP.default_theme') : 'Default';
+                        }
                         return array(
                             'html' => sprintf(
                                 '<span id="%sToggle" class="setTheme" style="cursor: pointer;" data-theme="%s"><i class="fas fa-brush"></i> %s <span class="label %s">%s</span></span>',
