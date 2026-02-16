@@ -274,6 +274,7 @@ class AppController extends Controller
 
         $themes = [];
         $themeLabels = [];
+        $this->set('theme', 'Default');
         if (!$this->_isRest() && Configure::read('MISP.enable_themes')) {
             if ($this->Auth->user()) {
                 $userTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id'));
