@@ -153,8 +153,8 @@ class ObjectTemplatesController extends AppController
             $this->set('all', true);
         }
         $params = [
-            'filters' => ['name', 'uuid', 'description', 'meta-category', 'searchall'],
-            'quickFilters' => ['name', 'uuid', 'description', 'meta-category'],
+            'filters' => ['ObjectTemplate.name', 'ObjectTemplate.uuid', 'ObjectTemplate.description', 'ObjectTemplate.meta-category', 'searchall'],
+            'quickFilters' => ['ObjectTemplate.name', 'ObjectTemplate.uuid', 'ObjectTemplate.description', 'ObjectTemplate.meta-category'],
             'quickFilterParameter' => 'searchall',
             'conditions' => $conditions,
             'contain' => [
