@@ -12,7 +12,7 @@ class ObjectTemplatesController extends AppController
     public $paginate = array(
         'limit' => 60,
         'order' => array(
-            'Object.id' => 'desc'
+            'ObjectTemplate.id' => 'desc'
         ),
         'contain' => array(
             'Organisation' => array('fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'))
