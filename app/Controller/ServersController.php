@@ -725,9 +725,9 @@ class ServersController extends AppController
             }
             if ($this->_isRest()) {
                 if ($result) {
-                    return $this->RestResponse->saveFailResponse('Servers', 'eventBlockRule', false, $message, $this->response->type());
-                } else {
                     return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', $message, $this->response->type());
+                } else {
+                    return $this->RestResponse->saveFailResponse('Servers', 'eventBlockRule', false, $message, $this->response->type());
                 }
             } else {
                 if ($result) {
