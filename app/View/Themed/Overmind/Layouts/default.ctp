@@ -121,6 +121,19 @@
 
 
     <!-- TO DO Footer & SQL dump -->
+    <?php
+        if ($useBootstrap5){
+            $currentController = $this->params['controller'];
+            $currentAction = $this->params['action'];
+            // Don't print the footer for the login page
+            if (!($currentController === 'users' && $currentAction === 'login')) {
+                echo $this->element('footerBS5'); 
+            }
+        }
+        else {
+            echo $this->element('footer');
+        }
+    ?>
     <?= $this->element('sql_dump') ?>
 
     <!-- Modals, Toasts and Popovers -->

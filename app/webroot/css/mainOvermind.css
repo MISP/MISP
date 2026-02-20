@@ -231,3 +231,39 @@ body[data-controller="users"][data-action="login"] {
 
 
 
+/* =======================================================
+   Footer Custom CSS
+======================================================= */
+.debugOff {
+    position:fixed;
+}
+
+.debugOn {
+    position:relative;
+}
+
+/* Triangle on right side */
+#triangle {
+    position: absolute;
+    right: 20px;
+    top: -10px;
+    width: 20px;
+    height: 20px;
+    background-color: #212529;
+    transform: rotate(45deg);
+    cursor: pointer;
+    z-index: 11;
+}
+
+/* Shortcuts container (hidden by default) */
+.shortcutsListContainer {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.35s ease;
+}
+
+/* Expanded state */
+.footer-expanded .shortcutsListContainer {
+    max-height: 150px;
+    padding: 10px;
+}
