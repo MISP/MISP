@@ -9,6 +9,7 @@
     <?php
         $bootstrap5Pages = [
             ['controller' => 'users', 'action' => 'login'],
+            ['controller' => 'noticelists', 'action' => 'index'],
         ];
 
         $currentController = $this->params['controller'];
@@ -33,7 +34,10 @@
                 ['fontawesome7.min', ['preload' => true]],
                 ['print', ['media' => 'print']],
             ];
-            $js = [];
+            $js = [
+                ['jquery', ['preload' => true]],
+                ['chosen.jquery.min', ['preload' => true]]
+            ];
         } else {
             $css = [
                 ['bootstrap', ['preload' => true]],
@@ -66,15 +70,41 @@
 </head>
 <body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
     <div class="main-wrapper">
-        <!-- Global Menu -->
-        <!-- TO DO <header class="navbar top-navbar navbar-dark">
-        </header>-->
+        <!-- Navbar -->
         <header>
             <?php
-                echo $this->element('global_menu');
-                $topPadding = '50';
-                if (!empty($debugMode) && $debugMode != 'debugOff') {
+                if ($useBootstrap5){
+                    $currentController = $this->params['controller'];
+                    $currentAction = $this->params['action'];
+                    // Don't print the navbar for the login page
+                    if (!($currentController === 'users' && $currentAction === 'login')) {
+                        $context = [
+                            'me' => $me,
+                            'baseurl' => $baseurl,
+                            'isAdmin' => $isAdmin,
+                            'isSiteAdmin' => $isSiteAdmin,
+                            'isAclSync' => $isAclSync,
+                            'isAclRegexp' => $isAclRegexp,
+                            'isAclAudit' => $isAclAudit,
+                            'hostOrgUser' => $hostOrgUser,
+                            'bookmarks' => $bookmarks,
+                            'themes' => $themes,
+                        ];
+                        $menus = $this->Navbar->build($context);
+                        echo $this->element('navbar', [
+                            'menus' => $menus,
+                            'baseurl' => $baseurl,
+                            'me' => $me ?? null
+                        ]);
+                    }
                     $topPadding = '0';
+                }
+                else {
+                    echo $this->element('global_menu');
+                    $topPadding = '50';
+                    if (!empty($debugMode) && $debugMode != 'debugOff') {
+                        $topPadding = '0';
+                    }
                 }
             ?>
         </header> 

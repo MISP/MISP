@@ -1,6 +1,18 @@
+body{
+    padding-top: 56px; 
+    background-color: #f8f9fa;
+}
+
 body[data-controller="users"][data-action="login"] {
     background: linear-gradient(180deg, #1892B1 0%, #12718E 50%, #0B394A 100%);
     min-height: 100vh;
+    padding-top: 56px;  /* Adjust for fixed navbar height */
+}
+
+.navbar-logo {
+  height: 30px;      /* légèrement moins que 56px pour laisser du padding vertical */
+  width: auto;       /* conserve le ratio de l'image */
+  object-fit: contain;
 }
 
 
@@ -19,6 +31,7 @@ body[data-controller="users"][data-action="login"] {
     width: 100%;
     object-fit: contain;
 }
+
 
 .btn-primary,
 .btn-primary:hover,
@@ -105,3 +118,116 @@ body[data-controller="users"][data-action="login"] {
    border-radius:100%;
    z-index:15;
 }
+
+
+/* =======================================================
+   NAVBAR Custom CSS
+======================================================= */
+
+/* Remove default boostrap arrow */
+.navbar .dropdown-toggle::after {
+    display: none !important;
+}
+
+/* Positioning of dropdowns */
+.navbar .dropdown,
+.dropdown-submenu {
+    position: relative;
+}
+
+/* Flex alignment (navbar links + dropdown items) */
+.navbar .nav-link,
+.dropdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Hover dropdown item */
+.dropdown-item:hover {
+    background-color: #1892B1;
+    color: #fff;
+}
+
+/* Open main dropdown when hovering */
+.navbar .dropdown:hover > .dropdown-menu {
+    display: block;
+}
+
+/* Positioning of submenu */
+.dropdown-submenu > .dropdown-menu {
+    top: calc(-2 * var(--bs-dropdown-item-padding-y));
+    left: 100%;
+    margin-top: -1px;
+}
+
+/* Align correctly dropdown of the right side */
+.navbar .dropdown-menu-end {
+    right: 20px;
+    left: auto;
+}
+
+
+
+/* =======================================================
+   DESKTOP ONLY (>= 1200px)
+======================================================= */
+
+@media (min-width: 1200px) {
+
+    /* Display and positioning of the small white arrow above the dropdowns */
+    .navbar .navbar-nav > .dropdown > .dropdown-menu::before {
+        content: "";
+        position: absolute;
+        top: -6px;
+        left: 20px;
+
+        width: 0;
+        height: 0;
+
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-bottom: 6px solid #fff;
+    }
+
+    /* Display and positioning of the small white arrow above the dropdowns (right side) */
+    .navbar .navbar-nav > .dropdown > .dropdown-menu-end::before {
+        content: "";
+        position: absolute;
+        top: -6px;
+        right: 20px;
+        left: auto;
+
+        width: 0;
+        height: 0;
+
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-bottom: 6px solid #fff;
+    }
+
+
+    /* Open a submenu when hovering */
+    .navbar .dropdown-submenu:hover > .dropdown-menu {
+        display: block;
+    }
+}
+
+
+/* =======================================================
+   MOBILE ONLY (< 1200px)
+======================================================= */
+
+@media (max-width: 1199.98px) {
+
+    /* Display dropdown arrow  */
+    .navbar .menu-arrow::before {
+        font-family: "Font Awesome 7 Free";
+        font-weight: 900;
+        content: "\f078";
+    }
+}
+
+
+
+
