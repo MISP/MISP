@@ -90,7 +90,6 @@ class ServersController extends AppController
             $this->paginate['conditions'] = $conditions;
             $servers = $this->paginate();
             $servers = $this->Server->attachServerCacheTimestamps($servers);
-            $this->set('servers', $servers);
             $collection = array();
             $collection['orgs'] = $this->Server->Organisation->find('list', array(
                   'fields' => array('uuid', 'name'),
@@ -99,6 +98,8 @@ class ServersController extends AppController
             $collection['tags'] = $this->Tag->find('list', array(
                   'fields' => array('id', 'name'),
             ));
+            $servers = $this->Server->attachRuleDescriptions($servers, $collection);
+            $this->set('servers', $servers);
             $this->set('collection', $collection);
         }
     }
@@ -1673,6 +1674,12 @@ class ServersController extends AppController
 
         if (!isset($validItems[$type])) {
             throw new NotFoundException(__('Invalid type.'));
+        }
+
+        $extension = pathinfo($this->request->data['Server']['file']['name'], PATHINFO_EXTENSION);
+        if ($extension === 'svg' && !Configure::read('Security.enable_svg_logos')) {
+            $this->Flash->error(__('Invalid file extension, SVG images are not allowed.'));
+            return false;
         }
 
         // Check if there were problems with the file upload

@@ -83,12 +83,12 @@ class Module_webhook extends WorkflowBaseActionModule
     public function diagnostic(): array
     {
         $errors = array_merge(parent::diagnostic(), []);
-        if (empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
+        if (empty(Configure::read('Security.workflow_enable_arbitrary_urls'))) {
             $errors = $this->addNotification(
                 $errors,
                 'error',
-                __('`rest_client_enable_arbitrary_urls` is turned off.'),
-                __('The module will not send any request as long as `Security.rest_client_enable_arbitrary_urls` is turned off.'),
+                __('`workflow_enable_arbitrary_urls` is turned off.'),
+                __('The module will not send any request as long as `Security.workflow_enable_arbitrary_urls` is turned off.'),
                 [
                     __('This is a security measure to ensure a site-admin do not send arbitrary request to internal services')
                 ],
@@ -102,8 +102,8 @@ class Module_webhook extends WorkflowBaseActionModule
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
         parent::exec($node, $roamingData, $errors);
-        if (empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
-            $errors[] = __('`Security.rest_client_enable_arbitrary_urls` is turned off');
+        if (empty(Configure::read('Security.workflow_enable_arbitrary_urls'))) {
+            $errors[] = __('`Security.workflow_enable_arbitrary_urls` is turned off');
             return false;
         }
         $rData = $roamingData->getData();

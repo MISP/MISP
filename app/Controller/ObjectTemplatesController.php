@@ -6,8 +6,9 @@ App::uses('AppController', 'Controller');
  */
 class ObjectTemplatesController extends AppController
 {
-    public $components = array('RequestHandler', 'Session');
 
+    public $components = array('RequestHandler', 'Session');
+    
     public $paginate = array(
         'limit' => 60,
         'order' => array(
@@ -99,13 +100,14 @@ class ObjectTemplatesController extends AppController
 
     public function view($id)
     {
+        // Handle UUID lookup
         if (Validation::uuid($id)) {
-            $temp = $this->ObjectTemplate->find('first', array(
+            $temp = $this->ObjectTemplate->find('first', [
                 'recursive' => -1,
-                'conditions' => array('ObjectTemplate.uuid' => $id),
-                'fields' => array('ObjectTemplate.id', 'ObjectTemplate.uuid'),
-                'order' => array('ObjectTemplate.version desc')
-            ));
+                'conditions' => ['ObjectTemplate.uuid' => $id],
+                'fields' => ['ObjectTemplate.id', 'ObjectTemplate.uuid'],
+                'order' => ['ObjectTemplate.version desc']
+            ]);
             if (empty($temp)) {
                 throw new NotFoundException(__('Invalid object template'));
             }
@@ -113,88 +115,60 @@ class ObjectTemplatesController extends AppController
         } elseif (!is_numeric($id)) {
             throw new NotFoundException(__('Invalid object template id.'));
         }
-        $params = array(
-            'recursive' => -1,
-            'contain' => array(
-                'Organisation' => array('fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'))
-            ),
-            'conditions' => array('ObjectTemplate.id' => $id)
-        );
+
+        $contain = [
+            'Organisation' => ['fields' => ['Organisation.id', 'Organisation.name', 'Organisation.uuid']]
+        ];
         if ($this->_isRest()) {
-            $params['contain'][] = 'ObjectTemplateElement';
+            $contain[] = 'ObjectTemplateElement';
         }
         if ($this->_isSiteAdmin()) {
-            $params['contain']['User']= array('fields' => array('User.id', 'User.email'));
+            $contain['User'] = ['fields' => ['User.id', 'User.email']];
         }
-        $objectTemplate = $this->ObjectTemplate->find('first', $params);
-        if (empty($objectTemplate)) {
-            throw new NotFoundException('Invalid object template');
+
+        $params = ['contain' => $contain];
+        $this->CRUD->view($id, $params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($objectTemplate, $this->response->type());
-        } else {
-            $this->set('id', $id);
-            $this->set('template', $objectTemplate);
-        }
+        $this->set('id', $id);
+        $this->set('template', $this->viewVars['data']);
     }
 
     public function delete($id)
     {
-        if (!$this->request->is('post') && !$this->request->is('put') && !$this->request->is('delete')) {
-            throw new MethodNotAllowedException();
+        $this->CRUD->delete($id);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        $this->ObjectTemplate->id = $id;
-        if (!$this->ObjectTemplate->exists()) {
-            throw new NotFoundException('Invalid Object Template');
-        }
-        if ($this->ObjectTemplate->delete()) {
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('ObjectTemplates', 'admin_delete', $id, $this->response->type());
-            } else {
-                $this->Flash->success(__('Object Template deleted'));
-            }
-        } else {
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveFailResponse('ObjectTemplates', 'admin_delete', $id, $this->ObjectTemplate->validationErrors, $this->response->type());
-            } else {
-                $this->Flash->error('Object Template could not be deleted');
-            }
-        }
-        $this->redirect($this->referer());
     }
 
     public function index($all = false)
     {
-        $passedArgsArray = array();
-        $passedArgs = $this->passedArgs;
+        $conditions = [];
         if (!$all || !$this->_isSiteAdmin()) {
-            $this->paginate['conditions'][] = array('ObjectTemplate.active' => 1);
+            $conditions['ObjectTemplate.active'] = 1;
             $this->set('all', false);
         } else {
             $this->set('all', true);
         }
-        if (!empty($this->params['named']['searchall'])) {
-            $searchTerm = '%' . strtolower($this->request->params['named']['searchall']) . '%';
-            $this->paginate['conditions']['AND']['OR'] = array(
-                'ObjectTemplate.uuid LIKE' => $searchTerm,
-                'LOWER(ObjectTemplate.name) LIKE' => $searchTerm,
-                'ObjectTemplate.meta-category LIKE' => $searchTerm,
-                'LOWER(ObjectTemplate.description) LIKE' => $searchTerm,
-            );
+        $params = [
+            'filters' => ['name', 'uuid', 'description', 'meta-category', 'searchall'],
+            'quickFilters' => ['name', 'uuid', 'description', 'meta-category'],
+            'quickFilterParameter' => 'searchall',
+            'conditions' => $conditions,
+            'contain' => [
+                'Organisation' => ['fields' => ['Organisation.id', 'Organisation.name', 'Organisation.uuid']]
+            ],
+            'order' => ['ObjectTemplate.name' => 'ASC']
+        ];
+        $this->CRUD->index($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        if ($this->_isRest()) {
-            $rules = $this->paginate;
-            unset($rules['limit']);
-            unset($rules['order']);
-            $objectTemplates = $this->ObjectTemplate->find('all', $rules);
-            return $this->RestResponse->viewData($objectTemplates, $this->response->type());
-        }
-
-        $this->paginate['order'] = array('ObjectTemplate.name' => 'ASC');
-        $objectTemplates = $this->paginate();
-        $this->set('list', $objectTemplates);
-        $this->set('passedArgs', json_encode($passedArgs));
-        $this->set('passedArgsArray', $passedArgsArray);
+        $this->set('list', $this->viewVars['data']);
+        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgsArray', []);
     }
 
     public function update($type = false, $force = false)

@@ -676,16 +676,22 @@ if (!empty($me)) {
                     )
                 ),
                 array(
-                    'type' => 'separator'
-                ),
-                array(
-                    'html' => sprintf(
-                        '<span id="betaUiToggle" style="cursor: pointer;"><i class="fas fa-flask"></i> %s <span class="label %s">%s</span></span>',
-                        __('Beta UI'),
-                        !empty($uiBetaEnabled) ? 'label-success' : 'label-default',
-                        !empty($uiBetaEnabled) ? __('ON') : __('OFF')
-                    ),
-                    'url' => '#'
+                    'type' => 'group',
+                    'html' => '<i class="fas fa-palette fa-fw"></i> ' . __('Themes'),
+                    'children' => array_map(function($t) use ($theme, $themeLabels) {
+                        $label = isset($themeLabels[$t]) ? $themeLabels[$t] : $t . ' UI';
+                        return array(
+                            'html' => sprintf(
+                                '<span id="%sToggle" class="setTheme" style="cursor: pointer;" data-theme="%s"><i class="fas fa-brush"></i> %s <span class="label %s">%s</span></span>',
+                                strtolower($t),
+                                h($t),
+                                $label,
+                                $theme === $t ? 'label-success' : 'label-default',
+                                $theme === $t ? __('ON') : __('OFF')
+                            ),
+                            'url' => '#'
+                        );
+                    }, $themes)
                 )
             )
         )
@@ -806,12 +812,16 @@ if ($isHal) {
 </div>
 <script>
 $(document).ready(function() {
-    $('#betaUiToggle').on('click', function(e) {
+    $('.setTheme').on('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
+
+        var theme = String($(this).data('theme') || '');
+        var safeTheme = encodeURIComponent(theme);
+
         $.ajax({
             type: 'POST',
-            url: '<?php echo $baseurl; ?>/user_settings/toggleBetaUi',
+            url: '<?php echo $baseurl; ?>/user_settings/setTheme/' + safeTheme,
             success: function(data) {
                 location.reload();
             },

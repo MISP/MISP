@@ -272,6 +272,52 @@ class AppController extends Controller
             }
         }
 
+        $themes = [];
+        $themeLabels = [];
+        $this->set('theme', 'Default');
+        if (!$this->_isRest() && Configure::read('MISP.enable_themes')) {
+            if ($this->Auth->user()) {
+                $userTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id'));
+                if ($userTheme) {
+                    $this->theme = $userTheme;
+                    $this->viewClass = 'Theme';
+                } else {
+                    $default_theme = Configure::read('MISP.default_theme');
+                    if ($default_theme) {
+                        $this->theme = $default_theme;
+                        $this->viewClass = 'Theme';
+                    }
+                }
+                $this->set('theme', $userTheme);
+            } else {
+                $default_theme = Configure::read('MISP.default_theme');
+                if ($default_theme) {
+                    $this->theme = $default_theme;
+                    $this->viewClass = 'Theme';
+                    $this->set('theme', $default_theme);
+                }
+            }
+            $userSetting = ClassRegistry::init('UserSetting');
+            $themes = $userSetting::VALID_SETTINGS['ui_theme']['options'];
+            foreach ($themes as $t) {
+                if ($t === 'Default') {
+                    continue;
+                }
+                $themeFile = APP . 'View' . DS . 'Themed' . DS . $t . DS . 'theme.php';
+                if (file_exists($themeFile)) {
+                    $themeConfig = include $themeFile;
+                    if (!empty($themeConfig['label'])) {
+                        $themeLabels[$t] = $themeConfig['label'];
+                    }
+                }
+                if (!isset($themeLabels[$t])) {
+                    $themeLabels[$t] = $t . ' UI';
+                }
+            }
+        }
+        $this->set('themes', $themes);
+        $this->set('themeLabels', $themeLabels);
+
         $user = $this->Auth->user();
         if ($user) {
             Configure::write('CurrentUserId', $user['id']);
@@ -346,7 +392,6 @@ class AppController extends Controller
             $this->loadModel('Bookmark');
             $this->set('bookmarks', $this->Bookmark->getBookmarksForUser($user));
             $this->userRole = $role;
-
             $this->__accessMonitor($user);
 
         } else {
@@ -427,9 +472,6 @@ class AppController extends Controller
             if (!empty($homepage)) {
                 $this->set('homepage', $homepage);
             }
-
-            $uiBetaEnabled = $this->User->UserSetting->isUiBetaEnabled($user['id']);
-            $this->set('uiBetaEnabled', $uiBetaEnabled);
 
             if (PHP_MAJOR_VERSION < 8) {
                 $this->Flash->error(__('WARNING: MISP 2.5.x is currently running under PHP 7.x, which is unsupported. Make sure that you upgrade to PHP 8.x as soon as possible.'));

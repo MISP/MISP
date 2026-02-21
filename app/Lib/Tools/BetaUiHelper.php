@@ -106,46 +106,7 @@ class BetaUiHelper
         return $layoutPath;
     }
     
-    /**
-     * Get beta-specific CSS files to load
-     * 
-     * This method returns an array of CSS files that should be loaded
-     * when beta UI is enabled. These files will override or supplement
-     * the standard CSS.
-     * 
-     * @param bool $uiBetaEnabled Whether the user has beta UI enabled
-     * @return array Array of CSS file names (without .css extension)
-     * 
-     * Example:
-     *   $betaCss = BetaUiHelper::getBetaCssFiles($uiBetaEnabled);
-     *   // Returns ['main-beta', 'components-beta'] if beta enabled
-     *   // Otherwise returns []
-     */
-    public static function getBetaCssFiles($uiBetaEnabled)
-    {
-        if (!$uiBetaEnabled) {
-            return [];
-        }
-        
-        $betaCssFiles = [];
-        $cssDir = APP . 'webroot' . DS . 'css' . DS;
-        
-        $potentialBetaFiles = [
-            'main-beta',
-            'components-beta',
-            'layout-beta',
-            'theme-beta'
-        ];
-        
-        foreach ($potentialBetaFiles as $file) {
-            if (file_exists($cssDir . $file . '.css')) {
-                $betaCssFiles[] = $file;
-            }
-        }
-        
-        return $betaCssFiles;
-    }
-    
+
     /**
      * Check if a specific beta feature is enabled
      * 

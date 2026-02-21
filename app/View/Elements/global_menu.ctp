@@ -233,13 +233,26 @@ if (!empty($me)) {
                     'url' => $baseurl . '/user_settings/index/user_id:me'
                 ),
                 array(
-                    'html' => sprintf(
-                        '<span id="betaUiToggle" style="cursor: pointer;"><i class="fas fa-flask"></i> %s <span class="label %s">%s</span></span>',
-                        __('Beta UI'),
-                        !empty($uiBetaEnabled) ? 'label-success' : 'label-default',
-                        !empty($uiBetaEnabled) ? __('ON') : __('OFF')
-                    ),
-                    'url' => '#'
+                    'type' => 'group',
+                    'html' => '<i class="fas fa-palette fa-fw"></i> ' . __('Themes'),
+                    'children' => array_map(function($t) use ($theme, $themeLabels) {
+                        $label = isset($themeLabels[$t]) ? $themeLabels[$t] : $t . ' UI';
+                        if (!$theme) {
+                            $theme = Configure::check('MISP.default_theme') ? Configure::read('MISP.default_theme') : 'Default';
+                        }
+                        return array(
+                            'html' => sprintf(
+                                '<span id="%sToggle" class="setTheme" style="cursor: pointer;" data-theme="%s"><i class="fas fa-brush"></i> %s <span class="label %s">%s</span></span>',
+                                strtolower($t),
+                                h($t),
+                                $label,
+                                $theme === $t ? 'label-success' : 'label-default',
+                                $theme === $t ? __('ON') : __('OFF')
+                            ),
+                            'url' => '#'
+                        );
+                    }, $themes),
+                    'requirement' => Configure::read('MISP.enable_themes'),
                 ),
                 array(
                     'text' => __('Set Setting'),
@@ -662,14 +675,29 @@ if ($isHal) {
     }
   ?>
 </div>
+<style>
+    ul.nav li.dropdown:hover > ul.dropdown-menu {
+        display: block;
+    }
+    .dropdown-submenu > .dropdown-menu {
+        display: none !important;
+    }
+    .dropdown-submenu:hover > .dropdown-menu {
+        display: block !important;
+    }
+</style>
 <script>
 $(document).ready(function() {
-    $('#betaUiToggle').on('click', function(e) {
+    $('.setTheme').on('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
+
+        var theme = String($(this).data('theme') || '');
+        var safeTheme = encodeURIComponent(theme);
+
         $.ajax({
             type: 'POST',
-            url: '<?php echo $baseurl; ?>/user_settings/toggleBetaUi',
+            url: '<?php echo $baseurl; ?>/user_settings/setTheme/' + safeTheme,
             success: function(data) {
                 location.reload();
             },

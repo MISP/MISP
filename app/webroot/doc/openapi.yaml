@@ -3409,6 +3409,7 @@ components:
         - "passenger-name-record-locator-number"
         - "mobile-application-id"
         - "chrome-extension-id"
+        - "edge-extension-id"
         - "cortex"
         - "boolean"
         - "anonymised"
@@ -3610,6 +3611,8 @@ components:
             - $ref: "#/components/schemas/OrganisationName"
         tags:
           $ref: "#/components/schemas/TagsRestSearchFilter"
+        searchall:
+          $ref: "#/components/schemas/SearchAllRestSearchFilter"
         from:
           $ref: "#/components/schemas/DateRestSearchFilter"
         to:

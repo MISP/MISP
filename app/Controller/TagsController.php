@@ -6,7 +6,7 @@ App::uses('AppController', 'Controller');
  */
 class TagsController extends AppController
 {
-    public $components = array('RequestHandler');
+    public $components = array('RequestHandler', 'CRUD');
 
     public $paginate = array(
             'limit' => 50,
@@ -31,169 +31,151 @@ class TagsController extends AppController
 
     public function index()
     {
-        $this->loadModel('MispAttribute');
-        $this->loadModel('Event');
         $this->loadModel('Taxonomy');
+
+        $contain = [
+            'FavouriteTag',
+            'Organisation' => ['fields' => ['id', 'name']]
+        ];
         if ($this->_isSiteAdmin()) {
-            $this->paginate['contain']['User'] = array('fields' => array('id', 'email'));
+            $contain['User'] = ['fields' => ['id', 'email']];
         }
-        $filterData = array(
-            'request' => $this->request,
-            'named_params' => $this->params['named'],
-            'paramArray' => ['favouritesOnly', 'filter', 'searchall', 'name', 'search', 'exclude_statistics'],
-        );
-        $exception = false;
-        $passedArgsArray = $this->_harvestParameters($filterData, $exception);
 
-        $this->Event->recursive = -1;
+        // Build conditions for favourites filter
+        $conditions = [];
+        $passedArgsArray = $this->IndexFilter->harvestParameters(['favouritesOnly', 'filter', 'searchall', 'name', 'search', 'exclude_statistics']);
+
         if (!empty($passedArgsArray['favouritesOnly'])) {
-            $tag_id_list = $this->Tag->FavouriteTag->find('list', array(
-                    'conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id')),
-                    'fields' => array('FavouriteTag.tag_id')
-            ));
-            if (empty($tag_id_list)) {
-                $tag_id_list = array(-1);
-            }
-            $this->paginate['conditions']['AND']['Tag.id'] = $tag_id_list;
-        }
-        if (!empty($passedArgsArray['searchall'])) {
-            $this->paginate['conditions']['AND'][] = ['LOWER(Tag.name) LIKE' => '%' . strtolower($passedArgsArray['searchall']) . '%'];
-        }
-        foreach (['name', 'filter', 'search'] as $f) {
-            if (!empty($passedArgsArray[$f])) {
-                $this->paginate['conditions']['AND'][] = ['LOWER(Tag.name)' => strtolower($passedArgsArray[$f])];
-            }
-        }
-        if ($this->_isRest()) {
-            unset($this->paginate['limit']);
-            $paginated = $this->Tag->find('all', $this->paginate);
-        } else {
-            $paginated = $this->paginate();
-        }
-        $tagList = array();
-        $taxonomyTags = array();
-        $taxonomyNamespaces = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
-        foreach ($paginated as $k => $tag) {
-            $tagList[] = $tag['Tag']['id'];
-            $favourite = false;
-            if (!empty($tag['FavouriteTag'])) {
-                foreach ($tag['FavouriteTag'] as $ft) {
-                    if ($ft['user_id'] == $this->Auth->user('id')) {
-                        $favourite = true;
-                        break;
-                    }
-                }
-            }
-            $paginated[$k]['Tag']['favourite'] = $favourite;
-            unset($paginated[$k]['FavouriteTag']);
-
-            foreach ($taxonomyNamespaces as $namespace => $taxonomy) {
-                if (substr(strtoupper($tag['Tag']['name']), 0, strlen($namespace)) === strtoupper($namespace)) {
-                    $paginated[$k]['Tag']['Taxonomy'] = $taxonomy;
-                    if (!isset($taxonomyTags[$namespace])) {
-                        $taxonomyTags[$namespace] = $this->Taxonomy->getTaxonomyTags($taxonomy['id'], true);
-                    }
-                    $paginated[$k]['Tag']['Taxonomy']['expanded'] = isset($taxonomyTags[$namespace][strtoupper($tag['Tag']['name'])]) ? $taxonomyTags[$namespace][strtoupper($tag['Tag']['name'])] : $tag['Tag']['name'];
-                    break;
-                }
-            }
+            $tagIdList = $this->Tag->FavouriteTag->find('list', [
+                'conditions' => ['FavouriteTag.user_id' => $this->Auth->user('id')],
+                'fields' => ['FavouriteTag.tag_id']
+            ]);
+            $conditions['Tag.id'] = empty($tagIdList) ? -1 : $tagIdList;
         }
 
-        if (empty($passedArgsArray['exclude_statistics'])) {
-            $attributeCount = $this->Tag->AttributeTag->countForTags($tagList, $this->Auth->user());
-            // TODO: this must be called before `tagsSparkline`!
-            $eventCount = $this->Tag->EventTag->countForTags($tagList, $this->Auth->user());
-            foreach ($paginated as $k => $tag) {
-                $tagId = $tag['Tag']['id'];
-                $paginated[$k]['Tag']['count'] = isset($eventCount[$tagId]) ? (int)$eventCount[$tagId] : 0;
-                $paginated[$k]['Tag']['attribute_count'] = isset($attributeCount[$tagId]) ? (int)$attributeCount[$tagId] : 0;
+        $params = [
+            'filters' => ['name', 'filter', 'search'],
+            'quickFilters' => ['Tag.name'],
+            'quickFilterParameter' => 'searchall',
+            'conditions' => $conditions,
+            'contain' => $contain,
+            'afterFind' => function (array $tags) use ($passedArgsArray) {
+                $tagList = [];
+                $taxonomyTags = [];
+                $taxonomyNamespaces = $this->Taxonomy->listTaxonomies(['full' => false, 'enabled' => true]);
+                $userId = $this->Auth->user('id');
+
+                foreach ($tags as $k => $tag) {
+                    $tagList[] = $tag['Tag']['id'];
+
+                    // Check if favourite
+                    $favourite = false;
+                    if (!empty($tag['FavouriteTag'])) {
+                        foreach ($tag['FavouriteTag'] as $ft) {
+                            if ($ft['user_id'] == $userId) {
+                                $favourite = true;
+                                break;
+                            }
+                        }
+                    }
+                    $tags[$k]['Tag']['favourite'] = $favourite;
+                    unset($tags[$k]['FavouriteTag']);
+
+                    // Match taxonomy
+                    foreach ($taxonomyNamespaces as $namespace => $taxonomy) {
+                        if (substr(strtoupper($tag['Tag']['name']), 0, strlen($namespace)) === strtoupper($namespace)) {
+                            $tags[$k]['Tag']['Taxonomy'] = $taxonomy;
+                            if (!isset($taxonomyTags[$namespace])) {
+                                $taxonomyTags[$namespace] = $this->Taxonomy->getTaxonomyTags($taxonomy['id'], true);
+                            }
+                            $tags[$k]['Tag']['Taxonomy']['expanded'] = isset($taxonomyTags[$namespace][strtoupper($tag['Tag']['name'])]) ? $taxonomyTags[$namespace][strtoupper($tag['Tag']['name'])] : $tag['Tag']['name'];
+                            break;
+                        }
+                    }
+                }
+
+                // Add statistics unless excluded
+                if (empty($passedArgsArray['exclude_statistics'])) {
+                    $attributeCount = $this->Tag->AttributeTag->countForTags($tagList, $this->Auth->user());
+                    $eventCount = $this->Tag->EventTag->countForTags($tagList, $this->Auth->user());
+                    foreach ($tags as $k => $tag) {
+                        $tagId = $tag['Tag']['id'];
+                        $tags[$k]['Tag']['count'] = isset($eventCount[$tagId]) ? (int)$eventCount[$tagId] : 0;
+                        $tags[$k]['Tag']['attribute_count'] = isset($attributeCount[$tagId]) ? (int)$attributeCount[$tagId] : 0;
+                    }
+                }
+
+                // For REST, flatten and wrap in 'Tag' key for backwards compatibility
+                if ($this->IndexFilter->isRest()) {
+                    $flattened = [];
+                    foreach ($tags as $tag) {
+                        $flattened[] = $tag['Tag'];
+                    }
+                    return ['Tag' => $flattened];
+                }
+
+                return $tags;
             }
-        } else {
+        ];
+
+        $this->CRUD->index($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+
+        if (!empty($passedArgsArray['exclude_statistics'])) {
             $this->set('exclude_statistics', true);
         }
-
-        if ($this->_isRest()) {
-            foreach ($paginated as $key => $tag) {
-                $paginated[$key] = $tag['Tag'];
-            }
-            $this->set('Tag', $paginated);
-            $this->set('_serialize', array('Tag'));
-        } else {
-            $this->set('passedArgs', json_encode($this->passedArgs));
-            $this->set('passedArgsArray', $passedArgsArray);
-            $this->set('list', $paginated);
-            $this->set('favouritesOnly', !empty($passedArgsArray['favouritesOnly']));
-        }
-        // send perm_tagger to view for action buttons
+        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgsArray', $passedArgsArray);
+        $this->set('list', $this->viewVars['data']);
+        $this->set('favouritesOnly', !empty($passedArgsArray['favouritesOnly']));
     }
 
     public function add()
     {
-        if ($this->request->is('post')) {
-            if (!isset($this->request->data['Tag'])) {
-                $this->request->data = array('Tag' => $this->request->data);
-            }
-            if (isset($this->request->data['Tag']['request'])) {
-                $this->request->data['Tag'] = $this->request->data['Tag']['request'];
-            }
-            if (!isset($this->request->data['Tag']['colour'])) {
-                $this->request->data['Tag']['colour'] = $this->Tag->tagColor($this->request->data['Tag']['name']);
-            }
-            if (isset($this->request->data['Tag']['id'])) {
-                unset($this->request->data['Tag']['id']);
-            }
-            if ($this->_isRest()) {
-                $tag = $this->Tag->find('first', array(
-                    'conditions' => array(
-                        'Tag.name' => $this->request->data['Tag']['name']
-                    ),
+        // For REST: return existing tag if it already exists
+        if ($this->request->is('post') && $this->IndexFilter->isRest()) {
+            $tagName = isset($this->request->data['Tag']['name']) ? $this->request->data['Tag']['name'] : (isset($this->request->data['name']) ? $this->request->data['name'] : null);
+            if ($tagName) {
+                $existingTag = $this->Tag->find('first', [
+                    'conditions' => ['Tag.name' => $tagName],
                     'recursive' => -1
-                ));
-                if (!empty($tag)) {
-                    return $this->RestResponse->viewData($tag, $this->response->type());
+                ]);
+                if (!empty($existingTag)) {
+                    return $this->RestResponse->viewData($existingTag, $this->response->type());
                 }
             }
-            if ($this->Tag->save($this->request->data)) {
-                if ($this->_isRest()) {
-                    $tag = $this->Tag->find('first', array(
-                        'conditions' => array(
-                            'Tag.id' => $this->Tag->id
-                        ),
-                        'recursive' => -1
-                    ));
-                    return $this->RestResponse->viewData($tag, $this->response->type());
-                }
-                $this->Flash->success('The tag has been saved.');
-                $this->redirect(array('action' => 'index'));
-            } else {
-                if ($this->_isRest()) {
-                    $error_message = '';
-                    foreach ($this->Tag->validationErrors as $k => $v) {
-                        $error_message .= '[' . $k . ']: ' . $v[0];
-                    }
-                    throw new MethodNotAllowedException('Could not add the Tag. ' . $error_message);
-                } else {
-                    $this->Flash->error('The tag could not be saved. Please, try again.');
-                }
-            }
-        } elseif ($this->_isRest()) {
-            return $this->RestResponse->describe('Tag', 'add', false, $this->response->type());
         }
 
-        $orgs = $this->Tag->Organisation->find('list', array(
-            'conditions' => array('local' => 1),
-            'fields' => array('id', 'name'),
+        $params = [
+            'beforeSave' => function (array $data) {
+                if (!isset($data['Tag']['colour'])) {
+                    $data['Tag']['colour'] = $this->Tag->tagColor($data['Tag']['name']);
+                }
+                return $data;
+            }
+        ];
+
+        $this->CRUD->add($params);
+        if ($this->restResponsePayload) {
+            return $this->restResponsePayload;
+        }
+
+        $orgs = $this->Tag->Organisation->find('list', [
+            'conditions' => ['local' => 1],
+            'fields' => ['id', 'name'],
             'order' => 'name',
-        ));
+        ]);
         $orgs = [0 => 'Unrestricted'] + $orgs;
         $this->set('orgs', $orgs);
 
         if ($this->_isSiteAdmin()) {
-            $users = $this->Tag->User->find('list', array(
-                'conditions' => array('disabled' => 0),
-                'fields' => array('id', 'email'),
+            $users = $this->Tag->User->find('list', [
+                'conditions' => ['disabled' => 0],
+                'fields' => ['id', 'email'],
                 'order' => 'email',
-            ));
+            ]);
             $users = [0 => 'Unrestricted'] + $users;
             $this->set('users', $users);
         }
@@ -217,92 +199,39 @@ class TagsController extends AppController
         $this->redirect($this->referer());
     }
 
-    public function edit($id = false)
+    public function edit($id)
     {
-        if ($id === false && (!$this->_isRest() || !$this->request->is('get'))) {
-            throw new NotFoundException('No ID set.');
-        } elseif (!empty($id)) {
-            $this->Tag->id = $id;
-            if (!$this->Tag->exists()) {
-                throw new NotFoundException('Invalid tag');
-            }
-        }
-        if ($this->request->is('post') || $this->request->is('put')) {
-            if (!isset($this->request->data['Tag'])) {
-                $this->request->data = array('Tag' => $this->request->data);
-            }
-            $this->request->data['Tag']['id'] = $id;
-            if ($this->Tag->save($this->request->data)) {
-                if ($this->_isRest()) {
-                    $tag = $this->Tag->find('first', array(
-                        'conditions' => array(
-                            'Tag.id' => $id
-                        ),
-                        'recursive' => -1
-                    ));
-                    return $this->RestResponse->viewData($tag, $this->response->type());
-                }
-                $this->Flash->success('The Tag has been edited');
-                $this->redirect(array('action' => 'index'));
-            } else {
-                if ($this->_isRest()) {
-                    $error_message = '';
-                    foreach ($this->Tag->validationErrors as $k => $v) {
-                        $error_message .= '[' . $k . ']: ' . $v[0];
-                    }
-                    throw new MethodNotAllowedException('Could not add the Tag. ' . $error_message);
-                }
-                $this->Flash->error('The Tag could not be saved. Please, try again.');
-            }
-        } elseif ($this->_isRest()) {
-            return $this->RestResponse->describe('Tag', 'edit', false, $this->response->type());
+        $this->CRUD->edit($id);
+        if ($this->restResponsePayload) {
+            return $this->restResponsePayload;
         }
 
-        $orgs = $this->Tag->Organisation->find('list', array(
-            'conditions' => array('local' => 1),
-            'fields' => array('id', 'name'),
+        $orgs = $this->Tag->Organisation->find('list', [
+            'conditions' => ['local' => 1],
+            'fields' => ['id', 'name'],
             'order' => 'name',
-        ));
+        ]);
         $orgs = [0 => 'Unrestricted'] + $orgs;
         $this->set('orgs', $orgs);
 
-        $users = $this->Tag->User->find('list', array(
-            'conditions' => array('disabled' => 0),
-            'fields' => array('id', 'email'),
+        $users = $this->Tag->User->find('list', [
+            'conditions' => ['disabled' => 0],
+            'fields' => ['id', 'email'],
             'order' => 'email',
-        ));
+        ]);
         $users = [0 => 'Unrestricted'] + $users;
         $this->set('users', $users);
         $this->set('menuData', ['menuList' => 'tags', 'menuItem' => 'edit']);
-        $this->request->data = $this->Tag->read(null, $id);
         $this->render('add');
     }
 
     public function delete($id)
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->Tag->id = $id;
-        if (!$this->Tag->exists()) {
-            throw new NotFoundException('Invalid tag');
-        }
-        if ($this->Tag->delete()) {
-            if ($this->_isRest()) {
-                $this->set('name', 'Tag deleted.');
-                $this->set('message', 'Tag deleted.');
-                $this->set('url', $this->baseurl . '/tags/delete/' . $id);
-                $this->set('_serialize', array('name', 'message', 'url'));
-            }
-            $this->Flash->success(__('Tag deleted'));
-        } else {
-            if ($this->_isRest()) {
-                throw new MethodNotAllowedException('Could not delete the tag, or tag doesn\'t exist.');
-            }
-            $this->Flash->error(__('Tag was not deleted'));
-        }
-        if (!$this->_isRest()) {
-            $this->redirect(array('action' => 'index'));
+        $this->CRUD->delete($id, [
+            'redirect' => ['action' => 'index']
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
 

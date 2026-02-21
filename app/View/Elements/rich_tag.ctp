@@ -67,7 +67,7 @@ if (!empty($tag['Tag']['id'])) {
 }
 $span_delete = '';
 $span_relationship = '';
-if ($canModifyAllTags || ($canModifyLocalTags && $tag['Tag']['local'])) {
+if ($canModifyAllTags || ($canModifyLocalTags && $tag['local'])) {
     $span_relationship = sprintf(
         '<a class="%s" title="%s" role="button" tabindex="0" aria-label="%s" href="%s"><i class="fas fa-project-diagram"></i></a>',
         'black-white tag noPrint modal-open',

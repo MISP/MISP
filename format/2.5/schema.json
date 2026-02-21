@@ -102,10 +102,7 @@
         "required": [
           "uuid"
         ]
-      },
-      "required": [
-        "uuid"
-      ]
+      }
     },
     "sharing_group_org": {
       "type": "object",

@@ -30,7 +30,7 @@
                                     'title' => __('Content for this URL will be downloaded and converted to Markdown'),
                                     'fa-icon' => 'link',
                                     'class' => 'modal-open',
-                                    'requirement' => $canModify && $importModuleEnabled,
+                                    'requirement' => $canModify && $importModuleEnabled && $unsafeUrlSettingEnabled,
                                 ),
                                 array(
                                     'url' => $baseurl . '/eventReports/reportFromEvent/' . h($event_id),
