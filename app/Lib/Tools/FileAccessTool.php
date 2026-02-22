@@ -69,7 +69,7 @@ class FileAccessTool
      * @return mixed
      * @throws Exception
      */
-    public static function readJsonFromFile($file, $mustBeArray = false)
+    public static function readJsonFromFile(string $file, $mustBeArray = false)
     {
         $content = self::readFromFile($file);
         try {
@@ -77,6 +77,25 @@ class FileAccessTool
         } catch (Exception $e) {
             throw new Exception("Could not decode JSON from file `$file`", 0, $e);
         }
+    }
+
+    /**
+     * @param string $file
+     * @return string
+     * @throws Exception
+     */
+    public static function readAndBase64Encode(string $file)
+    {
+        if (function_exists('simdjson_base64_encode_from_stream')) {
+            $stream = fopen($file, "r");
+            if ($stream === false) {
+                throw new Exception("An error has occurred while attempt to open file `$file`.");
+            }
+            return simdjson_base64_encode_from_stream($stream);
+        }
+
+        $content = self::readFromFile($file);
+        return base64_encode($content);
     }
 
     /**
