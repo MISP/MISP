@@ -2218,7 +2218,7 @@ class MispAttribute extends AppModel
                         $attr['Attribute'] = $this->DecayingModel
                             ->attachScoresToAttribute($user, $attr['Attribute'], $options['decayingModel'], $options['modelOverrides'], $full);
                         unset($attr['Attribute']['AttributeTag'], $attr['Attribute']['EventTag']);
-                        if (!empty($options['excludeDecayed'])) {
+                        if (!empty($options['excludeDecayed']) && isset($attr['Attribute']['decay_score'])) {
                             $allDecayed = true;
                             foreach ($attr['Attribute']['decay_score'] as $ds) {
                                 $allDecayed = $allDecayed && $ds['decayed'];
