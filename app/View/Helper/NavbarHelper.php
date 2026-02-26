@@ -189,7 +189,7 @@ class NavbarHelper extends AppHelper {
 
         return [
             'type' => 'root',
-            'label' => __('Events'),
+            'label' => __('Data points'),
             'icon' => 'fas fa-clipboard-list',
             'children' => $eventsChildren
         ];
@@ -245,7 +245,7 @@ class NavbarHelper extends AppHelper {
                         'url' => $baseurl . '/galaxies/index',
                         'controller' => 'galaxies',
                         'action' => 'index',
-                        'icon' => 'fas fa-bullseye'
+                        'icon' => 'fab fa-galactic-republic'
                     ],
                     [
                         'label' => __('List Galaxy Relationships'),
@@ -366,7 +366,7 @@ class NavbarHelper extends AppHelper {
 
         return [
             'type' => 'root',
-            'label' => __('Data items'),
+            'label' => __('Data models'),
             'icon' => 'fas fa-database',
             'children' => $dataChildren
         ];
@@ -817,7 +817,7 @@ class NavbarHelper extends AppHelper {
 
         return [
                 'type' => 'root',
-                'label' => __('Data access'),
+                'label' => __('API'),
                 'icon' => 'fas fa-code',
                 'children' => $automationChildren
         ];
