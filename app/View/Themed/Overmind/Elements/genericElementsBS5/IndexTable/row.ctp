@@ -14,10 +14,10 @@
         $field['data_path'] = empty($field['data_path']) ? '' : $field['data_path'];
         if (!isset($field['requirement']) || $field['requirement']) {
             if (empty($field['element'])) {
-                $valueField = $this->element('/genericElementsBS5/IndexTable/Fields/generic_field', array('field' => $field, 'row' => $row, 'data_path' => empty($field['data_path']) ? '' : $field['data_path'], 'k' => $k, 'column' => $column));
+                $valueField = $this->element('genericElementsBS5/IndexTable/Fields/generic_field', array('field' => $field, 'row' => $row, 'data_path' => empty($field['data_path']) ? '' : $field['data_path'], 'k' => $k, 'column' => $column));
             } else {
                 $valueField = $this->element(
-                    '/genericElementsBS5/IndexTable/Fields/' . $field['element'],
+                    'genericElementsBS5/IndexTable/Fields/' . $field['element'],
                     array(
                         'field' => $field,
                         'row' => $row,
@@ -51,7 +51,7 @@
     }
     if (!empty($actions)) {
         $rowHtml .= $this->element(
-            '/genericElementsBS5/IndexTable/Fields/actions',
+            'genericElementsBS5/IndexTable/Fields/actions',
             array(
                 'actions' => $actions,
                 'row' => $row,

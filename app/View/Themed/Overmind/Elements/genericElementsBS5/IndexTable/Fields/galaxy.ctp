@@ -9,11 +9,9 @@ $maxVisible = 4;
 $totalGalaxies = count($data);
 $hiddenCount = max(0, $totalGalaxies - $maxVisible);
 
-$rowId = 'galaxy-row-' . $k; // unicity for each line
-
 ?>
 
-<div class="galaxy-container d-inline-flex flex-wrap align-items-center" id="<?= $rowId ?>">
+<div class="galaxy-container d-inline-flex flex-wrap align-items-center">
 
 <?php
 foreach ($data as $index => $clusterWrapper) {
@@ -36,7 +34,7 @@ foreach ($data as $index => $clusterWrapper) {
 
     $hiddenClass = ($index >= $maxVisible) ? 'd-none extra-galaxies' : '';
     ?>
-    
+
     <span class="badge me-1 mb-1 <?= $hiddenClass ?>" style="<?= $style ?>">
         <?php if ($local): ?>
             <i class="fas fa-user me-1"></i>
@@ -51,7 +49,7 @@ foreach ($data as $index => $clusterWrapper) {
     <span
         class="badge bg-secondary text-white me-1 mb-1 galaxy-expand"
         style="cursor:pointer;"
-        onclick="toggleGalaxies('<?= $rowId ?>', this)"
+        onclick="toggleGalaxies(this)"
     >
         +<?= $hiddenCount ?>
     </span>
@@ -60,21 +58,16 @@ foreach ($data as $index => $clusterWrapper) {
 </div>
 
 <script>
-function toggleGalaxies(containerId, badge) {
-    const container = document.getElementById(containerId);
+function toggleGalaxies(badge) {
+    const container = badge.closest('.galaxy-container');
     const hiddenGalaxies = container.querySelectorAll('.extra-galaxies');
 
-    const isHidden = hiddenGalaxies[0]?.classList.contains('d-none');
+    if (!hiddenGalaxies.length) return;
 
-    hiddenGalaxies.forEach(galaxy => {
-        galaxy.classList.toggle('d-none');
-    });
+    const isHidden = hiddenGalaxies[0].classList.contains('d-none');
 
-    if (isHidden) {
-        badge.textContent = '−';
-    } else {
-        const hiddenCount = hiddenGalaxies.length;
-        badge.textContent = '+' + hiddenCount;
-    }
+    hiddenGalaxies.forEach(g => g.classList.toggle('d-none'));
+
+    badge.textContent = isHidden ? '−' : '+' + hiddenGalaxies.length;
 }
 </script>

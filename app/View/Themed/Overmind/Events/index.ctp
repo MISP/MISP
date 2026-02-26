@@ -7,6 +7,7 @@ foreach ($events as $event) {
     }
 }
 
+
 $fields = [
     [
         'element' => 'selector',
@@ -33,7 +34,7 @@ $fields = [
                 'icon_off' => 'upload text-success',
                 'url' => 'event.preventDefault();publishPopup(<?= $eventId ?>)',
                 'state_path' => 'Event.published',
-                'requirement' => $this->Acl->canPublishEvent($event)
+                //'requirement' => $this->Acl->canPublishEvent($event)
             ]
         ]
     ],
@@ -77,8 +78,8 @@ $fields = [
     ],
     [
         'name' => __('Datas'),
-        'data_path' => 'Event.attribute_count',
-        //'element' => 'data_events',
+        'data_path' => 'Event',
+        'element' => 'event_datas',
         'card_section' => 'extra'
     ],
 ];
@@ -131,7 +132,9 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'type' => 'dropdown',
                         'label' => 'Organisation',
                         'name' => 'org_id',
-                        'options' => $orgList 
+                        'options' => [
+                            '' => 'All',   // ← important
+                        ] + $orgList
                     ]
                 ]
             ],
@@ -139,3 +142,4 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
         ]
     ]
 ]);
+?>
