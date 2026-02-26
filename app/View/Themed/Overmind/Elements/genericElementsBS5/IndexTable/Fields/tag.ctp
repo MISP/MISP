@@ -9,14 +9,14 @@ $maxVisible = 4;
 $totalTags = count($data);
 $hiddenCount = max(0, $totalTags - $maxVisible);
 
-$rowId = 'tag-row-' . $k; // unicity for each line
-
 ?>
 
-<div class="tag-container d-inline-flex flex-wrap align-items-center" id="<?= $rowId ?>">
+<div class="tag-container d-inline-flex flex-wrap align-items-center">
 
 <?php
-foreach ($data as $index => $tagWrapper) {
+$visibleIndex = 0;
+
+foreach ($data as $tagWrapper) {
     if (empty($tagWrapper['Tag'])) {
         continue;
     }
@@ -35,9 +35,9 @@ foreach ($data as $index => $tagWrapper) {
         $style .= sprintf(' border:2px dashed %s', $textColor);
     }
 
-    $hiddenClass = ($index >= $maxVisible) ? 'd-none extra-tag' : '';
+    $hiddenClass = ($visibleIndex >= $maxVisible) ? 'd-none extra-tag' : '';
     ?>
-    
+
     <span class="badge me-1 mb-1 <?= $hiddenClass ?>" style="<?= $style ?>">
         <?php if ($local): ?>
             <i class="fas fa-user me-1"></i>
@@ -45,6 +45,7 @@ foreach ($data as $index => $tagWrapper) {
         <?= $name ?>
     </span>
 <?php
+    $visibleIndex++;
 }
 ?>
 
@@ -52,7 +53,7 @@ foreach ($data as $index => $tagWrapper) {
     <span
         class="badge bg-secondary text-white me-1 mb-1 tag-expand"
         style="cursor:pointer;"
-        onclick="toggleTags('<?= $rowId ?>', this)"
+        onclick="toggleTags(this)"
     >
         +<?= $hiddenCount ?>
     </span>
@@ -60,22 +61,18 @@ foreach ($data as $index => $tagWrapper) {
 
 </div>
 
+
 <script>
-function toggleTags(containerId, badge) {
-    const container = document.getElementById(containerId);
+function toggleTags(badge) {
+    const container = badge.closest('.tag-container');
     const hiddenTags = container.querySelectorAll('.extra-tag');
 
-    const isHidden = hiddenTags[0]?.classList.contains('d-none');
+    if (!hiddenTags.length) return;
 
-    hiddenTags.forEach(tag => {
-        tag.classList.toggle('d-none');
-    });
+    const isHidden = hiddenTags[0].classList.contains('d-none');
 
-    if (isHidden) {
-        badge.textContent = '−';
-    } else {
-        const hiddenCount = hiddenTags.length;
-        badge.textContent = '+' + hiddenCount;
-    }
+    hiddenTags.forEach(g => g.classList.toggle('d-none'));
+
+    badge.textContent = isHidden ? '−' : '+' + hiddenTags.length;
 }
 </script>

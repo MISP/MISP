@@ -25,6 +25,25 @@
         </div>
     <?php endif; ?>
 
+    <?php if ($child['type'] === 'dropdown'): ?>
+        <div class="col-md-2">
+            <label class="form-label fw-semibold">
+                <?= h($child['label']) ?>
+            </label>
+
+            <select
+                class="form-select topbar-filter"
+                name="<?= h($child['name']) ?>"
+            >
+                <?php foreach ($child['options'] as $value => $label): ?>
+                    <option value="<?= h($value) ?>">
+                        <?= h($label) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+    <?php endif; ?>
+
 <?php endforeach; ?>
 
     <div class="col-md-auto ms-auto">
@@ -53,13 +72,11 @@
 
 <script>
 $(function() {
+    function isMobile() {
+        return window.innerWidth < 768; // Bootstrap md breakpoint
+    }
 
     function setView(view, save = true) {
-
-        function isMobile() {
-            return window.innerWidth < 768; // Bootstrap md breakpoint
-        }
-
         if (view === 'card') {
             $('#tableView').addClass('d-none');
             $('#cardView').removeClass('d-none');

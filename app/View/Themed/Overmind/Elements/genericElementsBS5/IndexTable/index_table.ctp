@@ -12,7 +12,7 @@ foreach ($data['data'] as $k => $data_row) {
     $row = '<tr>';
 
     $row .= $this->element(
-        '/genericElementsBS5/IndexTable/row',
+        'genericElementsBS5/IndexTable/row',
         [
             'k' => $k,
             'row' => $data_row,
@@ -32,7 +32,7 @@ foreach ($data['data'] as $k => $data_row) {
     <table class="table table-hover align-middle mb-0">
 
         <?= $this->element(
-            '/genericElementsBS5/IndexTable/headers',
+            'genericElementsBS5/IndexTable/headers',
             [
                 'fields' => $data['fields'],
                 'paginator' => $Paginator,

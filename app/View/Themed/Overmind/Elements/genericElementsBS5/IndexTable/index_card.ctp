@@ -25,7 +25,7 @@ foreach ($data['fields'] as $column => $field) {
 
         if (empty($field['element'])) {
             $valueField = $this->element(
-                '/genericElementsBS5/IndexTable/Fields/generic_field',
+                'genericElementsBS5/IndexTable/Fields/generic_field',
                 [
                     'field' => $field,
                     'row' => $row,
@@ -36,7 +36,7 @@ foreach ($data['fields'] as $column => $field) {
             );
         } else {
             $valueField = $this->element(
-                '/genericElementsBS5/IndexTable/Fields/' . $field['element'],
+                'genericElementsBS5/IndexTable/Fields/' . $field['element'],
                 [
                     'field' => $field,
                     'row' => $row,
