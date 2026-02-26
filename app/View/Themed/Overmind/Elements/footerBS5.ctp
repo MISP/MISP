@@ -1,4 +1,4 @@
-<div class="fixed-bottom container-fluid bg-dark text-white-50 <?php echo $debugMode; ?>" style="z-index: 2;">
+<div class="container-fluid bg-dark text-white-50 expansion" style="z-index:2">
     <!-- Shortcut Toggle -->
     <div id="triangle" title="<?= __('Show keyboard shortcuts help') ?>"></div>
 
@@ -58,6 +58,6 @@
 
 <script>
 document.getElementById('triangle').addEventListener('click', function() {
-    document.querySelector('.fixed-bottom').classList.toggle('footer-expanded');
+    document.querySelector('.expansion').classList.toggle('footer-expanded');
 });
 </script>
