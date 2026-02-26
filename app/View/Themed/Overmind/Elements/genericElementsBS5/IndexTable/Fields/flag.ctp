@@ -16,10 +16,11 @@ $countries = [
 
 $country_name = isset($countries[$country]) ? $countries[$country]['name'] : '';
 $country_acronym = isset($countries[$country]) ? $countries[$country]['acronym'] : strtoupper($country);
+$country_flag = $this->Icon->countryFlag($country);
 
 echo sprintf(
-    '<div class="d-flex align-items-center gap-2"><span class="fi fi-%s" style="font-size: 1.5em;"></span><span class="fs-5">%s (%s)</span></div>',
-    h($country),
+    '<div class="d-flex align-items-center gap-2">%s<span>%s (%s)</span></div>',
+    $country_flag,
     h($country_name),
     h($country_acronym)
 );
