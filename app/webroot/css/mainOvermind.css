@@ -1,4 +1,14 @@
+
+html {
+    height: 100%;
+}
+
+
 body{
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 100vh;
     padding-top: 56px; 
     background-color: #f8f9fa;
 }
@@ -9,9 +19,16 @@ body[data-controller="users"][data-action="login"] {
     padding-top: 56px;  /* Adjust for fixed navbar height */
 }
 
+.main-wrapper {
+    flex: 1;
+}
+
+
+
+
 .navbar-logo {
-  height: 30px;      /* légèrement moins que 56px pour laisser du padding vertical */
-  width: auto;       /* conserve le ratio de l'image */
+  height: 30px;
+  width: auto;
   object-fit: contain;
 }
 
@@ -32,6 +49,9 @@ body[data-controller="users"][data-action="login"] {
     object-fit: contain;
 }
 
+.btn.active{
+    color: #e9ecef;
+}
 
 .btn-primary,
 .btn-primary:hover,
@@ -42,6 +62,9 @@ body[data-controller="users"][data-action="login"] {
     color: #fff !important;
 }
 
+.btn-light{
+    color:#1892B1;
+}
 
 /* Login gradient button */
 .btn-login:hover {
@@ -234,12 +257,9 @@ body[data-controller="users"][data-action="login"] {
 /* =======================================================
    Footer Custom CSS
 ======================================================= */
-.debugOff {
-    position:fixed;
-}
 
-.debugOn {
-    position:relative;
+.expansion {
+    position: relative;
 }
 
 /* Triangle on right side */
@@ -266,4 +286,171 @@ body[data-controller="users"][data-action="login"] {
 .footer-expanded .shortcutsListContainer {
     max-height: 150px;
     padding: 10px;
+}
+
+
+
+/* =======================================================
+   Checkbox Custom CSS
+======================================================= */
+
+
+.checkbox-actions-wrapper .dropdown-toggle::after {
+    display: none; /* remove native bootstrap arrow */
+}
+
+.checkbox-actions-wrapper .btn {
+    line-height: 1;
+}
+
+.checkbox-actions-wrapper {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.checkbox-actions-wrapper > * {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.checkbox-actions-wrapper .form-check-input {
+    margin: 2px !important;
+}
+
+
+input[type="checkbox"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    background: #fff;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #666;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Visual check inside the checkbox ticked */
+input[type="checkbox"]::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 6px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    opacity: 0;
+    transition: opacity .08s ease;
+}
+
+/* Display the check */
+input[type="checkbox"]:checked::after {
+    opacity: 1;
+}
+
+input[type="checkbox"].select_all:checked {
+    background-color: orangered;
+}
+
+/* Visual focus (to improve) */
+input[type="checkbox"]:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+
+/* =======================================================
+   Flash Custom CSS
+======================================================= */
+
+
+#flashOverlay {
+    position: fixed;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    width: 100%;
+    pointer-events: none; 
+}
+
+#flashContainer {
+    pointer-events: auto;
+    opacity: 1;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+#flashContainer.fade-out {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+
+
+
+/* =======================================================
+   Table Custom CSS
+======================================================= */
+
+.tr:hover{
+    background-color: #1892B1 !important;
+}
+
+.table {
+    --bs-table-hover-bg: rgba(var(--bs-primary-rgb), 0.08);
+}
+
+
+
+.table-fixed {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.table-fixed th,
+.table-fixed td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+
+
+
+
+th a {
+    text-decoration: none !important;
+    color: inherit;
+}
+
+
+.sort-icon {
+    margin-left: 6px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+th:hover .sort-icon {
+    opacity: 1;
+}
+
+th .sort-icon::before {
+    content: "\f0dc"; /* fa-sort */
+    font-family: "Font Awesome 7 Free";
+    font-weight: 900;
 }
