@@ -10,6 +10,7 @@
         $bootstrap5Pages = [
             ['controller' => 'users', 'action' => 'login'],
             ['controller' => 'noticelists', 'action' => 'index'],
+            ['controller' => 'events', 'action' => 'index'],
         ];
 
         $currentController = $this->params['controller'];
@@ -74,8 +75,6 @@
         <header>
             <?php
                 if ($useBootstrap5){
-                    $currentController = $this->params['controller'];
-                    $currentAction = $this->params['action'];
                     // Don't print the navbar for the login page
                     if (!($currentController === 'users' && $currentAction === 'login')) {
                         $context = [
@@ -110,10 +109,20 @@
         </header> 
         <!-- Flash & Content -->
         <main role="main" class="content">
-            <div id="flashContainer" style="padding-top:<?= (int)$topPadding ?>px;">
-                <?= $this->Flash->render(); ?>
+            <div id="flashOverlay">
+                <div id="flashContainer">
+                    <?= $this->Flash->render(); ?>
+                </div>
             </div>
             <div>
+                <?php
+                if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login') && !empty($title_for_layout)) {
+                    echo $this->element('headerSection', [
+                        'pageTitle' => $title_for_layout,
+                        'headerActions' => $headerActions ?? []
+                    ]);
+                }
+                ?>
                 <?= $this->fetch('content') ?>
             </div>
         </main>
@@ -123,8 +132,6 @@
     <!-- TO DO Footer & SQL dump -->
     <?php
         if ($useBootstrap5){
-            $currentController = $this->params['controller'];
-            $currentAction = $this->params['action'];
             // Don't print the footer for the login page
             if (!($currentController === 'users' && $currentAction === 'login')) {
                 echo $this->element('footerBS5'); 
@@ -220,6 +227,51 @@
         <?php
             endif;
         ?>
+
+        $(document).on('click', '.ajax-toggle, .ajax-call', function(e) {
+            e.preventDefault();
+
+            var url = $(this).data('url');
+            var $row = $(this).closest('tr');
+
+            $.ajax({
+                type: "get",
+                url: url,
+                success: function(data) {
+
+                    var $temp = $('<div>').html(data);
+                    var $form = $temp.find('form');
+
+                    if ($form.length) {
+                        $.post($form.attr('action'), $form.serialize(), function() {
+                            showMessage('success', 'Field updated.');
+                            location.reload();
+                        });
+                    } else {
+                        showMessage('success', 'Action executed.');
+                        location.reload();
+                    }
+                },
+                error: function() {
+                    showMessage('fail', 'Action failed.');
+                }
+            });
+        });
+
+
+        $(document).ready(function () {
+            var $flash = $('#flashContainer');
+
+            if ($flash.children().length > 0) {
+                setTimeout(function () {
+                    $flash.addClass('fade-out');
+
+                    setTimeout(function () {
+                        $flash.remove();
+                    }, 600); // correspond à la durée de transition
+                }, 10000); // 10 secondes
+            }
+        });
     </script>
 </body>
 </html>
