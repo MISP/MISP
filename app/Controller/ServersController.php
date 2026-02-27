@@ -566,7 +566,7 @@ class ServersController extends AppController
 
                             if (!$orgSave) {
                                 if ($this->_isRest()) {
-                                    return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->Organisation->validationError, $this->response->type());
+                                    return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->Organisation->validationErrors, $this->response->type());
                                 } else {
                                     $this->Flash->error(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
                                 }
@@ -612,7 +612,7 @@ class ServersController extends AppController
                     }
                 } else {
                     if ($this->_isRest()) {
-                        return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->validationError, $this->response->type());
+                        return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->validationErrors, $this->response->type());
                     } else {
                         $this->Flash->error(__('The server could not be saved. Please, try again.'));
                     }
