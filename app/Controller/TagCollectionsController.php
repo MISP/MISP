@@ -224,7 +224,13 @@ class TagCollectionsController extends AppController
                         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag(s).')), 'status'=>200, 'type' => 'json'));
                     }
                 } else {
-                    $tag = $this->TagCollection->TagCollectionTag->Tag->find('first', array('recursive' => -1, 'conditions' => $tagConditions));
+                    $tag_lookup = ['OR' => ['LOWER(Tag.name) LIKE' => strtolower(trim($tag_id))]];
+                    $tag = $this->TagCollection->TagCollectionTag->Tag->find('first', array('recursive' => -1, 'conditions' => array(
+                        'AND' => array(
+                            $tagConditions,
+                            $tag_lookup
+                        )
+                    )));
                     if (empty($tag)) {
                         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
                     }
