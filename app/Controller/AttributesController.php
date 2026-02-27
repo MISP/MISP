@@ -3197,7 +3197,7 @@ class AttributesController extends AppController
         }
         $headers = [];
         if ($lastProcessedId !== null) {
-            $headers['X-Last-ID'] = (string)$lastProcessedId;
+            $headers['X-MISP-Last-ID'] = (string)$lastProcessedId;
         }
 
         rewind($fh);
