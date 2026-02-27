@@ -50,7 +50,6 @@ class MispTheme
             if ($hideFromUsers && !$showHiddenThemes && $name !== $currentActiveTheme) {
                 continue;
             }
-
             $themes[] = new MispTheme($name, $label, $description, $name === $currentActiveTheme, $hideFromUsers);
         }
         return $themes;
