@@ -3155,7 +3155,7 @@ class AttributesController extends AppController
         return $this->RestResponse->successResponse(0, $result);
     }
     /**
-     * Get attribute ID and details by attribute value
+     * Get attribute and details by attribute value
      * Searches directly in the database using indexed value1 column for efficiency
      * 
      * @param string $base64Value Base64 encoded attribute value to search for
@@ -3163,7 +3163,7 @@ class AttributesController extends AppController
      * @throws NotFoundException If no matching attribute is found
      * @throws MethodNotAllowedException If not an API request
      */
-    public function getid($base64Value)
+    public function getAttributeByB64Value($base64Value)
     {
         if (!$this->_isRest()) {
             throw new MethodNotAllowedException(__("This action is available only via API."));

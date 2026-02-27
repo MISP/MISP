@@ -451,7 +451,7 @@ paths:
           $ref: "#/components/responses/ApiErrorResponse"
 
 
-  /attributes/getid/{base64Value}:
+  /attributes/getAttributeByB64Value/{base64Value}:
     get:
       summary: "Get attribute(s) by value"
       description: |
@@ -470,7 +470,7 @@ paths:
              -H "Accept: application/json" \
              "https://misp.local/attributes/getid/${BASE64}"
         ```
-      operationId: getAttributeByValue
+      operationId: getAttributeByB64Value
       tags:
         - Attributes
       parameters:
