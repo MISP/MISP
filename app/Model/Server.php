@@ -4866,20 +4866,32 @@ class Server extends AppModel
         }
         $redis->del('misp:server_cache:' . $serverId);
 
+        $fastCaching = $this->isSupported(ServerSyncTool::FEATURE_FAST_CACHING);
+
         $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        $nextLastId = null;
         while (true) {
-            $i++;
-            $rules = [
-                'returnFormat' => 'cache',
-                'includeEventUuid' => 1,
-                'page' => $i,
-                'limit' => $chunk_size,
-            ];
-            try {
-                $data = $serverSync->attributeSearch($rules)->body();
-            } catch (Exception $e) {
-                $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
-                break;
+            if ($fastCaching) {
+                if (!isset($lastId)) {
+                    $lastId = 0;
+                }
+                $return = $serverSync->getFastCache($nextLastId);
+                $nextLastId = (int)$return->headers['X-MISP-Last-ID'] ?? null;
+                $data = $return->body();
+            } else {
+                $i++;
+                $rules = [
+                    'returnFormat' => 'cache',
+                    'includeEventUuid' => 1,
+                    'page' => $i,
+                    'limit' => $chunk_size,
+                ];
+                try {
+                    $data = $serverSync->attributeSearch($rules)->body();
+                } catch (Exception $e) {
+                    $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
+                    break;
+                }
             }
 
             $data = trim($data);
