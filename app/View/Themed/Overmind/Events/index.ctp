@@ -46,13 +46,19 @@ $fields = [
         'card_section' => 'meta'
     ],
     [
+        'name' => __('Distribution'),
+        'data_path' => 'Event.distribution',
+        'element' => 'distribution',
+        'display' => 'long'
+    ],
+    [
         'name' => __('Info'),
-        'sort' => 'Event.info',
         'data_path' => 'Event.info',
         'card_section' => 'title'
     ],
     [
         'name' => __('Published'),
+        'sort' => 'Event.published',
         'data_path' => 'Event.published',
         'element' => 'enabled',
         'card_section' => 'meta',
@@ -77,9 +83,9 @@ $fields = [
         'card_section' => 'galaxy'
     ],
     [
-        'name' => __('Datas'),
+        'name' => __('Contents'),
         'data_path' => 'Event',
-        'element' => 'event_datas',
+        'element' => 'event_contents',
         'card_section' => 'extra'
     ],
 ];
