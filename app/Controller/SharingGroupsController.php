@@ -597,7 +597,7 @@ class SharingGroupsController extends AppController
         if (!empty($sg['SharingGroupServer'])) {
             foreach ($sg['SharingGroupServer'] as $sgs) {
                 if ($sgs['server_id'] == $server['Server']['id']) {
-                    $removeServer = $server['Server']['id'];
+                    $removeServer = $sgs['id'];
                     break;
                 }
             }
