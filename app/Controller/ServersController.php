@@ -1676,6 +1676,12 @@ class ServersController extends AppController
             throw new NotFoundException(__('Invalid type.'));
         }
 
+        $extension = pathinfo($this->request->data['Server']['file']['name'], PATHINFO_EXTENSION);
+        if ($extension === 'svg' && !Configure::read('Security.enable_svg_logos')) {
+            $this->Flash->error(__('Invalid file extension, SVG images are not allowed.'));
+            return false;
+        }
+
         // Check if there were problems with the file upload
         // only keep the last part of the filename, this should prevent directory attacks
         $filename = basename($this->request->data['Server']['file']['name']);

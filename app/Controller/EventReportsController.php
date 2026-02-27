@@ -370,6 +370,7 @@ class EventReportsController extends AppController
                 $this->set('extendingEvent', !empty($filters['extending_event']));
                 $fetcherModule = $this->EventReport->isFetchURLModuleEnabled();
                 $this->set('importModuleEnabled', is_array($fetcherModule));
+                $this->set('unsafeUrlSettingEnabled', !empty(Configure::read('Security.eventreport_enable_arbitrary_urls')));
                 $this->render('ajax/indexForEvent');
             } else {
                 $this->set('title_for_layout', __('Event Reports'));
@@ -483,6 +484,9 @@ class EventReportsController extends AppController
     {
         if (!$this->request->is('ajax') && !$this->_isRest()) {
             throw new MethodNotAllowedException(__('This function can only be reached via AJAX and via the API.'));
+        }
+        if (empty(Configure::read('Security.eventreport_enable_arbitrary_urls'))) {
+            throw new MethodNotAllowedException(__('This function can only be used with the setting `Security.eventreport_enable_arbitrary_urls` turned on.'));
         }
 
         // throws exception if the user can't modify it

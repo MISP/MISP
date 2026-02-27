@@ -31,7 +31,7 @@ class AppController extends Controller
      */
     public $defaultModel = '';
 
-    public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
+    public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
 
     private $__queryVersion = '182';
     public $pyMispVersion = '2.5.32';
@@ -274,7 +274,7 @@ class AppController extends Controller
 
         $themes = [];
         $themeLabels = [];
-        $this->set('theme', 'default'); // fallback to be overriden
+        $this->set('theme', 'Default');
         if (!$this->_isRest() && Configure::read('MISP.enable_themes')) {
             if ($this->Auth->user()) {
                 $userTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id'));
@@ -299,7 +299,6 @@ class AppController extends Controller
             }
             $userSetting = ClassRegistry::init('UserSetting');
             $themes = $userSetting::VALID_SETTINGS['ui_theme']['options'];
-            $themeLabels = ['Default' => __('Default UI')];
             foreach ($themes as $t) {
                 if ($t === 'Default') {
                     continue;

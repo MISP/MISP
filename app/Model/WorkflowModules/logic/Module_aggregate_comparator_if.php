@@ -4,9 +4,8 @@ include_once APP . 'Model/WorkflowModules/WorkflowBaseModule.php';
 class Module_aggregate_comparator_if extends WorkflowFilteringLogicModule
 {
     public $id = 'aggregate_comparator_if';
-    public $isFiltering = true;
     public $name = 'IF :: Aggregate Comparator';
-    public $version = '0.3';
+    public $version = '0.4';
     public $description = 'Computes an aggregate over a field, then evaluates rhe result.';
     public $icon = 'code-branch';
     public $inputs = 1;
