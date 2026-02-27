@@ -802,16 +802,6 @@ class EventsController extends AppController
             $this->autoRender = false;
             $this->layout = false;
             $this->render('ajax/index');
-        } else {
-            // Check if user has beta UI enabled and use beta view if available
-            $this->loadModel('UserSetting');
-            $uiBetaEnabled = $this->UserSetting->isUiBetaEnabled($this->Auth->user('id'));
-            
-            if ($uiBetaEnabled) {
-                App::uses('BetaUiHelper', 'Lib/Tools');
-                $viewPath = BetaUiHelper::getViewPath($uiBetaEnabled, 'Events/index');
-                $this->render(str_replace('Events/', '', $viewPath));
-            }
         }
     }
 
@@ -1788,6 +1778,9 @@ class EventsController extends AppController
             if (!empty($namedParams['includeCustomGalaxyCluster'])) {
                 $conditions['includeCustomGalaxyCluster'] = 1;
             }
+        }
+        if (!empty($namedParams['noSightings'])) {
+            $conditions['noSightings'] = 1;
         }
         if (!empty($namedParams['extended']) || !empty($this->request->data['extended'])) {
             $conditions['extended'] = 1;
@@ -4448,7 +4441,7 @@ class EventsController extends AppController
                         unset($sa['id']);
                     }
                     $sa['org_id'] = $this->Event->Orgc->captureOrg($sa['Org'], $this->Auth->user());
-                    unset($proposal['Org']);
+                    unset($sa['Org']);
                     $this->Event->ShadowAttribute->create();
                     if (!$this->Event->ShadowAttribute->save(array('ShadowAttribute' => $sa))) {
                         $message = "Some of the proposals could not be saved.";

@@ -69,10 +69,11 @@ class ACLComponent extends Component
             'enrich' => ['perm_add'],
             'exportSearch' => array('*'),
             'fetchEditForm' => array('perm_add'),
-
             'fetchViewValue' => array('*'),
             'generateCorrelation' => array(),
+            'getAttributeByB64Value' => ['*'],
             'getMassEditForm' => array('perm_add'),
+            'getInstanceCache' => ['*'],
             'hoverEnrichment' => array('perm_add'),
             'index' => array('*'),
             'pruneOrphanedAttributes' => array(),
@@ -901,7 +902,7 @@ class ACLComponent extends Component
             'delete' => array('not_read_only_authkey'),
             'setHomePage' => array('not_read_only_authkey'),
             'eventIndexColumnToggle' => ['*'],
-            'toggleBetaUi' => ['*'],
+            'setTheme' => ['*'],
         ),
         'warninglists' => array(
             'checkValue' => ['*'],

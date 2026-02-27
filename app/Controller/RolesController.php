@@ -49,41 +49,12 @@ class RolesController extends AppController
 
     public function admin_edit($id = null)
     {
-        $this->Role->id = $id;
-        if (!$this->Role->exists() && !$this->request->is('get')) {
-            throw new NotFoundException(__('Invalid Role'));
-        }
-        if ($this->request->is('post') || $this->request->is('put')) {
-            if (!isset($this->request->data['Role'])) {
-                $this->request->data = array('Role' => $this->request->data);
-            }
-            $this->request->data['Role']['id'] = $id;
-            if ($this->Role->save($this->request->data)) {
-                if ($this->_isRest()) {
-                    $role = $this->Role->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array('Role.id' => $this->Role->id)
-                    ));
-                    return $this->RestResponse->viewData($role, $this->response->type());
-                } else {
-                    $this->Flash->success(__('The Role has been saved'));
-                    $this->redirect(array('action' => 'index', 'admin' => false));
-                }
-            } else {
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Role', 'admin_edit', false, $this->Role->validationErrors, $this->response->type());
-                } else {
-                    if (!($this->Session->check('Message.flash'))) {
-                        $this->Role->Session->setFlash(__('The Role could not be saved. Please, try again.'));
-                    }
-                }
-            }
-        } else {
-            if ($this->_isRest()) {
-                return $this->RestResponse->describe('Roles', 'admin_edit', false, $this->response->type());
-            }
-            $this->request->data['Role']['id'] = $id;
-            $this->request->data = $this->Role->read(null, $id);
+        $params = [
+            'redirect' => ['action' => 'index', 'admin' => false]
+        ];
+        $this->CRUD->edit($id, $params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
         $this->set('options', $this->Role->permissionLevelName);
         $this->set('permFlags', $this->Role->permFlags);

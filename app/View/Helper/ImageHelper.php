@@ -29,13 +29,12 @@ class ImageHelper extends AppHelper
         }
 
         try {
-            $fileContent = FileAccessTool::readFromFile($imagePath);
+            $fileContentEncoded = FileAccessTool::readAndBase64Encode($imagePath);
         } catch (Exception $e) {
             CakeLog::warning($e);
             return 'data:null'; // in case file doesn't exists or is not readable
         }
 
-        $fileContentEncoded = base64_encode($fileContent);
         $base64 = "data:$mime;base64,$fileContentEncoded";
 
         return $this->imageCache[$imagePath] = $base64;

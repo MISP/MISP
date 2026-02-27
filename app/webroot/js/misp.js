@@ -5499,7 +5499,7 @@ function fetchFormDataAjax(url, callback, errorCallback) {
 }
 
 function moveIndexRow(id, direction, endpoint) {
-    var row = $('#row_' + id);
+    var row = $('tr[data-row-id="' + (id-1) + '"]');
     $.ajax({
         url: baseurl + endpoint + '/' + id + '/' + direction,
         type: 'GET',

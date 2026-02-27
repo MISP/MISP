@@ -19,12 +19,6 @@
         if (Configure::read('MISP.custom_css')) {
             $css[] = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
         }
-        if (!empty($uiBetaEnabled)) {
-            App::uses('BetaUiHelper', 'Lib/Tools');
-            foreach (BetaUiHelper::getBetaCssFiles(true) as $betaCssFile) {
-                $css[] = [$betaCssFile, ['preload' => true]];
-            }
-        }
         $js = [
             ['jquery', ['preload' => true]],
             ['chosen.jquery.min', ['preload' => true]],
@@ -41,7 +35,7 @@
         ]);
     ?>
 </head>
-<body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>"<?= !empty($uiBetaEnabled) ? ' class="beta-ui-enabled"' : '' ?>>
+<body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
     <div id="popover_form" class="ajax_popover_form"></div>
     <div id="popover_form_large" class="ajax_popover_form ajax_popover_form_large"></div>
     <div id="popover_form_x_large" class="ajax_popover_form ajax_popover_form_x_large"></div>
@@ -51,11 +45,7 @@
     <div id="gray_out"></div>
     <div id="container">
         <?php
-            if (!empty($uiBetaEnabled)) {
-                echo $this->element('global_menu_beta');
-            } else {
-                echo $this->element('global_menu');
-            }
+            echo $this->element('global_menu');
             $topPadding = '50';
             if (!empty($debugMode) && $debugMode != 'debugOff') {
                 $topPadding = '0';

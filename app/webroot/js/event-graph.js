@@ -1367,10 +1367,21 @@ class EventGraph {
             hiddenNodeData.push(node.id);
         });
 
+        var edgeData = [];
+        eventGraph.edges.get().forEach(function (edge) {
+            var temp = {
+                id: edge.id,
+                from: edge.from,
+                to: edge.to,
+            }
+            edgeData.push(temp)
+        })
+
         var data = {
             eventId: scope_id,
             eventLastChange: event_last_change,
             nodes: nodeData,
+            edges: edgeData,
             hiddenNodes: hiddenNodeData,
             scope: {
                 scope: eventGraph.scope_name,

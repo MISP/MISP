@@ -283,6 +283,9 @@ class Module extends AppModel
         } else {
             $timeout = Configure::read('Plugin.' . $moduleFamily . '_timeout') ?: 10;
         }
+        if (!isset($postData['timeout'])) {
+            $postData['timeout'] = (int) $timeout;
+        }
         try {
             return $this->sendRequest('/query', $timeout, $postData, $moduleFamily);
         } catch (Exception $e) {

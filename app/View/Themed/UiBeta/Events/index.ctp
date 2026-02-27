@@ -140,11 +140,9 @@
                 <i class="fa fa-times"></i> <?= __('Clear') ?>
             </a>
         </div>
-    <?php endif; ?>
-    <?php
-        App::uses('BetaUiHelper', 'Lib/Tools');
-        $elementPath = BetaUiHelper::getElementPath(!empty($uiBetaEnabled) ? $uiBetaEnabled : false, 'Events/eventIndexTable');
-        echo $this->element($elementPath);
+    <?php 
+    endif;
+        echo $this->element('Events/eventIndexTable');
     ?>
     <div class="beta-pagination-bottom">
         <p>

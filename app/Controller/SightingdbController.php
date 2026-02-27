@@ -23,91 +23,56 @@ class SightingdbController extends AppController
 
     public function add()
     {
-        if ($this->request->is('post')) {
-            if (empty($this->request->data['Sightingdb'])) {
-                $this->request->data = array('Sightingdb' => $this->request->data);
-            }
-            $this->Sightingdb->create();
-            $result = $this->Sightingdb->save($this->request->data);
-            $message = $result ? __('SightingDB connection added.') : __('SightingDB connection could not be added.');
-            if ($result) {
+        $params = [
+            'redirect' => ['action' => 'index'],
+            'afterSave' => function ($data) {
                 if (isset($this->request->data['Sightingdb']['org_id'])) {
-                    $this->Sightingdb->SightingdbOrg->resetOrgs($this->Sightingdb->id, $this->request->data['Sightingdb']['org_id']);
+                    $this->Sightingdb->SightingdbOrg->resetOrgs(
+                        $this->Sightingdb->id,
+                        $this->request->data['Sightingdb']['org_id']
+                    );
                 }
             }
-            if ($this->_isRest()) {
-                if ($result) {
-                    return $this->RestResponse->saveSuccessResponse('Sightingdb', 'add', $this->Sightingdb->id, $this->response->type(), $message);
-                } else {
-                    return $this->RestResponse->saveFailResponse('Sightingdb', 'add', $message, $this->response->type());
-                }
-            } else {
-                if ($result) {
-                    $this->Flash->success($message);
-                    $this->redirect(array('action' => 'index'));
-                } else {
-                    $message .= __(' Reason: %s', json_encode($this->Sightingdb->validationErrors, true));
-                    $this->Flash->error($message);
-                }
-            }
+        ];
+        $this->CRUD->add($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        $orgs = $this->Sightingdb->SightingdbOrg->Organisation->find('list', array(
-            'conditions' => array('Organisation.local' => 1),
-            'order' => array('LOWER(Organisation.name)'),
-            'fields' => array('Organisation.id', 'Organisation.name')
-        ));
+        $orgs = $this->Sightingdb->SightingdbOrg->Organisation->find('list', [
+            'conditions' => ['Organisation.local' => 1],
+            'order' => ['LOWER(Organisation.name)'],
+            'fields' => ['Organisation.id', 'Organisation.name']
+        ]);
         $this->set('orgs', $orgs);
     }
 
     public function edit($id)
     {
-        $existingEntry = $this->Sightingdb->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Sightingdb.id' => $id),
-            'contain' => array('SightingdbOrg.org_id')
-        ));
-        $existingEntry = $this->Sightingdb->extractOrgIds($existingEntry);
-        if (empty($id) || empty($existingEntry)) {
-            throw new NotFoundException(__('Invalid SightingDB entry.'));
+        $params = [
+            'fields' => ['host', 'port', 'description', 'name', 'owner', 'enabled', 'skip_proxy', 'ssl_skip_verification', 'namespace'],
+            'contain' => ['SightingdbOrg.org_id'],
+            'redirect' => ['action' => 'index'],
+            'afterFind' => function ($data) {
+                return $this->Sightingdb->extractOrgIds($data);
+            },
+            'afterSave' => function ($data) {
+                if (isset($this->request->data['Sightingdb']['org_id'])) {
+                    $this->Sightingdb->SightingdbOrg->resetOrgs(
+                        $this->Sightingdb->id,
+                        $this->request->data['Sightingdb']['org_id']
+                    );
+                }
+            }
+        ];
+        $this->CRUD->edit($id, $params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        if ($this->request->is('post') || $this->request->is('put')) {
-            if (empty($this->request->data['Sightingdb'])) {
-                $this->request->data = array('Sightingdb' => $this->request->data);
-            }
-            $keys = array('host', 'port', 'description', 'name', 'owner', 'enabled', 'skip_proxy', 'ssl_skip_verification', 'namespace');
-            foreach ($keys as $key) {
-                if (!empty($this->request->data['Sightingdb'][$key])) {
-                    $existingEntry['Sightingdb'][$key] = $this->request->data['Sightingdb'][$key];
-                }
-            }
-            $result = $this->Sightingdb->save($existingEntry);
-            if (isset($this->request->data['Sightingdb']['org_id'])) {
-                $this->Sightingdb->SightingdbOrg->resetOrgs($this->Sightingdb->id, $this->request->data['Sightingdb']['org_id']);
-            }
-            $message = $result ? __('SightingDB connection updated.') : __('SightingDB connection could not be updated.');
-            if ($this->_isRest()) {
-                if ($result) {
-                    return $this->RestResponse->saveSuccessResponse('Sightingdb', 'edit', $id, $this->response->type(), $message);
-                } else {
-                    return $this->RestResponse->saveFailResponse('Sightingdb', 'edit', $id, $message, $this->response->type());
-                }
-            } else {
-                if ($result) {
-                    $this->Flash->success($message);
-                    $this->redirect(array('action' => 'index'));
-                } else {
-                    $message .= __(' Reason: %s', json_encode($this->Sightingdb->validationErrors, true));
-                    $this->Flash->error($message);
-                }
-            }
-        } else {
-            $this->request->data = $existingEntry;
-        }
-        $orgs = $this->Sightingdb->SightingdbOrg->Organisation->find('list', array(
-            'conditions' => array('Organisation.local' => 1),
-            'order' => array('LOWER(Organisation.name)'),
-            'fields' => array('Organisation.id', 'Organisation.name')
-        ));
+        $orgs = $this->Sightingdb->SightingdbOrg->Organisation->find('list', [
+            'conditions' => ['Organisation.local' => 1],
+            'order' => ['LOWER(Organisation.name)'],
+            'fields' => ['Organisation.id', 'Organisation.name']
+        ]);
         $this->set('id', $id);
         $this->set('orgs', $orgs);
         $this->render('/Sightingdb/add');
@@ -115,69 +80,29 @@ class SightingdbController extends AppController
 
     public function delete($id)
     {
-        $existingEntry = $this->Sightingdb->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Sightingdb.id' => $id)
-        ));
-        if (empty($id) || empty($existingEntry)) {
-            throw new NotFoundException(__('Invalid SightingDB entry.'));
-        }
-        if ($this->request->is('post') || $this->request->is('delete')) {
-            $result = $this->Sightingdb->delete($existingEntry['Sightingdb']['id']);
-            if ($result) {
-                $message = __('SightingDB connection removed.');
-            } else {
-                $message = __('SightingDB connection could not be removed.');
-            }
-            if ($this->_isRest()) {
-                if ($result) {
-                    return $this->RestResponse->saveSuccessResponse('Sightingdb', 'edit', $id, $this->response->type(), $message);
-                } else {
-                    return $this->RestResponse->saveFailResponse('Sightingdb', 'edit', $id, $message, $this->response->type());
-                }
-            } else {
-                if ($result) {
-                    $this->Flash->success($message);
-                    $this->redirect(array('action' => 'index'));
-                } else {
-                    $message .= __(' Reason: %s', json_encode($this->Sightingdb->validationErrors, true));
-                    $this->Flash->error($message);
-                }
-                $this->redirect(array('action' => 'index'));
-            }
+        $this->CRUD->delete($id, [
+            'redirect' => ['action' => 'index']
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
 
     public function index()
     {
-        $filters = $this->IndexFilter->harvestParameters(array('value'));
-        if (!empty($filters['value'])) {
-            if (is_array($filters['value'])) {
-                foreach ($filters['value'] as &$value) {
-                    $value = '%' . strtolower($value) . '%';
-                }
-            } else {
-                $filters['value'] = '%' . strtolower($filters['value']) . '%';
+        $params = [
+            'filters' => ['name', 'owner', 'host'],
+            'quickFilters' => ['name', 'owner', 'host'],
+            'contain' => ['SightingdbOrg' => 'Organisation'],
+            'afterFind' => function ($data) {
+                return $this->Sightingdb->extractOrgIdsFromList($data);
             }
-            $this->paginate['conditions']['AND'][] = array(
-                'OR' => array(
-                    'Sightingdb.name LIKE' => $filters['value'],
-                    'Sightingdb.owner LIKE' => $filters['value'],
-                    'Sightingdb.host LIKE' => $filters['value']
-                )
-            );
+        ];
+        $this->CRUD->index($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        if ($this->_isRest()) {
-            $params = array(
-                'contain' => $this->paginate['contain'],
-                'conditions' => empty($this->paginate['conditions']) ? array() : $this->paginate['conditions'],
-            );
-            $data = $this->Sightingdb->find('all', $params);
-            $data = $this->Sightingdb->extractOrgIdsFromList($data);
-            return $this->RestResponse->viewData($data, $this->response->type());
-        } else {
-            $this->set('data', $this->paginate());
-        }
+        $this->set('data', $this->viewVars['data']);
     }
 
     public function requestStatus($id)

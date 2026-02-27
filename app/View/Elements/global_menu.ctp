@@ -233,101 +233,142 @@ if (!empty($me)) {
                     'url' => $baseurl . '/user_settings/index/user_id:me'
                 ),
                 array(
-                    'html' => sprintf(
-                        '<span id="betaUiToggle" style="cursor: pointer;"><i class="fas fa-flask"></i> %s <span class="label %s">%s</span></span>',
-                        __('Beta UI'),
-                        !empty($uiBetaEnabled) ? 'label-success' : 'label-default',
-                        !empty($uiBetaEnabled) ? __('ON') : __('OFF')
-                    ),
-                    'url' => '#'
-                ),
-                array(
-                    'text' => __('Set Setting'),
-                    'url' => $baseurl . '/user_settings/setSetting'
-                ),
-                array(
-                    'text' => __('Organisations'),
-                    'url' => $baseurl . '/organisations/index',
-                    'requirement' => $this->Acl->canAccess('organisations', 'index'),
-                ),
-                array(
-                    'text' => __('Role Permissions'),
-                    'url' => $baseurl . '/roles/index'
-                ),
-                array(
-                    'type' => 'separator'
-                ),
-                array(
-                    'text' => __('List Object Templates'),
-                    'url' => $baseurl . '/objectTemplates/index'
-                ),
-                array(
-                    'type' => 'separator'
-                ),
-                array(
-                    'text' => __('List Sharing Groups'),
-                    'url' => $baseurl . '/sharing_groups/index'
-                ),
-                array(
-                    'text' => __('Add Sharing Group'),
-                    'url' => $baseurl . '/sharing_groups/add',
-                    'requirement' => $this->Acl->canAccess('sharing_groups', 'add'),
-                ),
-                array(
-                    'text' => __('List Sharing Groups Blueprints'),
-                    'url' => $baseurl . '/sharing_group_blueprints/index',
-                    'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'index'),
-                ),
-                array(
-                    'text' => __('Add Sharing Group Blueprint'),
-                    'url' => $baseurl . '/sharing_group_blueprints/add',
-                    'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'add'),
-                ),
-                array(
-                    'type' => 'separator'
-                ),
-                array(
-                    'text' => __('Decaying Models Tool'),
-                    'url' => $baseurl . '/decayingModel/decayingTool',
-                    'requirement' => $isAdmin
-                ),
-                array(
-                    'text' => __('List Decaying Models'),
-                    'url' => $baseurl . '/decayingModel/index',
-                ),
-                array(
-                    'type' => 'separator'
-                ),
-                array(
-                    'text' => __('User Guide'),
-                    'url' => 'https://www.circl.lu/doc/misp/'
-                ),
-                array(
-                    'text' => __('Categories & Types'),
-                    'url' => $baseurl . '/pages/display/doc/categories_and_types'
-                ),
-                array(
-                    'text' => __('Terms & Conditions'),
-                    'url' => $baseurl . '/users/terms'
-                ),
-                array(
-                    'text' => __('Statistics'),
-                    'url' => $baseurl . '/users/statistics'
-                ),
-                array(
-                    'type' => 'separator',
-                    'requirement' => $this->Acl->canAccess('threads', 'index'),
-                ),
-                array(
-                    'text' => __('List Discussions'),
-                    'url' => $baseurl . '/threads/index',
-                    'requirement' => $this->Acl->canAccess('threads', 'index'),
-                ),
-                array(
-                    'text' => __('Start Discussion'),
-                    'url' => $baseurl . '/posts/add',
-                    'requirement' => $this->Acl->canAccess('posts', 'add'),
+                    'type' => 'group',
+                    'html' => '<i class="fas fa-palette fa-fw"></i> ' . __('Themes'),
+                    'children' => (function() use ($theme, $themes, $themesEnabled, $baseurl) {
+                        $children = [];
+                        if (!$themesEnabled) {
+                            $children[] = [
+                                'html' => sprintf(
+                                    '<div style="padding: 10px 15px; width: 400px; line-height: 1.4; border-bottom: 1px solid #444; margin-bottom: 5px;">' .
+                                    '<span class="text-warning" style="font-weight: bold;"><i class="fas fa-exclamation-triangle"></i> %s</span><br>' .
+                                    '<small style="opacity: 0.8;">%s</small>' .
+                                    '</div>',
+                                    __('Themes are not yet enabled.'),
+                                    __('Contact your MISP administrator to set MISP.enable_themes to 1.')
+                                ),
+                                'url' => '#'
+                            ];
+                        }
+                        $themeItems = array_map(function($tObj) use ($theme, $themesEnabled) {
+                            $html = sprintf(
+                                '<span id="%sToggle" class="setTheme style-inline-theme" style="cursor: pointer; display: block; padding: 10px 15px; min-width: 400px; %s" data-theme="%s">',
+                                strtolower($tObj->name),
+                                !$themesEnabled ? 'opacity: 0.5; pointer-events: none;' : '',
+                                h($tObj->name)
+                            );
+                            $html .= sprintf(
+                                '<div style="display: flex; justify-content: space-between; align-items: center;">' .
+                                '<span style="font-weight: bold;"><i class="fas fa-desktop fa-fw"></i> %s%s</span>' .
+                                '<span class="label %s">%s</span>' .
+                                '</div>',
+                                $tObj->hideFromUsers ? '<span class="text-error">[DEV]</span> ' : '',
+                                h($tObj->label),
+                                $theme === $tObj->name ? 'label-success' : 'label-default',
+                                $theme === $tObj->name ? __('ON') : __('OFF')
+                            );
+                            if (!empty($tObj->description)) {
+                                $html .= sprintf(
+                                    '<div style="font-size: 0.9em; opacity: 0.6; margin-top: 4px; line-height: 1.2; white-space: normal; max-width: 450px; padding-left: 28px;">%s</div>',
+                                    h($tObj->description)
+                                );
+                            }
+                            $html .= '</span>';
+                            return array(
+                                'html' => $html,
+                                'url' => '#'
+                            );
+                        }, $themes);
+                        return array_merge($children, $themeItems);
+                    })()
                 )
+            ),
+            array(
+                'text' => __('Set Setting'),
+                'url' => $baseurl . '/user_settings/setSetting'
+            ),
+            array(
+                'text' => __('Organisations'),
+                'url' => $baseurl . '/organisations/index',
+                'requirement' => $this->Acl->canAccess('organisations', 'index'),
+            ),
+            array(
+                'text' => __('Role Permissions'),
+                'url' => $baseurl . '/roles/index'
+            ),
+            array(
+                'type' => 'separator'
+            ),
+            array(
+                'text' => __('List Object Templates'),
+                'url' => $baseurl . '/objectTemplates/index'
+            ),
+            array(
+                'type' => 'separator'
+            ),
+            array(
+                'text' => __('List Sharing Groups'),
+                'url' => $baseurl . '/sharing_groups/index'
+            ),
+            array(
+                'text' => __('Add Sharing Group'),
+                'url' => $baseurl . '/sharing_groups/add',
+                'requirement' => $this->Acl->canAccess('sharing_groups', 'add'),
+            ),
+            array(
+                'text' => __('List Sharing Groups Blueprints'),
+                'url' => $baseurl . '/sharing_group_blueprints/index',
+                'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'index'),
+            ),
+            array(
+                'text' => __('Add Sharing Group Blueprint'),
+                'url' => $baseurl . '/sharing_group_blueprints/add',
+                'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'add'),
+            ),
+            array(
+                'type' => 'separator'
+            ),
+            array(
+                'text' => __('Decaying Models Tool'),
+                'url' => $baseurl . '/decayingModel/decayingTool',
+                'requirement' => $isAdmin
+            ),
+            array(
+                'text' => __('List Decaying Models'),
+                'url' => $baseurl . '/decayingModel/index',
+            ),
+            array(
+                'type' => 'separator'
+            ),
+            array(
+                'text' => __('User Guide'),
+                'url' => 'https://www.circl.lu/doc/misp/'
+            ),
+            array(
+                'text' => __('Categories & Types'),
+                'url' => $baseurl . '/pages/display/doc/categories_and_types'
+            ),
+            array(
+                'text' => __('Terms & Conditions'),
+                'url' => $baseurl . '/users/terms'
+            ),
+            array(
+                'text' => __('Statistics'),
+                'url' => $baseurl . '/users/statistics'
+            ),
+            array(
+                'type' => 'separator',
+                'requirement' => $this->Acl->canAccess('threads', 'index'),
+            ),
+            array(
+                'text' => __('List Discussions'),
+                'url' => $baseurl . '/threads/index',
+                'requirement' => $this->Acl->canAccess('threads', 'index'),
+            ),
+            array(
+                'text' => __('Start Discussion'),
+                'url' => $baseurl . '/posts/add',
+                'requirement' => $this->Acl->canAccess('posts', 'add'),
             )
         ),
         array(
@@ -662,14 +703,29 @@ if ($isHal) {
     }
   ?>
 </div>
+<style>
+    ul.nav li.dropdown:hover > ul.dropdown-menu {
+        display: block;
+    }
+    .dropdown-submenu > .dropdown-menu {
+        display: none !important;
+    }
+    .dropdown-submenu:hover > .dropdown-menu {
+        display: block !important;
+    }
+</style>
 <script>
 $(document).ready(function() {
-    $('#betaUiToggle').on('click', function(e) {
+    $('.setTheme').on('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
+
+        var theme = String($(this).data('theme') || '');
+        var safeTheme = encodeURIComponent(theme);
+
         $.ajax({
             type: 'POST',
-            url: '<?php echo $baseurl; ?>/user_settings/toggleBetaUi',
+            url: '<?php echo $baseurl; ?>/user_settings/setTheme/' + safeTheme,
             success: function(data) {
                 location.reload();
             },

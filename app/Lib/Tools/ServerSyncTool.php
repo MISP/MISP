@@ -15,7 +15,8 @@ class ServerSyncTool
         PERM_SYNC = 'perm_sync',
         PERM_GALAXY_EDITOR = 'perm_galaxy_editor',
         PERM_ANALYST_DATA = 'perm_analyst_data',
-        FEATURE_SIGHTING_REST_SEARCH = 'sighting_rest';
+        FEATURE_SIGHTING_REST_SEARCH = 'sighting_rest',
+        FEATURE_FAST_CACHING = 'fast_caching';
 
     /** @var array */
     private $server;
@@ -473,6 +474,24 @@ class ServerSyncTool
         return $this->decodeRule('push_rules');
     }
 
+    public function getFastCache($lastId)
+    {
+        $url = sprintf(
+            '%s/attributes/getInstanceCache/%s',
+            $this->server['Server']['url'],
+            $lastId ? intval($lastId) : 0
+        );
+
+        $start = microtime(true);
+        $response = $this->socket->get($url, [], $this->request);
+        $this->requestLog($start, 'GET', $url, $response);
+
+        if (!$response->isOk()) {
+            throw new HttpSocketHttpException($response, $url);
+        }
+        return $response;
+    }
+
     /**
      * @param string $flag
      * @return bool
@@ -513,6 +532,9 @@ class ServerSyncTool
             case self::FEATURE_SIGHTING_REST_SEARCH:
                 $version = explode('.', $info['version']);
                 return $version[0] == 2 && (($version[1] == 4 && $version[2] > 164) || ($version[1] == 5));
+            case self::FEATURE_FAST_CACHING:
+                $version = explode('.', $info['version']);
+                return $version[0] > 2 || ($version[0] == 2 && $version[1] == 5 && $version[2] >= 33);
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }

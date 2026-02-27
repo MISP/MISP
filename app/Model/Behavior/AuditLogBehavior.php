@@ -58,7 +58,6 @@ class AuditLogBehavior extends ModelBehavior
     public function __construct()
     {
         parent::__construct();
-        $this->enabled = Configure::read('MISP.log_new_audit');
     }
 
     public function setup(Model $model, $config = [])
@@ -83,7 +82,7 @@ class AuditLogBehavior extends ModelBehavior
 
     public function beforeSave(Model $model, $options = [])
     {
-        if (!$this->enabled) {
+        if (!$this->isEnabled()) {
             return true;
         }
 
@@ -131,7 +130,7 @@ class AuditLogBehavior extends ModelBehavior
 
     public function afterSave(Model $model, $created, $options = [])
     {
-        if (!$this->enabled) {
+        if (!$this->isEnabled()) {
             return;
         }
 
@@ -223,7 +222,7 @@ class AuditLogBehavior extends ModelBehavior
 
     public function beforeDelete(Model $model, $cascade = true)
     {
-        if (!$this->enabled) {
+        if (!$this->isEnabled()) {
             return true;
         }
 
@@ -289,6 +288,15 @@ class AuditLogBehavior extends ModelBehavior
             'event_id' => $eventId,
             'change' => $this->changedFields($model, null),
         ]);
+    }
+
+    private function isEnabled()
+    {
+        if (isset($this->enabled)) {
+            return $this->enabled;
+        }
+        $this->enabled = Configure::read('MISP.log_new_audit');
+        return $this->enabled;
     }
 
     /**

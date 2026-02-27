@@ -474,11 +474,6 @@ class FeedsController extends AppController
         if (empty(Configure::read('Security.disable_local_feed_access'))) {
             $inputSources['local'] = 'Local';
         }
-        $tags = $this->Event->EventTag->Tag->find('all', [
-            'recursive' => -1,
-            'fields' => ['Tag.name', 'Tag.id'],
-            'order' => ['lower(Tag.name) asc']
-        ]);
         $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
         $tags[0] = 'None';
         $this->loadModel('TagCollection');

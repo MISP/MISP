@@ -6,7 +6,7 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii, ondemandcorr, attribute_filter_pipeline]
+    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii, ondemandcorr, attribute_filter_pipeline, crud_refactor]
   pull_request:
     branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix]
 
@@ -23,6 +23,34 @@ jobs:
         os: [ubuntu-22.04]
         php: ['8.1', '8.3']
 
+    # Run MariaDB as a service container (avoids docker client API mismatch in getong/mariadb-action)
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: bar
+          MARIADB_DATABASE: misp
+          MARIADB_USER: misp
+          MARIADB_PASSWORD: blah
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -uroot -pbar"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=30
+
+      redis:
+        image: redis:5
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=30
+
+
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -30,20 +58,33 @@ jobs:
         with:
           submodules: 'recursive'
 
-      # Run mariadb
-      - uses: getong/mariadb-action@v1.1
-        with:
-          host port: 3306
-          container port: 3306
-          mysql root password: 'bar'
-          mysql database: 'misp'
-          mysql user: 'misp'
-          mysql password: 'blah'
+      - name: Stop default MySQL (if present)
+        run: sudo service mysql stop || true
 
-      - uses: zhulik/redis-action@1.1.0
-        with:
-          redis version: '5'
-          number of databases: 100
+      - name: Wait for MariaDB service
+        run: |
+          for i in {1..60}; do
+            mysqladmin ping -h 127.0.0.1 -uroot -pbar && exit 0
+            sleep 2
+          done
+          echo "MariaDB did not become ready in time"
+          exit 1
+
+      - name: Install redis-cli
+        env:
+          php_version: ${{ matrix.php }}
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install redis-tools
+
+      - name: Wait for Redis service
+        run: |
+          for i in {1..60}; do
+            redis-cli -h 127.0.0.1 -p 6379 ping | grep -q PONG && exit 0
+            sleep 2
+          done
+          echo "Redis did not become ready in time"
+          exit 1
 
       # prepare php stuff
       - name: Setup PHP

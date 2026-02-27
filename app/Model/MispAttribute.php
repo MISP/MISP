@@ -46,6 +46,12 @@ class MispAttribute extends AppModel
 
     private $orgs_cache = [];
 
+    /** @var bool|null Cached result of checking if 'deleted' index exists on attributes table */
+    private static $hasDeletedIndex = null;
+
+    /** @var array Cached ACL conditions keyed by "{perm_site_admin}-{org_id}" */
+    private $aclConditionsCache = [];
+
     public $virtualFields = array(
             'value' => "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END",
     );
@@ -1707,6 +1713,11 @@ class MispAttribute extends AppModel
 
     public function buildConditions($user)
     {
+        $cacheKey = ($user['Role']['perm_site_admin'] ? '1' : '0') . '-' . $user['org_id'];
+        if (isset($this->aclConditionsCache[$cacheKey])) {
+            return $this->aclConditionsCache[$cacheKey];
+        }
+
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
             $sgids = $this->SharingGroup->authorizedIds($user);
@@ -1780,6 +1791,8 @@ class MispAttribute extends AppModel
                 ]
             ];
         }
+
+        $this->aclConditionsCache[$cacheKey] = $conditions;
         return $conditions;
     }
 
@@ -2090,8 +2103,11 @@ class MispAttribute extends AppModel
                 $params['order'] = [];
             }
 
-            $idx = $this->query("SHOW INDEX FROM attributes WHERE Key_name='deleted'");
-            if (!empty($idx)) {
+            if (self::$hasDeletedIndex === null) {
+                $idx = $this->query("SHOW INDEX FROM attributes WHERE Key_name='deleted'");
+                self::$hasDeletedIndex = !empty($idx);
+            }
+            if (self::$hasDeletedIndex) {
                 $params['ignoreIndexHint'] = 'deleted';
             }
         
@@ -2218,7 +2234,7 @@ class MispAttribute extends AppModel
                         $attr['Attribute'] = $this->DecayingModel
                             ->attachScoresToAttribute($user, $attr['Attribute'], $options['decayingModel'], $options['modelOverrides'], $full);
                         unset($attr['Attribute']['AttributeTag'], $attr['Attribute']['EventTag']);
-                        if (!empty($options['excludeDecayed'])) {
+                        if (!empty($options['excludeDecayed']) && isset($attr['Attribute']['decay_score'])) {
                             $allDecayed = true;
                             foreach ($attr['Attribute']['decay_score'] as $ds) {
                                 $allDecayed = $allDecayed && $ds['decayed'];
@@ -3904,7 +3920,7 @@ class MispAttribute extends AppModel
             'Payload delivery' => array(
                 'desc' => __('Information about how the malware is delivered'),
                 'formdesc' => __('Information about how the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.'),
-                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'cpe', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'whois-registrant-email', 'anonymised', 'onion-address')
+                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'cpe', 'weakness', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'jarm-fingerprint', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'edge-extension-id', 'whois-registrant-email', 'anonymised', 'onion-address')
             ),
             'Artifacts dropped' => array(
                 'desc' => __('Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system'),
@@ -3913,7 +3929,7 @@ class MispAttribute extends AppModel
             'Payload installation' => array(
                 'desc' => __('Info on where the malware gets installed in the system'),
                 'formdesc' => __('Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.'),
-                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'cpe','weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'other', 'mime-type', 'anonymised')
+                'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'sha3-224', 'sha3-256', 'sha3-384', 'sha3-512', 'ssdeep', 'imphash', 'telfhash', 'impfuzzy', 'authentihash', 'vhash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|sha3-224', 'filename|sha3-256', 'filename|sha3-384', 'filename|sha3-512', 'filename|authentihash', 'filename|vhash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'filename-pattern', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'cpe','weakness', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'azure-application-id', 'mobile-application-id', 'chrome-extension-id', 'edge-extension-id', 'other', 'mime-type', 'anonymised')
             ),
             'Persistence mechanism' => array(
                 'desc' => __('Mechanisms used by the malware to start at boot'),
@@ -4165,6 +4181,7 @@ class MispAttribute extends AppModel
             'mobile-application-id' => array('desc' => __('The application id of a mobile application'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'azure-application-id' => array('desc' => __('Azure Application ID.'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'chrome-extension-id' => array('desc' => __('Chrome extension id'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'edge-extension-id' => array('desc' => __('Edge extension id'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'cortex' => array('desc' => __('Cortex analysis result'), 'default_category' => 'External analysis', 'to_ids' => 0),
             'boolean' => array('desc' => __('Boolean value - to be used in objects'), 'default_category' => 'Other', 'to_ids' => 0),
             'uuid' => array('desc' => __('UUID - to be used in objects'), 'default_category' => 'Other', 'to_ids' => 0),
