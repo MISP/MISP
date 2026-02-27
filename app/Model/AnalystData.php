@@ -477,7 +477,7 @@ class AnalystData extends AppModel
             $childNotesAndOpinions = [];
             $childNotes = $this->Note->find('all', $paramsNote);
             $childOpinions = $this->Opinion->find('all', $paramsOpinion);
-            $orgFields = ['id', 'uuid', 'name', 'type', 'description', 'sector', 'national', 'local'];
+            $orgFields = ['id', 'uuid', 'name', 'type', 'description', 'sector', 'nationality', 'local'];
             $orgTypes = ['Org', 'Orgc'];
             if (!empty($childNotes)) {
                 foreach ($childNotes as $childNote) {
