@@ -482,7 +482,7 @@ class AnalystData extends AppModel
             if (!empty($childNotes)) {
                 foreach ($childNotes as $childNote) {
                     foreach ($orgTypes as $orgType) {
-                        if (!empty($childOpinion['Note'][$orgType])) {
+                        if (!empty($childNote['Note'][$orgType])) {
                             $childNote['Note'][$orgType] = array_filter($childNote['Note'][$orgType], function ($key) use ($orgFields) {
                                 return in_array($key, $orgFields);
                             }, ARRAY_FILTER_USE_KEY);    
