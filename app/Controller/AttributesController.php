@@ -3205,5 +3205,65 @@ class AttributesController extends AppController
         fclose($fh);
         return $this->RestResponse->viewData($out, 'text', false, true, false, $headers);
     }
+
+    /**
+     * Get attribute and details by attribute value
+     * Searches directly in the database using indexed value1 column for efficiency
+     * 
+     * @param string $base64Value Base64 encoded attribute value to search for
+     * @return CakeResponse
+     * @throws NotFoundException If no matching attribute is found
+     * @throws MethodNotAllowedException If not an API request
+     */
+    public function getAttributeByB64Value($base64Value)
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__("This action is available only via API."));
+        }
+        
+        // Decode the base64 value
+        $decodedValue = base64_decode($base64Value, true);
+        if ($decodedValue === false) {
+            throw new NotFoundException(__("Invalid base64 encoding."));
+        }
+        
+        $user = $this->Auth->user();
+        
+        // Build efficient query conditions - search directly on indexed value1 column
+        // Also check value2 for composite attributes (e.g., ip|port)
+        $conditions = [
+            "AND" => [
+                $this->MispAttribute->buildConditions($user),
+                "Attribute.deleted" => 0,
+                "OR" => [
+                    "Attribute.value1" => $decodedValue,
+                    "Attribute.value2" => $decodedValue,
+                    // For composite values like "ip|port", also search on the virtual value field
+                    "CONCAT(Attribute.value1, '|', Attribute.value2)" => $decodedValue
+                ]
+            ]
+        ];
+        
+        // Fetch attributes with the search conditions
+        $attributes = $this->MispAttribute->fetchAttributes($user, [
+            "conditions" => $conditions,
+            "flatten" => true,
+            "limit" => 100 // Limit results for performance
+        ]);
+        
+        if (empty($attributes)) {
+            throw new NotFoundException(__("Attribute not found."));
+        }
+        
+        // Format response
+        $results = [];
+        foreach ($attributes as $attr) {
+            unset($attr["Attribute"]["value1"]);
+            unset($attr["Attribute"]["value2"]);
+            $results[] = $attr["Attribute"];
+        }
+        
+        return $this->RestResponse->viewData($results, $this->response->type());
+    }
 }
 
