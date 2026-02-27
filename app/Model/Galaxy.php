@@ -879,7 +879,7 @@ class Galaxy extends AppModel
             }
             $event = $event[0];
             $org_id = $event['Event']['org_id'];
-            $orgc_id = $event['Event']['org_id'];
+            $orgc_id = $event['Event']['orgc_id'];
         } elseif ($target_type === 'tag_collection') {
             $target = $this->Tag->TagCollectionTag->TagCollection->fetchTagCollection($user, array('conditions' => array('TagCollection.id' => $target_id)));
             if (empty($target)) {

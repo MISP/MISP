@@ -9,7 +9,13 @@ if (!empty($data['paginatorOptions'])) {
 $rows = '';
 foreach ($data['data'] as $k => $data_row) {
 
-    $row = '<tr>';
+    $primary = !empty($data['primary_id_path']) ? Hash::get($data_row, $data['primary_id_path']) : null;
+
+    $row = '<tr data-row-id="' . h($k) . '"';
+    if (!empty($primary)) {
+        $row .= ' data-primary-id="' . h($primary) . '"';
+    }
+    $row .= '>';
 
     $row .= $this->element(
         'genericElementsBS5/IndexTable/row',
@@ -19,6 +25,7 @@ foreach ($data['data'] as $k => $data_row) {
             'fields' => $data['fields'],
             'options' => $data['options'] ?? [],
             'actions' => $data['actions'] ?? [],
+            'primary' => $primary,
         ]
     );
 
@@ -46,6 +53,8 @@ foreach ($data['data'] as $k => $data_row) {
 
     </table>
 </div>
+
+
 <script>
     var passedArgsArray = <?= isset($passedArgs) ? $passedArgs : '{}'; ?>;
     var url = "<?= $url ?>";
@@ -69,5 +78,3 @@ foreach ($data['data'] as $k => $data_row) {
     });
     <?php endif; ?>
 </script>
-
-
