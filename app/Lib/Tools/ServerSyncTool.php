@@ -534,7 +534,7 @@ class ServerSyncTool
                 return $version[0] == 2 && (($version[1] == 4 && $version[2] > 164) || ($version[1] == 5));
             case self::FEATURE_FAST_CACHING:
                 $version = explode('.', $info['version']);
-                return $version[0] > 2 || ($version[0] == 2 && $version[1] == 5 && $version[2] > 33);
+                return $version[0] > 2 || ($version[0] == 2 && $version[1] == 5 && $version[2] >= 33);
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }
