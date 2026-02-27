@@ -83,9 +83,9 @@ $fields = [
         'card_section' => 'galaxy'
     ],
     [
-        'name' => __('Datas'),
+        'name' => __('Contents'),
         'data_path' => 'Event',
-        'element' => 'event_datas',
+        'element' => 'event_contents',
         'card_section' => 'extra'
     ],
 ];
