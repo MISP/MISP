@@ -72,6 +72,7 @@ class ACLComponent extends Component
 
             'fetchViewValue' => array('*'),
             'generateCorrelation' => array(),
+            'getAttributeByB64Value' => ['*'],
             'getMassEditForm' => array('perm_add'),
             'hoverEnrichment' => array('perm_add'),
             'index' => array('*'),
