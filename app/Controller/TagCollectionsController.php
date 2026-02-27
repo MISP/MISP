@@ -342,6 +342,7 @@ class TagCollectionsController extends AppController
             $this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
             if ($id === false) {
                 $id = $this->request->data['tag_collection'];
+                $conditions['TagCollection.id'] = $id;
             }
             if ($tag_id === false) {
                 $tag_id = $this->request->data['tag'];
