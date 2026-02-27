@@ -3154,4 +3154,56 @@ class AttributesController extends AppController
         ]);
         return $this->RestResponse->successResponse(0, $result);
     }
+
+    public function getInstanceCache($lastId = null)
+    {
+
+        $conditions = ['Attribute.deleted' => 0];
+        if ($lastId) {
+            $conditions['Attribute.id >'] = (int)$lastId;
+        }
+        $conditions['AND'][] = $this->MispAttribute->buildConditions($this->Auth->user());
+
+        $this->MispAttribute->virtualFields['md5_value1'] = 'MD5(Attribute.value1)';
+        $this->MispAttribute->virtualFields['md5_value2'] = "MD5(NULLIF(Attribute.value2, ''))";
+
+        $rows = $this->MispAttribute->find('all', [
+            'conditions' => $conditions,
+            'recursive'  => -1,
+            'contain'    => ['Event', 'Object.distribution', 'Object.sharing_group_id'],
+            'fields'     => [
+                'Attribute.id',
+                'Attribute.md5_value1',
+                'Attribute.md5_value2',
+                'Event.uuid',
+            ],
+            'order'      => ['Attribute.id' => 'ASC'],
+            'limit'      => 100000,
+        ]);
+
+        unset($this->MispAttribute->virtualFields['md5_value1'], $this->MispAttribute->virtualFields['md5_value2']);
+
+        $fh = fopen('php://temp', 'w+');
+
+        $lastProcessedId = $lastId ? (int)$lastId : null;
+
+        foreach ($rows as $row) {
+            $lastProcessedId = (int)$row['Attribute']['id'];
+
+            fwrite($fh, $row['Attribute']['md5_value1'] . ',' . $row['Event']['uuid'] . "\n");
+            if ($row['Attribute']['md5_value2'] !== null) {
+                fwrite($fh, $row['Attribute']['md5_value2'] . ',' . $row['Event']['uuid'] . "\n");
+            }
+        }
+        $headers = [];
+        if ($lastProcessedId !== null) {
+            $headers['X-Last-ID'] = (string)$lastProcessedId;
+        }
+
+        rewind($fh);
+        $out = stream_get_contents($fh);
+        fclose($fh);
+        return $this->RestResponse->viewData($out, 'text', false, true, false, $headers);
+    }
 }
+

@@ -69,10 +69,10 @@ class ACLComponent extends Component
             'enrich' => ['perm_add'],
             'exportSearch' => array('*'),
             'fetchEditForm' => array('perm_add'),
-
             'fetchViewValue' => array('*'),
             'generateCorrelation' => array(),
             'getMassEditForm' => array('perm_add'),
+            'getInstanceCache' => ['*'],
             'hoverEnrichment' => array('perm_add'),
             'index' => array('*'),
             'pruneOrphanedAttributes' => array(),
