@@ -91,6 +91,7 @@ class ObjectTemplatesController extends AppController
         $this->set('options', array(
             'functionName' => 'redirectAddObject',
             'multiple' => 0,
+            'auto_open' => true,
             'select_options' => array(
                 'additionalData' => array('event_id' => $event_id),
             ),
