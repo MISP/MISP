@@ -107,6 +107,50 @@
                 }
             ?>
         </header> 
+        <?php if ($useBootstrap5): ?>
+            <?php if (Configure::read('debug') > 0): ?>
+            <div class="accordion mb-0" id="debugAccordionWrapper">
+                <div class="accordion-item border-0">
+                    <h2 class="accordion-header" id="debugHeading">
+                        <button class="accordion-button collapsed bg-warning text-dark py-2"
+                                style="border-radius: 0 !important; box-shadow: none !important;"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#debugCollapse"
+                                aria-expanded="false"
+                                aria-controls="debugCollapse">
+
+                            <div class="d-flex justify-content-between align-items-center w-100 me-2">
+                                <span>
+                                    <i class="fas fa-bug me-2"></i>
+                                    Debug Mode Enabled
+                                </span>
+
+                                <span id="debugErrorBadge"
+                                    class="badge bg-secondary ms-3">
+                                    0 error
+                                </span>
+                            </div>
+
+                        </button>
+                    </h2>
+
+                    <div id="debugCollapse"
+                        class="accordion-collapse collapse"
+                        aria-labelledby="debugHeading"
+                        data-bs-parent="#debugAccordionWrapper">
+
+                        <div id="debugAccordionContent"
+                            class="accordion-body bg-dark text-light small"
+                            style="max-height:500px; overflow:auto;">
+                            <!-- Errors are going to be injected here -->
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+        <?php endif; ?>
         <!-- Flash & Content -->
         <main role="main" class="content">
             <div id="flashOverlay">
@@ -271,6 +315,31 @@
                     }, 600); // correspond à la durée de transition
                 }, 10000); // 10 secondes
             }
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            var debugContainer = document.getElementById("debugAccordionContent");
+            if (!debugContainer) return;
+            var cakeErrors = document.querySelectorAll(".cake-error");
+            var count = cakeErrors.length;
+
+            var badge = document.getElementById("debugErrorBadge");
+            badge.textContent = count + " error";
+
+            if (count > 0) {
+                if (count > 1) {
+                    badge.textContent += "s";
+                }
+                badge.classList.remove("bg-secondary");
+                badge.classList.add("bg-danger");
+            } else {
+                badge.classList.remove("bg-danger");
+                badge.classList.add("bg-success");
+            }
+
+            cakeErrors.forEach(function (error) {
+                debugContainer.appendChild(error);
+            });
         });
     </script>
 </body>
