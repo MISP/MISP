@@ -4864,22 +4864,37 @@ class Server extends AppModel
             $job = ClassRegistry::init('Job');
             $job->id = $jobId;
         }
-        $redis->del('misp:server_cache:' . $serverId);
 
         $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        $fastCaching = $serverSync->isSupported(ServerSyncTool::FEATURE_FAST_CACHING);
+        $nextLastId = null;
+        $count = 0;
+        // delete the previous iterations, but skip the event uuid one as the uuid might exist on other instances too (should have thought about this when designing the cache, but alas, past me was a monkey too)
+        $redis->del('misp:server_cache:' . $serverId);
+        $redis->del('misp:server_cache:combined');
         while (true) {
-            $i++;
-            $rules = [
-                'returnFormat' => 'cache',
-                'includeEventUuid' => 1,
-                'page' => $i,
-                'limit' => $chunk_size,
-            ];
-            try {
-                $data = $serverSync->attributeSearch($rules)->body();
-            } catch (Exception $e) {
-                $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
-                break;
+            if ($fastCaching) {
+                if (!isset($lastId)) {
+                    $lastId = 0;
+                }
+                $return = $serverSync->getFastCache($nextLastId);
+                $nextLastId = (int)$return->headers['x-misp-last-id'] ?? null;
+                $data = $return->body();
+                $nextLastId;
+            } else {
+                $i++;
+                $rules = [
+                    'returnFormat' => 'cache',
+                    'includeEventUuid' => 1,
+                    'page' => $i,
+                    'limit' => $chunk_size,
+                ];
+                try {
+                    $data = $serverSync->attributeSearch($rules)->body();
+                } catch (Exception $e) {
+                    $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
+                    break;
+                }
             }
 
             $data = trim($data);
@@ -4888,6 +4903,9 @@ class Server extends AppModel
             }
 
             $data = explode(PHP_EOL, $data);
+            if ($fastCaching) {
+                $count += count($data);
+            }
             $pipe = $redis->pipeline();
             foreach ($data as $entry) {
                 list($value, $uuid) = explode(',', $entry);
@@ -4899,7 +4917,11 @@ class Server extends AppModel
             }
             $pipe->exec();
             if ($jobId) {
-                $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+                if ($fastCaching) {
+                    $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . $count . ' attributes cached.');
+                } else {
+                    $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+                }
             }
         }
         $redis->set('misp:server_cache_timestamp:' . $serverId, time());

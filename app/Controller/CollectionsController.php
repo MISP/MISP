@@ -69,6 +69,7 @@ class CollectionsController extends AppController
             throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
         }
         $params = [];
+        $this->loadModel('Event');
         if ($this->request->is('post') || $this->request->is('put')) {
             $oldCollection = $this->Collection->find('first', [
                 'recursive' => -1,
@@ -106,7 +107,6 @@ class CollectionsController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('menuData', array('menuList' => 'collections', 'menuItem' => 'edit'));
-        $this->loadModel('Event');
         $dropdownData = [
             'types' => array_combine($this->valid_types, $this->valid_types),
             'distributionLevels' => $this->Event->distributionLevels,

@@ -290,7 +290,7 @@ class Oidc
     }
     
     /**
-     * @return OpenIDConnectClient CertMichelin if available, otherwise JakubOnderka for keeping backward compatibility.
+     * @return \CertMichelin\OpenIDConnectClient|\JakubOnderka\OpenIDConnectClient CertMichelin if available, otherwise JakubOnderka for keeping backward compatibility.
      * @throws Exception
      */
     private function prepareClient()
@@ -303,16 +303,20 @@ class Oidc
         $clientId = $this->getConfig('client_id');
         $clientSecret = $this->getConfig('client_secret');
         $issuer = $this->getConfig('issuer', null, false);
+        $disableRequestObject = $this->getConfig('disable_request_object', false);
 
         if (class_exists("\CertMichelin\OpenIDConnectClient")) {
             $oidc = new \CertMichelin\OpenIDConnectClient($providerUrl, $clientId, $clientSecret, $issuer);
-
-            // Load specific settings for CertMichelin's client.
-            $disable_request_object = $this->getConfig('disable_request_object', false);
-            $oidc->setDisableRequestObject($disable_request_object);
-            
+            $oidc->setDisableRequestObject($disableRequestObject);
         } else if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
             $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret, $issuer);
+
+            if ($disableRequestObject) {
+                if (!method_exists($oidc, 'setJwtSecuredAuthorizationRequest')) {
+                    throw new Exception('OIDC config `disable_request_object` is enabled, but old version of OpenIDConnectClient is installed.');
+                }
+                $oidc->setJwtSecuredAuthorizationRequest(false);
+            }
         } else if (class_exists("\Jumbojett\OpenIDConnectClient")) {
             throw new Exception("Jumbojett OIDC implementation is not supported anymore, please use JakubOnderka's client");
         } else {
@@ -338,9 +342,7 @@ class Oidc
             throw new RuntimeException("Config option `OidcAuth.scopes` must be array, " . gettype($scopes) . " given.");
         }
         $oidc->addScope($scopes);
-
         $oidc->setRedirectURL(Configure::read('MISP.baseurl') . '/users/login');
-        $this->oidcClient = $oidc;
 
         // set proxy
         $proxy = Configure::read('Proxy');
@@ -363,6 +365,7 @@ class Oidc
             $oidc->setHttpProxy($proxystr);
         }
 
+        $this->oidcClient = $oidc;
         return $oidc;
     }
 

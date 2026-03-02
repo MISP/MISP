@@ -49,7 +49,7 @@ class GalaxyElementsController extends AppController
             'searchall' => isset($filters['searchall']) ? $filters['searchall'] : ''
         ]));
         $cluster = $this->GalaxyElement->GalaxyCluster->fetchIfAuthorized($user, $clusterId, array('edit', 'delete'), false, false);
-        $canModify = !empty($cluster['authorized']);
+        $canModify = !isset($cluster['authorized']) || $cluster['authorized'] === true;
         $this->set('canModify', $canModify);
         if ($filters['context'] === 'JSONView') {
             $expanded = $this->GalaxyElement->getExpandedJSONFromElements($elements);

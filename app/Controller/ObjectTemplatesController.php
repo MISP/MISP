@@ -12,7 +12,7 @@ class ObjectTemplatesController extends AppController
     public $paginate = array(
         'limit' => 60,
         'order' => array(
-            'Object.id' => 'desc'
+            'ObjectTemplate.id' => 'desc'
         ),
         'contain' => array(
             'Organisation' => array('fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'))
@@ -91,6 +91,7 @@ class ObjectTemplatesController extends AppController
         $this->set('options', array(
             'functionName' => 'redirectAddObject',
             'multiple' => 0,
+            'auto_open' => true,
             'select_options' => array(
                 'additionalData' => array('event_id' => $event_id),
             ),
@@ -153,8 +154,8 @@ class ObjectTemplatesController extends AppController
             $this->set('all', true);
         }
         $params = [
-            'filters' => ['name', 'uuid', 'description', 'meta-category', 'searchall'],
-            'quickFilters' => ['name', 'uuid', 'description', 'meta-category'],
+            'filters' => ['ObjectTemplate.name', 'ObjectTemplate.uuid', 'ObjectTemplate.description', 'ObjectTemplate.meta-category', 'searchall'],
+            'quickFilters' => ['ObjectTemplate.name', 'ObjectTemplate.uuid', 'ObjectTemplate.description', 'ObjectTemplate.meta-category'],
             'quickFilterParameter' => 'searchall',
             'conditions' => $conditions,
             'contain' => [

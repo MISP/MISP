@@ -686,10 +686,10 @@ class SharingGroup extends AppModel
             $isUpdatableBySync = $user['Role']['perm_sync'] && empty($existingSG['SharingGroup']['local']);
             // TODO: reconsider this, org admins will be blocked from legitimate edits if they have sync permissions.
             // We need a mechanism to check whether we're in sync context.
-            $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['org_id'] == $user['org_id'];
+            $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['SharingGroup']['org_id'] == $user['org_id'];
             if ($isUpdatableBySync || $isSGOwner || $user['Role']['perm_site_admin']) {
                 $editedSG = $existingSG['SharingGroup'];
-                $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming', 'active', 'local'];
+                $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming', 'active'];
                 foreach ($attributes as $a) {
                     if (isset($sg[$a])) {
                         $editedSG[$a] = $sg[$a];
