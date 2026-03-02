@@ -108,7 +108,7 @@
             ?>
         </header> 
         <!-- Flash & Content -->
-        <main role="main" class="content">
+        <main role="main" class="content" style="padding-top:<?php echo $topPadding; ?>px; !important;">
             <div id="flashOverlay">
                 <div id="flashContainer">
                     <?= $this->Flash->render(); ?>
@@ -268,8 +268,8 @@
 
                     setTimeout(function () {
                         $flash.remove();
-                    }, 600); // correspond à la durée de transition
-                }, 10000); // 10 secondes
+                    }, 600); // Transition time
+                }, 10000); // Display time
             }
         });
     </script>
