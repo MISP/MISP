@@ -1,12 +1,9 @@
 <?php
 
-$orgList = ['All'];
-foreach ($events as $event) {
-    if (!in_array($event['Org']['name'], $orgList)) {
-        $orgList[] = $event['Org']['name'];
-    }
-}
-
+$orgOptions = array_merge(
+    ['' => 'All'],
+    array_combine($orgs = array_diff(array_unique(Hash::extract($events, '{n}.Orgc.name')), ['All']), $orgs)
+);
 
 $fields = [
     [
@@ -29,10 +26,13 @@ $fields = [
             [
                 'type' => 'toggle',
                 'label_on' => __('Unpublish'),
-                'label_off' => __('Publish Event'),
-                'icon_on' => 'download text-danger',
-                'icon_off' => 'upload text-success',
-                'url' => 'event.preventDefault();publishPopup(<?= $eventId ?>)',
+                'label_off' => __('Publish'),
+                'icon_on' => 'download',
+                'icon_off' => 'upload',
+                'class_on' => 'text-danger',
+                'class_off' => 'text-success',
+                'url' => $baseurl . '/events/togglePublish/%id%',
+                'onclick' => 'event.preventDefault(); publishPopup(%id%);',
                 'state_path' => 'Event.published',
                 //'requirement' => $this->Acl->canPublishEvent($event)
             ]
@@ -45,15 +45,16 @@ $fields = [
         'element' => 'id',
         'card_section' => 'meta'
     ],
-    [
-        'name' => __('Distribution'),
-        'data_path' => 'Event.distribution',
-        'element' => 'distribution',
-        'display' => 'long'
-    ],
+    // [
+    //     'name' => __('Distribution'),
+    //     'data_path' => 'Event.distribution',
+    //     'element' => 'distribution',
+    //     'display' => 'long'
+    // ],
     [
         'name' => __('Info'),
-        'data_path' => 'Event.info',
+        'data_path' => 'Event',
+        'element' => 'info',
         'card_section' => 'title'
     ],
     [
@@ -74,13 +75,13 @@ $fields = [
         'name' => __('Tags'),
         'data_path' => 'EventTag',
         'element' => 'tag',
-        'card_section' => 'tag'
+        'card_section' => 'tag',
     ],
     [
         'name' => __('Galaxy'),
         'data_path' => 'GalaxyCluster',
         'element' => 'galaxy',
-        'card_section' => 'galaxy'
+        'card_section' => 'galaxy',
     ],
     [
         'name' => __('Contents'),
@@ -138,9 +139,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'type' => 'dropdown',
                         'label' => 'Organisation',
                         'name' => 'org_id',
-                        'options' => [
-                            '' => 'All',   // ← important
-                        ] + $orgList
+                        'options' => $orgOptions
                     ]
                 ]
             ],

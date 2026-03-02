@@ -71,7 +71,9 @@ if (isset($map[$distribution])) {
         border: 1px solid <?= h($config['color']) ?>20;
         font-weight: 500;
         box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-      ">
+      "
+      title ="<?= h($config['label']) ?>"
+      aria-label="<?= h($config['label']) ?>">
 
     <?php if ($displayMode === 'long'): ?>
         <i class="fas <?= h($config['icon']) ?> me-1"

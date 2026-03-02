@@ -17,6 +17,9 @@ if (!empty($orgs)):
         <div class="d-inline-flex align-items-center gap-2 text-nowrap">
 
             <?php
+
+            //$temp = $this->OrgImg->getOrgLogo($org, 24);
+            //echo $temp;
             $logoUrl = $baseurl . '/organisations/getOrgLogo/' . h($org['id']);
             ?>
 
