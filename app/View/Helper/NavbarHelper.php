@@ -71,7 +71,8 @@ class NavbarHelper extends AppHelper {
                     ],
                 ]
             ],
-            [
+            // To implement later, when the object view will be ready
+            /* [
                 'type' => 'group',
                 'label' => __('Objects'),
                 'icon' => 'fas fa-cubes',
@@ -91,7 +92,7 @@ class NavbarHelper extends AppHelper {
                         'icon' => 'fas fa-list'
                     ]
                 ]
-            ],
+            ], */
             [
                 'type' => 'group',
                 'label' => __('Attributes'),
@@ -889,6 +890,7 @@ class NavbarHelper extends AppHelper {
         //TO DO
         $bookmarksChildren[] = [
             'label' => __('Set this page as homepage'),
+            'url' => '',
             'icon' => 'fas fa-home'
         ];
 
