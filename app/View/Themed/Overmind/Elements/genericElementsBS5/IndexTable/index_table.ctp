@@ -53,28 +53,3 @@ foreach ($data['data'] as $k => $data_row) {
 
     </table>
 </div>
-
-
-<script>
-    var passedArgsArray = <?= isset($passedArgs) ? $passedArgs : '{}'; ?>;
-    var url = "<?= $url ?>";
-    <?php if ($hasSearch): ?>
-    $(function() {
-        <?php
-        if (isset($containerId)) {
-            echo 'var target = "#' . $containerId . '_content";';
-        }
-        ?>
-        $('#quickFilterScopeSelector').change(function() {
-            $('#quickFilterField').data('searchkey', this.value)
-        });
-        $('#quickFilterButton').click(function() {
-            if (typeof(target) !== 'undefined') {
-                runIndexQuickFilterFixed(passedArgsArray, url, target);
-            } else {
-                runIndexQuickFilterFixed(passedArgsArray, url);
-            }
-        });
-    });
-    <?php endif; ?>
-</script>

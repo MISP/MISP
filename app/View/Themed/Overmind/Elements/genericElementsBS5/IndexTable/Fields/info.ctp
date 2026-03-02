@@ -4,8 +4,7 @@ $event = Hash::extract($row, $field['data_path']);
 if (empty($event)) {
     return;
 }
-
-$distribution = $event['distribution']
+$distribution = $event['distribution'];
 
 ?>
 
@@ -36,24 +35,17 @@ $distribution = $event['distribution']
 
 </div>
 
-<!-- Extends / Extended -->
-<?php if (!empty($event['Event']['extends_uuid'])): ?>
-    <div class="text-muted small mt-1">
+<!-- Show if it extends an other Event -->
+<?php if (!empty($event['extends_uuid'])): ?>
+    <div class="text-muted small mt-1 ms-3">
         Extends:
-        <a href="/events/view/<?= h($event['Event']['extends_uuid']); ?>" class="text-decoration-none">
-            <?= h($event['extends_event_info']); ?>
-        </a>
+        <?php foreach ($extendedEvents as $extendedEvent): ?>
+            <?php if ($extendedEvent['uuid'] === $event['extends_uuid']): ?>
+                <a href="/events/view/<?= h($extendedEvent['uuid']); ?>" class="text-decoration-none text-primary">
+                    <?= h($extendedEvent['info']); ?>
+                </a>
+                <?php break; ?>
+            <?php endif; ?>
+        <?php endforeach; ?>
     </div>
 <?php endif; ?>
-
-<?php if (!empty($event['extended_by_uuid'])): ?>
-    <div class="text-muted small mt-1">
-        Extended:
-        <a href="/events/view/<?= h($event['Event']['extended_by_uuid']); ?>" class="text-decoration-none">
-            <?= h($event['Event']['extended_event_info']); ?>
-        </a>
-    </div>
-<?php endif; ?>
-
-
-

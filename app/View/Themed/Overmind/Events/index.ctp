@@ -91,16 +91,6 @@ $fields = [
     ],
 ];
 
-// if ($this->Acl->canAccess('noticelists', 'update')) {
-//     $this->set('headerActions', [
-//         [
-//             'url' => $baseurl . '/noticelists/update',
-//             'label' => __('Update Noticelists'),
-//             'icon' => 'sync'
-//         ]
-//     ]);
-// }
-
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
@@ -115,7 +105,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     ],
                     [
                         'type' => 'dropdown',
-                        'label' => 'Distribution',
+                        'label' => __('Distribution'),
                         'name' => 'distribution',
                         'options' => [
                             '' => 'All',
@@ -127,7 +117,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     ],
                     [
                         'type' => 'dropdown',
-                        'label' => 'Published',
+                        'label' => __('Published'),
                         'name' => 'published',
                         'options' => [
                             '' => 'All',
@@ -137,14 +127,15 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     ],
                     [
                         'type' => 'dropdown',
-                        'label' => 'Organisation',
-                        'name' => 'org_id',
+                        'label' => __('Organisation'),
+                        'name' => 'org',
                         'options' => $orgOptions
                     ]
                 ]
             ],
             'fields' => $fields,
         ]
-    ]
+    ],
+    'index_url' => '/events/index'
 ]);
 ?>

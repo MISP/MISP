@@ -1,3 +1,24 @@
+<?php
+$top_bar = $scaffold_data['top_bar'] ?? null;
+if (empty($top_bar)) {
+    return;
+}
+
+$currentPath = $this->request->here(false);
+$currentFilters = [];
+
+if (preg_match('/\/search(.+)/', $currentPath, $matches)) {
+    $parts = explode('/search', $matches[1]);
+
+    foreach ($parts as $part) {
+        if (strpos($part, ':') !== false) {
+            list($key, $value) = explode(':', $part);
+            $currentFilters[$key] = $value;
+        }
+    }
+}
+?>
+
 <div class="row g-3 align-items-end">
 <?php foreach ($top_bar['children'] as $child): ?>
 
@@ -11,8 +32,10 @@
                 <input
                     id="quickFilterField"
                     type="text"
+                    name="eventinfo"
                     class="form-control"
                     placeholder="<?= $child['placeholder'] ?>"
+                    value="<?= isset($currentFilters['eventinfo']) ? h($currentFilters['eventinfo']) : '' ?>"
                 >
                 <button
                     id="quickFilterButton"
@@ -36,7 +59,8 @@
                 name="<?= h($child['name']) ?>"
             >
                 <?php foreach ($child['options'] as $value => $label): ?>
-                    <option value="<?= h($value) ?>">
+                    <option value="<?= h($value) ?>"
+                        <?= (isset($currentFilters[$child['name']]) && $currentFilters[$child['name']] == $value) ? 'selected' : '' ?>>
                         <?= h($label) ?>
                     </option>
                 <?php endforeach; ?>
@@ -71,9 +95,11 @@
 
 
 <script>
+var baseIndexUrl = "<?= h($index_url) ?>";
 $(function() {
+
     function isMobile() {
-        return window.innerWidth < 768; // Bootstrap md breakpoint
+        return window.innerWidth < 768;
     }
 
     function setView(view, save = true) {
@@ -103,17 +129,75 @@ $(function() {
     });
 
     const savedView = localStorage.getItem('indexViewMode');
-
     if (savedView) {
         setView(savedView, false);
     } else {
-        // Si aucun choix sauvegardé
-        if (isMobile()) {
-            setView('card', false);
-        } else {
-            setView('table', false);
-        }
+        setView(isMobile() ? 'card' : 'table', false);
     }
+
+    // Function to build the new URL with filters
+    function buildFilterUrl() {
+        const base = baseIndexUrl.replace(/\/search.*/, '');
+        let filters = {};
+
+        // Fetch existing filters from the URL if present
+        const searchMatch = window.location.pathname.match(/\/search(.+)/);
+        if (searchMatch) {
+            const parts = searchMatch[1].split('/search');
+            parts.forEach(part => {
+                const [key, value] = part.split(':');
+                if (key && value) {
+                    filters[key] = decodeURIComponent(value);
+                }
+            });
+        }
+
+        // Update / add the quick filter for eventinfo
+        const quickValue = $('#quickFilterField').val();
+        if (quickValue.trim() !== '') {
+            filters['eventinfo'] = encodeURIComponent(quickValue.trim());
+        } else {
+            delete filters['eventinfo'];
+        }
+
+        // Update filters based on dropdowns
+        $('.topbar-filter').each(function() {
+            const name = $(this).attr('name');
+            const value = $(this).val();
+            if (value !== '') {
+                filters[name] = value;
+            } else {
+                delete filters[name];
+            }
+        });
+
+        // Construct the new URL
+        let newUrl = base;
+        Object.keys(filters).forEach(key => {
+            newUrl += '/search' + key + ':' + filters[key];
+        });
+
+        return newUrl;
+    }
+
+    // Event handler for the quick filter button
+    $('#quickFilterButton').on('click', function() {
+        const newUrl = buildFilterUrl();
+        window.location.href = newUrl;
+    });
+
+    // Event handler for pressing Enter in the quick filter input
+    $('#quickFilterField').on('keypress', function(e) {
+        if (e.which === 13) {
+            $('#quickFilterButton').click();
+        }
+    });
+
+    // Event handler for dropdown changes
+    $('.topbar-filter').on('change', function() {
+        const newUrl = buildFilterUrl();
+        window.location.href = newUrl;
+    });
 
 });
 </script>

@@ -14,9 +14,11 @@ echo '<div id="' . $containerId . '_content">';
         <div class="card shadow-sm mb-4">
             <div class="card-body">
                 <?= $this->element(
-                    'genericElementsBS5/IndexTable/top_bar',
-                    $scaffold_data['data']
-                ); ?>
+                'genericElementsBS5/IndexTable/top_bar',
+                [
+                    'scaffold_data' => $scaffold_data['data'],
+                    'index_url' => $index_url
+                ]); ?>
             </div>
         </div>
     <?php endif; ?>
