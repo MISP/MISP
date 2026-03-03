@@ -196,7 +196,15 @@
     <div id="popover_box" class="popover_box"></div>
     <div id="confirmation_box"></div>
     <div id="gray_out"></div>
-    <div id="mainModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true"></div>
+    <div class="modal fade" id="mainModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered justify-content-center">
+            <div class="modal-content border-0 w-auto">
+                <!-- Supprime complètement le padding ici -->
+                <div class="modal-body p-0 m-0" id="mainModalBody">
+                </div>
+            </div>
+        </div>
+    </div>
     <div id="mainToastContainer" class="main-toast-container"></div>
     <div id="mainModalContainer"></div>
 
@@ -342,6 +350,25 @@
                 debugContainer.appendChild(error);
             });
         });
+        function openDeleteModal(url) {
+            fetch(url)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('mainModalBody').innerHTML = html;
+                    let modal = new bootstrap.Modal(document.getElementById('mainModal'));
+                    modal.show();
+                });
+        }
+
+        function openPublishModal(url) {
+            fetch(url) // GET la page de confirmation côté controller
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('mainModalBody').innerHTML = html;
+                    let modal = new bootstrap.Modal(document.getElementById('mainModal'));
+                    modal.show();
+                });
+        }
     </script>
 </body>
 </html>

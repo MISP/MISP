@@ -24,17 +24,24 @@ $fields = [
                 'url' => $baseurl . '/events/edit/%id%'
             ],
             [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/events/delete/%id%',
+                'class' => 'text-danger',
+            ],
+            [
+                'type' => 'divider',
+                'url' => '#'
+            ],
+            [
                 'type' => 'toggle',
                 'label_on' => __('Unpublish'),
                 'label_off' => __('Publish'),
                 'icon_on' => 'download',
                 'icon_off' => 'upload',
-                'class_on' => 'text-danger',
-                'class_off' => 'text-success',
-                'url' => $baseurl . '/events/togglePublish/%id%',
-                'onclick' => 'event.preventDefault(); publishPopup(%id%);',
+                'url' => $baseurl . '/events/%action%/%id%',
                 'state_path' => 'Event.published',
-                //'requirement' => $this->Acl->canPublishEvent($event)
             ]
         ]
     ],

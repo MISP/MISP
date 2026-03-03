@@ -47,16 +47,15 @@ $tempboxId = 'TempBox-' . $seed;
                         </a>
 
                     <?php elseif ($action['type'] === 'toggle'): ?>
-
                         <?php
-                        $state = Hash::get($row, $action['state_path']);
-                        $label = $state ? $action['label_on'] : $action['label_off'];
-                        $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
+                            $state = Hash::get($row, $action['state_path']);
+                            $label = $state ? $action['label_on'] : $action['label_off'];
+                            $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
+                            $actionName = $state ? 'unpublish' : 'publish';
+                            $url = str_replace(['%action%', '%id%'], [$actionName, $id], $action['url']);
                         ?>
 
-                        <a class="dropdown-item ajax-toggle"
-                           href="#"
-                           data-url="<?= h($url) ?>">
+                        <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openPublishModal('<?= h($url) ?>');">
                             <div>
                                 <i class="fas fa-<?= $iconClass ?> me-2"></i>
                                 <?= h($label) ?>
@@ -64,15 +63,22 @@ $tempboxId = 'TempBox-' . $seed;
                         </a>
 
                     <?php elseif ($action['type'] === 'ajax'): ?>
+                        <?php
+                        $url = str_replace('%id%', $id, $action['url']);
+                        $classes = 'dropdown-item ' . ($action['class'] ?? '');
+                        ?>
 
-                        <a class="dropdown-item ajax-call"
-                           href="#"
-                           data-url="<?= h($url) ?>">
+                        <a class="<?= trim($classes) ?>"
+                        href="<?= h($url) ?>"
+                        onclick="event.preventDefault(); openDeleteModal('<?= h($url) ?>');">
                             <div>
                                 <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
                                 <?= h($action['label']) ?>
                             </div>
                         </a>
+
+                    <?php elseif ($action['type'] === 'divider'): ?>
+                        <li><hr class="dropdown-divider"></li>
 
                     <?php endif; ?>
 

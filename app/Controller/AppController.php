@@ -273,7 +273,6 @@ class AppController extends Controller
             }
         }
 
-        $themes = [];
         $themeLabels = [];
         $themesEnabled = (bool)Configure::read('MISP.enable_themes');
         $currentTheme = 'Default';
@@ -324,7 +323,6 @@ class AppController extends Controller
                 }
             }
         }
-        $this->set('themes', $themes);
         $this->set('themeLabels', $themeLabels);
 
 

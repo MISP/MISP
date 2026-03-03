@@ -3063,6 +3063,7 @@ class EventsController extends AppController
             $eventList = is_numeric($id) ? [$id] : $this->_jsonDecode($id);
             $this->request->data['Event']['id'] = json_encode($eventList);
             $this->set('idArray', $eventList);
+            $this->layout = false;
             $this->render('ajax/eventDeleteConfirmationForm');
         }
     }
@@ -3107,6 +3108,7 @@ class EventsController extends AppController
         } else {
             $this->set('id', $id);
             $this->set('type', 'unpublish');
+            $this->layout = false;
             $this->render('ajax/eventPublishConfirmationForm');
         }
     }
@@ -3202,6 +3204,7 @@ class EventsController extends AppController
             $servers = $this->Event->listServerToPush($event);
             $this->set('id', $event['Event']['id']);
             $this->set('servers', $servers);
+            $this->layout = false;
             $this->set('type', 'publish');
             $this->render('ajax/eventPublishConfirmationForm');
         }
