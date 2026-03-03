@@ -11,6 +11,7 @@
             ['controller' => 'users', 'action' => 'login'],
             ['controller' => 'noticelists', 'action' => 'index'],
             ['controller' => 'events', 'action' => 'index'],
+            ['controller' => 'events', 'action' => 'delete'],
         ];
 
         $currentController = $this->params['controller'];
@@ -107,7 +108,7 @@
                 }
             ?>
         </header> 
-        <?php if ($useBootstrap5): ?>
+        <?php if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login')): ?>
             <?php if (Configure::read('debug') > 0): ?>
             <div class="accordion mb-0" id="debugAccordionWrapper">
                 <div class="accordion-item border-0">
