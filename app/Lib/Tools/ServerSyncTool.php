@@ -399,7 +399,7 @@ class ServerSyncTool
     }
 
     /**
-     * @return HttpSocketResponseExtended
+     * @return array
      * @throws HttpSocketHttpException
      */
     public function cachedUserInfo()
@@ -412,6 +412,16 @@ class ServerSyncTool
         $userInfo = $response->json();
         $this->userInfo = $userInfo;
         return $userInfo;
+    }
+
+    /**
+     * @param int|null $lastId
+     * @return HttpSocketResponseExtended
+     * @throws HttpSocketHttpException
+     */
+    public function getFastCache($lastId)
+    {
+        return $this->get("/attributes/getInstanceCache/" . ($lastId ? intval($lastId) : 0));
     }
 
     /**
@@ -472,24 +482,6 @@ class ServerSyncTool
     public function pushRules()
     {
         return $this->decodeRule('push_rules');
-    }
-
-    public function getFastCache($lastId)
-    {
-        $url = sprintf(
-            '%s/attributes/getInstanceCache/%s',
-            $this->server['Server']['url'],
-            $lastId ? intval($lastId) : 0
-        );
-
-        $start = microtime(true);
-        $response = $this->socket->get($url, [], $this->request);
-        $this->requestLog($start, 'GET', $url, $response);
-
-        if (!$response->isOk()) {
-            throw new HttpSocketHttpException($response, $url);
-        }
-        return $response;
     }
 
     /**
