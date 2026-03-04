@@ -5,6 +5,7 @@ $orgOptions = array_merge(
     array_combine($orgs = array_diff(array_unique(Hash::extract($events, '{n}.Orgc.name')), ['All']), $orgs)
 );
 
+
 $fields = [
     [
         'element' => 'selector',
@@ -21,7 +22,8 @@ $fields = [
                 'type' => 'link',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
-                'url' => $baseurl . '/events/edit/%id%'
+                'url' => $baseurl . '/events/edit/%id%',
+                'requirement' => 'check_edit_rights'
             ],
             [
                 'type' => 'ajax',
@@ -29,10 +31,12 @@ $fields = [
                 'icon' => 'trash',
                 'url' => $baseurl . '/events/delete/%id%',
                 'class' => 'text-danger',
+                'requirement' => 'check_edit_rights'
             ],
             [
                 'type' => 'divider',
-                'url' => '#'
+                'url' => '#',
+                'requirement' => 'check_publish_rights'
             ],
             [
                 'type' => 'toggle',
@@ -42,6 +46,7 @@ $fields = [
                 'icon_off' => 'upload',
                 'url' => $baseurl . '/events/%action%/%id%',
                 'state_path' => 'Event.published',
+                'requirement' => 'check_publish_rights'
             ]
         ]
     ],
@@ -68,7 +73,8 @@ $fields = [
         'name' => __('Published'),
         'sort' => 'Event.published',
         'data_path' => 'Event.published',
-        'element' => 'enabled',
+        'element' => 'published',
+        'display' => 'short',
         'card_section' => 'meta',
     ],
     [

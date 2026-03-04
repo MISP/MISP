@@ -28,7 +28,20 @@ $tempboxId = 'TempBox-' . $seed;
             <?php foreach ($actions as $action): ?>
 
                 <?php
-                if (!empty($action['requirement']) && !$action['requirement']) {
+                $showAction = true;
+                if (isset($action['requirement'])) {
+                    $mayModify = $this->Acl->canModifyEvent($row); // Exemple
+                    $canPublish = $this->Acl->canPublishEvent($row);
+                    if ($action['requirement'] === 'check_edit_rights') {
+                        $showAction = $isSiteAdmin || $mayModify;
+                    } else if ($action['requirement'] === 'check_publish_rights') {
+                        $showAction = $isSiteAdmin || ($mayModify && $canPublish);
+                    } else {
+                        $showAction = (bool)$action['requirement'];
+                    }
+                }
+
+                if (!$showAction) {
                     continue;
                 }
 
