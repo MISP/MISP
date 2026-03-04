@@ -1,23 +1,28 @@
 <?php
 $value = Hash::get($row, $field['data_path']);
-
-$displayMode = $field['display'] ?? 'long';
-
+$isPublished = !empty($value);
+$isCard = isset($viewMode) && $viewMode === 'card';
 ?>
 
 <div class="d-flex align-items-center">
-    <?php if (!empty($value)): ?>
-        <?php if ($displayMode === 'long'): ?>
-            <span class="badge bg-success me-2"><?= __('Published') ?></span>
-        <?php else: ?>
-            <span class="fas fa-check-circle text-success" style="font-size: 1.5em;" title="<?= __('Published') ?>" aria-label="<?= __('Published') ?>">
-        <?php endif; ?>
+    <?php if ($isCard): ?>
+
+        <!-- CARD MODE -->
+        <span class="badge d-inline-flex align-items-center px-2 py-1 border 
+            <?= $isPublished ? 'border-success text-success' : 'border-danger text-danger' ?>">
+            <i class="fas <?= $isPublished ? 'fa-check-circle text-success' : 'fa-times-circle text-danger' ?> me-1"></i>
+            <?= $isPublished ? __('Published') : __('Unpublished') ?>
+        </span>
+
     <?php else: ?>
-        <?php if ($displayMode === 'long'): ?>
-            <span class="badge bg-danger me-2"><?= __('Unpublished') ?></span>
-        <?php else: ?>
-            <span class="fas fa-times-circle text-danger" style="font-size: 1.5em;" title="<?= __('Unpublished') ?>" aria-label="<?= __('Unpublished') ?>">
-        <?php endif; ?>
+
+        <!-- TABLE MODE -->
+        <i class="fas
+            <?= $isPublished ? 'fa-check-circle text-success' : 'fa-times-circle text-danger' ?>"
+        style="font-size: 1.3em;"
+        title="<?= $isPublished ? __('Published') : __('Unpublished') ?>"
+        aria-label="<?= $isPublished ? __('Published') : __('Unpublished') ?>">
+        </i>
+
     <?php endif; ?>
-    </span>
 </div>

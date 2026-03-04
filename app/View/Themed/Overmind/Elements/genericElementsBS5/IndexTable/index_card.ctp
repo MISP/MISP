@@ -15,7 +15,14 @@ $sections = [
     'extra' => []
 ];
 
-foreach ($data['fields'] as $column => $field) {
+$cardFields = array_filter($data['fields'], function($field) {
+    if (empty($field['display_in'])) {
+        return true;
+    }
+    return in_array('card', $field['display_in']);
+});
+
+foreach ($cardFields as $column => $field) {
 
     $section = $field['card_section'] ?? 'extra';
 
@@ -42,7 +49,8 @@ foreach ($data['fields'] as $column => $field) {
                     'row' => $row,
                     'column' => $column,
                     'data_path' => $field['data_path'] ?? '',
-                    'k' => $k
+                    'k' => $k,
+                    'viewMode' => 'card',
                 ]
             );
         }
@@ -71,40 +79,58 @@ foreach ($data['fields'] as $column => $field) {
                 </div>
 
                 <!-- COL 2 -->
-                <div class="col">
+                <div class="col d-flex flex-column gap-1">
 
-                    <!-- Ligne 1 -->
-                    <?php if (!empty($sections['meta'])): ?>
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <?= implode('', $sections['meta']) ?>
+                    <!-- Line 1 : TOP -->
+                    <?php if (!empty($sections['top'])): ?>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <?php foreach ($sections['top'] as $item): ?>
+                                <div><?= $item ?></div>
+                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
 
-                    <!-- Ligne 2 -->
+                    <!-- Line 2 : TITLE -->
                     <?php if (!empty($sections['title'])): ?>
-                        <div class="d-flex align-items-center gap-2 mb-2 fs-3 fw-bold">
-                            <?= implode(' - ', array_filter($sections['title'])) ?>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <?php foreach ($sections['title'] as $item): ?>
+                                <div><?= $item ?></div>
+                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
 
-                    <!-- Ligne 3 -->
+                    <!-- Line 3 : TAG -->
                     <?php if (!empty($sections['tag'])): ?>
-                        <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
-                            <?= implode(' - ', array_filter($sections['tag'])) ?>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <?php foreach ($sections['tag'] as $item): ?>
+                                <div><?= $item ?></div>
+                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
 
-                    <!-- Ligne 4 -->
+                    <!-- Line 4 : GALAXY -->
                     <?php if (!empty($sections['galaxy'])): ?>
-                        <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
-                            <?= implode(' - ', array_filter($sections['galaxy'])) ?>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <?php foreach ($sections['galaxy'] as $item): ?>
+                                <div><?= $item ?></div>
+                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
 
-                    <!-- Ligne 3 -->
+                    <!-- Line 5 : LINKS -->
                     <?php if (!empty($sections['links'])): ?>
                         <div class="">
                             <?= implode('', $sections['links']) ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- META DIVIDER + META -->
+                    <?php if (!empty($sections['meta'])): ?>
+                        <hr class="my-1">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <?php foreach ($sections['meta'] as $item): ?>
+                                <div><?= $item ?></div>
+                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
 

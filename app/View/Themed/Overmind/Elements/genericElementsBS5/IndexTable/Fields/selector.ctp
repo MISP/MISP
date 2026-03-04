@@ -30,7 +30,7 @@ $tempboxId = 'TempBox-' . $seed;
                 <?php
                 $showAction = true;
                 if (isset($action['requirement'])) {
-                    $mayModify = $this->Acl->canModifyEvent($row); // Exemple
+                    $mayModify = $this->Acl->canModifyEvent($row);
                     $canPublish = $this->Acl->canPublishEvent($row);
                     if ($action['requirement'] === 'check_edit_rights') {
                         $showAction = $isSiteAdmin || $mayModify;

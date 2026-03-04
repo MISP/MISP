@@ -174,7 +174,7 @@
     </div>
 
 
-    <!-- TO DO Footer & SQL dump -->
+    <!-- Footer -->
     <?php
         if ($useBootstrap5){
             // Don't print the footer for the login page
@@ -186,6 +186,8 @@
             echo $this->element('footer');
         }
     ?>
+
+    <!-- TO IMPROVE -->
     <?= $this->element('sql_dump') ?>
 
     <!-- Modals, Toasts and Popovers -->

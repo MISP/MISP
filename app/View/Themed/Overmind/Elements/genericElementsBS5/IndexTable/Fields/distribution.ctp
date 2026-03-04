@@ -4,7 +4,6 @@
  *
  * Expected:
  * $data_path => 'Event.distribution'
- * $field['display'] => 'long' or 'short' (optional)
  */
 
 $distribution = Hash::extract($row, $field['data_path']);
@@ -13,7 +12,7 @@ if (empty($distribution)) {
     return;
 }
 
-$displayMode = $field['display'] ?? 'long';
+$isCard = isset($viewMode) && $viewMode === 'card';
 
 
 $map = [
@@ -75,7 +74,7 @@ if (isset($map[$distribution])) {
       title ="<?= h($config['label']) ?>"
       aria-label="<?= h($config['label']) ?>">
 
-    <?php if ($displayMode === 'long'): ?>
+    <?php if ($isCard): ?>
         <i class="fas <?= h($config['icon']) ?> me-1"
            style="color: <?= h($config['color']) ?>"></i>
         <?= h($config['label']) ?>

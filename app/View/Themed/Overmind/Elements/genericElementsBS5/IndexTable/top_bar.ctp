@@ -17,6 +17,8 @@ if (preg_match('/\/search(.+)/', $currentPath, $matches)) {
         }
     }
 }
+
+$hasActiveFilters = !empty($currentFilters);
 ?>
 
 <div class="row g-3 align-items-end">
@@ -68,6 +70,17 @@ if (preg_match('/\/search(.+)/', $currentPath, $matches)) {
         </div>
     <?php endif; ?>
 
+    <?php if ($child['type'] === 'button'): ?>
+        <div class="col-md-auto">
+            <a href="<?= h($child['url']) ?>" class="<?= h($child['class']) ?>">
+                <?php if (!empty($child['icon'])): ?>
+                    <i class="fas fa-<?= h($child['icon']) ?>"></i>
+                <?php endif; ?>
+                <?= h($child['label']) ?>
+            </a>
+        </div>
+    <?php endif; ?>
+
 <?php endforeach; ?>
 
     <div class="col-md-auto ms-auto">
@@ -92,6 +105,31 @@ if (preg_match('/\/search(.+)/', $currentPath, $matches)) {
     </div>
 </div>
 
+<?php if ($hasActiveFilters): ?>
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="p-2 bg-light border rounded d-flex align-items-center flex-wrap gap-2">
+
+                <strong class="me-2">
+                    <?= __('Active filters') ?>:
+                </strong>
+
+                <?php foreach ($currentFilters as $key => $value): ?>
+                    <span class="badge bg-primary">
+                        <?= h($key) ?>: <?= h(urldecode($value)) ?>
+                    </span>
+                <?php endforeach; ?>
+
+                <a href="<?= h($index_url) ?>"
+                   class="btn btn-sm btn-outline-danger ms-auto">
+                    <i class="fas fa-times"></i>
+                    <?= __('Clear all') ?>
+                </a>
+
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
 
 
 <script>

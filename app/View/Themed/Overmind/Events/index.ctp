@@ -1,10 +1,33 @@
 <?php
-
-$orgOptions = array_merge(
-    ['' => 'All'],
-    array_combine($orgs = array_diff(array_unique(Hash::extract($events, '{n}.Orgc.name')), ['All']), $orgs)
-);
-
+/**
+ * ==============================================================
+ * Definition of fields displayed in the scaffold
+ * ==============================================================
+ *
+ * Possible fields for each entry:
+ *
+ * - name           : Label displayed in the table
+ * - sort           : Database field used for sorting
+ * - data_path      : Path to the data in the $events array
+ * - element        : Template used for rendering
+ * - url            : Associated link (supports %id%)
+ * - card_section   : Display section in card mode
+ * - display_in     : ['table', 'card']
+ * - mode           : Specific option for certain elements (ex: timestamp)
+ * - actions        : Available actions (for element = selector)
+ *
+ * Fields specific to actions:
+ *
+ * - type           : link | ajax | toggle | divider
+ * - label          : Displayed text
+ * - label_on/off   : Text for toggle
+ * - icon           : FontAwesome icon
+ * - icon_on/off    : Toggle icon
+ * - url            : URL (supports %id% and %action%)
+ * - class          : CSS class
+ * - requirement    : Permission check function
+ * - state_path     : Path to the boolean value (toggle)
+ */
 
 $fields = [
     [
@@ -54,56 +77,117 @@ $fields = [
         'name' => __('ID'),
         'sort' => 'Event.id',
         'data_path' => 'Event.id',
-        'url' => $baseurl . '/events/view/%id%',
         'element' => 'id',
-        'card_section' => 'meta'
+        'url' => $baseurl . '/events/view/%id%',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
     ],
-    // [
-    //     'name' => __('Distribution'),
-    //     'data_path' => 'Event.distribution',
-    //     'element' => 'distribution',
-    //     'display' => 'long'
-    // ],
+    [
+        'name' => __('Distribution'),
+        'data_path' => 'Event.distribution',
+        'element' => 'distribution',
+        'card_section' => 'top',
+        'display_in' => ['card']
+    ],
     [
         'name' => __('Info'),
         'data_path' => 'Event',
         'element' => 'info',
-        'card_section' => 'title'
+        'card_section' => 'title',
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Published'),
         'sort' => 'Event.published',
         'data_path' => 'Event.published',
         'element' => 'published',
-        'display' => 'short',
-        'card_section' => 'meta',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
     ],
     [
-        'name' => __('Organisation'),
+        'name' => __('Creator Org'),
         'sort' => 'Orgc.name',
         'data_path' => 'Orgc',
         'element' => 'organisation',
-        'card_section' => 'title'
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Owner Org'),
+        'sort' => 'Org.name',
+        'data_path' => 'Org',
+        'element' => 'organisation',
+        'card_section' => 'meta',
+        'display_in' => ['card']
     ],
     [
         'name' => __('Tags'),
         'data_path' => 'EventTag',
         'element' => 'tag',
         'card_section' => 'tag',
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Galaxy'),
         'data_path' => 'GalaxyCluster',
         'element' => 'galaxy',
         'card_section' => 'galaxy',
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Contents'),
         'data_path' => 'Event',
         'element' => 'event_contents',
-        'card_section' => 'extra'
+        'card_section' => 'extra',
+        'display_in' => ['table', 'card']
     ],
+    [
+        'name' => __('Created'),
+        'data_path' => 'Event.date',
+        'element' => 'timestamp',
+        'mode' => 'created',
+        'card_section' => 'meta',
+        'display_in' => ['card']
+    ],
+    [
+        'name' => __('Last Modified'),
+        'data_path' => 'Event.timestamp',
+        'element' => 'timestamp',
+        'mode' => 'modified',
+        'card_section' => 'meta',
+        'display_in' => ['card']
+    ]
 ];
+
+/**
+ * ==============================================================
+ * Build dynamic options for the organization filter
+ * ==============================================================
+ */
+$orgOptions = array_merge(
+    ['' => 'All'],
+    array_combine(
+        $orgs = array_diff(
+            array_unique(Hash::extract($events, '{n}.Orgc.name')),
+            ['All']
+        ),
+        $orgs
+    )
+);
+
+
+/**
+ * ==============================================================
+ * Call the generic scaffold
+ * ==============================================================
+ *
+ * Main parameters:
+ *
+ * - scaffold_data.data.data       : Main dataset
+ * - scaffold_data.data.top_bar    : Top bar configuration
+ * - scaffold_data.data.fields     : Column definitions
+ * - index_url                     : Base URL for pagination / filters
+ */
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
@@ -141,10 +225,17 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     ],
                     [
                         'type' => 'dropdown',
-                        'label' => __('Organisation'),
+                        'label' => __('Creator Org'),
                         'name' => 'org',
                         'options' => $orgOptions
-                    ]
+                    ],
+                    [
+                        'type' => 'button',
+                        'label' => __('My events'),
+                        'icon' => 'user',
+                        'class' => 'btn btn-primary',
+                        'url' => $baseurl . '/events/index/searchemail:' . urlencode($me['email'])
+                    ],
                 ]
             ],
             'fields' => $fields,
@@ -152,4 +243,5 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     ],
     'index_url' => '/events/index'
 ]);
+
 ?>
