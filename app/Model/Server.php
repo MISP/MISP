@@ -4871,7 +4871,6 @@ class Server extends AppModel
         $count = 0;
         // delete the previous iterations, but skip the event uuid one as the uuid might exist on other instances too (should have thought about this when designing the cache, but alas, past me was a monkey too)
         $redis->del('misp:server_cache:' . $serverId);
-        $redis->del('misp:server_cache:combined');
         while (true) {
             if ($fastCaching) {
                 if (!isset($lastId)) {
@@ -4901,7 +4900,6 @@ class Server extends AppModel
             if (empty($data)) {
                 break;
             }
-
             $data = explode(PHP_EOL, $data);
             if ($fastCaching) {
                 $count += count($data);
