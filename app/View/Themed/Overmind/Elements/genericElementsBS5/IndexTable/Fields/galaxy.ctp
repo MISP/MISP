@@ -28,7 +28,7 @@ foreach ($data as $index => $clusterWrapper) {
     $metallicEffect = "background-image: linear-gradient(145deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 40%, rgba(0,0,0,0.05) 100%)";
     $text = "text-align:left; white-space:normal; word-wrap:break-word";
 
-    $style = sprintf('%s; color: %s; %s; %s; %s;', $bgColor, $textColor, $shadow, $metallicEffect, $text);
+    $style = sprintf('%s; color: %s; %s; %s; %s;  cursor:pointer;', $bgColor, $textColor, $shadow, $metallicEffect, $text);
     if ($local) {
         $style .= sprintf(' border:2px dashed %s', $textColor);
     }

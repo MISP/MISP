@@ -54,6 +54,7 @@ $fields = [
         'name' => __('ID'),
         'sort' => 'Event.id',
         'data_path' => 'Event.id',
+        'url' => $baseurl . '/events/view/%id%',
         'element' => 'id',
         'card_section' => 'meta'
     ],
