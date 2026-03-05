@@ -2,7 +2,7 @@
 $data = $scaffold_data['data'];
 ?>
 
-<div class="row g-3">
+<div class="row g-3" style="background: #f8f9fa;">
 
 <?php foreach ($data['data'] as $k => $row): ?>
 
