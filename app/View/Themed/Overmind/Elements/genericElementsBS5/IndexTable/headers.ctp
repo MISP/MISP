@@ -29,7 +29,7 @@
                 if (!empty($header['element']) && $header['element'] === 'selector') {
                     $selectAllCheckbox = true;
                     $header_data = sprintf(
-                        '<input id="select_all" class="%s" type="checkbox" %s>',
+                        '<input id="select_all" class="%s ms-1" type="checkbox" %s>',
                         empty($header['select_all_class']) ? 'select_all' : $header['select_all_class'],
                         empty($header['select_all_function']) ? 'onclick="toggleAllAttributeCheckboxes();"' : 'onclick="' . $header['select_all_function'] . '"'
                     );

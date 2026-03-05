@@ -184,7 +184,7 @@ $orgOptions = array_merge(
  * Main parameters:
  *
  * - scaffold_data.data.data       : Main dataset
- * - scaffold_data.data.top_bar    : Top bar configuration
+ * - scaffold_data.data.filter_bar    : Filter bar configuration
  * - scaffold_data.data.fields     : Column definitions
  * - index_url                     : Base URL for pagination / filters
  */
@@ -193,7 +193,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $events,
-            'top_bar' => [
+            'filter_bar' => [
                 'pull' => 'right',
                 'children' => [
                     [

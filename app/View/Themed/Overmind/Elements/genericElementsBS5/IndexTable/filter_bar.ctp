@@ -1,6 +1,6 @@
 <?php
-$top_bar = $scaffold_data['top_bar'] ?? null;
-if (empty($top_bar)) {
+$filter_bar = $scaffold_data['filter_bar'] ?? null;
+if (empty($filter_bar)) {
     return;
 }
 
@@ -22,7 +22,7 @@ $hasActiveFilters = !empty($currentFilters);
 ?>
 
 <div class="row g-3 align-items-end">
-<?php foreach ($top_bar['children'] as $child): ?>
+<?php foreach ($filter_bar['children'] as $child): ?>
 
     <?php if ($child['type'] === 'search'): ?>
         <div class="col-md-4">

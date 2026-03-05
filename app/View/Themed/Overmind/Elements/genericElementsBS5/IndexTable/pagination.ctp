@@ -1,10 +1,11 @@
 <?php
-$data = $scaffold_data['data'];
 $Paginator = $this->Paginator;
+$params = $Paginator->params();
 ?>
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
 
+    <!-- COUNTER -->
     <div class="text-muted medium">
         <p class="mb-0">
             <?php echo $Paginator->counter(array(
@@ -14,30 +15,62 @@ $Paginator = $this->Paginator;
         </p>
     </div>
 
-    <nav aria-label="pagination">
+    <?php if ($params['pageCount'] > 1): ?>
+    <nav aria-label="Pagination">
         <ul class="pagination mb-0">
-            <!-- PREV -->
-            <li class="page-item <?= !$this->Paginator->hasPrev() ? 'disabled' : ''; ?>">
-                <?= $this->Paginator->prev('Previous', ['class' => 'page-link']) ?>
-            </li>
 
-            <!-- NUMBERS -->
-            <?php if ($this->Paginator->params()['pageCount'] > 1): ?>
-                <?= $this->Paginator->numbers([
-                    'tag' => 'li',
-                    'separator' => '',
-                    'class' => 'page-item',
-                    'currentClass' => 'active',
-                    'currentTag' => 'span',
-                    'currentLinkClass' => 'page-link'
-                ]); ?>
+            <!-- PREVIOUS -->
+            <?php if ($Paginator->hasPrev()): ?>
+                <li class="page-item">
+                    <?php
+                    echo $Paginator->prev(
+                        'Previous',
+                        ['class' => 'page-link'],
+                        '<span class="page-link">Previous</span>',
+                        ['escape' => false]
+                    );
+                    ?>
+                </li>
+            <?php else: ?>
+                <li class="page-item disabled">
+                    <span class="page-link">Previous</span>
+                </li>
             <?php endif; ?>
 
+            <!-- PAGE NUMBERS -->
+            <?php
+            for ($i = 1; $i <= $params['pageCount']; $i++):
+                $active = ($i == $params['page']);
+            ?>
+                <li class="page-item <?= $active ? 'active' : '' ?>">
+                    <?php if ($active): ?>
+                        <span class="page-link"><?= $i ?></span>
+                    <?php else: ?>
+                        <?= $Paginator->link($i, ['page' => $i], ['class' => 'page-link']) ?>
+                    <?php endif; ?>
+                </li>
+            <?php endfor; ?>
+
             <!-- NEXT -->
-            <li class="page-item <?= !$this->Paginator->hasNext() ? 'disabled' : ''; ?>">
-                <?= $this->Paginator->next('Next', ['class' => 'page-link']) ?>
-            </li>
+            <?php if ($Paginator->hasNext()): ?>
+                <li class="page-item">
+                    <?php
+                    echo $Paginator->next(
+                        'Next',
+                        ['class' => 'page-link'],
+                        '<span class="page-link">Next</span>',
+                        ['escape' => false]
+                    );
+                    ?>
+                </li>
+            <?php else: ?>
+                <li class="page-item disabled">
+                    <span class="page-link">Next</span>
+                </li>
+            <?php endif; ?>
+
         </ul>
     </nav>
+    <?php endif; ?>
 
 </div>
