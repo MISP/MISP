@@ -5102,14 +5102,6 @@ class Event extends AppModel
     public function publishRouter($id, $passAlong = null, $user)
     {
         if (Configure::read('MISP.background_jobs')) {
-            //Tentatively set the publish flag to 1
-            $event = $this->find('first', array(
-                'conditions' => array('Event.id' => $id),
-                'recursive' => -1
-            ));
-            $event['Event']['published'] = 1;
-            $event['Event']['publish_timestamp'] = time();
-            $this->save($event);
             /** @var Job $job */
             $job = ClassRegistry::init('Job');
             $jobId = $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", 'Publishing.');
@@ -5221,6 +5213,17 @@ class Event extends AppModel
             $success = $this->executeTrigger('event-publish', $fullEvent[0], $workflowErrors, $logging);
             if (empty($success)) {
                 $errorMessage = implode(', ', $workflowErrors);
+                if (Configure::read('MISP.background_jobs') && !empty($event['Event']['published'])) {
+                    // If blocking workflow stops publication, make sure event stays unpublished.
+                    $this->save([
+                        'Event' => [
+                            'id' => $event['Event']['id'],
+                            'published' => 0,
+                        ],
+                    ], [
+                        'fieldList' => ['id', 'published'],
+                    ]);
+                }
 
                 return $errorMessage;
             }

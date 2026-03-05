@@ -434,14 +434,19 @@ class EventShell extends AppShell
         $job['Job']['progress'] = 100;
         $job['Job']['status'] = Job::STATUS_COMPLETED;
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        if ($result) {
+        $isSuccess = $result === true || is_array($result);
+        if ($isSuccess) {
             $job['Job']['message'] = 'Event published.';
         } else {
-            $job['Job']['message'] = 'Event published, but the upload to other instances may have failed.';
+            $job['Job']['message'] = is_string($result) ? sprintf('Event publication blocked: %s', $result) : 'Event publication failed.';
         }
         $this->Job->save($job);
         $log = ClassRegistry::init('Log');
-        $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): published.', 'published () => (1)');
+        if ($isSuccess) {
+            $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): published.', 'published () => (1)');
+        } else {
+            $log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): publication blocked.', is_string($result) ? $result : '');
+        }
     }
 
     public function publish_sightings()
