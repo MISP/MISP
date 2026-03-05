@@ -371,6 +371,14 @@
                     modal.show();
                 });
         }
+
+        function toggleAllAttributeCheckboxes() {
+
+            const checked = $('#select_all').is(':checked');
+
+            $('.event-checkbox').prop('checked', checked).trigger('change');
+
+        }
     </script>
 </body>
 </html>

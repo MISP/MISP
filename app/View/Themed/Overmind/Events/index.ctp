@@ -161,23 +161,6 @@ $fields = [
 
 /**
  * ==============================================================
- * Build dynamic options for the organization filter
- * ==============================================================
- */
-$orgOptions = array_merge(
-    ['' => 'All'],
-    array_combine(
-        $orgs = array_diff(
-            array_unique(Hash::extract($events, '{n}.Orgc.name')),
-            ['All']
-        ),
-        $orgs
-    )
-);
-
-
-/**
- * ==============================================================
  * Call the generic scaffold
  * ==============================================================
  *
@@ -199,7 +182,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'button' => 'Search',
-                        'placeholder' => 'Search events...'
+                        'placeholder' => 'Search by info, ID or UUID'
                     ],
                     [
                         'type' => 'dropdown',
@@ -230,12 +213,37 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'options' => $orgOptions
                     ],
                     [
+                        'type' => 'more_filters',
+                        'label' => __('More filters'),
+                        'children' => [
+                            [
+                                'type' => 'dropdown',
+                                'label' => __('Tags'),
+                                'name' => 'tag',
+                                'options' => $tagOptions
+                            ],
+                            [
+                                'type' => 'dropdown',
+                                'label' => __('Galaxy'),
+                                'name' => 'galaxy',
+                                'options' => $galaxyOptions
+                            ]
+                        ]
+                    ],
+                    [
                         'type' => 'button',
                         'label' => __('My events'),
                         'icon' => 'user',
                         'class' => 'btn btn-primary',
                         'url' => $baseurl . '/events/index/searchemail:' . urlencode($me['email'])
                     ],
+                    [
+                        'type' => 'button',
+                        'label' => __('Org events'),
+                        'icon' => 'building',
+                        'class' => 'btn btn-primary',
+                        'url' => $baseurl . '/events/index/searchorg:' . urlencode($me['org_id'])
+                    ]
                 ]
             ],
             'fields' => $fields,

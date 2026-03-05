@@ -51,7 +51,7 @@ $hasActiveFilters = !empty($currentFilters);
     <?php endif; ?>
 
     <?php if ($child['type'] === 'dropdown'): ?>
-        <div class="col-md-2">
+        <div class="col-md-1">
             <label class="form-label fw-semibold">
                 <?= h($child['label']) ?>
             </label>
@@ -67,6 +67,41 @@ $hasActiveFilters = !empty($currentFilters);
                     </option>
                 <?php endforeach; ?>
             </select>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($child['type'] === 'more_filters'): ?>
+        <div class="col-md-auto">
+            <label class="form-label fw-semibold d-block invisible">
+                placeholder
+            </label>
+            <div class="dropdown dropdown-filters">
+                <button class="btn btn-outline-primary dropdown-toggle"
+                        type="button"
+                        data-bs-toggle="dropdown">
+                    <i class="fas fa-sliders-h me-1"></i>
+                    <?= h($child['label']) ?>
+                </button>
+
+                <div class="dropdown-menu p-3" style="min-width: 250px;">
+                    <?php foreach ($child['children'] as $sub): ?>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <?= h($sub['label']) ?>
+                            </label>
+                            <select class="form-select topbar-filter"
+                                    name="<?= h($sub['name']) ?>">
+                                <?php foreach ($sub['options'] as $value => $label): ?>
+                                    <option value="<?= h($value) ?>"
+                                        <?= (isset($currentFilters[$sub['name']]) && $currentFilters[$sub['name']] == $value) ? 'selected' : '' ?>>
+                                        <?= h($label) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
         </div>
     <?php endif; ?>
 
@@ -131,11 +166,45 @@ $hasActiveFilters = !empty($currentFilters);
     </div>
 <?php endif; ?>
 
+<div id="multiSelectToolbar"
+     class="row mt-3 d-none">
+
+    <div class="col-12">
+        <div class="p-2 border rounded bg-light d-flex align-items-center gap-2">
+
+            <strong>
+                <?= __('Selected events') ?>:
+                <span id="selectedCount">0</span>
+            </strong>
+
+            <button id="multi-export-button"
+                    class="btn btn-primary btn-sm ms-3"
+                    onclick="multiSelectExportEvents();">
+                <i class="fas fa-file-export"></i>
+                <?= __('Export') ?>
+            </button>
+
+            <button id="multi-delete-button"
+                    class="btn btn-danger btn-sm d-none"
+                    onclick="multiSelectDeleteEvents()">
+                <i class="fas fa-trash"></i>
+                <?= __('Delete') ?>
+            </button>
+
+        </div>
+    </div>
+</div>
+
+
 
 <script>
 var baseIndexUrl = "<?= h($index_url) ?>";
+
 $(function() {
 
+    /*******************************
+     * View Mode Toggle (Table / Card)
+     *******************************/
     function isMobile() {
         return window.innerWidth < 768;
     }
@@ -158,47 +227,49 @@ $(function() {
         }
     }
 
-    $('#viewList').on('click', function() {
-        setView('table');
-    });
+    // Event listeners for view buttons
+    $('#viewList').on('click', () => setView('table'));
+    $('#viewCard').on('click', () => setView('card'));
 
-    $('#viewCard').on('click', function() {
-        setView('card');
-    });
-
+    // Initialize view based on saved preference or device
     const savedView = localStorage.getItem('indexViewMode');
-    if (savedView) {
-        setView(savedView, false);
-    } else {
-        setView(isMobile() ? 'card' : 'table', false);
-    }
+    setView(savedView ? savedView : (isMobile() ? 'card' : 'table'), false);
 
-    // Function to build the new URL with filters
+
+    /*******************************
+     * Filter URL Builder
+     *******************************/
     function buildFilterUrl() {
         const base = baseIndexUrl.replace(/\/search.*/, '');
         let filters = {};
 
-        // Fetch existing filters from the URL if present
+        // Parse existing filters from URL
         const searchMatch = window.location.pathname.match(/\/search(.+)/);
         if (searchMatch) {
             const parts = searchMatch[1].split('/search');
             parts.forEach(part => {
                 const [key, value] = part.split(':');
-                if (key && value) {
-                    filters[key] = decodeURIComponent(value);
-                }
+                if (key && value) filters[key] = decodeURIComponent(value);
             });
         }
 
-        // Update / add the quick filter for eventinfo
-        const quickValue = $('#quickFilterField').val();
-        if (quickValue.trim() !== '') {
-            filters['eventinfo'] = encodeURIComponent(quickValue.trim());
-        } else {
-            delete filters['eventinfo'];
+        // Quick filter (search by info or ID/UUID)
+        const quickValue = $('#quickFilterField').val().trim();
+        delete filters['eventinfo'];
+        delete filters['eventid'];
+
+        if (quickValue !== '') {
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            const numberRegex = /^[0-9]+$/;
+
+            if (uuidRegex.test(quickValue) || numberRegex.test(quickValue)) {
+                filters['eventid'] = encodeURIComponent(quickValue);
+            } else {
+                filters['eventinfo'] = encodeURIComponent(quickValue);
+            }
         }
 
-        // Update filters based on dropdowns
+        // Apply dropdown filters
         $('.topbar-filter').each(function() {
             const name = $(this).attr('name');
             const value = $(this).val();
@@ -209,7 +280,7 @@ $(function() {
             }
         });
 
-        // Construct the new URL
+        // Construct final URL
         let newUrl = base;
         Object.keys(filters).forEach(key => {
             newUrl += '/search' + key + ':' + filters[key];
@@ -218,24 +289,62 @@ $(function() {
         return newUrl;
     }
 
-    // Event handler for the quick filter button
-    $('#quickFilterButton').on('click', function() {
-        const newUrl = buildFilterUrl();
-        window.location.href = newUrl;
+    // Event handlers for filters
+    $('#quickFilterButton').on('click', () => {
+        window.location.href = buildFilterUrl();
     });
 
-    // Event handler for pressing Enter in the quick filter input
     $('#quickFilterField').on('keypress', function(e) {
-        if (e.which === 13) {
-            $('#quickFilterButton').click();
+        if (e.which === 13) $('#quickFilterButton').click();
+    });
+
+    $('.topbar-filter').on('change', () => {
+        window.location.href = buildFilterUrl();
+    });
+
+
+    /*******************************
+     * Multi-Select Toolbar
+     *******************************/
+    let selectedEvents = new Map();
+
+    // Update toolbar visibility and buttons
+    function updateMultiSelectToolbar() {
+        const count = selectedEvents.size;
+
+        if (count === 0) {
+            $('#multiSelectToolbar').addClass('d-none');
+            return;
         }
-    });
 
-    // Event handler for dropdown changes
-    $('.topbar-filter').on('change', function() {
-        const newUrl = buildFilterUrl();
-        window.location.href = newUrl;
-    });
+        $('#multiSelectToolbar').removeClass('d-none');
+        $('#selectedCount').text(count);
 
-});
+        // Show delete only if user can delete all selected events
+        let canDeleteAll = true;
+        selectedEvents.forEach(event => {
+            if (!event.canDelete) canDeleteAll = false;
+        });
+
+        if (canDeleteAll) {
+            $('#multi-delete-button').removeClass('d-none');
+        } else {
+            $('#multi-delete-button').addClass('d-none');
+        }
+    }
+
+    // Checkbox change handler
+    $(document).on('change', '.event-checkbox', function() {
+        const id = $(this).data('event-id');
+        const canDelete = $(this).data('can-delete') == 1;
+
+        if ($(this).is(':checked')) {
+            selectedEvents.set(id, { id: id, canDelete: canDelete });
+        } else {
+            selectedEvents.delete(id);
+        }
+
+        updateMultiSelectToolbar();
+    });
+}); // end of $(function)
 </script>

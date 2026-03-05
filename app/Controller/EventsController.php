@@ -798,6 +798,24 @@ class EventsController extends AppController
             $this->set('extendedEvents', []);
         }
 
+        $orgs = $this->Event->Orgc->find('list', [
+            'fields' => ['Orgc.name', 'Orgc.name'],
+            'order' => ['Orgc.name' => 'ASC']
+        ]);
+        $this->set('orgOptions', ['' => 'All'] + $orgs);
+
+        $tags = $this->Event->EventTag->Tag->find('list', [
+            'fields' => ['Tag.name', 'Tag.name'],
+            'order' => ['Tag.name' => 'ASC']
+        ]);
+        $this->set('tagOptions', ['' => 'All'] + $tags);
+
+        $galaxies = $this->GalaxyCluster->Galaxy->find('list', [
+            'fields' => ['Galaxy.name', 'Galaxy.name'],
+            'order' => ['Galaxy.name' => 'ASC']
+        ]);
+        $this->set('galaxyOptions', ['' => 'All'] + $galaxies);
+
         if ($this->request->is('ajax')) {
             $this->autoRender = false;
             $this->layout = false;

@@ -3,6 +3,9 @@ $id = Hash::get($row, $field['data_path']);
 $actions = $field['actions'] ?? [];
 $seed = mt_rand();
 $tempboxId = 'TempBox-' . $seed;
+
+$mayModify = $this->Acl->canModifyEvent($row);
+$canPublish = $this->Acl->canPublishEvent($row);
 ?>
 
 <div class="d-inline-flex align-items-center checkbox-actions-wrapper">
@@ -10,8 +13,9 @@ $tempboxId = 'TempBox-' . $seed;
     <!-- Checkbox -->
     <input 
         type="checkbox"
-        class="form-check-input select_attribute mt-0"
-        value="<?= h($id) ?>"
+        class="event-checkbox form-check-input select_attribute mt-0"
+        data-event-id="<?= h($id) ?>"
+        data-can-delete="<?= $mayModify ? '1' : '0' ?>"
     >
 
     <!-- Dropdown -->
@@ -30,8 +34,6 @@ $tempboxId = 'TempBox-' . $seed;
                 <?php
                 $showAction = true;
                 if (isset($action['requirement'])) {
-                    $mayModify = $this->Acl->canModifyEvent($row);
-                    $canPublish = $this->Acl->canPublishEvent($row);
                     if ($action['requirement'] === 'check_edit_rights') {
                         $showAction = $isSiteAdmin || $mayModify;
                     } else if ($action['requirement'] === 'check_publish_rights') {
