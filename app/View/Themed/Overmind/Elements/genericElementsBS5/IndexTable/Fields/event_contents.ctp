@@ -19,10 +19,10 @@ $styleOrange = "background: linear-gradient(180deg, #f39c12 0%, #e67e22 50%, #d3
     <?php endif; ?>
 
     <?php if ($corrCount !== 0): ?>
-        <div class="d-inline-flex align-items-center fw-bold text-nowrap" style="<?= $styleOrange ?>">
+        <a class="d-inline-flex align-items-center fw-bold text-nowrap text-decoration-none" style="<?= $styleOrange ?>" href="<?= $this->Html->url(['action' => 'view', $event['id']]) ?>/correlation:1">
             <i class="fas fa-link me-1"></i>
             <span><?= h($corrCount) ?> Correlations</span>
-        </div>
+        </a>
     <?php endif; ?>
 
 </div>
