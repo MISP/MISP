@@ -179,7 +179,7 @@ class TaxiiServer extends AppModel
             ]
         ];
         if (!empty($options['TaxiiServer']['api_key'])) {
-            $request['header']['Authorization'] = 'basic ' . $options['TaxiiServer']['api_key'];
+            $request['header']['Authorization'] = 'Basic ' . $options['TaxiiServer']['api_key'];
         }
         try {
             if (!empty($options['type']) && $options['type'] === 'post') {
