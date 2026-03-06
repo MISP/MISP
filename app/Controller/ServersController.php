@@ -1070,7 +1070,7 @@ class ServersController extends AppController
                     'description' => __('There are some optional tweaks that could be done to improve the looks of your MISP instance.')
                 ),
             ),
-            'deprecated' => array(),
+            'deprecated' => 0,
             'overallHealth' => 3,
         );
         $dumpResults = array();
