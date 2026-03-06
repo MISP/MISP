@@ -469,3 +469,10 @@ th .sort-icon::before {
     min-width: 500px;
     white-space: normal;
 }
+
+.default-color {
+    color: #380474 !important;
+}
+.default-bg {
+    background-color: #b56ef8 !important;
+}
