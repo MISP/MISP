@@ -159,6 +159,17 @@ $fields = [
     ]
 ];
 
+
+if ($this->Acl->canAccess('events', 'add')) {
+    $this->set('headerActions', [
+        [
+            'url' => $baseurl . '/events/add',
+            'label' => __('Add Event'),
+            'icon' => 'plus'
+        ]
+    ]);
+}
+
 /**
  * ==============================================================
  * Call the generic scaffold

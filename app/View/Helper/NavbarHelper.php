@@ -826,6 +826,8 @@ class NavbarHelper extends AppHelper {
 
     private function buildResourcesMenu(array $context, $baseurl)
     {
+        extract($context);
+
         $resourcesChildren = [
             [
                 'type' => 'group',
@@ -861,6 +863,12 @@ class NavbarHelper extends AppHelper {
                         'icon' => 'fas fa-gavel'
                     ]
                 ]
+            ],
+            [
+                'type' => 'group',
+                'label' => __('Themes'),
+                'icon' => 'fas fa-palette',
+                'children' => $this->buildThemesMenu($context)
             ]
         ];
         return [
@@ -869,6 +877,38 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-circle-info',
                 'children' => $resourcesChildren
         ];
+    }
+
+    private function buildThemesMenu(array $context)
+    {
+        extract($context);
+
+        $themes = $context['themes'] ?? [];
+        $theme = $context['theme'] ?? null;
+        $themesEnabled = $context['themesEnabled'] ?? false;
+
+        $items = [];
+
+        if (!$themesEnabled) {
+            $items[] = [
+                'type' => 'message',
+                'label' => __('Themes are not yet enabled.'),
+                'description' => __('Contact your MISP administrator to set MISP.enable_themes to 1.')
+            ];
+        }
+
+        foreach ($themes as $tObj) {
+
+            $items[] = [
+                'type' => 'theme',
+                'label' => $tObj->label,
+                'theme' => $tObj->name,
+                'description' => $tObj->description ?? '',
+                'on' => $theme === $tObj->name
+            ];
+        }
+
+        return $items;
     }
 
     private function buildBookmarksMenu(array $context, $baseurl)

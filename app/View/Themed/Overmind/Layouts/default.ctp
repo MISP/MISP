@@ -89,6 +89,8 @@
                             'hostOrgUser' => $hostOrgUser,
                             'bookmarks' => $bookmarks,
                             'themes' => $themes,
+                            'theme' => $theme,
+                            'themesEnabled' => $themesEnabled,
                         ];
                         $menus = $this->Navbar->build($context);
                         echo $this->element('navbar', [

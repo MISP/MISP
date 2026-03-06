@@ -53,6 +53,7 @@ body[data-controller="users"][data-action="login"] {
     color: #e9ecef;
 }
 
+.btn.show,
 .btn-primary,
 .btn-primary:hover,
 .btn-primary:focus,
@@ -61,6 +62,8 @@ body[data-controller="users"][data-action="login"] {
 .btn-outline-primary:hover {
     color: #fff !important;
 }
+
+
 
 .btn-light{
     color:#1892B1;
@@ -453,4 +456,16 @@ th .sort-icon::before {
     content: "\f0dc"; /* fa-sort */
     font-family: "Font Awesome 7 Free";
     font-weight: 900;
+}
+
+
+
+.dropdown-filters .dropdown-toggle::after {
+    display: none !important;
+}
+
+
+.dropdown-item.setTheme {
+    min-width: 500px;
+    white-space: normal;
 }

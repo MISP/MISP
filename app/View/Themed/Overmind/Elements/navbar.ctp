@@ -19,6 +19,7 @@
                                 <i class="menu-arrow fas"></i>
                             </a>
                             <ul class="dropdown-menu">
+
                                 <?php foreach ($item['children'] as $child): ?>
                                     <?php if (!empty($child['divider'])): ?>
                                         <li><hr class="dropdown-divider"></li>
@@ -32,12 +33,64 @@
                                                 <i class="menu-arrow fas fa-chevron-right"></i>
                                             </a>
                                             <ul class="dropdown-menu">
-                                                <?php foreach ($child['children'] as $sub): ?>
-                                                    <li>
-                                                        <a class="dropdown-item" href="<?= h($sub['url']) ?>">
-                                                            <?= $this->element('navbar_item', ['item' => $sub]) ?> <!-- Print subsection name -->
-                                                        </a>
-                                                    </li>
+
+                                               <?php foreach ($child['children'] as $sub): ?>
+
+                                                    <!-- THEME ITEM -->
+                                                    <?php if (!empty($sub['type']) && $sub['type'] === 'theme'): ?>
+
+                                                        <li>
+                                                            <a class="dropdown-item setTheme text-wrap"
+                                                               href="#"
+                                                               data-url="<?= $baseurl ?>/users/setTheme/<?= h($sub['theme']) ?>"
+                                                               data-theme="<?= h($sub['theme']) ?>">
+                                                                <div class="d-flex flex-column">
+                                                                    <div class="d-flex justify-content-between align-items-center">
+                                                                        <div>
+                                                                            <i class="fas fa-desktop fa-fw"></i>
+                                                                            <?= h($sub['label']) ?>
+                                                                        </div>
+
+                                                                        <span class="badge <?= $sub['on'] ? 'bg-success' : 'bg-secondary' ?> ms-2">
+                                                                            <?= $sub['on'] ? 'ON' : 'OFF' ?>
+                                                                        </span>
+                                                                    </div>
+
+                                                                <?php if (!empty($sub['description'])): ?>
+                                                                    <div class="small text-muted">
+                                                                        <?= h($sub['description']) ?>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                                </div>
+
+                                                            </a>
+                                                        </li>
+
+                                                    <!-- MESSAGE ITEM -->
+                                                    <?php elseif (!empty($sub['type']) && $sub['type'] === 'message'): ?>
+
+                                                        <li class="dropdown-item-text text-warning">
+                                                            <i class="fas fa-exclamation-triangle"></i>
+                                                            <?= h($sub['label']) ?>
+
+                                                            <?php if (!empty($sub['description'])): ?>
+                                                                <div class="small text-muted">
+                                                                    <?= h($sub['description']) ?>
+                                                                </div>
+                                                            <?php endif; ?>
+                                                        </li>
+
+                                                    <!-- NORMAL ITEM -->
+                                                    <?php else: ?>
+
+                                                        <li>
+                                                            <a class="dropdown-item" href="<?= h($sub['url']) ?>">
+                                                                <?= $this->element('navbar_item', ['item' => $sub]) ?>
+                                                            </a>
+                                                        </li>
+
+                                                    <?php endif; ?>
+
                                                 <?php endforeach; ?>
                                             </ul>
                                         </li>
@@ -119,3 +172,29 @@
         </div>
     </div>
 </nav>
+
+
+
+
+<script>
+    $(document).ready(function() {
+    $('.setTheme').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var theme = String($(this).data('theme') || '');
+        var safeTheme = encodeURIComponent(theme);
+
+        $.ajax({
+            type: 'POST',
+            url: '<?php echo $baseurl; ?>/user_settings/setTheme/' + safeTheme,
+            success: function(data) {
+                location.reload();
+            },
+            error: function(xhr, status, error) {
+                alert('<?php echo __('Failed to toggle Beta UI. Please try again.'); ?>');
+            }
+        });
+    });
+});
+</script>
