@@ -4,8 +4,11 @@ $actions = $field['actions'] ?? [];
 $seed = mt_rand();
 $tempboxId = 'TempBox-' . $seed;
 
-$mayModify = $this->Acl->canModifyEvent($row);
-$canPublish = $this->Acl->canPublishEvent($row);
+
+if ($field['data_path'] === 'Event.id') {
+    $mayModify = $this->Acl->canModifyEvent($row);
+    $canPublish = $this->Acl->canPublishEvent($row);
+}
 ?>
 
 <div class="d-inline-flex align-items-center checkbox-actions-wrapper">
@@ -15,7 +18,6 @@ $canPublish = $this->Acl->canPublishEvent($row);
         type="checkbox"
         class="event-checkbox form-check-input select_attribute mt-0"
         data-event-id="<?= h($id) ?>"
-        data-can-delete="<?= $mayModify ? '1' : '0' ?>"
     >
 
     <!-- Dropdown -->
@@ -66,16 +68,28 @@ $canPublish = $this->Acl->canPublishEvent($row);
                             $state = Hash::get($row, $action['state_path']);
                             $label = $state ? $action['label_on'] : $action['label_off'];
                             $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                            $actionName = $state ? 'unpublish' : 'publish';
+                            $actionName = match($label) {
+                                'Publish', 'Unpublish' => $state ? 'unpublish' : 'publish',
+                                'Enable', 'Disable' => 'toggleEnable',
+                                default => null,
+                            };
                             $url = str_replace(['%action%', '%id%'], [$actionName, $id], $action['url']);
                         ?>
-
-                        <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openPublishModal('<?= h($url) ?>');">
-                            <div>
-                                <i class="fas fa-<?= $iconClass ?> me-2"></i>
-                                <?= h($label) ?>
-                            </div>
-                        </a>
+                        <?php if ($label === "Publish" || $label === "Unpublish"): ?>
+                            <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openPublishModal('<?= h($url) ?>');">
+                                <div>
+                                    <i class="fas fa-<?= $iconClass ?> me-2"></i>
+                                    <?= h($label) ?>
+                                </div>
+                            </a>
+                        <?php elseif ($label === "Enable" || $label === "Disable"): ?>
+                            <a class="dropdown-item ajax-toggle" href="#" data-url="<?= h($url) ?>">
+                                <div>
+                                    <i class="fas fa-<?= $iconClass ?> me-2"></i>
+                                    <?= h($label) ?>
+                                </div>
+                            </a>
+                        <?php endif; ?>
 
                     <?php elseif ($action['type'] === 'ajax'): ?>
                         <?php
