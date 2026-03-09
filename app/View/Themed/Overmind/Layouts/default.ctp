@@ -32,13 +32,13 @@
         if ($useBootstrap5) {
             $css = [
                 ['bootstrap5-custom.min', ['preload' => true]],
+                ['tom-select.bootstrap5.min', ['preload' => true]],
                 ['mainOvermind', ['preload' => true]],
                 ['fontawesome7.min', ['preload' => true]],
                 ['print', ['media' => 'print']],
             ];
             $js = [
-                ['jquery', ['preload' => true]],
-                ['chosen.jquery.min', ['preload' => true]]
+                ['tom-select.complete.min', ['preload' => true]],
             ];
         } else {
             $css = [
@@ -130,7 +130,7 @@
                                 </span>
 
                                 <span id="debugErrorBadge"
-                                    class="badge bg-secondary ms-3">
+                                    class="badge bg-success ms-3">
                                     0 error
                                 </span>
                             </div>
@@ -235,11 +235,8 @@
             // Bootstrap 5 JS 
             echo $this->element('genericElements/assetLoader', [
                 'js' => [
-                    'misp-touch',
                     'bootstrap.bundle.min',
-                    'misp',
-                    'keyboard-shortcuts-definition',
-                    'keyboard-shortcuts',
+                    'mispOvermind',
                 ],
             ]);
         } else {
@@ -260,16 +257,7 @@
     ?>
 
     <script>
-    <?php
-        if (!isset($debugMode)):
-    ?>
-        $(window).scroll(function() {
-            $('.actions').css('left',-$(window).scrollLeft());
-        });
-    <?php
-        endif;
-    ?>
-        var baseurl = '<?php echo $baseurl; ?>';
+        var baseurl = '<?= $baseurl; ?>';
         var here = '<?php
                 if (substr($this->params['action'], 0, 6) === 'admin_') {
                     echo $baseurl . '/admin/' . h($this->params['controller']) . '/' . h(substr($this->params['action'], 6));
@@ -277,115 +265,74 @@
                     echo $baseurl . '/' . h($this->params['controller']) . '/' . h($this->params['action']);
                 }
             ?>';
-        <?php
-            if (!Configure::read('MISP.disable_auto_logout') && isset($me) && $me):
-        ?>
+        <?php if (!Configure::read('MISP.disable_auto_logout') && isset($me) && $me): ?>
                 //checkIfLoggedIn();
-        <?php
-            endif;
-        ?>
+        <?php endif; ?>
 
-        $(document).on('click', '.ajax-toggle, .ajax-call', function(e) {
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('.ajax-toggle, .ajax-call');
+            if (!target) return;
+
             e.preventDefault();
+            const url = target.dataset.url;
 
-            var url = $(this).data('url');
-            var $row = $(this).closest('tr');
+            fetch(url, { method: 'GET', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(response => response.text())
+                .then(data => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(data, 'text/html');
+                    const form = doc.querySelector('form');
 
-            $.ajax({
-                type: "get",
-                url: url,
-                success: function(data) {
-
-                    var $temp = $('<div>').html(data);
-                    var $form = $temp.find('form');
-
-                    if ($form.length) {
-                        $.post($form.attr('action'), $form.serialize(), function() {
-                            showMessage('success', 'Field updated.');
-                            location.reload();
+                    if (form) {
+                        const formData = new FormData(form);
+                        return fetch(form.getAttribute('action'), {
+                            method: 'POST',
+                            body: new URLSearchParams(formData),
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
                         });
                     } else {
-                        showMessage('success', 'Action executed.');
-                        location.reload();
+                        return Promise.resolve({ ok: true, message: 'Action executed.' });
                     }
-                },
-                error: function() {
-                    showMessage('fail', 'Action failed.');
-                }
-            });
+                })
+                .then(res => {
+                    if (res.ok) {
+                        showMessage('success', res.message || 'Field updated.');
+                        location.reload();
+                    } else {
+                        throw new Error();
+                    }
+                })
+                .catch(() => showMessage('fail', 'Action failed.'));
         });
 
-
-        $(document).ready(function () {
-            var $flash = $('#flashContainer');
-
-            if ($flash.children().length > 0) {
-                setTimeout(function () {
-                    $flash.addClass('fade-out');
-
-                    setTimeout(function () {
-                        $flash.remove();
-                    }, 600); // Transition time
-                }, 10000); // Display time
+        document.addEventListener('DOMContentLoaded', function () {
+            // Flash management
+            const flash = document.getElementById('flashContainer');
+            if (flash && flash.children.length > 0) {
+                setTimeout(() => {
+                    flash.classList.add('fade-out');
+                    setTimeout(() => flash.remove(), 600);
+                }, 10000);
             }
-        });
 
-        document.addEventListener("DOMContentLoaded", function () {
-            var debugContainer = document.getElementById("debugAccordionContent");
+            // Debug management
+            const debugContainer = document.getElementById("debugAccordionContent");
             if (!debugContainer) return;
-            var cakeErrors = document.querySelectorAll(".cake-error");
-            var count = cakeErrors.length;
 
-            var badge = document.getElementById("debugErrorBadge");
-            badge.textContent = count + " error";
+            const cakeErrors = document.querySelectorAll(".cake-error");
+            const count = cakeErrors.length;
+            const badge = document.getElementById("debugErrorBadge");
+
+            badge.textContent = count + " error" + (count > 1 ? "s" : "");
 
             if (count > 0) {
-                if (count > 1) {
-                    badge.textContent += "s";
-                }
-                badge.classList.remove("bg-secondary");
-                badge.classList.add("bg-danger");
+                badge.classList.replace("bg-success", "bg-danger");
             } else {
-                badge.classList.remove("bg-danger");
-                badge.classList.add("bg-success");
+                badge.classList.replace("bg-danger", "bg-success");
             }
 
-            cakeErrors.forEach(function (error) {
-                debugContainer.appendChild(error);
-            });
+            cakeErrors.forEach(error => debugContainer.appendChild(error));
         });
-
-        function openModal(url) {
-            fetch(url)
-                .then(response => response.text())
-                .then(html => {
-                    document.getElementById('mainModalBody').innerHTML = html;
-                    let modal = new bootstrap.Modal(document.getElementById('mainModal'));
-                    modal.show();
-                });
-        }
-
-        function multiSelectEvents(url) {
-            if (selectedEvents.size === 0) {
-                return;
-            }
-            const ids = Array.from(selectedEvents.keys());
-            const fullUrl = url + '/' + JSON.stringify(ids);
-            openModal(fullUrl);
-        }
-
-        function redirectToExportResult() {
-            const returnFormat = $('#EventReturnFormat').val();
-            let idListStr = $('#PromptForm').data('idlist');
-
-            if (!returnFormat) return;
-
-            if (Array.isArray(idListStr)) {
-                idListStr = JSON.stringify(idListStr);
-            }
-
-            window.location = baseurl + '/events/restSearchExport/' + idListStr + '/' + returnFormat;
-        }
     </script>
 </body>
 </html>

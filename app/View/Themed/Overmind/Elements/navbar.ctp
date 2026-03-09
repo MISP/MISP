@@ -177,24 +177,34 @@
 
 
 <script>
-    $(document).ready(function() {
-    $('.setTheme').on('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
+    document.addEventListener('DOMContentLoaded', function() {
+        const themeButtons = document.querySelectorAll('.setTheme');
 
-        var theme = String($(this).data('theme') || '');
-        var safeTheme = encodeURIComponent(theme);
+        themeButtons.forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
 
-        $.ajax({
-            type: 'POST',
-            url: '<?php echo $baseurl; ?>/user_settings/setTheme/' + safeTheme,
-            success: function(data) {
-                location.reload();
-            },
-            error: function(xhr, status, error) {
-                alert('<?php echo __('Failed to toggle Beta UI. Please try again.'); ?>');
-            }
+                const theme = String(this.dataset.theme || '');
+                const safeTheme = encodeURIComponent(theme);
+
+                fetch('<?php echo $baseurl; ?>/user_settings/setTheme/' + safeTheme, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        throw new Error('Server Error');
+                    }
+                })
+                .catch(error => {
+                    alert('<?php echo __('Failed to toggle Beta UI. Please try again.'); ?>');
+                });
+            });
         });
     });
-});
 </script>

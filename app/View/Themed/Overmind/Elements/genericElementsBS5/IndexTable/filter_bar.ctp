@@ -201,7 +201,7 @@ $hasActiveFilters = !empty($currentFilters);
 var baseIndexUrl = "<?= h($index_url) ?>";
 let selectedEvents = new Map();
 
-$(function() {
+document.addEventListener("DOMContentLoaded", function () {
 
     /*******************************
      * View Mode Toggle (Table / Card)
@@ -211,16 +211,21 @@ $(function() {
     }
 
     function setView(view, save = true) {
+        const tableView = document.getElementById('tableView');
+        const cardView = document.getElementById('cardView');
+        const viewList = document.getElementById('viewList');
+        const viewCard = document.getElementById('viewCard');
+
         if (view === 'card') {
-            $('#tableView').addClass('d-none');
-            $('#cardView').removeClass('d-none');
-            $('#viewList').removeClass('active');
-            $('#viewCard').addClass('active');
+            tableView.classList.add('d-none');
+            cardView.classList.remove('d-none');
+            viewList.classList.remove('active');
+            viewCard.classList.add('active');
         } else {
-            $('#cardView').addClass('d-none');
-            $('#tableView').removeClass('d-none');
-            $('#viewCard').removeClass('active');
-            $('#viewList').addClass('active');
+            cardView.classList.add('d-none');
+            tableView.classList.remove('d-none');
+            viewCard.classList.remove('active');
+            viewList.classList.add('active');
         }
 
         if (save) {
@@ -228,11 +233,9 @@ $(function() {
         }
     }
 
-    // Event listeners for view buttons
-    $('#viewList').on('click', () => setView('table'));
-    $('#viewCard').on('click', () => setView('card'));
+    document.getElementById('viewList')?.addEventListener('click', () => setView('table'));
+    document.getElementById('viewCard')?.addEventListener('click', () => setView('card'));
 
-    // Initialize view based on saved preference or device
     const savedView = localStorage.getItem('indexViewMode');
     setView(savedView ? savedView : (isMobile() ? 'card' : 'table'), false);
 
@@ -244,7 +247,6 @@ $(function() {
         const base = baseIndexUrl.replace(/\/search.*/, '');
         let filters = {};
 
-        // Parse existing filters from URL
         const searchMatch = window.location.pathname.match(/\/search(.+)/);
         if (searchMatch) {
             const parts = searchMatch[1].split('/search');
@@ -254,8 +256,9 @@ $(function() {
             });
         }
 
-        // Quick filter (search by info or ID/UUID)
-        const quickValue = $('#quickFilterField').val().trim();
+        const quickField = document.getElementById('quickFilterField');
+        const quickValue = quickField ? quickField.value.trim() : '';
+
         delete filters['eventinfo'];
         delete filters['eventid'];
 
@@ -270,10 +273,10 @@ $(function() {
             }
         }
 
-        // Apply dropdown filters
-        $('.topbar-filter').each(function() {
-            const name = $(this).attr('name');
-            const value = $(this).val();
+        document.querySelectorAll('.topbar-filter').forEach(el => {
+            const name = el.name;
+            const value = el.value;
+
             if (value !== '') {
                 filters[name] = value;
             } else {
@@ -281,7 +284,6 @@ $(function() {
             }
         });
 
-        // Construct final URL
         let newUrl = base;
         Object.keys(filters).forEach(key => {
             newUrl += '/search' + key + ':' + filters[key];
@@ -290,55 +292,71 @@ $(function() {
         return newUrl;
     }
 
-    // Event handlers for filters
-    $('#quickFilterButton').on('click', () => {
+    document.getElementById('quickFilterButton')?.addEventListener('click', () => {
         window.location.href = buildFilterUrl();
     });
 
-    $('#quickFilterField').on('keypress', function(e) {
-        if (e.which === 13) $('#quickFilterButton').click();
+    document.getElementById('quickFilterField')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            window.location.href = buildFilterUrl();
+        }
     });
 
-    $('.topbar-filter').on('change', () => {
-        window.location.href = buildFilterUrl();
+    document.querySelectorAll('.topbar-filter').forEach(el => {
+        el.addEventListener('change', () => {
+            window.location.href = buildFilterUrl();
+        });
     });
 
 
     /*******************************
      * Multi-Select Toolbar
      *******************************/
-
-    // Update toolbar visibility and buttons
     function updateMultiSelectToolbar() {
+        const toolbar = document.getElementById('multiSelectToolbar');
+        const selectedCount = document.getElementById('selectedCount');
+        const deleteButton = document.getElementById('multi-delete-button');
+
         const count = selectedEvents.size;
 
         if (count === 0) {
-            $('#multiSelectToolbar').addClass('d-none');
+            toolbar?.classList.add('d-none');
             return;
         }
 
-        $('#multiSelectToolbar').removeClass('d-none');
-        $('#selectedCount').text(count);
+        toolbar?.classList.remove('d-none');
 
-        // Show delete only if user can delete all selected events
+        if (selectedCount) {
+            selectedCount.textContent = count;
+        }
+
         let canDeleteAll = true;
         selectedEvents.forEach(event => {
-            if (!event.canDelete) canDeleteAll = false;
+            if (!event.canDelete) {
+                canDeleteAll = false;
+            }
         });
 
         if (canDeleteAll) {
-            $('#multi-delete-button').removeClass('d-none');
+            deleteButton?.classList.remove('d-none');
         } else {
-            $('#multi-delete-button').addClass('d-none');
+            deleteButton?.classList.add('d-none');
         }
     }
 
-    // Checkbox change handler
-    $(document).on('change', '.event-checkbox', function() {
-        const id = $(this).data('event-id');
-        const canDelete = $(this).data('can-delete') == 1;
+    /*******************************
+     * Checkbox change handler
+     *******************************/
+    document.addEventListener('change', function(e) {
 
-        if ($(this).is(':checked')) {
+        if (!e.target.classList.contains('event-checkbox')) return;
+
+        const checkbox = e.target;
+
+        const id = checkbox.dataset.eventId;
+        const canDelete = checkbox.dataset.canDelete == "1";
+
+        if (checkbox.checked) {
             selectedEvents.set(id, { id: id, canDelete: canDelete });
         } else {
             selectedEvents.delete(id);
@@ -346,5 +364,6 @@ $(function() {
 
         updateMultiSelectToolbar();
     });
-}); // end of $(function)
+
+});
 </script>
