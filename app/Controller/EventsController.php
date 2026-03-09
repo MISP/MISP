@@ -3599,6 +3599,7 @@ class EventsController extends AppController
             }
             $this->set('idList', $idList);
             $this->set('exportFormats', $exportFormats);
+            $this->layout = false;
             $this->render('ajax/eventRestSearchExportConfirmationForm');
         } else {
             $returnFormat = !isset($this->Event->validFormats[$returnFormat]) ? 'json' : $returnFormat;

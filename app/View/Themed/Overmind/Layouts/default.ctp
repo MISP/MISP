@@ -354,7 +354,8 @@
                 debugContainer.appendChild(error);
             });
         });
-        function openDeleteModal(url) {
+
+        function openModal(url) {
             fetch(url)
                 .then(response => response.text())
                 .then(html => {
@@ -364,22 +365,26 @@
                 });
         }
 
-        function openPublishModal(url) {
-            fetch(url) // GET la page de confirmation côté controller
-                .then(response => response.text())
-                .then(html => {
-                    document.getElementById('mainModalBody').innerHTML = html;
-                    let modal = new bootstrap.Modal(document.getElementById('mainModal'));
-                    modal.show();
-                });
+        function multiSelectEvents(url) {
+            if (selectedEvents.size === 0) {
+                return;
+            }
+            const ids = Array.from(selectedEvents.keys());
+            const fullUrl = url + '/' + JSON.stringify(ids);
+            openModal(fullUrl);
         }
 
-        function toggleAllAttributeCheckboxes() {
+        function redirectToExportResult() {
+            const returnFormat = $('#EventReturnFormat').val();
+            let idListStr = $('#PromptForm').data('idlist');
 
-            const checked = $('#select_all').is(':checked');
+            if (!returnFormat) return;
 
-            $('.event-checkbox').prop('checked', checked).trigger('change');
+            if (Array.isArray(idListStr)) {
+                idListStr = JSON.stringify(idListStr);
+            }
 
+            window.location = baseurl + '/events/restSearchExport/' + idListStr + '/' + returnFormat;
         }
     </script>
 </body>

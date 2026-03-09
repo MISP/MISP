@@ -179,14 +179,14 @@ $hasActiveFilters = !empty($currentFilters);
 
             <button id="multi-export-button"
                     class="btn btn-primary btn-sm ms-3"
-                    onclick="multiSelectExportEvents();">
+                    onclick="multiSelectEvents('<?php echo $baseurl; ?>/events/restSearchExport');">
                 <i class="fas fa-file-export"></i>
                 <?= __('Export') ?>
             </button>
 
             <button id="multi-delete-button"
                     class="btn btn-danger btn-sm d-none"
-                    onclick="multiSelectDeleteEvents()">
+                    onclick="multiSelectEvents('<?php echo $baseurl; ?>/events/delete');">
                 <i class="fas fa-trash"></i>
                 <?= __('Delete') ?>
             </button>
@@ -199,6 +199,7 @@ $hasActiveFilters = !empty($currentFilters);
 
 <script>
 var baseIndexUrl = "<?= h($index_url) ?>";
+let selectedEvents = new Map();
 
 $(function() {
 
@@ -306,7 +307,6 @@ $(function() {
     /*******************************
      * Multi-Select Toolbar
      *******************************/
-    let selectedEvents = new Map();
 
     // Update toolbar visibility and buttons
     function updateMultiSelectToolbar() {

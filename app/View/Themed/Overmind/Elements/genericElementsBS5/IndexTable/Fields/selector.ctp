@@ -5,20 +5,23 @@ $seed = mt_rand();
 $tempboxId = 'TempBox-' . $seed;
 
 
+$checkboxAttrs = [
+    'type' => 'checkbox',
+    'class' => 'event-checkbox form-check-input mass-select mt-0'
+];
+
 if ($field['data_path'] === 'Event.id') {
     $mayModify = $this->Acl->canModifyEvent($row);
     $canPublish = $this->Acl->canPublishEvent($row);
+    $checkboxAttrs['data-event-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 ?>
 
 <div class="d-inline-flex align-items-center checkbox-actions-wrapper">
 
     <!-- Checkbox -->
-    <input 
-        type="checkbox"
-        class="event-checkbox form-check-input select_attribute mt-0"
-        data-event-id="<?= h($id) ?>"
-    >
+    <?= $this->Form->checkbox('selected_items[]', $checkboxAttrs); ?>
 
     <!-- Dropdown -->
     <div class="dropdown">
@@ -76,7 +79,7 @@ if ($field['data_path'] === 'Event.id') {
                             $url = str_replace(['%action%', '%id%'], [$actionName, $id], $action['url']);
                         ?>
                         <?php if ($label === "Publish" || $label === "Unpublish"): ?>
-                            <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openPublishModal('<?= h($url) ?>');">
+                            <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>');">
                                 <div>
                                     <i class="fas fa-<?= $iconClass ?> me-2"></i>
                                     <?= h($label) ?>

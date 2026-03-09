@@ -62,16 +62,3 @@
     }
     echo '</thead>';
 ?>
-<?php if ($selectAllCheckbox): ?>
-<script>
-    $(function() {
-        $('.event-checkbox').add('#select_all').on('change', function() {
-            if ($('.select_attribute:checked').length > 0) {
-                $('.mass-select').show();
-            } else {
-                $('.mass-select').hide();
-            }
-        });
-    });
-</script>
-<?php endif; ?>
