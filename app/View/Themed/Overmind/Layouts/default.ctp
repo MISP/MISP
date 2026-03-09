@@ -333,6 +333,16 @@
 
             cakeErrors.forEach(error => debugContainer.appendChild(error));
         });
+
+        document.querySelectorAll('.topbar-filter').forEach(function(el) {
+            new TomSelect(el,{
+                create:false,
+                sortField:{
+                    field:"text",
+                    direction:"asc"
+                }
+            });
+        });
     </script>
 </body>
 </html>

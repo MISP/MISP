@@ -802,19 +802,19 @@ class EventsController extends AppController
             'fields' => ['Orgc.name', 'Orgc.name'],
             'order' => ['Orgc.name' => 'ASC']
         ]);
-        $this->set('orgOptions', ['' => 'All'] + $orgs);
+        $this->set('orgOptions', ['' => ''] + $orgs);
 
         $tags = $this->Event->EventTag->Tag->find('list', [
             'fields' => ['Tag.name', 'Tag.name'],
             'order' => ['Tag.name' => 'ASC']
         ]);
-        $this->set('tagOptions', ['' => 'All'] + $tags);
+        $this->set('tagOptions', ['' => ''] + $tags);
 
         $galaxies = $this->GalaxyCluster->Galaxy->find('list', [
             'fields' => ['Galaxy.name', 'Galaxy.name'],
             'order' => ['Galaxy.name' => 'ASC']
         ]);
-        $this->set('galaxyOptions', ['' => 'All'] + $galaxies);
+        $this->set('galaxyOptions', ['' => ''] + $galaxies);
 
         if ($this->request->is('ajax')) {
             $this->autoRender = false;

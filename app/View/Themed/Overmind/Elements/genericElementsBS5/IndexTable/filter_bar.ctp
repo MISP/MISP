@@ -71,11 +71,11 @@ $hasActiveFilters = !empty($currentFilters);
     <?php endif; ?>
 
     <?php if ($child['type'] === 'more_filters'): ?>
-        <div class="col-md-auto">
+        <div class="col-md-2">
             <label class="form-label fw-semibold d-block invisible">
                 placeholder
             </label>
-            <div class="dropdown dropdown-filters">
+            <div class="dropdown dropdown-filters w-100">
                 <button class="btn btn-outline-primary dropdown-toggle"
                         type="button"
                         data-bs-toggle="dropdown">
@@ -83,7 +83,7 @@ $hasActiveFilters = !empty($currentFilters);
                     <?= h($child['label']) ?>
                 </button>
 
-                <div class="dropdown-menu p-3" style="min-width: 250px;">
+                <div class="dropdown-menu p-3 w-100">
                     <?php foreach ($child['children'] as $sub): ?>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">
@@ -274,14 +274,17 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         document.querySelectorAll('.topbar-filter').forEach(el => {
-            const name = el.name;
+            const name = el.getAttribute('name');
             const value = el.value;
+
+            if (!name) return;
 
             if (value !== '') {
                 filters[name] = value;
             } else {
                 delete filters[name];
             }
+
         });
 
         let newUrl = base;

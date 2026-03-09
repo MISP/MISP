@@ -196,37 +196,51 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'placeholder' => 'Search by info, ID or UUID'
                     ],
                     [
-                        'type' => 'dropdown',
-                        'label' => __('Distribution'),
-                        'name' => 'distribution',
-                        'options' => [
-                            '' => 'All',
-                            '0' => 'Your organisation only',
-                            '1' => 'Community',
-                            '2' => 'Connected communities',
-                            '3' => 'All communities'
-                        ]
+                        'type' => 'button',
+                        'label' => __('My events'),
+                        'icon' => 'user',
+                        'class' => 'btn btn-primary',
+                        'url' => $baseurl . '/events/index/searchemail:' . urlencode($me['email'])
                     ],
                     [
-                        'type' => 'dropdown',
-                        'label' => __('Published'),
-                        'name' => 'published',
-                        'options' => [
-                            '' => 'All',
-                            '1' => 'Published',
-                            '0' => 'Not published'
-                        ]
-                    ],
-                    [
-                        'type' => 'dropdown',
-                        'label' => __('Creator Org'),
-                        'name' => 'org',
-                        'options' => $orgOptions
+                        'type' => 'button',
+                        'label' => __('Org events'),
+                        'icon' => 'building',
+                        'class' => 'btn btn-primary',
+                        'url' => $baseurl . '/events/index/searchorg:' . urlencode($me['org_id'])
                     ],
                     [
                         'type' => 'more_filters',
                         'label' => __('More filters'),
                         'children' => [
+                            [
+                                'type' => 'dropdown',
+                                'label' => __('Distribution'),
+                                'name' => 'distribution',
+                                'options' => [
+                                    '' => '',
+                                    '0' => 'Your organisation only',
+                                    '1' => 'Community',
+                                    '2' => 'Connected communities',
+                                    '3' => 'All communities'
+                                ]
+                            ],
+                            [
+                                'type' => 'dropdown',
+                                'label' => __('Published'),
+                                'name' => 'published',
+                                'options' => [
+                                    '' => '',
+                                    '1' => 'Published',
+                                    '0' => 'Not published'
+                                ]
+                            ],
+                            [
+                                'type' => 'dropdown',
+                                'label' => __('Creator Org'),
+                                'name' => 'org',
+                                'options' => $orgOptions
+                            ],
                             [
                                 'type' => 'dropdown',
                                 'label' => __('Tags'),
@@ -240,20 +254,6 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                                 'options' => $galaxyOptions
                             ]
                         ]
-                    ],
-                    [
-                        'type' => 'button',
-                        'label' => __('My events'),
-                        'icon' => 'user',
-                        'class' => 'btn btn-primary',
-                        'url' => $baseurl . '/events/index/searchemail:' . urlencode($me['email'])
-                    ],
-                    [
-                        'type' => 'button',
-                        'label' => __('Org events'),
-                        'icon' => 'building',
-                        'class' => 'btn btn-primary',
-                        'url' => $baseurl . '/events/index/searchorg:' . urlencode($me['org_id'])
                     ]
                 ]
             ],
