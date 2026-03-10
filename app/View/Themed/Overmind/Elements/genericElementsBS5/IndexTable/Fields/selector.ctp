@@ -3,16 +3,25 @@ $id = Hash::get($row, $field['data_path']);
 $actions = $field['actions'] ?? [];
 $seed = mt_rand();
 $tempboxId = 'TempBox-' . $seed;
+
+
+$checkboxAttrs = [
+    'type' => 'checkbox',
+    'class' => 'event-checkbox form-check-input mass-select mt-0'
+];
+
+if ($field['data_path'] === 'Event.id') {
+    $mayModify = $this->Acl->canModifyEvent($row);
+    $canPublish = $this->Acl->canPublishEvent($row);
+    $checkboxAttrs['data-event-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
 ?>
 
 <div class="d-inline-flex align-items-center checkbox-actions-wrapper">
 
     <!-- Checkbox -->
-    <input 
-        type="checkbox"
-        class="form-check-input select_attribute mt-0"
-        value="<?= h($id) ?>"
-    >
+    <?= $this->Form->checkbox('selected_items[]', $checkboxAttrs); ?>
 
     <!-- Dropdown -->
     <div class="dropdown">
@@ -28,7 +37,18 @@ $tempboxId = 'TempBox-' . $seed;
             <?php foreach ($actions as $action): ?>
 
                 <?php
-                if (!empty($action['requirement']) && !$action['requirement']) {
+                $showAction = true;
+                if (isset($action['requirement'])) {
+                    if ($action['requirement'] === 'check_edit_rights') {
+                        $showAction = $isSiteAdmin || $mayModify;
+                    } else if ($action['requirement'] === 'check_publish_rights') {
+                        $showAction = $isSiteAdmin || ($mayModify && $canPublish);
+                    } else {
+                        $showAction = (bool)$action['requirement'];
+                    }
+                }
+
+                if (!$showAction) {
                     continue;
                 }
 
@@ -47,32 +67,50 @@ $tempboxId = 'TempBox-' . $seed;
                         </a>
 
                     <?php elseif ($action['type'] === 'toggle'): ?>
-
                         <?php
-                        $state = Hash::get($row, $action['state_path']);
-                        $label = $state ? $action['label_on'] : $action['label_off'];
-                        $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
+                            $state = Hash::get($row, $action['state_path']);
+                            $label = $state ? $action['label_on'] : $action['label_off'];
+                            $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
+                            $actionName = match($label) {
+                                'Publish', 'Unpublish' => $state ? 'unpublish' : 'publish',
+                                'Enable', 'Disable' => 'toggleEnable',
+                                default => null,
+                            };
+                            $url = str_replace(['%action%', '%id%'], [$actionName, $id], $action['url']);
                         ?>
-
-                        <a class="dropdown-item ajax-toggle"
-                           href="#"
-                           data-url="<?= h($url) ?>">
-                            <div>
-                                <i class="fas fa-<?= $iconClass ?> me-2"></i>
-                                <?= h($label) ?>
-                            </div>
-                        </a>
+                        <?php if ($label === "Publish" || $label === "Unpublish"): ?>
+                            <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>');">
+                                <div>
+                                    <i class="fas fa-<?= $iconClass ?> me-2"></i>
+                                    <?= h($label) ?>
+                                </div>
+                            </a>
+                        <?php elseif ($label === "Enable" || $label === "Disable"): ?>
+                            <a class="dropdown-item ajax-toggle" href="#" data-url="<?= h($url) ?>">
+                                <div>
+                                    <i class="fas fa-<?= $iconClass ?> me-2"></i>
+                                    <?= h($label) ?>
+                                </div>
+                            </a>
+                        <?php endif; ?>
 
                     <?php elseif ($action['type'] === 'ajax'): ?>
+                        <?php
+                        $url = str_replace('%id%', $id, $action['url']);
+                        $classes = 'dropdown-item ' . ($action['class'] ?? '');
+                        ?>
 
-                        <a class="dropdown-item ajax-call"
-                           href="#"
-                           data-url="<?= h($url) ?>">
+                        <a class="<?= trim($classes) ?>"
+                        href="<?= h($url) ?>"
+                        onclick="event.preventDefault(); openDeleteModal('<?= h($url) ?>');">
                             <div>
                                 <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
                                 <?= h($action['label']) ?>
                             </div>
                         </a>
+
+                    <?php elseif ($action['type'] === 'divider'): ?>
+                        <li><hr class="dropdown-divider"></li>
 
                     <?php endif; ?>
 

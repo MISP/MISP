@@ -17,7 +17,7 @@ $fields = [
                 'label_off' => __('Enable'),
                 'icon_on' => 'times-circle text-danger',
                 'icon_off' => 'check-circle text-success',
-                'url' => '/noticelists/toggleEnable/%id%',
+                'url' => '/noticelists/%action%/%id%',
                 'state_path' => 'Noticelist.enabled',
                 'requirement' => $isSiteAdmin
             ]
@@ -28,52 +28,61 @@ $fields = [
         'sort' => 'Noticelist.id',
         'data_path' => 'Noticelist.id',
         'element' => 'id',
-        'card_section' => 'meta'
+        'url' => $baseurl . '/noticelists/view/%id%',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Name'),
         'sort' => 'Noticelist.name',
         'data_path' => 'Noticelist.name',
-        'card_section' => 'title'
+        'card_section' => 'title',
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Expanded Name'),
         'sort' => 'Noticelist.expanded_name',
         'data_path' => 'Noticelist.expanded_name',
-        'card_section' => 'title'
+        'card_section' => 'title',
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Ref'),
         'data_path' => 'Noticelist.ref',
         'element' => 'links',
-        'card_section' => 'links'
+        'card_section' => 'links',
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Geographical area'),
         'data_path' => 'Noticelist.geographical_area',
         'element' => 'flag',
-        'card_section' => 'extra'
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Version'),
         'data_path' => 'Noticelist.version',
         'element' => 'version',
-        'card_section' => 'meta'
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Enabled'),
         'data_path' => 'Noticelist.enabled',
         'element' => 'enabled',
-        'card_section' => 'meta',
+        'card_section' => 'top',
         'requirement' => $isSiteAdmin,
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Default'),
         'data_path' => 'Noticelist.enabled',
-        'element' => 'boolean',
-        'card_section' => 'meta',
+        'element' => 'default',
+        'card_section' => 'top',
         'colors' => true,
         'requirement' => !$isSiteAdmin,
+        'display_in' => ['table', 'card']
     ],
 ];
 
@@ -91,7 +100,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
-            'top_bar' => [
+            'filter_bar' => [
                 'pull' => 'right',
                 'children' => [
                     [
@@ -104,5 +113,6 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             ],
             'fields' => $fields,
         ]
-    ]
+    ],
+    'index_url' => '/noticelists/index'
 ]);

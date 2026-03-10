@@ -7,6 +7,14 @@ if (!empty($data['paginatorOptions'])) {
 }
 
 $rows = '';
+
+$tableFields = array_filter($data['fields'], function($field) {
+    if (empty($field['display_in'])) {
+        return true;
+    }
+    return in_array('table', $field['display_in']);
+});
+
 foreach ($data['data'] as $k => $data_row) {
 
     $primary = !empty($data['primary_id_path']) ? Hash::get($data_row, $data['primary_id_path']) : null;
@@ -22,7 +30,7 @@ foreach ($data['data'] as $k => $data_row) {
         [
             'k' => $k,
             'row' => $data_row,
-            'fields' => $data['fields'],
+            'fields' => $tableFields,
             'options' => $data['options'] ?? [],
             'actions' => $data['actions'] ?? [],
             'primary' => $primary,
@@ -41,7 +49,7 @@ foreach ($data['data'] as $k => $data_row) {
         <?= $this->element(
             'genericElementsBS5/IndexTable/headers',
             [
-                'fields' => $data['fields'],
+                'fields' => $tableFields,
                 'paginator' => $Paginator,
                 'actions' => !empty($data['actions'])
             ]
@@ -53,28 +61,3 @@ foreach ($data['data'] as $k => $data_row) {
 
     </table>
 </div>
-
-
-<script>
-    var passedArgsArray = <?= isset($passedArgs) ? $passedArgs : '{}'; ?>;
-    var url = "<?= $url ?>";
-    <?php if ($hasSearch): ?>
-    $(function() {
-        <?php
-        if (isset($containerId)) {
-            echo 'var target = "#' . $containerId . '_content";';
-        }
-        ?>
-        $('#quickFilterScopeSelector').change(function() {
-            $('#quickFilterField').data('searchkey', this.value)
-        });
-        $('#quickFilterButton').click(function() {
-            if (typeof(target) !== 'undefined') {
-                runIndexQuickFilterFixed(passedArgsArray, url, target);
-            } else {
-                runIndexQuickFilterFixed(passedArgsArray, url);
-            }
-        });
-    });
-    <?php endif; ?>
-</script>

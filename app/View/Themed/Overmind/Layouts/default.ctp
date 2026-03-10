@@ -11,6 +11,7 @@
             ['controller' => 'users', 'action' => 'login'],
             ['controller' => 'noticelists', 'action' => 'index'],
             ['controller' => 'events', 'action' => 'index'],
+            ['controller' => 'events', 'action' => 'delete'],
         ];
 
         $currentController = $this->params['controller'];
@@ -31,13 +32,13 @@
         if ($useBootstrap5) {
             $css = [
                 ['bootstrap5-custom.min', ['preload' => true]],
+                ['tom-select.bootstrap5.min', ['preload' => true]],
                 ['mainOvermind', ['preload' => true]],
                 ['fontawesome7.min', ['preload' => true]],
                 ['print', ['media' => 'print']],
             ];
             $js = [
-                ['jquery', ['preload' => true]],
-                ['chosen.jquery.min', ['preload' => true]]
+                ['tom-select.complete.min', ['preload' => true]],
             ];
         } else {
             $css = [
@@ -88,6 +89,8 @@
                             'hostOrgUser' => $hostOrgUser,
                             'bookmarks' => $bookmarks,
                             'themes' => $themes,
+                            'theme' => $theme,
+                            'themesEnabled' => $themesEnabled,
                         ];
                         $menus = $this->Navbar->build($context);
                         echo $this->element('navbar', [
@@ -107,7 +110,7 @@
                 }
             ?>
         </header> 
-        <?php if ($useBootstrap5): ?>
+        <?php if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login')): ?>
             <?php if (Configure::read('debug') > 0): ?>
             <div class="accordion mb-0" id="debugAccordionWrapper">
                 <div class="accordion-item border-0">
@@ -127,7 +130,7 @@
                                 </span>
 
                                 <span id="debugErrorBadge"
-                                    class="badge bg-secondary ms-3">
+                                    class="badge bg-success ms-3">
                                     0 error
                                 </span>
                             </div>
@@ -152,7 +155,7 @@
             <?php endif; ?>
         <?php endif; ?>
         <!-- Flash & Content -->
-        <main role="main" class="content">
+        <main role="main" class="content" style="padding-top:<?php echo $topPadding; ?>px; !important;">
             <div id="flashOverlay">
                 <div id="flashContainer">
                     <?= $this->Flash->render(); ?>
@@ -173,7 +176,7 @@
     </div>
 
 
-    <!-- TO DO Footer & SQL dump -->
+    <!-- Footer -->
     <?php
         if ($useBootstrap5){
             // Don't print the footer for the login page
@@ -185,6 +188,8 @@
             echo $this->element('footer');
         }
     ?>
+
+    <!-- TO IMPROVE -->
     <?= $this->element('sql_dump') ?>
 
     <!-- Modals, Toasts and Popovers -->
@@ -195,7 +200,15 @@
     <div id="popover_box" class="popover_box"></div>
     <div id="confirmation_box"></div>
     <div id="gray_out"></div>
-    <div id="mainModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true"></div>
+    <div class="modal fade" id="mainModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered justify-content-center">
+            <div class="modal-content border-0 w-auto">
+                <!-- Supprime complètement le padding ici -->
+                <div class="modal-body p-0 m-0" id="mainModalBody">
+                </div>
+            </div>
+        </div>
+    </div>
     <div id="mainToastContainer" class="main-toast-container"></div>
     <div id="mainModalContainer"></div>
 
@@ -222,11 +235,8 @@
             // Bootstrap 5 JS 
             echo $this->element('genericElements/assetLoader', [
                 'js' => [
-                    'misp-touch',
                     'bootstrap.bundle.min',
-                    'misp',
-                    'keyboard-shortcuts-definition',
-                    'keyboard-shortcuts',
+                    'mispOvermind',
                 ],
             ]);
         } else {
@@ -247,16 +257,7 @@
     ?>
 
     <script>
-    <?php
-        if (!isset($debugMode)):
-    ?>
-        $(window).scroll(function() {
-            $('.actions').css('left',-$(window).scrollLeft());
-        });
-    <?php
-        endif;
-    ?>
-        var baseurl = '<?php echo $baseurl; ?>';
+        var baseurl = '<?= $baseurl; ?>';
         var here = '<?php
                 if (substr($this->params['action'], 0, 6) === 'admin_') {
                     echo $baseurl . '/admin/' . h($this->params['controller']) . '/' . h(substr($this->params['action'], 6));
@@ -264,81 +265,82 @@
                     echo $baseurl . '/' . h($this->params['controller']) . '/' . h($this->params['action']);
                 }
             ?>';
-        <?php
-            if (!Configure::read('MISP.disable_auto_logout') && isset($me) && $me):
-        ?>
+        <?php if (!Configure::read('MISP.disable_auto_logout') && isset($me) && $me): ?>
                 //checkIfLoggedIn();
-        <?php
-            endif;
-        ?>
+        <?php endif; ?>
 
-        $(document).on('click', '.ajax-toggle, .ajax-call', function(e) {
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('.ajax-toggle, .ajax-call');
+            if (!target) return;
+
             e.preventDefault();
+            const url = target.dataset.url;
 
-            var url = $(this).data('url');
-            var $row = $(this).closest('tr');
+            fetch(url, { method: 'GET', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(response => response.text())
+                .then(data => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(data, 'text/html');
+                    const form = doc.querySelector('form');
 
-            $.ajax({
-                type: "get",
-                url: url,
-                success: function(data) {
-
-                    var $temp = $('<div>').html(data);
-                    var $form = $temp.find('form');
-
-                    if ($form.length) {
-                        $.post($form.attr('action'), $form.serialize(), function() {
-                            showMessage('success', 'Field updated.');
-                            location.reload();
+                    if (form) {
+                        const formData = new FormData(form);
+                        return fetch(form.getAttribute('action'), {
+                            method: 'POST',
+                            body: new URLSearchParams(formData),
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
                         });
                     } else {
-                        showMessage('success', 'Action executed.');
-                        location.reload();
+                        return Promise.resolve({ ok: true, message: 'Action executed.' });
                     }
-                },
-                error: function() {
-                    showMessage('fail', 'Action failed.');
-                }
-            });
+                })
+                .then(res => {
+                    if (res.ok) {
+                        showMessage('success', res.message || 'Field updated.');
+                        location.reload();
+                    } else {
+                        throw new Error();
+                    }
+                })
+                .catch(() => showMessage('fail', 'Action failed.'));
         });
 
-
-        $(document).ready(function () {
-            var $flash = $('#flashContainer');
-
-            if ($flash.children().length > 0) {
-                setTimeout(function () {
-                    $flash.addClass('fade-out');
-
-                    setTimeout(function () {
-                        $flash.remove();
-                    }, 600); // correspond à la durée de transition
-                }, 10000); // 10 secondes
+        document.addEventListener('DOMContentLoaded', function () {
+            // Flash management
+            const flash = document.getElementById('flashContainer');
+            if (flash && flash.children.length > 0) {
+                setTimeout(() => {
+                    flash.classList.add('fade-out');
+                    setTimeout(() => flash.remove(), 600);
+                }, 10000);
             }
-        });
 
-        document.addEventListener("DOMContentLoaded", function () {
-            var debugContainer = document.getElementById("debugAccordionContent");
+            // Debug management
+            const debugContainer = document.getElementById("debugAccordionContent");
             if (!debugContainer) return;
-            var cakeErrors = document.querySelectorAll(".cake-error");
-            var count = cakeErrors.length;
 
-            var badge = document.getElementById("debugErrorBadge");
-            badge.textContent = count + " error";
+            const cakeErrors = document.querySelectorAll(".cake-error");
+            const count = cakeErrors.length;
+            const badge = document.getElementById("debugErrorBadge");
+
+            badge.textContent = count + " error" + (count > 1 ? "s" : "");
 
             if (count > 0) {
-                if (count > 1) {
-                    badge.textContent += "s";
-                }
-                badge.classList.remove("bg-secondary");
-                badge.classList.add("bg-danger");
+                badge.classList.replace("bg-success", "bg-danger");
             } else {
-                badge.classList.remove("bg-danger");
-                badge.classList.add("bg-success");
+                badge.classList.replace("bg-danger", "bg-success");
             }
 
-            cakeErrors.forEach(function (error) {
-                debugContainer.appendChild(error);
+            cakeErrors.forEach(error => debugContainer.appendChild(error));
+        });
+
+        document.querySelectorAll('.topbar-filter').forEach(function(el) {
+            new TomSelect(el,{
+                create:false,
+                sortField:{
+                    field:"text",
+                    direction:"asc"
+                }
             });
         });
     </script>

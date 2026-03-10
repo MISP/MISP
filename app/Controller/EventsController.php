@@ -798,6 +798,24 @@ class EventsController extends AppController
             $this->set('extendedEvents', []);
         }
 
+        $orgs = $this->Event->Orgc->find('list', [
+            'fields' => ['Orgc.name', 'Orgc.name'],
+            'order' => ['Orgc.name' => 'ASC']
+        ]);
+        $this->set('orgOptions', ['' => ''] + $orgs);
+
+        $tags = $this->Event->EventTag->Tag->find('list', [
+            'fields' => ['Tag.name', 'Tag.name'],
+            'order' => ['Tag.name' => 'ASC']
+        ]);
+        $this->set('tagOptions', ['' => ''] + $tags);
+
+        $galaxies = $this->GalaxyCluster->Galaxy->find('list', [
+            'fields' => ['Galaxy.name', 'Galaxy.name'],
+            'order' => ['Galaxy.name' => 'ASC']
+        ]);
+        $this->set('galaxyOptions', ['' => ''] + $galaxies);
+
         if ($this->request->is('ajax')) {
             $this->autoRender = false;
             $this->layout = false;
@@ -3063,6 +3081,7 @@ class EventsController extends AppController
             $eventList = is_numeric($id) ? [$id] : $this->_jsonDecode($id);
             $this->request->data['Event']['id'] = json_encode($eventList);
             $this->set('idArray', $eventList);
+            $this->layout = false;
             $this->render('ajax/eventDeleteConfirmationForm');
         }
     }
@@ -3107,6 +3126,7 @@ class EventsController extends AppController
         } else {
             $this->set('id', $id);
             $this->set('type', 'unpublish');
+            $this->layout = false;
             $this->render('ajax/eventPublishConfirmationForm');
         }
     }
@@ -3202,6 +3222,7 @@ class EventsController extends AppController
             $servers = $this->Event->listServerToPush($event);
             $this->set('id', $event['Event']['id']);
             $this->set('servers', $servers);
+            $this->layout = false;
             $this->set('type', 'publish');
             $this->render('ajax/eventPublishConfirmationForm');
         }
@@ -3578,6 +3599,7 @@ class EventsController extends AppController
             }
             $this->set('idList', $idList);
             $this->set('exportFormats', $exportFormats);
+            $this->layout = false;
             $this->render('ajax/eventRestSearchExportConfirmationForm');
         } else {
             $returnFormat = !isset($this->Event->validFormats[$returnFormat]) ? 'json' : $returnFormat;
