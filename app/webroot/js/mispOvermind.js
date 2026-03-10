@@ -29,3 +29,14 @@ function redirectToExportResult() {
 
     window.location = baseurl + '/events/restSearchExport/' + idListStr + '/' + returnFormat;
 }
+
+function toggleAllAttributeCheckboxes() {
+    const checked = document.getElementById('select_all').checked;
+
+    const checkboxes = document.querySelectorAll('.event-checkbox');
+
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = checked;
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+}
