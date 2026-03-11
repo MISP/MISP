@@ -18,7 +18,7 @@ if ($field['data_path'] === 'Event.id') {
 }
 ?>
 
-<div class="d-inline-flex align-items-center checkbox-actions-wrapper">
+<div class="d-inline-flex align-items-center checkbox-actions-wrapper checkbox-index">
 
     <!-- Checkbox -->
     <?= $this->Form->checkbox('selected_items[]', $checkboxAttrs); ?>
