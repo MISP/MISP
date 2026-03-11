@@ -195,6 +195,16 @@ body[data-controller="users"][data-action="login"] {
 
 
 
+.dropdown-filters .dropdown-toggle::after {
+    display: none !important;
+}
+
+
+.dropdown-item.setTheme {
+    min-width: 500px;
+    white-space: normal;
+}
+
 /* =======================================================
    DESKTOP ONLY (>= 1200px)
 ======================================================= */
@@ -324,7 +334,7 @@ body[data-controller="users"][data-action="login"] {
 }
 
 
-input[type="checkbox"] {
+.checkbox-index input[type="checkbox"] {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
@@ -340,7 +350,7 @@ input[type="checkbox"] {
 }
 
 /* Visual check inside the checkbox ticked */
-input[type="checkbox"]::after {
+.checkbox-index input[type="checkbox"]::after{
     content: "";
     position: absolute;
     left: 6px;
@@ -355,16 +365,20 @@ input[type="checkbox"]::after {
 }
 
 /* Display the check */
-input[type="checkbox"]:checked::after {
+.checkbox-index input[type="checkbox"]:checked::after {
     opacity: 1;
 }
 
-input[type="checkbox"].select_all:checked {
+.checkbox-index input[type="checkbox"].select_all:checked {
     background-color: orangered;
 }
 
+.checkbox-index input[type="checkbox"]:checked {
+    background-color: #1892B1;
+}
+    
 /* Visual focus (to improve) */
-input[type="checkbox"]:focus {
+.checkbox-index input[type="checkbox"]:focus {
     outline: none;
     box-shadow: none;
 }
@@ -432,10 +446,6 @@ input[type="checkbox"]:focus {
 }
 
 
-
-
-
-
 th a {
     text-decoration: none !important;
     color: inherit;
@@ -459,20 +469,150 @@ th .sort-icon::before {
 }
 
 
-
-.dropdown-filters .dropdown-toggle::after {
-    display: none !important;
-}
-
-
-.dropdown-item.setTheme {
-    min-width: 500px;
-    white-space: normal;
-}
-
+/* =======================================================
+   Custom color for default field
+======================================================= */
 .default-color {
     color: #380474 !important;
 }
 .default-bg {
     background-color: #b56ef8 !important;
 }
+
+
+
+/* =======================================================
+Still in work - API Custom CSS
+======================================================= */
+.api-call-block {
+
+border-radius:8px;
+overflow:hidden;
+border:1px solid #ddd;
+
+}
+
+.api-call-header {
+
+background:#f3f3f3;
+padding:8px 12px;
+
+display:flex;
+justify-content:space-between;
+align-items:center;
+
+font-weight:600;
+font-size:14px;
+
+border-bottom:1px solid #ddd;
+
+}
+
+.api-call-code {
+
+background:#2b2f36;
+
+color:#6cff9a;
+
+padding:15px;
+
+font-size:13px;
+
+margin:0;
+
+font-family:monospace;
+
+overflow:auto;
+
+}
+
+.copy-btn {
+
+border:none;
+background:transparent;
+
+cursor:pointer;
+
+color:#555;
+
+}
+
+.copy-btn:hover {
+
+color:#000;
+
+}
+
+
+
+.response-topbar {
+
+display:flex;
+justify-content:space-between;
+align-items:center;
+
+border-bottom:1px solid #ddd;
+
+padding:6px 10px;
+
+}
+
+.response-tabs .nav-link {
+
+font-size:13px;
+
+}
+
+.response-meta {
+
+display:flex;
+align-items:center;
+gap:10px;
+
+}
+
+.response-time {
+
+font-size:13px;
+color:#666;
+
+}
+
+.icon-btn {
+
+border:none;
+background:transparent;
+
+cursor:pointer;
+color:#555;
+
+}
+
+.icon-btn:hover {
+
+color:#000;
+
+}
+
+.response-code {
+
+background:#2b2f36;
+
+color:#6cff9a;
+
+padding:15px;
+
+margin:0;
+
+font-family:monospace;
+
+font-size:13px;
+
+border-radius:6px;
+
+overflow:auto;
+
+}
+/* =======================================================
+Still in work - API Custom CSS
+======================================================= */
