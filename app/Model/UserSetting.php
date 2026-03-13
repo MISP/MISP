@@ -123,8 +123,8 @@ class UserSetting extends AppModel
             'validation' => 'validate_json',
         ],
         'ui_theme' => [
-            'placeholder' => 'Default, Overmind, UiBeta',
-            'options' => ['Default', 'Overmind', 'UiBeta'],
+            'placeholder' => 'Default, Overmind, UiBeta, EventTest',
+            'options' => ['Default', 'Overmind', 'UiBeta', 'EventTest'],
             'validation' => 'validate_theme',
         ],
     );
