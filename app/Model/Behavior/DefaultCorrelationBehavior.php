@@ -426,6 +426,169 @@ class DefaultCorrelationBehavior extends ModelBehavior
         }
     }
 
+    /**
+     * Fetch correlations scoped to specific attribute IDs.
+     * Queries both sides of the correlation table (where
+     * our attribute is on either side) and returns
+     * correlated attributes grouped by source attribute ID.
+     *
+     * Follows the same pattern as runGetRelatedAttributes.
+     *
+     * @param Model $Model
+     * @param array $user
+     * @param int $eventId
+     * @param array $sgids
+     * @param array $attributeIds
+     * @return array Keyed by source attribute ID
+     */
+    public function runGetAttributeCorrelations(
+        Model $Model,
+        array $user,
+        $eventId,
+        array $sgids,
+        array $attributeIds
+    ) {
+        $isSiteAdmin = !empty(
+            $user['Role']['perm_site_admin']
+        );
+
+        // Two passes: one for each side of the correlation
+        $conditions = [
+            [
+                'Correlation.attribute_id' => $attributeIds,
+                'Correlation.1_event_id !=' => $eventId,
+            ],
+            [
+                'Correlation.1_attribute_id' => $attributeIds,
+                'Correlation.event_id !=' => $eventId,
+            ],
+        ];
+        $corrFields = [
+            [
+                'attribute_id', 'value_id',
+                '1_attribute_id',
+                '1_org_id',
+                '1_event_id',
+                '1_event_distribution',
+                '1_event_sharing_group_id',
+                '1_object_id',
+                '1_object_distribution',
+                '1_object_sharing_group_id',
+                '1_distribution',
+                '1_sharing_group_id',
+            ],
+            [
+                '1_attribute_id', 'value_id',
+                'attribute_id',
+                'org_id',
+                'event_id',
+                'event_distribution',
+                'event_sharing_group_id',
+                'object_id',
+                'object_distribution',
+                'object_sharing_group_id',
+                'distribution',
+                'sharing_group_id',
+            ],
+        ];
+        // source prefix = field for "our" attribute id
+        // target prefix = field for the correlated side
+        $sourceFields = ['', '1_'];
+        $prefixes = ['1_', ''];
+
+        $correlations = [];
+        $eventIds = [];
+        $valueIds = [];
+        foreach ($conditions as $k => $condition) {
+            $rows = $Model->find('all', [
+                'recursive' => -1,
+                'conditions' => $condition,
+                'fields' => $corrFields[$k],
+            ]);
+            $prefix = $prefixes[$k];
+            $sourceField = $sourceFields[$k];
+            foreach ($rows as $row) {
+                $corr = $row['Correlation'];
+                if (
+                    !$isSiteAdmin &&
+                    !$this->checkCorrelationACL(
+                        $user, $corr, $sgids, $prefix
+                    )
+                ) {
+                    continue;
+                }
+                $parentId = $corr[
+                    $sourceField . 'attribute_id'
+                ];
+                $targetEventId = $corr[
+                    $prefix . 'event_id'
+                ];
+                $correlations[] = [
+                    'id' => $targetEventId,
+                    'attribute_id' => $corr[
+                        $prefix . 'attribute_id'
+                    ],
+                    'parent_id' => $parentId,
+                    'value_id' => $corr['value_id'],
+                ];
+                $eventIds[$targetEventId] = true;
+                $valueIds[$corr['value_id']] = true;
+            }
+        }
+
+        if (empty($correlations)) {
+            return [];
+        }
+
+        // Resolve correlation values in bulk
+        $values = $Model->CorrelationValue->find('list', [
+            'recursive' => -1,
+            'conditions' => [
+                'CorrelationValue.id' =>
+                    array_keys($valueIds),
+            ],
+            'fields' => [
+                'CorrelationValue.id',
+                'CorrelationValue.value',
+            ],
+        ]);
+
+        // Enrich with event metadata
+        $eventConditions = $Model->Event
+            ->createEventConditions($user);
+        $eventConditions['Event.id'] = array_keys($eventIds);
+        $events = $Model->Event->find('all', [
+            'recursive' => -1,
+            'conditions' => $eventConditions,
+            'fields' => [
+                'Event.id', 'Event.orgc_id',
+                'Event.info', 'Event.date',
+            ],
+        ]);
+        $events = array_column(
+            array_column($events, 'Event'), null, 'id'
+        );
+
+        $result = [];
+        foreach ($correlations as $corr) {
+            $evId = $corr['id'];
+            if (!isset($events[$evId])) {
+                continue;
+            }
+            $event = $events[$evId];
+            $parentId = $corr['parent_id'];
+            $result[$parentId][] = [
+                'id' => $evId,
+                'attribute_id' => $corr['attribute_id'],
+                'value' => $values[$corr['value_id']] ?? '',
+                'org_id' => $event['orgc_id'],
+                'info' => $event['info'],
+                'date' => $event['date'],
+            ];
+        }
+        return $result;
+    }
+
     public function fetchRelatedEventIds(Model $Model, array $user, int $eventId, array $sgids)
     {
         // search the correlation table for the event ids of the related events

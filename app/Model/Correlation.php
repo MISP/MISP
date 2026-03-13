@@ -1146,6 +1146,28 @@ class Correlation extends AppModel
         return $relatedEventIds;
     }
 
+    /**
+     * Fetch correlations scoped to a specific set of
+     * attribute IDs. Returns correlated attributes from
+     * other events, grouped by the source attribute ID.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param array $sgids Authorised sharing group IDs
+     * @param array $attributeIds Attribute IDs to scope
+     * @return array Keyed by source attribute ID
+     */
+    public function getAttributeCorrelations(
+        array $user,
+        $eventId,
+        array $sgids,
+        array $attributeIds
+    ) {
+        return $this->runGetAttributeCorrelations(
+            $user, $eventId, $sgids, $attributeIds
+        );
+    }
+
     public function attachExclusionsToOverCorrelations($data)
     {
         foreach ($data as $k => $v) {
