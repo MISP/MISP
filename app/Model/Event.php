@@ -1706,6 +1706,792 @@ class Event extends AppModel
     }
 
     /**
+     * Fetch paginated standalone attributes (object_id=0)
+     * for a given event, with distribution-based ACL.
+     *
+     * @param array $user
+     * @param int   $eventId
+     * @param array $options  Keys:
+     *   - page (int, default 1)
+     *   - limit (int, default 60)
+     *   - sort (string, default 'timestamp')
+     *   - direction (string, default 'desc')
+     *   - deleted (int, 0=not-deleted, 1=both, 2=only-deleted)
+     *   - category (string|null)
+     *   - type (string|null)
+     *   - toIDS (int|null, 1=yes, 2=no)
+     *   - searchFor (string|null) value substring search
+     * @return array ['Attribute' => [...], 'total' => int]
+     */
+    public function fetchPaginatedAttributes(
+        array $user,
+        $eventId,
+        array $options = []
+    ) {
+        $page = max(1, (int)($options['page'] ?? 1));
+        $limit = min(500, max(1, (int)($options['limit'] ?? 60)));
+        $sort = $options['sort'] ?? 'timestamp';
+        $direction = (
+            isset($options['direction']) &&
+            strtolower($options['direction']) === 'asc'
+        ) ? 'ASC' : 'DESC';
+
+        $allowedSortFields = [
+            'id', 'uuid', 'type', 'category', 'value',
+            'to_ids', 'timestamp', 'distribution', 'comment',
+            'first_seen', 'last_seen',
+        ];
+        if (!in_array($sort, $allowedSortFields, true)) {
+            $sort = 'timestamp';
+        }
+
+        // Base conditions
+        $conditions = [
+            'Attribute.event_id' => $eventId,
+        ];
+        if (empty($options['flatten'])) {
+            $conditions['Attribute.object_id'] = 0;
+        }
+
+        // Deleted filter
+        $deleted = (int)($options['deleted'] ?? 0);
+        if ($deleted === 1) {
+            $conditions['Attribute.deleted'] = [0, 1];
+        } elseif ($deleted === 2) {
+            $conditions['Attribute.deleted'] = 1;
+        } else {
+            $conditions['Attribute.deleted'] = 0;
+        }
+
+        // Optional filters
+        if (!empty($options['category'])) {
+            $conditions['Attribute.category'] = $options['category'];
+        }
+        if (!empty($options['type'])) {
+            $conditions['Attribute.type'] = $options['type'];
+        }
+        if (isset($options['toIDS']) && $options['toIDS'] != 0) {
+            $conditions['Attribute.to_ids'] =
+                $options['toIDS'] == 2 ? 0 : 1;
+        }
+        if (!empty($options['searchFor'])) {
+            $conditions['Attribute.value LIKE'] =
+                '%' . $options['searchFor'] . '%';
+        }
+
+        // Distribution-based ACL for non-site-admins
+        $isSiteAdmin = $user['Role']['perm_site_admin'];
+        if (!$isSiteAdmin) {
+            $sgids = $this->SharingGroup->authorizedIds($user);
+            $attributeCondSelect =
+                '(SELECT events.org_id FROM events'
+                . ' WHERE events.id = Attribute.event_id)';
+            if (!$this->isMysql()) {
+                $schema = $this->getDataSource()
+                    ->config['schema'];
+                $attributeCondSelect = sprintf(
+                    '(SELECT "%s"."events"."org_id"'
+                    . ' FROM "%s"."events"'
+                    . ' WHERE "%s"."events"."id"'
+                    . ' = "Attribute"."event_id")',
+                    $schema, $schema, $schema
+                );
+            }
+            $conditions['AND'][0]['OR'] = [
+                ['AND' => [
+                    'Attribute.distribution >' => 0,
+                    'Attribute.distribution !=' => 4,
+                ]],
+                ['AND' => [
+                    'Attribute.distribution' => 4,
+                    'Attribute.sharing_group_id' => $sgids,
+                ]],
+                $attributeCondSelect => $user['org_id'],
+            ];
+        }
+
+        $fields = [
+            'Attribute.id',
+            'Attribute.type',
+            'Attribute.category',
+            'Attribute.value',
+            'Attribute.to_ids',
+            'Attribute.uuid',
+            'Attribute.event_id',
+            'Attribute.distribution',
+            'Attribute.timestamp',
+            'Attribute.comment',
+            'Attribute.sharing_group_id',
+            'Attribute.deleted',
+            'Attribute.disable_correlation',
+            'Attribute.first_seen',
+            'Attribute.last_seen',
+        ];
+
+        // Count total (for pagination metadata)
+        $total = $this->Attribute->find('count', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+        ]);
+
+        // Fetch page
+        $attributes = $this->Attribute->find('all', [
+            'conditions' => $conditions,
+            'fields' => $fields,
+            'recursive' => -1,
+            'order' => ['Attribute.' . $sort => $direction],
+            'limit' => $limit,
+            'offset' => ($page - 1) * $limit,
+        ]);
+
+        // Flatten CakePHP nested format
+        $flat = [];
+        foreach ($attributes as $a) {
+            $flat[] = $a['Attribute'];
+        }
+
+        // Bulk-load tags for fetched attributes
+        if (!empty($flat)) {
+            $attributeIds = array_column($flat, 'id');
+            $ats = $this->Attribute->AttributeTag->find('all', [
+                'conditions' => [
+                    'AttributeTag.attribute_id' => $attributeIds,
+                ],
+                'fields' => [
+                    'AttributeTag.id',
+                    'AttributeTag.attribute_id',
+                    'AttributeTag.tag_id',
+                    'AttributeTag.local',
+                    'AttributeTag.relationship_type',
+                ],
+                'recursive' => -1,
+            ]);
+
+            // Group by attribute_id
+            $tagsByAttr = [];
+            $tagIds = [];
+            foreach ($ats as $at) {
+                $row = $at['AttributeTag'];
+                $tagsByAttr[$row['attribute_id']][] = $row;
+                $tagIds[$row['tag_id']] = true;
+            }
+
+            // Fetch tag details in one query
+            $tagsById = [];
+            if (!empty($tagIds)) {
+                $tags = $this->EventTag->Tag->find('all', [
+                    'recursive' => -1,
+                    'conditions' => [
+                        'Tag.id' => array_keys($tagIds),
+                    ],
+                ]);
+                foreach ($tags as $tag) {
+                    $tagsById[$tag['Tag']['id']] = $tag['Tag'];
+                }
+            }
+
+            // Attach to attributes
+            foreach ($flat as &$attribute) {
+                $attribute['AttributeTag'] = [];
+                if (!empty($tagsByAttr[$attribute['id']])) {
+                    foreach ($tagsByAttr[$attribute['id']] as $at) {
+                        $tag = $tagsById[$at['tag_id']] ?? null;
+                        if ($tag) {
+                            $at['Tag'] = $tag;
+                            $attribute['AttributeTag'][] = $at;
+                        }
+                    }
+                }
+            }
+            unset($attribute);
+        }
+
+        // Attach SharingGroup names for distribution==4
+        $sgIdsNeeded = [];
+        foreach ($flat as $attribute) {
+            if (
+                (int)$attribute['distribution'] === 4 &&
+                !empty($attribute['sharing_group_id'])
+            ) {
+                $sgIdsNeeded[$attribute['sharing_group_id']] = true;
+            }
+        }
+        if (!empty($sgIdsNeeded)) {
+            $sgs = $this->SharingGroup->find('all', [
+                'conditions' => [
+                    'SharingGroup.id' => array_keys($sgIdsNeeded),
+                ],
+                'fields' => ['SharingGroup.id', 'SharingGroup.name'],
+                'recursive' => -1,
+            ]);
+            $sgNames = [];
+            foreach ($sgs as $sg) {
+                $sgNames[$sg['SharingGroup']['id']] =
+                    $sg['SharingGroup']['name'];
+            }
+            foreach ($flat as &$attribute) {
+                if (
+                    (int)$attribute['distribution'] === 4 &&
+                    isset($sgNames[$attribute['sharing_group_id']])
+                ) {
+                    $attribute['SharingGroup'] = [
+                        'name' => $sgNames[
+                            $attribute['sharing_group_id']
+                        ],
+                    ];
+                }
+            }
+            unset($attribute);
+        }
+
+        $enriched = $this->__enrichAttributes(
+            $flat, $user, $eventId
+        );
+
+        return [
+            'Attribute' => $enriched['attributes'],
+            'total' => (int)$total,
+            'page' => $page,
+            'limit' => $limit,
+            'sightings_csv' =>
+                $enriched['sightings_csv'],
+        ];
+    }
+
+    /**
+     * Fetch paginated objects for a given event, with
+     * distribution-based ACL on both the object and its
+     * nested attributes. Includes attribute tags and
+     * proposals inline.
+     *
+     * @param array $user
+     * @param int   $eventId
+     * @param array $options  Keys:
+     *   - page (int, default 1)
+     *   - limit (int, default 60)
+     *   - sort (string, default 'timestamp')
+     *   - direction (string, default 'desc')
+     *   - deleted (int, 0/1/2)
+     *   - name (string|null) object template name filter
+     *   - meta-category (string|null)
+     *   - searchFor (string|null) search in object attribute values
+     * @return array ['Object' => [...], 'total' => int]
+     */
+    public function fetchPaginatedObjects(
+        array $user,
+        $eventId,
+        array $options = []
+    ) {
+        $page = max(1, (int)($options['page'] ?? 1));
+        $limit = min(500, max(1, (int)($options['limit'] ?? 60)));
+        $sort = $options['sort'] ?? 'timestamp';
+        $direction = (
+            isset($options['direction']) &&
+            strtolower($options['direction']) === 'asc'
+        ) ? 'ASC' : 'DESC';
+
+        $allowedSortFields = [
+            'id', 'uuid', 'name', 'meta-category',
+            'timestamp', 'distribution', 'comment',
+            'first_seen', 'last_seen',
+        ];
+        if (!in_array($sort, $allowedSortFields, true)) {
+            $sort = 'timestamp';
+        }
+
+        $isSiteAdmin = $user['Role']['perm_site_admin'];
+
+        // Object-level conditions
+        $conditions = [
+            'Object.event_id' => $eventId,
+        ];
+
+        // Deleted filter
+        $deleted = (int)($options['deleted'] ?? 0);
+        if ($deleted === 1) {
+            $conditions['Object.deleted'] = [0, 1];
+        } elseif ($deleted === 2) {
+            $conditions['Object.deleted'] = 1;
+        } else {
+            $conditions['Object.deleted'] = 0;
+        }
+
+        // Optional filters
+        if (!empty($options['name'])) {
+            $conditions['Object.name'] = $options['name'];
+        }
+        if (!empty($options['meta-category'])) {
+            $conditions['Object.meta-category'] =
+                $options['meta-category'];
+        }
+
+        // Object distribution ACL for non-site-admins
+        $sgids = $this->SharingGroup->authorizedIds($user);
+        if (!$isSiteAdmin) {
+            $objectCondSelect =
+                '(SELECT events.org_id FROM events'
+                . ' WHERE events.id = Object.event_id)';
+            if (!$this->isMysql()) {
+                $schema = $this->getDataSource()
+                    ->config['schema'];
+                $objectCondSelect = sprintf(
+                    '(SELECT "%s"."events"."org_id"'
+                    . ' FROM "%s"."events"'
+                    . ' WHERE "%s"."events"."id"'
+                    . ' = "Object"."event_id")',
+                    $schema, $schema, $schema
+                );
+            }
+            $conditions['AND'][0]['OR'] = [
+                ['AND' => [
+                    'Object.distribution >' => 0,
+                    'Object.distribution !=' => 4,
+                ]],
+                ['AND' => [
+                    'Object.distribution' => 4,
+                    'Object.sharing_group_id' => $sgids,
+                ]],
+                $objectCondSelect => $user['org_id'],
+            ];
+        }
+
+        $objectFields = [
+            'Object.id',
+            'Object.name',
+            'Object.meta-category',
+            'Object.description',
+            'Object.template_uuid',
+            'Object.template_version',
+            'Object.event_id',
+            'Object.uuid',
+            'Object.timestamp',
+            'Object.distribution',
+            'Object.sharing_group_id',
+            'Object.comment',
+            'Object.deleted',
+            'Object.first_seen',
+            'Object.last_seen',
+        ];
+
+        // If searchFor is set, we need to find objects that
+        // have at least one attribute matching the search term.
+        // We do this via a subquery on the object IDs.
+        if (!empty($options['searchFor'])) {
+            $db = $this->getDataSource();
+            $subQuery = $db->buildStatement([
+                'fields' => ['DISTINCT Attribute.object_id'],
+                'table' => 'attributes',
+                'alias' => 'Attribute',
+                'conditions' => [
+                    'Attribute.event_id' => $eventId,
+                    'Attribute.object_id !=' => 0,
+                    'Attribute.value1 LIKE' =>
+                        '%' . $options['searchFor'] . '%',
+                ],
+            ], $this->Attribute);
+            $conditions[] =
+                'Object.id IN (' . $subQuery . ')';
+        }
+
+        // Count total (for pagination metadata)
+        $total = $this->Object->find('count', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+        ]);
+
+        // Fetch page of objects
+        $objects = $this->Object->find('all', [
+            'conditions' => $conditions,
+            'fields' => $objectFields,
+            'recursive' => -1,
+            'order' => ['Object.' . $sort => $direction],
+            'limit' => $limit,
+            'offset' => ($page - 1) * $limit,
+        ]);
+
+        if (empty($objects)) {
+            return [
+                'Object' => [],
+                'total' => (int)$total,
+                'page' => $page,
+                'limit' => $limit,
+            ];
+        }
+
+        // Collect object IDs for bulk loading of attributes
+        $objectIds = [];
+        $flat = [];
+        foreach ($objects as $o) {
+            $obj = $o['Object'];
+            $obj['Attribute'] = [];
+            $objectIds[] = $obj['id'];
+            $flat[$obj['id']] = $obj;
+        }
+
+        // Fetch attributes for these objects with ACL
+        $attrConditions = [
+            'Attribute.event_id' => $eventId,
+            'Attribute.object_id' => $objectIds,
+            'Attribute.deleted' => 0,
+        ];
+        if (!$isSiteAdmin) {
+            $attributeCondSelect =
+                '(SELECT events.org_id FROM events'
+                . ' WHERE events.id = Attribute.event_id)';
+            if (!$this->isMysql()) {
+                $schema = $this->getDataSource()
+                    ->config['schema'];
+                $attributeCondSelect = sprintf(
+                    '(SELECT "%s"."events"."org_id"'
+                    . ' FROM "%s"."events"'
+                    . ' WHERE "%s"."events"."id"'
+                    . ' = "Attribute"."event_id")',
+                    $schema, $schema, $schema
+                );
+            }
+            $attrConditions['AND'][0]['OR'] = [
+                ['AND' => [
+                    'Attribute.distribution >' => 0,
+                    'Attribute.distribution !=' => 4,
+                ]],
+                ['AND' => [
+                    'Attribute.distribution' => 4,
+                    'Attribute.sharing_group_id' => $sgids,
+                ]],
+                $attributeCondSelect => $user['org_id'],
+            ];
+        }
+
+        $attrFields = [
+            'Attribute.id',
+            'Attribute.type',
+            'Attribute.category',
+            'Attribute.value',
+            'Attribute.to_ids',
+            'Attribute.uuid',
+            'Attribute.event_id',
+            'Attribute.object_id',
+            'Attribute.object_relation',
+            'Attribute.distribution',
+            'Attribute.timestamp',
+            'Attribute.comment',
+            'Attribute.sharing_group_id',
+            'Attribute.deleted',
+            'Attribute.disable_correlation',
+            'Attribute.first_seen',
+            'Attribute.last_seen',
+        ];
+
+        $attributes = $this->Attribute->find('all', [
+            'conditions' => $attrConditions,
+            'fields' => $attrFields,
+            'recursive' => -1,
+            'order' => ['Attribute.object_relation' => 'ASC'],
+        ]);
+
+        // Collect attribute IDs and group by object
+        $allAttrIds = [];
+        $attrsByObject = [];
+        foreach ($attributes as $a) {
+            $attr = $a['Attribute'];
+            $allAttrIds[] = $attr['id'];
+            $attrsByObject[$attr['object_id']][] = $attr;
+        }
+
+        // Bulk-load attribute tags
+        $tagsByAttr = [];
+        $tagsById = [];
+        if (!empty($allAttrIds)) {
+            $ats = $this->Attribute->AttributeTag->find('all', [
+                'conditions' => [
+                    'AttributeTag.attribute_id' => $allAttrIds,
+                ],
+                'fields' => [
+                    'AttributeTag.id',
+                    'AttributeTag.attribute_id',
+                    'AttributeTag.tag_id',
+                    'AttributeTag.local',
+                    'AttributeTag.relationship_type',
+                ],
+                'recursive' => -1,
+            ]);
+
+            $tagIds = [];
+            foreach ($ats as $at) {
+                $row = $at['AttributeTag'];
+                $tagsByAttr[$row['attribute_id']][] = $row;
+                $tagIds[$row['tag_id']] = true;
+            }
+
+            if (!empty($tagIds)) {
+                $tags = $this->EventTag->Tag->find('all', [
+                    'recursive' => -1,
+                    'conditions' => [
+                        'Tag.id' => array_keys($tagIds),
+                    ],
+                ]);
+                foreach ($tags as $tag) {
+                    $tagsById[$tag['Tag']['id']] =
+                        $tag['Tag'];
+                }
+            }
+        }
+
+        // Bulk-load proposals (shadow attributes) for
+        // attributes in these objects
+        $proposalsByAttr = [];
+        if (!empty($allAttrIds)) {
+            $proposals = $this->ShadowAttribute->find('all', [
+                'conditions' => [
+                    'ShadowAttribute.old_id' => $allAttrIds,
+                    'ShadowAttribute.deleted' => 0,
+                ],
+                'recursive' => -1,
+            ]);
+            foreach ($proposals as $p) {
+                $proposalsByAttr[$p['ShadowAttribute']['old_id']][]
+                    = $p['ShadowAttribute'];
+            }
+        }
+
+        // Assemble attributes into objects with tags
+        // and proposals
+        foreach ($flat as $objId => &$obj) {
+            if (!empty($attrsByObject[$objId])) {
+                foreach ($attrsByObject[$objId] as &$attr) {
+                    // Attach tags
+                    $attr['AttributeTag'] = [];
+                    if (!empty($tagsByAttr[$attr['id']])) {
+                        foreach ($tagsByAttr[$attr['id']] as $at) {
+                            $tag = $tagsById[$at['tag_id']]
+                                ?? null;
+                            if ($tag) {
+                                $at['Tag'] = $tag;
+                                $attr['AttributeTag'][] = $at;
+                            }
+                        }
+                    }
+                    // Attach proposals
+                    $attr['ShadowAttribute'] =
+                        $proposalsByAttr[$attr['id']] ?? [];
+                }
+                unset($attr);
+                $obj['Attribute'] = $attrsByObject[$objId];
+            }
+        }
+        unset($obj);
+
+        // Attach SharingGroup names for distribution==4
+        $sgIdsNeeded = [];
+        foreach ($flat as $obj) {
+            if (
+                (int)$obj['distribution'] === 4 &&
+                !empty($obj['sharing_group_id'])
+            ) {
+                $sgIdsNeeded[$obj['sharing_group_id']] = true;
+            }
+            foreach ($obj['Attribute'] as $attr) {
+                if (
+                    (int)$attr['distribution'] === 4 &&
+                    !empty($attr['sharing_group_id'])
+                ) {
+                    $sgIdsNeeded[$attr['sharing_group_id']]
+                        = true;
+                }
+            }
+        }
+        if (!empty($sgIdsNeeded)) {
+            $sgs = $this->SharingGroup->find('all', [
+                'conditions' => [
+                    'SharingGroup.id' =>
+                        array_keys($sgIdsNeeded),
+                ],
+                'fields' => [
+                    'SharingGroup.id',
+                    'SharingGroup.name',
+                ],
+                'recursive' => -1,
+            ]);
+            $sgNames = [];
+            foreach ($sgs as $sg) {
+                $sgNames[$sg['SharingGroup']['id']] =
+                    $sg['SharingGroup']['name'];
+            }
+            foreach ($flat as &$obj) {
+                if (
+                    (int)$obj['distribution'] === 4 &&
+                    isset($sgNames[$obj['sharing_group_id']])
+                ) {
+                    $obj['SharingGroup'] = [
+                        'name' => $sgNames[
+                            $obj['sharing_group_id']
+                        ],
+                    ];
+                }
+                foreach ($obj['Attribute'] as &$attr) {
+                    if (
+                        (int)$attr['distribution'] === 4 &&
+                        isset(
+                            $sgNames[$attr['sharing_group_id']]
+                        )
+                    ) {
+                        $attr['SharingGroup'] = [
+                            'name' => $sgNames[
+                                $attr['sharing_group_id']
+                            ],
+                        ];
+                    }
+                }
+                unset($attr);
+            }
+            unset($obj);
+        }
+
+        // Collect all nested attributes for bulk enrichment
+        $allAttrs = [];
+        foreach ($flat as $obj) {
+            foreach ($obj['Attribute'] as $attr) {
+                $allAttrs[$attr['id']] = $attr;
+            }
+        }
+
+        if (!empty($allAttrs)) {
+            $allAttrsFlat = array_values($allAttrs);
+            $enriched = $this->__enrichAttributes(
+                $allAttrsFlat, $user, $eventId
+            );
+
+            // Re-index by ID and redistribute into objects
+            $byId = [];
+            foreach ($enriched['attributes'] as $attr) {
+                $byId[$attr['id']] = $attr;
+            }
+            foreach ($flat as &$obj) {
+                foreach ($obj['Attribute'] as &$attr) {
+                    if (isset($byId[$attr['id']])) {
+                        $attr = $byId[$attr['id']];
+                    }
+                }
+                unset($attr);
+            }
+            unset($obj);
+        }
+
+        // Analyst data on objects themselves
+        $flatValues = array_values($flat);
+        $flatValues = $this->Object
+            ->attachAnalystDataBulk($flatValues);
+
+        return [
+            'Object' => $flatValues,
+            'total' => (int)$total,
+            'page' => $page,
+            'limit' => $limit,
+        ];
+    }
+
+    /**
+     * Enrich a flat array of attributes with warninglist
+     * hits, feed/server correlations, attribute
+     * correlations, and sighting data.
+     *
+     * @param array $attributes Flat array of attributes
+     * @param array $user
+     * @param int   $eventId
+     * @return array [
+     *   'attributes' => [...enriched...],
+     *   'sightings_csv' => [...]
+     * ]
+     */
+    private function __enrichAttributes(
+        array $attributes,
+        array $user,
+        $eventId
+    ) {
+        if (empty($attributes)) {
+            return [
+                'attributes' => [],
+                'sightings_csv' => [],
+            ];
+        }
+
+        // Warninglist hits
+        if (!isset($this->Warninglist)) {
+            $this->Warninglist = ClassRegistry::init(
+                'Warninglist'
+            );
+        }
+        $this->Warninglist->attachWarninglistToAttributes(
+            $attributes
+        );
+
+        // Feed and server correlations
+        if (!isset($this->Feed)) {
+            $this->Feed = ClassRegistry::init('Feed');
+        }
+        $eventShell = ['Event' => ['id' => $eventId]];
+        $attributes = $this->Feed->attachFeedCorrelations(
+            $attributes, $user,
+            $eventShell, false, 'Feed'
+        );
+        if (
+            $user['Role']['perm_site_admin'] ||
+            $user['org_id'] == Configure::read(
+                'MISP.host_org_id'
+            ) ||
+            Configure::read(
+                'MISP.show_server_correlations_for_all_users',
+                false
+            )
+        ) {
+            $attributes = $this->Feed
+                ->attachFeedCorrelations(
+                    $attributes, $user,
+                    $eventShell, false, 'Server'
+                );
+        }
+
+        // Attribute correlations
+        $attributeIds = array_column($attributes, 'id');
+        $sgids = $this->SharingGroup->authorizedIds($user);
+        $correlations = $this->Attribute->Correlation
+            ->getAttributeCorrelations(
+                $user, $eventId, $sgids, $attributeIds
+            );
+        foreach ($attributes as &$attribute) {
+            $attribute['RelatedAttribute'] =
+                $correlations[$attribute['id']] ?? [];
+        }
+        unset($attribute);
+
+        // Sighting data
+        $sightingsData = $this->Sighting->eventsStatistic(
+            [['Event' => [
+                'id' => $eventId,
+                'org_id' => $this->field('org_id', [
+                    'Event.id' => $eventId,
+                ]),
+            ]]],
+            $user
+        );
+        foreach ($attributes as &$attribute) {
+            $attribute['Sighting'] =
+                $sightingsData['data'][$attribute['id']]
+                ?? [];
+        }
+        unset($attribute);
+
+        // Analyst data (notes, opinions, relationships)
+        $attributes = $this->Attribute
+            ->attachAnalystDataBulk($attributes);
+
+        return [
+            'attributes' => $attributes,
+            'sightings_csv' => $sightingsData['csv'] ?? [],
+        ];
+    }
+
+    /**
      * @param array $user
      * @param array $params
      * @param bool $includeOrgc
