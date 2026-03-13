@@ -84,6 +84,7 @@ $generatePopover = function (array $cluster) use ($normalizeKey) {
 ?>
 <?php if (!empty($data)): ?>
 <div class="galaxyQuickView">
+<?php $data = array_values(array_combine(array_column($data, 'id'), $data)); ?>
 <?php foreach ($data as $galaxy): ?>
     <h3 title="<?= isset($galaxy['description']) ? h($galaxy['description']) : h($galaxy['name']) ?>">
         <?= h($galaxy['name']) ?>

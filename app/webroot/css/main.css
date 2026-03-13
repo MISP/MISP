@@ -61,6 +61,14 @@ form button.btn[disabled] {
     display: none;
 }
 
+.dropdown-submenu > .dropdown-menu {
+    display: none;
+}
+
+.dropdown-submenu:hover > .dropdown-menu {
+    display: block;
+}
+
 /*.close{
     float:none;
 }*/
@@ -167,7 +175,7 @@ h2.overflow::first-line {
     top: 1px;
     left: -6px;
 }
-ul.nav li.dropdown:hover ul.dropdown-menu{
+ul.nav li.dropdown:hover > ul.dropdown-menu{
     display: block;
 }
 

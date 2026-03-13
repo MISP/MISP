@@ -70,7 +70,7 @@ class TasksController extends AppController
             if ($result) {
                 return $this->RestResponse->saveSuccessResponse('Task', 'toggleEnabled', $id, $this->response->type());
             } else {
-                return $this->RestResponse->saveFailResponse('Task', 'toggleEnabled', $id, $this->validationError, $this->response->type());
+                return $this->RestResponse->saveFailResponse('Task', 'toggleEnabled', $id, $this->validationErrors, $this->response->type());
             }
         }
 
@@ -249,7 +249,7 @@ class TasksController extends AppController
                 return;
             } else {
                 if ($this->IndexFilter->isRest()) {
-                    return $this->RestResponse->saveFailResponse('Task', 'forceRunTask', $id, $this->validationError, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('Task', 'forceRunTask', $id, $this->validationErrors, $this->response->type());
                 }
                 $this->Flash->error(__('Failed to force run task: '));
                 $this->redirect(['action' => 'index']);

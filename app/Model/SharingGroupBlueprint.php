@@ -53,9 +53,6 @@ class SharingGroupBlueprint extends AppModel
 
     public function afterFind($results, $primary = false)
     {
-        foreach ($results as &$v) {
-            $v['SharingGroupBlueprint']['rules'] = json_encode(json_decode($v['SharingGroupBlueprint']['rules']), JSON_PRETTY_PRINT);
-        }
         return $results;
     }
 

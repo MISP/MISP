@@ -183,7 +183,7 @@ class TaxiiServersController extends AppController
             return $this->RestResponse->viewData($results, 'json');
         } else {
             return $this->RestResponse->saveFailResponse(
-                'TaxiiServers', 'getRoot', null, $result, $this->response->type()
+                'TaxiiServers', 'getCollections', null, $result, $this->response->type()
             );  
         }
     }

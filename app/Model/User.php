@@ -1144,14 +1144,15 @@ class User extends AppModel
      */
     public function createInitialUser($orgId)
     {
-        $authKey = $this->generateAuthKey();
+        $authKeyOld = $this->generateAuthKey();
+        $authKeyNew = $this->generateAuthKey();
         $admin = array('User' => array(
             'id' => 1,
             'email' => 'admin@admin.test',
             'org_id' => $orgId,
             'password' => 'admin',
             'confirm_password' => 'admin',
-            'authkey' => $authKey,
+            'authkey' => $authKeyOld,
             'nids_sid' => 4000000,
             'newsread' => 0,
             'role_id' => 1,
@@ -1161,7 +1162,7 @@ class User extends AppModel
         $this->save($admin);
         if (!empty(Configure::read("Security.advanced_authkeys"))) {
             $newKey = [
-                'authkey' => $authKey,
+                'authkey' => $authKeyNew,
                 'user_id' => 1,
                 'comment' => 'Initial auto-generated key',
                 'allowed_ips' => null,
@@ -1169,7 +1170,7 @@ class User extends AppModel
             $this->AuthKey->create();
             $this->AuthKey->save($newKey);
         }
-        return $authKey;
+        return empty(Configure::read("Security.advanced_authkeys")) ? $authKeyOld : $authKeyNew;
     }
 
     public function resetAllSyncAuthKeysRouter($user, $jobId = false)
@@ -1362,13 +1363,9 @@ class User extends AppModel
      */
     public function getGpgPublicKey()
     {
-        $email = Configure::read('GnuPG.email');
-        if (!$email) {
-            throw new Exception("Configuration option 'GnuPG.email' is not set, public key cannot be exported.");
-        }
-
         $cryptGpg = $this->initializeGpg();
-        $fingerprint = $cryptGpg->getFingerprint($email);
+        $this->CryptoGraphicKey = ClassRegistry::init('CrytpographicKey');
+        $fingerprint = $this->CryptoGraphicKey->ingestInstanceKey();
         if (!$fingerprint) {
             return null;
         }

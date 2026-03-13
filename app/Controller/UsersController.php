@@ -346,6 +346,9 @@ class UsersController extends AppController
             'conditions' => array('User.id' => $id),
             'recursive' => -1
         ));
+        $this->loadModel('Server');
+        $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
+        $this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
         if ($this->request->is('post') || $this->request->is('put')) {
             $abortPost = false;
             return $this->__pw_change($user, 'change_pw', $abortPost);
@@ -353,9 +356,7 @@ class UsersController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->describe('Users', 'change_pw', false, $this->response->type());
         }
-        $this->loadModel('Server');
-        $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
-        $this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
+    
         $this->User->recursive = 0;
         $this->User->read(null, $id);
         $this->User->set('password', '');
@@ -1641,6 +1642,20 @@ class UsersController extends AppController
 
     public function admin_email($isPreview=false)
     {
+        $conditionsAllowedOrgs = array();
+        if (!$this->_isSiteAdmin()) {
+            $conditionsAllowedOrgs = array('org_id' => $this->Auth->user('org_id'));
+        }
+        $conditionsAllowedOrgs['User.disabled'] = 0;
+        $temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email', 'Organisation.name'), 'order' => array('email ASC'), 'conditions' => $conditionsAllowedOrgs, 'contain' => array('Organisation')));
+        $emails = array();
+        $orgName = array();
+        // save all the emails of the users and set it for the dropdown list in the form
+        foreach ($temp as $user) {
+            $emails[$user['User']['id']] = $user['User']['email'];
+            $orgName[$user['Organisation']['id']] = $user['Organisation']['name'];
+        }
+
         $isPostOrPut = $this->request->is('post') || $this->request->is('put');
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
@@ -1681,6 +1696,12 @@ class UsersController extends AppController
             $users = $this->User->find('all', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions));
             // User has filled in his contact form, send out the email.
             if ($isPostOrPut) {
+
+                // Make sure we're sending a mail to an elligible org
+                if (!in_array($orgNameList, array_keys($orgName))) {
+                    throw new NotFoundException(__('Recipient org not provided'));
+                }
+
                 $this->request->data['User']['message'] = $this->__replaceEmailVariables($this->request->data['User']['message']);
                 $failures = '';
                 foreach ($users as $user) {
@@ -1706,19 +1727,6 @@ class UsersController extends AppController
                 } else {
                     $this->Flash->success(__('E-mails sent.'));
                 }
-            }
-            $conditions = array();
-            if (!$this->_isSiteAdmin()) {
-                $conditions = array('org_id' => $this->Auth->user('org_id'));
-            }
-            $conditions['User.disabled'] = 0;
-            $temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email', 'Organisation.name'), 'order' => array('email ASC'), 'conditions' => $conditions, 'contain' => array('Organisation')));
-            $emails = array();
-            $orgName = array();
-            // save all the emails of the users and set it for the dropdown list in the form
-            foreach ($temp as $user) {
-                $emails[$user['User']['id']] = $user['User']['email'];
-                $orgName[$user['Organisation']['id']] = $user['Organisation']['name'];
             }
 
             $this->set('users', $temp);

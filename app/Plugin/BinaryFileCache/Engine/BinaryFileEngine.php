@@ -167,7 +167,7 @@ class BinaryFileEngine extends FileEngine
             }
 
             try {
-                $file = new SplFileObject($path . $entry, 'rb');
+                $file = new SplFileObject($path . $entry);
             } catch (Exception $e) {
                 continue;
             }
@@ -198,7 +198,7 @@ class BinaryFileEngine extends FileEngine
     {
         $exists = file_exists($fileInfo->getPathname());
         if (!$exists) {
-            $resource = $this->openFile($fileInfo, 'cb');
+            $resource = $this->openFile($fileInfo, 'c');
             if ($resource && !chmod($fileInfo->getPathname(), (int)$this->settings['mask'])) {
                 trigger_error(__d(
                     'cake_dev', 'Could not apply permission mask "%s" on cache file "%s"',
@@ -207,7 +207,7 @@ class BinaryFileEngine extends FileEngine
             return $resource;
         }
 
-        return $this->openFile($fileInfo, 'cb');
+        return $this->openFile($fileInfo, 'c');
     }
 
     /**
@@ -215,15 +215,9 @@ class BinaryFileEngine extends FileEngine
      * @param string $mode
      * @return false|resource
      */
-    private function openFile(SplFileInfo $fileInfo, $mode = 'rb')
+    private function openFile(SplFileInfo $fileInfo, $mode = 'r')
     {
-        $resource = fopen($fileInfo->getPathname(), $mode);
-        if (!$resource) {
-            trigger_error(__d(
-                'cake_dev', 'Could not open file %s',
-                array($fileInfo->getPathname())), E_USER_WARNING);
-        }
-        return $resource;
+        return fopen($fileInfo->getPathname(), $mode);
     }
 
     /**

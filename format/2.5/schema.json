@@ -102,10 +102,7 @@
         "required": [
           "uuid"
         ]
-      },
-      "required": [
-        "uuid"
-      ]
+      }
     },
     "sharing_group_org": {
       "type": "object",
@@ -229,7 +226,7 @@
         }
       }
     },
-    "sighthing": {
+    "sighting": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -415,7 +412,7 @@
             "type": "array",
             "uniqueItems": true,
             "items": {
-              "$ref": "#/defs/sighthing"
+              "$ref": "#/defs/sighting"
             }
         },
         "Galaxy": {

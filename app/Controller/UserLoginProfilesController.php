@@ -109,28 +109,27 @@ class UserLoginProfilesController extends AppController
 
     public function admin_delete($id)
     {
-        if ($this->request->is('post') || $this->request->is('delete')) {
-            $profile = $this->UserLoginProfile->find('first', array(
-                'conditions' => $this->__deleteFetchConditions($id), // only allow (org/site) admins or own user to delete their data 
-                'fields' => ['UserLoginProfile.*']
-            ));
-            if (empty($profile)) {
-                throw new NotFoundException(__('Invalid user login profile'));
-            }
-            if ($this->UserLoginProfile->delete($id)) {
+        $profile = $this->UserLoginProfile->find('first', [
+            'conditions' => $this->__deleteFetchConditions($id),
+            'fields' => ['UserLoginProfile.id', 'UserLoginProfile.user_id'],
+            'recursive' => -1
+        ]);
+        if (empty($profile)) {
+            throw new NotFoundException(__('Invalid user login profile'));
+        }
+        $userId = $profile['UserLoginProfile']['user_id'];
+
+        $this->CRUD->delete($id, [
+            'conditions' => $this->__deleteFetchConditions($id),
+            'afterDelete' => function ($deletedProfile) use ($id) {
                 $this->loadModel('Log');
                 $fieldsDescrStr = 'UserLoginProfile (' . $id . '): deleted';
-                $this->Log->createLogEntry($this->Auth->user(), 'delete', 'UserLoginProfile', $id, $fieldsDescrStr, json_encode($profile));
-                
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('UserLoginProfile', 'admin_delete', $id, $this->response->type(), 'User login profile deleted.');
-                } else {
-                    $this->Flash->success(__('UserLoginProfile deleted'));
-                    $this->redirect(array('admin'=> false, 'controller' => 'userLoginProfiles', 'action' => 'index', $profile['UserLoginProfile']['user_id']));
-                }
-            }
-            $this->Flash->error(__('User login profile was not deleted'));
-            $this->redirect(array('admin'=> false, 'controller' => 'userLoginProfiles', 'action' => 'index', $profile['UserLoginProfile']['user_id']));
+                $this->Log->createLogEntry($this->Auth->user(), 'delete', 'UserLoginProfile', $id, $fieldsDescrStr, json_encode($deletedProfile));
+            },
+            'redirect' => ['controller' => 'users', 'action' => 'view', $userId]
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
 

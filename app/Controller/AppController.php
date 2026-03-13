@@ -5,6 +5,7 @@ App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 App::uses('BetterCakeEventManager', 'Tools');
+App::uses('MispTheme', 'Lib/MispTheme');
 
 /**
  * Application Controller
@@ -31,10 +32,10 @@ class AppController extends Controller
      */
     public $defaultModel = '';
 
-    public $helpers = array('OrgImg', 'FontAwesome', 'UserName');
+    public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
 
     private $__queryVersion = '182';
-    public $pyMispVersion = '2.5.17.2';
+    public $pyMispVersion = '2.5.33';
     public $phpmin = '8.1';
     public $phprec = '8.2';
     public $phptoonew = '9.0';
@@ -272,6 +273,60 @@ class AppController extends Controller
             }
         }
 
+        $themeLabels = [];
+        $themesEnabled = (bool)Configure::read('MISP.enable_themes');
+        $currentTheme = 'Default';
+        $this->set('theme', $currentTheme);
+        if (!$this->_isRest()) {
+            if ($themesEnabled) {
+                if ($this->Auth->user()) {
+                    $currentTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id')) ?? null;
+
+                    if ($currentTheme) {
+                        $this->theme = $currentTheme;
+                        $this->viewClass = 'Theme';
+                    } else {
+                        $currentTheme = Configure::read('MISP.default_theme');
+                        if ($currentTheme) {
+                            $this->theme = $currentTheme;
+                            $this->viewClass = 'Theme';
+                        }
+                    }
+                } else {
+                    $currentTheme = Configure::read('MISP.default_theme');
+                    if ($currentTheme) {
+                        $this->theme = $currentTheme;
+                        $this->viewClass = 'Theme';
+                    }
+                }
+                $this->set('theme', $currentTheme);
+                $this->set('themes', MispTheme::getAvailableThemes($currentTheme, (bool)Configure::read('debug')));
+
+                $userSetting = ClassRegistry::init('UserSetting');
+                $themes = $userSetting::VALID_SETTINGS['ui_theme']['options'];
+                foreach ($themes as $t) {
+                    if ($t === 'Default') {
+                        continue;
+                    }
+                    $themeFile = APP . 'View' . DS . 'Themed' . DS . $t . DS . 'theme.php';
+                    if (file_exists($themeFile)) {
+                        $themeConfig = include $themeFile;
+                        if (!empty($themeConfig['label'])) {
+                            $themeLabels[$t] = $themeConfig['label'];
+                        }
+                    }
+                    if (!isset($themeLabels[$t])) {
+                        $themeLabels[$t] = $t . ' UI';
+
+                    }
+                }
+            }
+        }
+        $this->set('themeLabels', $themeLabels);
+        $this->set('themesEnabled', $themesEnabled);
+
+
+
         $user = $this->Auth->user();
         if ($user) {
             Configure::write('CurrentUserId', $user['id']);
@@ -346,7 +401,6 @@ class AppController extends Controller
             $this->loadModel('Bookmark');
             $this->set('bookmarks', $this->Bookmark->getBookmarksForUser($user));
             $this->userRole = $role;
-
             $this->__accessMonitor($user);
 
         } else {
@@ -427,10 +481,7 @@ class AppController extends Controller
             if (!empty($homepage)) {
                 $this->set('homepage', $homepage);
             }
-            
-            $uiBetaEnabled = $this->User->UserSetting->isUiBetaEnabled($user['id']);
-            $this->set('uiBetaEnabled', $uiBetaEnabled);
-            
+
             if (PHP_MAJOR_VERSION < 8) {
                 $this->Flash->error(__('WARNING: MISP 2.5.x is currently running under PHP 7.x, which is unsupported. Make sure that you upgrade to PHP 8.x as soon as possible.'));
             }

@@ -253,7 +253,7 @@ class ShadowAttribute extends AppModel
                                     'Attribute.event_id !=' => $sa['event_id']
                             ),
                     ),
-                    'recursive => -1',
+                    'recursive' => -1,
                     'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id'),
                     'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
                     'order' => array(),

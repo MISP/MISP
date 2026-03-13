@@ -66,6 +66,9 @@ class Galaxy extends AppModel
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
+        if (empty($this->data['Galaxy']['uuid'])) {
+            $this->data['Galaxy']['uuid'] = CakeText::uuid();
+        }
         if (isset($this->data['Galaxy']['kill_chain_order'])) {
             if (is_array($this->data['Galaxy']['kill_chain_order'])) {
                 $json = json_encode($this->data['Galaxy']['kill_chain_order']);
@@ -91,9 +94,6 @@ class Galaxy extends AppModel
         if (empty($this->data['Galaxy']['modified']) || $this->data['Galaxy']['modified'] === '0000-00-00 00:00:00') {
             $this->data['Galaxy']['modified'] = (new DateTime())->format('Y-m-d H:i:s');
             $this->data['Galaxy']['modified'] = (new DateTime($this->data['Galaxy']['modified'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
-        }
-        if (empty($this->data['Galaxy']['uuid'])) {
-            $this->data['Galaxy']['uuid'] = CakeText::uuid();
         }
         if (empty($this->data['Galaxy']['type'])) {
             $this->data['Galaxy']['type'] =  $this->data['Galaxy']['uuid'];
@@ -879,7 +879,7 @@ class Galaxy extends AppModel
             }
             $event = $event[0];
             $org_id = $event['Event']['org_id'];
-            $orgc_id = $event['Event']['org_id'];
+            $orgc_id = $event['Event']['orgc_id'];
         } elseif ($target_type === 'tag_collection') {
             $target = $this->Tag->TagCollectionTag->TagCollection->fetchTagCollection($user, array('conditions' => array('TagCollection.id' => $target_id)));
             if (empty($target)) {

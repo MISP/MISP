@@ -544,6 +544,7 @@ class Server extends AppModel
             'includeEventCorrelations' => 0, // we don't need remote correlations
             'includeFeedCorrelations' => 0,
             'includeWarninglistHits' => 0, // we don't need remote warninglist hits
+            'noSightings' => 1
         ];
         if (empty($serverSync->server()['Server']['internal'])) {
             $params['excludeLocalTags'] = 1;
@@ -1715,6 +1716,12 @@ class Server extends AppModel
         return $languages;
     }
 
+    public function loadAvailableThemes()
+    {
+        $this->UserSetting = ClassRegistry::init('UserSetting');
+        return array_flip($this->UserSetting::VALID_SETTINGS['ui_theme']['options']);
+    }
+
     public function testLanguage($value)
     {
         $languages = $this->loadAvailableLanguages();
@@ -1768,6 +1775,15 @@ class Server extends AppModel
     {
         if (!is_numeric($value)) {
             return __('This setting has to be a number.');
+        }
+        return true;
+    }
+
+    public function testTheme($value)
+    {
+        $themes = $this->loadAvailableThemes();
+        if (!isset($themes[$value])) {
+            return __('Invalid theme.');
         }
         return true;
     }
@@ -4848,30 +4864,46 @@ class Server extends AppModel
             $job = ClassRegistry::init('Job');
             $job->id = $jobId;
         }
-        $redis->del('misp:server_cache:' . $serverId);
 
         $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        $fastCaching = $serverSync->isSupported(ServerSyncTool::FEATURE_FAST_CACHING);
+        $nextLastId = null;
+        $count = 0;
+        // delete the previous iterations, but skip the event uuid one as the uuid might exist on other instances too (should have thought about this when designing the cache, but alas, past me was a monkey too)
+        $redis->del('misp:server_cache:' . $serverId);
         while (true) {
-            $i++;
-            $rules = [
-                'returnFormat' => 'cache',
-                'includeEventUuid' => 1,
-                'page' => $i,
-                'limit' => $chunk_size,
-            ];
-            try {
-                $data = $serverSync->attributeSearch($rules)->body();
-            } catch (Exception $e) {
-                $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
-                break;
+            if ($fastCaching) {
+                if (!isset($lastId)) {
+                    $lastId = 0;
+                }
+                $return = $serverSync->getFastCache($nextLastId);
+                $nextLastId = (int)$return->headers['x-misp-last-id'] ?? null;
+                $data = $return->body();
+                $nextLastId;
+            } else {
+                $i++;
+                $rules = [
+                    'returnFormat' => 'cache',
+                    'includeEventUuid' => 1,
+                    'page' => $i,
+                    'limit' => $chunk_size,
+                ];
+                try {
+                    $data = $serverSync->attributeSearch($rules)->body();
+                } catch (Exception $e) {
+                    $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
+                    break;
+                }
             }
 
             $data = trim($data);
             if (empty($data)) {
                 break;
             }
-
             $data = explode(PHP_EOL, $data);
+            if ($fastCaching) {
+                $count += count($data);
+            }
             $pipe = $redis->pipeline();
             foreach ($data as $entry) {
                 list($value, $uuid) = explode(',', $entry);
@@ -4883,7 +4915,11 @@ class Server extends AppModel
             }
             $pipe->exec();
             if ($jobId) {
-                $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+                if ($fastCaching) {
+                    $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . $count . ' attributes cached.');
+                } else {
+                    $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+                }
             }
         }
         $redis->set('misp:server_cache_timestamp:' . $serverId, time());
@@ -4908,6 +4944,82 @@ class Server extends AppModel
         foreach ($servers as $k => $v) {
             $servers[$k]['Server']['cache_timestamp'] = $results[$k];
         }
+        return $servers;
+    }
+
+
+
+    /**
+     * @param array $servers
+     * @return array
+     */
+    public function attachRuleDescriptions(array $servers, array $collection): array
+    {
+        $syncOptions = ['pull', 'push'];
+        $fieldOptions = ['tags', 'orgs'];
+
+        if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))) {
+            $fieldOptions = array_merge($fieldOptions, ['type_attributes', 'type_objects']);
+        }
+
+        $typeOptions = [
+            'OR'  => ['colour' => 'green', 'text' => 'allowed'],
+            'NOT' => ['colour' => 'red',   'text' => 'blocked'],
+        ];
+
+        foreach ($servers as &$server) {
+            $rules = [
+                'push' => json_decode($server['Server']['push_rules'], true),
+                'pull' => json_decode($server['Server']['pull_rules'], true),
+            ];
+
+            $ruleDescription = ['pull' => '', 'push' => ''];
+
+            foreach ($syncOptions as $syncOption) {
+                foreach ($fieldOptions as $fieldOption) {
+                    foreach ($typeOptions as $typeOption => $typeData) {
+                        if (!empty($rules[$syncOption][$fieldOption][$typeOption])) {
+                            $ruleDescription[$syncOption] .=
+                                '<span class="bold">' .
+                                ucfirst($fieldOption) . ' ' . $typeData['text'] .
+                                '</span>: <span class="' . $typeData['colour'] . '">';
+
+                            foreach ($rules[$syncOption][$fieldOption][$typeOption] as $k => $temp) {
+                                if ($k !== 0) {
+                                    $ruleDescription[$syncOption] .= ', ';
+                                }
+
+                                if ($fieldOption === 'orgs') {
+                                    if (!empty($collection[$fieldOption][$temp])) {
+                                        $temp = $collection[$fieldOption][$temp] . ' (' . $temp . ')';
+                                    }
+                                } elseif ($syncOption === 'push') {
+                                    if (!empty($collection[$fieldOption][$temp])) {
+                                        $temp = $collection[$fieldOption][$temp];
+                                    }
+                                }
+
+                                $ruleDescription[$syncOption] .= h($temp);
+                            }
+
+                            $ruleDescription[$syncOption] .= '</span><br>';
+                        }
+                    }
+                }
+
+                if ($syncOption === 'pull' && !empty($rules['pull']['url_params'])) {
+                    $ruleDescription[$syncOption] .= sprintf(
+                        "<span class='bold'>%s</span>: <pre class='jsonify'>%s</pre>",
+                        __('URL params'),
+                        h(json_encode(json_decode($rules['pull']['url_params']), JSON_PRETTY_PRINT))
+                    );
+                }
+            }
+
+            $server['RuleDescription'] = $ruleDescription;
+        }
+
+        unset($server);
         return $servers;
     }
 
@@ -5293,6 +5405,27 @@ class Server extends AppModel
                         return $this->loadAvailableLanguages();
                     },
                     'afterHook' => 'cleanCacheFiles'
+                ),
+                'enable_themes' => array(
+                    'level' => 0,
+                    'description' => __('Enable themes for users of the instance. Currently this is used to allow users to opt-in to a the various preview/beta modes.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => 1
+                ),
+                'default_theme' => array(
+                    'level' => 2,
+                    'description' => __('Set a default theme for the instance. This is mostly used for developer purposes for now, but will be more interesting in the future.'),
+                    'value' => false,
+                    'test' => 'testTheme',
+                    'type' => 'string',
+                    'optionsSource' => function () {
+                        return $this->loadAvailableThemes();
+                    },
+                    'null' => true,
+                    'cli_only' => 1
                 ),
                 'default_attribute_memory_coefficient' => array(
                     'level' => 1,
@@ -6601,7 +6734,7 @@ class Server extends AppModel
                 ],
                 'download_gpg_from_homedir' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Fetch GPG instance key from GPG homedir.'),
+                    'description' => __('Fetch GPG instance key from GPG keyring. Be careful a user with the email address used for the instance key can override the instance key when using the keyring.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -6925,6 +7058,24 @@ class Server extends AppModel
                     'value' => false,
                     'test' => null,
                     'type' => 'string',
+                    'cli_only' => 1
+                ),
+                'workflow_enable_arbitrary_urls' => array(
+                    'level' => 0,
+                    'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via workflows. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable. Only a compromised site-admin account could cause damage.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => 1
+                ),
+                'eventreport_enable_arbitrary_urls' => array(
+                    'level' => 0,
+                    'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via event report import from URL feature. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable. Only a compromised site-admin account could cause damage.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
                     'cli_only' => 1
                 ),
                 'syslog' => array(
