@@ -253,7 +253,7 @@ if [ $INSTALL_SSDEEP == "y" ]; then
     error_check "The installation of make" || echo "Continuing despite error in installing make"
 
     # Install libfuzzy-dev and link the .so to somewhere ./configure can pick it up
-    sudo apt install libfuzzy-dev
+    sudo apt install -y libfuzzy-dev
     sudo ln -s /usr/lib/x86_64-linux-gnu/libfuzzy.so /usr/lib/libfuzzy.so
     git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
     error_check "Jakub Onderka's PHP8 SSDEEP extension cloning" || echo "Continuing despite error in cloning SSDEEP extension"
