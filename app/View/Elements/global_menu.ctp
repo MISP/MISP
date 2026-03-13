@@ -278,7 +278,7 @@ if (!empty($me)) {
                                 'html' => $html,
                                 'url' => '#'
                             );
-                        }, $themes);
+                        }, $themes ?? []);
                         return array_merge($children, $themeItems);
                     })()
                 ),
