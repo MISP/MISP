@@ -616,3 +616,23 @@ overflow:auto;
 /* =======================================================
 Still in work - API Custom CSS
 ======================================================= */
+
+
+.nav-view.active {
+    color: #1892B1 !important;
+}
+
+.nav-view{
+    color: #212529 !important;
+}
+
+
+
+.btn-danger-subtle {
+    background: #f4c7c7;
+    color: #d33;
+}
+
+.btn-danger-subtle:hover {
+    background: #efb6b6;
+}
