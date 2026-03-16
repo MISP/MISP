@@ -758,7 +758,7 @@ class NavbarHelper extends AppHelper {
             [
                 'type' => 'group',
                 'label' => __('Search logs'),
-                'url' => $baseurl . '/admin/logs/search',
+                'url' => $baseurl . '/logs/search',
                 'controller' => 'logs',
                 'action' => 'index',
                 'requirement' => $this->Acl->canAccess('logs', 'search'),
