@@ -45,6 +45,12 @@ $map = [
         'bg'    => '#6a96ee',
         'color' => '#0e146d',
         'icon'  => 'fa-share-alt'
+    ],
+    5 => [
+        'label' => __('Inherited'),
+        'bg'    => '#e6b7df',
+        'color' => '#380f33a2',
+        'icon'  => 'fa-code-fork'
     ]
 ];
 
