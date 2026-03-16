@@ -155,7 +155,7 @@ $hasActiveFilters = !empty($currentFilters);
                     </span>
                 <?php endforeach; ?>
 
-                <a href="<?= h($index_url) ?>"
+                <a href="<?= h($item_url . '/index')?>"
                    class="btn btn-sm btn-outline-danger ms-auto">
                     <i class="fas fa-times"></i>
                     <?= __('Clear all') ?>
@@ -173,20 +173,20 @@ $hasActiveFilters = !empty($currentFilters);
         <div class="p-2 border rounded bg-light d-flex align-items-center gap-2">
 
             <strong>
-                <?= __('Selected events') ?>:
+                <?= __('Selected items') ?>:
                 <span id="selectedCount">0</span>
             </strong>
 
             <button id="multi-export-button"
                     class="btn btn-primary btn-sm ms-3"
-                    onclick="multiSelectEvents('<?php echo $baseurl; ?>/events/restSearchExport');">
+                    onclick="multiSelectItems('<?php echo h($baseurl . $item_url . '/restSearchExport');?>')">
                 <i class="fas fa-file-export"></i>
                 <?= __('Export') ?>
             </button>
 
             <button id="multi-delete-button"
                     class="btn btn-danger btn-sm d-none"
-                    onclick="multiSelectEvents('<?php echo $baseurl; ?>/events/delete');">
+                    onclick="multiSelectItems('<?php echo h($baseurl . $item_url . '/delete');?>')">
                 <i class="fas fa-trash"></i>
                 <?= __('Delete') ?>
             </button>
@@ -198,8 +198,8 @@ $hasActiveFilters = !empty($currentFilters);
 
 
 <script>
-var baseIndexUrl = "<?= h($index_url) ?>";
-let selectedEvents = new Map();
+var baseIndexUrl = "<?php echo h($baseurl . $item_url . '/index'); ?>";
+var selectedItems = new Map();
 
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -320,7 +320,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const selectedCount = document.getElementById('selectedCount');
         const deleteButton = document.getElementById('multi-delete-button');
 
-        const count = selectedEvents.size;
+        const count = selectedItems.size;
 
         if (count === 0) {
             toolbar?.classList.add('d-none');
@@ -334,8 +334,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         let canDeleteAll = true;
-        selectedEvents.forEach(event => {
-            if (!event.canDelete) {
+        selectedItems.forEach(item => {
+            if (!item.canDelete) {
                 canDeleteAll = false;
             }
         });
@@ -352,17 +352,17 @@ document.addEventListener("DOMContentLoaded", function () {
      *******************************/
     document.addEventListener('change', function(e) {
 
-        if (!e.target.classList.contains('event-checkbox')) return;
+        if (!e.target.classList.contains('item-checkbox')) return;
 
         const checkbox = e.target;
 
-        const id = checkbox.dataset.eventId;
+        const id = checkbox.dataset.itemId;
         const canDelete = checkbox.dataset.canDelete == "1";
 
         if (checkbox.checked) {
-            selectedEvents.set(id, { id: id, canDelete: canDelete });
+            selectedItems.set(id, { id: id, canDelete: canDelete });
         } else {
-            selectedEvents.delete(id);
+            selectedItems.delete(id);
         }
 
         updateMultiSelectToolbar();

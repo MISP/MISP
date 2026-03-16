@@ -244,6 +244,35 @@ class AttributesController extends AppController
         if (empty($request_filters['published'])) {
             $request_filters['published'] = [0,1];
         }
+
+        $categories = $this->_arrayToValuesIndexArray(array_keys($this->MispAttribute->categoryDefinitions));
+        $this->set('categoryOptions', ['' => ''] + $categories);
+
+        $types = $this->_arrayToValuesIndexArray($this->MispAttribute->getNonAttachmentTypes());
+        $this->set('typeOptions', ['' => ''] + $types);
+
+        $orgs =  $this->MispAttribute->Event->Orgc->find('list', [
+            'fields' => ['Orgc.name', 'Orgc.name'],
+            'order' => ['Orgc.name' => 'ASC']
+        ]);
+        $this->set('orgOptions', ['' => ''] + $orgs);
+
+        $tags = $this->MispAttribute->Event->EventTag->Tag->find('list', [
+            'fields' => ['Tag.name', 'Tag.name'],
+            'order' => ['Tag.name' => 'ASC']
+        ]);
+        $this->set('tagOptions', ['' => ''] + $tags);
+
+        if (!empty($this->GalaxyCluster->Galaxy)) {
+            $galaxies = $this->GalaxyCluster->Galaxy->find('list', [
+                'fields' => ['Galaxy.name', 'Galaxy.name'],
+                'order' => ['Galaxy.name' => 'ASC']
+            ]);
+        } else {
+            $galaxies=[];
+        }
+        $this->set('galaxyOptions', ['' => ''] + $galaxies);
+
         $this->set('request_filters', $request_filters);
         $this->set('paramArray', $paramArray);
         $this->set('passedArgsArray', $this->passedArgs);

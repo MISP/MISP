@@ -114,5 +114,5 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'fields' => $fields,
         ]
     ],
-    'index_url' => '/noticelists/index'
+    'item_url' => '/noticelists'
 ]);

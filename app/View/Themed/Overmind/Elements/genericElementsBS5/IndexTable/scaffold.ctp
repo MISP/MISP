@@ -17,7 +17,7 @@ echo '<div id="' . $containerId . '_content">';
                 'genericElementsBS5/IndexTable/filter_bar',
                 [
                     'scaffold_data' => $scaffold_data['data'],
-                    'index_url' => $index_url
+                    'item_url' => $item_url
                 ]); ?>
             </div>
         </div>
@@ -59,3 +59,8 @@ echo '<div id="' . $containerId . '_content">';
     <?php endif; ?>
 
 </div>
+
+
+<?php
+echo '</div>';
+?>

@@ -7,13 +7,21 @@ $tempboxId = 'TempBox-' . $seed;
 
 $checkboxAttrs = [
     'type' => 'checkbox',
-    'class' => 'event-checkbox form-check-input mass-select mt-0'
+    'class' => 'item-checkbox form-check-input mass-select mt-0'
 ];
 
 if ($field['data_path'] === 'Event.id') {
     $mayModify = $this->Acl->canModifyEvent($row);
     $canPublish = $this->Acl->canPublishEvent($row);
     $checkboxAttrs['data-event-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'Attribute.id') {
+    //$mayModify = $this->Acl->canModifyEvent($row);
+    //$canPublish = $this->Acl->canPublishEvent($row);
+    $mayModify = true;
+    $checkboxAttrs['data-item-id'] = $id;
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 ?>
@@ -102,7 +110,7 @@ if ($field['data_path'] === 'Event.id') {
 
                         <a class="<?= trim($classes) ?>"
                         href="<?= h($url) ?>"
-                        onclick="event.preventDefault(); openDeleteModal('<?= h($url) ?>');">
+                        onclick="event.preventDefault(); openModal('<?= h($url) ?>');">
                             <div>
                                 <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
                                 <?= h($action['label']) ?>

@@ -12,6 +12,8 @@
             ['controller' => 'noticelists', 'action' => 'index'],
             ['controller' => 'events', 'action' => 'index'],
             ['controller' => 'events', 'action' => 'delete'],
+            ['controller' => 'events', 'action' => 'view'],
+            ['controller' => 'attributes', 'action' => 'index'],
         ];
 
         $currentController = $this->params['controller'];
