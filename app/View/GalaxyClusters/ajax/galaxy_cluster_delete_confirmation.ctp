@@ -4,7 +4,7 @@
     <h6><?php echo sprintf(__('Are you sure you want to delete Galaxy Cluster %s (%s)?'), sprintf('<i style="font-size: larger">%s</i>', h($cluster['value'])), h($cluster['id']));?></h6>
     <ul>
         <li><?php echo sprintf(__('%s a cluster propagates the deletion to other instances and lets you restore it in the future'), sprintf('<strong class="blue">%s</strong>', __('Soft-deleting')));?></li>
-        <li><?php echo sprintf(__('%s a cluster permanentaly deletes it and prevents it be created again by blocklisting it'), sprintf('<strong class="red">%s</strong>', __('Hard-deleting')));?></li>
+        <li><?php echo sprintf(__('%s a cluster permanently deletes it and prevents it be created again by blocklisting it'), sprintf('<strong class="red">%s</strong>', __('Hard-deleting')));?></li>
         <ul>
             <li><?php echo sprintf(__('For default clusters, you can restore the cluster at any time by force updating your galaxies'));?></li>
         </ul>

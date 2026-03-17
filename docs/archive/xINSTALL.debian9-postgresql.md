@@ -2,7 +2,7 @@
 ## for Debian --->8<--- "jessie" server + PostgreSQL
 
 !!! note
-    This is the old Deian 8 jessie Guide, needs updating.
+    This is the old Debian 8 jessie Guide, needs updating.
 
 !!! warning
     PostgreSQL support in MISP is experimental.
@@ -15,7 +15,7 @@
     If you want to help improving PostgreSQL-support,
     Please make sure you have tried the newest commit from GitHub first.
     Also, please activate debug mode.
-    After that, you may open an issue on Github and provide us with as much information on the issue as possible.
+    After that, you may open an issue on GitHub and provide us with as much information on the issue as possible.
 
 
 
@@ -69,8 +69,15 @@ sudo apt-get remove mysql-server mysql-client mariadb-client mariadb-server php5
 ### MIGRATION from MySQL/MariaDB
 # migration of data is done using latest "pgloader" release (3.2.2 at the time of writing)
 
+# install some dependencies
+sudo apt-get install wget ca-certificates
+
+# add repository signing key
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
+gpg --dearmor --yes --output /usr/share/keyrings/pgsql-ACCC4CF8.gpg
+
 # add official postgres repository to apt sources
-sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/pgsql-ACCC4CF8.gpg] http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
 
 # make sure packages from official postgres repository aren't used by default, only when explicitly specifying it
 sudo cat <<EOF > /etc/apt/preferences.d/pgdg.pref
@@ -78,12 +85,6 @@ Package: *
 Pin: release o=apt.postgresql.org
 Pin-Priority: 200
 EOF
-
-# install some dependencies
-sudo apt-get install wget ca-certificates
-
-# add repository signing key
-wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
 
 # update cache
 sudo apt-get update

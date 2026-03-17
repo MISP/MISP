@@ -363,7 +363,7 @@
                     that.highlightAttributeType(j);
                 });
             },
-            retreiveData: function() {
+            retrieveData: function() {
                 var $form = $('#saveForm')
                 var data = {};
                 data.name = $form.find('[name="name"]').val();
@@ -388,7 +388,7 @@
                 var $clicked = $(clicked);
                 var type = 'add';
                 var model_id = false;
-                var data = this.retreiveData();
+                var data = this.retrieveData();
                 if ($clicked.data('isedit') == 1) {
                     type = 'edit';
                     model_id = $clicked.data('modelid');
@@ -473,7 +473,7 @@
             },
             highlightMatchingRow: function() {
                 var that = this;
-                var data = $.extend({}, this.retreiveData());;
+                var data = $.extend({}, this.retrieveData());;
                 delete data['name'];
                 delete data['description'];
                 var $rows = $('#table-model-body > tr');

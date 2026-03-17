@@ -10,7 +10,7 @@ class GalaxyClustersController extends AppController
 
     public $paginate = array(
         'limit' => 60,
-        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
         'recursive' => -1,
         'order' => array(
             'GalaxyCluster.version' => 'DESC',
@@ -194,6 +194,7 @@ class GalaxyClustersController extends AppController
         ));
         if (!empty($tag)) {
             $cluster['GalaxyCluster']['tag_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user());
+            $cluster['GalaxyCluster']['tag_att_count'] = $this->GalaxyCluster->Tag->AttributeTag->countForTag($tag['Tag']['id'], $this->Auth->user());
             $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
         }
         if ($this->_isRest()) {
@@ -628,7 +629,7 @@ class GalaxyClustersController extends AppController
             $galaxyId = $cluster['GalaxyCluster']['galaxy_id'];
             if ($result) {
                 $message = __(
-                    'Galaxy cluster successfuly %s deleted%s.',
+                    'Galaxy cluster successfully %s deleted%s.',
                     $hard ? __('hard') : __('soft'),
                     $hard ? __(' and added to the block list') : ''
                 );
@@ -665,7 +666,7 @@ class GalaxyClustersController extends AppController
             $result = $this->GalaxyCluster->restoreCluster($cluster['GalaxyCluster']['id']);
             $galaxyId = $cluster['GalaxyCluster']['galaxy_id'];
             if ($result) {
-                $message = __('Galaxy cluster successfuly restored.');
+                $message = __('Galaxy cluster successfully restored.');
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'restore', $cluster['GalaxyCluster']['id'], $this->response->type());
                 } else {
@@ -831,7 +832,7 @@ class GalaxyClustersController extends AppController
         }
         $this->set('pickingMode', false);
         $this->set('defaultTabName', 'mitre-enterprise-attack');
-        $this->set('removeTrailling', 2);
+        $this->set('removeTrailing', 2);
         $this->render('cluster_matrix');
     }
 
@@ -938,9 +939,10 @@ class GalaxyClustersController extends AppController
         $this->set('includeInbound', $includeInbound);
         $this->loadModel('MispAttribute');
         $distributionLevels = $this->MispAttribute->distributionLevels;
-        unset($distributionLevels[4]);
         unset($distributionLevels[5]);
         $this->set('distributionLevels', $distributionLevels);
+        $sgs = $this->GalaxyCluster->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+        $this->set('sharingGroups', $sgs);
     }
 
     /**

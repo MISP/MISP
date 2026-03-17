@@ -1081,26 +1081,6 @@
   },
   {
     "Feed": {
-      "name": "mirai.security.gives",
-      "provider": "security.gives",
-      "url": "https://mirai.security.gives/data/ip_list.txt",
-      "rules": "",
-      "enabled": false,
-      "distribution": "3",
-      "default": false,
-      "source_format": "freetext",
-      "fixed_event": true,
-      "delta_merge": false,
-      "publish": false,
-      "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
-      "input_source": "network",
-      "delete_local_file": false,
-      "lookup_visible": true
-    }
-  },
-  {
-    "Feed": {
       "name": "malsilo.url",
       "provider": "MalSilo",
       "url": "https://malsilo.gitlab.io/feeds/dumps/url_list.txt",
@@ -2103,5 +2083,215 @@
     "caching_enabled": false,
     "force_to_ids": false
       }
-  }  
+  },
+  {
+  "Feed": {
+    "name": "Phishing.Database - New domains of today",
+    "provider": "Phishing.Database",
+    "url": "https://phish.co.za/latest/phishing-domains-NEW-today.txt",
+    "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+    "enabled": true,
+    "distribution": "3",
+    "sharing_group_id": "0",
+    "default": false,
+    "source_format": "csv",
+    "fixed_event": true,
+    "delta_merge": true,
+    "publish": false,
+    "override_ids": false,
+    "settings": "{\"disable_correlation\":\"0\",\"unpublish_event\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": false,
+    "headers": "",
+    "caching_enabled": false,
+    "force_to_ids": false
+      }
+  },
+  {
+  "Feed": {
+    "name": "Phishing.Database - New IPs of today",
+    "provider": "Phishing.Database",
+    "url": "https://phish.co.za/latest/phishing-IPs-NEW-today.txt",
+    "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+    "enabled": true,
+    "distribution": "3",
+    "sharing_group_id": "0",
+    "default": false,
+    "source_format": "csv",
+    "fixed_event": true,
+    "delta_merge": true,
+    "publish": false,
+    "override_ids": false,
+    "settings": "{\"disable_correlation\":\"0\",\"unpublish_event\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": false,
+    "headers": "",
+    "caching_enabled": false,
+    "force_to_ids": false
+      }
+  },
+  {
+  "Feed": {
+    "name": "Phishing.Database - New URLs of today",
+    "provider": "Phishing.Database",
+    "url": "https://phish.co.za/latest/phishing-links-NEW-today.txt",
+    "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"type_attributes\":{\"NOT\":[]},\"type_objects\":{\"NOT\":[]},\"url_params\":\"\"}",
+    "enabled": true,
+    "distribution": "3",
+    "sharing_group_id": "0",
+    "default": false,
+    "source_format": "csv",
+    "fixed_event": true,
+    "delta_merge": true,
+    "publish": false,
+    "override_ids": false,
+    "settings": "{\"disable_correlation\":\"0\",\"unpublish_event\":\"0\",\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": false,
+    "headers": "",
+    "caching_enabled": false,
+    "force_to_ids": false
+      }
+  },
+  {
+    "Feed": {
+      "name": "SERPRO: Reputation IP Feed",
+      "provider": "SERPRO",
+      "url": "https://s3.i02.estaleiro.serpro.gov.br/blocklist/blocklist.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "3",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": true,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"defaultType\":\"ip-src\",\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
+  "Feed": {
+    "name": "hideNseek LAB - Threat Intelligence JSON",
+    "provider": "hideNseek LAB",
+    "url": "https://data.hidenseek.dev/download/cti/hns_cti.json",
+    "rules": "",
+    "enabled": false,
+    "distribution": "3",
+    "default": false,
+    "source_format": "freetext",
+    "fixed_event": true,
+    "delta_merge": false,
+    "publish": false,
+    "override_ids": false,
+    "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"^#\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": true,
+    "headers": "",
+    "caching_enabled": true,
+    "force_to_ids": false,
+    "orgc_id": "0"
+      }
+  },
+  {
+  "Feed": {
+    "name": "hideNseek LAB - CSV Threat Feed",
+    "provider": "hideNseek LAB",
+    "url": "https://data.hidenseek.dev/download/cti/hns_cti.csv",
+    "rules": "",
+    "enabled": false,
+    "distribution": "3",
+    "default": false,
+    "source_format": "csv",
+    "fixed_event": true,
+    "delta_merge": false,
+    "publish": false,
+    "override_ids": false,
+    "settings": "{\"csv\":{\"value\":\"1\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": true,
+    "headers": "",
+    "caching_enabled": true,
+    "force_to_ids": false,
+    "orgc_id": "0"
+      }
+  },
+  {
+  "Feed": {
+    "name": "hideNseek LAB - IP Blocklist",
+    "provider": "hideNseek LAB",
+    "url": "https://data.hidenseek.dev/download/cti/hns_blocklist.txt",
+    "rules": "",
+    "enabled": false,
+    "distribution": "3",
+    "default": false,
+    "source_format": "freetext",
+    "fixed_event": true,
+    "delta_merge": false,
+    "publish": false,
+    "override_ids": false,
+    "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"^#\"}}",
+    "input_source": "network",
+    "delete_local_file": false,
+    "lookup_visible": true,
+    "headers": "",
+    "caching_enabled": true,
+    "force_to_ids": false,
+    "orgc_id": "0"
+      }
+  },
+    {
+    "Feed": {
+      "name": "NOCACTI: Intrusion Feed",
+      "provider": "NOCACTI",
+      "url": "https://misp-feed.nocacti.com/Intrusion/",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "0",
+      "default": false,
+      "source_format": "misp",
+      "fixed_event": false,
+      "delta_merge": false,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "NOCACTI: Adversary Infrastructure Feed",
+      "provider": "NOCACTI",
+      "url": "https://misp-feed.nocacti.com/AdversaryInfrastructure/",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "0",
+      "default": false,
+      "source_format": "misp",
+      "fixed_event": false,
+      "delta_merge": false,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
+    }
+  }
 ]

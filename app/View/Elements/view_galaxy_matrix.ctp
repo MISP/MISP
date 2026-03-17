@@ -30,7 +30,7 @@
         - $maxScore:
         - $pickingMode: Interactive picking mode, add a form and the chosen input
         - $scores: The score associate with either the value or the tag name (if provided)
-        - $removeTrailling: How much part of the name of the cell should be remove: e.g. $removeTrailling=2 => "abc def ghi", will be: "abc"
+        - $removeTrailing: How much part of the name of the cell should be remove: e.g. $removeTrailing=2 => "abc def ghi", will be: "abc"
         - $colours: The colour associated with the tag name (if provided)
         - $static: Should the output be inert. Used for embedding in other webpages or mails
 *
@@ -155,7 +155,7 @@ foreach(array_keys($columnOrders) as $tabName):
         ?>
         <?php
         if (!empty($static) && $tabName != $defaultTabName) {
-            // We cannot hide other tabs without JS. Only releave the default one for now.
+            // We cannot hide other tabs without JS. Only reveal the default one for now.
             continue;
         }
         ?>
@@ -195,9 +195,9 @@ foreach(array_keys($columnOrders) as $tabName):
                                 $cell = array('value' => $cell);
                             }
                             $value = isset($cell['value']) ? $cell['value'] : 0;
-                            if (isset($removeTrailling) && $removeTrailling > 0) {
+                            if (isset($removeTrailing) && $removeTrailing > 0) {
                                 $name = explode(" ", $value);
-                                $name = join(" ", array_slice($name, 0, -$removeTrailling)); // remove " - external_id"
+                                $name = join(" ", array_slice($name, 0, -$removeTrailing)); // remove " - external_id"
                             } else {
                                 $name = $value;
                             }
@@ -274,7 +274,7 @@ $(document).ready(function() {
 function reloadGalaxyMatrix() {
     var event_id = '<?= $eventId ?>'
     var galaxyName = $('select[data-toggle="chosen"]').val()
-    var url = "<?= $baseurl; ?>/events/viewGalaxyMatrix/" + event_id + "/" + galaxyName + "/event/1/<?= $include_extended ? '1' : '0'?>"
+    var url = "<?= $baseurl; ?>/events/viewGalaxyMatrix/" + event_id + "/" + galaxyName + "/event/1/<?= $extended ? '1' : '0'?>"
     $.get(url, function(html) {
         $('#attackmatrix_div').html(html)
     })

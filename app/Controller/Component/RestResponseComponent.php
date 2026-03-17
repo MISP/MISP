@@ -72,7 +72,7 @@ class RestResponseComponent extends Component
             'add' => array(
                 'description' => "POST a MISP Event JSON to this API to create an Event. Contained objects can also be included (such as attributes, objects, tags, etc).",
                 'mandatory' => array('info'),
-                'optional' => array('threat_level_id', 'analysis', 'distribution', 'sharing_group_id', 'uuid', 'published', 'timestamp', 'date', 'Attribute', 'Object', 'Shadow_Attribute', 'EventTag', 'extending', 'extended',),
+                'optional' => array('threat_level_id', 'analysis', 'distribution', 'sharing_group_id', 'uuid', 'published', 'timestamp', 'date', 'Attribute', 'Object', 'Shadow_Attribute', 'EventTag', 'is_extension', 'is_extended',),
                 'params' => array()
             ),
             'edit' => array(
@@ -83,12 +83,12 @@ class RestResponseComponent extends Component
             ),
             'index' => array(
                 'description' => 'POST a JSON filter object to this API to get the meta-data about matching events.',
-                'optional' => array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'extending', 'extended')
+                'optional' => array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'is_extension', 'is_extended')
             ),
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'event_tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'sharinggroup', 'excludeLocalTags', 'threat_level_id'),
+                'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'event_tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'sharinggroup', 'excludeLocalTags', 'threat_level_id', 'attackGalaxy',),
                 'params' => array()
             ),
             'addTag' => array(
@@ -102,7 +102,7 @@ class RestResponseComponent extends Component
         ),
         'EventGraph' => array(
             'add' => array(
-                'description' => "POST a network in JSON format to this API to to keep an history of it",
+                'description' => "POST a network in JSON format to this API to to keep a history of it",
                 'mandatory' => array('event_id', 'network_json'),
                 'optional' => array('network_name')
             )
@@ -184,12 +184,12 @@ class RestResponseComponent extends Component
         ),
         'Organisation' => array(
             'admin_add' => array(
-                'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
+                'description' => "POST an Organisation object in JSON format to this API to create a new organisation.",
                 'mandatory' => array('name'),
                 'optional' => array('description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
             ),
             'admin_edit' => array(
-                'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
+                'description' => "POST an Organisation object in JSON format to this API to create a new organisation.",
                 'mandatory' => array('name'),
                 'optional' => array('description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
             )
@@ -256,7 +256,7 @@ class RestResponseComponent extends Component
         ),
         'Sighting' => array(
             'add' => array(
-                'description' => "POST a simplified sighting object in JSON format to this API to add a or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.",
+                'description' => "POST a simplified sighting object in JSON format to this API to add it or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.",
                 'mandatory' => array('OR' => array('values', 'id')),
                 'optional' => array('type', 'source', 'timestamp', 'date', 'time', 'filters')
             ),
@@ -286,7 +286,7 @@ class RestResponseComponent extends Component
                 'optional' => array('colour', 'exportable', 'hide_tag', 'org_id', 'user_id')
             ),
             'edit' => array(
-                'description' => "POST or PUT a Tag object in JSON format to this API to create a edit an existing tag.",
+                'description' => "POST or PUT a Tag object in JSON format to this API to create and edit an existing tag.",
                 'optional' => array('name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'),
                 'params' => array('tag_id')
             ),
@@ -635,15 +635,7 @@ class RestResponseComponent extends Component
                 
                 // If response is big array, encode items separately to save memory
                 if (is_array($response) && count($response) > 10000 && array_is_list($response)) {
-                    $output = new TmpFileTool();
-                    $output->write('[');
-
-                    foreach ($response as $item) {
-                        $output->writeWithSeparator(JsonTool::encode($item), ',');
-                    }
-
-                    $output->write(']');
-                    $response = $output;
+                    $response = JsonTool::encodeBigArray($response);
                 } else {
                     $prettyPrint = !$this->isAutomaticTool(); // Do not pretty print response for automatic tools
                     $response = JsonTool::encode($response, $prettyPrint);
@@ -989,7 +981,7 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('The user will be prompted the change the password')
+                'help' => __('The user will be prompted the change their password')
             ),
             'colour' => array(
                 'input' => 'text',
@@ -1088,7 +1080,7 @@ class RestResponseComponent extends Component
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes wil be returned')
+                'help' => __('Default value 0. If set to 1, only soft-deleted attributes will be returned. If set to [0,1] , both deleted and non-deleted attributes will be returned')
             ),
             'delta_merge' => array(
                 'input' => 'radio',
@@ -1222,17 +1214,17 @@ class RestResponseComponent extends Component
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => __('The organisation have write access to this sharing group (they can add/remove other organisation)')
             ),
-            'extending' => array(
+            'is_extension' => array(
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Only shows events that are extending an other one')
+                'help' => __('Only shows events that are extending another one')
             ),
-            'extended' => array(
+            'is_extended' => array(
                 'input' => 'radio',
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
-                'help' => __('Only shows events that are extended by an other one')
+                'help' => __('Only shows events that are extended by another one')
             ),
             'external_auth_required' => array(
                 'input' => 'radio',
@@ -1270,6 +1262,12 @@ class RestResponseComponent extends Component
                     'autoclose' => true
                 ),
                 'help' => __('The date from which the event was published')
+            ),
+            'attackGalaxy' => array(
+                'input' => 'text',
+                'type' => 'string',
+                'operators' => array('equal'),
+                'help' => __('The Galaxy\'s type to use for the matrix')
             ),
             'galaxy_cluster_uuid' => array(
             'input' => 'text',
@@ -1366,7 +1364,7 @@ class RestResponseComponent extends Component
                 'type' => 'string',
                 'operators' => array('equal'),
                 'values' => array( 'network' => 'Network', 'local' => 'Local'),
-                'help' => __('Specify whether the source (url field) is a directory (local) or an geniun url (network)')
+                'help' => __('Specify whether the source (url field) is a directory (local) or a genuine url (network)')
             ),
             'ip' => array(
                 'input' => 'text',
@@ -1397,7 +1395,7 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'operators' => array('equal'),
                 'validation' => array('min' => 0, 'step' => 1),
-                'help' => __('Limit on the pagination')
+                'help' => __('Limit on the pagination. Lower bounded by the one set by the admin')
             ),
             'local' => array(
                 'input' => 'radio',
@@ -1979,7 +1977,7 @@ class RestResponseComponent extends Component
         );
     }
 
-    // create dictionnary mapping between fields constraints and scope->action
+    // create dictionary mapping between fields constraints and scope->action
     private function __setupFieldsConstraint() {
         foreach ($this->__descriptions as $scope => $desc) {
             foreach ($desc as $action => $params) {
@@ -2108,11 +2106,8 @@ class RestResponseComponent extends Component
     {
         static $values;
         if ($values === null) {
-            $tagModel = ClassRegistry::init("Tag");
-            $tags = $tagModel->find('column', array(
-                'fields' => array('Tag.name'),
-                'callbacks' => false,
-            ));
+            $taxonomyModel = ClassRegistry::init('Taxonomy');
+            $tags = $taxonomyModel->getAllTaxonomyTags();
             $values = [];
             foreach ($tags as $tag) {
                 $tagname = htmlspecialchars($tag);

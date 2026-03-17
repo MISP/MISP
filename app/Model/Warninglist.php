@@ -122,7 +122,7 @@ class Warninglist extends AppModel
         try {
             $redis = RedisTool::init();
         } catch (Exception $e) {
-            // fallback to default implementation when redis is not available
+            // fall back to default implementation when redis is not available
             $eventWarnings = [];
             foreach ($attributes as $pos => $attribute) {
                 $attributes[$pos] = $this->checkForWarning($attribute, $enabledWarninglists);
@@ -894,7 +894,7 @@ class Warninglist extends AppModel
         if ($this->pubToZmq('warninglist')) {
             $warninglist = $this->find('first', [
                 'conditions' => ['id' => $data['Warninglist']['id']],
-                'contains' => ['WarninglistEntry', 'WarninglistType'],
+                'contain' => ['WarninglistEntry', 'WarninglistType'],
             ]);
             $pubSubTool = $this->getPubSubTool();
             $pubSubTool->warninglist_save($warninglist, $created ? 'add' : 'edit');

@@ -18,7 +18,7 @@ body:
         Nevertheless you can of course file a Support request as an issue. Please be as precise as possible and fill the template as detailed as possible too.
 
 
-        If you would like to ask for support, please fill the template bellow:
+        If you would like to ask for support, please fill the template below:
   - type: textarea
     id: support-questions
     attributes:
@@ -37,7 +37,7 @@ body:
     id: os
     attributes:
       label: Operating System
-      placeholder: "Ubuntu, RedHat, CentOS ..."
+      placeholder: "Ubuntu, Red Hat, CentOS ..."
     validations:
       required: true
   - type: input
@@ -79,7 +79,7 @@ body:
     id: terms
     attributes:
       label: Code of Conduct
-      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/MISP/MISP/blob/2.4/code_of_conduct.md)
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/MISP/MISP/blob/2.5/code_of_conduct.md)
       options:
         - label: I agree to follow this project's Code of Conduct
           required: true

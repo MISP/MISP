@@ -55,7 +55,7 @@ class AttributesController extends AppController
         $multiLineFields = ['value', 'tags', 'org_id', 'sharing_group_id', 'uuid'];
         foreach ($multiLineFields as $field) {
             if (isset($filters[$field]) && strstr($filters[$field], "\n")) {
-                $filters[$field] = explode("\n", rtrim($filters[$field], "\n"));
+                $filters[$field] = preg_split('/\n|\r\n?/', $filters[$field]);
             }
         }
         return $filters;
@@ -98,7 +98,7 @@ class AttributesController extends AppController
         }
         $params['conditions']['AND'][] = $this->MispAttribute->buildConditions($user);
         $paramArray = [
-            'value' , 'type', 'category', 'org_id', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction'
+            'value' , 'type', 'category', 'org', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation'
         ];
         $filterData = array(
             'request' => $this->request,
@@ -109,12 +109,20 @@ class AttributesController extends AppController
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
         if (!$this->_isRest()) {
+            $search_filters = $this->request->data;
+            if (isset($this->request->data['to_ids']) && $this->request->data['to_ids'] === '0') {
+                $search_filters['to_ids'] = [0,1];
+            }
+            $search_filters['published'] = [0,1];
+            $search_filters['flatten'] = true;
             if ($this->request->is('post') && empty($filters['search_token'])) {
-                $search_token = $this->MispAttribute->setSearchParamsByToken($this->request->data);
+                $search_token = $this->MispAttribute->setSearchParamsByToken($search_filters);
                 $this->set('search_token', $search_token);
-            } else if (!empty($filters['search_token'])) {
-                $filters = $this->MispAttribute->getSearchParamsByToken($filters);
-                $this->set('search_token', $filters['search_token']);
+            } else {
+                if (!empty($filters['search_token'])) {
+                    $filters = $this->MispAttribute->getSearchParamsByToken($filters);
+                    $this->set('search_token', $filters['search_token']);
+                }
             }
         }
         if (!$this->_isRest()) {
@@ -125,6 +133,10 @@ class AttributesController extends AppController
         $conditions = $this->paginate['conditions'];
         $subqueryElements = $this->MispAttribute->Event->harvestSubqueryElements($filters);
         $filters = $this->MispAttribute->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
+        $roleLimit = $this->User->getUserRestLimit($this->Auth->user(), $this);
+        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
+            $filters['limit'] = $roleLimit;
+        }
         $request_filters = $filters;
         $params = array_merge($filters, [
             'limit' => $this->paginate['limit'] ?? null,
@@ -219,13 +231,20 @@ class AttributesController extends AppController
             foreach ($request_filters as $k => $v) {
                 if (is_array($v)) {
                     foreach ($v as $vv) {
-                        $export_filters .= $k . '[]:' . $vv . '/';
+                        $export_filters .= urlencode($k) . '[]:' . urlencode($vv) . '/';
                     }
                 } else {
-                    $export_filters .= $k . ':' . $v . '/';
+                    $export_filters .= urlencode($k) . ':' . urlencode($v) . '/';
                 }
             }
         }
+        if (empty($request_filters['to_ids'])) {
+            $request_filters['to_ids'] = [0,1];
+        }
+        if (empty($request_filters['published'])) {
+            $request_filters['published'] = [0,1];
+        }
+        $this->set('request_filters', $request_filters);
         $this->set('paramArray', $paramArray);
         $this->set('passedArgsArray', $this->passedArgs);
         $this->set('export_filters', $export_filters);
@@ -1793,7 +1812,7 @@ class AttributesController extends AppController
             $user = $this->Auth->user();
         }
         // if the user is authorised to use the api key then user will be populated with the user's account
-        // in addition we also set a flag indicating whether the user is a site admin or not.
+        // in addition we also set a flag indicating whether or not the user is a site admin.
         if (!$user) {
             throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
         }
@@ -2573,16 +2592,7 @@ class AttributesController extends AppController
 
     public function describeTypes()
     {
-        $result = array();
-        foreach ($this->MispAttribute->typeDefinitions as $key => $value) {
-            $result['sane_defaults'][$key] = array('default_category' => $value['default_category'], 'to_ids' => $value['to_ids']);
-        }
-        $result['types'] = array_keys($this->MispAttribute->typeDefinitions);
-        $result['categories'] = array_keys($this->MispAttribute->categoryDefinitions);
-        foreach ($this->MispAttribute->categoryDefinitions as $cat => $data) {
-            $result['category_type_mappings'][$cat] = $data['types'];
-        }
-        return $this->RestResponse->viewData(['result' => $result], 'json');
+        return $this->RestResponse->viewData(['result' => $this->MispAttribute->describeTypes()], 'json');
     }
 
     public function attributeStatistics($type = 'type', $percentage = false)
@@ -3144,4 +3154,116 @@ class AttributesController extends AppController
         ]);
         return $this->RestResponse->successResponse(0, $result);
     }
+
+    public function getInstanceCache($lastId = null)
+    {
+
+        $conditions = ['Attribute.deleted' => 0];
+        if ($lastId) {
+            $conditions['Attribute.id >'] = (int)$lastId;
+        }
+        $conditions['AND'][] = $this->MispAttribute->buildConditions($this->Auth->user());
+
+        $this->MispAttribute->virtualFields['md5_value1'] = 'MD5(Attribute.value1)';
+        $this->MispAttribute->virtualFields['md5_value2'] = "MD5(NULLIF(Attribute.value2, ''))";
+
+        $rows = $this->MispAttribute->find('all', [
+            'conditions' => $conditions,
+            'recursive'  => -1,
+            'contain'    => ['Event', 'Object.distribution', 'Object.sharing_group_id'],
+            'fields'     => [
+                'Attribute.id',
+                'Attribute.md5_value1',
+                'Attribute.md5_value2',
+                'Event.uuid',
+            ],
+            'order'      => ['Attribute.id' => 'ASC'],
+            'limit'      => 100000,
+        ]);
+
+        unset($this->MispAttribute->virtualFields['md5_value1'], $this->MispAttribute->virtualFields['md5_value2']);
+
+        $fh = fopen('php://temp', 'w+');
+
+        $lastProcessedId = $lastId ? (int)$lastId : null;
+
+        foreach ($rows as $row) {
+            $lastProcessedId = (int)$row['Attribute']['id'];
+
+            fwrite($fh, $row['Attribute']['md5_value1'] . ',' . $row['Event']['uuid'] . "\n");
+            if ($row['Attribute']['md5_value2'] !== null) {
+                fwrite($fh, $row['Attribute']['md5_value2'] . ',' . $row['Event']['uuid'] . "\n");
+            }
+        }
+        $headers = [];
+        if ($lastProcessedId !== null) {
+            $headers['X-MISP-Last-ID'] = (string)$lastProcessedId;
+        }
+
+        rewind($fh);
+        $out = stream_get_contents($fh);
+        fclose($fh);
+        return $this->RestResponse->viewData($out, 'text', false, true, false, $headers);
+    }
+
+    /**
+     * Get attribute and details by attribute value
+     * Searches directly in the database using indexed value1 column for efficiency
+     * 
+     * @param string $base64Value Base64 encoded attribute value to search for
+     * @return CakeResponse
+     * @throws NotFoundException If no matching attribute is found
+     * @throws MethodNotAllowedException If not an API request
+     */
+    public function getAttributeByB64Value($base64Value)
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__("This action is available only via API."));
+        }
+        
+        // Decode the base64 value
+        $decodedValue = base64_decode($base64Value, true);
+        if ($decodedValue === false) {
+            throw new NotFoundException(__("Invalid base64 encoding."));
+        }
+        
+        $user = $this->Auth->user();
+        
+        // Build efficient query conditions - search directly on indexed value1 column
+        // Also check value2 for composite attributes (e.g., ip|port)
+        $conditions = [
+            "AND" => [
+                $this->MispAttribute->buildConditions($user),
+                "Attribute.deleted" => 0,
+                "OR" => [
+                    "Attribute.value1" => $decodedValue,
+                    "Attribute.value2" => $decodedValue,
+                    // For composite values like "ip|port", also search on the virtual value field
+                    "CONCAT(Attribute.value1, '|', Attribute.value2)" => $decodedValue
+                ]
+            ]
+        ];
+        
+        // Fetch attributes with the search conditions
+        $attributes = $this->MispAttribute->fetchAttributes($user, [
+            "conditions" => $conditions,
+            "flatten" => true,
+            "limit" => 100 // Limit results for performance
+        ]);
+        
+        if (empty($attributes)) {
+            throw new NotFoundException(__("Attribute not found."));
+        }
+        
+        // Format response
+        $results = [];
+        foreach ($attributes as $attr) {
+            unset($attr["Attribute"]["value1"]);
+            unset($attr["Attribute"]["value2"]);
+            $results[] = $attr["Attribute"];
+        }
+        
+        return $this->RestResponse->viewData($results, $this->response->type());
+    }
 }
+

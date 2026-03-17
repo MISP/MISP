@@ -152,10 +152,10 @@ class Event extends AppModel
         'blockedAttributeTags',
         'blockedEventReportTags',
         'eventsExtendingUuid',
+        'is_extended',
+        'is_extension',
         'extended',
         'extending',
-        'include_extended',
-        'include_extending',
         'extensionList',
         'excludeGalaxy',
         // 'includeCustomGalaxyCluster', // not used
@@ -405,6 +405,23 @@ class Event extends AppModel
                             $kafkaPubTool->publishJson($kafkaPubTopic, $fullEvent[0], 'delete');
                         }
                     }
+                }
+            }
+
+            $trigger_id = 'event-before-delete';
+            if ($this->isTriggerCallable($trigger_id)) {
+                $event = $this->data;
+                $workflowErrors = [];
+                $logging = [
+                    'model' => 'Event',
+                    'action' => 'delete',
+                    'id' => $this->data['Event']['id'],
+                    'message' => __('The workflow `%s` prevented the deletion of event (%s)', $trigger_id, $event['Event']['uuid']),
+                ];
+                $triggerData = $event;
+                $workflowSuccess = $this->executeTrigger($trigger_id, $triggerData, $workflowErrors, $logging);
+                if (!$workflowSuccess) {
+                    return false;
                 }
             }
         }
@@ -809,7 +826,7 @@ class Event extends AppModel
         foreach ($objects as $object) {
             // Workaround for different structure in XML/array than what CakePHP expects
             if (isset($data['Event'][$object]) && is_array($data['Event'][$object]) && count($data['Event'][$object])) {
-                if (!is_numeric(implode('', array_keys($data['Event'][$object])))) {
+                if (!array_is_list($data['Event'][$object])) {
                     // single attribute
                     $data['Event'][$object] = array(0 => $data['Event'][$object]);
                 }
@@ -1437,8 +1454,7 @@ class Event extends AppModel
             $conditions['AND']['OR'] = [
                 [
                     'AND' => [
-                        'Event.distribution >' => 0,
-                        'Event.distribution <' => 4,
+                        'Event.distribution BETWEEN 1 AND 3',
                         $unpublishedPrivate ? array('Event.published' => 1) : [],
                     ],
                 ],
@@ -1546,7 +1562,7 @@ class Event extends AppModel
                     'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
                     'eventinfo' => array('function' => 'set_filter_eventinfo'),
                     'ignore' => array('function' => 'set_filter_ignore'),
-                    'tags' => array('function' => 'set_filter_tags', 'pop' => true),
+                    'tags' => array('function' => 'set_filter_tags', 'pop' => true, 'skip_neg' => true),
                     'event_tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
@@ -1555,12 +1571,14 @@ class Event extends AppModel
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'first_publication' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'org' => array('function' => 'set_filter_org', 'pop' => true),
                     'orgc_id' => array('function' => 'set_filter_orgc_id', 'pop' => true),
+                    'org_id' => array('function' => 'set_filter_org_id', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
                     'published' => array('function' => 'set_filter_published', 'pop' => true),
-                    'extended' => array('function' => 'set_filter_extended', 'pop' => true),
-                    'extending' => array('function' => 'set_filter_extending', 'pop' => true),
+                    'is_extended' => array('function' => 'set_filter_extended', 'pop' => true),
+                    'is_extension' => array('function' => 'set_filter_extending', 'pop' => true),
                     'threat_level_id' => array('function' => 'set_filter_threat_level_id', 'pop' => true),
                     'sharinggroup' => array('function' => 'set_filter_sharing_group')
                 ),
@@ -1574,7 +1592,7 @@ class Event extends AppModel
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_type'),
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
-                    'tags' => array('function' => 'set_filter_tags', 'pop' => true),
+                    'tags' => array('function' => 'set_filter_tags', 'pop' => true, 'skip_neg' => true),
                     'ignore' => array('function' => 'set_filter_ignore'),
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
@@ -1591,6 +1609,9 @@ class Event extends AppModel
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
                             'context' => 'Event'
                         );
+                        if (!empty($simple_param_scoped[$param]['skip_neg'])) {
+                            $options['skip_neg'] = true;
+                        }
                         if ($scope === 'Event') {
                             $conditions = $this->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
                         } else {
@@ -1606,7 +1627,7 @@ class Event extends AppModel
                                 $subQuery = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
                                 if ($param === 'value') {
                                     $subQuery[0] = explode('WHERE', $subQuery[0]);
-                                    $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
+                                    //$subQuery[0][0] .= ' USE INDEX (value1, value2) ';
                                     $subQuery[0] = implode('WHERE', $subQuery[0]);
                                 }
                                 $conditions['AND'][] = $subQuery;
@@ -1714,6 +1735,7 @@ class Event extends AppModel
             'last' => 'Event.publish_timestamp >=',
             'timestamp' => 'Event.timestamp >=',
             'publish_timestamp' => 'Event.publish_timestamp >=',
+            'first_publication' => 'Event.first_publication >=',
             'eventIdList' => 'Event.id',
         ];
         foreach ($paramMapping as $paramName => $paramLookup) {
@@ -1922,10 +1944,10 @@ class Event extends AppModel
         if (isset($options['published'])) {
             $conditions['AND'][] = array('Event.published' => $options['published']);
         }
-        if (isset($options['extended'])) {
+        if (isset($options['is_extended'])) {
             $conditions = $this->set_filter_extended($options, $conditions, null);
         }
-        if (isset($options['extending'])) {
+        if (isset($options['is_extension'])) {
             $conditions = $this->set_filter_extending($options, $conditions, null);
         }
         if ($options['orgc_id']) {
@@ -2014,7 +2036,7 @@ class Event extends AppModel
         // $conditions['AND'][] = array('Event.published =' => 1);
 
         // do not expose all the data ...
-        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected');
+        $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.first_publication', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected');
         $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
@@ -2118,7 +2140,6 @@ class Event extends AppModel
         } else {
             $justExportableTags = false;
         }
-
         $overrideLimit = !empty($options['overrideLimit']);
 
         if (!empty($options['allow_proposal_blocking']) && !Configure::read('MISP.proposals_block_attributes')) {
@@ -2238,7 +2259,7 @@ class Event extends AppModel
                     $event['Attribute'] = $this->__attachSharingGroups($event['Attribute'], $sharingGroupData);
                 }
 
-                if (!empty($options['includeGranularCorrelations'])) {
+                if (!empty($options['includeGranularCorrelations']) && $this->Attribute->Correlation->getCorrelationModelName() !== 'OnDemand') {
                     $event['Attribute'] = $this->Attribute->Correlation->attachCorrelationExclusion($event['Attribute']);
                 }
                 if (!empty($options['includeAnalystData'])) {
@@ -2319,12 +2340,12 @@ class Event extends AppModel
                 $event = $this->Sightingdb->attachToEvent($event, $user);
             }
         }
-        if ($options['include_extended']) {
+        if ($options['extended']) {
             foreach ($results as $k => $result) {
                 $results[$k] = $this->__mergeExtensions($user, $result, $options);
             }
         }
-        if ($options['include_extending']) {
+        if ($options['extending']) {
             foreach ($results as $k => $result) {
                 $results[$k] = $this->__mergeExtensions($user, $result, $options);
             }
@@ -2367,14 +2388,12 @@ class Event extends AppModel
                 }
             }
         }
-
         if ($excludeGalaxy || empty($galaxyTags)) {
             return;
         }
 
         $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
         $clusters = $this->GalaxyCluster->getClustersByTags($galaxyTags, $user, true, $fetchFullCluster, $fetchFullRelationship);
-
         if (empty($clusters)) {
             return;
         }
@@ -2437,7 +2456,7 @@ class Event extends AppModel
 
     private function __pruneUnknownClusters(array &$event, array $user)
     {
-        if (!Configure::read('MISP.hide_unkown_cluster', true) || $user['Role']['perm_sync']) {
+        if (!Configure::read('MISP.hide_unknown_cluster', true) || $user['Role']['perm_sync']) {
             return;
         }
         foreach ($event['EventTag'] as $i => $eventTag) {
@@ -2574,7 +2593,7 @@ class Event extends AppModel
             'sgReferenceOnly' => $options['sgReferenceOnly'],
             'includeAnalystData' => $options['includeAnalystData'],
         ];
-        if (!empty($options['include_extending'])) {
+        if (!empty($options['extending'])) {
             $fetchOptions['event_uuid'] = $event['Event']['extends_uuid'];
         } else {
             $fetchOptions['eventsExtendingUuid'] = $event['Event']['uuid'];
@@ -2761,6 +2780,15 @@ class Event extends AppModel
         if (!empty($params['orgc_id'])) {
             $orgFilter = ['OR' => $params['orgc_id']];
             $conditions = $this->generic_add_filter($conditions, $orgFilter, 'Event.orgc_id');
+        }
+        return $conditions;
+    }
+
+    public function set_filter_org_id(&$params, $conditions, $options)
+    {
+        if (!empty($params['org_id'])) {
+            $orgFilter = ['OR' => $params['org_id']];
+            $conditions = $this->generic_add_filter($conditions, $orgFilter, 'Event.org_id');
         }
         return $conditions;
     }
@@ -2962,19 +2990,19 @@ class Event extends AppModel
 
     public function set_filter_extended(&$params, $conditions, $options)
     {
-        if (!isset($params['extended'])) {
+        if (!isset($params['is_extended'])) {
             return $conditions;
         }
 
         $extended = null;
-        //If extended is an array, it means that the user is filtering for both extended and not extended events
-        if (is_array($params['extended']) && in_array(1, $params['extended']) && in_array(0, $params['extended'])) {
+        //If is_extended is an array, it means that the user is filtering for both extended and not extended events
+        if (is_array($params['is_extended']) && in_array(1, $params['is_extended']) && in_array(0, $params['is_extended'])) {
             return $conditions;
-        //Accept if extended is [0] or [1] and converting it to boolean
-        } else if (is_array($params['extended']) && (in_array(1, $params['extended'] ) || in_array(0, $params['extended']))) {
-            $extended = filter_var($params['extended'][0], FILTER_VALIDATE_BOOLEAN);
+        //Accept if is_extended is [0] or [1] and converting it to boolean
+        } else if (is_array($params['is_extended']) && (in_array(1, $params['is_extended'] ) || in_array(0, $params['is_extended']))) {
+            $extended = filter_var($params['is_extended'][0], FILTER_VALIDATE_BOOLEAN);
         } else {
-            $extended = filter_var($params['extended'], FILTER_VALIDATE_BOOLEAN);
+            $extended = filter_var($params['is_extended'], FILTER_VALIDATE_BOOLEAN);
         }
 
         //Step 1 - Extract the UUIDs of the events that are extended and remove duplicates
@@ -3025,19 +3053,19 @@ class Event extends AppModel
 
     public function set_filter_extending(&$params, $conditions, $options)
     {
-        if (!isset($params['extending'])) {
+        if (!isset($params['is_extension'])) {
             return $conditions;
         }
 
         $extending = null;
         //If extended is an array, it means that the user is filtering for both extended and not extended events
-        if (is_array($params['extending']) && in_array(1, $params['extending']) && in_array(0, $params['extending'])) {
+        if (is_array($params['is_extension']) && in_array(1, $params['is_extension']) && in_array(0, $params['is_extension'])) {
             return $conditions;
         //Accept if extended is [0] or [1] and converting it to boolean
-        } else if (is_array($params['extending']) && (in_array(1, $params['extending'] ) || in_array(0, $params['extending']))) {
-            $extending = filter_var($params['extending'][0], FILTER_VALIDATE_BOOLEAN);
+        } else if (is_array($params['is_extension']) && (in_array(1, $params['is_extension'] ) || in_array(0, $params['is_extension']))) {
+            $extending = filter_var($params['is_extension'][0], FILTER_VALIDATE_BOOLEAN);
         } else{
-            $extending = filter_var($params['extending'], FILTER_VALIDATE_BOOLEAN);
+            $extending = filter_var($params['is_extension'], FILTER_VALIDATE_BOOLEAN);
         }
 
         if ($extending) {
@@ -3144,13 +3172,112 @@ class Event extends AppModel
                     }
                 }
             }
-            $conditions = $this->generic_add_filter($conditions, $params['value'], ['Attribute.value1', 'Attribute.value2']);
+
+            if ($options['context'] !== 'Attribute') {
+                foreach (['OR', 'AND', 'NOT'] as $operand) {
+                    if (!empty($params[$options['filter']][$operand])) {
+                        $values = $params[$options['filter']][$operand];
+                        $conditions = $this->add_value_filter_subquery($conditions, $operand, $values, $options);
+                        unset($params[$options['filter']][$operand]);
+                    }
+                }
+            } else {
+                $conditions = $this->generic_add_filter($conditions, $params['value'], ['Attribute.value1', 'Attribute.value2']);
+            }
+
         }
         return $conditions;
     }
 
-    public function set_filter_object_name(&$params, $conditions, $options)
-    {
+    private function add_value_filter_subquery(
+      $conditions,
+      $operand,
+      $values,
+      $options
+    ) {
+        $lookup_field = null;
+        $field = null;
+        switch ($options['context']) {
+            case 'Object':
+                $lookup_field = 'Object.id';
+                $field = 'object_id';
+                break;
+            case 'Event':
+                $lookup_field = 'Event.id';
+                $field = 'event_id';
+                break;
+            default:
+                return $conditions;
+        }
+        switch ($operand) {
+            case 'OR':
+            case 'NOT':
+                $sub_filter = ['OR' => $values];
+                $subconditions_value1 = $this->generic_add_filter([], $sub_filter, ['Attribute.value1']);
+                $sub_filter = ['OR' => $values];
+                $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
+                $subquery_options = [
+                  'conditions' => [
+                    'OR' => [
+                      ...$subconditions_value1['AND'],
+                      ...$subconditions_value2['AND'],
+                    ],
+                  ],
+                  'fields' => [
+                    $field,
+                  ],
+                ];
+                $subQuery = $this->subQueryGenerator(
+                  $this->Attribute,
+                  $subquery_options,
+                  $lookup_field,
+                  $operand === 'NOT'
+                );
+                // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
+                if ($this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
+                    $subQuery[0] = explode('WHERE', $subQuery[0]);
+                    $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
+                    $subQuery[0] = implode('WHERE', $subQuery[0]);
+                }
+                $conditions['AND'][] = $subQuery;
+                break;
+            case 'AND':
+                foreach ($values as $v) {
+                    $sub_filter = ['OR' => $v];
+                    $subconditions_value1 = $this->generic_add_filter([], $sub_filter, ['Attribute.value1']);
+                    $sub_filter = ['OR' => $v];
+                    $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
+                    $subquery_options = [
+                      'conditions' => [
+                        'OR' => [
+                          ...$subconditions_value1['AND'],
+                          ...$subconditions_value2['AND'],
+                        ],
+                      ],
+                      'fields' => [
+                        $field,
+                      ],
+                    ];
+                    $subQuery = $this->subQueryGenerator(
+                      $this->Attribute,
+                      $subquery_options,
+                      $lookup_field
+                    );
+                    // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
+                    if ($this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
+                        $subQuery[0] = explode('WHERE', $subQuery[0]);
+                        $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
+                        $subQuery[0] = implode('WHERE', $subQuery[0]);
+                    }
+                    $conditions['AND'][] = $subQuery;
+                }
+                break;
+        }
+
+        return $conditions;
+    }
+
+    public function set_filter_object_name(&$params, $conditions, $options) {
         if (!empty($params['object_name'])) {
             $params['object_name'] = $this->convert_filters($params['object_name']);
             $conditions = $this->generic_add_filter($conditions, $params['object_name'], 'Object.name');
@@ -4086,6 +4213,7 @@ class Event extends AppModel
             'published',
             'uuid',
             'timestamp',
+            'first_publication',
             'distribution',
             'sharing_group_id',
             'locked',
@@ -4203,7 +4331,8 @@ class Event extends AppModel
                 if (('true' != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($this->id, $user);
                 }
-                $this->publish($this->id, $passAlong);
+
+                $this->publishRouter($this->id, $passAlong, $user);
             }
             if (empty($data['Event']['locked']) && !empty(Configure::read('MISP.default_event_tag_collection'))) {
                 $this->TagCollection = ClassRegistry::init('TagCollection');
@@ -4258,6 +4387,9 @@ class Event extends AppModel
             $values = [$attribute['value']];
         }
         foreach ($values as $value) {
+            if (is_array($value)) {
+                throw new MethodNotAllowedException(__('Attribute value is an array, which is not allowed: [%s]', implode(', ', $attribute['value'])));
+            }
             $value = hash('sha256', $attribute['value']);
             if (!isset($value_table[$value])) {
                 $value_table[$value] = ['v' => $attribute['value'], 'data' => [['o' => $object_id, 'a' => $attribute_id]]];
@@ -4421,7 +4553,7 @@ class Event extends AppModel
             $changed = false;
             // If a field is not set in the request, just reuse the old value
             // Also, compare the event to the existing event and see whether this is a meaningful change
-            $recoverFields = array('analysis', 'threat_level_id', 'info', 'distribution', 'date', 'org_id');
+            $recoverFields = array('analysis', 'threat_level_id', 'info', 'distribution', 'date', 'org_id', 'protected');
             foreach ($recoverFields as $rF) {
                 if (!isset($data['Event'][$rF])) {
                     $data['Event'][$rF] = $existingEvent['Event'][$rF];
@@ -4452,9 +4584,11 @@ class Event extends AppModel
             'uuid',
             'distribution',
             'timestamp',
+            'first_publication',
             'sharing_group_id',
             'disable_correlation',
-            'extends_uuid'
+            'extends_uuid',
+            'protected'
         );
         $saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList));
         if ($saveResult) {
@@ -4587,7 +4721,7 @@ class Event extends AppModel
                 if ((true != Configure::read('MISP.disablerestalert')) && (empty($server) || empty($server['Server']['publish_without_email']))) {
                     $this->sendAlertEmailRouter($id, $user, $existingEvent['Event']['publish_timestamp']);
                 }
-                $this->publish($existingEvent['Event']['id'], $passAlong);
+                $this->publishRouter($existingEvent['Event']['id'], $passAlong, $user);
             }
             if ($jobId) {
                 $eventLock->deleteBackgroundJobLock($data['Event']['id'], $jobId);
@@ -4968,7 +5102,14 @@ class Event extends AppModel
     public function publishRouter($id, $passAlong = null, $user)
     {
         if (Configure::read('MISP.background_jobs')) {
-
+            //Tentatively set the publish flag to 1
+            $event = $this->find('first', array(
+                'conditions' => array('Event.id' => $id),
+                'recursive' => -1
+            ));
+            $event['Event']['published'] = 1;
+            $event['Event']['publish_timestamp'] = time();
+            $this->save($event);
             /** @var Job $job */
             $job = ClassRegistry::init('Job');
             $jobId = $job->createJob($user, Job::WORKER_PRIO, 'publish_event', "Event ID: $id", 'Publishing.');
@@ -5089,9 +5230,12 @@ class Event extends AppModel
         } else {
             // update the DB to set the published flag
             // for background jobs, this should be done already
-            $fieldList = array('published', 'id', 'info', 'publish_timestamp');
+            $fieldList = array('published', 'id', 'info', 'publish_timestamp', 'first_publication');
             $event['Event']['published'] = 1;
             $event['Event']['publish_timestamp'] = time();
+            if (empty($event['Event']['first_publication'])) {
+                $event['Event']['first_publication'] = $event['Event']['publish_timestamp'];
+            };
             $event['Event']['skip_zmq'] = 1;
             $event['Event']['skip_kafka'] = 1;
             $result = $this->save($event, array('fieldList' => $fieldList));
@@ -5271,7 +5415,7 @@ class Event extends AppModel
 
     // expects a date string in the YYYY-MM-DD format
     // returns the passed string or false if the format is invalid
-    // based on the fix provided by stevengoosensB
+    // based on the fix provided by stevengoossensB
     public function dateFieldCheck($date)
     {
         // regex check for from / to field by stevengoossensB
@@ -6412,7 +6556,18 @@ class Event extends AppModel
                     }
                 }
             }
-            $stixVersion = $decoded['stix_version'];
+            $existingEvent = $this->find('first', ['conditions' => ['Event.uuid' => $data['Event']['uuid']], 'recursive' => -1]);
+            if (!empty($existingEvent)) {
+                if ($user['Role']['perm_modify_org'] && $existingEvent['Event']['orgc_id'] == $user['org_id']) {
+                    $eventid = $existingEvent['Event']['id'];
+                    $result = $this->_edit($data, $user, $eventid, null, null, true);
+                    if ($result === true) {
+                        return $eventid;
+                    }
+                }
+                return __('Event with the same UUID already exists, and you do not have the permission to modify it.');
+            }
+            $stixVersion = 'STIX ' . $decoded['stix_version'];
             $created_id = false;
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
@@ -6700,7 +6855,7 @@ class Event extends AppModel
                         } else if (!is_array($result)) {
                             continue 2;
                         } else if (!isset($result['results'])) {
-                            throw new RuntimeException("Invalid response received from module {$module['name']}, response data do not contains results field.");
+                            return 0;
                         }
                         //if (isset($result['error'])) $this->Session->setFlash($result['error']);
                         if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
@@ -7216,7 +7371,7 @@ class Event extends AppModel
                     if ($current_reference) {
                         continue; // Reference already exists, skip.
                     }
-                    list($referenced_id, $referenced_uuid, $referenced_type) = $this->Object->ObjectReference->getReferencedInfo(
+                    [$referenced_id, $referenced_uuid, $referenced_type] = $this->Object->ObjectReference->getReferencedInfo(
                         $reference['referenced_uuid'],
                         array('Event' => array('id' => $id)),
                         false,
@@ -7407,7 +7562,7 @@ class Event extends AppModel
                 )
             )
         );
-        return (!empty($original_uuid)) ? $original_uuid['Object']['uuid'] : $original_uuid;
+        return (!empty($original_uuid)) ? ['uuid' => $original_uuid['Object']['uuid']] : $original_uuid;
     }
 
     /**
@@ -7865,7 +8020,6 @@ class Event extends AppModel
         if (!empty($exportTool->additional_params)) {
             $filters = array_merge($filters, $exportTool->additional_params);
         }
-
         $exportToolParams = array(
             'user' => $user,
             'params' => array(),
@@ -8362,7 +8516,7 @@ class Event extends AppModel
                 'scope' => 'Attribute',
                 'requiresPublished' => 1,
                 'params' => array('returnFormat' => 'suricata'),
-                'description' => __('Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
+                'description' => __('Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain an allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
             ),
             'snort' => array(
                 'extension' => '.rules',
@@ -8370,7 +8524,7 @@ class Event extends AppModel
                 'scope' => 'Attribute',
                 'requiresPublished' => 1,
                 'params' => array('returnFormat' => 'snort'),
-                'description' => __('Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
+                'description' => __('Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain an allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
             ),
             'bro' => array(
                 'extension' => '.intel',
@@ -8378,7 +8532,7 @@ class Event extends AppModel
                 'scope' => 'Attribute',
                 'requiresPublished' => 1,
                 'params' => array('returnFormat' => 'bro'),
-                'description' => __('Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
+                'description' => __('Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain an allowedlist containing host, domain name and IP numbers to exclude from the NIDS export.'),
             ),
             'stix' => array(
                 'extension' => '.xml',
@@ -8410,7 +8564,7 @@ class Event extends AppModel
                 'scope' => 'Attribute',
                 'requiresPublished' => 1,
                 'params' => array('returnFormat' => 'text', 'includeAttachments' => 1),
-                'description' => __('Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.')
+                'description' => __('Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for suspicious files. Only published events and attributes marked as IDS Signature are exported.')
             ),
             'yara' => array(
                 'extension' => '.yara',

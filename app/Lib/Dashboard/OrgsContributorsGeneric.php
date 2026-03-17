@@ -16,7 +16,7 @@ class OrgsContributorsGeneric
     "timeframe": "30"
 }';
 
-    //This is the default filter - to be overriden in children classes
+    //This is the default filter - to be overridden in children classes
     protected function filter($user, $org, $options) {
         return true;
     }

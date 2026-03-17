@@ -32,6 +32,10 @@ class UserSettingsController extends AppController
     {
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'eventIndexColumnToggle';
+        $this->Security->unlockedActions[] = 'setTheme';
+        if ($this->action === 'setSetting') {
+            $this->Security->unlockedFields = array('value', 'value_select');
+        }
     }
 
     public function index()
@@ -168,6 +172,18 @@ class UserSettingsController extends AppController
                 throw new MethodNotAllowedException(__('This setting is restricted and requires the following permission(s): %s', $settingPermCheck));
             }
         }
+        if (!empty($user_id) && !empty($setting) && !$this->_isRest()) {
+            $current_setting = $this->UserSetting->find('first', array(
+                'recursive' => -1,
+                'conditions' => array(
+                    'UserSetting.user_id' => $user_id,
+                    'UserSetting.setting' => $setting
+                )
+            ));
+            if (!empty($current_setting)) {
+                $this->set('current_setting', $current_setting['UserSetting']['value']);
+            }
+        }
         // handle POST requests
         if ($this->request->is('post')) {
             // massage the request to allow for unencapsulated POST requests via the API
@@ -190,7 +206,7 @@ class UserSettingsController extends AppController
                         'recursive' => -1,
                         'conditions' => array('UserSetting.id' => $this->UserSetting->id)
                     ));
-                    return $this->RestResponse->viewData($userSetting, $this->response->type());
+                    return $this->RestResponse->viewData($userSetting['UserSetting'], $this->response->type());
                 } else {
                     // if we are dealing with a UI request, redirect the user to the user view with the proper flash message
                     $this->Flash->success(__('Setting saved.'));
@@ -204,7 +220,7 @@ class UserSettingsController extends AppController
                 } else {
                     /*
                      * if we are dealing with a UI request, simply set an error in a flash message
-                     * and render the view of this endpoint, pre-populated with the submitted values.
+                     * and render the view of this endpoint, prepopulated with the submitted values.
                      */
                     $this->Flash->error(__('Setting could not be saved.'));
                 }
@@ -401,5 +417,34 @@ class UserSettingsController extends AppController
         ];
         $this->UserSetting->setSetting($this->Auth->user(), $setting);
         return $this->RestResponse->saveSuccessResponse('UserSettings', 'eventIndexColumnToggle', false, 'json', 'Column visibility switched');
+    }
+
+    /**
+     * Toggle UI theme setting for the current user
+     * Provides a quick way to enable alternate UIs without navigating to settings
+     */
+    public function setTheme($theme)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('Expecting POST request.'));
+        }
+
+        $userId = $this->Auth->user('id');
+        $validThemes = array_flip($this->UserSetting::VALID_SETTINGS['ui_theme']['options']);
+        if (!isset($validThemes[$theme])) {
+            throw new BadRequestException(__('Invalid theme option provided.'));
+        }
+
+        $result = $this->UserSetting->setSettingInternal(
+            $userId, 'ui_theme', $theme
+        );
+
+        if ($result) {
+            $message = __('%s theme set. The page will now reload.', $theme);
+            return $this->RestResponse->saveSuccessResponse('UserSettings', 'setTheme', false, 'json', $message);
+        } else {
+            $message = __('Failed to set %s theme.', $theme);
+            return $this->RestResponse->saveFailResponse('UserSettings', 'setTheme', false, $message, 'json');
+        }
     }
 }

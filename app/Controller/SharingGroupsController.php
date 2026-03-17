@@ -18,7 +18,7 @@ class SharingGroupsController extends AppController
 
     public $paginate = array(
         'limit' => 60,
-        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
         'order' => array(
             'SharingGroup.id' => 'ASC'
         ),
@@ -597,7 +597,7 @@ class SharingGroupsController extends AppController
         if (!empty($sg['SharingGroupServer'])) {
             foreach ($sg['SharingGroupServer'] as $sgs) {
                 if ($sgs['server_id'] == $server['Server']['id']) {
-                    $removeServer = $server['Server']['id'];
+                    $removeServer = $sgs['id'];
                     break;
                 }
             }

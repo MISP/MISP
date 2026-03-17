@@ -1,0 +1,1509 @@
+{
+    "result": {
+        "sane_defaults": {
+            "md5": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "sha1": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "sha256": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "pdb": {
+                "default_category": "Artifacts dropped",
+                "to_ids": 0
+            },
+            "filename|md5": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|sha1": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|sha256": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "ip-src": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "ip-dst": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "hostname": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "domain": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "domain|ip": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "email": {
+                "default_category": "Social network",
+                "to_ids": 1
+            },
+            "email-src": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "eppn": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "email-dst": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "email-subject": {
+                "default_category": "Payload delivery",
+                "to_ids": 0
+            },
+            "email-attachment": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "email-body": {
+                "default_category": "Payload delivery",
+                "to_ids": 0
+            },
+            "float": {
+                "default_category": "Other",
+                "to_ids": 0
+            },
+            "git-commit-id": {
+                "default_category": "Internal reference",
+                "to_ids": 0
+            },
+            "url": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "http-method": {
+                "default_category": "Network activity",
+                "to_ids": 0
+            },
+            "user-agent": {
+                "default_category": "Network activity",
+                "to_ids": 0
+            },
+            "ja3-fingerprint-md5": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "jarm-fingerprint": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "favicon-mmh3": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "hassh-md5": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "hasshserver-md5": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "regkey": {
+                "default_category": "Persistence mechanism",
+                "to_ids": 1
+            },
+            "regkey|value": {
+                "default_category": "Persistence mechanism",
+                "to_ids": 1
+            },
+            "AS": {
+                "default_category": "Network activity",
+                "to_ids": 0
+            },
+            "snort": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "bro": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "zeek": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "community-id": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "dom-hash": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "pattern-in-file": {
+                "default_category": "Payload installation",
+                "to_ids": 1
+            },
+            "pattern-in-traffic": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "pattern-in-memory": {
+                "default_category": "Payload installation",
+                "to_ids": 1
+            },
+            "filename-pattern": {
+                "default_category": "Payload installation",
+                "to_ids": 1
+            },
+            "pgp-public-key": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "pgp-private-key": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "ssh-fingerprint": {
+                "default_category": "Network activity",
+                "to_ids": 0
+            },
+            "yara": {
+                "default_category": "Payload installation",
+                "to_ids": 1
+            },
+            "stix2-pattern": {
+                "default_category": "Payload installation",
+                "to_ids": 1
+            },
+            "sigma": {
+                "default_category": "Payload installation",
+                "to_ids": 1
+            },
+            "gene": {
+                "default_category": "Artifacts dropped",
+                "to_ids": 0
+            },
+            "kusto-query": {
+                "default_category": "Artifacts dropped",
+                "to_ids": 0
+            },
+            "mime-type": {
+                "default_category": "Artifacts dropped",
+                "to_ids": 0
+            },
+            "identity-card-number": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "cookie": {
+                "default_category": "Network activity",
+                "to_ids": 0
+            },
+            "vulnerability": {
+                "default_category": "External analysis",
+                "to_ids": 0
+            },
+            "cpe": {
+                "default_category": "External analysis",
+                "to_ids": 0
+            },
+            "weakness": {
+                "default_category": "External analysis",
+                "to_ids": 0
+            },
+            "attachment": {
+                "default_category": "External analysis",
+                "to_ids": 0
+            },
+            "malware-sample": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "link": {
+                "default_category": "External analysis",
+                "to_ids": 0
+            },
+            "comment": {
+                "default_category": "Other",
+                "to_ids": 0
+            },
+            "text": {
+                "default_category": "Other",
+                "to_ids": 0
+            },
+            "hex": {
+                "default_category": "Other",
+                "to_ids": 0
+            },
+            "other": {
+                "default_category": "Other",
+                "to_ids": 0
+            },
+            "named pipe": {
+                "default_category": "Artifacts dropped",
+                "to_ids": 0
+            },
+            "mutex": {
+                "default_category": "Artifacts dropped",
+                "to_ids": 1
+            },
+            "process-state": {
+                "default_category": "Artifacts dropped",
+                "to_ids": 0
+            },
+            "target-user": {
+                "default_category": "Targeting data",
+                "to_ids": 0
+            },
+            "target-email": {
+                "default_category": "Targeting data",
+                "to_ids": 0
+            },
+            "target-machine": {
+                "default_category": "Targeting data",
+                "to_ids": 0
+            },
+            "target-org": {
+                "default_category": "Targeting data",
+                "to_ids": 0
+            },
+            "target-location": {
+                "default_category": "Targeting data",
+                "to_ids": 0
+            },
+            "target-external": {
+                "default_category": "Targeting data",
+                "to_ids": 0
+            },
+            "btc": {
+                "default_category": "Financial fraud",
+                "to_ids": 1
+            },
+            "dash": {
+                "default_category": "Financial fraud",
+                "to_ids": 1
+            },
+            "xmr": {
+                "default_category": "Financial fraud",
+                "to_ids": 1
+            },
+            "iban": {
+                "default_category": "Financial fraud",
+                "to_ids": 1
+            },
+            "bic": {
+                "default_category": "Financial fraud",
+                "to_ids": 1
+            },
+            "bank-account-nr": {
+                "default_category": "Financial fraud",
+                "to_ids": 1
+            },
+            "aba-rtn": {
+                "default_category": "Financial fraud",
+                "to_ids": 1
+            },
+            "bin": {
+                "default_category": "Financial fraud",
+                "to_ids": 1
+            },
+            "cc-number": {
+                "default_category": "Financial fraud",
+                "to_ids": 1
+            },
+            "prtn": {
+                "default_category": "Financial fraud",
+                "to_ids": 1
+            },
+            "phone-number": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "threat-actor": {
+                "default_category": "Attribution",
+                "to_ids": 0
+            },
+            "campaign-name": {
+                "default_category": "Attribution",
+                "to_ids": 0
+            },
+            "campaign-id": {
+                "default_category": "Attribution",
+                "to_ids": 0
+            },
+            "malware-type": {
+                "default_category": "Payload delivery",
+                "to_ids": 0
+            },
+            "uri": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "authentihash": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "vhash": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "ssdeep": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "imphash": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "telfhash": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "pehash": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "impfuzzy": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "sha224": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "sha384": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "sha512": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "sha512/224": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "sha512/256": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "sha3-224": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "sha3-256": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "sha3-384": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "sha3-512": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "tlsh": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "cdhash": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|authentihash": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|vhash": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|ssdeep": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|imphash": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|impfuzzy": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|pehash": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|sha224": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|sha384": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|sha512": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|sha512/224": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|sha512/256": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|sha3-224": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|sha3-256": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|sha3-384": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|sha3-512": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "filename|tlsh": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "windows-scheduled-task": {
+                "default_category": "Artifacts dropped",
+                "to_ids": 0
+            },
+            "windows-service-name": {
+                "default_category": "Artifacts dropped",
+                "to_ids": 0
+            },
+            "windows-service-displayname": {
+                "default_category": "Artifacts dropped",
+                "to_ids": 0
+            },
+            "whois-registrant-email": {
+                "default_category": "Attribution",
+                "to_ids": 0
+            },
+            "whois-registrant-phone": {
+                "default_category": "Attribution",
+                "to_ids": 0
+            },
+            "whois-registrant-name": {
+                "default_category": "Attribution",
+                "to_ids": 0
+            },
+            "whois-registrant-org": {
+                "default_category": "Attribution",
+                "to_ids": 0
+            },
+            "whois-registrar": {
+                "default_category": "Attribution",
+                "to_ids": 0
+            },
+            "whois-creation-date": {
+                "default_category": "Attribution",
+                "to_ids": 0
+            },
+            "x509-fingerprint-sha1": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "x509-fingerprint-md5": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "x509-fingerprint-sha256": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "dns-soa-email": {
+                "default_category": "Attribution",
+                "to_ids": 0
+            },
+            "size-in-bytes": {
+                "default_category": "Other",
+                "to_ids": 0
+            },
+            "counter": {
+                "default_category": "Other",
+                "to_ids": 0
+            },
+            "integer": {
+                "default_category": "Other",
+                "to_ids": 0
+            },
+            "datetime": {
+                "default_category": "Other",
+                "to_ids": 0
+            },
+            "port": {
+                "default_category": "Network activity",
+                "to_ids": 0
+            },
+            "ip-dst|port": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "ip-src|port": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "hostname|port": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
+            "mac-address": {
+                "default_category": "Network activity",
+                "to_ids": 0
+            },
+            "mac-eui-64": {
+                "default_category": "Network activity",
+                "to_ids": 0
+            },
+            "email-dst-display-name": {
+                "default_category": "Payload delivery",
+                "to_ids": 0
+            },
+            "email-src-display-name": {
+                "default_category": "Payload delivery",
+                "to_ids": 0
+            },
+            "email-header": {
+                "default_category": "Payload delivery",
+                "to_ids": 0
+            },
+            "email-reply-to": {
+                "default_category": "Payload delivery",
+                "to_ids": 0
+            },
+            "email-x-mailer": {
+                "default_category": "Payload delivery",
+                "to_ids": 0
+            },
+            "email-mime-boundary": {
+                "default_category": "Payload delivery",
+                "to_ids": 0
+            },
+            "email-thread-index": {
+                "default_category": "Payload delivery",
+                "to_ids": 0
+            },
+            "email-message-id": {
+                "default_category": "Payload delivery",
+                "to_ids": 0
+            },
+            "github-username": {
+                "default_category": "Social network",
+                "to_ids": 0
+            },
+            "github-repository": {
+                "default_category": "Social network",
+                "to_ids": 0
+            },
+            "github-organisation": {
+                "default_category": "Social network",
+                "to_ids": 0
+            },
+            "jabber-id": {
+                "default_category": "Social network",
+                "to_ids": 0
+            },
+            "twitter-id": {
+                "default_category": "Social network",
+                "to_ids": 0
+            },
+            "dkim": {
+                "default_category": "Network activity",
+                "to_ids": 0
+            },
+            "dkim-signature": {
+                "default_category": "Network activity",
+                "to_ids": 0
+            },
+            "first-name": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "middle-name": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "last-name": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "full-name": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "date-of-birth": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "place-of-birth": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "gender": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "passport-number": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "passport-country": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "passport-expiration": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "redress-number": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "nationality": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "visa-number": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "issue-date-of-the-visa": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "primary-residence": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "country-of-residence": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "special-service-request": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "frequent-flyer-number": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "travel-details": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "payment-details": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "place-port-of-original-embarkation": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "place-port-of-clearance": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "place-port-of-onward-foreign-destination": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "passenger-name-record-locator-number": {
+                "default_category": "Person",
+                "to_ids": 0
+            },
+            "mobile-application-id": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "azure-application-id": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "chrome-extension-id": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "edge-extension-id": {
+                "default_category": "Payload delivery",
+                "to_ids": 1
+            },
+            "cortex": {
+                "default_category": "External analysis",
+                "to_ids": 0
+            },
+            "boolean": {
+                "default_category": "Other",
+                "to_ids": 0
+            },
+            "uuid": {
+                "default_category": "Other",
+                "to_ids": 0
+            },
+            "anonymised": {
+                "default_category": "Other",
+                "to_ids": 0
+            },
+            "onion-address": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            }
+        },
+        "types": [
+            "md5",
+            "sha1",
+            "sha256",
+            "filename",
+            "pdb",
+            "filename|md5",
+            "filename|sha1",
+            "filename|sha256",
+            "ip-src",
+            "ip-dst",
+            "hostname",
+            "domain",
+            "domain|ip",
+            "email",
+            "email-src",
+            "eppn",
+            "email-dst",
+            "email-subject",
+            "email-attachment",
+            "email-body",
+            "float",
+            "git-commit-id",
+            "url",
+            "http-method",
+            "user-agent",
+            "ja3-fingerprint-md5",
+            "jarm-fingerprint",
+            "favicon-mmh3",
+            "hassh-md5",
+            "hasshserver-md5",
+            "regkey",
+            "regkey|value",
+            "AS",
+            "snort",
+            "bro",
+            "zeek",
+            "community-id",
+            "dom-hash",
+            "pattern-in-file",
+            "pattern-in-traffic",
+            "pattern-in-memory",
+            "filename-pattern",
+            "pgp-public-key",
+            "pgp-private-key",
+            "ssh-fingerprint",
+            "yara",
+            "stix2-pattern",
+            "sigma",
+            "gene",
+            "kusto-query",
+            "mime-type",
+            "identity-card-number",
+            "cookie",
+            "vulnerability",
+            "cpe",
+            "weakness",
+            "attachment",
+            "malware-sample",
+            "link",
+            "comment",
+            "text",
+            "hex",
+            "other",
+            "named pipe",
+            "mutex",
+            "process-state",
+            "target-user",
+            "target-email",
+            "target-machine",
+            "target-org",
+            "target-location",
+            "target-external",
+            "btc",
+            "dash",
+            "xmr",
+            "iban",
+            "bic",
+            "bank-account-nr",
+            "aba-rtn",
+            "bin",
+            "cc-number",
+            "prtn",
+            "phone-number",
+            "threat-actor",
+            "campaign-name",
+            "campaign-id",
+            "malware-type",
+            "uri",
+            "authentihash",
+            "vhash",
+            "ssdeep",
+            "imphash",
+            "telfhash",
+            "pehash",
+            "impfuzzy",
+            "sha224",
+            "sha384",
+            "sha512",
+            "sha512/224",
+            "sha512/256",
+            "sha3-224",
+            "sha3-256",
+            "sha3-384",
+            "sha3-512",
+            "tlsh",
+            "cdhash",
+            "filename|authentihash",
+            "filename|vhash",
+            "filename|ssdeep",
+            "filename|imphash",
+            "filename|impfuzzy",
+            "filename|pehash",
+            "filename|sha224",
+            "filename|sha384",
+            "filename|sha512",
+            "filename|sha512/224",
+            "filename|sha512/256",
+            "filename|sha3-224",
+            "filename|sha3-256",
+            "filename|sha3-384",
+            "filename|sha3-512",
+            "filename|tlsh",
+            "windows-scheduled-task",
+            "windows-service-name",
+            "windows-service-displayname",
+            "whois-registrant-email",
+            "whois-registrant-phone",
+            "whois-registrant-name",
+            "whois-registrant-org",
+            "whois-registrar",
+            "whois-creation-date",
+            "x509-fingerprint-sha1",
+            "x509-fingerprint-md5",
+            "x509-fingerprint-sha256",
+            "dns-soa-email",
+            "size-in-bytes",
+            "counter",
+            "integer",
+            "datetime",
+            "port",
+            "ip-dst|port",
+            "ip-src|port",
+            "hostname|port",
+            "mac-address",
+            "mac-eui-64",
+            "email-dst-display-name",
+            "email-src-display-name",
+            "email-header",
+            "email-reply-to",
+            "email-x-mailer",
+            "email-mime-boundary",
+            "email-thread-index",
+            "email-message-id",
+            "github-username",
+            "github-repository",
+            "github-organisation",
+            "jabber-id",
+            "twitter-id",
+            "dkim",
+            "dkim-signature",
+            "first-name",
+            "middle-name",
+            "last-name",
+            "full-name",
+            "date-of-birth",
+            "place-of-birth",
+            "gender",
+            "passport-number",
+            "passport-country",
+            "passport-expiration",
+            "redress-number",
+            "nationality",
+            "visa-number",
+            "issue-date-of-the-visa",
+            "primary-residence",
+            "country-of-residence",
+            "special-service-request",
+            "frequent-flyer-number",
+            "travel-details",
+            "payment-details",
+            "place-port-of-original-embarkation",
+            "place-port-of-clearance",
+            "place-port-of-onward-foreign-destination",
+            "passenger-name-record-locator-number",
+            "mobile-application-id",
+            "azure-application-id",
+            "chrome-extension-id",
+            "edge-extension-id",
+            "cortex",
+            "boolean",
+            "uuid",
+            "anonymised",
+            "onion-address"
+        ],
+        "categories": [
+            "Internal reference",
+            "Targeting data",
+            "Antivirus detection",
+            "Payload delivery",
+            "Artifacts dropped",
+            "Payload installation",
+            "Persistence mechanism",
+            "Network activity",
+            "Payload type",
+            "Attribution",
+            "External analysis",
+            "Financial fraud",
+            "Support Tool",
+            "Social network",
+            "Person",
+            "Other"
+        ],
+        "category_type_mappings": {
+            "Internal reference": [
+                "text",
+                "link",
+                "comment",
+                "other",
+                "hex",
+                "anonymised",
+                "git-commit-id"
+            ],
+            "Targeting data": [
+                "target-user",
+                "target-email",
+                "target-machine",
+                "target-org",
+                "target-location",
+                "target-external",
+                "comment",
+                "anonymised"
+            ],
+            "Antivirus detection": [
+                "link",
+                "comment",
+                "text",
+                "hex",
+                "attachment",
+                "other",
+                "anonymised"
+            ],
+            "Payload delivery": [
+                "md5",
+                "sha1",
+                "sha224",
+                "sha256",
+                "sha384",
+                "sha512",
+                "sha512/224",
+                "sha512/256",
+                "sha3-224",
+                "sha3-256",
+                "sha3-384",
+                "sha3-512",
+                "ssdeep",
+                "imphash",
+                "telfhash",
+                "impfuzzy",
+                "authentihash",
+                "vhash",
+                "pehash",
+                "tlsh",
+                "cdhash",
+                "filename",
+                "filename|md5",
+                "filename|sha1",
+                "filename|sha224",
+                "filename|sha256",
+                "filename|sha384",
+                "filename|sha512",
+                "filename|sha512/224",
+                "filename|sha512/256",
+                "filename|sha3-224",
+                "filename|sha3-256",
+                "filename|sha3-384",
+                "filename|sha3-512",
+                "filename|authentihash",
+                "filename|vhash",
+                "filename|ssdeep",
+                "filename|tlsh",
+                "filename|imphash",
+                "filename|impfuzzy",
+                "filename|pehash",
+                "mac-address",
+                "mac-eui-64",
+                "ip-src",
+                "ip-dst",
+                "ip-dst|port",
+                "ip-src|port",
+                "hostname",
+                "domain",
+                "email",
+                "email-src",
+                "email-dst",
+                "email-subject",
+                "email-attachment",
+                "email-body",
+                "url",
+                "user-agent",
+                "AS",
+                "pattern-in-file",
+                "pattern-in-traffic",
+                "filename-pattern",
+                "stix2-pattern",
+                "yara",
+                "sigma",
+                "mime-type",
+                "attachment",
+                "malware-sample",
+                "link",
+                "malware-type",
+                "comment",
+                "text",
+                "hex",
+                "vulnerability",
+                "cpe",
+                "weakness",
+                "x509-fingerprint-sha1",
+                "x509-fingerprint-md5",
+                "x509-fingerprint-sha256",
+                "ja3-fingerprint-md5",
+                "jarm-fingerprint",
+                "hassh-md5",
+                "hasshserver-md5",
+                "other",
+                "hostname|port",
+                "email-dst-display-name",
+                "email-src-display-name",
+                "email-header",
+                "email-reply-to",
+                "email-x-mailer",
+                "email-mime-boundary",
+                "email-thread-index",
+                "email-message-id",
+                "azure-application-id",
+                "mobile-application-id",
+                "chrome-extension-id",
+                "edge-extension-id",
+                "whois-registrant-email",
+                "anonymised",
+                "onion-address"
+            ],
+            "Artifacts dropped": [
+                "md5",
+                "sha1",
+                "sha224",
+                "sha256",
+                "sha384",
+                "sha512",
+                "sha512/224",
+                "sha512/256",
+                "sha3-224",
+                "sha3-256",
+                "sha3-384",
+                "sha3-512",
+                "ssdeep",
+                "imphash",
+                "telfhash",
+                "impfuzzy",
+                "authentihash",
+                "vhash",
+                "cdhash",
+                "filename",
+                "filename|md5",
+                "filename|sha1",
+                "filename|sha224",
+                "filename|sha256",
+                "filename|sha384",
+                "filename|sha512",
+                "filename|sha512/224",
+                "filename|sha512/256",
+                "filename|sha3-224",
+                "filename|sha3-256",
+                "filename|sha3-384",
+                "filename|sha3-512",
+                "filename|authentihash",
+                "filename|vhash",
+                "filename|ssdeep",
+                "filename|tlsh",
+                "filename|imphash",
+                "filename|impfuzzy",
+                "filename|pehash",
+                "regkey",
+                "regkey|value",
+                "pattern-in-file",
+                "pattern-in-memory",
+                "filename-pattern",
+                "pdb",
+                "stix2-pattern",
+                "yara",
+                "sigma",
+                "attachment",
+                "malware-sample",
+                "named pipe",
+                "mutex",
+                "process-state",
+                "windows-scheduled-task",
+                "windows-service-name",
+                "windows-service-displayname",
+                "comment",
+                "text",
+                "hex",
+                "x509-fingerprint-sha1",
+                "x509-fingerprint-md5",
+                "x509-fingerprint-sha256",
+                "other",
+                "cookie",
+                "gene",
+                "kusto-query",
+                "mime-type",
+                "anonymised",
+                "pgp-public-key",
+                "pgp-private-key"
+            ],
+            "Payload installation": [
+                "md5",
+                "sha1",
+                "sha224",
+                "sha256",
+                "sha384",
+                "sha512",
+                "sha512/224",
+                "sha512/256",
+                "sha3-224",
+                "sha3-256",
+                "sha3-384",
+                "sha3-512",
+                "ssdeep",
+                "imphash",
+                "telfhash",
+                "impfuzzy",
+                "authentihash",
+                "vhash",
+                "pehash",
+                "tlsh",
+                "cdhash",
+                "filename",
+                "filename|md5",
+                "filename|sha1",
+                "filename|sha224",
+                "filename|sha256",
+                "filename|sha384",
+                "filename|sha512",
+                "filename|sha512/224",
+                "filename|sha512/256",
+                "filename|sha3-224",
+                "filename|sha3-256",
+                "filename|sha3-384",
+                "filename|sha3-512",
+                "filename|authentihash",
+                "filename|vhash",
+                "filename|ssdeep",
+                "filename|tlsh",
+                "filename|imphash",
+                "filename|impfuzzy",
+                "filename|pehash",
+                "pattern-in-file",
+                "pattern-in-traffic",
+                "pattern-in-memory",
+                "filename-pattern",
+                "stix2-pattern",
+                "yara",
+                "sigma",
+                "vulnerability",
+                "cpe",
+                "weakness",
+                "attachment",
+                "malware-sample",
+                "malware-type",
+                "comment",
+                "text",
+                "hex",
+                "x509-fingerprint-sha1",
+                "x509-fingerprint-md5",
+                "x509-fingerprint-sha256",
+                "azure-application-id",
+                "mobile-application-id",
+                "chrome-extension-id",
+                "edge-extension-id",
+                "other",
+                "mime-type",
+                "anonymised"
+            ],
+            "Persistence mechanism": [
+                "filename",
+                "regkey",
+                "regkey|value",
+                "comment",
+                "text",
+                "other",
+                "hex",
+                "anonymised"
+            ],
+            "Network activity": [
+                "ip-src",
+                "ip-dst",
+                "ip-dst|port",
+                "ip-src|port",
+                "port",
+                "hostname",
+                "domain",
+                "domain|ip",
+                "mac-address",
+                "mac-eui-64",
+                "email",
+                "email-dst",
+                "email-src",
+                "eppn",
+                "url",
+                "uri",
+                "user-agent",
+                "http-method",
+                "AS",
+                "snort",
+                "pattern-in-file",
+                "filename-pattern",
+                "stix2-pattern",
+                "pattern-in-traffic",
+                "attachment",
+                "comment",
+                "text",
+                "x509-fingerprint-md5",
+                "x509-fingerprint-sha1",
+                "x509-fingerprint-sha256",
+                "ja3-fingerprint-md5",
+                "jarm-fingerprint",
+                "hassh-md5",
+                "hasshserver-md5",
+                "other",
+                "hex",
+                "cookie",
+                "hostname|port",
+                "bro",
+                "zeek",
+                "anonymised",
+                "community-id",
+                "email-subject",
+                "favicon-mmh3",
+                "dkim",
+                "dkim-signature",
+                "ssh-fingerprint",
+                "dom-hash",
+                "onion-address"
+            ],
+            "Payload type": [
+                "comment",
+                "text",
+                "other",
+                "anonymised"
+            ],
+            "Attribution": [
+                "threat-actor",
+                "campaign-name",
+                "campaign-id",
+                "whois-registrant-phone",
+                "whois-registrant-email",
+                "whois-registrant-name",
+                "whois-registrant-org",
+                "whois-registrar",
+                "whois-creation-date",
+                "comment",
+                "text",
+                "x509-fingerprint-sha1",
+                "x509-fingerprint-md5",
+                "x509-fingerprint-sha256",
+                "other",
+                "dns-soa-email",
+                "anonymised",
+                "email"
+            ],
+            "External analysis": [
+                "md5",
+                "sha1",
+                "sha256",
+                "sha3-224",
+                "sha3-256",
+                "sha3-384",
+                "sha3-512",
+                "filename",
+                "filename|md5",
+                "filename|sha1",
+                "filename|sha256",
+                "filename|sha3-224",
+                "filename|sha3-256",
+                "filename|sha3-384",
+                "filename|sha3-512",
+                "ip-src",
+                "ip-dst",
+                "ip-dst|port",
+                "ip-src|port",
+                "mac-address",
+                "mac-eui-64",
+                "hostname",
+                "domain",
+                "domain|ip",
+                "url",
+                "user-agent",
+                "regkey",
+                "regkey|value",
+                "AS",
+                "snort",
+                "bro",
+                "zeek",
+                "pattern-in-file",
+                "pattern-in-traffic",
+                "pattern-in-memory",
+                "filename-pattern",
+                "vulnerability",
+                "cpe",
+                "weakness",
+                "attachment",
+                "malware-sample",
+                "link",
+                "comment",
+                "text",
+                "x509-fingerprint-sha1",
+                "x509-fingerprint-md5",
+                "x509-fingerprint-sha256",
+                "ja3-fingerprint-md5",
+                "jarm-fingerprint",
+                "hassh-md5",
+                "hasshserver-md5",
+                "github-repository",
+                "other",
+                "cortex",
+                "anonymised",
+                "community-id",
+                "dom-hash",
+                "onion-address"
+            ],
+            "Financial fraud": [
+                "btc",
+                "dash",
+                "xmr",
+                "iban",
+                "bic",
+                "bank-account-nr",
+                "aba-rtn",
+                "bin",
+                "cc-number",
+                "prtn",
+                "phone-number",
+                "comment",
+                "text",
+                "other",
+                "hex",
+                "anonymised"
+            ],
+            "Support Tool": [
+                "link",
+                "text",
+                "attachment",
+                "comment",
+                "other",
+                "hex",
+                "anonymised"
+            ],
+            "Social network": [
+                "github-username",
+                "github-repository",
+                "github-organisation",
+                "jabber-id",
+                "twitter-id",
+                "email",
+                "email-src",
+                "email-dst",
+                "eppn",
+                "comment",
+                "text",
+                "other",
+                "whois-registrant-email",
+                "anonymised",
+                "pgp-public-key",
+                "pgp-private-key"
+            ],
+            "Person": [
+                "first-name",
+                "middle-name",
+                "last-name",
+                "full-name",
+                "date-of-birth",
+                "place-of-birth",
+                "gender",
+                "passport-number",
+                "passport-country",
+                "passport-expiration",
+                "redress-number",
+                "nationality",
+                "visa-number",
+                "issue-date-of-the-visa",
+                "primary-residence",
+                "country-of-residence",
+                "special-service-request",
+                "frequent-flyer-number",
+                "travel-details",
+                "payment-details",
+                "place-port-of-original-embarkation",
+                "place-port-of-clearance",
+                "place-port-of-onward-foreign-destination",
+                "passenger-name-record-locator-number",
+                "comment",
+                "text",
+                "other",
+                "phone-number",
+                "identity-card-number",
+                "anonymised",
+                "email",
+                "pgp-public-key",
+                "pgp-private-key"
+            ],
+            "Other": [
+                "comment",
+                "text",
+                "other",
+                "size-in-bytes",
+                "counter",
+                "integer",
+                "datetime",
+                "cpe",
+                "port",
+                "float",
+                "hex",
+                "phone-number",
+                "boolean",
+                "anonymised",
+                "pgp-public-key",
+                "pgp-private-key",
+                "uuid"
+            ]
+        }
+    }
+}

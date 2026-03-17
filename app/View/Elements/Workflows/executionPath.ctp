@@ -30,13 +30,13 @@ echo $this->element('genericElements/assetLoader', [
     <div style="width: 100%;"> \
         <div class="default-main-container"> \
             {{? it.icon }} \
-                <i class="fa-fw fa-{{=it.icon}} {{=it.icon_class}}"></i> \
+                <i class="fa-fw fa-{{!it.icon}} {{!it.icon_class}}"></i> \
             {{?}} \
             {{? it.icon_path }} \
-                <span><img src="/img/{{=it.icon_path}}" alt="Icon of {{=it.name}}" width="18" height="18" style="margin: auto 0; filter: grayscale(1);"></span> \
+                <span><img src="/img/{{!it.icon_path}}" alt="Icon of {{!it.name}}" width="18" height="18" style="margin: auto 0; filter: grayscale(1);"></span> \
             {{?}} \
             <strong style="margin-left: 0.25em;"> \
-                {{=it.name}} \
+                {{!it.name}} \
             </strong> \
             {{? it.is_misp_module }} \
                 <sup class="is-misp-module"></sup> \

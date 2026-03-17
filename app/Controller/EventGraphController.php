@@ -148,35 +148,16 @@ class EventGraphController extends AppController
 
     public function delete($id)
     {
-        if (!$this->request->is('post')) {
-            $this->set('id', $id);
-            $this->render('ajax/eventGraph_delete_form');
-        } else {
-            $this->set('id', $id);
-            $conditions = array('id' => $id);
-            if (!$this->_isSiteAdmin()) {
-                $conditions['org_id'] = $this->Auth->user('org_id');
-            }
-            $eventGraph = $this->EventGraph->find('first', array(
-                    'conditions' => $conditions,
-                    'recursive' => -1,
-                    'fields' => array('id', 'event_id', 'user_id'),
-            ));
-            if (empty($eventGraph)) {
-                throw new NotFoundException('Invalid EventGraph');
-            }
-            if ($this->request->is('post')) {
-                // only creator (or siteAdmin) can delete the eventGraph
-                if (($eventGraph['EventGraph']['user_id'] != $this->Auth->user()['id']) && !$this->_isSiteAdmin()) {
-                    throw new MethodNotAllowedException('This eventGraph does not belong to you.');
-                }
-                $result = $this->EventGraph->delete($id);
-                if ($result) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'EventGraph deleted.')), 'status'=>200, 'type' => 'json'));
-                } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'EventGraph not deleted.')), 'status'=>200, 'type' => 'json'));
-                }
-            }
+        $conditions = [];
+        if (!$this->_isSiteAdmin()) {
+            $conditions['EventGraph.org_id'] = $this->Auth->user('org_id');
+            $conditions['EventGraph.user_id'] = $this->Auth->user('id');
+        }
+        $this->CRUD->delete($id, [
+            'conditions' => $conditions
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
 }

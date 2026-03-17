@@ -157,18 +157,18 @@ if (Configure::read('OidcAuth')) {
 	CakePlugin::load('OidcAuth');
 }
 
-if (Configure::read('ShibbAuth')) {
-	CakePlugin::load('ShibbAuth');
-}
-
 if (empty(Configure::read('SimpleBackgroundJobs.enabled'))) {
 	CakePlugin::loadAll(array(
 		'CakeResque' => array('bootstrap' => true)
 	));
 }
 
+if (Configure::read('ShibbAuth') || Configure::read('ApacheShibbAuth')) {
+	CakePlugin::load('ShibbAuth');
+}
+
 /**
- * You can attach event listeners to the request lifecyle as Dispatcher Filter . By Default CakePHP bundles two filters:
+ * You can attach event listeners to the request lifecycle as Dispatcher Filter . By Default CakePHP bundles two filters:
  *
  * - AssetDispatcher filter will serve your asset files (css, images, js, etc) from your themes and plugins
  * - CacheDispatcher filter will read the Cache.check configure variable and try to serve cached content generated from controllers

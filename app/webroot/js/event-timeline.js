@@ -7,7 +7,7 @@ var items_backup;
 var use_local_timezone = true;
 var mapping_text_to_id = new Map();
 var user_manipulation = $('#event_timeline').data('user-manipulation');
-var extended_text = $('#event_timeline').data('extended') == 1 ? "/include_extended:1" : "";
+var extended_text = $('#event_timeline').data('extended') == 1 ? "/extended:1" : "";
 var container_timeline = document.getElementById('event_timeline');
 var hardThreshold = 500;
 var softThreshold = 200;
@@ -41,7 +41,7 @@ var options = {
                     return build_sighting_template(item);
                 } else {
                     console.log(item)
-                    console.log('Error: Unkown group');
+                    console.log('Error: Unknown group');
                 }
                 break;
         }
@@ -864,7 +864,7 @@ function build_time_chart(data) {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Time Occurences'
+                    text: 'Time Occurrences'
                 }
             },
             scales: {

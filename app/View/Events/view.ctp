@@ -4,9 +4,9 @@
         'js' => ['doT', 'extendext', 'moment.min', 'query-builder', 'network-distribution-graph', 'd3', 'd3.custom', 'jquery-ui.min'],
     ]);
     $pageTitle = $event['Event']['info'];
-    if ($include_extended) {
+    if ($extended) {
         $pageTitle = '[' . __('Extended view') . '] ' . $pageTitle;
-    } else if ($include_extending) {
+    } else if ($extending) {
         $pageTitle = '[' . __('Extending view') . '] ' . $pageTitle;
     }
     echo $this->element(
@@ -170,15 +170,35 @@
                     'function' => function(array $event) {
                         if (!$event['Event']['published']) {
                             $string = '<span class="label label-important label-padding">' . __('No') . '</span>';
+                            if (!empty($event['Event']['first_publication'])) {
+                                $string .= sprintf(
+                                    '<br /><span class="bold">%s</span>: %s',
+                                    __('First published at'),
+                                    $this->Time->time($event['Event']['first_publication'])
+                                );
+                            }
                             if (!empty($event['Event']['publish_timestamp'])) {
-                                $string .= __(' (last published at %s)', $this->Time->time($event['Event']['publish_timestamp']));
+                                $string .= sprintf(
+                                    '<br /><span class="bold">%s</span>: %s',
+                                    __('Last published at'),
+                                    $this->Time->time($event['Event']['publish_timestamp'])
+                                );
                             }
                             return $string;
                         } else {
                             return sprintf(
-                                '<span class="label label-success label-padding">%s</span> %s',
+                                '<span class="label label-success label-padding">%s</span> %s%s',
                                 __('Yes'),
-                                empty($event['Event']['publish_timestamp']) ? __('N/A') : $this->Time->time($event['Event']['publish_timestamp'])
+                                empty($event['Event']['first_publication']) ? '' : sprintf(
+                                    '<br /><span class="bold">%s</span>: %s',
+                                    __('First published at'),
+                                    $this->Time->time($event['Event']['first_publication']
+                                )),
+                                empty($event['Event']['publish_timestamp']) ? '' : sprintf(
+                                    '<br /><span class="bold">%s</span>: %s',
+                                    __('Last published at'),
+                                    $this->Time->time($event['Event']['publish_timestamp']),
+                                )
                             );
                         }
                     }
@@ -210,7 +230,7 @@
                     'key' => __('Extends'),
                     'type' => 'extends',
                     'path' => 'Event.extends_uuid',
-                    'include_extending' => $include_extending,
+                    'extending' => $extending,
                     'extendedEvent' => isset($extendedEvent) ? $extendedEvent : null,
                     'class' => 'break-word',
                     'requirement' => !empty($extendedEvent)
@@ -220,7 +240,7 @@
                     'type' => 'extendedBy',
                     'path' => 'Event.id',
                     'extended_by' => isset($extensions) ? $extensions : null,
-                    'include_extended' => $include_extended,
+                    'extended' => $extended,
                     'class' => 'break-word',
                     'requirement' => !empty($extensions)
                 ],

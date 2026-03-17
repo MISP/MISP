@@ -10,7 +10,7 @@ class GalaxyElementsController extends AppController
 
     public $paginate = array(
             'limit' => 20,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
             'recursive' => -1,
             'order' => array(
                 'GalaxyElement.key' => 'ASC'
@@ -49,7 +49,7 @@ class GalaxyElementsController extends AppController
             'searchall' => isset($filters['searchall']) ? $filters['searchall'] : ''
         ]));
         $cluster = $this->GalaxyElement->GalaxyCluster->fetchIfAuthorized($user, $clusterId, array('edit', 'delete'), false, false);
-        $canModify = !empty($cluster['authorized']);
+        $canModify = !isset($cluster['authorized']) || $cluster['authorized'] === true;
         $this->set('canModify', $canModify);
         if ($filters['context'] === 'JSONView') {
             $expanded = $this->GalaxyElement->getExpandedJSONFromElements($elements);

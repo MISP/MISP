@@ -1,6 +1,6 @@
 # INSTALL Documentation for the MISP Project.
 
-To have a more web friendly view please visit the mkdocs generated gh-pages site [here](https://misp.github.io/MISP/)
+To have a more web friendly view please visit the [mkdocs generated gh-pages site](https://misp.github.io/MISP/)
 
 Currently the following install guides are being tested on a regular basis:
 ```

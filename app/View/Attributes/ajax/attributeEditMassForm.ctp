@@ -187,7 +187,7 @@ $(function() {
     });
 
     // workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
-    // disadvangate is that user needs to click on the item to see the tooltip.
+    // disadvantage is that user needs to click on the item to see the tooltip.
     // no solutions exist, except to generate the select completely using html.
     $("#Attribute, #AttributeDistribution").on('change', function(e) {
         var $e = $(e.target);

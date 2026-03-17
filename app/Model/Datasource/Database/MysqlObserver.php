@@ -7,6 +7,8 @@
      *   whilst trying to help detect potential bugs burrowed in our queries
      */
     class MysqlObserver extends Mysql {
+        const IDENTIFIER_QUOTE = '`';
+        
         public function execute($sql, $options = array(), $params = array()) {
             $comment = sprintf(
                 '%s%s%s',

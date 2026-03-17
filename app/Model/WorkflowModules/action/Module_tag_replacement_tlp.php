@@ -7,7 +7,7 @@ class Module_tag_replacement_tlp extends Module_tag_replacement_generic
     public $blocking = false;
     public $id = 'tag_replacement_tlp';
     public $name = 'Tag Replacement - TLP';
-    public $description = 'Attach a tag (or substitue) a tag by another for the TLP taxonomy';
+    public $description = 'Attach a tag (or substitute) a tag by another for the TLP taxonomy';
     public $icon = 'tags';
     public $inputs = 1;
     public $outputs = 1;

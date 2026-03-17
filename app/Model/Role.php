@@ -59,7 +59,7 @@ class Role extends AppModel
         'publish' => 3
     );
 
-    public $premissionLevelName = array('Read Only', 'Manage Own Events', 'Manage Organisation Events', 'Manage and Publish Organisation Events');
+    public $permissionLevelName = array('Read Only', 'Manage Own Events', 'Manage Organisation Events', 'Manage and Publish Organisation Events');
 
     public function beforeSave($options = array())
     {
@@ -126,6 +126,13 @@ class Role extends AppModel
         }
         if (empty($this->data['Role']['rate_limit_count'])) {
             $this->data['Role']['rate_limit_count'] = 0;
+        } else {
+            if ($this->data['Role']['rate_limit_count'] < 0) {
+                $this->data['Role']['rate_limit_count'] = 0;
+            }
+        }
+        if (!empty($this->data['Role']['restsearch_limit_result']) && $this->data['Role']['restsearch_limit_result'] < 0) {
+            $this->data['Role']['restsearch_limit_result'] = 0;
         }
         return true;
     }
@@ -360,7 +367,7 @@ class Role extends AppModel
                 'id' => 'RolePermServerSign',
                 'text' => 'Server Signing',
                 'readonlyenabled' => false,
-                'title' => __('Users using a role with this permission will have access to the CryptographicsKeys/serverSign endpoint. This can be useful for internal services that need to sign data, though use it with care.'),
+                'title' => __('Users using a role with this permission will have access to the CryptographicKeys/serverSign endpoint. This can be useful for internal services that need to sign data, though use it with care.'),
             ]
         );
     }

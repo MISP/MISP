@@ -9,7 +9,7 @@ class Module_splunk_hec_export extends Module_webhook
     public $id = 'splunk-hec-export';
     public $name = 'Splunk HEC export';
     public $version = '0.2';
-    public $description = 'Export Event Data to Splunk HTTP Event Collector. Due to the potential high amount of requests, it\'s recommanded to put this module after a `concurrent_task` logic module.';
+    public $description = 'Export Event Data to Splunk HTTP Event Collector. Due to the potential high amount of requests, it\'s recommended to put this module after a `concurrent_task` logic module.';
     public $icon_path = 'Splunk.png';
     public $support_filters = false;
     public $expect_misp_core_format = true;
@@ -73,8 +73,8 @@ class Module_splunk_hec_export extends Module_webhook
 
     public function exec(array $node, WorkflowRoamingData $roamingData, array &$errors = []): bool
     {
-        if (empty(Configure::read('Security.rest_client_enable_arbitrary_urls'))) {
-            $errors[] = __('`Security.rest_client_enable_arbitrary_urls` is turned off');
+        if (empty(Configure::read('Security.workflow_enable_arbitrary_urls'))) {
+            $errors[] = __('`Security.workflow_enable_arbitrary_urls` is turned off');
             return false;
         }
         $rData = $roamingData->getData();

@@ -95,7 +95,7 @@ class UsageDataWidget
         $postCount = $this->Thread->Post->find('count', array('recursive' => -1));
         $postCountMonth = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s", $thisMonth)), 'recursive' => -1));
 
-        //Monhtly data is not added to the widget at the moment, could optionally add these later and give user choice?
+        //Monthly data is not added to the widget at the moment, could optionally add these later and give user choice?
 
         $statistics = [
             'Events' => [

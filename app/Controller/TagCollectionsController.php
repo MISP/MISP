@@ -9,6 +9,7 @@ class TagCollectionsController extends AppController
 {
     public $components = array(
         'AdminCrud',
+        'CRUD',
         'RequestHandler'
     );
 
@@ -40,34 +41,16 @@ class TagCollectionsController extends AppController
 
     public function add()
     {
-        if ($this->request->is('post')) {
-            $this->TagCollection->create();
-            if (!isset($this->request->data['TagCollection'])) {
-                $this->request->data = array('TagCollection' => $this->request->data);
+        $params = [
+            'beforeSave' => function (array $tagCollection) {
+                $tagCollection['TagCollection']['org_id'] = $this->Auth->user('org_id');
+                $tagCollection['TagCollection']['user_id'] = $this->Auth->user('id');
+                return $tagCollection;
             }
-            $this->request->data['TagCollection']['org_id'] = $this->Auth->user('org_id');
-            $this->request->data['TagCollection']['user_id'] = $this->Auth->user('id');
-            if ($this->TagCollection->save($this->request->data)) {
-                if ($this->_isRest()) {
-                    $tagCollection = $this->TagCollection->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array('TagCollection.id' => $this->TagCollection->id)
-                    ));
-                    return $this->RestResponse->viewData($tagCollection, $this->response->type());
-                } else {
-                    $this->Flash->success(__('The tag collection has been saved'));
-                    $this->redirect(array('action' => 'index'));
-                }
-            } else {
-                $message = json_encode($this->TagCollection->validationErrors);
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('TagCollection', 'add', false, $message, $this->response->type());
-                } else {
-                    $this->Flash->error(__('The tag collection could not be added. Reason: ') . $message);
-                }
-            }
-        } elseif ($this->_isRest()) {
-            return $this->RestResponse->describe('TagCollection', 'add', false, $this->response->type());
+        ];
+        $this->CRUD->add($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
         $this->set('action', 'add');
     }
@@ -141,45 +124,27 @@ class TagCollectionsController extends AppController
     {
         $conditions = $this->TagCollection->createConditions($this->Auth->user());
         $conditions['TagCollection.id'] = $id;
-        $tagCollection = $this->TagCollection->find('first', array(
+        $tagCollection = $this->TagCollection->find('first', [
             'conditions' => $conditions,
             'recursive' => -1
-        ));
+        ]);
         if (empty($tagCollection)) {
             throw new NotFoundException(__('Invalid Tag Collection'));
         }
         if (!$this->ACL->canModifyTagCollection($this->Auth->user(), $tagCollection)) {
             throw new MethodNotAllowedException(__('You don\'t have editing rights on this Tag Collection.'));
         }
-        if ($this->request->is('post') || $this->request->is('put')) {
-            if (!isset($this->request->data['TagCollection'])) {
-                $this->request->data = array('TagCollection' => $this->request->data);
+
+        $params = [
+            'beforeSave' => function (array $data) use ($tagCollection) {
+                $data['TagCollection']['id'] = $tagCollection['TagCollection']['id'];
+                $data['TagCollection']['uuid'] = $tagCollection['TagCollection']['uuid'];
+                return $data;
             }
-            $this->request->data['TagCollection']['id'] = $tagCollection['TagCollection']['id'];
-            $this->request->data['TagCollection']['uuid'] = $tagCollection['TagCollection']['uuid'];
-            if ($this->TagCollection->save($this->request->data)) {
-                if ($this->_isRest()) {
-                    $tagCollection = $this->TagCollection->find('first', array(
-                        'recursive' => -1,
-                        'conditions' => array('TagCollection.id' => $this->TagCollection->id)
-                    ));
-                    return $this->RestResponse->viewData($tagCollection, $this->response->type());
-                } else {
-                    $this->Flash->success(__('The tag collection has been saved'));
-                    $this->redirect(array('action' => 'index'));
-                }
-            } else {
-                $message = json_encode($this->TagCollection->validationErrors);
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('TagCollection', 'add', false, $message, $this->response->type());
-                } else {
-                    $this->Flash->error(__('The tag collection could not be added. Reason: ') . $message);
-                }
-            }
-        } elseif ($this->_isRest()) {
-            return $this->RestResponse->describe('TagCollection', 'add', false, $this->response->type());
-        } else {
-            $this->request->data = $tagCollection;
+        ];
+        $this->CRUD->edit($id, $params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
         $this->set('action', 'edit');
         $this->render('add');
@@ -187,32 +152,18 @@ class TagCollectionsController extends AppController
 
     public function delete($id)
     {
-        $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $id)));
+        $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), ['conditions' => ['TagCollection.id' => $id]]);
         if (empty($tagCollection)) {
             throw new NotFoundException(__('Invalid tag collection.'));
         }
         $tagCollection = $tagCollection[0];
-        if ($this->ACL->canModifyTagCollection($this->Auth->user(), $tagCollection)) {
-            $result = $this->TagCollection->delete($id);
-            if ($result) {
-                $message = __('Tag collection deleted.');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('TagCollections', 'delete', false, $this->response->type(), $message);
-                } else {
-                    $this->Flash->success($message);
-                    $this->redirect(array('action' => 'index'));
-                }
-            } else {
-                $message = __('Tag collection could not be deleted.');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('TagCollections', 'delete', false, $message, $this->response->type());
-                } else {
-                    $this->Flash->error($message);
-                    $this->redirect(array('action' => 'index'));
-                }
-            }
-        } else {
+        if (!$this->ACL->canModifyTagCollection($this->Auth->user(), $tagCollection)) {
             throw new NotFoundException(__('You are not allowed to delete that.'));
+        }
+
+        $this->CRUD->delete($id);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
 
@@ -255,7 +206,7 @@ class TagCollectionsController extends AppController
                     if (is_numeric($temp)) {
                         $tag_lookups['OR']['Tag.id'][] = $temp;
                     } else {
-                        $tag_lookups['OR']['LOWER(Tag.name) LIKE'][] = strtolower(trim($tag_id));
+                        $tag_lookups['OR'][] = array('LOWER(Tag.name) LIKE' => strtolower(trim($temp)));
                     }
                 }
                 if ($tag_ids !== null && is_array($tag_ids)) { // can decode json
@@ -266,14 +217,20 @@ class TagCollectionsController extends AppController
                                 $tag_lookups
                             )
                         ),
-                        'fields' => array('Tag.id', 'Tag.id')
+                        'fields' => array('Tag.id')
                     ));
                     $tag_id_list = array_values($tag_ids);
                     if (empty($tag_id_list)) {
                         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag(s).')), 'status'=>200, 'type' => 'json'));
                     }
                 } else {
-                    $tag = $this->TagCollection->TagCollectionTag->Tag->find('first', array('recursive' => -1, 'conditions' => $tagConditions));
+                    $tag_lookup = ['OR' => ['LOWER(Tag.name) LIKE' => strtolower(trim($tag_id))]];
+                    $tag = $this->TagCollection->TagCollectionTag->Tag->find('first', array('recursive' => -1, 'conditions' => array(
+                        'AND' => array(
+                            $tagConditions,
+                            $tag_lookup
+                        )
+                    )));
                     if (empty($tag)) {
                         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
                     }
@@ -391,6 +348,7 @@ class TagCollectionsController extends AppController
             $this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
             if ($id === false) {
                 $id = $this->request->data['tag_collection'];
+                $conditions['TagCollection.id'] = $id;
             }
             if ($tag_id === false) {
                 $tag_id = $this->request->data['tag'];
@@ -407,7 +365,7 @@ class TagCollectionsController extends AppController
             if (empty($tagCollection)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Invalid tag collection.'))), 'status' => 200, 'type' => 'json'));
             }
-            if ($this->ACL->canModifyTagCollection($this->Auth->user(), $tagCollection)) {
+            if (!$this->ACL->canModifyTagCollection($this->Auth->user(), $tagCollection)) {
                 throw new ForbiddenException(__('You dont have a permission to do that'));
             }
             $found = false;

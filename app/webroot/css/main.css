@@ -61,6 +61,14 @@ form button.btn[disabled] {
     display: none;
 }
 
+.dropdown-submenu > .dropdown-menu {
+    display: none;
+}
+
+.dropdown-submenu:hover > .dropdown-menu {
+    display: block;
+}
+
 /*.close{
     float:none;
 }*/
@@ -167,7 +175,7 @@ h2.overflow::first-line {
     top: 1px;
     left: -6px;
 }
-ul.nav li.dropdown:hover ul.dropdown-menu{
+ul.nav li.dropdown:hover > ul.dropdown-menu{
     display: block;
 }
 
@@ -1225,13 +1233,13 @@ a.pill-pre-picker {
     position: absolute;
 }
 
-div.generic-picker-wrapper > div.generic-picker-embeded-block {
+div.generic-picker-wrapper > div.generic-picker-embedded-block {
     margin-left: 15px;
     margin-top: -12px;
     display: inline-block;
 }
 
-div.generic-picker-embeded-block legend {
+div.generic-picker-embedded-block legend {
     margin-bottom: 0px;
 }
 
@@ -2714,6 +2722,13 @@ ul.correlations li .popover span {
     max-width: 400px;
 }
 
+/* GridStack widget structure fix */
+.widget-wrapper {
+    height: calc(100% - 2px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
 .widgetTitle {
     font-weight: bold;
     color: #0088cc;
@@ -2722,15 +2737,35 @@ ul.correlations li .popover span {
     margin:5px;
 }
 
+.widgetContent {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.widgetContentInner {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+}
+
 .grid-stack-item-content {
+    overflow: hidden !important;
+}
+
+.grid-stack-item .grid-stack-item-content {
+    height: 100%;
+}
+
+.grid-stack-item .widget-wrapper {
+    height: 100%;
     display: flex;
     flex-direction: column;
 }
 
-.widgetContent, .widgetContentInner, .widgetContentInner > div {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
+.grid-stack-item .widgetContent {
+    flex: 1 1 auto;
+    height: 100%;
 }
 
 /* Threat levels */

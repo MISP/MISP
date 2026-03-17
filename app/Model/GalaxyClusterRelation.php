@@ -129,13 +129,13 @@ class GalaxyClusterRelation extends AppModel
         return $array;
     }
 
-    public function fetchRelations($user, $options, $full=false)
+    public function fetchRelations($user, $options, $full=false, $renameField = 'SourceCluster')
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
             'recursive' => -1
         );
-        $params = $this->renameClusterTypeInArray($params, 'GalaxyCluster.', 'SourceCluster.');
+        $params = $this->renameClusterTypeInArray($params, 'GalaxyCluster.', $renameField);
         if (!empty($options['contain'])) {
             $params['contain'] = $options['contain'];
         } elseif ($full) {
@@ -194,7 +194,7 @@ class GalaxyClusterRelation extends AppModel
 
     /**
      * saveRelation Respecting ACL saves a relation and set correct fields where applicable.
-     * Contrary to its capture equivalent, trying to save a relation for a unknown target cluster will fail.
+     * Contrary to its capture equivalent, trying to save a relation for an unknown target cluster will fail.
      *
      * @param  array $user
      * @param  array $cluster       The cluster from which the relation is originating
@@ -282,7 +282,7 @@ class GalaxyClusterRelation extends AppModel
 
     /**
      * editRelation Respecting ACL edits a relation and set correct fields where applicable.
-     * Contrary to its capture equivalent, trying to save a relation for a unknown target cluster will fail.
+     * Contrary to its capture equivalent, trying to save a relation for an unknown target cluster will fail.
      *
      * @param  array $user
      * @param  array $relation      The relation to be saved
@@ -310,7 +310,7 @@ class GalaxyClusterRelation extends AppModel
             $errors[] = __('UUID not provided');
         }
         if (empty($existingRelation)) {
-            $errors[] = __('Unkown ID');
+            $errors[] = __('Unknown ID');
         } else {
             $options = array('conditions' => array(
                 "{$this->SourceCluster->alias}.uuid" => $relation['GalaxyClusterRelation']['galaxy_cluster_uuid']
@@ -321,8 +321,8 @@ class GalaxyClusterRelation extends AppModel
             }
             $cluster = $cluster[0];
             $relation['GalaxyClusterRelation']['id'] = $existingRelation['GalaxyClusterRelation']['id'];
-            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $cluster['SourceCluster']['id'];
-            $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $cluster['SourceCluster']['uuid'];
+            $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $cluster[$this->SourceCluster->alias]['id'];
+            $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $cluster[$this->SourceCluster->alias]['uuid'];
 
             if (isset($relation['GalaxyClusterRelation']['distribution']) && $relation['GalaxyClusterRelation']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $relation['GalaxyClusterRelation']['sharing_group_id'])) {
                 $errors[] = array(__('Galaxy Cluster Relation could not be saved: The user has to have access to the sharing group in order to be able to edit it.'));
@@ -338,8 +338,8 @@ class GalaxyClusterRelation extends AppModel
                     $errors[] = array(__('Invalid referenced galaxy cluster'));
                     return $errors;
                 }
-                $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $targetCluster['TargetCluster']['id'];
-                $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'] = $targetCluster['TargetCluster']['uuid'];
+                $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_id'] = $targetCluster[$this->TargetCluster->alias]['id'];
+                $relation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'] = $targetCluster[$this->TargetCluster->alias]['uuid'];
                 $relation['GalaxyClusterRelation']['default'] = false;
                 if (empty($fieldList)) {
                     $fieldList = array('galaxy_cluster_id', 'galaxy_cluster_uuid', 'referenced_galaxy_cluster_id', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type', 'distribution', 'sharing_group_id', 'default');
@@ -532,7 +532,7 @@ class GalaxyClusterRelation extends AppModel
      *
      * @param  array $user
      * @param  array $relation
-     * @return array The adpated relation
+     * @return array The adapted relation
      */
     private function syncUUIDsAndIDs(array $user, array $relation)
     {

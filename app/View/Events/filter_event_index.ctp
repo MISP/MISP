@@ -159,14 +159,14 @@
                         'style' => 'display:none;width:424px;',
                         'div' => false
                 ));
-                echo $this->Form->input('searchextending', array(
+                echo $this->Form->input('searchis_extension', array(
                     'options' => array('0' => __('No'), '1' => __('Yes'), '2' => __('Any')),
                     'class' => 'input',
                     'label' => false,
                     'style' => 'display:none;width:503px;',
                     'div' => false
                 ));
-                echo $this->Form->input('searchextended', array(
+                echo $this->Form->input('searchis_extended', array(
                     'options' => array('0' => __('No'), '1' => __('Yes'), '2' => __('Any')),
                     'class' => 'input',
                     'label' => false,
@@ -187,7 +187,7 @@
                         <th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
                     </tr>
                     <?php
-                        $fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'extending', 'extended', 'distribution', 'sharinggroup', 'attribute', 'hasproposal', 'timestamp', 'publishtimestamp', 'all');
+                        $fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'is_extension', 'is_extended', 'distribution', 'sharinggroup', 'attribute', 'hasproposal', 'timestamp', 'publishtimestamp', 'all');
                         if ($isSiteAdmin) $fields[] = 'email';
                         foreach ($fields as $k => $field):
                     ?>
@@ -229,8 +229,8 @@ var formInfoValues = {};
 var typeArray = {
         'tag' : <?php echo $tagJSON; ?>,
         'published' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
-        'extending' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
-        'extended' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
+        'is_extension' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
+        'is_extended' : [<?php echo __('"No"');?>, "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
         'hasproposal' : ["<?php echo __('No');?>", "<?php echo __('Yes');?>", "<?php echo __('Any');?>"],
         'distribution' : [
                         {"id" : "0", "value" : "<?php echo __('Your organisation only');?>"},
@@ -266,11 +266,11 @@ var filtering = <?php echo $filtering; ?>;
 
 var operators = ["<?php echo __('OR');?>", "<?php echo __('NOT');?>"];
 
-var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute", "hasproposal", "timestamp", "publishtimestamp", "extending", "extended", "all"];
+var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute", "hasproposal", "timestamp", "publishtimestamp", "is_extension", "is_extended", "all"];
 
 var simpleFilters = ["tag", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute", "all"];
 
-var differentFilters = ["published", "date", "hasproposal", "timestamp", "publishtimestamp", "extending", "extended"];
+var differentFilters = ["published", "date", "hasproposal", "timestamp", "publishtimestamp", "is_extension", "is_extended"];
 
 var typedFields = ["tag", "threatlevel", "distribution", "analysis"];
 

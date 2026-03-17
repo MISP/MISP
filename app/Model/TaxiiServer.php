@@ -36,7 +36,7 @@ class TaxiiServer extends AppModel
 
         // Validate skip_proxy as a boolean
         if (isset($this->data['TaxiiServer']['skip_proxy']) && !is_bool($this->data['TaxiiServer']['skip_proxy'])) {
-            $this->invalidate('skip_proxy', 'Invalid value for skip_proxy. Must be a boolean.');
+            $this->data['TaxiiServer']['skip_proxy'] = $this->data['TaxiiServer']['skip_proxy'] ? true : false; // Convert to boolean
         }
         return true;
     }
@@ -179,7 +179,7 @@ class TaxiiServer extends AppModel
             ]
         ];
         if (!empty($options['TaxiiServer']['api_key'])) {
-            $request['header']['Authorization'] = 'basic ' . $options['TaxiiServer']['api_key'];
+            $request['header']['Authorization'] = 'Basic ' . $options['TaxiiServer']['api_key'];
         }
         try {
             if (!empty($options['type']) && $options['type'] === 'post') {

@@ -8,8 +8,17 @@
         '<div class="json_container_%s"></div>',
         h($k)
     );
+
+    // hacky way of keeping single element arrays as well as potentially json encoded strings in an array (what the fuck made me add this case 6 years ago anyway?)
     if (is_string($data)) {
-        $data = json_decode($data);
+        $temp = json_decode($data, true);
+        if ($temp !== null) {
+            $data = $temp;
+        } else {
+            $data = json_encode($data);
+            // commented out this weirdness and added the above. I agree with myself from 7 months ago, wtf is this
+            //$data = [$data];
+        }
     }
 ?>
 <script type="text/javascript">

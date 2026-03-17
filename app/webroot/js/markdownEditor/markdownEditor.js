@@ -184,11 +184,24 @@ function renderMermaid(code) {
 async function doAsyncMermaidRendering(id, code) {
     function partialEscapeHtml(unsafe) {
         return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            // Quotes need to be preserved for mermaid to parse some diagrams correctly
+            .replace(/<-->/g, '§ARROW_BOTH§')
+            .replace(/-->/g, '§ARROW_RIGHT§')
+            .replace(/<--/g, '§ARROW_LEFT§')
+            .replace(/--\|>/g, '§ARROW_LABEL_RIGHT§')
+            .replace(/<\|--/g, '§ARROW_LABEL_LEFT§')
+
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+
+            .replace(/§ARROW_LABEL_RIGHT§/g, '-->|')
+            .replace(/§ARROW_LABEL_LEFT§/g, '<|--')
+            .replace(/§ARROW_BOTH§/g, '<-->')
+            .replace(/§ARROW_RIGHT§/g, '-->')
+            .replace(/§ARROW_LEFT§/g, '<--');
     }
+    // Quotes need to be preserved for mermaid to parse some diagrams correctly
+
     code = partialEscapeHtml(code)
 
     setTimeout(async () => {
@@ -197,7 +210,7 @@ async function doAsyncMermaidRendering(id, code) {
             var result = await mermaid.mermaidAPI.render('mermaid-graph' + id, code)
             html = '<div class="mermaid">' + (result !== undefined ? result.svg : '- error while parsing mermaid graph -') + '</div>'
         } catch (err) {
-            html = '<pre>' + 'mermaid error:\n' + err.message + '</pre>'
+            html = '<pre>' + 'mermaid error:\n' + partialEscapeHtml(err.message) + '</pre>'
         }
         $('#'+id).html(html)
     }, 1);

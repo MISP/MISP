@@ -12,7 +12,7 @@ class AnalystData extends AppModel
         'Containable'
     );
 
-    public $valid_targets = [
+    const valid_targets = [
         'Attribute',
         'Event',
         'EventReport',
@@ -73,6 +73,43 @@ class AnalystData extends AppModel
         ],
     ];
 
+    public $validate = [
+        'uuid' => [
+            'uuid' => [
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ],
+            'unique' => [
+                'rule' => 'isUnique',
+                'message' => 'The UUID provided is not unique',
+                'on' => 'create'
+            ],
+        ],
+        'object_uuid' => [
+            'uuid' => [
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ],
+        ],
+        'org_uuid' => [
+            'uuid' => [
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ],
+        ],
+        'orgc_uuid' => [
+            'uuid' => [
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ],
+        ],
+        'distribution' => [
+            'rule' => ['inList', ['0', '1', '2', '3', '4']],
+            'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group',
+            'required' => true
+        ],
+    ];
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -114,6 +151,10 @@ class AnalystData extends AppModel
         if (in_array($this->alias, self::ANALYST_DATA_TYPES)) {
             $this->schema();
             $this->_schema['distribution']['default'] = Configure::read('MISP.default_analyst_data_distribution') ?? 1;
+        }
+
+        if (!empty($this->childValidate)) {
+            $this->validate = array_merge_recursive($this->validate, $this->childValidate);
         }
     }
 
@@ -436,12 +477,12 @@ class AnalystData extends AppModel
             $childNotesAndOpinions = [];
             $childNotes = $this->Note->find('all', $paramsNote);
             $childOpinions = $this->Opinion->find('all', $paramsOpinion);
-            $orgFields = ['id', 'uuid', 'name', 'type', 'description', 'sector', 'national', 'local'];
+            $orgFields = ['id', 'uuid', 'name', 'type', 'description', 'sector', 'nationality', 'local'];
             $orgTypes = ['Org', 'Orgc'];
             if (!empty($childNotes)) {
                 foreach ($childNotes as $childNote) {
                     foreach ($orgTypes as $orgType) {
-                        if (!empty($childOpinion['Note'][$orgType])) {
+                        if (!empty($childNote['Note'][$orgType])) {
                             $childNote['Note'][$orgType] = array_filter($childNote['Note'][$orgType], function ($key) use ($orgFields) {
                                 return in_array($key, $orgFields);
                             }, ARRAY_FILTER_USE_KEY);    
@@ -696,7 +737,7 @@ class AnalystData extends AppModel
     }
 
     /**
-     * Push Analyst Data to remote server. Collect elligible data locally and propose the list to the remote.
+     * Push Analyst Data to remote server. Collect eligible data locally and propose the list to the remote.
      * Remote will then return the list of UUIDs it's willing to get. Then, upload these entries.
      * 
      * @param array $user
@@ -750,7 +791,7 @@ class AnalystData extends AppModel
     }
 
     /**
-     * Collect elligible data to be pushed on a server
+     * Collect eligible data to be pushed on a server
      *
      * @param array $user
      * @return array

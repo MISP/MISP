@@ -9,7 +9,7 @@ As the various communities have common goals, the [MISP core team](https://githu
 
 We track enhancements and [feature requests](https://github.com/MISP/MISP/issues?q=is%3Aissue+is%3Aopen+label%3A%22T%3A+feature+request%22+sort%3Acomments-desc) on GitHub, and tend to use the number of comments on feature request to prioritize the features that the community needs. If there's a feature you want to see in MISP, feel free to [create a feature request](https://github.com/MISP/MISP/issues/new?assignees=&labels=feature+request%2C+needs+triage&template=feature_request.md) or leave a comment on an existing related issue (if it exists). Better still, you can [implement the feature yourself](/CONTRIBUTING.md).
 
-We do not do long term roadmaps on purpose. The problem of really long-term specific roadmaps is that people might end up expecting in something that turns out to be not really relevant for the community at large and is just posponed forever. Our priorities change frequently depending on:
+We do not do long term roadmaps on purpose. The problem of really long-term specific roadmaps is that people might end up expecting in something that turns out to be not really relevant for the community at large and is just postponed forever. Our priorities change frequently depending on:
 - What threat of the month we are facing
 - What small issue turns into an maintainable disaster
 - What we fast track based on larger communities asking for it or paid developer support

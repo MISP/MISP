@@ -69,10 +69,11 @@ class ACLComponent extends Component
             'enrich' => ['perm_add'],
             'exportSearch' => array('*'),
             'fetchEditForm' => array('perm_add'),
-
             'fetchViewValue' => array('*'),
             'generateCorrelation' => array(),
+            'getAttributeByB64Value' => ['*'],
             'getMassEditForm' => array('perm_add'),
+            'getInstanceCache' => ['*'],
             'hoverEnrichment' => array('perm_add'),
             'index' => array('*'),
             'pruneOrphanedAttributes' => array(),
@@ -100,7 +101,9 @@ class ACLComponent extends Component
             'view' => ['perm_auth'],
         ],
         'benchmarks' => [
-            'index' => []
+            'index' => [],
+            'purgeSqlMetrics' => [],
+            'sqlMetrics' => []
         ],
         'bookmarks' => [
             'add' => ['*'],
@@ -147,6 +150,7 @@ class ACLComponent extends Component
             'index' => [],
             'add' => [],
             'edit' => [],
+            'executeRule' => [],
             'delete' => [],
             'view' => []
         ],
@@ -330,6 +334,7 @@ class ACLComponent extends Component
             'pushEventToKafka' => array('perm_publish_kafka'),
             'pushProposals' => array('perm_sync'),
             'queryEnrichment' => array('perm_add'),
+            'recorrelateEvent' => [],
             'recoverEvent' => array(),
             'removePivot' => array('*'),
             'removeTag' => array('perm_tagger'),
@@ -558,6 +563,7 @@ class ACLComponent extends Component
             'admin_merge' => array(),
             'fetchOrgsForSG' => array('perm_sharing_group'),
             'fetchSGOrgRow' => array('*'),
+            'getOrgLogo' => array('*'),
             'getUUIDs' => array('perm_sync'),
             'index' => ['organisation_index'],
             'view' => array('*'),
@@ -758,7 +764,12 @@ class ACLComponent extends Component
         ),
         'tasks' => array(
             'index' => array(),
-            'setTask' => array(),
+            'add' => array(),
+            'edit' => array(),
+            'delete' => array(),
+            'toggleEnabled' => array(),
+            'forceRun' => array(),
+            'viewLogs' => array(),
         ),
         'taxonomies' => array(
             'addTag' => array(),
@@ -891,6 +902,7 @@ class ACLComponent extends Component
             'delete' => array('not_read_only_authkey'),
             'setHomePage' => array('not_read_only_authkey'),
             'eventIndexColumnToggle' => ['*'],
+            'setTheme' => ['*'],
         ),
         'warninglists' => array(
             'checkValue' => ['*'],

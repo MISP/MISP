@@ -10,7 +10,7 @@ class NewsController extends AppController
 
     public $paginate = array(
         'limit' => 5,
-        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
         'order' => [
             'News.id' => 'DESC'
         ],
@@ -60,41 +60,35 @@ class NewsController extends AppController
 
     public function add()
     {
-        if ($this->request->is('post')) {
-            $this->News->create();
-            $this->request->data['News']['date_created'] = time();
-            if (!isset($this->request->data['News']['anonymise']) || !$this->request->data['News']['anonymise']) {
-                $this->request->data['News']['user_id'] = $this->Auth->user('id');
-            } else {
-                $this->request->data['News']['user_id'] = 0;
-            }
-            if ($this->News->save($this->request->data)) {
-                $this->Flash->success(__('News item added.'));
-                $this->redirect(array('action' => 'index'));
-            } else {
-                $this->Flash->error(__('The news item could not be added.'));
-            }
+        $currentUser = $this->Auth->user();
+        $params = [
+            'beforeSave' => function ($data) use ($currentUser) {
+                $data['News']['date_created'] = time();
+                if (empty($data['News']['anonymise'])) {
+                    $data['News']['user_id'] = $currentUser['id'];
+                } else {
+                    $data['News']['user_id'] = 0;
+                }
+                return $data;
+            },
+            'redirect' => ['action' => 'index']
+        ];
+        $this->CRUD->add($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
 
     public function edit($id)
     {
-        $this->News->id = $id;
-        if (!$this->News->exists()) {
-            throw new NotFoundException('Invalid news item.');
+        $params = [
+            'redirect' => ['action' => 'index']
+        ];
+        $this->CRUD->edit($id, $params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-        if ($this->request->is('post') || $this->request->is('put')) {
-            $this->request->data['News']['id'] = $id;
-            if ($this->News->save($this->request->data)) {
-                $this->Flash->success(__('News item updated.'));
-                $this->redirect(array('action' => 'index'));
-            } else {
-                $this->Flash->error(__('Could not update news item.'));
-            }
-        } else {
-            $this->request->data = $this->News->read(null, $id);
-            $this->set('newsItem', $this->request->data);
-        }
+        $this->set('newsItem', $this->request->data);
         $this->render('add');
     }
 

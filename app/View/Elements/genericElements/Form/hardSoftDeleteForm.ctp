@@ -6,7 +6,7 @@
      * - modelName: The model of the deleted element
      * - value: The value being deleted
      * - id: the ID of the value being deleted
-     * - additionaMessage: array of message to be inserted
+     * - additionalMessage: array of message to be inserted
      * - softDeleteURL: The optional soft delete URL to POST to
      * - hardDeleteURL: The hard delete URL to POST to
      * - doNotShowHelp: If help text for soft/hard deleting should not be shown
@@ -22,7 +22,7 @@
     <ul>
         <?php if (!isset($doNotShowHelp) || !$doNotShowHelp ): ?>
             <li><?= sprintf(__('%s a %s propagates the deletion to other instances and lets you restore it in the future'), sprintf('<strong class="blue">%s</strong>', __('Soft-deleting')), h($modelName)) ?></li>
-            <li><?= sprintf(__('%s a %s permanentaly deletes it'), sprintf('<strong class="red">%s</strong>', __('Hard-deleting')), h($modelName)) ?></li>
+            <li><?= sprintf(__('%s a %s permanently deletes it'), sprintf('<strong class="red">%s</strong>', __('Hard-deleting')), h($modelName)) ?></li>
         <?php endif; ?>
     </ul>
     <?php if (!empty($additionalMessage)): ?>

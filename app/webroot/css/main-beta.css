@@ -1,0 +1,1457 @@
+/**
+ * Beta UI Stylesheet
+ * 
+ * This stylesheet contains beta-specific styling that overrides or supplements
+ * the standard MISP styles for users who have opted into the beta UI.
+ * 
+ * Usage: This file is automatically loaded when a user has ui_beta_opt_in enabled.
+ * 
+ * Guidelines:
+ * - Use specific selectors to override standard styles
+ * - Add --beta modifier classes for beta-specific elements
+ * - Keep styles modular and maintainable
+ * - Document significant changes
+ */
+
+/* Global Beta Font Styling - Apply consistent font size throughout application */
+body {
+    font-size: 0.875rem !important;
+    /* 14px - matches beta table body text */
+    line-height: 1.5;
+}
+
+/* Navigation and header elements */
+.navbar,
+.navbar-inner,
+.navbar .nav,
+.navbar .nav>li>a,
+#global-menu,
+#global-menu a,
+.side-menu,
+.side-menu a {
+    font-size: 0.875rem !important;
+}
+
+/* Page headers and titles */
+h1 {
+    font-size: 1.75rem !important;
+    /* 28px */
+}
+
+h2 {
+    font-size: 1.5rem !important;
+    /* 24px */
+}
+
+h3 {
+    font-size: 1.25rem !important;
+    /* 20px */
+}
+
+h4 {
+    font-size: 1.125rem !important;
+    /* 18px */
+}
+
+h5 {
+    font-size: 1rem !important;
+    /* 16px */
+}
+
+h6 {
+    font-size: 0.875rem !important;
+    /* 14px */
+}
+
+/* Form elements */
+input,
+textarea,
+select,
+button,
+.btn,
+label {
+    font-size: 0.875rem !important;
+}
+
+/* Tables throughout the application */
+table,
+table th,
+table td,
+.table,
+.table th,
+.table td {
+    font-size: 0.875rem !important;
+}
+
+/* Table headers - slightly smaller and uppercase like beta table */
+table thead th,
+.table thead th {
+    font-size: 0.75rem !important;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Dropdown menus */
+.dropdown-menu,
+.dropdown-menu li,
+.dropdown-menu li a {
+    font-size: 0.875rem !important;
+}
+
+/* Modals and dialogs */
+.modal,
+.modal-header,
+.modal-body,
+.modal-footer {
+    font-size: 0.875rem !important;
+}
+
+/* Alerts and messages */
+.alert,
+.message,
+.flash {
+    font-size: 0.875rem !important;
+}
+
+/* Breadcrumbs */
+.breadcrumb,
+.breadcrumb li,
+.breadcrumb a {
+    font-size: 0.875rem !important;
+}
+
+/* Pagination */
+.pagination,
+.pagination li,
+.pagination a {
+    font-size: 0.875rem !important;
+}
+
+/* Tabs */
+.nav-tabs,
+.nav-tabs li,
+.nav-tabs a,
+.tab-content {
+    font-size: 0.875rem !important;
+}
+
+/* Panels and cards */
+.panel,
+.panel-heading,
+.panel-body,
+.panel-footer {
+    font-size: 0.875rem !important;
+}
+
+/* Lists */
+ul,
+ol,
+dl,
+dt,
+dd {
+    font-size: 0.875rem !important;
+}
+
+/* Paragraphs and text elements - more specific selectors to avoid breaking specific components */
+p {
+    font-size: 0.875rem !important;
+}
+
+/* Code and pre elements */
+code,
+pre {
+    font-size: 0.8125rem !important;
+    /* 13px - slightly smaller for code */
+}
+
+/* Badges and labels */
+.badge,
+.label {
+    font-size: 0.75rem !important;
+    /* 12px */
+}
+
+/* Tooltips */
+.tooltip,
+.tooltip-inner {
+    font-size: 0.8125rem !important;
+    /* 13px */
+}
+
+/* Example: Beta-specific event list styling */
+.events.index--beta {
+    /* Enhanced spacing and modern layout */
+    padding: 2rem;
+}
+
+/* Example: Beta card-based layout */
+.event-card--beta {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease-in-out;
+}
+
+.event-card--beta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Example: Beta navigation improvements */
+.global-menu--beta {
+    /* Modern navigation styling */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Example: Beta button styling */
+.btn--beta {
+    border-radius: 6px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn--beta:hover {
+    transform: scale(1.02);
+}
+
+/* Example: Beta table improvements */
+.table--beta {
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table--beta thead th {
+    background: #f8f9fa;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+}
+
+.table--beta tbody tr {
+    transition: background-color 0.15s ease-in-out;
+}
+
+.table--beta tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Example: Beta form styling */
+.form-group--beta {
+    margin-bottom: 1.5rem;
+}
+
+.form-group--beta label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.form-control--beta {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    padding: 0.75rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control--beta:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: none;
+}
+
+/* Example: Beta alert styling */
+.alert--beta {
+    border-radius: 8px;
+    border-left: 4px solid;
+    padding: 1rem 1.5rem;
+}
+
+.alert--beta.alert-info {
+    border-left-color: #17a2b8;
+    background-color: #d1ecf1;
+}
+
+.alert--beta.alert-success {
+    border-left-color: #28a745;
+    background-color: #d4edda;
+}
+
+.alert--beta.alert-warning {
+    border-left-color: #ffc107;
+    background-color: #fff3cd;
+}
+
+.alert--beta.alert-danger {
+    border-left-color: #dc3545;
+    background-color: #f8d7da;
+}
+
+/* Example: Beta badge styling */
+.badge--beta {
+    border-radius: 12px;
+    padding: 0.35rem 0.75rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+/* Example: Beta modal improvements */
+.modal--beta .modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal--beta .modal-header {
+    border-bottom: 1px solid #e9ecef;
+    padding: 1.5rem;
+}
+
+.modal--beta .modal-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 1.5rem;
+}
+
+/* Example: Beta loading spinner */
+.spinner--beta {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin-beta 1s linear infinite;
+}
+
+@keyframes spin-beta {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Example: Beta grid layout utilities */
+.grid--beta {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.grid--beta.grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.grid--beta.grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.grid--beta.grid-cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+/* Responsive grid */
+@media (max-width: 768px) {
+
+    .grid--beta.grid-cols-2,
+    .grid--beta.grid-cols-3,
+    .grid--beta.grid-cols-4 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Example: Beta spacing utilities */
+.mt-beta-1 {
+    margin-top: 0.5rem;
+}
+
+.mt-beta-2 {
+    margin-top: 1rem;
+}
+
+.mt-beta-3 {
+    margin-top: 1.5rem;
+}
+
+.mt-beta-4 {
+    margin-top: 2rem;
+}
+
+.mb-beta-1 {
+    margin-bottom: 0.5rem;
+}
+
+.mb-beta-2 {
+    margin-bottom: 1rem;
+}
+
+.mb-beta-3 {
+    margin-bottom: 1.5rem;
+}
+
+.mb-beta-4 {
+    margin-bottom: 2rem;
+}
+
+.p-beta-1 {
+    padding: 0.5rem;
+}
+
+.p-beta-2 {
+    padding: 1rem;
+}
+
+.p-beta-3 {
+    padding: 1.5rem;
+}
+
+.p-beta-4 {
+    padding: 2rem;
+}
+
+/* Example: Beta text utilities */
+.text-beta-muted {
+    color: #6c757d;
+}
+
+.text-beta-primary {
+    color: #667eea;
+}
+
+.text-beta-success {
+    color: #28a745;
+}
+
+.text-beta-danger {
+    color: #dc3545;
+}
+
+.text-beta-warning {
+    color: #ffc107;
+}
+
+/* Example: Beta shadow utilities */
+.shadow-beta-sm {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-beta-md {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-beta-lg {
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Example: Beta transition utilities */
+.transition-beta {
+    transition: all 0.2s ease-in-out;
+}
+
+.transition-beta-fast {
+    transition: all 0.1s ease-in-out;
+}
+
+.transition-beta-slow {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Beta Events Table - Modern Styling */
+.beta-events-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+}
+
+.beta-events-table th {
+    background: #ddeeaa;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 0.75rem;
+    border-bottom: none;
+    color: #000000;
+    vertical-align: top !important;
+}
+
+.beta-events-table tbody tr {
+    transition: all 0.2s ease-in-out;
+    border-bottom: 1px solid #f1f3f5;
+}
+
+.beta-events-table tbody tr:hover {
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.beta-events-table tbody td,
+.beta-events-table tbody th {
+    padding: 0.75rem;
+    vertical-align: top !important;
+    font-size: 0.875rem;
+}
+
+/* Consistent link colors throughout the table */
+.beta-events-table a {
+    color: #0066cc;
+    text-decoration: none;
+    transition: all 0.15s ease-in-out;
+}
+
+.beta-events-table a:hover {
+    color: #0052a3;
+    text-decoration: underline;
+}
+
+/* Beta Info Column Link Styling */
+.beta-info-link {
+    font-weight: 500;
+    display: block;
+    font-size: 0.875rem;
+}
+
+.beta-info-cell {
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.beta-info-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.beta-info-wrapper .dist-widget {
+    margin-top: 3px;
+    /* Align with text baseline */
+    flex-shrink: 0;
+}
+
+/* Enhanced ID column styling - consistent with other links */
+.beta-events-table .short a {
+    font-weight: 600;
+    color: #0066cc;
+    font-size: 0.875rem;
+}
+
+.beta-events-table .short a:hover {
+    color: #0052a3;
+    text-decoration: underline;
+}
+
+/* Modern publish status icons */
+.beta-events-table .fa-check.green {
+    color: #28a745;
+    font-size: 1rem;
+}
+
+.beta-events-table .fa-times.grey {
+    color: #6c757d;
+    font-size: 1rem;
+}
+
+/* Improved action links */
+.beta-events-table .action-links a {
+    margin: 0 0.35rem;
+    opacity: 0.7;
+    font-size: 0.875rem;
+}
+
+.beta-events-table .action-links a:hover {
+    opacity: 1;
+}
+
+/* Org link with name and icon */
+.beta-org-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    max-width: 100%;
+    /* Ensure it doesn't overflow parent if parent is constrained */
+}
+
+.beta-org-link:hover {
+    text-decoration: none;
+}
+
+.beta-org-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #0066cc;
+
+    /* Truncation */
+    display: inline-block;
+    max-width: 15ch;
+    /* Limit to approx 15 characters */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+.beta-org-link:hover .beta-org-name {
+    color: #0052a3;
+    text-decoration: underline;
+}
+
+/* Better spacing for org logos */
+.beta-events-table .short img,
+.beta-org-link img {
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    vertical-align: middle;
+}
+
+/* Modern checkbox styling */
+.beta-events-table input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    border-radius: 4px;
+    vertical-align: middle;
+}
+
+/* Inverted number badges with background colors */
+.beta-events-table .bold {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.beta-events-table .bold a {
+    display: inline-block;
+    background-color: #0066cc;
+    color: #ffffff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 600;
+    min-width: 24px;
+    text-align: center;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.beta-events-table .bold a:hover {
+    background-color: #0052a3;
+    text-decoration: none;
+}
+
+/* Non-linked numbers in bold cells */
+.beta-events-table td.bold {
+    color: #495057;
+}
+
+/* Ensure consistent font size for all text elements */
+.beta-events-table td,
+.beta-events-table td span,
+.beta-events-table td time,
+.beta-events-table td p {
+    font-size: 0.875rem;
+}
+
+/* Ensure vertical alignment for all inline elements */
+.beta-events-table td * {
+    vertical-align: middle;
+}
+
+/* Fix for threat level links in ID column */
+.beta-events-table .short a.dblclickActionElement {
+    color: #0066cc;
+}
+
+.beta-events-table .short a.dblclickActionElement:hover {
+    color: #0052a3;
+}
+
+
+
+/* Beta Checkbox + Actions Dropdown - Gmail-style unified control */
+.beta-checkbox-actions-cell {
+    width: 60px !important;
+    padding: 0.5rem !important;
+}
+
+.beta-checkbox-actions-wrapper {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background-color: #ffffff;
+    transition: all 0.15s ease-in-out;
+    margin-top: 2px;
+    /* Fix vertical alignment with text */
+}
+
+.beta-checkbox-actions-wrapper:hover {
+    border-color: #adb5bd;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.beta-checkbox-actions-wrapper input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+    border: none;
+    background: transparent;
+}
+
+.beta-actions-dropdown {
+    display: inline-flex;
+    position: relative;
+    z-index: 3;
+    height: 100%;
+}
+
+/* Ensure open dropdown is above all other row elements */
+.beta-actions-dropdown.open {
+    z-index: 10001;
+}
+
+.beta-dropdown-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 100%;
+    padding: 0;
+    border: none;
+    border-left: 1px solid #dee2e6;
+    background-color: transparent;
+    color: #495057;
+    text-decoration: none;
+    transition: all 0.15s ease-in-out;
+    cursor: pointer;
+}
+
+.beta-dropdown-toggle:hover {
+    background-color: #f8f9fa;
+    color: #212529;
+    text-decoration: none;
+}
+
+.beta-dropdown-toggle:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 2px rgba(102, 126, 234, 0.25);
+}
+
+.beta-dropdown-toggle i {
+    font-size: 0.7rem;
+    margin: 0;
+}
+
+/* Beta Actions Dropdown Menu */
+.beta-actions-menu {
+    min-width: 160px;
+    padding: 0.5rem 0;
+    margin: 0.25rem 0 0;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background-color: #ffffff;
+    position: absolute;
+    z-index: 10000 !important;
+}
+
+.beta-actions-menu li {
+    list-style: none;
+    margin: 0;
+}
+
+.beta-actions-menu li.divider {
+    height: 1px;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    background-color: #e9ecef;
+}
+
+.beta-actions-menu li a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    color: #495057;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.15s ease-in-out;
+    white-space: nowrap;
+}
+
+.beta-actions-menu li a:hover {
+    background-color: #f8f9fa;
+    color: #212529;
+    text-decoration: none;
+}
+
+.beta-actions-menu li a i {
+    width: 16px;
+    text-align: center;
+    font-size: 0.875rem;
+    opacity: 0.7;
+}
+
+.beta-actions-menu li a:hover i {
+    opacity: 1;
+}
+
+/* Special styling for delete action */
+.beta-actions-menu li a.beta-delete-action {
+    color: #dc3545;
+}
+
+/* Responsive Events Table Improvements */
+
+/* Ensure table fits within container */
+.beta-events-table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: auto;
+    overflow-wrap: break-word;
+}
+
+/* Truncation and sizing for Info column */
+.beta-info-cell {
+    max-width: 30vw;
+    min-width: 150px;
+    /* Override inline style if needed, though inline style has high specificity. 
+       We might need !important if the inline style 'min-width: 20vi' causes issues, 
+       but 20vi is usually fine. The issue is likely max-width. */
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+/* Truncation for Tags column */
+.col-tags {
+    max-width: 15vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Hide columns on smaller screens to prevent horizontal scrolling */
+
+/* Large Laptop / Desktop ( < 1400px ) */
+@media (max-width: 1400px) {
+
+    .col-creator-user,
+    .col-distribution,
+    .col-publish-timestamp {
+        display: none !important;
+    }
+}
+
+/* Laptop ( < 1200px ) */
+@media (max-width: 1200px) {
+
+    .col-timestamp,
+    /* Last modified */
+    .col-report-count,
+    .col-sightings-count,
+    .col-prop-count,
+    .col-post-count {
+        display: none !important;
+    }
+}
+
+/* Tablet Landscape ( < 992px ) */
+@media (max-width: 992px) {
+
+    .col-owner-org,
+    .col-creator-org,
+    .col-clusters {
+        display: none !important;
+    }
+
+    .beta-info-cell {
+        max-width: 40vw;
+    }
+}
+
+/* Tablet Portrait / Mobile ( < 768px ) */
+@media (max-width: 768px) {
+
+    .col-attr-count,
+    .col-corr-count,
+    .col-tags {
+        display: none !important;
+    }
+
+    /* At this point, we only have: Checkbox, ID, Info, Publish, Date */
+    .beta-info-cell {
+        max-width: 50vw;
+    }
+
+    /* Reduce padding on small screens */
+    .beta-events-table td,
+    .beta-events-table th {
+        padding: 0.5rem !important;
+    }
+}
+
+.beta-actions-menu li a.beta-delete-action:hover {
+    background-color: #fff5f5;
+    color: #c82333;
+}
+
+/* Special styling for publish action */
+.beta-actions-menu li a.beta-publish-action {
+    color: #28a745;
+}
+
+.beta-actions-menu li a.beta-publish-action:hover {
+    background-color: #f1f8f4;
+    color: #1e7e34;
+}
+
+/* Beta Events Index - Remove Sidebar Spacing */
+/* Override the default sidebar layout from main.css */
+body.beta-ui-enabled .events.index.beta-events-index {
+    float: none !important;
+    width: 100% !important;
+    border-left: none !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    margin-left: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Hide the sidebar actions div for beta events index */
+body.beta-ui-enabled .events.index.beta-events-index+div.actions,
+body.beta-ui-enabled .events.index.beta-events-index~div.actions {
+    display: none !important;
+}
+
+/* Remove left margin from content wrapper when beta events index is present */
+body.beta-ui-enabled #content {
+    margin-left: 0 !important;
+}
+
+/* Ensure the main container uses full width with proper padding */
+body.beta-ui-enabled .container-fluid {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    box-sizing: border-box !important;
+}
+
+
+
+/* Header row with title, filter buttons, and Create Event button */
+.beta-events-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.beta-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.beta-header-left h2 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #212529;
+}
+
+.beta-header-filters {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.beta-filter-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background-color: #ffffff;
+    color: #495057;
+    text-decoration: none;
+    transition: all 0.15s ease-in-out;
+}
+
+.beta-filter-button:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+    color: #212529;
+    text-decoration: none;
+}
+
+.beta-filter-button i {
+    font-size: 0.875rem;
+}
+
+/* Search row with controls and columns button */
+.beta-search-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+/* Search controls with minimal fieldset box */
+.beta-search-controls {
+    flex: 1;
+    padding: 0;
+    border: none;
+    margin: 0;
+}
+
+.beta-search-controls legend {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6c757d;
+    padding: 0;
+    margin-bottom: 0.5rem;
+    width: auto;
+    border: none;
+}
+
+.beta-search-input-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.beta-search-scope {
+    width: 150px;
+    font-size: 0.875rem;
+    height: 34px;
+}
+
+.beta-search-input {
+    flex: 1;
+    min-width: 200px;
+    font-size: 0.875rem;
+    height: 34px;
+}
+
+.beta-search-button {
+    font-size: 0.875rem;
+    font-weight: 500;
+    height: 34px;
+    padding: 6px 12px;
+}
+
+.beta-advanced-filter-button {
+    font-size: 0.875rem;
+    font-weight: 500;
+    height: 34px;
+    padding: 6px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.beta-search-input-group .btn {
+    font-size: 0.875rem;
+    height: 34px;
+    padding: 6px 12px;
+}
+
+/* Columns control on right side, aligned with search */
+.beta-columns-control {
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 2px;
+    position: relative;
+    /* Align with input fields */
+}
+
+.beta-columns-control .btn {
+    font-size: 0.875rem;
+    font-weight: 500;
+    height: 34px;
+    padding: 6px 12px;
+}
+
+.beta-columns-menu {
+    min-width: 200px;
+    right: 0;
+    left: auto;
+}
+
+.beta-columns-menu li a {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.beta-columns-menu li a i {
+    width: 16px;
+}
+
+/* Pagination at bottom */
+.beta-pagination-bottom {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.beta-pagination-bottom p {
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.beta-pagination-bottom .pagination {
+    margin: 0;
+}
+
+/* Active filters display */
+.beta-active-filters {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: #e7f3ff;
+    border-left: 4px solid #0066cc;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.beta-active-filters .bold {
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
+/* Create Event Button Group */
+.beta-create-event-group {
+    display: inline-flex;
+}
+
+.beta-create-event-group .btn {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: all 0.15s ease-in-out;
+}
+
+.beta-create-event-group .btn-primary {
+    background-color: #0066cc;
+    border-color: #0066cc;
+    color: #ffffff;
+}
+
+.beta-create-event-group .btn-primary:hover {
+    background-color: #0052a3;
+    border-color: #0052a3;
+}
+
+.beta-create-event-group .dropdown-toggle {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.beta-create-event-group .dropdown-menu {
+    min-width: 200px;
+    padding: 0.5rem 0;
+    margin-top: 0.25rem;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.beta-create-event-group .dropdown-menu li a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    color: #495057;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.15s ease-in-out;
+}
+
+.beta-create-event-group .dropdown-menu li a:hover {
+    background-color: #f8f9fa;
+    color: #212529;
+    text-decoration: none;
+}
+
+.beta-create-event-group .dropdown-menu li a i {
+    width: 16px;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+.sidemenu {
+    display: none !important;
+}
+
+/* Adjust main content area when sidebar is hidden */
+body.beta-ui-enabled #content {
+    margin-left: 0 !important;
+}
+
+/* Ensure beta events index has proper padding and box-sizing */
+body.beta-ui-enabled .beta-events-index {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+
+/* Responsive improvements */
+@media (max-width: 1200px) {
+    .beta-events-table {
+        font-size: 0.875rem;
+    }
+
+    .beta-events-table th,
+    .beta-events-table tbody td {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .beta-checkbox-actions-wrapper {
+        gap: 0.35rem;
+    }
+
+    .beta-dropdown-toggle {
+        width: 22px;
+        height: 22px;
+    }
+
+    .beta-events-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .beta-events-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+}
+
+.beta-search-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Compact Checkbox + Actions */
+.beta-checkbox-actions-cell {
+    width: 40px !important;
+    padding: 0.25rem !important;
+}
+
+.beta-checkbox-actions-wrapper {
+    height: 24px;
+}
+
+.beta-checkbox-actions-wrapper input[type="checkbox"] {
+    margin: 0 4px;
+}
+
+.beta-dropdown-toggle {
+    width: 20px;
+}
+
+/* Compact Creator Org with Truncation */
+.col-creator-org {
+    max-width: 10vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+    .col-creator-org {
+        max-width: 15vw;
+    }
+}
+
+/* Distribution Graphic Widget */
+.dist-widget {
+    display: inline-block;
+    width: 24px;
+    height: 8px;
+    border-radius: 4px;
+    vertical-align: middle;
+    margin-right: 0.5rem;
+}
+
+/* 0: Your organisation only - Red */
+.dist-0 {
+    background-color: #ff0000;
+}
+
+/* 1: This community only - Orange */
+.dist-1 {
+    background-color: #ff9900;
+}
+
+/* 2: Connected communities - Dark Gold/Olive */
+.dist-2 {
+    background-color: #b8860b;
+}
+
+/* 3: All communities - Green */
+.dist-3 {
+    background-color: #008000;
+}
+
+/* 4: Sharing group - Blue/SlateBlue */
+.dist-4 {
+    background-color: #6a5acd;
+}
+
+/* Ensure the cell content aligns nicely */
+.col-distribution {
+    white-space: nowrap;
+}
+
+.dist-text {
+    display: none;
+    /* Hide text by default, show on hover or large screens if needed? User asked to replace. */
+}
+
+/* Make distribution widget clickable */
+.dist-widget {
+    cursor: pointer;
+    margin-top: 4px;
+    /* Space when stacked under title */
+}
+
+/* Reduce padding for Create Event button group */
+.beta-create-event-group .btn {
+    padding: 0.5rem 0.75rem;
+    /* Reduced horizontal padding from 1rem */
+}
+
+.beta-create-event-group .dropdown-toggle {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+/* Highlights Column - Compact Tag Display */
+.col-highlights {
+    max-width: 15vw;
+    overflow: hidden;
+}
+
+.tag-highlight-compact {
+    display: inline-block;
+    padding: 2px 6px;
+    margin: 2px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+/* Responsive: Hide highlights column on smaller screens */
+@media (max-width: 1400px) {
+    .col-highlights {
+        display: none !important;
+    }
+}
+
+/* Clickable Timestamps - Relative Time Display */
+.beta-relative-timestamp {
+    cursor: pointer !important;
+    transition: background-color 0.15s ease-in-out;
+    user-select: none;
+}
+
+.beta-relative-timestamp:hover {
+    background-color: #e3f2fd !important;
+}
+
+.beta-relative-timestamp:active {
+    background-color: #bbdefb !important;
+}
+
+/* Timestamp tooltip styling */
+.beta-relative-timestamp[title] {
+    position: relative;
+}
+
+/* Nested Dropdown Styles */
+.dropdown-submenu {
+    position: relative;
+}
+
+.dropdown-submenu>.dropdown-menu {
+    top: 0;
+    left: 100%;
+    margin-top: -6px;
+    margin-left: -1px;
+    -webkit-border-radius: 0 6px 6px 6px;
+    -moz-border-radius: 0 6px 6px 6px;
+    border-radius: 0 6px 6px 6px;
+    display: none !important;
+    /* Hide by default */
+}
+
+.dropdown-submenu:hover>.dropdown-menu {
+    display: block !important;
+    /* Show on hover */
+}
+
+.dropdown-submenu>a:after {
+    display: block;
+    content: " ";
+    float: right;
+    width: 0;
+    height: 0;
+    border-color: transparent;
+    border-style: solid;
+    border-width: 5px 0 5px 5px;
+    border-left-color: #cccccc;
+    margin-top: 5px;
+    margin-right: -10px;
+}
+
+.dropdown-submenu:hover>a:after {
+    border-left-color: #ffffff;
+}
+
+.dropdown-submenu.pull-left {
+    float: none;
+}
+
+.dropdown-submenu.pull-left>.dropdown-menu {
+    left: -100%;
+    margin-left: 10px;
+    -webkit-border-radius: 6px 0 6px 6px;
+    -moz-border-radius: 6px 0 6px 6px;
+    border-radius: 6px 0 6px 6px;
+}

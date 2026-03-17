@@ -142,7 +142,7 @@ class Server extends AppModel
         'innodb_dedicated_server' => [
             'default' => '0',
             'recommended' => '',
-            'explanation' => 'Set to `1` if the database is running in a dedicated server. The database engine will examine the available memory and dynamically set `innodb_buffer_pool_size`, `innodb_log_file_size`, `innodb_log_files_in_group` and `innodb_flush_method`. It is particularly useful in cloud enviroments that can be auto-scaled.',
+            'explanation' => 'Set to `1` if the database is running in a dedicated server. The database engine will examine the available memory and dynamically set `innodb_buffer_pool_size`, `innodb_log_file_size`, `innodb_log_files_in_group` and `innodb_flush_method`. It is particularly useful in cloud environments that can be auto-scaled.',
         ],
         'innodb_log_file_size' => [
             'default' => '100663296',
@@ -212,7 +212,7 @@ class Server extends AppModel
         ),
         'releaseUpdateLock' => array(
             'title' => 'Release update lock',
-            'description' => 'If your your database is locked and is not updating, unlock it here.',
+            'description' => 'If your database is locked and is not updating, unlock it here.',
             'ignore_disabled' => true,
             'url' => '/servers/releaseUpdateLock/'
         ),
@@ -322,14 +322,6 @@ class Server extends AppModel
                     $event['Event']['distribution'] = '1';
                     break;
             }
-            // We remove local tags obtained via pull
-            if (isset($event['Event']['Tag'])) {
-                foreach ($event['Event']['Tag'] as $key => $a) {
-                    if ($a['local']) {
-                        unset($event['Event']['Tag'][$key]);
-                    }
-                }
-            }
 
             $filterOnTypeEnabled = !empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'));
             $attributeTypeFilteringEnabled = $filterOnTypeEnabled && !empty($pullRules['type_attributes']['NOT']);
@@ -349,14 +341,7 @@ class Server extends AppModel
                             $event['Event']['Attribute'][$key]['distribution'] = '1';
                             break;
                     }
-                    // We remove local tags obtained via pull
-                    if (isset($attribute['Tag'])) {
-                        foreach ($attribute['Tag'] as $k => $v) {
-                            if ($v['local']) {
-                                unset($event['Event']['Attribute'][$key]['Tag'][$k]);
-                            }
-                        }
-                    }
+
                 }
                 if ($attributeTypeFilteringEnabled && $originalCount > 0 && empty($event['Event']['Attribute'])) {
                     $pullRulesEmptiedEvent = true;
@@ -397,14 +382,7 @@ class Server extends AppModel
                                     $event['Event']['Object'][$i]['Attribute'][$j]['distribution'] = '1';
                                     break;
                             }
-                            // We remove local tags obtained via pull
-                            if (isset($a['Tag'])) {
-                                foreach ($a['Tag'] as $k => $v) {
-                                    if ($v['local']) {
-                                        unset($event['Event']['Object'][$i]['Attribute'][$j]['Tag'][$k]);
-                                    }
-                                }
-                            }
+
                         }
                         if ($attributeTypeFilteringEnabled && $originalAttributeCount > 0 && empty($event['Event']['Object'][$i]['Attribute'])) {
                             unset($event['Event']['Object'][$i]); // Object is empty, get rid of it
@@ -498,13 +476,20 @@ class Server extends AppModel
         $passAlong = $server['Server']['id'];
         if (!$existingEvent) {
             // add data for newly imported events
-            if (isset($event['Event']['protected']) && $event['Event']['protected']) {
+            if (!$server['Server']['internal'] && isset($event['Event']['protected']) && $event['Event']['protected']) {
                 if (!$eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $event)) {
                     $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                     return false;
                 }
             }
-            $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
+            if(isset($event['Event']['protected']) && $event['Event']['protected'] && isset($event['Event']['CryptographicKey'][0])) {
+                $fingerprint = $event['Event']['CryptographicKey'][0]['fingerprint'];
+                $created_id = 0;
+                $validationIssues = array();
+                $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId, $created_id, $validationIssues, $fingerprint);
+            }else{
+                $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
+            }
             if ($result) {
                 $successes[] = $eventId;
                 if ($this->pubToZmq('event')) {
@@ -518,7 +503,7 @@ class Server extends AppModel
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
                 $fails[$eventId] = __('Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side.');
             } else {
-                if ($existingEvent['Event']['protected']) {
+                if (!$server['Server']['internal'] && $existingEvent['Event']['protected']) {
                     if (!$eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $existingEvent)) {
                         $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                         return false;
@@ -559,6 +544,7 @@ class Server extends AppModel
             'includeEventCorrelations' => 0, // we don't need remote correlations
             'includeFeedCorrelations' => 0,
             'includeWarninglistHits' => 0, // we don't need remote warninglist hits
+            'noSightings' => 1
         ];
         if (empty($serverSync->server()['Server']['internal'])) {
             $params['excludeLocalTags'] = 1;
@@ -829,7 +815,7 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    public function getElligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
+    public function getEligibleClusterIdsFromServerForPull(ServerSyncTool $serverSync, $onlyUpdateLocalCluster=true, array $eligibleClusters=array(), array $conditions=array())
     {
         $serverSync->debug("Fetching eligible clusters for pull: " . JsonTool::encode($conditions));
 
@@ -885,7 +871,7 @@ class Server extends AppModel
      * @throws HttpSocketJsonException
      * @throws JsonException
      */
-    private function getElligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
+    private function getEligibleClusterIdsFromServerForPush(ServerSyncTool $serverSync, array $localClusters=array(), array $conditions=array())
     {
         $serverSync->debug("Fetching eligible clusters for push: " . JsonTool::encode($conditions));
         $clusterArray = $this->fetchCustomClusterIdsFromServer($serverSync, $conditions=$conditions);
@@ -1395,7 +1381,7 @@ class Server extends AppModel
         $this->Event = ClassRegistry::init('Event');
 
         if ($technique === 'full') {
-            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array(), $full=true);
+            $clusters = $this->GalaxyCluster->getEligibleClustersToPush($user, $conditions=array(), $full=true);
         } else {
             if ($event === false) {
                 throw new InvalidArgumentException('The event from which the cluster should be taken must be provided.');
@@ -1411,14 +1397,14 @@ class Server extends AppModel
             if (empty($customGalaxyClusterTags)) {
                 return [];
             }
-            $clusters = $this->GalaxyCluster->getElligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $customGalaxyClusterTags), $full=true);
+            $clusters = $this->GalaxyCluster->getEligibleClustersToPush($user, $conditions=array('GalaxyCluster.tag_name' => $customGalaxyClusterTags), $full=true);
         }
         if (empty($clusters)) {
             return []; // no local clusters eligible for push
         }
         $localClusterUUIDs = Hash::extract($clusters, '{n}.GalaxyCluster.uuid');
         try {
-            $clustersToPush = $this->getElligibleClusterIdsFromServerForPush($serverSync, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
+            $clustersToPush = $this->getEligibleClusterIdsFromServerForPush($serverSync, $localClusters = $clusters, $conditions = array('uuid' => $localClusterUUIDs));
         } catch (Exception $e) {
             $this->logException("Could not get eligible cluster IDs from server #{$server['Server']['id']} for push.", $e);
             return [];
@@ -1455,7 +1441,7 @@ class Server extends AppModel
             $events = $eventModel->find('all', array(
                     'conditions' => $conditions,
                     'recursive' => 1,
-                    'contain' => 'ShadowAttribute',
+                    'contain' => ['ShadowAttribute' => 'Org'],
                     'fields' => array('Event.uuid')
             ));
 
@@ -1730,6 +1716,12 @@ class Server extends AppModel
         return $languages;
     }
 
+    public function loadAvailableThemes()
+    {
+        $this->UserSetting = ClassRegistry::init('UserSetting');
+        return array_flip($this->UserSetting::VALID_SETTINGS['ui_theme']['options']);
+    }
+
     public function testLanguage($value)
     {
         $languages = $this->loadAvailableLanguages();
@@ -1783,6 +1775,15 @@ class Server extends AppModel
     {
         if (!is_numeric($value)) {
             return __('This setting has to be a number.');
+        }
+        return true;
+    }
+
+    public function testTheme($value)
+    {
+        $themes = $this->loadAvailableThemes();
+        if (!isset($themes[$value])) {
+            return __('Invalid theme.');
         }
         return true;
     }
@@ -2208,6 +2209,22 @@ class Server extends AppModel
         return true;
     }
 
+    public function testForgotPasswordText($value)
+    {
+        if (strpos($value, '$misp') === false || strpos($value, '$reset_link') === false || strpos($value, '$ip') === false) {
+            return 'The text served to the users must include the following replacement strings: "$misp", "$reset_link", "$ip"';
+        }
+        return true;
+    }
+
+    public function testForgotPasswordTextNoEnc($value)
+    {
+        if (strpos($value, '$misp') === false || strpos($value, '$ip') === false) {
+            return 'The text served to the users must include the following replacement strings: "$misp", "$ip". It can also optionally include "$reset_link".';
+        }
+        return true;
+    }
+
     public function testForGPGBinary($value)
     {
         if (empty($value)) {
@@ -2545,7 +2562,9 @@ class Server extends AppModel
         if (!$fileOnly && Configure::read('MISP.system_setting_db')) {
             /** @var SystemSetting $systemSetting */
             $systemSetting = ClassRegistry::init('SystemSetting');
-            return $systemSetting->setSetting($setting, $value);
+            if (!in_array($setting, $systemSetting::BLOCKED_SETTINGS)) {
+                return $systemSetting->setSetting($setting, $value);
+            }
         }
 
         $configFilePath = APP . 'Config' . DS . 'config.php';
@@ -3885,10 +3904,6 @@ class Server extends AppModel
             'scheduler' => array('ok' => false)
         );
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            unset($worker_array['scheduler']);
-        }
-
         try {
             $workers = $this->getWorkers();
         } catch (Exception $e) {
@@ -4849,30 +4864,46 @@ class Server extends AppModel
             $job = ClassRegistry::init('Job');
             $job->id = $jobId;
         }
-        $redis->del('misp:server_cache:' . $serverId);
 
         $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        $fastCaching = $serverSync->isSupported(ServerSyncTool::FEATURE_FAST_CACHING);
+        $nextLastId = null;
+        $count = 0;
+        // delete the previous iterations, but skip the event uuid one as the uuid might exist on other instances too (should have thought about this when designing the cache, but alas, past me was a monkey too)
+        $redis->del('misp:server_cache:' . $serverId);
         while (true) {
-            $i++;
-            $rules = [
-                'returnFormat' => 'cache',
-                'includeEventUuid' => 1,
-                'page' => $i,
-                'limit' => $chunk_size,
-            ];
-            try {
-                $data = $serverSync->attributeSearch($rules)->body();
-            } catch (Exception $e) {
-                $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
-                break;
+            if ($fastCaching) {
+                if (!isset($lastId)) {
+                    $lastId = 0;
+                }
+                $return = $serverSync->getFastCache($nextLastId);
+                $nextLastId = (int)$return->headers['x-misp-last-id'] ?? null;
+                $data = $return->body();
+                $nextLastId;
+            } else {
+                $i++;
+                $rules = [
+                    'returnFormat' => 'cache',
+                    'includeEventUuid' => 1,
+                    'page' => $i,
+                    'limit' => $chunk_size,
+                ];
+                try {
+                    $data = $serverSync->attributeSearch($rules)->body();
+                } catch (Exception $e) {
+                    $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
+                    break;
+                }
             }
 
             $data = trim($data);
             if (empty($data)) {
                 break;
             }
-
             $data = explode(PHP_EOL, $data);
+            if ($fastCaching) {
+                $count += count($data);
+            }
             $pipe = $redis->pipeline();
             foreach ($data as $entry) {
                 list($value, $uuid) = explode(',', $entry);
@@ -4884,7 +4915,11 @@ class Server extends AppModel
             }
             $pipe->exec();
             if ($jobId) {
-                $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+                if ($fastCaching) {
+                    $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . $count . ' attributes cached.');
+                } else {
+                    $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+                }
             }
         }
         $redis->set('misp:server_cache_timestamp:' . $serverId, time());
@@ -4909,6 +4944,82 @@ class Server extends AppModel
         foreach ($servers as $k => $v) {
             $servers[$k]['Server']['cache_timestamp'] = $results[$k];
         }
+        return $servers;
+    }
+
+
+
+    /**
+     * @param array $servers
+     * @return array
+     */
+    public function attachRuleDescriptions(array $servers, array $collection): array
+    {
+        $syncOptions = ['pull', 'push'];
+        $fieldOptions = ['tags', 'orgs'];
+
+        if (!empty(Configure::read('MISP.enable_synchronisation_filtering_on_type'))) {
+            $fieldOptions = array_merge($fieldOptions, ['type_attributes', 'type_objects']);
+        }
+
+        $typeOptions = [
+            'OR'  => ['colour' => 'green', 'text' => 'allowed'],
+            'NOT' => ['colour' => 'red',   'text' => 'blocked'],
+        ];
+
+        foreach ($servers as &$server) {
+            $rules = [
+                'push' => json_decode($server['Server']['push_rules'], true),
+                'pull' => json_decode($server['Server']['pull_rules'], true),
+            ];
+
+            $ruleDescription = ['pull' => '', 'push' => ''];
+
+            foreach ($syncOptions as $syncOption) {
+                foreach ($fieldOptions as $fieldOption) {
+                    foreach ($typeOptions as $typeOption => $typeData) {
+                        if (!empty($rules[$syncOption][$fieldOption][$typeOption])) {
+                            $ruleDescription[$syncOption] .=
+                                '<span class="bold">' .
+                                ucfirst($fieldOption) . ' ' . $typeData['text'] .
+                                '</span>: <span class="' . $typeData['colour'] . '">';
+
+                            foreach ($rules[$syncOption][$fieldOption][$typeOption] as $k => $temp) {
+                                if ($k !== 0) {
+                                    $ruleDescription[$syncOption] .= ', ';
+                                }
+
+                                if ($fieldOption === 'orgs') {
+                                    if (!empty($collection[$fieldOption][$temp])) {
+                                        $temp = $collection[$fieldOption][$temp] . ' (' . $temp . ')';
+                                    }
+                                } elseif ($syncOption === 'push') {
+                                    if (!empty($collection[$fieldOption][$temp])) {
+                                        $temp = $collection[$fieldOption][$temp];
+                                    }
+                                }
+
+                                $ruleDescription[$syncOption] .= h($temp);
+                            }
+
+                            $ruleDescription[$syncOption] .= '</span><br>';
+                        }
+                    }
+                }
+
+                if ($syncOption === 'pull' && !empty($rules['pull']['url_params'])) {
+                    $ruleDescription[$syncOption] .= sprintf(
+                        "<span class='bold'>%s</span>: <pre class='jsonify'>%s</pre>",
+                        __('URL params'),
+                        h(json_encode(json_decode($rules['pull']['url_params']), JSON_PRETTY_PRINT))
+                    );
+                }
+            }
+
+            $server['RuleDescription'] = $ruleDescription;
+        }
+
+        unset($server);
         return $servers;
     }
 
@@ -5295,6 +5406,27 @@ class Server extends AppModel
                     },
                     'afterHook' => 'cleanCacheFiles'
                 ),
+                'enable_themes' => array(
+                    'level' => 0,
+                    'description' => __('Enable themes for users of the instance. Currently this is used to allow users to opt-in to a the various preview/beta modes.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => 1
+                ),
+                'default_theme' => array(
+                    'level' => 2,
+                    'description' => __('Set a default theme for the instance. This is mostly used for developer purposes for now, but will be more interesting in the future.'),
+                    'value' => false,
+                    'test' => 'testTheme',
+                    'type' => 'string',
+                    'optionsSource' => function () {
+                        return $this->loadAvailableThemes();
+                    },
+                    'null' => true,
+                    'cli_only' => 1
+                ),
                 'default_attribute_memory_coefficient' => array(
                     'level' => 1,
                     'description' => __('This values controls the internal fetcher\'s memory envelope when it comes to attributes. The number provided is the amount of attributes that can be loaded for each MB of PHP memory available in one shot. Consider lowering this number if your instance has a lot of attribute tags / attribute galaxies attached.'),
@@ -5311,6 +5443,14 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'object_fetch_hard_limit'=> [
+                    'level' => 1,
+                    'description' => __('This value controls the maximum number of objects that can be fetched in one shot via /objects/restSearch. If a query would exceed the given limit, it will iterate internally to build the result-set, so it will only effect the internals, however, it can resolve object restSearch failures due to high memory allocation to php.ini. Setting this to 0 will disable the cap altogether and revert to the old behaviour. Defaults to 0 (disabled).'),
+                    'value' => 0,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
                 'curl_request_timeout' => [
                     'level' => 1,
                     'description' => __('Control the default timeout in seconds of curl HTTP requests issued by MISP (during synchronisation, feed fetching, etc.)'),
@@ -5337,14 +5477,15 @@ class Server extends AppModel
                 ],
                 'correlation_engine' => [
                     'level' => 0,
-                    'description' => __('Choose which correlation engine to use. MISP defaults to the default engine, maintaining all data in the database whilst enforcing ACL rules on any non site-admin user. This is recommended for any MISP instnace with multiple organisations. If you are an endpoint MISP, consider switching to the much leaner and faster No ACL engine.'),
+                    'description' => __('Choose which correlation engine to use. MISP defaults to the default engine, maintaining all data in the database whilst enforcing ACL rules on any non site-admin user. This is recommended for any MISP instance with multiple organisations. If you are an endpoint MISP, consider switching to the much leaner and faster No ACL engine.'),
                     'value' => 'default',
                     'test' => 'testForCorrelationEngine',
                     'type' => 'string',
                     'null' => true,
                     'options' => [
                         'Default' => __('Default Correlation Engine'),
-                        'NoAcl' => __('No ACL Engine')
+                        'NoAcl' => __('No ACL Engine'),
+                        'OnDemand' => __('On Demand Correlation Engine')
                     ],
                 ],
                 'correlation_limit' => [
@@ -5379,9 +5520,17 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true,
                 ],
+                'use_uuids_in_urls' => [
+                    'level' => 1,
+                    'description' => __('Changes the urls on the event index to /UUID instead of /ID.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ],
                 'server_settings_skip_backup_rotate' => array(
                     'level' => 1,
-                    'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
+                    'description' => __('Enable this setting to directly save the config.php file without first creating a temporary file and moving it to avoid concurrency issues. Generally not recommended, but useful when for example other tools modify/maintain the config.php file.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -5649,6 +5798,13 @@ class Server extends AppModel
                     'type' => 'string',
                     'cli_only' => 1
                 ),
+                'attachments_bucketed' => [
+                    'level' => 2,
+                    'description' => __('By default, MISP stores attachments in a flat structure. Enabling this setting will store attachments in a bucketed structure based on event IDs. This can help improve performance on filesystems that struggle with large numbers of subdirectories in a single directory.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                ],
                 'download_attachments_on_load' => array(
                     'level' => 2,
                     'description' => __('Always download attachments when loaded by a user in a browser. It is highly recommended to leave this setting on true, as otherwise opening an attachment can lead to the execution of malicious code via XSS.'),
@@ -5703,7 +5859,7 @@ class Server extends AppModel
                 'cveurl' => array(
                     'level' => 1,
                     'description' => __('Turn Vulnerability type attributes into links linking to the provided CVE lookup'),
-                    'value' => 'https://cve.circl.lu/cve/',
+                    'value' => 'https://vulnerability.circl.lu/vuln/',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'cli_only' => 1
@@ -5711,7 +5867,7 @@ class Server extends AppModel
                 'cweurl' => array(
                     'level' => 1,
                     'description' => __('Turn Weakness type attributes into links linking to the provided CWE lookup'),
-                    'value' => 'https://cve.circl.lu/cwe/',
+                    'value' => 'https://vulnerability.circl.lu/cwes/',
                     'test' => 'testForEmpty',
                     'type' => 'string',
                     'cli_only' => 1
@@ -5732,7 +5888,7 @@ class Server extends AppModel
                 ),
                 'forceHTTPSforPreLoginRequestedURL' => array(
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('If enabled, any requested URL before login will have their HTTP part replaced by HTTPS. This can be usefull if MISP is running behind a reverse proxy responsible for SSL and communicating unencrypted with MISP.'),
+                    'description' => __('If enabled, any requested URL before login will have their HTTP part replaced by HTTPS. This can be useful if MISP is running behind a reverse proxy responsible for SSL and communicating unencrypted with MISP.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'
@@ -5919,7 +6075,7 @@ class Server extends AppModel
                 ),
                 'allow_users_override_locked_field_when_importing_events' => array(
                     'level' => 2,
-                    'description' => __('Allows users to override the state of the `locked` field of an event uploaded via the "Import from MISP Export File" functionality. This allows unlocking manually imported event. Updates to these Events coming from synchronisation might be rejected since it will appear as these Events were originaly created on this instance.'),
+                    'description' => __('Allows users to override the state of the `locked` field of an event uploaded via the "Import from MISP Export File" functionality. This allows unlocking manually imported event. Updates to these Events coming from synchronisation might be rejected since it will appear as these Events were originally created on this instance.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -5968,6 +6124,22 @@ class Server extends AppModel
                     'test' => 'testPasswordResetText',
                     'type' => 'string'
                 ),
+                'forgotPasswordText' => [
+                    'level' => 1,
+                    'bigField' => true,
+                    'description' => __('The message sent to the users when when they trigger a password reset. The following variables can be used in the message: $misp (misp baseurl), $ip (requestor IP), $reset_link (the link including the reset token for the user to carry out the reset).'),
+                    'value' => 'Dear MISP user,\n\nyou have requested a password reset on the MISP instance at $misp. Click the link below to change your password.\n\n\$reset_link\n\nThe link above is only valid for 10 minutes, feel free to request a new one if it has expired.\n\nIf you haven\'t requested a password reset, reach out to your admin team and let them know that someone has attempted it in your stead.\n\nMake sure you keep the contents of this e-mail confidential, do NOT ever forward it as it contains a reset token that is equivalent of a password if acted upon. The IP used to trigger the request was: $ip\n\nBest regards,\nYour MISP admin team',
+                    'test' => 'testForgotPasswordText',
+                    'type' => 'string'
+                ],
+                'forgotPasswordTextNoEnc' => [
+                    'level' => 1,
+                    'bigField' => true,
+                    'description' => __('The message sent to the users when when they trigger a password reset and no suitable encryption key is found for the user. The following variables can be used in the message: $misp (misp baseurl), $ip (requestor IP). By default no reset_link is sent when the message cannot be encrypted, but you can override this behaviour by also adding the following variable to the message: $reset_link (the link including the reset token for the user to carry out the reset).'),
+                    'value' => 'Dear MISP user,\n\nyou have requested a password reset on the MISP instance at $misp, however, no valid encryption key was found for your user and thus we cannot deliver your reset token. Please get in touch with your org admin / with an instance site admin to ask for a reset.\n\nThe IP used to trigger the request was: $ip\n\nBest regards,\nYour MISP admin team',
+                    'test' => 'testForgotPasswordTextNoEnc',
+                    'type' => 'string'
+                ],
                 'enableEventBlocklisting' => array(
                     'level' => 1,
                     'description' => __('Since version 2.3.107 you can start blocklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.'),
@@ -6096,6 +6268,22 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
+                    'null' => true
+                ],
+                'log_errors_ndjson' => [
+                    'level' =>  self::SETTING_RECOMMENDED,
+                    'description' => __('Log errors in ndjson format additionally to error.log.)'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
+                'log_errors_ndjson_path' => [
+                    'level' =>  self::SETTING_RECOMMENDED,
+                    'description' => __('Path for the ndjson error log file - defaults to ' . APP . '/app/tmp/logs/error.log.ndjson.'),
+                    'value' => APP . '/tmp/logs/error.log.ndjson',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'cli' => true,
                     'null' => true
                 ],
                 'disable_seen_ips_authkeys' => [
@@ -6442,7 +6630,7 @@ class Server extends AppModel
                 ),
                 'deadlock_avoidance' => array(
                     'level' => 1,
-                    'description' => __('Only enable this if you have some tools using MISP with extreme high concurency. General performance will be lower as normal as certain transactional queries are avoided in favour of shorter table locks.'),
+                    'description' => __('Only enable this if you have some tools using MISP with extreme high concurrency. General performance will be lower as normal as certain transactional queries are avoided in favour of shorter table locks.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -6455,6 +6643,14 @@ class Server extends AppModel
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => true
+                ),
+                'default_restsearch_limit' => array(
+                    'level' => 1,
+                    'description' => 'Default number of attributes returned for the given restSearch API. For the Event and Object scopes, a divisor is used to further limit the given value (dividing by 10 and 3 respectively). Can be overriden via the role configurations. Leave empty(0) to set it as unlimited.',
+                    'value' => 0,
+                    'errorMessage' => '',
+                    'null' => true,
+                    'type' => 'numeric'
                 ),
                 'attribute_filters_block_only' => array(
                     'level' => 1,
@@ -6495,7 +6691,7 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
-                'hide_unkown_cluster' => [
+                'hide_unknown_cluster' => [
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('This will hide unknown cluster to all users expect those having the sync permission.'),
                     'value' => true,
@@ -6538,7 +6734,7 @@ class Server extends AppModel
                 ],
                 'download_gpg_from_homedir' => [
                     'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Fetch GPG instance key from GPG homedir.'),
+                    'description' => __('Fetch GPG instance key from GPG keyring. Be careful a user with the email address used for the instance key can override the instance key when using the keyring.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -6864,9 +7060,35 @@ class Server extends AppModel
                     'type' => 'string',
                     'cli_only' => 1
                 ),
+                'workflow_enable_arbitrary_urls' => array(
+                    'level' => 0,
+                    'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via workflows. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable. Only a compromised site-admin account could cause damage.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => 1
+                ),
+                'eventreport_enable_arbitrary_urls' => array(
+                    'level' => 0,
+                    'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via event report import from URL feature. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable. Only a compromised site-admin account could cause damage.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => 1
+                ),
                 'syslog' => array(
                     'level' => 0,
                     'description' => __('Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'syslog_json_format' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('If enabled, syslog messages will be formatted in JSON rather than the custom format used by MISP historically.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -7113,7 +7335,7 @@ class Server extends AppModel
                 ),
                 'cors_origins' => array(
                     'level' => 1,
-                    'description' => __('Set the origins from which MISP will allow cross-origin requests. Useful for external integration. Comma seperate if you need more than one.'),
+                    'description' => __('Set the origins from which MISP will allow cross-origin requests. Useful for external integration. Comma separate if you need more than one.'),
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
@@ -7788,7 +8010,7 @@ class Server extends AppModel
                 'Sightings_policy' => array(
                     'level' => 1,
                     'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner organisation alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and any organisation that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
-                    'value' => 0,
+                    'value' => 2,
                     'type' => 'numeric',
                     'options' => array(
                         0 => __('Event Owner Organisation'),
@@ -7905,6 +8127,27 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'
+                ],
+                'Benchmarking_log_query_metrics' => [
+                    'level' => 2,
+                    'description' => __('Enable the logging of SQL query metrics. This setting is required for all slow_log features to work.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
+                'Benchmarking_slow_log_threshold' => [
+                    'level' => 2,
+                    'description' => __('The duration of a query to be considered a slow query. Default: 5000 (=5s)'),
+                    'value' => 5000,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ],
+                'Benchmarking_slow_query_retention' => [
+                    'level' => 2,
+                    'description' => __('The retention of slow query log entries in seconds. Default: 259200 (=3 days)'),
+                    'value' => 259200,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
                 ],
                 'Enrichment_services_enable' => array(
                     'level' => 0,
@@ -8370,6 +8613,7 @@ class Server extends AppModel
                     'Dump current database schema' => 'MISP/app/Console/cake Admin dumpCurrentDatabaseSchema',
                     'Scan attachment' => 'MISP/app/Console/cake Admin scanAttachment [input] [attribute_id] [job_id]',
                     'Clean excluded correlations' => 'MISP/app/Console/cake Admin cleanExcludedCorrelations [job_id]',
+                    'Run DB Script' => 'MISP/app/Console/cake Admin runDBScript [script_name]',
                 ),
                 'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
                 'header' => __('Administering MISP via the CLI')

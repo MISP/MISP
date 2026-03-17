@@ -197,23 +197,12 @@ class NoticelistsController extends AppController
 
     public function delete($id)
     {
-        if ($this->request->is('post')) {
-            $id = intval($id);
-            $result = $this->Noticelist->quickDelete($id);
-            if ($result) {
-                $this->Flash->success('Noticelist successfuly deleted.');
-                $this->redirect(array('controller' => 'noticelists', 'action' => 'index'));
-            } else {
-                $this->Flash->error('Noticelists could not be deleted.');
-                $this->redirect(array('controller' => 'noticelists', 'action' => 'index'));
-            }
-        } else {
-            if ($this->request->is('ajax')) {
-                $this->set('id', $id);
-                $this->render('ajax/delete_confirmation');
-            } else {
-                throw new MethodNotAllowedException('This function can only be reached via AJAX.');
-            }
+        $this->CRUD->delete($id, [
+            'modelFunction' => 'quickDelete',
+            'redirect' => ['controller' => 'noticelists', 'action' => 'index']
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
 

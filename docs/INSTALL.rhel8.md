@@ -12,7 +12,7 @@
 {% include_relative generic/manual-install-notes.md %}
 
 !!! notice
-    If the next line is `[!generic/community.md!]()` [click here](https://misp.github.io/MISP/INSTALL.rhel8).
+    If the next line is `[!generic/community.md!]()`, see [Installation instructions for RHEL 8.x based distros](https://misp.github.io/MISP/INSTALL.rhel8).
 
 {% include_relative generic/community.md %}
 
@@ -148,7 +148,7 @@ yumInstallCoreDeps8 () {
   # Install the dependencies:
   PHP_BASE="/etc/"
   PHP_INI="/etc/php.ini"
-  # If the install group @httpd is not existent, fallback to httpd
+  # If the install group @httpd is not existent, fall back to httpd
   sudo dnf install @httpd -y || sudo dnf install httpd -y
   sudo dnf install gcc git zip unzip \
                    httpd \

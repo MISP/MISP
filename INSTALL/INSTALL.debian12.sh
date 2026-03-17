@@ -390,6 +390,7 @@ print_status "Creating Apache configuration file for MISP..."
           ServerSignature Off
           Header set X-Content-Type-Options nosniff
           Header set X-Frame-Options DENY
+          SSLCipherSuite HIGH:!aNULL:!SHA1:!MD5:!DHE:!DH:!ADH
   </VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-ssl.conf  &>> $logfile
 
 error_check "Apache configuration file creation"  &>> $logfile
@@ -498,6 +499,18 @@ user=$APACHE_USER
 [program:cache]
 directory=$MISP_PATH
 command=$MISP_PATH/app/Console/cake start_worker cache
+process_name=%(program_name)s_%(process_num)02d
+numprocs=5
+autostart=true
+autorestart=true
+redirect_stderr=false
+stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
+stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
+user=$APACHE_USER
+
+[program:scheduler]
+directory=$MISP_PATH
+command=$MISP_PATH/app/Console/cake start_worker scheduler
 process_name=%(program_name)s_%(process_num)02d
 numprocs=5
 autostart=true
@@ -671,6 +684,10 @@ print_ok "Settings configured."
 print_status "Finalising MISP setup..."
 sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>> $logfile
 sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git &>> $logfile
+sudo chmod -R 750 ${MISP_PATH}
+sudo chmod -R g+ws ${MISP_PATH}/app/tmp
+sudo chmod -R g+ws ${MISP_PATH}/app/files
+sudo chmod -R g+ws ${MISP_PATH}/app/files/scripts/tmp
 
 save_settings
 

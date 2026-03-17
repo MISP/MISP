@@ -140,10 +140,14 @@ class TestSecurity(unittest.TestCase):
 
         # Connect as site admin
         cls.admin_misp_connector = PyMISP(url, key)
+
         # Set expected config values
         check_response(cls.admin_misp_connector.set_server_setting('debug', 1, force=True))
-        check_response(cls.admin_misp_connector.set_server_setting('Security.advanced_authkeys', False, force=True))
+        check_response(cls.admin_misp_connector.set_server_setting('Security.advanced_authkeys', True, force=True))
         cls.admin_misp_connector.global_pythonify = True
+
+        # we get rid of the legacy authkey checks as those are currently broken since the fix to not having the same keys in the old + new system
+
         # Check if admin is really site admin
         assert cls.admin_misp_connector._current_role.perm_site_admin
 
@@ -179,6 +183,10 @@ class TestSecurity(unittest.TestCase):
         user.password = cls.test_usr_password
         cls.test_usr = cls.admin_misp_connector.add_user(user)
         check_response(cls.test_usr)
+
+        test_usr_key = cls.__create_advanced_authkey(cls, cls.test_usr.id)
+        cls.test_usr.authkey = test_usr_key["authkey_raw"]
+        assert(cls.test_usr.authkey == test_usr_key["authkey_raw"])
 
         # Try to connect as user to check if everything works
         PyMISP(url, cls.test_usr.authkey)
@@ -489,6 +497,7 @@ class TestSecurity(unittest.TestCase):
             # Reset auth key from org admin account
             new_auth_key = send(self.org_admin_misp_connector, "POST", f"users/resetauthkey/{self.test_usr.id}")
             new_auth_key = new_auth_key["message"].replace("Authkey updated: ", "")
+            self.test_usr.authkey = new_auth_key
 
             # Try to login with old key
             with self.assertRaises(PyMISPError):
@@ -1180,14 +1189,6 @@ class TestSecurity(unittest.TestCase):
             self.assertIn("X-Username", response.headers)
             self.assertEqual(self.test_usr.email, response.headers["X-Username"])
 
-    def test_username_in_response_header_api_access(self):
-        with self.__setting("Security.username_in_response_header", True):
-            logged_in = PyMISP(url, self.test_usr.authkey)
-
-            response = logged_in._prepare_request('GET', 'users/view/me')
-            self.assertIn("X-Username", response.headers)
-            self.assertEqual(self.test_usr.email + "/API/default", response.headers["X-Username"])
-
     def test_username_in_response_header_advanced_api_access(self):
         with self.__setting({
             "Security": {
@@ -1377,17 +1378,20 @@ class TestSecurity(unittest.TestCase):
 
         send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")
 
-        with self.assertRaises(Exception):
-            send(logged_in, "POST", f"/sharingGroups/edit/{sg.id}", {"name": "New name1"})
-        self.assertEqual(sg.name, send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]["name"])
+        # This was a logic bug that has been corrected by 26ec3274374c4771e6996272c8108422f0fec34e
+        # A sync user should in fact be able to update a sharing group that they can view, even if they're not the creator user
+        # Otherwise race conditions via multiple sync paths may block future updates to the sharing group.
+        # with self.assertRaises(Exception):
+        #    send(logged_in, "POST", f"/sharingGroups/edit/{sg.id}", {"name": "New name1"})
+        # self.assertEqual(sg.name, send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]["name"])
 
-        with self.assertRaises(Exception):
-            send(logged_in, "POST", f"/sharingGroups/edit/{sg.uuid}", {"name": "New name2"})
-        self.assertEqual(sg.name, send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]["name"])
+        # with self.assertRaises(Exception):
+        #     send(logged_in, "POST", f"/sharingGroups/edit/{sg.uuid}", {"name": "New name2"})
+        # self.assertEqual(sg.name, send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]["name"])
 
-        self.assertErrorResponse(logged_in.add_org_to_sharing_group(sg, self.test_org.uuid))
-        self.assertErrorResponse(logged_in.remove_org_from_sharing_group(sg, org.uuid))
-        self.assertErrorResponse(logged_in.delete_sharing_group(sg))
+        # self.assertErrorResponse(logged_in.add_org_to_sharing_group(sg, self.test_org.uuid))
+        # self.assertErrorResponse(logged_in.remove_org_from_sharing_group(sg, org.uuid))
+        # self.assertErrorResponse(logged_in.delete_sharing_group(sg))
 
         self.admin_misp_connector.delete_sharing_group(sg)
         self.admin_misp_connector.delete_user(sync_user)
@@ -1592,7 +1596,7 @@ class TestSecurity(unittest.TestCase):
 
         private_event = check_response(user1.add_event(self.__generate_event(Distribution.your_organisation_only)))
         check_response(user1.add_sighting(s, private_event.Attribute[0]))
-        self.assertEqual(len(user1.sightings(private_event)), 1, "User should see hos own sighting")
+        self.assertEqual(len(user1.sightings(private_event)), 1, "User should see their own sighting")
 
         sightings = user1.search_sightings("event", private_event.id)
         self.assertEqual(len(sightings), 1, sightings)
@@ -1688,12 +1692,13 @@ class TestSecurity(unittest.TestCase):
             user.org_id = org_id
         if role_id:
             user.role_id = role_id
+        self.admin_misp_connector.global_pythonify = True
         user = self.admin_misp_connector.add_user(user)
         check_response(user)
         if org_id:
-            self.assertEqual(int(org_id), int(user.org_id))
+            assert int(org_id) == int(user.org_id)
         if role_id:
-            self.assertEqual(int(role_id), int(user.role_id))
+            assert int(role_id) == int(user.role_id)
         return user
 
     def __create_advanced_authkey(self, user_id: int, data: Optional[dict] = None) -> dict:

@@ -90,7 +90,6 @@ class ServersController extends AppController
             $this->paginate['conditions'] = $conditions;
             $servers = $this->paginate();
             $servers = $this->Server->attachServerCacheTimestamps($servers);
-            $this->set('servers', $servers);
             $collection = array();
             $collection['orgs'] = $this->Server->Organisation->find('list', array(
                   'fields' => array('uuid', 'name'),
@@ -99,6 +98,8 @@ class ServersController extends AppController
             $collection['tags'] = $this->Tag->find('list', array(
                   'fields' => array('id', 'name'),
             ));
+            $servers = $this->Server->attachRuleDescriptions($servers, $collection);
+            $this->set('servers', $servers);
             $this->set('collection', $collection);
         }
     }
@@ -565,7 +566,7 @@ class ServersController extends AppController
 
                             if (!$orgSave) {
                                 if ($this->_isRest()) {
-                                    return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->Organisation->validationError, $this->response->type());
+                                    return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->Organisation->validationErrors, $this->response->type());
                                 } else {
                                     $this->Flash->error(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
                                 }
@@ -611,7 +612,7 @@ class ServersController extends AppController
                     }
                 } else {
                     if ($this->_isRest()) {
-                        return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->validationError, $this->response->type());
+                        return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->validationErrors, $this->response->type());
                     } else {
                         $this->Flash->error(__('The server could not be saved. Please, try again.'));
                     }
@@ -724,9 +725,9 @@ class ServersController extends AppController
             }
             if ($this->_isRest()) {
                 if ($result) {
-                    return $this->RestResponse->saveFailResponse('Servers', 'eventBlockRule', false, $message, $this->response->type());
-                } else {
                     return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', $message, $this->response->type());
+                } else {
+                    return $this->RestResponse->saveFailResponse('Servers', 'eventBlockRule', false, $message, $this->response->type());
                 }
             } else {
                 if ($result) {
@@ -937,7 +938,7 @@ class ServersController extends AppController
                         $this->redirect(array('action' => 'index'));
                     }
 
-                    if (!$server['Server'][$subm]['size'] > 0) {
+                    if (!($server['Server'][$subm]['size'] > 0)) {
                         $this->Flash->error(__('Incorrect extension or empty file.'));
                         $this->redirect(array('action' => 'index'));
                     }
@@ -1069,7 +1070,7 @@ class ServersController extends AppController
                     'description' => __('There are some optional tweaks that could be done to improve the looks of your MISP instance.')
                 ),
             ),
-            'deprecated' => array(),
+            'deprecated' => 0,
             'overallHealth' => 3,
         );
         $dumpResults = array();
@@ -1673,6 +1674,12 @@ class ServersController extends AppController
 
         if (!isset($validItems[$type])) {
             throw new NotFoundException(__('Invalid type.'));
+        }
+
+        $extension = pathinfo($this->request->data['Server']['file']['name'], PATHINFO_EXTENSION);
+        if ($extension === 'svg' && !Configure::read('Security.enable_svg_logos')) {
+            $this->Flash->error(__('Invalid file extension, SVG images are not allowed.'));
+            return false;
         }
 
         // Check if there were problems with the file upload
@@ -2392,7 +2399,7 @@ class ServersController extends AppController
         }
         $this->loadModel('MispAttribute');
         $duplicates = $this->MispAttribute->find('all', array(
-            'fields' => array('Attribute.uuid', 'count(*) as occurance'),
+            'fields' => array('Attribute.uuid', 'count(*) as occurrence'),
             'recursive' => -1,
             'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
         ));
@@ -2421,7 +2428,7 @@ class ServersController extends AppController
         }
         $this->loadModel('Event');
         $duplicates = $this->Event->find('all', array(
-            'fields' => array('Event.uuid', 'count(*) as occurance'),
+            'fields' => array('Event.uuid', 'count(*) as occurrence'),
             'recursive' => -1,
             'group' => array('Event.uuid HAVING COUNT(*) > 1'),
         ));

@@ -27,6 +27,8 @@ App::uses('DboSource', 'Model/Datasource');
  */
 class MysqlExtendedLogging extends DboSource {
 
+	const IDENTIFIER_QUOTE = '`';
+
 /**
  * Datasource description
  *

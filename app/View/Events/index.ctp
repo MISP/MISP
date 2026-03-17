@@ -35,7 +35,7 @@
 
         $columnsDescription = [
             'owner_org' => __('Owner org'),
-            'extending' => __('Extended event'),
+            'is_extension' => __('Extended event'),
             'attribute_count' => __('Attribute count'),
             'creator_user' => __('Creator user'),
             'tags' => __('Tags'),
@@ -46,7 +46,8 @@
             'discussion' => __('Posts'),
             'report_count' => __('Report count'),
             'timestamp' => __('Last modified at'),
-            'publish_timestamp' => __('Published at')
+            'publish_timestamp' => __('Published at'),
+            'highlights' => __('Highlights'),
         ];
 
         $columnsMenu = [];

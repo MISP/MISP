@@ -205,7 +205,7 @@ class Oidc
 
         try {
             $oidc->refreshToken($userInfo['refresh_token']);
-        } catch (JakubOnderka\ErrorResponse $e) {
+        } catch (CertMichelin\ErrorResponse | JakubOnderka\ErrorResponse $e) {
             if ($e->getError() === 'invalid_grant') {
                 $this->log($user['email'], "Refreshing token is not possible because of `{$e->getMessage()}`, considering user is not valid");
                 return false;
@@ -290,7 +290,7 @@ class Oidc
     }
     
     /**
-     * @return \JakubOnderka\OpenIDConnectClient
+     * @return \CertMichelin\OpenIDConnectClient|\JakubOnderka\OpenIDConnectClient CertMichelin if available, otherwise JakubOnderka for keeping backward compatibility.
      * @throws Exception
      */
     private function prepareClient()
@@ -303,9 +303,20 @@ class Oidc
         $clientId = $this->getConfig('client_id');
         $clientSecret = $this->getConfig('client_secret');
         $issuer = $this->getConfig('issuer', null, false);
+        $disableRequestObject = $this->getConfig('disable_request_object', false);
 
-        if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
+        if (class_exists("\CertMichelin\OpenIDConnectClient")) {
+            $oidc = new \CertMichelin\OpenIDConnectClient($providerUrl, $clientId, $clientSecret, $issuer);
+            $oidc->setDisableRequestObject($disableRequestObject);
+        } else if (class_exists("\JakubOnderka\OpenIDConnectClient")) {
             $oidc = new \JakubOnderka\OpenIDConnectClient($providerUrl, $clientId, $clientSecret, $issuer);
+
+            if ($disableRequestObject) {
+                if (!method_exists($oidc, 'setJwtSecuredAuthorizationRequest')) {
+                    throw new Exception('OIDC config `disable_request_object` is enabled, but old version of OpenIDConnectClient is installed.');
+                }
+                $oidc->setJwtSecuredAuthorizationRequest(false);
+            }
         } else if (class_exists("\Jumbojett\OpenIDConnectClient")) {
             throw new Exception("Jumbojett OIDC implementation is not supported anymore, please use JakubOnderka's client");
         } else {
@@ -331,8 +342,29 @@ class Oidc
             throw new RuntimeException("Config option `OidcAuth.scopes` must be array, " . gettype($scopes) . " given.");
         }
         $oidc->addScope($scopes);
-
         $oidc->setRedirectURL(Configure::read('MISP.baseurl') . '/users/login');
+
+        // set proxy
+        $proxy = Configure::read('Proxy');
+        if (!$this->getConfig('skipProxy', true) && !empty($proxy['host'])) {
+            // construct CURLOPT_PROXY string
+            // format from man 3 CURLOPT_PROXY: scheme://username:password@hostname:port
+            $proxystr = $proxy['host'];
+            if (!empty($proxy['port'])) {
+                $proxystr .= ":" . $proxy['port'];
+            }
+            if (!empty($proxy['username'])) {
+                $proxystr = "@" . $proxystr;
+                if (!empty($proxy['password'])) {
+                    $proxystr = ":" . $proxy['password'] . $proxystr;
+                }
+                $proxystr = $proxy['username'] . $proxystr;
+            }
+
+            // set in OpenID client
+            $oidc->setHttpProxy($proxystr);
+        }
+
         $this->oidcClient = $oidc;
         return $oidc;
     }

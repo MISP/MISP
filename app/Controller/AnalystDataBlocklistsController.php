@@ -7,7 +7,7 @@ class AnalystDataBlocklistsController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 entries <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 entries <- no we won't, this is the max a user can view/page.
             'order' => array(
                 'AnalystDataBlocklist.created' => 'DESC'
             ),
@@ -80,7 +80,7 @@ class AnalystDataBlocklistsController extends AppController
                     return $this->RestResponse->saveSuccessResponse('AnalystDataBlocklist', 'Deleted', $ids, $this->response->type());
                 } else {
                     $this->Flash->success('Blocklist entry removed');
-                    $this->redirect(array('controller' => 'AnalystDataBlocklist', 'action' => 'index'));
+                    $this->redirect(array('controller' => 'AnalystDataBlocklists', 'action' => 'index'));
                 }
             } else {
                 $error = __('Failed to delete Analyst Data from AnalystDataBlocklist. Error: ') . PHP_EOL . h($result);

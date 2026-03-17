@@ -176,6 +176,7 @@ class MispObject extends AppModel
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'publish_timestamp' => array('function' => 'set_filter_timestamp'),
+                    'first_publication' => array('function' => 'set_filter_timestamp'),
                     'org' => array('function' => 'set_filter_org'),
                     'uuid' => array('function' => 'set_filter_uuid'),
                     'published' => array('function' => 'set_filter_published')
@@ -203,7 +204,7 @@ class MispObject extends AppModel
                             'filter' => $param,
                             'scope' => $scope,
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
-                            'context' => 'Attribute'
+                            'context' => 'Object'
                         );
                         if ($scope === 'Attribute') {
                             $subQueryOptions = array(
@@ -624,22 +625,60 @@ class MispObject extends AppModel
                 )
             );
         }
-        $params = array(
-            'conditions' => $this->buildConditions($user),
-            'recursive' => -1,
-            'contain' => array(
-                'Event' => array(
-                    'fields' => array('id', 'info', 'org_id', 'orgc_id'),
-                ),
-                'Attribute' => array(
-                    'conditions' => $attributeConditions,
-                    //'ShadowAttribute',
-                    'AttributeTag' => array(
-                        'Tag'
+        if ($this->checkDbSupport('reverseJoin')) {
+            $fields = ['Object.*'];
+            if (isset($options['contain']['Event']['fields'])) {
+                foreach ($options['contain']['Event']['fields'] as $key => $field) {
+                    if (is_numeric($key)) {
+                        $fields[] = 'Event.' . $field;
+                    }
+                }
+            } else {
+                $fields = array_merge($fields, array('Event.distribution', 'Event.id', 'Event.user_id', 'Event.orgc_id', 'Event.org_id'));
+            }
+            $params = array(
+                'fields' => $fields,
+                'conditions' => $this->buildConditions($user),
+                'recursive' => -1,
+                'joins' => array(
+                    array(
+                        'table' => 'events',
+                        'alias' => 'Event',
+                        'type' => 'STRAIGHT_REVERSE',
+                        'conditions' => array(
+                            'Event.id = Object.event_id'
+                        )
                     )
-                )
-            ),
-        );
+                ),
+                'contain' => array(
+                    'Attribute' => array(
+                        'conditions' => $attributeConditions,
+                        //'ShadowAttribute',
+                        'AttributeTag' => array(
+                            'Tag'
+                        )
+                    )
+                ),
+            );
+        } else {
+            $params = array(
+                'conditions' => $this->buildConditions($user),
+                'recursive' => -1,
+                'contain' => array(
+                    'Event' => array(
+                        'fields' => isset($options['contain']['Event']['fields']) ? $options['contain']['Event']['fields'] : array('id', 'info', 'org_id', 'orgc_id'),
+                    ),
+                    'Attribute' => array(
+                        'conditions' => $attributeConditions,
+                        //'ShadowAttribute',
+                        'AttributeTag' => array(
+                            'Tag'
+                        )
+                    )
+                ),
+            );
+        }
+        
         if (!empty($options['metadata'])) {
             unset($params['contain']['Attribute']);
         }
@@ -647,7 +686,12 @@ class MispObject extends AppModel
             $params['contain']['Attribute']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
         }
         if (isset($options['contain'])) {
-            $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
+            $tempOptions = $options;
+            if (isset($options['contain']['Event'])) {
+                // we include this manually insted to allow for the reverse join
+                unset($tempOptions['contain']['Event']);
+            }
+            $params['contain'] = array_merge_recursive($params['contain'], $tempOptions['contain']);
         }
         if (
             empty($options['metadata']) &&
@@ -1422,7 +1466,7 @@ class MispObject extends AppModel
             'updateable_attribute' => false,
             'not_updateable_attribute' => false,
             'newer_template_version' => false,
-            'original_template_unkown' => false,
+            'original_template_unknown' => false,
             'template' => $template
         );
         $newer_template = $this->ObjectTemplate->find('first', array(
@@ -1458,8 +1502,8 @@ class MispObject extends AppModel
                         $template_difference[] = $cur_obj_rel;
                     }
                 }
-            } else { // original template unkown
-                $toReturn['original_template_unkown'] = true;
+            } else { // original template unknown
+                $toReturn['original_template_unknown'] = true;
                 $unmatched_attributes = array();
                 foreach ($object['Attribute'] as $i => $attribute) {
                     $flag_match = false;
@@ -1477,7 +1521,7 @@ class MispObject extends AppModel
                     }
                 }
 
-                // simulate unkown template from the attribute
+                // simulate unknown template from the attribute
                 foreach ($unmatched_attributes as $unmatched_attribute) {
                     $template_difference[] = [
                         'object_relation' => $unmatched_attribute['object_relation'],
@@ -1488,7 +1532,7 @@ class MispObject extends AppModel
             $toReturn['updateable_attribute'] = $object['Attribute'];
             $toReturn['not_updateable_attribute'] = array();
 
-            if (!empty($template_difference)) { // older template not completely embeded in newer
+            if (!empty($template_difference)) { // older template not completely embedded in newer
                 foreach ($template_difference as $temp_diff_element) {
                     foreach ($object['Attribute'] as $i => $attribute) {
                         if (
@@ -1684,7 +1728,13 @@ class MispObject extends AppModel
             $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
             $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;
             $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
+            // The idea is that we use the memory scaling factor for attributes and divide by 10
             $params['limit'] = $memory_in_mb * $memory_scaling_factor / 10;
+            // However, this can lead to absolutely massive data sets. Sadly for objects, we fetch the objects and attributes separately and reassemble it after the fact. Optionally admins can now put a cap on the hard limit of objects fetched and moved to an iterated fetch beyond that.
+            $hard_limit = Configure::check('MISP.object_fetch_hard_limit') ? Configure::read('MISP.object_fetch_hard_limit') : 0;
+            if (intval($hard_limit) >= 1) {
+                $params['limit'] = $params['limit'] > $hard_limit ? $hard_limit : $params['limit'];
+            }
             $loop = true;
             $params['page'] = 1;
         }

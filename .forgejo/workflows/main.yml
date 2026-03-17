@@ -1,0 +1,415 @@
+# Optimized MISP workflow for Forgejo Actions
+name: misp
+on:
+  push:
+    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii ]
+  pull_request:
+    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii ]
+
+jobs:
+  build:
+    runs-on: lxc
+    # We can specify a container image, if not specified, the host image of the runner will be used.
+    # NB : If you specify an image, the default shell will be sh, not bash.
+    container:
+      image: ubuntu:jammy
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.1', '8.3']
+
+    env:
+      DEBIAN_FRONTEND: noninteractive
+
+    steps:
+      - name: Initialize env variables
+        run: |
+          echo "USER=$(id -u -n)" >> $GITHUB_ENV
+          echo "HOST=localhost" >> $GITHUB_ENV
+          echo "WORKSPACE=$(pwd)" >> $GITHUB_ENV
+          echo "Variables initialized"
+
+      # Optimize system dependencies installation
+      - name: Install system dependencies
+        run: |
+          # Update package list and install in one go to reduce layers
+          apt-get update && apt-get install -y --no-install-recommends \
+            curl \
+            ca-certificates \
+            gnupg \
+
+          # Add NodeJS repository with better security practices (needed for actions/checkout)
+          mkdir -p /etc/apt/keyrings
+          curl -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x jammy main" | tee /etc/apt/sources.list.d/nodesource.list
+
+          # Install all packages 
+          apt-get update && apt-get install -y --no-install-recommends \
+            git \
+            nodejs \
+            mariadb-server \
+            mariadb-client \
+            redis-server \
+            python3 \
+            python3-pip \
+            python3-virtualenv \
+            apache2 \
+            zip \
+            unzip \
+            sudo \
+            netstat-nat
+
+          # Clean up to reduce image size
+          apt-get clean && rm -rf /var/lib/apt/lists/*
+          echo "System dependencies installed"
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+
+      - name: Setup MariaDB
+        run: |
+          # Initialize MariaDB with process management
+          mysqld_safe --datadir=/var/lib/mysql &
+
+          # Wait for MySQL to be ready with timeout
+          for i in {1..30}; do
+            if mysqladmin ping --silent; then
+              echo "MySQL is ready"
+              break
+            fi
+            echo "Waiting for MySQL... ($i/30)"
+            sleep 2
+          done
+
+          #  Set root password and switch to mysql_native_password
+          mysql -u root <<EOF
+          ALTER USER 'root'@'localhost' IDENTIFIED BY 'bar';
+          FLUSH PRIVILEGES;
+          EOF
+          mysql -u root -pbar -e "CREATE DATABASE IF NOT EXISTS misp CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+          mysql -u root -pbar -e "CREATE USER IF NOT EXISTS 'misp'@'%' IDENTIFIED BY 'blah';"
+          mysql -u root -pbar -e "GRANT ALL PRIVILEGES ON misp.* TO 'misp'@'%';"
+          mysql -u root -pbar -e "FLUSH PRIVILEGES;"
+          echo "MySQL setup completed."
+
+
+
+
+      - name: Setup Redis
+        run: |
+          # Configure Redis for CI environment
+          sed -i -e 's/^supervised .*/supervised no/' \
+                 -e 's/^daemonize .*/daemonize yes/' \
+                 -e 's/^save .*/# save disabled/' /etc/redis/redis.conf
+
+          redis-server /etc/redis/redis.conf
+
+          # Wait for Redis with timeout
+          for i in {1..10}; do
+            if redis-cli ping > /dev/null 2>&1; then
+              echo "Redis is ready"
+              break
+            fi
+            echo "Waiting for Redis... ($i/10)"
+            sleep 1
+          done
+
+          redis-cli ping || (echo "Redis unavailable!" && netstat -tulpn && exit 1)
+
+      - name: Setup PHP
+        uses: https://helga.circl.lu/MISP/setup-php@master
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysql, mbstring, xml, opcache, readline, redis, gd, apcu
+
+      - name: Install Composer and php dependencies
+        run: |
+          # Install Composer globally with verification
+          curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+          chmod +x /usr/local/bin/composer
+          composer --version
+
+          # Install PHP Apache module
+          apt-get update && apt-get install -y --no-install-recommends libapache2-mod-php${{ matrix.php }}
+          apt-get clean && rm -rf /var/lib/apt/lists/*
+          echo "Composer installed"
+
+      - name: Install custom dependencies
+        shell: bash
+        env:
+          COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.TOKEN }}"}}'
+        run: |
+          # Create composer cache directory
+          chown $USER:www-data $HOME/.composer
+          pushd app
+          composer config --no-plugins allow-plugins.composer/installers true
+          composer install --no-progress
+          popd
+          cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
+          echo "Custom dependencies installed"
+
+
+      - name: Configure project
+        shell: bash
+        run: |
+          # Set perms
+          chown -R $USER:www-data $WORKSPACE
+          chmod -R 775 $WORKSPACE
+          chmod -R g+ws $WORKSPACE /app/tmp
+          chmod -R g+ws $WORKSPACE /app/tmp/cache
+          chmod -R g+ws $WORKSPACE /app/tmp/cache/persistent
+          chmod -R g+ws $WORKSPACE /app/tmp/cache/models
+          chmod -R g+ws $WORKSPACE /app/tmp/logs
+          chmod -R g+ws $WORKSPACE /app/files
+          chmod -R g+ws $WORKSPACE /app/files/scripts/tmp
+          chown -R $USER:www-data $WORKSPACE
+
+          # Fill database with basic MISP schema
+          mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "SET GLOBAL sql_mode = 'STRICT_ALL_TABLES';"
+          mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant usage on *.* to misp@'%' identified by 'blah';"
+          mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "grant all privileges on misp.* to misp@'%';"
+          mysql -h 127.0.0.1 --port 3306 -u misp -pblah misp < INSTALL/MYSQL.sql
+
+          # Configure Apache virtual host
+          mkdir -p /etc/apache2/sites-available
+          sed -e "s?%GITHUB_WORKSPACE%?$WORKSPACE?g" \
+              -e "s?%HOST%?${HOST}?g" \
+              build/github-action-ci-apache > /etc/apache2/sites-available/misp.conf
+          a2dissite 000-default
+          a2ensite misp.conf
+          a2enmod rewrite
+          apache2ctl -DFOREGROUND &
+
+          # MISP configuration
+          cp app/Config/bootstrap.default.php app/Config/bootstrap.php
+          cp build/database.php app/Config/database.php
+          cp app/Config/core.default.php app/Config/core.php
+          cp app/Config/config.default.php app/Config/config.php
+          cp build/email.php app/Config/email.php
+
+          # Enable ShibbAuth plugin for tests
+          sudo chmod 666 app/Config/bootstrap.php
+          echo "CakePlugin::load('ShibbAuth');" >> app/Config/bootstrap.php
+
+          # GPG setup
+          mkdir $WORKSPACE/.gnupg
+          # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
+          cp -a /dev/urandom /dev/random
+          gpg --no-tty --no-permission-warning --pinentry-mode=loopback --passphrase "travistest" --homedir $WORKSPACE/.gnupg --gen-key --batch $WORKSPACE/build/gpg
+          gpg --list-secret-keys --homedir $WORKSPACE/.gnupg
+
+          # change perms
+          chown -R $USER:www-data $WORKSPACE
+          chown -R www-data:www-data $WORKSPACE/.gnupg
+          chmod -R 700 $WORKSPACE/.gnupg
+          usermod -a -G www-data $USER
+          chmod -R 777 $WORKSPACE/app/Plugin/CakeResque/tmp/
+
+          # Ensure the perms of config files
+          chown -R $USER:www-data $WORKSPACE/app/Config
+          chmod -R 777 $WORKSPACE/app/Config
+          app/Console/cake Admin setSetting "MISP.server_settings_skip_backup_rotate" 1
+          chown -R $USER:www-data $WORKSPACE/app/Config
+          chmod -R 777 $WORKSPACE/app/Config
+
+          # Verify workspace accessibility
+          namei -m "$WORKSPACE"
+          chmod +x "$WORKSPACE" /workspace/MISP /workspace
+          echo "Project configured"                    
+
+
+      - name: Python setup
+        run: |
+          python3 -m virtualenv -p python3 ./venv
+          app/Console/cake Admin setSetting "MISP.python_bin" "$WORKSPACE/venv/bin/python"
+
+          # Activate virtual environment and install dependencies
+          . ./venv/bin/activate
+          export PYTHONPATH=$PYTHONPATH:./app/files/scripts
+
+          # Install Python packages with optimizations
+          pip install --upgrade pip wheel
+          pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
+          deactivate
+          echo "Python setup completed"
+
+      - name: DB Update
+        run: |
+          app/Console/cake Admin setSetting "MISP.osuser" $USER
+          app/Console/cake Admin runUpdates
+          app/Console/cake Admin schemaDiagnostics
+          echo "Database updated"
+
+      # Consolidate MISP configuration for better performance
+      - name: Configure MISP
+        run: |
+          # Initialize user and capture auth token
+          app/Console/cake User init | tee ./key.txt
+          echo "AUTH=$(cat key.txt)" >> $GITHUB_ENV
+
+          # Set all MISP settings in one go for better performance
+          app/Console/cake Admin setSetting "Session.autoRegenerate" 0 \
+            && app/Console/cake Admin setSetting "Session.timeout" 600 \
+            && app/Console/cake Admin setSetting "Session.cookieTimeout" 3600 \
+            && app/Console/cake Admin setSetting "MISP.host_org_id" 1 \
+            && app/Console/cake Admin setSetting "MISP.email" "info@admin.test" \
+            && app/Console/cake Admin setSetting "MISP.disable_emailing" false \
+            && app/Console/cake Admin setSetting --force "debug" true \
+            && app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false \
+            && app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1" \
+            && app/Console/cake Admin setSetting "MISP.redis_port" 6379 \
+            && app/Console/cake Admin setSetting "MISP.redis_database" 13 \
+            && app/Console/cake Admin setSetting "MISP.redis_password" "" \
+            && app/Console/cake Admin setSetting "GnuPG.email" "info@admin.test" \
+            && app/Console/cake Admin setSetting "GnuPG.homedir" "$WORKSPACE/.gnupg" \
+            && app/Console/cake Admin setSetting "GnuPG.password" "travistest" \
+            && app/Console/cake Admin setSetting "MISP.download_gpg_from_homedir" 1
+
+          # ZeroMQ and Background Jobs settings
+          app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "127.0.0.1" \
+            && app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379 \
+            && app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1 \
+            && app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" "" \
+            && app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1 \
+            && app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1 \
+            && app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" 1 \
+            && app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_host" "127.0.0.1" \
+            && app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_port" 6379 \
+            && app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_password" "" \
+            && app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_database" 1 \
+            && app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_namespace" "background_jobs" \
+            && app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_host" "127.0.0.1" \
+            && app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_port" 9001 \
+            && app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_user" "supervisor" \
+            && app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_password" "supervisor" \
+            && app/Console/cake Admin setSetting "SimpleBackgroundJobs.max_job_history_ttl" 86400
+
+          echo "MISP configured"
+
+      - name: Check if Redis is ready
+        run: app/Console/cake Admin redisReady
+
+      # Optimize worker startup
+      - name: Start workers
+        run: |
+          pip install --no-cache-dir supervisor
+          cp build/supervisor/supervisord.conf /etc/supervisord.conf
+          mkdir -p /etc/supervisor/conf.d
+          cp build/supervisor/50-workers-forgejo.conf /etc/supervisor/conf.d/50-workers.conf
+
+          python3 -m supervisor.supervisord -c /etc/supervisord.conf
+          sleep 2  # Brief wait before starting services
+          python3 -m supervisor.supervisorctl -c /etc/supervisord.conf start all
+          python3 -m supervisor.supervisorctl -c /etc/supervisord.conf status
+
+      - name: Update JSON
+        run: app/Console/cake Admin updateJSON
+
+      - name: Turn MISP live
+        run: app/Console/cake Admin live 1
+
+      - name: Test if apache is working
+        run: |
+          apache2ctl -S
+          timeout 10 curl -sS http://${HOST} || echo "Apache may not be fully ready yet"                    
+
+      - name: Check if dependencies working as expected
+        shell: bash
+        run: |
+          chmod -R 777 PyMISP
+          pushd PyMISP
+
+          # Create test configuration
+          cat > tests/keys.py <<EOF
+          url = "http://${HOST}"
+          key = "${AUTH}"
+          EOF
+
+          popd
+
+          . ./venv/bin/activate
+          pushd tests
+          bash ./build-test.sh
+          popd
+          deactivate
+          echo "Dependencies checked"
+
+      - name: Run PHP tests
+        run: |
+          ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ -e php,ctp app/
+          sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
+          echo "PHP tests completed."
+
+      - name: Setup Viper
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          repository: MISP/viper-test-files
+          path: PyMISP/tests/viper-test-files
+
+      - name: Run tests
+        shell: bash
+        run: |
+          pushd tests
+          ./curl_tests_GH.sh $AUTH $HOST
+          popd
+
+          chmod -R g+ws $WORKSPACE/app/tmp/logs
+
+          . ./venv/bin/activate
+          pushd PyMISP
+          cp tests/keys.py .
+
+          # Run Python tests with better output
+          python3 -m pytest -v --durations=0 --tb=short tests/test_mispevent.py
+          python3 -m pytest -v --durations=0 --tb=short tests/testlive_comprehensive.py
+          popd
+
+          # Run additional tests
+          python3 tests/testlive_comprehensive_local.py -v
+          python3 tests/testlive_sync.py -v
+          python3 tests/testlive_security.py -v
+
+          # Create test events
+          cp PyMISP/tests/keys.py PyMISP/examples/events/
+          pushd PyMISP/examples/events/
+          python3 ./create_massive_dummy_events.py -l 5 -a 30
+          popd
+
+          # Validate feed
+          pip install --no-cache-dir jsonschema
+          python3 tools/misp-feed/validate.py
+          deactivate
+
+      - name: Check requirements.txt
+        run: python3 tests/check_requirements.py
+
+      # Optimize log collection
+      - name: System logs
+        if: ${{ always() }}
+        run: |
+          echo "=== Application logs ==="
+          find $WORKSPACE/app/tmp/logs -name "*.log" -exec echo "--- {} ---" \; -exec tail -n 50 {} \; 2>/dev/null || true
+          echo "=== Apache logs ==="
+          find /var/log/apache2 -name "*.log" -exec echo "--- {} ---" \; -exec tail -n 50 {} \; 2>/dev/null || true
+
+      - name: Application logs
+        if: ${{ always() }}
+        run: |
+          app/Console/cake Log export /tmp/logs.json.gz --without-changes
+          zcat /tmp/logs.json.gz 2>/dev/null || echo "No application logs found"
+
+      - name: Errors in Logs
+        if: ${{ always() }}
+        run: ./tests/logs_tests.sh
+
+      - name: error.log
+        if: ${{ always() }}
+        run: |
+          if [ -f "$WORKSPACE/app/tmp/logs/error.log" ]; then
+            cat $WORKSPACE/app/tmp/logs/error.log
+          else
+            echo "No error.log found"
+          fi

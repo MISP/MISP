@@ -64,7 +64,7 @@ class WorkflowShell extends AppShell {
 
         $successMessage = __('Workflow `%s` completed execution', $workflow_id);
         $errorMessageConcat = implode(', ', $blockingErrors);
-        $errorMessage = __('Error while executing workflow `%s`: %s. %s%s', $workflow_id, $logging['message'], PHP_EOL . __('Returned message: %s', $errorMessageConcat));
+        $errorMessage = __('Error while executing workflow `%s`: %s. %s', $workflow_id, $logging['message'], PHP_EOL . __('Returned message: %s', $errorMessageConcat));
         if (!is_null($jobId)) {
             $job = $this->Job->read(null, $jobId);
             $job['Job']['progress'] = 100;

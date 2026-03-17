@@ -49,7 +49,7 @@ var dotBlock_trigger = doT.template(' \
             </strong> \
             <span style="margin-left: auto; display: flex; align-items: center; gap: 3px;"> \
                 {{? it.module_data.blocking }} \
-                    <span class="label label-important" style="line-height: 20px;" title="This workflow is a blocking worklow and can prevent the default MISP behavior to execute"> \
+                    <span class="label label-important" style="line-height: 20px;" title="This workflow is a blocking workflow and can prevent the default MISP behavior to execute"> \
                         <i class="fa-lg fa-fw fas fa-stop-circle"></i> \
                         Blocking \
                     </span> \
@@ -338,7 +338,7 @@ function initDrawflow() {
             if (event.pageX < 340) { // dirty hack to avoid drops on the sidebar
                 return
             }
-            ui.position.top += 96 // take padding/marging/position into account
+            ui.position.top += 96 // take padding/margin/position into account
             if (ui.draggable.data('blueprint')) {
                 addWorkflowBlueprint(ui.draggable.data('blueprint').WorkflowBlueprint.id, ui.position)
             } else {
@@ -1092,16 +1092,16 @@ function mergeNodeAndModuleParams(node, moduleParams) {
             value: val
         }
     })
-    var procesedParams = {}
+    var processedParams = {}
     var finalParams = []
     var fakeNodeFullParams = Object.values(nodeParamsById)
     var nodeAndModuleParams = moduleParams.concat(fakeNodeFullParams)
     nodeAndModuleParams.forEach(function (param) {
         var finalParam
-        if (procesedParams[param.id]) { // param has already been processed
+        if (processedParams[param.id]) { // param has already been processed
             return;
         }
-        procesedParams[param.id] = true
+        processedParams[param.id] = true
         if (moduleParamsById[param.id] === undefined) { // Param do not exist in the module (anymore or never did)
             param.is_invalid = true
             finalParam = Object.assign({}, nodeParamsById[param.id])
@@ -1819,7 +1819,7 @@ function toggleCoreFormatPicker(btn) {
         .attr({
             id: 'selected-hashpath-input',
             type: 'text',
-            placeholder: 'Click on a elemet on the JSON to show the path',
+            placeholder: 'Click on an element on the JSON to show the path',
             onchange: 'setValueOnAssociatedInput(this.value, "' + associatedParamId + '")',
         })
         .css({ margin: '0 0.75em 0 0', 'flex-grow': 2 })
@@ -1899,7 +1899,7 @@ function genSelect(options, forNode = true) {
     var $label = $('<label>')
         .css({
             marginLeft: '0.25em',
-            marginBbottom: 0,
+            marginBottom: 0,
         })
         .append(
             $('<span>').text(options.label),
@@ -1995,7 +1995,7 @@ function genInput(options, isTextArea, forNode = true) {
     var $label = $('<label>')
         .css({
             marginLeft: '0.25em',
-            marginBbottom: 0,
+            marginBottom: 0,
         })
         .append(
             genJinjaIconIfSupported(options),
@@ -2090,7 +2090,7 @@ function genHashpathInput(options, forNode = true) {
     var $label = $('<label>')
         .css({
             marginLeft: '0.25em',
-            marginBbottom: 0,
+            marginBottom: 0,
         })
         .append(
             $('<span>').text(options.label),
@@ -2128,7 +2128,7 @@ function genCheckbox(options, forNode = true) {
     var $label = $('<label>')
         .css({
             marginLeft: '0.25em',
-            marginBbottom: 0,
+            marginBottom: 0,
         })
         .append(
             $('<span>').text(options.label),
@@ -2171,7 +2171,7 @@ function genRadio(options, forNode = true) {
     var $rootLabel = $('<label>')
         .css({
             marginLeft: '0.25em',
-            marginBbottom: 0,
+            marginBottom: 0,
         })
         .append(
             $('<span>').text(options.label),
@@ -2212,7 +2212,7 @@ function genRadio(options, forNode = true) {
             .addClass('radio')
             .css({
                 marginLeft: '0.25em',
-                marginBbottom: 0,
+                marginBottom: 0,
             })
         $label
             .append($input)
@@ -2580,7 +2580,7 @@ function generateCoreFormatUI(event, associatedParamId) {
     var color_collapse = '#727272'
     var defaultCollapseList = ['Org', 'Orgc']
 
-    function generate(item, depth, path, forceObjectCollaspe) {
+    function generate(item, depth, path, forceObjectCollapse) {
         if (Array.isArray(item)) {
             var $container = $('<span>').append(
                 depth == 1 ? '' : braceOpen(true),
@@ -2598,7 +2598,7 @@ function generateCoreFormatUI(event, associatedParamId) {
                 genObject(item, depth, path),
                 depth == 1 ? '' : braceClose(),
             )
-            if (forceObjectCollaspe === true) {
+            if (forceObjectCollapse === true) {
                 $container.children("div").toggleClass("hidden")
             }
         } else {
@@ -2626,18 +2626,18 @@ function generateCoreFormatUI(event, associatedParamId) {
         Object.keys(obj).forEach(function (k) {
             var nextPath = path + '.' + k
             var v = obj[k]
-            var forceCollaspe = defaultCollapseList.includes(k)
+            var forceCollapse = defaultCollapseList.includes(k)
             var $key = genKey(k, nextPath)
-            var $value = generate(v, depth+1, nextPath, forceCollaspe)
+            var $value = generate(v, depth+1, nextPath, forceCollapse)
             var $div = $('<div>')
-            var $collase = ''
+            var $collapse = ''
             if (isIterable(v)) {
-                $collase = collapseIcon()
-                if (depth > 1 && (Array.isArray(v) || forceCollaspe)) {
-                    $collase.addClass('fa-rotate-270')
+                $collapse = collapseIcon()
+                if (depth > 1 && (Array.isArray(v) || forceCollapse)) {
+                    $collapse.addClass('fa-rotate-270')
                 }
             }
-            $div.append($collase, $key, column(), $value)
+            $div.append($collapse, $key, column(), $value)
             $container.append($div)
         })
         setDepth($container, depth)
@@ -2694,7 +2694,7 @@ function generateCoreFormatUI(event, associatedParamId) {
 
     function collapseIcon() {
         return $('<i>')
-            .addClass(['fas fa-caret-down', 'collaspe-button'])
+            .addClass(['fas fa-caret-down', 'collapse-button'])
             .css({ 'color': color_collapse, 'margin-right': '0.25rem', 'font-size': '1.25em' })
             .attr('onclick', '$(this).toggleClass("fa-rotate-270").parent().children().last().children("div").toggleClass("hidden")')
     }

@@ -35,14 +35,25 @@ class Galaxy extends AppModel
         ],
     ];
 
-    public $validate = array(
-        'kill_chain_order' => array(
+    public $validate = [
+        'uuid' => [
+            'uuid' => [
+                'rule' => 'uuid',
+                'message' => 'Please provide a valid RFC 4122 UUID'
+            ],
+            'unique' => [
+                'rule' => 'isUnique',
+                'message' => 'The UUID provided is not unique',
+                'on' => 'create'
+            ],
+        ],
+        'kill_chain_order' => [
             'rule' => 'valueIsJson',
             'message' => 'The provided Kill Chain Order is not a valid json format',
             'required' => false,
             'allowEmpty' => true
-        ),
-    );
+        ],
+    ];
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -55,6 +66,9 @@ class Galaxy extends AppModel
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
+        if (empty($this->data['Galaxy']['uuid'])) {
+            $this->data['Galaxy']['uuid'] = CakeText::uuid();
+        }
         if (isset($this->data['Galaxy']['kill_chain_order'])) {
             if (is_array($this->data['Galaxy']['kill_chain_order'])) {
                 $json = json_encode($this->data['Galaxy']['kill_chain_order']);
@@ -66,7 +80,6 @@ class Galaxy extends AppModel
             } else {
                 unset($this->data['Galaxy']['kill_chain_order']);
             }
-            
         }
         return true;
     }
@@ -74,16 +87,13 @@ class Galaxy extends AppModel
     public function beforeSave($options = [])
     {
         parent::beforeSave($options);
-        if (empty($this->data['Galaxy']['created'])) {
+        if (empty($this->data['Galaxy']['created']) || $this->data['Galaxy']['created'] === '0000-00-00 00:00:00') {
             $this->data['Galaxy']['created'] = (new DateTime())->format('Y-m-d H:i:s');
             $this->data['Galaxy']['created'] = (new DateTime($this->data['Galaxy']['created'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
         }
-        if (empty($this->data['Galaxy']['modified'])) {
+        if (empty($this->data['Galaxy']['modified']) || $this->data['Galaxy']['modified'] === '0000-00-00 00:00:00') {
             $this->data['Galaxy']['modified'] = (new DateTime())->format('Y-m-d H:i:s');
             $this->data['Galaxy']['modified'] = (new DateTime($this->data['Galaxy']['modified'], new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
-        }
-        if (empty($this->data['Galaxy']['uuid'])) {
-            $this->data['Galaxy']['uuid'] = CakeText::uuid();
         }
         if (empty($this->data['Galaxy']['type'])) {
             $this->data['Galaxy']['type'] =  $this->data['Galaxy']['uuid'];
@@ -95,6 +105,9 @@ class Galaxy extends AppModel
 
         if (!isset($this->data['Galaxy']['default'])) {
             $this->data['Galaxy']['default'] = false;
+        }
+        if (!isset($this->data['Galaxy']['description'])) {
+            $this->data['Galaxy']['description'] = '';
         }
         return true;
     }
@@ -609,7 +622,7 @@ class Galaxy extends AppModel
             $params['order'] = $this->findOrder(
                 $options['order'],
                 'GalaxyCluster',
-                ['id', 'version', 'name', 'namesapce', 'distribution', 'orgc_id', 'org_id']
+                ['id', 'version', 'name', 'namespace', 'distribution', 'orgc_id', 'org_id']
             );
         }
         if (isset($options['page'])) {
@@ -717,7 +730,7 @@ class Galaxy extends AppModel
             $errors[] = __('UUID not provided');
         }
         if (empty($existingGalaxy)) {
-            $errors[] = __('Unkown UUID');
+            $errors[] = __('Unknown UUID');
         } else {
             if (!empty($existingGalaxy['Galaxy']['default'])) {
                 $errors[] = __('Cannot edit default Galaxy');
@@ -866,7 +879,7 @@ class Galaxy extends AppModel
             }
             $event = $event[0];
             $org_id = $event['Event']['org_id'];
-            $orgc_id = $event['Event']['org_id'];
+            $orgc_id = $event['Event']['orgc_id'];
         } elseif ($target_type === 'tag_collection') {
             $target = $this->Tag->TagCollectionTag->TagCollection->fetchTagCollection($user, array('conditions' => array('TagCollection.id' => $target_id)));
             if (empty($target)) {
@@ -1281,7 +1294,7 @@ class Galaxy extends AppModel
         $tree = array();
         $lookup = array();
         $lastNodeAdded = array();
-        // generate the lookup table used to immediatly get the correct cluster
+        // generate the lookup table used to immediately get the correct cluster
         foreach ($clusters as $i => $cluster) {
             $clusters[$i]['children'] = array();
             $lookup[$cluster['GalaxyCluster']['id']] = &$clusters[$i];
@@ -1347,7 +1360,7 @@ class Galaxy extends AppModel
      *  - version: Takes the higher version number of all clusters
      *  - uuid: Is actually the collection_uuid. Takes the last one
      *  - source (since all clusters have their own, takes the last one)
-     *  - category (not saved in MISP nor used)
+     *  - category (neither saved in MISP nor used)
      *  - description (not used as the description in the galaxy.json is used instead)
      */
     public function convertToMISPGalaxyFormat($galaxy, $clusters)

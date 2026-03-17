@@ -37,7 +37,7 @@ Notes
 
 Backup script
 ----------------------------------------
-If enabled, a backup script create each day a new archive with a MySQL misp database dump and misp files to allow easy restore.
+If enabled, each day, a backup script will create a new archive with a MySQL misp database dump and misp files to allow easy restore.
 - these archives are created in: /opt/misp-server/backup
 - a script to easy restore MISP from an archive is provided in the same directory
 - to use the restore script, login as misp user and run the following command:

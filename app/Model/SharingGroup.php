@@ -396,14 +396,7 @@ class SharingGroup extends AppModel
             return false;
         }
         if ($user['Role']['perm_sync']) {
-            $sg = $this->find('first', array(
-                'conditions' => array(
-                    'id' => $id,
-                    'sync_user_id' => $user['id'],
-                ),
-                'recursive' => -1,
-            ));
-            if (!empty($sg)) {
+            if ($this->checkIfAuthorised($user, $id)) {
                 return true;
             }
         }
@@ -472,7 +465,7 @@ class SharingGroup extends AppModel
     /**
      * Returns true if the SG exists and the user is allowed to see it, from the parent element
      * @param array $user
-     * @param array $element Parent element containg the SG data
+     * @param array $element Parent element containing the SG data
      * @return bool|str
      * @throws MethodNotAllowedException
      */
@@ -693,10 +686,10 @@ class SharingGroup extends AppModel
             $isUpdatableBySync = $user['Role']['perm_sync'] && empty($existingSG['SharingGroup']['local']);
             // TODO: reconsider this, org admins will be blocked from legitimate edits if they have sync permissions.
             // We need a mechanism to check whether we're in sync context.
-            $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['org_id'] == $user['org_id'];
+            $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['SharingGroup']['org_id'] == $user['org_id'];
             if ($isUpdatableBySync || $isSGOwner || $user['Role']['perm_site_admin']) {
                 $editedSG = $existingSG['SharingGroup'];
-                $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming', 'active', 'local'];
+                $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming', 'active'];
                 foreach ($attributes as $a) {
                     if (isset($sg[$a])) {
                         $editedSG[$a] = $sg[$a];

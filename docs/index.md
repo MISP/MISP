@@ -9,6 +9,7 @@ On the following pages you will find stock install instructions for getting a ba
 - [INSTALL.rhel7](https://misp.github.io/MISP/INSTALL.rhel7)
 - [INSTALL.kali](https://misp.github.io/MISP/INSTALL.kali)
 - [INSTALL.NetBSD](https://misp.github.io/MISP/xINSTALL.NetBSD)
+- [INSTALL.OpenBSD7.8](https://misp.github.io/MISP/INSTALL.OpenBSD78)
 - [INSTALL.OpenBSD](https://misp.github.io/MISP/xINSTALL.OpenBSD)
 - [INSTALL.centos7](https://misp.github.io/MISP/xINSTALL.centos7)
 - [INSTALL.debian10](https://misp.github.io/MISP/xINSTALL.debian10)

@@ -282,7 +282,7 @@ class Workflow extends AppModel
         $workflow = $this->fetchWorkflow($workflow_id);
         $workflow['Workflow']['debug_enabled'] = !empty($enable);
         $result = $this->editWorkflow($workflow);
-        return empty($result['errrors']);
+        return empty($result['errors']);
     }
 
     public function toggleModules($module_ids, $enable, $is_trigger=false): int
@@ -305,8 +305,8 @@ class Workflow extends AppModel
         $workflows = $this->fetchWorkflows();
         $keys = $redis->keys(Workflow::REDIS_KEY_WORKFLOW_NAMESPACE . ':*');
         $redis->delete($keys);
-        foreach ($workflows as $wokflow) {
-            $this->updateListeningTriggers($wokflow);
+        foreach ($workflows as $workflow) {
+            $this->updateListeningTriggers($workflow);
         }
     }
 
@@ -502,13 +502,22 @@ class Workflow extends AppModel
         $startNodeID = $startNode['id'];
         $trigger_id = $startNode['data']['id'];
         if ($startNode  == -1) {
-            $blockingErrors[] = __('Invalid start node `%s`', $startNodeID);
-            return false;
+            $message = __('Invalid start node `%s`', $startNodeID);
+            $blockingErrors[] = $message;
+            return [
+                'outcomeText' => 'failure' . sprintf(' %s', $message),
+                'walkResult' => [],
+                'success' => false,
+            ];
         }
 
         $triggerModule = $this->getModuleClassByType('trigger', $trigger_id, true);
         if (!empty($triggerModule->disabled)) {
-            return true;
+            return [
+                'outcomeText' => __('Module disabled'),
+                'walkResult' => [],
+                'success' => true,
+            ];
         }
         if (!empty($triggerModule->is_adhoc)) {
             return $this->__runAdHocWorkflow($workflow, $trigger_id, $triggerModule, $startNodeID, $blockingErrors, $data);
@@ -523,7 +532,7 @@ class Workflow extends AppModel
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
         $indexed_params = $graphData[$startNodeID]['data']['indexed_params'];
         $data = $triggerModule->collectData($userForWorkflow, $indexed_params, $passedData);
-        $lastResult = ['success' => false, 'message' => __('No data collected.')];
+        $lastResult = ['success' => false, 'outcomeText' => __('No data collected.'), 'walkResult' => []];
         foreach ($data as $dataPiece) {
             $lastResult = $this->executeWorkflowForTrigger($trigger_id, $dataPiece, $blockingErrors, true); // FIXME: reuse passed user
         }
@@ -696,9 +705,9 @@ class Workflow extends AppModel
     /**
      * walkGraph Walk the graph for the provided trigger and execute each nodes
      *
-     * @param array $workflow The worflow to walk
+     * @param array $workflow The workflow to walk
      * @param int $startNode The ID of the trigger to start from
-     * @param string|null $for_path If provided, execute the workflow for the provided path. If not provided, execute the worflow regardless of the path
+     * @param string|null $for_path If provided, execute the workflow for the provided path. If not provided, execute the workflow regardless of the path
      * @param array $data
      * @param array $errors
      * @return boolean If all module returned a successful response
@@ -829,9 +838,9 @@ class Workflow extends AppModel
             return false;
         }
         if (!empty($this->loaded_modules['logic'][$moduleClass->id])) { // IF module return false for the 2 output.
-            $sucessType = 'success';
+            $successType = 'success';
         } else {
-            $sucessType = $success ? 'success' : 'partial-success';
+            $successType = $success ? 'success' : 'partial-success';
         }
         $message = __('Executed node `%s`' .  PHP_EOL . 'Node `%s` (%s) from Workflow `%s` (%s) executed successfully with status: %s',
             $node['data']['id'],
@@ -839,13 +848,13 @@ class Workflow extends AppModel
             $node['id'],
             $roamingData->getWorkflow()['Workflow']['name'],
             $roamingData->getWorkflow()['Workflow']['id'],
-            $sucessType
+            $successType
         );
         $this->logExecutionIfDebug($roamingData->getWorkflow(), $message);
         $this->sendRequestToDebugEndpointIfDebug(
             $roamingData->getWorkflow(),
             $node,
-            sprintf('/exec/%s?result=%s', $moduleClass->id, $sucessType),
+            sprintf('/exec/%s?result=%s', $moduleClass->id, $successType),
             $roamingData->getData(),
             $execErrors
         );
@@ -1243,7 +1252,7 @@ class Workflow extends AppModel
             try {
                 $reflection = new \ReflectionClass($className);
             } catch (\ReflectionException $e) {
-                $message = __('Could not load module for path %s. Could not instanciate class', $filepath);
+                $message = __('Could not load module for path %s. Could not instantiate class', $filepath);
                 $this->logException($message, $e);
                 return $message;
             }
@@ -1471,7 +1480,7 @@ class Workflow extends AppModel
     }
 
     /**
-     * addWorkflow Add a worflow
+     * addWorkflow Add a workflow
      *
      * @param  array $trigger
      * @return array Any errors preventing the edition
@@ -1488,7 +1497,7 @@ class Workflow extends AppModel
     }
 
     /**
-     * editWorkflow Edit a worflow
+     * editWorkflow Edit a workflow
      *
      * @param  array $workflow
      * @return array Any errors preventing the edition
@@ -1652,7 +1661,7 @@ class Workflow extends AppModel
         return $workflow;
     }
     /**
-     * moduleSattelesExecution Executes a module using the provided configuration and returns back the result
+     * moduleStatelessExecution Executes a module using the provided configuration and returns back the result
      *
      * @param string $module_id
      * @param string|array $input_data

@@ -8,7 +8,7 @@
      *   - title: A label for a content element (optional)
      *   - paragraph: Text to be displayed (optional)
      *   - html: HTML to be displayed directly (optional)
-     *   - code: Code snipet to be displayed - copy pastable (optional)
+     *   - code: Code snippet to be displayed - copy pastable (optional)
      * - type: Controls the size of the modal (`xl` or `lg`)
      * - class: A class to be applied on the modal (For reference or customization)
      * - confirm: array to defined the submit button (optional)

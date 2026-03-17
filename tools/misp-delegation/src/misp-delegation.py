@@ -56,12 +56,12 @@ def main():
 
     # Check connectivity
     if test_connectivity(source_instance):
-        logger.debug(f'Connection to MISP source<{source_instance.base_url}> successfull')
+        logger.debug(f'Connection to MISP source<{source_instance.base_url}> successful')
     else:
         logger.error('Could not connect to source MISP instance')
         return 1
     if test_connectivity(destination_instance):
-        logger.debug(f'Connection to MISP remote<{destination_instance.base_url}> successfull')
+        logger.debug(f'Connection to MISP remote<{destination_instance.base_url}> successful')
     else:
         logger.error('Could not connect to remote MISP instance')
         return 1
@@ -107,7 +107,7 @@ def main():
         return 1
     logger.debug(f'Collected {len(events_on_remote)} events from remote')
 
-    # Peform event diff for source and remote
+    # Perform event diff for source and remote
     logger.debug('Finding events missing on the remote by diffing with the source...')
     events_to_push = get_outdated_or_non_existing_events(events_on_source, events_on_remote)
     if not events_to_push:

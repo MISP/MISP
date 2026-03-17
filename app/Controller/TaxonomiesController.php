@@ -10,7 +10,7 @@ class TaxonomiesController extends AppController
 
     public $paginate = array(
         'limit' => 60,
-        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+        'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
         'contain' => array(
             'TaxonomyPredicate' => array(
                 'fields' => array('TaxonomyPredicate.id', 'TaxonomyPredicate.value'),
@@ -24,36 +24,30 @@ class TaxonomiesController extends AppController
 
     public function index()
     {
-        $this->paginate['recursive'] = -1;
-
+        $conditions = [];
         if (!empty($this->passedArgs['value'])) {
-            $this->paginate['conditions']['id'] = $this->__search($this->passedArgs['value']);
+            $conditions['Taxonomy.id'] = $this->__search($this->passedArgs['value']);
         }
 
-        if (isset($this->passedArgs['enabled'])) {
-            $this->paginate['conditions']['enabled'] = $this->passedArgs['enabled'] ? 1 : 0;
-        }
-
-        if ($this->_isRest()) {
-            $keepFields = array('conditions', 'contain', 'recursive', 'sort');
-            $searchParams = array();
-            foreach ($keepFields as $field) {
-                if (!empty($this->paginate[$field])) {
-                    $searchParams[$field] = $this->paginate[$field];
-                }
+        $params = [
+            'filters' => ['enabled', 'namespace', 'description'],
+            'quickFilters' => ['namespace', 'description'],
+            'conditions' => $conditions,
+            'contain' => [
+                'TaxonomyPredicate' => [
+                    'fields' => ['TaxonomyPredicate.id', 'TaxonomyPredicate.value'],
+                    'TaxonomyEntry' => ['fields' => ['TaxonomyEntry.id', 'TaxonomyEntry.value']]
+                ]
+            ],
+            'afterFind' => function ($taxonomies) {
+                return $this->__tagCount($taxonomies);
             }
-            $taxonomies = $this->Taxonomy->find('all', $searchParams);
-        } else {
-            $taxonomies = $this->paginate();
+        ];
+        $this->CRUD->index($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
-
-        $taxonomies = $this->__tagCount($taxonomies);
-
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($taxonomies, $this->response->type());
-        }
-
-        $this->set('taxonomies', $taxonomies);
+        $this->set('taxonomies', $this->viewVars['data']);
         $this->set('passedArgsArray', $this->passedArgs);
     }
 
@@ -469,22 +463,9 @@ class TaxonomiesController extends AppController
 
     public function delete($id)
     {
-        if ($this->request->is('post')) {
-            $result = $this->Taxonomy->delete($id, true);
-            if ($result) {
-                $this->Flash->success(__('Taxonomy successfully deleted.'));
-                $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
-            } else {
-                $this->Flash->error(__('Taxonomy could not be deleted.'));
-                $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
-            }
-        } else {
-            if ($this->request->is('ajax')) {
-                $this->set('id', $id);
-                $this->render('ajax/taxonomy_delete_confirmation');
-            } else {
-                throw new MethodNotAllowedException(__('This function can only be reached via AJAX.'));
-            }
+        $this->CRUD->delete($id);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
         }
     }
 
