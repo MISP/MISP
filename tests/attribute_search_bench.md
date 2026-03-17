@@ -4,6 +4,14 @@ Benchmark suite for `POST /attributes/restSearch`.  Measures execution
 time and hit count for a catalogue of queries that exercise different
 filter paths and join strategies inside `MispAttribute::fetchAttributes()`.
 
+## Files
+
+| File | Purpose |
+|---|---|
+| `attribute_search_bench.py` | Benchmark runner — executes queries and prints timing/hit counts |
+| `attribute_search_bench_diff.py` | Comparison tool — takes two benchmark text outputs and highlights regressions/improvements |
+| `attribute_search_bench.md` | This guide |
+
 ## Usage
 
 ```bash
@@ -18,21 +26,69 @@ python3 tests/attribute_search_bench.py [BASE_URL]
 
 ### Comparing branches
 
-```bash
-git stash && git checkout main
-python3 tests/attribute_search_bench.py          # eyeball output
+Save the text output from each branch, then use the diff tool to
+compare them:
 
+```bash
+# 1. Run on the baseline branch
+git checkout main
+python3 tests/attribute_search_bench.py > /tmp/bench_before.txt
+
+# 2. Run on the feature branch
 git checkout feature-branch
-python3 tests/attribute_search_bench.py          # compare
+python3 tests/attribute_search_bench.py > /tmp/bench_after.txt
+
+# 3. Compare
+python3 tests/attribute_search_bench_diff.py /tmp/bench_before.txt /tmp/bench_after.txt
 ```
 
-Or for scripted diffs:
+The diff tool (`attribute_search_bench_diff.py`) parses the text
+output from two runs and reports:
+
+- **Hit count differences** — any query where the result count changed
+  (flags a possible correctness regression)
+- **FASTER** — queries whose median time improved by >= 50%
+- **SLOWER** — queries whose median time regressed by >= 50%
+- **Full comparison table** — all queries side-by-side with before/after
+  medians, percentage change, and hit counts
+
+Example output:
+
+```
+========================================================================
+ Benchmark Comparison
+  Before: /tmp/bench_before.txt  (48 queries)
+  After:  /tmp/bench_after.txt   (48 queries)
+========================================================================
+
+No hit count differences — results are consistent.
+
+FASTER (3 queries, >= 50% improvement):
+
+   Query                                      Before    After   Change
+   ---------------------------------------- -------- -------- --------
+   heavy_type_timestamp_tags                   4.210s   0.055s     -99%
+   tag_and_two                                 2.150s   0.793s     -63%
+   jo_eventtag_bigtype                         0.340s   0.083s     -76%
+
+No queries regressed by >= 50%.
+
+------------------------------------------------------------------------
+ Full comparison
+------------------------------------------------------------------------
+   ...
+```
+
+The diff tool also handles missing queries (present in one file but not
+the other) and reports a total median time comparison at the bottom.
+
+Alternatively, the benchmark can write machine-readable JSON for custom
+tooling:
 
 ```bash
 BENCH_OUTPUT=/tmp/before.json python3 tests/attribute_search_bench.py
 # switch branch …
 BENCH_OUTPUT=/tmp/after.json  python3 tests/attribute_search_bench.py
-# diff the two JSON files
 ```
 
 ## Correctness
@@ -262,19 +318,30 @@ For reference, the tables that each filter axis touches:
 
 ## What to look for when comparing runs
 
+Use `attribute_search_bench_diff.py` to automate the comparison (see
+"Comparing branches" above).  The diff tool flags these automatically,
+but here is what each signal means:
+
 1. **Hit count changes** — Same query, same data, different code path
    must return the same count.  A change means a behavioural
-   regression.
+   regression.  The diff tool marks these with `!!` in the full table
+   and lists them in a dedicated section at the top.
 
 2. **Median time shifts in the jo_ section** — These are the canary
    queries.  If `jo_eventtag_bigtype` gets 3x slower, the algorithm
    is probably scanning 780K sha256 rows before filtering by event
-   tag.
+   tag.  The diff tool surfaces any query with >= 50% change in the
+   FASTER/SLOWER sections.
 
 3. **Relative order within pairs** — For example, `jo_attrtag_deleted`
    should be faster than `jo_broadtag_deleted`.  If they converge, the
-   algorithm may be ignoring tag selectivity.
+   algorithm may be ignoring tag selectivity.  Check the full
+   comparison table in the diff output to spot these.
 
 4. **Outlier max times** — A high max with a low median suggests the
    query occasionally hits a cold cache or lock contention.  Multiple
    runs (`BENCH_RUNS=5`) help distinguish real regressions from noise.
+
+5. **Total median time** — The diff tool reports the aggregate at the
+   bottom.  A single slow query can dominate the total, so always
+   check the per-query breakdown if the total shifts.
