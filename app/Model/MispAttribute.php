@@ -3484,11 +3484,28 @@ class MispAttribute extends AppModel
             $loop = true;
         }
         unset($params['page']);
+        // Use cursor-based (ID sliding window) pagination
+        // when looping internally and no explicit sort order
+        // was requested.  Instead of OFFSET N (which must scan
+        // and discard N rows on every page), we filter on
+        // Attribute.id > last_seen_id.  This gives O(1) page
+        // cost regardless of depth.
+        // When the user requested a specific order, fall back
+        // to offset pagination to honour their sort.
+        $useCursor = $loop && empty($params['order']);
+        if ($useCursor) {
+            $params['order'] = 'Attribute.id ASC';
+            unset($params['offset']);
+        }
+        $lastId = 0;
         $totalCount = 0;
         do {
             if (($totalCount + $params['limit']) > $requestedLimit) {
                 $params['limit'] = $requestedLimit - $totalCount;
                 $loop = false;
+            }
+            if ($useCursor && $lastId > 0) {
+                $params['conditions']['Attribute.id >'] = $lastId;
             }
             $incrementTotalBy = $loop ? 0 : 1;
             $results = $this->fetchAttributes($user, $params, $elementCounter, false, $skippedElementsCounter);
@@ -3503,8 +3520,8 @@ class MispAttribute extends AppModel
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
             $results = $this->Allowedlist->removeAllowedlistedFromArray($results, true);
-            //$lastId = 0;
             foreach ($results as $attribute) {
+                $lastId = $attribute['Attribute']['id'];
                 $handlerResult = $exportTool->handler($attribute, $exportToolParams);
                 if ($handlerResult !== '') {
                     $tmpfile->writeWithSeparator($handlerResult, $separator);
@@ -3516,7 +3533,9 @@ class MispAttribute extends AppModel
                     break; // do not continue if we received fewer results than limit
                 }
             }
-            $params['offset'] = (empty($params['offset']) ? 0 : $params['offset']) + $params['limit'];
+            if (!$useCursor) {
+                $params['offset'] = (empty($params['offset']) ? 0 : $params['offset']) + $params['limit'];
+            }
         } while ($loop);
         return $totalCount + $incrementTotalBy;
     }
