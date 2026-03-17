@@ -300,7 +300,6 @@ class AppController extends Controller
                     }
                 }
                 $this->set('theme', $currentTheme);
-                $this->set('themesEnabled', $themesEnabled);
                 $this->set('themes', MispTheme::getAvailableThemes($currentTheme, (bool)Configure::read('debug')));
 
                 $userSetting = ClassRegistry::init('UserSetting');
@@ -324,6 +323,7 @@ class AppController extends Controller
             }
         }
         $this->set('themeLabels', $themeLabels);
+        $this->set('themesEnabled', $themesEnabled);
 
 
 
