@@ -1106,204 +1106,149 @@ class MispAttribute extends AppModel
         return $data;
     }
 
-    public function set_filter_tags(&$params, $conditions, $options)
-    {
-        // If no tag filters at all, bail early
-        if (empty($params['tags']) && empty($params['event_tags'])) {
+    public function set_filter_tags(
+        &$params, $conditions, $options
+    ) {
+        if (
+            empty($params['tags']) &&
+            empty($params['event_tags'])
+        ) {
             return $conditions;
         }
 
         /** @var Tag $Tag */
-        $Tag     = ClassRegistry::init('Tag');
-        $tag_key = !empty($params['tags']) ? 'tags' : 'event_tags';
+        $Tag = ClassRegistry::init('Tag');
+        $tag_key = !empty($params['tags'])
+            ? 'tags' : 'event_tags';
 
-        // Normalize and look up real tag IDs
-        $params[$tag_key] = $this->dissectArgs($params[$tag_key]);
+        $params[$tag_key] = $this->dissectArgs(
+            $params[$tag_key]
+        );
         $tagArray = [];
-        foreach ([0,1,2] as $op) {
-            $tagArray[$op] = $Tag->fetchTagIdsSimple($params[$tag_key][$op]);
-            // AND-group hack: if any of the requested ANDed tags didn't exist,
-            // force-match-none by setting to [-1]
-            if ($op === 2 && count($params[$tag_key][2]) !== count($tagArray[2])) {
+        foreach ([0, 1, 2] as $op) {
+            $tagArray[$op] = $Tag->fetchTagIdsSimple(
+                $params[$tag_key][$op]
+            );
+            if (
+                $op === 2 &&
+                count($params[$tag_key][2])
+                    !== count($tagArray[2])
+            ) {
                 $tagArray[2] = [-1];
             }
         }
 
-        $attributeHeavyQuery = function($params) {
-            $attributeDrivingFields = ['value', 'type', 'category'];
-            $toReturn = false;
-            foreach ($attributeDrivingFields as $field) {
-                if (isset($params[$field])) {
-                    return true;
-                }
-            }
-            return false;
-        };
-        
-
     //
-    // 1) Positive OR-tags: event/attribute must have *any* of these tags
+    // 1) Positive OR-tags: element must have *any* of
+    //    these tags (via attribute_tags or event_tags).
+    //
+    // Uses uncorrelated IN subqueries that MySQL can
+    // evaluate once and semi-join, leveraging the
+    // compound indexes (attribute_id, tag_id) and
+    // (event_id, tag_id).
     //
     if (!empty($tagArray[0])) {
-
-        // No-match sentinel
         if ($tagArray[0][0] === -1) {
             $conditions[] = ['Event.id' => -1];
         } else {
-
-            $posIds    = array_map('intval', $tagArray[0]);
+            $posIds = array_map('intval', $tagArray[0]);
             $inPosList = implode(',', $posIds);
 
-            //
-            // Attribute-heavy detection: use EXISTS for selective queries
-            //
-            $attributeHeavyQuery = function(array $params) {
-                $fields = [
-                    'value',
-                    'value1',
-                    'value2',
-                    'object_relation',
-                    'uuid',
-                    'timestamp',
-                    'attribute_timestamp',
-                    'first_seen',
-                    'last_seen'
-                ];
-                foreach ($fields as $field) {
-                    if (isset($params[$field]) && $params[$field] !== '' && $params[$field] !== false) {
-                        return true;
-                    }
-                }
-                return false;
-            };
-
-            $isAttributeHeavy = $attributeHeavyQuery($params);
-
-
-            //
-            // ──────────────────────────────────────────────
-            // MODE A: EXISTS (attribute-heavy, selective)
-            // ──────────────────────────────────────────────
-            //
-            if ($isAttributeHeavy) {
-                if ($options['scope'] === 'Event') {
-                    // Event scope: event has tag OR any attribute has tag
-                    $conditions['AND'][] =
-                    "(EXISTS (
-                        SELECT 1
-                        FROM event_tags et_pos
-                        WHERE et_pos.event_id = Event.id
-                        AND et_pos.tag_id   IN ({$inPosList})
+            if ($options['scope'] === 'Event') {
+                $conditions['AND'][] =
+                    "(Event.id IN (
+                        SELECT et.event_id
+                        FROM event_tags et
+                        WHERE et.tag_id IN ({$inPosList})
                     )
-                    OR EXISTS (
-                        SELECT 1
-                        FROM attributes a_pos
-                        JOIN attribute_tags at_pos ON at_pos.attribute_id = a_pos.id
-                        WHERE a_pos.event_id = Event.id
-                        AND at_pos.tag_id  IN ({$inPosList})
+                    OR Event.id IN (
+                        SELECT at.event_id
+                        FROM attribute_tags at
+                        WHERE at.tag_id IN ({$inPosList})
                     ))";
-                } else {
-                    // Attribute scope: attribute has tag OR event has tag
-                    $conditions['AND'][] =
-                    "(EXISTS (
-                        SELECT 1
-                        FROM attribute_tags at_pos
-                        WHERE at_pos.attribute_id = Attribute.id
-                        AND at_pos.tag_id      IN ({$inPosList})
-                    )
-                    OR EXISTS (
-                        SELECT 1
-                        FROM event_tags et_pos
-                        WHERE et_pos.event_id = Attribute.event_id
-                        AND et_pos.tag_id    IN ({$inPosList})
-                    ))";
-                }
-
-                //
-                // ──────────────────────────────────────────────
-                // MODE B: UNION (tag-only or non-selective)
-                // ──────────────────────────────────────────────
-                //
             } else {
-                if ($options['scope'] === 'Event') {
-                    // Event scope: by event_id
-                    $subquery = "
-                        SELECT id FROM (
-                            SELECT et.event_id AS id
-                            FROM event_tags et
-                            WHERE et.tag_id IN ({$inPosList})
-                            UNION ALL
-                            SELECT a.event_id AS id
-                            FROM attributes a
-                            JOIN attribute_tags at ON at.attribute_id = a.id
-                            WHERE at.tag_id IN ({$inPosList})
-                        ) AS t
-                    ";
-                    $conditions['AND'][] = "Event.id IN ({$subquery})";
-                } else {
-                    // Attribute scope: by attribute_id
-                    $subquery = "
-                        SELECT id FROM (
-                            SELECT at.attribute_id AS id
-                            FROM attribute_tags at
-                            WHERE at.tag_id IN ({$inPosList})
-                            UNION ALL
-                            SELECT a2.id
-                            FROM attributes a2
-                            JOIN event_tags et ON et.event_id = a2.event_id
-                            WHERE et.tag_id IN ({$inPosList})
-                        ) AS t
-                    ";
-                    $conditions['AND'][] = "Attribute.id IN ({$subquery})";
-                }
+                // Attribute scope: match if the attribute
+                // itself is tagged OR its parent event is.
+                $conditions['AND'][] =
+                    "(Attribute.id IN (
+                        SELECT at.attribute_id
+                        FROM attribute_tags at
+                        WHERE at.tag_id
+                            IN ({$inPosList})
+                    )
+                    OR Attribute.event_id IN (
+                        SELECT et.event_id
+                        FROM event_tags et
+                        WHERE et.tag_id
+                            IN ({$inPosList})
+                    ))";
             }
         }
     }
 
     //
-    // 2) Negative tags (exclude elements that have any tag in tagArray[1])
+    // 2) Negative tags: exclude elements that carry any
+    //    of these tags. Uses NOT EXISTS which can
+    //    short-circuit on first match and avoids the
+    //    NULL-safety issues of NOT IN.
     //
     if (!empty($tagArray[1])) {
-        if (!(count($tagArray[1]) === 1 && $tagArray[1][0] === -1)) {
-
-            $negIds    = array_map('intval', $tagArray[1]);
+        if (
+            !(count($tagArray[1]) === 1
+                && $tagArray[1][0] === -1)
+        ) {
+            $negIds = array_map('intval', $tagArray[1]);
             $inNegList = implode(',', $negIds);
 
             // Event-level negation
-            if ($options['scope'] === 'all' || $options['scope'] === 'Event') {
-                $evtField = ($options['scope'] === 'Event')
-                    ? 'Event.id'
-                    : 'Attribute.event_id';
+            if (
+                $options['scope'] === 'all' ||
+                $options['scope'] === 'Event'
+            ) {
+                $evtField = (
+                    $options['scope'] === 'Event'
+                ) ? 'Event.id' : 'Attribute.event_id';
 
                 $conditions['AND'][] =
-                    "{$evtField} NOT IN (
-                        SELECT event_id
-                        FROM event_tags
-                        WHERE tag_id IN ({$inNegList})
+                    "NOT EXISTS (
+                        SELECT 1
+                        FROM event_tags et_neg
+                        WHERE et_neg.event_id
+                            = {$evtField}
+                        AND et_neg.tag_id
+                            IN ({$inNegList})
                     )";
             }
 
             // Attribute-level negation
-            if (empty($options['skip_neg']) &&
-                ($options['scope'] === 'all' || $options['scope'] === 'Attribute')) {
-
-                $attrField = ($options['scope'] === 'Event')
-                    ? 'Event.id'
-                    : 'Attribute.id';
+            if (
+                empty($options['skip_neg']) &&
+                ($options['scope'] === 'all' ||
+                    $options['scope'] === 'Attribute')
+            ) {
+                $attrField = (
+                    $options['scope'] === 'Event'
+                ) ? 'Event.id' : 'Attribute.id';
 
                 $conditions['AND'][] =
-                    "{$attrField} NOT IN (
-                        SELECT attribute_id
-                        FROM attribute_tags
-                        WHERE tag_id IN ({$inNegList})
+                    "NOT EXISTS (
+                        SELECT 1
+                        FROM attribute_tags at_neg
+                        WHERE at_neg.attribute_id
+                            = {$attrField}
+                        AND at_neg.tag_id
+                            IN ({$inNegList})
                     )";
             }
         }
     }
 
     //
-    // 3) AND-group tags: must have *each* tag in tagArray[2]
-    // ----------------------------------------------------------------------
+    // 3) AND-group tags: must have *each* tag.
+    //    Each tag becomes a separate uncorrelated IN
+    //    subquery — one index seek per tag rather than
+    //    a UNION + derived table per tag.
+    //
     if (!empty($tagArray[2])) {
         if ($tagArray[2][0] === -1) {
             $conditions[] = ['Event.id' => -1];
@@ -1319,27 +1264,27 @@ class MispAttribute extends AppModel
                             WHERE et.tag_id = {$t}
                         )";
                 } else {
-                    $subquery = "
-                        SELECT id FROM (
-                            SELECT at.attribute_id AS id
+                    // Attribute has the tag directly
+                    // OR its parent event does.
+                    $conditions['AND'][] =
+                        "(Attribute.id IN (
+                            SELECT at.attribute_id
                             FROM attribute_tags at
                             WHERE at.tag_id = {$t}
-                            UNION ALL
-                            SELECT a2.id
-                            FROM attributes a2
-                            JOIN event_tags et ON et.event_id = a2.event_id
+                        )
+                        OR Attribute.event_id IN (
+                            SELECT et.event_id
+                            FROM event_tags et
                             WHERE et.tag_id = {$t}
-                        ) AS t
-                    ";
-                    $conditions['AND'][] = "Attribute.id IN ({$subquery})";
+                        ))";
                 }
             }
         }
     }
 
-
     //
-    // 4) Clean up the $params[$tag_key] array for UI/state
+    // 4) Clean up the $params[$tag_key] array for
+    //    UI/state
     //
     $params[$tag_key] = [];
     if (!empty($tagArray[0]) && empty($options['pop'])) {
@@ -1348,7 +1293,9 @@ class MispAttribute extends AppModel
     if (!empty($tagArray[1])) {
         $params[$tag_key]['NOT'] = $tagArray[1];
     }
-    if (!empty($tagArray[2]) && empty($options['pop'])) {
+    if (
+        !empty($tagArray[2]) && empty($options['pop'])
+    ) {
         $params[$tag_key]['AND'] = $tagArray[2];
     }
     if (empty($params[$tag_key])) {
@@ -1713,82 +1660,68 @@ class MispAttribute extends AppModel
 
     public function buildConditions($user)
     {
-        $cacheKey = ($user['Role']['perm_site_admin'] ? '1' : '0') . '-' . $user['org_id'];
+        $cacheKey = ($user['Role']['perm_site_admin']
+            ? '1' : '0') . '-' . $user['org_id'];
         if (isset($this->aclConditionsCache[$cacheKey])) {
             return $this->aclConditionsCache[$cacheKey];
         }
 
-        $conditions = array();
+        $conditions = [];
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->SharingGroup->authorizedIds($user);
-            if (Configure::read('MISP.fetchAttributeLegacyStrategy')) {
-                $org_ownership_condition = ['Event.org_id' => $user['org_id']];
-                $event_lax_distribution_condition = [
-                    'Event.distribution IN' => [1,2,3]
-                ];
-                $event_sharing_group_condition = [
-                    'Event.distribution' => 4,
-                    'Event.sharing_group_id' => $sgids
-                ];
-                if (Configure::read('MISP.unpublishedprivate')) {
-                    $event_lax_distribution_condition['Event.published'] = 1;
-                    $event_sharing_group_condition['Event.published'] = 1;
-                }
-            } else {
-                $subQuery1 = [
-                    'conditions' => ['org_id' => $user['org_id']],
-                    'fields' => ['id']
-                ];
-                $subQuery2 = [
-                    'conditions' => [
-                        'distribution IN' => [1, 2, 3]
-                    ],
-                    'fields' => ['id']
-                ];
-                $subQuery3 = [
-                    'conditions' => [
-                        'Event.distribution' => 4,
-                        'Event.sharing_group_id IN' => $sgids
-                    ],
-                    'fields' => ['id']
-                ];
-                if (Configure::read('MISP.unpublishedprivate')) {
-                    $subQuery2['conditions']['Event.published'] = 1;
-                    $subQuery3['conditions']['Event.published'] = 1;
-                }
-                $org_ownership_condition = $this->subQueryGenerator($this->Event, $subQuery1, 'Attribute.event_id');
-                $event_lax_distribution_condition = $this->subQueryGenerator($this->Event, $subQuery2, 'Attribute.event_id');
-                $event_sharing_group_condition = $this->subQueryGenerator($this->Event, $subQuery3, 'Attribute.event_id');
+            $sgids = $this->SharingGroup
+                ->authorizedIds($user);
+
+            // Use direct conditions on the already-joined
+            // Event table rather than subqueries. The
+            // events table is always joined in
+            // fetchAttributes(), so referencing Event.*
+            // directly avoids redundant subquery overhead.
+            $eventLaxCondition = [
+                'Event.distribution IN' => [1, 2, 3],
+            ];
+            $eventSgCondition = [
+                'Event.distribution' => 4,
+                'Event.sharing_group_id' => $sgids,
+            ];
+            if (Configure::read('MISP.unpublishedprivate')) {
+                $eventLaxCondition['Event.published'] = 1;
+                $eventSgCondition['Event.published'] = 1;
             }
             $conditions = [
                 'OR' => [
-                    $org_ownership_condition,
+                    ['Event.org_id' => $user['org_id']],
                     'AND' => [
                         'OR' => [
-                            $event_lax_distribution_condition,
-                            $event_sharing_group_condition
+                            $eventLaxCondition,
+                            $eventSgCondition,
                         ],
                         [
                             'OR' => [
-                                'Attribute.distribution' => [1, 2, 3, 5],
+                                'Attribute.distribution'
+                                    => [1, 2, 3, 5],
                                 'AND' => [
-                                    'Attribute.distribution' => 4,
-                                    'Attribute.sharing_group_id' => $sgids,
-                                ]
-                            ]
+                                    'Attribute.distribution'
+                                        => 4,
+                                    'Attribute.sharing_group_id'
+                                        => $sgids,
+                                ],
+                            ],
                         ],
                         [
                             'OR' => [
                                 'Attribute.object_id' => 0,
-                                'Object.distribution' => [1, 2, 3, 5],
+                                'Object.distribution'
+                                    => [1, 2, 3, 5],
                                 'AND' => [
-                                    'Object.distribution' => 4,
-                                    'Object.sharing_group_id' => $sgids,
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
+                                    'Object.distribution'
+                                        => 4,
+                                    'Object.sharing_group_id'
+                                        => $sgids,
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
             ];
         }
 
