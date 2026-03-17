@@ -303,6 +303,13 @@ event_tags filter is being applied before or after the LIKE scan.
 
 **Compare 47 vs 48:** Same filter types, opposite selectivity.
 
+## Attribute Search Pipeline
+
+See [app/docs/dev/attribute_search_pipeline.md](../../app/docs/dev/attribute_search_pipeline.md)
+for the full pipeline diagram tracing a request from HTTP entry through
+query building, ACL enforcement, SQL execution, and post-query
+enrichment to the final response.
+
 ## Tables involved per query
 
 For reference, the tables that each filter axis touches:
