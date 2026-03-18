@@ -1,5 +1,8 @@
 <?php
 $id = Hash::get($row, $field['data_path']);
+if(empty($id)){
+    $id=$row['id'];
+}
 $actions = $field['actions'] ?? [];
 $seed = mt_rand();
 $tempboxId = 'TempBox-' . $seed;
@@ -7,18 +10,26 @@ $tempboxId = 'TempBox-' . $seed;
 
 $checkboxAttrs = [
     'type' => 'checkbox',
-    'class' => 'event-checkbox form-check-input mass-select mt-0'
+    'class' => 'item-checkbox form-check-input mass-select mt-0'
 ];
 
 if ($field['data_path'] === 'Event.id') {
     $mayModify = $this->Acl->canModifyEvent($row);
     $canPublish = $this->Acl->canPublishEvent($row);
-    $checkboxAttrs['data-event-id'] = $id;
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'Attribute.id') {
+    if (!isset($mayModify)){
+        $mayModify = $this->Acl->canModifyEvent($row);
+    }
+    $checkboxAttrs['data-item-id'] = $id;
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 ?>
 
-<div class="d-inline-flex align-items-center checkbox-actions-wrapper">
+<div class="d-inline-flex align-items-center checkbox-actions-wrapper checkbox-index">
 
     <!-- Checkbox -->
     <?= $this->Form->checkbox('selected_items[]', $checkboxAttrs); ?>
@@ -102,7 +113,7 @@ if ($field['data_path'] === 'Event.id') {
 
                         <a class="<?= trim($classes) ?>"
                         href="<?= h($url) ?>"
-                        onclick="event.preventDefault(); openDeleteModal('<?= h($url) ?>');">
+                        onclick="event.preventDefault(); openModal('<?= h($url) ?>');">
                             <div>
                                 <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
                                 <?= h($action['label']) ?>

@@ -14,7 +14,7 @@ $value = !empty($timestamp)
 
 ?>
 
-<div class="d-flex flex-column gap-1">
+<div class="d-flex align-items-center gap-1">
 
     <div class="text-muted small">
         <?= $label ?>

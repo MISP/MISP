@@ -53,7 +53,7 @@
             $url = $data;
         }
         $links[] = sprintf(
-            '<div class="card card-link-item" style="background-color: #f8f9fa;"><div class="card-body p-2"><i class="fa fa-link"></i> <a href="%s" title="%s">%s</a></div></div>',
+            '<div class="card card-link-item" style="background-color: #f8f9fa;"><div class="card-body p-1"><i class="fa fa-link"></i> <a href="%s" title="%s">%s</a></div></div>',
             h($url),
             empty($field['title']) ? h($data) : h($field['title']),
             empty($field['title']) ? h($data) : h($field['title'])

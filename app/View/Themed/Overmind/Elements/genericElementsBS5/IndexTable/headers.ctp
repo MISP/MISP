@@ -1,6 +1,6 @@
 <?php
     $selectAllCheckbox = false;
-    echo '<thead>';
+    echo '<thead class="checkbox-index">';
     foreach ($fields as $k => $header) {
         if (!isset($header['requirement']) || $header['requirement']) {
             $header_data = '';

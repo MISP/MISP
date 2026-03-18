@@ -1,4 +1,11 @@
 <?php
+// Temporary fix to avoid errors as these variables are defined in AttributesController
+$categoryOptions = isset($categoryOptions) ? $categoryOptions : null;
+$typeOptions = isset($typeOptions) ? $typeOptions : null;
+$orgOptions = isset($orgOptions) ? $orgOptions : null;
+$tagOptions = isset($tagOptions) ? $tagOptions : null;
+$galaxyOptions = isset($galaxyOptions) ? $galaxyOptions : null;
+
 /**
  * ==============================================================
  * Definition of fields displayed in the scaffold
@@ -29,146 +36,160 @@
  * - state_path     : Path to the boolean value (toggle)
  */
 
+
+$model = (isset($attributes[0]) && isset($attributes[0]['Attribute'])) ? 'Attribute' : null;
+
+$path = function($field) use ($model) {
+    if (empty($model)) {
+        return $field;
+    }
+    if (empty($field)) {
+        return $model;
+    }
+    return $model . '.' . $field;
+};
+
 $fields = [
     [
         'element' => 'selector',
-        'data_path' => 'Event.id',
+        'data_path' => 'Attribute.id',
         'card_section' => 'selector',
         'actions' => [
             [
                 'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/events/view2/%id%'
-            ],
-            [
-                'type' => 'link',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
-                'url' => $baseurl . '/events/edit/%id%',
+                'url' => $baseurl . '/attributes/edit/%id%',
+                'requirement' => 'check_edit_rights'
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Soft Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/attributes/delete/%id%',
+                'class' => 'text-warning',
                 'requirement' => 'check_edit_rights'
             ],
             [
                 'type' => 'ajax',
                 'label' => __('Delete'),
                 'icon' => 'trash',
-                'url' => $baseurl . '/events/delete/%id%',
+                'url' => $baseurl . '/attributes/delete/%id%/true',
                 'class' => 'text-danger',
                 'requirement' => 'check_edit_rights'
-            ],
-            [
-                'type' => 'divider',
-                'url' => '#',
-                'requirement' => 'check_publish_rights'
-            ],
-            [
-                'type' => 'toggle',
-                'label_on' => __('Unpublish'),
-                'label_off' => __('Publish'),
-                'icon_on' => 'download',
-                'icon_off' => 'upload',
-                'url' => $baseurl . '/events/%action%/%id%',
-                'state_path' => 'Event.published',
-                'requirement' => 'check_publish_rights'
             ]
         ]
-    ],
-    [
-        'name' => __('ID'),
-        'sort' => 'Event.id',
+    ]
+];
+
+if (!empty($show_event_id)) {
+    $fields[] = [
+        'name' => __('Event ID'),
+        'sort' => $path('event_id'),
         'data_path' => 'Event.id',
         'element' => 'id',
-        'url' => $baseurl . '/events/view2/%id%',
+        'url' => $baseurl . '/events/view/%id%',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
-    ],
+    ];
+}
+
+$fields = array_merge($fields, [
     [
         'name' => __('Distribution'),
-        'data_path' => 'Event.distribution',
+        'data_path' => $path('distribution'),
         'element' => 'distribution',
         'card_section' => 'top',
         'display_in' => ['card']
     ],
     [
-        'name' => __('Info'),
-        'data_path' => 'Event',
-        'element' => 'info',
+        'name' => __('Value'),
+        'data_path' => $path(''),
+        'element' => 'value',
         'card_section' => 'title',
         'display_in' => ['table', 'card']
     ],
     [
-        'name' => __('Published'),
-        'sort' => 'Event.published',
-        'data_path' => 'Event.published',
-        'element' => 'published',
-        'card_section' => 'top',
+        'name' => __('Category'),
+        'sort' => $path('category'),
+        'data_path' => $path('category'),
+        'element' => 'category',
+        'card_section' => 'attribute',
         'display_in' => ['table', 'card']
     ],
     [
+        'name' => __('Type'),
+        'sort' => $path('type'),
+        'data_path' => $path('type'),
+        'element' => 'type',
+        'card_section' => 'attribute',
+        'display_in' => ['table', 'card']
+    ],
+]);
+
+if (!empty($show_event_id)) {
+    $fields = array_merge($fields, [
+    [
         'name' => __('Creator Org'),
-        'sort' => 'Orgc.name',
-        'data_path' => 'Orgc',
+        'sort' => 'Event.Orgc.name',
+        'data_path' => 'Event.Orgc',
         'element' => 'organisation',
         'card_section' => 'meta',
         'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Owner Org'),
-        'sort' => 'Org.name',
-        'data_path' => 'Org',
+        'sort' => 'Event.Org.name',
+        'data_path' => 'Event.Org',
         'element' => 'organisation',
         'card_section' => 'meta',
         'display_in' => ['card']
-    ],
+    ]
+    ]);
+}
+
+$fields = array_merge($fields, [
     [
         'name' => __('Tags'),
-        'data_path' => 'EventTag',
+        'data_path' => $path('AttributeTag'),
         'element' => 'tag',
         'card_section' => 'tag',
         'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Galaxy'),
-        'data_path' => 'GalaxyCluster',
+        'data_path' => $path('Galaxy'),
         'element' => 'galaxy',
         'card_section' => 'galaxy',
         'display_in' => ['table', 'card']
     ],
+
     [
-        'name' => __('Contents'),
-        'data_path' => 'Event',
-        'element' => 'event_contents',
+        'name' => __('Sightings'),
+        'data_path' => $path(''),
+        'element' => 'sightings',
         'card_section' => 'extra',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Created'),
-        'data_path' => 'Event.date',
-        'element' => 'timestamp',
-        'mode' => 'created',
-        'card_section' => 'meta',
         'display_in' => ['card']
     ],
+    // [
+    //     'name' => __('Created'),
+    //     'data_path' => $path('date'),
+    //     'element' => 'timestamp',
+    //     'mode' => 'created',
+    //     'card_section' => 'meta',
+    //     'display_in' => ['card']
+    // ],
     [
         'name' => __('Last Modified'),
-        'data_path' => 'Event.timestamp',
+        'data_path' => $path('timestamp'),
         'element' => 'timestamp',
         'mode' => 'modified',
-        'card_section' => 'meta',
+        'card_section' => 'top',
         'display_in' => ['card']
     ]
-];
+]);
 
 
-if ($this->Acl->canAccess('events', 'add')) {
-    $this->set('headerActions', [
-        [
-            'url' => $baseurl . '/events/add',
-            'label' => __('Add Event'),
-            'icon' => 'plus'
-        ]
-    ]);
-}
 
 /**
  * ==============================================================
@@ -180,34 +201,34 @@ if ($this->Acl->canAccess('events', 'add')) {
  * - scaffold_data.data.data       : Main dataset
  * - scaffold_data.data.filter_bar    : Filter bar configuration
  * - scaffold_data.data.fields     : Column definitions
- * - index_url                     : Base URL for pagination / filters
+ * - item_url                     : Base URL for pagination / filters
  */
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
-            'data' => $events,
+            'data' => $attributes,
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [
                     [
                         'type' => 'search',
                         'button' => 'Search',
-                        'placeholder' => 'Search by info, ID or UUID'
+                        "placeholder" => "Filters aren't implemented for the moment"
                     ],
                     [
                         'type' => 'button',
-                        'label' => __('My events'),
+                        'label' => __('My attributes'),
                         'icon' => 'user',
                         'class' => 'btn btn-primary',
-                        'url' => $baseurl . '/events/index/searchemail:' . urlencode($me['email'])
+                        'url' => $baseurl . '/attributes/index/searchemail:' . urlencode($me['email'])
                     ],
                     [
                         'type' => 'button',
-                        'label' => __('Org events'),
+                        'label' => __('Org attributes'),
                         'icon' => 'building',
                         'class' => 'btn btn-primary',
-                        'url' => $baseurl . '/events/index/searchorg:' . urlencode($me['org_id'])
+                        'url' => $baseurl . '/attributes/index/searchorg:' . urlencode($me['org_id'])
                     ],
                     [
                         'type' => 'more_filters',
@@ -215,25 +236,15 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'children' => [
                             [
                                 'type' => 'dropdown',
-                                'label' => __('Distribution'),
-                                'name' => 'distribution',
-                                'options' => [
-                                    '' => '',
-                                    '0' => 'Your organisation only',
-                                    '1' => 'Community',
-                                    '2' => 'Connected communities',
-                                    '3' => 'All communities'
-                                ]
+                                'label' => __('Category'),
+                                'name' => 'category',
+                                'options' => $categoryOptions
                             ],
                             [
                                 'type' => 'dropdown',
-                                'label' => __('Published'),
-                                'name' => 'published',
-                                'options' => [
-                                    '' => '',
-                                    '1' => 'Published',
-                                    '0' => 'Not published'
-                                ]
+                                'label' => __('Type'),
+                                'name' => 'type',
+                                'options' => $typeOptions
                             ],
                             [
                                 'type' => 'dropdown',
@@ -256,13 +267,13 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         ]
                     ]
                 ],
-                'export' => 1,
-                'delete' => 1
+                'delete' => 1,
+                'mass_edit' => 1,
             ],
             'fields' => $fields,
         ]
     ],
-    'item_url' => '/events'
+    'item_url' => '/attributes'
 ]);
 
 ?>

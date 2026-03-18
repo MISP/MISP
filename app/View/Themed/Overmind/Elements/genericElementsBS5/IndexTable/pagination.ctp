@@ -1,6 +1,9 @@
 <?php
 $Paginator = $this->Paginator;
 $params = $Paginator->params();
+$page = $params['page'] ?? 1;
+$pageCount = $params['pageCount'] ?? null;
+
 ?>
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -15,7 +18,7 @@ $params = $Paginator->params();
         </p>
     </div>
 
-    <?php if ($params['pageCount'] > 1): ?>
+    <?php if ($pageCount): ?>
     <nav aria-label="Pagination">
         <ul class="pagination mb-0">
 
@@ -38,18 +41,19 @@ $params = $Paginator->params();
             <?php endif; ?>
 
             <!-- PAGE NUMBERS -->
-            <?php
-            for ($i = 1; $i <= $params['pageCount']; $i++):
-                $active = ($i == $params['page']);
-            ?>
-                <li class="page-item <?= $active ? 'active' : '' ?>">
-                    <?php if ($active): ?>
-                        <span class="page-link"><?= $i ?></span>
-                    <?php else: ?>
-                        <?= $Paginator->link($i, ['page' => $i], ['class' => 'page-link']) ?>
-                    <?php endif; ?>
-                </li>
-            <?php endfor; ?>
+            <?php if ($pageCount>1): ?>
+                <?php for ($i = 1; $i <= $pageCount; $i++):
+                    $active = ($i == $params['page']);
+                ?>
+                    <li class="page-item <?= $active ? 'active' : '' ?>">
+                        <?php if ($active): ?>
+                            <span class="page-link"><?= $i ?></span>
+                        <?php else: ?>
+                            <?= $Paginator->link($i, ['page' => $i], ['class' => 'page-link']) ?>
+                        <?php endif; ?>
+                    </li>
+                <?php endfor; ?>
+            <?php endif; ?>
 
             <!-- NEXT -->
             <?php if ($Paginator->hasNext()): ?>

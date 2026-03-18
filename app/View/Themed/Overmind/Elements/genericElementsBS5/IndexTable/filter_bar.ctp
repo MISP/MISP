@@ -155,7 +155,7 @@ $hasActiveFilters = !empty($currentFilters);
                     </span>
                 <?php endforeach; ?>
 
-                <a href="<?= h($index_url) ?>"
+                <a href="<?= h($item_url . '/index')?>"
                    class="btn btn-sm btn-outline-danger ms-auto">
                     <i class="fas fa-times"></i>
                     <?= __('Clear all') ?>
@@ -173,23 +173,36 @@ $hasActiveFilters = !empty($currentFilters);
         <div class="p-2 border rounded bg-light d-flex align-items-center gap-2">
 
             <strong>
-                <?= __('Selected events') ?>:
+                <?= __('Selected items') ?>:
                 <span id="selectedCount">0</span>
             </strong>
 
-            <button id="multi-export-button"
-                    class="btn btn-primary btn-sm ms-3"
-                    onclick="multiSelectEvents('<?php echo $baseurl; ?>/events/restSearchExport');">
-                <i class="fas fa-file-export"></i>
-                <?= __('Export') ?>
-            </button>
+            <?php if (!empty($filter_bar['export'])): ?>
+                <button id="multi-export-button"
+                        class="btn btn-primary btn-sm ms-3"
+                        onclick="multiSelectItems('<?php echo h($baseurl . $item_url . '/restSearchExport');?>')">
+                    <i class="fas fa-file-export"></i>
+                    <?= __('Export') ?>
+                </button>
+            <?php endif; ?>
 
-            <button id="multi-delete-button"
-                    class="btn btn-danger btn-sm d-none"
-                    onclick="multiSelectEvents('<?php echo $baseurl; ?>/events/delete');">
-                <i class="fas fa-trash"></i>
-                <?= __('Delete') ?>
-            </button>
+            <?php if (!empty($filter_bar['delete'])): ?>
+                <button id="multi-delete-button"
+                        class="btn btn-danger btn-sm d-none"
+                        onclick="multiSelectItems('<?php echo h($baseurl . $item_url . '/delete');?>')">
+                    <i class="fas fa-trash"></i>
+                    <?= __('Delete') ?>
+                </button>
+            <?php endif; ?>
+
+            <?php if (!empty($filter_bar['mass_edit'])): ?>
+                <button id="mass-edit-button"
+                        class="btn btn-secondary btn-sm d-none"
+                        onclick="multiSelectItems('#')">
+                    <i class="fas fa-edit"></i>
+                    <?= __('Edit') ?>
+                </button>
+            <?php endif; ?>
 
         </div>
     </div>
@@ -198,10 +211,10 @@ $hasActiveFilters = !empty($currentFilters);
 
 
 <script>
-var baseIndexUrl = "<?= h($index_url) ?>";
-let selectedEvents = new Map();
+var baseIndexUrl = "<?php echo h($baseurl . $item_url . '/index'); ?>";
+var selectedItems = new Map();
 
-document.addEventListener("DOMContentLoaded", function () {
+(function init() {
 
     /*******************************
      * View Mode Toggle (Table / Card)
@@ -212,25 +225,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function setView(view, save = true) {
         const tableView = document.getElementById('tableView');
-        const cardView = document.getElementById('cardView');
-        const viewList = document.getElementById('viewList');
-        const viewCard = document.getElementById('viewCard');
+        const cardView  = document.getElementById('cardView');
+        const viewList  = document.getElementById('viewList');
+        const viewCard  = document.getElementById('viewCard');
 
         if (view === 'card') {
-            tableView.classList.add('d-none');
-            cardView.classList.remove('d-none');
-            viewList.classList.remove('active');
-            viewCard.classList.add('active');
+            tableView?.classList.add('d-none');
+            cardView?.classList.remove('d-none');
+            viewList?.classList.remove('active');
+            viewCard?.classList.add('active');
         } else {
-            cardView.classList.add('d-none');
-            tableView.classList.remove('d-none');
-            viewCard.classList.remove('active');
-            viewList.classList.add('active');
+            cardView?.classList.add('d-none');
+            tableView?.classList.remove('d-none');
+            viewCard?.classList.remove('active');
+            viewList?.classList.add('active');
         }
 
-        if (save) {
-            localStorage.setItem('indexViewMode', view);
-        }
+        if (save) localStorage.setItem('indexViewMode', view);
     }
 
     document.getElementById('viewList')?.addEventListener('click', () => setView('table'));
@@ -274,17 +285,11 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         document.querySelectorAll('.topbar-filter').forEach(el => {
-            const name = el.getAttribute('name');
+            const name  = el.getAttribute('name');
             const value = el.value;
-
             if (!name) return;
-
-            if (value !== '') {
-                filters[name] = value;
-            } else {
-                delete filters[name];
-            }
-
+            if (value !== '') filters[name] = value;
+            else delete filters[name];
         });
 
         let newUrl = base;
@@ -300,9 +305,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     document.getElementById('quickFilterField')?.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            window.location.href = buildFilterUrl();
-        }
+        if (e.key === 'Enter') window.location.href = buildFilterUrl();
     });
 
     document.querySelectorAll('.topbar-filter').forEach(el => {
@@ -316,11 +319,11 @@ document.addEventListener("DOMContentLoaded", function () {
      * Multi-Select Toolbar
      *******************************/
     function updateMultiSelectToolbar() {
-        const toolbar = document.getElementById('multiSelectToolbar');
-        const selectedCount = document.getElementById('selectedCount');
-        const deleteButton = document.getElementById('multi-delete-button');
-
-        const count = selectedEvents.size;
+        const toolbar        = document.getElementById('multiSelectToolbar');
+        const selectedCount  = document.getElementById('selectedCount');
+        const deleteButton   = document.getElementById('multi-delete-button');
+        const editButton   = document.getElementById('mass-edit-button');
+        const count          = selectedItems.size;
 
         if (count === 0) {
             toolbar?.classList.add('d-none');
@@ -328,45 +331,37 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         toolbar?.classList.remove('d-none');
-
-        if (selectedCount) {
-            selectedCount.textContent = count;
-        }
+        if (selectedCount) selectedCount.textContent = count;
 
         let canDeleteAll = true;
-        selectedEvents.forEach(event => {
-            if (!event.canDelete) {
-                canDeleteAll = false;
-            }
+        selectedItems.forEach(item => {
+            if (!item.canDelete) canDeleteAll = false;
         });
 
-        if (canDeleteAll) {
-            deleteButton?.classList.remove('d-none');
-        } else {
-            deleteButton?.classList.add('d-none');
-        }
+        const isHidden = !canDeleteAll;
+
+        deleteButton?.classList.toggle('d-none', isHidden);
+        editButton?.classList.toggle('d-none', isHidden);
     }
 
     /*******************************
      * Checkbox change handler
      *******************************/
     document.addEventListener('change', function(e) {
-
-        if (!e.target.classList.contains('event-checkbox')) return;
+        if (!e.target.classList.contains('item-checkbox')) return;
 
         const checkbox = e.target;
-
-        const id = checkbox.dataset.eventId;
+        const id       = checkbox.dataset.itemId;
         const canDelete = checkbox.dataset.canDelete == "1";
 
         if (checkbox.checked) {
-            selectedEvents.set(id, { id: id, canDelete: canDelete });
+            selectedItems.set(id, { id, canDelete });
         } else {
-            selectedEvents.delete(id);
+            selectedItems.delete(id);
         }
 
         updateMultiSelectToolbar();
     });
 
-});
+})();
 </script>
