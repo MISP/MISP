@@ -1,6 +1,6 @@
 MISP - Threat Intelligence Sharing Platform
 -------------------------------------------
-<img align="right" alt="MISP logo" src="./INSTALL/logos/misp-logo.png"/> 
+<img align="right" alt="MISP logo" src="./INSTALL/logos/misp-2-verti.png"/>
 
 MISP is an open source software solution for collecting, storing, distributing and sharing cyber security indicators and threats about cyber security incidents analysis and malware analysis. MISP is designed by and for incident analysts, security and ICT professionals or malware reversers to support their day-to-day operations to share structured information efficiently.
 
