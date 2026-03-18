@@ -297,7 +297,7 @@ jobs:
           pushd PyMISP
           cp tests/keys.py .
           python -m pytest -v --durations=0 tests/test_mispevent.py
-          python -m pytest -v --durations=0 tests/testlive_comprehensive.py -k "not test_search_stix"
+          python -m pytest -v --durations=0 tests/testlive_comprehensive.py
           popd
           python tests/testlive_comprehensive_local.py -v
           python tests/testlive_sync.py -v
