@@ -3012,3 +3012,18 @@ Query builder
         background-color: #d208f4;
     }
 }
+
+#attributes_div .table {
+    border-collapse: separate;
+}
+
+#attributes_div .table thead {
+    position: sticky;
+    top: 40px;
+    background-color: #f9f9f9;
+}
+
+#attributes_div .table thead tr th {
+    vertical-align: top;
+    border-bottom: 1px solid black;
+}

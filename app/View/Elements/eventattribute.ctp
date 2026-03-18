@@ -81,6 +81,7 @@
         ]);
     ?>
     <table class="table table-striped table-condensed">
+        <thead>
         <tr>
             <?php
                 if ($extended || ($mayModify && !empty($event['objects']))):
@@ -141,6 +142,7 @@
             ?>
             <th class="actions"><?php echo __('Actions');?></th>
         </tr>
+        </thead>
         <?php
             foreach ($event['objects'] as $k => $object) {
                 echo $this->element('/Events/View/row_' . $object['objectType'], array(
