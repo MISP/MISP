@@ -14,20 +14,28 @@ $hiddenCount = max(0, $totalGalaxies - $maxVisible);
 <div class="galaxy-container d-inline-flex flex-wrap align-items-center">
 
 <?php
-foreach ($data as $index => $clusterWrapper) {
-    if (empty($clusterWrapper['Galaxy'])) {
+foreach ($data as $index => $item) {
+    if (!empty($item['Galaxy'])) {
+        $galaxy = $item['Galaxy'];
+        $cluster = $item;
+    }
+    else if (!empty($item['GalaxyCluster'])) {
+        $galaxy = $item;
+        $cluster = $item['GalaxyCluster'][0];
+    }
+    else {
         continue;
     }
 
-    $galaxy = $clusterWrapper['Galaxy'];
-    $name = h($galaxy['name']) . ' : ' . $clusterWrapper['value'];
-    $local = h($clusterWrapper['local']);
+    $name = h($galaxy['name']) . ' : ' . $cluster['value'];
+    $local = h($cluster['local']);
     $bgColor = 'background-color: #e7f1ff';
     $textColor = '#084298';
     $shadow = 'filter: drop-shadow(-1px 3px 2px rgba(50, 50, 0, 0.5))';
     $metallicEffect = "background-image: linear-gradient(145deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 40%, rgba(0,0,0,0.05) 100%)";
+    $text = "text-align:left; white-space:normal; word-wrap:break-word";
 
-    $style = sprintf('%s; color: %s; %s; %s;', $bgColor, $textColor, $shadow, $metallicEffect);
+    $style = sprintf('%s; color: %s; %s; %s; %s;  cursor:pointer;', $bgColor, $textColor, $shadow, $metallicEffect, $text);
     if ($local) {
         $style .= sprintf(' border:2px dashed %s', $textColor);
     }

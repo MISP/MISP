@@ -118,11 +118,13 @@ class AttributesController extends AppController
             if ($this->request->is('post') && empty($filters['search_token'])) {
                 $search_token = $this->MispAttribute->setSearchParamsByToken($search_filters);
                 $this->set('search_token', $search_token);
-            } else {
-                if (!empty($filters['search_token'])) {
-                    $filters = $this->MispAttribute->getSearchParamsByToken($filters);
-                    $this->set('search_token', $filters['search_token']);
-                }
+            } elseif (!empty($filters['search_token'])) {
+                $filters = $this->MispAttribute->getSearchParamsByToken($filters);
+                $this->set('search_token', $filters['search_token']);
+            } elseif (!empty($filters)) {
+                $search_filters = array_merge($filters, $search_filters);
+                $search_token = $this->MispAttribute->setSearchParamsByToken($search_filters);
+                $this->set('search_token', $search_token);
             }
         }
         if (!$this->_isRest()) {

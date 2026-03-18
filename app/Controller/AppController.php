@@ -34,7 +34,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
 
-    private $__queryVersion = '182';
+    private $__queryVersion = '183';
     public $pyMispVersion = '2.5.33.1';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -273,28 +273,58 @@ class AppController extends Controller
             }
         }
 
+        $themeLabels = [];
+        $themesEnabled = (bool)Configure::read('MISP.enable_themes');
+        $currentTheme = 'Default';
+        $this->set('theme', $currentTheme);
         if (!$this->_isRest()) {
-            $themesEnabled = (bool)Configure::read('MISP.enable_themes');
-            $currentTheme = 'Default';
             if ($themesEnabled) {
                 if ($this->Auth->user()) {
                     $currentTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id')) ?? null;
+
+                    if ($currentTheme) {
+                        $this->theme = $currentTheme;
+                        $this->viewClass = 'Theme';
+                    } else {
+                        $currentTheme = Configure::read('MISP.default_theme');
+                        if ($currentTheme) {
+                            $this->theme = $currentTheme;
+                            $this->viewClass = 'Theme';
+                        }
+                    }
+                } else {
+                    $currentTheme = Configure::read('MISP.default_theme');
+                    if ($currentTheme) {
+                        $this->theme = $currentTheme;
+                        $this->viewClass = 'Theme';
+                    }
                 }
-                if ($currentTheme === null) {
-                    $currentTheme = Configure::read('MISP.default_theme') ?? 'Default';
-                }
-                if (!empty($this->request->params['named']['beta'])) {
-                    $currentTheme = 'UiBeta';
-                }
-                if ($currentTheme !== 'Default') {
-                    $this->theme = $currentTheme;
-                    $this->viewClass = 'Theme';
+                $this->set('theme', $currentTheme);
+                $this->set('themes', MispTheme::getAvailableThemes($currentTheme, (bool)Configure::read('debug')));
+
+                $userSetting = ClassRegistry::init('UserSetting');
+                $themes = $userSetting::VALID_SETTINGS['ui_theme']['options'];
+                foreach ($themes as $t) {
+                    if ($t === 'Default') {
+                        continue;
+                    }
+                    $themeFile = APP . 'View' . DS . 'Themed' . DS . $t . DS . 'theme.php';
+                    if (file_exists($themeFile)) {
+                        $themeConfig = include $themeFile;
+                        if (!empty($themeConfig['label'])) {
+                            $themeLabels[$t] = $themeConfig['label'];
+                        }
+                    }
+                    if (!isset($themeLabels[$t])) {
+                        $themeLabels[$t] = $t . ' UI';
+
+                    }
                 }
             }
-            $this->set('theme', $currentTheme);
-            $this->set('themesEnabled', $themesEnabled);
-            $this->set('themes', MispTheme::getAvailableThemes($currentTheme, (bool)Configure::read('debug')));
         }
+        $this->set('themeLabels', $themeLabels);
+        $this->set('themesEnabled', $themesEnabled);
+
 
 
         $user = $this->Auth->user();

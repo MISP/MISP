@@ -15,7 +15,6 @@ class AttackSightingsExport
     private $__attribute_sightings = array();
     private $__sightings = array();
     private $__galaxyType = 'mitre-attack-pattern';
-    private $__event_id = null;
     private $__tag_ids = array();
 
     public function handler($data, $options = array())
@@ -88,12 +87,9 @@ class AttackSightingsExport
     {
         if (!empty($attribute['Galaxy'])) {
             if (!empty($attribute['EventTag'])) {
-                if ($attribute['event_id'] != $this->__event_id) {
-                    $this->__event_id = $attribute['event_id'];
-                    foreach($attribute['EventTag'] as $event_tag) {
-                        if (!in_array($event_tag['tag_id'], $this->__tag_ids)) {
-                            $this->__tag_ids[] = $event_tag['tag_id'];
-                        }
+                foreach($attribute['EventTag'] as $event_tag) {
+                    if (!in_array($event_tag['tag_id'], $this->__tag_ids)) {
+                        $this->__tag_ids[] = $event_tag['tag_id'];
                     }
                 }
             }

@@ -356,7 +356,12 @@ class ACLComponent extends Component
             'upload_sample' => array('AND' => array('perm_auth', 'perm_add')),
             'upload_stix' => array('perm_modify'),
             'view' => array('*'),
+            'view2' => array('theming_enabled'),
+            'viewAttributes' => array('theming_enabled'),
             'viewClusterRelations' => array('*'),
+            'viewObjects' => array('theming_enabled'),
+            'viewRelatedEvents' => array('theming_enabled'),
+            'viewWarninglistHits' => array('theming_enabled'),
             'viewEventAttributes' => array('*'),
             'viewGraph' => array('*'),
             'viewGalaxyMatrix' => array('*'),
@@ -1015,6 +1020,9 @@ class ACLComponent extends Component
         // Returns true if current user is not using advanced auth key or if authkey is not read only
         $this->dynamicChecks['not_read_only_authkey'] = function (array $user) {
             return !isset($user['authkey_read_only']) || !$user['authkey_read_only'];
+        };
+        $this->dynamicChecks['theming_enabled'] = function (array $user) {
+            return (bool)Configure::read('MISP.enable_themes');
         };
         // If `Security.hide_organisation_index_from_users` is enabled, only user with sharing group permission can see org index
         $this->dynamicChecks['organisation_index'] = function (array $user) {

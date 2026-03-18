@@ -53,6 +53,7 @@ body[data-controller="users"][data-action="login"] {
     color: #e9ecef;
 }
 
+.btn.show,
 .btn-primary,
 .btn-primary:hover,
 .btn-primary:focus,
@@ -61,6 +62,8 @@ body[data-controller="users"][data-action="login"] {
 .btn-outline-primary:hover {
     color: #fff !important;
 }
+
+
 
 .btn-light{
     color:#1892B1;
@@ -191,6 +194,15 @@ body[data-controller="users"][data-action="login"] {
 }
 
 
+.dropdown-filters .dropdown-toggle::after {
+    display: none !important;
+}
+
+
+.dropdown-item.setTheme {
+    min-width: 500px;
+    white-space: normal;
+}
 
 /* =======================================================
    DESKTOP ONLY (>= 1200px)
@@ -321,7 +333,7 @@ body[data-controller="users"][data-action="login"] {
 }
 
 
-input[type="checkbox"] {
+.checkbox-index input[type="checkbox"] {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
@@ -337,7 +349,7 @@ input[type="checkbox"] {
 }
 
 /* Visual check inside the checkbox ticked */
-input[type="checkbox"]::after {
+.checkbox-index input[type="checkbox"]::after{
     content: "";
     position: absolute;
     left: 6px;
@@ -352,21 +364,24 @@ input[type="checkbox"]::after {
 }
 
 /* Display the check */
-input[type="checkbox"]:checked::after {
+.checkbox-index input[type="checkbox"]:checked::after {
     opacity: 1;
 }
 
-input[type="checkbox"].select_all:checked {
+.checkbox-index input[type="checkbox"].select_all:checked {
     background-color: orangered;
 }
 
 /* Visual focus (to improve) */
-input[type="checkbox"]:focus {
+.checkbox-index input[type="checkbox"]:focus {
     outline: none;
     box-shadow: none;
 }
 
 
+.checkbox-index input[type="checkbox"]:checked {
+    background-color: #1892B1;
+}
 /* =======================================================
    Flash Custom CSS
 ======================================================= */
@@ -453,4 +468,44 @@ th .sort-icon::before {
     content: "\f0dc"; /* fa-sort */
     font-family: "Font Awesome 7 Free";
     font-weight: 900;
+}
+
+
+
+.dropdown-filters .dropdown-toggle::after {
+    display: none !important;
+}
+
+
+.dropdown-item.setTheme {
+    min-width: 500px;
+    white-space: normal;
+}
+
+.default-color {
+    color: #380474 !important;
+}
+.default-bg {
+    background-color: #b56ef8 !important;
+}
+
+
+.nav-view.active {
+    color: #1892B1 !important;
+    background-color: #f8f9fa !important;
+}
+
+.nav-view{
+    color: #212529 !important;
+}
+
+
+
+.btn-danger-subtle {
+    background: #f4c7c7;
+    color: #d33;
+}
+
+.btn-danger-subtle:hover {
+    background: #efb6b6;
 }

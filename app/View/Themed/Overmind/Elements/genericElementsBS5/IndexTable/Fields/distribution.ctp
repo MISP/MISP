@@ -4,7 +4,6 @@
  *
  * Expected:
  * $data_path => 'Event.distribution'
- * $field['display'] => 'long' or 'short' (optional)
  */
 
 $distribution = Hash::extract($row, $field['data_path']);
@@ -13,7 +12,7 @@ if (empty($distribution)) {
     return;
 }
 
-$displayMode = $field['display'] ?? 'long';
+$isCard = isset($viewMode) && $viewMode === 'card';
 
 
 $map = [
@@ -46,6 +45,12 @@ $map = [
         'bg'    => '#6a96ee',
         'color' => '#0e146d',
         'icon'  => 'fa-share-alt'
+    ],
+    5 => [
+        'label' => __('Inherited'),
+        'bg'    => '#e6b7df',
+        'color' => '#380f33a2',
+        'icon'  => 'fa-code-fork'
     ]
 ];
 
@@ -71,9 +76,11 @@ if (isset($map[$distribution])) {
         border: 1px solid <?= h($config['color']) ?>20;
         font-weight: 500;
         box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-      ">
+      "
+      title ="<?= h($config['label']) ?>"
+      aria-label="<?= h($config['label']) ?>">
 
-    <?php if ($displayMode === 'long'): ?>
+    <?php if ($isCard): ?>
         <i class="fas <?= h($config['icon']) ?> me-1"
            style="color: <?= h($config['color']) ?>"></i>
         <?= h($config['label']) ?>

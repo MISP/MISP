@@ -505,6 +505,83 @@ class OnDemandCorrelationBehavior extends ModelBehavior
     }
 
     /**
+     * Fetch correlations scoped to specific attribute IDs.
+     * OnDemand variant — computes correlations on the fly
+     * from the attributes table, then filters to requested
+     * attribute IDs.
+     *
+     * @param Model $Model
+     * @param array $user
+     * @param int $eventId
+     * @param array $sgids Not used
+     * @param array $attributeIds
+     * @return array Keyed by source attribute ID
+     */
+    public function runGetAttributeCorrelations(
+        Model $Model,
+        array $user,
+        $eventId,
+        array $sgids,
+        array $attributeIds
+    ) {
+        $correlations = $this->__collectCorrelations($eventId);
+        if (empty($correlations)) {
+            return [];
+        }
+
+        // Filter to only the requested attribute IDs
+        $attributeIdFlip = array_flip($attributeIds);
+        $filtered = [];
+        $eventIds = [];
+        foreach ($correlations as $corr) {
+            if (!isset($attributeIdFlip[$corr['source_id']])) {
+                continue;
+            }
+            $filtered[] = $corr;
+            $eventIds[$corr['event_id']] = true;
+        }
+
+        if (empty($filtered)) {
+            return [];
+        }
+
+        $conditions = $Model->Event->createEventConditions(
+            $user
+        );
+        $conditions['Event.id'] = array_keys($eventIds);
+        $events = $Model->Event->find('all', [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => [
+                'Event.id', 'Event.orgc_id',
+                'Event.info', 'Event.date',
+            ],
+        ]);
+        $events = array_column(
+            array_column($events, 'Event'), null, 'id'
+        );
+
+        $result = [];
+        foreach ($filtered as $corr) {
+            $evId = $corr['event_id'];
+            if (!isset($events[$evId])) {
+                continue;
+            }
+            $event = $events[$evId];
+            $parentId = $corr['source_id'];
+            $result[$parentId][] = [
+                'id' => $evId,
+                'attribute_id' => $corr['id'],
+                'value' => $corr['value'],
+                'org_id' => $event['orgc_id'],
+                'info' => $event['info'],
+                'date' => $event['date'],
+            ];
+        }
+        return $result;
+    }
+
+    /**
      * @param Correlation $Model
      * @param array $user Not used
      * @param int $eventId

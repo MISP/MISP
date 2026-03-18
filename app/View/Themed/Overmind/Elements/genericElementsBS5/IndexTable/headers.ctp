@@ -1,6 +1,6 @@
 <?php
     $selectAllCheckbox = false;
-    echo '<thead>';
+    echo '<thead class="checkbox-index">';
     foreach ($fields as $k => $header) {
         if (!isset($header['requirement']) || $header['requirement']) {
             $header_data = '';
@@ -29,7 +29,7 @@
                 if (!empty($header['element']) && $header['element'] === 'selector') {
                     $selectAllCheckbox = true;
                     $header_data = sprintf(
-                        '<input id="select_all" class="%s" type="checkbox" %s>',
+                        '<input id="select_all" class="%s ms-1" type="checkbox" %s>',
                         empty($header['select_all_class']) ? 'select_all' : $header['select_all_class'],
                         empty($header['select_all_function']) ? 'onclick="toggleAllAttributeCheckboxes();"' : 'onclick="' . $header['select_all_function'] . '"'
                     );
@@ -62,16 +62,3 @@
     }
     echo '</thead>';
 ?>
-<?php if ($selectAllCheckbox): ?>
-<script>
-    $(function() {
-        $('.select_attribute').add('#select_all').on('change', function() {
-            if ($('.select_attribute:checked').length > 0) {
-                $('.mass-select').show();
-            } else {
-                $('.mass-select').hide();
-            }
-        });
-    });
-</script>
-<?php endif; ?>

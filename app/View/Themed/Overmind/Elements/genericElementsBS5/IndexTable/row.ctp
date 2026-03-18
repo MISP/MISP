@@ -24,7 +24,8 @@
                         'column' => $column,
                         'data_path' => empty($field['data_path']) ? '' : $field['data_path'],
                         'k' => $k,
-                        'primary' => $primary
+                        'primary' => $primary,
+                        'viewMode' => 'table',
                     )
                 );
             }

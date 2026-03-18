@@ -12,6 +12,10 @@
 
 # This installation script assumes that you are installing as root, or a user with sudo access.
 
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    exec sudo -E bash "$0" "$@"
+fi
+
 random_string() {
     cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1
 }
@@ -20,7 +24,9 @@ random_string() {
 ## required settings - please change all of these, failing to do so will result in a non-working installation or a highly insecure installation
 PASSWORD="$(random_string)"
 MISP_DOMAIN='misp.local'
+MISP_BASEURL="https://${MISP_DOMAIN}"
 PATH_TO_SSL_CERT=''
+PATH_TO_SSL_KEY=''
 INSTALL_SSDEEP='n' # y/n, if you want to install ssdeep, set to 'y', however, this will require the installation of make
 
 ## optional settings
@@ -44,6 +50,7 @@ SUPERVISOR_PASSWORD="$(random_string)"
 upload_max_filesize="50M"
 post_max_size="50M"
 max_execution_time="300"
+max_input_time="300"
 memory_limit="2048M"
 
 ## GPG
@@ -140,7 +147,10 @@ echo -e "v2.5 Setup on Ubuntu 24.04 LTS"
 os_version_check
 
 save_settings() {
-    echo "[$(date)] MISP installation
+    settings_file=/root/misp_settings.txt
+
+    cat > "${settings_file}" <<SETTINGS_EOF
+[$(date)] MISP installation
 
 [MISP admin user]
 - Admin Username: admin@admin.test
@@ -162,9 +172,10 @@ save_settings() {
 - GPG Passphrase: ${GPG_PASSPHRASE}
 - SUPERVISOR_USER: ${SUPERVISOR_USER}
 - SUPERVISOR_PASSWORD: ${SUPERVISOR_PASSWORD}
-" | tee /var/log/misp_settings.txt  &>> $logfile
+SETTINGS_EOF
 
-    print_notification "Settings saved to /var/log/misp_settings.txt"
+    chmod 600 "${settings_file}"
+    print_notification "Sensitive settings saved to ${settings_file} (mode 600, root only)"
 }
 
 print_status "Updating base system..."
@@ -196,12 +207,13 @@ error_check "PHP and required extensions installation."
 print_status "Installing composer..."
 
 ## make pip and composer happy
-sudo mkdir /var/www/.cache/
+sudo mkdir -p /var/www/.cache/
 sudo chown -R ${APACHE_USER}:${APACHE_USER} /var/www/.cache/
 
 curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php &>> $logfile
-COMPOSER_HASH=`curl -sS https://composer.github.io/installer.sig`
-php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '$COMPOSER_HASH') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"  &>> $logfile
+COMPOSER_HASH=$(curl -sS https://composer.github.io/installer.sig)
+php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '${COMPOSER_HASH}') { exit(0); } unlink('/tmp/composer-setup.php'); exit(1);" &>> $logfile
+error_check "Composer installer verification"
 sudo php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer  &>> $logfile
 error_check "Composer installation"
 
@@ -213,28 +225,40 @@ done
 sudo sed -i "s/^\(session.sid_length\).*/\1 = 32/" $PHP_INI
 sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = 1/" $PHP_INI
 sudo sed -i "s/^\(session.save_handler\).*/\1 = redis/" $PHP_INI
-sudo sed -i "/session.save_handler/a session.save_path = 'tcp:\/\/localhost:6379'/" $PHP_INI
+if grep -q "^session.save_path =" "$PHP_INI"; then
+    sudo sed -i "s|^session.save_path =.*|session.save_path = 'tcp://localhost:6379'|" "$PHP_INI"
+else
+    sudo sed -i "/session.save_handler/a session.save_path = 'tcp:\/\/localhost:6379'" "$PHP_INI"
+fi
 
-MYCNF="/etc/mysql/mariadb.conf.d/50-server.cnf"
+MYCNF="/etc/mysql/mariadb.conf.d/z-misp.cnf"
 # We go for an innodb buffer pool size of 50% of the available memory
 
 # Check for cgroup memory limits, don't rely on /proc/meminfo in an LXC container with unbound memory limits
 # Thanks to Sascha Rommelfangen (@rommelfs) for the hint
 CGROUPMEMORYHIGHPATH="/sys/fs/cgroup/memory.high"
-if [ -f $CGROUPMEMORYHIGHPATH ] && [[ "cat ${CGROUPMEMORYHIGHPATH}" == "max" ]]; then
-    INNODBBUFFERPOOLSIZE='2048M'
+if [ -f "$CGROUPMEMORYHIGHPATH" ]; then
+    CGROUPMEMORYHIGH="$(cat "$CGROUPMEMORYHIGHPATH")"
+    if [ "$CGROUPMEMORYHIGH" = "max" ]; then
+        INNODBBUFFERPOOLSIZE='2048M'
+    else
+        INNODBBUFFERPOOLSIZE="$((CGROUPMEMORYHIGH / 1024 / 1024 / 2))M"
+    fi
 else
-    INNODBBUFFERPOOLSIZE=$(grep MemTotal /proc/meminfo | awk '{print int($2 / 2048)}')'M'
+    INNODBBUFFERPOOLSIZE="$(grep MemTotal /proc/meminfo | awk '{print int($2 / 2048)}')M"
 fi
 
-sudo sed -i "/\[mariadb\]/a innodb_buffer_pool_size = ${INNODBBUFFERPOOLSIZE}" $MYCNF
-sudo sed -i '/\[mariadb\]/a innodb_io_capacity = 1000' $MYCNF
-sudo sed -i '/\[mariadb\]/a innodb_read_io_threads = 16' $MYCNF
+cat <<MARIADB_EOF | sudo tee "$MYCNF" > /dev/null
+[mariadb]
+innodb_buffer_pool_size = ${INNODBBUFFERPOOLSIZE}
+innodb_io_capacity = 1000
+innodb_read_io_threads = 16
+MARIADB_EOF
 
 sudo service apache2 restart
 error_check "Apache restart"
-sudo service mysql restart
-error_check "MySQL restart"
+sudo systemctl restart mariadb
+error_check "MariaDB restart"
 
 print_ok "PHP and MySQL configured..."
 
@@ -254,7 +278,7 @@ if [ $INSTALL_SSDEEP == "y" ]; then
 
     # Install libfuzzy-dev and link the .so to somewhere ./configure can pick it up
     sudo apt install -y libfuzzy-dev
-    sudo ln -s /usr/lib/x86_64-linux-gnu/libfuzzy.so /usr/lib/libfuzzy.so
+    sudo ln -sf /usr/lib/x86_64-linux-gnu/libfuzzy.so /usr/lib/libfuzzy.so
     git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
     error_check "Jakub Onderka's PHP8 SSDEEP extension cloning" || echo "Continuing despite error in cloning SSDEEP extension"
 
@@ -273,7 +297,9 @@ git checkout 2.5 &>> $logfile
 error_check "Checking out 2.5 branch"
 
 print_status "Cloning MISP submodules..."
-sudo git config --global --add safe.directory ${MISP_PATH}  &>> $logfile
+if ! sudo git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "${MISP_PATH}"; then
+    sudo git config --global --add safe.directory "${MISP_PATH}" &>> $logfile
+fi
 sudo git -C ${MISP_PATH} submodule update --init --recursive &>> $logfile
 error_check "MISP submodules cloning"
 sudo git -C ${MISP_PATH} submodule foreach --recursive git config core.filemode false &>> $logfile
@@ -344,14 +370,21 @@ sed -i "s#Rooraenietu8Eeyo<Qu2eeNfterd-dd+#$(random_string)#" config.php
 print_ok "MISP php config files moved and configured."
 
 # Generate ssl certificate
-if [ -z "${PATH_TO_SSL_CERT}" ]; then
+SSL_CERT_PATH='/etc/ssl/private/misp.local.crt'
+SSL_KEY_PATH='/etc/ssl/private/misp.local.key'
+
+if [ -n "${PATH_TO_SSL_CERT}" ] && [ -n "${PATH_TO_SSL_KEY}" ]; then
+    SSL_CERT_PATH="${PATH_TO_SSL_CERT}"
+    SSL_KEY_PATH="${PATH_TO_SSL_KEY}"
+    print_status "Using provided SSL certificate."
+    [ -r "${SSL_CERT_PATH}" ] || { print_error "SSL certificate not readable: ${SSL_CERT_PATH}"; exit 1; }
+    [ -r "${SSL_KEY_PATH}" ] || { print_error "SSL key not readable: ${SSL_KEY_PATH}"; exit 1; }
+else
     print_notification "Generating self-signed SSL certificate."
     sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
     -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
-    -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt &>> $logfile
+    -keyout "${SSL_KEY_PATH}" -out "${SSL_CERT_PATH}" &>> $logfile
     error_check "Self-signed SSL certificate generation"
-else
-    print_status "Using provided SSL certificate."
 fi
 
 # Generate misp-ssl.conf
@@ -383,8 +416,8 @@ print_status "Creating Apache configuration file for MISP..."
           </Directory>
 
           SSLEngine On
-          SSLCertificateFile /etc/ssl/private/misp.local.crt
-          SSLCertificateKeyFile /etc/ssl/private/misp.local.key
+          SSLCertificateFile ${SSL_CERT_PATH}
+          SSLCertificateKeyFile ${SSL_KEY_PATH}
 
           LogLevel warn
           ErrorLog /var/log/apache2/misp.local_error.log
@@ -402,10 +435,11 @@ print_status "Running MISP updates"
 
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.osuser" ${APACHE_USER} &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin runUpdates &>> $logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake User init | sudo tee /tmp/misp_user_key.txt  &>> $logfile
+MISP_USER_KEY_FILE="$(mktemp)"
+sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake User init > "${MISP_USER_KEY_FILE}"
+MISP_USER_KEY="$(tr -d '\n' < "${MISP_USER_KEY_FILE}")"
+rm -f "${MISP_USER_KEY_FILE}"
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake User change_pw 'admin@admin.test' ${PASSWORD} &>> $logfile
-MISP_USER_KEY=`cat /tmp/misp_user_key.txt`
-rm -f /tmp/misp_user_key.txt
 
 print_ok "MISP updated."
 
@@ -437,11 +471,14 @@ chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/venv
 
 print_status "Setting up background workers"
 
-sudo echo "
+if ! sudo grep -q '^\[inet_http_server\]' /etc/supervisor/supervisord.conf; then
+    sudo tee -a /etc/supervisor/supervisord.conf > /dev/null <<SUPERVISOR_EOF
 [inet_http_server]
 port=127.0.0.1:9001
 username=$SUPERVISOR_USER
-password=$SUPERVISOR_PASSWORD" | sudo tee -a /etc/supervisor/supervisord.conf  &>> $logfile
+password=$SUPERVISOR_PASSWORD
+SUPERVISOR_EOF
+fi
 
 sudo echo "[group:misp-workers]
 programs=default,email,cache,prio,update,scheduler
@@ -520,7 +557,7 @@ autorestart=true
 redirect_stderr=false
 stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
 stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
-user=$APACHE_USER"  | sudo tee -a /etc/supervisor/conf.d/misp-workers.conf  &>> $logfile
+user=$APACHE_USER"  | sudo tee /etc/supervisor/conf.d/misp-workers.conf  &>> $logfile
 
 sudo systemctl restart supervisor  &>> $logfile
 error_check "Background workers setup"
@@ -538,8 +575,8 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.tmpdir" "${MISP_PATH}/app/tmp" &>> $logfile
 
   # Change base url, either with this CLI command or in the UI
-  [[ ! -z ${MISP_DOMAIN} ]] && sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake admin setSetting MISP.baseurl "https://${MISP_DOMAIN}" &>> $logfile
-  [[ ! -z ${MISP_DOMAIN} ]] && sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.external_baseurl" ${MISP_BASEURL} &>> $logfile
+  [[ -n ${MISP_DOMAIN} ]] && sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.baseurl" "${MISP_BASEURL}" &>> $logfile
+  [[ -n ${MISP_DOMAIN} ]] && sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.external_baseurl" "${MISP_BASEURL}" &>> $logfile
 
   # Enable GnuPG
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "GnuPG.email" "${GPG_EMAIL_ADDRESS}" &>> $logfile
