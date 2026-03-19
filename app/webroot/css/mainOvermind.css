@@ -63,7 +63,13 @@ body[data-controller="users"][data-action="login"] {
     color: #fff !important;
 }
 
-
+.btn-galaxy-light:hover,
+.btn-galaxy-light:focus,
+.btn-galaxy-light:active,
+.btn-outline-galaxy-light:active ,
+.btn-outline-galaxy-light:hover {
+    background-color: #d2e4fc !important;
+}
 
 .btn-light{
     color:#1892B1;
