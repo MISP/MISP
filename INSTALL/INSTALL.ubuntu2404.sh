@@ -288,8 +288,21 @@ fi
 
 
 print_status "Cloning MISP"
-sudo git clone https://github.com/MISP/MISP.git ${MISP_PATH}  &>> $logfile
-error_check "MISP cloning"
+if [ -d "$MISP_PATH" ]; then
+    if [ -d "$MISP_PATH/.git" ]; then
+        # We have already a repository, ensure it is up to date, this doesn't check it's a MISP one, this allow to have custom git repository installed by the user
+        pushd "$MISP_PATH" &>>$logfile && git pull &>>$logfile
+        error_check "MISP updating"
+        popd &>>$logfile
+    else
+        print_error "Directory exists, aborting, please use an non existing repository"
+        exit 1
+    fi
+else
+    sudo git clone -b 2.5 https://github.com/MISP/MISP.git ${MISP_PATH} &>>$logfile
+    error_check "MISP cloning"
+fi
+
 cd ${MISP_PATH}
 git fetch origin 2.5 &>> $logfile
 error_check "Fetching 2.5 branch"
