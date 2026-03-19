@@ -443,7 +443,16 @@ body[data-controller="users"][data-action="login"] {
     white-space: nowrap;
 }
 
+.table-scroll {
+    max-height: 100vh;
+    overflow-y: auto;
+}
 
+.table thead{
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
 
 
 
