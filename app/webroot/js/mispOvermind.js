@@ -87,3 +87,39 @@ async function getPopup(id, context, target, admin, popupType) {
         }
     }
 }
+
+
+function isMobile() {
+    return window.innerWidth < 768;
+}
+
+function setView(view, save = true) {
+    const tableView = document.getElementById('tableView');
+    const cardView  = document.getElementById('cardView');
+    const viewList  = document.getElementById('viewList');
+    const viewCard  = document.getElementById('viewCard');
+    console.log(view)
+    if (view === 'card') {
+        console.log('ed')
+        tableView?.classList.add('d-none');
+        cardView?.classList.remove('d-none');
+        viewList?.classList.remove('active');
+        viewCard?.classList.add('active');
+    } else {
+        cardView?.classList.add('d-none');
+        tableView?.classList.remove('d-none');
+        viewCard?.classList.remove('active');
+        viewList?.classList.add('active');
+    }
+
+    if (save) localStorage.setItem('indexViewMode', view);
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('viewList')?.addEventListener('click', () => setView('table'));
+    document.getElementById('viewCard')?.addEventListener('click', () => setView('card'));
+
+    const savedView = localStorage.getItem('indexViewMode');
+    setView(savedView ? savedView : (isMobile() ? 'card' : 'table'), false);
+});

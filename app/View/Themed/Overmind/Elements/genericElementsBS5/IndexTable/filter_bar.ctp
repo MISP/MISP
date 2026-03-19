@@ -219,30 +219,6 @@ var selectedItems = new Map();
     /*******************************
      * View Mode Toggle (Table / Card)
      *******************************/
-    function isMobile() {
-        return window.innerWidth < 768;
-    }
-
-    function setView(view, save = true) {
-        const tableView = document.getElementById('tableView');
-        const cardView  = document.getElementById('cardView');
-        const viewList  = document.getElementById('viewList');
-        const viewCard  = document.getElementById('viewCard');
-
-        if (view === 'card') {
-            tableView?.classList.add('d-none');
-            cardView?.classList.remove('d-none');
-            viewList?.classList.remove('active');
-            viewCard?.classList.add('active');
-        } else {
-            cardView?.classList.add('d-none');
-            tableView?.classList.remove('d-none');
-            viewCard?.classList.remove('active');
-            viewList?.classList.add('active');
-        }
-
-        if (save) localStorage.setItem('indexViewMode', view);
-    }
 
     document.getElementById('viewList')?.addEventListener('click', () => setView('table'));
     document.getElementById('viewCard')?.addEventListener('click', () => setView('card'));
