@@ -376,6 +376,12 @@ if [ "$(mysql -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_s
     error_check "MISP database schema import"
 fi
 
+# get the current gpg passphrase if already set before the config files are overriden
+gpg_existing_pass=$(sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin getSetting "GnuPG.password" 2>/dev/null | grep value | cut -d'"' -f 4)
+if [ $? -eq 0 -a -n "$gpg_existing_pass" ]; then
+    print_notification "Reusing existing PGP passphrase"
+    GPG_PASSPHRASE="$gpg_existing_pass"
+fi
 print_status "Moving and configuring MISP php config files.."
 
 cd ${MISP_PATH}/app/Config
