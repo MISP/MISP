@@ -127,7 +127,7 @@ function print_notification ()
 function os_version_check ()
 {
     # Check if we're on Ubuntu 24.04 as expected:
-    UBUNTU_VERSION=$(lsb_release -a | grep Release | grep -oP '[\d-]+.[\d-]+$')
+    UBUNTU_VERSION=$(sh -c '. /etc/os-release && echo $VERSION_ID')
     if [[ "$UBUNTU_VERSION" != "24.04" ]]; then
         print_error "This upgrade tool expects you to be running Ubuntu 24.04. If you are on a prior upgrade of Ubuntu, please make sure that you upgrade your distribution first, then execute this script again."
         exit 1
