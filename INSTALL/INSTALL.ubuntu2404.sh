@@ -476,8 +476,14 @@ print_status "Generating PGP key"
 # The email address should match the one set in the config.php
 # set in the configuration menu in the administration menu configuration file
 
-sudo -u ${APACHE_USER} gpg --homedir $MISP_PATH/.gnupg --quick-generate-key --batch --passphrase $GPG_PASSPHRASE ${GPG_EMAIL_ADDRESS} ed25519 sign never  &>> $logfile
+if ! sudo -u ${APACHE_USER} gpg --homedir "$MISP_PATH/.gnupg" --list-key "${GPG_EMAIL_ADDRESS}" &>/dev/null; then
+    sudo -u ${APACHE_USER} gpg --homedir $MISP_PATH/.gnupg --quick-generate-key --batch --passphrase $GPG_PASSPHRASE ${GPG_EMAIL_ADDRESS} ed25519 sign never &>>$logfile
+fi
 error_check "PGP key generation"
+export GPG_TTY=$(tty)
+echo misp | sudo --preserve-env=GPG_TTY -u ${APACHE_USER} gpg --homedir $MISP_PATH/.gnupg -o /dev/null --batch --passphrase $GPG_PASSPHRASE --local-user ${GPG_EMAIL_ADDRESS} --pinentry-mode loopback -as -
+error_check "PGP key passphrase"
+
 # Export the public key to the webroot
 sudo -u ${APACHE_USER} gpg --homedir $MISP_PATH/.gnupg --export --armor ${GPG_EMAIL_ADDRESS} | sudo -u ${APACHE_USER} tee $MISP_PATH/app/webroot/gpg.asc  &>> $logfile
 error_check "PGP key export"
