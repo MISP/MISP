@@ -342,6 +342,13 @@ if [ ! -z "${DBUSER_MISP}" ]; then
 fi
 
 DBPASSWORD_MISP_STRING=''
+if [ -f "Config/database.php" ]; then
+    pushd Config &>>$logfile
+    print_status "Using existing misp password for database"
+    DBPASSWORD_MISP=$(php -r 'include "database.php"; $a = new DATABASE_CONFIG(); echo $a->default["password"];')
+    error_check "Existing user pasword"
+    popd &>>$logfile
+fi
 if [ ! -z "${DBPASSWORD_MISP}" ]; then
     DBPASSWORD_MISP_STRING='-p'"${DBPASSWORD_MISP}"
 fi
