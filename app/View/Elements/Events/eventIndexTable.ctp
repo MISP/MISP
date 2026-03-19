@@ -1,41 +1,43 @@
 <table class="table table-striped table-hover table-condensed">
-    <tr>
-        <th>
-            <input class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all events on current page');?>" onclick="toggleAllCheckboxes();">
-        </th>
-        <th class="filter" title="<?= __('Published') ?>"><?= $this->Paginator->sort('published', '<i class="fa fa-upload"></i>', ['escape' => false]) ?></th>
-        <?php
-            if (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg')):
-        ?>
-            <th class="filter"><?php echo $this->Paginator->sort('Orgc.name', __('Source org')); ?></th>
-            <th class="filter"><?php echo $this->Paginator->sort('Orgc.name', __('Member org')); ?></th>
-        <?php
-            elseif (Configure::read('MISP.showorg') || $isAdmin):
-        ?>
-            <th class="filter"><?php echo $this->Paginator->sort('Orgc.name', __('Creator org')); ?></th>
-        <?php
-                endif;
-            $date = time();
-            $day = 86400;
-        ?> 
-        <?php if (in_array('owner_org', $columns, true)): ?><th class="filter"><?= $this->Paginator->sort('Org.name', __('Owner org')) ?></th><?php endif; ?>
-        <th><?= $this->Paginator->sort('id', __('ID'), ['direction' => 'desc']) ?></th>
-        <?php if (in_array('clusters', $columns, true)): ?><th><?= __('Clusters') ?></th><?php endif; ?>
-        <?php if (in_array('tags', $columns, true)): ?><th><?= __('Tags') ?></th><?php endif; ?>
-        <?php if (in_array('attribute_count', $columns, true)): ?><th title="<?= __('Attribute Count') ?>"><?= $this->Paginator->sort('attribute_count', __('#Attr.')) ?></th><?php endif; ?>
-        <?php if (in_array('correlations', $columns, true)): ?><th title="<?= __('Correlation Count')  ?>"><?= __('#Corr.') ?></th><?php endif; ?>
-        <?php if (in_array('report_count', $columns, true)): ?><th title="<?= __('Report Count') ?>"><?= $this->Paginator->sort('report_count', __('#Reports')) ?></th><?php endif; ?>
-        <?php if (in_array('sightings', $columns, true)): ?><th title="<?= __('Sighting Count')?>"><?= __('#Sightings') ?></th><?php endif; ?>
-        <?php if (in_array('proposals', $columns, true)): ?><th title="<?= __('Proposal Count') ?>"><?= __('#Prop') ?></th><?php endif; ?>
-        <?php if (in_array('discussion', $columns, true)): ?><th title="<?= __('Post Count') ?>"><?= __('#Posts') ?></th><?php endif; ?>
-        <?php if (in_array('creator_user', $columns, true)): ?><th><?= $this->Paginator->sort('user_id', __('Creator user')) ?></th><?php endif; ?>
-        <th class="filter"><?= $this->Paginator->sort('date', null, array('direction' => 'desc'));?></th>
-        <?php if (in_array('timestamp', $columns, true)): ?><th title="<?= __('Last modified at') ?>"><?= $this->Paginator->sort('timestamp', __('Last modified at')) ?></th><?php endif; ?>
-        <?php if (in_array('publish_timestamp', $columns, true)): ?><th title="<?= __('Published at') ?>"><?= $this->Paginator->sort('publish_timestamp', __('Published at')) ?></th><?php endif; ?>
-        <th class="filter"><?= $this->Paginator->sort('info');?></th>
-        <th title="<?= $eventDescriptions['distribution']['desc'];?>"><?= $this->Paginator->sort('distribution');?></th>
-        <th class="actions"><?php echo __('Actions');?></th>
-    </tr>
+    <thead>
+        <tr>
+            <th>
+                <input class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all events on current page');?>" onclick="toggleAllCheckboxes();">
+            </th>
+            <th class="filter" title="<?= __('Published') ?>"><?= $this->Paginator->sort('published', '<i class="fa fa-upload"></i>', ['escape' => false]) ?></th>
+            <?php
+                if (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg')):
+            ?>
+                <th class="filter"><?php echo $this->Paginator->sort('Orgc.name', __('Source org')); ?></th>
+                <th class="filter"><?php echo $this->Paginator->sort('Orgc.name', __('Member org')); ?></th>
+            <?php
+                elseif (Configure::read('MISP.showorg') || $isAdmin):
+            ?>
+                <th class="filter"><?php echo $this->Paginator->sort('Orgc.name', __('Creator org')); ?></th>
+            <?php
+                    endif;
+                $date = time();
+                $day = 86400;
+            ?>
+            <?php if (in_array('owner_org', $columns, true)): ?><th class="filter"><?= $this->Paginator->sort('Org.name', __('Owner org')) ?></th><?php endif; ?>
+            <th><?= $this->Paginator->sort('id', __('ID'), ['direction' => 'desc']) ?></th>
+            <?php if (in_array('clusters', $columns, true)): ?><th><?= __('Clusters') ?></th><?php endif; ?>
+            <?php if (in_array('tags', $columns, true)): ?><th><?= __('Tags') ?></th><?php endif; ?>
+            <?php if (in_array('attribute_count', $columns, true)): ?><th title="<?= __('Attribute Count') ?>"><?= $this->Paginator->sort('attribute_count', __('#Attr.')) ?></th><?php endif; ?>
+            <?php if (in_array('correlations', $columns, true)): ?><th title="<?= __('Correlation Count')  ?>"><?= __('#Corr.') ?></th><?php endif; ?>
+            <?php if (in_array('report_count', $columns, true)): ?><th title="<?= __('Report Count') ?>"><?= $this->Paginator->sort('report_count', __('#Reports')) ?></th><?php endif; ?>
+            <?php if (in_array('sightings', $columns, true)): ?><th title="<?= __('Sighting Count')?>"><?= __('#Sightings') ?></th><?php endif; ?>
+            <?php if (in_array('proposals', $columns, true)): ?><th title="<?= __('Proposal Count') ?>"><?= __('#Prop') ?></th><?php endif; ?>
+            <?php if (in_array('discussion', $columns, true)): ?><th title="<?= __('Post Count') ?>"><?= __('#Posts') ?></th><?php endif; ?>
+            <?php if (in_array('creator_user', $columns, true)): ?><th><?= $this->Paginator->sort('user_id', __('Creator user')) ?></th><?php endif; ?>
+            <th class="filter"><?= $this->Paginator->sort('date', null, array('direction' => 'desc'));?></th>
+            <?php if (in_array('timestamp', $columns, true)): ?><th title="<?= __('Last modified at') ?>"><?= $this->Paginator->sort('timestamp', __('Last modified at')) ?></th><?php endif; ?>
+            <?php if (in_array('publish_timestamp', $columns, true)): ?><th title="<?= __('Published at') ?>"><?= $this->Paginator->sort('publish_timestamp', __('Published at')) ?></th><?php endif; ?>
+            <th class="filter"><?= $this->Paginator->sort('info');?></th>
+            <th title="<?= $eventDescriptions['distribution']['desc'];?>"><?= $this->Paginator->sort('distribution');?></th>
+            <th class="actions"><?php echo __('Actions');?></th>
+        </tr>
+    </thead>
     <?php foreach ($events as $event): $eventId = (int)$event['Event']['id']; ?>
     <?php $eventLinkId = Configure::read('MISP.use_uuids_in_urls') ? h($event['Event']['uuid']) : h($eventId); ?>
     <tr id="event_<?= $eventId ?>">
