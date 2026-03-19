@@ -51,34 +51,11 @@ function isMobile() {
 }
 
 
-function setView(view, save = true) {
-    const tableView = document.getElementById('tableView');
-    const cardView  = document.getElementById('cardView');
-    const viewList  = document.getElementById('viewList');
-    const viewCard  = document.getElementById('viewCard');
-    console.log(view)
-    if (view === 'card') {
-        console.log('ed')
-        tableView?.classList.add('d-none');
-        cardView?.classList.remove('d-none');
-        viewList?.classList.remove('active');
-        viewCard?.classList.add('active');
-    } else {
-        cardView?.classList.add('d-none');
-        tableView?.classList.remove('d-none');
-        viewCard?.classList.remove('active');
-        viewList?.classList.add('active');
-    }
-
-    if (save) localStorage.setItem('indexViewMode', view);
-}
-
-
 function updateMultiSelectToolbar() {
     const toolbar        = document.getElementById('multiSelectToolbar');
     const selectedCount  = document.getElementById('selectedCount');
     const deleteButton   = document.getElementById('multi-delete-button');
-    const editButton   = document.getElementById('mass-edit-button');
+    const editButton     = document.getElementById('mass-edit-button');
     const count          = selectedItems.size;
 
     if (count === 0) {

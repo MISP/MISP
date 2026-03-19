@@ -214,6 +214,26 @@ $hasActiveFilters = !empty($currentFilters);
 var baseIndexUrl = "<?php echo h($baseurl . $item_url . '/index'); ?>";
 var selectedItems = new Map();
 
+function setView(view, save = true) {
+    const tableView = document.getElementById('tableView');
+    const cardView  = document.getElementById('cardView');
+    const viewList  = document.getElementById('viewList');
+    const viewCard  = document.getElementById('viewCard');
+    if (view === 'card') {
+        tableView?.classList.add('d-none');
+        cardView?.classList.remove('d-none');
+        viewList?.classList.remove('active');
+        viewCard?.classList.add('active');
+    } else {
+        cardView?.classList.add('d-none');
+        tableView?.classList.remove('d-none');
+        viewCard?.classList.remove('active');
+        viewList?.classList.add('active');
+    }
+
+    if (save) localStorage.setItem('indexViewMode', view);
+}
+
 // In the case of an ajax injected index
 (function init() {
 
