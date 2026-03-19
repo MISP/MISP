@@ -214,6 +214,7 @@ $hasActiveFilters = !empty($currentFilters);
 var baseIndexUrl = "<?php echo h($baseurl . $item_url . '/index'); ?>";
 var selectedItems = new Map();
 
+// In the case of an ajax injected index
 (function init() {
 
     /*******************************
@@ -226,55 +227,6 @@ var selectedItems = new Map();
     const savedView = localStorage.getItem('indexViewMode');
     setView(savedView ? savedView : (isMobile() ? 'card' : 'table'), false);
 
-
-    /*******************************
-     * Filter URL Builder
-     *******************************/
-    function buildFilterUrl() {
-        const base = baseIndexUrl.replace(/\/search.*/, '');
-        let filters = {};
-
-        const searchMatch = window.location.pathname.match(/\/search(.+)/);
-        if (searchMatch) {
-            const parts = searchMatch[1].split('/search');
-            parts.forEach(part => {
-                const [key, value] = part.split(':');
-                if (key && value) filters[key] = decodeURIComponent(value);
-            });
-        }
-
-        const quickField = document.getElementById('quickFilterField');
-        const quickValue = quickField ? quickField.value.trim() : '';
-
-        delete filters['eventinfo'];
-        delete filters['eventid'];
-
-        if (quickValue !== '') {
-            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-            const numberRegex = /^[0-9]+$/;
-
-            if (uuidRegex.test(quickValue) || numberRegex.test(quickValue)) {
-                filters['eventid'] = encodeURIComponent(quickValue);
-            } else {
-                filters['eventinfo'] = encodeURIComponent(quickValue);
-            }
-        }
-
-        document.querySelectorAll('.topbar-filter').forEach(el => {
-            const name  = el.getAttribute('name');
-            const value = el.value;
-            if (!name) return;
-            if (value !== '') filters[name] = value;
-            else delete filters[name];
-        });
-
-        let newUrl = base;
-        Object.keys(filters).forEach(key => {
-            newUrl += '/search' + key + ':' + filters[key];
-        });
-
-        return newUrl;
-    }
 
     document.getElementById('quickFilterButton')?.addEventListener('click', () => {
         window.location.href = buildFilterUrl();
@@ -290,35 +242,6 @@ var selectedItems = new Map();
         });
     });
 
-
-    /*******************************
-     * Multi-Select Toolbar
-     *******************************/
-    function updateMultiSelectToolbar() {
-        const toolbar        = document.getElementById('multiSelectToolbar');
-        const selectedCount  = document.getElementById('selectedCount');
-        const deleteButton   = document.getElementById('multi-delete-button');
-        const editButton   = document.getElementById('mass-edit-button');
-        const count          = selectedItems.size;
-
-        if (count === 0) {
-            toolbar?.classList.add('d-none');
-            return;
-        }
-
-        toolbar?.classList.remove('d-none');
-        if (selectedCount) selectedCount.textContent = count;
-
-        let canDeleteAll = true;
-        selectedItems.forEach(item => {
-            if (!item.canDelete) canDeleteAll = false;
-        });
-
-        const isHidden = !canDeleteAll;
-
-        deleteButton?.classList.toggle('d-none', isHidden);
-        editButton?.classList.toggle('d-none', isHidden);
-    }
 
     /*******************************
      * Checkbox change handler
