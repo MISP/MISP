@@ -55,7 +55,7 @@ memory_limit="2048M"
 
 ## GPG
 GPG_EMAIL_ADDRESS="admin@admin.test"
-GPG_PASSPHRASE="$(openssl rand -hex 32)"
+GPG_PASSPHRASE="$(random_string)"
 
 ### Only needed if no SSL CERT is provided
 OPENSSL_C='LU'
