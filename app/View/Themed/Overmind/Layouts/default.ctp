@@ -320,7 +320,7 @@
                 setTimeout(() => {
                     flash.classList.add('fade-out');
                     setTimeout(() => flash.remove(), 600);
-                }, 10000);
+                }, 5000);
             }
 
             // Debug management
