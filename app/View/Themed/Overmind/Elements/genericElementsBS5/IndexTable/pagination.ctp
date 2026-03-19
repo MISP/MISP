@@ -41,9 +41,29 @@ $pageCount = $params['pageCount'] ?? null;
             <?php endif; ?>
 
             <!-- PAGE NUMBERS -->
+             <?php
+                $maxPagesToShow = 20;
+                $half = floor($maxPagesToShow / 2);
+
+                $start = max(1, $page - $half);
+                $end = min($pageCount, $start + $maxPagesToShow - 1);
+
+                if ($end - $start + 1 < $maxPagesToShow) {
+                    $start = max(1, $end - $maxPagesToShow + 1);
+                }
+            ?>
             <?php if ($pageCount>1): ?>
-                <?php for ($i = 1; $i <= $pageCount; $i++):
-                    $active = ($i == $params['page']);
+                <?php if ($start > 1): ?>
+                    <li class="page-item">
+                        <?= $Paginator->link(1, ['page' => 1], ['class' => 'page-link']) ?>
+                    </li>
+                    <?php if ($start > 2): ?>
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    <?php endif; ?>
+                <?php endif; ?>
+
+                <?php for ($i = $start; $i <= $end; $i++):
+                    $active = ($i == $page);
                 ?>
                     <li class="page-item <?= $active ? 'active' : '' ?>">
                         <?php if ($active): ?>
@@ -53,6 +73,15 @@ $pageCount = $params['pageCount'] ?? null;
                         <?php endif; ?>
                     </li>
                 <?php endfor; ?>
+
+                <?php if ($end < $pageCount): ?>
+                    <?php if ($end < $pageCount - 1): ?>
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    <?php endif; ?>
+                    <li class="page-item">
+                        <?= $Paginator->link($pageCount, ['page' => $pageCount], ['class' => 'page-link']) ?>
+                    </li>
+                <?php endif; ?>
             <?php endif; ?>
 
             <!-- NEXT -->
