@@ -50,12 +50,39 @@ function isMobile() {
     return window.innerWidth < 768;
 }
 
+function setView(view, save = true) {
+    const tableView = document.getElementById('tableView');
+    const cardView  = document.getElementById('cardView');
+    const viewList  = document.getElementById('viewList');
+    const viewCard  = document.getElementById('viewCard');
+    if (view === 'card') {
+        tableView?.classList.add('d-none');
+        cardView?.classList.remove('d-none');
+        viewList?.classList.remove('active');
+        viewCard?.classList.add('active');
+    } else {
+        cardView?.classList.add('d-none');
+        tableView?.classList.remove('d-none');
+        viewCard?.classList.remove('active');
+        viewList?.classList.add('active');
+    }
+
+    if (save) localStorage.setItem('indexViewMode', view);
+}
+
 
 function updateMultiSelectToolbar() {
     const toolbar        = document.getElementById('multiSelectToolbar');
     const selectedCount  = document.getElementById('selectedCount');
     const deleteButton   = document.getElementById('multi-delete-button');
     const editButton     = document.getElementById('mass-edit-button');
+    const tagButton      = document.getElementById('mass-tag-button');
+    const localtagButton = document.getElementById('mass-local-tag-button');
+    const clusterButton  = document.getElementById('mass-cluster-button');
+    const localclusterButton = document.getElementById('mass-local-cluster-button');
+    const objectButton   = document.getElementById('mass-object-button');
+    const relationshipButton = document.getElementById('mass-relationship-button');
+    const sightingButton = document.getElementById('mass-sighting-button');
     const count          = selectedItems.size;
 
     if (count === 0) {
@@ -75,6 +102,13 @@ function updateMultiSelectToolbar() {
 
     deleteButton?.classList.toggle('d-none', isHidden);
     editButton?.classList.toggle('d-none', isHidden);
+    tagButton?.classList.toggle('d-none', isHidden);
+    localtagButton?.classList.toggle('d-none', isHidden);
+    clusterButton?.classList.toggle('d-none', isHidden);
+    localclusterButton?.classList.toggle('d-none', isHidden);
+    objectButton?.classList.toggle('d-none', isHidden);
+    relationshipButton?.classList.toggle('d-none', isHidden);
+    sightingButton?.classList.toggle('d-none', isHidden);
 }
 
 
