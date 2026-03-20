@@ -75,7 +75,7 @@ exec &>${logfile}.pipe
 rm ${logfile}.pipe
 
 function install_packages() {
-    DEBIAN_FRONTEND=noninteractive sudo --preserve-env=DEBIAN_FRONTEND apt-get install -y "$@" &>>$logfile
+    DEBIAN_FRONTEND=noninteractive apt-get install -y "$@" &>>$logfile
     error_check "$@ installation"
 }
 
@@ -175,8 +175,8 @@ SETTINGS_EOF
 }
 
 print_status "Updating base system..."
-sudo apt-get update &>>$logfile
-sudo apt-get upgrade -y &>>$logfile
+apt-get update &>>$logfile
+apt-get upgrade -y &>>$logfile
 error_check "Base system update"
 
 print_status "Installing apt packages (git curl python3 python3-pip python3-virtualenv apache2 zip gcc sudo binutils openssl supervisor)..."
@@ -202,27 +202,27 @@ error_check "PHP and required extensions installation."
 print_status "Installing composer..."
 
 ## make pip and composer happy
-sudo mkdir -p /var/www/.cache/
-sudo chown -R ${APACHE_USER}:${APACHE_USER} /var/www/.cache/
+mkdir -p /var/www/.cache/
+chown -R ${APACHE_USER}:${APACHE_USER} /var/www/.cache/
 
 curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php &>>$logfile
 COMPOSER_HASH=$(curl -sS https://composer.github.io/installer.sig)
 php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '${COMPOSER_HASH}') { exit(0); } unlink('/tmp/composer-setup.php'); exit(1);" &>>$logfile
 error_check "Composer installer verification"
-sudo php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer &>>$logfile
+php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer &>>$logfile
 error_check "Composer installation"
 
 print_status "Configuring php and MySQL configs..."
 for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit; do
-    sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+    sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
 done
-sudo sed -i "s/^\(session.sid_length\).*/\1 = 32/" $PHP_INI
-sudo sed -i "s/^\(session.use_strict_mode\).*/\1 = 1/" $PHP_INI
-sudo sed -i "s/^\(session.save_handler\).*/\1 = redis/" $PHP_INI
+sed -i "s/^\(session.sid_length\).*/\1 = 32/" $PHP_INI
+sed -i "s/^\(session.use_strict_mode\).*/\1 = 1/" $PHP_INI
+sed -i "s/^\(session.save_handler\).*/\1 = redis/" $PHP_INI
 if grep -q "^session.save_path =" "$PHP_INI"; then
-    sudo sed -i "s|^session.save_path =.*|session.save_path = 'tcp://localhost:6379'|" "$PHP_INI"
+    sed -i "s|^session.save_path =.*|session.save_path = 'tcp://localhost:6379'|" "$PHP_INI"
 else
-    sudo sed -i "/session.save_handler/a session.save_path = 'tcp:\/\/localhost:6379'" "$PHP_INI"
+    sed -i "/session.save_handler/a session.save_path = 'tcp:\/\/localhost:6379'" "$PHP_INI"
 fi
 
 MYCNF="/etc/mysql/mariadb.conf.d/z-misp.cnf"
@@ -242,37 +242,37 @@ else
     INNODBBUFFERPOOLSIZE="$(grep MemTotal /proc/meminfo | awk '{print int($2 / 2048)}')M"
 fi
 
-cat <<MARIADB_EOF | sudo tee "$MYCNF" >/dev/null
+cat <<MARIADB_EOF | tee "$MYCNF" >/dev/null
 [mariadb]
 innodb_buffer_pool_size = ${INNODBBUFFERPOOLSIZE}
 innodb_io_capacity = 1000
 innodb_read_io_threads = 16
 MARIADB_EOF
 
-sudo service apache2 restart
+service apache2 restart
 error_check "Apache restart"
-sudo systemctl restart mariadb
+systemctl restart mariadb
 error_check "MariaDB restart"
 
 print_ok "PHP and MySQL configured..."
 
 print_status "Installing PECL extensions..."
 
-sudo pecl channel-update pecl.php.net &>>$logfile || echo "Continuing despite error in updating PECL channel"
-sudo pecl install brotli &>>$logfile
+pecl channel-update pecl.php.net &>>$logfile || echo "Continuing despite error in updating PECL channel"
+pecl install brotli &>>$logfile
 error_check_soft "PECL brotli extension installation" || echo "Continuing despite error in installing PECL brotli extension"
-sudo pecl install simdjson &>>$logfile
+pecl install simdjson &>>$logfile
 error_check_soft "PECL simdjson extension installation" || echo "Continuing despite error in installing PECL simdjson extension"
-sudo pecl install zstd &>>$logfile
+pecl install zstd &>>$logfile
 error_check_soft "PECL zstd extension installation" || echo "Continuing despite error in installing PECL zstd extension"
 
 if [ $INSTALL_SSDEEP == "y" ]; then
-    sudo apt install make -y &>>$logfile
+    apt install make -y &>>$logfile
     error_check "The installation of make" || echo "Continuing despite error in installing make"
 
     # Install libfuzzy-dev and link the .so to somewhere ./configure can pick it up
-    sudo apt install -y libfuzzy-dev
-    sudo ln -sf /usr/lib/x86_64-linux-gnu/libfuzzy.so /usr/lib/libfuzzy.so
+    apt install -y libfuzzy-dev
+    ln -sf /usr/lib/x86_64-linux-gnu/libfuzzy.so /usr/lib/libfuzzy.so
     git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
     error_check "Jakub Onderka's PHP8 SSDEEP extension cloning" || echo "Continuing despite error in cloning SSDEEP extension"
 
@@ -292,7 +292,7 @@ if [ -d "$MISP_PATH" ]; then
         exit 1
     fi
 else
-    sudo git clone -b 2.5 https://github.com/MISP/MISP.git ${MISP_PATH} &>>$logfile
+    git clone -b 2.5 https://github.com/MISP/MISP.git ${MISP_PATH} &>>$logfile
     error_check "MISP cloning"
 fi
 
@@ -303,14 +303,14 @@ git checkout 2.5 &>>$logfile
 error_check "Checking out 2.5 branch"
 
 print_status "Cloning MISP submodules..."
-if ! sudo git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "${MISP_PATH}"; then
-    sudo git config --global --add safe.directory "${MISP_PATH}" &>>$logfile
+if ! git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "${MISP_PATH}"; then
+    git config --global --add safe.directory "${MISP_PATH}" &>>$logfile
 fi
-sudo git -C ${MISP_PATH} submodule update --init --recursive &>>$logfile
+git -C ${MISP_PATH} submodule update --init --recursive &>>$logfile
 error_check "MISP submodules cloning"
-sudo git -C ${MISP_PATH} submodule foreach --recursive git config core.filemode false &>>$logfile
-sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>>$logfile
-sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git &>>$logfile
+git -C ${MISP_PATH} submodule foreach --recursive git config core.filemode false &>>$logfile
+chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>>$logfile
+chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git &>>$logfile
 print_ok "MISP's submodules cloned."
 
 print_status "Installing MISP composer dependencies..."
@@ -359,11 +359,11 @@ DBCONN_ADMIN_STRING="${DBPORT_STRING} ${DBHOST_STRING} ${DBUSER_ADMIN_STRING} ${
 
 DBCONN_MISP_STRING="${DBPORT_STRING} ${DBHOST_STRING} ${DBUSER_MISP_STRING} ${DBPASSWORD_MISP_STRING}"
 
-sudo mysql $DBCONN_ADMIN_STRING -e "CREATE DATABASE IF NOT EXISTS ${DBNAME};" &>>$logfile
-sudo mysql $DBCONN_ADMIN_STRING -e "CREATE USER IF NOT EXISTS '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';" &>>$logfile
-sudo mysql $DBCONN_ADMIN_STRING -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';" &>>$logfile
-sudo mysql $DBCONN_ADMIN_STRING -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';" &>>$logfile
-sudo mysql $DBCONN_ADMIN_STRING -e "FLUSH PRIVILEGES;" &>>$logfile
+mysql $DBCONN_ADMIN_STRING -e "CREATE DATABASE IF NOT EXISTS ${DBNAME};" &>>$logfile
+mysql $DBCONN_ADMIN_STRING -e "CREATE USER IF NOT EXISTS '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';" &>>$logfile
+mysql $DBCONN_ADMIN_STRING -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';" &>>$logfile
+mysql $DBCONN_ADMIN_STRING -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';" &>>$logfile
+mysql $DBCONN_ADMIN_STRING -e "FLUSH PRIVILEGES;" &>>$logfile
 
 if [ "$(mysql -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$DBNAME';")" -eq 0 ]; then
     mysql $DBCONN_MISP_STRING $DBNAME <"${MISP_PATH}/INSTALL/MYSQL.sql" &>>$logfile
@@ -410,7 +410,7 @@ if [ -n "${PATH_TO_SSL_CERT}" ] && [ -n "${PATH_TO_SSL_KEY}" ]; then
     }
 else
     print_notification "Generating self-signed SSL certificate."
-    sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
+    openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
         -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
         -keyout "${SSL_KEY_PATH}" -out "${SSL_CERT_PATH}" &>>$logfile
     error_check "Self-signed SSL certificate generation"
@@ -455,7 +455,7 @@ echo "<VirtualHost _default_:80>
           Header set X-Content-Type-Options nosniff
           Header set X-Frame-Options DENY
           SSLCipherSuite HIGH:!aNULL:!SHA1:!MD5:!DHE:!DH:!ADH
-  </VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-ssl.conf &>>$logfile
+  </VirtualHost>" | tee /etc/apache2/sites-available/misp-ssl.conf &>>$logfile
 
 error_check "Apache configuration file creation" &>>$logfile
 
@@ -505,8 +505,8 @@ chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/venv
 
 print_status "Setting up background workers"
 
-if ! sudo grep -q '^\[inet_http_server\]' /etc/supervisor/supervisord.conf; then
-    sudo tee -a /etc/supervisor/supervisord.conf >/dev/null <<SUPERVISOR_EOF
+if ! grep -q '^\[inet_http_server\]' /etc/supervisor/supervisord.conf; then
+    tee -a /etc/supervisor/supervisord.conf >/dev/null <<SUPERVISOR_EOF
 [inet_http_server]
 port=127.0.0.1:9001
 username=$SUPERVISOR_USER
@@ -514,7 +514,7 @@ password=$SUPERVISOR_PASSWORD
 SUPERVISOR_EOF
 fi
 
-sudo echo "[group:misp-workers]
+echo "[group:misp-workers]
 programs=default,email,cache,prio,update,scheduler
 
 [program:default]
@@ -593,7 +593,7 @@ stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
 stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
 user=$APACHE_USER" | sudo tee /etc/supervisor/conf.d/misp-workers.conf &>>$logfile
 
-sudo systemctl restart supervisor &>>$logfile
+systemctl restart supervisor &>>$logfile
 error_check "Background workers setup"
 
 # Set settings
@@ -741,26 +741,26 @@ sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin updateJSON &>>$logfil
 error_check "JSON structures ingestion"
 
 # Enable modules, settings, and default of SSL in Apache
-sudo a2dismod status &>>$logfile
-sudo a2enmod ssl &>>$logfile
-sudo a2enmod rewrite &>>$logfile
-sudo a2enmod headers &>>$logfile
-sudo a2dissite 000-default &>>$logfile
-sudo a2ensite default-ssl &>>$logfile
+a2dismod status &>>$logfile
+a2enmod ssl &>>$logfile
+a2enmod rewrite &>>$logfile
+a2enmod headers &>>$logfile
+a2dissite 000-default &>>$logfile
+a2ensite default-ssl &>>$logfile
 
 # activate new vhost
-sudo a2dissite default-ssl &>>$logfile
-sudo a2ensite misp-ssl &>>$logfile
+a2dissite default-ssl &>>$logfile
+a2ensite misp-ssl &>>$logfile
 
 # Restart apache
-sudo systemctl restart apache2 &>>$logfile
+systemctl restart apache2 &>>$logfile
 error_check "Apache restart"
 
 print_ok "Settings configured."
 
 print_status "Finalising MISP setup..."
-sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>>$logfile
-sudo chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git &>>$logfile
+chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>>$logfile
+chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git &>>$logfile
 
 save_settings
 
