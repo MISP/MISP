@@ -79,7 +79,7 @@ function install_packages ()
     install_params=("$@")
     for i in "${install_params[@]}";
     do
-        sudo apt-get install -y "$i" &>> $logfile
+        DEBIAN_FRONTEND=noninteractive sudo --preserve-env=DEBIAN_FRONTEND apt-get install -y "$i" &>>$logfile
         error_check "$i installation"
     done
 }
