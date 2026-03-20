@@ -22,49 +22,49 @@ random_string() {
 
 # Configure the following variables in advance for your environment
 ## required settings - please change all of these, failing to do so will result in a non-working installation or a highly insecure installation
-: ${PASSWORD:="$(random_string)"}
-: ${MISP_DOMAIN:='misp.local'}
-: ${MISP_BASEURL:="https://${MISP_DOMAIN}"}
-: ${PATH_TO_SSL_CERT:=''}
-: ${PATH_TO_SSL_KEY:=''}
-: ${INSTALL_SSDEEP:='n'} # y/n, if you want to install ssdeep, set to 'y', however, this will require the installation of make
+: "${PASSWORD:=$(random_string)}"
+: "${MISP_DOMAIN:=misp.local}"
+: "${MISP_BASEURL:=https://${MISP_DOMAIN}}"
+: "${PATH_TO_SSL_CERT:=}"
+: "${PATH_TO_SSL_KEY:=}"
+: "${INSTALL_SSDEEP:=n}" # y/n, if you want to install ssdeep, set to 'y', however, this will require the installation of make
 
 ## optional settings
-: ${MISP_PATH:='/var/www/MISP'}
-: ${APACHE_USER:='www-data'}
+: "${MISP_PATH:=/var/www/MISP}"
+: "${APACHE_USER:=www-data}"
 
 ### DB settings, if you want to use a different DB host, name, user, or password, please change these
-: ${DBHOST:='localhost'}
-: ${DBUSER_ADMIN:='root'}
-: ${DBPASSWORD_ADMIN:=''} # Default on Ubuntu is a passwordless root account, if you have changed it, please set it here
-: ${DBNAME:='misp'}
-: ${DBPORT:='3306'}
-: ${DBUSER_MISP:='misp'}
-: ${DBPASSWORD_MISP:="$(random_string)"}
+: "${DBHOST:=localhost}"
+: "${DBUSER_ADMIN:=root}"
+: "${DBPASSWORD_ADMIN:=}" # Default on Ubuntu is a passwordless root account, if you have changed it, please set it here
+: "${DBNAME:=misp}"
+: "${DBPORT:=3306}"
+: "${DBUSER_MISP:=misp}"
+: "${DBPASSWORD_MISP:=$(random_string)}"
 
 ### Supervisor settings
-: ${SUPERVISOR_USER:='supervisor'}
-: ${SUPERVISOR_PASSWORD:="$(random_string)"}
+: "${SUPERVISOR_USER:=supervisor}"
+: "${SUPERVISOR_PASSWORD:=$(random_string)}"
 
 ### PHP settings
-: ${upload_max_filesize:="50M"}
-: ${post_max_size:="50M"}
-: ${max_execution_time:="300"}
-: ${max_input_time:="300"}
-: ${memory_limit:="2048M"}
+: "${upload_max_filesize:=50M}"
+: "${post_max_size:=50M}"
+: "${max_execution_time:=300}"
+: "${max_input_time:=300}"
+: "${memory_limit:=2048M}"
 
 ## GPG
-: ${GPG_EMAIL_ADDRESS:="admin@admin.test"}
-: ${GPG_PASSPHRASE:="$(random_string)"}
+: "${GPG_EMAIL_ADDRESS:=admin@admin.test}"
+: "${GPG_PASSPHRASE:=$(random_string)}"
 
 ### Only needed if no SSL CERT is provided
-: ${OPENSSL_C:='LU'}
-: ${OPENSSL_ST:='Luxembourg'}
-: ${OPENSSL_L:='Luxembourg'}
-: ${OPENSSL_O:='MISP'}
-: ${OPENSSL_OU:='MISP'}
-: ${OPENSSL_CN:=${MISP_DOMAIN}}
-: ${OPENSSL_EMAILADDRESS:='misp@'${MISP_DOMAIN}}
+: "${OPENSSL_C:=LU}"
+: "${OPENSSL_ST:=Luxembourg}"
+: "${OPENSSL_L:=Luxembourg}"
+: "${OPENSSL_O:=MISP}"
+: "${OPENSSL_OU:=MISP}"
+: "${OPENSSL_CN:=${MISP_DOMAIN}}"
+: "${OPENSSL_EMAILADDRESS:=misp@${MISP_DOMAIN}}"
 
 # Some helper functions shamelessly copied from @da667's automisp install script.
 
@@ -76,7 +76,7 @@ rm ${logfile}.pipe
 
 function install_packages() {
     DEBIAN_FRONTEND=noninteractive apt-get install -y "$@" &>>$logfile
-    error_check "$@ installation"
+    error_check "$* installation"
 }
 
 function error_check {
@@ -127,7 +127,7 @@ function set_misp_setting() {
         print_error "Misp setting require a value and parameter"
         exit 1
     fi
-    sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "$1" "$2" &>>$logfile
+    sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake" Admin setSetting "$1" "$2" &>>$logfile
 }
 
 BLUE="\033[1;34m"
@@ -181,18 +181,18 @@ error_check "Base system update"
 
 print_status "Installing apt packages (git curl python3 python3-pip python3-virtualenv apache2 zip gcc sudo binutils openssl supervisor)..."
 declare -a packages=(git curl python3 python3-pip python3-virtualenv apache2 zip gcc sudo binutils openssl supervisor)
-install_packages ${packages[@]}
+install_packages "${packages[@]}"
 error_check "Basic dependencies installation"
 
 print_status "Installing MariaDB..."
 declare -a packages=(mariadb-server mariadb-client)
-install_packages ${packages[@]}
+install_packages "${packages[@]}"
 error_check "MariaDB installation"
 
 print_status "Installing PHP and the list of required extensions..."
 declare -a packages=(redis-server php8.3 php8.3-cli php8.3-dev php8.3-xml php8.3-mysql php8.3-opcache php8.3-readline php8.3-mbstring php8.3-zip
     php8.3-intl php8.3-bcmath php8.3-gd php8.3-redis php8.3-gnupg php8.3-apcu libapache2-mod-php8.3 php8.3-curl)
-install_packages ${packages[@]}
+install_packages "${packages[@]}"
 PHP_ETC_BASE=/etc/php/8.3
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 error_check "PHP and required extensions installation."
@@ -203,7 +203,7 @@ print_status "Installing composer..."
 
 ## make pip and composer happy
 mkdir -p /var/www/.cache/
-chown -R ${APACHE_USER}:${APACHE_USER} /var/www/.cache/
+chown -R "${APACHE_USER}:${APACHE_USER}" /var/www/.cache/
 
 curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php &>>$logfile
 COMPOSER_HASH=$(curl -sS https://composer.github.io/installer.sig)
@@ -214,7 +214,7 @@ error_check "Composer installation"
 
 print_status "Configuring php and MySQL configs..."
 for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit; do
-    sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+    sed -i "s/^\($key\).*/\1 = $(eval echo \$\{$key\})/" $PHP_INI
 done
 sed -i "s/^\(session.sid_length\).*/\1 = 32/" $PHP_INI
 sed -i "s/^\(session.use_strict_mode\).*/\1 = 1/" $PHP_INI
@@ -266,7 +266,7 @@ error_check_soft "PECL simdjson extension installation" || echo "Continuing desp
 pecl install zstd &>>$logfile
 error_check_soft "PECL zstd extension installation" || echo "Continuing despite error in installing PECL zstd extension"
 
-if [ $INSTALL_SSDEEP == "y" ]; then
+if [ "$INSTALL_SSDEEP" == "y" ]; then
     apt install make -y &>>$logfile
     error_check "The installation of make" || echo "Continuing despite error in installing make"
 
@@ -284,19 +284,19 @@ print_status "Cloning MISP"
 if [ -d "$MISP_PATH" ]; then
     if [ -d "$MISP_PATH/.git" ]; then
         # We have already a repository, ensure it is up to date, this doesn't check it's a MISP one, this allow to have custom git repository installed by the user
-        pushd "$MISP_PATH" &>>$logfile && git pull &>>$logfile
+        pushd "$MISP_PATH" &>>$logfile && git pull &>>$logfile || exit 1
         error_check "MISP updating"
-        popd &>>$logfile
+        popd &>>$logfile || exit 1
     else
         print_error "Directory exists, aborting, please use an non existing repository"
         exit 1
     fi
 else
-    git clone -b 2.5 https://github.com/MISP/MISP.git ${MISP_PATH} &>>$logfile
+    git clone -b 2.5 https://github.com/MISP/MISP.git "${MISP_PATH}" &>>$logfile
     error_check "MISP cloning"
 fi
 
-cd ${MISP_PATH}
+cd "${MISP_PATH}" || exit 1
 git fetch origin 2.5 &>>$logfile
 error_check "Fetching 2.5 branch"
 git checkout 2.5 &>>$logfile
@@ -306,22 +306,22 @@ print_status "Cloning MISP submodules..."
 if ! git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "${MISP_PATH}"; then
     git config --global --add safe.directory "${MISP_PATH}" &>>$logfile
 fi
-git -C ${MISP_PATH} submodule update --init --recursive &>>$logfile
+git -C "${MISP_PATH}" submodule update --init --recursive &>>$logfile
 error_check "MISP submodules cloning"
-git -C ${MISP_PATH} submodule foreach --recursive git config core.filemode false &>>$logfile
-chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>>$logfile
-chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git &>>$logfile
+git -C "${MISP_PATH}" submodule foreach --recursive git config core.filemode false &>>$logfile
+chown -R "${APACHE_USER}:${APACHE_USER}" "${MISP_PATH}" &>>$logfile
+chown -R "${APACHE_USER}:${APACHE_USER}" "${MISP_PATH}/.git" &>>$logfile
 print_ok "MISP's submodules cloned."
 
 print_status "Installing MISP composer dependencies..."
-cd ${MISP_PATH}/app
-sudo -u ${APACHE_USER} composer install --no-dev --no-interaction --prefer-dist &>>$logfile
+cd "${MISP_PATH}/app" || exit 1
+sudo -u "${APACHE_USER}" composer install --no-dev --no-interaction --prefer-dist &>>$logfile
 error_check "MISP composer dependencies installation"
 
 print_status "Create DB and user for MISP as well as importing the basic MISP schema..."
-DBUSER_ADMIN_STRING=''
+declare -a DBUSER_ADMIN_STRING
 if [ "$DBUSER_ADMIN" != 'root' ]; then
-    DBUSER_ADMIN_STRING='-u '"${DBUSER_ADMIN}"
+    DBUSER_ADMIN_STRING=("-u" "${DBUSER_ADMIN}")
 fi
 
 DBPASSWORD_ADMIN_STRING=''
@@ -329,56 +329,55 @@ if [ ! -z "${DBPASSWORD_ADMIN}" ]; then
     DBPASSWORD_ADMIN_STRING='-p'"${DBPASSWORD_ADMIN}"
 fi
 
-DBUSER_MISP_STRING=''
+DBUSER_MISP_STRING=()
 if [ ! -z "${DBUSER_MISP}" ]; then
-    DBUSER_MISP_STRING='-u '"${DBUSER_MISP}"
+    DBUSER_MISP_STRING=('-u' "${DBUSER_MISP}")
 fi
 
 DBPASSWORD_MISP_STRING=''
 if [ -f "Config/database.php" ]; then
-    pushd Config &>>$logfile
+    pushd Config &>>$logfile || exit 1
     print_status "Using existing misp password for database"
     DBPASSWORD_MISP=$(php -r 'include "database.php"; $a = new DATABASE_CONFIG(); echo $a->default["password"];')
     error_check "Existing user pasword"
-    popd &>>$logfile
+    popd &>>$logfile || exit 1
 fi
 if [ ! -z "${DBPASSWORD_MISP}" ]; then
     DBPASSWORD_MISP_STRING='-p'"${DBPASSWORD_MISP}"
 fi
 
-DBHOST_STRING=''
+DBHOST_STRING=()
 if [ ! -z "$DBHOST" ] && [ "$DBHOST" != "localhost" ]; then
-    DBHOST_STRING="-h ${DBHOST}"
+    DBHOST_STRING=("-h" "${DBHOST}")
 fi
 
-DBPORT_STRING=''
+DBPORT_STRING=()
 if [ "$DBPORT" != 3306 ]; then
-    DBPORT_STRING='--port '"${DBPORT}"
+    DBPORT_STRING=("--port" "${DBPORT}")
 fi
-DBCONN_ADMIN_STRING="${DBPORT_STRING} ${DBHOST_STRING} ${DBUSER_ADMIN_STRING} ${DBPASSWORD_ADMIN_STRING}"
+DBCONN_ADMIN_STRING=("${DBPORT_STRING[@]}" "${DBHOST_STRING[@]}" "${DBUSER_ADMIN_STRING[@]}" "${DBPASSWORD_ADMIN_STRING}")
 
-DBCONN_MISP_STRING="${DBPORT_STRING} ${DBHOST_STRING} ${DBUSER_MISP_STRING} ${DBPASSWORD_MISP_STRING}"
+DBCONN_MISP_STRING=("${DBPORT_STRING[@]}" "${DBHOST_STRING[@]}" "${DBUSER_MISP_STRING[@]}" "${DBPASSWORD_MISP_STRING}")
 
-mysql $DBCONN_ADMIN_STRING -e "CREATE DATABASE IF NOT EXISTS ${DBNAME};" &>>$logfile
-mysql $DBCONN_ADMIN_STRING -e "CREATE USER IF NOT EXISTS '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';" &>>$logfile
-mysql $DBCONN_ADMIN_STRING -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';" &>>$logfile
-mysql $DBCONN_ADMIN_STRING -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';" &>>$logfile
-mysql $DBCONN_ADMIN_STRING -e "FLUSH PRIVILEGES;" &>>$logfile
+mysql "${DBCONN_ADMIN_STRING[@]}" -e "CREATE DATABASE IF NOT EXISTS ${DBNAME};" &>>$logfile
+mysql "${DBCONN_ADMIN_STRING[@]}" -e "CREATE USER IF NOT EXISTS '${DBUSER_MISP}'@'localhost' IDENTIFIED BY '${DBPASSWORD_MISP}';" &>>$logfile
+mysql "${DBCONN_ADMIN_STRING[@]}" -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';" &>>$logfile
+mysql "${DBCONN_ADMIN_STRING[@]}" -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';" &>>$logfile
+mysql "${DBCONN_ADMIN_STRING[@]}" -e "FLUSH PRIVILEGES;" &>>$logfile
 
 if [ "$(mysql -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$DBNAME';")" -eq 0 ]; then
-    mysql $DBCONN_MISP_STRING $DBNAME <"${MISP_PATH}/INSTALL/MYSQL.sql" &>>$logfile
+    mysql "${DBCONN_MISP_STRING[@]}" "$DBNAME" <"${MISP_PATH}/INSTALL/MYSQL.sql" &>>$logfile
     error_check "MISP database schema import"
 fi
 
 # get the current gpg passphrase if already set before the config files are overriden
-gpg_existing_pass=$(sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin getSetting "GnuPG.password" 2>/dev/null | grep value | cut -d'"' -f 4)
-if [ $? -eq 0 -a -n "$gpg_existing_pass" ]; then
+if gpg_existing_pass=$(sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake" Admin getSetting "GnuPG.password" 2>/dev/null | grep value | cut -d'"' -f 4) && [ -n "$gpg_existing_pass" ]; then
     print_notification "Reusing existing PGP passphrase"
     GPG_PASSPHRASE="$gpg_existing_pass"
 fi
 print_status "Moving and configuring MISP php config files.."
 
-cd ${MISP_PATH}/app/Config
+cd "${MISP_PATH}/app/Config" || exit 1
 cp -a bootstrap.default.php bootstrap.php
 cp -a database.default.php database.php
 cp -a core.default.php core.php
@@ -459,15 +458,19 @@ echo "<VirtualHost _default_:80>
 
 error_check "Apache configuration file creation" &>>$logfile
 
+# ensure redis is running before import
+systemctl enable --now redis-server.service &>>$logfile
+error_check "Ensure redis is running"
+
 print_status "Running MISP updates"
 
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.osuser" ${APACHE_USER} &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin runUpdates &>>$logfile
+sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake Admin" setSetting "MISP.osuser" "${APACHE_USER}" &>>$logfile
+sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake Admin" runUpdates &>>$logfile
 MISP_USER_KEY_FILE="$(mktemp)"
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake User init >"${MISP_USER_KEY_FILE}"
+sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake" User init >"${MISP_USER_KEY_FILE}"
 MISP_USER_KEY="$(tr -d '\n' <"${MISP_USER_KEY_FILE}")"
 rm -f "${MISP_USER_KEY_FILE}"
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake User change_pw 'admin@admin.test' ${PASSWORD} &>>$logfile
+sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake" User change_pw 'admin@admin.test' "${PASSWORD}" &>>$logfile
 
 print_ok "MISP updated."
 
@@ -475,33 +478,34 @@ print_status "Generating PGP key"
 # The email address should match the one set in the config.php
 # set in the configuration menu in the administration menu configuration file
 
-if ! sudo -u ${APACHE_USER} gpg --homedir "$MISP_PATH/.gnupg" --list-key "${GPG_EMAIL_ADDRESS}" &>/dev/null; then
-    sudo -u ${APACHE_USER} gpg --homedir $MISP_PATH/.gnupg --quick-generate-key --batch --passphrase $GPG_PASSPHRASE ${GPG_EMAIL_ADDRESS} ed25519 sign never &>>$logfile
+if ! sudo -u "${APACHE_USER}" gpg --homedir "$MISP_PATH/.gnupg" --list-key "${GPG_EMAIL_ADDRESS}" &>/dev/null; then
+    sudo -u "${APACHE_USER}" gpg --homedir "$MISP_PATH/.gnupg" --quick-generate-key --batch --passphrase "$GPG_PASSPHRASE" "${GPG_EMAIL_ADDRESS}" ed25519 sign never &>>$logfile
 fi
 error_check "PGP key generation"
-export GPG_TTY=$(tty)
-echo misp | sudo --preserve-env=GPG_TTY -u ${APACHE_USER} gpg --homedir $MISP_PATH/.gnupg -o /dev/null --batch --passphrase $GPG_PASSPHRASE --local-user ${GPG_EMAIL_ADDRESS} --pinentry-mode loopback -as -
+GPG_TTY=$(tty)
+export GPG_TTY
+echo misp | sudo --preserve-env=GPG_TTY -u "${APACHE_USER}" gpg --homedir "$MISP_PATH/.gnupg" -o /dev/null --batch --passphrase "$GPG_PASSPHRASE" --local-user "${GPG_EMAIL_ADDRESS}" --pinentry-mode loopback -as -
 error_check "PGP key passphrase"
 
 # Export the public key to the webroot
-sudo -u ${APACHE_USER} gpg --homedir $MISP_PATH/.gnupg --export --armor ${GPG_EMAIL_ADDRESS} | sudo -u ${APACHE_USER} tee $MISP_PATH/app/webroot/gpg.asc &>>$logfile
+sudo -u "${APACHE_USER}" gpg --homedir "$MISP_PATH/.gnupg" --export --armor "${GPG_EMAIL_ADDRESS}" | sudo -u "${APACHE_USER}" tee "$MISP_PATH/app/webroot/gpg.asc" &>>$logfile
 error_check "PGP key export"
 
 print_status "Setting up Python environment for MISP"
 
 # Create a python3 virtualenv
-sudo -u ${APACHE_USER} virtualenv -p python3 ${MISP_PATH}/venv &>>$logfile
+sudo -u "${APACHE_USER}" virtualenv -p python3 "${MISP_PATH}/venv" &>>$logfile
 error_check "Python virtualenv creation"
 
-cd ${MISP_PATH}
+cd "${MISP_PATH}" || exit 1
 . ./venv/bin/activate &>>$logfile
 error_check "Python virtualenv activation"
 
 # install python dependencies
-${MISP_PATH}/venv/bin/pip install -r ${MISP_PATH}/requirements.txt &>>$logfile
+"${MISP_PATH}/venv/bin/pip" install -r "${MISP_PATH}/requirements.txt" &>>$logfile
 error_check "Python dependencies installation"
 
-chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/venv
+chown -R "${APACHE_USER}:${APACHE_USER}" "${MISP_PATH}/venv"
 
 print_status "Setting up background workers"
 
@@ -640,8 +644,8 @@ set_misp_setting "SimpleBackgroundJobs.redis_password" ""
 set_misp_setting "SimpleBackgroundJobs.redis_namespace" "background_jobs"
 set_misp_setting "SimpleBackgroundJobs.supervisor_host" "localhost"
 set_misp_setting "SimpleBackgroundJobs.supervisor_port" 9001
-set_misp_setting "SimpleBackgroundJobs.supervisor_user" ${SUPERVISOR_USER}
-set_misp_setting "SimpleBackgroundJobs.supervisor_password" ${SUPERVISOR_PASSWORD}
+set_misp_setting "SimpleBackgroundJobs.supervisor_user" "${SUPERVISOR_USER}"
+set_misp_setting "SimpleBackgroundJobs.supervisor_password" "${SUPERVISOR_PASSWORD}"
 set_misp_setting "SimpleBackgroundJobs.redis_serializer" "JSON"
 
 # Various plugin sightings settings
@@ -732,12 +736,8 @@ set_misp_setting "Security.username_in_response_header" true
 
 print_ok "Settings configured."
 
-# ensure redis is running before import
-systemctl enable --now redis-server.service &>>$logfile
-error_check "Ensure redis is running"
-
 print_status "Ingesting JSON structures"
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin updateJSON &>>$logfile
+sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake" Admin updateJSON &>>$logfile
 error_check "JSON structures ingestion"
 
 # Enable modules, settings, and default of SSL in Apache
@@ -759,8 +759,8 @@ error_check "Apache restart"
 print_ok "Settings configured."
 
 print_status "Finalising MISP setup..."
-chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH} &>>$logfile
-chown -R ${APACHE_USER}:${APACHE_USER} ${MISP_PATH}/.git &>>$logfile
+chown -R "${APACHE_USER}:${APACHE_USER}" "${MISP_PATH}" &>>$logfile
+chown -R "${APACHE_USER}:${APACHE_USER}" "${MISP_PATH}/.git" &>>$logfile
 
 save_settings
 
