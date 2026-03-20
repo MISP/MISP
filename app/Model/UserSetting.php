@@ -102,7 +102,7 @@ class UserSetting extends AppModel
         ),
         'event_index_hide_columns' => [
             'placeholder' => ['clusters'],
-            'validation' => 'validate_json',
+            //'validation' => 'validate_json',
         ],
         'oidc' => [ // Data saved by OIDC plugin
             'internal' => true,
