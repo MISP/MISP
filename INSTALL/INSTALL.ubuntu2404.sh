@@ -122,6 +122,14 @@ function os_version_check() {
     fi
 }
 
+function set_misp_setting() {
+    if [ "$#" -ne 2 ]; then
+        print_error "Misp setting require a value and parameter"
+        exit 1
+    fi
+    sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "$1" "$2" &>>$logfile
+}
+
 BLUE="\033[1;34m"
 NC="\033[0m"
 echo -e "${BLUE}███╗   ███╗${NC}██╗███████╗██████╗ "
@@ -590,137 +598,137 @@ error_check "Background workers setup"
 
 # Set settings
 # The default install is Python >=3.6 in a virtualenv, setting accordingly
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.python_bin" "${MISP_PATH}/venv/bin/python" &>>$logfile
+set_misp_setting "MISP.python_bin" "${MISP_PATH}/venv/bin/python"
 
 # Tune global time outs
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Session.autoRegenerate" 0 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Session.timeout" 600 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Session.cookieTimeout" 3600 &>>$logfile
+set_misp_setting "Session.autoRegenerate" 0
+set_misp_setting "Session.timeout" 600
+set_misp_setting "Session.cookieTimeout" 3600
 
 # Set the default temp dir
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.tmpdir" "${MISP_PATH}/app/tmp" &>>$logfile
+set_misp_setting "MISP.tmpdir" "${MISP_PATH}/app/tmp"
 
 # Change base url, either with this CLI command or in the UI
-[[ -n ${MISP_DOMAIN} ]] && sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.baseurl" "${MISP_BASEURL}" &>>$logfile
-[[ -n ${MISP_DOMAIN} ]] && sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.external_baseurl" "${MISP_BASEURL}" &>>$logfile
+[[ -n ${MISP_DOMAIN} ]] && set_misp_setting "MISP.baseurl" "${MISP_BASEURL}"
+[[ -n ${MISP_DOMAIN} ]] && set_misp_setting "MISP.external_baseurl" "${MISP_BASEURL}"
 
 # Enable GnuPG
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "GnuPG.email" "${GPG_EMAIL_ADDRESS}" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "GnuPG.homedir" "${MISP_PATH}/.gnupg" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "GnuPG.password" "${GPG_PASSPHRASE}" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "GnuPG.obscure_subject" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "GnuPG.key_fetching_disabled" false &>>$logfile
+set_misp_setting "GnuPG.email" "${GPG_EMAIL_ADDRESS}"
+set_misp_setting "GnuPG.homedir" "${MISP_PATH}/.gnupg"
+set_misp_setting "GnuPG.password" "${GPG_PASSPHRASE}"
+set_misp_setting "GnuPG.obscure_subject" true
+set_misp_setting "GnuPG.key_fetching_disabled" false
 # FIXME: what if we have not gpg binary but a gpg2 one?
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "GnuPG.binary" "$(which gpg)" &>>$logfile
+set_misp_setting "GnuPG.binary" "$(which gpg)"
 
 # Enable installer org and tune some configurables
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.host_org_id" 1 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.email" "${GPG_EMAIL_ADDRESS}" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.disable_emailing" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.contact" "${GPG_EMAIL_ADDRESS}" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.disablerestalert" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.showCorrelationsOnIndex" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.default_event_tag_collection" 0 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.log_new_audit" 1 &>>$logfile
+set_misp_setting "MISP.host_org_id" 1
+set_misp_setting "MISP.email" "${GPG_EMAIL_ADDRESS}"
+set_misp_setting "MISP.disable_emailing" false
+set_misp_setting "MISP.contact" "${GPG_EMAIL_ADDRESS}"
+set_misp_setting "MISP.disablerestalert" true
+set_misp_setting "MISP.showCorrelationsOnIndex" true
+set_misp_setting "MISP.default_event_tag_collection" 0
+set_misp_setting "MISP.log_new_audit" 1
 
 # Configure background workers
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" 1 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_host" '127.0.0.1' &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_port" 6379 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_database" 13 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_password" "" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_namespace" "background_jobs" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_host" "localhost" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_port" 9001 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_user" ${SUPERVISOR_USER} &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_password" ${SUPERVISOR_PASSWORD} &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_serializer" "JSON" &>>$logfile
+set_misp_setting "SimpleBackgroundJobs.enabled" 1
+set_misp_setting "SimpleBackgroundJobs.redis_host" '127.0.0.1'
+set_misp_setting "SimpleBackgroundJobs.redis_port" 6379
+set_misp_setting "SimpleBackgroundJobs.redis_database" 13
+set_misp_setting "SimpleBackgroundJobs.redis_password" ""
+set_misp_setting "SimpleBackgroundJobs.redis_namespace" "background_jobs"
+set_misp_setting "SimpleBackgroundJobs.supervisor_host" "localhost"
+set_misp_setting "SimpleBackgroundJobs.supervisor_port" 9001
+set_misp_setting "SimpleBackgroundJobs.supervisor_user" ${SUPERVISOR_USER}
+set_misp_setting "SimpleBackgroundJobs.supervisor_password" ${SUPERVISOR_PASSWORD}
+set_misp_setting "SimpleBackgroundJobs.redis_serializer" "JSON"
 
 # Various plugin sightings settings
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.Sightings_policy" 0 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.Sightings_anonymise" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.Sightings_anonymise_as" 1 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.Sightings_range" 365 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.Sightings_sighting_db_enable" false &>>$logfile
+set_misp_setting "Plugin.Sightings_policy" 0
+set_misp_setting "Plugin.Sightings_anonymise" false
+set_misp_setting "Plugin.Sightings_anonymise_as" 1
+set_misp_setting "Plugin.Sightings_range" 365
+set_misp_setting "Plugin.Sightings_sighting_db_enable" false
 
 # ZeroMQ settings
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_host" "127.0.0.1" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_port" 50000 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_port" 6379 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_database" 1 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_include_attachments" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false &>>$logfile
+set_misp_setting "Plugin.ZeroMQ_enable" false
+set_misp_setting "Plugin.ZeroMQ_host" "127.0.0.1"
+set_misp_setting "Plugin.ZeroMQ_port" 50000
+set_misp_setting "Plugin.ZeroMQ_redis_host" "localhost"
+set_misp_setting "Plugin.ZeroMQ_redis_port" 6379
+set_misp_setting "Plugin.ZeroMQ_redis_database" 1
+set_misp_setting "Plugin.ZeroMQ_redis_namespace" "mispq"
+set_misp_setting "Plugin.ZeroMQ_event_notifications_enable" false
+set_misp_setting "Plugin.ZeroMQ_object_notifications_enable" false
+set_misp_setting "Plugin.ZeroMQ_object_reference_notifications_enable" false
+set_misp_setting "Plugin.ZeroMQ_attribute_notifications_enable" false
+set_misp_setting "Plugin.ZeroMQ_sighting_notifications_enable" false
+set_misp_setting "Plugin.ZeroMQ_user_notifications_enable" false
+set_misp_setting "Plugin.ZeroMQ_organisation_notifications_enable" false
+set_misp_setting "Plugin.ZeroMQ_include_attachments" false
+set_misp_setting "Plugin.ZeroMQ_tag_notifications_enable" false
 
 # Force defaults to make MISP Server Settings less RED
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.language" "eng" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.proposals_block_attributes" false &>>$logfile
+set_misp_setting "MISP.language" "eng"
+set_misp_setting "MISP.proposals_block_attributes" false
 
 # Redis block
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_port" 6379 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_database" 13 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_password" "" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_serializer" "JSON" &>>$logfile
+set_misp_setting "MISP.redis_host" "127.0.0.1"
+set_misp_setting "MISP.redis_port" 6379
+set_misp_setting "MISP.redis_database" 13
+set_misp_setting "MISP.redis_password" ""
+set_misp_setting "MISP.redis_serializer" "JSON"
 
 # Force defaults to make MISP Server Settings less YELLOW
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.ssdeep_correlation_threshold" 40 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.extended_alert_subject" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.default_event_threat_level" 4 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.newUserText" "Dear new MISP user,\\n\\nWe would hereby like to welcome you to the \$org MISP community.\\n\\n Use the credentials below to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nPassword: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.passwordResetText" "Dear MISP user,\\n\\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nYour temporary password: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.enableEventBlocklisting" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.enableOrgBlocklisting" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.log_client_ip" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.log_auth" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.log_user_ips" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.log_user_ips_authkeys" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.disableUserSelfManagement" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.disable_user_login_change" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.disable_user_password_change" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.disable_user_add" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.block_event_alert" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.block_event_alert_tag" "no-alerts=\"true\"" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.block_old_event_alert" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.block_old_event_alert_age" "" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.block_old_event_alert_by_date" "" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.event_alert_republish_ban" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.event_alert_republish_ban_threshold" 5 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.event_alert_republish_ban_refresh_on_retry" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.incoming_tags_disabled_by_default" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.attachments_dir" "${MISP_PATH}/app/files" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.download_attachments_on_load" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.event_alert_metadata_only" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.terms_download" false &>>$logfile
+set_misp_setting "MISP.ssdeep_correlation_threshold" 40
+set_misp_setting "MISP.extended_alert_subject" false
+set_misp_setting "MISP.default_event_threat_level" 4
+set_misp_setting "MISP.newUserText" "Dear new MISP user,\\n\\nWe would hereby like to welcome you to the \$org MISP community.\\n\\n Use the credentials below to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nPassword: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
+set_misp_setting "MISP.passwordResetText" "Dear MISP user,\\n\\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nYour temporary password: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
+set_misp_setting "MISP.enableEventBlocklisting" true
+set_misp_setting "MISP.enableOrgBlocklisting" true
+set_misp_setting "MISP.log_client_ip" true
+set_misp_setting "MISP.log_auth" false
+set_misp_setting "MISP.log_user_ips" true
+set_misp_setting "MISP.log_user_ips_authkeys" true
+set_misp_setting "MISP.disableUserSelfManagement" false
+set_misp_setting "MISP.disable_user_login_change" false
+set_misp_setting "MISP.disable_user_password_change" false
+set_misp_setting "MISP.disable_user_add" false
+set_misp_setting "MISP.block_event_alert" false
+set_misp_setting "MISP.block_event_alert_tag" "no-alerts=\"true\""
+set_misp_setting "MISP.block_old_event_alert" false
+set_misp_setting "MISP.block_old_event_alert_age" ""
+set_misp_setting "MISP.block_old_event_alert_by_date" ""
+set_misp_setting "MISP.event_alert_republish_ban" true
+set_misp_setting "MISP.event_alert_republish_ban_threshold" 5
+set_misp_setting "MISP.event_alert_republish_ban_refresh_on_retry" false
+set_misp_setting "MISP.incoming_tags_disabled_by_default" false
+set_misp_setting "MISP.attachments_dir" "${MISP_PATH}/app/files"
+set_misp_setting "MISP.download_attachments_on_load" true
+set_misp_setting "MISP.event_alert_metadata_only" false
+set_misp_setting "MISP.terms_download" false
 
 # Force defaults to make MISP Server Settings less GREEN
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "debug" 0 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.auth_enforced" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.log_each_individual_auth_fail" false &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.rest_client_baseurl" "" &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.advanced_authkeys" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.password_policy_length" 12 &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.password_policy_complexity" '/^((?=.*\\d)|(?=.*\\W+))(?![\\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/' &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators." &>>$logfile
+set_misp_setting "debug" 0
+set_misp_setting "Security.auth_enforced" false
+set_misp_setting "Security.log_each_individual_auth_fail" false
+set_misp_setting "Security.rest_client_baseurl" ""
+set_misp_setting "Security.advanced_authkeys" true
+set_misp_setting "Security.password_policy_length" 12
+set_misp_setting "Security.password_policy_complexity" '/^((?=.*\\d)|(?=.*\\W+))(?![\\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'
+set_misp_setting "Security.self_registration_message" "If you would like to send us a registration request, please fill out the form below. Make sure you fill out as much information as possible in order to ease the task of the administrators."
 
 # Appease the security audit, #hardening
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.disable_browser_cache" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.check_sec_fetch_site_header" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.csp_enforce" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.advanced_authkeys" true &>>$logfile
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.do_not_log_authkeys" true &>>$logfile
+set_misp_setting "Security.disable_browser_cache" true
+set_misp_setting "Security.check_sec_fetch_site_header" true
+set_misp_setting "Security.csp_enforce" true
+set_misp_setting "Security.advanced_authkeys" true
+set_misp_setting "Security.do_not_log_authkeys" true
 
 # Appease the security audit, #loggin
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Security.username_in_response_header" true &>>$logfile
+set_misp_setting "Security.username_in_response_header" true
 
 print_ok "Settings configured."
 
