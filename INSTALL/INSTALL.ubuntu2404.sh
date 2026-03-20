@@ -76,12 +76,8 @@ rm ${logfile}.pipe
 
 function install_packages ()
 {
-    install_params=("$@")
-    for i in "${install_params[@]}";
-    do
-        DEBIAN_FRONTEND=noninteractive sudo --preserve-env=DEBIAN_FRONTEND apt-get install -y "$i" &>>$logfile
-        error_check "$i installation"
-    done
+    DEBIAN_FRONTEND=noninteractive sudo --preserve-env=DEBIAN_FRONTEND apt-get install -y "$@" &>>$logfile
+    error_check "$@ installation"
 }
 
 
