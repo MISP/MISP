@@ -22,49 +22,49 @@ random_string() {
 
 # Configure the following variables in advance for your environment
 ## required settings - please change all of these, failing to do so will result in a non-working installation or a highly insecure installation
-PASSWORD="$(random_string)"
-MISP_DOMAIN='misp.local'
-MISP_BASEURL="https://${MISP_DOMAIN}"
-PATH_TO_SSL_CERT=''
-PATH_TO_SSL_KEY=''
-INSTALL_SSDEEP='n' # y/n, if you want to install ssdeep, set to 'y', however, this will require the installation of make
+: ${PASSWORD:="$(random_string)"}
+: ${MISP_DOMAIN:='misp.local'}
+: ${MISP_BASEURL:="https://${MISP_DOMAIN}"}
+: ${PATH_TO_SSL_CERT:=''}
+: ${PATH_TO_SSL_KEY:=''}
+: ${INSTALL_SSDEEP:='n'} # y/n, if you want to install ssdeep, set to 'y', however, this will require the installation of make
 
 ## optional settings
-MISP_PATH='/var/www/MISP'
-APACHE_USER='www-data'
+: ${MISP_PATH:='/var/www/MISP'}
+: ${APACHE_USER:='www-data'}
 
 ### DB settings, if you want to use a different DB host, name, user, or password, please change these
-DBHOST='localhost'
-DBUSER_ADMIN='root'
-DBPASSWORD_ADMIN='' # Default on Ubuntu is a passwordless root account, if you have changed it, please set it here
-DBNAME='misp'
-DBPORT='3306'
-DBUSER_MISP='misp'
-DBPASSWORD_MISP="$(random_string)"
+: ${DBHOST:='localhost'}
+: ${DBUSER_ADMIN:='root'}
+: ${DBPASSWORD_ADMIN:=''} # Default on Ubuntu is a passwordless root account, if you have changed it, please set it here
+: ${DBNAME:='misp'}
+: ${DBPORT:='3306'}
+: ${DBUSER_MISP:='misp'}
+: ${DBPASSWORD_MISP:="$(random_string)"}
 
 ### Supervisor settings
-SUPERVISOR_USER='supervisor'
-SUPERVISOR_PASSWORD="$(random_string)"
+: ${SUPERVISOR_USER:='supervisor'}
+: ${SUPERVISOR_PASSWORD:="$(random_string)"}
 
 ### PHP settings
-upload_max_filesize="50M"
-post_max_size="50M"
-max_execution_time="300"
-max_input_time="300"
-memory_limit="2048M"
+: ${upload_max_filesize:="50M"}
+: ${post_max_size:="50M"}
+: ${max_execution_time:="300"}
+: ${max_input_time:="300"}
+: ${memory_limit:="2048M"}
 
 ## GPG
-GPG_EMAIL_ADDRESS="admin@admin.test"
-GPG_PASSPHRASE="$(random_string)"
+: ${GPG_EMAIL_ADDRESS:="admin@admin.test"}
+: ${GPG_PASSPHRASE:="$(random_string)"}
 
 ### Only needed if no SSL CERT is provided
-OPENSSL_C='LU'
-OPENSSL_ST='Luxembourg'
-OPENSSL_L='Luxembourg'
-OPENSSL_O='MISP'
-OPENSSL_OU='MISP'
-OPENSSL_CN=${MISP_DOMAIN}
-OPENSSL_EMAILADDRESS='misp@'${MISP_DOMAIN}
+: ${OPENSSL_C:='LU'}
+: ${OPENSSL_ST:='Luxembourg'}
+: ${OPENSSL_L:='Luxembourg'}
+: ${OPENSSL_O:='MISP'}
+: ${OPENSSL_OU:='MISP'}
+: ${OPENSSL_CN:=${MISP_DOMAIN}}
+: ${OPENSSL_EMAILADDRESS:='misp@'${MISP_DOMAIN}}
 
 # Some helper functions shamelessly copied from @da667's automisp install script.
 
