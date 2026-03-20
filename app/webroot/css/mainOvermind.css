@@ -1,3 +1,13 @@
+:root {
+    --bs-link-color : #1892B1;
+    --bs-link-hover-color : #1892B1;
+    --bs-link-color-rgb: 24, 146, 177;
+}
+
+.pagination {
+    --bs-pagination-active-bg: #1892B1;
+    --bs-pagination-active-border-color: #1892B1;
+}
 
 html {
     height: 100%;
