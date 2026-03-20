@@ -733,6 +733,10 @@ error_check "Background workers setup"
 
 print_ok "Settings configured."
 
+# ensure redis is running before import
+systemctl enable --now redis-server.service &>>$logfile
+error_check "Ensure redis is running"
+
 print_status "Ingesting JSON structures"
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin updateJSON &>> $logfile
 error_check "JSON structures ingestion"
