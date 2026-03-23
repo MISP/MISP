@@ -2575,6 +2575,10 @@ class AppModel extends Model
             case 146:
                 $sqlArray[] = "ALTER TABLE `bookmarks` MODIFY `url` TEXT NOT NULL;";
                 break;
+            case 147:
+                // Fix attributes.comment to support 4-byte UTF-8 (emoji) characters
+                $sqlArray[] = "ALTER TABLE `attributes` MODIFY COLUMN `comment` text COLLATE utf8mb4_unicode_ci;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

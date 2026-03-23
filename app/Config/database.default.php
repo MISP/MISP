@@ -38,7 +38,7 @@ class DATABASE_CONFIG {
         'password' => 'db password',
         'database' => 'misp',
         'prefix' => '',
-        'encoding' => 'utf8',
+        'encoding' => 'utf8mb4',
         'flags' => [
             PDO::ATTR_STRINGIFY_FETCHES => true
         ]
