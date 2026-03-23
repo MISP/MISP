@@ -528,9 +528,25 @@ th .sort-icon::before {
 
 .btn-danger-subtle {
     background: #f4c7c7;
-    color: #d33;
 }
 
 .btn-danger-subtle:hover {
     background: #efb6b6;
+}
+
+
+.btn-success-subtle {
+    background: #cbf4c7;
+}
+
+.btn-success-subtle:hover {
+    background: #bbefb6;
+}
+
+.btn-warning-subtle {
+    background: #faead7;
+}
+
+.btn-warning-subtle:hover {
+    background: #fff2cd;
 }
