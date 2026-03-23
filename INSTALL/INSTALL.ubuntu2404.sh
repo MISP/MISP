@@ -511,6 +511,7 @@ print_status "Setting up background workers"
 
 if ! grep -q '^\[inet_http_server\]' /etc/supervisor/supervisord.conf; then
     tee -a /etc/supervisor/supervisord.conf >/dev/null <<SUPERVISOR_EOF
+
 [inet_http_server]
 port=127.0.0.1:9001
 username=$SUPERVISOR_USER
@@ -596,9 +597,6 @@ redirect_stderr=false
 stderr_logfile=$MISP_PATH/app/tmp/logs/misp-workers-errors.log
 stdout_logfile=$MISP_PATH/app/tmp/logs/misp-workers.log
 user=$APACHE_USER" | sudo tee /etc/supervisor/conf.d/misp-workers.conf &>>$logfile
-
-systemctl restart supervisor &>>$logfile
-error_check "Background workers setup"
 
 # Set settings
 # The default install is Python >=3.6 in a virtualenv, setting accordingly
@@ -735,6 +733,9 @@ set_misp_setting "Security.do_not_log_authkeys" true
 set_misp_setting "Security.username_in_response_header" true
 
 print_ok "Settings configured."
+
+systemctl restart supervisor &>>$logfile
+error_check "Background workers setup"
 
 print_status "Ingesting JSON structures"
 sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake" Admin updateJSON &>>$logfile
