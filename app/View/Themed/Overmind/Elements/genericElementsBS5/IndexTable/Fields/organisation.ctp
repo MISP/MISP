@@ -19,15 +19,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
 
     <div class="d-inline-flex align-items-center gap-2 text-nowrap">
 
-        <?php
-        $logoUrl = $baseurl . '/organisations/getOrgLogo/' . h($org['id']);
-        ?>
-
-        <img src="<?= $logoUrl ?>"
-                alt="<?= h($org['name']) ?>"
-                height="24"
-                class="rounded"
-                onerror="this.style.display='none'">
+        <?= $this->OrgImg->getOrgLogoV2($org, 24)?>
 
         <a href="<?= $baseurl ?>/organisations/view/<?= h($org['id']) ?>"
             class="text-decoration-none fw-semibold text-primary">

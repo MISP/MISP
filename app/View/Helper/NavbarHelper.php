@@ -979,7 +979,7 @@ class NavbarHelper extends AppHelper {
             ]
         ];
 
-        $orgLogo = $this->OrgImg->getOrgLogo($me, 20);
+        $orgLogo = $this->OrgImg->getOrgLogoV2($me, 20);
 
         // Remove the <a> wrapper of the logo
         $orgLogo = preg_replace('/<a[^>]*>(.*?)<\/a>/i', '$1', $orgLogo);
