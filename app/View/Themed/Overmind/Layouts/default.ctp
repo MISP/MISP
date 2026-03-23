@@ -17,7 +17,6 @@
             ['controller' => 'events', 'action' => 'view2'],
             ['controller' => 'events', 'action' => 'importChoice'],
 
-
             ['controller' => 'attributes', 'action' => 'index'],
             ['controller' => 'attributes', 'action' => 'delete'],
         ];
@@ -171,10 +170,11 @@
             </div>
             <div>
                 <?php
-                if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login') && !empty($title_for_layout)) {
+                if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login')) {
                     echo $this->element('headerSection', [
-                        'pageTitle' => $title_for_layout,
-                        'headerActions' => $headerActions ?? []
+                        'currentController' => $currentController,
+                        'currentAction' => $currentAction,
+                        'headerActions' => $headerActions ?? [],
                     ]);
                 }
                 ?>

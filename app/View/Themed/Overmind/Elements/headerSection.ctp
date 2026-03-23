@@ -2,8 +2,24 @@
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center">
 
-            <h2 class="fw-semibold mb-0">
-                <?= h($pageTitle) ?>
+            <h2 class="fw-semibold mb-0 d-flex align-items-center">
+                <?php if (isset($currentController)): ?>
+                    <?php if (isset($currentAction)): ?>
+                        <span class="text-white-50 text-capitalize">
+                            <?= h($currentController) ?>
+                        </span>
+
+                        <span class="mx-2 text-white-50">></span>
+
+                        <span class="text-white text-capitalize">
+                            <?= h($currentAction) ?>
+                        </span>
+                    <?php else: ?>
+                        <span class="text-white text-capitalize">
+                            <?= h($currentController) ?>
+                        </span>
+                    <?php endif; ?>
+                <?php endif; ?>
             </h2>
 
             <?php if (!empty($headerActions)): ?>
