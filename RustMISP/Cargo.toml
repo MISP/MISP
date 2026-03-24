@@ -1,0 +1,64 @@
+[package]
+name = "rustmisp"
+version = "0.1.0"
+edition = "2024"
+authors = ["MISP Project <info@misp-project.org>"]
+description = "Rust client library for the MISP REST API"
+license = "AGPL-3.0-only"
+repository = "https://github.com/MISP/RustMISP"
+documentation = "https://docs.rs/rustmisp"
+readme = "README.md"
+keywords = ["misp", "threat-intelligence", "ioc", "security"]
+categories = ["api-bindings", "network-programming"]
+rust-version = "1.85"
+
+[dependencies]
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Async HTTP
+reqwest = { version = "0.12", features = [
+    "json",
+    "rustls-tls",
+], default-features = false }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+# Error handling
+thiserror = "2"
+
+# Logging
+log = "0.4"
+
+# UUID generation
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Date/time
+chrono = { version = "0.4", features = ["serde"] }
+
+# URL handling
+url = "2"
+
+# Base64 for attachment data
+base64 = "0.22"
+
+# Optional: tools dependencies
+sha2 = { version = "0.10", optional = true }
+md-5 = { version = "0.10", optional = true }
+sha1 = { version = "0.10", optional = true }
+csv = { version = "1", optional = true }
+quick-xml = { version = "0.37", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+wiremock = "0.6"
+pretty_assertions = "1"
+
+[features]
+default = []
+blocking = []
+tools-file = ["sha2", "md-5", "sha1"]
+tools-csv = ["csv"]
+tools-openioc = ["quick-xml"]
+tools-feed = []
+tools-all = ["tools-file", "tools-csv", "tools-openioc", "tools-feed"]
