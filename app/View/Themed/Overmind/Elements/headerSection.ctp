@@ -21,15 +21,25 @@
                     <?php endif; ?>
                 <?php endif; ?>
             </h2>
-
             <?php if (!empty($headerActions)): ?>
                 <div class="d-flex gap-2">
                     <?php foreach ($headerActions as $action): ?>
-                        <a href="<?= h($action['url']) ?>"
-                           class="btn bg-white text-primary border-0 shadow-sm fw-semibold d-flex align-items-center gap-2">
-                            <i class="fas fa-<?= h($action['icon']) ?>"></i>
-                            <?= h($action['label']) ?>
-                        </a>
+                        <?php if ($action['type'] === 'link'): ?>
+                            <a href="<?= h($action['url']) ?>"
+                            class="btn bg-white text-primary border-0 shadow-sm fw-semibold d-flex align-items-center gap-2">
+                                <i class="fas fa-<?= h($action['icon']) ?>"></i>
+                                <?= h($action['label']) ?>
+                            </a>
+                        <?php elseif ($action['type'] === 'ajax'): ?>
+                            <a class="btn bg-white text-primary border-0 shadow-sm fw-semibold d-flex align-items-center gap-2"
+                            href="<?= h($action['url']) ?>"
+                            onclick="event.preventDefault(); openModal('<?= h($action['url']) ?>');">
+                                <div>
+                                    <i class="fas fa-<?= h($action['icon']) ?>"></i>
+                                    <?= h($action['label']) ?>
+                                </div>
+                            </a>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>

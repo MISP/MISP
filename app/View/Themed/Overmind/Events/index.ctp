@@ -163,9 +163,10 @@ $fields = [
 if ($this->Acl->canAccess('events', 'add')) {
     $this->set('headerActions', [
         [
-            'url' => $baseurl . '/events/add',
+            'type' => 'link',
             'label' => __('Add Event'),
-            'icon' => 'plus'
+            'icon' => 'plus',
+            'url' => $baseurl . '/events/add'
         ]
     ]);
 }
@@ -193,7 +194,10 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'button' => 'Search',
-                        'placeholder' => 'Search by info, ID or UUID'
+                        'placeholder' => 'Search by info, ID or UUID',
+                        'name'        => 'eventinfo',
+                        'mode'        => 'legacy',
+                        'id_field'    => 'eventid',
                     ],
                     [
                         'type' => 'button',
