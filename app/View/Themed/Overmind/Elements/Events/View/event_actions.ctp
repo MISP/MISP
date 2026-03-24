@@ -55,7 +55,7 @@ $actions = [
     ]
 ];
 
-if (!$isPublished) {
+if (!$isPublished && ($isSiteAdmin || ($mayModify && $canPublish))) {
     $actions[] = [
         'url' => "",
         'onclick' => "event.preventDefault(); openModal('$baseurl/events/publish/$eventId');",
@@ -63,7 +63,7 @@ if (!$isPublished) {
         'label' => __('Publish Event'),
         'success' => true
     ];
-} else {
+} else if($isPublished && ($isSiteAdmin || ($mayModify && $canPublish))) {
     $actions[] = [
         'url' => "",
         'onclick' => "event.preventDefault(); openModal('$baseurl/events/unpublish/$eventId');",
@@ -73,14 +73,16 @@ if (!$isPublished) {
     ];
 }
 
+if ($isSiteAdmin || $mayModify) {
+    $actions[] = [
+        'url' => "$baseurl/events/delete/$eventId",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/events/delete/$eventId');",
+        'icon' => 'fas fa-trash',
+        'label' => __('Delete Event'),
+        'danger' => true
+    ];
+}
 
-$actions[] = [
-    'url' => "$baseurl/events/delete/$eventId",
-    'onclick' => "event.preventDefault(); openModal('$baseurl/events/delete/$eventId');",
-    'icon' => 'fas fa-trash',
-    'label' => __('Delete Event'),
-    'danger' => true
-];
 
 echo $this->element('genericElementsBS5/Cards/card_actions', [
     'actions' => $actions

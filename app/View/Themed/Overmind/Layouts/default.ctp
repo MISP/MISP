@@ -19,6 +19,12 @@
 
             ['controller' => 'attributes', 'action' => 'index'],
             ['controller' => 'attributes', 'action' => 'delete'],
+
+            ['controller' => 'collections', 'action' => 'index'],
+            ['controller' => 'collections', 'action' => 'view'],
+            ['controller' => 'collections', 'action' => 'add'],
+            ['controller' => 'collections', 'action' => 'edit'],
+            ['controller' => 'CollectionElements', 'action' => 'add'],
         ];
 
         $currentController = $this->params['controller'];
@@ -209,7 +215,7 @@
     <div id="confirmation_box"></div>
     <div id="gray_out"></div>
     <div class="modal fade" id="mainModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered justify-content-center">
+        <div class="modal-dialog modal-dialog-centered justify-content-center modal-xl">
             <div class="modal-content border-0 w-auto">
                 <!-- Supprime complètement le padding ici -->
                 <div class="modal-body p-0 m-0" id="mainModalBody">

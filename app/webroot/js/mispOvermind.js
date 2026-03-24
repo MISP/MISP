@@ -1,12 +1,25 @@
 /*******************************
  * Index Filtering Bar
  *******************************/
- 
- function openModal(url) {
+function openModal(url) {
     fetch(url)
         .then(response => response.text())
         .then(html => {
-            document.getElementById('mainModalBody').innerHTML = html;
+            const container = document.getElementById('mainModalBody');
+            container.innerHTML = html;
+            // Execute script if defined in the modal
+            container.querySelectorAll('script').forEach(oldScript => {
+                const newScript = document.createElement('script');
+                if (oldScript.src) {
+                    newScript.src = oldScript.src;
+                } else {
+                    newScript.textContent = oldScript.textContent;
+                }
+                document.body.appendChild(newScript);
+                document.body.removeChild(newScript);
+            });
+            initTomSelect(container);
+            initCollectionForm(container); //Not really great, temp solution
             let modal = new bootstrap.Modal(document.getElementById('mainModal'));
             modal.show();
         });
@@ -127,20 +140,27 @@ function buildFilterUrl() {
         });
     }
 
-    const quickField = document.getElementById('quickFilterField');
-    const quickValue = quickField ? quickField.value.trim() : '';
+    const filterField = document.getElementById('filterField');
+    const quickValue = filterField ? filterField.value.trim() : '';
 
-    delete filters['eventinfo'];
-    delete filters['eventid'];
+    if (filterBarConfig.mode === 'legacy') {
+        delete filters[filterBarConfig.searchField];
+        if (filterBarConfig.idField) delete filters[filterBarConfig.idField];
 
-    if (quickValue !== '') {
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const numberRegex = /^[0-9]+$/;
+        if (quickValue !== '') {
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            const numberRegex = /^[0-9]+$/;
 
-        if (uuidRegex.test(quickValue) || numberRegex.test(quickValue)) {
-            filters['eventid'] = encodeURIComponent(quickValue);
-        } else {
-            filters['eventinfo'] = encodeURIComponent(quickValue);
+            if (filterBarConfig.idField && (uuidRegex.test(quickValue) || numberRegex.test(quickValue))) {
+                filters[filterBarConfig.idField] = encodeURIComponent(quickValue);
+            } else {
+                filters[filterBarConfig.searchField] = encodeURIComponent(quickValue);
+            }
+        }
+    } else {
+        delete filters['quickFilter'];
+        if (quickValue !== '') {
+            filters['quickFilter'] = encodeURIComponent(quickValue);
         }
     }
 
@@ -153,9 +173,15 @@ function buildFilterUrl() {
     });
 
     let newUrl = base;
-    Object.keys(filters).forEach(key => {
-        newUrl += '/search' + key + ':' + filters[key];
-    });
+    if (filterBarConfig.mode === 'legacy') {
+        Object.keys(filters).forEach(key => {
+            newUrl += '/search' + key + ':' + filters[key];
+        });
+    } else {
+        Object.keys(filters).forEach(key => {
+            newUrl += '/' + key + ':' + filters[key];
+        });
+    }
 
     return newUrl;
 }
@@ -251,4 +277,108 @@ async function getPopup(id, context, target, admin, popupType) {
             xhrFailCallback(error);
         }
     }
+}
+
+
+
+function publishPopup(id, type, scope) {
+    scope = scope === undefined ? 'events' : scope;
+    let action = "alert";
+
+    if (type === "publish") action = "publish";
+    else if (type === "unpublish") action = "unpublish";
+    else if (type === "sighting") action = "publishSightings";
+
+    fetch(`${baseurl}/${scope}/${action}/${id}`)
+        .then(response => {
+            if (!response.ok) throw response;
+            return response.json();
+        })
+        .then(data => openConfirmation(data))
+        .catch(error => {
+            if (typeof xhrFailCallback === 'function') xhrFailCallback(error);
+        });
+}
+
+
+function openConfirmation(data) {
+    const box = document.getElementById("confirmation_box");
+    if (box) {
+        box.innerHTML = data;
+        openPopup(box);
+    }
+}
+
+
+function openPopup(id, adjust_layout = true, callback) {
+    const el = (typeof id === 'string') ? document.querySelector(id) : id;
+    const grayOut = document.getElementById("gray_out");
+
+    if (!el) return;
+
+    if (adjust_layout) {
+        el.style.top = '';
+        el.style.height = '';
+        el.classList.remove('vertical-scroll');
+
+        const windowHeight = window.innerHeight;
+        const popupHeight = el.offsetHeight;
+
+        if (windowHeight < popupHeight) {
+            el.style.top = "50px";
+            el.style.height = (windowHeight - 50) + "px";
+            el.classList.add('vertical-scroll');
+        } else {
+            let topOffset;
+            if (windowHeight > (300 + popupHeight)) {
+                topOffset = ((windowHeight - popupHeight) / 2) - 125;
+            } else {
+                topOffset = (windowHeight - popupHeight) / 2;
+            }
+            el.style.top = topOffset + "px";
+        }
+    }
+
+    if (grayOut) {
+        grayOut.style.display = 'block';
+        grayOut.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400 });
+    }
+
+    el.style.display = 'block';
+    const animation = el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400 });
+
+    animation.onfinish = () => {
+        if (typeof callback === 'function') {
+            callback();
+        }
+    };
+}
+
+function initTomSelect(container) {
+    container.querySelectorAll('.tom-select').forEach(el => {
+        if (!el.tomselect) {
+            new TomSelect(el, {});
+        }
+    });
+}
+
+
+function initCollectionForm(container) {
+
+    const distributionSelect = container.querySelector('#distribution-select');
+    const sgContainer = container.querySelector('#sg-container');
+
+    if (!distributionSelect || !sgContainer) return;
+
+    function toggleSharingGroup() {
+        if (parseInt(distributionSelect.value) === 4) {
+            sgContainer.classList.remove('d-none');
+        } else {
+            sgContainer.classList.add('d-none');
+        }
+    }
+
+    toggleSharingGroup();
+
+    distributionSelect.addEventListener('change', toggleSharingGroup);
 }
