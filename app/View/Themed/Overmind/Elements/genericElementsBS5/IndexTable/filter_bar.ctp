@@ -7,13 +7,13 @@ if (empty($filter_bar)) {
 $currentPath = $this->request->here(false);
 $currentFilters = [];
 
-if (preg_match('/\/search(.+)/', $currentPath, $matches)) {
-    $parts = explode('/search', $matches[1]);
-
-    foreach ($parts as $part) {
-        if (strpos($part, ':') !== false) {
-            list($key, $value) = explode(':', $part);
-            $currentFilters[$key] = $value;
+if (preg_match('~/index/(.+)~', $currentPath, $matches)) {
+    $segments = explode('/', $matches[1]);
+    foreach ($segments as $segment) {
+        if (strpos($segment, ':') !== false) {
+            list($key, $value) = explode(':', $segment, 2);
+            $cleanKey = preg_replace('/^search/', '', $key);
+            $currentFilters[$cleanKey] = $value;
         }
     }
 }
@@ -31,16 +31,20 @@ $hasActiveFilters = !empty($currentFilters);
             </label>
 
             <div class="input-group">
+                <?php
+                $searchKey = ($searchChild['mode'] ?? 'quickFilter') === 'legacy'
+                    ? ($searchChild['name'] ?? 'quickFilter')
+                    : 'quickFilter';
+                ?>
                 <input
-                    id="quickFilterField"
-                    type="text"
-                    name="eventinfo"
                     class="form-control"
+                    id="filterField"
+                    type="text"
                     placeholder="<?= $child['placeholder'] ?>"
-                    value="<?= isset($currentFilters['eventinfo']) ? h($currentFilters['eventinfo']) : '' ?>"
+                    value="<?= isset($currentFilters[$searchKey]) ? h(urldecode($currentFilters[$searchKey])) : '' ?>"
                 >
                 <button
-                    id="quickFilterButton"
+                    id="filterButton"
                     class="btn btn-primary"
                     type="button"
                 >
@@ -298,6 +302,22 @@ $hasActiveFilters = !empty($currentFilters);
 var baseIndexUrl = "<?php echo h($baseurl . $item_url . '/index'); ?>";
 var selectedItems = new Map();
 
+<?php
+$searchChild = null;
+foreach ($filter_bar['children'] as $child) {
+    if ($child['type'] === 'search') {
+        $searchChild = $child;
+        break;
+    }
+}
+?>
+var filterBarConfig = <?= json_encode([
+    'mode'         => $searchChild['mode'] ?? 'quickFilter',
+    'searchField'  => $searchChild['name'] ?? 'quickFilter',
+    'idField'      => $searchChild['id_field'] ?? null,
+])
+?>;
+
 function setView(view, save = true) {
     const tableView = document.getElementById('tableView');
     const cardView  = document.getElementById('cardView');
@@ -332,11 +352,11 @@ function setView(view, save = true) {
     setView(savedView ? savedView : (isMobile() ? 'card' : 'table'), false);
 
 
-    document.getElementById('quickFilterButton')?.addEventListener('click', () => {
+    document.getElementById('filterButton')?.addEventListener('click', () => {
         window.location.href = buildFilterUrl();
     });
 
-    document.getElementById('quickFilterField')?.addEventListener('keypress', function(e) {
+    document.getElementById('filterField')?.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') window.location.href = buildFilterUrl();
     });
 

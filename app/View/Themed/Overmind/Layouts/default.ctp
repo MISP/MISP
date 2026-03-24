@@ -17,9 +17,14 @@
             ['controller' => 'events', 'action' => 'view2'],
             ['controller' => 'events', 'action' => 'importChoice'],
 
-
             ['controller' => 'attributes', 'action' => 'index'],
             ['controller' => 'attributes', 'action' => 'delete'],
+
+            ['controller' => 'collections', 'action' => 'index'],
+            ['controller' => 'collections', 'action' => 'view'],
+            ['controller' => 'collections', 'action' => 'add'],
+            ['controller' => 'collections', 'action' => 'edit'],
+            ['controller' => 'CollectionElements', 'action' => 'add'],
         ];
 
         $currentController = $this->params['controller'];
@@ -171,10 +176,11 @@
             </div>
             <div>
                 <?php
-                if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login') && !empty($title_for_layout)) {
+                if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login')) {
                     echo $this->element('headerSection', [
-                        'pageTitle' => $title_for_layout,
-                        'headerActions' => $headerActions ?? []
+                        'currentController' => $currentController,
+                        'currentAction' => $currentAction,
+                        'headerActions' => $headerActions ?? [],
                     ]);
                 }
                 ?>
@@ -209,7 +215,7 @@
     <div id="confirmation_box"></div>
     <div id="gray_out"></div>
     <div class="modal fade" id="mainModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered justify-content-center">
+        <div class="modal-dialog modal-dialog-centered justify-content-center modal-xl">
             <div class="modal-content border-0 w-auto">
                 <!-- Supprime complètement le padding ici -->
                 <div class="modal-body p-0 m-0" id="mainModalBody">

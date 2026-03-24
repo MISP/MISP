@@ -3,7 +3,6 @@ $Paginator = $this->Paginator;
 $params = $Paginator->params();
 $page = $params['page'] ?? 1;
 $pageCount = $params['pageCount'] ?? null;
-
 ?>
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -85,7 +84,7 @@ $pageCount = $params['pageCount'] ?? null;
             <?php endif; ?>
 
             <!-- NEXT -->
-            <?php if ($Paginator->hasNext()): ?>
+            <?php if ($Paginator->hasNext() && $pageCount>1 ): ?>
                 <li class="page-item">
                     <?php
                     echo $Paginator->next(
