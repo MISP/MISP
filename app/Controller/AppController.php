@@ -320,6 +320,8 @@ class AppController extends Controller
 
                     }
                 }
+            } else {
+                $this->set('themes', []);
             }
         }
         $this->set('themeLabels', $themeLabels);
