@@ -69,6 +69,9 @@ class CLIShell extends AppShell
     /** @var array Current page of results for browse mode */
     private $__browseData = [];
 
+    /** @var array Active browse-mode filters as raw key=value strings */
+    private $__browseFilters = [];
+
     /** @var bool Whether stdout is a TTY */
     private $__isTty = false;
 
@@ -720,6 +723,13 @@ class CLIShell extends AppShell
                 . $entity . ' requires site admin access.'
             );
             return;
+        }
+
+        $this->__browseFilters = [];
+        foreach ($args as $arg) {
+            if (strpos($arg, '=') !== false) {
+                $this->__browseFilters[] = $arg;
+            }
         }
 
         $filters = $this->__parseFilters($args);
@@ -1736,6 +1746,42 @@ class CLIShell extends AppShell
                     $redraw = true;
                     break;
 
+                case 'f':
+                    $this->__exitRawMode();
+                    $changed = $this->__filterBar($entity);
+                    if ($changed) {
+                        $allArgs = $this->__browseFilters;
+                        $filters = $this->__parseFilters(
+                            $allArgs
+                        );
+                        if (!isset($filters['limit'])) {
+                            $filters['limit'] =
+                                $this->__perPage;
+                        }
+                        $filters['page'] = 1;
+                        $this->__page = 1;
+                        $this->__lastQuery = [
+                            'entity' => $entity,
+                            'filters' => $filters,
+                        ];
+                        $results = $this->__fetchList(
+                            $entity, $filters
+                        );
+                        if (empty($results)) {
+                            $this->__browseData = [];
+                            $totalResults = 0;
+                        } else {
+                            $this->__browseData = $results;
+                            $totalResults =
+                                count($this->__browseData);
+                        }
+                        $this->__selectedIndex = 0;
+                        $this->__viewportOffset = 0;
+                    }
+                    $this->__enterRawMode();
+                    $redraw = true;
+                    break;
+
                 case 'q':
                 case 'ESCAPE':
                     break 2;
@@ -1868,6 +1914,15 @@ class CLIShell extends AppShell
             $this->out('');
         }
 
+        if (!empty($this->__browseFilters)) {
+            $filterStr = implode(
+                '  ', $this->__browseFilters
+            );
+            $this->out(
+                ' Active filters: ' . $filterStr
+            );
+        }
+
         $this->out('');
         $totalPages = 1;
         if (
@@ -1880,7 +1935,7 @@ class CLIShell extends AppShell
         }
         $footer = ' [' . "\xe2\x86\x91" . '/'
             . "\xe2\x86\x93" . '/j/k] Navigate'
-            . '  [Enter] View  [e] Edit  [d] Delete'
+            . '  [Enter] View  [f] Filter'
             . '  [q] Back  [n/p] Page';
         $pageInfo = '  Page ' . $this->__page . '/'
             . $totalPages;
@@ -2146,6 +2201,357 @@ class CLIShell extends AppShell
         }
 
         return $ch;
+    }
+
+    /**
+     * Interactive filter bar for browse mode.
+     *
+     * Shows active filters, accepts input for adding/removing
+     * filters. Supports tab-completion for keys and values.
+     * Enter with empty input closes the filter bar.
+     * -key removes a filter, -- clears all.
+     *
+     * @param string $entity Entity name for completions
+     * @return bool Whether filters changed
+     */
+    private function __filterBar($entity)
+    {
+        $changed = false;
+
+        while (true) {
+            $this->out('');
+            if (!empty($this->__browseFilters)) {
+                $this->out(
+                    ' Active filters: '
+                    . implode('  ', $this->__browseFilters)
+                );
+            } else {
+                $this->out(' No active filters.');
+            }
+
+            $this->out(
+                ' [Enter] Apply  [Tab] Autocomplete'
+                . '  [-key] Remove  [--] Clear all'
+                . '  [empty] Close'
+            );
+            $this->out(
+                " \xe2\x96\xb8 Filter: ", 0
+            );
+
+            $input = $this->__readFilterLine($entity);
+
+            if ($input === false || $input === '') {
+                break;
+            }
+
+            if ($input === '--') {
+                if (!empty($this->__browseFilters)) {
+                    $this->__browseFilters = [];
+                    $changed = true;
+                    $this->out(' All filters cleared.');
+                }
+                continue;
+            }
+
+            if (
+                strpos($input, '-') === 0
+                && strpos($input, '=') === false
+            ) {
+                $removeKey = substr($input, 1);
+                $found = false;
+                $newFilters = [];
+                foreach ($this->__browseFilters as $f) {
+                    $eqPos = strpos($f, '=');
+                    $fKey = $eqPos !== false
+                        ? substr($f, 0, $eqPos) : $f;
+                    if ($fKey === $removeKey) {
+                        $found = true;
+                        continue;
+                    }
+                    $newFilters[] = $f;
+                }
+                if ($found) {
+                    $this->__browseFilters = $newFilters;
+                    $changed = true;
+                    $this->out(
+                        ' Removed filter: ' . $removeKey
+                    );
+                } else {
+                    $this->out(
+                        ' No filter with key: '
+                        . $removeKey
+                    );
+                }
+                continue;
+            }
+
+            if (strpos($input, '=') !== false) {
+                $eqPos = strpos($input, '=');
+                $newKey = substr($input, 0, $eqPos);
+                $newFilters = [];
+                foreach ($this->__browseFilters as $f) {
+                    $fEq = strpos($f, '=');
+                    $fKey = $fEq !== false
+                        ? substr($f, 0, $fEq) : $f;
+                    if ($fKey !== $newKey) {
+                        $newFilters[] = $f;
+                    }
+                }
+                $newFilters[] = $input;
+                $this->__browseFilters = $newFilters;
+                $changed = true;
+                $this->out(' Applied filter: ' . $input);
+            }
+        }
+
+        return $changed;
+    }
+
+    /**
+     * Read a filter input line with tab-completion.
+     *
+     * Reads character by character in cooked mode. Handles
+     * Tab for completion, Backspace for editing, Enter to
+     * submit, Ctrl+U to clear line, Escape to cancel.
+     *
+     * @param string $entity Entity name for completions
+     * @return string|false Input line or false on cancel
+     */
+    private function __readFilterLine($entity)
+    {
+        if (!$this->__isTty) {
+            $line = fgets($this->__stdin);
+            if ($line === false) {
+                return false;
+            }
+            return trim($line);
+        }
+
+        $buf = '';
+        shell_exec('stty -icanon -echo 2>/dev/null');
+
+        while (true) {
+            $ch = fread($this->__stdin, 1);
+            if ($ch === false || $ch === '') {
+                shell_exec('stty icanon echo 2>/dev/null');
+                return false;
+            }
+
+            if ($ch === "\n" || $ch === "\r") {
+                $this->out('');
+                shell_exec('stty icanon echo 2>/dev/null');
+                return $buf;
+            }
+
+            if ($ch === "\033") {
+                $seq = fread($this->__stdin, 1);
+                if ($seq === '[') {
+                    fread($this->__stdin, 1);
+                }
+                shell_exec('stty icanon echo 2>/dev/null');
+                return false;
+            }
+
+            if (ord($ch) === 21) {
+                $eraseLen = strlen($buf);
+                $this->out(
+                    str_repeat("\x08", $eraseLen)
+                    . str_repeat(' ', $eraseLen)
+                    . str_repeat("\x08", $eraseLen),
+                    0
+                );
+                $buf = '';
+                continue;
+            }
+
+            if ($ch === "\x7f" || ord($ch) === 8) {
+                if (strlen($buf) > 0) {
+                    $buf = substr($buf, 0, -1);
+                    $this->out("\x08 \x08", 0);
+                }
+                continue;
+            }
+
+            if ($ch === "\t") {
+                $completion = $this->__tabComplete(
+                    $buf, $entity
+                );
+                if (
+                    $completion !== null
+                    && $completion !== $buf
+                ) {
+                    $eraseLen = strlen($buf);
+                    $this->out(
+                        str_repeat("\x08", $eraseLen)
+                        . str_repeat(' ', $eraseLen)
+                        . str_repeat("\x08", $eraseLen),
+                        0
+                    );
+                    $buf = $completion;
+                    $this->out($buf, 0);
+                }
+                continue;
+            }
+
+            if (ord($ch) >= 32) {
+                $buf .= $ch;
+                $this->out($ch, 0);
+            }
+        }
+    }
+
+    /**
+     * Tab-complete a partial filter input.
+     *
+     * Completes filter keys (before =) and values (after =)
+     * for type, category, tag, and org fields.
+     *
+     * @param string $buf Current input buffer
+     * @param string $entity Entity name
+     * @return string|null Completed string or null
+     */
+    private function __tabComplete($buf, $entity)
+    {
+        $filterKeys = [
+            'type', 'category', 'tag', 'tag+', 'org',
+            'value', 'to_ids', 'from', 'to', 'last',
+            'published', 'threat_level_id', 'analysis',
+            'searchall', 'eventid', 'uuid', 'timestamp',
+            'publish_timestamp', 'object_name',
+            'object_relation', 'first_seen', 'last_seen',
+            'deleted', 'includeCorrelations', 'limit',
+            'page', 'order',
+        ];
+
+        if (strpos($buf, '=') === false) {
+            $matches = [];
+            foreach ($filterKeys as $key) {
+                if (
+                    $buf === ''
+                    || strpos($key, $buf) === 0
+                ) {
+                    $matches[] = $key . '=';
+                }
+            }
+            if (count($matches) === 1) {
+                return $matches[0];
+            }
+            return null;
+        }
+
+        $eqPos = strpos($buf, '=');
+        $key = substr($buf, 0, $eqPos);
+        $partial = substr($buf, $eqPos + 1);
+
+        $lastComma = strrpos($partial, ',');
+        if ($lastComma !== false) {
+            $prefix = substr($partial, 0, $lastComma + 1);
+            $fragment = substr($partial, $lastComma + 1);
+        } else {
+            $prefix = '';
+            $fragment = $partial;
+        }
+
+        if (strpos($fragment, '!') === 0) {
+            $neg = '!';
+            $fragment = substr($fragment, 1);
+        } else {
+            $neg = '';
+        }
+
+        $candidates = $this->__getCompletionValues(
+            $key, $entity
+        );
+        if (empty($candidates)) {
+            return null;
+        }
+
+        $matches = [];
+        foreach ($candidates as $c) {
+            if (
+                $fragment === ''
+                || stripos($c, $fragment) === 0
+            ) {
+                $matches[] = $c;
+            }
+        }
+
+        if (count($matches) === 1) {
+            return $key . '='
+                . $prefix . $neg . $matches[0];
+        }
+
+        return null;
+    }
+
+    /**
+     * Get completion values for a filter key.
+     *
+     * @param string $key Filter key
+     * @param string $entity Entity name
+     * @return array Candidate values
+     */
+    private function __getCompletionValues($key, $entity)
+    {
+        if ($key === 'type') {
+            if (
+                property_exists(
+                    $this->MispAttribute, 'typeDefinitions'
+                )
+            ) {
+                return array_keys(
+                    $this->MispAttribute->typeDefinitions
+                );
+            }
+            return [];
+        }
+
+        if ($key === 'category') {
+            if (
+                property_exists(
+                    $this->MispAttribute,
+                    'categoryDefinitions'
+                )
+            ) {
+                return array_keys(
+                    $this->MispAttribute
+                        ->categoryDefinitions
+                );
+            }
+            return [];
+        }
+
+        if ($key === 'tag' || $key === 'tag+') {
+            $tags = $this->Tag->find('list', [
+                'fields' => ['Tag.name'],
+                'limit' => 200,
+                'order' => ['Tag.name' => 'ASC'],
+            ]);
+            return array_values($tags);
+        }
+
+        if ($key === 'org') {
+            $orgs = $this->Organisation->find('list', [
+                'fields' => ['Organisation.name'],
+                'limit' => 200,
+                'order' => ['Organisation.name' => 'ASC'],
+            ]);
+            return array_values($orgs);
+        }
+
+        if ($key === 'threat_level_id') {
+            return ['1', '2', '3', '4'];
+        }
+
+        if ($key === 'analysis') {
+            return ['0', '1', '2'];
+        }
+
+        if ($key === 'published' || $key === 'to_ids') {
+            return ['0', '1'];
+        }
+
+        return [];
     }
 
     /**
