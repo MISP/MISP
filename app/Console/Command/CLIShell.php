@@ -72,6 +72,138 @@ class CLIShell extends AppShell
     /** @var array Active browse-mode filters as raw key=value strings */
     private $__browseFilters = [];
 
+    /**
+     * Field metadata for interactive prompting.
+     * Maps entity => field => config with type, required,
+     * options, help text.
+     *
+     * @var array
+     */
+    private $__fieldMeta = [
+        'event' => [
+            'info' => [
+                'type' => 'string',
+                'required' => true,
+                'help' => 'Event description/title',
+            ],
+            'date' => [
+                'type' => 'date',
+                'required' => false,
+                'help' => 'Event date (YYYY-MM-DD)',
+                'default' => 'today',
+            ],
+            'distribution' => [
+                'type' => 'select',
+                'required' => false,
+                'options' => [
+                    '0' => 'Your organisation only',
+                    '1' => 'This community only',
+                    '2' => 'Connected communities',
+                    '3' => 'All communities',
+                    '4' => 'Sharing group',
+                ],
+                'default' => '0',
+                'help' => 'Distribution level',
+            ],
+            'threat_level_id' => [
+                'type' => 'select',
+                'required' => false,
+                'options' => [
+                    '1' => 'High',
+                    '2' => 'Medium',
+                    '3' => 'Low',
+                    '4' => 'Undefined',
+                ],
+                'default' => '4',
+                'help' => 'Threat level',
+            ],
+            'analysis' => [
+                'type' => 'select',
+                'required' => false,
+                'options' => [
+                    '0' => 'Initial',
+                    '1' => 'Ongoing',
+                    '2' => 'Completed',
+                ],
+                'default' => '0',
+                'help' => 'Analysis state',
+            ],
+            'sharing_group_id' => [
+                'type' => 'integer',
+                'required' => false,
+                'help' => 'Sharing group ID '
+                    . '(when distribution=4)',
+            ],
+        ],
+        'attribute' => [
+            'type' => [
+                'type' => 'autocomplete',
+                'required' => true,
+                'source' => 'attributeTypes',
+                'help' => 'Attribute type '
+                    . '(e.g. ip-dst, domain, md5)',
+            ],
+            'category' => [
+                'type' => 'autocomplete',
+                'required' => false,
+                'source' => 'attributeCategories',
+                'help' => 'Attribute category',
+            ],
+            'value' => [
+                'type' => 'string',
+                'required' => true,
+                'help' => 'Attribute value',
+            ],
+            'to_ids' => [
+                'type' => 'boolean',
+                'required' => false,
+                'default' => '1',
+                'help' => 'IDS flag (0/1)',
+            ],
+            'comment' => [
+                'type' => 'string',
+                'required' => false,
+                'help' => 'Comment',
+            ],
+            'distribution' => [
+                'type' => 'select',
+                'required' => false,
+                'options' => [
+                    '0' => 'Your organisation only',
+                    '1' => 'This community only',
+                    '2' => 'Connected communities',
+                    '3' => 'All communities',
+                    '4' => 'Sharing group',
+                    '5' => 'Inherit event',
+                ],
+                'default' => '5',
+                'help' => 'Distribution level',
+            ],
+            'sharing_group_id' => [
+                'type' => 'integer',
+                'required' => false,
+                'help' => 'Sharing group ID '
+                    . '(when distribution=4)',
+            ],
+            'disable_correlation' => [
+                'type' => 'boolean',
+                'required' => false,
+                'default' => '0',
+                'help' => 'Disable correlation (0/1)',
+            ],
+            'first_seen' => [
+                'type' => 'string',
+                'required' => false,
+                'help' => 'First seen datetime',
+            ],
+            'last_seen' => [
+                'type' => 'string',
+                'required' => false,
+                'help' => 'Last seen datetime',
+            ],
+        ],
+    ];
+
     /** @var bool Whether stdout is a TTY */
     private $__isTty = false;
 
@@ -102,7 +234,13 @@ class CLIShell extends AppShell
                 'category', 'value', 'to_ids',
                 'comment',
             ],
-            'editableFields' => [],
+            'editableFields' => [
+                'category', 'type', 'value',
+                'to_ids', 'comment', 'distribution',
+                'sharing_group_id',
+                'disable_correlation',
+                'first_seen', 'last_seen',
+            ],
         ],
         'object' => [
             'model' => 'MispObject',
@@ -397,6 +535,15 @@ class CLIShell extends AppShell
             case 'prev':
                 $this->__cmdPrev();
                 break;
+            case 'add':
+                $this->__cmdAdd($entity);
+                break;
+            case 'edit':
+                $this->__cmdEdit($entity, $id);
+                break;
+            case 'delete':
+                $this->__cmdDelete($entity, $id);
+                break;
             default:
                 $this->err(
                     "Unknown command: '" . $command . "'. "
@@ -556,6 +703,18 @@ class CLIShell extends AppShell
             $this->out(
                 '  search <entity> [filters]'
                 . ' - Search with filters'
+            );
+            $this->out(
+                '  add <entity>'
+                . '             - Interactive guided creation'
+            );
+            $this->out(
+                '  edit <entity> <id>'
+                . '      - Interactive field editing'
+            );
+            $this->out(
+                '  delete <entity> <id>'
+                . '    - Delete with confirmation'
             );
             $this->out(
                 '  use <entity> <id>'
@@ -2552,6 +2711,437 @@ class CLIShell extends AppShell
         }
 
         return [];
+    }
+
+    /**
+     * Prompt user for a single field value.
+     *
+     * Shows field name, help text, accepted values, and
+     * current value (for edit). Reads and validates input.
+     * In non-TTY mode reads a line from stdin directly.
+     *
+     * @param string $fieldName Field name
+     * @param array $meta Field metadata from __fieldMeta
+     * @param string|null $currentValue Current value for edit
+     * @return string|null Entered value, or null to skip
+     */
+    private function __promptForField(
+        $fieldName,
+        $meta,
+        $currentValue = null
+    ) {
+        $type = isset($meta['type'])
+            ? $meta['type'] : 'string';
+        $required = !empty($meta['required']);
+        $help = isset($meta['help'])
+            ? $meta['help'] : '';
+        $default = isset($meta['default'])
+            ? $meta['default'] : null;
+
+        if ($default === 'today') {
+            $default = date('Y-m-d');
+        }
+
+        $displayDefault = $currentValue !== null
+            ? $currentValue : $default;
+
+        $prompt = '  ' . $fieldName;
+        if (!empty($help)) {
+            $prompt .= ' (' . $help . ')';
+        }
+        if ($required) {
+            $prompt .= ' *';
+        }
+
+        if ($type === 'select' && !empty($meta['options'])) {
+            $this->out($prompt . ':');
+            foreach ($meta['options'] as $k => $label) {
+                $marker = ($displayDefault === (string)$k)
+                    ? ' <-- default' : '';
+                $this->out(
+                    '    [' . $k . '] ' . $label . $marker
+                );
+            }
+            $hint = $displayDefault !== null
+                ? ' [' . $displayDefault . ']' : '';
+            $this->out(
+                '  Enter choice' . $hint . ': ', 0
+            );
+        } elseif ($type === 'boolean') {
+            $hint = $displayDefault !== null
+                ? ' [' . $displayDefault . ']' : '';
+            $this->out(
+                $prompt . ' (0/1)' . $hint . ': ', 0
+            );
+        } elseif (
+            $type === 'autocomplete'
+            && !empty($meta['source'])
+        ) {
+            $values = $this->__getAutocompleteValues(
+                $meta['source']
+            );
+            $hint = '';
+            if (!empty($values)) {
+                $preview = array_slice($values, 0, 5);
+                $hint = ' (e.g. '
+                    . implode(', ', $preview) . ', ...)';
+            }
+            $defHint = $displayDefault !== null
+                ? ' [' . $displayDefault . ']' : '';
+            $this->out(
+                $prompt . $hint . $defHint . ': ', 0
+            );
+        } else {
+            $hint = $displayDefault !== null
+                ? ' [' . $displayDefault . ']' : '';
+            $this->out($prompt . $hint . ': ', 0);
+        }
+
+        $line = fgets($this->__stdin);
+        if ($line === false) {
+            return null;
+        }
+        $input = trim($line);
+
+        if ($input === '' && $displayDefault !== null) {
+            return (string)$displayDefault;
+        }
+        if ($input === '' && $required) {
+            $this->err(
+                '  Field "' . $fieldName . '" is required.'
+            );
+            return $this->__promptForField(
+                $fieldName, $meta, $currentValue
+            );
+        }
+        if ($input === '' && !$required) {
+            return null;
+        }
+
+        if (
+            $type === 'select'
+            && !empty($meta['options'])
+            && !isset($meta['options'][$input])
+        ) {
+            $this->err(
+                '  Invalid choice. Valid options: '
+                . implode(
+                    ', ',
+                    array_keys($meta['options'])
+                )
+            );
+            return $this->__promptForField(
+                $fieldName, $meta, $currentValue
+            );
+        }
+
+        if (
+            $type === 'boolean'
+            && !in_array($input, ['0', '1'], true)
+        ) {
+            $this->err('  Please enter 0 or 1.');
+            return $this->__promptForField(
+                $fieldName, $meta, $currentValue
+            );
+        }
+
+        if (
+            $type === 'date'
+            && !preg_match(
+                '/^\d{4}-\d{2}-\d{2}$/', $input
+            )
+        ) {
+            $this->err(
+                '  Invalid date format. Use YYYY-MM-DD.'
+            );
+            return $this->__promptForField(
+                $fieldName, $meta, $currentValue
+            );
+        }
+
+        if (
+            $type === 'integer'
+            && !is_numeric($input)
+        ) {
+            $this->err('  Please enter a number.');
+            return $this->__promptForField(
+                $fieldName, $meta, $currentValue
+            );
+        }
+
+        return $input;
+    }
+
+    /**
+     * Prompt for all fields of an entity for add/edit.
+     *
+     * Iterates through editable fields, prompting for each.
+     * Returns collected field values.
+     *
+     * @param string $entity Entity name
+     * @param array|null $current Current values for editing
+     * @param array|null $fields Subset of fields to prompt
+     * @return array|false Field values or false on cancel
+     */
+    private function __promptForFields(
+        $entity,
+        $current = null,
+        $fields = null
+    ) {
+        if (!isset($this->__fieldMeta[$entity])) {
+            $this->err(
+                'No field metadata for ' . $entity . '.'
+            );
+            return false;
+        }
+
+        $meta = $this->__fieldMeta[$entity];
+        if ($fields === null) {
+            $fields = array_keys($meta);
+        }
+
+        $isEdit = $current !== null;
+        $this->out('');
+        $this->out(
+            ($isEdit ? 'Edit' : 'Add') . ' '
+            . ucfirst($entity)
+            . ' - fill in fields'
+            . ($isEdit
+                ? ' (Enter to keep current value)'
+                : ' (* = required)')
+            . ':'
+        );
+        $this->out('');
+
+        $values = [];
+        foreach ($fields as $field) {
+            if (!isset($meta[$field])) {
+                continue;
+            }
+            $currentVal = null;
+            if ($isEdit && isset($current[$field])) {
+                $currentVal = (string)$current[$field];
+            }
+            $val = $this->__promptForField(
+                $field, $meta[$field], $currentVal
+            );
+            if ($val !== null) {
+                $values[$field] = $val;
+            }
+        }
+
+        if (empty($values)) {
+            $this->out('  No changes entered.');
+            return false;
+        }
+
+        return $values;
+    }
+
+    /**
+     * Prompt for yes/no confirmation.
+     *
+     * @param string $message Prompt message
+     * @return bool True if confirmed
+     */
+    private function __promptConfirm($message)
+    {
+        $this->out($message . ' [y/N]: ', 0);
+        $line = fgets($this->__stdin);
+        if ($line === false) {
+            return false;
+        }
+        $input = strtolower(trim($line));
+        return $input === 'y' || $input === 'yes';
+    }
+
+    /**
+     * Get autocomplete values for a field source.
+     *
+     * @param string $source Source identifier
+     * @return array Values
+     */
+    private function __getAutocompleteValues($source)
+    {
+        if ($source === 'attributeTypes') {
+            if (
+                property_exists(
+                    $this->MispAttribute,
+                    'typeDefinitions'
+                )
+            ) {
+                return array_keys(
+                    $this->MispAttribute->typeDefinitions
+                );
+            }
+            return [];
+        }
+
+        if ($source === 'attributeCategories') {
+            if (
+                property_exists(
+                    $this->MispAttribute,
+                    'categoryDefinitions'
+                )
+            ) {
+                return array_keys(
+                    $this->MispAttribute
+                        ->categoryDefinitions
+                );
+            }
+            return [];
+        }
+
+        return [];
+    }
+
+    /**
+     * add command - interactive guided creation.
+     *
+     * @param string|null $entity Entity name
+     * @return void
+     */
+    private function __cmdAdd($entity)
+    {
+        if (empty($entity)) {
+            $this->err('Usage: add <entity>');
+            return;
+        }
+        if (!isset($this->__entityConfig[$entity])) {
+            $this->err(
+                "Unknown entity: '" . $entity . "'"
+            );
+            return;
+        }
+        $config = $this->__entityConfig[$entity];
+        if (
+            !empty($config['adminOnly'])
+            && empty(
+                $this->__user['Role']['perm_site_admin']
+            )
+        ) {
+            $this->err(
+                'Permission denied: '
+                . $entity . ' requires site admin access.'
+            );
+            return;
+        }
+        if (!isset($this->__fieldMeta[$entity])) {
+            $this->err(
+                'Add not yet supported for ' . $entity
+                . '.'
+            );
+            return;
+        }
+        $this->err(
+            'Add ' . $entity
+            . ' not yet implemented.'
+        );
+    }
+
+    /**
+     * edit command - interactive field-by-field editing.
+     *
+     * @param string|null $entity Entity name
+     * @param int|null $id Entity ID
+     * @return void
+     */
+    private function __cmdEdit($entity, $id)
+    {
+        if (empty($entity)) {
+            $this->err('Usage: edit <entity> <id>');
+            return;
+        }
+        if (!isset($this->__entityConfig[$entity])) {
+            $this->err(
+                "Unknown entity: '" . $entity . "'"
+            );
+            return;
+        }
+        if (empty($id) && !is_numeric($id)) {
+            $this->err('Usage: edit <entity> <id>');
+            return;
+        }
+        if (!is_numeric($id)) {
+            $this->err("Invalid ID: '" . $id . "'");
+            return;
+        }
+        $config = $this->__entityConfig[$entity];
+        if (
+            !empty($config['adminOnly'])
+            && empty(
+                $this->__user['Role']['perm_site_admin']
+            )
+        ) {
+            $this->err(
+                'Permission denied: '
+                . $entity . ' requires site admin access.'
+            );
+            return;
+        }
+        if (empty($config['editableFields'])) {
+            $this->err(
+                'Edit not supported for ' . $entity . '.'
+            );
+            return;
+        }
+        if (!isset($this->__fieldMeta[$entity])) {
+            $this->err(
+                'Edit not yet supported for ' . $entity
+                . '.'
+            );
+            return;
+        }
+        $this->err(
+            'Edit ' . $entity
+            . ' not yet implemented.'
+        );
+    }
+
+    /**
+     * delete command - delete with confirmation.
+     *
+     * @param string|null $entity Entity name
+     * @param int|null $id Entity ID
+     * @return void
+     */
+    private function __cmdDelete($entity, $id)
+    {
+        if (empty($entity)) {
+            $this->err('Usage: delete <entity> <id>');
+            return;
+        }
+        if (!isset($this->__entityConfig[$entity])) {
+            $this->err(
+                "Unknown entity: '" . $entity . "'"
+            );
+            return;
+        }
+        if (empty($id) && !is_numeric($id)) {
+            $this->err('Usage: delete <entity> <id>');
+            return;
+        }
+        if (!is_numeric($id)) {
+            $this->err("Invalid ID: '" . $id . "'");
+            return;
+        }
+        $config = $this->__entityConfig[$entity];
+        if (
+            !empty($config['adminOnly'])
+            && empty(
+                $this->__user['Role']['perm_site_admin']
+            )
+        ) {
+            $this->err(
+                'Permission denied: '
+                . $entity . ' requires site admin access.'
+            );
+            return;
+        }
+        $this->err(
+            'Delete ' . $entity
+            . ' not yet implemented.'
+        );
     }
 
     /**
