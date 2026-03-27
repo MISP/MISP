@@ -1729,6 +1729,76 @@ class CLIShell extends AppShell
     }
 
     /**
+     * Enter raw terminal mode (disable line buffering and echo).
+     *
+     * @return void
+     */
+    private function __enterRawMode()
+    {
+        if ($this->__rawMode || !$this->__isTty) {
+            return;
+        }
+        shell_exec('stty -icanon -echo 2>/dev/null');
+        $this->__rawMode = true;
+    }
+
+    /**
+     * Exit raw terminal mode (restore line buffering and echo).
+     *
+     * @return void
+     */
+    private function __exitRawMode()
+    {
+        if (!$this->__rawMode) {
+            return;
+        }
+        shell_exec('stty icanon echo 2>/dev/null');
+        $this->__rawMode = false;
+    }
+
+    /**
+     * Read a single keypress from stdin.
+     *
+     * Handles multi-byte escape sequences for arrow keys
+     * and other special keys.
+     *
+     * @return string|false Key identifier or false on EOF
+     */
+    private function __readKeypress()
+    {
+        $ch = fread($this->__stdin, 1);
+        if ($ch === false || $ch === '') {
+            return false;
+        }
+
+        if ($ch === "\033") {
+            $seq = fread($this->__stdin, 1);
+            if ($seq === '[') {
+                $code = fread($this->__stdin, 1);
+                switch ($code) {
+                    case 'A':
+                        return 'UP';
+                    case 'B':
+                        return 'DOWN';
+                    case 'C':
+                        return 'RIGHT';
+                    case 'D':
+                        return 'LEFT';
+                    default:
+                        return 'UNKNOWN';
+                }
+            }
+            return 'ESCAPE';
+        }
+
+        if ($ch === "\n" || $ch === "\r") {
+            return 'ENTER';
+        }
+
+        return $ch;
+    }
+
+    /**
      * Restore terminal to sane state.
      *
      * @return void

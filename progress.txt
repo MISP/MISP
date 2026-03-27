@@ -1,0 +1,30 @@
+## Progress Tracker
+
+### Phase 1: Skeleton + Read Operations (Events & Attributes)
+
+- [x] Task 1: Create CLIShell.php skeleton (AppShell, $uses, properties, entity config)
+- [x] Task 2: main() REPL entry point (user validation, stdin, welcome banner, loop)
+- [x] Task 3: Command parser (__parseCommand, __tokenize, __resolveEntity)
+- [x] Task 4: Terminal helpers (__getTerminalSize, TTY detection, restoreTerminal, __enterRawMode, __exitRawMode, __readKeypress)
+- [ ] Task 5: __renderBrowsableTable() - interactive table with highlighting/scrolling
+- [ ] Task 6: __browseLoop() - raw terminal browse mode with keystrokes
+- [x] Task 7: __renderDetail() - key-value detail output
+- [x] Task 8: list events - paginated event listing with ACL
+- [x] Task 9: view event <id> - full event detail, auto-set context
+- [x] Task 10: list attributes - context-aware attribute listing
+- [x] Task 11: view attribute <id> - single attribute detail
+- [x] Task 12: Filter parser (__parseFilters) - key=value, negation, OR, tag AND/NOT
+- [x] Task 13: search events/attributes (delegates to list with filters)
+- [x] Task 14: list events/attributes with filters
+- [ ] Task 15: Filter bar in browse mode (f key, tab-completion)
+- [x] Task 16: help, exit/quit, context, clear, use commands
+
+### Phase 2: Extended Read Operations (All Entities)
+- [x] Task 1-10: list/view for objects, tags, users, organisations, servers, feeds, sharing_groups, galaxies, taxonomies, warninglists (implemented in Phase 1 skeleton)
+- [x] Task 11: Entity registry pattern (implemented from the start)
+
+### Phase 3-5: Not started
+
+### Commit Log
+- 40562bd08: Phase 1 skeleton with REPL, entity registry, all read operations, filter parser, static table rendering, help system
+- Task 4 complete: Added __enterRawMode(), __exitRawMode(), __readKeypress() terminal control methods for browse mode support
