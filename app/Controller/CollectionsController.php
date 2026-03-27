@@ -258,6 +258,21 @@ class CollectionsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        $elements = $this->viewVars['data']['Collection']['CollectionElement'] ?? [];
+        $totalElements = count($elements);
+        $this->request->params['paging']['CollectionElement'] = [
+            'page'      => 1,
+            'current'   => $totalElements,
+            'count'     => $totalElements,
+            'prevPage'  => false,
+            'nextPage'  => false,
+            'pageCount' => 1,
+            'order'     => null,
+            'limit'     => 50,
+            'options'   => [],
+            'paramType' => 'named',
+        ];
+
         $this->set('id', $id);
         $this->loadModel('Event');
         $this->set('distributionLevels', $this->Event->distributionLevels);
