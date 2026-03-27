@@ -6,7 +6,7 @@
 - [x] Task 2: main() REPL entry point (user validation, stdin, welcome banner, loop)
 - [x] Task 3: Command parser (__parseCommand, __tokenize, __resolveEntity)
 - [x] Task 4: Terminal helpers (__getTerminalSize, TTY detection, restoreTerminal, __enterRawMode, __exitRawMode, __readKeypress)
-- [ ] Task 5: __renderBrowsableTable() - interactive table with highlighting/scrolling
+- [x] Task 5: __renderBrowsableTable() - interactive table with highlighting/scrolling
 - [ ] Task 6: __browseLoop() - raw terminal browse mode with keystrokes
 - [x] Task 7: __renderDetail() - key-value detail output
 - [x] Task 8: list events - paginated event listing with ACL
@@ -28,3 +28,4 @@
 ### Commit Log
 - 40562bd08: Phase 1 skeleton with REPL, entity registry, all read operations, filter parser, static table rendering, help system
 - Task 4 complete: Added __enterRawMode(), __exitRawMode(), __readKeypress() terminal control methods for browse mode support
+- Task 5 complete: Added __renderBrowsableTable() with inverse-video row highlighting, viewport scrolling, Unicode box-drawing separators, auto-calculated column widths with truncation, and keybinding footer. Also extracted __calcColumnWidths() helper for reuse.

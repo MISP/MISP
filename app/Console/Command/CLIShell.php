@@ -1589,6 +1589,187 @@ class CLIShell extends AppShell
     }
 
     /**
+     * Render an interactive browsable table with highlighting
+     * and viewport scrolling.
+     *
+     * Draws a full-screen table with the selected row in
+     * inverse video. Handles viewport scrolling when results
+     * exceed screen height.
+     *
+     * @param string $entity Entity name
+     * @param array $results Result rows
+     * @param array $fields Field names for columns
+     * @param int $totalResults Total result count for footer
+     * @return void
+     */
+    private function __renderBrowsableTable(
+        $entity,
+        $results,
+        $fields,
+        $totalResults = 0
+    ) {
+        $termSize = $this->__getTerminalSize();
+        $termWidth = $termSize[0];
+        $termHeight = $termSize[1];
+
+        $viewportRows = $termHeight - 4;
+        if ($viewportRows < 1) {
+            $viewportRows = 1;
+        }
+
+        $colWidths = $this->__calcColumnWidths(
+            $results, $fields, $termWidth
+        );
+
+        $this->out("\033[H\033[J", 0);
+
+        $header = '';
+        $separator = '';
+        foreach ($fields as $i => $field) {
+            $label = $this->__fieldLabel($field);
+            $width = $colWidths[$field];
+            $header .= str_pad(
+                substr($label, 0, $width), $width
+            );
+            $separator .= str_repeat(
+                "\xe2\x94\x80", $width
+            );
+            if ($i < count($fields) - 1) {
+                $header .= " \xe2\x94\x82 ";
+                $separator .= "\xe2\x94\x80\xe2\x94\xbc"
+                    . "\xe2\x94\x80";
+            }
+        }
+        $this->out(' ' . $header);
+        $this->out(' ' . $separator);
+
+        $rowCount = count($results);
+        if ($this->__selectedIndex >= $rowCount) {
+            $this->__selectedIndex = $rowCount - 1;
+        }
+        if ($this->__selectedIndex < 0) {
+            $this->__selectedIndex = 0;
+        }
+
+        if (
+            $this->__selectedIndex
+            >= $this->__viewportOffset + $viewportRows
+        ) {
+            $this->__viewportOffset =
+                $this->__selectedIndex - $viewportRows + 1;
+        }
+        if (
+            $this->__selectedIndex < $this->__viewportOffset
+        ) {
+            $this->__viewportOffset = $this->__selectedIndex;
+        }
+
+        $start = $this->__viewportOffset;
+        $end = min($rowCount, $start + $viewportRows);
+
+        for ($r = $start; $r < $end; $r++) {
+            $row = $results[$r];
+            $line = '';
+            foreach ($fields as $i => $field) {
+                $val = isset($row[$field])
+                    ? (string)$row[$field] : '';
+                $width = $colWidths[$field];
+                if (strlen($val) > $width) {
+                    $val = substr($val, 0, $width - 2)
+                        . '..';
+                }
+                $cell = str_pad($val, $width);
+
+                if ($r === $this->__selectedIndex) {
+                    if ($this->__isTty) {
+                        $cell = "\033[7m" . $cell
+                            . "\033[0m";
+                    }
+                }
+                $line .= $cell;
+                if ($i < count($fields) - 1) {
+                    $line .= ' | ';
+                }
+            }
+            $this->out(' ' . $line);
+        }
+
+        $remaining = $viewportRows - ($end - $start);
+        for ($i = 0; $i < $remaining; $i++) {
+            $this->out('');
+        }
+
+        $this->out('');
+        $totalPages = 1;
+        if (
+            $totalResults > 0
+            && $this->__perPage > 0
+        ) {
+            $totalPages = (int)ceil(
+                $totalResults / $this->__perPage
+            );
+        }
+        $footer = ' [' . "\xe2\x86\x91" . '/'
+            . "\xe2\x86\x93" . '/j/k] Navigate'
+            . '  [Enter] View  [e] Edit  [d] Delete'
+            . '  [q] Back  [n/p] Page';
+        $pageInfo = '  Page ' . $this->__page . '/'
+            . $totalPages;
+        if ($totalResults > 0) {
+            $pageInfo .= ' (' . $totalResults . ' results)';
+        }
+        $this->out($footer . $pageInfo);
+    }
+
+    /**
+     * Calculate column widths for a set of results.
+     *
+     * @param array $results Result rows
+     * @param array $fields Field names
+     * @param int $termWidth Terminal width
+     * @return array Field => width mapping
+     */
+    private function __calcColumnWidths(
+        $results,
+        $fields,
+        $termWidth
+    ) {
+        $colWidths = [];
+        foreach ($fields as $field) {
+            $label = $this->__fieldLabel($field);
+            $colWidths[$field] = strlen($label);
+        }
+
+        foreach ($results as $row) {
+            foreach ($fields as $field) {
+                $val = isset($row[$field])
+                    ? (string)$row[$field] : '';
+                $len = strlen($val);
+                if ($len > $colWidths[$field]) {
+                    $colWidths[$field] = $len;
+                }
+            }
+        }
+
+        foreach ($colWidths as $field => $width) {
+            $colWidths[$field] = min($width, 60);
+        }
+
+        $totalWidth = array_sum($colWidths)
+            + (count($fields) - 1) * 3 + 1;
+        if ($totalWidth > $termWidth) {
+            $lastField = end($fields);
+            $excess = $totalWidth - $termWidth;
+            $colWidths[$lastField] = max(
+                5,
+                $colWidths[$lastField] - $excess
+            );
+        }
+
+        return $colWidths;
+    }
+
+    /**
      * Render a detail view for a single record.
      *
      * @param string $entity Entity name
