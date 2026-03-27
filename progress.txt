@@ -7,7 +7,7 @@
 - [x] Task 3: Command parser (__parseCommand, __tokenize, __resolveEntity)
 - [x] Task 4: Terminal helpers (__getTerminalSize, TTY detection, restoreTerminal, __enterRawMode, __exitRawMode, __readKeypress)
 - [x] Task 5: __renderBrowsableTable() - interactive table with highlighting/scrolling
-- [ ] Task 6: __browseLoop() - raw terminal browse mode with keystrokes
+- [x] Task 6: __browseLoop() - raw terminal browse mode with keystrokes
 - [x] Task 7: __renderDetail() - key-value detail output
 - [x] Task 8: list events - paginated event listing with ACL
 - [x] Task 9: view event <id> - full event detail, auto-set context
@@ -29,3 +29,4 @@
 - 40562bd08: Phase 1 skeleton with REPL, entity registry, all read operations, filter parser, static table rendering, help system
 - Task 4 complete: Added __enterRawMode(), __exitRawMode(), __readKeypress() terminal control methods for browse mode support
 - Task 5 complete: Added __renderBrowsableTable() with inverse-video row highlighting, viewport scrolling, Unicode box-drawing separators, auto-calculated column widths with truncation, and keybinding footer. Also extracted __calcColumnWidths() helper for reuse.
+- Task 6 complete: Added __browseLoop() interactive browse mode. Enters raw terminal, renders browsable table, handles keystrokes (UP/DOWN/j/k navigate, Enter views record, n/p page, q/Escape exits). Wired into __cmdList(), __cmdNext(), __cmdPrev() with TTY detection fallback to static tables for piped mode.

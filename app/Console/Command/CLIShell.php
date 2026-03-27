@@ -743,11 +743,21 @@ class CLIShell extends AppShell
             return;
         }
 
-        $this->__renderStaticTable(
-            $entity,
-            $results,
-            $config['listFields']
-        );
+        if ($this->__isTty) {
+            $this->__browseData = $results;
+            $this->__selectedIndex = 0;
+            $this->__viewportOffset = 0;
+            $this->__browseLoop(
+                $entity,
+                $config['listFields']
+            );
+        } else {
+            $this->__renderStaticTable(
+                $entity,
+                $results,
+                $config['listFields']
+            );
+        }
     }
 
     /**
@@ -839,16 +849,27 @@ class CLIShell extends AppShell
         $results = $this->__fetchList($entity, $filters);
         if (empty($results)) {
             $this->__page--;
-            $this->__lastQuery['filters']['page'] = $this->__page;
+            $this->__lastQuery['filters']['page'] =
+                $this->__page;
             $this->out('No more results.');
             return;
         }
 
-        $this->__renderStaticTable(
-            $entity,
-            $results,
-            $config['listFields']
-        );
+        if ($this->__isTty) {
+            $this->__browseData = $results;
+            $this->__selectedIndex = 0;
+            $this->__viewportOffset = 0;
+            $this->__browseLoop(
+                $entity,
+                $config['listFields']
+            );
+        } else {
+            $this->__renderStaticTable(
+                $entity,
+                $results,
+                $config['listFields']
+            );
+        }
     }
 
     /**
@@ -873,11 +894,21 @@ class CLIShell extends AppShell
         $config = $this->__entityConfig[$entity];
 
         $results = $this->__fetchList($entity, $filters);
-        $this->__renderStaticTable(
-            $entity,
-            $results,
-            $config['listFields']
-        );
+        if ($this->__isTty) {
+            $this->__browseData = $results;
+            $this->__selectedIndex = 0;
+            $this->__viewportOffset = 0;
+            $this->__browseLoop(
+                $entity,
+                $config['listFields']
+            );
+        } else {
+            $this->__renderStaticTable(
+                $entity,
+                $results,
+                $config['listFields']
+            );
+        }
     }
 
     /**
@@ -1586,6 +1617,144 @@ class CLIShell extends AppShell
             'Page ' . $this->__page
             . ' (' . count($results) . ' results)'
         );
+    }
+
+    /**
+     * Interactive browse mode loop.
+     *
+     * Enters raw terminal mode and renders a browsable table.
+     * Handles keystrokes for navigation, viewing, and paging.
+     * Returns to normal mode when user presses q or Escape.
+     *
+     * @param string $entity Entity name
+     * @param array $fields Field names for columns
+     * @return void
+     */
+    private function __browseLoop($entity, $fields)
+    {
+        $this->__enterRawMode();
+
+        $totalResults = count($this->__browseData);
+        $this->__renderBrowsableTable(
+            $entity,
+            $this->__browseData,
+            $fields,
+            $totalResults
+        );
+
+        while (true) {
+            $key = $this->__readKeypress();
+            if ($key === false) {
+                break;
+            }
+
+            $rowCount = count($this->__browseData);
+            $redraw = false;
+
+            switch ($key) {
+                case 'UP':
+                case 'k':
+                    if ($this->__selectedIndex > 0) {
+                        $this->__selectedIndex--;
+                        $redraw = true;
+                    }
+                    break;
+
+                case 'DOWN':
+                case 'j':
+                    if (
+                        $this->__selectedIndex < $rowCount - 1
+                    ) {
+                        $this->__selectedIndex++;
+                        $redraw = true;
+                    }
+                    break;
+
+                case 'ENTER':
+                    if (
+                        $rowCount > 0
+                        && isset(
+                            $this->__browseData[
+                                $this->__selectedIndex
+                            ]['id']
+                        )
+                    ) {
+                        $id = $this->__browseData[
+                            $this->__selectedIndex
+                        ]['id'];
+                        $this->__exitRawMode();
+                        $this->__cmdView($entity, (int)$id);
+                    }
+                    break 2;
+
+                case 'n':
+                    if (empty($this->__lastQuery)) {
+                        break;
+                    }
+                    $this->__page++;
+                    $this->__lastQuery['filters']['page'] =
+                        $this->__page;
+                    $results = $this->__fetchList(
+                        $entity,
+                        $this->__lastQuery['filters']
+                    );
+                    if (empty($results)) {
+                        $this->__page--;
+                        $this->__lastQuery['filters']['page'] =
+                            $this->__page;
+                    } else {
+                        $this->__browseData = $results;
+                        $this->__selectedIndex = 0;
+                        $this->__viewportOffset = 0;
+                        $totalResults =
+                            count($this->__browseData);
+                    }
+                    $redraw = true;
+                    break;
+
+                case 'p':
+                    if (
+                        empty($this->__lastQuery)
+                        || $this->__page <= 1
+                    ) {
+                        break;
+                    }
+                    $this->__page--;
+                    $this->__lastQuery['filters']['page'] =
+                        $this->__page;
+                    $results = $this->__fetchList(
+                        $entity,
+                        $this->__lastQuery['filters']
+                    );
+                    if (!empty($results)) {
+                        $this->__browseData = $results;
+                        $this->__selectedIndex = 0;
+                        $this->__viewportOffset = 0;
+                        $totalResults =
+                            count($this->__browseData);
+                    }
+                    $redraw = true;
+                    break;
+
+                case 'q':
+                case 'ESCAPE':
+                    break 2;
+
+                default:
+                    break;
+            }
+
+            if ($redraw) {
+                $this->__renderBrowsableTable(
+                    $entity,
+                    $this->__browseData,
+                    $fields,
+                    $totalResults
+                );
+            }
+        }
+
+        $this->__exitRawMode();
     }
 
     /**
