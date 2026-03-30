@@ -27,6 +27,14 @@ if ($field['data_path'] === 'Attribute.id') {
     $checkboxAttrs['data-item-id'] = $id;
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
+
+if ($field['data_path'] === 'Collection.id' || $field['data_path'] === 'id') {
+    if (!isset($mayModify)){
+        $mayModify = $this->Acl->canModifyCollection($row);
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
 ?>
 
 <div class="d-inline-flex align-items-center checkbox-actions-wrapper checkbox-index">

@@ -133,4 +133,14 @@ class AclHelper extends Helper
     {
         return $this->ACL->canEditAnalystData($this->me, $analystData, $modelType);
     }
+
+
+    /**
+     * @param array $collection
+     * @return bool
+     */
+    public function canModifyCollection(array $collection)
+    {
+        return $this->ACL->canModifyCollection($this->me, $collection);
+    }
 }

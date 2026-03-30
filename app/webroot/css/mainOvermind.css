@@ -1,3 +1,13 @@
+:root {
+    --bs-link-color : #1892B1;
+    --bs-link-hover-color : #1892B1;
+    --bs-link-color-rgb: 24, 146, 177;
+}
+
+.pagination {
+    --bs-pagination-active-bg: #1892B1;
+    --bs-pagination-active-border-color: #1892B1;
+}
 
 html {
     height: 100%;
@@ -63,7 +73,13 @@ body[data-controller="users"][data-action="login"] {
     color: #fff !important;
 }
 
-
+.btn-galaxy-light:hover,
+.btn-galaxy-light:focus,
+.btn-galaxy-light:active,
+.btn-outline-galaxy-light:active ,
+.btn-outline-galaxy-light:hover {
+    background-color: #d2e4fc !important;
+}
 
 .btn-light{
     color:#1892B1;
@@ -443,7 +459,16 @@ body[data-controller="users"][data-action="login"] {
     white-space: nowrap;
 }
 
+.table-scroll {
+    max-height: 100vh;
+    overflow-y: auto;
+}
 
+.table thead{
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
 
 
 
@@ -503,9 +528,25 @@ th .sort-icon::before {
 
 .btn-danger-subtle {
     background: #f4c7c7;
-    color: #d33;
 }
 
 .btn-danger-subtle:hover {
     background: #efb6b6;
+}
+
+
+.btn-success-subtle {
+    background: #cbf4c7;
+}
+
+.btn-success-subtle:hover {
+    background: #bbefb6;
+}
+
+.btn-warning-subtle {
+    background: #faead7;
+}
+
+.btn-warning-subtle:hover {
+    background: #fff2cd;
 }

@@ -1,7 +1,7 @@
 <?php
-$attribute = Hash::extract($row, $field['data_path']);
+$collection = Hash::extract($row, $field['data_path']);
 
-if (empty($attribute)) {
+if (empty($collection)) {
     return;
 }
 
@@ -16,7 +16,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
                     [
                         'row' => $row,
                         'field' => [
-                            'data_path' => 'Attribute.distribution',
+                            'data_path' => 'Collection.distribution',
                             'display' =>'short'
                         ]
                     ]
@@ -24,17 +24,17 @@ $isCard = isset($viewMode) && $viewMode === 'card';
             }
         ?>
         <p class="mb-0">
-            <?= h($attribute['value']); ?>
+            <?= h($collection['name']); ?>
     </p>
 
     </div>
 
-    <!-- Show if it contains a comment -->
-    <?php if (!empty($attribute['comment'])): ?>
+    <!-- Show if it contains a description -->
+    <?php if (!empty($collection['description'])): ?>
         <div class="card card-link-item" style="background-color: #f8f9fa;">
             <div class="card-body p-1">
                 <i class="fa fa-comment"></i> 
-                <span><?= h($attribute['comment']) ?></span>
+                <span><?= $collection['description'] ?></span>
             </div>
         </div>
     <?php endif; ?>
