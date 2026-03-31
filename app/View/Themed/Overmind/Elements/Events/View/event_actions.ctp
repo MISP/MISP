@@ -1,109 +1,90 @@
 <?php
 
 $eventId = h($data['Event']['id']);
-$base = $this->request->base;
+$isPublished = (bool)$data['Event']['published'];
 
+$mayModify = $this->Acl->canModifyEvent($data);
+$canPublish = $this->Acl->canPublishEvent($data);
+
+$actions = [
+    [
+        'url' => "$baseurl/events/edit/$eventId",
+        'icon' => 'fas fa-pen',
+        'label' => __('Edit Event')
+    ],
+    [
+        'url' => "$baseurl/attributes/add/$eventId",
+        'icon' => 'fas fa-inbox',
+        'label' => __('Add Attribute')
+    ],
+    [
+        'url' => "$baseurl/objects/add/$eventId",
+        'icon' => 'fas fa-cube',
+        'label' => __('Add Object')
+    ],
+    [
+        'url' => "$baseurl/event_reports/add/$eventId",
+        'icon' => 'fas fa-file-alt',
+        'label' => __('Add Event Report')
+    ],
+    [
+        'url' => "$baseurl/attributes/add_attachment/$eventId",
+        'icon' => 'fas fa-copy',
+        'label' => __('Add Attachment')
+    ],
+    [
+        'url' => "#",
+        'icon' => 'fas fa-tag',
+        'label' => __('Add Tag')
+    ],
+    [
+        'url' => "#",
+        'icon' => 'fas fa-bullseye',
+        'label' => __('Add Cluster')
+    ],
+    [
+        'url' => "#",
+        'onclick' => "event.preventDefault();getPopup($eventId, events, importChoice)",
+        'icon' => 'fas fa-sign-in-alt',
+        'label' => __('Populate from')
+    ],
+    [
+        'url' => "$baseurl/events/export/$eventId",
+        'icon' => 'fas fa-sign-out-alt',
+        'label' => __('Export as')
+    ]
+];
+
+if (!$isPublished && ($isSiteAdmin || ($mayModify && $canPublish))) {
+    $actions[] = [
+        'url' => "",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/events/publish/$eventId');",
+        'icon' => 'fas fa-upload',
+        'label' => __('Publish Event'),
+        'success' => true
+    ];
+} else if($isPublished && ($isSiteAdmin || ($mayModify && $canPublish))) {
+    $actions[] = [
+        'url' => "",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/events/unpublish/$eventId');",
+        'icon' => 'fas fa-download',
+        'label' => __('Unpublish Event'),
+        'warning' => true
+    ];
+}
+
+if ($isSiteAdmin || $mayModify) {
+    $actions[] = [
+        'url' => "$baseurl/events/delete/$eventId",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/events/delete/$eventId');",
+        'icon' => 'fas fa-trash',
+        'label' => __('Delete Event'),
+        'danger' => true
+    ];
+}
+
+
+echo $this->element('genericElementsBS5/Cards/card_actions', [
+    'actions' => $actions
+]);
 ?>
-
-<div class="card shadow-sm border-0">
-    <div class="card-body">
-        <h5 class="fw-bold d-flex align-items-center gap-2 mb-3">
-            <i class="fas fa-forward text-primary"></i>
-            <?= __('Quick action') ?>
-        </h5>
-
-        <div class="d-flex flex-column gap-2">
-            <a class="quick-action btn btn-light d-flex align-items-center justify-content-between rounded-4 py-3 px-3"
-               href="<?= $base ?>/events/edit/<?= $eventId ?>">
-                <span class="d-flex align-items-center gap-3">
-                    <i class="fas fa-pen text-secondary"></i>
-                    <?= __('Edit Event') ?>
-                </span>
-                <i class="fas fa-chevron-right text-muted"></i>
-            </a>
-
-            <a class="quick-action btn btn-light d-flex align-items-center justify-content-between rounded-4 py-3 px-3"
-               href="<?= $base ?>/attributes/add/<?= $eventId ?>">
-                <span class="d-flex align-items-center gap-3">
-                    <i class="fas fa-inbox text-secondary"></i>
-                    <?= __('Add Attribute') ?>
-                </span>
-                <i class="fas fa-chevron-right text-muted"></i>
-            </a>
-
-            <a class="quick-action btn btn-light d-flex align-items-center justify-content-between rounded-4 py-3 px-3"
-               href="<?= $base ?>/objects/add/<?= $eventId ?>">
-                <span class="d-flex align-items-center gap-3">
-                    <i class="fas fa-cube text-secondary"></i>
-                    <?= __('Add Object') ?>
-                </span>
-                <i class="fas fa-chevron-right text-muted"></i>
-            </a>
-
-            <a class="quick-action btn btn-light d-flex align-items-center justify-content-between rounded-4 py-3 px-3"
-               href="<?= $base ?>/event_reports/add/<?= $eventId ?>">
-                <span class="d-flex align-items-center gap-3">
-                    <i class="fas fa-file-alt text-secondary"></i>
-                    <?= __('Add Event Report') ?>
-                </span>
-                <i class="fas fa-chevron-right text-muted"></i>
-            </a>
-
-            <a class="quick-action btn btn-light d-flex align-items-center justify-content-between rounded-4 py-3 px-3"
-               href="<?= $base ?>/attributes/add_attachment/<?= $eventId ?>">
-                <span class="d-flex align-items-center gap-3">
-                    <i class="fas fa-copy text-secondary"></i>
-                    <?= __('Add Attachment') ?>
-                </span>
-                <i class="fas fa-chevron-right text-muted"></i>
-            </a>
-
-            <a class="quick-action btn btn-light d-flex align-items-center justify-content-between rounded-4 py-3 px-3"
-               href="#">
-                <span class="d-flex align-items-center gap-3">
-                    <i class="fas fa-tag text-secondary"></i>
-                    <?= __('Add Tag') ?>
-                </span>
-                <i class="fas fa-chevron-right text-muted"></i>
-            </a>
-
-            <a class="quick-action btn btn-light d-flex align-items-center justify-content-between rounded-4 py-3 px-3"
-               href="#">
-                <span class="d-flex align-items-center gap-3">
-                    <i class="fas fa-bullseye text-secondary"></i>
-                    <?= __('Add Cluster') ?>
-                </span>
-                <i class="fas fa-chevron-right text-muted"></i>
-            </a>
-
-            <a class="quick-action btn btn-light d-flex align-items-center justify-content-between rounded-4 py-3 px-3"
-               href="#"
-               onclick="event.preventDefault();getPopup(<?= $eventId ?>, 'events', 'importChoice')">
-                <span class="d-flex align-items-center gap-3">
-                    <i class="fas fa-sign-in-alt text-secondary"></i>
-                    <?= __('Populate from') ?>
-                </span>
-                <i class="fas fa-chevron-right text-muted"></i>
-            </a>
-
-            <a class="quick-action btn btn-light d-flex align-items-center justify-content-between rounded-4 py-3 px-3"
-               href="<?= $base ?>/events/export/<?= $eventId ?>">
-                <span class="d-flex align-items-center gap-3">
-                    <i class="fas fa-sign-out-alt text-secondary"></i>
-                    <?= __('Export as') ?>
-                </span>
-                <i class="fas fa-chevron-right text-muted"></i>
-            </a>
-
-            <a class="btn btn-danger-subtle text-danger d-flex align-items-center justify-content-between rounded-4 py-3 px-3"
-                href="<?= $base ?>/events/delete/<?= $eventId ?>"
-                onclick="event.preventDefault(); openModal('<?= $base ?>/events/delete/<?= $eventId ?>');">
-                <span class="d-flex align-items-center gap-3">
-                    <i class="fas fa-trash "></i>
-                    <?= __('Delete Event') ?>
-                </span>
-                <i class="fas fa-chevron-right"></i>
-            </a>
-        </div>
-    </div>
-</div>

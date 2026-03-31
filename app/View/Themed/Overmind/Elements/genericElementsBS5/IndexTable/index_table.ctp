@@ -43,7 +43,7 @@ foreach ($data['data'] as $k => $data_row) {
 }
 ?>
 
-<div class="table-responsive">
+<div class="table-responsive table-scroll">
     <table class="table table-hover align-middle mb-0">
 
         <?= $this->element(

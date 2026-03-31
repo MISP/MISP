@@ -128,6 +128,7 @@ class ACLComponent extends Component
         'collections' => [
             'add' => ['perm_modify'],
             'delete' => ['perm_modify'],
+            'delete2' => ['AND'=> ['perm_modify', 'theming_enabled']],
             'edit' => ['perm_modify'],
             'index' => ['*'],
             'view' => ['*']
@@ -136,6 +137,7 @@ class ACLComponent extends Component
             'add' => ['perm_modify'],
             'addElementToCollection' => ['perm_modify'],
             'delete' => ['perm_modify'],
+            'delete2' => ['AND'=> ['perm_modify', 'theming_enabled']],
             'index' => ['*']
         ],
         'correlationExclusions' => [
@@ -1265,6 +1267,27 @@ class ACLComponent extends Component
         }
         return (bool)$user['Role']['perm_publish'];
     }
+
+
+     /**
+     * @param array $user
+     * @param array $collection
+     * @return bool
+     */
+    public function canModifyCollection(array $user, array $collection)
+    {
+        if (!isset($collection['Collection'])) {
+            throw new InvalidArgumentException('Passed object does not contain a Collection.');
+        }
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return true;
+        }
+        if (!$user['Role']['perm_modify']) {
+            return false;
+        }
+        return $user['org_id'] == $collection['Collection']['org_id'];
+    }
+
 
     private function __checkLoggedActions($user, $controller, $action)
     {

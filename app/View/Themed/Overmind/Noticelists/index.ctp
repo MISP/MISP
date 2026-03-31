@@ -89,9 +89,10 @@ $fields = [
 if ($this->Acl->canAccess('noticelists', 'update')) {
     $this->set('headerActions', [
         [
-            'url' => $baseurl . '/noticelists/update',
+            'type' => 'link',
             'label' => __('Update Noticelists'),
-            'icon' => 'sync'
+            'icon' => 'sync',
+            'url' => $baseurl . '/noticelists/update'
         ]
     ]);
 }
