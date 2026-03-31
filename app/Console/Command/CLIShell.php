@@ -1,5 +1,15 @@
 <?php
 
+require_once __DIR__ . '/CLIShell/cli_common.php';
+require_once __DIR__ . '/CLIShell/cli_events.php';
+require_once __DIR__ . '/CLIShell/cli_attributes.php';
+require_once __DIR__ . '/CLIShell/cli_objects.php';
+require_once __DIR__ . '/CLIShell/cli_tags.php';
+require_once __DIR__ . '/CLIShell/cli_users.php';
+require_once __DIR__
+    . '/CLIShell/cli_organisations.php';
+require_once __DIR__ . '/CLIShell/cli_roles.php';
+
 /**
  * MISP Interactive CLI Shell
  *
@@ -19,11 +29,21 @@
  * @property SharingGroup $SharingGroup
  * @property Galaxy $Galaxy
  * @property Taxonomy $Taxonomy
+ * @property Role $Role
  * @property Warninglist $Warninglist
  * @property GalaxyCluster $GalaxyCluster
  */
 class CLIShell extends AppShell
 {
+    use CLICommonTrait;
+    use CLIEventsTrait;
+    use CLIAttributesTrait;
+    use CLIObjectsTrait;
+    use CLITagsTrait;
+    use CLIUsersTrait;
+    use CLIOrganisationsTrait;
+    use CLIRolesTrait;
+
     public $uses = [
         'Event',
         'MispAttribute',
@@ -40,13 +60,17 @@ class CLIShell extends AppShell
         'Taxonomy',
         'Warninglist',
         'GalaxyCluster',
+        'Role',
     ];
 
     /** @var array Authenticated user array */
     private $__user = null;
 
-    /** @var array Navigation context ['entity' => null, 'id' => null] */
-    private $__context = ['entity' => null, 'id' => null];
+    /** @var array Navigation context */
+    private $__context = [
+        'entity' => null,
+        'id' => null,
+    ];
 
     /** @var int Current pagination page */
     private $__page = 1;
@@ -54,155 +78,34 @@ class CLIShell extends AppShell
     /** @var int Items per page */
     private $__perPage = 20;
 
-    /** @var array|null Cached last query params for next/prev */
+    /** @var string Sort direction: ASC or DESC */
+    private $__sortOrder = 'DESC';
+
+    /** @var array|null Cached last query params */
     private $__lastQuery = null;
 
     /** @var resource File handle for stdin */
     private $__stdin = null;
 
-    /** @var int Currently highlighted row in browse mode (0-based) */
+    /** @var int Currently highlighted row in browse mode */
     private $__selectedIndex = 0;
 
-    /** @var int Viewport offset for scrolling in browse mode */
+    /** @var int Viewport offset for scrolling */
     private $__viewportOffset = 0;
 
     /** @var array Current page of results for browse mode */
     private $__browseData = [];
 
-    /** @var array Active browse-mode filters as raw key=value strings */
+    /** @var array Active browse-mode filters */
     private $__browseFilters = [];
 
     /**
      * Field metadata for interactive prompting.
-     * Maps entity => field => config with type, required,
-     * options, help text.
+     * Populated in main() from trait getters.
      *
      * @var array
      */
-    private $__fieldMeta = [
-        'event' => [
-            'info' => [
-                'type' => 'string',
-                'required' => true,
-                'help' => 'Event description/title',
-            ],
-            'date' => [
-                'type' => 'date',
-                'required' => false,
-                'help' => 'Event date (YYYY-MM-DD)',
-                'default' => 'today',
-            ],
-            'distribution' => [
-                'type' => 'select',
-                'required' => false,
-                'options' => [
-                    '0' => 'Your organisation only',
-                    '1' => 'This community only',
-                    '2' => 'Connected communities',
-                    '3' => 'All communities',
-                    '4' => 'Sharing group',
-                ],
-                'default' => '0',
-                'help' => 'Distribution level',
-            ],
-            'threat_level_id' => [
-                'type' => 'select',
-                'required' => false,
-                'options' => [
-                    '1' => 'High',
-                    '2' => 'Medium',
-                    '3' => 'Low',
-                    '4' => 'Undefined',
-                ],
-                'default' => '4',
-                'help' => 'Threat level',
-            ],
-            'analysis' => [
-                'type' => 'select',
-                'required' => false,
-                'options' => [
-                    '0' => 'Initial',
-                    '1' => 'Ongoing',
-                    '2' => 'Completed',
-                ],
-                'default' => '0',
-                'help' => 'Analysis state',
-            ],
-            'sharing_group_id' => [
-                'type' => 'integer',
-                'required' => false,
-                'help' => 'Sharing group ID '
-                    . '(when distribution=4)',
-            ],
-        ],
-        'attribute' => [
-            'type' => [
-                'type' => 'autocomplete',
-                'required' => true,
-                'source' => 'attributeTypes',
-                'help' => 'Attribute type '
-                    . '(e.g. ip-dst, domain, md5)',
-            ],
-            'category' => [
-                'type' => 'autocomplete',
-                'required' => false,
-                'source' => 'attributeCategories',
-                'help' => 'Attribute category',
-            ],
-            'value' => [
-                'type' => 'string',
-                'required' => true,
-                'help' => 'Attribute value',
-            ],
-            'to_ids' => [
-                'type' => 'boolean',
-                'required' => false,
-                'default' => '1',
-                'help' => 'IDS flag (0/1)',
-            ],
-            'comment' => [
-                'type' => 'string',
-                'required' => false,
-                'help' => 'Comment',
-            ],
-            'distribution' => [
-                'type' => 'select',
-                'required' => false,
-                'options' => [
-                    '0' => 'Your organisation only',
-                    '1' => 'This community only',
-                    '2' => 'Connected communities',
-                    '3' => 'All communities',
-                    '4' => 'Sharing group',
-                    '5' => 'Inherit event',
-                ],
-                'default' => '5',
-                'help' => 'Distribution level',
-            ],
-            'sharing_group_id' => [
-                'type' => 'integer',
-                'required' => false,
-                'help' => 'Sharing group ID '
-                    . '(when distribution=4)',
-            ],
-            'disable_correlation' => [
-                'type' => 'boolean',
-                'required' => false,
-                'default' => '0',
-                'help' => 'Disable correlation (0/1)',
-            ],
-            'first_seen' => [
-                'type' => 'string',
-                'required' => false,
-                'help' => 'First seen datetime',
-            ],
-            'last_seen' => [
-                'type' => 'string',
-                'required' => false,
-                'help' => 'Last seen datetime',
-            ],
-        ],
-    ];
+    private $__fieldMeta = [];
 
     /** @var bool Whether stdout is a TTY */
     private $__isTty = false;
@@ -210,78 +113,15 @@ class CLIShell extends AppShell
     /** @var bool Whether we are in raw terminal mode */
     private $__rawMode = false;
 
-    /** @var array Entity configuration registry */
+    /**
+     * Entity configuration registry.
+     * Event/attribute/object configs are merged from
+     * traits in main(). Remaining entities are defined
+     * inline here.
+     *
+     * @var array
+     */
     private $__entityConfig = [
-        'event' => [
-            'model' => 'Event',
-            'aliases' => ['events'],
-            'listFields' => [
-                'id', 'date', 'info',
-                'Orgc.name', 'threat_level_id',
-                'analysis', 'published',
-            ],
-            'editableFields' => [
-                'info', 'date', 'distribution',
-                'threat_level_id', 'analysis',
-                'sharing_group_id',
-            ],
-        ],
-        'attribute' => [
-            'model' => 'MispAttribute',
-            'aliases' => ['attributes'],
-            'listFields' => [
-                'id', 'event_id', 'type',
-                'category', 'value', 'to_ids',
-                'comment',
-            ],
-            'editableFields' => [
-                'category', 'type', 'value',
-                'to_ids', 'comment', 'distribution',
-                'sharing_group_id',
-                'disable_correlation',
-                'first_seen', 'last_seen',
-            ],
-        ],
-        'object' => [
-            'model' => 'MispObject',
-            'aliases' => ['objects'],
-            'listFields' => [
-                'id', 'event_id', 'name',
-                'meta-category', 'description',
-                'template_version',
-            ],
-            'editableFields' => [],
-        ],
-        'tag' => [
-            'model' => 'Tag',
-            'aliases' => ['tags'],
-            'listFields' => [
-                'id', 'name', 'colour',
-                'exportable', 'hide_tag',
-            ],
-            'editableFields' => [
-                'name', 'colour', 'exportable',
-            ],
-        ],
-        'user' => [
-            'model' => 'User',
-            'aliases' => ['users'],
-            'listFields' => [
-                'id', 'email', 'org_id',
-                'role_id', 'disabled',
-            ],
-            'editableFields' => [],
-            'adminOnly' => true,
-        ],
-        'organisation' => [
-            'model' => 'Organisation',
-            'aliases' => ['organisations', 'org', 'orgs'],
-            'listFields' => [
-                'id', 'name', 'uuid',
-                'nationality', 'sector',
-            ],
-            'editableFields' => [],
-        ],
         'server' => [
             'model' => 'Server',
             'aliases' => ['servers'],
@@ -303,7 +143,11 @@ class CLIShell extends AppShell
         ],
         'sharing_group' => [
             'model' => 'SharingGroup',
-            'aliases' => ['sharing_groups', 'sharinggroup', 'sharinggroups'],
+            'aliases' => [
+                'sharing_groups',
+                'sharinggroup',
+                'sharinggroups',
+            ],
             'listFields' => [
                 'id', 'name', 'description',
                 'org_id', 'active',
@@ -346,12 +190,13 @@ class CLIShell extends AppShell
     {
         $parser = parent::getOptionParser();
         $parser->description(
-            'MISP Interactive CLI Shell - browse and manage '
-            . 'MISP data from the command line.'
+            'MISP Interactive CLI Shell - browse and '
+            . 'manage MISP data from the command line.'
         );
         $parser->addArgument('user_id', [
             'help' => 'User ID to authenticate as. '
-                . 'All operations are ACL-scoped to this user.',
+                . 'All operations are ACL-scoped '
+                . 'to this user.',
             'required' => true,
         ]);
         return $parser;
@@ -364,26 +209,53 @@ class CLIShell extends AppShell
      */
     public function main()
     {
-        $userId = isset($this->args[0]) ? $this->args[0] : null;
+        $userId = isset($this->args[0])
+            ? $this->args[0] : null;
         if (empty($userId) || !is_numeric($userId)) {
             $this->err('Usage: cake CLI <user_id>');
             return;
         }
 
-        $user = $this->User->getAuthUser((int)$userId, true);
+        $user = $this->User->getAuthUser(
+            (int)$userId, true
+        );
         if (empty($user)) {
             $this->err(
-                'Error: User with ID ' . $userId . ' not found.'
+                'Error: User with ID '
+                . $userId . ' not found.'
             );
             return;
         }
         $this->__user = $user;
+        $this->__setUserContext($user);
+
+        $this->__entityConfig = array_merge(
+            $this->__getEventEntityConfig(),
+            $this->__getAttributeEntityConfig(),
+            $this->__getObjectEntityConfig(),
+            $this->__getTagEntityConfig(),
+            $this->__getUserEntityConfig(),
+            $this->__getOrganisationEntityConfig(),
+            $this->__getRoleEntityConfig(),
+            $this->__entityConfig
+        );
+        $this->__fieldMeta = array_merge(
+            $this->__getEventFieldMeta(),
+            $this->__getAttributeFieldMeta(),
+            $this->__getObjectFieldMeta(),
+            $this->__getTagFieldMeta(),
+            $this->__getUserFieldMeta(),
+            $this->__getOrganisationFieldMeta(),
+            $this->__getRoleFieldMeta()
+        );
 
         $this->__isTty = function_exists('posix_isatty')
             && posix_isatty(STDOUT);
         $this->__stdin = fopen('php://stdin', 'r');
 
-        register_shutdown_function([$this, 'restoreTerminal']);
+        register_shutdown_function(
+            [$this, 'restoreTerminal']
+        );
 
         $this->__printWelcome();
 
@@ -406,7 +278,10 @@ class CLIShell extends AppShell
                 continue;
             }
 
-            if ($line === 'exit' || $line === 'quit') {
+            if (
+                $line === 'exit'
+                || $line === 'quit'
+            ) {
                 break;
             }
 
@@ -427,12 +302,18 @@ class CLIShell extends AppShell
         $emailParts = explode('@', $email);
         $username = $emailParts[0];
         $orgName = '';
-        if (!empty($this->__user['Organisation']['name'])) {
-            $orgName = $this->__user['Organisation']['name'];
+        if (
+            !empty(
+                $this->__user['Organisation']['name']
+            )
+        ) {
+            $orgName =
+                $this->__user['Organisation']['name'];
         } elseif (!empty($this->__user['org_id'])) {
             $org = $this->Organisation->find('first', [
                 'conditions' => [
-                    'Organisation.id' => $this->__user['org_id'],
+                    'Organisation.id' =>
+                        $this->__user['org_id'],
                 ],
                 'fields' => ['Organisation.name'],
                 'recursive' => -1,
@@ -442,21 +323,33 @@ class CLIShell extends AppShell
             }
         }
         $role = '';
-        if (!empty($this->__user['Role']['perm_site_admin'])) {
+        if (
+            !empty(
+                $this->__user['Role']
+                    ['perm_site_admin']
+            )
+        ) {
             $role = ' [Site Admin]';
-        } elseif (!empty($this->__user['Role']['perm_admin'])) {
+        } elseif (
+            !empty(
+                $this->__user['Role']['perm_admin']
+            )
+        ) {
             $role = ' [Org Admin]';
         }
 
         $this->out('');
         $this->out(
-            'Welcome to MISP Interactive CLI Shell v1.0'
+            'Welcome to MISP Interactive CLI '
+            . 'Shell v1.0'
         );
         $this->out(
             'Logged in as: ' . $email
             . ' (' . $orgName . ')' . $role
         );
-        $this->out("Type 'help' for available commands.");
+        $this->out(
+            "Type 'help' for available commands."
+        );
         $this->out('');
     }
 
@@ -471,8 +364,13 @@ class CLIShell extends AppShell
         $emailParts = explode('@', $email);
         $username = $emailParts[0];
         $orgName = '';
-        if (!empty($this->__user['Organisation']['name'])) {
-            $orgName = $this->__user['Organisation']['name'];
+        if (
+            !empty(
+                $this->__user['Organisation']['name']
+            )
+        ) {
+            $orgName =
+                $this->__user['Organisation']['name'];
         }
 
         $contextStr = '';
@@ -485,8 +383,8 @@ class CLIShell extends AppShell
                 . ':' . $this->__context['id'];
         }
 
-        return 'MISP [' . $username . '@' . $orgName . ']'
-            . $contextStr . ' > ';
+        return 'MISP [' . $username . '@' . $orgName
+            . ']' . $contextStr . ' > ';
     }
 
     /**
@@ -546,8 +444,10 @@ class CLIShell extends AppShell
                 break;
             default:
                 $this->err(
-                    "Unknown command: '" . $command . "'. "
-                    . "Type 'help' for available commands."
+                    "Unknown command: '"
+                    . $command . "'. "
+                    . "Type 'help' for available "
+                    . 'commands.'
                 );
                 break;
         }
@@ -557,7 +457,7 @@ class CLIShell extends AppShell
      * Parse a command line into structured parts.
      *
      * @param string $line Raw input
-     * @return array|false Parsed command or false on error
+     * @return array|false Parsed command or false
      */
     private function __parseCommand($line)
     {
@@ -574,7 +474,8 @@ class CLIShell extends AppShell
         if (!empty($tokens)) {
             $next = $tokens[0];
             if (strpos($next, '=') === false) {
-                $resolved = $this->__resolveEntity($next);
+                $resolved =
+                    $this->__resolveEntity($next);
                 if ($resolved !== false) {
                     $entity = $resolved;
                     array_shift($tokens);
@@ -625,10 +526,14 @@ class CLIShell extends AppShell
                 } else {
                     $current .= $ch;
                 }
-            } elseif ($ch === '"' || $ch === "'") {
+            } elseif (
+                $ch === '"' || $ch === "'"
+            ) {
                 $inQuote = true;
                 $quoteChar = $ch;
-            } elseif ($ch === ' ' || $ch === "\t") {
+            } elseif (
+                $ch === ' ' || $ch === "\t"
+            ) {
                 if ($current !== '') {
                     $tokens[] = $current;
                     $current = '';
@@ -645,7 +550,7 @@ class CLIShell extends AppShell
     }
 
     /**
-     * Resolve an entity name (or alias) to canonical name.
+     * Resolve entity name or alias to canonical name.
      *
      * @param string $name Entity name or alias
      * @return string|false Canonical name or false
@@ -656,8 +561,15 @@ class CLIShell extends AppShell
         if (isset($this->__entityConfig[$name])) {
             return $name;
         }
-        foreach ($this->__entityConfig as $canonical => $config) {
-            if (in_array($name, $config['aliases'], true)) {
+        foreach (
+            $this->__entityConfig
+            as $canonical => $config
+        ) {
+            if (
+                in_array(
+                    $name, $config['aliases'], true
+                )
+            ) {
                 return $canonical;
             }
         }
@@ -671,11 +583,16 @@ class CLIShell extends AppShell
      */
     private function __getTerminalSize()
     {
-        $output = shell_exec('stty size 2>/dev/null');
+        $output = shell_exec(
+            'stty size 2>/dev/null'
+        );
         if (!empty($output)) {
             $parts = explode(' ', trim($output));
             if (count($parts) === 2) {
-                return [(int)$parts[1], (int)$parts[0]];
+                return [
+                    (int)$parts[1],
+                    (int)$parts[0],
+                ];
             }
         }
         return [80, 24];
@@ -684,7 +601,7 @@ class CLIShell extends AppShell
     /**
      * help command.
      *
-     * @param string|null $topic Specific command to show help for
+     * @param string|null $topic Help topic
      * @return void
      */
     private function __cmdHelp($topic = null)
@@ -694,11 +611,13 @@ class CLIShell extends AppShell
             $this->out('');
             $this->out(
                 '  list <entity> [filters]'
-                . '  - Paginated list with optional filters'
+                . '  - Paginated list with '
+                . 'optional filters'
             );
             $this->out(
                 '  view <entity> <id>'
-                . '      - Detailed view of a single record'
+                . '      - Detailed view of a '
+                . 'single record'
             );
             $this->out(
                 '  search <entity> [filters]'
@@ -706,7 +625,8 @@ class CLIShell extends AppShell
             );
             $this->out(
                 '  add <entity>'
-                . '             - Interactive guided creation'
+                . '             - Interactive '
+                . 'guided creation'
             );
             $this->out(
                 '  edit <entity> <id>'
@@ -722,15 +642,18 @@ class CLIShell extends AppShell
             );
             $this->out(
                 '  context'
-                . '                  - Show current context'
+                . '                  - Show '
+                . 'current context'
             );
             $this->out(
                 '  clear'
-                . '                    - Clear navigation context'
+                . '                    - Clear '
+                . 'navigation context'
             );
             $this->out(
                 '  next / prev'
-                . '              - Next/previous page'
+                . '              - Next/previous '
+                . 'page'
             );
             $this->out(
                 '  help [command]'
@@ -747,37 +670,51 @@ class CLIShell extends AppShell
             ));
             $this->out('');
             $this->out(
-                "Type 'help filters' for filter syntax."
+                "Type 'help filters' for filter "
+                . 'syntax.'
             );
             return;
         }
 
-        if ($topic === 'filters' || $topic === 'filter') {
+        if (
+            $topic === 'filters'
+            || $topic === 'filter'
+        ) {
             $this->out('Filter Syntax:');
             $this->out('');
-            $this->out('  key=value         Exact match');
-            $this->out('  key=a,b,c         OR (any of)');
-            $this->out('  key=!value        NOT (exclude)');
+            $this->out(
+                '  key=value         Exact match'
+            );
+            $this->out(
+                '  key=a,b,c         OR (any of)'
+            );
+            $this->out(
+                '  key=!value        NOT (exclude)'
+            );
             $this->out(
                 '  tag=X,Y           Tag OR'
             );
             $this->out(
-                '  tag+=X            Tag AND (must have)'
+                '  tag+=X            Tag AND '
+                . '(must have)'
             );
             $this->out(
                 '  tag=!X            Tag NOT'
             );
             $this->out(
-                '  from=YYYY-MM-DD   Date range start'
+                '  from=YYYY-MM-DD   Date range '
+                . 'start'
             );
             $this->out(
                 '  to=YYYY-MM-DD     Date range end'
             );
             $this->out(
-                '  last=7d           Relative time (d/h/m)'
+                '  last=7d           Relative time '
+                . '(d/h/m)'
             );
             $this->out(
-                '  searchall=text    Wildcard across fields'
+                '  searchall=text    Wildcard '
+                . 'across fields'
             );
             $this->out(
                 '  value=%text%      LIKE match'
@@ -786,7 +723,8 @@ class CLIShell extends AppShell
         }
 
         $this->out(
-            "No detailed help available for '" . $topic . "'."
+            "No detailed help available for '"
+            . $topic . "'."
         );
     }
 
@@ -818,7 +756,10 @@ class CLIShell extends AppShell
      */
     private function __cmdClear()
     {
-        $this->__context = ['entity' => null, 'id' => null];
+        $this->__context = [
+            'entity' => null,
+            'id' => null,
+        ];
         $this->out('Context cleared.');
     }
 
@@ -839,8 +780,13 @@ class CLIShell extends AppShell
             $this->err('Usage: use <entity> <id>');
             return;
         }
-        if (!isset($this->__entityConfig[$entity])) {
-            $this->err("Unknown entity: '" . $entity . "'");
+        if (
+            !isset($this->__entityConfig[$entity])
+        ) {
+            $this->err(
+                "Unknown entity: '"
+                . $entity . "'"
+            );
             return;
         }
         $this->__context = [
@@ -864,22 +810,32 @@ class CLIShell extends AppShell
     {
         if (empty($entity)) {
             $this->err(
-                'Usage: list <entity> [key=value ...]'
+                'Usage: list <entity> '
+                . '[key=value ...]'
             );
             return;
         }
-        if (!isset($this->__entityConfig[$entity])) {
-            $this->err("Unknown entity: '" . $entity . "'");
+        if (
+            !isset($this->__entityConfig[$entity])
+        ) {
+            $this->err(
+                "Unknown entity: '"
+                . $entity . "'"
+            );
             return;
         }
         $config = $this->__entityConfig[$entity];
         if (
             !empty($config['adminOnly'])
-            && empty($this->__user['Role']['perm_site_admin'])
+            && empty(
+                $this->__user['Role']
+                    ['perm_site_admin']
+            )
         ) {
             $this->err(
                 'Permission denied: '
-                . $entity . ' requires site admin access.'
+                . $entity
+                . ' requires site admin access.'
             );
             return;
         }
@@ -899,6 +855,8 @@ class CLIShell extends AppShell
         if (!isset($filters['page'])) {
             $filters['page'] = 1;
         }
+        $filters['sort_order'] =
+            $this->__sortOrder;
         $this->__page = (int)$filters['page'];
 
         $this->__lastQuery = [
@@ -906,7 +864,9 @@ class CLIShell extends AppShell
             'filters' => $filters,
         ];
 
-        $results = $this->__fetchList($entity, $filters);
+        $results = $this->__fetchList(
+            $entity, $filters
+        );
         if (empty($results)) {
             $this->out('No results found.');
             return;
@@ -942,8 +902,13 @@ class CLIShell extends AppShell
             $this->err('Usage: view <entity> <id>');
             return;
         }
-        if (!isset($this->__entityConfig[$entity])) {
-            $this->err("Unknown entity: '" . $entity . "'");
+        if (
+            !isset($this->__entityConfig[$entity])
+        ) {
+            $this->err(
+                "Unknown entity: '"
+                . $entity . "'"
+            );
             return;
         }
         if (empty($id) && !is_numeric($id)) {
@@ -951,38 +916,57 @@ class CLIShell extends AppShell
             return;
         }
         if (!is_numeric($id)) {
-            $this->err("Invalid ID: '" . $id . "'");
+            $this->err(
+                "Invalid ID: '" . $id . "'"
+            );
             return;
         }
 
         $config = $this->__entityConfig[$entity];
         if (
             !empty($config['adminOnly'])
-            && empty($this->__user['Role']['perm_site_admin'])
+            && empty(
+                $this->__user['Role']
+                    ['perm_site_admin']
+            )
         ) {
             $this->err(
                 'Permission denied: '
-                . $entity . ' requires site admin access.'
+                . $entity
+                . ' requires site admin access.'
             );
             return;
         }
 
-        $record = $this->__fetchDetail($entity, (int)$id);
+        $record = $this->__fetchDetail(
+            $entity, (int)$id
+        );
         if (empty($record)) {
             $this->err(
                 ucfirst($entity)
-                . ' with ID ' . $id . ' not found.'
+                . ' with ID ' . $id
+                . ' not found.'
             );
             return;
         }
 
-        $this->__renderDetail($entity, $record);
-
-        if (in_array($entity, ['event', 'object'])) {
+        if (
+            in_array($entity, ['event', 'object'])
+        ) {
             $this->__context = [
                 'entity' => $entity,
                 'id' => (int)$id,
             ];
+        }
+
+        if ($this->__isTty) {
+            $this->__detailBrowseLoop(
+                $entity, (int)$id, $record
+            );
+        } else {
+            $this->__renderDetail(
+                $entity, $record
+            );
         }
     }
 
@@ -1006,16 +990,21 @@ class CLIShell extends AppShell
     private function __cmdNext()
     {
         if (empty($this->__lastQuery)) {
-            $this->err('No previous query to paginate.');
+            $this->err(
+                'No previous query to paginate.'
+            );
             return;
         }
         $this->__page++;
-        $this->__lastQuery['filters']['page'] = $this->__page;
+        $this->__lastQuery['filters']['page'] =
+            $this->__page;
         $entity = $this->__lastQuery['entity'];
         $filters = $this->__lastQuery['filters'];
         $config = $this->__entityConfig[$entity];
 
-        $results = $this->__fetchList($entity, $filters);
+        $results = $this->__fetchList(
+            $entity, $filters
+        );
         if (empty($results)) {
             $this->__page--;
             $this->__lastQuery['filters']['page'] =
@@ -1049,20 +1038,27 @@ class CLIShell extends AppShell
     private function __cmdPrev()
     {
         if (empty($this->__lastQuery)) {
-            $this->err('No previous query to paginate.');
+            $this->err(
+                'No previous query to paginate.'
+            );
             return;
         }
         if ($this->__page <= 1) {
-            $this->out('Already on the first page.');
+            $this->out(
+                'Already on the first page.'
+            );
             return;
         }
         $this->__page--;
-        $this->__lastQuery['filters']['page'] = $this->__page;
+        $this->__lastQuery['filters']['page'] =
+            $this->__page;
         $entity = $this->__lastQuery['entity'];
         $filters = $this->__lastQuery['filters'];
         $config = $this->__entityConfig[$entity];
 
-        $results = $this->__fetchList($entity, $filters);
+        $results = $this->__fetchList(
+            $entity, $filters
+        );
         if ($this->__isTty) {
             $this->__browseData = $results;
             $this->__selectedIndex = 0;
@@ -1081,7 +1077,7 @@ class CLIShell extends AppShell
     }
 
     /**
-     * Parse filter arguments into restSearch-compatible array.
+     * Parse filter arguments into array.
      *
      * @param array $args Raw key=value arguments
      * @return array Filters
@@ -1109,8 +1105,12 @@ class CLIShell extends AppShell
             if ($key === 'tag') {
                 $parts = explode(',', $value);
                 foreach ($parts as $part) {
-                    if (strpos($part, '!') === 0) {
-                        $tagsNot[] = substr($part, 1);
+                    if (
+                        strpos($part, '!') === 0
+                    ) {
+                        $tagsNot[] = substr(
+                            $part, 1
+                        );
                     } else {
                         $tagsOr[] = $part;
                     }
@@ -1118,13 +1118,19 @@ class CLIShell extends AppShell
                 continue;
             }
 
-            if (strpos($value, ',') !== false) {
+            if (
+                strpos($value, ',') !== false
+            ) {
                 $parts = explode(',', $value);
                 $orValues = [];
                 $notValues = [];
                 foreach ($parts as $part) {
-                    if (strpos($part, '!') === 0) {
-                        $notValues[] = substr($part, 1);
+                    if (
+                        strpos($part, '!') === 0
+                    ) {
+                        $notValues[] = substr(
+                            $part, 1
+                        );
                     } else {
                         $orValues[] = $part;
                     }
@@ -1137,7 +1143,9 @@ class CLIShell extends AppShell
                     $filterValue['NOT'] = $notValues;
                 }
                 $filters[$key] = $filterValue;
-            } elseif (strpos($value, '!') === 0) {
+            } elseif (
+                strpos($value, '!') === 0
+            ) {
                 $filters[$key] = [
                     'NOT' => [substr($value, 1)],
                 ];
@@ -1170,381 +1178,116 @@ class CLIShell extends AppShell
     /**
      * Fetch a list of records for the given entity.
      *
+     * Dispatches to trait-provided fetch methods
+     * for events, attributes, and objects.
+     *
      * @param string $entity Canonical entity name
      * @param array $filters Filters
      * @return array Results
      */
     private function __fetchList($entity, $filters)
     {
-        $limit = isset($filters['limit'])
-            ? (int)$filters['limit'] : $this->__perPage;
-        $page = isset($filters['page'])
-            ? (int)$filters['page'] : 1;
-
         switch ($entity) {
             case 'event':
-                return $this->__fetchEventList($filters);
+                return $this->__fetchEventList(
+                    $filters
+                );
             case 'attribute':
-                return $this->__fetchAttributeList($filters);
+                return $this->__fetchAttributeList(
+                    $filters
+                );
             case 'object':
-                return $this->__fetchObjectList($filters);
+                return $this->__fetchObjectList(
+                    $filters
+                );
             case 'tag':
-                return $this->__fetchTagList($filters);
+                return $this->__fetchTagList(
+                    $filters
+                );
             case 'user':
-                return $this->__fetchSimpleList(
-                    'User', $filters
+                return $this->__fetchUserList(
+                    $filters
                 );
             case 'organisation':
-                return $this->__fetchSimpleList(
-                    'Organisation', $filters
+                return $this->__fetchOrganisationList(
+                    $filters
                 );
-            case 'server':
-                return $this->__fetchSimpleList(
-                    'Server', $filters
-                );
-            case 'feed':
-                return $this->__fetchSimpleList(
-                    'Feed', $filters
+            case 'role':
+                return $this->__fetchRoleList(
+                    $filters
                 );
             case 'sharing_group':
                 return $this->__fetchSharingGroupList(
                     $filters
                 );
-            case 'galaxy':
-                return $this->__fetchSimpleList(
-                    'Galaxy', $filters
-                );
-            case 'taxonomy':
-                return $this->__fetchSimpleList(
-                    'Taxonomy', $filters
-                );
-            case 'warninglist':
-                return $this->__fetchSimpleList(
-                    'Warninglist', $filters
-                );
             default:
-                return [];
+                return $this->__fetchSimpleList(
+                    $this->__entityConfig[$entity]
+                        ['model'],
+                    $filters
+                );
         }
     }
 
     /**
-     * Fetch event list using Event model.
-     *
-     * @param array $filters Filters
-     * @return array
-     */
-    private function __fetchEventList($filters)
-    {
-        $params = [
-            'minimal' => true,
-            'limit' => isset($filters['limit'])
-                ? (int)$filters['limit'] : $this->__perPage,
-            'page' => isset($filters['page'])
-                ? (int)$filters['page'] : 1,
-        ];
-
-        $passthrough = [
-            'value', 'type', 'category', 'org',
-            'orgc_id', 'tags', 'searchall', 'from',
-            'to', 'last', 'eventid', 'uuid',
-            'published', 'threat_level_id', 'analysis',
-            'timestamp', 'publish_timestamp', 'order',
-        ];
-        foreach ($passthrough as $key) {
-            if (isset($filters[$key])) {
-                $params[$key] = $filters[$key];
-            }
-        }
-
-        if (
-            $this->__context['entity'] === 'event'
-            && !empty($this->__context['id'])
-            && !isset($params['eventid'])
-        ) {
-            $params['eventid'] = $this->__context['id'];
-        }
-
-        $eventIds = $this->Event->filterEventIds(
-            $this->__user, $params
-        );
-
-        if (empty($eventIds)) {
-            return [];
-        }
-
-        $ids = [];
-        foreach ($eventIds as $row) {
-            if (isset($row['Event']['id'])) {
-                $ids[] = $row['Event']['id'];
-            } elseif (is_numeric($row)) {
-                $ids[] = $row;
-            }
-        }
-
-        if (empty($ids)) {
-            return [];
-        }
-
-        $events = $this->Event->find('all', [
-            'conditions' => ['Event.id' => $ids],
-            'fields' => [
-                'Event.id', 'Event.date', 'Event.info',
-                'Event.threat_level_id', 'Event.analysis',
-                'Event.published', 'Event.orgc_id',
-            ],
-            'contain' => [
-                'Orgc' => ['fields' => ['Orgc.name']],
-            ],
-            'order' => ['Event.id' => 'DESC'],
-        ]);
-
-        $results = [];
-        foreach ($events as $event) {
-            $results[] = [
-                'id' => $event['Event']['id'],
-                'date' => $event['Event']['date'],
-                'info' => $event['Event']['info'],
-                'Orgc.name' => isset($event['Orgc']['name'])
-                    ? $event['Orgc']['name'] : '',
-                'threat_level_id' =>
-                    $event['Event']['threat_level_id'],
-                'analysis' => $event['Event']['analysis'],
-                'published' => $event['Event']['published']
-                    ? 'Yes' : 'No',
-            ];
-        }
-
-        return $results;
-    }
-
-    /**
-     * Fetch attribute list.
-     *
-     * @param array $filters Filters
-     * @return array
-     */
-    private function __fetchAttributeList($filters)
-    {
-        $params = [
-            'limit' => isset($filters['limit'])
-                ? (int)$filters['limit'] : $this->__perPage,
-            'page' => isset($filters['page'])
-                ? (int)$filters['page'] : 1,
-        ];
-
-        $passthrough = [
-            'value', 'type', 'category', 'to_ids',
-            'tags', 'from', 'to', 'last', 'eventid',
-            'uuid', 'published', 'timestamp',
-            'object_relation', 'first_seen',
-            'last_seen', 'deleted', 'searchall',
-            'includeCorrelations', 'order',
-        ];
-        foreach ($passthrough as $key) {
-            if (isset($filters[$key])) {
-                $params[$key] = $filters[$key];
-            }
-        }
-
-        if (
-            $this->__context['entity'] === 'event'
-            && !empty($this->__context['id'])
-            && !isset($params['eventid'])
-        ) {
-            $params['eventid'] = $this->__context['id'];
-        }
-
-        $params['return'] = 'attributes';
-        $attributes = $this->MispAttribute->fetchAttributes(
-            $this->__user, $params
-        );
-
-        if (empty($attributes)) {
-            return [];
-        }
-
-        $results = [];
-        foreach ($attributes as $attr) {
-            $a = isset($attr['Attribute'])
-                ? $attr['Attribute'] : $attr;
-            $results[] = [
-                'id' => $a['id'],
-                'event_id' => $a['event_id'],
-                'type' => $a['type'],
-                'category' => $a['category'],
-                'value' => $a['value'],
-                'to_ids' => !empty($a['to_ids'])
-                    ? 'Yes' : 'No',
-                'comment' => isset($a['comment'])
-                    ? $a['comment'] : '',
-            ];
-        }
-
-        return $results;
-    }
-
-    /**
-     * Fetch object list.
-     *
-     * @param array $filters Filters
-     * @return array
-     */
-    private function __fetchObjectList($filters)
-    {
-        $conditions = [];
-        $limit = isset($filters['limit'])
-            ? (int)$filters['limit'] : $this->__perPage;
-        $page = isset($filters['page'])
-            ? (int)$filters['page'] : 1;
-
-        if (
-            $this->__context['entity'] === 'event'
-            && !empty($this->__context['id'])
-        ) {
-            $conditions['MispObject.event_id'] =
-                $this->__context['id'];
-        }
-
-        if (isset($filters['object_name'])) {
-            $conditions['MispObject.name'] =
-                $filters['object_name'];
-        }
-
-        $objects = $this->MispObject->find('all', [
-            'conditions' => $conditions,
-            'fields' => [
-                'MispObject.id',
-                'MispObject.event_id',
-                'MispObject.name',
-                'MispObject.meta-category',
-                'MispObject.description',
-                'MispObject.template_version',
-            ],
-            'recursive' => -1,
-            'limit' => $limit,
-            'page' => $page,
-            'order' => ['MispObject.id' => 'DESC'],
-        ]);
-
-        $results = [];
-        foreach ($objects as $obj) {
-            $o = $obj['MispObject'];
-            $results[] = [
-                'id' => $o['id'],
-                'event_id' => $o['event_id'],
-                'name' => $o['name'],
-                'meta-category' => isset($o['meta-category'])
-                    ? $o['meta-category'] : '',
-                'description' => isset($o['description'])
-                    ? $o['description'] : '',
-                'template_version' =>
-                    isset($o['template_version'])
-                        ? $o['template_version'] : '',
-            ];
-        }
-
-        return $results;
-    }
-
-    /**
-     * Fetch tag list.
-     *
-     * @param array $filters Filters
-     * @return array
-     */
-    private function __fetchTagList($filters)
-    {
-        $conditions = [];
-        $limit = isset($filters['limit'])
-            ? (int)$filters['limit'] : $this->__perPage;
-        $page = isset($filters['page'])
-            ? (int)$filters['page'] : 1;
-
-        if (
-            $this->__context['entity'] === 'event'
-            && !empty($this->__context['id'])
-        ) {
-            $eventTags = $this->EventTag->find('list', [
-                'conditions' => [
-                    'EventTag.event_id' =>
-                        $this->__context['id'],
-                ],
-                'fields' => ['EventTag.tag_id'],
-            ]);
-            if (empty($eventTags)) {
-                return [];
-            }
-            $conditions['Tag.id'] = array_values($eventTags);
-        }
-
-        $tags = $this->Tag->find('all', [
-            'conditions' => $conditions,
-            'fields' => [
-                'Tag.id', 'Tag.name', 'Tag.colour',
-                'Tag.exportable', 'Tag.hide_tag',
-            ],
-            'recursive' => -1,
-            'limit' => $limit,
-            'page' => $page,
-            'order' => ['Tag.name' => 'ASC'],
-        ]);
-
-        $results = [];
-        foreach ($tags as $tag) {
-            $t = $tag['Tag'];
-            $results[] = [
-                'id' => $t['id'],
-                'name' => $t['name'],
-                'colour' => $t['colour'],
-                'exportable' => !empty($t['exportable'])
-                    ? 'Yes' : 'No',
-                'hide_tag' => !empty($t['hide_tag'])
-                    ? 'Yes' : 'No',
-            ];
-        }
-
-        return $results;
-    }
-
-    /**
-     * Generic simple list fetch for entities using find().
+     * Generic simple list fetch for entities.
      *
      * @param string $modelName Model class name
      * @param array $filters Filters
      * @return array
      */
-    private function __fetchSimpleList($modelName, $filters)
-    {
+    private function __fetchSimpleList(
+        $modelName,
+        $filters
+    ) {
         $limit = isset($filters['limit'])
-            ? (int)$filters['limit'] : $this->__perPage;
+            ? (int)$filters['limit']
+            : $this->__perPage;
         $page = isset($filters['page'])
             ? (int)$filters['page'] : 1;
 
-        $records = $this->{$modelName}->find('all', [
-            'recursive' => -1,
-            'limit' => $limit,
-            'page' => $page,
-            'order' => [$modelName . '.id' => 'DESC'],
-        ]);
+        $entity = null;
+        foreach (
+            $this->__entityConfig
+            as $eName => $eConfig
+        ) {
+            if (
+                $eConfig['model'] === $modelName
+            ) {
+                $entity = $eName;
+                break;
+            }
+        }
+        if ($entity === null) {
+            return [];
+        }
+        $alias = $this->__modelAlias($entity);
+
+        $records = $this->{$modelName}->find(
+            'all',
+            [
+                'recursive' => -1,
+                'limit' => $limit,
+                'page' => $page,
+                'order' => [
+                    $alias . '.id' => isset(
+                        $filters['sort_order']
+                    )
+                    ? $filters['sort_order']
+                    : 'DESC',
+                ],
+            ]
+        );
 
         $results = [];
+        $listFields =
+            $this->__entityConfig[$entity]
+                ['listFields'];
         foreach ($records as $record) {
-            $data = $record[$modelName];
+            $data = isset($record[$alias])
+                ? $record[$alias]
+                : $record[$modelName];
             $row = [];
-            $entity = null;
-            foreach (
-                $this->__entityConfig as $eName => $eConfig
-            ) {
-                if ($eConfig['model'] === $modelName) {
-                    $entity = $eName;
-                    break;
-                }
-            }
-            if ($entity === null) {
-                continue;
-            }
-            $listFields =
-                $this->__entityConfig[$entity]['listFields'];
             foreach ($listFields as $field) {
                 $row[$field] = isset($data[$field])
                     ? $data[$field] : '';
@@ -1561,23 +1304,36 @@ class CLIShell extends AppShell
      * @param array $filters Filters
      * @return array
      */
-    private function __fetchSharingGroupList($filters)
-    {
-        $sgs = $this->SharingGroup->fetchAllAuthorised(
-            $this->__user
-        );
+    private function __fetchSharingGroupList(
+        $filters
+    ) {
+        $sgs = $this->SharingGroup
+            ->fetchAllAuthorised(
+                $this->__user, 'simplified'
+            );
 
         if (empty($sgs)) {
             return [];
         }
 
         $limit = isset($filters['limit'])
-            ? (int)$filters['limit'] : $this->__perPage;
+            ? (int)$filters['limit']
+            : $this->__perPage;
         $page = isset($filters['page'])
             ? (int)$filters['page'] : 1;
         $offset = ($page - 1) * $limit;
 
         $sgs = array_slice($sgs, $offset, $limit);
+
+        $orgIds = [];
+        foreach ($sgs as $sg) {
+            $s = isset($sg['SharingGroup'])
+                ? $sg['SharingGroup'] : $sg;
+            if (!empty($s['org_id'])) {
+                $orgIds[] = $s['org_id'];
+            }
+        }
+        $this->__prefetchFK('org', $orgIds);
 
         $results = [];
         foreach ($sgs as $sg) {
@@ -1587,10 +1343,13 @@ class CLIShell extends AppShell
                 'id' => $s['id'],
                 'name' => isset($s['name'])
                     ? $s['name'] : '',
-                'description' => isset($s['description'])
+                'description' =>
+                    isset($s['description'])
                     ? $s['description'] : '',
-                'org_id' => isset($s['org_id'])
-                    ? $s['org_id'] : '',
+                'org_id' => !empty($s['org_id'])
+                    ? $this->__resolveFK(
+                        'org', $s['org_id']
+                    ) : '',
                 'active' => !empty($s['active'])
                     ? 'Yes' : 'No',
             ];
@@ -1602,6 +1361,9 @@ class CLIShell extends AppShell
     /**
      * Fetch detail for a single record.
      *
+     * Dispatches to trait-provided fetch methods
+     * for events, attributes, and objects.
+     *
      * @param string $entity Entity name
      * @param int $id Record ID
      * @return array|null Record data or null
@@ -1610,88 +1372,103 @@ class CLIShell extends AppShell
     {
         switch ($entity) {
             case 'event':
-                $events = $this->Event->fetchEvent(
-                    $this->__user,
-                    ['eventid' => $id, 'metadata' => true]
+                return $this->__fetchEventDetail(
+                    $id
                 );
-                return !empty($events[0]) ? $events[0] : null;
 
             case 'attribute':
-                $attrs = $this->MispAttribute->fetchAttributes(
-                    $this->__user,
-                    [
-                        'conditions' => [
-                            'Attribute.id' => $id,
-                        ],
-                    ]
+                return $this->__fetchAttributeDetail(
+                    $id
                 );
-                return !empty($attrs[0]) ? $attrs[0] : null;
 
             case 'object':
-                $objects = $this->MispObject->find('first', [
-                    'conditions' => [
-                        'MispObject.id' => $id,
-                    ],
-                    'recursive' => 1,
-                ]);
-                return !empty($objects) ? $objects : null;
+                return $this->__fetchObjectDetail(
+                    $id
+                );
 
             case 'tag':
-                return $this->Tag->find('first', [
-                    'conditions' => ['Tag.id' => $id],
-                    'recursive' => -1,
-                ]);
+                return $this->__fetchTagDetail(
+                    $id
+                );
 
             case 'user':
-                return $this->User->getAuthUser($id);
+                return $this->__fetchUserDetail(
+                    $id
+                );
 
             case 'organisation':
-                return $this->Organisation->find('first', [
-                    'conditions' => [
-                        'Organisation.id' => $id,
-                    ],
-                    'recursive' => -1,
-                ]);
+                return
+                    $this->__fetchOrganisationDetail(
+                        $id
+                    );
+
+            case 'role':
+                return $this->__fetchRoleDetail(
+                    $id
+                );
 
             case 'server':
-                return $this->Server->find('first', [
-                    'conditions' => ['Server.id' => $id],
-                    'recursive' => -1,
-                ]);
+                return $this->Server->find(
+                    'first',
+                    [
+                        'conditions' => [
+                            'Server.id' => $id,
+                        ],
+                        'recursive' => -1,
+                    ]
+                );
 
             case 'feed':
                 return $this->Feed->find('first', [
-                    'conditions' => ['Feed.id' => $id],
+                    'conditions' => [
+                        'Feed.id' => $id,
+                    ],
                     'recursive' => -1,
                 ]);
 
             case 'sharing_group':
-                return $this->SharingGroup->find('first', [
-                    'conditions' => [
-                        'SharingGroup.id' => $id,
-                    ],
-                    'recursive' => -1,
-                ]);
+                return $this->SharingGroup->find(
+                    'first',
+                    [
+                        'conditions' => [
+                            'SharingGroup.id' => $id,
+                        ],
+                        'recursive' => -1,
+                    ]
+                );
 
             case 'galaxy':
-                return $this->Galaxy->find('first', [
-                    'conditions' => ['Galaxy.id' => $id],
-                    'recursive' => -1,
-                ]);
+                return $this->Galaxy->find(
+                    'first',
+                    [
+                        'conditions' => [
+                            'Galaxy.id' => $id,
+                        ],
+                        'recursive' => -1,
+                    ]
+                );
 
             case 'taxonomy':
-                return $this->Taxonomy->find('first', [
-                    'conditions' => ['Taxonomy.id' => $id],
-                    'recursive' => -1,
-                ]);
+                return $this->Taxonomy->find(
+                    'first',
+                    [
+                        'conditions' => [
+                            'Taxonomy.id' => $id,
+                        ],
+                        'recursive' => -1,
+                    ]
+                );
 
             case 'warninglist':
-                return $this->Warninglist->find('first', [
-                    'conditions' => [
-                        'Warninglist.id' => $id,
-                    ],
-                    'recursive' => -1,
-                ]);
+                return $this->Warninglist->find(
+                    'first',
+                    [
+                        'conditions' => [
+                            'Warninglist.id' => $id,
+                        ],
+                        'recursive' => -1,
+                    ]
+                );
 
             default:
                 return null;
@@ -1699,7 +1476,7 @@ class CLIShell extends AppShell
     }
 
     /**
-     * Render a static (non-interactive) table for piped mode.
+     * Render a static table for piped mode.
      *
      * @param string $entity Entity name
      * @param array $results Result rows
@@ -1771,7 +1548,9 @@ class CLIShell extends AppShell
                     ? (string)$row[$field] : '';
                 $width = $colWidths[$field];
                 if (strlen($val) > $width) {
-                    $val = substr($val, 0, $width - 2) . '..';
+                    $val = substr(
+                        $val, 0, $width - 2
+                    ) . '..';
                 }
                 $line .= str_pad($val, $width);
                 if ($i < count($fields) - 1) {
@@ -1784,16 +1563,13 @@ class CLIShell extends AppShell
         $this->out('');
         $this->out(
             'Page ' . $this->__page
-            . ' (' . count($results) . ' results)'
+            . ' (' . count($results)
+            . ' results)'
         );
     }
 
     /**
      * Interactive browse mode loop.
-     *
-     * Enters raw terminal mode and renders a browsable table.
-     * Handles keystrokes for navigation, viewing, and paging.
-     * Returns to normal mode when user presses q or Escape.
      *
      * @param string $entity Entity name
      * @param array $fields Field names for columns
@@ -1810,6 +1586,7 @@ class CLIShell extends AppShell
             $fields,
             $totalResults
         );
+        $this->__drainStdin();
 
         while (true) {
             $key = $this->__readKeypress();
@@ -1823,7 +1600,9 @@ class CLIShell extends AppShell
             switch ($key) {
                 case 'UP':
                 case 'k':
-                    if ($this->__selectedIndex > 0) {
+                    if (
+                        $this->__selectedIndex > 0
+                    ) {
                         $this->__selectedIndex--;
                         $redraw = true;
                     }
@@ -1832,7 +1611,8 @@ class CLIShell extends AppShell
                 case 'DOWN':
                 case 'j':
                     if (
-                        $this->__selectedIndex < $rowCount - 1
+                        $this->__selectedIndex
+                        < $rowCount - 1
                     ) {
                         $this->__selectedIndex++;
                         $redraw = true;
@@ -1844,7 +1624,8 @@ class CLIShell extends AppShell
                         $rowCount > 0
                         && isset(
                             $this->__browseData[
-                                $this->__selectedIndex
+                                $this
+                                ->__selectedIndex
                             ]['id']
                         )
                     ) {
@@ -1852,31 +1633,37 @@ class CLIShell extends AppShell
                             $this->__selectedIndex
                         ]['id'];
                         $this->__exitRawMode();
-                        $this->__cmdView($entity, (int)$id);
+                        $this->__cmdView(
+                            $entity, (int)$id
+                        );
                     }
                     break 2;
 
                 case 'n':
-                    if (empty($this->__lastQuery)) {
+                    if (
+                        empty($this->__lastQuery)
+                    ) {
                         break;
                     }
                     $this->__page++;
-                    $this->__lastQuery['filters']['page'] =
-                        $this->__page;
+                    $this->__lastQuery['filters']
+                        ['page'] = $this->__page;
                     $results = $this->__fetchList(
                         $entity,
                         $this->__lastQuery['filters']
                     );
                     if (empty($results)) {
                         $this->__page--;
-                        $this->__lastQuery['filters']['page'] =
-                            $this->__page;
+                        $this->__lastQuery['filters']
+                            ['page'] = $this->__page;
                     } else {
-                        $this->__browseData = $results;
+                        $this->__browseData =
+                            $results;
                         $this->__selectedIndex = 0;
                         $this->__viewportOffset = 0;
-                        $totalResults =
-                            count($this->__browseData);
+                        $totalResults = count(
+                            $this->__browseData
+                        );
                     }
                     $redraw = true;
                     break;
@@ -1889,55 +1676,101 @@ class CLIShell extends AppShell
                         break;
                     }
                     $this->__page--;
-                    $this->__lastQuery['filters']['page'] =
-                        $this->__page;
+                    $this->__lastQuery['filters']
+                        ['page'] = $this->__page;
                     $results = $this->__fetchList(
                         $entity,
                         $this->__lastQuery['filters']
                     );
                     if (!empty($results)) {
-                        $this->__browseData = $results;
+                        $this->__browseData =
+                            $results;
                         $this->__selectedIndex = 0;
                         $this->__viewportOffset = 0;
-                        $totalResults =
-                            count($this->__browseData);
+                        $totalResults = count(
+                            $this->__browseData
+                        );
                     }
                     $redraw = true;
                     break;
 
                 case 'f':
                     $this->__exitRawMode();
-                    $changed = $this->__filterBar($entity);
+                    $changed = $this->__filterBar(
+                        $entity
+                    );
                     if ($changed) {
-                        $allArgs = $this->__browseFilters;
-                        $filters = $this->__parseFilters(
-                            $allArgs
-                        );
-                        if (!isset($filters['limit'])) {
+                        $allArgs =
+                            $this->__browseFilters;
+                        $filters =
+                            $this->__parseFilters(
+                                $allArgs
+                            );
+                        if (
+                            !isset($filters['limit'])
+                        ) {
                             $filters['limit'] =
                                 $this->__perPage;
                         }
                         $filters['page'] = 1;
+                        $filters['sort_order'] =
+                            $this->__sortOrder;
                         $this->__page = 1;
                         $this->__lastQuery = [
                             'entity' => $entity,
                             'filters' => $filters,
                         ];
-                        $results = $this->__fetchList(
-                            $entity, $filters
-                        );
+                        $results =
+                            $this->__fetchList(
+                                $entity, $filters
+                            );
                         if (empty($results)) {
                             $this->__browseData = [];
                             $totalResults = 0;
                         } else {
-                            $this->__browseData = $results;
-                            $totalResults =
-                                count($this->__browseData);
+                            $this->__browseData =
+                                $results;
+                            $totalResults = count(
+                                $this->__browseData
+                            );
                         }
                         $this->__selectedIndex = 0;
                         $this->__viewportOffset = 0;
                     }
                     $this->__enterRawMode();
+                    $redraw = true;
+                    break;
+
+                case 's':
+                    $this->__sortOrder =
+                        $this->__sortOrder === 'DESC'
+                        ? 'ASC' : 'DESC';
+                    if (
+                        !empty($this->__lastQuery)
+                    ) {
+                        $this->__lastQuery
+                            ['filters']
+                            ['sort_order'] =
+                                $this->__sortOrder;
+                        $this->__page = 1;
+                        $this->__lastQuery
+                            ['filters']['page'] = 1;
+                        $results =
+                            $this->__fetchList(
+                                $entity,
+                                $this->__lastQuery
+                                    ['filters']
+                            );
+                        if (!empty($results)) {
+                            $this->__browseData =
+                                $results;
+                            $totalResults = count(
+                                $this->__browseData
+                            );
+                        }
+                        $this->__selectedIndex = 0;
+                        $this->__viewportOffset = 0;
+                    }
                     $redraw = true;
                     break;
 
@@ -1963,17 +1796,12 @@ class CLIShell extends AppShell
     }
 
     /**
-     * Render an interactive browsable table with highlighting
-     * and viewport scrolling.
-     *
-     * Draws a full-screen table with the selected row in
-     * inverse video. Handles viewport scrolling when results
-     * exceed screen height.
+     * Render an interactive browsable table.
      *
      * @param string $entity Entity name
      * @param array $results Result rows
      * @param array $fields Field names for columns
-     * @param int $totalResults Total result count for footer
+     * @param int $totalResults Total result count
      * @return void
      */
     private function __renderBrowsableTable(
@@ -1986,7 +1814,13 @@ class CLIShell extends AppShell
         $termWidth = $termSize[0];
         $termHeight = $termSize[1];
 
-        $viewportRows = $termHeight - 4;
+        // header + separator + empty + footer = 4
+        // +1 for filter line when active
+        $chrome = 4;
+        if (!empty($this->__browseFilters)) {
+            $chrome++;
+        }
+        $viewportRows = $termHeight - $chrome;
         if ($viewportRows < 1) {
             $viewportRows = 1;
         }
@@ -2010,7 +1844,8 @@ class CLIShell extends AppShell
             );
             if ($i < count($fields) - 1) {
                 $header .= " \xe2\x94\x82 ";
-                $separator .= "\xe2\x94\x80\xe2\x94\xbc"
+                $separator .= "\xe2\x94\x80"
+                    . "\xe2\x94\xbc"
                     . "\xe2\x94\x80";
             }
         }
@@ -2027,19 +1862,25 @@ class CLIShell extends AppShell
 
         if (
             $this->__selectedIndex
-            >= $this->__viewportOffset + $viewportRows
+            >= $this->__viewportOffset
+                + $viewportRows
         ) {
             $this->__viewportOffset =
-                $this->__selectedIndex - $viewportRows + 1;
+                $this->__selectedIndex
+                - $viewportRows + 1;
         }
         if (
-            $this->__selectedIndex < $this->__viewportOffset
+            $this->__selectedIndex
+            < $this->__viewportOffset
         ) {
-            $this->__viewportOffset = $this->__selectedIndex;
+            $this->__viewportOffset =
+                $this->__selectedIndex;
         }
 
         $start = $this->__viewportOffset;
-        $end = min($rowCount, $start + $viewportRows);
+        $end = min(
+            $rowCount, $start + $viewportRows
+        );
 
         for ($r = $start; $r < $end; $r++) {
             $row = $results[$r];
@@ -2049,12 +1890,15 @@ class CLIShell extends AppShell
                     ? (string)$row[$field] : '';
                 $width = $colWidths[$field];
                 if (strlen($val) > $width) {
-                    $val = substr($val, 0, $width - 2)
-                        . '..';
+                    $val = substr(
+                        $val, 0, $width - 2
+                    ) . '..';
                 }
                 $cell = str_pad($val, $width);
 
-                if ($r === $this->__selectedIndex) {
+                if (
+                    $r === $this->__selectedIndex
+                ) {
                     if ($this->__isTty) {
                         $cell = "\033[7m" . $cell
                             . "\033[0m";
@@ -2068,7 +1912,8 @@ class CLIShell extends AppShell
             $this->out(' ' . $line);
         }
 
-        $remaining = $viewportRows - ($end - $start);
+        $remaining = $viewportRows
+            - ($end - $start);
         for ($i = 0; $i < $remaining; $i++) {
             $this->out('');
         }
@@ -2092,20 +1937,27 @@ class CLIShell extends AppShell
                 $totalResults / $this->__perPage
             );
         }
+        $sortLabel = $this->__sortOrder === 'DESC'
+            ? "\xe2\x86\x93" : "\xe2\x86\x91";
         $footer = ' [' . "\xe2\x86\x91" . '/'
             . "\xe2\x86\x93" . '/j/k] Navigate'
             . '  [Enter] View  [f] Filter'
+            . '  [s] Sort ' . $sortLabel
             . '  [q] Back  [n/p] Page';
-        $pageInfo = '  Page ' . $this->__page . '/'
-            . $totalPages;
+        $pageInfo = '  Page ' . $this->__page
+            . '/' . $totalPages;
         if ($totalResults > 0) {
-            $pageInfo .= ' (' . $totalResults . ' results)';
+            $pageInfo .= ' (' . $totalResults
+                . ' results)';
         }
-        $this->out($footer . $pageInfo);
+        $this->out($footer . $pageInfo, 0);
+        if ($this->__rawMode) {
+            fflush(STDOUT);
+        }
     }
 
     /**
-     * Calculate column widths for a set of results.
+     * Calculate column widths for results.
      *
      * @param array $results Result rows
      * @param array $fields Field names
@@ -2153,22 +2005,327 @@ class CLIShell extends AppShell
     }
 
     /**
-     * Render a detail view for a single record.
+     * Get child entity relationships.
+     *
+     * Returns an ordered list of child entities
+     * navigable from a parent detail view via
+     * number-key shortcuts (1, 2, 3...).
+     *
+     * Each child: [entity, label, contextField]
+     * contextField maps parent ID to filter key.
+     *
+     * @param string $entity Parent entity name
+     * @param int    $id     Parent record ID
+     * @return array Child definitions
+     */
+    private function __getChildEntities(
+        $entity, $id
+    ) {
+        $map = [
+            'event' => [
+                [
+                    'entity' => 'attribute',
+                    'label' => 'Attributes',
+                ],
+                [
+                    'entity' => 'object',
+                    'label' => 'Objects',
+                ],
+                [
+                    'entity' => 'tag',
+                    'label' => 'Tags',
+                ],
+            ],
+            'object' => [
+                [
+                    'entity' => 'attribute',
+                    'label' => 'Attributes',
+                ],
+            ],
+            'organisation' => [
+                [
+                    'entity' => 'user',
+                    'label' => 'Users',
+                    'filter' => 'org_id',
+                ],
+                [
+                    'entity' => 'event',
+                    'label' => 'Events',
+                    'filter' => 'org',
+                ],
+            ],
+            'role' => [
+                [
+                    'entity' => 'user',
+                    'label' => 'Users',
+                    'filter' => 'role_id',
+                ],
+            ],
+        ];
+
+        if (!isset($map[$entity])) {
+            return [];
+        }
+
+        $children = [];
+        foreach ($map[$entity] as $child) {
+            $childEntity = $child['entity'];
+            $config =
+                $this->__entityConfig[$childEntity];
+            if (
+                !empty($config['adminOnly'])
+                && empty(
+                    $this->__user['Role']
+                        ['perm_site_admin']
+                )
+            ) {
+                continue;
+            }
+            $children[] = $child;
+        }
+
+        return $children;
+    }
+
+    /**
+     * Interactive detail view with field navigation.
      *
      * @param string $entity Entity name
-     * @param array $record Record data
+     * @param int    $id     Record ID
+     * @param array  $record Full record data
      * @return void
      */
-    private function __renderDetail($entity, $record)
-    {
-        $this->out('');
+    private function __detailBrowseLoop(
+        $entity, $id, $record
+    ) {
+        $rows = $this->__buildDetailRows(
+            $entity, $record
+        );
+        if (empty($rows)) {
+            $this->__renderDetail($entity, $record);
+            return;
+        }
 
-        $modelName =
-            $this->__entityConfig[$entity]['model'];
+        $children = $this->__getChildEntities(
+            $entity, $id
+        );
 
-        if (isset($record[$modelName])) {
-            $data = $record[$modelName];
-        } elseif (isset($record[ucfirst($entity)])) {
+        $selectedIdx = 0;
+        $viewportOff = 0;
+        $this->__enterRawMode();
+
+        $this->__renderDetailBrowse(
+            $entity, $id, $rows,
+            $selectedIdx, $viewportOff,
+            $children
+        );
+
+        while (true) {
+            $key = $this->__readKeypress();
+            if ($key === false) {
+                break;
+            }
+
+            $rowCount = count($rows);
+            $redraw = false;
+
+            if (
+                is_numeric($key)
+                && (int)$key >= 1
+                && (int)$key <= count($children)
+            ) {
+                $child =
+                    $children[(int)$key - 1];
+                $this->out(
+                    "\033[H\033[J Loading "
+                    . $child['label'] . '...',
+                    0
+                );
+                fflush(STDOUT);
+                $this->__drainStdin();
+                $this->__exitRawMode();
+                $this->__navigateToChild(
+                    $entity, $id, $child
+                );
+                $fresh = $this->__fetchDetail(
+                    $entity, $id
+                );
+                if (!empty($fresh)) {
+                    $record = $fresh;
+                    $rows =
+                        $this->__buildDetailRows(
+                            $entity, $record
+                        );
+                    if (
+                        $selectedIdx
+                        >= count($rows)
+                    ) {
+                        $selectedIdx =
+                            count($rows) - 1;
+                    }
+                }
+                $this->__enterRawMode();
+                $this->__drainStdin();
+                $redraw = true;
+            } else {
+                switch ($key) {
+                    case 'UP':
+                    case 'k':
+                        if ($selectedIdx > 0) {
+                            $selectedIdx--;
+                            $redraw = true;
+                        }
+                        break;
+
+                    case 'DOWN':
+                    case 'j':
+                        if (
+                            $selectedIdx
+                            < $rowCount - 1
+                        ) {
+                            $selectedIdx++;
+                            $redraw = true;
+                        }
+                        break;
+
+                    case 'ENTER':
+                    case 'e':
+                        $row = $rows[$selectedIdx];
+                        if (
+                            empty($row['editable'])
+                        ) {
+                            break;
+                        }
+                        $this->__exitRawMode();
+                        $saved =
+                            $this
+                            ->__editDetailField(
+                                $entity, $id,
+                                $row['field'],
+                                $row['value']
+                            );
+                        if ($saved) {
+                            $fresh =
+                                $this
+                                ->__fetchDetail(
+                                    $entity, $id
+                                );
+                            if (!empty($fresh)) {
+                                $record = $fresh;
+                                $rows =
+                                    $this
+                                    ->__buildDetailRows(
+                                        $entity,
+                                        $record
+                                    );
+                                if (
+                                    $selectedIdx
+                                    >= count($rows)
+                                ) {
+                                    $selectedIdx =
+                                        count($rows)
+                                        - 1;
+                                }
+                            }
+                        }
+                        $this->__enterRawMode();
+                        $redraw = true;
+                        break;
+
+                    case 'q':
+                    case 'ESCAPE':
+                        break 2;
+
+                    default:
+                        break;
+                }
+            }
+
+            if ($redraw) {
+                $this->__renderDetailBrowse(
+                    $entity, $id, $rows,
+                    $selectedIdx, $viewportOff,
+                    $children
+                );
+            }
+        }
+
+        $this->__exitRawMode();
+    }
+
+    /**
+     * Navigate to a child entity list from
+     * the detail view.
+     *
+     * Sets appropriate context/filters and opens
+     * a browse list for the child entity.
+     *
+     * @param string $parentEntity Parent entity
+     * @param int    $parentId     Parent record ID
+     * @param array  $child        Child definition
+     * @return void
+     */
+    private function __navigateToChild(
+        $parentEntity, $parentId, $child
+    ) {
+        $childEntity = $child['entity'];
+
+        $savedContext = $this->__context;
+        if (
+            in_array(
+                $parentEntity, ['event', 'object']
+            )
+        ) {
+            $this->__context = [
+                'entity' => $parentEntity,
+                'id' => $parentId,
+            ];
+        }
+
+        $args = [];
+        if (!empty($child['filter'])) {
+            $args[] = $child['filter']
+                . '=' . $parentId;
+        }
+
+        $this->__cmdList($childEntity, $args);
+
+        $this->__context = $savedContext;
+    }
+
+    /**
+     * Build flat row list from a detail record.
+     *
+     * Each row: [section, field, value, editable]
+     *
+     * @param string $entity Entity name
+     * @param array  $record Full record data
+     * @return array Rows for detail browse
+     */
+    private function __buildDetailRows(
+        $entity, $record
+    ) {
+        $config = $this->__entityConfig[$entity];
+        $alias = $this->__modelAlias($entity);
+        $editable = !empty($config['editableFields'])
+            ? $config['editableFields'] : [];
+
+        $canWrite = true;
+        if (
+            !empty($config['adminOnly'])
+            || !empty($config['writeAdminOnly'])
+        ) {
+            $canWrite = !empty(
+                $this->__user['Role']
+                    ['perm_site_admin']
+            );
+        }
+
+        if (isset($record[$alias])) {
+            $data = $record[$alias];
+        } elseif (
+            isset($record[ucfirst($entity)])
+        ) {
             $data = $record[ucfirst($entity)];
         } elseif (isset($record['Event'])) {
             $data = $record['Event'];
@@ -2176,31 +2333,40 @@ class CLIShell extends AppShell
             $data = $record;
         }
 
-        $maxKeyLen = 0;
+        $fkMap = [
+            'org_id' => 'org',
+            'orgc_id' => 'org',
+            'event_id' => 'event',
+            'role_id' => 'role',
+            'sharing_group_id' => 'sharing_group',
+            'object_id' => 'object',
+        ];
+
+        $rows = [];
         foreach ($data as $key => $value) {
             if (is_array($value)) {
                 continue;
             }
-            if (strlen($key) > $maxKeyLen) {
-                $maxKeyLen = strlen($key);
+            $display = (string)$value;
+            if (
+                isset($fkMap[$key])
+                && !empty($value)
+            ) {
+                $display = $this->__resolveFK(
+                    $fkMap[$key], $value
+                );
             }
+            $rows[] = [
+                'section' => null,
+                'field' => $key,
+                'value' => $display,
+                'editable' => $canWrite
+                    && in_array($key, $editable),
+            ];
         }
 
-        $this->out(
-            '=== ' . ucfirst($entity) . ' Detail ==='
-        );
-        $this->out('');
-
-        foreach ($data as $key => $value) {
-            if (is_array($value)) {
-                continue;
-            }
-            $paddedKey = str_pad($key, $maxKeyLen);
-            $this->out('  ' . $paddedKey . ' : ' . $value);
-        }
-
-        foreach ($record as $section => $sectionData) {
-            if ($section === $modelName) {
+        foreach ($record as $section => $sData) {
+            if ($section === $alias) {
                 continue;
             }
             if ($section === ucfirst($entity)) {
@@ -2209,105 +2375,339 @@ class CLIShell extends AppShell
             if ($section === 'Event') {
                 continue;
             }
-            if (!is_array($sectionData)) {
+            if (!is_array($sData)) {
                 continue;
             }
-            if ($this->__isAssocArray($sectionData)) {
-                $this->out('');
-                $this->out('  [' . $section . ']');
-                foreach ($sectionData as $k => $v) {
-                    if (is_array($v)) {
-                        continue;
-                    }
-                    $this->out('    ' . $k . ': ' . $v);
+
+            if (
+                $entity === 'object'
+                && $section === 'Attribute'
+                && !$this->__isAssocArray($sData)
+            ) {
+                $rows[] = [
+                    'section' => 'Attributes',
+                    'field' => null,
+                    'value' => null,
+                    'editable' => false,
+                ];
+                foreach ($sData as $attr) {
+                    $rel = isset(
+                        $attr['object_relation']
+                    )
+                        ? $attr['object_relation']
+                        : $attr['type'];
+                    $ids = !empty($attr['to_ids'])
+                        ? ' [IDS]' : '';
+                    $rows[] = [
+                        'section' => 'Attributes',
+                        'field' => $rel,
+                        'value' => $attr['value']
+                            . $ids,
+                        'editable' => false,
+                    ];
                 }
+                continue;
             }
+
+            if (!$this->__isAssocArray($sData)) {
+                continue;
+            }
+            $rows[] = [
+                'section' => $section,
+                'field' => null,
+                'value' => null,
+                'editable' => false,
+            ];
+            foreach ($sData as $k => $v) {
+                if (is_array($v)) {
+                    continue;
+                }
+                $rows[] = [
+                    'section' => $section,
+                    'field' => $k,
+                    'value' => (string)$v,
+                    'editable' => false,
+                ];
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Render the interactive detail view.
+     *
+     * @param string $entity      Entity name
+     * @param int    $id          Record ID
+     * @param array  $rows        Detail rows
+     * @param int    $selectedIdx Selected row index
+     * @param int    &$viewportOff Viewport offset
+     * @param array  $children    Child entity defs
+     * @return void
+     */
+    private function __renderDetailBrowse(
+        $entity, $id, $rows,
+        $selectedIdx, &$viewportOff,
+        $children = []
+    ) {
+        $termSize = $this->__getTerminalSize();
+        $termWidth = $termSize[0];
+        $termHeight = $termSize[1];
+
+        $viewportRows = $termHeight - 5;
+        if ($viewportRows < 1) {
+            $viewportRows = 1;
+        }
+
+        $rowCount = count($rows);
+        if ($selectedIdx >= $rowCount) {
+            $selectedIdx = $rowCount - 1;
+        }
+        if ($selectedIdx < 0) {
+            $selectedIdx = 0;
+        }
+
+        if (
+            $selectedIdx
+            >= $viewportOff + $viewportRows
+        ) {
+            $viewportOff =
+                $selectedIdx - $viewportRows + 1;
+        }
+        if ($selectedIdx < $viewportOff) {
+            $viewportOff = $selectedIdx;
+        }
+
+        $maxKeyLen = 0;
+        foreach ($rows as $row) {
+            if ($row['field'] === null) {
+                continue;
+            }
+            $len = strlen($row['field']);
+            if ($row['section'] !== null) {
+                $len += 2;
+            }
+            if ($len > $maxKeyLen) {
+                $maxKeyLen = $len;
+            }
+        }
+        $maxKeyLen = min($maxKeyLen, 30);
+
+        $this->out("\033[H\033[J", 0);
+
+        $title = '=== ' . ucfirst($entity)
+            . ' #' . $id . ' ===';
+        $this->out(' ' . $title);
+        $this->out('');
+
+        $start = $viewportOff;
+        $end = min(
+            $rowCount, $start + $viewportRows
+        );
+
+        for ($r = $start; $r < $end; $r++) {
+            $row = $rows[$r];
+
+            if (
+                $row['field'] === null
+                && $row['section'] !== null
+            ) {
+                $line = '  ['
+                    . $row['section'] . ']';
+                if ($r === $selectedIdx) {
+                    $line = "\033[7m"
+                        . str_pad(
+                            $line, $termWidth - 1
+                        )
+                        . "\033[0m";
+                }
+                $this->out($line);
+                continue;
+            }
+
+            $indent = $row['section'] !== null
+                ? '    ' : '  ';
+            $keyPad = $row['section'] !== null
+                ? $maxKeyLen - 2 : $maxKeyLen;
+            $key = str_pad(
+                $row['field'], $keyPad
+            );
+            $marker = $row['editable']
+                ? "\xe2\x9c\x8e " : '  ';
+            $valStr = $row['value'];
+
+            $maxVal = $termWidth
+                - strlen($indent) - $keyPad
+                - 5 - 2;
+            if ($maxVal < 10) {
+                $maxVal = 10;
+            }
+            if (strlen($valStr) > $maxVal) {
+                $valStr = substr(
+                    $valStr, 0, $maxVal - 2
+                ) . '..';
+            }
+
+            $line = $indent . $key
+                . ' : ' . $marker . $valStr;
+
+            if ($r === $selectedIdx) {
+                $padded = str_pad(
+                    $line, $termWidth - 1
+                );
+                $line = "\033[7m"
+                    . $padded . "\033[0m";
+            }
+
+            $this->out($line);
+        }
+
+        $remaining = $viewportRows
+            - ($end - $start);
+        for ($i = 0; $i < $remaining; $i++) {
+            $this->out('');
         }
 
         $this->out('');
+        $editHint = '';
+        if (
+            $rowCount > 0
+            && !empty($rows[$selectedIdx]['editable'])
+        ) {
+            $editHint = '  [Enter/e] Edit';
+        }
+
+        $childHints = '';
+        foreach ($children as $i => $child) {
+            $childHints .= '  [' . ($i + 1)
+                . '] ' . $child['label'];
+        }
+
+        $footer = ' ['
+            . "\xe2\x86\x91" . '/'
+            . "\xe2\x86\x93"
+            . '] Nav'
+            . $editHint
+            . $childHints
+            . '  [q] Back';
+        $this->out($footer, 0);
+        if ($this->__rawMode) {
+            fflush(STDOUT);
+        }
     }
 
     /**
-     * Get display label for a field name.
+     * Edit a single field from the detail view.
      *
-     * @param string $field Field name
-     * @return string Label
+     * @param string $entity Entity name
+     * @param int    $id     Record ID
+     * @param string $field  Field name
+     * @param string $current Current value
+     * @return bool Whether the save succeeded
      */
-    private function __fieldLabel($field)
-    {
-        $labels = [
-            'id' => 'ID',
-            'event_id' => 'Event',
-            'date' => 'Date',
-            'info' => 'Info',
-            'Orgc.name' => 'Org',
-            'threat_level_id' => 'Threat',
-            'analysis' => 'Analysis',
-            'published' => 'Pub',
-            'type' => 'Type',
-            'category' => 'Category',
-            'value' => 'Value',
-            'to_ids' => 'IDS',
-            'comment' => 'Comment',
-            'name' => 'Name',
-            'colour' => 'Colour',
-            'exportable' => 'Export',
-            'hide_tag' => 'Hidden',
-            'email' => 'Email',
-            'org_id' => 'Org ID',
-            'role_id' => 'Role',
-            'disabled' => 'Disabled',
-            'uuid' => 'UUID',
-            'nationality' => 'Country',
-            'sector' => 'Sector',
-            'url' => 'URL',
-            'push' => 'Push',
-            'pull' => 'Pull',
-            'provider' => 'Provider',
-            'enabled' => 'Enabled',
-            'active' => 'Active',
-            'description' => 'Description',
-            'namespace' => 'Namespace',
-            'version' => 'Version',
-            'meta-category' => 'Category',
-            'template_version' => 'Tpl Ver',
-        ];
+    private function __editDetailField(
+        $entity, $id, $field, $current
+    ) {
+        $config = $this->__entityConfig[$entity];
+        $modelName = $config['model'];
+        $alias = $this->__modelAlias($entity);
 
-        return isset($labels[$field]) ? $labels[$field] : $field;
-    }
-
-    /**
-     * Check if array is associative.
-     *
-     * @param array $arr Array to check
-     * @return bool
-     */
-    private function __isAssocArray($arr)
-    {
-        if (empty($arr) || !is_array($arr)) {
+        if (
+            !isset($this->__fieldMeta[$entity][$field])
+        ) {
+            $this->out(
+                '  Field "' . $field
+                . '" has no edit metadata.'
+            );
             return false;
         }
-        return array_keys($arr) !== range(
-            0, count($arr) - 1
+
+        $meta = $this->__fieldMeta[$entity][$field];
+        $fType = isset($meta['type'])
+            ? $meta['type'] : 'string';
+        if ($fType === 'boolean') {
+            $current = !empty($current)
+                && $current !== '0'
+                ? '1' : '0';
+        }
+
+        $this->out('');
+        $newVal = $this->__promptForField(
+            $field, $meta, $current
         );
+        if (
+            $newVal === null
+            || $newVal === $current
+        ) {
+            $this->out('  No change.');
+            return false;
+        }
+
+        $this->{$modelName}->id = $id;
+        $result = $this->{$modelName}->save(
+            [
+                $alias => [
+                    'id' => $id,
+                    $field => $newVal,
+                ],
+            ],
+            true,
+            [$field]
+        );
+
+        if ($result) {
+            $this->out(
+                '  ' . ucfirst($entity)
+                . ' #' . $id . ' updated.'
+            );
+            return true;
+        }
+
+        $this->err(
+            '  Failed to update ' . $field . '.'
+        );
+        if (
+            !empty(
+                $this->{$modelName}
+                    ->validationErrors
+            )
+        ) {
+            foreach (
+                $this->{$modelName}
+                    ->validationErrors
+                as $f => $errs
+            ) {
+                $errMsg = is_array($errs)
+                    ? implode(', ', $errs)
+                    : $errs;
+                $this->err(
+                    '    ' . $f . ': ' . $errMsg
+                );
+            }
+        }
+        return false;
     }
 
     /**
-     * Enter raw terminal mode (disable line buffering and echo).
+     * Enter raw terminal mode.
      *
      * @return void
      */
     private function __enterRawMode()
     {
-        if ($this->__rawMode || !$this->__isTty) {
+        if (
+            $this->__rawMode || !$this->__isTty
+        ) {
             return;
         }
-        shell_exec('stty -icanon -echo 2>/dev/null');
+        shell_exec(
+            'stty -icanon -echo 2>/dev/null'
+        );
         $this->__rawMode = true;
     }
 
     /**
-     * Exit raw terminal mode (restore line buffering and echo).
+     * Exit raw terminal mode.
      *
      * @return void
      */
@@ -2316,17 +2716,42 @@ class CLIShell extends AppShell
         if (!$this->__rawMode) {
             return;
         }
-        shell_exec('stty icanon echo 2>/dev/null');
+        shell_exec(
+            'stty icanon echo 2>/dev/null'
+        );
         $this->__rawMode = false;
+    }
+
+    /**
+     * Drain any buffered input from stdin.
+     *
+     * Discards pending keypresses so they don't
+     * interfere with the next interactive prompt.
+     *
+     * @return void
+     */
+    private function __drainStdin()
+    {
+        if (!$this->__rawMode) {
+            return;
+        }
+        stream_set_blocking($this->__stdin, false);
+        while (fread($this->__stdin, 64) !== false) {
+            $r = [$this->__stdin];
+            $w = $e = [];
+            if (
+                !stream_select($r, $w, $e, 0)
+            ) {
+                break;
+            }
+        }
+        stream_set_blocking($this->__stdin, true);
     }
 
     /**
      * Read a single keypress from stdin.
      *
-     * Handles multi-byte escape sequences for arrow keys
-     * and other special keys.
-     *
-     * @return string|false Key identifier or false on EOF
+     * @return string|false Key identifier or false
      */
     private function __readKeypress()
     {
@@ -2365,12 +2790,7 @@ class CLIShell extends AppShell
     /**
      * Interactive filter bar for browse mode.
      *
-     * Shows active filters, accepts input for adding/removing
-     * filters. Supports tab-completion for keys and values.
-     * Enter with empty input closes the filter bar.
-     * -key removes a filter, -- clears all.
-     *
-     * @param string $entity Entity name for completions
+     * @param string $entity Entity name
      * @return bool Whether filters changed
      */
     private function __filterBar($entity)
@@ -2379,13 +2799,20 @@ class CLIShell extends AppShell
 
         while (true) {
             $this->out('');
-            if (!empty($this->__browseFilters)) {
+            if (
+                !empty($this->__browseFilters)
+            ) {
                 $this->out(
                     ' Active filters: '
-                    . implode('  ', $this->__browseFilters)
+                    . implode(
+                        '  ',
+                        $this->__browseFilters
+                    )
                 );
             } else {
-                $this->out(' No active filters.');
+                $this->out(
+                    ' No active filters.'
+                );
             }
 
             $this->out(
@@ -2397,17 +2824,25 @@ class CLIShell extends AppShell
                 " \xe2\x96\xb8 Filter: ", 0
             );
 
-            $input = $this->__readFilterLine($entity);
+            $input = $this->__readFilterLine(
+                $entity
+            );
 
-            if ($input === false || $input === '') {
+            if (
+                $input === false || $input === ''
+            ) {
                 break;
             }
 
             if ($input === '--') {
-                if (!empty($this->__browseFilters)) {
+                if (
+                    !empty($this->__browseFilters)
+                ) {
                     $this->__browseFilters = [];
                     $changed = true;
-                    $this->out(' All filters cleared.');
+                    $this->out(
+                        ' All filters cleared.'
+                    );
                 }
                 continue;
             }
@@ -2419,10 +2854,13 @@ class CLIShell extends AppShell
                 $removeKey = substr($input, 1);
                 $found = false;
                 $newFilters = [];
-                foreach ($this->__browseFilters as $f) {
+                foreach (
+                    $this->__browseFilters as $f
+                ) {
                     $eqPos = strpos($f, '=');
                     $fKey = $eqPos !== false
-                        ? substr($f, 0, $eqPos) : $f;
+                        ? substr($f, 0, $eqPos)
+                        : $f;
                     if ($fKey === $removeKey) {
                         $found = true;
                         continue;
@@ -2430,10 +2868,12 @@ class CLIShell extends AppShell
                     $newFilters[] = $f;
                 }
                 if ($found) {
-                    $this->__browseFilters = $newFilters;
+                    $this->__browseFilters =
+                        $newFilters;
                     $changed = true;
                     $this->out(
-                        ' Removed filter: ' . $removeKey
+                        ' Removed filter: '
+                        . $removeKey
                     );
                 } else {
                     $this->out(
@@ -2448,18 +2888,24 @@ class CLIShell extends AppShell
                 $eqPos = strpos($input, '=');
                 $newKey = substr($input, 0, $eqPos);
                 $newFilters = [];
-                foreach ($this->__browseFilters as $f) {
+                foreach (
+                    $this->__browseFilters as $f
+                ) {
                     $fEq = strpos($f, '=');
                     $fKey = $fEq !== false
-                        ? substr($f, 0, $fEq) : $f;
+                        ? substr($f, 0, $fEq)
+                        : $f;
                     if ($fKey !== $newKey) {
                         $newFilters[] = $f;
                     }
                 }
                 $newFilters[] = $input;
-                $this->__browseFilters = $newFilters;
+                $this->__browseFilters =
+                    $newFilters;
                 $changed = true;
-                $this->out(' Applied filter: ' . $input);
+                $this->out(
+                    ' Applied filter: ' . $input
+                );
             }
         }
 
@@ -2469,12 +2915,8 @@ class CLIShell extends AppShell
     /**
      * Read a filter input line with tab-completion.
      *
-     * Reads character by character in cooked mode. Handles
-     * Tab for completion, Backspace for editing, Enter to
-     * submit, Ctrl+U to clear line, Escape to cancel.
-     *
-     * @param string $entity Entity name for completions
-     * @return string|false Input line or false on cancel
+     * @param string $entity Entity name
+     * @return string|false Input or false on cancel
      */
     private function __readFilterLine($entity)
     {
@@ -2487,18 +2929,24 @@ class CLIShell extends AppShell
         }
 
         $buf = '';
-        shell_exec('stty -icanon -echo 2>/dev/null');
+        shell_exec(
+            'stty -icanon -echo 2>/dev/null'
+        );
 
         while (true) {
             $ch = fread($this->__stdin, 1);
             if ($ch === false || $ch === '') {
-                shell_exec('stty icanon echo 2>/dev/null');
+                shell_exec(
+                    'stty icanon echo 2>/dev/null'
+                );
                 return false;
             }
 
             if ($ch === "\n" || $ch === "\r") {
                 $this->out('');
-                shell_exec('stty icanon echo 2>/dev/null');
+                shell_exec(
+                    'stty icanon echo 2>/dev/null'
+                );
                 return $buf;
             }
 
@@ -2507,7 +2955,9 @@ class CLIShell extends AppShell
                 if ($seq === '[') {
                     fread($this->__stdin, 1);
                 }
-                shell_exec('stty icanon echo 2>/dev/null');
+                shell_exec(
+                    'stty icanon echo 2>/dev/null'
+                );
                 return false;
             }
 
@@ -2516,14 +2966,18 @@ class CLIShell extends AppShell
                 $this->out(
                     str_repeat("\x08", $eraseLen)
                     . str_repeat(' ', $eraseLen)
-                    . str_repeat("\x08", $eraseLen),
+                    . str_repeat(
+                        "\x08", $eraseLen
+                    ),
                     0
                 );
                 $buf = '';
                 continue;
             }
 
-            if ($ch === "\x7f" || ord($ch) === 8) {
+            if (
+                $ch === "\x7f" || ord($ch) === 8
+            ) {
                 if (strlen($buf) > 0) {
                     $buf = substr($buf, 0, -1);
                     $this->out("\x08 \x08", 0);
@@ -2532,18 +2986,25 @@ class CLIShell extends AppShell
             }
 
             if ($ch === "\t") {
-                $completion = $this->__tabComplete(
-                    $buf, $entity
-                );
+                $completion =
+                    $this->__tabComplete(
+                        $buf, $entity
+                    );
                 if (
                     $completion !== null
                     && $completion !== $buf
                 ) {
                     $eraseLen = strlen($buf);
                     $this->out(
-                        str_repeat("\x08", $eraseLen)
-                        . str_repeat(' ', $eraseLen)
-                        . str_repeat("\x08", $eraseLen),
+                        str_repeat(
+                            "\x08", $eraseLen
+                        )
+                        . str_repeat(
+                            ' ', $eraseLen
+                        )
+                        . str_repeat(
+                            "\x08", $eraseLen
+                        ),
                         0
                     );
                     $buf = $completion;
@@ -2562,9 +3023,6 @@ class CLIShell extends AppShell
     /**
      * Tab-complete a partial filter input.
      *
-     * Completes filter keys (before =) and values (after =)
-     * for type, category, tag, and org fields.
-     *
      * @param string $buf Current input buffer
      * @param string $entity Entity name
      * @return string|null Completed string or null
@@ -2572,13 +3030,15 @@ class CLIShell extends AppShell
     private function __tabComplete($buf, $entity)
     {
         $filterKeys = [
-            'type', 'category', 'tag', 'tag+', 'org',
-            'value', 'to_ids', 'from', 'to', 'last',
-            'published', 'threat_level_id', 'analysis',
-            'searchall', 'eventid', 'uuid', 'timestamp',
-            'publish_timestamp', 'object_name',
-            'object_relation', 'first_seen', 'last_seen',
-            'deleted', 'includeCorrelations', 'limit',
+            'type', 'category', 'tag', 'tag+',
+            'org', 'value', 'to_ids', 'from',
+            'to', 'last', 'published',
+            'threat_level_id', 'analysis',
+            'searchall', 'eventid', 'uuid',
+            'timestamp', 'publish_timestamp',
+            'object_name', 'object_relation',
+            'first_seen', 'last_seen', 'deleted',
+            'includeCorrelations', 'limit',
             'page', 'order',
         ];
 
@@ -2604,8 +3064,12 @@ class CLIShell extends AppShell
 
         $lastComma = strrpos($partial, ',');
         if ($lastComma !== false) {
-            $prefix = substr($partial, 0, $lastComma + 1);
-            $fragment = substr($partial, $lastComma + 1);
+            $prefix = substr(
+                $partial, 0, $lastComma + 1
+            );
+            $fragment = substr(
+                $partial, $lastComma + 1
+            );
         } else {
             $prefix = '';
             $fragment = $partial;
@@ -2618,9 +3082,10 @@ class CLIShell extends AppShell
             $neg = '';
         }
 
-        $candidates = $this->__getCompletionValues(
-            $key, $entity
-        );
+        $candidates =
+            $this->__getCompletionValues(
+                $key, $entity
+            );
         if (empty($candidates)) {
             return null;
         }
@@ -2650,16 +3115,20 @@ class CLIShell extends AppShell
      * @param string $entity Entity name
      * @return array Candidate values
      */
-    private function __getCompletionValues($key, $entity)
-    {
+    private function __getCompletionValues(
+        $key,
+        $entity
+    ) {
         if ($key === 'type') {
             if (
                 property_exists(
-                    $this->MispAttribute, 'typeDefinitions'
+                    $this->MispAttribute,
+                    'typeDefinitions'
                 )
             ) {
                 return array_keys(
-                    $this->MispAttribute->typeDefinitions
+                    $this->MispAttribute
+                        ->typeDefinitions
                 );
             }
             return [];
@@ -2684,17 +3153,26 @@ class CLIShell extends AppShell
             $tags = $this->Tag->find('list', [
                 'fields' => ['Tag.name'],
                 'limit' => 200,
-                'order' => ['Tag.name' => 'ASC'],
+                'order' => [
+                    'Tag.name' => 'ASC',
+                ],
             ]);
             return array_values($tags);
         }
 
         if ($key === 'org') {
-            $orgs = $this->Organisation->find('list', [
-                'fields' => ['Organisation.name'],
-                'limit' => 200,
-                'order' => ['Organisation.name' => 'ASC'],
-            ]);
+            $orgs = $this->Organisation->find(
+                'list',
+                [
+                    'fields' => [
+                        'Organisation.name',
+                    ],
+                    'limit' => 200,
+                    'order' => [
+                        'Organisation.name' => 'ASC',
+                    ],
+                ]
+            );
             return array_values($orgs);
         }
 
@@ -2706,290 +3184,11 @@ class CLIShell extends AppShell
             return ['0', '1', '2'];
         }
 
-        if ($key === 'published' || $key === 'to_ids') {
+        if (
+            $key === 'published'
+            || $key === 'to_ids'
+        ) {
             return ['0', '1'];
-        }
-
-        return [];
-    }
-
-    /**
-     * Prompt user for a single field value.
-     *
-     * Shows field name, help text, accepted values, and
-     * current value (for edit). Reads and validates input.
-     * In non-TTY mode reads a line from stdin directly.
-     *
-     * @param string $fieldName Field name
-     * @param array $meta Field metadata from __fieldMeta
-     * @param string|null $currentValue Current value for edit
-     * @return string|null Entered value, or null to skip
-     */
-    private function __promptForField(
-        $fieldName,
-        $meta,
-        $currentValue = null
-    ) {
-        $type = isset($meta['type'])
-            ? $meta['type'] : 'string';
-        $required = !empty($meta['required']);
-        $help = isset($meta['help'])
-            ? $meta['help'] : '';
-        $default = isset($meta['default'])
-            ? $meta['default'] : null;
-
-        if ($default === 'today') {
-            $default = date('Y-m-d');
-        }
-
-        $displayDefault = $currentValue !== null
-            ? $currentValue : $default;
-
-        $prompt = '  ' . $fieldName;
-        if (!empty($help)) {
-            $prompt .= ' (' . $help . ')';
-        }
-        if ($required) {
-            $prompt .= ' *';
-        }
-
-        if ($type === 'select' && !empty($meta['options'])) {
-            $this->out($prompt . ':');
-            foreach ($meta['options'] as $k => $label) {
-                $marker = ($displayDefault === (string)$k)
-                    ? ' <-- default' : '';
-                $this->out(
-                    '    [' . $k . '] ' . $label . $marker
-                );
-            }
-            $hint = $displayDefault !== null
-                ? ' [' . $displayDefault . ']' : '';
-            $this->out(
-                '  Enter choice' . $hint . ': ', 0
-            );
-        } elseif ($type === 'boolean') {
-            $hint = $displayDefault !== null
-                ? ' [' . $displayDefault . ']' : '';
-            $this->out(
-                $prompt . ' (0/1)' . $hint . ': ', 0
-            );
-        } elseif (
-            $type === 'autocomplete'
-            && !empty($meta['source'])
-        ) {
-            $values = $this->__getAutocompleteValues(
-                $meta['source']
-            );
-            $hint = '';
-            if (!empty($values)) {
-                $preview = array_slice($values, 0, 5);
-                $hint = ' (e.g. '
-                    . implode(', ', $preview) . ', ...)';
-            }
-            $defHint = $displayDefault !== null
-                ? ' [' . $displayDefault . ']' : '';
-            $this->out(
-                $prompt . $hint . $defHint . ': ', 0
-            );
-        } else {
-            $hint = $displayDefault !== null
-                ? ' [' . $displayDefault . ']' : '';
-            $this->out($prompt . $hint . ': ', 0);
-        }
-
-        $line = fgets($this->__stdin);
-        if ($line === false) {
-            return null;
-        }
-        $input = trim($line);
-
-        if ($input === '' && $displayDefault !== null) {
-            return (string)$displayDefault;
-        }
-        if ($input === '' && $required) {
-            $this->err(
-                '  Field "' . $fieldName . '" is required.'
-            );
-            return $this->__promptForField(
-                $fieldName, $meta, $currentValue
-            );
-        }
-        if ($input === '' && !$required) {
-            return null;
-        }
-
-        if (
-            $type === 'select'
-            && !empty($meta['options'])
-            && !isset($meta['options'][$input])
-        ) {
-            $this->err(
-                '  Invalid choice. Valid options: '
-                . implode(
-                    ', ',
-                    array_keys($meta['options'])
-                )
-            );
-            return $this->__promptForField(
-                $fieldName, $meta, $currentValue
-            );
-        }
-
-        if (
-            $type === 'boolean'
-            && !in_array($input, ['0', '1'], true)
-        ) {
-            $this->err('  Please enter 0 or 1.');
-            return $this->__promptForField(
-                $fieldName, $meta, $currentValue
-            );
-        }
-
-        if (
-            $type === 'date'
-            && !preg_match(
-                '/^\d{4}-\d{2}-\d{2}$/', $input
-            )
-        ) {
-            $this->err(
-                '  Invalid date format. Use YYYY-MM-DD.'
-            );
-            return $this->__promptForField(
-                $fieldName, $meta, $currentValue
-            );
-        }
-
-        if (
-            $type === 'integer'
-            && !is_numeric($input)
-        ) {
-            $this->err('  Please enter a number.');
-            return $this->__promptForField(
-                $fieldName, $meta, $currentValue
-            );
-        }
-
-        return $input;
-    }
-
-    /**
-     * Prompt for all fields of an entity for add/edit.
-     *
-     * Iterates through editable fields, prompting for each.
-     * Returns collected field values.
-     *
-     * @param string $entity Entity name
-     * @param array|null $current Current values for editing
-     * @param array|null $fields Subset of fields to prompt
-     * @return array|false Field values or false on cancel
-     */
-    private function __promptForFields(
-        $entity,
-        $current = null,
-        $fields = null
-    ) {
-        if (!isset($this->__fieldMeta[$entity])) {
-            $this->err(
-                'No field metadata for ' . $entity . '.'
-            );
-            return false;
-        }
-
-        $meta = $this->__fieldMeta[$entity];
-        if ($fields === null) {
-            $fields = array_keys($meta);
-        }
-
-        $isEdit = $current !== null;
-        $this->out('');
-        $this->out(
-            ($isEdit ? 'Edit' : 'Add') . ' '
-            . ucfirst($entity)
-            . ' - fill in fields'
-            . ($isEdit
-                ? ' (Enter to keep current value)'
-                : ' (* = required)')
-            . ':'
-        );
-        $this->out('');
-
-        $values = [];
-        foreach ($fields as $field) {
-            if (!isset($meta[$field])) {
-                continue;
-            }
-            $currentVal = null;
-            if ($isEdit && isset($current[$field])) {
-                $currentVal = (string)$current[$field];
-            }
-            $val = $this->__promptForField(
-                $field, $meta[$field], $currentVal
-            );
-            if ($val !== null) {
-                $values[$field] = $val;
-            }
-        }
-
-        if (empty($values)) {
-            $this->out('  No changes entered.');
-            return false;
-        }
-
-        return $values;
-    }
-
-    /**
-     * Prompt for yes/no confirmation.
-     *
-     * @param string $message Prompt message
-     * @return bool True if confirmed
-     */
-    private function __promptConfirm($message)
-    {
-        $this->out($message . ' [y/N]: ', 0);
-        $line = fgets($this->__stdin);
-        if ($line === false) {
-            return false;
-        }
-        $input = strtolower(trim($line));
-        return $input === 'y' || $input === 'yes';
-    }
-
-    /**
-     * Get autocomplete values for a field source.
-     *
-     * @param string $source Source identifier
-     * @return array Values
-     */
-    private function __getAutocompleteValues($source)
-    {
-        if ($source === 'attributeTypes') {
-            if (
-                property_exists(
-                    $this->MispAttribute,
-                    'typeDefinitions'
-                )
-            ) {
-                return array_keys(
-                    $this->MispAttribute->typeDefinitions
-                );
-            }
-            return [];
-        }
-
-        if ($source === 'attributeCategories') {
-            if (
-                property_exists(
-                    $this->MispAttribute,
-                    'categoryDefinitions'
-                )
-            ) {
-                return array_keys(
-                    $this->MispAttribute
-                        ->categoryDefinitions
-                );
-            }
-            return [];
         }
 
         return [];
@@ -3007,40 +3206,66 @@ class CLIShell extends AppShell
             $this->err('Usage: add <entity>');
             return;
         }
-        if (!isset($this->__entityConfig[$entity])) {
+        if (
+            !isset($this->__entityConfig[$entity])
+        ) {
             $this->err(
-                "Unknown entity: '" . $entity . "'"
+                "Unknown entity: '"
+                . $entity . "'"
             );
             return;
         }
         $config = $this->__entityConfig[$entity];
         if (
-            !empty($config['adminOnly'])
+            (
+                !empty($config['adminOnly'])
+                || !empty($config['writeAdminOnly'])
+            )
             && empty(
-                $this->__user['Role']['perm_site_admin']
+                $this->__user['Role']
+                    ['perm_site_admin']
             )
         ) {
             $this->err(
                 'Permission denied: '
-                . $entity . ' requires site admin access.'
+                . $entity
+                . ' requires site admin access.'
             );
             return;
         }
-        if (!isset($this->__fieldMeta[$entity])) {
-            $this->err(
-                'Add not yet supported for ' . $entity
-                . '.'
-            );
-            return;
+
+        switch ($entity) {
+            case 'event':
+                $this->__addEvent();
+                break;
+            case 'attribute':
+                $this->__addAttribute();
+                break;
+            case 'object':
+                $this->__addObject();
+                break;
+            case 'tag':
+                $this->__addTag();
+                break;
+            case 'user':
+                $this->__addUser();
+                break;
+            case 'organisation':
+                $this->__addOrganisation();
+                break;
+            case 'role':
+                $this->__addRole();
+                break;
+            default:
+                $this->err(
+                    'Add not supported for '
+                    . $entity . '.'
+                );
         }
-        $this->err(
-            'Add ' . $entity
-            . ' not yet implemented.'
-        );
     }
 
     /**
-     * edit command - interactive field-by-field editing.
+     * edit command - interactive field editing.
      *
      * @param string|null $entity Entity name
      * @param int|null $id Entity ID
@@ -3049,53 +3274,95 @@ class CLIShell extends AppShell
     private function __cmdEdit($entity, $id)
     {
         if (empty($entity)) {
-            $this->err('Usage: edit <entity> <id>');
+            $this->err(
+                'Usage: edit <entity> <id>'
+            );
             return;
         }
-        if (!isset($this->__entityConfig[$entity])) {
+        if (
+            !isset($this->__entityConfig[$entity])
+        ) {
             $this->err(
-                "Unknown entity: '" . $entity . "'"
+                "Unknown entity: '"
+                . $entity . "'"
             );
             return;
         }
         if (empty($id) && !is_numeric($id)) {
-            $this->err('Usage: edit <entity> <id>');
+            $this->err(
+                'Usage: edit <entity> <id>'
+            );
             return;
         }
         if (!is_numeric($id)) {
-            $this->err("Invalid ID: '" . $id . "'");
+            $this->err(
+                "Invalid ID: '" . $id . "'"
+            );
             return;
         }
         $config = $this->__entityConfig[$entity];
         if (
-            !empty($config['adminOnly'])
+            (
+                !empty($config['adminOnly'])
+                || !empty($config['writeAdminOnly'])
+            )
             && empty(
-                $this->__user['Role']['perm_site_admin']
+                $this->__user['Role']
+                    ['perm_site_admin']
             )
         ) {
             $this->err(
                 'Permission denied: '
-                . $entity . ' requires site admin access.'
+                . $entity
+                . ' requires site admin access.'
             );
             return;
         }
         if (empty($config['editableFields'])) {
             $this->err(
-                'Edit not supported for ' . $entity . '.'
+                'Edit not supported for '
+                . $entity . '.'
             );
             return;
         }
-        if (!isset($this->__fieldMeta[$entity])) {
+        if (
+            !isset($this->__fieldMeta[$entity])
+        ) {
             $this->err(
-                'Edit not yet supported for ' . $entity
-                . '.'
+                'Edit not supported for '
+                . $entity . '.'
             );
             return;
         }
-        $this->err(
-            'Edit ' . $entity
-            . ' not yet implemented.'
-        );
+
+        switch ($entity) {
+            case 'event':
+                $this->__editEvent($id);
+                break;
+            case 'attribute':
+                $this->__editAttribute($id);
+                break;
+            case 'object':
+                $this->__editObject($id);
+                break;
+            case 'tag':
+                $this->__editTag($id);
+                break;
+            case 'user':
+                $this->__editUser($id);
+                break;
+            case 'organisation':
+                $this->__editOrganisation($id);
+                break;
+            case 'role':
+                $this->__editRole($id);
+                break;
+            default:
+                $this->err(
+                    'Edit not supported for '
+                    . $entity . '.'
+                );
+        }
     }
 
     /**
@@ -3108,40 +3375,79 @@ class CLIShell extends AppShell
     private function __cmdDelete($entity, $id)
     {
         if (empty($entity)) {
-            $this->err('Usage: delete <entity> <id>');
+            $this->err(
+                'Usage: delete <entity> <id>'
+            );
             return;
         }
-        if (!isset($this->__entityConfig[$entity])) {
+        if (
+            !isset($this->__entityConfig[$entity])
+        ) {
             $this->err(
-                "Unknown entity: '" . $entity . "'"
+                "Unknown entity: '"
+                . $entity . "'"
             );
             return;
         }
         if (empty($id) && !is_numeric($id)) {
-            $this->err('Usage: delete <entity> <id>');
+            $this->err(
+                'Usage: delete <entity> <id>'
+            );
             return;
         }
         if (!is_numeric($id)) {
-            $this->err("Invalid ID: '" . $id . "'");
+            $this->err(
+                "Invalid ID: '" . $id . "'"
+            );
             return;
         }
         $config = $this->__entityConfig[$entity];
         if (
-            !empty($config['adminOnly'])
+            (
+                !empty($config['adminOnly'])
+                || !empty($config['writeAdminOnly'])
+            )
             && empty(
-                $this->__user['Role']['perm_site_admin']
+                $this->__user['Role']
+                    ['perm_site_admin']
             )
         ) {
             $this->err(
                 'Permission denied: '
-                . $entity . ' requires site admin access.'
+                . $entity
+                . ' requires site admin access.'
             );
             return;
         }
-        $this->err(
-            'Delete ' . $entity
-            . ' not yet implemented.'
-        );
+
+        switch ($entity) {
+            case 'event':
+                $this->__deleteEvent($id);
+                break;
+            case 'attribute':
+                $this->__deleteAttribute($id);
+                break;
+            case 'object':
+                $this->__deleteObject($id);
+                break;
+            case 'tag':
+                $this->__deleteTag($id);
+                break;
+            case 'user':
+                $this->__deleteUser($id);
+                break;
+            case 'organisation':
+                $this->__deleteOrganisation($id);
+                break;
+            case 'role':
+                $this->__deleteRole($id);
+                break;
+            default:
+                $this->err(
+                    'Delete not supported for '
+                    . $entity . '.'
+                );
+        }
     }
 
     /**
@@ -3152,7 +3458,9 @@ class CLIShell extends AppShell
     public function restoreTerminal()
     {
         if ($this->__rawMode) {
-            shell_exec('stty icanon echo 2>/dev/null');
+            shell_exec(
+                'stty icanon echo 2>/dev/null'
+            );
             $this->__rawMode = false;
         }
     }
