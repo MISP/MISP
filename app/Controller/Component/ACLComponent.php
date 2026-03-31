@@ -128,6 +128,7 @@ class ACLComponent extends Component
         'collections' => [
             'add' => ['perm_modify'],
             'delete' => ['perm_modify'],
+            'delete2' => ['AND'=> ['perm_modify', 'theming_enabled']],
             'edit' => ['perm_modify'],
             'index' => ['*'],
             'view' => ['*']
@@ -136,6 +137,7 @@ class ACLComponent extends Component
             'add' => ['perm_modify'],
             'addElementToCollection' => ['perm_modify'],
             'delete' => ['perm_modify'],
+            'delete2' => ['AND'=> ['perm_modify', 'theming_enabled']],
             'index' => ['*']
         ],
         'correlationExclusions' => [
