@@ -3013,17 +3013,20 @@ Query builder
     }
 }
 
-.table {
-    border-collapse: separate;
-}
-.table thead {
+.table thead th {
     position: sticky;
-    top: 0px;
-    z-index:10;
+    top: 40px;
+    z-index: 10;
     background-color: #f9f9f9;
+    vertical-align: top;
+    border-bottom: none; 
 }
 
-.table thead tr th {
-    vertical-align: top;
+.table thead th::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
     border-bottom: 1px solid black;
 }

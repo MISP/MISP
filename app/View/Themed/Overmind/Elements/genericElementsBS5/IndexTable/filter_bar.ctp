@@ -7,13 +7,13 @@ if (empty($filter_bar)) {
 $currentPath = $this->request->here(false);
 $currentFilters = [];
 
-if (preg_match('/\/search(.+)/', $currentPath, $matches)) {
-    $parts = explode('/search', $matches[1]);
-
-    foreach ($parts as $part) {
-        if (strpos($part, ':') !== false) {
-            list($key, $value) = explode(':', $part);
-            $currentFilters[$key] = $value;
+if (preg_match('~/index/(.+)~', $currentPath, $matches)) {
+    $segments = explode('/', $matches[1]);
+    foreach ($segments as $segment) {
+        if (strpos($segment, ':') !== false) {
+            list($key, $value) = explode(':', $segment, 2);
+            $cleanKey = preg_replace('/^search/', '', $key);
+            $currentFilters[$cleanKey] = $value;
         }
     }
 }
@@ -31,16 +31,20 @@ $hasActiveFilters = !empty($currentFilters);
             </label>
 
             <div class="input-group">
+                <?php
+                $searchKey = ($searchChild['mode'] ?? 'quickFilter') === 'legacy'
+                    ? ($searchChild['name'] ?? 'quickFilter')
+                    : 'quickFilter';
+                ?>
                 <input
-                    id="quickFilterField"
-                    type="text"
-                    name="eventinfo"
                     class="form-control"
+                    id="filterField"
+                    type="text"
                     placeholder="<?= $child['placeholder'] ?>"
-                    value="<?= isset($currentFilters['eventinfo']) ? h($currentFilters['eventinfo']) : '' ?>"
+                    value="<?= isset($currentFilters[$searchKey]) ? h(urldecode($currentFilters[$searchKey])) : '' ?>"
                 >
                 <button
-                    id="quickFilterButton"
+                    id="filterButton"
                     class="btn btn-primary"
                     type="button"
                 >
@@ -180,30 +184,114 @@ $hasActiveFilters = !empty($currentFilters);
             <?php if (!empty($filter_bar['export'])): ?>
                 <button id="multi-export-button"
                         class="btn btn-primary btn-sm ms-3"
+                        title="<?=__('Export selected attributes')?>"
+                        aria-label="<?=__('Export selected attributes')?>"
                         onclick="multiSelectItems('<?php echo h($baseurl . $item_url . '/restSearchExport');?>')">
                     <i class="fas fa-file-export"></i>
                     <?= __('Export') ?>
                 </button>
             <?php endif; ?>
 
+            <?php if (!empty($filter_bar['mass_edit'])): ?>
+                <button id="mass-edit-button"
+                        class="btn btn-secondary btn-sm d-none"
+                        title="<?=__('Edit selected attributes')?>"
+                        aria-label="<?=__('Edit selected attributes')?>"
+                        onclick="multiSelectItems('#')">
+                    <i class="fas fa-edit text-white"></i>
+                    <span class="text-white"> <?= __('Edit') ?></span>
+                </button>
+            <?php endif; ?>
+
+            <?php if (!empty($filter_bar['mass_tag'])): ?>
+                <button id="mass-tag-button"
+                        class="btn btn-tag-light btn-sm d-none"
+                        title="<?=__('Add Tag on selected attributes')?>"
+                        aria-label="<?=__('Add Tag on selected attributes')?>"
+                        onclick="multiSelectItems('#')">
+                    <i class="fas fa-tag text-tag-dark"></i>
+                    <span class="text-tag-dark"> <?= __('Tag') ?> </span>
+                </button>
+            <?php endif; ?>
+
+            <?php if (!empty($filter_bar['mass_local_tag'])): ?>
+                <button id="mass-local-tag-button"
+                        class="btn btn-tag-light btn-sm d-none"
+                        style="border: 2px dashed #6B2B06"
+                        title="<?=__('Add Local Tag on selected attributes')?>"
+                        aria-label="<?=__('Add Local Tag on selected attributes')?>"
+                        onclick="multiSelectItems('#')">
+                    <i class="fas fa-user text-tag-dark"></i>
+                    <span class="text-tag-dark"> <?= __('Local Tag') ?> </span>
+                </button>
+            <?php endif; ?>
+
+            <?php if (!empty($filter_bar['mass_cluster'])): ?>
+                <button id="mass-cluster-button"
+                        class="btn btn-galaxy-light btn-sm d-none"
+                        title="<?=__('Add Cluster on selected attributes')?>"
+                        aria-label="<?=__('Add Cluster to selected attributes')?>"
+                        onclick="multiSelectItems('#')">
+                    <i class="fab fa-galactic-republic text-galaxy-dark"></i>
+                    <span class="text-galaxy-dark"> <?= __('Cluster') ?> </span>
+                </button>
+            <?php endif; ?>
+
+            <?php if (!empty($filter_bar['mass_local_cluster'])): ?>
+                <button id="mass-local-cluster-button"
+                        class="btn btn-galaxy-light btn-sm d-none"
+                        style="border: 2px dashed #084298"
+                        title="<?=__('Add Local Cluster on selected attributes')?>"
+                        aria-label="<?=__('Add Local Cluster to selected attributes')?>"
+                        onclick="multiSelectItems('#')">
+                    <i class="fas fa-user text-galaxy-dark"></i>
+                    <span class="text-galaxy-dark"> <?= __('Local Cluster') ?> </span>
+                </button>
+            <?php endif; ?>
+
+            <?php if (!empty($filter_bar['mass_object'])): ?>
+                <button id="mass-object-button"
+                        class="btn btn-object-dark btn-sm d-none"
+                        title="<?=__('Group selected Attributes into an Object')?>"
+                        aria-label="<?=__('Group selected Attributes into an Object')?>"
+                        onclick="multiSelectItems('#')">
+                    <i class="fas fa-cube text-white"></i>
+                    <span class="text-white"> <?= __('Object') ?> </span>
+                </button>
+            <?php endif; ?>
+
+            <?php if (!empty($filter_bar['mass_relationship'])): ?>
+                <button id="mass-relationship-button"
+                        class="btn btn-relationship-light btn-sm d-none"
+                        title="<?=__('Create new relationship for selected entities')?>"
+                        aria-label="<?=__('Create new relationship for selected entities')?>"
+                        onclick="multiSelectItems('#')">
+                    <i class="fas fa-diagram-project text-relationship-dark"></i>
+                    <span class="text-relationship-dark"> <?= __('Relationship') ?> </span>
+                </button>
+            <?php endif; ?>
+
+            <?php if (!empty($filter_bar['mass_sighting'])): ?>
+                <button id="mass-sighting-button"
+                        class="btn btn-sighting-dark btn-sm d-none"
+                        title="<?=__('Sightings display for selected attributes')?>"
+                        aria-label="<?=__('Sightings display for selected attributes')?>"
+                        onclick="multiSelectItems('#')">
+                    <i class="fas fa-eye text-white"></i>
+                    <span class="text-white"> <?= __('Sightings') ?> </span>
+                </button>
+            <?php endif; ?>
+
             <?php if (!empty($filter_bar['delete'])): ?>
                 <button id="multi-delete-button"
                         class="btn btn-danger btn-sm d-none"
+                        title="<?=__('Delete selected attributes')?>"
+                        aria-label="<?=__('Delete selected attributes')?>"
                         onclick="multiSelectItems('<?php echo h($baseurl . $item_url . '/delete');?>')">
                     <i class="fas fa-trash"></i>
                     <?= __('Delete') ?>
                 </button>
             <?php endif; ?>
-
-            <?php if (!empty($filter_bar['mass_edit'])): ?>
-                <button id="mass-edit-button"
-                        class="btn btn-secondary btn-sm d-none"
-                        onclick="multiSelectItems('#')">
-                    <i class="fas fa-edit"></i>
-                    <?= __('Edit') ?>
-                </button>
-            <?php endif; ?>
-
         </div>
     </div>
 </div>
@@ -214,35 +302,48 @@ $hasActiveFilters = !empty($currentFilters);
 var baseIndexUrl = "<?php echo h($baseurl . $item_url . '/index'); ?>";
 var selectedItems = new Map();
 
+<?php
+$searchChild = null;
+foreach ($filter_bar['children'] as $child) {
+    if ($child['type'] === 'search') {
+        $searchChild = $child;
+        break;
+    }
+}
+?>
+var filterBarConfig = <?= json_encode([
+    'mode'         => $searchChild['mode'] ?? 'quickFilter',
+    'searchField'  => $searchChild['name'] ?? 'quickFilter',
+    'idField'      => $searchChild['id_field'] ?? null,
+])
+?>;
+
+function setView(view, save = true) {
+    const tableView = document.getElementById('tableView');
+    const cardView  = document.getElementById('cardView');
+    const viewList  = document.getElementById('viewList');
+    const viewCard  = document.getElementById('viewCard');
+    if (view === 'card') {
+        tableView?.classList.add('d-none');
+        cardView?.classList.remove('d-none');
+        viewList?.classList.remove('active');
+        viewCard?.classList.add('active');
+    } else {
+        cardView?.classList.add('d-none');
+        tableView?.classList.remove('d-none');
+        viewCard?.classList.remove('active');
+        viewList?.classList.add('active');
+    }
+
+    if (save) localStorage.setItem('indexViewMode', view);
+}
+
+// In the case of an ajax injected index
 (function init() {
 
     /*******************************
      * View Mode Toggle (Table / Card)
      *******************************/
-    function isMobile() {
-        return window.innerWidth < 768;
-    }
-
-    function setView(view, save = true) {
-        const tableView = document.getElementById('tableView');
-        const cardView  = document.getElementById('cardView');
-        const viewList  = document.getElementById('viewList');
-        const viewCard  = document.getElementById('viewCard');
-
-        if (view === 'card') {
-            tableView?.classList.add('d-none');
-            cardView?.classList.remove('d-none');
-            viewList?.classList.remove('active');
-            viewCard?.classList.add('active');
-        } else {
-            cardView?.classList.add('d-none');
-            tableView?.classList.remove('d-none');
-            viewCard?.classList.remove('active');
-            viewList?.classList.add('active');
-        }
-
-        if (save) localStorage.setItem('indexViewMode', view);
-    }
 
     document.getElementById('viewList')?.addEventListener('click', () => setView('table'));
     document.getElementById('viewCard')?.addEventListener('click', () => setView('card'));
@@ -251,60 +352,11 @@ var selectedItems = new Map();
     setView(savedView ? savedView : (isMobile() ? 'card' : 'table'), false);
 
 
-    /*******************************
-     * Filter URL Builder
-     *******************************/
-    function buildFilterUrl() {
-        const base = baseIndexUrl.replace(/\/search.*/, '');
-        let filters = {};
-
-        const searchMatch = window.location.pathname.match(/\/search(.+)/);
-        if (searchMatch) {
-            const parts = searchMatch[1].split('/search');
-            parts.forEach(part => {
-                const [key, value] = part.split(':');
-                if (key && value) filters[key] = decodeURIComponent(value);
-            });
-        }
-
-        const quickField = document.getElementById('quickFilterField');
-        const quickValue = quickField ? quickField.value.trim() : '';
-
-        delete filters['eventinfo'];
-        delete filters['eventid'];
-
-        if (quickValue !== '') {
-            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-            const numberRegex = /^[0-9]+$/;
-
-            if (uuidRegex.test(quickValue) || numberRegex.test(quickValue)) {
-                filters['eventid'] = encodeURIComponent(quickValue);
-            } else {
-                filters['eventinfo'] = encodeURIComponent(quickValue);
-            }
-        }
-
-        document.querySelectorAll('.topbar-filter').forEach(el => {
-            const name  = el.getAttribute('name');
-            const value = el.value;
-            if (!name) return;
-            if (value !== '') filters[name] = value;
-            else delete filters[name];
-        });
-
-        let newUrl = base;
-        Object.keys(filters).forEach(key => {
-            newUrl += '/search' + key + ':' + filters[key];
-        });
-
-        return newUrl;
-    }
-
-    document.getElementById('quickFilterButton')?.addEventListener('click', () => {
+    document.getElementById('filterButton')?.addEventListener('click', () => {
         window.location.href = buildFilterUrl();
     });
 
-    document.getElementById('quickFilterField')?.addEventListener('keypress', function(e) {
+    document.getElementById('filterField')?.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') window.location.href = buildFilterUrl();
     });
 
@@ -314,35 +366,6 @@ var selectedItems = new Map();
         });
     });
 
-
-    /*******************************
-     * Multi-Select Toolbar
-     *******************************/
-    function updateMultiSelectToolbar() {
-        const toolbar        = document.getElementById('multiSelectToolbar');
-        const selectedCount  = document.getElementById('selectedCount');
-        const deleteButton   = document.getElementById('multi-delete-button');
-        const editButton   = document.getElementById('mass-edit-button');
-        const count          = selectedItems.size;
-
-        if (count === 0) {
-            toolbar?.classList.add('d-none');
-            return;
-        }
-
-        toolbar?.classList.remove('d-none');
-        if (selectedCount) selectedCount.textContent = count;
-
-        let canDeleteAll = true;
-        selectedItems.forEach(item => {
-            if (!item.canDelete) canDeleteAll = false;
-        });
-
-        const isHidden = !canDeleteAll;
-
-        deleteButton?.classList.toggle('d-none', isHidden);
-        editButton?.classList.toggle('d-none', isHidden);
-    }
 
     /*******************************
      * Checkbox change handler

@@ -2,31 +2,28 @@
     <div class="card shadow-sm d-inline-block w-auto">
         <div class="card-header">
             <h4 class="card-title mb-2 mt-2">
-                <?php echo __('Attribute Deletion'); ?>
+                <?php echo __('Element Deletion'); ?>
             </h4>
         </div>
 
         <div class="card-body">
             <?php
-                echo $this->Form->create('Attribute', [
+                echo $this->Form->create('CollectionElement', [
                     'id' => 'PromptForm',
-                    'url' => $baseurl . '/attributes/delete/' . $id . ($hard ? '/true' : ''),
+                    'url' => $baseurl . '/collectionElements/delete2',
                     'class' => 'm-0'
                 ]);
                 echo $this->Form->hidden('id');
-                if ($hard) $hard = '/true';
             ?>
             <?php
                 if (count($idArray) > 1) {
-                    $hard_message = __('Are you sure you want to hard-delete Attribute #%s? The Attribute will be permanently deleted and unrecoverable. Also, this will prevent the deletion to be propagated to other instances.',  count($idArray));
-                    $soft_message = __('Are you sure you want to soft-delete Attribute #%s? The Attribute will only be soft deleted, meaning that it is not completely purged. Click on Include deleted attributes and delete the soft deleted attribute if you want to permanently remove it.',  count($idArray));
+                    $message = __('Are you sure you want to delete %s elements ?', count($idArray));
                 } else {
-                    $hard_message = __('Are you sure you want to hard-delete Attribute #%s? The Attribute will be permanently deleted and unrecoverable. Also, this will prevent the deletion to be propagated to other instances.', h($id));
-                    $soft_message = __('Are you sure you want to soft-delete Attribute #%s? The Attribute will only be soft deleted, meaning that it is not completely purged. Click on Include deleted attributes and delete the soft deleted attribute if you want to permanently remove it.', h($id));
+                    $message = __('Are you sure you want to delete element #%s ?', $idArray[0]);
                 }
             ?>
 
-            <p class="mb-4"><?php echo $hard ? $hard_message : $soft_message; ?></p>
+            <p class="mb-4"><?= h($message); ?></p>
 
             <div class="d-flex justify-content-between align-items-center">
                 <button 
@@ -53,5 +50,3 @@
         </div>
     </div>
 </div>
-
-
