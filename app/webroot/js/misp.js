@@ -6130,3 +6130,39 @@ function sanitizeUrlForTraversal(url) {
 
     return url;
 }
+
+// Geolocation map popover
+$(document).on("click", ".geolocation-map-icon", function() {
+    var lat = parseFloat($(this).data('lat'));
+    var lon = parseFloat($(this).data('lon'));
+    if (isNaN(lat) || isNaN(lon)) {
+        return;
+    }
+    var $popover = $('#popover_form');
+    var html = '<legend>Geolocation' +
+        '<span class="pull-right">' +
+        '<span class="fa fa-times useCursorPointer" ' +
+        'onClick="cancelPopoverForm();"></span>' +
+        '</span></legend>' +
+        '<div id="geolocation-map" ' +
+        'style="width:100%;height:400px;"></div>' +
+        '<div style="padding:5px 10px;color:#555;">' +
+        lat.toFixed(6) + ', ' + lon.toFixed(6) +
+        '</div>';
+    $popover.html(html);
+    $popover.fadeIn();
+    var left = ($(window).width() / 2) -
+        ($popover.width() / 2);
+    $popover.css({'left': left + 'px'});
+    $("#gray_out").fadeIn();
+    var map = L.map('geolocation-map').setView(
+        [lat, lon], 14
+    );
+    L.tileLayer('https://geo.circl.lu/hot/{z}/{x}/{y}.png', {
+        maxZoom: 21,
+        maxNativeZoom: 20,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    L.marker([lat, lon]).addTo(map);
+    setTimeout(function() { map.invalidateSize(); }, 200);
+});

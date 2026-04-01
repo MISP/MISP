@@ -6382,6 +6382,22 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
+                'geolocation_enabled' => array(
+                    'level' => 1,
+                    'description' => __('When enabled, geolocation objects will display a map icon that shows the coordinates on an interactive map.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'geolocation_url' => array(
+                    'level' => 1,
+                    'description' => __('The base URL of the tile server used for geolocation maps. Defaults to https://geo.circl.lu if not set.'),
+                    'value' => 'https://geo.circl.lu',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
                 'disableUserSelfManagement' => array(
                     'level' => 1,
                     'description' => __('When enabled only Org and Site admins can edit a user\'s profile.'),
