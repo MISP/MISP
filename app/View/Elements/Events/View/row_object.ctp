@@ -108,7 +108,7 @@ $objectId = intval($object['id']);
         <span style="white-space: nowrap;">
           <?php echo h($object['name']);?>
           <?php
-            if ($object['name'] === 'geolocation' && Configure::read('MISP.geolocation_enabled')) {
+            if ($object['name'] === 'geolocation' && Configure::read('Plugin.Geolocation_enabled')) {
                 $geoLat = $geoLon = null;
                 foreach ($object['Attribute'] as $geoAttr) {
                     if ($geoAttr['object_relation'] === 'latitude') {
@@ -119,7 +119,7 @@ $objectId = intval($object['id']);
                     }
                 }
                 if ($geoLat !== null && $geoLon !== null) {
-                    $geoUrl = Configure::read('MISP.geolocation_url');
+                    $geoUrl = Configure::read('Plugin.Geolocation_url');
                     if (empty($geoUrl)) {
                         $geoUrl = 'https://geo.circl.lu';
                     }

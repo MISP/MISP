@@ -898,8 +898,8 @@ class AppController extends Controller
         if (env('HTTPS')) {
             $default['upgrade-insecure-requests'] = null;
         }
-        if (Configure::read('MISP.geolocation_enabled')) {
-            $geoUrl = Configure::read('MISP.geolocation_url');
+        if (Configure::read('Plugin.Geolocation_enabled')) {
+            $geoUrl = Configure::read('Plugin.Geolocation_url');
             if (empty($geoUrl)) {
                 $geoUrl = 'https://geo.circl.lu';
             }
