@@ -282,12 +282,27 @@ $hasActiveFilters = !empty($currentFilters);
                 </button>
             <?php endif; ?>
 
+            <?php if (!empty($filter_bar['enable'])): ?>
+                <button id="mass-enable-button"
+                        class="btn btn-success btn-sm d-none"
+                        title="<?=__('Enable selected items')?>"
+                        onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massEnable');?>')">
+                    <i class="fas fa-play"></i> <?= __('Enable') ?>
+                </button>
+                <button id="mass-disable-button"
+                        class="btn btn-warning btn-sm d-none"
+                        title="<?=__('Disable selected items')?>"
+                        onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massDisable');?>')">
+                    <i class="fas fa-stop"></i> <?= __('Disable') ?>
+                </button>
+            <?php endif; ?>
+
             <?php if (!empty($filter_bar['delete'])): ?>
                 <button id="multi-delete-button"
                         class="btn btn-danger btn-sm d-none"
-                        title="<?=__('Delete selected attributes')?>"
-                        aria-label="<?=__('Delete selected attributes')?>"
-                        onclick="multiSelectItems('<?php echo h($baseurl . $item_url . '/delete');?>')">
+                        title="<?=__('Delete selected items')?>"
+                        aria-label="<?=__('Delete selected items')?>"
+                        onclick="multiSelectItems('<?php echo h($baseurl . $item_url . $filter_bar['delete']);?>')">
                     <i class="fas fa-trash"></i>
                     <?= __('Delete') ?>
                 </button>

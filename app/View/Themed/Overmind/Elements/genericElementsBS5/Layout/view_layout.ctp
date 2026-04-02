@@ -40,8 +40,6 @@
                         <?php
                             if (!empty($tab['left'])) {
                                 foreach ($tab['left'] as $card) {
-
-                                    // Nouveau format (avec ajax)
                                     if (is_array($card)) {
 
                                         if (!empty($card['ajax'])) {
@@ -55,7 +53,6 @@
                                         }
 
                                     } else {
-                                        // Ancien format (string)
                                         echo $this->element($card, ['data' => $data]);
                                     }
                                 }
@@ -80,7 +77,6 @@
                                         }
 
                                     } else {
-                                        // Ancien format (string)
                                         echo $this->element($card, ['data' => $data]);
                                     }
                                 }

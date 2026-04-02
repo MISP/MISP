@@ -9,6 +9,10 @@
     --bs-pagination-active-border-color: #1892B1;
 }
 
+.dropdown-item {
+    --bs-dropdown-link-active-bg: #1892B1 ;
+}
+
 html {
     height: 100%;
 }

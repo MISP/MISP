@@ -16,7 +16,7 @@ echo $this->Form->create('Collection', [
             <div class="card-body">
 
                 <h3 class="mb-2">
-                    <?= __('Create New Collection') ?>
+                    <?=  $edit ? __('Edit current collection') : __('Create New Collection')  ?>
                 </h3>
 
                 <p class="text-muted mb-4">

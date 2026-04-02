@@ -12,6 +12,7 @@
 $actions = $actions ?? [];
 ?>
 
+
 <div class="card shadow-sm">
     <div class="card-body">
         <h5 class="fw-bold d-flex align-items-center gap-2 mb-3">
@@ -28,8 +29,6 @@ $actions = $actions ?? [];
                     $url = $action['url'] ?? '#';
                     $icon = $action['icon'] ?? 'fas fa-circle';
                     $label = $action['label'] ?? '';
-                    $onclick = $action['onclick'] ?? null;
-
                     $btnClass = 'btn-light';
                     if ($isDanger) {
                         $btnClass = 'btn-danger-subtle text-danger';
@@ -41,25 +40,40 @@ $actions = $actions ?? [];
 
                     $iconColorClass = ($isDanger || $isWarning || $isSuccess) ? '' : 'text-secondary';
                     $chevronColorClass = ($isDanger || $isWarning  || $isSuccess) ? '' : 'text-muted';
-                ?>
 
-                    <a class="quick-action btn <?= $btnClass ?> d-flex align-items-center justify-content-between rounded-4 py-3 px-3"
-                    href="<?= h($url) ?>"
-                    <?= $onclick ? 'onclick="' . $onclick . '"' : '' ?>>
-
+                    $innerHtml = '
                         <span class="d-flex align-items-center gap-3">
-                            <i class="<?= h($icon) ?> <?= $iconColorClass ?>"></i>
-                            <?= h($label) ?>
+                            <i class="' . h($icon) . ' ' . $iconColorClass . '"></i>
+                            ' . h($label) . '
                         </span>
+                        <i class="fas fa-chevron-right ' . $chevronColorClass . '"></i>
+                    ';
 
-                        <i class="fas fa-chevron-right <?= $chevronColorClass ?>"></i>
-                    </a>
+                    $fullBtnClass = "quick-action btn $btnClass d-flex align-items-center justify-content-between rounded-4 py-3 px-3 w-100 border-0";
+                ?>
+                    <?php if (isset($action['type']) && $action['type'] === 'post'): ?>
+                        <?php
+                            echo $this->Form->postLink($innerHtml, $url, [
+                                'escape' => false,
+                                'class' => $fullBtnClass,
+                                'confirm' => $action['confirm'] ?? null,
+                                'data' => [
+                                    'id' => $action['id'] ?? null
+                                ]
+                            ]);
+                        ?>
+                    <?php else: ?>
+                        <a class="<?= $fullBtnClass ?>"
+                           href="<?= h($url) ?>"
+                           <?= !empty($action['onclick']) ? 'onclick="' . $action['onclick'] . '"' : '' ?>>
+                            <?= $innerHtml ?>
+                        </a>
+                    <?php endif; ?>
 
                 <?php endforeach; ?>
             <?php else: ?>
-                <p class="mb-0">No action available for you</p>
+                <p class="text-muted mb-0 small">No action available</p>
             <?php endif; ?>
-
         </div>
     </div>
 </div>

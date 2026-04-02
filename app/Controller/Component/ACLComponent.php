@@ -128,7 +128,7 @@ class ACLComponent extends Component
         'collections' => [
             'add' => ['perm_modify'],
             'delete' => ['perm_modify'],
-            'delete2' => ['AND'=> ['perm_modify', 'theming_enabled']],
+            'deleteSelection' => ['AND'=> ['perm_modify', 'theming_enabled']],
             'edit' => ['perm_modify'],
             'index' => ['*'],
             'view' => ['*']
@@ -137,7 +137,7 @@ class ACLComponent extends Component
             'add' => ['perm_modify'],
             'addElementToCollection' => ['perm_modify'],
             'delete' => ['perm_modify'],
-            'delete2' => ['AND'=> ['perm_modify', 'theming_enabled']],
+            'deleteSelection' => ['AND'=> ['perm_modify', 'theming_enabled']],
             'index' => ['*']
         ],
         'correlationExclusions' => [
@@ -145,6 +145,7 @@ class ACLComponent extends Component
             'edit' => [],
             'clean' => [],
             'delete' => [],
+            'deleteSelection' => ['theming_enabled'],
             'index' => [],
             'view' => []
         ],
@@ -500,7 +501,10 @@ class ACLComponent extends Component
         ),
         'noticelists' => array(
             'delete' => array(),
+            'deleteSelection' => array('theming_enabled'),
             'enableNoticelist' => array(),
+            'massEnable' => array('theming_enabled'),
+            'massDisable' => array('theming_enabled'),
             'getToggleField' => array(),
             'index' => array('*'),
             'toggleEnable' => array(),
@@ -588,6 +592,7 @@ class ACLComponent extends Component
             'admin_add' => array('perm_regexp_access'),
             'admin_clean' => array(),
             'admin_delete' => array('perm_regexp_access'),
+            'admin_deleteSelection' => ['AND'=> ['perm_regexp_access', 'theming_enabled']],
             'admin_edit' => array('perm_regexp_access'),
             'admin_index' => array('perm_regexp_access'),
             'cleanRegexModifiers' => array(),
@@ -914,7 +919,10 @@ class ACLComponent extends Component
         'warninglists' => array(
             'checkValue' => ['*'],
             'delete' => ['perm_warninglist'],
+            'deleteSelection' => ['AND'=> ['perm_warninglist', 'theming_enabled']],
             'enableWarninglist' => ['perm_warninglist'],
+            'massEnable' => ['perm_warninglist', 'theming_enabled'],
+            'massDisable' => ['perm_warninglist', 'theming_enabled'],
             'getToggleField' => ['perm_warninglist'],
             'index' => array('*'),
             'toggleEnable' => ['perm_warninglist'],
@@ -957,6 +965,7 @@ class ACLComponent extends Component
         'allowedlists' => array(
             'admin_add' => array('perm_regexp_access'),
             'admin_delete' => array('perm_regexp_access'),
+            'admin_deleteSelection' => ['AND'=> ['perm_regexp_access', 'theming_enabled']],
             'admin_edit' => array('perm_regexp_access'),
             'admin_index' => array('perm_regexp_access'),
             'index' => array('*'),
@@ -1286,6 +1295,25 @@ class ACLComponent extends Component
             return false;
         }
         return $user['org_id'] == $collection['Collection']['org_id'];
+    }
+
+     /**
+     * @param array $user
+     * @param array $warninglist
+     * @return bool
+     */
+    public function canModifyWarninglist(array $user, array $warninglist)
+    {
+        if (!isset($warninglist['Warninglist'])) {
+            throw new InvalidArgumentException('Passed object does not contain a Warninglist.');
+        }
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return true;
+        }
+        if (!$user['Role']['perm_warninglist']) {
+            return false;
+        }
+        return false;
     }
 
 
