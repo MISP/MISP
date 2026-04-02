@@ -295,10 +295,7 @@ class WarninglistsController extends AppController
         if (!$this->request->is('post')) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('This function only accepts POST requests.'))), 'status' => 200, 'type' => 'json'));
         }
-        
-        $id = $passedId; // NOUVEAU : On prend l'ID de l'URL s'il existe
-        
-        // Si l'ID n'est pas dans l'URL, on utilise la logique d'origine
+        $id = $passedId;
         if (empty($id)) {
             if (isset($this->request->data['Warninglist']['data'])) {
                 $id = $this->request->data['Warninglist']['data'];
@@ -376,7 +373,6 @@ class WarninglistsController extends AppController
         if (!$this->Warninglist->exists()) {
             throw new NotFoundException(__('Invalid Warninglist.'));
         }
-        // DBMS interoperability: convert boolean false to integer 0 so cakephp doesn't try to insert an empty string into the database
         if ($enable === false) {
             $enable = 0;
         }

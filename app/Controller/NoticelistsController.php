@@ -241,10 +241,9 @@ class NoticelistsController extends AppController
 
     private function _massToggleState($idList = null, $state = 1)
     {
-        // 1. Décodage des entités HTML potentielles (&quot;) et des caractères d'URL (%22)
         $cleanIdList = htmlspecialchars_decode(urldecode($idList));
         $ids = json_decode($cleanIdList, true);
-        
+
         if (empty($ids) || !is_array($ids)) {
             $message = __('Invalid IDs provided.');
             if ($this->_isRest()) {
@@ -253,7 +252,6 @@ class NoticelistsController extends AppController
             return new CakeResponse(['body' => json_encode(['saved' => false, 'errors' => $message]), 'status' => 200, 'type' => 'json']);
         }
 
-        // 2. Traitement de la requête POST (modification en base)
         if ($this->request->is('post') || $this->request->is('put')) {
             $successCount = 0;
 
@@ -269,31 +267,24 @@ class NoticelistsController extends AppController
             $actionText = $state ? __('enabled') : __('disabled');
             $message = __('%s Noticelists successfully %s.', $successCount, $actionText);
 
-            // Si c'est une requête API/REST
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Noticelists', 'massToggle', false, $this->response->type(), $message);
             }
-            
-            // Si c'est une requête AJAX (utile si tu ajoutes de l'AJAX sur ton formulaire plus tard)
+
             if ($this->request->is('ajax')) {
                 return new CakeResponse(['body' => json_encode(['saved' => true, 'success' => $message]), 'status' => 200, 'type' => 'json']);
             }
 
-            // CORRECTION ICI : Traitement pour un formulaire web standard
             $this->Flash->success($message);
             return $this->redirect($this->referer(['action' => 'index']));
         }
 
-        // 3. Traitement de la requête GET (affichage de la modale de confirmation)
+
         $this->layout = false;
-        
         $this->set('actionText', $state ? __('enable') : __('disable'));
         $this->set('idArray', $ids);
         $this->set('state', $state);
-        
-        // CORRECTION ICI : On utilise urlencode() plutôt que h() pour passer proprement le JSON dans l'URL du formulaire
         $this->set('url', '/noticelists/' . ($state ? 'massEnable' : 'massDisable') . '/' . urlencode($cleanIdList));
-        
         $this->render('ajax/noticelistToggleConfirmationForm');
     }
 }
