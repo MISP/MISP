@@ -42,6 +42,22 @@ class CorrelationExclusionsController extends AppController
         }
     }
 
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'CorrelationExclusion',
+            'restName' => 'CorrelationExclusions',
+            'itemName' => 'correlation exclusion',
+            'view' => 'ajax/correlation_exclusionsDeleteConfirmationForm',
+            'checkModifyCallback' => function() {
+                return $this->userRole['perm_site_admin'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s correlation exclusion deleted.', '%s correlation exclusions deleted.', $count, $count);
+            }
+        ]);
+    }
+
     public function add()
     {
         $options = [
@@ -59,6 +75,9 @@ class CorrelationExclusionsController extends AppController
             return $this->restResponsePayload;
         }
         $dropdownData = [];
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->set(compact('dropdownData'));
         $this->set('menuData', [
             'menuList' => 'correlationExclusions',
@@ -90,6 +109,9 @@ class CorrelationExclusionsController extends AppController
         $dropdownData = [
             'org_id' => $orgs
         ];
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->set(compact('dropdownData'));
         $this->render('add');
     }
