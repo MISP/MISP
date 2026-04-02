@@ -1,0 +1,43 @@
+## Progress Tracker
+
+### Phase 1: Skeleton + Read Operations (Events & Attributes)
+
+- [x] Task 1: Create CLIShell.php skeleton (AppShell, $uses, properties, entity config)
+- [x] Task 2: main() REPL entry point (user validation, stdin, welcome banner, loop)
+- [x] Task 3: Command parser (__parseCommand, __tokenize, __resolveEntity)
+- [x] Task 4: Terminal helpers (__getTerminalSize, TTY detection, restoreTerminal, __enterRawMode, __exitRawMode, __readKeypress)
+- [x] Task 5: __renderBrowsableTable() - interactive table with highlighting/scrolling
+- [x] Task 6: __browseLoop() - raw terminal browse mode with keystrokes
+- [x] Task 7: __renderDetail() - key-value detail output
+- [x] Task 8: list events - paginated event listing with ACL
+- [x] Task 9: view event <id> - full event detail, auto-set context
+- [x] Task 10: list attributes - context-aware attribute listing
+- [x] Task 11: view attribute <id> - single attribute detail
+- [x] Task 12: Filter parser (__parseFilters) - key=value, negation, OR, tag AND/NOT
+- [x] Task 13: search events/attributes (delegates to list with filters)
+- [x] Task 14: list events/attributes with filters
+- [x] Task 15: Filter bar in browse mode (f key, tab-completion)
+- [x] Task 16: help, exit/quit, context, clear, use commands
+
+### Phase 2: Extended Read Operations (All Entities)
+- [x] Task 1-10: list/view for objects, tags, users, organisations, servers, feeds, sharing_groups, galaxies, taxonomies, warninglists (implemented in Phase 1 skeleton)
+- [x] Task 11: Entity registry pattern (implemented from the start)
+
+### Phase 3: Write Operations (Events & Attributes)
+- [x] Task 1: Interactive field prompting (__promptForField, __promptForFields, __promptConfirm, __getAutocompleteValues, __fieldMeta)
+- [ ] Task 2: add event
+- [ ] Task 3: edit event
+- [ ] Task 4: delete event
+- [ ] Task 5: add attribute
+- [ ] Task 6: edit attribute
+- [ ] Task 7: delete attribute
+
+### Phase 4-5: Not started
+
+### Commit Log
+- 40562bd08: Phase 1 skeleton with REPL, entity registry, all read operations, filter parser, static table rendering, help system
+- Task 4 complete: Added __enterRawMode(), __exitRawMode(), __readKeypress() terminal control methods for browse mode support
+- Task 5 complete: Added __renderBrowsableTable() with inverse-video row highlighting, viewport scrolling, Unicode box-drawing separators, auto-calculated column widths with truncation, and keybinding footer. Also extracted __calcColumnWidths() helper for reuse.
+- Task 6 complete: Added __browseLoop() interactive browse mode. Enters raw terminal, renders browsable table, handles keystrokes (UP/DOWN/j/k navigate, Enter views record, n/p page, q/Escape exits). Wired into __cmdList(), __cmdNext(), __cmdPrev() with TTY detection fallback to static tables for piped mode.
+- Task 15 complete: Added interactive filter bar in browse mode (f key). __filterBar() shows active filters and accepts key=value input. Supports -key to remove a filter, -- to clear all, empty Enter to close. __readFilterLine() reads char-by-char with Tab completion. __tabComplete() completes filter keys and values (types from MispAttribute::typeDefinitions, categories from categoryDefinitions, tags from Tag model, orgs from Organisation model, threat_level_id, analysis, published, to_ids). __browseFilters array tracks active filters across filter bar sessions. Filters displayed in browse table header and footer updated with [f] Filter hint.
+- Phase 3 Task 1 complete: Added interactive field prompting infrastructure. __promptForField() prompts for a single field with type-specific validation (string, date, select, boolean, integer, autocomplete). Shows help text, accepted values, defaults, required markers. Validates select options, boolean 0/1, date format, numeric input. Recurses on invalid input. __promptForFields() iterates through entity fields for add/edit flows. __promptConfirm() handles yes/no confirmation. __getAutocompleteValues() provides type/category completion sources. Added $__fieldMeta property with full metadata for event fields (info, date, distribution, threat_level_id, analysis, sharing_group_id) and attribute fields (type, category, value, to_ids, comment, distribution, sharing_group_id, disable_correlation, first_seen, last_seen). Populated attribute editableFields in entity config. Added add/edit/delete dispatch cases and stub __cmdAdd(), __cmdEdit(), __cmdDelete() with validation. Updated help output to include add/edit/delete commands.

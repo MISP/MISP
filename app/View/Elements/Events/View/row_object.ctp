@@ -107,6 +107,32 @@ $objectId = intval($object['id']);
         <span class="bold"><?php echo __('Object name: ');?></span>
         <span style="white-space: nowrap;">
           <?php echo h($object['name']);?>
+          <?php
+            if ($object['name'] === 'geolocation' && Configure::read('Plugin.Geolocation_enabled')) {
+                $geoLat = $geoLon = null;
+                foreach ($object['Attribute'] as $geoAttr) {
+                    if ($geoAttr['object_relation'] === 'latitude') {
+                        $geoLat = $geoAttr['value'];
+                    }
+                    if ($geoAttr['object_relation'] === 'longitude') {
+                        $geoLon = $geoAttr['value'];
+                    }
+                }
+                if ($geoLat !== null && $geoLon !== null) {
+                    $geoUrl = Configure::read('Plugin.Geolocation_url');
+                    if (empty($geoUrl)) {
+                        $geoUrl = 'https://geo.circl.lu';
+                    }
+                    echo sprintf(
+                        '<span class="fa fa-map-marker useCursorPointer geolocation-map-icon" data-lat="%s" data-lon="%s" data-tile-url="%s" title="%s" role="button" tabindex="0" style="margin-left: 3px;"></span>',
+                        h($geoLat),
+                        h($geoLon),
+                        h($geoUrl),
+                        __('Show on map')
+                    );
+                }
+            }
+          ?>
           <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo $objectId ?>_collapsible"></span>
         </span>
         <br>

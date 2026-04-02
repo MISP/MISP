@@ -27,7 +27,7 @@ foreach ($data as $index => $item) {
         continue;
     }
 
-    $name = h($galaxy['name']) . ' : ' . $cluster['value'];
+    $name = h($galaxy['name']) . ' : ' . h($cluster['value']);
     $local = h($cluster['local']);
     $bgColor = 'background-color: #e7f1ff';
     $textColor = '#084298';

@@ -42,7 +42,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
         <div class="card card-link-item" style="background-color: #f8f9fa;">
             <div class="card-body p-1">
                 <i class="fa fa-comment"></i> 
-                <span><?= $element['description'] ?></span>
+                <span><?= h($element['description']) ?></span>
             </div>
         </div>
     <?php endif; ?>
