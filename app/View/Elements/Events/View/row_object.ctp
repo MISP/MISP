@@ -142,10 +142,11 @@ $objectId = intval($object['id']);
                             __('Show on map')
                         );
                     }
-                } else if ($object['name'] === 'gpx') {
+                } else if ($object['name'] === 'gpx' || $object['name'] === 'uav') {
+                    $gpxRelation = $object['name'] === 'gpx' ? 'attachment' : 'flight-path';
                     $gpxAttachmentId = null;
                     foreach ($object['Attribute'] as $geoAttr) {
-                        if ($geoAttr['object_relation'] === 'attachment') {
+                        if ($geoAttr['object_relation'] === $gpxRelation) {
                             $gpxAttachmentId = $geoAttr['id'];
                             break;
                         }
