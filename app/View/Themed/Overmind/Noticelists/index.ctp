@@ -3,6 +3,7 @@ $fields = [
     [
         'element' => 'selector',
         'data_path' => 'Noticelist.id',
+        'state_path' => 'Noticelist.enabled',
         'card_section' => 'selector',
         'actions' => [
             [
@@ -56,7 +57,7 @@ $fields = [
     [
         'name' => __('Geographical area'),
         'data_path' => 'Noticelist.geographical_area',
-        'element' => 'flag',
+        'element' => 'country',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
     ],
@@ -89,7 +90,7 @@ $fields = [
 if ($this->Acl->canAccess('noticelists', 'update')) {
     $this->set('headerActions', [
         [
-            'type' => 'link',
+            'type' => 'post',
             'label' => __('Update Noticelists'),
             'icon' => 'sync',
             'url' => $baseurl . '/noticelists/update'
@@ -107,10 +108,11 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'button' => __('Filter'),
-                        'placeholder' => __('Enter value to search'),
+                        'placeholder' => __('Not available for the moment'),
                         'searchKey' => 'quickFilter',
                     ]
-                ]
+                ],
+                'enable' => 1
             ],
             'fields' => $fields,
         ]
