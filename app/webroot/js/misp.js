@@ -6336,3 +6336,79 @@ $(document).on("click", ".gpx-map-icon", function() {
         });
     });
 });
+
+// GeoJSON object click handler
+$(document).on("click", ".geojson-map-icon", function() {
+    var attachmentId = $(this).data('attachment-id');
+    var tileUrl = $(this).data('tile-url');
+    if (!attachmentId) return;
+    openMapPopover('GeoJSON', tileUrl, function(map) {
+        map.setView([0, 0], 2);
+        $('#geolocation-map-info').text('Loading GeoJSON data...');
+        $.ajax({
+            url: baseurl + '/attributes/download/' + attachmentId,
+            dataType: 'json',
+            success: function(data) {
+                var layer = L.geoJSON(data, {
+                    pointToLayer: function(feature, latlng) {
+                        return L.marker(latlng);
+                    },
+                    onEachFeature: function(feature, layer) {
+                        if (feature.properties) {
+                            var props = [];
+                            for (var key in feature.properties) {
+                                if (feature.properties[key] !== null) {
+                                    props.push(
+                                        '<strong>' + key +
+                                        '</strong>: ' +
+                                        feature.properties[key]
+                                    );
+                                }
+                            }
+                            if (props.length > 0) {
+                                layer.bindPopup(props.join('<br>'));
+                            }
+                        }
+                    }
+                }).addTo(map);
+                var bounds = layer.getBounds();
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds, {padding: [20, 20]});
+                }
+                var featureCount = 0;
+                var geometryTypes = {};
+                if (data.type === 'FeatureCollection' &&
+                    data.features) {
+                    featureCount = data.features.length;
+                    data.features.forEach(function(f) {
+                        if (f.geometry && f.geometry.type) {
+                            geometryTypes[f.geometry.type] = true;
+                        }
+                    });
+                } else if (data.type === 'Feature') {
+                    featureCount = 1;
+                    if (data.geometry && data.geometry.type) {
+                        geometryTypes[data.geometry.type] = true;
+                    }
+                } else if (data.type) {
+                    featureCount = 1;
+                    geometryTypes[data.type] = true;
+                }
+                var types = Object.keys(geometryTypes);
+                var info = featureCount + ' feature(s)';
+                if (types.length > 0) {
+                    info += ' (' + types.join(', ') + ')';
+                }
+                $('#geolocation-map-info').text(info);
+                setTimeout(function() {
+                    map.invalidateSize();
+                }, 200);
+            },
+            error: function() {
+                $('#geolocation-map-info').text(
+                    'Failed to load GeoJSON attachment.'
+                );
+            }
+        });
+    });
+});

@@ -159,6 +159,22 @@ $objectId = intval($object['id']);
                             __('Show GPX on map')
                         );
                     }
+                } else if ($object['name'] === 'geojson') {
+                    $geojsonAttachmentId = null;
+                    foreach ($object['Attribute'] as $geoAttr) {
+                        if ($geoAttr['object_relation'] === 'attachment') {
+                            $geojsonAttachmentId = $geoAttr['id'];
+                            break;
+                        }
+                    }
+                    if ($geojsonAttachmentId !== null) {
+                        echo sprintf(
+                            '<span class="fa fa-map-marker useCursorPointer geojson-map-icon" data-attachment-id="%s" data-tile-url="%s" title="%s" role="button" tabindex="0" style="margin-left: 3px;"></span>',
+                            h($geojsonAttachmentId),
+                            h($geoUrl),
+                            __('Show GeoJSON on map')
+                        );
+                    }
                 }
             }
           ?>
