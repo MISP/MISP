@@ -6131,38 +6131,165 @@ function sanitizeUrlForTraversal(url) {
     return url;
 }
 
-// Geolocation map popover
-$(document).on("click", ".geolocation-map-icon", function() {
-    var lat = parseFloat($(this).data('lat'));
-    var lon = parseFloat($(this).data('lon'));
-    if (isNaN(lat) || isNaN(lon)) {
-        return;
-    }
+// Geolocation/GPX map popover helpers
+function openMapPopover(title, tileUrl, callback) {
     var $popover = $('#popover_form');
-    var html = '<legend>Geolocation' +
+    var html = '<legend>' + title +
         '<span class="pull-right">' +
         '<span class="fa fa-times useCursorPointer" ' +
         'onClick="cancelPopoverForm();"></span>' +
         '</span></legend>' +
         '<div id="geolocation-map" ' +
         'style="width:100%;height:400px;"></div>' +
-        '<div style="padding:5px 10px;color:#555;">' +
-        lat.toFixed(6) + ', ' + lon.toFixed(6) +
-        '</div>';
+        '<div id="geolocation-map-info" ' +
+        'style="padding:5px 10px;color:#555;"></div>';
     $popover.html(html);
     $popover.fadeIn();
     var left = ($(window).width() / 2) -
         ($popover.width() / 2);
     $popover.css({'left': left + 'px'});
     $("#gray_out").fadeIn();
-    var map = L.map('geolocation-map').setView(
-        [lat, lon], 14
-    );
-    L.tileLayer('https://geo.circl.lu/hot/{z}/{x}/{y}.png', {
+    var map = L.map('geolocation-map');
+    L.tileLayer(tileUrl + '/hot/{z}/{x}/{y}.png', {
         maxZoom: 21,
         maxNativeZoom: 20,
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
-    L.marker([lat, lon]).addTo(map);
     setTimeout(function() { map.invalidateSize(); }, 200);
+    callback(map);
+}
+
+function parseGpxToLayers(xmlString, map) {
+    var parser = new DOMParser();
+    var gpx = parser.parseFromString(xmlString, 'application/xml');
+    var bounds = L.latLngBounds();
+    var hasData = false;
+
+    // Parse waypoints
+    var wpts = gpx.querySelectorAll('wpt');
+    for (var i = 0; i < wpts.length; i++) {
+        var lat = parseFloat(wpts[i].getAttribute('lat'));
+        var lon = parseFloat(wpts[i].getAttribute('lon'));
+        if (isNaN(lat) || isNaN(lon)) continue;
+        var ll = L.latLng(lat, lon);
+        var nameEl = wpts[i].querySelector('name');
+        var marker = L.marker(ll).addTo(map);
+        if (nameEl && nameEl.textContent) {
+            marker.bindPopup(nameEl.textContent);
+        }
+        bounds.extend(ll);
+        hasData = true;
+    }
+
+    // Parse tracks
+    var trks = gpx.querySelectorAll('trk');
+    for (var i = 0; i < trks.length; i++) {
+        var segments = trks[i].querySelectorAll('trkseg');
+        for (var j = 0; j < segments.length; j++) {
+            var pts = segments[j].querySelectorAll('trkpt');
+            var latlngs = [];
+            for (var k = 0; k < pts.length; k++) {
+                var lat = parseFloat(pts[k].getAttribute('lat'));
+                var lon = parseFloat(pts[k].getAttribute('lon'));
+                if (isNaN(lat) || isNaN(lon)) continue;
+                var ll = L.latLng(lat, lon);
+                latlngs.push(ll);
+                bounds.extend(ll);
+            }
+            if (latlngs.length > 0) {
+                L.polyline(latlngs, {
+                    color: '#3388ff', weight: 3
+                }).addTo(map);
+                hasData = true;
+            }
+        }
+    }
+
+    // Parse routes
+    var rtes = gpx.querySelectorAll('rte');
+    for (var i = 0; i < rtes.length; i++) {
+        var pts = rtes[i].querySelectorAll('rtept');
+        var latlngs = [];
+        for (var j = 0; j < pts.length; j++) {
+            var lat = parseFloat(pts[j].getAttribute('lat'));
+            var lon = parseFloat(pts[j].getAttribute('lon'));
+            if (isNaN(lat) || isNaN(lon)) continue;
+            var ll = L.latLng(lat, lon);
+            latlngs.push(ll);
+            bounds.extend(ll);
+        }
+        if (latlngs.length > 0) {
+            L.polyline(latlngs, {
+                color: '#ff3333', weight: 3
+            }).addTo(map);
+            hasData = true;
+        }
+    }
+
+    if (hasData && bounds.isValid()) {
+        map.fitBounds(bounds, {padding: [20, 20]});
+    } else {
+        map.setView([0, 0], 2);
+    }
+
+    return {
+        waypoints: wpts.length,
+        tracks: trks.length,
+        routes: rtes.length
+    };
+}
+
+// Geolocation object click handler
+$(document).on("click", ".geolocation-map-icon", function() {
+    var lat = parseFloat($(this).data('lat'));
+    var lon = parseFloat($(this).data('lon'));
+    if (isNaN(lat) || isNaN(lon)) return;
+    var tileUrl = $(this).data('tile-url');
+    openMapPopover('Geolocation', tileUrl, function(map) {
+        map.setView([lat, lon], 14);
+        L.marker([lat, lon]).addTo(map);
+        $('#geolocation-map-info').text(
+            lat.toFixed(6) + ', ' + lon.toFixed(6)
+        );
+    });
+});
+
+// GPX object click handler
+$(document).on("click", ".gpx-map-icon", function() {
+    var attachmentId = $(this).data('attachment-id');
+    var tileUrl = $(this).data('tile-url');
+    if (!attachmentId) return;
+    openMapPopover('GPX Track', tileUrl, function(map) {
+        map.setView([0, 0], 2);
+        $('#geolocation-map-info').text('Loading GPX data...');
+        $.ajax({
+            url: baseurl + '/attributes/download/' + attachmentId,
+            dataType: 'text',
+            success: function(data) {
+                var stats = parseGpxToLayers(data, map);
+                var info = [];
+                if (stats.tracks > 0) {
+                    info.push(stats.tracks + ' track(s)');
+                }
+                if (stats.routes > 0) {
+                    info.push(stats.routes + ' route(s)');
+                }
+                if (stats.waypoints > 0) {
+                    info.push(stats.waypoints + ' waypoint(s)');
+                }
+                $('#geolocation-map-info').text(
+                    info.length > 0 ? info.join(', ') :
+                    'No geographic data found'
+                );
+                setTimeout(function() {
+                    map.invalidateSize();
+                }, 200);
+            },
+            error: function() {
+                $('#geolocation-map-info').text(
+                    'Failed to load GPX attachment.'
+                );
+            }
+        });
+    });
 });

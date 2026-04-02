@@ -108,28 +108,46 @@ $objectId = intval($object['id']);
         <span style="white-space: nowrap;">
           <?php echo h($object['name']);?>
           <?php
-            if ($object['name'] === 'geolocation' && Configure::read('Plugin.Geolocation_enabled')) {
-                $geoLat = $geoLon = null;
-                foreach ($object['Attribute'] as $geoAttr) {
-                    if ($geoAttr['object_relation'] === 'latitude') {
-                        $geoLat = $geoAttr['value'];
-                    }
-                    if ($geoAttr['object_relation'] === 'longitude') {
-                        $geoLon = $geoAttr['value'];
-                    }
+            if (Configure::read('Plugin.Geolocation_enabled')) {
+                $geoUrl = Configure::read('Plugin.Geolocation_url');
+                if (empty($geoUrl)) {
+                    $geoUrl = 'https://geo.circl.lu';
                 }
-                if ($geoLat !== null && $geoLon !== null) {
-                    $geoUrl = Configure::read('Plugin.Geolocation_url');
-                    if (empty($geoUrl)) {
-                        $geoUrl = 'https://geo.circl.lu';
+                if ($object['name'] === 'geolocation') {
+                    $geoLat = $geoLon = null;
+                    foreach ($object['Attribute'] as $geoAttr) {
+                        if ($geoAttr['object_relation'] === 'latitude') {
+                            $geoLat = $geoAttr['value'];
+                        }
+                        if ($geoAttr['object_relation'] === 'longitude') {
+                            $geoLon = $geoAttr['value'];
+                        }
                     }
-                    echo sprintf(
-                        '<span class="fa fa-map-marker useCursorPointer geolocation-map-icon" data-lat="%s" data-lon="%s" data-tile-url="%s" title="%s" role="button" tabindex="0" style="margin-left: 3px;"></span>',
-                        h($geoLat),
-                        h($geoLon),
-                        h($geoUrl),
-                        __('Show on map')
-                    );
+                    if ($geoLat !== null && $geoLon !== null) {
+                        echo sprintf(
+                            '<span class="fa fa-map-marker useCursorPointer geolocation-map-icon" data-lat="%s" data-lon="%s" data-tile-url="%s" title="%s" role="button" tabindex="0" style="margin-left: 3px;"></span>',
+                            h($geoLat),
+                            h($geoLon),
+                            h($geoUrl),
+                            __('Show on map')
+                        );
+                    }
+                } else if ($object['name'] === 'gpx') {
+                    $gpxAttachmentId = null;
+                    foreach ($object['Attribute'] as $geoAttr) {
+                        if ($geoAttr['object_relation'] === 'attachment') {
+                            $gpxAttachmentId = $geoAttr['id'];
+                            break;
+                        }
+                    }
+                    if ($gpxAttachmentId !== null) {
+                        echo sprintf(
+                            '<span class="fa fa-map-marker useCursorPointer gpx-map-icon" data-attachment-id="%s" data-tile-url="%s" title="%s" role="button" tabindex="0" style="margin-left: 3px;"></span>',
+                            h($gpxAttachmentId),
+                            h($geoUrl),
+                            __('Show GPX on map')
+                        );
+                    }
                 }
             }
           ?>
