@@ -6251,7 +6251,7 @@ $(document).on("click", ".geolocation-map-icon", function() {
         L.marker([lat, lon]).addTo(map);
         var info = lat.toFixed(6) + ', ' + lon.toFixed(6);
         if (!isNaN(radiusKm) && radiusKm > 0) {
-            L.circle([lat, lon], {
+            var circle = L.circle([lat, lon], {
                 radius: radiusKm * 1000,
                 color: '#3388ff',
                 fillColor: '#3388ff',
@@ -6263,6 +6263,35 @@ $(document).on("click", ".geolocation-map-icon", function() {
                 {padding: [20, 20]}
             );
             info += ' (radius: ' + radiusKm + ' km)';
+            var RadiusToggle = L.Control.extend({
+                options: {position: 'topleft'},
+                onAdd: function() {
+                    var container = L.DomUtil.create('div',
+                        'leaflet-bar leaflet-control');
+                    var btn = L.DomUtil.create('a', '', container);
+                    btn.href = '#';
+                    btn.title = 'Toggle radius';
+                    btn.innerHTML = '&#9702;';
+                    btn.style.fontSize = '22px';
+                    btn.style.lineHeight = '26px';
+                    btn.style.textAlign = 'center';
+                    btn.style.width = '26px';
+                    btn.style.height = '26px';
+                    L.DomEvent.disableClickPropagation(container);
+                    L.DomEvent.on(btn, 'click', function(e) {
+                        L.DomEvent.preventDefault(e);
+                        if (map.hasLayer(circle)) {
+                            map.removeLayer(circle);
+                            btn.style.opacity = '0.5';
+                        } else {
+                            map.addLayer(circle);
+                            btn.style.opacity = '1';
+                        }
+                    });
+                    return container;
+                }
+            });
+            map.addControl(new RadiusToggle());
         }
         $('#geolocation-map-info').text(info);
     });
