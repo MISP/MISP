@@ -114,7 +114,7 @@ $objectId = intval($object['id']);
                     $geoUrl = 'https://geo.circl.lu';
                 }
                 if ($object['name'] === 'geolocation') {
-                    $geoLat = $geoLon = null;
+                    $geoLat = $geoLon = $geoRadius = null;
                     foreach ($object['Attribute'] as $geoAttr) {
                         if ($geoAttr['object_relation'] === 'latitude') {
                             $geoLat = $geoAttr['value'];
@@ -122,13 +122,23 @@ $objectId = intval($object['id']);
                         if ($geoAttr['object_relation'] === 'longitude') {
                             $geoLon = $geoAttr['value'];
                         }
+                        if ($geoAttr['object_relation'] === 'accuracy-radius') {
+                            $geoRadius = $geoAttr['value'];
+                        }
                     }
                     if ($geoLat !== null && $geoLon !== null) {
-                        echo sprintf(
-                            '<span class="fa fa-map-marker useCursorPointer geolocation-map-icon" data-lat="%s" data-lon="%s" data-tile-url="%s" title="%s" role="button" tabindex="0" style="margin-left: 3px;"></span>',
+                        $dataAttrs = sprintf(
+                            'data-lat="%s" data-lon="%s" data-tile-url="%s"',
                             h($geoLat),
                             h($geoLon),
-                            h($geoUrl),
+                            h($geoUrl)
+                        );
+                        if ($geoRadius !== null) {
+                            $dataAttrs .= sprintf(' data-radius="%s"', h($geoRadius));
+                        }
+                        echo sprintf(
+                            '<span class="fa fa-map-marker useCursorPointer geolocation-map-icon" %s title="%s" role="button" tabindex="0" style="margin-left: 3px;"></span>',
+                            $dataAttrs,
                             __('Show on map')
                         );
                     }

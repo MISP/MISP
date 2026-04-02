@@ -6245,12 +6245,26 @@ $(document).on("click", ".geolocation-map-icon", function() {
     var lon = parseFloat($(this).data('lon'));
     if (isNaN(lat) || isNaN(lon)) return;
     var tileUrl = $(this).data('tile-url');
+    var radiusKm = parseFloat($(this).data('radius'));
     openMapPopover('Geolocation', tileUrl, function(map) {
         map.setView([lat, lon], 14);
         L.marker([lat, lon]).addTo(map);
-        $('#geolocation-map-info').text(
-            lat.toFixed(6) + ', ' + lon.toFixed(6)
-        );
+        var info = lat.toFixed(6) + ', ' + lon.toFixed(6);
+        if (!isNaN(radiusKm) && radiusKm > 0) {
+            L.circle([lat, lon], {
+                radius: radiusKm * 1000,
+                color: '#3388ff',
+                fillColor: '#3388ff',
+                fillOpacity: 0.15,
+                weight: 2
+            }).addTo(map);
+            map.fitBounds(
+                L.latLng(lat, lon).toBounds(radiusKm * 2000),
+                {padding: [20, 20]}
+            );
+            info += ' (radius: ' + radiusKm + ' km)';
+        }
+        $('#geolocation-map-info').text(info);
     });
 });
 
