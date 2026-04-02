@@ -428,4 +428,107 @@ class CRUDComponent extends Component
         }
         return $massagedFilters;
     }
+
+    public function deleteSelection($id = null, array $options = [])
+    {
+        $this->prepareResponse();
+        $modelName = $options['modelName'] ?? $this->Controller->modelClass;
+        $restName = $options['restName'] ?? $modelName . 's';
+        $itemName = $options['itemName'] ?? strtolower($modelName);
+        $viewPath = $options['view'] ?? 'ajax/' . strtolower($modelName) . 'DeleteConfirmationForm';
+
+        $Model = $this->Controller->{$modelName};
+
+        if ($this->Controller->request->is(['post', 'put', 'delete'])) {
+            if (isset($this->Controller->request->data['id'])) {
+                $this->Controller->request->data[$modelName] = $this->Controller->request->data;
+            }
+            if (!isset($id) && isset($this->Controller->request->data[$modelName]['id'])) {
+                $idList = $this->Controller->request->data[$modelName]['id'];
+                if (!is_array($idList)) {
+                    if (is_numeric($idList) || Validation::uuid($idList)) {
+                        $idList = [$idList];
+                    } else {
+                        $idList = json_decode($idList, true);
+                    }
+                }
+                if (empty($idList)) {
+                    throw new NotFoundException(__('Invalid input.'));
+                }
+            } else {
+                $idList = [$id];
+            }
+            $successes = [];
+            $fails = [];
+            foreach ($idList as $cid) {
+                $item = $Model->find('first', [
+                    'conditions' => Validation::uuid($cid)
+                        ? [$modelName . '.uuid' => $cid]
+                        : [$modelName . '.id' => $cid],
+                    'recursive' => -1,
+                ]);
+                if (empty($item)) {
+                    $fails[] = $cid;
+                    continue;
+                }
+
+                $itemId = $item[$modelName]['id'];
+                $canModify = true;
+                if (isset($options['checkModifyCallback']) && is_callable($options['checkModifyCallback'])) {
+                    $canModify = call_user_func($options['checkModifyCallback'], $itemId, $item);
+                }
+
+                if (!$canModify) {
+                    $fails[] = $cid;
+                    continue;
+                }
+                if ($Model->delete($itemId)) {
+                    $successes[] = $cid;
+                } else {
+                    $fails[] = $cid;
+                }
+            }
+            if (count($idList) === 1) {
+                $message = empty($successes)
+                    ? __('%s was not deleted.', ucfirst($itemName))
+                    : __('%s deleted.', ucfirst($itemName));
+            } else {
+                $message = '';
+                if (!empty($successes)) {
+                    if (isset($options['multiSuccessMessageCallback']) && is_callable($options['multiSuccessMessageCallback'])) {
+                        $message .= call_user_func($options['multiSuccessMessageCallback'], count($successes));
+                    } else {
+                        $message .= count($successes) . ' ' . $itemName . '(s) deleted.';
+                    }
+                }
+                if (!empty($fails)) {
+                    $message .= ' ' . count($fails) . ' ' . $itemName . '(s) could not be deleted due to insufficient privileges or not found.';
+                }
+            }
+            if (isset($this->Controller->IndexFilter) && $this->Controller->IndexFilter->isRest()) {
+                if (!empty($successes)) {
+                    return $this->Controller->RestResponse->saveSuccessResponse(
+                        $restName, 'delete', $id, $this->Controller->response->type(), $message
+                    );
+                } else {
+                    return $this->Controller->RestResponse->saveFailResponse(
+                        $restName, 'delete', false, $message, $this->Controller->response->type()
+                    );
+                }
+            }
+            if (!empty($successes)) {
+                $this->Controller->Flash->success(trim($message));
+            } else {
+                $this->Controller->Flash->error(trim($message));
+            }
+            return $this->Controller->redirect(['action' => 'index']);
+        } else {
+            $itemList = is_numeric($id) ? [$id] : json_decode($id, true);
+            $this->Controller->request->data[$modelName]['id'] = json_encode($itemList);
+            $this->Controller->set('idArray', $itemList);
+            $this->Controller->layout = false;
+            return $this->Controller->render($viewPath);
+        }
+    }
+
 }

@@ -63,105 +63,20 @@ class CollectionElementsController extends AppController
         }
     }
 
-    public function delete2($id = null)
+    public function deleteSelection($id = null)
     {
-        if ($this->request->is(['post', 'put', 'delete'])) {
-            if (isset($this->request->data['id'])) {
-                $this->request->data['CollectionElement'] = $this->request->data;
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'CollectionElement',
+            'restName' => 'CollectionElements',
+            'itemName' => 'element',
+            'view' => 'ajax/collectionElementsDeleteConfirmationForm',
+            'checkModifyCallback' => function($itemId) {
+                return $this->CollectionElement->Collection->mayModify($this->Auth->user('id'), $itemId);
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s element deleted.', '%s elements deleted.', $count, $count);
             }
-            if (!isset($id) && isset($this->request->data['CollectionElement']['id'])) {
-                $idList = $this->request->data['CollectionElement']['id'];
-
-                if (!is_array($idList)) {
-                    if (is_numeric($idList) || Validation::uuid($idList)) {
-                        $idList = array($idList);
-                    } else {
-                        $idList = $this->_jsonDecode($idList);
-                    }
-                }
-
-                if (empty($idList)) {
-                    throw new NotFoundException(__('Invalid input.'));
-                }
-            } else {
-                $idList = array($id);
-            }
-
-            $successes = [];
-            $fails = [];
-            foreach ($idList as $cid) {
-                $element = $this->CollectionElement->find('first', [
-                    'conditions' => Validation::uuid($cid)
-                        ? ['CollectionElement.uuid' => $cid]
-                        : ['CollectionElement.id' => $cid],
-                    'recursive' => -1,
-                ]);
-                if (empty($element)) {
-                    $fails[] = $cid;
-                    continue;
-                }
-                $elementId = $element['CollectionElement']['id'];
-                $collectionId = $element['CollectionElement']['collection_id'];
-                if (!$this->CollectionElement->Collection->mayModify($this->Auth->user('id'), $collectionId)) {
-                    $fails[] = $cid;
-                    continue;
-                }
-                if ($this->CollectionElement->delete($elementId)) {
-                    $successes[] = $cid;
-                } else {
-                    $fails[] = $cid;
-                }
-            }
-            if (count($idList) === 1) {
-                $message = empty($successes)
-                    ? __('Element was not deleted.')
-                    : __('Element deleted.');
-            } else {
-                $message = '';
-                if (!empty($successes)) {
-                    $message .= __n(
-                        '%s element deleted.',
-                        '%s elements deleted.',
-                        count($successes),
-                        count($successes)
-                    );
-                }
-                if (!empty($fails)) {
-                    $message .= ' ' . count($fails) . ' element(s) could not be deleted due to insufficient privileges or not found.';
-                }
-            }
-            if ($this->_isRest()) {
-                if (!empty($successes)) {
-                    return $this->RestResponse->saveSuccessResponse(
-                        'CollectionElement',
-                        'delete',
-                        $id,
-                        $this->response->type(),
-                        $message
-                    );
-                } else {
-                    return $this->RestResponse->saveFailResponse(
-                        'CollectionElement',
-                        'delete',
-                        false,
-                        $message,
-                        $this->response->type()
-                    );
-                }
-            }
-            if (!empty($successes)) {
-                $this->Flash->success($message);
-            } else {
-                $this->Flash->error($message);
-            }
-            return $this->redirect(array('controller' => 'collections', 'action' => 'view', $collectionId));
-        } else {
-            $elementList = is_numeric($id) ? [$id] : $this->_jsonDecode($id);
-            $this->request->data['CollectionElement']['id'] = json_encode($elementList);
-            $this->set('idArray', $elementList);
-            $this->layout = false;
-            $this->render('ajax/collectionElementsDeleteConfirmationForm');
-        }
+        ]);
     }
 
     public function index($collection_id)

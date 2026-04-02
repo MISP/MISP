@@ -103,7 +103,7 @@ foreach ($cardFields as $column => $field) {
                     <?php if (!empty($sections['title'])): ?>
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <?php foreach ($sections['title'] as $item): ?>
-                                <div><?= $item ?></div>
+                                <?= $item ?>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
@@ -112,7 +112,7 @@ foreach ($cardFields as $column => $field) {
                     <?php if (!empty($sections['tag'])): ?>
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <?php foreach ($sections['tag'] as $item): ?>
-                                <div><?= $item ?></div>
+                                <?= $item ?>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>

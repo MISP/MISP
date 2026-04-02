@@ -9,7 +9,7 @@ $fields = [
                 'type' => 'ajax',
                 'label' => __('Delete'),
                 'icon' => 'trash',
-                'url' => $baseurl . '/collectionElements/delete2/%id%',
+                'url' => $baseurl . '/collectionElements/deleteSelection/%id%',
                 'class' => 'text-danger',
                 'requirement' => 'check_edit_rights'
             ]
@@ -70,7 +70,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     //     'mode'      => 'quickFilter',
                     // ]
                 ],
-                //'delete' => 1 To Enable later (because of current delete2 function)
+                'delete' => '/deleteSelection'
             ],
             'fields' => $fields,
         ]

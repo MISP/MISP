@@ -196,7 +196,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'button' => 'Search',
                         'placeholder' => 'Search by info, ID or UUID',
                         'name'        => 'eventinfo',
-                        'mode'        => 'legacy',
+                        'mode'        => 'event',
                         'id_field'    => 'eventid',
                     ],
                     [
@@ -261,7 +261,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     ]
                 ],
                 'export' => 1,
-                'delete' => 1
+                'delete' => '/delete'
             ],
             'fields' => $fields,
         ]

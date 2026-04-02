@@ -1,7 +1,13 @@
 /*******************************
  * Index Filtering Bar
  *******************************/
-function openModal(url) {
+function openModal(url, size = 'xl') {
+    const modalDialog = document.querySelector('#mainModal .modal-dialog');
+    modalDialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
+    if (size) {
+        modalDialog.classList.add('modal-' + size);
+    }
+
     fetch(url)
         .then(response => response.text())
         .then(html => {
@@ -31,8 +37,18 @@ function multiSelectItems(url) {
     }
     const ids = Array.from(selectedItems.keys());
     const fullUrl = url + '/' + JSON.stringify(ids);
+    openModal(fullUrl, 'sm');
+}
+
+function multiSelectItems2(url) {
+    if (selectedItems.size === 0) {
+        return;
+    }
+    const ids = Array.from(selectedItems.keys());
+    const fullUrl = url + '/' + JSON.stringify(ids);
     openModal(fullUrl);
 }
+
 
 function redirectToExportResult() {
     const returnFormat = document.getElementById('EventReturnFormat')?.value;
@@ -96,6 +112,9 @@ function updateMultiSelectToolbar() {
     const objectButton   = document.getElementById('mass-object-button');
     const relationshipButton = document.getElementById('mass-relationship-button');
     const sightingButton = document.getElementById('mass-sighting-button');
+    const enableButton   = document.getElementById('mass-enable-button');
+    const disableButton  = document.getElementById('mass-disable-button');
+
     const count          = selectedItems.size;
 
     if (count === 0) {
@@ -107,8 +126,13 @@ function updateMultiSelectToolbar() {
     if (selectedCount) selectedCount.textContent = count;
 
     let canDeleteAll = true;
+    let allEnabled = true;
+    let allDisabled = true;
+
     selectedItems.forEach(item => {
         if (!item.canDelete) canDeleteAll = false;
+        if (item.state === '1') allDisabled = false;
+        if (item.state === '0') allEnabled = false;
     });
 
     const isHidden = !canDeleteAll;
@@ -122,6 +146,20 @@ function updateMultiSelectToolbar() {
     objectButton?.classList.toggle('d-none', isHidden);
     relationshipButton?.classList.toggle('d-none', isHidden);
     sightingButton?.classList.toggle('d-none', isHidden);
+
+    // Specific logic for the Enable/Disable buttons
+    if (enableButton && disableButton) {
+        if (allDisabled) {
+            enableButton.classList.remove('d-none');
+            disableButton.classList.add('d-none');
+        } else if (allEnabled) {
+            enableButton.classList.add('d-none');
+            disableButton.classList.remove('d-none');
+        } else {
+            enableButton.classList.remove('d-none');
+            disableButton.classList.remove('d-none');
+        }
+    }
 }
 
 
@@ -143,7 +181,7 @@ function buildFilterUrl() {
     const filterField = document.getElementById('filterField');
     const quickValue = filterField ? filterField.value.trim() : '';
 
-    if (filterBarConfig.mode === 'legacy') {
+    if (filterBarConfig.mode === 'legacy' || filterBarConfig.mode === 'event') {
         delete filters[filterBarConfig.searchField];
         if (filterBarConfig.idField) delete filters[filterBarConfig.idField];
 
@@ -173,7 +211,7 @@ function buildFilterUrl() {
     });
 
     let newUrl = base;
-    if (filterBarConfig.mode === 'legacy') {
+    if (filterBarConfig.mode === 'event') {
         Object.keys(filters).forEach(key => {
             newUrl += '/search' + key + ':' + filters[key];
         });
@@ -218,9 +256,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const checkbox = e.target;
         const id       = checkbox.dataset.itemId;
         const canDelete = checkbox.dataset.canDelete == "1";
+        const state    = checkbox.dataset.state;
 
         if (checkbox.checked) {
-            selectedItems.set(id, { id, canDelete });
+            selectedItems.set(id, { id, canDelete, state });
         } else {
             selectedItems.delete(id);
         }
@@ -356,9 +395,19 @@ function openPopup(id, adjust_layout = true, callback) {
 
 function initTomSelect(container) {
     container.querySelectorAll('.tom-select').forEach(el => {
-        if (!el.tomselect) {
-            new TomSelect(el, {});
+        if (el.tomselect) return;
+
+        const config = {
+            create: false,
+            persist: false,
+            placeholder: el.dataset.placeholder || 'Select options...'
+        };
+
+        if (el.hasAttribute('multiple')) {
+            config.plugins = ['remove_button'];
         }
+
+        new TomSelect(el, config);
     });
 }
 
@@ -381,4 +430,77 @@ function initCollectionForm(container) {
     toggleSharingGroup();
 
     distributionSelect.addEventListener('change', toggleSharingGroup);
+}
+
+
+
+/**
+ * Displays a success or error message
+ * @param {string} success - 'success' or 'error' (used for the element ID)
+ * @param {string} message - The message text
+ * @param {string} fullError - Error details for the popover
+ */
+function showMessage(success, message, fullError) {
+    let duration = 1000 + (message.length * 40);
+    const contentId = `ajax_${success}`;
+    const containerId = `ajax_${success}_container`;
+
+    const contentElem = document.getElementById(contentId);
+    const containerElem = document.getElementById(containerId);
+
+    if (!contentElem || !containerElem) return;
+
+    if (message.indexOf("$flashErrorMessage") >= 0) {
+        const flashMessageLink = `<a href="#" class="bold" data-content="${escapeHtml(fullError)}" data-html="true" onclick="event.preventDefault(); bootstrap.Popover.getOrCreateInstance(this).show();">here</a>`;
+        message = message.replace("$flashErrorMessage", flashMessageLink);
+        duration = 5000;
+    }
+
+    contentElem.innerHTML = message;
+
+    containerElem.style.display = 'block';
+
+    const fadeIn = containerElem.animate([{ opacity: 0 }, { opacity: 1 }], {
+        duration: 600,
+        fill: 'forwards'
+    });
+
+    fadeIn.onfinish = () => {
+        setTimeout(() => {
+            const fadeOut = containerElem.animate([{ opacity: 1 }, { opacity: 0 }], {
+                duration: 600,
+                fill: 'forwards'
+            });
+
+            fadeOut.onfinish = () => {
+                containerElem.style.display = 'none';
+            };
+        }, duration);
+    };
+}
+
+
+function escapeHtml(unsafe) {
+    if (typeof unsafe === "boolean" || typeof unsafe === "number") {
+        return unsafe;
+    }
+    if (!unsafe) return "";
+
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+
+    return unsafe.replace(/[&<>"']/g, (m) => map[m]);
+}
+
+
+
+
+function getCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : '';
 }

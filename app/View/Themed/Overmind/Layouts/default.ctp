@@ -10,8 +10,6 @@
         $bootstrap5Pages = [
             ['controller' => 'users', 'action' => 'login'],
 
-            ['controller' => 'noticelists', 'action' => 'index'],
-
             ['controller' => 'events', 'action' => 'index'],
             ['controller' => 'events', 'action' => 'delete'],
             ['controller' => 'events', 'action' => 'view2'],
@@ -25,6 +23,25 @@
             ['controller' => 'collections', 'action' => 'add'],
             ['controller' => 'collections', 'action' => 'edit'],
             ['controller' => 'CollectionElements', 'action' => 'add'],
+
+            ['controller' => 'warninglists', 'action' => 'index'],
+            ['controller' => 'warninglists', 'action' => 'view'],
+            ['controller' => 'warninglists', 'action' => 'add'],
+            ['controller' => 'warninglists', 'action' => 'edit'],
+
+            ['controller' => 'noticelists', 'action' => 'index'],
+            ['controller' => 'noticelists', 'action' => 'view'],
+
+            ['controller' => 'regexp', 'action' => 'admin_index'],
+            ['controller' => 'regexp', 'action' => 'index'],
+            ['controller' => 'regexp', 'action' => 'admin_add'],
+
+            ['controller' => 'allowedlists', 'action' => 'admin_index'],
+            ['controller' => 'allowedlists', 'action' => 'index'],
+            ['controller' => 'allowedlists', 'action' => 'admin_add'],
+
+            ['controller' => 'correlation_exclusions', 'action' => 'index'],
+            ['controller' => 'correlation_exclusions', 'action' => 'add'],
         ];
 
         $currentController = $this->params['controller'];
@@ -215,13 +232,12 @@
     <div id="confirmation_box"></div>
     <div id="gray_out"></div>
     <div class="modal fade" id="mainModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered justify-content-center modal-xl">
-            <div class="modal-content border-0 w-auto">
-                <!-- Supprime complètement le padding ici -->
+        <div class="modal-dialog modal-dialog-centered" id="dynamicModalDialog">
+            <div class="modal-content border-0" style="margin: auto;">
                 <div class="modal-body p-0 m-0" id="mainModalBody">
                 </div>
-            </div>
         </div>
+    </div>
     </div>
     <div id="mainToastContainer" class="main-toast-container"></div>
     <div id="mainModalContainer"></div>
