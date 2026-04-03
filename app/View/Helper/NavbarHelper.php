@@ -38,8 +38,8 @@ class NavbarHelper extends AppHelper {
         $right = $this->filterMenu($right);
 
         // Highlight the menu of the current page
-        $left = $this->markActive($left, $currentController, $currentAction);
-        $right = $this->markActive($right, $currentController, $currentAction);
+        $left = $this->markActive($left, $currentController);
+        $right = $this->markActive($right, $currentController);
 
         return compact('left', 'right');
     }
@@ -1064,7 +1064,7 @@ class NavbarHelper extends AppHelper {
     /**
     * Recursively mark active menu items (robust controller/action matching)
     */
-    private function markActive(array $items, $currentController, $currentAction = null)
+    private function markActive(array $items, $currentController)
     {
         foreach ($items as &$item) {
 
@@ -1073,15 +1073,7 @@ class NavbarHelper extends AppHelper {
             // Direct match on controller
             if (!empty($item['controller'])) {
                 if (strtolower($item['controller']) === strtolower($currentController)) {
-
-                    // If action is defined, check it too
-                    if (!empty($item['action']) && $currentAction !== null) {
-                        if (strtolower($item['action']) === strtolower($currentAction)) {
-                            $item['active'] = true;
-                        }
-                    } else {
-                        $item['active'] = true;
-                    }
+                    $item['active'] = true;
                 }
             }
 
@@ -1090,7 +1082,6 @@ class NavbarHelper extends AppHelper {
                 $item['children'] = $this->markActive(
                     $item['children'],
                     $currentController,
-                    $currentAction
                 );
 
                 foreach ($item['children'] as $child) {

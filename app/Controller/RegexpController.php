@@ -20,12 +20,28 @@ class RegexpController extends AppController
     {
         $this->loadModel('MispAttribute');
         $types = array_keys($this->MispAttribute->typeDefinitions);
+
         if ($this->request->is('post')) {
+
+            if ($this->theme === "Overmind") {
+                //Needed to fit the behavior of a list of checkboxes alike in the default theme
+                if (!empty($this->request->data['Regexp']['all']) && $this->request->data['Regexp']['all'] == 1) {
+                    $this->request->data['Regexp']['all'] = 1;
+                }
+                elseif (!empty($this->request->data['Regexp']['selected_types'])) {
+                    $this->request->data['Regexp']['all'] = 0;
+                    $selected = $this->request->data['Regexp']['selected_types'];
+                    foreach ($types as $key => $type) {
+                        $this->request->data['Regexp'][$key] = in_array($key, $selected) ? "1" : "0";
+                    }
+                }
+            }
+
             if ($this->request->data['Regexp']['all'] == 1) {
                 $this->Regexp->create();
                 if ($this->Regexp->save($this->request->data)) {
                     $this->Flash->success(__('The Regexp has been saved.'));
-                    $this->redirect(array('action' => 'index'));
+                    return $this->redirect(array('action' => 'index'));
                 } else {
                     if (!($this->Session->check('Message.flash'))) {
                         $this->Flash->error(__('The Regexp could not be saved. Please, try again.'));
@@ -34,20 +50,25 @@ class RegexpController extends AppController
             } else {
                 $success = false;
                 foreach ($types as $key => $type) {
-                    if ($this->request->data['Regexp'][$key] == 1) {
+                    if (isset($this->request->data['Regexp'][$key]) && $this->request->data['Regexp'][$key] == 1) {
                         $this->Regexp->create();
-                        $this->request->data['Regexp']['type'] = $type;
-                        $this->Regexp->save($this->request->data);
+                        $tempData = $this->request->data;
+                        $tempData['Regexp']['type'] = $type;
+                        $this->Regexp->save($tempData);
                         $success = true;
                     }
                 }
                 if ($success) {
                     $this->Flash->success(__('The Regular expressions have been saved.'));
-                    $this->redirect(array('action' => 'index'));
+                    return $this->redirect(array('action' => 'index'));
                 } else {
-                    $this->Flash->error(__('Could not create the Regex entry as no types were selected. Either check "All" or check the types that you wish the Regex to affect.'));
+                    $this->Flash->error(__('Could not create the Regex entry as no types were selected.'));
                 }
             }
+        }
+
+        if($this->theme === "Overmind"){
+            $this->layout = false;
         }
         $this->set('types', $types);
     }
@@ -69,12 +90,23 @@ class RegexpController extends AppController
             throw new NotFoundException('Invalid Regexp');
         }
         if ($this->request->is('post') || $this->request->is('put')) {
+            if ($this->theme === "Overmind") {
+            if (!empty($this->request->data['Regexp']['all']) && $this->request->data['Regexp']['all'] == 1) {
+                $this->request->data['Regexp']['all'] = 1;
+            } elseif (!empty($this->request->data['Regexp']['selected_types'])) {
+                $this->request->data['Regexp']['all'] = 0;
+                $selected = $this->request->data['Regexp']['selected_types'];
+                foreach ($types as $key => $type) {
+                    $this->request->data['Regexp'][$key] = in_array($key, $selected) ? "1" : "0";
+                }
+            }
+        }
             unset($this->request->data['Regexp']['id']);
             // If 'all' is set, it overrides all other type settings. Create an attribute with the "all" setting and save it. Also, delete the original(s)
             if ($this->request->data['Regexp']['all'] == 1) {
                 $oldArray = $this->Regexp->find_similar($id);
                 $this->Regexp->create();
-                $this->request->data['Regexp']['type'] = 'All';
+                $this->request->data['Regexp']['type'] = 'ALL';
                 if ($this->Regexp->save($this->request->data)) {
                     foreach ($oldArray as $old) {
                         $this->Regexp->delete($old[0]);
@@ -151,12 +183,31 @@ class RegexpController extends AppController
             $this->set('value', $values);
         }
         $this->set('types', $types);
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->render('admin_add');
     }
 
     public function admin_delete($id = null)
     {
         $this->AdminCrud->adminDelete($id);
+    }
+
+    public function admin_deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'Regexp',
+            'restName' => 'Regexps',
+            'itemName' => 'regexp',
+            'view' => 'ajax/regexpDeleteConfirmationForm',
+            'checkModifyCallback' => function() {
+                return $this->userRole['perm_regexp_access'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s regexp deleted.', '%s regexps deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function index()

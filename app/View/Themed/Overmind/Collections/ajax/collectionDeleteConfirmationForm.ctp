@@ -6,7 +6,7 @@ $message = count($idArray) > 1
 echo $this->element('genericElementsBS5/Forms/deleteConfirmationForm', [
     'title' => __('Collection Deletion'),
     'model' => 'Collection',
-    'url' => $baseurl . '/collections/delete2',
+    'url' => $baseurl . '/collections/deleteSelection',
     'message' => $message
 ]);
 ?>

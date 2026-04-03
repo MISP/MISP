@@ -30,14 +30,23 @@
                                 <i class="fas fa-<?= h($action['icon']) ?>"></i>
                                 <?= h($action['label']) ?>
                             </a>
+                        <?php elseif ($action['type'] === 'post'): ?>
+                            <?php
+                                echo $this->Form->postLink(
+                                    '<i class="fas fa-' . h($action['icon']) . '"></i> ' . h($action['label']),
+                                    $action['url'],
+                                    [
+                                        'class' => 'btn btn-outline-light shadow-sm fw-semibold d-flex align-items-center gap-2',
+                                        'escape' => false,
+                                    ]
+                                );
+                            ?>
                         <?php elseif ($action['type'] === 'ajax'): ?>
                             <a class="btn bg-white text-primary border-0 shadow-sm fw-semibold d-flex align-items-center gap-2"
                             href="<?= h($action['url']) ?>"
                             onclick="event.preventDefault(); openModal('<?= h($action['url']) ?>');">
-                                <div>
-                                    <i class="fas fa-<?= h($action['icon']) ?>"></i>
-                                    <?= h($action['label']) ?>
-                                </div>
+                                <i class="fas fa-<?= h($action['icon']) ?>"></i>
+                                <?= h($action['label']) ?>
                             </a>
                         <?php endif; ?>
                     <?php endforeach; ?>

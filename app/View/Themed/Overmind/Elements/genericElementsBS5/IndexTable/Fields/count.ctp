@@ -1,17 +1,21 @@
 <?php
-$value = Hash::get($row, $field['data_path']);
+/*
+ * count.ctp
+ *
+ * Expected:
+ * $data_path => item.count'
+ */
 
-//Temp idea to do a different print depending the value
-$badgeClass = 'bg-secondary';
-if ($value > 0) {
-    $badgeClass = 'bg-primary';
+$count = Hash::extract($row, $field['data_path']);
+
+if (empty($count)) {
+    return;
 }
-if ($value > 10) {
-    $badgeClass = 'bg-success';
-}
+
+echo $this->element(
+    'genericElementsBS5/Badges/count',
+    [
+        'count' => $count[0],
+    ]
+);
 ?>
-
-<span class="badge <?= h($badgeClass) ?> rounded-pill px-3 py-2">
-    <i class="fas fa-layer-group me-1"></i>
-    <?= h($value) ?>
-</span>
