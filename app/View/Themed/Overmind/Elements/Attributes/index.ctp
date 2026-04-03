@@ -267,8 +267,15 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         ]
                     ]
                 ],
-                'delete' => 1,
+                'delete' => '/delete',
                 'mass_edit' => 1,
+                'mass_tag' => 1,
+                'mass_local_tag' => 1,
+                'mass_cluster' => 1,
+                'mass_local_cluster' => 1,
+                'mass_object' => 1,
+                'mass_relationship' =>1,
+                'mass_sighting' =>1,
             ],
             'fields' => $fields,
         ]

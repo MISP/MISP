@@ -2,7 +2,7 @@
 $data = $scaffold_data['data'];
 ?>
 
-<div class="row g-3" style="background: #f8f9fa;">
+<div class="table-scroll row g-3" style="background: #f8f9fa;">
 
 <?php foreach ($data['data'] as $k => $row): ?>
 
@@ -66,7 +66,7 @@ foreach ($cardFields as $column => $field) {
 }
 ?>
 
-<div class="col-12">
+<div class="ps-2 pe-2">
     <div class="card shadow-sm">
 
         <div class="card-body">
@@ -103,7 +103,7 @@ foreach ($cardFields as $column => $field) {
                     <?php if (!empty($sections['title'])): ?>
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <?php foreach ($sections['title'] as $item): ?>
-                                <div><?= $item ?></div>
+                                <?= $item ?>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
@@ -112,7 +112,7 @@ foreach ($cardFields as $column => $field) {
                     <?php if (!empty($sections['tag'])): ?>
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <?php foreach ($sections['tag'] as $item): ?>
-                                <div><?= $item ?></div>
+                                <?= $item ?>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>

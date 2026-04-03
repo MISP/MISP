@@ -14,6 +14,9 @@ class SystemSetting extends AppModel
     // Blocked setting that cannot be saved or fetched from DB. The same as cli_only settings.
     const BLOCKED_SETTINGS = [
         'Security.encryption_key',
+        'Security.salt',
+        'Security.password_policy_length',
+        'Security.password_policy_complexity',
         'Security.disable_local_feed_access',
         'GnuPG.binary',
         'MISP.python_bin',

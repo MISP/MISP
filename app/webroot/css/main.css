@@ -934,7 +934,7 @@ a.black-white:hover {
     background-color:#f4f4f4;
     border-radius: 5px;
     box-shadow: 4px 4px 4px #333;
-    z-index:5;
+    z-index:30;
 }
 
 #confirmation_box legend, .confirmation .legend {
@@ -1049,7 +1049,7 @@ a.black-white:hover {
     position: fixed;
     background-color:#f4f4f4;
     box-shadow: 4px 4px 4px #333;
-    z-index:5;
+    z-index:30;
 }
 
 .modal.modal-lg {
@@ -1091,7 +1091,7 @@ a.black-white:hover {
     background-color:#f4f4f4;
     border-radius: 11px 11px 10px 10px;
     box-shadow: 4px 4px 4px #333;
-    z-index:5;
+    z-index:30;
 }
 
 #screenshot_box {
@@ -1117,7 +1117,7 @@ a.black-white:hover {
 }
 
 .ajax_popover_form legend, .ajax_popover_form .legend {
-    border-radius: 10px 10px 0px 0px;
+    border-radius: 0;
     padding-left:10px;
     margin-bottom:0px;
     width:calc(100% - 10px);
@@ -1128,7 +1128,7 @@ a.black-white:hover {
 }
 
 .ajax_popover_form .legend {
-    border-radius: 10px 10px 0px 0px;
+    border-radius: 0;
     padding-left:10px;
     width:690px;
     background-color:black;
@@ -1315,7 +1315,7 @@ li .generic-picker-item-element-check {
     opacity: 0.75;
     filter: alpha(opacity=75);
     background-color: #000;
-    z-index:4;
+    z-index:20;
 }
 
 .ajax_container {
@@ -3013,17 +3013,20 @@ Query builder
     }
 }
 
-#attributes_div .table {
-    border-collapse: separate;
-}
-
-#attributes_div .table thead {
+.table thead th {
     position: sticky;
     top: 40px;
+    z-index: 10;
     background-color: #f9f9f9;
+    vertical-align: top;
+    border-bottom: none; 
 }
 
-#attributes_div .table thead tr th {
-    vertical-align: top;
+.table thead th::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
     border-bottom: 1px solid black;
 }

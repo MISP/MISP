@@ -22,7 +22,7 @@ class WarninglistsController extends AppController
 
     public function index()
     {
-        $filters = $this->IndexFilter->harvestParameters(['value', 'enabled']);
+        $filters = $this->IndexFilter->harvestParameters(['value', 'category', 'type', 'enabled']);
         if (!empty($filters['value'])) {
             $this->paginate['conditions'] = [
                 'OR' => [
@@ -31,6 +31,12 @@ class WarninglistsController extends AppController
                     'LOWER(Warninglist.type)' => strtolower($filters['value']),
                 ]
             ];
+        }
+        if (isset($filters['category'])) {
+            $this->paginate['conditions'][] = ['Warninglist.category' => $filters['category']];
+        }
+        if (isset($filters['type'])) {
+            $this->paginate['conditions'][] = ['Warninglist.type' => $filters['type']];
         }
         if (isset($filters['enabled'])) {
             $this->paginate['conditions'][] = ['Warninglist.enabled' => $filters['enabled']];
@@ -54,6 +60,18 @@ class WarninglistsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData(['Warninglists' => $warninglists], $this->response->type());
         }
+
+        $categories = $this->Warninglist->find('list', [
+            'fields' => ['Warninglist.category', 'Warninglist.category'],
+            'order' => ['Warninglist.category' => 'ASC']
+        ]);
+        $this->set('categoryOptions', ['' => ''] + $categories);
+
+        $types = $this->Warninglist->find('list', [
+            'fields' => ['Warninglist.type', 'Warninglist.type'],
+            'order' => ['Warninglist.type' => 'ASC']
+        ]);
+        $this->set('typeOptions', ['' => ''] + $types);
 
         $this->set('warninglists', $warninglists);
         $this->set('passedArgsArray', $filters);
@@ -188,6 +206,9 @@ class WarninglistsController extends AppController
         if ($this->restResponsePayload) {
             return $this->restResponsePayload;
         }
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
     }
 
     public function edit($id = null)
@@ -217,7 +238,6 @@ class WarninglistsController extends AppController
                         $entries = $this->Warninglist->parseArray($warninglist['Warninglist']['entries']);
                     } else {
                         $entries = $this->Warninglist->parseFreetext($warninglist['Warninglist']['entries']);
-                        
                     }
                     unset($warninglist['Warninglist']['entries']);
                     $warninglist['WarninglistEntry'] = $entries;
@@ -255,7 +275,9 @@ class WarninglistsController extends AppController
             $attributes = array_column($this->request->data['WarninglistType'], 'type');
             $this->request->data['Warninglist']['matching_attributes'] = $attributes;
         }
-
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -268,30 +290,33 @@ class WarninglistsController extends AppController
      * Alternatively search by a substring in the warninglist's named, such as:
      *   {"name": ["%alexa%", "%iana%"], "enabled": 1}
      */
-    public function toggleEnable()
+    public function toggleEnable($passedId = null) 
     {
         if (!$this->request->is('post')) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('This function only accepts POST requests.'))), 'status' => 200, 'type' => 'json'));
         }
-        if (isset($this->request->data['Warninglist']['data'])) {
-            $id = $this->request->data['Warninglist']['data'];
-        } else {
-            if (!empty($this->request->data['id'])) {
-                $id = $this->request->data['id'];
-            } elseif (!empty($this->request->data['name'])) {
-                if (!is_array($this->request->data['name'])) {
-                    $names = array($this->request->data['name']);
-                } else {
-                    $names = $this->request->data['name'];
+        $id = $passedId;
+        if (empty($id)) {
+            if (isset($this->request->data['Warninglist']['data'])) {
+                $id = $this->request->data['Warninglist']['data'];
+            } else {
+                if (!empty($this->request->data['id'])) {
+                    $id = $this->request->data['id'];
+                } elseif (!empty($this->request->data['name'])) {
+                    if (!is_array($this->request->data['name'])) {
+                        $names = array($this->request->data['name']);
+                    } else {
+                        $names = $this->request->data['name'];
+                    }
+                    $conditions = array();
+                    foreach ($names as $name) {
+                        $conditions['OR'][] = array('LOWER(Warninglist.name) LIKE' => strtolower($name));
+                    }
+                    $id = $this->Warninglist->find('column', array(
+                        'conditions' => $conditions,
+                        'fields' => array('Warninglist.id')
+                    ));
                 }
-                $conditions = array();
-                foreach ($names as $name) {
-                    $conditions['OR'][] = array('LOWER(Warninglist.name) LIKE' => strtolower($name));
-                }
-                $id = $this->Warninglist->find('column', array(
-                    'conditions' => $conditions,
-                    'fields' => array('Warninglist.id')
-                ));
             }
         }
         if (isset($this->request->data['enabled'])) {
@@ -327,10 +352,19 @@ class WarninglistsController extends AppController
             $this->Warninglist->regenerateWarninglistCaches($warningList['Warninglist']['id']);
         }
         if ($success) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $success . __(' warninglist(s) ') . $message)), 'status' => 200, 'type' => 'json')); // TODO: non-SVO lang considerations
-        } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => __('Warninglist(s) could not be toggled.'))), 'status' => 200, 'type' => 'json'));
+            $msg = $success . __(' warninglist(s) ') . $message;
+            if ($this->request->is('ajax') || $this->request->is('json')) {
+                return new CakeResponse(['body' => json_encode(['saved' => true, 'success' => $msg]),'status' => 200,'type' => 'json']);
+            }
+            $this->Flash->success($msg);
+            return $this->redirect($this->referer() ?: ['action' => 'index']);
         }
+        $errorMsg = __('Warninglist(s) could not be toggled.');
+        if ($this->request->is('ajax') || $this->request->is('json')) {
+            return new CakeResponse(['body' => json_encode(['saved' => false, 'success' => $errorMsg]),'status' => 200,'type' => 'json']);
+        }
+        $this->Flash->error($errorMsg);
+        return $this->redirect($this->referer());
     }
 
     public function enableWarninglist($id, $enable = false)
@@ -339,7 +373,6 @@ class WarninglistsController extends AppController
         if (!$this->Warninglist->exists()) {
             throw new NotFoundException(__('Invalid Warninglist.'));
         }
-        // DBMS interoperability: convert boolean false to integer 0 so cakephp doesn't try to insert an empty string into the database
         if ($enable === false) {
             $enable = 0;
         }
@@ -450,17 +483,6 @@ class WarninglistsController extends AppController
         return $this->RestResponse->viewData($output, 'json');
     }
 
-    public function delete($id)
-    {
-        $this->CRUD->delete($id, [
-            'modelFunction' => 'quickDelete',
-            'redirect' => ['controller' => 'warninglists', 'action' => 'index']
-        ]);
-        if ($this->IndexFilter->isRest()) {
-            return $this->restResponsePayload;
-        }
-    }
-
     public function checkValue()
     {
         if ($this->request->is('post')) {
@@ -504,5 +526,91 @@ class WarninglistsController extends AppController
                 return $this->RestResponse->describe('Warninglists', 'checkValue', false, $this->response->type());
             }
         }
+    }
+
+    public function delete($id)
+    {
+        $this->CRUD->delete($id, [
+            'modelFunction' => 'quickDelete',
+            'redirect' => ['controller' => 'warninglists', 'action' => 'index']
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'Warninglist',
+            'restName' => 'Warninglists',
+            'itemName' => 'warninglist',
+            'view' => 'ajax/warninglistDeleteConfirmationForm',
+            'checkModifyCallback' => function() {
+                return $this->userRole['perm_site_admin'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s warninglist deleted.', '%s warninglists deleted.', $count, $count);
+            }
+        ]);
+    }
+
+    public function massEnable($idList = null)
+    {
+        return $this->_massToggleState($idList, 1);
+    }
+
+    public function massDisable($idList = null)
+    {
+        return $this->_massToggleState($idList, 0);
+    }
+
+    private function _massToggleState($idList = null, $state = 1)
+    {
+        $cleanIdList = htmlspecialchars_decode(urldecode($idList));
+        $ids = json_decode($cleanIdList, true);
+
+        if (empty($ids) || !is_array($ids)) {
+            $message = __('Invalid IDs provided.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('Warninglists', 'massToggle', false, $message, $this->response->type());
+            }
+            return new CakeResponse(['body' => json_encode(['saved' => false, 'errors' => $message]), 'status' => 200, 'type' => 'json']);
+        }
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $successCount = 0;
+
+            foreach ($ids as $id) {
+                $this->Warninglist->id = $id;
+                if ($this->Warninglist->exists()) {
+                    if ($this->Warninglist->saveField('enabled', $state)) {
+                        // Empty cache
+                        $this->Warninglist->regenerateWarninglistCaches($id);
+                        $successCount++;
+                    }
+                }
+            }
+
+            $actionText = $state ? __('enabled') : __('disabled');
+            $message = __('%s Warninglists successfully %s.', $successCount, $actionText);
+
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Warninglists', 'massToggle', false, $this->response->type(), $message);
+            }
+            if ($this->request->is('ajax')) {
+                return new CakeResponse(['body' => json_encode(['saved' => true, 'success' => $message]), 'status' => 200, 'type' => 'json']);
+            }
+
+            $this->Flash->success($message);
+            return $this->redirect($this->referer(['action' => 'index']));
+        }
+
+        $this->layout = false;
+        $this->set('actionText', $state ? __('enable') : __('disable'));
+        $this->set('idArray', $ids);
+        $this->set('state', $state);
+        $this->set('url', '/warninglists/' . ($state ? 'massEnable' : 'massDisable') . '/' . urlencode($cleanIdList));
+        $this->render('ajax/warninglistToggleConfirmationForm');
     }
 }

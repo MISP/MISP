@@ -17,7 +17,7 @@ $value = !empty($timestamp)
 <div class="d-flex align-items-center gap-1">
 
     <div class="text-muted small">
-        <?= $label ?>
+        <?= h($label) ?>
     </div>
 
     <div class="fw-semibold text-dark">

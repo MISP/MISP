@@ -10,16 +10,38 @@
         $bootstrap5Pages = [
             ['controller' => 'users', 'action' => 'login'],
 
-            ['controller' => 'noticelists', 'action' => 'index'],
-
             ['controller' => 'events', 'action' => 'index'],
             ['controller' => 'events', 'action' => 'delete'],
             ['controller' => 'events', 'action' => 'view2'],
             ['controller' => 'events', 'action' => 'importChoice'],
 
-
             ['controller' => 'attributes', 'action' => 'index'],
             ['controller' => 'attributes', 'action' => 'delete'],
+
+            ['controller' => 'collections', 'action' => 'index'],
+            ['controller' => 'collections', 'action' => 'view'],
+            ['controller' => 'collections', 'action' => 'add'],
+            ['controller' => 'collections', 'action' => 'edit'],
+            ['controller' => 'CollectionElements', 'action' => 'add'],
+
+            ['controller' => 'warninglists', 'action' => 'index'],
+            ['controller' => 'warninglists', 'action' => 'view'],
+            ['controller' => 'warninglists', 'action' => 'add'],
+            ['controller' => 'warninglists', 'action' => 'edit'],
+
+            ['controller' => 'noticelists', 'action' => 'index'],
+            ['controller' => 'noticelists', 'action' => 'view'],
+
+            ['controller' => 'regexp', 'action' => 'admin_index'],
+            ['controller' => 'regexp', 'action' => 'index'],
+            ['controller' => 'regexp', 'action' => 'admin_add'],
+
+            ['controller' => 'allowedlists', 'action' => 'admin_index'],
+            ['controller' => 'allowedlists', 'action' => 'index'],
+            ['controller' => 'allowedlists', 'action' => 'admin_add'],
+
+            ['controller' => 'correlation_exclusions', 'action' => 'index'],
+            ['controller' => 'correlation_exclusions', 'action' => 'add'],
         ];
 
         $currentController = $this->params['controller'];
@@ -171,10 +193,11 @@
             </div>
             <div>
                 <?php
-                if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login') && !empty($title_for_layout)) {
+                if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login')) {
                     echo $this->element('headerSection', [
-                        'pageTitle' => $title_for_layout,
-                        'headerActions' => $headerActions ?? []
+                        'currentController' => $currentController,
+                        'currentAction' => $currentAction,
+                        'headerActions' => $headerActions ?? [],
                     ]);
                 }
                 ?>
@@ -209,13 +232,12 @@
     <div id="confirmation_box"></div>
     <div id="gray_out"></div>
     <div class="modal fade" id="mainModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered justify-content-center">
-            <div class="modal-content border-0 w-auto">
-                <!-- Supprime complètement le padding ici -->
+        <div class="modal-dialog modal-dialog-centered" id="dynamicModalDialog">
+            <div class="modal-content border-0" style="margin: auto;">
                 <div class="modal-body p-0 m-0" id="mainModalBody">
                 </div>
-            </div>
         </div>
+    </div>
     </div>
     <div id="mainToastContainer" class="main-toast-container"></div>
     <div id="mainModalContainer"></div>
@@ -320,7 +342,7 @@
                 setTimeout(() => {
                     flash.classList.add('fade-out');
                     setTimeout(() => flash.remove(), 600);
-                }, 10000);
+                }, 5000);
             }
 
             // Debug management

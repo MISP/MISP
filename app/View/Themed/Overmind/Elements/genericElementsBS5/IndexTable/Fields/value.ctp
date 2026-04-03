@@ -8,7 +8,7 @@ if (empty($attribute)) {
 $isCard = isset($viewMode) && $viewMode === 'card';
 ?>
 
-<div class="d-flex flex-column">
+<div class="d-flex flex-column gap-1">
     <div class="d-flex align-items-baseline gap-2 mb-0">
         <?php if (!$isCard) {
                 echo $this->element(
@@ -34,7 +34,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
         <div class="card card-link-item" style="background-color: #f8f9fa;">
             <div class="card-body p-1">
                 <i class="fa fa-comment"></i> 
-                <span><?= $attribute['comment'] ?></span>
+                <span><?= h($attribute['comment']) ?></span>
             </div>
         </div>
     <?php endif; ?>
