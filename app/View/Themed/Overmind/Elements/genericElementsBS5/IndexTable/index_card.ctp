@@ -2,7 +2,7 @@
 $data = $scaffold_data['data'];
 ?>
 
-<div class="row g-3" style="background: #f8f9fa;">
+<div class="table-scroll row g-3" style="background: #f8f9fa;">
 
 <?php foreach ($data['data'] as $k => $row): ?>
 
@@ -66,7 +66,7 @@ foreach ($cardFields as $column => $field) {
 }
 ?>
 
-<div class="col-12">
+<div class="ps-2 pe-2">
     <div class="card shadow-sm">
 
         <div class="card-body">
@@ -90,25 +90,34 @@ foreach ($cardFields as $column => $field) {
                         </div>
                     <?php endif; ?>
 
-                    <!-- Line 2 : TITLE -->
+                     <!-- Line 2 : ATTRIBUTE -->
+                    <?php if (!empty($sections['attribute'])): ?>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <?php foreach ($sections['attribute'] as $item): ?>
+                                <div><?= $item ?></div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Line 3 : TITLE -->
                     <?php if (!empty($sections['title'])): ?>
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <?php foreach ($sections['title'] as $item): ?>
-                                <div><?= $item ?></div>
+                                <?= $item ?>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
 
-                    <!-- Line 3 : TAG -->
+                    <!-- Line 4 : TAG -->
                     <?php if (!empty($sections['tag'])): ?>
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <?php foreach ($sections['tag'] as $item): ?>
-                                <div><?= $item ?></div>
+                                <?= $item ?>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
 
-                    <!-- Line 4 : GALAXY -->
+                    <!-- Line 5 : GALAXY -->
                     <?php if (!empty($sections['galaxy'])): ?>
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <?php foreach ($sections['galaxy'] as $item): ?>
@@ -117,7 +126,7 @@ foreach ($cardFields as $column => $field) {
                         </div>
                     <?php endif; ?>
 
-                    <!-- Line 5 : LINKS -->
+                    <!-- Line 6 : LINKS -->
                     <?php if (!empty($sections['links'])): ?>
                         <div class="">
                             <?= implode('', $sections['links']) ?>

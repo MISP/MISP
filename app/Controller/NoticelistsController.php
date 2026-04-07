@@ -33,7 +33,9 @@ class NoticelistsController extends AppController
 
     public function update()
     {
-        //if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is only accessible via POST requests.');
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException('This action is only accessible via POST requests.');
+        }
         $result = $this->Noticelist->update();
         $this->Log = ClassRegistry::init('Log');
         $fails = 0;
@@ -225,5 +227,64 @@ class NoticelistsController extends AppController
             $this->set('data', $noticelistEntries);
             $this->set('noticelist', $noticelist);
         }
+    }
+
+    public function massEnable($idList = null)
+    {
+        return $this->_massToggleState($idList, 1);
+    }
+
+    public function massDisable($idList = null)
+    {
+        return $this->_massToggleState($idList, 0);
+    }
+
+    private function _massToggleState($idList = null, $state = 1)
+    {
+        $cleanIdList = htmlspecialchars_decode(urldecode($idList));
+        $ids = json_decode($cleanIdList, true);
+
+        if (empty($ids) || !is_array($ids)) {
+            $message = __('Invalid IDs provided.');
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('Noticelists', 'massToggle', false, $message, $this->response->type());
+            }
+            return new CakeResponse(['body' => json_encode(['saved' => false, 'errors' => $message]), 'status' => 200, 'type' => 'json']);
+        }
+
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $successCount = 0;
+
+            foreach ($ids as $id) {
+                $this->Noticelist->id = $id;
+                if ($this->Noticelist->exists()) {
+                    if ($this->Noticelist->saveField('enabled', $state)) {
+                        $successCount++;
+                    }
+                }
+            }
+
+            $actionText = $state ? __('enabled') : __('disabled');
+            $message = __('%s Noticelists successfully %s.', $successCount, $actionText);
+
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Noticelists', 'massToggle', false, $this->response->type(), $message);
+            }
+
+            if ($this->request->is('ajax')) {
+                return new CakeResponse(['body' => json_encode(['saved' => true, 'success' => $message]), 'status' => 200, 'type' => 'json']);
+            }
+
+            $this->Flash->success($message);
+            return $this->redirect($this->referer(['action' => 'index']));
+        }
+
+
+        $this->layout = false;
+        $this->set('actionText', $state ? __('enable') : __('disable'));
+        $this->set('idArray', $ids);
+        $this->set('state', $state);
+        $this->set('url', '/noticelists/' . ($state ? 'massEnable' : 'massDisable') . '/' . urlencode($cleanIdList));
+        $this->render('ajax/noticelistToggleConfirmationForm');
     }
 }

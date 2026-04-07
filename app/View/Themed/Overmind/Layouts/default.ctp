@@ -9,9 +9,39 @@
     <?php
         $bootstrap5Pages = [
             ['controller' => 'users', 'action' => 'login'],
-            ['controller' => 'noticelists', 'action' => 'index'],
+
             ['controller' => 'events', 'action' => 'index'],
             ['controller' => 'events', 'action' => 'delete'],
+            ['controller' => 'events', 'action' => 'view2'],
+            ['controller' => 'events', 'action' => 'importChoice'],
+
+            ['controller' => 'attributes', 'action' => 'index'],
+            ['controller' => 'attributes', 'action' => 'delete'],
+
+            ['controller' => 'collections', 'action' => 'index'],
+            ['controller' => 'collections', 'action' => 'view'],
+            ['controller' => 'collections', 'action' => 'add'],
+            ['controller' => 'collections', 'action' => 'edit'],
+            ['controller' => 'CollectionElements', 'action' => 'add'],
+
+            ['controller' => 'warninglists', 'action' => 'index'],
+            ['controller' => 'warninglists', 'action' => 'view'],
+            ['controller' => 'warninglists', 'action' => 'add'],
+            ['controller' => 'warninglists', 'action' => 'edit'],
+
+            ['controller' => 'noticelists', 'action' => 'index'],
+            ['controller' => 'noticelists', 'action' => 'view'],
+
+            ['controller' => 'regexp', 'action' => 'admin_index'],
+            ['controller' => 'regexp', 'action' => 'index'],
+            ['controller' => 'regexp', 'action' => 'admin_add'],
+
+            ['controller' => 'allowedlists', 'action' => 'admin_index'],
+            ['controller' => 'allowedlists', 'action' => 'index'],
+            ['controller' => 'allowedlists', 'action' => 'admin_add'],
+
+            ['controller' => 'correlation_exclusions', 'action' => 'index'],
+            ['controller' => 'correlation_exclusions', 'action' => 'add'],
         ];
 
         $currentController = $this->params['controller'];
@@ -163,10 +193,11 @@
             </div>
             <div>
                 <?php
-                if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login') && !empty($title_for_layout)) {
+                if ($useBootstrap5 && !($currentController === 'users' && $currentAction === 'login')) {
                     echo $this->element('headerSection', [
-                        'pageTitle' => $title_for_layout,
-                        'headerActions' => $headerActions ?? []
+                        'currentController' => $currentController,
+                        'currentAction' => $currentAction,
+                        'headerActions' => $headerActions ?? [],
                     ]);
                 }
                 ?>
@@ -201,13 +232,12 @@
     <div id="confirmation_box"></div>
     <div id="gray_out"></div>
     <div class="modal fade" id="mainModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered justify-content-center">
-            <div class="modal-content border-0 w-auto">
-                <!-- Supprime complètement le padding ici -->
+        <div class="modal-dialog modal-dialog-centered" id="dynamicModalDialog">
+            <div class="modal-content border-0" style="margin: auto;">
                 <div class="modal-body p-0 m-0" id="mainModalBody">
                 </div>
-            </div>
         </div>
+    </div>
     </div>
     <div id="mainToastContainer" class="main-toast-container"></div>
     <div id="mainModalContainer"></div>
@@ -312,7 +342,7 @@
                 setTimeout(() => {
                     flash.classList.add('fade-out');
                     setTimeout(() => flash.remove(), 600);
-                }, 10000);
+                }, 5000);
             }
 
             // Debug management
@@ -342,6 +372,55 @@
                     direction:"asc"
                 }
             });
+        });
+
+        // Load an Ajax container and re-run its scripts
+        function loadAjaxContainer(container) {
+            if (!container || container.dataset.loaded) return;
+
+            const url = container.dataset.url;
+            if (!url) return;
+
+            fetch(url, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.text();
+            })
+            .then(html => {
+                container.innerHTML = html;
+                container.dataset.loaded = '1';
+
+                // Re-execute the <script> tags in the injected fragment
+                container.querySelectorAll('script').forEach(function (oldScript) {
+                    const newScript = document.createElement('script');
+                    if (oldScript.src) {
+                        newScript.src = oldScript.src;
+                    } else {
+                        newScript.textContent = oldScript.textContent;
+                    }
+                    document.head.appendChild(newScript);
+                    document.head.removeChild(newScript);
+                });
+            })
+            .catch(() => {
+                container.innerHTML = '<div class="text-danger">Error loading content</div>';
+            });
+        }
+
+        // Lazy loading on tab click
+        document.addEventListener('shown.bs.tab', function (event) {
+            const target = event.target.getAttribute('data-bs-target') || event.target.getAttribute('href');
+            const tabPane = document.querySelector(target);
+            if (!tabPane) return;
+
+            tabPane.querySelectorAll('.ajax-tab-content').forEach(loadAjaxContainer);
+        });
+
+        // The active tab loads immediately on startup
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.tab-pane.active .ajax-tab-content').forEach(loadAjaxContainer);
         });
     </script>
 </body>

@@ -62,7 +62,6 @@
 
 <script>
     function redirectToExportResult() {
-        // Récupération sécurisée de la liste d'IDs
         var idListStr = '<?php echo json_encode($idList); ?>';
         var returnFormat = $('#EventReturnFormat').val();
         if (returnFormat) {

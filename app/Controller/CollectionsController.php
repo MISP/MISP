@@ -18,10 +18,10 @@ class CollectionsController extends AppController
         'campaign',
         'intrusion_set',
         'named_threat',
-        'other',
-        'research'
+        'research',
+        'other'
     ];
-    
+
     public function add()
     {
         $this->Collection->current_user = $this->Auth->user();
@@ -58,6 +58,9 @@ class CollectionsController extends AppController
         ];
         $this->set('initialDistribution', Configure::read('MISP.default_event_distribution'));
         $this->set(compact('dropdownData'));
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -113,6 +116,9 @@ class CollectionsController extends AppController
             'sgs' => $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1)  
         ];
         $this->set(compact('dropdownData'));
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -125,7 +131,23 @@ class CollectionsController extends AppController
         $this->CRUD->delete($id);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
-        }   
+        }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'Collection',
+            'restName' => 'Collections',
+            'itemName' => 'collection',
+            'view' => 'ajax/collectionDeleteConfirmationForm',
+            'checkModifyCallback' => function($itemId) {
+                return $this->Collection->mayModify($this->Auth->user('id'), $itemId);
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s collection deleted.', '%s collections deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function view($id)
@@ -152,6 +174,21 @@ class CollectionsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        $elements = $this->viewVars['data']['Collection']['CollectionElement'] ?? [];
+        $totalElements = count($elements);
+        $this->request->params['paging']['CollectionElement'] = [
+            'page'      => 1,
+            'current'   => $totalElements,
+            'count'     => $totalElements,
+            'prevPage'  => false,
+            'nextPage'  => false,
+            'pageCount' => 1,
+            'order'     => null,
+            'limit'     => 50,
+            'options'   => [],
+            'paramType' => 'named',
+        ];
+
         $this->set('id', $id);
         $this->loadModel('Event');
         $this->set('distributionLevels', $this->Event->distributionLevels);

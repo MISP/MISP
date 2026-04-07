@@ -2194,6 +2194,7 @@ class EventsController extends AppController
                 'fields' => [
                     'Event.id', 'Event.orgc_id',
                     'Event.org_id', 'Event.uuid',
+                    'Event.user_id',
                     'Event.publish_timestamp',
                     'Event.distribution',
                     'Event.sharing_group_id',
@@ -2260,19 +2261,34 @@ class EventsController extends AppController
         );
 
         $this->set('attributes', $result['Attribute']);
-        $this->set('total', $result['total']);
-        $this->set('page', $result['page']);
-        $this->set('limit', $result['limit']);
-        $this->set('event', $event);
-        $this->set('deleted', false);
-        $this->set(
-            'flatten',
-            !empty($options['flatten'])
-        );
-        $this->set(
-            'searchFor',
-            $options['searchFor'] ?? ''
-        );
+        $page      = $result['page'];
+        $limit     = $result['limit'];
+        $total     = $result['total'];
+        $pageCount = (int) ceil($total / $limit);
+        $current   = count($result['Attribute']);
+
+        // To enable pagination the same way as in AttributesController - index()
+        $this->request->params['paging']['MispAttribute'] = [
+            'page'      => $page,
+            'current'   => $current,
+            'count'     => $total,
+            'prevPage'  => $page > 1,
+            'nextPage'  => $page < $pageCount,
+            'pageCount' => $pageCount,
+            'order'     => null,
+            'limit'     => $limit,
+            'options'   => [],
+            'paramType' => 'named',
+        ];
+
+        $this->set('attributes',         $result['Attribute']);
+        $this->set('total',              $total);
+        $this->set('page',               $page);
+        $this->set('limit',              $limit);
+        $this->set('event',              $event);
+        $this->set('deleted',            false);
+        $this->set('flatten',            !empty($options['flatten']));
+        $this->set('searchFor',          $options['searchFor'] ?? '');
         $this->layout = false;
     }
 

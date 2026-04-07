@@ -17,14 +17,13 @@ echo '<div id="' . $containerId . '_content">';
                 'genericElementsBS5/IndexTable/filter_bar',
                 [
                     'scaffold_data' => $scaffold_data['data'],
-                    'index_url' => $index_url
+                    'item_url' => $item_url
                 ]); ?>
             </div>
         </div>
     <?php endif; ?>
 
     <!-- CARD 2 : DATA -->
-     
     <div class="card shadow-sm mb-4">
         <div class="card-body p-0">
             <div id="tableView">
@@ -59,3 +58,8 @@ echo '<div id="' . $containerId . '_content">';
     <?php endif; ?>
 
 </div>
+
+
+<?php
+echo '</div>';
+?>

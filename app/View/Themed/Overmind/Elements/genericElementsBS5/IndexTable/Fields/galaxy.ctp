@@ -14,14 +14,21 @@ $hiddenCount = max(0, $totalGalaxies - $maxVisible);
 <div class="galaxy-container d-inline-flex flex-wrap align-items-center">
 
 <?php
-foreach ($data as $index => $clusterWrapper) {
-    if (empty($clusterWrapper['Galaxy'])) {
+foreach ($data as $index => $item) {
+    if (!empty($item['Galaxy'])) {
+        $galaxy = $item['Galaxy'];
+        $cluster = $item;
+    }
+    else if (!empty($item['GalaxyCluster'])) {
+        $galaxy = $item;
+        $cluster = $item['GalaxyCluster'][0];
+    }
+    else {
         continue;
     }
 
-    $galaxy = $clusterWrapper['Galaxy'];
-    $name = h($galaxy['name']) . ' : ' . $clusterWrapper['value'];
-    $local = h($clusterWrapper['local']);
+    $name = h($galaxy['name']) . ' : ' . h($cluster['value']);
+    $local = h($cluster['local']);
     $bgColor = 'background-color: #e7f1ff';
     $textColor = '#084298';
     $shadow = 'filter: drop-shadow(-1px 3px 2px rgba(50, 50, 0, 0.5))';

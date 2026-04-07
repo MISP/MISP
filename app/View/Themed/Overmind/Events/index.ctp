@@ -39,7 +39,7 @@ $fields = [
                 'type' => 'link',
                 'label' => __('View'),
                 'icon' => 'eye',
-                'url' => $baseurl . '/events/view/%id%'
+                'url' => $baseurl . '/events/view2/%id%'
             ],
             [
                 'type' => 'link',
@@ -78,7 +78,7 @@ $fields = [
         'sort' => 'Event.id',
         'data_path' => 'Event.id',
         'element' => 'id',
-        'url' => $baseurl . '/events/view/%id%',
+        'url' => $baseurl . '/events/view2/%id%',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
     ],
@@ -163,9 +163,10 @@ $fields = [
 if ($this->Acl->canAccess('events', 'add')) {
     $this->set('headerActions', [
         [
-            'url' => $baseurl . '/events/add',
+            'type' => 'link',
             'label' => __('Add Event'),
-            'icon' => 'plus'
+            'icon' => 'plus',
+            'url' => $baseurl . '/events/add'
         ]
     ]);
 }
@@ -193,7 +194,10 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'button' => 'Search',
-                        'placeholder' => 'Search by info, ID or UUID'
+                        'placeholder' => 'Search by info, ID or UUID',
+                        'name'        => 'eventinfo',
+                        'mode'        => 'event',
+                        'id_field'    => 'eventid',
                     ],
                     [
                         'type' => 'button',
@@ -255,12 +259,14 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                             ]
                         ]
                     ]
-                ]
+                ],
+                'export' => 1,
+                'delete' => '/delete'
             ],
             'fields' => $fields,
         ]
     ],
-    'index_url' => '/events/index'
+    'item_url' => '/events'
 ]);
 
 ?>

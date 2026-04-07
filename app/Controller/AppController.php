@@ -34,7 +34,7 @@ class AppController extends Controller
 
     public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
 
-    private $__queryVersion = '182';
+    private $__queryVersion = '184';
     public $pyMispVersion = '2.5.33.1';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -320,6 +320,8 @@ class AppController extends Controller
 
                     }
                 }
+            } else {
+                $this->set('themes', []);
             }
         }
         $this->set('themeLabels', $themeLabels);
@@ -895,6 +897,13 @@ class AppController extends Controller
         ];
         if (env('HTTPS')) {
             $default['upgrade-insecure-requests'] = null;
+        }
+        if (Configure::read('Plugin.Geolocation_enabled')) {
+            $geoUrl = Configure::read('Plugin.Geolocation_url');
+            if (empty($geoUrl)) {
+                $geoUrl = 'https://geo.circl.lu';
+            }
+            $default['img-src'] .= ' ' . $geoUrl;
         }
         $custom = Configure::read('Security.csp');
         if ($custom === false) {

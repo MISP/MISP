@@ -38,6 +38,9 @@ class CollectionElementsController extends AppController
         ];
         $this->set(compact('dropdownData'));
         $this->set('menuData', array('menuList' => 'collections', 'menuItem' => 'add_element'));
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
     }
 
     public function delete($element_id)
@@ -58,6 +61,22 @@ class CollectionElementsController extends AppController
         if ($this->restResponsePayload) {
             return $this->restResponsePayload;
         }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'CollectionElement',
+            'restName' => 'CollectionElements',
+            'itemName' => 'element',
+            'view' => 'ajax/collectionElementsDeleteConfirmationForm',
+            'checkModifyCallback' => function($itemId) {
+                return $this->CollectionElement->Collection->mayModify($this->Auth->user('id'), $itemId);
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s element deleted.', '%s elements deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function index($collection_id)
