@@ -234,17 +234,17 @@ echo sprintf(
         ),
         __('Review user logins')
     ),
-    $me['Role']['perm_auth'] ? $this->element('/genericElements/accordion', array('title' => __('Auth keys'), 'url' => '/auth_keys/index/' . h($user['User']['id']))) : '',
+    $me['Role']['perm_auth'] ? $this->element('/genericElements/accordion', array('title' => __('Auth keys'), 'url' => $baseurl . '/auth_keys/index/' . h($user['User']['id']))) : '',
     $me['Role']['perm_site_admin'] ?
         $this->element(
             '/genericElements/accordion',
             [
                 'title' => __('Benchmarks'),
-                'url' => '/benchmarks/index/scope:user/average:1/aggregate:1/key:' . h($user['User']['id'])
+                'url' => $baseurl . '/benchmarks/index/scope:user/average:1/aggregate:1/key:' . h($user['User']['id'])
             ]
         ) :
         '',
-    $this->element('/genericElements/accordion', array('title' => 'Events', 'url' => '/events/index/searchemail:' . urlencode(h($user['User']['email']))))
+    $this->element('/genericElements/accordion', array('title' => 'Events', 'url' => $baseurl . '/events/index/searchemail:' . urlencode(h($user['User']['email']))))
 );
 $current_menu = [
     'admin_view' => ['menuList' => 'admin', 'menuItem' => 'viewUser'],
