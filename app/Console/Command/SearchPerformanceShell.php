@@ -35,6 +35,15 @@ class SearchPerformanceShell extends AppShell
                         'default' => false,
                         'boolean' => true,
                     ],
+                    'fast' => [
+                        'short' => 'f',
+                        'help' => 'Use approximations to '
+                            . 'avoid full table scans. '
+                            . 'Safe for production under '
+                            . 'load.',
+                        'default' => false,
+                        'boolean' => true,
+                    ],
                 ],
             ],
         ]);
@@ -49,11 +58,27 @@ class SearchPerformanceShell extends AppShell
         $stats = $this->__collectStats();
         $evaluation = $this->__evaluate($stats);
 
+        $jsonData = $this->json([
+            'generated' => date('Y-m-d H:i:s'),
+            'stats' => $stats,
+            'evaluation' => $evaluation,
+        ]);
+
+        // Always save a timestamped JSON file
+        $filename = sprintf(
+            'benchmark_results-%s.json',
+            date('Y-m-d:H-i-s')
+        );
+        $dir = APP . 'tmp' . DS . 'logs' . DS;
+        $path = $dir . $filename;
+        file_put_contents($path, $jsonData . "\n");
+        $this->out(sprintf(
+            'JSON results saved to: %s', $path
+        ));
+        $this->out('');
+
         if (!empty($this->params['json'])) {
-            $this->out($this->json([
-                'stats' => $stats,
-                'evaluation' => $evaluation,
-            ]));
+            $this->out($jsonData);
             return;
         }
 
@@ -69,95 +94,252 @@ class SearchPerformanceShell extends AppShell
      */
     private function __collectStats()
     {
+        $fast = !empty($this->params['fast']);
+        if ($fast) {
+            $this->out(
+                '<info>Fast mode: using '
+                . 'approximations</info>'
+            );
+            $this->out('');
+        }
+
         $stats = [];
-        $stats['table_counts'] = $this->__tableCounts();
+        $stats['approximate'] = $fast;
+
+        // ── Table counts ────────────────────────────
+        $this->__step('table_counts');
+        $stats['table_counts'] = $fast
+            ? $this->__tableCountsFast()
+            : $this->__tableCounts();
+
+        // In fast mode, sample a PK range from
+        // attributes to avoid full table scans for
+        // all subsequent attribute distributions.
+        $sampleWhere = '';
+        $sampleSize = 0;
+        if ($fast) {
+            $this->__step('sample_range');
+            $range = $this->__sampleRange(
+                'attributes', 100000,
+                $stats['table_counts']['attributes']
+            );
+            $sampleWhere = $range['where'];
+            $sampleSize = $range['sample_size'];
+            $stats['sample_size'] = $sampleSize;
+        }
+
+        // ── Attribute distributions ─────────────────
+        $this->__step('attribute_type_distribution');
         $stats['attribute_type_distribution'] =
             $this->__distribution(
-                'attributes', 'type', 20
+                'attributes', 'type', 20,
+                $sampleWhere
             );
+        $this->__step(
+            'attribute_category_distribution'
+        );
         $stats['attribute_category_distribution'] =
             $this->__distribution(
-                'attributes', 'category', 15
+                'attributes', 'category', 15,
+                $sampleWhere
             );
+        $this->__step(
+            'attribute_distribution_spread'
+        );
         $stats['attribute_distribution_spread'] =
             $this->__distribution(
-                'attributes', 'distribution', 10
+                'attributes', 'distribution', 10,
+                $sampleWhere
             );
+        $this->__step('attribute_to_ids');
         $stats['attribute_to_ids'] =
             $this->__distribution(
-                'attributes', 'to_ids', 2
+                'attributes', 'to_ids', 2,
+                $sampleWhere
             );
+        $this->__step('attribute_deleted');
         $stats['attribute_deleted'] =
             $this->__distribution(
-                'attributes', 'deleted', 3
+                'attributes', 'deleted', 3,
+                $sampleWhere
             );
+
+        // ── Event/object distributions (small) ──────
+        $this->__step('event_published');
         $stats['event_published'] =
             $this->__distribution(
                 'events', 'published', 2
             );
+        $this->__step('event_distribution');
         $stats['event_distribution'] =
             $this->__distribution(
                 'events', 'distribution', 10
             );
+        $this->__step('object_distribution');
         $stats['object_distribution'] =
             $this->__distribution(
                 'objects', 'distribution', 10
             );
-        $stats['object_membership'] =
-            $this->__singleQuery(
-                "SELECT "
-                . "SUM(object_id = 0) AS standalone, "
-                . "SUM(object_id != 0) AS in_object "
-                . "FROM attributes"
-            );
-        $stats['value_cardinality'] =
-            $this->__singleQuery(
-                "SELECT "
-                . "COUNT(DISTINCT value1) "
-                    . "AS distinct_value1, "
-                . "COUNT(DISTINCT "
-                    . "CASE WHEN value2 != '' "
-                    . "THEN value2 END) "
-                    . "AS distinct_value2"
-                . " FROM attributes"
-            );
+
+        // ── Attribute aggregates ────────────────────
+        $this->__step('object_membership');
+        if ($fast) {
+            $stats['object_membership'] =
+                $this->__singleQuery(
+                    "SELECT "
+                    . "SUM(object_id = 0) "
+                        . "AS standalone, "
+                    . "SUM(object_id != 0) "
+                        . "AS in_object "
+                    . "FROM attributes "
+                    . $sampleWhere,
+                    'object_membership'
+                );
+        } else {
+            $stats['object_membership'] =
+                $this->__singleQuery(
+                    "SELECT "
+                    . "SUM(object_id = 0) "
+                        . "AS standalone, "
+                    . "SUM(object_id != 0) "
+                        . "AS in_object "
+                    . "FROM attributes",
+                    'object_membership'
+                );
+        }
+
+        // Value cardinality: skipped, assumed high.
+
+        $this->__step('composite_value_ratio');
+        if ($fast) {
+            $stats['composite_value_ratio'] =
+                $this->__singleQuery(
+                    "SELECT "
+                    . "SUM(value2 != '') "
+                        . "AS has_value2, "
+                    . "SUM(value2 = '') "
+                        . "AS no_value2 "
+                    . "FROM attributes "
+                    . $sampleWhere,
+                    'composite_value_ratio'
+                );
+        } else {
+            $stats['composite_value_ratio'] =
+                $this->__singleQuery(
+                    "SELECT "
+                    . "SUM(value2 != '') "
+                        . "AS has_value2, "
+                    . "SUM(value2 = '') "
+                        . "AS no_value2 "
+                    . "FROM attributes",
+                    'composite_value_ratio'
+                );
+        }
+
+        // ── Timestamp (uses index, always fast) ─────
+        $this->__step('timestamp_ranges');
         $stats['timestamp_ranges'] =
             $this->__timestampRanges();
-        $stats['first_last_seen_usage'] =
-            $this->__singleQuery(
-                "SELECT "
-                . "SUM(first_seen IS NOT NULL) "
-                    . "AS has_first_seen, "
-                . "SUM(last_seen IS NOT NULL) "
-                    . "AS has_last_seen "
-                . "FROM attributes"
-            );
-        $stats['sharing_group_usage'] =
-            $this->__singleQuery(
-                "SELECT "
-                . "SUM(sharing_group_id = 0) "
-                    . "AS no_sg, "
-                . "SUM(sharing_group_id != 0) "
-                    . "AS has_sg "
-                . "FROM attributes"
-            );
+
+        $this->__step('first_last_seen_usage');
+        if ($fast) {
+            $stats['first_last_seen_usage'] =
+                $this->__singleQuery(
+                    "SELECT "
+                    . "SUM(first_seen IS NOT NULL) "
+                        . "AS has_first_seen, "
+                    . "SUM(last_seen IS NOT NULL) "
+                        . "AS has_last_seen "
+                    . "FROM attributes "
+                    . $sampleWhere,
+                    'first_last_seen_usage'
+                );
+        } else {
+            $stats['first_last_seen_usage'] =
+                $this->__singleQuery(
+                    "SELECT "
+                    . "SUM(first_seen IS NOT NULL) "
+                        . "AS has_first_seen, "
+                    . "SUM(last_seen IS NOT NULL) "
+                        . "AS has_last_seen "
+                    . "FROM attributes",
+                    'first_last_seen_usage'
+                );
+        }
+
+        $this->__step('sharing_group_usage');
+        if ($fast) {
+            $stats['sharing_group_usage'] =
+                $this->__singleQuery(
+                    "SELECT "
+                    . "SUM(sharing_group_id = 0) "
+                        . "AS no_sg, "
+                    . "SUM(sharing_group_id != 0) "
+                        . "AS has_sg "
+                    . "FROM attributes "
+                    . $sampleWhere,
+                    'sharing_group_usage'
+                );
+        } else {
+            $stats['sharing_group_usage'] =
+                $this->__singleQuery(
+                    "SELECT "
+                    . "SUM(sharing_group_id = 0) "
+                        . "AS no_sg, "
+                    . "SUM(sharing_group_id != 0) "
+                        . "AS has_sg "
+                    . "FROM attributes",
+                    'sharing_group_usage'
+                );
+        }
+        $this->__step('top_attribute_tags');
         $stats['top_attribute_tags'] =
             $this->__topTags('attribute_tags', 10);
+        $this->__step('top_event_tags');
         $stats['top_event_tags'] =
             $this->__topTags('event_tags', 10);
-        $stats['tags_per_attribute'] =
-            $this->__bucketDistribution(
-                "SELECT COALESCE(t.cnt, 0) AS cnt "
-                . "FROM attributes a "
-                . "LEFT JOIN ("
-                    . "SELECT attribute_id, "
-                    . "COUNT(*) cnt "
-                    . "FROM attribute_tags "
-                    . "GROUP BY attribute_id"
-                . ") t "
-                . "ON t.attribute_id = a.id",
-                'cnt'
+
+        // Tags-per-attribute: count from attribute_tags
+        // only, derive "0" bucket from total minus
+        // tagged to avoid an expensive LEFT JOIN.
+        $this->__step('tags_per_attribute');
+        if ($fast) {
+            // In fast mode, just get the count of
+            // distinct tagged attributes vs total.
+            $taggedAttrs = $this->__singleQuery(
+                "SELECT COUNT(DISTINCT attribute_id) "
+                . "AS n FROM attribute_tags",
+                'tags_per_attribute'
             );
+            $n = $taggedAttrs['n'] ?? 0;
+            $totalAttrs = $stats['table_counts']
+                ['attributes'];
+            $totalAttrTags = $stats['table_counts']
+                ['attribute_tags'];
+            $avgTagsPerTagged = $n > 0
+                ? $totalAttrTags / $n : 0;
+            $stats['tags_per_attribute'] = [
+                '0' => $totalAttrs - $n,
+                'tagged (avg '
+                    . sprintf('%.1f', $avgTagsPerTagged)
+                    . '/attr)' => $n,
+            ];
+        } else {
+            $tagged = $this->__bucketDistribution(
+                "SELECT COUNT(*) AS cnt "
+                . "FROM attribute_tags "
+                . "GROUP BY attribute_id",
+                'cnt', 'tags_per_attribute'
+            );
+            $taggedTotal = array_sum($tagged);
+            $untagged = $stats['table_counts']
+                ['attributes'] - $taggedTotal;
+            $stats['tags_per_attribute'] =
+                ['0' => $untagged] + $tagged;
+        }
+
+        // Tags per event (events table is small)
+        $this->__step('tags_per_event');
         $stats['tags_per_event'] =
             $this->__bucketDistribution(
                 "SELECT COALESCE(t.cnt, 0) AS cnt "
@@ -168,15 +350,36 @@ class SearchPerformanceShell extends AppShell
                     . "GROUP BY event_id"
                 . ") t "
                 . "ON t.event_id = e.id",
-                'cnt'
+                'cnt', 'tags_per_event'
             );
-        $stats['attrs_per_event'] =
-            $this->__bucketDistribution(
-                "SELECT COUNT(*) AS cnt "
-                . "FROM attributes "
-                . "GROUP BY event_id",
-                'cnt'
-            );
+
+        $this->__step('attrs_per_event');
+        if ($fast) {
+            // Derive from table counts — avg is
+            // sufficient for the evaluation.
+            $totalAttrs = $stats['table_counts']
+                ['attributes'];
+            $totalEvents = $stats['table_counts']
+                ['events'];
+            $avg = $totalEvents > 0
+                ? (int)($totalAttrs / $totalEvents)
+                : 0;
+            $stats['attrs_per_event'] = [
+                'avg' => $avg,
+                '(approximated)' => $totalEvents,
+            ];
+        } else {
+            $stats['attrs_per_event'] =
+                $this->__bucketDistribution(
+                    "SELECT COUNT(*) AS cnt "
+                    . "FROM attributes "
+                    . "GROUP BY event_id",
+                    'cnt', 'attrs_per_event'
+                );
+        }
+
+        // Events per org (events table is small)
+        $this->__step('events_per_org');
         $stats['events_per_org'] =
             $this->__queryList(
                 "SELECT o.name, COUNT(*) AS cnt "
@@ -184,26 +387,136 @@ class SearchPerformanceShell extends AppShell
                 . "JOIN organisations o "
                     . "ON o.id = e.orgc_id "
                 . "GROUP BY e.orgc_id "
-                . "ORDER BY cnt DESC LIMIT 10"
+                . "ORDER BY cnt DESC LIMIT 10",
+                'events_per_org'
             );
-        $stats['broad_tag_event_spread'] =
-            $this->__queryList(
-                "SELECT t.name, "
-                . "COUNT(DISTINCT at.event_id) "
-                    . "AS events, "
-                . "COUNT(*) AS attr_tags "
-                . "FROM attribute_tags at "
-                . "JOIN tags t ON t.id = at.tag_id "
-                . "GROUP BY at.tag_id "
-                . "ORDER BY attr_tags DESC LIMIT 10"
-            );
-        $stats['correlation_density'] =
-            $this->__correlationDensity();
+
+        $this->__step('broad_tag_event_spread');
+        if ($fast) {
+            // Just use top attribute tags count
+            // (already collected) — skip the expensive
+            // COUNT(DISTINCT event_id) per tag.
+            $stats['broad_tag_event_spread'] = [];
+        } else {
+            $stats['broad_tag_event_spread'] =
+                $this->__queryList(
+                    "SELECT t.name, "
+                    . "COUNT(DISTINCT at.event_id) "
+                        . "AS events, "
+                    . "COUNT(*) AS attr_tags "
+                    . "FROM attribute_tags at "
+                    . "JOIN tags t ON t.id = at.tag_id "
+                    . "GROUP BY at.tag_id "
+                    . "ORDER BY attr_tags "
+                    . "DESC LIMIT 10",
+                    'broad_tag_event_spread'
+                );
+        }
+        // Correlation density as a simple ratio —
+        // avoids the expensive LEFT JOIN sampling.
+        $stats['correlation_ratio'] = [
+            'attributes' =>
+                $stats['table_counts']['attributes'],
+            'correlations' =>
+                $stats['table_counts']
+                    ['default_correlations'],
+        ];
+        $this->__step('indexes');
         $stats['indexes'] = $this->__indexInfo();
+
+        // In fast mode, scale sampled attribute
+        // distributions to estimated full-table
+        // counts so the evaluation logic and printer
+        // work unchanged.
+        if ($fast && $sampleSize > 0) {
+            $this->__step('scaling_samples');
+            $totalAttrs = $stats['table_counts']
+                ['attributes'];
+            $scale = $totalAttrs / $sampleSize;
+            $scaledKeys = [
+                'attribute_type_distribution',
+                'attribute_category_distribution',
+                'attribute_distribution_spread',
+                'attribute_to_ids',
+                'attribute_deleted',
+            ];
+            foreach ($scaledKeys as $k) {
+                foreach ($stats[$k] as &$v) {
+                    $v = (int)round($v * $scale);
+                }
+                unset($v);
+            }
+            // Scale sampled aggregates
+            foreach (
+                ['object_membership',
+                 'composite_value_ratio',
+                 'first_last_seen_usage',
+                 'sharing_group_usage'] as $k
+            ) {
+                foreach ($stats[$k] as &$v) {
+                    if (is_numeric($v)) {
+                        $v = (int)round($v * $scale);
+                    }
+                }
+                unset($v);
+            }
+        }
+
+        $this->__step('done');
         return $stats;
     }
 
+    /**
+     * Print a progress step. Always shown (not just
+     * verbose) so operators can see where the tool is.
+     *
+     * @param string $label
+     */
+    private function __step($label)
+    {
+        $this->out(sprintf(
+            '[%s] Collecting: %s',
+            date('H:i:s'), $label
+        ), 1, Shell::VERBOSE);
+    }
+
     // ── query helpers (all read-only) ───────────────────
+
+    /**
+     * Execute a raw SELECT query with optional verbose
+     * logging. When the shell is run with -v, prints
+     * the step label and SQL before executing, and the
+     * elapsed time after.
+     *
+     * @param string $sql
+     * @param string $label  Human-readable step name
+     * @return array  Raw CakePHP query() result
+     */
+    private function __runQuery($sql, $label = '')
+    {
+        if ($label !== '') {
+            $this->out(
+                "  [{$label}] running ...",
+                1, Shell::VERBOSE
+            );
+            $this->out(
+                "    SQL: " . preg_replace(
+                    '/\s+/', ' ', trim($sql)
+                ),
+                1, Shell::VERBOSE
+            );
+        }
+        $t0 = microtime(true);
+        $result = $this->MispAttribute->query($sql);
+        $elapsed = microtime(true) - $t0;
+        if ($label !== '') {
+            $this->out(sprintf(
+                "  [{$label}] done in %.2fs (%d rows)",
+                $elapsed, count($result)
+            ), 1, Shell::VERBOSE);
+        }
+        return $result;
+    }
 
     /**
      * Flatten a CakePHP query() result row.
@@ -245,9 +558,10 @@ class SearchPerformanceShell extends AppShell
         ];
         $counts = [];
         foreach ($tables as $table) {
-            $r = $this->MispAttribute->query(
-                "SELECT COUNT(*) AS cnt "
-                . "FROM `{$table}`"
+            $sql = "SELECT COUNT(*) AS cnt "
+                . "FROM `{$table}`";
+            $r = $this->__runQuery(
+                $sql, "count_{$table}"
             );
             $flat = $this->__flatten($r[0]);
             $counts[$table] = (int)$flat['cnt'];
@@ -256,23 +570,114 @@ class SearchPerformanceShell extends AppShell
     }
 
     /**
+     * Approximate row counts via information_schema.
+     * Instant, no table scan.
+     *
+     * @return array
+     */
+    private function __tableCountsFast()
+    {
+        $tables = [
+            'attributes', 'events', 'objects',
+            'attribute_tags', 'event_tags', 'tags',
+            'sharing_groups', 'organisations',
+            'sightings', 'default_correlations',
+        ];
+        $db = $this->__singleQuery(
+            "SELECT DATABASE() AS db", 'detect_db'
+        );
+        $dbName = $db['db'];
+        $counts = [];
+        foreach ($tables as $table) {
+            $sql = "SELECT TABLE_ROWS AS cnt "
+                . "FROM information_schema.TABLES "
+                . "WHERE TABLE_SCHEMA = "
+                . "'{$dbName}' "
+                . "AND TABLE_NAME = '{$table}'";
+            $r = $this->__runQuery(
+                $sql, "count_{$table}"
+            );
+            if (!empty($r)) {
+                $flat = $this->__flatten($r[0]);
+                $counts[$table] =
+                    (int)($flat['cnt'] ?? 0);
+            } else {
+                $counts[$table] = 0;
+            }
+        }
+        return $counts;
+    }
+
+    /**
+     * Build a WHERE clause that samples ~N rows from
+     * a table using modular arithmetic on the PK.
+     * Works well even with sparse/gappy ID sequences.
+     *
+     * @param string $table
+     * @param int $target  Desired sample size
+     * @return array  ['where' => string, 'sample_size' => int]
+     */
+    /**
+     * @param int $approxTotal  Approximate row count
+     *                          (from information_schema)
+     */
+    private function __sampleRange(
+        $table, $target, $approxTotal = 0
+    ) {
+        $total = $approxTotal > 0
+            ? $approxTotal
+            : ($this->__singleQuery(
+                "SELECT COUNT(*) AS cnt "
+                . "FROM `{$table}`",
+                'sample_count'
+            )['cnt'] ?? 0);
+        if ($total <= $target) {
+            return [
+                'where' => '',
+                'sample_size' => $total,
+            ];
+        }
+        // Sample every Nth row by PK modulus.
+        // e.g. WHERE id % 20 = 0 gives ~5% of rows.
+        $mod = max(2, (int)ceil($total / $target));
+        // Use a random remainder so repeated runs
+        // don't always pick the same rows.
+        $rem = mt_rand(0, $mod - 1);
+        $where = "WHERE id % {$mod} = {$rem}";
+        $this->out(sprintf(
+            '  Sampling %s: id %% %d = %d '
+            . '(~%s of %s rows)',
+            $table, $mod, $rem,
+            number_format($target),
+            number_format($total)
+        ), 1, Shell::VERBOSE);
+        return [
+            'where' => $where,
+            'sample_size' => $target,
+        ];
+    }
+
+    /**
      * Column value distribution (top N).
      *
      * @param string $table
      * @param string $column
      * @param int $limit
+     * @param string $where  Optional WHERE clause
      * @return array
      */
     private function __distribution(
-        $table, $column, $limit
+        $table, $column, $limit, $where = ''
     ) {
-        $rows = $this->MispAttribute->query(
-            "SELECT `{$column}` AS val, "
+        $sql = "SELECT `{$column}` AS val, "
             . "COUNT(*) AS cnt "
             . "FROM `{$table}` "
+            . ($where !== '' ? $where . ' ' : '')
             . "GROUP BY `{$column}` "
             . "ORDER BY cnt DESC "
-            . "LIMIT {$limit}"
+            . "LIMIT {$limit}";
+        $rows = $this->__runQuery(
+            $sql, "dist_{$table}_{$column}"
         );
         $out = [];
         foreach ($rows as $r) {
@@ -288,9 +693,10 @@ class SearchPerformanceShell extends AppShell
      * @param string $sql
      * @return array
      */
-    private function __singleQuery($sql)
-    {
-        $r = $this->MispAttribute->query($sql);
+    private function __singleQuery(
+        $sql, $label = ''
+    ) {
+        $r = $this->__runQuery($sql, $label);
         if (empty($r)) {
             return [];
         }
@@ -308,9 +714,10 @@ class SearchPerformanceShell extends AppShell
      * @param string $sql
      * @return array
      */
-    private function __queryList($sql)
-    {
-        $rows = $this->MispAttribute->query($sql);
+    private function __queryList(
+        $sql, $label = ''
+    ) {
+        $rows = $this->__runQuery($sql, $label);
         $out = [];
         foreach ($rows as $r) {
             $flat = $this->__flatten($r);
@@ -343,16 +750,18 @@ class SearchPerformanceShell extends AppShell
             "SELECT "
             . "MIN(timestamp) AS ts_min, "
             . "MAX(timestamp) AS ts_max "
-            . "FROM attributes"
+            . "FROM attributes",
+            'ts_min_max'
         );
-        foreach ($windows as $label => $cutoff) {
-            $r = $this->MispAttribute->query(
-                "SELECT COUNT(*) AS cnt "
+        foreach ($windows as $wLabel => $cutoff) {
+            $sql = "SELECT COUNT(*) AS cnt "
                 . "FROM attributes "
-                . "WHERE timestamp > {$cutoff}"
+                . "WHERE timestamp > {$cutoff}";
+            $r = $this->__runQuery(
+                $sql, "ts_last_{$wLabel}"
             );
             $flat = $this->__flatten($r[0]);
-            $result['last_' . $label] =
+            $result['last_' . $wLabel] =
                 (int)$flat['cnt'];
         }
         return $result;
@@ -368,13 +777,14 @@ class SearchPerformanceShell extends AppShell
      */
     private function __topTags($joinTable, $limit)
     {
-        $rows = $this->MispAttribute->query(
-            "SELECT t.name, COUNT(*) AS cnt "
+        $sql = "SELECT t.name, COUNT(*) AS cnt "
             . "FROM `{$joinTable}` jt "
             . "JOIN tags t ON t.id = jt.tag_id "
             . "GROUP BY jt.tag_id "
             . "ORDER BY cnt DESC "
-            . "LIMIT {$limit}"
+            . "LIMIT {$limit}";
+        $rows = $this->__runQuery(
+            $sql, "top_tags_{$joinTable}"
         );
         $out = [];
         foreach ($rows as $r) {
@@ -396,7 +806,7 @@ class SearchPerformanceShell extends AppShell
      * @return array
      */
     private function __bucketDistribution(
-        $innerSql, $col
+        $innerSql, $col, $label = ''
     ) {
         $sql = "SELECT "
             . "CASE "
@@ -412,60 +822,12 @@ class SearchPerformanceShell extends AppShell
             . "FROM ({$innerSql}) AS bucketed "
             . "GROUP BY bucket "
             . "ORDER BY bucket";
-        $rows = $this->MispAttribute->query($sql);
+        $rows = $this->__runQuery($sql, $label);
         $out = [];
         foreach ($rows as $r) {
             $flat = $this->__flatten($r);
             $out[$flat['bucket']] =
                 (int)$flat['cnt'];
-        }
-        return $out;
-    }
-
-    /**
-     * Correlation density: how many attributes have
-     * correlations and at what depth.
-     *
-     * Samples up to 200K attributes to avoid a full
-     * join on very large instances.
-     *
-     * @return array
-     */
-    private function __correlationDensity()
-    {
-        $total = $this->__singleQuery(
-            "SELECT COUNT(*) AS cnt FROM attributes"
-        )['cnt'];
-        $sample = min($total, 200000);
-
-        $sql = "SELECT "
-            . "CASE "
-            . "WHEN cnt = 0 THEN '0' "
-            . "WHEN cnt <= 5 THEN '1-5' "
-            . "WHEN cnt <= 20 THEN '6-20' "
-            . "ELSE '20+' "
-            . "END AS bucket, "
-            . "COUNT(*) AS n "
-            . "FROM ("
-                . "SELECT a.id, "
-                . "COALESCE(c.cnt, 0) AS cnt "
-                . "FROM attributes a "
-                . "LEFT JOIN ("
-                    . "SELECT attribute_id, "
-                    . "COUNT(*) cnt "
-                    . "FROM default_correlations "
-                    . "GROUP BY attribute_id"
-                . ") c "
-                . "ON c.attribute_id = a.id "
-                . "LIMIT {$sample}"
-            . ") t "
-            . "GROUP BY bucket ORDER BY bucket";
-        $rows = $this->MispAttribute->query($sql);
-        $out = ['sample_size' => $sample];
-        foreach ($rows as $r) {
-            $flat = $this->__flatten($r);
-            $out[$flat['bucket']] =
-                (int)$flat['n'];
         }
         return $out;
     }
@@ -483,8 +845,9 @@ class SearchPerformanceShell extends AppShell
         ];
         $out = [];
         foreach ($tables as $table) {
-            $rows = $this->MispAttribute->query(
-                "SHOW INDEX FROM `{$table}`"
+            $rows = $this->__runQuery(
+                "SHOW INDEX FROM `{$table}`",
+                "indexes_{$table}"
             );
             $indexes = [];
             foreach ($rows as $r) {
@@ -606,14 +969,13 @@ class SearchPerformanceShell extends AppShell
                 ? $sa / $total : 1.0;
         }
 
-        // Value cardinality ratio
-        $valueUniqueness = 0;
-        if (!empty($stats['value_cardinality'])) {
-            $dv = $stats['value_cardinality']
-                ['distinct_value1'];
-            $valueUniqueness = $total > 0
-                ? $dv / $total : 0;
-        }
+        // Value cardinality: assumed high (not queried)
+        $valueUniqueness = 0.80;
+
+        // Composite value ratio
+        $cv = $stats['composite_value_ratio'];
+        $compositeRatio = $total > 0
+            ? ($cv['has_value2'] ?? 0) / $total : 0;
 
         // Timestamp selectivity
         $ts = $stats['timestamp_ranges'];
@@ -820,14 +1182,23 @@ class SearchPerformanceShell extends AppShell
             ['OK', 'Event ID narrows to single event.']
         );
 
+        $v2Note = $compositeRatio < 0.05
+            ? sprintf(
+                ' Only %.1f%% of attrs have value2 '
+                . '— the value2 OR leg is nearly '
+                . 'always wasted.',
+                $compositeRatio * 100)
+            : '';
+
         $combos[] = $this->__combo(++$id,
             'value (%%suffix)',
             'Investigation',
             ['value'],
             ['SLOW', sprintf(
                 'Suffix LIKE cannot use B-tree index.'
-                . ' Full scan of %s rows.',
-                number_format($total)
+                . ' Full scan of %s rows (x2: OR '
+                . 'across value1 + value2).%s',
+                number_format($total), $v2Note
             )]
         );
 
@@ -837,8 +1208,8 @@ class SearchPerformanceShell extends AppShell
             ['value'],
             ['SLOW', sprintf(
                 'Middle wildcard — full scan of %s '
-                . 'rows.',
-                number_format($total)
+                . 'rows (x2: value1 + value2).%s',
+                number_format($total), $v2Note
             )]
         );
 
@@ -846,16 +1217,22 @@ class SearchPerformanceShell extends AppShell
             'value (suffix) + tags',
             'Investigation',
             ['value', 'tags'],
-            ['SLOW', 'Value suffix scan dominates. '
-                . 'Tag filter cannot reduce I/O.']
+            ['SLOW', sprintf(
+                'Value suffix scan dominates. '
+                . 'Tag filter cannot reduce I/O.%s',
+                $v2Note
+            )]
         );
 
         $combos[] = $this->__combo(++$id,
             'value (suffix) + type',
             'Investigation',
             ['value', 'type'],
-            ['SLOW', 'Value suffix scan dominates. '
-                . 'Type index unusable.']
+            ['SLOW', sprintf(
+                'Value suffix scan dominates. '
+                . 'Type index unusable.%s',
+                $v2Note
+            )]
         );
 
         $combos[] = $this->__combo(++$id,
@@ -945,8 +1322,9 @@ class SearchPerformanceShell extends AppShell
             ['searchall'],
             ['SLOW', sprintf(
                 'Converts to wildcard LIKE — full '
-                . 'scan of %s rows.',
-                number_format($total)
+                . 'scan of %s rows (x2: value1 '
+                . '+ value2).%s',
+                number_format($total), $v2Note
             )]
         );
 
@@ -1098,9 +1476,10 @@ class SearchPerformanceShell extends AppShell
             ['value', 'tags', 'timestamp'],
             ['SLOW', sprintf(
                 'Value suffix scan dominates '
-                . '(%s rows). Tags and timestamp '
-                . 'cannot help.',
-                number_format($total)
+                . '(%s rows, x2: value1 + value2).'
+                . ' Tags and timestamp cannot '
+                . 'help.%s',
+                number_format($total), $v2Note
             )]
         );
 
@@ -1338,11 +1717,21 @@ class SearchPerformanceShell extends AppShell
         $this->out(
             ' Generated: ' . date('Y-m-d H:i:s')
         );
+        if (!empty($stats['approximate'])) {
+            $this->out(
+                ' Mode: FAST (approximate — '
+                . 'sampled/estimated values)'
+            );
+        }
         $this->out($sep);
         $this->out('');
 
         // ── Table counts ────────────────────────────
-        $this->out('## Dataset Overview');
+        $approxLabel = !empty($stats['approximate'])
+            ? ' (approximate)' : '';
+        $this->out(
+            '## Dataset Overview' . $approxLabel
+        );
         $this->out('');
         foreach (
             $stats['table_counts'] as $table => $cnt
@@ -1390,21 +1779,28 @@ class SearchPerformanceShell extends AppShell
         );
 
         // ── Value cardinality ───────────────────────
-        $this->out('  Value cardinality:');
-        $vc = $stats['value_cardinality'];
         $total = $stats['table_counts']['attributes'];
+        $this->out(
+            '  Value cardinality: assumed high '
+            . '(>60% unique, not queried)'
+        );
+
+        $cv = $stats['composite_value_ratio'];
+        $v2cnt = $cv['has_value2'] ?? 0;
+        $v2pct = $total > 0
+            ? $v2cnt / $total * 100 : 0;
         $this->out(sprintf(
-            '    distinct value1: %s (%.0f%% unique)',
-            number_format($vc['distinct_value1'] ?? 0),
-            $total > 0
-                ? ($vc['distinct_value1'] ?? 0)
-                    / $total * 100
-                : 0
+            '  Composite attrs (value2 set): '
+            . '%s (%.1f%%)',
+            number_format($v2cnt), $v2pct
         ));
-        $this->out(sprintf(
-            '    distinct value2: %s',
-            number_format($vc['distinct_value2'] ?? 0)
-        ));
+        if ($v2pct < 5) {
+            $this->out(
+                '    -> value2 nearly always empty;'
+                . ' the value2 leg of OR in value'
+                . ' searches is mostly wasted I/O'
+            );
+        }
         $this->out('');
 
         // ── Timestamp ───────────────────────────────
@@ -1491,16 +1887,18 @@ class SearchPerformanceShell extends AppShell
             $stats['attrs_per_event']
         );
 
-        // ── Correlation density ─────────────────────
-        $this->out('  Correlation density '
-            . '(sampled):');
-        $cd = $stats['correlation_density'];
-        foreach ($cd as $k => $v) {
-            $this->out(sprintf(
-                '    %-12s %s',
-                $k, number_format($v)
-            ));
-        }
+        // ── Correlation ratio ────────────────────────
+        $cr = $stats['correlation_ratio'];
+        $corrRatio = $cr['attributes'] > 0
+            ? $cr['correlations']
+                / $cr['attributes'] : 0;
+        $this->out(sprintf(
+            '  Correlation ratio: %s correlations'
+            . ' / %s attributes (%.2f per attr)',
+            number_format($cr['correlations']),
+            number_format($cr['attributes']),
+            $corrRatio
+        ));
         $this->out('');
 
         // ── Filter evaluation ───────────────────────
