@@ -1139,13 +1139,33 @@ class MispAttribute extends AppModel
         }
 
     //
+    // Detect whether the query has selective attribute-
+    // level filters. When it does, MySQL narrows the
+    // outer scan first and correlated EXISTS probes are
+    // cheap. When tags are the sole driver, uncorrelated
+    // IN lets MySQL materialise + semi-join once.
+    //
+    $attributeSelective = false;
+    $selectiveFields = [
+        'value', 'value1', 'value2', 'type',
+        'category', 'object_relation', 'uuid',
+        'timestamp', 'attribute_timestamp',
+        'first_seen', 'last_seen', 'to_ids',
+    ];
+    foreach ($selectiveFields as $f) {
+        if (
+            isset($params[$f]) &&
+            $params[$f] !== '' &&
+            $params[$f] !== false
+        ) {
+            $attributeSelective = true;
+            break;
+        }
+    }
+
+    //
     // 1) Positive OR-tags: element must have *any* of
     //    these tags (via attribute_tags or event_tags).
-    //
-    // Uses uncorrelated IN subqueries that MySQL can
-    // evaluate once and semi-join, leveraging the
-    // compound indexes (attribute_id, tag_id) and
-    // (event_id, tag_id).
     //
     if (!empty($tagArray[0])) {
         if ($tagArray[0][0] === -1) {
@@ -1166,9 +1186,35 @@ class MispAttribute extends AppModel
                         FROM attribute_tags at
                         WHERE at.tag_id IN ({$inPosList})
                     ))";
+            } elseif ($attributeSelective) {
+                // Selective mode: correlated EXISTS
+                // probes are cheap when the outer scan
+                // is already narrow. Avoids OR of two
+                // IN subqueries on different columns
+                // which prevents MySQL from using either
+                // index efficiently.
+                $conditions['AND'][] =
+                    "(EXISTS (
+                        SELECT 1
+                        FROM attribute_tags at_pos
+                        WHERE at_pos.attribute_id
+                            = Attribute.id
+                        AND at_pos.tag_id
+                            IN ({$inPosList})
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM event_tags et_pos
+                        WHERE et_pos.event_id
+                            = Attribute.event_id
+                        AND et_pos.tag_id
+                            IN ({$inPosList})
+                    ))";
             } else {
-                // Attribute scope: match if the attribute
-                // itself is tagged OR its parent event is.
+                // Tag-only mode: uncorrelated IN lets
+                // MySQL materialise each set once and
+                // semi-join, avoiding per-row probes
+                // across the full table.
                 $conditions['AND'][] =
                     "(Attribute.id IN (
                         SELECT at.attribute_id
@@ -1263,9 +1309,23 @@ class MispAttribute extends AppModel
                             FROM event_tags et
                             WHERE et.tag_id = {$t}
                         )";
+                } elseif ($attributeSelective) {
+                    $conditions['AND'][] =
+                        "(EXISTS (
+                            SELECT 1
+                            FROM attribute_tags at_and
+                            WHERE at_and.attribute_id
+                                = Attribute.id
+                            AND at_and.tag_id = {$t}
+                        )
+                        OR EXISTS (
+                            SELECT 1
+                            FROM event_tags et_and
+                            WHERE et_and.event_id
+                                = Attribute.event_id
+                            AND et_and.tag_id = {$t}
+                        ))";
                 } else {
-                    // Attribute has the tag directly
-                    // OR its parent event does.
                     $conditions['AND'][] =
                         "(Attribute.id IN (
                             SELECT at.attribute_id
