@@ -132,7 +132,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'name' => __('Restrictions'),
                 'sort' => 'restricted_to_domain',
                 'data_path' => 'Organisation.restricted_to_domain',
-                'array_implode_glue' => '<br>',
+                'array_implode_glue' => "\n",
             ],
         ],
         'actions' => [
