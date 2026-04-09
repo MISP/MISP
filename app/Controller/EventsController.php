@@ -529,6 +529,7 @@ class EventsController extends AppController
                         }
                     }
 
+                    $AttributeTag = ClassRegistry::init('AttributeTag');
                     if (!empty($tagRules['block'])) {
                         $block = $this->Event->EventTag->find('column', array(
                             'conditions' => array('EventTag.tag_id' => $tagRules['block']),
@@ -552,6 +553,11 @@ class EventsController extends AppController
                                 'conditions' => array('EventTag.tag_id' => $tagRules['include']),
                                 'fields' => ['EventTag.event_id'],
                             ));
+                            $includeAttr = $AttributeTag->find('column', array(
+                                'conditions' => array('AttributeTag.tag_id' => $tagRules['include']),
+                                'fields' => ['AttributeTag.event_id'],
+                            ));
+                            $include = array_unique(array_merge($include, $includeAttr));
                         }
                         if (!empty($include)) {
                             $this->paginate['conditions']['AND'][] = 'Event.id IN (' . implode(",", $include) . ')';
