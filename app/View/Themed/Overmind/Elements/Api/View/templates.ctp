@@ -10,6 +10,7 @@ foreach ($allAccessibleApis as $category => $content) {
             'title' => $action,
             'url' => $url[0],
             'method' => $url[1],
+            'status' => 0,
         ]);
     }
 
