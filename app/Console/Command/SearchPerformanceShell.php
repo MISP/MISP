@@ -618,36 +618,53 @@ class SearchPerformanceShell extends AppShell
      * @return array  ['where' => string, 'sample_size' => int]
      */
     /**
+     * Build a WHERE clause that samples ~N rows from
+     * the tail of a table using a PK range scan.
+     * Uses MAX(id) to find the upper bound, then
+     * reads the last ~N rows by PK. This is a fast
+     * index range scan — no full table scan needed.
+     *
+     * @param string $table
+     * @param int $target  Desired sample size
      * @param int $approxTotal  Approximate row count
      *                          (from information_schema)
+     * @return array  ['where' => string, 'sample_size' => int]
      */
     private function __sampleRange(
         $table, $target, $approxTotal = 0
     ) {
-        $total = $approxTotal > 0
-            ? $approxTotal
-            : ($this->__singleQuery(
-                "SELECT COUNT(*) AS cnt "
-                . "FROM `{$table}`",
-                'sample_count'
-            )['cnt'] ?? 0);
+        $total = $approxTotal > 0 ? $approxTotal : 0;
         if ($total <= $target) {
             return [
                 'where' => '',
                 'sample_size' => $total,
             ];
         }
-        // Sample every Nth row by PK modulus.
-        // e.g. WHERE id % 20 = 0 gives ~5% of rows.
-        $mod = max(2, (int)ceil($total / $target));
-        // Use a random remainder so repeated runs
-        // don't always pick the same rows.
-        $rem = mt_rand(0, $mod - 1);
-        $where = "WHERE id % {$mod} = {$rem}";
+        $mx = $this->__singleQuery(
+            "SELECT MAX(id) AS mx "
+            . "FROM `{$table}`",
+            'sample_max_id'
+        )['mx'] ?? 0;
+        if ($mx <= 0) {
+            return [
+                'where' => '',
+                'sample_size' => $total,
+            ];
+        }
+        // Estimate the ID density to find a cutoff
+        // that yields ~target rows. Over-estimate
+        // the range by 20% to account for gaps.
+        $ratio = $total > 0
+            ? (float)$mx / $total : 1.0;
+        $idSpan = (int)ceil(
+            $target * $ratio * 1.2
+        );
+        $cutoff = max(1, $mx - $idSpan);
+        $where = "WHERE id >= {$cutoff}";
         $this->out(sprintf(
-            '  Sampling %s: id %% %d = %d '
-            . '(~%s of %s rows)',
-            $table, $mod, $rem,
+            '  Sampling %s: id >= %d '
+            . '(last ~%s rows of %s)',
+            $table, $cutoff,
             number_format($target),
             number_format($total)
         ), 1, Shell::VERBOSE);
