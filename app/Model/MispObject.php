@@ -58,7 +58,8 @@ class MispObject extends AppModel
     );
 
     public $validFormats = array(
-        'json' => array('json', 'JsonExport', 'json')
+        'json' => ['json', 'JsonExport', 'json'],
+        'stix2' => ['json', 'Stix2Export', 'json']
     );
 
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' Sharing Group', 5 => 'Inherit');
@@ -1619,6 +1620,9 @@ class MispObject extends AppModel
         }
         App::uses($this->validFormats[$returnFormat][1], 'Export');
         $exportTool = new $this->validFormats[$returnFormat][1]();
+        if (method_exists($exportTool, 'setDefaultFilters')) {
+            $exportTool->setDefaultFilters($filters);
+        }
         if (empty($exportTool->non_restrictive_export)) {
             if (!isset($filters['to_ids'])) {
                 $filters['to_ids'] = 1;
