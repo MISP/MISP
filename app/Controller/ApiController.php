@@ -202,6 +202,18 @@ class ApiController extends AppController
             $response = $HttpSocket->post($url, $request['body'], array('header' => $request['header']));
         } elseif (
             !empty($request['method']) &&
+            $request['method'] === 'PUT' &&
+            !empty($request['body'])
+        ) {
+            if ($curl !== false) {
+                $curl = $this->__generateCurlQuery('put', $request, $url);
+            }
+            if ($python !== false) {
+                $python = $this->__generatePythonScript($request, $url);
+            }
+            $response = $HttpSocket->put($url, $request['body'], array('header' => $request['header']));
+        } elseif (
+            !empty($request['method']) &&
             $request['method'] === 'DELETE'
         ) {
             if ($curl !== false) {
