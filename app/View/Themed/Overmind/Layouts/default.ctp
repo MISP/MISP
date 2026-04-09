@@ -14,6 +14,8 @@
             ['controller' => 'events', 'action' => 'delete'],
             ['controller' => 'events', 'action' => 'view2'],
             ['controller' => 'events', 'action' => 'importChoice'],
+            ['controller' => 'events', 'action' => 'automation'],
+            ['controller' => 'events', 'action' => 'export'],
 
             ['controller' => 'attributes', 'action' => 'index'],
             ['controller' => 'attributes', 'action' => 'delete'],
