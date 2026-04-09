@@ -42,6 +42,10 @@
 
             ['controller' => 'correlation_exclusions', 'action' => 'index'],
             ['controller' => 'correlation_exclusions', 'action' => 'add'],
+
+
+            ['controller' => 'api', 'action' => 'openapi'],
+            ['controller' => 'api', 'action' => 'rest'],
         ];
 
         $currentController = $this->params['controller'];
@@ -241,6 +245,7 @@
     </div>
     <div id="mainToastContainer" class="main-toast-container"></div>
     <div id="mainModalContainer"></div>
+    <div id="api-tooltip" class="api-tooltip"></div>
 
 
     <!-- Ajax Results -->
@@ -421,6 +426,17 @@
         // The active tab loads immediately on startup
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.tab-pane.active .ajax-tab-content').forEach(loadAjaxContainer);
+        });
+
+        const tooltip = document.getElementById('api-tooltip');
+        tooltip.addEventListener('mouseenter', () => {
+            isHoveringTooltip = true;
+            clearTimeout(hoverTimeout);
+        });
+
+        tooltip.addEventListener('mouseleave', () => {
+            isHoveringTooltip = false;
+            scheduleHideTooltip();
         });
     </script>
 </body>
