@@ -141,7 +141,7 @@ if (!empty($extendedByHtml)) {
             echo $this->element('/genericElements/accordion', [
                 'title' => 'CyCat Relationships',
                 'titleHTML' => $titleHTML,
-                'url' => $baseurl . '/galaxy_clusters/viewCyCatRelations/' . $cluster['GalaxyCluster']['id']
+                'url' => '/galaxy_clusters/viewCyCatRelations/' . $cluster['GalaxyCluster']['id']
             ]);
         }
     ?>
