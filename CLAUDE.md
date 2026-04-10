@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 MISP (Malware Information Sharing Platform) is an open-source threat intelligence sharing platform built on CakePHP 2.x. It enables organizations to share, store, and correlate indicators of compromise (IOCs) and threat intelligence.
 
+Primary languages and projects: Rust (RustMISP, draugnet, warninglists), Python (PyMISP, MISP tooling), PHP/CakePHP (MISP core), JavaScript/HTML/CSS (MISP UI, Galaxy Editor). When asked to run tests, always confirm which project's tests to run before executing.
+
 ## Build and Development Commands
 
 ### PHP Dependencies
@@ -133,3 +135,15 @@ Example: `fix: [api] Correct attribute validation (#3120)`
 
 Required PHP extensions: json, mbstring, xml, dom, simplexml, pcre, curl
 Recommended: gd, redis, openssl, apcu, ssdeep, bcmath
+
+## MISP Development
+
+When working with CakePHP (MISP), always verify query result structures before assuming array shapes. CakePHP find() returns vary by type (first/all/list) and version.
+
+## Debugging
+
+When fixing bugs, always verify the root cause by comparing git blame/diff of the specific change before proposing a fix. Do not conclude old and new code are equivalent without tracing actual execution paths.
+
+## CI/CD
+
+For CI/CD workflow debugging, always check: database connection strings (localhost vs 127.0.0.1), file permissions for web server user traversal, cache directory ownership, and ensure test output isn't polluted by warnings/deprecation notices.
