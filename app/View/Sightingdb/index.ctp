@@ -34,7 +34,7 @@
                     'element' => 'tester',
                     'button' => __('Run'),
                     'button_class' => 'btn-mini btn-inverse',
-                    'url' => '/sightingdb/requestStatus/',
+                    'url' => $baseurl . '/sightingdb/requestStatus/',
                     'data_path' => 'Sightingdb.id'
                 ),
                 array(
@@ -44,7 +44,7 @@
                     'textInput' => 1,
                     'button_icon' => 'search',
                     'button_class' => 'btn-mini btn-inverse',
-                    'url' => '/sightingdb/search/',
+                    'url' => $baseurl . '/sightingdb/search/',
                     'data_path' => 'Sightingdb.id'
                 ),
                 array(
@@ -99,14 +99,14 @@
             'description' => __('SightingDB is an alternate sighting database that MISP interconnects with. Configure connections to sighting databases below.'),
             'actions' => array(
                 array(
-                    'url' => '/sightingdb/edit',
+                    'url' => $baseurl . '/sightingdb/edit',
                     'url_params_data_paths' => array(
                         'Sightingdb.id'
                     ),
                     'icon' => 'edit'
                 ),
                 array(
-                    'url' => '/sightingdb/delete',
+                    'url' => $baseurl . '/sightingdb/delete',
                     'url_params_data_paths' => array(
                         'Sightingdb.id'
                     ),

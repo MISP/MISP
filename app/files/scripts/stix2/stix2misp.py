@@ -24,7 +24,6 @@ from pathlib import Path
 
 import importlib
 MODULE_TO_DIRECTORY = {
-    "stix2": "cti-python-stix2",
     "stix": "python-stix",
     "cybox": "python-cybox",
     "mixbox": "mixbox",

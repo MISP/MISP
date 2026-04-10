@@ -6,7 +6,7 @@
     if (is_array($data)) {
         if (count($data) > 1) {
             $implodeGlue = isset($field['array_implode_glue']) ? $field['array_implode_glue'] : ', ';
-            $data = implode($implodeGlue, array_map('h', $data));
+            $data = nl2br(implode($implodeGlue, array_map('h', $data)), false);
         } else {
             if (count($data) > 0) {
                 $data = h($data[0]);

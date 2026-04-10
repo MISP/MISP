@@ -1,6 +1,6 @@
 <div class="attributes form">
 <?php
-    echo $this->Form->create('Server', array('id', 'url' => '/communities/requestAccess/' . $community['uuid']));
+    echo $this->Form->create('Server', array('id', 'url' => $baseurl . '/communities/requestAccess/' . $community['uuid']));
     echo sprintf(
         '<fieldset><legend>%s</legend><p style="width:550px;">%s</p>%s</fieldset>%s',
         'Request access to ' . h($community['name']),

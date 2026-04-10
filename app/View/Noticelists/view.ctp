@@ -41,7 +41,7 @@ echo $this->element(
         ],
         'children' => [
             [
-                'url' => '/noticelists/preview_entries/{{0}}/',
+                'url' => $baseurl . '/noticelists/preview_entries/{{0}}/',
                 'url_params' => ['Noticelist.id'],
                 'title' => __('Values'),
                 'elementId' => 'preview_entries_container'

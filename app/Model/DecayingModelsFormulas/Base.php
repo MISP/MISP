@@ -157,8 +157,9 @@ abstract class DecayingModelBase
         if ($this::REQUIRES_SIGHTINGS) {
             $attribute['Sighting'] = $this->Sighting->listSightings($user, $attribute['id'], 'attribute', false, false, false);
         }
+        $elapsedTime = max(0, $timestamp - $last_sighting_timestamp);
         $scores = array(
-            'score' => $this->computeScore($model, $attribute, $base_score, $timestamp - $last_sighting_timestamp),
+            'score' => $this->computeScore($model, $attribute, $base_score, $elapsedTime),
             'base_score' => $base_score
         );
         return $scores;
