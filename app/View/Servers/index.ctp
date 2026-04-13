@@ -56,6 +56,12 @@
                     'data_html' => '<span role="button" tabindex="0" aria-label="' . __('View the sync user of the remote instance') . '" title="' . __('View the sync user of the remote instance') . '" class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="getRemoteSyncUser(%s);">' . __('View') . '</span>',
                 ],
                 [
+                    'name' => __('Authkey'),
+                    'data_path' => 'Server.authkey',
+                    'class' => 'short',
+                    'requirement' => $isSiteAdmin,
+                ],
+                [
                     'name' =>  __('Reset API key'),
                     'element' => 'postlink',
                     'data_path' => 'Server.id',

@@ -5138,13 +5138,36 @@ class Server extends AppModel
 
         return $response;
     }
+    /**
+     * @param string $authkey
+     * @return string
+     */
+    public function anonymizeAuthkey($authkey)
+    {
+        if (empty($authkey)) {
+            return '';
+        }
+        if (EncryptedValue::isEncrypted($authkey)) {
+            try {
+                $authkey = (new EncryptedValue($authkey))->decrypt();
+            } catch (Exception $e) {
+                return 'ERROR: Could not decrypt authkey';
+            }
+        }
+        if (strlen($authkey) < 10) {
+            return $authkey;
+        }
+        return substr($authkey, 0, 4) . '****' . substr($authkey, -4);
+    }
+
 
     /**
      * @param int $id
+     * @param bool $isSiteAdmin
      * @return array|null
      * @throws JsonException
      */
-    public function getRemoteUser($id)
+    public function getRemoteUser($id, $isSiteAdmin = false)
     {
         $server = $this->find('first', array(
             'conditions' => array('Server.id' => $id),
@@ -5167,6 +5190,9 @@ class Server extends AppModel
                 __('Sync Internal flag') => isset($user['Role']['perm_sync_internal']) ? ($user['Role']['perm_sync_internal'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
                 __('Sync Authoritative flag') => isset($user['Role']['perm_sync_authoritative']) ? ($user['Role']['perm_sync_authoritative'] ? __('Yes') : __('No')) : __('Unknown, outdated instance'),
             ];
+            if ($isSiteAdmin) {
+                $results[__('Anonymized API key')] = $this->anonymizeAuthkey($server['Server']['authkey']);
+            }
             if ($response->getHeader('X-Auth-Key-Expiration')) {
                 $date = new DateTime($response->getHeader('X-Auth-Key-Expiration'));
                 $results[__('Auth key expiration')] = $date->format('Y-m-d H:i:s');
