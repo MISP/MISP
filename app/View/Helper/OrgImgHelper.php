@@ -54,6 +54,32 @@ class OrgImgHelper extends AppHelper
         return $this->getOrgImg($options, true, !$withLink);
     }
 
+
+    /**
+     * @param array $organisation
+     * @param int $size
+     * @param bool $withLink
+     * @return string
+     */
+    public function getOrgLogoV2(array $organisation, $size, $withLink = true)
+    {
+        if (isset($organisation['Organisation'])) {
+            $options = $organisation['Organisation'];
+        } else {
+            $options = $organisation;
+        }
+
+        $options['size'] = $size;
+
+        //If there is no logo for the organisation, return nothing
+        $orgImgName = $this->findOrgImage($options);
+        if (!$orgImgName) {
+            return '';
+        }
+
+        return $this->getOrgImg($options, true, !$withLink);
+    }
+
     /**
      * @param array $organisation
      * @return string|null

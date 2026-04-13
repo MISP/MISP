@@ -206,7 +206,7 @@ class TagCollectionsController extends AppController
                     if (is_numeric($temp)) {
                         $tag_lookups['OR']['Tag.id'][] = $temp;
                     } else {
-                        $tag_lookups['OR']['LOWER(Tag.name) LIKE'][] = strtolower(trim($tag_id));
+                        $tag_lookups['OR'][] = array('LOWER(Tag.name) LIKE' => strtolower(trim($temp)));
                     }
                 }
                 if ($tag_ids !== null && is_array($tag_ids)) { // can decode json
@@ -217,14 +217,20 @@ class TagCollectionsController extends AppController
                                 $tag_lookups
                             )
                         ),
-                        'fields' => array('Tag.id', 'Tag.id')
+                        'fields' => array('Tag.id')
                     ));
                     $tag_id_list = array_values($tag_ids);
                     if (empty($tag_id_list)) {
                         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag(s).')), 'status'=>200, 'type' => 'json'));
                     }
                 } else {
-                    $tag = $this->TagCollection->TagCollectionTag->Tag->find('first', array('recursive' => -1, 'conditions' => $tagConditions));
+                    $tag_lookup = ['OR' => ['LOWER(Tag.name) LIKE' => strtolower(trim($tag_id))]];
+                    $tag = $this->TagCollection->TagCollectionTag->Tag->find('first', array('recursive' => -1, 'conditions' => array(
+                        'AND' => array(
+                            $tagConditions,
+                            $tag_lookup
+                        )
+                    )));
                     if (empty($tag)) {
                         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
                     }
@@ -342,6 +348,7 @@ class TagCollectionsController extends AppController
             $this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
             if ($id === false) {
                 $id = $this->request->data['tag_collection'];
+                $conditions['TagCollection.id'] = $id;
             }
             if ($tag_id === false) {
                 $tag_id = $this->request->data['tag'];

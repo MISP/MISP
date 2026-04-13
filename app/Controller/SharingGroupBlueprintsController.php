@@ -197,7 +197,7 @@ class SharingGroupBlueprintsController extends AppController
                 $this->redirect($this->referer());
             }
         } else {
-           $this->set('id', empty($id) ? $id : 'all');
+           $this->set('id', empty($id) ? 'all' : $id);
            $this->set('title', __('Execute Sharing Group Blueprint'));
            $this->set('question', __('Are you sure you want to (re)create a sharing group based on the Sharing Group Blueprint?'));
            $this->set('actionName', __('Execute'));

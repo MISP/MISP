@@ -894,7 +894,7 @@ class Warninglist extends AppModel
         if ($this->pubToZmq('warninglist')) {
             $warninglist = $this->find('first', [
                 'conditions' => ['id' => $data['Warninglist']['id']],
-                'contains' => ['WarninglistEntry', 'WarninglistType'],
+                'contain' => ['WarninglistEntry', 'WarninglistType'],
             ]);
             $pubSubTool = $this->getPubSubTool();
             $pubSubTool->warninglist_save($warninglist, $created ? 'add' : 'edit');

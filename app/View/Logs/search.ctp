@@ -92,8 +92,7 @@ echo $this->element('genericElements/Form/genericForm', [
         'title' => __('Search Logs'),
         'fields' => $fields,
         'submit' => [
-            'action' => 'index',
-            'ajaxSubmit' => 'submitGenericFormInPlace();'
+            'action' => 'index'
         ]
     ],
     'formOptions' => [

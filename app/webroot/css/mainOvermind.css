@@ -1,0 +1,556 @@
+:root {
+    --bs-link-color : #1892B1;
+    --bs-link-hover-color : #1892B1;
+    --bs-link-color-rgb: 24, 146, 177;
+}
+
+.pagination {
+    --bs-pagination-active-bg: #1892B1;
+    --bs-pagination-active-border-color: #1892B1;
+}
+
+.dropdown-item {
+    --bs-dropdown-link-active-bg: #1892B1 ;
+}
+
+html {
+    height: 100%;
+}
+
+
+body{
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 100vh;
+    padding-top: 56px; 
+    background-color: #f8f9fa;
+}
+
+body[data-controller="users"][data-action="login"] {
+    background: linear-gradient(180deg, #1892B1 0%, #12718E 50%, #0B394A 100%);
+    min-height: 100vh;
+    padding-top: 56px;  /* Adjust for fixed navbar height */
+}
+
+.main-wrapper {
+    flex: 1;
+}
+
+
+
+
+.navbar-logo {
+  height: 30px;
+  width: auto;
+  object-fit: contain;
+}
+
+
+.main-logo {
+    max-height: 200px;
+    max-width: 400px;
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+
+.welcome-logo {
+    max-height: 100px;
+    max-width: 200px;
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+
+.btn.active{
+    color: #e9ecef;
+}
+
+.btn.show,
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-outline-primary:active ,
+.btn-outline-primary:hover {
+    color: #fff !important;
+}
+
+.btn-galaxy-light:hover,
+.btn-galaxy-light:focus,
+.btn-galaxy-light:active,
+.btn-outline-galaxy-light:active ,
+.btn-outline-galaxy-light:hover {
+    background-color: #d2e4fc !important;
+}
+
+.btn-light{
+    color:#1892B1;
+}
+
+/* Login gradient button */
+.btn-login:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* Separator */
+.separator {
+    position: relative;
+    font-size: 0.9rem;
+}
+
+.separator:before,
+.separator:after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 30%;
+    height: 1px;
+    background: #ddd;
+}
+
+.separator:before {
+    left: 0;
+}
+
+.separator:after {
+    right: 0;
+}
+
+
+
+.loading {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    right: 50%;
+    bottom: 50%;
+}
+
+.loadingText {
+    color: #0088cc;
+    position: relative;
+    top: -45px;
+    left: 13px;
+}
+
+
+.spinner {
+   height:60px;
+   width:60px;
+   margin:0 auto;
+   position:relative;
+   animation: rotation .6s infinite linear;
+   border:6px solid rgba(0,174,239,.15);
+   border-radius:100%;
+   z-index:15;
+}
+
+.spinner:before {
+   content:"";
+   display:block;
+   position:absolute;
+   left:-6px;
+   top:-6px;
+   height:100%;
+   width:100%;
+   border-top:6px solid rgba(0,136,204,.8);
+   border-left:6px solid transparent;
+   border-bottom:6px solid transparent;
+   border-right:6px solid transparent;
+   border-radius:100%;
+   z-index:15;
+}
+
+
+/* =======================================================
+   NAVBAR Custom CSS
+======================================================= */
+
+/* Remove default boostrap arrow */
+.navbar .dropdown-toggle::after {
+    display: none !important;
+}
+
+/* Positioning of dropdowns */
+.navbar .dropdown,
+.dropdown-submenu {
+    position: relative;
+}
+
+/* Flex alignment (navbar links + dropdown items) */
+.navbar .nav-link,
+.dropdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Hover dropdown item */
+.dropdown-item:hover {
+    background-color: #1892B1;
+    color: #fff;
+}
+
+/* Open main dropdown when hovering */
+.navbar .dropdown:hover > .dropdown-menu {
+    display: block;
+}
+
+/* Positioning of submenu */
+.dropdown-submenu > .dropdown-menu {
+    top: calc(-2 * var(--bs-dropdown-item-padding-y));
+    left: 100%;
+    margin-top: -1px;
+}
+
+/* Align correctly dropdown of the right side */
+.navbar .dropdown-menu-end {
+    right: 20px;
+    left: auto;
+}
+
+
+.dropdown-filters .dropdown-toggle::after {
+    display: none !important;
+}
+
+
+.dropdown-item.setTheme {
+    min-width: 500px;
+    white-space: normal;
+}
+
+/* =======================================================
+   DESKTOP ONLY (>= 1200px)
+======================================================= */
+
+@media (min-width: 1200px) {
+
+    /* Display and positioning of the small white arrow above the dropdowns */
+    .navbar .navbar-nav > .dropdown > .dropdown-menu::before {
+        content: "";
+        position: absolute;
+        top: -6px;
+        left: 20px;
+
+        width: 0;
+        height: 0;
+
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-bottom: 6px solid #fff;
+    }
+
+    /* Display and positioning of the small white arrow above the dropdowns (right side) */
+    .navbar .navbar-nav > .dropdown > .dropdown-menu-end::before {
+        content: "";
+        position: absolute;
+        top: -6px;
+        right: 20px;
+        left: auto;
+
+        width: 0;
+        height: 0;
+
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-bottom: 6px solid #fff;
+    }
+
+
+    /* Open a submenu when hovering */
+    .navbar .dropdown-submenu:hover > .dropdown-menu {
+        display: block;
+    }
+}
+
+
+/* =======================================================
+   MOBILE ONLY (< 1200px)
+======================================================= */
+
+@media (max-width: 1199.98px) {
+
+    /* Display dropdown arrow  */
+    .navbar .menu-arrow::before {
+        font-family: "Font Awesome 7 Free";
+        font-weight: 900;
+        content: "\f078";
+    }
+}
+
+
+
+
+/* =======================================================
+   Footer Custom CSS
+======================================================= */
+
+.expansion {
+    position: relative;
+}
+
+/* Triangle on right side */
+#triangle {
+    position: absolute;
+    right: 20px;
+    top: -10px;
+    width: 20px;
+    height: 20px;
+    background-color: #212529;
+    transform: rotate(45deg);
+    cursor: pointer;
+    z-index: 11;
+}
+
+/* Shortcuts container (hidden by default) */
+.shortcutsListContainer {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.35s ease;
+}
+
+/* Expanded state */
+.footer-expanded .shortcutsListContainer {
+    max-height: 150px;
+    padding: 10px;
+}
+
+
+
+/* =======================================================
+   Checkbox Custom CSS
+======================================================= */
+
+
+.checkbox-actions-wrapper .dropdown-toggle::after {
+    display: none; /* remove native bootstrap arrow */
+}
+
+.checkbox-actions-wrapper .btn {
+    line-height: 1;
+}
+
+.checkbox-actions-wrapper {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.checkbox-actions-wrapper > * {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.checkbox-actions-wrapper .form-check-input {
+    margin: 2px !important;
+}
+
+
+.checkbox-index input[type="checkbox"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    background: #fff;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #666;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Visual check inside the checkbox ticked */
+.checkbox-index input[type="checkbox"]::after{
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 6px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    opacity: 0;
+    transition: opacity .08s ease;
+}
+
+/* Display the check */
+.checkbox-index input[type="checkbox"]:checked::after {
+    opacity: 1;
+}
+
+.checkbox-index input[type="checkbox"].select_all:checked {
+    background-color: orangered;
+}
+
+/* Visual focus (to improve) */
+.checkbox-index input[type="checkbox"]:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+
+.checkbox-index input[type="checkbox"]:checked {
+    background-color: #1892B1;
+}
+/* =======================================================
+   Flash Custom CSS
+======================================================= */
+
+
+#flashOverlay {
+    position: fixed;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    width: 100%;
+    pointer-events: none; 
+}
+
+#flashContainer {
+    pointer-events: auto;
+    opacity: 1;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+#flashContainer.fade-out {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+
+
+
+/* =======================================================
+   Table Custom CSS
+======================================================= */
+
+.tr:hover{
+    background-color: #1892B1 !important;
+}
+
+.table {
+    --bs-table-hover-bg: rgba(var(--bs-primary-rgb), 0.08);
+}
+
+
+
+.table-fixed {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.table-fixed th,
+.table-fixed td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.table-scroll {
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+.table thead{
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+
+
+
+th a {
+    text-decoration: none !important;
+    color: inherit;
+}
+
+
+.sort-icon {
+    margin-left: 6px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+th:hover .sort-icon {
+    opacity: 1;
+}
+
+th .sort-icon::before {
+    content: "\f0dc"; /* fa-sort */
+    font-family: "Font Awesome 7 Free";
+    font-weight: 900;
+}
+
+
+
+.dropdown-filters .dropdown-toggle::after {
+    display: none !important;
+}
+
+
+.dropdown-item.setTheme {
+    min-width: 500px;
+    white-space: normal;
+}
+
+.default-color {
+    color: #380474 !important;
+}
+.default-bg {
+    background-color: #b56ef8 !important;
+}
+
+
+.nav-view.active {
+    color: #1892B1 !important;
+    background-color: #f8f9fa !important;
+}
+
+.nav-view{
+    color: #212529 !important;
+}
+
+
+
+.btn-danger-subtle {
+    background: #f4c7c7;
+}
+
+.btn-danger-subtle:hover {
+    background: #efb6b6;
+}
+
+
+.btn-success-subtle {
+    background: #cbf4c7;
+}
+
+.btn-success-subtle:hover {
+    background: #bbefb6;
+}
+
+.btn-warning-subtle {
+    background: #faead7;
+}
+
+.btn-warning-subtle:hover {
+    background: #fff2cd;
+}

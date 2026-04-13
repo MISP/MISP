@@ -529,6 +529,7 @@ class EventsController extends AppController
                         }
                     }
 
+                    $AttributeTag = ClassRegistry::init('AttributeTag');
                     if (!empty($tagRules['block'])) {
                         $block = $this->Event->EventTag->find('column', array(
                             'conditions' => array('EventTag.tag_id' => $tagRules['block']),
@@ -552,6 +553,11 @@ class EventsController extends AppController
                                 'conditions' => array('EventTag.tag_id' => $tagRules['include']),
                                 'fields' => ['EventTag.event_id'],
                             ));
+                            $includeAttr = $AttributeTag->find('column', array(
+                                'conditions' => array('AttributeTag.tag_id' => $tagRules['include']),
+                                'fields' => ['AttributeTag.event_id'],
+                            ));
+                            $include = array_unique(array_merge($include, $includeAttr));
                         }
                         if (!empty($include)) {
                             $this->paginate['conditions']['AND'][] = 'Event.id IN (' . implode(",", $include) . ')';
@@ -797,6 +803,24 @@ class EventsController extends AppController
         } else {
             $this->set('extendedEvents', []);
         }
+
+        $orgs = $this->Event->Orgc->find('list', [
+            'fields' => ['Orgc.name', 'Orgc.name'],
+            'order' => ['Orgc.name' => 'ASC']
+        ]);
+        $this->set('orgOptions', ['' => ''] + $orgs);
+
+        $tags = $this->Event->EventTag->Tag->find('list', [
+            'fields' => ['Tag.name', 'Tag.name'],
+            'order' => ['Tag.name' => 'ASC']
+        ]);
+        $this->set('tagOptions', ['' => ''] + $tags);
+
+        $galaxies = $this->GalaxyCluster->Galaxy->find('list', [
+            'fields' => ['Galaxy.name', 'Galaxy.name'],
+            'order' => ['Galaxy.name' => 'ASC']
+        ]);
+        $this->set('galaxyOptions', ['' => ''] + $galaxies);
 
         if ($this->request->is('ajax')) {
             $this->autoRender = false;
@@ -1884,6 +1908,637 @@ class EventsController extends AppController
             $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
         }
         $this->__viewUI($user, $event, $continue, $fromEvent);
+    }
+
+    /**
+     * Lightweight event view endpoint that only loads the
+     * event shell (metadata, org, tags, galaxies). Attributes
+     * and objects are NOT loaded — they are fetched via
+     * dedicated paginated endpoints.
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function view2($id = null)
+    {
+        if ($this->request->is('head')) {
+            $exists = $this->Event->fetchSimpleEvent(
+                $this->Auth->user(), $id, ['fields' => ['id']]
+            );
+            return new CakeResponse(
+                ['status' => $exists ? 200 : 404]
+            );
+        }
+
+        $user = $this->Auth->user();
+
+        // Site admin can view event as different user
+        $namedParams = $this->request->params['named'];
+        if (
+            $this->_isSiteAdmin() &&
+            isset($namedParams['viewAs'])
+        ) {
+            $viewAsUser = $this->User->getAuthUser(
+                $namedParams['viewAs']
+            );
+            if (empty($viewAsUser)) {
+                throw new NotFoundException(__("User not found"));
+            }
+            $this->Flash->info(
+                __(
+                    'Viewing event as %s from %s',
+                    h($viewAsUser['email']),
+                    h($viewAsUser['Organisation']['name'])
+                )
+            );
+            $user = $viewAsUser;
+        }
+
+        // Fetch event metadata only — no attributes, no objects
+        $event = $this->Event->fetchSimpleEvent($user, $id, [
+            'contain' => [
+                'Org',
+                'Orgc',
+                'ThreatLevel',
+                'SharingGroup' => ['Organisation'],
+            ],
+        ]);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+
+        $event = $this->__enrichEvent($event, $user);
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(
+                $event,
+                $this->response->type()
+            );
+        }
+
+        $this->set('event', $event);
+        $this->set('analysisLevels',
+            $this->Event->analysisLevels
+        );
+        $this->set('eventDescriptions',
+            $this->Event->fieldDescriptions
+        );
+        $this->set('distributionLevels',
+            $this->Event->distributionLevels
+        );
+        $this->set('shortDist',
+            $this->Event->shortDist
+        );
+        $this->set('menuData', [
+            'menuList' => 'event',
+            'menuItem' => 'viewEvent',
+        ]);
+    }
+
+    /**
+     * Enrich an event shell with tags, galaxies,
+     * extension info, and analyst data.
+     *
+     * @param array $event Event with 'Event' key
+     * @param array $user
+     * @return array Enriched event
+     */
+    private function __enrichEvent(
+        array $event,
+        array $user
+    ) {
+        // Event tags
+        $eventTags = $this->Event->EventTag->find(
+            'all',
+            [
+                'conditions' => [
+                    'EventTag.event_id' =>
+                        $event['Event']['id'],
+                ],
+                'recursive' => -1,
+            ]
+        );
+        $tagIds = [];
+        foreach ($eventTags as $et) {
+            $tagIds[$et['EventTag']['tag_id']] = true;
+        }
+        $tagsById = [];
+        if (!empty($tagIds)) {
+            $tags = $this->Event->EventTag->Tag->find(
+                'all',
+                [
+                    'recursive' => -1,
+                    'conditions' => [
+                        'Tag.id' => array_keys($tagIds),
+                    ],
+                ]
+            );
+            foreach ($tags as $tag) {
+                $tagsById[$tag['Tag']['id']] =
+                    $tag['Tag'];
+            }
+        }
+        $event['EventTag'] = [];
+        foreach ($eventTags as $et) {
+            $row = $et['EventTag'];
+            $tag = $tagsById[$row['tag_id']] ?? null;
+            if ($tag) {
+                $row['Tag'] = $tag;
+                $event['EventTag'][] = $row;
+            }
+        }
+
+        // Galaxy clusters derived from galaxy tags
+        $galaxyTagNames = [];
+        foreach ($event['EventTag'] as $et) {
+            if (!empty($et['Tag']['is_galaxy'])) {
+                $galaxyTagNames[$et['Tag']['id']] =
+                    $et['Tag']['name'];
+            }
+        }
+        $event['Galaxy'] = [];
+        if (!empty($galaxyTagNames)) {
+            $this->loadModel('GalaxyCluster');
+            $clusters = $this->GalaxyCluster
+                ->getClustersByTags(
+                    $galaxyTagNames, $user,
+                    true, false
+                );
+            if (!empty($clusters)) {
+                $clustersByTagId = array_column(
+                    array_column(
+                        $clusters, 'GalaxyCluster'
+                    ),
+                    null, 'tag_id'
+                );
+                foreach ($event['EventTag'] as $et) {
+                    if (
+                        empty($et['Tag']['is_galaxy'])
+                    ) {
+                        continue;
+                    }
+                    $tagId = $et['Tag']['id'];
+                    if (
+                        !isset($clustersByTagId[$tagId])
+                    ) {
+                        continue;
+                    }
+                    $cluster =
+                        $clustersByTagId[$tagId];
+                    $galaxyId =
+                        $cluster['Galaxy']['id'];
+                    $cluster['event_tag_id'] =
+                        $et['id'];
+                    $cluster['local'] =
+                        $et['local'] ?? false;
+                    $cluster['relationship_type'] =
+                        !empty(
+                            $et['relationship_type']
+                        )
+                        ? $et['relationship_type']
+                        : false;
+                    if (
+                        isset(
+                            $event['Galaxy'][$galaxyId]
+                        )
+                    ) {
+                        unset($cluster['Galaxy']);
+                        $event['Galaxy'][$galaxyId]
+                            ['GalaxyCluster'][] =
+                                $cluster;
+                    } else {
+                        $event['Galaxy'][$galaxyId] =
+                            $cluster['Galaxy'];
+                        unset($cluster['Galaxy']);
+                        $event['Galaxy'][$galaxyId]
+                            ['GalaxyCluster'] =
+                                [$cluster];
+                    }
+                }
+                $event['Galaxy'] = array_values(
+                    $event['Galaxy']
+                );
+            }
+        }
+
+        // Extension info: events extending this one
+        $extensions = $this->Event->fetchSimpleEvents(
+            $user,
+            [
+                'conditions' => [
+                    'Event.extends_uuid' =>
+                        $event['Event']['uuid'],
+                ],
+            ],
+            true
+        );
+        $event['Event']['ExtendedBy'] = [];
+        foreach ($extensions as $ext) {
+            $event['Event']['ExtendedBy'][] = [
+                'id' => $ext['Event']['id'],
+                'uuid' => $ext['Event']['uuid'],
+                'info' => $ext['Event']['info'],
+                'Orgc' => $ext['Orgc'] ?? [],
+            ];
+        }
+
+        // Extension info: event this one extends
+        if (!empty($event['Event']['extends_uuid'])) {
+            $parent = $this->Event->fetchSimpleEvents(
+                $user,
+                [
+                    'conditions' => [
+                        'Event.uuid' =>
+                            $event['Event'][
+                                'extends_uuid'
+                            ],
+                    ],
+                ],
+                true
+            );
+            if (!empty($parent)) {
+                $p = $parent[0];
+                $event['Event']['Extends'] = [
+                    'id' => $p['Event']['id'],
+                    'uuid' => $p['Event']['uuid'],
+                    'info' => $p['Event']['info'],
+                    'Orgc' => $p['Orgc'] ?? [],
+                ];
+            } else {
+                $event['Event']['Extends'] =
+                    $event['Event']['extends_uuid'];
+            }
+        }
+
+        // Analyst data (notes, opinions, relationships)
+        $analystData = $this->Event->attachAnalystData(
+            $event['Event']
+        );
+        $event = array_merge($event, $analystData);
+
+        return $event;
+    }
+
+    /**
+     * Paginated standalone attributes (object_id=0) for a
+     * given event. Returns JSON with DB-level sorting and
+     * pagination — no in-memory rearrangement needed.
+     *
+     * Supports filters via named params or POST data:
+     *   page, limit, sort, direction, deleted, category,
+     *   type, toIDS, searchFor
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function viewAttributes($id = null)
+    {
+        $user = $this->Auth->user();
+
+        $event = $this->Event->fetchSimpleEvent(
+            $user,
+            $id,
+            [
+                'fields' => [
+                    'Event.id', 'Event.orgc_id',
+                    'Event.org_id', 'Event.uuid',
+                    'Event.user_id',
+                    'Event.publish_timestamp',
+                    'Event.distribution',
+                    'Event.sharing_group_id',
+                    'Event.disable_correlation',
+                ],
+            ]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $eventId = $event['Event']['id'];
+
+        $namedParams = $this->request->params['named'];
+        $data = $this->request->data;
+
+        $options = [];
+        $paramKeys = [
+            'page', 'limit', 'sort', 'direction',
+            'deleted', 'category', 'type', 'toIDS',
+            'searchFor', 'flatten',
+        ];
+        foreach ($paramKeys as $key) {
+            if (isset($namedParams[$key])) {
+                $options[$key] = $namedParams[$key];
+            } elseif (isset($data[$key])) {
+                $options[$key] = $data[$key];
+            }
+        }
+
+        $result = $this->Event->fetchPaginatedAttributes(
+            $user,
+            $eventId,
+            $options
+        );
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(
+                $result,
+                'json'
+            );
+        }
+
+        $this->__eventViewCommon($user);
+
+        $mayModify = $this->__canModifyEvent(
+            $event, $user
+        );
+        $this->set('mayModify', $mayModify);
+        $this->set(
+            'mayChangeCorrelation',
+            $this->ACL->canDisableCorrelation(
+                $user, $event
+            )
+        );
+        $this->set('extended', 0);
+        $this->set('extending', 0);
+        $this->set('includeOrgColumn', false);
+        $this->set('includeSightingdb', false);
+        $this->set('includeDecayScore', false);
+        $this->set('includeRelatedTags', false);
+        $this->set(
+            'disable_multi_select',
+            false
+        );
+
+        $this->set('attributes', $result['Attribute']);
+        $page      = $result['page'];
+        $limit     = $result['limit'];
+        $total     = $result['total'];
+        $pageCount = (int) ceil($total / $limit);
+        $current   = count($result['Attribute']);
+
+        // To enable pagination the same way as in AttributesController - index()
+        $this->request->params['paging']['MispAttribute'] = [
+            'page'      => $page,
+            'current'   => $current,
+            'count'     => $total,
+            'prevPage'  => $page > 1,
+            'nextPage'  => $page < $pageCount,
+            'pageCount' => $pageCount,
+            'order'     => null,
+            'limit'     => $limit,
+            'options'   => [],
+            'paramType' => 'named',
+        ];
+
+        $this->set('attributes',         $result['Attribute']);
+        $this->set('total',              $total);
+        $this->set('page',               $page);
+        $this->set('limit',              $limit);
+        $this->set('event',              $event);
+        $this->set('deleted',            false);
+        $this->set('flatten',            !empty($options['flatten']));
+        $this->set('searchFor',          $options['searchFor'] ?? '');
+        $this->layout = false;
+    }
+
+    /**
+     * Paginated objects for a given event. Returns JSON
+     * with DB-level sorting and pagination. Nested
+     * attributes include tags and proposals inline.
+     *
+     * Supports filters via named params or POST data:
+     *   page, limit, sort, direction, deleted, name,
+     *   meta-category, searchFor
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function viewObjects($id = null)
+    {
+        $user = $this->Auth->user();
+
+        $event = $this->Event->fetchSimpleEvent(
+            $user,
+            $id,
+            ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id']]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $eventId = $event['Event']['id'];
+
+        $namedParams = $this->request->params['named'];
+        $data = $this->request->data;
+
+        $options = [];
+        $paramKeys = [
+            'page', 'limit', 'sort', 'direction',
+            'deleted', 'name', 'meta-category', 'searchFor',
+        ];
+        foreach ($paramKeys as $key) {
+            if (isset($namedParams[$key])) {
+                $options[$key] = $namedParams[$key];
+            } elseif (isset($data[$key])) {
+                $options[$key] = $data[$key];
+            }
+        }
+
+        $result = $this->Event->fetchPaginatedObjects(
+            $user,
+            $eventId,
+            $options
+        );
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(
+                $result,
+                'json'
+            );
+        }
+        $this->set('objects', $result['Object']);
+        $this->set('total', $result['total']);
+        $this->set('page', $result['page']);
+        $this->set('limit', $result['limit']);
+        $this->set('event', $event);
+        $this->layout = false;
+    }
+
+    /**
+     * Returns an event-level warninglist hit summary.
+     *
+     * Only checks whether the user can see the event —
+     * individual attribute ACL is intentionally skipped
+     * for performance (we only SELECT value/type fields).
+     *
+     * Response format:
+     * {
+     *   "false_positive": {"<id>": "<warninglist name>", …},
+     *   "known":          {"<id>": "<warninglist name>", …}
+     * }
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function viewWarninglistHits($id = null)
+    {
+        $user = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user,
+            $id,
+            ['fields' => ['Event.id']]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $eventId = $event['Event']['id'];
+
+        $this->loadModel('Warninglist');
+        $attributes = $this->Event->Attribute->find('all', [
+            'conditions' => [
+                'Attribute.event_id' => $eventId,
+                'Attribute.deleted' => 0,
+            ],
+            'fields' => [
+                'Attribute.value',
+                'Attribute.type',
+                'Attribute.to_ids',
+            ],
+            'recursive' => -1,
+        ]);
+
+        // Flatten from CakePHP nested format to simple
+        // arrays that attachWarninglistToAttributes expects
+        $flat = [];
+        foreach ($attributes as $a) {
+            $flat[] = $a['Attribute'];
+        }
+
+        $eventWarnings = $this->Warninglist
+            ->attachWarninglistToAttributes($flat);
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(
+                $eventWarnings,
+                'json'
+            );
+        }
+        $this->set('warninglistHits', $eventWarnings);
+        $this->set('event', $event);
+        $this->layout = false;
+    }
+
+    /**
+     * Event-to-event correlation overview. Returns the list
+     * of related events (via shared attribute values) with
+     * metadata and a count of unique correlating values per
+     * related event.
+     *
+     * ACL is enforced via the correlation table itself —
+     * all distribution / sharing group checks happen there.
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function viewRelatedEvents($id = null)
+    {
+        $user = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user,
+            $id,
+            ['fields' => ['Event.id']]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $eventId = $event['Event']['id'];
+        $this->layout = false;
+
+        $sgids = $this->Event->SharingGroup->authorizedIds(
+            $user
+        );
+        $relatedEventIds = $this->Event->Attribute
+            ->Correlation->getRelatedEventIds(
+                $user, $eventId, $sgids
+            );
+        if (empty($relatedEventIds)) {
+            if ($this->_isRest()) {
+                return $this->RestResponse->viewData(
+                    ['RelatedEvent' => []],
+                    'json'
+                );
+            }
+            $this->set('relatedEvents', []);
+            $this->set('correlationCounts', []);
+            $this->set('event', $event);
+            return;
+        }
+
+        // Fetch event metadata for related events
+        $relatedEvents = $this->Event->find('all', [
+            'conditions' => [
+                'Event.id' => $relatedEventIds,
+            ],
+            'recursive' => -1,
+            'order' => 'Event.date DESC',
+            'fields' => [
+                'Event.id', 'Event.date',
+                'Event.threat_level_id', 'Event.info',
+                'Event.published', 'Event.uuid',
+                'Event.analysis', 'Event.timestamp',
+                'Event.distribution', 'Event.org_id',
+                'Event.orgc_id',
+            ],
+            'contain' => [
+                'Org' => ['fields' => ['id', 'name', 'uuid']],
+                'Orgc' => [
+                    'fields' => ['id', 'name', 'uuid'],
+                ],
+            ],
+        ]);
+
+        // Nest Org/Orgc inside Event key
+        foreach ($relatedEvents as $k => $re) {
+            if (isset($re['Org'])) {
+                $relatedEvents[$k]['Event']['Org'] = $re['Org'];
+                unset($relatedEvents[$k]['Org']);
+            }
+            if (isset($re['Orgc'])) {
+                $relatedEvents[$k]['Event']['Orgc'] =
+                    $re['Orgc'];
+                unset($relatedEvents[$k]['Orgc']);
+            }
+        }
+
+        // Build per-related-event correlation count
+        // using the attribute-level correlation data
+        $relatedAttributes = $this->Event
+            ->getRelatedAttributes($user, $eventId);
+        $correlationCounts = [];
+        if (!empty($relatedAttributes)) {
+            foreach ($relatedAttributes as $attrCorrelations) {
+                foreach ($attrCorrelations as $corr) {
+                    $reId = $corr['id'];
+                    $correlationCounts[$reId][
+                        $corr['value']
+                    ] = true;
+                }
+            }
+        }
+        foreach ($correlationCounts as $reId => $values) {
+            $correlationCounts[$reId] = count($values);
+        }
+
+        // Attach counts to related events
+        foreach ($relatedEvents as &$re) {
+            $reId = $re['Event']['id'];
+            $re['Event']['correlation_count'] =
+                $correlationCounts[$reId] ?? 0;
+        }
+        unset($re);
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(
+                ['RelatedEvent' => $relatedEvents],
+                'json'
+            );
+        }
+        $this->set('relatedEvents', $relatedEvents);
+        $this->set('correlationCounts', $correlationCounts);
+        $this->set('event', $event);
     }
 
     /**
@@ -3063,6 +3718,7 @@ class EventsController extends AppController
             $eventList = is_numeric($id) ? [$id] : $this->_jsonDecode($id);
             $this->request->data['Event']['id'] = json_encode($eventList);
             $this->set('idArray', $eventList);
+            $this->layout = false;
             $this->render('ajax/eventDeleteConfirmationForm');
         }
     }
@@ -3107,6 +3763,7 @@ class EventsController extends AppController
         } else {
             $this->set('id', $id);
             $this->set('type', 'unpublish');
+            $this->layout = false;
             $this->render('ajax/eventPublishConfirmationForm');
         }
     }
@@ -3202,6 +3859,7 @@ class EventsController extends AppController
             $servers = $this->Event->listServerToPush($event);
             $this->set('id', $event['Event']['id']);
             $this->set('servers', $servers);
+            $this->layout = false;
             $this->set('type', 'publish');
             $this->render('ajax/eventPublishConfirmationForm');
         }
@@ -3578,6 +4236,7 @@ class EventsController extends AppController
             }
             $this->set('idList', $idList);
             $this->set('exportFormats', $exportFormats);
+            $this->layout = false;
             $this->render('ajax/eventRestSearchExportConfirmationForm');
         } else {
             $returnFormat = !isset($this->Event->validFormats[$returnFormat]) ? 'json' : $returnFormat;

@@ -450,6 +450,63 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+
+  /attributes/getAttributeByB64Value/{base64Value}:
+    get:
+      summary: "Get attribute(s) by value"
+      description: |
+        Search for attributes by their value and return full attribute details including ID.
+        This endpoint allows efficient lookup of attributes directly in the database using indexed columns.
+        The attribute value must be base64 encoded in the URL path.
+        
+        **Example usage:**
+        ```bash
+        # Encode the attribute value to base64
+        VALUE="192.168.1.1"
+        BASE64=$(echo -n "$VALUE" | base64 -w0)
+        
+        # Query the API
+        curl -H "Authorization: YOUR_API_KEY" \
+             -H "Accept: application/json" \
+             "https://misp.local/attributes/getid/${BASE64}"
+        ```
+      operationId: getAttributeByB64Value
+      tags:
+        - Attributes
+      parameters:
+        - name: base64Value
+          in: path
+          description: "Base64 encoded attribute value to search for (use `echo -n 'value' | base64 -w0`)"
+          required: true
+          schema:
+            type: string
+            format: byte
+            example: "MTkyLjE2OC4xLjE="
+      responses:
+        "200":
+          description: "List of matching attributes"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Attribute"
+        "404":
+          description: "Attribute not found or invalid base64 encoding"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          description: "Method not allowed - this endpoint is API only"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
   /attributes/attributeStatistics/{context}/{percentage}:
     get:
       summary: "Get the count of attributes per category"

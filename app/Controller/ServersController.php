@@ -566,7 +566,7 @@ class ServersController extends AppController
 
                             if (!$orgSave) {
                                 if ($this->_isRest()) {
-                                    return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->Organisation->validationError, $this->response->type());
+                                    return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->Organisation->validationErrors, $this->response->type());
                                 } else {
                                     $this->Flash->error(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
                                 }
@@ -612,7 +612,7 @@ class ServersController extends AppController
                     }
                 } else {
                     if ($this->_isRest()) {
-                        return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->validationError, $this->response->type());
+                        return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->validationErrors, $this->response->type());
                     } else {
                         $this->Flash->error(__('The server could not be saved. Please, try again.'));
                     }
@@ -725,9 +725,9 @@ class ServersController extends AppController
             }
             if ($this->_isRest()) {
                 if ($result) {
-                    return $this->RestResponse->saveFailResponse('Servers', 'eventBlockRule', false, $message, $this->response->type());
-                } else {
                     return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', $message, $this->response->type());
+                } else {
+                    return $this->RestResponse->saveFailResponse('Servers', 'eventBlockRule', false, $message, $this->response->type());
                 }
             } else {
                 if ($result) {
@@ -938,7 +938,7 @@ class ServersController extends AppController
                         $this->redirect(array('action' => 'index'));
                     }
 
-                    if (!$server['Server'][$subm]['size'] > 0) {
+                    if (!($server['Server'][$subm]['size'] > 0)) {
                         $this->Flash->error(__('Incorrect extension or empty file.'));
                         $this->redirect(array('action' => 'index'));
                     }
@@ -1070,7 +1070,7 @@ class ServersController extends AppController
                     'description' => __('There are some optional tweaks that could be done to improve the looks of your MISP instance.')
                 ),
             ),
-            'deprecated' => array(),
+            'deprecated' => 0,
             'overallHealth' => 3,
         );
         $dumpResults = array();

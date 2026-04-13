@@ -310,8 +310,13 @@ echo $this->Form->end();
 
     $('#downloadResultsButton').click(function(e) {
         e.preventDefault();
+        var searchToken = '<?= isset($search_token) ? h($search_token) : '' ?>';
+        if (!searchToken) {
+            alert('No search token available. Please use the search function first.');
+            return;
+        }
         var exportType = $('#downloadFormatSelector').find(":selected").text();
-        var url = '<?= $baseurl ?>/attributes/restSearch/returnFormat:' + exportType + '/search_token:<?= $search_token?>';
+        var url = '<?= $baseurl ?>/attributes/restSearch/returnFormat:' + exportType + '/search_token:' + searchToken;
         window.location.href = url;
     });
     // tooltips

@@ -4864,30 +4864,46 @@ class Server extends AppModel
             $job = ClassRegistry::init('Job');
             $job->id = $jobId;
         }
-        $redis->del('misp:server_cache:' . $serverId);
 
         $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+        $fastCaching = $serverSync->isSupported(ServerSyncTool::FEATURE_FAST_CACHING);
+        $nextLastId = null;
+        $count = 0;
+        // delete the previous iterations, but skip the event uuid one as the uuid might exist on other instances too (should have thought about this when designing the cache, but alas, past me was a monkey too)
+        $redis->del('misp:server_cache:' . $serverId);
         while (true) {
-            $i++;
-            $rules = [
-                'returnFormat' => 'cache',
-                'includeEventUuid' => 1,
-                'page' => $i,
-                'limit' => $chunk_size,
-            ];
-            try {
-                $data = $serverSync->attributeSearch($rules)->body();
-            } catch (Exception $e) {
-                $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
-                break;
+            if ($fastCaching) {
+                if (!isset($lastId)) {
+                    $lastId = 0;
+                }
+                $return = $serverSync->getFastCache($nextLastId);
+                $nextLastId = (int)$return->headers['x-misp-last-id'] ?? null;
+                $data = $return->body();
+                $nextLastId;
+            } else {
+                $i++;
+                $rules = [
+                    'returnFormat' => 'cache',
+                    'includeEventUuid' => 1,
+                    'page' => $i,
+                    'limit' => $chunk_size,
+                ];
+                try {
+                    $data = $serverSync->attributeSearch($rules)->body();
+                } catch (Exception $e) {
+                    $this->logException("Could not fetch cached attribute from server {$serverSync->serverId()}.", $e);
+                    break;
+                }
             }
 
             $data = trim($data);
             if (empty($data)) {
                 break;
             }
-
             $data = explode(PHP_EOL, $data);
+            if ($fastCaching) {
+                $count += count($data);
+            }
             $pipe = $redis->pipeline();
             foreach ($data as $entry) {
                 list($value, $uuid) = explode(',', $entry);
@@ -4899,7 +4915,11 @@ class Server extends AppModel
             }
             $pipe->exec();
             if ($jobId) {
-                $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+                if ($fastCaching) {
+                    $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . $count . ' attributes cached.');
+                } else {
+                    $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+                }
             }
         }
         $redis->set('misp:server_cache_timestamp:' . $serverId, time());
@@ -7479,6 +7499,22 @@ class Server extends AppModel
             ),
             'Plugin' => array(
                 'branch' => 1,
+                'Geolocation_enabled' => array(
+                    'level' => 1,
+                    'description' => __('When enabled, geolocation objects will display a map icon that shows the coordinates on an interactive map.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true
+                ),
+                'Geolocation_url' => array(
+                    'level' => 1,
+                    'description' => __('The base URL of the tile server used for geolocation maps. Defaults to https://geo.circl.lu if not set.'),
+                    'value' => 'https://geo.circl.lu',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true
+                ),
                 'RPZ_policy' => array(
                     'level' => 2,
                     'description' => __('The default policy action for the values added to the RPZ.'),

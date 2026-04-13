@@ -848,7 +848,7 @@ class EventReport extends AppModel
                 $ext = strtolower(pathinfo($attribute['Attribute']['value'], PATHINFO_EXTENSION));
                 if ($ext === 'svg') {
                     $mime = 'image/svg+xml';
-                } else if (in_array($ext, self::SUPPORTED_IMAGES)) {
+                } else if (in_array($ext, self::SUPPORTED_IMAGES, true)) {
                     $mime = 'image/' . $ext;
                 } else {
                     throw new InvalidArgumentException(sprintf("Only SVG, %s images are supported, '$ext' file provided.", implode(', ', self::SUPPORTED_IMAGES)));
@@ -871,13 +871,12 @@ class EventReport extends AppModel
         }
 
         try {
-            $fileContent = FileAccessTool::readFromFile($filepath);
+            $fileContentEncoded = FileAccessTool::readAndBase64Encode($filepath);
         } catch (Exception $e) {
             return 'data:null'; // in case file doesn't exists or is not readable
         }
 
         $ext = strtolower(pathinfo($filepath, PATHINFO_EXTENSION));
-        $fileContentEncoded = base64_encode($fileContent);
         if ($ext === 'svg') {
             $mime = 'image/svg+xml';
         } else if (in_array($ext, self::SUPPORTED_IMAGES)) {
