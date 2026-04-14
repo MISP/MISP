@@ -120,6 +120,9 @@ class OrganisationsController extends AppController
             'fields' => ['name', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid', 'restricted_to_domain'],
             'afterSave' => function (array $data) use ($id) {
                 $this->__uploadLogo($this->Organisation->id);
+                if ($id == $this->Auth->user('org_id')) {
+                    $this->_refreshAuth();
+                }
                 if (!$this->IndexFilter->isRest()) {
                     $this->Flash->success(__('Organisation updated.'));
                     $this->redirect(['admin' => false, 'action' => 'view', $id]);
