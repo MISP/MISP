@@ -10,18 +10,18 @@ if (!empty($workflows)) {
             'label' => sprintf('%s :: %s', h($wf['trigger_id']), h($wf['name'])),
             'type' => 'checkbox',
         ];
-        $fields[] = [
-            'field' => 'environment_variables',
-            'label' => __("Workflow Environment Variables"),
-            'type' => 'textarea',
-            'class' => 'span5',
-            'div' => 'input clear input-append',
-            'picker' => [
-                'text' => __('Toggle UI'),
-                'function' => 'initWorkflowVariablesUI'
-            ]
-        ];
     }
+    $fields[] = [
+        'field' => 'environment_variables',
+        'label' => __("Workflow Environment Variables"),
+        'type' => 'textarea',
+        'class' => 'span5',
+        'div' => 'input clear input-append',
+        'picker' => [
+            'text' => __('Toggle UI'),
+            'function' => 'initWorkflowVariablesUI'
+        ]
+    ];
 }
 
 echo $this->element('genericElements/Form/genericForm', [
