@@ -244,6 +244,8 @@ $(document).ready( function() {
   	node.on('mouseout', function() {
   		  link.style('stroke-width', 1);
   		  link.style('stroke', "#9ecae1");
+  		  $('#hover-header').hide();
+  		  d3.select("#hover-menu").style('display', 'none');
   	});
 
   	node.on("click", function(d) {
