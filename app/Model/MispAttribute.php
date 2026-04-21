@@ -121,6 +121,189 @@ class MispAttribute extends AppModel
     // if these then a category may have upload
     const UPLOAD_DEFINITIONS = ['attachment'];
 
+    // Curated list of MISP object templates that can be used as the target
+    // container for an upload via /attributes/add_attachment. Split into two
+    // pools depending on whether the "is a malware sample" checkbox is set.
+    // The first entry in each pool is the default and reflects the current
+    // implementation (a generic `file` object for malware samples, a flat
+    // `attachment` attribute with no object for benign uploads).
+    const ATTACHMENT_OBJECT_TEMPLATES = [
+        'malicious' => [
+            [
+                'name' => 'file',
+                'uuid' => '688c46fb-5edb-40a3-8273-1af7923e2215',
+                'label' => 'Generic file (default)',
+                'description' => 'File object describing a file with meta-information',
+                'default' => true,
+            ],
+            [
+                'name' => 'apk',
+                'uuid' => '501bf5cf-28e0-4a5a-8056-e811c6447cfa',
+                'label' => 'APK (Android package)',
+                'description' => 'Apk object describing a file with meta-information',
+            ],
+            [
+                'name' => 'lnk',
+                'uuid' => 'ad13533e-1853-4da0-a111-33a7ce7e6c09',
+                'label' => 'LNK (Windows shortcut)',
+                'description' => 'LNK object describing a Windows LNK binary file (aka Windows shortcut)',
+            ],
+            [
+                'name' => 'cs-beacon-config',
+                'uuid' => 'd17355ef-ca1f-4b5a-86cd-65d877991f54',
+                'label' => 'Cobalt Strike beacon config',
+                'description' => 'Cobalt Strike Beacon Config',
+            ],
+            [
+                'name' => 'malware-config',
+                'uuid' => '8200b79b-1d8c-49a8-9a63-7710e613c059',
+                'label' => 'Malware config',
+                'description' => 'Malware configuration recovered or extracted from a malicious binary',
+            ],
+            [
+                'name' => 'data-url',
+                'uuid' => '8b478c14-bfe7-4f99-b370-753637bf60fe',
+                'label' => 'Data URL',
+                'description' => 'URL prefixed with the data: scheme, used to embed inline files in documents',
+            ],
+            [
+                'name' => 'artifact',
+                'uuid' => '0a46df3a-bd9b-472c-a1e7-6aede7094483',
+                'label' => 'Artifact (raw bytes)',
+                'description' => 'Artifact object capturing an array of bytes as a base64-encoded string',
+            ],
+            [
+                'name' => 'exploit',
+                'uuid' => '611a25d5-d8aa-4dde-b9c8-c084e786ebf3',
+                'label' => 'Exploit',
+                'description' => 'Exploit object describing a program used to abuse one or more vulnerabilities',
+            ],
+            [
+                'name' => 'exploit-poc',
+                'uuid' => 'e3bdeef8-78c3-48d8-9c2f-1be5e5bde93b',
+                'label' => 'Exploit PoC',
+                'description' => 'Exploit-poc object describing a proof of concept or exploit of a vulnerability',
+            ],
+            [
+                'name' => 'script',
+                'uuid' => '6bce7d01-dbec-4054-b3c2-3655a19382e2',
+                'label' => 'Script',
+                'description' => 'Object describing a computer program written to be run in a special run-time environment',
+            ],
+        ],
+        'non_malicious' => [
+            [
+                'name' => null,
+                'uuid' => null,
+                'label' => 'Attachment attribute (default)',
+                'description' => 'Store the file as a flat attachment attribute without wrapping it in an object',
+                'default' => true,
+            ],
+            [
+                'name' => 'file',
+                'uuid' => '688c46fb-5edb-40a3-8273-1af7923e2215',
+                'label' => 'Generic file',
+                'description' => 'File object describing a file with meta-information',
+            ],
+            [
+                'name' => 'image',
+                'uuid' => 'ca78ec03-3321-4ed3-9840-9bfd52b91d82',
+                'label' => 'Image',
+                'description' => 'Object describing an image file',
+            ],
+            [
+                'name' => 'meme-image',
+                'uuid' => '6f6c3b61-f085-475e-93df-2e2d9c2fb0f6',
+                'label' => 'Meme image',
+                'description' => 'Object describing a meme (image)',
+            ],
+            [
+                'name' => 'ocrized-image',
+                'uuid' => 'fc2abf07-1228-4a14-8633-f39030b0220c',
+                'label' => 'OCRized image',
+                'description' => 'OCRized image, including the original image, extracted text, and context',
+            ],
+            [
+                'name' => 'forged-document',
+                'uuid' => '7e927620-b97c-4b00-98c0-8c0184d83d21',
+                'label' => 'Forged document',
+                'description' => 'Object describing a forged document',
+            ],
+            [
+                'name' => 'leaked-document',
+                'uuid' => 'ea145ecd-b3c2-4f57-ac11-c16e883c4247',
+                'label' => 'Leaked document',
+                'description' => 'Object describing a leaked document',
+            ],
+            [
+                'name' => 'sandbox-report',
+                'uuid' => '4d3fffd2-cd07-4357-96e0-a51c988faaef',
+                'label' => 'Sandbox report',
+                'description' => 'Sandbox report',
+            ],
+            [
+                'name' => 'report',
+                'uuid' => '70a68471-df22-4e3f-aa1a-5a3be19f82df',
+                'label' => 'Report',
+                'description' => 'Report object describing a report along with its metadata',
+            ],
+            [
+                'name' => 'risk-assessment-report',
+                'uuid' => '72989321-6866-40c6-a9b5-4c5869ec2a76',
+                'label' => 'Risk assessment report',
+                'description' => 'Risk assessment report object',
+            ],
+            [
+                'name' => 'phishing',
+                'uuid' => '2dad6f9d-d425-4217-8fda-0b0a2d815307',
+                'label' => 'Phishing',
+                'description' => 'Phishing template describing a phishing website and its analysis',
+            ],
+            [
+                'name' => 'email',
+                'uuid' => 'a0c666e0-fc65-4be8-b48f-3423d788b552',
+                'label' => 'Email',
+                'description' => 'Email object describing an email with meta-information',
+            ],
+            [
+                'name' => 'paste',
+                'uuid' => 'cedc055c-78aa-49a4-bfd7-4cc30cecef12',
+                'label' => 'Paste',
+                'description' => 'Paste or similar post from a website',
+            ],
+            [
+                'name' => 'iot-firmware',
+                'uuid' => '8bafb8fc-d986-4a58-b22b-6b8c7c0e8b70',
+                'label' => 'IoT firmware',
+                'description' => 'A firmware for an IoT device',
+            ],
+            [
+                'name' => 'original-imported-file',
+                'uuid' => '4cd560e9-2cfe-40a1-9964-7b2e797ecac5',
+                'label' => 'Original imported file',
+                'description' => 'Object describing the original file used to import data in MISP',
+            ],
+            [
+                'name' => 'geojson',
+                'uuid' => 'b6d67c8b-8d8c-4231-8830-7a159e5195e5',
+                'label' => 'GeoJSON',
+                'description' => 'GeoJSON file containing geographic data structures',
+            ],
+            [
+                'name' => 'gpx',
+                'uuid' => '64ee6f19-f154-45c0-bd9c-e659ff0e30f7',
+                'label' => 'GPX (GPS exchange)',
+                'description' => 'GPX (GPS Exchange Format) file',
+            ],
+            [
+                'name' => 'trusted-timestamp',
+                'uuid' => 'cb84ff28-a488-432e-8ba4-f0d54cc91172',
+                'label' => 'Trusted timestamp',
+                'description' => 'A trusted timestamp',
+            ],
+        ],
+    ];
+
     // skip Correlation for the following types
     const NON_CORRELATING_TYPES = [
         'comment',
@@ -2537,6 +2720,21 @@ class MispAttribute extends AppModel
      * @param array $hashTypes
      * @return array
      */
+    /**
+     * Thin public wrapper around handleMaliciousRaw() so that the attachment object
+     * builder (and any other caller outside the model) can obtain the encrypt+zip
+     * payload without reaching into private methods.
+     *
+     * @param string   $filename
+     * @param string   $content
+     * @param string[] $hashTypes
+     * @return array  ['success' => bool, 'data_raw' => string|null, 'md5' => ..., 'sha1' => ..., ...]
+     */
+    public function encryptForMalwareSample($filename, $content, array $hashTypes = ['md5', 'sha1', 'sha256'])
+    {
+        return $this->handleMaliciousRaw($filename, $content, $hashTypes);
+    }
+
     private function handleMaliciousRaw($originalFilename, $content, array $hashTypes)
     {
         $attachmentTool = $this->loadAttachmentTool();
@@ -2571,6 +2769,42 @@ class MispAttribute extends AppModel
         }
 
         return false;
+    }
+
+    /**
+     * Returns which advanced-extraction tools are available. Keys are tool names
+     * (pymisp, lief, pydeep, magic) and values are booleans (true = installed).
+     * Empty array when the helper script itself can't be executed.
+     *
+     * @return array<string,bool>
+     */
+    public function advancedExtractionTools()
+    {
+        try {
+            $types = $this->loadAttachmentTool()->checkAdvancedExtractionStatus();
+        } catch (Exception $e) {
+            return [];
+        }
+        $out = [];
+        foreach ($types as $tool => $missing) {
+            // The helper returns `false` to indicate the tool is NOT missing.
+            $out[$tool] = ($missing === false);
+        }
+        return $out;
+    }
+
+    /**
+     * Public wrapper around the advanced extraction helper script so that callers
+     * outside the model (e.g. the attachment object builder) can invoke LIEF-backed
+     * enrichment the same way the simple/advanced malware flow does.
+     *
+     * @param string $filePath
+     * @return array  The JSON-decoded response from generate_file_objects.py.
+     * @throws Exception
+     */
+    public function runAdvancedExtraction($filePath)
+    {
+        return $this->loadAttachmentTool()->advancedExtraction($filePath);
     }
 
     public function resolveHashType($hash)
@@ -2744,6 +2978,26 @@ class MispAttribute extends AppModel
             unset($distributionLevels[4]);
         }
         return array('sgs' => $sgs, 'levels' => $distributionLevels, 'initial' => $initialDistribution);
+    }
+
+    /**
+     * Dispatch an uploaded attachment to the object-template handler that matches the selected pool + UUID.
+     * Returns a normalized payload of the shape:
+     *   ['Attribute' => [], 'Object' => [], 'ObjectReference' => []]
+     *
+     * @param string      $pool          'malicious' | 'non_malicious'
+     * @param string|null $templateUuid  Curated template UUID; null or '' for the non-malicious flat-attachment sentinel.
+     * @param int         $eventId
+     * @param array       $attributeSettings  Posted Attribute fields.
+     * @param string      $filename
+     * @param File        $tmpfile
+     * @return array
+     * @throws InvalidArgumentException  When the pool/UUID pair is not in the curated list or has no handler yet.
+     */
+    public function buildAttachmentPayload($pool, $templateUuid, $eventId, array $attributeSettings, $filename, $tmpfile)
+    {
+        App::uses('AttachmentObjectBuilder', 'Tools');
+        return (new AttachmentObjectBuilder($this))->build($pool, $templateUuid, $eventId, $attributeSettings, $filename, $tmpfile);
     }
 
     public function simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile)
