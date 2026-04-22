@@ -26,13 +26,14 @@
  * - url            : URL (supports %id% and %action%)
  * - class          : CSS class
  * - requirement    : Permission check function
- * - state_path     : Path to the boolean value (toggle)
+ * - publish_path     : Path to the published value (toggle)
  */
 
 $fields = [
     [
         'element' => 'selector',
         'data_path' => 'Event.id',
+        'publish_path' => 'Event.published',
         'card_section' => 'selector',
         'actions' => [
             [
@@ -68,7 +69,7 @@ $fields = [
                 'icon_on' => 'download',
                 'icon_off' => 'upload',
                 'url' => $baseurl . '/events/%action%/%id%',
-                'state_path' => 'Event.published',
+                'publish_path' => 'Event.published',
                 'requirement' => 'check_publish_rights'
             ]
         ]
@@ -123,7 +124,7 @@ $fields = [
     [
         'name' => __('Tags'),
         'data_path' => 'EventTag',
-        'element' => 'tag',
+        'element' => 'tag_list',
         'card_section' => 'tag',
         'display_in' => ['table', 'card']
     ],

@@ -26,14 +26,14 @@
  * - url            : URL (supports %id% and %action%)
  * - class          : CSS class
  * - requirement    : Permission check function
- * - state_path     : Path to the boolean value (toggle)
+ * - enable_path     : Path to the enable value (toggle)
  */
 
 $fields = [
     [
         'element' => 'selector',
         'data_path' => 'Warninglist.id',
-        'state_path' => 'Warninglist.enabled',
+        'enable_path' => 'Warninglist.enabled',
         'card_section' => 'selector',
         'actions' => [
             [
@@ -69,7 +69,7 @@ $fields = [
                 'icon_on' => 'stop',
                 'icon_off' => 'play',
                 'url' => $baseurl . '/warninglists/toggleEnable/%id%', 
-                'state_path' => 'Warninglist.enabled',
+                'enable_path' => 'Warninglist.enabled',
                 'requirement' => 'check_site_admin'
             ]
         ]

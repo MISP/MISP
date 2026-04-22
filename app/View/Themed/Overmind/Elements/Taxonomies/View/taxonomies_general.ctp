@@ -1,9 +1,3 @@
-<?php
-
-$warninglist = $data['Warninglist'] ?? $data;
-
-?>
-
 <div class="card mb-3 shadow-sm">
 
     <div class="card-body">
@@ -11,11 +5,11 @@ $warninglist = $data['Warninglist'] ?? $data;
         <!-- NAME -->
         <div class="mb-4">
             <div class="text-muted small bold text-uppercase fw-bold mb-1">
-                <?= __('Name') ?>
+                <?= __('Namespace') ?>
             </div>
 
             <div class="fw-semibold fs-5">
-                <?= h($warninglist['name'] ?? '') ?>
+                <?= h($data['namespace'] ?? '') ?>
             </div>
         </div>
 
@@ -26,7 +20,7 @@ $warninglist = $data['Warninglist'] ?? $data;
             </div>
 
             <div class="bg-light border rounded p-3">
-                <?= nl2br(h($warninglist['description'] ?? '')) ?>
+                <?= nl2br(h($data['description'] ?? '')) ?>
             </div>
         </div>
 
@@ -41,37 +35,9 @@ $warninglist = $data['Warninglist'] ?? $data;
 
                 <div class="d-flex align-items-center gap-2">
                     <div class="bg-light rounded px-2 py-1">
-                        <?= h($warninglist['id'] ?? '') ?>
+                        <?= h($data['id'] ?? '') ?>
                     </div>
                 </div>
-            </div>
-
-            <!-- CATEGORY -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Category') ?>
-                </div>
-
-                <?= $this->element('genericElementsBS5/Badges/category',
-                    [
-                        'category' => $warninglist['category'],
-                        'full' => false
-                    ]
-                ); ?>
-            </div>
-
-
-            <!-- TYPE -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Type') ?>
-                </div>
-
-                <?= $this->element('genericElementsBS5/Badges/type',
-                    [
-                        'type' => $warninglist['type'],
-                    ]
-                ); ?>
             </div>
 
             <!-- VERSION -->
@@ -82,21 +48,7 @@ $warninglist = $data['Warninglist'] ?? $data;
 
                 <?= $this->element('genericElementsBS5/Badges/version',
                     [
-                        'version' => $warninglist['version'],
-                    ]
-                ); ?>
-            </div>
-
-            <!-- DEFAULT -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Default') ?>
-                </div>
-
-                <?= $this->element('genericElementsBS5/Badges/default',
-                    [
-                        'default' => $warninglist['default'],
-                        'full' => false
+                        'version' => $data['version'],
                     ]
                 ); ?>
             </div>
@@ -109,7 +61,35 @@ $warninglist = $data['Warninglist'] ?? $data;
 
                 <?= $this->element('genericElementsBS5/Badges/boolean',
                     [
-                        'boolean' => $warninglist['enabled'],
+                        'boolean' => $data['enabled'],
+                        'full' => false
+                    ]
+                ); ?>
+            </div>
+
+            <!-- REQUIRED -->
+            <div class="col-md-4">
+                <div class="text-muted small text-uppercase fw-bold mb-1">
+                    <?= __('Required') ?>
+                </div>
+
+                <?= $this->element('genericElementsBS5/Badges/boolean',
+                    [
+                        'boolean' => $data['required'],
+                        'full' => false
+                    ]
+                ); ?>
+            </div>
+
+            <!-- HIGHLIGHTED -->
+            <div class="col-md-4">
+                <div class="text-muted small text-uppercase fw-bold mb-1">
+                    <?= __('Highlighted') ?>
+                </div>
+
+                <?= $this->element('genericElementsBS5/Badges/boolean',
+                    [
+                        'boolean' => $data['highlighted'],
                         'full' => false
                     ]
                 ); ?>

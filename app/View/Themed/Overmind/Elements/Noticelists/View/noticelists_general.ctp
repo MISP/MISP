@@ -77,9 +77,9 @@ $noticelist = $data['Noticelist'] ?? $data;
                     <?= __('Enabled') ?>
                 </div>
 
-                <?= $this->element('genericElementsBS5/Badges/enabled',
+                <?= $this->element('genericElementsBS5/Badges/boolean',
                     [
-                        'enabled' => $noticelist['enabled'],
+                        'boolean' => $noticelist['enabled'],
                         'full' => false
                     ]
                 ); ?>
