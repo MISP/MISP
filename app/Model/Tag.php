@@ -934,4 +934,22 @@ class Tag extends AppModel
         }
         return $this->cachedTagsByName;
     }
+
+
+    public function getAllTagsForSelect($user)
+    {
+        $conditions = $this->createConditions($user);
+        $conditions['Tag.is_galaxy'] = 0;
+        $conditions['Tag.hide_tag'] = 0;
+        $conditions['Tag.local_only'] = 0;
+
+        $tags = $this->find('all', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'order' => ['Tag.name ASC'],
+            'fields' => ['Tag.id', 'Tag.name']
+        ]);
+
+        return Hash::combine($tags, '{n}.Tag.id', '{n}.Tag.name');
+    }
 }

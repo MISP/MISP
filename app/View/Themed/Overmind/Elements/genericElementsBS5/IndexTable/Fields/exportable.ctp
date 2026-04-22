@@ -1,26 +1,26 @@
 <?php
 /*
- * enabled.ctp
+ * exportable.ctp
  *
  * Expected:
- * $data_path => item.enabled'
+ * $data_path => item.exportable'
  */
 
-$enabled = Hash::extract($row, $field['data_path']);
+$exportable = Hash::extract($row, $field['data_path']);
 
-if (empty($enabled)) {
+if (empty($exportable)) {
     return;
 }
-$boolean = !empty($field['boolean_reverse']) ? !$enabled[0] : $enabled[0];
+
 $isCard = isset($viewMode) && $viewMode === 'card';
 
 echo $this->element(
     'genericElementsBS5/Badges/boolean',
     [
-        'boolean' => $boolean,
+        'boolean' => $exportable[0],
         'full' => $isCard,
-        'true' => __('Enabled'),
-        'false' => __('Disabled'),
+        'true' => __('Exportable'),
+        'false' => __('Not Exportable'),
         'trueColor'  => 'success',
         'falseColor' => 'danger',
         'trueIcon'   => 'fa-check-circle',

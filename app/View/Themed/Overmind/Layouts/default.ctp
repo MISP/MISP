@@ -20,6 +20,21 @@
             ['controller' => 'attributes', 'action' => 'index'],
             ['controller' => 'attributes', 'action' => 'delete'],
 
+            ['controller' => 'tags', 'action' => 'index'],
+            ['controller' => 'tags', 'action' => 'add'],
+            ['controller' => 'tags', 'action' => 'edit'],
+            ['controller' => 'tags', 'action' => 'viewGraph'],
+
+            ['controller' => 'tagCollections', 'action' => 'index'],
+            ['controller' => 'tagCollections', 'action' => 'addWithTags'],
+            ['controller' => 'tagCollections', 'action' => 'editWithTags'],
+
+            ['controller' => 'taxonomies', 'action' => 'index'],
+            ['controller' => 'taxonomies', 'action' => 'delete'],
+            ['controller' => 'taxonomies', 'action' => 'view'],
+            ['controller' => 'taxonomies', 'action' => 'addTag'],
+            ['controller' => 'taxonomies', 'action' => 'disableTag'],
+
             ['controller' => 'collections', 'action' => 'index'],
             ['controller' => 'collections', 'action' => 'view'],
             ['controller' => 'collections', 'action' => 'add'],
@@ -44,7 +59,6 @@
 
             ['controller' => 'correlation_exclusions', 'action' => 'index'],
             ['controller' => 'correlation_exclusions', 'action' => 'add'],
-
 
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],
