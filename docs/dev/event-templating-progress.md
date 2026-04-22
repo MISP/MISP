@@ -104,24 +104,24 @@ Nothing else.
 
 ## Phase 0 — Spec finalisation
 
-**Status:** in progress
+**Status:** complete
 **Exit criteria:** PRD approved; remaining open questions closed; JSON schema file drafted.
 
 - [x] Draft PRD v0.1 (see `event-templating-prd.md`)
 - [x] Library choices locked in (SortableJS, Alpine.js, server-only validation)
 - [x] Terminology normalised (template creator / template user)
 - [x] Field labels and help text elevated to first-class requirement
-- [ ] User sign-off on PRD v0.1
-- [ ] Close open question §16.1 — legacy UI during transition (read-only for one release vs. remove in same release as v2)
-- [ ] Close open question §16.2 — `perm_template` rename or keep
-- [ ] Close open question §16.3 — confirm Markdown renderer in use and XSS story
-- [ ] Close open question §16.4 — default distribution for new templates
-- [ ] Close open question §16.5 — file upload size limit strategy
-- [ ] Close open question §16.6 — site-admin visibility scope
-- [ ] Close open question §16.7 — audit log granularity
-- [ ] Close open question §16.8 — retention / auto-archive
+- [x] User sign-off on PRD v0.1
+- [x] Close open question §16.1 — legacy UI untouched, removal out of scope for this project
+- [x] Close open question §16.2 — reuse existing `perm_template` flag; no rename, no new flag
+- [x] Close open question §16.3 — add `league/commonmark` composer dep, render server-side with raw-HTML disallowed
+- [x] Close open question §16.4 — two distribution values (0 = org only, 1 = community); default 0
+- [x] Close open question §16.5 — reuse MISP attachment limit; no per-template override
+- [x] Close open question §16.6 — site admins see and can edit all templates on the instance
+- [x] Close open question §16.7 — version bump + full JSON snapshot per edit; no per-field diff
+- [x] Close open question §16.8 — manual `active` flag only; no cron/retention
 
-- [ ] **Phase 0 complete**
+- [x] **Phase 0 complete**
 
 ---
 
@@ -134,9 +134,8 @@ Nothing else.
 
 - [x] Migration: create `event_templates` table (schema in PRD §6.2)
 - [x] Migration: create `event_template_object_dependencies` table (schema in PRD §6.2)
-- [ ] Migration: add `perm_template_editor` column to `roles` table
-- [ ] Migration: grant `perm_template_editor` to every role that currently has `perm_template`
-- [ ] Indexes validated (`uuid`, `org_id`, `name`, `active`, FK on dependencies)
+- [ ] Migration: rename `event_templates.share_within_org` to `event_templates.distribution` (PRD §6.2, §8 — two values: 0 = org only, 1 = community)
+- [ ] Indexes validated (`uuid`, `org_id`, `name`, `active` on `event_templates`; `event_template_id`, `object_template_uuid` on the dependencies table)
 
 ### 1.2 JSON schema file
 
@@ -155,6 +154,8 @@ Nothing else.
 
 ### 1.4 Services / libs
 
+- [ ] Add `league/commonmark` to `composer.json` and `composer install`. Document in the PR body which version was pinned.
+- [ ] `EventTemplateMarkdownRenderer` lib: thin wrapper around `league/commonmark` configured to disallow raw HTML; used for template `description`, `text_block.content`, `help`, and `help_override`.
 - [ ] `EventTemplateValidator` lib: JSON-schema validation (server-only) + semantic checks (attribute type/category validity against `MispAttribute::typeDefinitions`, object template existence + version compat, object_reference endpoints exist, no duplicate element ids, info_template variables reference real ids)
 - [ ] `EventTemplateInstantiator` lib: transactional event creation from filled values. Inputs: template id + user-submitted values. Output: `{ event_id, event_uuid }` or structured errors. Must roll back on any failure.
 - [ ] `InfoTemplateRenderer` lib: variable substitution (`{{date}}`, `{{now}}`, `{{user}}`, `{{field:<id>}}`) with safe fallbacks
@@ -287,41 +288,25 @@ Nothing else.
 
 ---
 
-## Phase 5 — Migration from legacy Templates
+## Phase 5 — Copy tool from legacy Templates
 
 **Status:** not started
 **Depends on:** Phase 4 complete.
-**Exit criteria:** legacy templates can be one-shot migrated to v2 via CLI; operators have a clear sunset message on legacy UI.
+**Exit criteria:** operators can copy their existing legacy templates into the v2 system with a single CLI command. Legacy data is read-only to the tool; nothing is modified, renamed, or deleted on the legacy side.
 
-- [ ] `app/Console/Command/EventTemplateShell.php` with `migrateFromLegacy` action
-- [ ] Migration converts: legacy `Template` → `event_templates` row with synthesised v1 definition; `template_elements` → `section`/`text_block`/`attribute_field`/`file_field` elements; legacy `complex` attribute flag → best-effort `repeatable: true` + warning; `template_tags` → `event_defaults.tags`
-- [ ] Migration reports per-template warnings and a summary
+- [ ] `app/Console/Command/EventTemplateShell.php` with `copyFromLegacy` action
+- [ ] Copy logic: read legacy `Template` → create matching `event_templates` row with synthesised v1 definition; `template_elements` → `section`/`text_block`/`attribute_field`/`file_field` elements; legacy `complex` attribute flag → best-effort `repeatable: true` + warning; `template_tags` → `event_defaults.tags`. Legacy rows are never written to.
+- [ ] Per-template warnings and a summary report emitted
 - [ ] Dry-run mode (`--dry-run`)
-- [ ] Integration test: seed legacy templates, run migration, assert result
-- [ ] Sunset banner on legacy `/templates` UI pointing to new location and migration CLI
+- [ ] Idempotency: legacy-template id recorded in the v2 template's audit metadata; re-running skips previously-copied templates by default, `--force` overrides
+- [ ] Integration test: seed legacy templates, run tool, assert v2 result matches, assert legacy rows unchanged
 - [ ] Release notes entry
 
 - [ ] **Phase 5 complete**
 
 ---
 
-## Phase 6 — Legacy removal (separate release)
-
-**Status:** not started
-**Depends on:** Phase 5 shipped in a prior release cycle.
-**Exit criteria:** legacy code entirely removed; no orphaned routes, menu entries, or DB tables.
-
-- [ ] Delete `app/Controller/TemplatesController.php`
-- [ ] Delete `app/Controller/TemplateElementsController.php`
-- [ ] Delete `app/Model/Template.php`, `TemplateElement.php`, `TemplateElementAttribute.php`, `TemplateElementText.php`, `TemplateElementFile.php`, `TemplateTag.php`
-- [ ] Delete views: `app/View/Templates/`, `app/View/TemplateElements/`, `app/View/Elements/templateElements/`
-- [ ] Drop tables via migration: `templates`, `template_elements`, `template_element_attributes`, `template_element_texts`, `template_element_files`, `template_tags`
-- [ ] Remove `perm_template` column from `roles` table
-- [ ] Remove side-menu and route entries for legacy system
-- [ ] Grep-sweep for any remaining references (`Template`, `perm_template`) in the codebase
-- [ ] Release notes entry
-
-- [ ] **Phase 6 complete**
+*Legacy system removal is out of scope for this project — see PRD §12 and §15. The old Templates system and its `perm_template` flag remain untouched and in service indefinitely.*
 
 ---
 
