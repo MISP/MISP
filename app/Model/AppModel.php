@@ -96,7 +96,8 @@ class AppModel extends Model
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
-        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false
+        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
+        147 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2574,6 +2575,27 @@ class AppModel extends Model
                 break;
             case 146:
                 $sqlArray[] = "ALTER TABLE `bookmarks` MODIFY `url` TEXT NOT NULL;";
+                break;
+            case 147:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_templates` (
+                    `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `description` text COLLATE utf8mb4_unicode_ci NULL,
+                    `org_id` int(11) UNSIGNED NOT NULL,
+                    `creator_user_id` int(11) UNSIGNED NOT NULL,
+                    `share_within_org` tinyint(1) NOT NULL DEFAULT 0,
+                    `active` tinyint(1) NOT NULL DEFAULT 1,
+                    `version` int(11) UNSIGNED NOT NULL DEFAULT 1,
+                    `definition` mediumtext COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `created` datetime NOT NULL,
+                    `modified` datetime NOT NULL,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                $indexArray[] = array('event_templates', 'org_id');
+                $indexArray[] = array('event_templates', 'name');
+                $indexArray[] = array('event_templates', 'active');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
