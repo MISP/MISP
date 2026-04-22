@@ -133,7 +133,7 @@ Nothing else.
 ### 1.1 Database
 
 - [x] Migration: create `event_templates` table (schema in PRD §6.2)
-- [ ] Migration: create `event_template_object_dependencies` table (schema in PRD §6.2)
+- [x] Migration: create `event_template_object_dependencies` table (schema in PRD §6.2)
 - [ ] Migration: add `perm_template_editor` column to `roles` table
 - [ ] Migration: grant `perm_template_editor` to every role that currently has `perm_template`
 - [ ] Indexes validated (`uuid`, `org_id`, `name`, `active`, FK on dependencies)
