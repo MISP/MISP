@@ -160,7 +160,7 @@ Nothing else.
 - [x] `EventTemplateValidator` lib: JSON-schema validation (server-only) + semantic checks (attribute type/category validity against `MispAttribute::typeDefinitions`, object template existence + version compat, object_reference endpoints exist, no duplicate element ids, info_template variables reference real ids). `EventTemplate::validateDefinition()` delegates to it.
 - [x] `EventTemplateInstantiator` lib: transactional event creation from filled values. Inputs: decoded definition + user-submitted values + auth user. Output: `{ event_id, event_uuid }` or `EventTemplateInstantiationException` with structured errors. Rolls back on any failure; verifies post-`_add` that no attributes or objects were silently dropped before committing (PRD §5.2 F2.8/F2.10). `file_field` user input is rejected in v1 — file upload wiring lands in Phase 2 (see Phase 2.3).
 - [x] `EventTemplateInfoRenderer` lib: variable substitution (`{{date}}`, `{{now}}`, `{{user}}`, `{{field:<id>}}`) with safe fallbacks
-- [ ] `EventTemplateExporter` / `EventTemplateImporter` libs: JSON round-trip, import validates object template dependencies before touching DB
+- [x] `EventTemplateExporter` / `EventTemplateImporter` libs: JSON round-trip per PRD §13. Exporter omits ownership columns (creator_user_id, org_id) — new owner is the importing user. Importer validates the envelope, runs the full `EventTemplateValidator` (structural + semantic, incl. object-template dependency check), and handles uuid collisions via `mode` option: `fail` (default), `overwrite` (preserves original ownership), `duplicate_as_new` (fresh uuid, importer's org/user).
 
 ### 1.5 Controller and routes
 
