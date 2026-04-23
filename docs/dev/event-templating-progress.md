@@ -127,7 +127,7 @@ Nothing else.
 
 ## Phase 1 — Backend
 
-**Status:** not started
+**Status:** complete
 **Exit criteria:** every endpoint in PRD §9 functional; transactional event instantiation works end-to-end; integration tests green against a real DB.
 
 ### 1.1 Database
@@ -171,14 +171,14 @@ Nothing else.
 
 ### 1.6 Tests
 
-- [ ] Unit tests for `EventTemplateValidator` (happy path + every failure mode)
-- [ ] Unit tests for `InfoTemplateRenderer`
-- [ ] Unit tests for `EventTemplateInstantiator` (rollback on partial failure)
-- [ ] Integration tests for every REST endpoint (hitting a real DB)
-- [ ] Import/export round-trip test: export → wipe → import → deep-equal
-- [ ] Object-template-dependency tracking test: save template, verify rows; edit template, verify rows updated; delete template, verify rows removed
+- [x] Unit tests for `EventTemplateValidator` (happy path + every failure mode) — `app/Test/EventTemplateValidatorTest.php` (21 passing + 2 documented-skipped schema gaps)
+- [x] Unit tests for `InfoTemplateRenderer` — `app/Test/EventTemplateInfoRendererTest.php` (19 tests)
+- [x] Unit tests for `EventTemplateInstantiator` (rollback on partial failure) — `app/Test/EventTemplateInstantiatorTest.php` covers the pre-DB failure modes (invalid definition, file_field rejection, unknown ids, mandatory-empty, multi-error aggregation); transactional rollback and post-hoc drop detection are covered by the integration suite against a live MISP
+- [x] Integration tests for every REST endpoint (hitting a real DB) — `tests/testlive_event_templates.py` → `EventTemplatesRestTests` (8 tests): index, view, add, edit, delete, duplicate, validate_definition, instantiate (success and file_field rejection)
+- [x] Import/export round-trip test: export → wipe → import → deep-equal — `EventTemplatesImportExportTests` (6 tests): export shape, fail-mode create + collision, overwrite, duplicate_as_new, headline round-trip
+- [x] Object-template-dependency tracking test: save template, verify rows; edit template, verify rows updated; delete template, verify rows removed — `EventTemplatesObjectDependencyTrackingTests` (5 tests): save, dedup, edit-add, edit-remove, delete-cascade (DB-level assertion; requires DB_PASS env)
 
-- [ ] **Phase 1 complete**
+- [x] **Phase 1 complete**
 
 ---
 

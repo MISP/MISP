@@ -332,6 +332,207 @@ class EventTemplatesRestTests(unittest.TestCase):
         self.assertIn("not yet supported", flat)
 
 
+class EventTemplatesObjectDependencyTrackingTests(unittest.TestCase):
+    """Verifies the `event_template_object_dependencies` sidecar stays in
+    sync with the parent template's object_field references across save,
+    edit, and delete (PRD §6.2).
+
+    Save and edit coverage reads the sidecar back through the /view REST
+    response — our controller contains EventTemplateObjectDependency
+    there. The delete-cascade assertion requires a direct DB read
+    (no REST endpoint exposes rows for a template that no longer
+    exists); that test is skipped when DB credentials are not provided
+    via env vars.
+    """
+
+    # Two real, installed object templates on a default MISP instance.
+    # We use stable uuids and pinned_versions so the semantic validator
+    # is happy on every supported MISP. If these uuids are ever removed
+    # from misp-object upstream this will need updating.
+    EMAIL_OT = {
+        "uuid": "a0c666e0-fc65-4be8-b48f-3423d788b552",
+        "name": "email",
+        "pinned_version": 1,
+    }
+    FILE_OT = {
+        "uuid": "688c46fb-5edb-40a3-8273-1af7923e2215",
+        "name": "file",
+        "pinned_version": 1,
+    }
+
+    _templates: List[int]
+
+    def setUp(self) -> None:
+        if not KEY:
+            self.skipTest("AUTH env var / keys.py not configured.")
+        self._templates = []
+
+    def tearDown(self) -> None:
+        for tid in self._templates:
+            try:
+                requests.post(
+                    f"{URL}/event_templates/delete/{tid}",
+                    headers=_headers(),
+                    timeout=10,
+                )
+            except requests.RequestException:
+                pass
+
+    # ---- helpers ---------------------------------------------------
+
+    def _definition_with_object_fields(
+        self, object_templates: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        structure: List[Dict[str, Any]] = []
+        for idx, ot in enumerate(object_templates):
+            structure.append({
+                "type": "object_field",
+                "id": f"obj_{idx}",
+                "label": f"Object {idx}",
+                "object_template": ot,
+                "relations": [],
+            })
+        return {
+            "schema_version": 1,
+            "uuid": str(uuid.uuid4()),
+            "name": "dep-tracking",
+            "event_defaults": {"distribution": 0},
+            "structure": structure,
+        }
+
+    def _add(self, definition: Dict[str, Any]) -> int:
+        r = requests.post(
+            f"{URL}/event_templates/add",
+            headers=_headers(),
+            data=json.dumps({
+                "name": "dep-" + uuid.uuid4().hex[:8],
+                "distribution": 0,
+                "active": 1,
+                "definition": definition,
+            }),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        tid = int(r.json()["EventTemplate"]["id"])
+        self._templates.append(tid)
+        return tid
+
+    def _dep_uuids(self, tid: int) -> List[str]:
+        r = requests.get(
+            f"{URL}/event_templates/view/{tid}",
+            headers=_headers(),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        deps = r.json().get("EventTemplateObjectDependency", []) or []
+        return sorted(d["object_template_uuid"] for d in deps)
+
+    def _dep_count_in_db(self, tid: int) -> int:
+        import subprocess
+        pw = os.environ.get("DB_PASS")
+        if not pw:
+            self.skipTest("DB_PASS env var not set; cannot verify cascade.")
+        user = os.environ.get("DB_USER", "misp")
+        db = os.environ.get("DB_NAME", "misp")
+        host = os.environ.get("DB_HOST", "localhost")
+        proc = subprocess.run(
+            [
+                "mysql", f"-h{host}", f"-u{user}", f"-p{pw}", db,
+                "-N", "-B", "-e",
+                "SELECT COUNT(*) FROM event_template_object_dependencies "
+                f"WHERE event_template_id = {int(tid)}",
+            ],
+            capture_output=True, text=True, timeout=10,
+        )
+        if proc.returncode != 0:
+            self.skipTest(f"mysql CLI unavailable or auth failed: {proc.stderr[:200]}")
+        return int(proc.stdout.strip())
+
+    # ---- tests -----------------------------------------------------
+
+    def test_dependencies_written_on_save(self) -> None:
+        definition = self._definition_with_object_fields([
+            self.EMAIL_OT, self.FILE_OT,
+        ])
+        tid = self._add(definition)
+        deps = self._dep_uuids(tid)
+        self.assertEqual(
+            deps,
+            sorted([self.EMAIL_OT["uuid"], self.FILE_OT["uuid"]]),
+            "save must write one dep row per distinct object_template uuid",
+        )
+
+    def test_dependencies_deduplicated_across_multiple_fields(self) -> None:
+        # Two object_fields referencing the same object template — the
+        # sidecar keeps one row (extractObjectDependencies dedupes by
+        # uuid and keeps the highest pinned_version).
+        definition = self._definition_with_object_fields([
+            self.EMAIL_OT, self.EMAIL_OT,
+        ])
+        tid = self._add(definition)
+        self.assertEqual(self._dep_uuids(tid), [self.EMAIL_OT["uuid"]])
+
+    def test_dependencies_updated_on_edit_remove(self) -> None:
+        definition = self._definition_with_object_fields([
+            self.EMAIL_OT, self.FILE_OT,
+        ])
+        tid = self._add(definition)
+        self.assertEqual(len(self._dep_uuids(tid)), 2)
+
+        # Edit down to one object_field.
+        new_def = self._definition_with_object_fields([self.FILE_OT])
+        new_def["uuid"] = definition["uuid"]  # keep internal JSON uuid stable
+        r = requests.post(
+            f"{URL}/event_templates/edit/{tid}",
+            headers=_headers(),
+            data=json.dumps({"definition": new_def}),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        self.assertEqual(self._dep_uuids(tid), [self.FILE_OT["uuid"]])
+
+    def test_dependencies_updated_on_edit_add(self) -> None:
+        definition = self._definition_with_object_fields([self.EMAIL_OT])
+        tid = self._add(definition)
+        self.assertEqual(self._dep_uuids(tid), [self.EMAIL_OT["uuid"]])
+
+        new_def = self._definition_with_object_fields([
+            self.EMAIL_OT, self.FILE_OT,
+        ])
+        new_def["uuid"] = definition["uuid"]
+        r = requests.post(
+            f"{URL}/event_templates/edit/{tid}",
+            headers=_headers(),
+            data=json.dumps({"definition": new_def}),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        self.assertEqual(
+            self._dep_uuids(tid),
+            sorted([self.EMAIL_OT["uuid"], self.FILE_OT["uuid"]]),
+        )
+
+    def test_dependencies_cascade_deleted_with_template(self) -> None:
+        definition = self._definition_with_object_fields([
+            self.EMAIL_OT, self.FILE_OT,
+        ])
+        tid = self._add(definition)
+        self.assertEqual(self._dep_count_in_db(tid), 2)
+
+        r = requests.post(
+            f"{URL}/event_templates/delete/{tid}",
+            headers=_headers(),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200)
+        self._templates.remove(tid)  # tearDown needn't re-delete
+
+        self.assertEqual(
+            self._dep_count_in_db(tid), 0,
+            "dependent=>true should cascade-delete the sidecar rows",
+        )
+
+
 class EventTemplatesImportExportTests(unittest.TestCase):
     """Export → Import round-trip, all three collision modes."""
 
