@@ -110,6 +110,7 @@ This PRD covers a **ground-up rework**. The existing system will be deprecated a
 - **F2.8** Submit path: single server call, wrapped in a DB transaction, that creates the event, all attributes, all objects with their relations, all object references, applies tags and clusters, and returns either the created event id or a structured error list.
 - **F2.9** On success, redirect to the event view.
 - **F2.10** On partial failure, the transaction rolls back; no half-created event.
+- **F2.11** *v1 limitation (Phase 1.4):* the server-side instantiator accepts templates that declare `file_field` elements but rejects user input for them with a clear "not yet supported" message. File upload wiring (tmp-path handling, `AttachmentTool` integration, `malware-sample` storage) lands in Phase 2 alongside the UI upload pipeline. Templates without `file_field` elements work end-to-end in Phase 1.
 
 ### 5.3 Management
 
