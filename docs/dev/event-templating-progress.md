@@ -146,11 +146,11 @@ Nothing else.
 
 ### 1.3 Models
 
-- [ ] `EventTemplate` model: associations, beforeSave (regenerate dependencies, bump version), afterFind (decode JSON)
-- [ ] `EventTemplate::validateDefinition($definition)` — runs JSON-schema + semantic validation (§5.1 F1.9)
-- [ ] `EventTemplate::extractObjectDependencies($definition)` — rebuilds `event_template_object_dependencies` rows
-- [ ] `EventTemplateObjectDependency` model
-- [ ] Audit-log hooks on template CRUD (PRD §5.3 F3.4)
+- [x] `EventTemplate` model: associations, beforeSave (regenerate dependencies, bump version), afterFind (decode JSON)
+- [x] `EventTemplate::validateDefinition($definition)` — runs JSON-schema + semantic validation (§5.1 F1.9)
+- [x] `EventTemplate::extractObjectDependencies($definition)` — rebuilds `event_template_object_dependencies` rows
+- [x] `EventTemplateObjectDependency` model
+- [x] Audit-log hooks on template CRUD (PRD §5.3 F3.4)
 
 ### 1.4 Services / libs
 
