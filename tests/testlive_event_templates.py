@@ -332,5 +332,215 @@ class EventTemplatesRestTests(unittest.TestCase):
         self.assertIn("not yet supported", flat)
 
 
+class EventTemplatesImportExportTests(unittest.TestCase):
+    """Export → Import round-trip, all three collision modes."""
+
+    _templates: List[int]
+
+    def setUp(self) -> None:
+        if not KEY:
+            self.skipTest("AUTH env var / keys.py not configured.")
+        self._templates = []
+
+    def tearDown(self) -> None:
+        for tid in self._templates:
+            try:
+                requests.post(
+                    f"{URL}/event_templates/delete/{tid}",
+                    headers=_headers(),
+                    timeout=10,
+                )
+            except requests.RequestException:
+                pass
+
+    # ---- helpers ---------------------------------------------------
+
+    def _add(self, name: str) -> Dict[str, Any]:
+        r = requests.post(
+            f"{URL}/event_templates/add",
+            headers=_headers(),
+            data=json.dumps({
+                "name": name,
+                "distribution": 0,
+                "active": 1,
+                "definition": _minimal_definition(name=name),
+            }),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        body = r.json()
+        self._templates.append(int(body["EventTemplate"]["id"]))
+        return body
+
+    def _export(self, tid: int) -> Dict[str, Any]:
+        r = requests.get(
+            f"{URL}/event_templates/export/{tid}",
+            headers=_headers(),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        return r.json()
+
+    def _import(
+        self,
+        payload: Dict[str, Any],
+        mode: str = "fail",
+    ) -> requests.Response:
+        return requests.post(
+            f"{URL}/event_templates/import?mode={mode}",
+            headers=_headers(),
+            data=json.dumps(payload),
+            timeout=10,
+        )
+
+    # ---- tests -----------------------------------------------------
+
+    def test_export_returns_self_contained_document(self) -> None:
+        created = self._add("for-export")
+        tid = int(created["EventTemplate"]["id"])
+        doc = self._export(tid)
+
+        self.assertIn("_meta", doc, doc)
+        self.assertEqual(doc["_meta"]["event_template_schema_version"], 1)
+        self.assertIn("misp_version", doc["_meta"])
+        self.assertIn("template", doc, doc)
+        tpl = doc["template"]
+        self.assertEqual(tpl["uuid"], created["EventTemplate"]["uuid"])
+        self.assertEqual(tpl["name"], "for-export")
+        self.assertIsInstance(tpl["definition"], dict)
+        # Ownership columns must not leak into the export payload — the
+        # importer gives ownership to the importing user.
+        self.assertNotIn("org_id", tpl)
+        self.assertNotIn("creator_user_id", tpl)
+
+    def test_import_fail_mode_creates_new_row(self) -> None:
+        tpl_uuid = str(uuid.uuid4())
+        doc = self._build_doc(tpl_uuid, name="fresh-import")
+
+        r = self._import(doc, mode="fail")
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        body = r.json()
+        self.assertEqual(body["event_template_uuid"], tpl_uuid)
+        self._templates.append(int(body["event_template_id"]))
+
+    def test_import_fail_mode_rejects_uuid_collision(self) -> None:
+        tpl_uuid = str(uuid.uuid4())
+        doc = self._build_doc(tpl_uuid, name="first")
+
+        # First import succeeds.
+        r = self._import(doc, mode="fail")
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        self._templates.append(int(r.json()["event_template_id"]))
+
+        # Second import with the same uuid must fail.
+        r = self._import(doc, mode="fail")
+        self.assertIn(r.status_code, (400, 403, 405, 422))
+        body = r.json()
+        self.assertFalse(body.get("saved", True), body)
+        flat = json.dumps(body)
+        self.assertIn("already exists", flat)
+
+    def test_import_overwrite_mode_updates_in_place(self) -> None:
+        created = self._add("to-overwrite")
+        original_uuid = created["EventTemplate"]["uuid"]
+        original_id = int(created["EventTemplate"]["id"])
+
+        doc = self._export(original_id)
+        # Mutate the exported template before re-importing so we can
+        # prove overwrite updated the row.
+        doc["template"]["description"] = "overwritten description"
+
+        r = self._import(doc, mode="overwrite")
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        body = r.json()
+        self.assertEqual(body["event_template_uuid"], original_uuid)
+        self.assertEqual(body["event_template_id"], original_id)
+        self.assertEqual(body["mode"], "overwrite")
+
+        # Confirm the description landed.
+        r = requests.get(
+            f"{URL}/event_templates/view/{original_id}",
+            headers=_headers(),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200)
+        view = r.json()
+        self.assertEqual(
+            view["EventTemplate"]["description"],
+            "overwritten description",
+        )
+
+    def test_import_duplicate_as_new_generates_fresh_uuid(self) -> None:
+        created = self._add("to-duplicate-via-import")
+        original_uuid = created["EventTemplate"]["uuid"]
+        original_id = int(created["EventTemplate"]["id"])
+
+        doc = self._export(original_id)
+        r = self._import(doc, mode="duplicate_as_new")
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        body = r.json()
+        self.assertEqual(body["mode"], "duplicate_as_new")
+        self.assertNotEqual(
+            body["event_template_uuid"], original_uuid,
+            "duplicate_as_new must produce a fresh uuid",
+        )
+        self.assertNotEqual(int(body["event_template_id"]), original_id)
+        self._templates.append(int(body["event_template_id"]))
+
+    def test_roundtrip_export_delete_import_matches_definition(self) -> None:
+        # Headline round-trip: export → wipe → import → compare (PRD §13).
+        created = self._add("roundtrip")
+        tid = int(created["EventTemplate"]["id"])
+        src_definition = created["EventTemplate"]["definition"]
+
+        doc = self._export(tid)
+
+        r = requests.post(
+            f"{URL}/event_templates/delete/{tid}",
+            headers=_headers(),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200)
+        self._templates.remove(tid)
+
+        r = self._import(doc, mode="fail")
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        body = r.json()
+        new_id = int(body["event_template_id"])
+        self._templates.append(new_id)
+
+        r = requests.get(
+            f"{URL}/event_templates/view/{new_id}",
+            headers=_headers(),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200)
+        view = r.json()
+        self.assertEqual(view["EventTemplate"]["definition"], src_definition)
+
+    # ---- helpers -----------------------------------------------
+
+    @staticmethod
+    def _build_doc(tpl_uuid: str, name: str) -> Dict[str, Any]:
+        definition = _minimal_definition(name=name)
+        definition["uuid"] = tpl_uuid
+        return {
+            "_meta": {
+                "misp_version": "2.5.36",
+                "exported_at": "2026-04-23T14:00:00+00:00",
+                "event_template_schema_version": 1,
+            },
+            "template": {
+                "uuid": tpl_uuid,
+                "name": name,
+                "description": None,
+                "version": 1,
+                "distribution": 0,
+                "active": True,
+                "definition": definition,
+            },
+        }
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
