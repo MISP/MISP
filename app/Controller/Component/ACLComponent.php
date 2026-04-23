@@ -283,6 +283,11 @@ class ACLComponent extends Component
             'delete' => [],
             'index' => ['*'],
         ),
+        'eventTemplates' => array(
+            'index' => array('*'),
+            'view' => array('*'),
+            'delete' => array('perm_template'),
+        ),
         'events' => array(
             'add' => array('perm_add'),
             'addIOC' => array('perm_add'),
