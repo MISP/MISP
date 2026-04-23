@@ -164,10 +164,10 @@ Nothing else.
 
 ### 1.5 Controller and routes
 
-- [ ] `EventTemplatesController` with all §9 actions: `index`, `view`, `add`, `edit`, `delete`, `duplicate`, `export`, `import`, `instantiate`, `validate_definition`
-- [ ] Route setup in `app/Config/routes.php`
-- [ ] Authorisation enforced per PRD §8 on every action
-- [ ] REST responses use `RestResponseComponent` conventions (envelope, error shape)
+- [x] `EventTemplatesController` with all §9 actions: `index`, `view`, `add`, `edit`, `delete`, `duplicate`, `export`, `import`, `instantiate`, `validate_definition`
+- [x] Route setup in `app/Config/routes.php` — default CakePHP conventional routing (`/event_templates/<action>/<id>`) covers all §9 endpoints; no bespoke entries required for v1
+- [x] Authorisation enforced per PRD §8 on every action — role gates in `ACLComponent::$aclList['eventTemplates']`, row-scoped conditions in the controller's `__visibilityConditions()` / `__writeConditions()` helpers
+- [x] REST responses use `RestResponseComponent` conventions (envelope, error shape) — `viewData` for success, `saveFailResponse` for validation/import/instantiation failures, 503 JSON envelope on missing-composer-dep guard
 
 ### 1.6 Tests
 

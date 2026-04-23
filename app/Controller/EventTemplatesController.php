@@ -5,6 +5,9 @@ App::uses('EventTemplateDependencies', 'Tools');
 App::uses('EventTemplateExporter', 'Tools');
 App::uses('EventTemplateImporter', 'Tools');
 App::uses('EventTemplateImportException', 'Tools');
+App::uses('EventTemplateInstantiator', 'Tools');
+App::uses('EventTemplateInstantiationException', 'Tools');
+App::uses('EventTemplateValidator', 'Tools');
 App::uses('JsonTool', 'Tools');
 
 /**
@@ -341,6 +344,82 @@ class EventTemplatesController extends AppController
             'duplicate',
             (int)$this->EventTemplate->id
         );
+    }
+
+    public function instantiate($id)
+    {
+        if (!$this->request->is('post') && !$this->request->is('put')) {
+            throw new MethodNotAllowedException(
+                __('Instantiate requires POST.')
+            );
+        }
+        $id = $this->__resolveId($id);
+        $source = $this->__fetchForRead($id);
+
+        $definition = $source['EventTemplate']['definition'];
+        if (!is_array($definition)) {
+            $decoded = JsonTool::decode((string)$definition);
+            $definition = is_array($decoded) ? $decoded : array();
+        }
+
+        $input = $this->__unwrap($this->request->data);
+        $values = (isset($input['values']) && is_array($input['values']))
+            ? $input['values']
+            : $input;
+
+        $instantiator = new EventTemplateInstantiator();
+        try {
+            $result = $instantiator->instantiate(
+                $definition,
+                $values,
+                $this->Auth->user()
+            );
+        } catch (EventTemplateInstantiationException $e) {
+            $errors = array_merge(array($e->getMessage()), $e->getErrors());
+            if ($this->IndexFilter->isRest()) {
+                return $this->RestResponse->saveFailResponse(
+                    'EventTemplates', 'instantiate', $id, $errors, 'json'
+                );
+            }
+            $this->Flash->error($e->getMessage());
+            $this->redirect(array('action' => 'view', $id));
+            return;
+        }
+
+        if ($this->IndexFilter->isRest()) {
+            return $this->RestResponse->viewData($result, 'json');
+        }
+        $this->Flash->success(__('Event created from template.'));
+        $this->redirect(array(
+            'controller' => 'events',
+            'action' => 'view',
+            $result['event_id'],
+        ));
+    }
+
+    public function validate_definition()
+    {
+        if (!$this->request->is('post') && !$this->request->is('put')) {
+            throw new MethodNotAllowedException(
+                __('validate_definition requires POST.')
+            );
+        }
+        $input = $this->__unwrap($this->request->data);
+        $definition = (isset($input['definition']) && is_array($input['definition']))
+            ? $input['definition']
+            : $input;
+
+        $validator = new EventTemplateValidator();
+        $errors = $validator->validate($definition);
+        $payload = array(
+            'valid' => empty($errors),
+            'errors' => array_values($errors),
+        );
+        if ($this->IndexFilter->isRest()) {
+            return $this->RestResponse->viewData($payload, 'json');
+        }
+        $this->set('result', $payload);
+        $this->render('validate_definition');
     }
 
     private function __unwrap($data)
