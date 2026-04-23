@@ -96,7 +96,8 @@ class AppModel extends Model
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
-        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false
+        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
+        147 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2574,6 +2575,12 @@ class AppModel extends Model
                 break;
             case 146:
                 $sqlArray[] = "ALTER TABLE `bookmarks` MODIFY `url` TEXT NOT NULL;";
+                break;
+            case 147:
+                $sqlArray[] = "ALTER TABLE `default_correlations` ADD INDEX `idx_event_1event` (`event_id`, `1_event_id`);";
+                $sqlArray[] = "ALTER TABLE `default_correlations` ADD INDEX `idx_1event_event` (`1_event_id`, `event_id`);";
+                $sqlArray[] = "ALTER TABLE `no_acl_correlations` ADD INDEX `idx_event_1event` (`event_id`, `1_event_id`);";
+                $sqlArray[] = "ALTER TABLE `no_acl_correlations` ADD INDEX `idx_1event_event` (`1_event_id`, `event_id`);";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
