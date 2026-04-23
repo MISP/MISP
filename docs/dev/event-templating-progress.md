@@ -139,10 +139,10 @@ Nothing else.
 
 ### 1.2 JSON schema file
 
-- [ ] Create `app/files/schemas/event-template-v1.schema.json` covering everything in PRD §7
-- [ ] Include per-element-type subschemas (`section`, `text_block`, `attribute_field`, `object_field`, `object_field.relations[]`, `tag_field`, `galaxy_field`, `file_field`, `object_reference`)
-- [ ] Require non-empty `label` on every interactive element
-- [ ] Validate `info_template` variable grammar
+- [x] Create `app/files/schemas/event-template-v1.schema.json` covering everything in PRD §7
+- [x] Include per-element-type subschemas (`section`, `text_block`, `attribute_field`, `object_field`, `object_field.relations[]`, `tag_field`, `galaxy_field`, `file_field`, `object_reference`)
+- [x] Require non-empty `label` on every interactive element
+- [x] Validate `info_template` variable grammar
 
 ### 1.3 Models
 
