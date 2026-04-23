@@ -154,8 +154,9 @@ Nothing else.
 
 ### 1.4 Services / libs
 
-- [ ] Add `league/commonmark` to `composer.json` and `composer install`. Document in the PR body which version was pinned.
-- [ ] `EventTemplateMarkdownRenderer` lib: thin wrapper around `league/commonmark` configured to disallow raw HTML; used for template `description`, `text_block.content`, `help`, and `help_override`.
+- [x] Add `league/commonmark` and `justinrainbow/json-schema` to `app/composer.json`. MISP's standard upgrade path does not run `composer install`; admins must run `cd app && composer install` manually after upgrading (PRD §11.2). Document pinned versions in the PR body.
+- [x] Dependency-check infrastructure: `EventTemplateDependencies::missing()` + `EventTemplateDependencyMissingException`. Libs and controllers that need the deps call `requireAll()` / `requireSome()` and surface a "contact your administrator" message rather than a raw exception.
+- [x] `EventTemplateMarkdownRenderer` lib: thin wrapper around `league/commonmark` configured with `html_input => strip` and `allow_unsafe_links => false`; used for template `description`, `text_block.content`, `help`, and `help_override`.
 - [ ] `EventTemplateValidator` lib: JSON-schema validation (server-only) + semantic checks (attribute type/category validity against `MispAttribute::typeDefinitions`, object template existence + version compat, object_reference endpoints exist, no duplicate element ids, info_template variables reference real ids)
 - [ ] `EventTemplateInstantiator` lib: transactional event creation from filled values. Inputs: template id + user-submitted values. Output: `{ event_id, event_uuid }` or structured errors. Must roll back on any failure.
 - [ ] `InfoTemplateRenderer` lib: variable substitution (`{{date}}`, `{{now}}`, `{{user}}`, `{{field:<id>}}`) with safe fallbacks

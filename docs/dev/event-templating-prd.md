@@ -392,9 +392,22 @@ Guiding principle: **don't introduce a new library if an equivalent is already i
 
 1. **SortableJS** — Overmind theme only, builder view only. MIT. ~40 KB min+gz. Latest release v1.15.7 (2026-02-11, one release cycle ago). No entries in the GitHub Advisory Database. No entries in Snyk's vulnerability DB for the package or any prior version. ~3.4 M weekly npm downloads, actively maintained (no archived/unmaintained signal).
 2. **Alpine.js 3** — Overmind theme only, builder view only. MIT. ~15 KB min+gz. Loaded only on the event-template builder view (asset include gated on the action), not bundled into the global Overmind asset set.
-3. **`league/commonmark`** — composer dependency, both themes, server-side only. BSD-3-Clause. Used to render Markdown in template descriptions, `text_block` elements, and `help` / `help_override` text. Configured with the default "disallow raw HTML" extension so creator-authored content cannot inject script tags.
+3. **`league/commonmark`** — composer dependency (`app/composer.json`), server-side only. BSD-3-Clause. Pinned to `^2.8` (installed 2.8.2). Renders Markdown in template descriptions, `text_block` elements, and `help` / `help_override` text. Configured with `html_input => strip` (raw HTML tags dropped, their inner text kept as literals) and `allow_unsafe_links => false` (`javascript:` / `data:` URIs in links filtered). Entry point: `app/Lib/Tools/EventTemplateMarkdownRenderer.php`.
+4. **`justinrainbow/json-schema`** — composer dependency (`app/composer.json`), server-side only. MIT. Pinned to `^6.8` (installed 6.8.0). Performs structural validation of the event-template JSON document against `app/files/schemas/event-template-v1.schema.json`. Wired up in Phase 1.4's `EventTemplateValidator` lib.
 
 No client-side JSON-schema validation in v1 — validation is server-side via `validate_definition` and the save endpoints.
+
+### 11.2 Deployment caveat — `composer install` is not automatic
+
+MISP's standard upgrade path (`git pull` + `cake Admin runUpdates`) **does not run `composer install`**. Operators upgrading to a version that includes event-templating must run `cd app && composer install` manually on the MISP host once the updated `app/composer.json` has been pulled.
+
+Until they do, the event-templating feature degrades gracefully rather than surfacing raw exceptions:
+
+- **Libs** assert their required composer packages at first use via `EventTemplateDependencies::requireAll()` / `requireSome()` (`app/Lib/Tools/EventTemplateDependencies.php`). If a dep is missing, they throw `EventTemplateDependencyMissingException` carrying the list of missing package names and a message telling the user to ask their administrator to run `cd app && composer install`.
+- **Controllers** (Phase 1.5) call `EventTemplateDependencies::missing()` in their `beforeFilter`. When non-empty, they render a clean error page (HTML) or structured error (JSON) explaining the admin step required, rather than letting the raw exception surface.
+- **Rest of MISP is unaffected.** The new deps are required only by code reachable from the event-templating routes; existing pages (events, attributes, legacy Templates, etc.) keep working as normal.
+
+This contract is what lets the feature ship in a standard MISP release without requiring a lockstep composer run on every upgrade.
 
 ## 12. Migration from the legacy Templates system
 
