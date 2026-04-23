@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('CakeText', 'Utility');
 App::uses('EventTemplateDependencies', 'Tools');
 App::uses('JsonTool', 'Tools');
 
@@ -108,6 +109,209 @@ class EventTemplatesController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    public function add()
+    {
+        if (!$this->request->is('post') && !$this->request->is('put')) {
+            $this->set('title_for_layout', __('Add Event Template'));
+            $this->render('add');
+            return;
+        }
+
+        $input = $this->__unwrap($this->request->data);
+        $row = array(
+            'name' => isset($input['name']) ? $input['name'] : '',
+            'description' => isset($input['description'])
+                ? $input['description']
+                : null,
+            'distribution' => isset($input['distribution'])
+                ? (int)$input['distribution']
+                : 0,
+            'active' => (!array_key_exists('active', $input) || $input['active'])
+                ? 1
+                : 0,
+            'org_id' => (int)$this->Auth->user('org_id'),
+            'creator_user_id' => (int)$this->Auth->user('id'),
+            'definition' => isset($input['definition'])
+                ? $input['definition']
+                : null,
+        );
+        if (!empty($input['uuid'])) {
+            $row['uuid'] = strtolower((string)$input['uuid']);
+        }
+
+        $this->EventTemplate->create();
+        $saved = $this->EventTemplate->save(array('EventTemplate' => $row));
+        if (!$saved) {
+            return $this->__handleSaveFailure('add', false, array(
+                'EventTemplate' => $row,
+            ));
+        }
+
+        $savedId = (int)$this->EventTemplate->id;
+        return $this->__respondWithSavedRow('add', $savedId);
+    }
+
+    public function edit($id)
+    {
+        $id = $this->__resolveId($id);
+        $existing = $this->__fetchForWrite($id);
+
+        if (!$this->request->is('post') && !$this->request->is('put')) {
+            $this->set('data', $existing);
+            $this->set('id', $id);
+            $this->set('title_for_layout', __('Edit Event Template'));
+            $this->render('edit');
+            return;
+        }
+
+        $input = $this->__unwrap($this->request->data);
+        // Immutable fields are never accepted from the caller on edit.
+        foreach (array('id', 'uuid', 'org_id', 'creator_user_id', 'created') as $k) {
+            unset($input[$k]);
+        }
+        // CakePHP's beforeValidate bumps version automatically; ignore any
+        // version the caller tries to set to avoid skipping numbers.
+        unset($input['version']);
+
+        $row = array_merge($existing['EventTemplate'], $input);
+        $row['id'] = $id;
+        $this->EventTemplate->id = $id;
+        $saved = $this->EventTemplate->save(array('EventTemplate' => $row));
+        if (!$saved) {
+            return $this->__handleSaveFailure('edit', $id, array(
+                'EventTemplate' => $row,
+            ));
+        }
+        return $this->__respondWithSavedRow('edit', $id);
+    }
+
+    public function duplicate($id)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(
+                __('Duplicate requires POST.')
+            );
+        }
+        $id = $this->__resolveId($id);
+        $source = $this->__fetchForRead($id);
+
+        $definition = $source['EventTemplate']['definition'];
+        if (!is_array($definition)) {
+            $decoded = JsonTool::decode((string)$definition);
+            $definition = is_array($decoded) ? $decoded : array();
+        }
+
+        $input = $this->__unwrap($this->request->data);
+        $newUuid = strtolower(CakeText::uuid());
+        // Keep the JSON's internal uuid aligned with the row uuid so the two
+        // never drift for a newly-duplicated row.
+        $definition['uuid'] = $newUuid;
+        $newName = !empty($input['name'])
+            ? (string)$input['name']
+            : sprintf('%s %s', $source['EventTemplate']['name'], __('(copy)'));
+
+        $row = array(
+            'uuid' => $newUuid,
+            'name' => $newName,
+            'description' => $source['EventTemplate']['description'],
+            // Default a freshly-duplicated template back to org-only; the
+            // caller can re-expose it explicitly via edit if they want the
+            // community copy to also be community-visible.
+            'distribution' => 0,
+            'active' => 1,
+            'org_id' => (int)$this->Auth->user('org_id'),
+            'creator_user_id' => (int)$this->Auth->user('id'),
+            'definition' => $definition,
+        );
+
+        $this->EventTemplate->create();
+        $saved = $this->EventTemplate->save(array('EventTemplate' => $row));
+        if (!$saved) {
+            return $this->__handleSaveFailure('duplicate', $id, array(
+                'EventTemplate' => $row,
+            ));
+        }
+        return $this->__respondWithSavedRow(
+            'duplicate',
+            (int)$this->EventTemplate->id
+        );
+    }
+
+    private function __unwrap($data)
+    {
+        if (is_array($data) && isset($data['EventTemplate'])
+            && is_array($data['EventTemplate'])
+        ) {
+            return $data['EventTemplate'];
+        }
+        return is_array($data) ? $data : array();
+    }
+
+    private function __fetchForRead($id)
+    {
+        $row = $this->EventTemplate->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'AND' => array(
+                    array('EventTemplate.id' => $id),
+                    $this->__visibilityConditions(),
+                ),
+            ),
+        ));
+        if (empty($row)) {
+            throw new NotFoundException(__('Invalid event template.'));
+        }
+        return $row;
+    }
+
+    private function __fetchForWrite($id)
+    {
+        $row = $this->EventTemplate->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'AND' => array(
+                    array('EventTemplate.id' => $id),
+                    $this->__writeConditions(),
+                ),
+            ),
+        ));
+        if (empty($row)) {
+            throw new NotFoundException(__('Invalid event template.'));
+        }
+        return $row;
+    }
+
+    private function __handleSaveFailure($action, $id, array $formData)
+    {
+        $errors = $this->EventTemplate->validationErrors;
+        if ($this->IndexFilter->isRest()) {
+            return $this->RestResponse->saveFailResponse(
+                'EventTemplates',
+                $action,
+                $id,
+                $errors,
+                'json'
+            );
+        }
+        $this->Flash->error(__('Event template could not be saved.'));
+        $this->set('data', $formData);
+        $this->set('errors', $errors);
+        $this->render($action);
+    }
+
+    private function __respondWithSavedRow($action, $id)
+    {
+        $fresh = $this->EventTemplate->find('first', array(
+            'conditions' => array('EventTemplate.id' => $id),
+            'recursive' => -1,
+        ));
+        if ($this->IndexFilter->isRest()) {
+            return $this->RestResponse->viewData($fresh, 'json');
+        }
+        $this->Flash->success(__('Event template saved.'));
+        $this->redirect(array('action' => 'view', $id));
     }
 
     /**

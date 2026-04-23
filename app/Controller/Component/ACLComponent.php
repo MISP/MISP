@@ -286,7 +286,10 @@ class ACLComponent extends Component
         'eventTemplates' => array(
             'index' => array('*'),
             'view' => array('*'),
+            'add' => array('perm_template'),
+            'edit' => array('perm_template'),
             'delete' => array('perm_template'),
+            'duplicate' => array('perm_template'),
         ),
         'events' => array(
             'add' => array('perm_add'),
