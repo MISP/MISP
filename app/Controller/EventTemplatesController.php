@@ -214,11 +214,14 @@ class EventTemplatesController extends AppController
             'event-template-%s.json',
             $source['EventTemplate']['uuid']
         );
+        // $raw=false so RestResponse json-encodes the array body; the
+        // resulting JSON IS the export document — no MISP envelope is
+        // added for top-level arrays/objects.
         return $this->RestResponse->viewData(
             $payload,
             'json',
             false,
-            true,
+            false,
             $filename
         );
     }
