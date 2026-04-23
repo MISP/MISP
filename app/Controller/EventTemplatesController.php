@@ -184,6 +184,15 @@ class EventTemplatesController extends AppController
         unset($input['version']);
 
         $row = array_merge($existing['EventTemplate'], $input);
+        // CakePHP's tinyint(1) read-side coercion hands back PHP booleans
+        // for distribution/active; the model's inList validator checks
+        // strictly and would reject them on re-save. Coerce back to int.
+        if (array_key_exists('distribution', $row)) {
+            $row['distribution'] = (int)$row['distribution'];
+        }
+        if (array_key_exists('active', $row)) {
+            $row['active'] = (int)$row['active'];
+        }
         $row['id'] = $id;
         $this->EventTemplate->id = $id;
         $saved = $this->EventTemplate->save(array('EventTemplate' => $row));
