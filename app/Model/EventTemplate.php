@@ -1,7 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('CakeText', 'Utility');
-App::uses('ClassRegistry', 'Utility');
 App::uses('JsonTool', 'Tools');
 
 /**
@@ -245,103 +244,16 @@ class EventTemplate extends AppModel
     }
 
     /**
-     * Semantic validation of an event-template definition.
-     * Returns an array of human-readable error strings; empty array means valid.
-     *
-     * TODO(Phase 1.4): run JSON-schema structural validation first via
-     * EventTemplateValidator. The checks below assume a valid structural shape
-     * and are defensive against missing keys.
+     * Delegate to EventTemplateValidator (Phase 1.4), which runs structural
+     * validation (against app/files/schemas/event-template-v1.schema.json)
+     * and semantic validation (cross-element + DB-backed checks). Returns an
+     * array of human-readable error strings; empty array means valid.
      */
     public function validateDefinition(array $definition)
     {
-        $errors = array();
-
-        if (!isset($definition['structure']) || !is_array($definition['structure'])) {
-            $errors[] = '`structure` must be an array';
-            return $errors;
-        }
-
-        $elementsById = array();
-        $objectFieldIds = array();
-
-        foreach ($definition['structure'] as $idx => $element) {
-            if (!is_array($element) || !isset($element['type'])) {
-                $errors[] = sprintf('structure[%d] is not a valid element', $idx);
-                continue;
-            }
-            $type = $element['type'];
-            $id = isset($element['id']) ? $element['id'] : null;
-
-            if ($id === null || $id === '') {
-                $errors[] = sprintf('structure[%d] (%s) is missing an id', $idx, $type);
-                continue;
-            }
-            if (isset($elementsById[$id])) {
-                $errors[] = sprintf('duplicate element id: %s', $id);
-                continue;
-            }
-            $elementsById[$id] = $element;
-            if ($type === 'object_field') {
-                $objectFieldIds[$id] = true;
-            }
-        }
-
-        foreach ($definition['structure'] as $element) {
-            if (!is_array($element) || !isset($element['type'])) {
-                continue;
-            }
-            $type = $element['type'];
-
-            if ($type === 'object_reference') {
-                foreach (array('from', 'to') as $endpoint) {
-                    $ref = isset($element[$endpoint]) ? $element[$endpoint] : null;
-                    if ($ref === null) {
-                        $errors[] = sprintf('object_reference missing %s', $endpoint);
-                        continue;
-                    }
-                    if (!isset($objectFieldIds[$ref])) {
-                        $errors[] = sprintf(
-                            'object_reference %s "%s" does not point to an object_field in this template',
-                            $endpoint, $ref
-                        );
-                    }
-                }
-            } elseif ($type === 'attribute_field') {
-                $misp = isset($element['misp']) && is_array($element['misp']) ? $element['misp'] : array();
-                $category = isset($misp['category']) ? $misp['category'] : null;
-                $attrType = isset($misp['type']) ? $misp['type'] : null;
-                $id = isset($element['id']) ? $element['id'] : '?';
-                if ($category === null || $attrType === null) {
-                    $errors[] = sprintf('attribute_field "%s" missing category or type', $id);
-                    continue;
-                }
-                if (!$this->isValidCategoryType($category, $attrType)) {
-                    $errors[] = sprintf(
-                        'attribute_field "%s": type "%s" is not valid in category "%s"',
-                        $id, $attrType, $category
-                    );
-                }
-            } elseif ($type === 'object_field') {
-                $ot = isset($element['object_template']) && is_array($element['object_template'])
-                    ? $element['object_template']
-                    : array();
-                $uuid = isset($ot['uuid']) ? $ot['uuid'] : null;
-                $pinned = isset($ot['pinned_version']) ? (int)$ot['pinned_version'] : null;
-                $id = isset($element['id']) ? $element['id'] : '?';
-                if ($uuid === null || $pinned === null) {
-                    $errors[] = sprintf('object_field "%s" missing object_template.uuid or pinned_version', $id);
-                    continue;
-                }
-                if (!$this->objectTemplateAvailable($uuid, $pinned)) {
-                    $errors[] = sprintf(
-                        'object_field "%s": object template %s at version >= %d is not installed on this instance',
-                        $id, $uuid, $pinned
-                    );
-                }
-            }
-        }
-
-        return $errors;
+        App::uses('EventTemplateValidator', 'Tools');
+        $validator = new EventTemplateValidator();
+        return $validator->validate($definition);
     }
 
     /**
@@ -386,30 +298,4 @@ class EventTemplate extends AppModel
         return $rows;
     }
 
-    private function isValidCategoryType($category, $type)
-    {
-        $mispAttribute = ClassRegistry::init('MispAttribute');
-        $catDefs = $mispAttribute->categoryDefinitions;
-        if (!isset($catDefs[$category]['types'])) {
-            return false;
-        }
-        return in_array($type, $catDefs[$category]['types'], true);
-    }
-
-    private function objectTemplateAvailable($uuid, $pinnedVersion)
-    {
-        $objectTemplate = ClassRegistry::init('ObjectTemplate');
-        $row = $objectTemplate->find('first', array(
-            'conditions' => array(
-                'ObjectTemplate.uuid' => strtolower($uuid),
-                'ObjectTemplate.active' => true,
-            ),
-            'fields' => array('ObjectTemplate.version'),
-            'recursive' => -1,
-        ));
-        if (empty($row)) {
-            return false;
-        }
-        return (int)$row['ObjectTemplate']['version'] >= (int)$pinnedVersion;
-    }
 }
