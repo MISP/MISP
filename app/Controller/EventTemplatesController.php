@@ -29,6 +29,8 @@ App::uses('JsonTool', 'Tools');
  */
 class EventTemplatesController extends AppController
 {
+    public $components = array('RequestHandler', 'Session');
+
     public $paginate = array(
         'limit' => 60,
         'order' => array('EventTemplate.modified' => 'desc'),
