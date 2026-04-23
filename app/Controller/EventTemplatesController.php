@@ -2,6 +2,9 @@
 App::uses('AppController', 'Controller');
 App::uses('CakeText', 'Utility');
 App::uses('EventTemplateDependencies', 'Tools');
+App::uses('EventTemplateExporter', 'Tools');
+App::uses('EventTemplateImporter', 'Tools');
+App::uses('EventTemplateImportException', 'Tools');
 App::uses('JsonTool', 'Tools');
 
 /**
@@ -185,6 +188,107 @@ class EventTemplatesController extends AppController
             ));
         }
         return $this->__respondWithSavedRow('edit', $id);
+    }
+
+    public function export($id)
+    {
+        $id = $this->__resolveId($id);
+        $source = $this->__fetchForRead($id);
+        $exporter = new EventTemplateExporter();
+        $payload = $exporter->export($source);
+        $filename = sprintf(
+            'event-template-%s.json',
+            $source['EventTemplate']['uuid']
+        );
+        return $this->RestResponse->viewData(
+            $payload,
+            'json',
+            false,
+            true,
+            $filename
+        );
+    }
+
+    public function import()
+    {
+        if (!$this->request->is('post') && !$this->request->is('put')) {
+            $this->set('title_for_layout', __('Import Event Template'));
+            $this->render('import');
+            return;
+        }
+
+        $mode = isset($this->request->query['mode'])
+            ? (string)$this->request->query['mode']
+            : 'fail';
+        $payload = $this->__readImportPayload();
+        if (!is_array($payload)) {
+            $errors = array(__('Could not parse import payload as JSON.'));
+            if ($this->IndexFilter->isRest()) {
+                return $this->RestResponse->saveFailResponse(
+                    'EventTemplates', 'import', false, $errors, 'json'
+                );
+            }
+            $this->Flash->error($errors[0]);
+            $this->render('import');
+            return;
+        }
+
+        $importer = new EventTemplateImporter();
+        try {
+            $result = $importer->import(
+                $payload,
+                $this->Auth->user(),
+                array('mode' => $mode)
+            );
+        } catch (EventTemplateImportException $e) {
+            $errors = array_merge(array($e->getMessage()), $e->getErrors());
+            if ($this->IndexFilter->isRest()) {
+                return $this->RestResponse->saveFailResponse(
+                    'EventTemplates', 'import', false, $errors, 'json'
+                );
+            }
+            $this->Flash->error($e->getMessage());
+            $this->set('errors', $errors);
+            $this->render('import');
+            return;
+        }
+
+        if ($this->IndexFilter->isRest()) {
+            return $this->RestResponse->viewData($result, 'json');
+        }
+        $this->Flash->success(__('Event template imported.'));
+        $this->redirect(array(
+            'action' => 'view',
+            $result['event_template_id'],
+        ));
+    }
+
+    private function __readImportPayload()
+    {
+        // Prefer an uploaded file when present — this is the UI path.
+        if (!empty($this->request->data['file']['tmp_name'])
+            && is_uploaded_file($this->request->data['file']['tmp_name'])
+        ) {
+            $content = file_get_contents(
+                $this->request->data['file']['tmp_name']
+            );
+            $decoded = JsonTool::decode($content);
+            return is_array($decoded) ? $decoded : null;
+        }
+        // CakePHP auto-parses application/json bodies into request->data.
+        if (is_array($this->request->data) && !empty($this->request->data)) {
+            return $this->request->data;
+        }
+        // Fall back to the raw body for clients that post JSON without a
+        // Content-Type header CakePHP recognises.
+        $raw = $this->request->input();
+        if (is_string($raw) && $raw !== '') {
+            $decoded = JsonTool::decode($raw);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+        return null;
     }
 
     public function duplicate($id)
