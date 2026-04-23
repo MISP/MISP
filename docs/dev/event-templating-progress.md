@@ -134,7 +134,7 @@ Nothing else.
 
 - [x] Migration: create `event_templates` table (schema in PRD §6.2)
 - [x] Migration: create `event_template_object_dependencies` table (schema in PRD §6.2)
-- [ ] Migration: rename `event_templates.share_within_org` to `event_templates.distribution` (PRD §6.2, §8 — two values: 0 = org only, 1 = community)
+- [x] Migration: rename `event_templates.share_within_org` to `event_templates.distribution` (PRD §6.2, §8 — two values: 0 = org only, 1 = community)
 - [ ] Indexes validated (`uuid`, `org_id`, `name`, `active` on `event_templates`; `event_template_id`, `object_template_uuid` on the dependencies table)
 
 ### 1.2 JSON schema file
