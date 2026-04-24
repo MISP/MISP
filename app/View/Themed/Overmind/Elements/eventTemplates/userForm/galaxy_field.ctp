@@ -25,19 +25,15 @@
             <?= $this->EventTemplateMarkdown->render($help) ?>
         </div>
     <?php endif; ?>
-    <input type="text"
-           class="form-control bg-light et-value"
+    <select class="et-galaxy-select form-select bg-light"
+            <?php if ($multiple): ?>multiple<?php endif; ?>>
+    </select>
+    <input type="hidden" class="et-value"
            data-et-path="<?= h($id) ?>"
-           data-et-csv="1"
-           placeholder="<?=
-               $multiple
-                   ? __('Comma-separated galaxy cluster values')
-                   : __('A single galaxy cluster value')
-           ?>">
-    <div class="text-muted small mt-1">
-        <?php if (!empty($galaxyTypes)): ?>
+           data-et-csv="1">
+    <?php if (!empty($galaxyTypes)): ?>
+        <div class="text-muted small mt-1">
             <?= __('Restricted to galaxy types: %s', h(implode(', ', $galaxyTypes))) ?>.
-        <?php endif; ?>
-        <?= __('Inline picker integration lands in Phase 3.4.') ?>
-    </div>
+        </div>
+    <?php endif; ?>
 </div>

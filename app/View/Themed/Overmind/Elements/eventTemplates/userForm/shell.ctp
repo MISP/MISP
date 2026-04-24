@@ -140,70 +140,6 @@
     </form>
 </div>
 
-<!-- BS5 tag-picker modal (same hook ids as the default theme; JS is
-     theme-agnostic since Bootstrap 5's data-bs-dismiss attribute only
-     binds when Bootstrap 5 JS is present, which is the case here). -->
-<div id="et-tag-picker-modal" class="modal fade" tabindex="-1"
-     aria-labelledby="et-tag-picker-modal-title" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="et-tag-picker-modal-title">
-                    <?= __('Select tags') ?>
-                </h5>
-                <button type="button" class="btn-close"
-                        data-bs-dismiss="modal" data-dismiss="modal"
-                        aria-label="<?= __('Close') ?>"></button>
-            </div>
-            <div class="modal-body">
-                <div id="et-tag-picker-restriction-hint"
-                     class="text-muted small mb-2"></div>
-                <input type="text" id="et-tag-picker-search"
-                       class="form-control bg-light mb-2"
-                       placeholder="<?= __('Filter by tag name…') ?>">
-                <div id="et-tag-picker-loading" class="text-muted p-2">
-                    <?= __('Loading tags…') ?>
-                </div>
-                <div id="et-tag-picker-list"
-                     style="max-height:420px; overflow-y:auto;"
-                     class="border rounded"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary"
-                        data-bs-dismiss="modal" data-dismiss="modal">
-                    <?= __('Cancel') ?>
-                </button>
-                <button type="button" class="btn btn-primary"
-                        id="et-tag-picker-apply">
-                    <?= __('Apply') ?>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-#et-tag-picker-modal label.et-tag-picker-item {
-    display: block;
-    padding: 5px 10px;
-    border-bottom: 1px solid #f3f3f3;
-    margin: 0;
-    cursor: pointer;
-}
-#et-tag-picker-modal label.et-tag-picker-item:hover { background: #f0f8ff; }
-#et-tag-picker-modal label.et-tag-picker-item input[type=checkbox] {
-    margin-right: 8px;
-}
-#et-tag-picker-modal .et-tag-swatch {
-    display: inline-block;
-    width: 10px; height: 10px;
-    border: 1px solid rgba(0,0,0,0.15);
-    border-radius: 2px;
-    margin-right: 6px;
-    vertical-align: baseline;
-}
-</style>
-
 <script>
     window.ET_USER_FORM_CONFIG = {
         baseurl:    <?= json_encode($baseurl) ?>,
@@ -212,5 +148,12 @@
     };
 </script>
 <?php
+    // user_form.js handles submit, mandatory-field guard, file
+    // upload encoding, and the default-theme tag-picker modal flow.
+    // user_form_overmind.js layers Tom Select pickers on top for
+    // tag and galaxy fields — values are written into the same
+    // hidden .et-value inputs user_form.js already serialises on
+    // POST to /instantiate, so the submit path is unchanged.
     echo $this->Html->script('event-templates/user_form');
+    echo $this->Html->script('event-templates/user_form_overmind');
 ?>

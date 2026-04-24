@@ -25,22 +25,12 @@
             <?= $this->EventTemplateMarkdown->render($help) ?>
         </div>
     <?php endif; ?>
-    <div class="d-flex align-items-center gap-2">
-        <input type="text"
-               class="form-control bg-light et-value"
-               data-et-path="<?= h($id) ?>"
-               data-et-csv="1"
-               placeholder="<?=
-                   $multiple
-                       ? __('Comma-separated tag names (e.g. tlp:amber, kill-chain:reconnaissance)')
-                       : __('A single tag name (e.g. tlp:amber)')
-               ?>">
-        <button type="button"
-                class="btn btn-outline-secondary flex-shrink-0"
-                data-et-open-tag-picker="<?= h($id) ?>">
-            <i class="fas fa-tags me-1"></i><?= __('Choose…') ?>
-        </button>
-    </div>
+    <select class="et-tag-select form-select bg-light"
+            <?php if ($multiple): ?>multiple<?php endif; ?>>
+    </select>
+    <input type="hidden" class="et-value"
+           data-et-path="<?= h($id) ?>"
+           data-et-csv="1">
     <?php if (!empty($taxs)): ?>
         <div class="text-muted small mt-1">
             <?= __('Restricted to taxonomies: %s', h(implode(', ', $taxs))) ?>.
