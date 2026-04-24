@@ -1,12 +1,11 @@
 <?php
     // Load builder-only vendor assets. Gated to this view by virtue of
     // being requested from inside the element (not from the layout).
-    // jquery-ui drives the current (Phase-2) drag-and-drop;
-    // SortableJS + Alpine.js are vendored for Phase 3.3's refit and
-    // loaded here so both JS bundles can coexist once 3.3 lands.
+    // Alpine.js owns the builder state (Phase 3.3.1); SortableJS is
+    // vendored for Phase 3.3.2's drag-and-drop refit and pre-loaded
+    // here so 3.3.2 doesn't touch this asset block again.
     echo $this->element('genericElements/assetLoader', [
         'js' => [
-            'jquery-ui.min',
             'vendor/sortablejs/Sortable.min',
             'vendor/alpinejs/alpine.min',
         ],
@@ -59,6 +58,7 @@
     ];
 ?>
 <style>
+[x-cloak] { display: none !important; }
 .eventTemplates.builder .et-canvas-element {
     border: 1px solid var(--bs-border-color);
     border-radius: 0.25rem;
@@ -75,16 +75,6 @@
 }
 .eventTemplates.builder .et-drag-handle:hover { color: #555; }
 .eventTemplates.builder .et-drag-handle:active { cursor: grabbing; }
-.eventTemplates.builder .et-canvas-element.et-sortable-placeholder {
-    border: 1px dashed var(--bs-primary);
-    background: rgba(var(--bs-primary-rgb), 0.08);
-    height: 34px;
-    visibility: visible !important;
-}
-.eventTemplates.builder .et-canvas-element.ui-sortable-helper {
-    opacity: 0.85;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
 .eventTemplates.builder .et-canvas-element.selected {
     border-color: var(--bs-primary);
     box-shadow: 0 0 0 1px var(--bs-primary);
@@ -113,8 +103,7 @@
     color: #333;
     text-decoration: none;
 }
-#et-ot-picker-modal .et-ot-picker-item:hover,
-#et-ot-picker-modal .et-ot-picker-item.et-highlight {
+#et-ot-picker-modal .et-ot-picker-item:hover {
     background: #f0f8ff;
     text-decoration: none;
 }
@@ -126,15 +115,15 @@
     color: #666; font-size: 11px; margin-top: 2px;
     max-height: 3em; overflow: hidden;
 }
-#et-multipicker-modal label.et-multipicker-item {
+#et-multipicker-modal .et-multipicker-item {
     display: block;
     padding: 6px 10px;
     border-bottom: 1px solid #f3f3f3;
     margin: 0;
     cursor: pointer;
 }
-#et-multipicker-modal label.et-multipicker-item:hover { background: #f0f8ff; }
-#et-multipicker-modal label.et-multipicker-item input[type=checkbox] {
+#et-multipicker-modal .et-multipicker-item:hover { background: #f0f8ff; }
+#et-multipicker-modal .et-multipicker-item input[type=checkbox] {
     margin-right: 8px;
 }
 #et-multipicker-modal .et-multipicker-label { font-weight: 500; }
@@ -169,12 +158,19 @@
 }
 </style>
 
-<div class="eventTemplates builder container-fluid mt-3">
+<div class="eventTemplates builder container-fluid mt-3"
+     x-data="etBuilder" x-cloak>
 
     <h2 class="fw-semibold mb-3"><?= h($pageTitle) ?></h2>
 
-    <div id="et-errors" class="alert alert-danger"
-         style="display:none;"></div>
+    <div class="alert alert-danger" x-show="errors.length">
+        <strong><?= __('Could not save:') ?></strong>
+        <ul class="mb-0">
+            <template x-for="err in errors" :key="err">
+                <li x-text="err"></li>
+            </template>
+        </ul>
+    </div>
 
     <div class="card mb-3 shadow-sm et-envelope">
         <div class="card-body">
@@ -186,7 +182,8 @@
                     </label>
                     <input type="text" id="et-envelope-name"
                            class="form-control bg-light"
-                           placeholder="<?= __('Spearphishing email triage') ?>">
+                           placeholder="<?= __('Spearphishing email triage') ?>"
+                           x-model="envelope.name">
                 </div>
                 <div class="col-md-3">
                     <label for="et-envelope-distribution"
@@ -194,7 +191,8 @@
                         <?= __('Distribution') ?>
                     </label>
                     <select id="et-envelope-distribution"
-                            class="form-select bg-light">
+                            class="form-select bg-light"
+                            x-model.number="envelope.distribution">
                         <option value="0"><?= __('Org only') ?></option>
                         <option value="1"><?= __('Community') ?></option>
                     </select>
@@ -202,7 +200,8 @@
                 <div class="col-md-3 d-flex align-items-end pb-1">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox"
-                               id="et-envelope-active" checked>
+                               id="et-envelope-active"
+                               x-model="envelope.active">
                         <label class="form-check-label" for="et-envelope-active">
                             <?= __('Active') ?>
                         </label>
@@ -214,7 +213,8 @@
                         <?= __('Description (Markdown)') ?>
                     </label>
                     <textarea id="et-envelope-description"
-                              class="form-control bg-light" rows="2"></textarea>
+                              class="form-control bg-light" rows="2"
+                              x-model="envelope.description"></textarea>
                 </div>
             </div>
         </div>
@@ -230,7 +230,7 @@
                     <?php foreach ($paletteButtons as $type => $meta): ?>
                         <button type="button"
                                 class="btn btn-sm btn-outline-secondary w-100 mb-2 text-start"
-                                data-et-add="<?= h($type) ?>">
+                                @click="addElement('<?= h($type) ?>')">
                             <i class="fas fa-<?= h($meta['icon']) ?> me-2"></i>
                             <?= h($meta['label']) ?>
                         </button>
@@ -243,7 +243,34 @@
         <div class="col-lg-6 col-md-5">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <div class="et-canvas" id="et-canvas" style="min-height:420px;"></div>
+                    <div class="et-canvas" id="et-canvas" style="min-height:420px;">
+                        <div class="et-empty" x-show="!hasElements">
+                            <?= __('No elements yet. Use the palette on the left to add one.') ?>
+                        </div>
+                        <template x-for="el in definition.structure" :key="el.id">
+                            <div class="et-canvas-element"
+                                 :class="{ selected: el.id === selectedId }"
+                                 :data-element-id="el.id"
+                                 @click.self="selectElement(el.id)">
+                                <div class="et-element-header d-flex align-items-center gap-2"
+                                     @click="selectElement(el.id)">
+                                    <span class="et-drag-handle"
+                                          title="<?= __('Drag to reorder') ?>">☰</span>
+                                    <span class="et-element-type-badge"
+                                          x-text="typeLabel(el)"></span>
+                                    <span class="et-element-summary"
+                                          x-text="elementSummary(el)"></span>
+                                    <code class="et-element-id" x-text="el.id"></code>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger et-delete-button"
+                                            title="<?= __('Delete element') ?>"
+                                            @click.stop="removeElement(el.id)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
                 </div>
             </div>
         </div>
@@ -252,35 +279,35 @@
         <div class="col-lg-4 col-md-4">
             <div class="card shadow-sm et-properties-pane">
                 <div class="card-body">
-                    <div id="et-properties-empty" class="et-empty">
+                    <div class="et-empty" x-show="!selectedId">
                         <?= __('Select an element in the canvas to edit its properties.') ?>
                     </div>
-                    <div data-et-properties-for="section" style="display:none;">
+                    <div x-show="selectedType === 'section'">
                         <?= $this->element('eventTemplates/builder/properties_section') ?>
                     </div>
-                    <div data-et-properties-for="text_block" style="display:none;">
+                    <div x-show="selectedType === 'text_block'">
                         <?= $this->element('eventTemplates/builder/properties_text_block') ?>
                     </div>
-                    <div data-et-properties-for="attribute_field" style="display:none;">
+                    <div x-show="selectedType === 'attribute_field'">
                         <?= $this->element('eventTemplates/builder/properties_attribute_field', [
                             'attributeCategoryDefinitions' => $attrCategories,
                         ]) ?>
                     </div>
-                    <div data-et-properties-for="object_field" style="display:none;">
+                    <div x-show="selectedType === 'object_field'">
                         <?= $this->element('eventTemplates/builder/properties_object_field', [
                             'objectTemplatesAvailable' => $objectTemplates,
                         ]) ?>
                     </div>
-                    <div data-et-properties-for="tag_field" style="display:none;">
+                    <div x-show="selectedType === 'tag_field'">
                         <?= $this->element('eventTemplates/builder/properties_tag_field') ?>
                     </div>
-                    <div data-et-properties-for="galaxy_field" style="display:none;">
+                    <div x-show="selectedType === 'galaxy_field'">
                         <?= $this->element('eventTemplates/builder/properties_galaxy_field') ?>
                     </div>
-                    <div data-et-properties-for="file_field" style="display:none;">
+                    <div x-show="selectedType === 'file_field'">
                         <?= $this->element('eventTemplates/builder/properties_file_field') ?>
                     </div>
-                    <div data-et-properties-for="object_reference" style="display:none;">
+                    <div x-show="selectedType === 'object_reference'">
                         <?= $this->element('eventTemplates/builder/properties_object_reference') ?>
                     </div>
                 </div>
@@ -290,14 +317,23 @@
     </div>
 
     <div class="et-save-bar d-flex align-items-center gap-2 mt-3">
-        <button type="button" id="et-save-button" class="btn btn-primary">
-            <i class="fas fa-check me-1"></i><?= __('Save') ?>
+        <button type="button" id="et-save-button" class="btn btn-primary"
+                :disabled="saving" @click="save">
+            <i class="fas fa-check me-1"></i>
+            <span x-text="saving ? '<?= __('Saving…') ?>' : '<?= __('Save') ?>'"></span>
         </button>
         <button type="button" id="et-validate-button"
-                class="btn btn-outline-secondary">
+                class="btn btn-outline-secondary"
+                @click="validate">
             <i class="fas fa-circle-check me-1"></i><?= __('Validate') ?>
         </button>
-        <span id="et-validate-status" class="text-muted small ms-2"></span>
+        <span id="et-validate-status" class="small ms-2"
+              :class="{
+                  'text-success': validateStatusKind === 'success',
+                  'text-danger': validateStatusKind === 'error',
+                  'text-muted': !validateStatusKind
+              }"
+              x-text="validateStatus"></span>
         <?php if ($existing): ?>
             <a href="<?= h($baseurl . '/event_templates/view/' . (int)$existing['id']) ?>"
                class="btn btn-outline-secondary ms-auto">
@@ -310,89 +346,100 @@
             </a>
         <?php endif; ?>
     </div>
-</div>
 
-<!-- Object-template picker (BS5 modal) -->
-<div id="et-ot-picker-modal" class="modal fade" tabindex="-1"
-     aria-labelledby="et-ot-picker-title" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="et-ot-picker-title">
-                    <?= __('Select an object template') ?>
-                </h5>
-                <button type="button" class="btn-close"
-                        data-bs-dismiss="modal" data-dismiss="modal"
-                        aria-label="<?= __('Close') ?>"></button>
-            </div>
-            <div class="modal-body">
-                <input type="text" id="et-ot-picker-search"
-                       class="form-control bg-light mb-2"
-                       placeholder="<?= __('Filter by name or meta-category…') ?>">
-                <div id="et-ot-picker-list"
-                     class="border rounded"
-                     style="max-height:55vh; overflow-y:auto;">
-                    <?php foreach ($objectTemplates as $ot): ?>
-                        <a href="#" class="et-ot-picker-item"
-                           data-uuid="<?= h($ot['uuid']) ?>"
-                           data-name="<?= h($ot['name']) ?>"
-                           data-version="<?= h($ot['version']) ?>"
-                           data-meta="<?= h($ot['meta_category']) ?>"
-                           data-search="<?= h(strtolower($ot['name'] . ' ' . $ot['meta_category'] . ' ' . $ot['description'])) ?>">
-                            <strong><?= h($ot['name']) ?></strong>
-                            <span class="muted">v<?= h($ot['version']) ?></span>
-                            <span class="muted"><?= h($ot['meta_category']) ?></span>
-                            <?php if (!empty($ot['description'])): ?>
-                                <div class="et-ot-desc">
-                                    <?= h($ot['description']) ?>
-                                </div>
-                            <?php endif; ?>
-                        </a>
-                    <?php endforeach; ?>
+    <!-- Object-template picker (BS5 modal, Alpine-driven) -->
+    <div id="et-ot-picker-modal" class="modal fade" tabindex="-1"
+         aria-labelledby="et-ot-picker-title" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="et-ot-picker-title">
+                        <?= __('Select an object template') ?>
+                    </h5>
+                    <button type="button" class="btn-close"
+                            data-bs-dismiss="modal" data-dismiss="modal"
+                            aria-label="<?= __('Close') ?>"></button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary"
-                        data-bs-dismiss="modal" data-dismiss="modal">
-                    <?= __('Cancel') ?>
-                </button>
+                <div class="modal-body">
+                    <input type="text" id="et-ot-picker-search"
+                           class="form-control bg-light mb-2"
+                           placeholder="<?= __('Filter by name or meta-category…') ?>"
+                           x-model="objectTemplateFilter">
+                    <div class="border rounded"
+                         style="max-height:55vh; overflow-y:auto;">
+                        <template x-for="ot in filteredObjectTemplates" :key="ot.uuid">
+                            <a href="#" class="et-ot-picker-item"
+                               @click.prevent="pickObjectTemplate(ot.uuid, ot.name, ot.version)">
+                                <strong x-text="ot.name"></strong>
+                                <span class="muted">v<span x-text="ot.version"></span></span>
+                                <span class="muted" x-text="ot.meta_category"></span>
+                                <div class="et-ot-desc" x-show="ot.description"
+                                     x-text="ot.description"></div>
+                            </a>
+                        </template>
+                        <div class="text-muted p-3"
+                             x-show="filteredObjectTemplates.length === 0">
+                            <em><?= __('No object templates match the filter.') ?></em>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal" data-dismiss="modal">
+                        <?= __('Cancel') ?>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Multipicker (BS5 modal) — used for taxonomy & galaxy-type restrictions -->
-<div id="et-multipicker-modal" class="modal fade" tabindex="-1"
-     aria-labelledby="et-multipicker-title" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="et-multipicker-title">
-                    <?= __('Select items') ?>
-                </h5>
-                <button type="button" class="btn-close"
-                        data-bs-dismiss="modal" data-dismiss="modal"
-                        aria-label="<?= __('Close') ?>"></button>
-            </div>
-            <div class="modal-body">
-                <input type="text" id="et-multipicker-search"
-                       class="form-control bg-light mb-2"
-                       placeholder="<?= __('Filter…') ?>">
-                <div id="et-multipicker-list"
-                     class="border rounded"
-                     style="max-height:55vh; overflow-y:auto;">
-                    <!-- populated by JS on open -->
+    <!-- Multipicker (BS5 modal, Alpine-driven) -->
+    <div id="et-multipicker-modal" class="modal fade" tabindex="-1"
+         aria-labelledby="et-multipicker-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="et-multipicker-title"
+                        x-text="multipickerTitle"></h5>
+                    <button type="button" class="btn-close"
+                            data-bs-dismiss="modal" data-dismiss="modal"
+                            aria-label="<?= __('Close') ?>"></button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary"
-                        data-bs-dismiss="modal" data-dismiss="modal">
-                    <?= __('Cancel') ?>
-                </button>
-                <button type="button" class="btn btn-primary"
-                        id="et-multipicker-apply">
-                    <?= __('Apply') ?>
-                </button>
+                <div class="modal-body">
+                    <input type="text" id="et-multipicker-search"
+                           class="form-control bg-light mb-2"
+                           placeholder="<?= __('Filter…') ?>"
+                           x-model="multipickerFilter">
+                    <div class="border rounded"
+                         style="max-height:55vh; overflow-y:auto;">
+                        <template x-for="it in filteredMultipickerItems" :key="it.value">
+                            <label class="et-multipicker-item">
+                                <input type="checkbox" :value="it.value"
+                                       :checked="!!multipickerSelected[it.value]"
+                                       @change="multipickerSelected[it.value] = $event.target.checked">
+                                <span class="et-multipicker-label" x-text="it.label"></span>
+                                <span class="et-multipicker-desc"
+                                      x-show="it.description"
+                                      x-text="it.description"></span>
+                            </label>
+                        </template>
+                        <div class="text-muted p-3"
+                             x-show="filteredMultipickerItems.length === 0">
+                            <em><?= __('No items available.') ?></em>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal" data-dismiss="modal">
+                        <?= __('Cancel') ?>
+                    </button>
+                    <button type="button" class="btn btn-primary"
+                            id="et-multipicker-apply"
+                            @click="applyMultipicker">
+                        <?= __('Apply') ?>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -411,5 +458,5 @@
     };
 </script>
 <?php
-    echo $this->Html->script('event-templates/builder');
+    echo $this->Html->script('event-templates/builder-overmind');
 ?>
