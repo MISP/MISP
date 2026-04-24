@@ -89,6 +89,52 @@
     </form>
 </div>
 
+<div id="et-tag-picker-modal" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3><?php echo __('Select tags'); ?></h3>
+    </div>
+    <div class="modal-body">
+        <div id="et-tag-picker-restriction-hint" style="color:#666; font-size:11px; margin-bottom:6px;"></div>
+        <input type="text" id="et-tag-picker-search" class="input-block-level"
+               placeholder="<?php echo __('Filter by tag name…'); ?>">
+        <div id="et-tag-picker-loading" style="color:#888; padding:10px;">
+            <?php echo __('Loading tags…'); ?>
+        </div>
+        <div id="et-tag-picker-list" style="max-height:420px; overflow-y:auto; border:1px solid #eee; border-radius:3px;">
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn" data-dismiss="modal">
+            <?php echo __('Cancel'); ?>
+        </button>
+        <button type="button" class="btn btn-primary" id="et-tag-picker-apply">
+            <?php echo __('Apply'); ?>
+        </button>
+    </div>
+</div>
+
+<style>
+#et-tag-picker-modal { width: 560px; }
+#et-tag-picker-modal label.et-tag-picker-item {
+    display: block;
+    padding: 5px 10px;
+    border-bottom: 1px solid #f3f3f3;
+    margin: 0;
+    cursor: pointer;
+}
+#et-tag-picker-modal label.et-tag-picker-item:hover { background: #f0f8ff; }
+#et-tag-picker-modal label.et-tag-picker-item input[type=checkbox] { margin-right: 8px; }
+#et-tag-picker-modal .et-tag-swatch {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 2px;
+    margin-right: 6px;
+    vertical-align: baseline;
+}
+</style>
+
 <script>
     window.ET_USER_FORM_CONFIG = {
         baseurl:    <?php echo json_encode($baseurl); ?>,

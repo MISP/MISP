@@ -346,10 +346,219 @@
         submit: submit
     };
 
+    // -----------------------------------------------------------------
+    // Tag picker — inline modal reusing MISP's /tags/index.json source.
+    //
+    // For a typical instance there are thousands of tags, so we fetch
+    // on first open and cache the result in-memory for the rest of the
+    // page lifetime. When the tag_field element declares
+    // restrict_taxonomies, the list is filtered client-side to names
+    // whose taxonomy namespace (prefix before ':') matches.
+    // -----------------------------------------------------------------
+
+    var tagCache = null;      // full list of {name, colour}
+    var tagCacheLoading = null; // promise while the fetch is in flight
+    var tagPickerCtx = null;  // {elementId, multiple, restrict}
+
+    function wireTagPicker() {
+        document.addEventListener('click', function (e) {
+            var $btn = e.target.closest('[data-et-open-tag-picker]');
+            if ($btn) {
+                e.preventDefault();
+                openTagPicker($btn.getAttribute('data-et-open-tag-picker'));
+            }
+        });
+        var $search = document.getElementById('et-tag-picker-search');
+        if ($search) {
+            $search.addEventListener('input', function () {
+                filterTagPicker($search.value);
+            });
+        }
+        var $apply = document.getElementById('et-tag-picker-apply');
+        if ($apply) {
+            $apply.addEventListener('click', function (e) {
+                e.preventDefault();
+                applyTagPicker();
+            });
+        }
+    }
+
+    function openTagPicker(elementId) {
+        var $field = document.querySelector('.et-field[data-et-element-id="' + cssEscape(elementId) + '"]');
+        if (!$field) { return; }
+        var restrictJson = $field.getAttribute('data-et-restrict-taxonomies') || '[]';
+        var restrict = [];
+        try { restrict = JSON.parse(restrictJson); } catch (e) { restrict = []; }
+        var multiple = $field.getAttribute('data-et-multiple') === '1';
+        var $input = $field.querySelector('input.et-value[data-et-path]');
+        var currentCsv = ($input && $input.value) || '';
+
+        tagPickerCtx = {
+            elementId: elementId,
+            multiple: multiple,
+            restrict: restrict.map(function (t) { return String(t).trim(); }).filter(Boolean),
+            targetInput: $input,
+            preChecked: currentCsv.split(',')
+                .map(function (s) { return s.trim(); })
+                .filter(Boolean)
+        };
+
+        var $hint = document.getElementById('et-tag-picker-restriction-hint');
+        if ($hint) {
+            if (tagPickerCtx.restrict.length) {
+                $hint.textContent =
+                    'Restricted to taxonomies: ' + tagPickerCtx.restrict.join(', ');
+            } else {
+                $hint.textContent = 'Any enabled taxonomy allowed.';
+            }
+        }
+        var $search = document.getElementById('et-tag-picker-search');
+        if ($search) { $search.value = ''; }
+
+        var $modal = document.getElementById('et-tag-picker-modal');
+        if (window.jQuery && $modal) {
+            window.jQuery($modal).modal('show');
+            if ($search) { setTimeout(function () { $search.focus(); }, 150); }
+        }
+
+        ensureTagCache().then(function () {
+            renderTagPickerList();
+        }).catch(function (err) {
+            var $loading = document.getElementById('et-tag-picker-loading');
+            if ($loading) {
+                $loading.textContent =
+                    'Failed to load tags: ' + (err && err.message ? err.message : err);
+            }
+        });
+    }
+
+    function ensureTagCache() {
+        if (tagCache !== null) { return Promise.resolve(); }
+        if (tagCacheLoading) { return tagCacheLoading; }
+        var $loading = document.getElementById('et-tag-picker-loading');
+        var $list = document.getElementById('et-tag-picker-list');
+        if ($loading) { $loading.style.display = ''; }
+        if ($list) { $list.innerHTML = ''; }
+
+        tagCacheLoading = fetch(cfg.baseurl + '/tags/index.json', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        }).then(function (r) {
+            if (!r.ok) { throw new Error('HTTP ' + r.status); }
+            return r.json();
+        }).then(function (data) {
+            // /tags/index.json returns { "Tag": [ {id, name, colour, hide_tag, is_galaxy, ...}, ... ] }
+            var rows = (data && data.Tag) ? data.Tag : [];
+            tagCache = rows.filter(function (t) {
+                return !t.hide_tag && !t.is_galaxy;
+            }).map(function (t) {
+                return {
+                    name: (t.name || '').replace(/^\s+/, ''), // leading whitespace slips in sometimes
+                    colour: t.colour || '#777'
+                };
+            });
+            tagCache.sort(function (a, b) {
+                return a.name.localeCompare(b.name);
+            });
+            tagCacheLoading = null;
+        }).catch(function (err) {
+            tagCacheLoading = null;
+            throw err;
+        });
+        return tagCacheLoading;
+    }
+
+    function renderTagPickerList() {
+        var $loading = document.getElementById('et-tag-picker-loading');
+        if ($loading) { $loading.style.display = 'none'; }
+        var $list = document.getElementById('et-tag-picker-list');
+        if (!$list || !tagPickerCtx) { return; }
+        var restrict = tagPickerCtx.restrict;
+        var filtered = tagCache.filter(function (t) {
+            if (!restrict.length) { return true; }
+            // Match tag names whose taxonomy prefix (before ':') is in the list.
+            var i = t.name.indexOf(':');
+            if (i === -1) { return false; }
+            var ns = t.name.slice(0, i);
+            return restrict.indexOf(ns) !== -1;
+        });
+        var preSet = {};
+        tagPickerCtx.preChecked.forEach(function (n) { preSet[n] = true; });
+        $list.innerHTML = '';
+        if (!filtered.length) {
+            $list.innerHTML =
+                '<div style="padding:20px; text-align:center; color:#888;">' +
+                '<em>No tags match this restriction.</em></div>';
+            return;
+        }
+        filtered.forEach(function (t) {
+            var $label = document.createElement('label');
+            $label.className = 'et-tag-picker-item';
+            $label.setAttribute('data-search', t.name.toLowerCase());
+            var $cb = document.createElement('input');
+            $cb.type = 'checkbox';
+            $cb.value = t.name;
+            if (preSet[t.name]) { $cb.checked = true; }
+            var $swatch = document.createElement('span');
+            $swatch.className = 'et-tag-swatch';
+            $swatch.style.background = t.colour;
+            var $name = document.createElement('span');
+            $name.textContent = t.name;
+            $label.appendChild($cb);
+            $label.appendChild($swatch);
+            $label.appendChild($name);
+            $list.appendChild($label);
+        });
+    }
+
+    function filterTagPicker(term) {
+        term = (term || '').toLowerCase().trim();
+        qsa(document, '#et-tag-picker-list .et-tag-picker-item').forEach(function ($item) {
+            if (!term) { $item.style.display = ''; return; }
+            var hay = $item.getAttribute('data-search') || '';
+            $item.style.display = hay.indexOf(term) === -1 ? 'none' : '';
+        });
+    }
+
+    function applyTagPicker() {
+        if (!tagPickerCtx) { return; }
+        var picked = [];
+        qsa(document, '#et-tag-picker-list .et-tag-picker-item input[type=checkbox]')
+            .forEach(function ($cb) { if ($cb.checked) { picked.push($cb.value); } });
+        if (tagPickerCtx.targetInput) {
+            if (!tagPickerCtx.multiple && picked.length > 1) {
+                // Respect single-tag constraint: keep the first.
+                picked = picked.slice(0, 1);
+            }
+            tagPickerCtx.targetInput.value = picked.join(', ');
+            tagPickerCtx.targetInput.dispatchEvent(new Event('input', {bubbles: true}));
+        }
+        if (window.jQuery) {
+            var $modal = document.getElementById('et-tag-picker-modal');
+            if ($modal) { window.jQuery($modal).modal('hide'); }
+        }
+        tagPickerCtx = null;
+    }
+
+    // Tiny CSS-escape polyfill for element ids we use in selectors —
+    // element ids are already validated against the PRD identifier
+    // pattern server-side, but an extra layer doesn't hurt.
+    function cssEscape(s) {
+        if (window.CSS && window.CSS.escape) { return window.CSS.escape(s); }
+        return String(s).replace(/[^a-zA-Z0-9_-]/g, function (c) {
+            return '\\' + c;
+        });
+    }
+
     function init() {
         wireRepeatable();
         wireMandatoryGuard();
         wireSubmit();
+        wireTagPicker();
         // Initial state — disable submit if any mandatory field is empty.
         qsa(document, '#et-user-form .et-field[data-et-repeatable="1"]').forEach(refreshRemoveButtons);
         updateSubmitEnabled();
