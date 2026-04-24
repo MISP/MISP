@@ -162,6 +162,18 @@
         state.saving = true;
         state.errors = [];
 
+        // The PRD §7 JSON schema requires the definition to carry its own
+        // `name` (and optionally `description`) alongside the row-level
+        // envelope fields. Mirror the envelope into the definition at
+        // save time — the user only sees one set of inputs, but the
+        // server enforces both, so they must stay in lock-step.
+        state.definition.name = state.envelope.name;
+        if (state.envelope.description) {
+            state.definition.description = state.envelope.description;
+        } else {
+            delete state.definition.description;
+        }
+
         // The server expects envelope fields + a nested `definition`.
         var body = {
             EventTemplate: {
