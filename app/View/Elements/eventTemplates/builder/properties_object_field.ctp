@@ -46,6 +46,24 @@
     <label><?php echo __('Pinned version'); ?></label>
     <input type="text" data-et-field="object_template.pinned_version" class="input-block-level" readonly>
 </div>
-<div class="alert alert-info" style="margin-top:10px;">
-    <?php echo __('Per-relation overrides (mandatory, hidden, label/help override) land in a follow-up builder commit. For now the object field renders all relations to the user with object-template defaults.'); ?>
+<hr>
+<div class="control-group">
+    <label><?php echo __('Relations to include in the user form'); ?></label>
+    <div class="et-relations-panel">
+        <div class="et-relations-empty" style="color:#888; font-style:italic; padding:8px 0;">
+            <?php echo __('Pick an object template above to choose which relations the user will see.'); ?>
+        </div>
+        <div class="et-relations-controls" style="display:none; margin-bottom:4px; font-size:11px;">
+            <a href="#" data-et-relations-all><?php echo __('Select all'); ?></a>
+            <span style="color:#ccc;"> · </span>
+            <a href="#" data-et-relations-none><?php echo __('Select none'); ?></a>
+            <span style="color:#888; margin-left:8px;">
+                <?php echo __('Empty selection = show all relations (object-template default).'); ?>
+            </span>
+        </div>
+        <div class="et-relations-list"
+             style="display:none; max-height:260px; overflow-y:auto;
+                    border:1px solid #e6e6e6; border-radius:3px;">
+        </div>
+    </div>
 </div>

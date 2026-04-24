@@ -550,6 +550,24 @@ class EventTemplatesController extends AppController
                 return $b['ui_priority'] - $a['ui_priority'];
             });
 
+            // Apply the template creator's per-relation whitelist:
+            // a non-empty `relations[]` on the element restricts the
+            // user form to just those relations. Empty/absent = show
+            // every relation the object template defines.
+            if (isset($el['relations']) && is_array($el['relations']) && !empty($el['relations'])) {
+                $wanted = array();
+                foreach ($el['relations'] as $rel) {
+                    if (is_array($rel) && !empty($rel['object_relation'])) {
+                        $wanted[(string)$rel['object_relation']] = true;
+                    }
+                }
+                if (!empty($wanted)) {
+                    $rels = array_values(array_filter($rels, function ($r) use ($wanted) {
+                        return isset($wanted[$r['object_relation']]);
+                    }));
+                }
+            }
+
             // requirements is a JSON column carrying `required` and/or
             // `requiredOneOf` lists. Decode defensively; an empty/null
             // column just means no constraints.

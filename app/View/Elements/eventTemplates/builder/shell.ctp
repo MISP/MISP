@@ -180,6 +180,18 @@
     margin: 0 2px 2px 0;
     font-size: 11px;
 }
+.eventTemplates.builder .et-relations-list label {
+    display: block;
+    padding: 3px 8px;
+    margin: 0;
+    border-bottom: 1px solid #f3f3f3;
+    cursor: pointer;
+    font-size: 12px;
+}
+.eventTemplates.builder .et-relations-list label:hover { background: #f0f8ff; }
+.eventTemplates.builder .et-relations-list input[type=checkbox] { margin-right: 6px; }
+.eventTemplates.builder .et-relations-list .et-rel-name { font-weight: 500; }
+.eventTemplates.builder .et-relations-list .et-rel-type { color: #888; font-size: 11px; margin-left: 6px; }
 </style>
 <div class="eventTemplates builder form">
     <h2><?php echo h($pageTitle); ?></h2>

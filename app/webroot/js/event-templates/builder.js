@@ -602,6 +602,7 @@
         }
         if (el.type === 'object_field') {
             refreshObjectTemplateDisplay($pane, el);
+            refreshRelationsPanel($pane, el);
         }
         if (el.type === 'object_reference') {
             refreshObjectFieldSelects($pane, el);
@@ -655,6 +656,47 @@
         }
     }
 
+    // Per-uuid relations cache, populated from
+    // /object_templates/view/{uuid}.json the first time a template is
+    // picked in the builder. Keyed by uuid.
+    var objectTemplateRelationCache = {};
+
+    function ensureRelationsLoaded(uuid) {
+        if (!uuid) { return Promise.resolve(null); }
+        if (objectTemplateRelationCache[uuid]) {
+            return Promise.resolve(objectTemplateRelationCache[uuid]);
+        }
+        return fetch(cfg.baseurl + '/object_templates/view/' + encodeURIComponent(uuid), {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        }).then(function (r) {
+            if (!r.ok) { throw new Error('HTTP ' + r.status); }
+            return r.json();
+        }).then(function (data) {
+            var rels = (data && data.ObjectTemplateElement) || [];
+            rels = rels.map(function (r) {
+                return {
+                    object_relation: (r.object_relation || '').toString(),
+                    type: (r.type || '').toString(),
+                    description: (r.description || '').toString(),
+                    ui_priority: parseInt(r['ui-priority'] || 0, 10)
+                };
+            }).filter(function (r) { return r.object_relation !== ''; });
+            rels.sort(function (a, b) {
+                if (b.ui_priority !== a.ui_priority) {
+                    return b.ui_priority - a.ui_priority;
+                }
+                return a.object_relation.localeCompare(b.object_relation);
+            });
+            objectTemplateRelationCache[uuid] = rels;
+            return rels;
+        });
+    }
+
     function refreshObjectTemplateDisplay($pane, el) {
         var ot = el.object_template || {};
         var $name = $pane.querySelector('[data-et-ot-display="name"]');
@@ -683,6 +725,102 @@
             }
             $meta.textContent = '';
         }
+    }
+
+    function refreshRelationsPanel($pane, el) {
+        var $panel = $pane.querySelector('.et-relations-panel');
+        if (!$panel) { return; }
+        var $empty = $panel.querySelector('.et-relations-empty');
+        var $list = $panel.querySelector('.et-relations-list');
+        var $controls = $panel.querySelector('.et-relations-controls');
+        var uuid = (el.object_template && el.object_template.uuid) || '';
+        if (!uuid) {
+            if ($empty) { $empty.style.display = ''; }
+            if ($list) { $list.style.display = 'none'; $list.innerHTML = ''; }
+            if ($controls) { $controls.style.display = 'none'; }
+            return;
+        }
+        if ($empty) { $empty.style.display = 'none'; }
+        if ($controls) { $controls.style.display = ''; }
+        if ($list) {
+            $list.style.display = '';
+            $list.innerHTML = '<div style="padding:10px; color:#888;">Loading relations…</div>';
+        }
+        ensureRelationsLoaded(uuid).then(function (rels) {
+            // After the fetch resolves the user may have moved on to a
+            // different element — only render if this element is still
+            // selected.
+            if (state.selectedId !== el.id) { return; }
+            var current = findElement(el.id);
+            if (!current) { return; }
+            renderRelationsList($list, current, rels);
+        }).catch(function (err) {
+            if ($list) {
+                $list.innerHTML = '<div style="padding:10px; color:#c33;">' +
+                    'Failed to load relations: ' +
+                    (err && err.message ? err.message : err) +
+                    '</div>';
+            }
+        });
+    }
+
+    function renderRelationsList($list, el, rels) {
+        if (!$list) { return; }
+        var selected = {};
+        if (Array.isArray(el.relations)) {
+            el.relations.forEach(function (r) {
+                if (r && r.object_relation) { selected[r.object_relation] = true; }
+            });
+        }
+        $list.innerHTML = '';
+        if (!rels.length) {
+            $list.innerHTML = '<div style="padding:10px; color:#888;">' +
+                'This object template has no relations.</div>';
+            return;
+        }
+        rels.forEach(function (r) {
+            var $label = document.createElement('label');
+            var $cb = document.createElement('input');
+            $cb.type = 'checkbox';
+            $cb.value = r.object_relation;
+            if (selected[r.object_relation]) { $cb.checked = true; }
+            $cb.addEventListener('change', function () {
+                toggleRelationSelection(el.id, r.object_relation, $cb.checked);
+            });
+            var $name = document.createElement('span');
+            $name.className = 'et-rel-name';
+            $name.textContent = r.object_relation;
+            var $type = document.createElement('span');
+            $type.className = 'et-rel-type';
+            $type.textContent = r.type;
+            $label.appendChild($cb);
+            $label.appendChild($name);
+            $label.appendChild($type);
+            if (r.description) {
+                $label.title = r.description;
+            }
+            $list.appendChild($label);
+        });
+    }
+
+    function toggleRelationSelection(elementId, relation, include) {
+        state.definition.structure = state.definition.structure.map(function (e) {
+            if (e.id !== elementId) { return e; }
+            var next = JSON.parse(JSON.stringify(e));
+            if (!Array.isArray(next.relations)) { next.relations = []; }
+            var idx = next.relations.findIndex(function (r) {
+                return r && r.object_relation === relation;
+            });
+            if (include) {
+                if (idx === -1) {
+                    next.relations.push({object_relation: relation});
+                }
+            } else if (idx !== -1) {
+                next.relations.splice(idx, 1);
+            }
+            return next;
+        });
+        renderCanvas();
     }
 
     function refreshObjectFieldSelects($pane, el) {
@@ -800,6 +938,36 @@
 
     // Tracks which element/field the modal is currently editing.
     var multipickerCtx = null;
+
+    function wireRelationsShortcuts() {
+        document.addEventListener('click', function (e) {
+            var $all = e.target.closest('[data-et-relations-all]');
+            var $none = e.target.closest('[data-et-relations-none]');
+            if (!$all && !$none) { return; }
+            e.preventDefault();
+            if (!state.selectedId) { return; }
+            var el = findElement(state.selectedId);
+            if (!el || el.type !== 'object_field') { return; }
+            var uuid = (el.object_template && el.object_template.uuid) || '';
+            if (!uuid) { return; }
+            ensureRelationsLoaded(uuid).then(function (rels) {
+                state.definition.structure = state.definition.structure.map(function (e2) {
+                    if (e2.id !== el.id) { return e2; }
+                    var next = JSON.parse(JSON.stringify(e2));
+                    if ($all) {
+                        next.relations = rels.map(function (r) {
+                            return {object_relation: r.object_relation};
+                        });
+                    } else {
+                        next.relations = [];
+                    }
+                    return next;
+                });
+                renderProperties();
+                renderCanvas();
+            });
+        });
+    }
 
     function wireMultipicker() {
         document.addEventListener('click', function (e) {
@@ -1026,6 +1194,7 @@
 
         wireObjectTemplatePicker();
         wireMultipicker();
+        wireRelationsShortcuts();
 
         var $save = document.getElementById('et-save-button');
         if ($save) {
