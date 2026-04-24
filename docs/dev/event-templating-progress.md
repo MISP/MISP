@@ -240,8 +240,8 @@ Nothing else.
 
 - [x] Vendor SortableJS (pinned version) in `app/webroot/js/vendor/sortablejs/`
 - [x] Vendor Alpine.js 3.x (pinned version) in `app/webroot/js/vendor/alpinejs/`
-- [ ] Asset loading gated on the builder view only (not in the global Overmind asset set)
-- [ ] License attribution in NOTICE / dependency manifest
+- [x] Asset loading gated on the builder view only (not in the global Overmind asset set)
+- [x] License attribution in NOTICE / dependency manifest
 
 ### 3.2 Views
 
