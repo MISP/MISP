@@ -214,6 +214,50 @@
                 if (!Array.isArray(this.definition.structure)) {
                     this.definition.structure = [];
                 }
+                this.$nextTick(() => this.attachSortable());
+            },
+
+            // ---------- drag-and-drop reorder ----------
+
+            attachSortable() {
+                if (typeof window.Sortable === 'undefined') { return; }
+                const $canvas = this.$root.querySelector('#et-canvas');
+                if (!$canvas) { return; }
+                // Sortable holds onto the container and queries its
+                // children at drag time — the .et-canvas-element nodes
+                // Alpine's <template x-for> emits/removes are picked up
+                // automatically. The handle scopes the drag to the ☰
+                // span so a click anywhere else on a row still selects.
+                window.Sortable.create($canvas, {
+                    handle: '.et-drag-handle',
+                    draggable: '.et-canvas-element',
+                    animation: 150,
+                    ghostClass: 'et-sortable-ghost',
+                    chosenClass: 'et-sortable-chosen',
+                    forceFallback: false,
+                    onEnd: (evt) => this.commitReorder($canvas, evt)
+                });
+            },
+            commitReorder($canvas) {
+                // After the drop the DOM already reflects the new order.
+                // Read the order out of the DOM and rebuild the structure
+                // array from the existing elements; Alpine's x-for keyed
+                // on el.id then reconciles without re-creating nodes.
+                const ids = Array.from(
+                    $canvas.querySelectorAll('.et-canvas-element')
+                ).map(($e) => $e.getAttribute('data-element-id'));
+                if (ids.length !== this.definition.structure.length) {
+                    return;
+                }
+                const byId = {};
+                this.definition.structure.forEach((el) => { byId[el.id] = el; });
+                const reordered = ids
+                    .map((id) => byId[id])
+                    .filter((el) => el);
+                if (reordered.length !== this.definition.structure.length) {
+                    return;
+                }
+                this.definition.structure = reordered;
             },
 
             // ---------- computed ----------

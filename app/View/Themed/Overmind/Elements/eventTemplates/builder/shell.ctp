@@ -80,6 +80,14 @@
     box-shadow: 0 0 0 1px var(--bs-primary);
     background: rgba(var(--bs-primary-rgb), 0.08);
 }
+.eventTemplates.builder .et-canvas-element.et-sortable-ghost {
+    opacity: 0.4;
+    border: 1px dashed var(--bs-primary);
+    background: rgba(var(--bs-primary-rgb), 0.08);
+}
+.eventTemplates.builder .et-canvas-element.et-sortable-chosen {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
 .eventTemplates.builder .et-element-type-badge {
     background: #eee;
     padding: 2px 6px;

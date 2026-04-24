@@ -256,7 +256,7 @@ Nothing else.
 ### 3.3 Builder JS (Overmind)
 
 - [x] Alpine.js component(s) driving the builder state
-- [ ] SortableJS wiring for nested drag-and-drop
+- [x] SortableJS wiring for nested drag-and-drop
 - [ ] Tom Select pickers for object template, tag taxonomy, galaxy type
 - [ ] Inline server-error surfacing
 
