@@ -132,6 +132,27 @@
 .eventTemplates.builder .et-properties-pane .control-group > label { font-weight: 600; }
 .eventTemplates.builder .et-properties-pane .control-group label.checkbox { font-weight: normal; }
 .eventTemplates.builder .et-properties-pane .help-block { color: #888; font-size: 11px; }
+#et-ot-picker-modal .et-ot-picker-item {
+    display: block;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    color: #333;
+    text-decoration: none;
+}
+#et-ot-picker-modal .et-ot-picker-item:hover,
+#et-ot-picker-modal .et-ot-picker-item.et-highlight {
+    background: #f0f8ff;
+    text-decoration: none;
+}
+#et-ot-picker-modal .et-ot-picker-item strong { font-size: 13px; }
+#et-ot-picker-modal .et-ot-picker-item .muted { color: #999; font-size: 11px; margin-left: 6px; }
+#et-ot-picker-modal .et-ot-picker-item .et-ot-desc {
+    color: #666; font-size: 11px; margin-top: 2px;
+    max-height: 3em; overflow: hidden;
+}
+#et-ot-picker-modal { width: 640px; max-height: 80vh; }
+#et-ot-picker-modal .modal-body { max-height: calc(80vh - 120px); overflow: hidden; display: flex; flex-direction: column; gap: 8px; }
+#et-ot-picker-list { flex: 1; overflow-y: auto; border: 1px solid #eee; border-radius: 3px; }
 </style>
 <div class="eventTemplates builder form">
     <h2><?php echo h($pageTitle); ?></h2>
@@ -223,6 +244,38 @@
             <a href="<?php echo h($baseurl . '/event_templates/index'); ?>"
                class="btn"><?php echo __('Cancel'); ?></a>
         <?php endif; ?>
+    </div>
+</div>
+
+<div id="et-ot-picker-modal" class="modal hide fade" tabindex="-1" role="dialog"
+     aria-labelledby="et-ot-picker-title" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="et-ot-picker-title"><?php echo __('Select an object template'); ?></h3>
+    </div>
+    <div class="modal-body">
+        <input type="text" id="et-ot-picker-search" class="input-block-level"
+               placeholder="<?php echo __('Filter by name or meta-category…'); ?>">
+        <div id="et-ot-picker-list">
+            <?php foreach ($objectTemplates as $ot): ?>
+                <a href="#" class="et-ot-picker-item"
+                   data-uuid="<?php echo h($ot['uuid']); ?>"
+                   data-name="<?php echo h($ot['name']); ?>"
+                   data-version="<?php echo h($ot['version']); ?>"
+                   data-meta="<?php echo h($ot['meta_category']); ?>"
+                   data-search="<?php echo h(strtolower($ot['name'] . ' ' . $ot['meta_category'] . ' ' . $ot['description'])); ?>">
+                    <strong><?php echo h($ot['name']); ?></strong>
+                    <span class="muted">v<?php echo h($ot['version']); ?></span>
+                    <span class="muted"><?php echo h($ot['meta_category']); ?></span>
+                    <?php if (!empty($ot['description'])): ?>
+                        <div class="et-ot-desc"><?php echo h($ot['description']); ?></div>
+                    <?php endif; ?>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn" data-dismiss="modal"><?php echo __('Cancel'); ?></button>
     </div>
 </div>
 

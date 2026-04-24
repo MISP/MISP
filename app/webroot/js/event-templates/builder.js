@@ -601,7 +601,7 @@
             refreshAttributeTypeOptions($pane, el);
         }
         if (el.type === 'object_field') {
-            refreshObjectTemplateSelect($pane, el);
+            refreshObjectTemplateDisplay($pane, el);
         }
         if (el.type === 'object_reference') {
             refreshObjectFieldSelects($pane, el);
@@ -632,12 +632,34 @@
         }
     }
 
-    function refreshObjectTemplateSelect($pane, el) {
-        var $sel = $pane.querySelector('[data-et-object-template-select]');
-        if (!$sel) { return; }
+    function refreshObjectTemplateDisplay($pane, el) {
         var ot = el.object_template || {};
-        var want = ot.uuid ? (ot.uuid + '@' + ot.pinned_version) : '';
-        $sel.value = want;
+        var $name = $pane.querySelector('[data-et-ot-display="name"]');
+        var $ver = $pane.querySelector('[data-et-ot-display="version"]');
+        var $meta = $pane.querySelector('[data-et-ot-display="meta"]');
+        if ($name) {
+            if (ot.name) {
+                $name.textContent = ot.name;
+            } else {
+                $name.innerHTML = '<em>(none selected)</em>';
+            }
+        }
+        if ($ver) {
+            $ver.textContent = ot.pinned_version ? ('v' + ot.pinned_version) : '';
+        }
+        if ($meta) {
+            // Meta isn't persisted in state, but we can resolve it via
+            // cfg.objectTemplates when a uuid is set.
+            if (ot.uuid && Array.isArray(cfg.objectTemplates)) {
+                for (var i = 0; i < cfg.objectTemplates.length; i += 1) {
+                    if (cfg.objectTemplates[i].uuid === ot.uuid) {
+                        $meta.textContent = cfg.objectTemplates[i].meta_category || '';
+                        return;
+                    }
+                }
+            }
+            $meta.textContent = '';
+        }
     }
 
     function refreshObjectFieldSelects($pane, el) {
@@ -671,6 +693,82 @@
                 $sel.appendChild($stale);
             }
         });
+    }
+
+    // ---------------------------------------------------------------
+    // Object-template picker modal — searchable list of installed OTs.
+    // ---------------------------------------------------------------
+
+    function wireObjectTemplatePicker() {
+        // Open buttons live inside hidden property panes; use event
+        // delegation on the document so they pick up clicks regardless
+        // of pane visibility when wire() ran.
+        document.addEventListener('click', function (e) {
+            var $btn = e.target.closest('[data-et-open-ot-picker]');
+            if ($btn) {
+                e.preventDefault();
+                openObjectTemplatePicker();
+            }
+            var $item = e.target.closest('#et-ot-picker-modal .et-ot-picker-item');
+            if ($item) {
+                e.preventDefault();
+                pickObjectTemplate($item);
+            }
+        });
+
+        var $search = document.getElementById('et-ot-picker-search');
+        if ($search) {
+            $search.addEventListener('input', function () {
+                filterObjectTemplateList($search.value);
+            });
+        }
+    }
+
+    function openObjectTemplatePicker() {
+        if (!state.selectedId) { return; }
+        var el = findElement(state.selectedId);
+        if (!el || el.type !== 'object_field') { return; }
+        var $modal = document.getElementById('et-ot-picker-modal');
+        var $search = document.getElementById('et-ot-picker-search');
+        if ($search) {
+            $search.value = '';
+            filterObjectTemplateList('');
+        }
+        if (window.jQuery && $modal) {
+            window.jQuery($modal).modal('show');
+            if ($search) {
+                setTimeout(function () { $search.focus(); }, 150);
+            }
+        }
+    }
+
+    function filterObjectTemplateList(term) {
+        term = (term || '').toLowerCase().trim();
+        var $items = document.querySelectorAll('#et-ot-picker-list .et-ot-picker-item');
+        $items.forEach(function ($item) {
+            if (!term) {
+                $item.style.display = '';
+                return;
+            }
+            var hay = $item.getAttribute('data-search') || '';
+            $item.style.display = hay.indexOf(term) === -1 ? 'none' : '';
+        });
+    }
+
+    function pickObjectTemplate($item) {
+        if (!state.selectedId) { return; }
+        var uuid = $item.getAttribute('data-uuid') || '';
+        var name = $item.getAttribute('data-name') || '';
+        var version = parseInt($item.getAttribute('data-version'), 10) || 0;
+        setElementFieldDeep(state.selectedId, 'object_template.uuid', uuid);
+        setElementFieldDeep(state.selectedId, 'object_template.name', name);
+        setElementFieldDeep(state.selectedId, 'object_template.pinned_version', version);
+        if (window.jQuery) {
+            var $modal = document.getElementById('et-ot-picker-modal');
+            if ($modal) { window.jQuery($modal).modal('hide'); }
+        }
+        // Refresh the current pane so the readonly display reflects the new pick.
+        renderProperties();
     }
 
     function renderErrors() {
@@ -777,32 +875,7 @@
                 });
             });
 
-        // Object template picker: decompose "<uuid>@<version>" into
-        // object_template.{uuid, name, pinned_version} and mutate state.
-        document.querySelectorAll('[data-et-object-template-select]')
-            .forEach(function ($sel) {
-                $sel.addEventListener('change', function () {
-                    if (!state.selectedId) { return; }
-                    var v = $sel.value;
-                    if (!v) {
-                        setElementFieldDeep(state.selectedId, 'object_template.uuid', '');
-                        setElementFieldDeep(state.selectedId, 'object_template.name', '');
-                        setElementFieldDeep(state.selectedId, 'object_template.pinned_version', 0);
-                    } else {
-                        var parts = v.split('@');
-                        var uuid = parts[0];
-                        var version = parseInt(parts[1], 10) || 0;
-                        var $opt = $sel.options[$sel.selectedIndex];
-                        var name = $opt ? $opt.getAttribute('data-name') : '';
-                        setElementFieldDeep(state.selectedId, 'object_template.uuid', uuid);
-                        setElementFieldDeep(state.selectedId, 'object_template.name', name || '');
-                        setElementFieldDeep(state.selectedId, 'object_template.pinned_version', version);
-                    }
-                    // The readonly uuid/name/version inputs are inside the
-                    // same pane; re-render to refresh them.
-                    renderProperties();
-                });
-            });
+        wireObjectTemplatePicker();
 
         var $save = document.getElementById('et-save-button');
         if ($save) {
