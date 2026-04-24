@@ -329,6 +329,42 @@ class EventTemplatesRestTests(unittest.TestCase):
         flat = r.text
         self.assertIn("file_field", flat)
 
+    def test_instantiate_attaches_tag_field_input(self) -> None:
+        # Regression: tag_field inputs submitted through the user form
+        # must make it onto the created event as tags. Historically the
+        # collectValues() helper iterated .et-entries > .et-entry, which
+        # the flat tag_field markup doesn't use, so nothing reached the
+        # server.
+        def_with_tags = _minimal_definition(name="tag-template")
+        def_with_tags["structure"] = [
+            {"type": "tag_field", "id": "tagset", "label": "Tags",
+             "multiple": True},
+        ]
+        created = self._add(name="tag-tpl", definition=def_with_tags)
+        tid = int(created["EventTemplate"]["id"])
+
+        r = requests.post(
+            f"{URL}/event_templates/instantiate/{tid}",
+            headers=_headers(),
+            data=json.dumps({"values": {"tagset": ["tlp:amber"]}}),
+            timeout=15,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:300])
+        eid = int(r.json()["event_id"])
+        self._events.append(eid)
+
+        r = requests.get(
+            f"{URL}/events/view/{eid}",
+            headers=_headers(),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200)
+        evt = r.json()
+        tag_names = [t["name"] for t in
+                     (evt.get("Event", {}).get("Tag", []) or [])]
+        self.assertIn("tlp:amber", tag_names,
+                      f"expected tlp:amber on event; got {tag_names!r}")
+
     def test_instantiate_accepts_file_field_attachment(self) -> None:
         # Happy path for file_field `as: attachment` — supply a tiny
         # base64 payload and confirm an attachment attribute with the

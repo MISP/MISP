@@ -209,11 +209,25 @@
             }
 
             var isCsv = !!$field.querySelector('[data-et-csv="1"]');
-            var entryVals = qsa($field, '.et-entries > .et-entry').map(function ($entry) {
-                var $input = $entry.querySelector('.et-value[data-et-path]');
+
+            // Attribute / object fields wrap their input(s) in
+            // .et-entries > .et-entry; tag / galaxy fields render a
+            // single flat input directly under .et-field. Fall back to
+            // field-level lookup when the entry wrapper isn't present.
+            var $entries = qsa($field, '.et-entries > .et-entry');
+            if (!$entries.length) {
+                $entries = qsa($field, '.et-value[data-et-path]').map(function ($i) {
+                    return $i;
+                });
+            }
+            var entryVals = $entries.map(function ($scope) {
+                var $input = $scope.classList && $scope.classList.contains('et-value')
+                    ? $scope
+                    : $scope.querySelector('.et-value[data-et-path]');
                 if (!$input) { return ''; }
                 return $input.value;
             });
+
             if (isCsv) {
                 var pieces = [];
                 entryVals.forEach(function (v) {
