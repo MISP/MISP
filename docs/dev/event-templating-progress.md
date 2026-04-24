@@ -251,7 +251,7 @@ Nothing else.
 - [x] `app/View/Themed/Overmind/EventTemplates/preview.ctp`
 - [x] `app/View/Themed/Overmind/EventTemplates/user_form.ctp`
 - [x] `app/View/Themed/Overmind/EventTemplates/import.ctp`
-- [ ] Overmind-flavoured element partials for builder and user form
+- [x] Overmind-flavoured element partials for builder and user form
 
 ### 3.3 Builder JS (Overmind)
 
