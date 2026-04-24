@@ -218,16 +218,138 @@
         });
     }
 
-    // Expose collection helpers + the mandatory check so the next
-    // commit's submit flow can share them.
+    // -----------------------------------------------------------------
+    // Submit flow — POST /event_templates/instantiate/{id}.
+    // -----------------------------------------------------------------
+
+    var submitting = false;
+
+    function wireSubmit() {
+        var $btn = document.getElementById('et-user-form-submit');
+        if (!$btn) { return; }
+        $btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            submit();
+        });
+    }
+
+    function submit() {
+        if (submitting || cfg.isPreview) { return; }
+        var $form = document.getElementById('et-user-form');
+        var $btn = document.getElementById('et-user-form-submit');
+        var $status = document.getElementById('et-user-form-status');
+        if (!$form) { return; }
+
+        var missing = validateMandatory();
+        if (missing.length > 0) {
+            renderErrors(['Missing mandatory fields: ' + missing.join(', ')]);
+            return;
+        }
+
+        var url = $form.getAttribute('data-et-instantiate-url') ||
+            (cfg.baseurl + '/event_templates/instantiate/' + cfg.templateId);
+        var body = {values: collectValues()};
+
+        submitting = true;
+        renderErrors([]);
+        if ($btn) {
+            $btn.disabled = true;
+            $btn.dataset.etOrigLabel = $btn.dataset.etOrigLabel || $btn.textContent;
+            $btn.textContent = 'Creating event…';
+        }
+        if ($status) { $status.textContent = ''; }
+
+        fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(body)
+        }).then(function (r) {
+            return r.json().then(function (data) {
+                return {status: r.status, data: data};
+            });
+        }).then(function (res) {
+            if (res.status >= 200 && res.status < 300 && res.data && res.data.event_id) {
+                // Redirect to the newly-created event.
+                window.location.href = cfg.baseurl + '/events/view/' + res.data.event_id;
+                return;
+            }
+            submitting = false;
+            if ($btn) {
+                $btn.disabled = false;
+                $btn.textContent = $btn.dataset.etOrigLabel || 'Create event';
+            }
+            renderErrors(extractErrors(res.data));
+            // Re-run mandatory guard in case the user edits a field.
+            updateSubmitEnabled();
+        }).catch(function (err) {
+            submitting = false;
+            if ($btn) {
+                $btn.disabled = false;
+                $btn.textContent = $btn.dataset.etOrigLabel || 'Create event';
+            }
+            renderErrors(['Network error: ' + (err && err.message ? err.message : err)]);
+            updateSubmitEnabled();
+        });
+    }
+
+    function extractErrors(data) {
+        if (!data) { return ['Unknown error.']; }
+        if (Array.isArray(data.errors)) { return data.errors; }
+        if (data.errors && typeof data.errors === 'object') {
+            var out = [];
+            Object.keys(data.errors).forEach(function (field) {
+                var list = data.errors[field];
+                if (Array.isArray(list)) {
+                    list.forEach(function (msg) { out.push(field + ': ' + msg); });
+                } else {
+                    out.push(field + ': ' + list);
+                }
+            });
+            return out;
+        }
+        if (data.message) { return [data.message]; }
+        return ['Unknown error.'];
+    }
+
+    function renderErrors(errors) {
+        var $panel = document.getElementById('et-user-form-errors');
+        if (!$panel) { return; }
+        $panel.innerHTML = '';
+        if (!errors || !errors.length) { return; }
+        var $alert = document.createElement('div');
+        $alert.className = 'alert alert-error';
+        var $h = document.createElement('strong');
+        $h.textContent = 'Could not create event:';
+        $alert.appendChild($h);
+        var $ul = document.createElement('ul');
+        errors.forEach(function (err) {
+            var $li = document.createElement('li');
+            $li.textContent = String(err);
+            $ul.appendChild($li);
+        });
+        $alert.appendChild($ul);
+        $panel.appendChild($alert);
+        // Scroll the error into view so the user sees it.
+        $panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }
+
+    // Expose collection helpers + the mandatory check so other page
+    // JS (e.g. future preview extensions) can reuse them.
     window.ETUserForm = {
         collectValues: collectValues,
-        validateMandatory: validateMandatory
+        validateMandatory: validateMandatory,
+        submit: submit
     };
 
     function init() {
         wireRepeatable();
         wireMandatoryGuard();
+        wireSubmit();
         // Initial state — disable submit if any mandatory field is empty.
         qsa(document, '#et-user-form .et-field[data-et-repeatable="1"]').forEach(refreshRemoveButtons);
         updateSubmitEnabled();
