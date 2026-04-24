@@ -45,6 +45,8 @@
             ['controller' => 'correlation_exclusions', 'action' => 'index'],
             ['controller' => 'correlation_exclusions', 'action' => 'add'],
 
+            ['controller' => 'event_templates', 'action' => 'index'],
+
 
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],

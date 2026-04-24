@@ -245,7 +245,7 @@ Nothing else.
 
 ### 3.2 Views
 
-- [ ] `app/View/Themed/Overmind/EventTemplates/index.ctp` (BS5 card/table)
+- [x] `app/View/Themed/Overmind/EventTemplates/index.ctp` (BS5 card/table)
 - [ ] `app/View/Themed/Overmind/EventTemplates/view.ctp`
 - [ ] `app/View/Themed/Overmind/EventTemplates/add.ctp` + `edit.ctp` (builder with Alpine.js markup)
 - [ ] `app/View/Themed/Overmind/EventTemplates/preview.ctp`
