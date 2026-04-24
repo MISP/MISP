@@ -660,6 +660,55 @@ class EventTemplatesController extends AppController
             );
         }
         $this->set('objectTemplatesAvailable', $objectTemplates);
+
+        $this->loadModel('Taxonomy');
+        $taxonomyRows = $this->Taxonomy->find('all', array(
+            'recursive' => -1,
+            'conditions' => array('Taxonomy.enabled' => true),
+            'fields' => array(
+                'Taxonomy.namespace',
+                'Taxonomy.description',
+                'Taxonomy.version',
+            ),
+            'order' => array('Taxonomy.namespace' => 'ASC'),
+        ));
+        $taxonomies = array();
+        foreach ($taxonomyRows as $r) {
+            $t = $r['Taxonomy'];
+            $taxonomies[] = array(
+                'value' => (string)$t['namespace'],
+                'label' => (string)$t['namespace'],
+                'description' => (string)($t['description'] ?? ''),
+            );
+        }
+        $this->set('taxonomiesAvailable', $taxonomies);
+
+        $this->loadModel('Galaxy');
+        $galaxyRows = $this->Galaxy->find('all', array(
+            'recursive' => -1,
+            'conditions' => array('Galaxy.enabled' => true),
+            'fields' => array(
+                'Galaxy.type',
+                'Galaxy.description',
+            ),
+            'group' => array('Galaxy.type'),
+            'order' => array('Galaxy.type' => 'ASC'),
+        ));
+        $galaxyTypes = array();
+        $seenTypes = array();
+        foreach ($galaxyRows as $r) {
+            $t = $r['Galaxy']['type'];
+            if ($t === null || $t === '' || isset($seenTypes[$t])) {
+                continue;
+            }
+            $seenTypes[$t] = true;
+            $galaxyTypes[] = array(
+                'value' => (string)$t,
+                'label' => (string)$t,
+                'description' => (string)($r['Galaxy']['description'] ?? ''),
+            );
+        }
+        $this->set('galaxyTypesAvailable', $galaxyTypes);
     }
 
     private function __renderDependencyMissing(array $missing)

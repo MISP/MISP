@@ -606,6 +606,29 @@
         if (el.type === 'object_reference') {
             refreshObjectFieldSelects($pane, el);
         }
+        if (el.type === 'tag_field' || el.type === 'galaxy_field') {
+            refreshMultipickerSummary($pane, el);
+        }
+    }
+
+    function refreshMultipickerSummary($pane, el) {
+        $pane.querySelectorAll('[data-et-multipicker-summary-for]').forEach(function ($s) {
+            var field = $s.getAttribute('data-et-multipicker-summary-for');
+            var values = getDeep(el, field);
+            if (!Array.isArray(values) || values.length === 0) {
+                $s.innerHTML = '<em>' +
+                    (field === 'restrict_taxonomies' ? '(any taxonomy)' : '(any galaxy type)') +
+                    '</em>';
+                return;
+            }
+            $s.innerHTML = '';
+            values.forEach(function (v) {
+                var $chip = document.createElement('span');
+                $chip.className = 'et-chip';
+                $chip.textContent = v;
+                $s.appendChild($chip);
+            });
+        });
     }
 
     function refreshAttributeTypeOptions($pane, el) {
@@ -771,6 +794,132 @@
         renderProperties();
     }
 
+    // ---------------------------------------------------------------
+    // Generic multi-picker modal — used for tag taxonomies + galaxy types.
+    // ---------------------------------------------------------------
+
+    // Tracks which element/field the modal is currently editing.
+    var multipickerCtx = null;
+
+    function wireMultipicker() {
+        document.addEventListener('click', function (e) {
+            var $btn = e.target.closest('[data-et-open-multipicker]');
+            if ($btn) {
+                e.preventDefault();
+                openMultipicker(
+                    $btn.getAttribute('data-et-open-multipicker'),
+                    $btn.getAttribute('data-et-multipicker-field'),
+                    $btn.getAttribute('data-et-multipicker-title') || 'Select items'
+                );
+            }
+        });
+
+        var $search = document.getElementById('et-multipicker-search');
+        if ($search) {
+            $search.addEventListener('input', function () {
+                filterMultipickerList($search.value);
+            });
+        }
+
+        var $apply = document.getElementById('et-multipicker-apply');
+        if ($apply) {
+            $apply.addEventListener('click', function (e) {
+                e.preventDefault();
+                applyMultipicker();
+            });
+        }
+    }
+
+    function openMultipicker(source, field, title) {
+        if (!state.selectedId) { return; }
+        var el = findElement(state.selectedId);
+        if (!el) { return; }
+        var items = (cfg.multipickerSources && cfg.multipickerSources[source]) || [];
+        var current = getDeep(el, field);
+        var selectedSet = {};
+        if (Array.isArray(current)) {
+            current.forEach(function (v) { selectedSet[v] = true; });
+        }
+        multipickerCtx = {source: source, field: field, elementId: el.id};
+
+        var $title = document.getElementById('et-multipicker-title');
+        if ($title) { $title.textContent = title; }
+
+        var $list = document.getElementById('et-multipicker-list');
+        if ($list) {
+            $list.innerHTML = '';
+            if (!items.length) {
+                $list.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">' +
+                    '<em>(none available on this instance)</em></div>';
+            }
+            items.forEach(function (it) {
+                var $label = document.createElement('label');
+                $label.className = 'et-multipicker-item';
+                $label.setAttribute('data-search',
+                    (it.label + ' ' + (it.description || '')).toLowerCase());
+                var $cb = document.createElement('input');
+                $cb.type = 'checkbox';
+                $cb.value = it.value;
+                if (selectedSet[it.value]) { $cb.checked = true; }
+                var $strong = document.createElement('span');
+                $strong.className = 'et-multipicker-label';
+                $strong.textContent = it.label;
+                $label.appendChild($cb);
+                $label.appendChild($strong);
+                if (it.description) {
+                    var $d = document.createElement('span');
+                    $d.className = 'et-multipicker-desc';
+                    $d.textContent = it.description;
+                    $label.appendChild($d);
+                }
+                $list.appendChild($label);
+            });
+        }
+
+        var $search = document.getElementById('et-multipicker-search');
+        if ($search) {
+            $search.value = '';
+            filterMultipickerList('');
+        }
+
+        var $modal = document.getElementById('et-multipicker-modal');
+        if (window.jQuery && $modal) {
+            window.jQuery($modal).modal('show');
+            if ($search) {
+                setTimeout(function () { $search.focus(); }, 150);
+            }
+        }
+    }
+
+    function filterMultipickerList(term) {
+        term = (term || '').toLowerCase().trim();
+        var $items = document.querySelectorAll('#et-multipicker-list .et-multipicker-item');
+        $items.forEach(function ($item) {
+            if (!term) {
+                $item.style.display = '';
+                return;
+            }
+            var hay = $item.getAttribute('data-search') || '';
+            $item.style.display = hay.indexOf(term) === -1 ? 'none' : '';
+        });
+    }
+
+    function applyMultipicker() {
+        if (!multipickerCtx) { return; }
+        var $items = document.querySelectorAll('#et-multipicker-list .et-multipicker-item input[type=checkbox]');
+        var values = [];
+        $items.forEach(function ($cb) {
+            if ($cb.checked) { values.push($cb.value); }
+        });
+        setElementFieldDeep(multipickerCtx.elementId, multipickerCtx.field, values);
+        if (window.jQuery) {
+            var $modal = document.getElementById('et-multipicker-modal');
+            if ($modal) { window.jQuery($modal).modal('hide'); }
+        }
+        multipickerCtx = null;
+        renderProperties();
+    }
+
     function renderErrors() {
         var $panel = document.getElementById('et-errors');
         if (!$panel) { return; }
@@ -876,6 +1025,7 @@
             });
 
         wireObjectTemplatePicker();
+        wireMultipicker();
 
         var $save = document.getElementById('et-save-button');
         if ($save) {

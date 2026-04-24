@@ -32,6 +32,10 @@
     $objectTemplates = isset($objectTemplatesAvailable)
         ? $objectTemplatesAvailable
         : [];
+    $multipickerSources = [
+        'taxonomies' => isset($taxonomiesAvailable) ? $taxonomiesAvailable : [],
+        'galaxyTypes' => isset($galaxyTypesAvailable) ? $galaxyTypesAvailable : [],
+    ];
 
     $paletteButtons = [
         'section'          => ['label' => __('Section'),          'icon' => 'folder'],
@@ -153,6 +157,29 @@
 #et-ot-picker-modal { width: 640px; max-height: 80vh; }
 #et-ot-picker-modal .modal-body { max-height: calc(80vh - 120px); overflow: hidden; display: flex; flex-direction: column; gap: 8px; }
 #et-ot-picker-list { flex: 1; overflow-y: auto; border: 1px solid #eee; border-radius: 3px; }
+#et-multipicker-modal { width: 560px; }
+#et-multipicker-modal .modal-body { display: flex; flex-direction: column; gap: 8px; }
+#et-multipicker-modal label.et-multipicker-item {
+    display: block;
+    padding: 6px 10px;
+    border-bottom: 1px solid #f3f3f3;
+    margin: 0;
+    cursor: pointer;
+}
+#et-multipicker-modal label.et-multipicker-item:hover { background: #f0f8ff; }
+#et-multipicker-modal label.et-multipicker-item input[type=checkbox] { margin-right: 8px; }
+#et-multipicker-modal .et-multipicker-label { font-weight: 500; }
+#et-multipicker-modal .et-multipicker-desc { display: block; color: #888; font-size: 11px; margin-left: 24px; }
+.eventTemplates.builder .et-multipicker-summary { font-size: 12px; color: #333; }
+.eventTemplates.builder .et-multipicker-summary .et-chip {
+    display: inline-block;
+    background: #eef4fa;
+    border: 1px solid #cde1f2;
+    border-radius: 3px;
+    padding: 1px 6px;
+    margin: 0 2px 2px 0;
+    font-size: 11px;
+}
 </style>
 <div class="eventTemplates builder form">
     <h2><?php echo h($pageTitle); ?></h2>
@@ -279,6 +306,28 @@
     </div>
 </div>
 
+<div id="et-multipicker-modal" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="et-multipicker-title"><?php echo __('Select items'); ?></h3>
+    </div>
+    <div class="modal-body">
+        <input type="text" id="et-multipicker-search" class="input-block-level"
+               placeholder="<?php echo __('Filter…'); ?>">
+        <div id="et-multipicker-list" style="max-height:420px; overflow-y:auto; border:1px solid #eee; border-radius:3px;">
+            <!-- populated by JS on open -->
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn" data-dismiss="modal">
+            <?php echo __('Cancel'); ?>
+        </button>
+        <button type="button" class="btn btn-primary" id="et-multipicker-apply">
+            <?php echo __('Apply'); ?>
+        </button>
+    </div>
+</div>
+
 <script>
     window.ET_BUILDER_CONFIG = {
         mode:       <?php echo json_encode($builderMode); ?>,
@@ -287,7 +336,8 @@
         envelope:   <?php echo json_encode($envelope); ?>,
         definition: <?php echo json_encode($initialDefinition); ?>,
         attrCategories: <?php echo json_encode($attrCategories); ?>,
-        objectTemplates: <?php echo json_encode($objectTemplates); ?>
+        objectTemplates: <?php echo json_encode($objectTemplates); ?>,
+        multipickerSources: <?php echo json_encode($multipickerSources); ?>
     };
 </script>
 <?php
