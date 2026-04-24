@@ -100,6 +100,55 @@
     padding: 8px 12px 10px 12px;
     border-top: 1px dashed #e1e1e1;
 }
+.event-template-user-form .et-section-group {
+    background: #fff;
+    border: 1px solid #d7dde3;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.event-template-user-form .et-section-group + .et-section-group { margin-top: 0; }
+.event-template-user-form .et-section-header {
+    background: linear-gradient(#f7f9fc, #eef2f6);
+    border-bottom: 1px solid #d7dde3;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    padding: 10px 14px;
+    position: relative;
+}
+.event-template-user-form .et-section-header::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: #4a90d9;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+}
+.event-template-user-form .et-section-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #2c3e50;
+    line-height: 1.3;
+}
+.event-template-user-form .et-section-help {
+    margin-top: 4px;
+    color: #5a6876;
+    font-size: 12px;
+}
+.event-template-user-form .et-section-help p { margin: 0; }
+.event-template-user-form .et-section-body {
+    padding: 10px 14px 14px 14px;
+}
+.event-template-user-form .et-section-body > .et-field:first-child { margin-top: 0; }
+/* A synthetic "untitled" group (content before the first section) has
+   no header — round the body's top corners so the card still looks
+   right. */
+.event-template-user-form .et-section-group:not(:has(.et-section-header)) .et-section-body {
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
 </style>
 <div class="event-template-user-form form">
     <?php if ($isPreview): ?>
@@ -122,13 +171,46 @@
 
     <form id="et-user-form" data-et-template-id="<?php echo (int)$templateId; ?>"
           data-et-instantiate-url="<?php echo h($baseurl . '/event_templates/instantiate/' . $templateId); ?>">
-        <?php foreach ($structure as $element): ?>
-            <?php if (!is_array($element) || empty($element['type'])) { continue; } ?>
-            <?php if (!in_array($element['type'], $renderableTypes, true)) { continue; } ?>
-            <?php echo $this->element('eventTemplates/userForm/' . $element['type'], array(
-                'element' => $element,
-                'objectRelationSpecs' => $specs,
-            )); ?>
+        <?php
+            // Pre-pass: group the flat structure list into section
+            // buckets so each section + its children render inside a
+            // single bordered card. A synthetic lead group holds any
+            // content that appears before the first `section` element
+            // (allowed by the schema; just rare in practice).
+            $groups = array();
+            $current = array('section' => null, 'children' => array());
+            foreach ($structure as $el) {
+                if (!is_array($el) || empty($el['type'])) { continue; }
+                if ($el['type'] === 'section') {
+                    if (!empty($current['children']) || $current['section'] !== null) {
+                        $groups[] = $current;
+                    }
+                    $current = array('section' => $el, 'children' => array());
+                    continue;
+                }
+                if (!in_array($el['type'], $renderableTypes, true)) { continue; }
+                $current['children'][] = $el;
+            }
+            if (!empty($current['children']) || $current['section'] !== null) {
+                $groups[] = $current;
+            }
+        ?>
+        <?php foreach ($groups as $group): ?>
+            <section class="et-section-group">
+                <?php if ($group['section'] !== null): ?>
+                    <?php echo $this->element('eventTemplates/userForm/section', array(
+                        'element' => $group['section'],
+                    )); ?>
+                <?php endif; ?>
+                <div class="et-section-body">
+                    <?php foreach ($group['children'] as $child): ?>
+                        <?php echo $this->element('eventTemplates/userForm/' . $child['type'], array(
+                            'element' => $child,
+                            'objectRelationSpecs' => $specs,
+                        )); ?>
+                    <?php endforeach; ?>
+                </div>
+            </section>
         <?php endforeach; ?>
 
         <div style="margin-top:18px; display:flex; gap:8px; align-items:center;">
