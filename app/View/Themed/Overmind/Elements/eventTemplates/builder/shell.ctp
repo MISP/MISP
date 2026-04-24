@@ -1,15 +1,44 @@
 <?php
     // Load builder-only vendor assets. Gated to this view by virtue of
     // being requested from inside the element (not from the layout).
-    // Alpine.js owns the builder state (Phase 3.3.1); SortableJS is
-    // vendored for Phase 3.3.2's drag-and-drop refit and pre-loaded
-    // here so 3.3.2 doesn't touch this asset block again.
+    //
+    // Order matters here: Alpine 3's CDN build auto-boots
+    // synchronously the moment its <script> tag executes, and from
+    // that point its mutation observer is live — any x-data directive
+    // it sees (including the one on this element's root div, parsed
+    // shortly afterwards) is processed immediately. So our component
+    // factory has to be registered before alpine.min.js executes,
+    // which means our script tag has to come first.
+    //
+    // builder-overmind.js handles this by registering its
+    // Alpine.data('etBuilder', …) call inside an 'alpine:init' event
+    // listener, which fires when Alpine's auto-boot reaches the
+    // event-dispatch step but before the DOM walk.
     echo $this->element('genericElements/assetLoader', [
         'js' => [
             'vendor/sortablejs/Sortable.min',
+            'event-templates/builder-overmind',
             'vendor/alpinejs/alpine.min',
         ],
     ]);
+?>
+<script>
+    // Set BEFORE the x-data div is parsed so that when Alpine's
+    // mutation observer picks the div up and instantiates the
+    // etBuilder factory, the factory's cfg lookup finds the
+    // populated config object.
+    window.ET_BUILDER_CONFIG = {
+        mode:       <?= json_encode($builderMode) ?>,
+        submitUrl:  <?= json_encode($submitUrl) ?>,
+        baseurl:    <?= json_encode($baseurl) ?>,
+        envelope:   <?= json_encode($envelope) ?>,
+        definition: <?= json_encode($initialDefinition) ?>,
+        attrCategories: <?= json_encode($attrCategories) ?>,
+        objectTemplates: <?= json_encode($objectTemplates) ?>,
+        multipickerSources: <?= json_encode($multipickerSources) ?>
+    };
+</script>
+<?php
 
     $existing = isset($data['EventTemplate']) ? $data['EventTemplate'] : null;
     $builderMode = $existing ? 'edit' : 'add';
@@ -336,19 +365,3 @@
     </div>
 
 </div>
-
-<script>
-    window.ET_BUILDER_CONFIG = {
-        mode:       <?= json_encode($builderMode) ?>,
-        submitUrl:  <?= json_encode($submitUrl) ?>,
-        baseurl:    <?= json_encode($baseurl) ?>,
-        envelope:   <?= json_encode($envelope) ?>,
-        definition: <?= json_encode($initialDefinition) ?>,
-        attrCategories: <?= json_encode($attrCategories) ?>,
-        objectTemplates: <?= json_encode($objectTemplates) ?>,
-        multipickerSources: <?= json_encode($multipickerSources) ?>
-    };
-</script>
-<?php
-    echo $this->Html->script('event-templates/builder-overmind');
-?>

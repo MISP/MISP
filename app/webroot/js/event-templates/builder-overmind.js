@@ -19,8 +19,16 @@
 (function () {
     'use strict';
 
-    const cfg = window.ET_BUILDER_CONFIG || null;
-    if (!cfg) { return; }
+    // The shell.ctp emits this asset BEFORE alpine.min.js (so we can
+    // register our component factory ahead of Alpine's auto-boot) and
+    // BEFORE the inline <script> that sets window.ET_BUILDER_CONFIG.
+    // That means cfg isn't readable at module-load time; defer the
+    // lookup until the factory runs (i.e. when Alpine instantiates the
+    // x-data directive, by which point the body has parsed and the
+    // config script has executed).
+    function getCfg() {
+        return window.ET_BUILDER_CONFIG || {};
+    }
 
     const ELEMENT_TYPES = {
         section: {
@@ -157,7 +165,9 @@
         // ELEMENT_TYPES is closed over; expose only the factory so the
         // component can produce starter elements without re-declaring
         // shape rules.
-        window.Alpine.data('etBuilder', () => ({
+        window.Alpine.data('etBuilder', () => {
+        const cfg = getCfg();
+        return {
             envelope: {name: '', description: '', distribution: 0, active: 1},
             definition: {
                 schema_version: 1, uuid: '', name: '',
@@ -745,7 +755,8 @@
                         this.validateStatusKind = 'error';
                     });
             }
-        }));
+        };
+        });
     }
 
     if (window.Alpine) {
