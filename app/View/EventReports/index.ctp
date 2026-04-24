@@ -108,7 +108,7 @@
             ),
             'actions' => array(
                 array(
-                    'url' => '/eventReports/view',
+                    'url' => $baseurl . '/eventReports/view',
                     'url_params_data_paths' => array(
                         'EventReport.id'
                     ),
@@ -116,7 +116,7 @@
                     'dbclickAction' => true
                 ),
                 array(
-                    'url' => '/eventReports/edit',
+                    'url' => $baseurl . '/eventReports/edit',
                     'url_params_data_paths' => array(
                         'EventReport.id'
                     ),

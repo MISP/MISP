@@ -50,6 +50,7 @@ class LdapAuthenticate extends BaseAuthenticate
             'ldapTlsProtocolMin' => Configure::read('LdapAuth.ldapTlsProtocolMin') ?? LDAP_OPT_X_TLS_PROTOCOL_TLS1_2,
             'ldapEscape' => Configure::read('LdapAuth.ldapEscape') ?? false,
             'ldapEscapeIgnoreChars' => Configure::read('LdapAuth.ldapEscapeIgnoreChars') ?? "",
+            'ldapUseMemberOf' => Configure::read('LdapAuth.ldapUseMemberOf') ?? false,
         ];
 
         if (self::$conf['ldapEscape'] && self::$conf['ldapSearchFilter']) {
@@ -120,8 +121,12 @@ class LdapAuthenticate extends BaseAuthenticate
 
     private function getUserMemberships($ldapconn, $ldapUserData)
     {
+        if (self::$conf['ldapUseMemberOf']) {
+            return $this->getUserMembershipsFromMemberOf($ldapconn, $ldapUserData);
+        }
+
         $groups = [];
-        if (Configure::read('LdapAuth.ldapEscape')) {
+        if (self::$conf['ldapEscape']) {
             $ldapUserData[0]['dn'] = ldap_escape($ldapUserData[0]['dn'], self::$conf['ldapEscapeIgnoreChars'], LDAP_ESCAPE_FILTER);
         }
         $filter = '(member=' . $ldapUserData[0]['dn'] . ')';
@@ -136,6 +141,29 @@ class LdapAuthenticate extends BaseAuthenticate
             }
         }
 
+        return $groups;
+    }
+
+    // Reads the user's `memberOf` attribute directly (AD-style lookup).
+    // Returns full group DNs, so ldapDefaultRoleId keys must be DNs when this path is enabled.
+    private function getUserMembershipsFromMemberOf($ldapconn, $ldapUserData)
+    {
+        $groups = [];
+        $userDn = $ldapUserData[0]['dn'];
+        $result = ldap_read($ldapconn, $userDn, '(objectClass=*)', ['memberOf']);
+        if (!$result) {
+            CakeLog::error("[LdapAuth] LDAP memberOf read failed: " . ldap_error($ldapconn));
+            return $groups;
+        }
+
+        $entries = ldap_get_entries($ldapconn, $result);
+        if (empty($entries[0]['memberof']['count'])) {
+            return $groups;
+        }
+
+        for ($i = 0; $i < $entries[0]['memberof']['count']; $i++) {
+            $groups[] = $entries[0]['memberof'][$i];
+        }
         return $groups;
     }
 
@@ -272,10 +300,16 @@ class LdapAuthenticate extends BaseAuthenticate
                 }
             }
 
-            // Disable user if no valid role is found
-            if ($user && !$roleId) {
-                CakeLog::debug("[LdapAuth] User has no valid role anymore, disabling user.");
-                $this->disableUser($mispUsername);
+            // Refuse login when no mapped role matches the user's groups.
+            // For existing users we also disable the account; for new users we just refuse
+            // so we never hit the INSERT with a NULL role_id.
+            if (!$roleId) {
+                if ($user) {
+                    CakeLog::debug("[LdapAuth] User has no valid role anymore, disabling user.");
+                    $this->disableUser($mispUsername);
+                } else {
+                    CakeLog::error("[LdapAuth] No matching role for user's LDAP groups, refusing login.");
+                }
                 throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
             }
         } else {

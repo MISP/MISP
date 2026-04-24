@@ -413,7 +413,7 @@ if (!empty($me)) {
                 ),
                 array(
                     'text' => __('Event ID translator'),
-                    'url' => '/servers/idTranslator',
+                    'url' => $baseurl . '/servers/idTranslator',
                     'requirement' => $this->Acl->canAccess('servers', 'idTranslator')
                 )
             )

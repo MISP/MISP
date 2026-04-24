@@ -1,6 +1,7 @@
 :root {
     --bs-link-color : #1892B1;
     --bs-link-hover-color : #1892B1;
+    --bs-link-hover-color-rgb: 24, 146, 177;
     --bs-link-color-rgb: 24, 146, 177;
 }
 
@@ -500,6 +501,73 @@ th .sort-icon::before {
 }
 
 
+/* =======================================================
+   REST Custom CSS
+======================================================= */
+
+
+.custom-code-text {
+    color: #6cff9a !important;
+    font-size: 13px; 
+}
+
+.hover-dark:hover {
+    color: #000 !important;
+}
+
+
+
+.api-tooltip {
+    position: absolute;
+    z-index: 9999;
+    width: 350px;
+    max-height: 400px;
+    overflow-y: auto;
+
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+
+    padding: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+
+    display: none;
+}
+
+
+/* =======================================================
+   Category & Query Card Custom CSS
+======================================================= */
+
+/* Left border color */
+.query-container,
+.category-container {
+    --misp-border-color: var(--bs-secondary-rgb);
+    border-inline-start-color: rgba(var(--misp-border-color), 1) !important;
+    transition: border-color 0.2s ease;
+}
+
+/* Left border color hovered */
+.query-container:has(.card-body:hover),
+.category-container:has(.card-header:hover),
+.category-container:has(.card-header:not(.collapsed)) {
+    border-inline-start-color: var(--bs-primary) !important;
+}
+
+/* Header color hovered */
+.query-card .card-body:hover,
+.category-card .card-header:hover,
+.category-card .card-header:not(.collapsed) {
+    background-color: rgba(135, 198, 214, 0.2);
+    border-radius: 0;
+}
+
+
+
+
+/* =======================================================
+   To be sorted
+======================================================= */
 
 .dropdown-filters .dropdown-toggle::after {
     display: none !important;
@@ -553,4 +621,31 @@ th .sort-icon::before {
 
 .btn-warning-subtle:hover {
     background: #fff2cd;
+}
+
+
+
+
+
+.graph-container {
+    position: relative;
+    width: 100%;
+    height: 600px;
+}
+
+.graph-chart {
+    width: 100%;
+    height: 100%;
+}
+
+/* FULLSCREEN MODE */
+.graph-container.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2000;
+    background: #fff;
+    padding: 10px;
 }

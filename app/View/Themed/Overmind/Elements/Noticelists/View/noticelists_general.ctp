@@ -24,7 +24,7 @@ $noticelist = $data['Noticelist'] ?? $data;
             <div class="text-muted small text-uppercase fw-bold mb-1">
                 <?= __('Expanded Name') ?>
             </div>
-            <div class="ps-3 border-start border-4 border-primary py-1 italic">
+            <div class="border-start border-4 border-primary ps-3 py-1 italic">
                 <?= nl2br(h($noticelist['expanded_name'] ?? '')) ?>
             </div>
         </div>
@@ -77,9 +77,9 @@ $noticelist = $data['Noticelist'] ?? $data;
                     <?= __('Enabled') ?>
                 </div>
 
-                <?= $this->element('genericElementsBS5/Badges/enabled',
+                <?= $this->element('genericElementsBS5/Badges/boolean',
                     [
-                        'enabled' => $noticelist['enabled'],
+                        'boolean' => $noticelist['enabled'],
                         'full' => false
                     ]
                 ); ?>

@@ -54,7 +54,7 @@ $fields[] = [
     'name' => __('Memory Limit'),
     'sort' => 'Role.memory_limit',
     'data_path' => 'Role.memory_limit',
-    'decorator' => function($value) use ($default_memory_limit) {
+    'decorator' => function ($value) use ($default_memory_limit) {
         return empty($value) ? $default_memory_limit : h($value);
     },
     'requirement' => $isAdmin,
@@ -64,7 +64,7 @@ $fields[] = [
     'name' => __('Max execution time'),
     'sort' => 'Role.max_execution_time',
     'data_path' => 'Role.max_execution_time',
-    'decorator' => function($value) use ($default_max_execution_time) {
+    'decorator' => function ($value) use ($default_max_execution_time) {
         return (empty($value) ? $default_max_execution_time : h($value)) . '&nbsp;s';
     },
     'requirement' => $isAdmin,
@@ -74,12 +74,11 @@ $fields[] = [
     'name' => __('Searches / 15 mins'),
     'sort' => 'Role.rate_limit_count',
     'element' => 'custom',
-    'function' => function (array $row){
+    'function' => function (array $row) {
         $value = $row['Role']['rate_limit_count'];
         if (!$row['Role']['enforce_rate_limit'] || empty($value)) {
             return __('Unlimited');
-        }
-       else {
+        } else {
             return h($value);
         }
     },
@@ -91,7 +90,7 @@ $fields[] = [
     'header_title' => __('Maximum number of attributes returned by restSearch calls. For Objects and Events, this limit is divided by 3 and 10 respectively. If undefined, the server default is used.'),
     'sort' => 'Role.restsearch_limit_result',
     'element' => 'custom',
-    'function' => function (array $row){
+    'function' => function (array $row) {
         $default = (int) Configure::read('MISP.default_restsearch_limit');
         $value = $row['Role']['restsearch_limit_result'];
         if (is_null($value) && !$row['Role']['perm_site_admin']) {
@@ -100,8 +99,7 @@ $fields[] = [
             } else {
                 return __('Undefined - Fallback to <strong>Server Default (%s)</strong>', h($default));
             }
-        }
-        else if (is_null($value) && $row['Role']['perm_site_admin']) {
+        } else if (is_null($value) && $row['Role']['perm_site_admin']) {
             return __('Undefined - Fallback to <strong>Unlimited as Site Admin<strong>', h($default));
         }
         return (empty($value) ? __('Unlimited') : h($value));
@@ -164,3 +162,16 @@ echo $this->element('genericElements/IndexTable/scaffold', [
         ]
     ]
 ]);
+
+?>
+
+<style>
+    .table thead th {
+        position: unset;
+        top: 40px;
+        z-index: 10;
+        background-color: unset;
+        vertical-align: bottom;
+        border-bottom: none;
+    }
+</style>

@@ -234,6 +234,23 @@ class AnalystData extends AppModel
         return true;
     }
 
+    public function afterSave($created, $options = array())
+    {
+        $isTriggerCallable = $this->isTriggerCallable('analyst-data-after-save');
+        if ($isTriggerCallable) {
+            $data = $this->data[$this->alias];
+            $action = $created ? 'add' : 'edit';
+            $workflowErrors = [];
+            $logging = [
+                'model' => $this->alias,
+                'action' => $action,
+                'id' => $data['id'],
+            ];
+            $triggerData = [$this->alias => $data];
+            $this->executeTrigger('analyst-data-after-save', $triggerData, $workflowErrors, $logging);
+        }
+    }
+
     public function getEditableFields(): array
     {
         return array_merge(static::BASE_EDITABLE_FIELDS, static::EDITABLE_FIELDS);

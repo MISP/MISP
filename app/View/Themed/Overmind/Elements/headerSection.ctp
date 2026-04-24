@@ -1,4 +1,4 @@
-<div class="bg-primary text-white py-5 shadow-sm mb-4">
+<div class="bg-primary text-white py-5 shadow-sm">
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center">
 
