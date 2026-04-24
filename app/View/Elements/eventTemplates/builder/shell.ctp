@@ -212,6 +212,10 @@
         <button type="button" id="et-save-button" class="btn btn-primary">
             <?php echo __('Save'); ?>
         </button>
+        <button type="button" id="et-validate-button" class="btn">
+            <?php echo __('Validate'); ?>
+        </button>
+        <span id="et-validate-status" style="margin-left:10px;"></span>
         <?php if ($existing): ?>
             <a href="<?php echo h($baseurl . '/event_templates/view/' . (int)$existing['id']); ?>"
                class="btn"><?php echo __('Cancel'); ?></a>

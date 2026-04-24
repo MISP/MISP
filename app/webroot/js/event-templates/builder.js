@@ -332,6 +332,66 @@
         });
     }
 
+    function validate() {
+        // Mirror envelope name/description into the definition the same
+        // way save() does, so the user-entered envelope name doesn't
+        // trigger a false-positive "name must be at least 1 char" from
+        // the schema on every Validate click.
+        var probe = JSON.parse(JSON.stringify(state.definition));
+        probe.name = state.envelope.name;
+        if (state.envelope.description) {
+            probe.description = state.envelope.description;
+        }
+
+        var $status = document.getElementById('et-validate-status');
+        if ($status) {
+            $status.textContent = 'Validating…';
+            $status.className = '';
+        }
+
+        fetch(cfg.baseurl + '/event_templates/validate_definition', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(probe)
+        }).then(function (r) {
+            return r.json().then(function (data) {
+                return {status: r.status, data: data};
+            });
+        }).then(function (res) {
+            var valid = res.data && res.data.valid;
+            var errs = (res.data && Array.isArray(res.data.errors))
+                ? res.data.errors
+                : [];
+            if (valid) {
+                state.errors = [];
+                if ($status) {
+                    $status.textContent = '✓ Definition is valid.';
+                    $status.className = 'text-success';
+                }
+            } else {
+                state.errors = errs.length ? errs : ['Definition is invalid.'];
+                if ($status) {
+                    $status.textContent = '✗ ' + state.errors.length +
+                        (state.errors.length === 1 ? ' error' : ' errors');
+                    $status.className = 'text-error';
+                }
+            }
+            renderErrors();
+        }).catch(function (err) {
+            state.errors = ['Validation request failed: ' + (err && err.message ? err.message : err)];
+            if ($status) {
+                $status.textContent = '✗ network error';
+                $status.className = 'text-error';
+            }
+            renderErrors();
+        });
+    }
+
     function extractErrors(data) {
         if (!data) { return ['Unknown error.']; }
         if (Array.isArray(data.errors)) { return data.errors; }
@@ -749,6 +809,13 @@
             $save.addEventListener('click', function (e) {
                 e.preventDefault();
                 save();
+            });
+        }
+        var $validate = document.getElementById('et-validate-button');
+        if ($validate) {
+            $validate.addEventListener('click', function (e) {
+                e.preventDefault();
+                validate();
             });
         }
     }
