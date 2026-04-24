@@ -622,8 +622,15 @@
         if ($search) { $search.value = ''; }
 
         var $modal = document.getElementById('et-tag-picker-modal');
-        if (window.jQuery && $modal) {
-            window.jQuery($modal).modal('show');
+        if ($modal) {
+            // Prefer Bootstrap 5's native API (Overmind ships
+            // bootstrap.bundle.min.js, no BS2 jQuery plugin); fall back
+            // to jQuery .modal('show') for the default BS2 theme.
+            if (window.bootstrap && window.bootstrap.Modal) {
+                window.bootstrap.Modal.getOrCreateInstance($modal).show();
+            } else if (window.jQuery) {
+                window.jQuery($modal).modal('show');
+            }
             if ($search) { setTimeout(function () { $search.focus(); }, 150); }
         }
 
@@ -743,9 +750,14 @@
             tagPickerCtx.targetInput.value = picked.join(', ');
             tagPickerCtx.targetInput.dispatchEvent(new Event('input', {bubbles: true}));
         }
-        if (window.jQuery) {
-            var $modal = document.getElementById('et-tag-picker-modal');
-            if ($modal) { window.jQuery($modal).modal('hide'); }
+        var $modal = document.getElementById('et-tag-picker-modal');
+        if ($modal) {
+            if (window.bootstrap && window.bootstrap.Modal) {
+                var inst = window.bootstrap.Modal.getInstance($modal);
+                if (inst) { inst.hide(); }
+            } else if (window.jQuery) {
+                window.jQuery($modal).modal('hide');
+            }
         }
         tagPickerCtx = null;
     }
