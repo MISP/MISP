@@ -257,7 +257,7 @@ Nothing else.
 
 - [x] Alpine.js component(s) driving the builder state
 - [x] SortableJS wiring for nested drag-and-drop
-- [ ] Tom Select pickers for object template, tag taxonomy, galaxy type
+- [x] Tom Select pickers for object template, tag taxonomy, galaxy type
 - [ ] Inline server-error surfacing
 
 ### 3.4 Template-user form JS (Overmind)

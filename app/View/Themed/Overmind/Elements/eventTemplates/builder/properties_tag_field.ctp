@@ -45,23 +45,10 @@
     <label class="form-label fw-semibold small mb-1">
         <?= __('Restrict to taxonomies') ?>
     </label>
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-        <button type="button" class="btn btn-sm btn-outline-secondary"
-                @click="openMultipicker('taxonomies', 'restrict_taxonomies', '<?= __('Select taxonomies') ?>')">
-            <i class="fas fa-tags me-1"></i><?= __('Choose…') ?>
-        </button>
-        <span class="et-multipicker-summary small">
-            <em class="text-muted"
-                x-show="!multipickerSummary('restrict_taxonomies')">
-                <?= __('(any taxonomy)') ?>
-            </em>
-            <template x-for="v in (multipickerSummary('restrict_taxonomies') || [])"
-                      :key="v">
-                <span class="et-chip" x-text="v"></span>
-            </template>
-        </span>
-    </div>
+    <select multiple
+            x-init="initMultipicker($el, 'taxonomies', 'restrict_taxonomies', '<?= __('Select taxonomies…') ?>')"
+            class="form-select form-select-sm bg-light"></select>
     <div class="form-text small">
-        <?= __('Empty list = the user can pick any tag. Otherwise restricted to tags from the chosen taxonomies.') ?>
+        <?= __('Empty selection = the user can pick any tag. Otherwise restricted to tags from the chosen taxonomies.') ?>
     </div>
 </div>

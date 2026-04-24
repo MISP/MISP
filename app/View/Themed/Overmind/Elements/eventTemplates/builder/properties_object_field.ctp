@@ -46,27 +46,10 @@
     <label class="form-label fw-semibold small mb-1">
         <?= __('Object template') ?> <span class="text-danger">*</span>
     </label>
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-        <button type="button" class="btn btn-sm btn-outline-secondary"
-                @click="openObjectTemplatePicker">
-            <i class="fas fa-search me-1"></i><?= __('Choose…') ?>
-        </button>
-        <span class="et-ot-picker-current small fw-semibold">
-            <em class="text-muted" x-show="!getField('object_template.uuid')">
-                <?= __('(none selected)') ?>
-            </em>
-            <span x-show="getField('object_template.uuid')"
-                  x-text="getField('object_template.name')"></span>
-            <span class="text-muted ms-1"
-                  x-show="getField('object_template.pinned_version')"
-                  x-text="'v' + getField('object_template.pinned_version')"></span>
-            <span class="text-muted ms-1"
-                  x-show="currentObjectTemplateMeta()"
-                  x-text="currentObjectTemplateMeta()"></span>
-        </span>
-    </div>
+    <select x-init="initObjectTemplateSelect($el)"
+            class="form-select form-select-sm bg-light"></select>
     <div class="form-text small">
-        <?= __('Opens a searchable list of active object templates on this instance.') ?>
+        <?= __('Searchable list of active object templates on this instance.') ?>
     </div>
 </div>
 <div class="mb-3">

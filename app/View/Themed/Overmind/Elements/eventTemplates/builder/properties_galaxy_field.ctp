@@ -45,23 +45,10 @@
     <label class="form-label fw-semibold small mb-1">
         <?= __('Restrict to galaxy types') ?>
     </label>
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-        <button type="button" class="btn btn-sm btn-outline-secondary"
-                @click="openMultipicker('galaxyTypes', 'restrict_galaxy_types', '<?= __('Select galaxy types') ?>')">
-            <i class="fas fa-globe me-1"></i><?= __('Choose…') ?>
-        </button>
-        <span class="et-multipicker-summary small">
-            <em class="text-muted"
-                x-show="!multipickerSummary('restrict_galaxy_types')">
-                <?= __('(any galaxy type)') ?>
-            </em>
-            <template x-for="v in (multipickerSummary('restrict_galaxy_types') || [])"
-                      :key="v">
-                <span class="et-chip" x-text="v"></span>
-            </template>
-        </span>
-    </div>
+    <select multiple
+            x-init="initMultipicker($el, 'galaxyTypes', 'restrict_galaxy_types', '<?= __('Select galaxy types…') ?>')"
+            class="form-select form-select-sm bg-light"></select>
     <div class="form-text small">
-        <?= __('Empty list = the user can pick any galaxy cluster. Otherwise restricted to clusters from the chosen galaxy types.') ?>
+        <?= __('Empty selection = the user can pick any galaxy cluster. Otherwise restricted to clusters from the chosen galaxy types.') ?>
     </div>
 </div>

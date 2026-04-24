@@ -153,27 +153,6 @@
 
     function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
-    function showModal(id) {
-        const $m = document.getElementById(id);
-        if (!$m) { return; }
-        if (window.bootstrap && window.bootstrap.Modal) {
-            window.bootstrap.Modal.getOrCreateInstance($m).show();
-        } else if (window.jQuery) {
-            window.jQuery($m).modal('show');
-        }
-    }
-
-    function hideModal(id) {
-        const $m = document.getElementById(id);
-        if (!$m) { return; }
-        if (window.bootstrap && window.bootstrap.Modal) {
-            const inst = window.bootstrap.Modal.getInstance($m);
-            if (inst) { inst.hide(); }
-        } else if (window.jQuery) {
-            window.jQuery($m).modal('hide');
-        }
-    }
-
     function alpineInit() {
         // ELEMENT_TYPES is closed over; expose only the factory so the
         // component can produce starter elements without re-declaring
@@ -195,12 +174,6 @@
             objectTemplateRelationCache: {},
             objectTemplateRelations: [],
             objectTemplateRelationsLoading: false,
-            objectTemplateFilter: '',
-            multipickerCtx: null,
-            multipickerItems: [],
-            multipickerSelected: {},
-            multipickerTitle: '',
-            multipickerFilter: '',
 
             init() {
                 Object.assign(this.envelope, clone(cfg.envelope || {}));
@@ -273,24 +246,6 @@
             },
             get hasElements() {
                 return this.definition.structure.length > 0;
-            },
-            get filteredObjectTemplates() {
-                const term = (this.objectTemplateFilter || '').toLowerCase().trim();
-                if (!term) { return this.objectTemplates; }
-                return this.objectTemplates.filter((ot) => {
-                    const hay = (ot.name + ' ' + ot.meta_category + ' ' +
-                        (ot.description || '')).toLowerCase();
-                    return hay.indexOf(term) !== -1;
-                });
-            },
-            get filteredMultipickerItems() {
-                const term = (this.multipickerFilter || '').toLowerCase().trim();
-                if (!term) { return this.multipickerItems; }
-                return this.multipickerItems.filter((it) => {
-                    const hay = (it.label + ' ' +
-                        (it.description || '')).toLowerCase();
-                    return hay.indexOf(term) !== -1;
-                });
             },
             get attributeTypeOptions() {
                 if (!this.selected || this.selected.type !== 'attribute_field') {
@@ -385,13 +340,6 @@
 
             // ---------- object_field / object-template picker ----------
 
-            openObjectTemplatePicker() {
-                if (!this.selected || this.selected.type !== 'object_field') {
-                    return;
-                }
-                this.objectTemplateFilter = '';
-                showModal('et-ot-picker-modal');
-            },
             pickObjectTemplate(uuid, name, version) {
                 if (!this.selected || this.selected.type !== 'object_field') {
                     return;
@@ -401,7 +349,6 @@
                 this.setField('object_template.name', name);
                 this.setField('object_template.pinned_version',
                     parseInt(version, 10) || 0);
-                hideModal('et-ot-picker-modal');
                 // Load relations + default to "all selected" — same UX
                 // contract as the Phase-2 builder.
                 this.ensureRelationsLoaded(uuid).then((rels) => {
@@ -538,48 +485,112 @@
                 return ot ? (ot.meta_category || '') : '';
             },
 
-            // ---------- multipicker (taxonomy / galaxy type) ----------
+            // ---------- Tom Select pickers ----------
 
-            openMultipicker(source, field, title) {
-                if (!this.selected) { return; }
-                const items = this.multipickerSources[source] || [];
-                const current = getDeep(this.selected, field);
-                const sel = {};
-                if (Array.isArray(current)) {
-                    current.forEach((v) => { sel[v] = true; });
+            initObjectTemplateSelect($el) {
+                if (typeof window.TomSelect === 'undefined') { return; }
+                const items = (this.objectTemplates || []).map((ot) => ({
+                    value: ot.uuid,
+                    text: ot.name + ' (v' + ot.version +
+                        ', ' + ot.meta_category + ')',
+                    name: ot.name,
+                    meta_category: ot.meta_category,
+                    description: ot.description || ''
+                }));
+                this._otTomSelect = new window.TomSelect($el, {
+                    valueField: 'value',
+                    labelField: 'text',
+                    searchField: ['text', 'name', 'meta_category', 'description'],
+                    options: items,
+                    placeholder: 'Choose an object template…',
+                    create: false,
+                    maxOptions: 500,
+                    onChange: (uuid) => {
+                        if (!uuid) { return; }
+                        if (!this.selected || this.selected.type !== 'object_field') {
+                            return;
+                        }
+                        if (this.getField('object_template.uuid') === uuid) {
+                            return; // programmatic sync, not a user pick
+                        }
+                        const ot = this.objectTemplates.find((o) => o.uuid === uuid);
+                        if (!ot) { return; }
+                        this.pickObjectTemplate(uuid, ot.name, ot.version);
+                    }
+                });
+                this.$watch('selectedId', () => this.syncObjectTemplateSelect());
+                this.$watch('definition.structure', () =>
+                    this.syncObjectTemplateSelect(), {deep: true});
+                this.syncObjectTemplateSelect();
+            },
+            syncObjectTemplateSelect() {
+                if (!this._otTomSelect) { return; }
+                const cur = (this.selected && this.selected.type === 'object_field')
+                    ? (this.getField('object_template.uuid') || '')
+                    : '';
+                if (this._otTomSelect.getValue() !== cur) {
+                    // Second arg = silent; do not fire onChange.
+                    this._otTomSelect.setValue(cur, true);
                 }
-                this.multipickerCtx = {
-                    source,
+            },
+
+            initMultipicker($el, source, field, placeholder) {
+                if (typeof window.TomSelect === 'undefined') { return; }
+                const items = (this.multipickerSources[source] || []).map((it) => ({
+                    value: it.value,
+                    text: it.label,
+                    description: it.description || ''
+                }));
+                const ts = new window.TomSelect($el, {
+                    valueField: 'value',
+                    labelField: 'text',
+                    searchField: ['text', 'description'],
+                    options: items,
+                    placeholder: placeholder || 'Select…',
+                    create: false,
+                    plugins: ['remove_button'],
+                    maxOptions: 1000,
+                    onChange: (vals) => {
+                        if (!this.selected) { return; }
+                        const arr = Array.isArray(vals)
+                            ? vals
+                            : (vals ? [vals] : []);
+                        const cur = this.getField(field);
+                        const sameSet = Array.isArray(cur) &&
+                            cur.length === arr.length &&
+                            cur.every((v, i) => v === arr[i]);
+                        if (sameSet) { return; }
+                        this.setField(field, arr);
+                    }
+                });
+                if (!this._multipickerInstances) {
+                    this._multipickerInstances = [];
+                }
+                this._multipickerInstances.push({
+                    instance: ts,
                     field,
-                    elementId: this.selectedId
-                };
-                this.multipickerItems = items;
-                this.multipickerSelected = sel;
-                this.multipickerTitle = title || 'Select items';
-                this.multipickerFilter = '';
-                showModal('et-multipicker-modal');
+                    matchType: source === 'taxonomies' ? 'tag_field' : 'galaxy_field'
+                });
+                const sync = () => this.syncMultipicker(ts, field, source);
+                this.$watch('selectedId', sync);
+                this.$watch('definition.structure', sync, {deep: true});
+                sync();
             },
-            applyMultipicker() {
-                if (!this.multipickerCtx) { return; }
-                const ctx = this.multipickerCtx;
-                const values = Object.keys(this.multipickerSelected)
-                    .filter((k) => this.multipickerSelected[k]);
-                const idx = this.definition.structure.findIndex(
-                    (e) => e.id === ctx.elementId
-                );
-                if (idx !== -1) {
-                    const next = clone(this.definition.structure[idx]);
-                    setDeep(next, ctx.field, values);
-                    this.definition.structure[idx] = next;
+            syncMultipicker(ts, field, source) {
+                if (!ts) { return; }
+                const expectedType = source === 'taxonomies'
+                    ? 'tag_field' : 'galaxy_field';
+                let values = [];
+                if (this.selected && this.selected.type === expectedType) {
+                    const v = this.getField(field);
+                    values = Array.isArray(v) ? v : [];
                 }
-                hideModal('et-multipicker-modal');
-                this.multipickerCtx = null;
-            },
-            multipickerSummary(field) {
-                if (!this.selected) { return null; }
-                const v = getDeep(this.selected, field);
-                if (!Array.isArray(v) || v.length === 0) { return null; }
-                return v;
+                const cur = ts.getValue();
+                const curArr = Array.isArray(cur) ? cur : (cur ? [cur] : []);
+                const sameSet = curArr.length === values.length &&
+                    curArr.every((v, i) => v === values[i]);
+                if (sameSet) { return; }
+                ts.setValue(values, true);
             },
 
             // ---------- save / validate ----------
