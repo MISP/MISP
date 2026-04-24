@@ -1407,7 +1407,7 @@ $divider = '<li class="divider"></li>';
                             'text' => __('Import Event Template'),
                         ));
                     }
-                    if (in_array($menuItem, array('view', 'edit', 'preview'), true) && !empty($id)) {
+                    if (in_array($menuItem, array('view', 'edit', 'preview', 'instantiate'), true) && !empty($id)) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
                             'url' => $baseurl . '/event_templates/view/' . h($id),

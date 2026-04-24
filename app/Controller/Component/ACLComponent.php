@@ -293,6 +293,7 @@ class ACLComponent extends Component
             'export' => array('*'),
             'import' => array('perm_template'),
             'instantiate' => array('perm_add'),
+            'preview' => array('perm_template'),
             'validate_definition' => array('perm_template'),
         ),
         'events' => array(

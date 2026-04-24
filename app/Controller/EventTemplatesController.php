@@ -31,6 +31,8 @@ class EventTemplatesController extends AppController
 {
     public $components = array('RequestHandler', 'Session');
 
+    public $helpers = array('EventTemplateMarkdown');
+
     public $paginate = array(
         'limit' => 60,
         'order' => array('EventTemplate.modified' => 'desc'),
@@ -404,11 +406,6 @@ class EventTemplatesController extends AppController
 
     public function instantiate($id)
     {
-        if (!$this->request->is('post') && !$this->request->is('put')) {
-            throw new MethodNotAllowedException(
-                __('Instantiate requires POST.')
-            );
-        }
         $id = $this->__resolveId($id);
         $source = $this->__fetchForRead($id);
 
@@ -416,6 +413,12 @@ class EventTemplatesController extends AppController
         if (!is_array($definition)) {
             $decoded = JsonTool::decode((string)$definition);
             $definition = is_array($decoded) ? $decoded : array();
+        }
+
+        // GET renders the user form; POST runs the instantiator.
+        if (!$this->request->is('post') && !$this->request->is('put')) {
+            $this->__renderUserForm($source, $definition, false);
+            return;
         }
 
         $input = $this->__unwrap($this->request->data);
@@ -451,6 +454,112 @@ class EventTemplatesController extends AppController
             'action' => 'view',
             $result['event_id'],
         ));
+    }
+
+    public function preview($id)
+    {
+        $id = $this->__resolveId($id);
+        $source = $this->__fetchForRead($id);
+        $definition = $source['EventTemplate']['definition'];
+        if (!is_array($definition)) {
+            $decoded = JsonTool::decode((string)$definition);
+            $definition = is_array($decoded) ? $decoded : array();
+        }
+        $this->__renderUserForm($source, $definition, true);
+    }
+
+    /**
+     * Shared helper for both instantiate (GET) and preview. Fetches
+     * the object-template relation specs referenced by the template's
+     * object_field elements, sets up the view vars, and renders the
+     * user_form (or preview, depending on $isPreview).
+     */
+    private function __renderUserForm(array $source, array $definition, $isPreview)
+    {
+        $relationSpecs = $this->__collectObjectRelationSpecs($definition);
+        $this->set('data', $source);
+        $this->set('id', (int)$source['EventTemplate']['id']);
+        $this->set('definition', $definition);
+        $this->set('objectRelationSpecs', $relationSpecs);
+        $this->set('isPreview', (bool)$isPreview);
+        $this->set('title_for_layout',
+            $isPreview
+                ? __('Preview — %s', $source['EventTemplate']['name'])
+                : __('Create event from template — %s', $source['EventTemplate']['name'])
+        );
+        $this->render($isPreview ? 'preview' : 'user_form');
+    }
+
+    /**
+     * For every object_field element in the definition, looks up the
+     * matching ObjectTemplate at the pinned version and returns its
+     * relations (object_relation, type, description, multiple,
+     * sane_default, ui-priority) keyed by the element's stable id.
+     * Missing or version-mismatched templates are flagged so the
+     * form can render a friendly error instead of silently dropping
+     * the element.
+     */
+    private function __collectObjectRelationSpecs(array $definition)
+    {
+        $out = array();
+        if (!isset($definition['structure']) || !is_array($definition['structure'])) {
+            return $out;
+        }
+        $this->loadModel('ObjectTemplate');
+        foreach ($definition['structure'] as $el) {
+            if (!is_array($el) || ($el['type'] ?? '') !== 'object_field') {
+                continue;
+            }
+            $id = $el['id'] ?? null;
+            $ot = $el['object_template'] ?? array();
+            $uuid = isset($ot['uuid']) ? strtolower((string)$ot['uuid']) : '';
+            $pinned = isset($ot['pinned_version']) ? (int)$ot['pinned_version'] : 0;
+            if ($id === null || $uuid === '' || $pinned === 0) {
+                continue;
+            }
+            $row = $this->ObjectTemplate->find('first', array(
+                'recursive' => -1,
+                'contain' => array('ObjectTemplateElement'),
+                'conditions' => array(
+                    'ObjectTemplate.uuid' => $uuid,
+                    'ObjectTemplate.version >=' => $pinned,
+                    'ObjectTemplate.active' => true,
+                ),
+                'order' => array('ObjectTemplate.version' => 'ASC'),
+            ));
+            if (empty($row)) {
+                $out[$id] = array(
+                    'missing' => true,
+                    'uuid' => $uuid,
+                    'pinned_version' => $pinned,
+                    'relations' => array(),
+                );
+                continue;
+            }
+            $rels = array();
+            foreach ($row['ObjectTemplateElement'] as $rel) {
+                $rels[] = array(
+                    'object_relation' => (string)$rel['object_relation'],
+                    'type' => (string)$rel['type'],
+                    'description' => (string)($rel['description'] ?? ''),
+                    'multiple' => !empty($rel['multiple']),
+                    'ui_priority' => (int)($rel['ui-priority'] ?? 0),
+                );
+            }
+            usort($rels, function ($a, $b) {
+                return $b['ui_priority'] - $a['ui_priority'];
+            });
+            $out[$id] = array(
+                'missing' => false,
+                'uuid' => $uuid,
+                'pinned_version' => $pinned,
+                'found_version' => (int)$row['ObjectTemplate']['version'],
+                'meta_category' => $row['ObjectTemplate']['meta-category'] ?? '',
+                'template_description' => $row['ObjectTemplate']['description'] ?? '',
+                'relations' => $rels,
+            );
+        }
+        return $out;
     }
 
     public function validate_definition()
