@@ -47,6 +47,7 @@
 
             ['controller' => 'event_templates', 'action' => 'index'],
             ['controller' => 'event_templates', 'action' => 'view'],
+            ['controller' => 'event_templates', 'action' => 'import'],
 
 
             ['controller' => 'api', 'action' => 'openapi'],

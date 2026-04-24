@@ -250,7 +250,7 @@ Nothing else.
 - [ ] `app/View/Themed/Overmind/EventTemplates/add.ctp` + `edit.ctp` (builder with Alpine.js markup)
 - [ ] `app/View/Themed/Overmind/EventTemplates/preview.ctp`
 - [ ] `app/View/Themed/Overmind/EventTemplates/user_form.ctp`
-- [ ] `app/View/Themed/Overmind/EventTemplates/import.ctp`
+- [x] `app/View/Themed/Overmind/EventTemplates/import.ctp`
 - [ ] Overmind-flavoured element partials for builder and user form
 
 ### 3.3 Builder JS (Overmind)
