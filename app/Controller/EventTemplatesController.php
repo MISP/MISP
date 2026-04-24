@@ -234,9 +234,20 @@ class EventTemplatesController extends AppController
             return;
         }
 
-        $mode = isset($this->request->query['mode'])
-            ? (string)$this->request->query['mode']
-            : 'fail';
+        // Accept `mode` from either the query string (REST clients) or
+        // the POST body (the Phase-2 import form, which has no JS).
+        $mode = 'fail';
+        if (isset($this->request->query['mode'])) {
+            $mode = (string)$this->request->query['mode'];
+        } elseif (is_array($this->request->data)
+            && !empty($this->request->data['EventTemplate']['mode'])
+        ) {
+            $mode = (string)$this->request->data['EventTemplate']['mode'];
+        } elseif (is_array($this->request->data)
+            && !empty($this->request->data['mode'])
+        ) {
+            $mode = (string)$this->request->data['mode'];
+        }
         $payload = $this->__readImportPayload();
         if (!is_array($payload)) {
             $errors = array(__('Could not parse import payload as JSON.'));
@@ -282,21 +293,50 @@ class EventTemplatesController extends AppController
 
     private function __readImportPayload()
     {
-        // Prefer an uploaded file when present — this is the UI path.
-        if (!empty($this->request->data['file']['tmp_name'])
-            && is_uploaded_file($this->request->data['file']['tmp_name'])
+        $data = $this->request->data;
+
+        // UI multipart form path: uploaded file wins if present.
+        $fileMeta = isset($data['EventTemplate']['submittedjson'])
+            ? $data['EventTemplate']['submittedjson']
+            : (isset($data['file']) ? $data['file'] : null);
+        if (is_array($fileMeta)
+            && !empty($fileMeta['tmp_name'])
+            && is_uploaded_file($fileMeta['tmp_name'])
         ) {
-            $content = file_get_contents(
-                $this->request->data['file']['tmp_name']
-            );
+            $content = file_get_contents($fileMeta['tmp_name']);
             $decoded = JsonTool::decode($content);
             return is_array($decoded) ? $decoded : null;
         }
-        // CakePHP auto-parses application/json bodies into request->data.
-        if (is_array($this->request->data) && !empty($this->request->data)) {
-            return $this->request->data;
+
+        // UI form path: textarea paste in the `json` field.
+        $pasted = null;
+        if (isset($data['EventTemplate']['json'])
+            && is_string($data['EventTemplate']['json'])
+            && trim($data['EventTemplate']['json']) !== ''
+        ) {
+            $pasted = $data['EventTemplate']['json'];
+        } elseif (isset($data['json'])
+            && is_string($data['json'])
+            && trim($data['json']) !== ''
+        ) {
+            $pasted = $data['json'];
         }
-        // Fall back to the raw body for clients that post JSON without a
+        if ($pasted !== null) {
+            $decoded = JsonTool::decode($pasted);
+            return is_array($decoded) ? $decoded : null;
+        }
+
+        // REST path: request->data is the export document itself. We
+        // detect this by the characteristic `_meta` or `template` keys,
+        // to avoid accidentally treating a multipart form post (with
+        // just `mode` filled in and no payload) as a valid import.
+        if (is_array($data)
+            && (isset($data['_meta']) || isset($data['template']))
+        ) {
+            return $data;
+        }
+
+        // Fallback: raw body for clients that post JSON without a
         // Content-Type header CakePHP recognises.
         $raw = $this->request->input();
         if (is_string($raw) && $raw !== '') {
