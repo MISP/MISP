@@ -190,26 +190,26 @@ Nothing else.
 
 ### 2.1 Views
 
-- [ ] `app/View/EventTemplates/index.ctp` — list view
-- [ ] `app/View/EventTemplates/view.ctp` — read-only detail
-- [ ] `app/View/EventTemplates/add.ctp` + `edit.ctp` — builder (shared partial)
+- [x] `app/View/EventTemplates/index.ctp` — list view (IndexTable-based)
+- [x] `app/View/EventTemplates/view.ctp` — read-only detail (viewMetaTable + JSON dump)
+- [x] `app/View/EventTemplates/add.ctp` + `edit.ctp` — builder (shared partial `Elements/eventTemplates/builder/shell.ctp`)
 - [ ] `app/View/EventTemplates/preview.ctp` — creator's preview of the user form
 - [ ] `app/View/EventTemplates/user_form.ctp` — the form the template user fills in
-- [ ] `app/View/EventTemplates/import.ctp` — import form
-- [ ] `app/View/Elements/eventTemplates/builder/` — properties panel partials (one per element type)
+- [x] `app/View/EventTemplates/import.ctp` — import form (genericForm + file upload + mode selector)
+- [x] `app/View/Elements/eventTemplates/builder/` — properties panel partials (one per element type)
 - [ ] `app/View/Elements/eventTemplates/userForm/` — render partials (one per element type)
 - [ ] `app/View/Elements/eventTemplates/templatePickerModal.ctp` — used from events index
 
 ### 2.2 Builder JS (classic theme)
 
-- [ ] Vanilla JS state manager for the template definition (one object, re-renders canvas on change)
-- [ ] jQuery UI sortable wiring for element reordering (inside sections and across)
-- [ ] Properties panel: editing any field updates the state and re-renders
-- [ ] Object template picker (modal, searchable)
-- [ ] Tag taxonomy picker for `tag_field.restrict_taxonomies` (reuse existing)
-- [ ] Galaxy-type picker for `galaxy_field.restrict_galaxy_types`
-- [ ] Inline validation: surface server errors from `/event_templates/validate_definition`
-- [ ] Save flow (POST to `add` / PUT to `edit`)
+- [x] Vanilla JS state manager for the template definition (one object, re-renders canvas on change)
+- [x] jQuery UI sortable wiring for element reordering (flat in v1; nested-inside-sections reorder is a follow-up)
+- [x] Properties panel: editing any field updates the state and re-renders
+- [x] Object template picker (modal, searchable)
+- [x] Tag taxonomy picker for `tag_field.restrict_taxonomies` (shared multi-picker modal)
+- [x] Galaxy-type picker for `galaxy_field.restrict_galaxy_types` (shared multi-picker modal)
+- [x] Inline validation: surface server errors from `/event_templates/validate_definition`
+- [x] Save flow (POST to `add` / PUT to `edit`)
 
 ### 2.3 Template-user form JS (classic theme)
 
@@ -223,7 +223,7 @@ Nothing else.
 
 ### 2.4 Nav
 
-- [ ] Side-menu entry for Event Templates (gated on read access)
+- [x] Side-menu entry for Event Templates (gated on read access) — global_menu.ctp + side_menu.ctp
 - [ ] "Add Event → From Template" button wired on events index (placeholder; full entry-point polish is Phase 4)
 
 - [ ] **Phase 2 complete**
