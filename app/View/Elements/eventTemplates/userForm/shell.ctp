@@ -35,6 +35,10 @@
     border-color: #c33;
     box-shadow: 0 0 0 1px #c33;
 }
+.event-template-user-form .et-field.et-missing {
+    outline: 2px solid #c33;
+    outline-offset: 2px;
+}
 </style>
 <div class="event-template-user-form form">
     <?php if ($isPreview): ?>

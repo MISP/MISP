@@ -299,7 +299,19 @@
             }
             if (!filled) {
                 missing.push(label || id);
-                qsa($field, '.et-value').forEach(function ($i) { $i.classList.add('et-invalid'); });
+                if (type === 'object_field' || type === 'file_field') {
+                    // Mark the container, not every input inside. An
+                    // object_field's relations aren't individually
+                    // required (the object template's `requirements` /
+                    // `requiredOneOf` shape the real constraint), so
+                    // reddening each relation would be misleading. A
+                    // file_field has no individual inputs to mark.
+                    $field.classList.add('et-missing');
+                } else {
+                    qsa($field, '.et-value').forEach(function ($i) {
+                        $i.classList.add('et-invalid');
+                    });
+                }
             }
         });
         return missing;

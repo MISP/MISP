@@ -549,6 +549,20 @@ class EventTemplatesController extends AppController
             usort($rels, function ($a, $b) {
                 return $b['ui_priority'] - $a['ui_priority'];
             });
+
+            // requirements is a JSON column carrying `required` and/or
+            // `requiredOneOf` lists. Decode defensively; an empty/null
+            // column just means no constraints.
+            $requirements = array();
+            if (!empty($row['ObjectTemplate']['requirements'])) {
+                $decoded = is_array($row['ObjectTemplate']['requirements'])
+                    ? $row['ObjectTemplate']['requirements']
+                    : json_decode((string)$row['ObjectTemplate']['requirements'], true);
+                if (is_array($decoded)) {
+                    $requirements = $decoded;
+                }
+            }
+
             $out[$id] = array(
                 'missing' => false,
                 'uuid' => $uuid,
@@ -557,6 +571,7 @@ class EventTemplatesController extends AppController
                 'meta_category' => $row['ObjectTemplate']['meta-category'] ?? '',
                 'template_description' => $row['ObjectTemplate']['description'] ?? '',
                 'relations' => $rels,
+                'requirements' => $requirements,
             );
         }
         return $out;

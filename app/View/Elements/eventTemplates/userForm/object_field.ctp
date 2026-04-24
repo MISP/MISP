@@ -33,6 +33,47 @@
             ); ?>
         </div>
     <?php else: ?>
+        <?php
+            $req = isset($spec['requirements']) && is_array($spec['requirements'])
+                ? $spec['requirements']
+                : array();
+            $required = isset($req['required']) && is_array($req['required'])
+                ? $req['required']
+                : array();
+            $requiredOneOf = isset($req['requiredOneOf']) && is_array($req['requiredOneOf'])
+                ? $req['requiredOneOf']
+                : array();
+        ?>
+        <?php if (!empty($required) || !empty($requiredOneOf)): ?>
+            <div class="et-object-requirements"
+                 style="background:#eef4fa; border:1px solid #cde1f2; color:#335066;
+                        padding:6px 10px; border-radius:3px; font-size:12px; margin-bottom:6px;">
+                <?php if (!empty($required)): ?>
+                    <div>
+                        <strong><?php echo __('Required:'); ?></strong>
+                        <?php
+                            $chips = array_map(
+                                function ($r) { return '<code>' . h($r) . '</code>'; },
+                                $required
+                            );
+                            echo implode(', ', $chips);
+                        ?>
+                    </div>
+                <?php endif; ?>
+                <?php if (!empty($requiredOneOf)): ?>
+                    <div>
+                        <strong><?php echo __('At least one of:'); ?></strong>
+                        <?php
+                            $chips = array_map(
+                                function ($r) { return '<code>' . h($r) . '</code>'; },
+                                $requiredOneOf
+                            );
+                            echo implode(', ', $chips);
+                        ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
         <div class="et-entries">
             <div class="et-entry" style="border-top:1px dashed #ddd; padding-top:6px; margin-top:6px; position:relative;">
                 <?php if ($repeatable): ?>
