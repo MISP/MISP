@@ -52,6 +52,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'class' => 'short',
                 'element' => 'shortUUID',
                 'data_path' => 'EventTemplate.uuid',
+                'object_type' => 'EventTemplate',
             ],
             [
                 'name' => __('Organisation'),
