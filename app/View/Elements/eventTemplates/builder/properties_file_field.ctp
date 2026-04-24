@@ -1,7 +1,4 @@
 <h4><?php echo __('File field properties'); ?></h4>
-<div class="alert alert-warning" style="margin-bottom:10px;">
-    <?php echo __('User input for file_field elements is rejected by the server in v1 (PRD §5.2 F2.11). Templates that declare file fields still save, but the user form will disable uploads until the upload pipeline lands.'); ?>
-</div>
 <div class="control-group">
     <label><?php echo __('Stable id'); ?></label>
     <input type="text" data-et-field="id" class="input-block-level" disabled>

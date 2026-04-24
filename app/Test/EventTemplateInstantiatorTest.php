@@ -89,33 +89,64 @@ class EventTemplateInstantiatorTest extends TestCase
         }
     }
 
-    public function testFileFieldInputIsRejectedWithPhase2Message(): void
+    public function testFileFieldInputShapeIsValidated(): void
     {
-        // PRD §5.2 F2.11: file_field elements may appear in a definition
-        // but the instantiator rejects user input for them in v1 because
-        // the upload pipeline doesn't land until Phase 2.
+        // With the Phase-2 upload pipeline in place, file_field inputs
+        // must be {filename, data} objects (or arrays of them). A stray
+        // scalar — e.g., someone submitting a plain filename string —
+        // is rejected with a clear per-instance error.
         $def = $this->minimalValid();
         $def['structure'] = array(
             array(
                 'type' => 'file_field',
                 'id' => 'samples',
                 'label' => 'Malware samples',
+                'as' => 'attachment',
             ),
         );
 
         try {
             $this->instantiator->instantiate(
                 $def,
-                array('samples' => array('tmp' => '/tmp/fake')),
+                array('samples' => array(array('filename' => 'x.bin'))),
                 $this->user
             );
-            $this->fail('expected EventTemplateInstantiationException');
+            $this->fail('expected EventTemplateInstantiationException for missing data');
         } catch (EventTemplateInstantiationException $e) {
             $this->assertSame('User input is invalid.', $e->getMessage());
-            $errors = $e->getErrors();
             $this->assertErrorContains(
-                $errors,
-                'file_field "samples" is not yet supported'
+                $e->getErrors(),
+                'file_field "samples" instance 1: missing base64 data'
+            );
+        }
+    }
+
+    public function testFileFieldInputRejectsNonBase64Data(): void
+    {
+        $def = $this->minimalValid();
+        $def['structure'] = array(
+            array(
+                'type' => 'file_field',
+                'id' => 'samples',
+                'label' => 'Samples',
+                'as' => 'attachment',
+            ),
+        );
+
+        try {
+            $this->instantiator->instantiate(
+                $def,
+                array('samples' => array(
+                    'filename' => 'x.bin',
+                    'data' => '!!not-base64!!',
+                )),
+                $this->user
+            );
+            $this->fail('expected EventTemplateInstantiationException for bad base64');
+        } catch (EventTemplateInstantiationException $e) {
+            $this->assertErrorContains(
+                $e->getErrors(),
+                'data is not valid base64'
             );
         }
     }
@@ -221,7 +252,9 @@ class EventTemplateInstantiatorTest extends TestCase
             $this->instantiator->instantiate(
                 $def,
                 array(
-                    'samples' => array('x'),
+                    // Invalid file_field: missing `data` key.
+                    'samples' => array(array('filename' => 'x.bin')),
+                    // Unknown id.
                     'ghost' => 'whatever',
                 ),
                 $this->user

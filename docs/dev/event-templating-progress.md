@@ -213,13 +213,13 @@ Nothing else.
 
 ### 2.3 Template-user form JS (classic theme)
 
-- [ ] Field-type renderers matching each element type (DOM level)
-- [ ] Repeatable fields: add/remove entry buttons
-- [ ] Client-side mandatory-field guard (disable submit until satisfied)
-- [ ] Tag and galaxy picker inline integration (reuse existing patterns)
-- [ ] File upload: drag-drop zone + progress, via `fetch` + `FormData`
-- [ ] **Backend**: extend `EventTemplateInstantiator` to accept `file_field` uploads (receive uploaded-file metadata + tmp path, map to `attachment` or `malware-sample` attributes via `AttachmentTool`). **Deferred from Phase 1.4** — needs the upload pipeline in place first.
-- [ ] Submit flow: POST to `/event_templates/instantiate/{id}`, redirect to event on success, render errors on failure
+- [x] Field-type renderers matching each element type (DOM level) — `Elements/eventTemplates/userForm/*.ctp`
+- [x] Repeatable fields: add/remove entry buttons
+- [x] Client-side mandatory-field guard (disable submit until satisfied)
+- [~] Tag and galaxy picker inline integration — tag picker shipped (fetch-on-first-open of `/tags/index.json` + client-side filter by `restrict_taxonomies`). Galaxy cluster picker deferred as a follow-up (needs ajax pagination over the ~10k+ cluster space); galaxy_field remains CSV for now.
+- [x] File upload: plain `<input type="file">` + client-side base64 encode in the JSON payload (drag-drop + progress bar are a polish follow-up)
+- [x] **Backend**: `EventTemplateInstantiator` accepts `file_field` uploads as base64-encoded `{filename, data}` objects; produces `attachment` or `malware-sample` attributes routed through `onDemandEncrypt` for the malware-sample case.
+- [x] Submit flow: POST to `/event_templates/instantiate/{id}`, redirect to event on success, render errors on failure
 
 ### 2.4 Nav
 

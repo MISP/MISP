@@ -96,12 +96,103 @@
     // them up without another pass over the DOM.
     // -----------------------------------------------------------------
 
+    // Tracks base64-encoded file_field uploads; keyed by element id.
+    // Populated asynchronously when the user picks files; collectValues()
+    // reads directly from here at submit time.
+    var fileStaging = {};
+
+    function wireFileInputs() {
+        document.addEventListener('change', function (e) {
+            var $input = e.target;
+            if (!$input.matches || !$input.matches('.et-file-input[data-et-file-target]')) {
+                return;
+            }
+            var id = $input.getAttribute('data-et-file-target');
+            if (!id) { return; }
+            var files = Array.prototype.slice.call($input.files || []);
+            if (!files.length) {
+                fileStaging[id] = [];
+                renderFileList(id);
+                updateSubmitEnabled();
+                return;
+            }
+            fileStaging[id] = files.map(function (f) {
+                return {filename: f.name, size: f.size, data: null};
+            });
+            renderFileList(id);
+            updateSubmitEnabled();
+
+            // Read each File into base64 asynchronously; re-render once
+            // each completes. A FileReader per file is fine here — users
+            // typically pick a handful, and browsers throttle internally.
+            files.forEach(function (f, idx) {
+                var reader = new FileReader();
+                reader.onload = function () {
+                    // result is a data URL: "data:...;base64,AAAA..."
+                    var b64 = String(reader.result || '').split(',')[1] || '';
+                    if (fileStaging[id] && fileStaging[id][idx]) {
+                        fileStaging[id][idx].data = b64;
+                    }
+                    renderFileList(id);
+                    updateSubmitEnabled();
+                };
+                reader.onerror = function () {
+                    if (fileStaging[id] && fileStaging[id][idx]) {
+                        fileStaging[id][idx].error = 'read failed';
+                    }
+                    renderFileList(id);
+                };
+                reader.readAsDataURL(f);
+            });
+        });
+    }
+
+    function renderFileList(elementId) {
+        var $list = document.querySelector(
+            '[data-et-file-list-for="' + cssEscape(elementId) + '"]'
+        );
+        if (!$list) { return; }
+        $list.innerHTML = '';
+        var files = fileStaging[elementId] || [];
+        files.forEach(function (f) {
+            var $row = document.createElement('div');
+            $row.style.padding = '2px 0';
+            var status;
+            if (f.error) { status = '⚠ ' + f.error; }
+            else if (f.data === null) { status = '… reading'; }
+            else { status = '✓ ' + humanSize(f.size); }
+            $row.textContent = f.filename + ' — ' + status;
+            $list.appendChild($row);
+        });
+    }
+
+    function humanSize(n) {
+        if (!n || n <= 0) { return '0 B'; }
+        if (n < 1024) { return n + ' B'; }
+        if (n < 1024 * 1024) { return (n / 1024).toFixed(1) + ' KiB'; }
+        return (n / (1024 * 1024)).toFixed(1) + ' MiB';
+    }
+
     function collectValues() {
         var values = {};
         qsa(document, '#et-user-form .et-field').forEach(function ($field) {
             var id = $field.getAttribute('data-et-element-id');
             var type = $field.getAttribute('data-et-element-type');
             if (!id || !type) { return; }
+            if (type === 'file_field') {
+                var files = (fileStaging[id] || []).filter(function (f) {
+                    return f && f.data;
+                }).map(function (f) {
+                    return {filename: f.filename, data: f.data};
+                });
+                if (!files.length) { return; }
+                if ($field.getAttribute('data-et-repeatable') === '1') {
+                    values[id] = files;
+                } else {
+                    values[id] = files[0];
+                }
+                return;
+            }
             if (type === 'object_field') {
                 var instances = qsa($field, '.et-entries > .et-entry').map(collectEntryRelations);
                 // Scalar object if not repeatable, array otherwise.
@@ -180,6 +271,12 @@
                     qsa($entry, '.et-value[data-et-path]').forEach(function ($i) {
                         if (($i.value || '').trim() !== '') { filled = true; }
                     });
+                });
+            } else if (type === 'file_field') {
+                // Mandatory file_field: at least one fully-read file.
+                var stagedFiles = fileStaging[id] || [];
+                filled = stagedFiles.some(function (f) {
+                    return f && f.data;
                 });
             } else {
                 qsa($field, '.et-value[data-et-path]').forEach(function ($i) {
@@ -559,6 +656,7 @@
         wireMandatoryGuard();
         wireSubmit();
         wireTagPicker();
+        wireFileInputs();
         // Initial state — disable submit if any mandatory field is empty.
         qsa(document, '#et-user-form .et-field[data-et-repeatable="1"]').forEach(refreshRemoveButtons);
         updateSubmitEnabled();

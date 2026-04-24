@@ -307,13 +307,14 @@ class EventTemplatesRestTests(unittest.TestCase):
         evt = r.json()
         self.assertEqual(int(evt["Event"]["id"]), eid)
 
-    def test_instantiate_rejects_file_field_input(self) -> None:
-        # PRD §5.2 F2.11: templates may declare file_field elements, but
-        # user input for them is rejected in v1. The instantiator must
-        # surface that as a structured saveFailResponse.
+    def test_instantiate_rejects_malformed_file_field_input(self) -> None:
+        # file_field instances must be {filename, data} objects with
+        # base64-encoded data. A bare string input is rejected with a
+        # per-instance error.
         def_with_file = _minimal_definition(name="file-template")
         def_with_file["structure"] = [
-            {"type": "file_field", "id": "samples", "label": "Samples"},
+            {"type": "file_field", "id": "samples", "label": "Samples",
+             "as": "attachment"},
         ]
         created = self._add(name="file-tpl", definition=def_with_file)
         tid = int(created["EventTemplate"]["id"])
@@ -324,12 +325,55 @@ class EventTemplatesRestTests(unittest.TestCase):
             data=json.dumps({"values": {"samples": ["anything"]}}),
             timeout=10,
         )
-        # MISP's saveFailResponse hard-codes 403 for validation failures;
-        # accept the neighbouring 4xx codes too for robustness.
         self.assertIn(r.status_code, (400, 403, 405, 422))
         flat = r.text
         self.assertIn("file_field", flat)
-        self.assertIn("not yet supported", flat)
+
+    def test_instantiate_accepts_file_field_attachment(self) -> None:
+        # Happy path for file_field `as: attachment` — supply a tiny
+        # base64 payload and confirm an attachment attribute with the
+        # right filename/value lands on the created event.
+        import base64
+        def_with_file = _minimal_definition(name="file-upload-template")
+        def_with_file["structure"] = [
+            {"type": "file_field", "id": "sample", "label": "Sample",
+             "as": "attachment"},
+        ]
+        created = self._add(name="fu-tpl", definition=def_with_file)
+        tid = int(created["EventTemplate"]["id"])
+
+        payload_data = base64.b64encode(b"hello from test").decode("ascii")
+        r = requests.post(
+            f"{URL}/event_templates/instantiate/{tid}",
+            headers=_headers(),
+            data=json.dumps({"values": {"sample": {
+                "filename": "greeting.txt",
+                "data": payload_data,
+            }}}),
+            timeout=15,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:300])
+        body = r.json()
+        self.assertIn("event_id", body, body)
+        eid = int(body["event_id"])
+        self._events.append(eid)
+
+        # Fetch the new event and confirm one attachment attribute with
+        # value=greeting.txt.
+        r = requests.get(
+            f"{URL}/events/view/{eid}",
+            headers=_headers(),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200)
+        evt = r.json()
+        attrs = evt.get("Event", {}).get("Attribute", []) or []
+        attachments = [a for a in attrs if a.get("type") == "attachment"]
+        self.assertEqual(
+            len(attachments), 1,
+            f"expected exactly one attachment attribute; got {attrs!r}",
+        )
+        self.assertEqual(attachments[0]["value"], "greeting.txt")
 
 
 class EventTemplatesObjectDependencyTrackingTests(unittest.TestCase):

@@ -110,7 +110,7 @@ This PRD covers a **ground-up rework**. The existing system will be deprecated a
 - **F2.8** Submit path: single server call, wrapped in a DB transaction, that creates the event, all attributes, all objects with their relations, all object references, applies tags and clusters, and returns either the created event id or a structured error list.
 - **F2.9** On success, redirect to the event view.
 - **F2.10** On partial failure, the transaction rolls back; no half-created event.
-- **F2.11** *v1 limitation (Phase 1.4):* the server-side instantiator accepts templates that declare `file_field` elements but rejects user input for them with a clear "not yet supported" message. File upload wiring (tmp-path handling, `AttachmentTool` integration, `malware-sample` storage) lands in Phase 2 alongside the UI upload pipeline. Templates without `file_field` elements work end-to-end in Phase 1.
+- **F2.11** File upload is wired end-to-end. Clients base64-encode each uploaded file and include it in the `values` map as `{filename, data}` (or an array of those for `repeatable: true`); the instantiator validates the shape (filename + valid base64), then produces one `attachment` attribute per file — or a `malware-sample` attribute routed through MISP's `onDemandEncrypt` hook when the creator picked `as: malware-sample`. *History: this was a v1 limitation until the Phase-2.3 upload pipeline landed; templates authored before that point continue to work unchanged.*
 
 ### 5.3 Management
 

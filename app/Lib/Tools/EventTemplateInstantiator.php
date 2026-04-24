@@ -36,9 +36,12 @@ App::uses('ClassRegistry', 'Utility');
  *     ],
  *   ]
  *
- * file_field elements are not yet supported (v1 limitation); the
- * instantiator rejects any user input for them. File upload support
- * lands when the Phase 2 UI wires the upload pipeline through.
+ * file_field elements accept arrays of {filename, data_base64}
+ * (data is the raw file content base64-encoded on the client).
+ * Each instance becomes an `attachment` or `malware-sample` attribute
+ * depending on the template's `as` choice; malware-samples flow
+ * through MISP's onDemandEncrypt hook for the zipped/encrypted
+ * filename|md5 composite.
  *
  * Repeatable object_references: if either endpoint is repeatable and
  * appears more than once, the reference is materialised between the
@@ -206,14 +209,42 @@ class EventTemplateInstantiator
             $interactiveIds[$el['id']] = $el;
         }
 
-        // Reject file_field input (deferred to Phase 2).
+        // file_field inputs must be {filename, data} objects (base64
+        // `data`) or arrays of them when the field is repeatable. An
+        // inline stub that still looks like a string — e.g., the user
+        // accidentally typed into a stale text control — must be
+        // rejected with a clear message rather than silently skipped.
         foreach ($interactiveIds as $id => $el) {
-            if ($el['type'] === 'file_field' && isset($userInput[$id]) && !empty($userInput[$id])) {
-                $errors[] = sprintf(
-                    'file_field "%s" is not yet supported by the instantiator '
-                    . '(deferred to Phase 2 when the upload pipeline lands).',
-                    $id
-                );
+            if ($el['type'] !== 'file_field' || !isset($userInput[$id])) {
+                continue;
+            }
+            if (empty($userInput[$id])) {
+                continue;
+            }
+            foreach ($this->normaliseFileInstances($userInput[$id]) as $idx => $inst) {
+                if (!is_array($inst)
+                    || !isset($inst['filename']) || !is_string($inst['filename'])
+                    || $inst['filename'] === ''
+                ) {
+                    $errors[] = sprintf(
+                        'file_field "%s" instance %d: missing or empty filename',
+                        $id, $idx + 1
+                    );
+                    continue;
+                }
+                if (!isset($inst['data']) || !is_string($inst['data']) || $inst['data'] === '') {
+                    $errors[] = sprintf(
+                        'file_field "%s" instance %d: missing base64 data',
+                        $id, $idx + 1
+                    );
+                    continue;
+                }
+                if (base64_decode($inst['data'], true) === false) {
+                    $errors[] = sprintf(
+                        'file_field "%s" instance %d: data is not valid base64',
+                        $id, $idx + 1
+                    );
+                }
             }
         }
 
@@ -228,10 +259,6 @@ class EventTemplateInstantiator
         foreach ($interactiveIds as $id => $el) {
             $isMandatory = !empty($el['mandatory']);
             if (!$isMandatory) {
-                continue;
-            }
-            if ($el['type'] === 'file_field') {
-                // Already flagged above; skip mandatory check to avoid double error.
                 continue;
             }
             if (!isset($userInput[$id]) || $this->isEmptyValue($userInput[$id])) {
@@ -364,31 +391,82 @@ class EventTemplateInstantiator
     {
         $attrs = array();
         foreach ($definition['structure'] as $el) {
-            if (!is_array($el) || !isset($el['type'], $el['id']) || $el['type'] !== 'attribute_field') {
+            if (!is_array($el) || !isset($el['type'], $el['id'])) {
                 continue;
             }
             $id = $el['id'];
             if (!isset($userInput[$id]) || $this->isEmptyValue($userInput[$id])) {
                 continue;
             }
-            $misp = isset($el['misp']) && is_array($el['misp']) ? $el['misp'] : array();
-            $category = isset($misp['category']) ? (string)$misp['category'] : '';
-            $type = isset($misp['type']) ? (string)$misp['type'] : '';
-            $toIds = isset($misp['to_ids_default']) ? (bool)$misp['to_ids_default'] : true;
-            $comment = isset($misp['comment_template']) ? (string)$misp['comment_template'] : '';
 
-            foreach ($this->normaliseScalarInstances($userInput[$id]) as $value) {
-                $attrs[] = array(
-                    'category' => $category,
-                    'type' => $type,
-                    'value' => (string)$value,
-                    'to_ids' => $toIds ? 1 : 0,
-                    'comment' => $comment,
-                    'distribution' => 5,
-                );
+            if ($el['type'] === 'attribute_field') {
+                $misp = isset($el['misp']) && is_array($el['misp']) ? $el['misp'] : array();
+                $category = isset($misp['category']) ? (string)$misp['category'] : '';
+                $type = isset($misp['type']) ? (string)$misp['type'] : '';
+                $toIds = isset($misp['to_ids_default']) ? (bool)$misp['to_ids_default'] : true;
+                $comment = isset($misp['comment_template']) ? (string)$misp['comment_template'] : '';
+
+                foreach ($this->normaliseScalarInstances($userInput[$id]) as $value) {
+                    $attrs[] = array(
+                        'category' => $category,
+                        'type' => $type,
+                        'value' => (string)$value,
+                        'to_ids' => $toIds ? 1 : 0,
+                        'comment' => $comment,
+                        'distribution' => 5,
+                    );
+                }
+                continue;
+            }
+
+            if ($el['type'] === 'file_field') {
+                $as = isset($el['as']) && $el['as'] === 'malware-sample'
+                    ? 'malware-sample'
+                    : 'attachment';
+                foreach ($this->normaliseFileInstances($userInput[$id]) as $inst) {
+                    if (!is_array($inst)
+                        || empty($inst['filename']) || empty($inst['data'])
+                    ) {
+                        continue; // guarded by validateUserInput already
+                    }
+                    $attr = array(
+                        'category' => 'Payload delivery',
+                        'type' => $as,
+                        'value' => (string)$inst['filename'],
+                        'to_ids' => $as === 'malware-sample' ? 1 : 0,
+                        'comment' => '',
+                        'distribution' => 5,
+                        'data' => (string)$inst['data'],
+                    );
+                    if ($as === 'malware-sample') {
+                        // Event::_add -> Attribute handling picks this up
+                        // and routes through onDemandEncrypt to produce
+                        // the zipped/encrypted sample + filename|md5
+                        // composite value.
+                        $attr['encrypt'] = true;
+                    }
+                    $attrs[] = $attr;
+                }
+                continue;
             }
         }
         return $attrs;
+    }
+
+    /**
+     * Normalises a file_field user-input payload into a list of
+     * {filename, data} associative arrays. Accepts either a single
+     * instance ({"filename": ..., "data": ...}) or a list of them.
+     */
+    private function normaliseFileInstances($v)
+    {
+        if (is_array($v) && isset($v['filename'])) {
+            return array($v);
+        }
+        if (is_array($v)) {
+            return array_values($v);
+        }
+        return array();
     }
 
     private function buildObjects(array $definition, array $userInput)

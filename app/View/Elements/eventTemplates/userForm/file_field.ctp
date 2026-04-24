@@ -24,7 +24,15 @@
             <?php echo $this->EventTemplateMarkdown->render($help); ?>
         </div>
     <?php endif; ?>
-    <div class="alert alert-warning">
-        <?php echo __('File uploads land in the next commit. This field is rendered for preview, but the v1 instantiator rejects any input on submit.'); ?>
-    </div>
+
+    <input type="file" class="et-file-input"
+           <?php if ($repeatable): ?>multiple<?php endif; ?>
+           data-et-file-target="<?php echo h($id); ?>">
+    <div class="et-file-list" data-et-file-list-for="<?php echo h($id); ?>"
+         style="margin-top:6px; font-size:12px; color:#555;"></div>
+    <?php if ($as === 'malware-sample'): ?>
+        <span style="color:#888; font-size:11px;">
+            <?php echo __('Files uploaded here are server-side zipped and password-encrypted as MISP malware samples before storage.'); ?>
+        </span>
+    <?php endif; ?>
 </div>
