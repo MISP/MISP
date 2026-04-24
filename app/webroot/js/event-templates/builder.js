@@ -921,9 +921,35 @@
         var uuid = $item.getAttribute('data-uuid') || '';
         var name = $item.getAttribute('data-name') || '';
         var version = parseInt($item.getAttribute('data-version'), 10) || 0;
-        setElementFieldDeep(state.selectedId, 'object_template.uuid', uuid);
-        setElementFieldDeep(state.selectedId, 'object_template.name', name);
-        setElementFieldDeep(state.selectedId, 'object_template.pinned_version', version);
+        var elementId = state.selectedId;
+        setElementFieldDeep(elementId, 'object_template.uuid', uuid);
+        setElementFieldDeep(elementId, 'object_template.name', name);
+        setElementFieldDeep(elementId, 'object_template.pinned_version', version);
+
+        // Default to "all relations included" — creator opts OUT of
+        // the ones they don't want the user to see. Matches the natural
+        // authoring flow for most object templates, which have 1–3
+        // relations the creator actually needs to prune out.
+        ensureRelationsLoaded(uuid).then(function (rels) {
+            // The user may have selected a different element while the
+            // fetch was in flight; only mutate if we're still pointing
+            // at the same object_field.
+            if (state.selectedId !== elementId) { return; }
+            state.definition.structure = state.definition.structure.map(function (e) {
+                if (e.id !== elementId) { return e; }
+                var next = JSON.parse(JSON.stringify(e));
+                next.relations = rels.map(function (r) {
+                    return {object_relation: r.object_relation};
+                });
+                return next;
+            });
+            renderProperties();
+            renderCanvas();
+        }).catch(function () {
+            // Fetch failed — leave relations as-is; the creator can
+            // still use the Select-all shortcut once it loads.
+        });
+
         if (window.jQuery) {
             var $modal = document.getElementById('et-ot-picker-modal');
             if ($modal) { window.jQuery($modal).modal('hide'); }
