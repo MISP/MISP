@@ -21,24 +21,6 @@
             'vendor/alpinejs/alpine.min',
         ],
     ]);
-?>
-<script>
-    // Set BEFORE the x-data div is parsed so that when Alpine's
-    // mutation observer picks the div up and instantiates the
-    // etBuilder factory, the factory's cfg lookup finds the
-    // populated config object.
-    window.ET_BUILDER_CONFIG = {
-        mode:       <?= json_encode($builderMode) ?>,
-        submitUrl:  <?= json_encode($submitUrl) ?>,
-        baseurl:    <?= json_encode($baseurl) ?>,
-        envelope:   <?= json_encode($envelope) ?>,
-        definition: <?= json_encode($initialDefinition) ?>,
-        attrCategories: <?= json_encode($attrCategories) ?>,
-        objectTemplates: <?= json_encode($objectTemplates) ?>,
-        multipickerSources: <?= json_encode($multipickerSources) ?>
-    };
-</script>
-<?php
 
     $existing = isset($data['EventTemplate']) ? $data['EventTemplate'] : null;
     $builderMode = $existing ? 'edit' : 'add';
@@ -86,6 +68,22 @@
         'object_reference' => ['label' => __('Object reference'), 'icon' => 'link'],
     ];
 ?>
+<script>
+    // Set BEFORE the x-data div is parsed so that when Alpine's
+    // mutation observer picks the div up and instantiates the
+    // etBuilder factory, the factory's cfg lookup finds the
+    // populated config object.
+    window.ET_BUILDER_CONFIG = {
+        mode:       <?= json_encode($builderMode) ?>,
+        submitUrl:  <?= json_encode($submitUrl) ?>,
+        baseurl:    <?= json_encode($baseurl) ?>,
+        envelope:   <?= json_encode($envelope) ?>,
+        definition: <?= json_encode($initialDefinition) ?>,
+        attrCategories: <?= json_encode($attrCategories) ?>,
+        objectTemplates: <?= json_encode($objectTemplates) ?>,
+        multipickerSources: <?= json_encode($multipickerSources) ?>
+    };
+</script>
 <style>
 [x-cloak] { display: none !important; }
 .eventTemplates.builder .et-canvas-element {
