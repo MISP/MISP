@@ -55,7 +55,21 @@
             }
             $i.classList.remove('et-invalid');
         });
+        // Clones inherit any open/closed state of the first entry —
+        // reset to collapsed + "empty" so a freshly-added object
+        // instance is consistent regardless of how the user left the
+        // original.
+        if ($clone.classList.contains('et-object-entry')) {
+            $clone.classList.remove('et-open');
+            var $cloneBody = $clone.querySelector('.et-object-entry-body');
+            if ($cloneBody) { $cloneBody.setAttribute('hidden', ''); }
+            var $cloneToggle = $clone.querySelector('.et-object-toggle');
+            if ($cloneToggle) { $cloneToggle.setAttribute('aria-expanded', 'false'); }
+            var $cloneTitle = $clone.querySelector('.et-object-entry-title');
+            if ($cloneTitle) { $cloneTitle.textContent = 'Expand to fill'; }
+        }
         $entries.appendChild($clone);
+        refreshObjectEntryIndicators($clone);
         refreshRemoveButtons($field);
     }
 
@@ -334,10 +348,79 @@
     function wireMandatoryGuard() {
         // Recompute on any input change across the whole form.
         document.addEventListener('input', function (e) {
-            if (e.target.closest('#et-user-form')) { updateSubmitEnabled(); }
+            if (e.target.closest('#et-user-form')) {
+                updateSubmitEnabled();
+                refreshObjectEntryIndicators(e.target.closest('.et-object-entry'));
+            }
         });
         document.addEventListener('change', function (e) {
-            if (e.target.closest('#et-user-form')) { updateSubmitEnabled(); }
+            if (e.target.closest('#et-user-form')) {
+                updateSubmitEnabled();
+                refreshObjectEntryIndicators(e.target.closest('.et-object-entry'));
+            }
+        });
+    }
+
+    // -----------------------------------------------------------------
+    // Collapsible object_field entries.
+    // -----------------------------------------------------------------
+
+    function wireObjectCollapsing() {
+        // Delegate click on the entry header (everything except the
+        // remove-entry × button) — clicking the caret, the label, or
+        // the filled-indicator chip all toggle.
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('.et-remove-entry')) { return; }
+            var $header = e.target.closest('.et-object-entry-header');
+            if (!$header) { return; }
+            e.preventDefault();
+            toggleObjectEntry($header.closest('.et-object-entry'));
+        });
+    }
+
+    function toggleObjectEntry($entry) {
+        if (!$entry) { return; }
+        var $body = $entry.querySelector('.et-object-entry-body');
+        var $toggle = $entry.querySelector('.et-object-toggle');
+        var $title = $entry.querySelector('.et-object-entry-title');
+        var open = !$entry.classList.contains('et-open');
+        $entry.classList.toggle('et-open', open);
+        if ($body) {
+            if (open) { $body.removeAttribute('hidden'); }
+            else { $body.setAttribute('hidden', ''); }
+        }
+        if ($toggle) { $toggle.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+        if ($title) {
+            $title.textContent = open ? 'Collapse' : 'Expand to fill';
+        }
+    }
+
+    function refreshObjectEntryIndicators($entry) {
+        // When called with an entry, refresh just that one. When called
+        // with nothing, refresh every entry on the form (used on init
+        // and after add/remove).
+        var entries = $entry
+            ? [$entry]
+            : qsa(document, '#et-user-form .et-object-entry');
+        entries.forEach(function ($e) {
+            if (!$e) { return; }
+            var $field = $e.closest('.et-field');
+            var mandatoryParent = $field && $field.getAttribute('data-et-mandatory') === '1';
+            var filled = qsa($e, '.et-value[data-et-path]').some(function ($i) {
+                return ($i.value || '').trim() !== '';
+            });
+            var $ind = $e.querySelector('.et-object-filled-indicator');
+            if (!$ind) { return; }
+            if (filled) {
+                $ind.setAttribute('data-et-filled-state', 'filled');
+                $ind.textContent = '✓ filled';
+            } else if (mandatoryParent) {
+                $ind.setAttribute('data-et-filled-state', 'missing');
+                $ind.textContent = 'required — empty';
+            } else {
+                $ind.setAttribute('data-et-filled-state', 'empty');
+                $ind.textContent = 'empty';
+            }
         });
     }
 
@@ -683,8 +766,13 @@
         wireSubmit();
         wireTagPicker();
         wireFileInputs();
+        wireObjectCollapsing();
         // Initial state — disable submit if any mandatory field is empty.
         qsa(document, '#et-user-form .et-field[data-et-repeatable="1"]').forEach(refreshRemoveButtons);
+        // Paint the filled-state chips for every object entry once
+        // everything's wired (covers object_fields whose server-rendered
+        // relations start empty — the happy path).
+        refreshObjectEntryIndicators(null);
         updateSubmitEnabled();
     }
 

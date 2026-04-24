@@ -75,31 +75,44 @@
             </div>
         <?php endif; ?>
         <div class="et-entries">
-            <div class="et-entry" style="border-top:1px dashed #ddd; padding-top:6px; margin-top:6px; position:relative;">
-                <?php if ($repeatable): ?>
-                    <button type="button" class="btn btn-mini et-remove-entry"
-                            style="position:absolute; right:0; top:6px; display:none;">×</button>
-                <?php endif; ?>
-                <?php foreach ($spec['relations'] as $rel): ?>
-                    <?php
-                        $relation = $rel['object_relation'];
-                        $relType = $rel['type'];
-                        $relDesc = $rel['description'];
-                    ?>
-                    <div class="control-group" style="margin-bottom:4px;">
-                        <label style="font-weight:500; font-size:12px;">
-                            <?php echo h($relation); ?>
-                            <span style="color:#888; font-size:11px;">(<?php echo h($relType); ?>)</span>
-                        </label>
-                        <?php if ($relDesc !== ''): ?>
-                            <div style="color:#888; font-size:11px; margin-bottom:2px;">
-                                <?php echo h($relDesc); ?>
-                            </div>
-                        <?php endif; ?>
-                        <input type="text" class="input-block-level et-value"
-                               data-et-path="<?php echo h($id . '.' . $relation); ?>">
-                    </div>
-                <?php endforeach; ?>
+            <div class="et-entry et-object-entry">
+                <div class="et-object-entry-header">
+                    <button type="button" class="et-object-toggle" aria-expanded="false"
+                            title="<?php echo __('Expand / collapse'); ?>">
+                        <span class="et-caret">▶</span>
+                        <span class="et-object-entry-title"><?php echo __('Expand to fill'); ?></span>
+                    </button>
+                    <span class="et-object-filled-indicator" data-et-filled-state="empty">
+                        <?php echo __('empty'); ?>
+                    </span>
+                    <?php if ($repeatable): ?>
+                        <button type="button" class="btn btn-mini et-remove-entry"
+                                style="display:none; margin-left:auto;"
+                                title="<?php echo __('Remove instance'); ?>">×</button>
+                    <?php endif; ?>
+                </div>
+                <div class="et-object-entry-body" hidden>
+                    <?php foreach ($spec['relations'] as $rel): ?>
+                        <?php
+                            $relation = $rel['object_relation'];
+                            $relType = $rel['type'];
+                            $relDesc = $rel['description'];
+                        ?>
+                        <div class="control-group" style="margin-bottom:4px;">
+                            <label style="font-weight:500; font-size:12px;">
+                                <?php echo h($relation); ?>
+                                <span style="color:#888; font-size:11px;">(<?php echo h($relType); ?>)</span>
+                            </label>
+                            <?php if ($relDesc !== ''): ?>
+                                <div style="color:#888; font-size:11px; margin-bottom:2px;">
+                                    <?php echo h($relDesc); ?>
+                                </div>
+                            <?php endif; ?>
+                            <input type="text" class="input-block-level et-value"
+                                   data-et-path="<?php echo h($id . '.' . $relation); ?>">
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
         <?php if ($repeatable): ?>

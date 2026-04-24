@@ -39,6 +39,67 @@
     outline: 2px solid #c33;
     outline-offset: 2px;
 }
+.event-template-user-form .et-object-entry {
+    border: 1px solid #e1e1e1;
+    border-radius: 3px;
+    background: #fff;
+    margin-bottom: 6px;
+    padding: 0;
+}
+.event-template-user-form .et-object-entry-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    user-select: none;
+}
+.event-template-user-form .et-object-entry-header:hover { background: #f5f8fa; }
+.event-template-user-form .et-object-toggle {
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    color: #333;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.event-template-user-form .et-object-toggle .et-caret {
+    display: inline-block;
+    width: 10px;
+    transition: transform 0.12s ease;
+    color: #888;
+}
+.event-template-user-form .et-object-entry.et-open .et-object-toggle .et-caret {
+    transform: rotate(90deg);
+}
+.event-template-user-form .et-object-entry.et-open .et-object-entry-title::before {
+    content: attr(data-open-label);
+}
+.event-template-user-form .et-object-filled-indicator {
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: #efefef;
+    color: #888;
+    border: 1px solid #e0e0e0;
+}
+.event-template-user-form .et-object-filled-indicator[data-et-filled-state="filled"] {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-color: #c8e6c9;
+}
+.event-template-user-form .et-object-filled-indicator[data-et-filled-state="missing"] {
+    background: #fde8e8;
+    color: #c62828;
+    border-color: #f5c2c2;
+}
+.event-template-user-form .et-object-entry-body {
+    padding: 8px 12px 10px 12px;
+    border-top: 1px dashed #e1e1e1;
+}
 </style>
 <div class="event-template-user-form form">
     <?php if ($isPreview): ?>
