@@ -76,6 +76,7 @@ $fields = [
         'sort' => 'EventTemplate.uuid',
         'data_path' => 'EventTemplate.uuid',
         'element' => 'uuid',
+        'url' => $baseurl . '/event_templates/view/%id%',
         'card_section' => 'meta',
         'display_in' => ['table', 'card'],
     ],
