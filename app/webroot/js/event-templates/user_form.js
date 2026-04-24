@@ -131,7 +131,7 @@
                 return;
             }
             fileStaging[id] = files.map(function (f) {
-                return {filename: f.name, size: f.size, data: null};
+                return {filename: f.name, size: f.size, data: null, progress: 0};
             });
             renderFileList(id);
             updateSubmitEnabled();
@@ -141,11 +141,19 @@
             // typically pick a handful, and browsers throttle internally.
             files.forEach(function (f, idx) {
                 var reader = new FileReader();
+                reader.onprogress = function (ev) {
+                    if (!fileStaging[id] || !fileStaging[id][idx]) { return; }
+                    if (ev.lengthComputable && ev.total > 0) {
+                        fileStaging[id][idx].progress = ev.loaded / ev.total;
+                        renderFileList(id);
+                    }
+                };
                 reader.onload = function () {
                     // result is a data URL: "data:...;base64,AAAA..."
                     var b64 = String(reader.result || '').split(',')[1] || '';
                     if (fileStaging[id] && fileStaging[id][idx]) {
                         fileStaging[id][idx].data = b64;
+                        fileStaging[id][idx].progress = 1;
                     }
                     renderFileList(id);
                     updateSubmitEnabled();
@@ -170,12 +178,46 @@
         var files = fileStaging[elementId] || [];
         files.forEach(function (f) {
             var $row = document.createElement('div');
-            $row.style.padding = '2px 0';
-            var status;
-            if (f.error) { status = '⚠ ' + f.error; }
-            else if (f.data === null) { status = '… reading'; }
-            else { status = '✓ ' + humanSize(f.size); }
-            $row.textContent = f.filename + ' — ' + status;
+            $row.style.padding = '4px 0';
+
+            var $top = document.createElement('div');
+            $top.style.cssText =
+                'display:flex;justify-content:space-between;' +
+                'align-items:center;gap:8px;';
+            var $name = document.createElement('span');
+            $name.textContent = f.filename;
+            var $status = document.createElement('span');
+            $status.style.cssText = 'font-size:11px;color:#666;flex-shrink:0;';
+            var pct = Math.round((f.progress || 0) * 100);
+            if (f.error) {
+                $status.textContent = '⚠ ' + f.error;
+                $status.style.color = '#c33';
+            } else if (f.data === null) {
+                $status.textContent = pct + '% · ' + humanSize(f.size);
+            } else {
+                $status.textContent = '✓ ' + humanSize(f.size);
+                $status.style.color = '#2e7d32';
+            }
+            $top.appendChild($name);
+            $top.appendChild($status);
+            $row.appendChild($top);
+
+            // Inline-styled progress bar — works on both themes without
+            // depending on Bootstrap version's progress class. Hidden
+            // once the read completes (✓ status alone reads cleaner).
+            if (!f.error && f.data === null) {
+                var $bar = document.createElement('div');
+                $bar.style.cssText =
+                    'height:4px;background:#e9ecef;border-radius:2px;' +
+                    'overflow:hidden;margin-top:3px;';
+                var $fill = document.createElement('div');
+                $fill.style.cssText =
+                    'height:100%;background:#0d6efd;' +
+                    'transition:width 0.15s linear;width:' + pct + '%;';
+                $bar.appendChild($fill);
+                $row.appendChild($bar);
+            }
+
             $list.appendChild($row);
         });
     }

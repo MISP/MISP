@@ -232,7 +232,7 @@ Nothing else.
 
 ## Phase 3 — Overmind-theme UI
 
-**Status:** not started
+**Status:** complete
 **Depends on:** Phase 2 complete (strictly sequential — do not start before Phase 2 is fully checked off).
 **Exit criteria:** parity with Phase 2 in the Overmind theme.
 
@@ -265,9 +265,9 @@ Nothing else.
 - [x] Field-type renderers for Overmind (BS5 markup) — shipped in Phase 3.2's user_form partials commit (`b27b8e1f2`); audit found no BS2 idioms left.
 - [x] Tom Select-based inline tag and galaxy cluster pickers
 - [x] `GET /galaxy_clusters/search?galaxy_type=…&q=…` lean endpoint consumed async
-- [ ] File upload with BS5 progress UI
+- [x] File upload with BS5 progress UI
 
-- [ ] **Phase 3 complete**
+- [x] **Phase 3 complete**
 
 ---
 
