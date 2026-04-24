@@ -123,6 +123,7 @@ class EventTemplatesController extends AppController
     {
         if (!$this->request->is('post') && !$this->request->is('put')) {
             $this->set('title_for_layout', __('Add Event Template'));
+            $this->__setBuilderConfig();
             $this->render('add');
             return;
         }
@@ -170,6 +171,7 @@ class EventTemplatesController extends AppController
             $this->set('data', $existing);
             $this->set('id', $id);
             $this->set('title_for_layout', __('Edit Event Template'));
+            $this->__setBuilderConfig();
             $this->render('edit');
             return;
         }
@@ -616,6 +618,50 @@ class EventTemplatesController extends AppController
      * for HTML requests and a structured 503 envelope for REST, rather than
      * letting the raw exception surface.
      */
+    /**
+     * Loads the data needed by the default-theme builder shell —
+     * attribute category→types mapping + installed object templates —
+     * and hands it to the view so the per-element-type properties
+     * partials can render populated dropdowns without further AJAX.
+     * Called from the GET paths of add() and edit().
+     */
+    private function __setBuilderConfig()
+    {
+        $this->loadModel('MispAttribute');
+        $categories = array();
+        foreach ($this->MispAttribute->categoryDefinitions as $name => $def) {
+            $categories[$name] = isset($def['types']) ? array_values($def['types']) : array();
+        }
+        ksort($categories);
+        $this->set('attributeCategoryDefinitions', $categories);
+
+        $this->loadModel('ObjectTemplate');
+        $templates = $this->ObjectTemplate->find('all', array(
+            'recursive' => -1,
+            'conditions' => array('ObjectTemplate.active' => true),
+            'fields' => array(
+                'ObjectTemplate.uuid',
+                'ObjectTemplate.name',
+                'ObjectTemplate.version',
+                'ObjectTemplate.meta-category',
+                'ObjectTemplate.description',
+            ),
+            'order' => array('ObjectTemplate.name' => 'ASC'),
+        ));
+        $objectTemplates = array();
+        foreach ($templates as $t) {
+            $row = $t['ObjectTemplate'];
+            $objectTemplates[] = array(
+                'uuid' => (string)$row['uuid'],
+                'name' => (string)$row['name'],
+                'version' => (int)$row['version'],
+                'meta_category' => (string)($row['meta-category'] ?? ''),
+                'description' => (string)($row['description'] ?? ''),
+            );
+        }
+        $this->set('objectTemplatesAvailable', $objectTemplates);
+    }
+
     private function __renderDependencyMissing(array $missing)
     {
         $missing = array_values($missing);

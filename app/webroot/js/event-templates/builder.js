@@ -4,29 +4,25 @@
  * Vanilla JS state manager for the template definition (PRD §11
  * intentionally skips Alpine.js on the classic theme). The whole state
  * lives on one object; every mutation calls render() which rebuilds
- * the canvas and properties panel from scratch. This is deliberately
- * simple — the builder is not in a hot path, and imperative rerender
- * keeps the code debuggable without a framework.
+ * the canvas from scratch and re-populates the properties panel via
+ * the per-element-type .ctp partials emitted by the shell.
  *
- * This commit ships the scaffold with section + text_block elements
- * only. Commit 5 of the Phase-2 plan adds the other element types and
- * per-element-type property partials; commit 6 adds drag-reorder,
- * pickers, and inline server-side validation.
+ * This commit covers every element type from PRD §5.1 F1.4
+ * (section, text_block, attribute_field, object_field, tag_field,
+ * galaxy_field, file_field, object_reference). The next builder commit
+ * layers on jQuery UI sortable for reorder, modal pickers for
+ * taxonomies/galaxy types, and inline server-side validation from
+ * /event_templates/validate_definition.
  */
 (function () {
     'use strict';
 
     var cfg = window.ET_BUILDER_CONFIG || null;
-    if (!cfg) {
-        return; // builder markup not on the page
-    }
+    if (!cfg) { return; }
 
     // ---------------------------------------------------------------
     // State
     // ---------------------------------------------------------------
-    // Canonical shape matches the PRD §7 JSON schema. `envelope` holds
-    // the row-level fields the controller expects alongside the
-    // `definition` (name, description, distribution, active).
     var state = {
         envelope: Object.assign({
             name: '',
@@ -44,6 +40,122 @@
         state.definition.uuid = uuidv4();
     }
 
+    // ---------------------------------------------------------------
+    // Factories and canvas-summary rules, indexed by element type.
+    // ---------------------------------------------------------------
+    var ELEMENT_TYPES = {
+        section: {
+            label: 'Section',
+            factory: function (id) {
+                return { type: 'section', id: id, label: 'New section', help: '' };
+            },
+            summary: function (el) { return el.label || '(untitled section)'; }
+        },
+        text_block: {
+            label: 'Text block',
+            factory: function (id) {
+                return { type: 'text_block', id: id, content: '' };
+            },
+            summary: function (el) {
+                return (el.content || '(empty text block)').slice(0, 80);
+            }
+        },
+        attribute_field: {
+            label: 'Attribute',
+            factory: function (id) {
+                return {
+                    type: 'attribute_field', id: id,
+                    label: 'New attribute', help: '',
+                    mandatory: false, repeatable: false,
+                    misp: {
+                        category: '', type: '',
+                        to_ids_default: false,
+                        comment_template: '', default_value: ''
+                    }
+                };
+            },
+            summary: function (el) {
+                var label = el.label || '(unnamed)';
+                var t = (el.misp && el.misp.type) || '?';
+                var c = (el.misp && el.misp.category) || '?';
+                return label + ' — ' + c + '/' + t;
+            }
+        },
+        object_field: {
+            label: 'Object',
+            factory: function (id) {
+                return {
+                    type: 'object_field', id: id,
+                    label: 'New object', help: '',
+                    mandatory: false, repeatable: false,
+                    object_template: { uuid: '', name: '', pinned_version: 0 },
+                    relations: []
+                };
+            },
+            summary: function (el) {
+                var label = el.label || '(unnamed)';
+                var ot = el.object_template || {};
+                return label + ' — ' + (ot.name || 'no template') +
+                    (ot.pinned_version ? ' v' + ot.pinned_version : '');
+            }
+        },
+        tag_field: {
+            label: 'Tag',
+            factory: function (id) {
+                return {
+                    type: 'tag_field', id: id,
+                    label: 'New tag field', help: '',
+                    mandatory: false, multiple: true,
+                    restrict_taxonomies: []
+                };
+            },
+            summary: function (el) { return el.label || '(unnamed)'; }
+        },
+        galaxy_field: {
+            label: 'Galaxy',
+            factory: function (id) {
+                return {
+                    type: 'galaxy_field', id: id,
+                    label: 'New galaxy field', help: '',
+                    mandatory: false, multiple: false,
+                    restrict_galaxy_types: []
+                };
+            },
+            summary: function (el) { return el.label || '(unnamed)'; }
+        },
+        file_field: {
+            label: 'File',
+            factory: function (id) {
+                return {
+                    type: 'file_field', id: id,
+                    label: 'New file field', help: '',
+                    mandatory: false, repeatable: false,
+                    as: 'attachment'
+                };
+            },
+            summary: function (el) {
+                return (el.label || '(unnamed)') + ' — as ' + (el.as || 'attachment');
+            }
+        },
+        object_reference: {
+            label: 'Reference',
+            factory: function (id) {
+                return {
+                    type: 'object_reference', id: id,
+                    from: '', to: '', relationship_type: '', comment: ''
+                };
+            },
+            summary: function (el) {
+                return (el.from || '?') + ' → ' + (el.to || '?') +
+                    ' (' + (el.relationship_type || '?') + ')';
+            }
+        }
+    };
+
+    // ---------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------
+
     function minimalDefinition() {
         return {
             schema_version: 1,
@@ -54,13 +166,9 @@
         };
     }
 
-    function cloneDefinition(d) {
-        return JSON.parse(JSON.stringify(d));
-    }
+    function cloneDefinition(d) { return JSON.parse(JSON.stringify(d)); }
 
     function uuidv4() {
-        // RFC4122 v4, good enough for client-side id seeds (the server
-        // regenerates the row uuid on save anyway via the model).
         if (window.crypto && window.crypto.randomUUID) {
             return window.crypto.randomUUID();
         }
@@ -71,8 +179,13 @@
         });
     }
 
-    // Generate a fresh stable element id unique within state.definition.structure.
-    function newElementId(prefix) {
+    function newElementId(type) {
+        var prefix = {
+            section: 'section', text_block: 'text',
+            attribute_field: 'attr', object_field: 'obj',
+            tag_field: 'tags', galaxy_field: 'gal',
+            file_field: 'file', object_reference: 'ref'
+        }[type] || 'el';
         var existing = {};
         state.definition.structure.forEach(function (el) {
             if (el && el.id) { existing[el.id] = true; }
@@ -86,28 +199,37 @@
         return candidate;
     }
 
+    // Walks a dotted path like "misp.category" on a plain object.
+    function getDeep(obj, path) {
+        var parts = path.split('.');
+        var cur = obj;
+        for (var i = 0; i < parts.length; i += 1) {
+            if (cur == null || typeof cur !== 'object') { return undefined; }
+            cur = cur[parts[i]];
+        }
+        return cur;
+    }
+
+    function setDeep(obj, path, value) {
+        var parts = path.split('.');
+        var cur = obj;
+        for (var i = 0; i < parts.length - 1; i += 1) {
+            if (cur[parts[i]] == null || typeof cur[parts[i]] !== 'object') {
+                cur[parts[i]] = {};
+            }
+            cur = cur[parts[i]];
+        }
+        cur[parts[parts.length - 1]] = value;
+    }
+
     // ---------------------------------------------------------------
     // Mutations
     // ---------------------------------------------------------------
 
     function addElement(type) {
-        var el;
-        if (type === 'section') {
-            el = {
-                type: 'section',
-                id: newElementId('section'),
-                label: 'New section',
-                help: ''
-            };
-        } else if (type === 'text_block') {
-            el = {
-                type: 'text_block',
-                id: newElementId('text'),
-                content: ''
-            };
-        } else {
-            return;
-        }
+        var spec = ELEMENT_TYPES[type];
+        if (!spec) { return; }
+        var el = spec.factory(newElementId(type));
         state.definition.structure.push(el);
         state.selectedId = el.id;
         render();
@@ -117,9 +239,7 @@
         state.definition.structure = state.definition.structure.filter(function (el) {
             return el.id !== id;
         });
-        if (state.selectedId === id) {
-            state.selectedId = null;
-        }
+        if (state.selectedId === id) { state.selectedId = null; }
         render();
     }
 
@@ -128,20 +248,20 @@
         render();
     }
 
-    function setElementField(id, field, value) {
+    function setElementFieldDeep(id, path, value) {
         state.definition.structure = state.definition.structure.map(function (el) {
             if (el.id !== id) { return el; }
-            var next = Object.assign({}, el);
-            next[field] = value;
+            var next = JSON.parse(JSON.stringify(el));
+            setDeep(next, path, value);
             return next;
         });
-        render();
+        // Only re-render the canvas summary; the properties pane inputs
+        // are already up to date (the user just typed into them).
+        renderCanvas();
     }
 
     function setEnvelopeField(field, value) {
         state.envelope[field] = value;
-        // Don't rerender on every keystroke — just update state. The
-        // next render() (on add/select/etc) will pick up the new value.
     }
 
     function findElement(id) {
@@ -162,11 +282,9 @@
         state.saving = true;
         state.errors = [];
 
-        // The PRD §7 JSON schema requires the definition to carry its own
-        // `name` (and optionally `description`) alongside the row-level
-        // envelope fields. Mirror the envelope into the definition at
-        // save time — the user only sees one set of inputs, but the
-        // server enforces both, so they must stay in lock-step.
+        // The PRD §7 schema requires the definition to carry its own
+        // `name` (minLength 1) alongside the row-level envelope `name`.
+        // Mirror at save time so the user only has one input to fill.
         state.definition.name = state.envelope.name;
         if (state.envelope.description) {
             state.definition.description = state.envelope.description;
@@ -174,7 +292,6 @@
             delete state.definition.description;
         }
 
-        // The server expects envelope fields + a nested `definition`.
         var body = {
             EventTemplate: {
                 name: state.envelope.name,
@@ -203,8 +320,7 @@
         }).then(function (res) {
             state.saving = false;
             if (res.status >= 200 && res.status < 300 && res.data.EventTemplate) {
-                var id = res.data.EventTemplate.id;
-                window.location.href = cfg.baseurl + '/event_templates/view/' + id;
+                window.location.href = cfg.baseurl + '/event_templates/view/' + res.data.EventTemplate.id;
                 return;
             }
             state.errors = extractErrors(res.data);
@@ -247,25 +363,6 @@
         renderSaveButton();
     }
 
-    // Cached once at wire() time so we can localise the initial label via
-    // PHP __() and still restore it correctly after a save failure.
-    var savedButtonLabel = null;
-
-    function renderSaveButton() {
-        var $btn = document.getElementById('et-save-button');
-        if (!$btn) { return; }
-        if (savedButtonLabel === null) {
-            savedButtonLabel = $btn.textContent;
-        }
-        if (state.saving) {
-            $btn.disabled = true;
-            $btn.textContent = 'Saving…';
-        } else {
-            $btn.disabled = false;
-            $btn.textContent = savedButtonLabel;
-        }
-    }
-
     function renderEnvelope() {
         var $n = document.getElementById('et-envelope-name');
         var $d = document.getElementById('et-envelope-description');
@@ -283,7 +380,7 @@
         $canvas.innerHTML = '';
         if (!state.definition.structure.length) {
             $canvas.appendChild(h('div', {'class': 'et-empty'},
-                'No elements yet. Use the palette on the left to add a section or text block.'
+                'No elements yet. Use the palette on the left to add one.'
             ));
             return;
         }
@@ -294,6 +391,7 @@
 
     function renderCanvasElement(el) {
         var selected = el.id === state.selectedId;
+        var spec = ELEMENT_TYPES[el.type] || {};
         var $row = h('div', {
             'class': 'et-canvas-element' + (selected ? ' selected' : ''),
             'data-element-id': el.id
@@ -302,23 +400,9 @@
             if (e.target.closest('.et-delete-button')) { return; }
             selectElement(el.id);
         });
-
-        var typeLabel = ({
-            section: 'Section',
-            text_block: 'Text block'
-        })[el.type] || el.type;
-
-        var summary;
-        if (el.type === 'section') {
-            summary = el.label || '(untitled section)';
-        } else if (el.type === 'text_block') {
-            summary = (el.content || '(empty text block)').slice(0, 80);
-        } else {
-            summary = el.id;
-        }
-
+        var summary = spec.summary ? spec.summary(el) : el.id;
         $row.appendChild(h('div', {'class': 'et-element-header'},
-            h('span', {'class': 'et-element-type-badge'}, typeLabel),
+            h('span', {'class': 'et-element-type-badge'}, spec.label || el.type),
             h('span', {'class': 'et-element-summary'}, summary),
             h('code', {'class': 'et-element-id'}, el.id),
             renderDeleteButton(el.id)
@@ -340,72 +424,126 @@
     }
 
     function renderProperties() {
-        var $panel = document.getElementById('et-properties');
-        if (!$panel) { return; }
-        $panel.innerHTML = '';
+        var $panes = document.querySelectorAll('[data-et-properties-for]');
+        $panes.forEach(function ($p) { $p.style.display = 'none'; });
+        var $empty = document.getElementById('et-properties-empty');
+
         if (!state.selectedId) {
-            $panel.appendChild(h('div', {'class': 'et-empty'},
-                'Select an element in the canvas to edit its properties.'
-            ));
+            if ($empty) { $empty.style.display = ''; }
             return;
         }
         var el = findElement(state.selectedId);
         if (!el) {
             state.selectedId = null;
+            if ($empty) { $empty.style.display = ''; }
             return;
         }
-        $panel.appendChild(h('h4', {}, 'Properties — ' + el.type));
-        $panel.appendChild(propField('Stable id', el.id, {disabled: true}));
-        if (el.type === 'section') {
-            $panel.appendChild(propField('Label', el.label || '', {
-                onChange: function (v) { setElementField(el.id, 'label', v); }
-            }));
-            $panel.appendChild(propField('Help text', el.help || '', {
-                onChange: function (v) { setElementField(el.id, 'help', v); },
-                multiline: true
-            }));
-        } else if (el.type === 'text_block') {
-            $panel.appendChild(propField('Content (Markdown)', el.content || '', {
-                onChange: function (v) { setElementField(el.id, 'content', v); },
-                multiline: true,
-                rows: 6
-            }));
+        if ($empty) { $empty.style.display = 'none'; }
+
+        var $pane = document.querySelector('[data-et-properties-for="' + el.type + '"]');
+        if (!$pane) { return; }
+        $pane.style.display = '';
+        populatePane($pane, el);
+    }
+
+    function populatePane($pane, el) {
+        // Straight data-et-field inputs: scalar / boolean mirror.
+        $pane.querySelectorAll('[data-et-field]').forEach(function ($i) {
+            var field = $i.getAttribute('data-et-field');
+            var v = getDeep(el, field);
+            if ($i.tagName === 'SELECT') {
+                $i.value = v == null ? '' : String(v);
+            } else if ($i.type === 'checkbox') {
+                $i.checked = !!v;
+            } else {
+                if (document.activeElement === $i) { return; }
+                $i.value = v == null ? '' : String(v);
+            }
+        });
+
+        // CSV fields: array <-> "a, b, c"
+        $pane.querySelectorAll('[data-et-field-csv]').forEach(function ($i) {
+            if (document.activeElement === $i) { return; }
+            var field = $i.getAttribute('data-et-field-csv');
+            var v = getDeep(el, field);
+            $i.value = Array.isArray(v) ? v.join(', ') : '';
+        });
+
+        // Per-type refinements
+        if (el.type === 'attribute_field') {
+            refreshAttributeTypeOptions($pane, el);
+        }
+        if (el.type === 'object_field') {
+            refreshObjectTemplateSelect($pane, el);
+        }
+        if (el.type === 'object_reference') {
+            refreshObjectFieldSelects($pane, el);
         }
     }
 
-    function propField(label, value, opts) {
-        opts = opts || {};
-        var id = 'et-prop-' + Math.random().toString(36).slice(2, 8);
-        var $label = h('label', {'for': id}, label);
-        var $input;
-        if (opts.multiline) {
-            $input = h('textarea', {
-                'id': id,
-                'class': 'input-block-level',
-                'rows': String(opts.rows || 3),
-                'disabled': opts.disabled ? 'disabled' : null
-            });
-            $input.value = value;
-        } else {
-            $input = h('input', {
-                'id': id,
-                'type': 'text',
-                'class': 'input-block-level',
-                'disabled': opts.disabled ? 'disabled' : null
-            });
-            $input.value = value;
+    function refreshAttributeTypeOptions($pane, el) {
+        var $sel = $pane.querySelector('[data-et-field="misp.type"]');
+        if (!$sel) { return; }
+        var cat = (el.misp && el.misp.category) || '';
+        var types = (cfg.attrCategories && cfg.attrCategories[cat]) || [];
+        var current = (el.misp && el.misp.type) || '';
+        $sel.innerHTML = '';
+        var $opt = document.createElement('option');
+        $opt.value = '';
+        $opt.textContent = cat ? '— select a type —' : '— select a category first —';
+        $sel.appendChild($opt);
+        types.forEach(function (t) {
+            var $o = document.createElement('option');
+            $o.value = t;
+            $o.textContent = t;
+            if (t === current) { $o.selected = true; }
+            $sel.appendChild($o);
+        });
+        // If current type is no longer valid for the new category, clear it.
+        if (current && types.indexOf(current) === -1) {
+            setElementFieldDeep(el.id, 'misp.type', '');
         }
-        if (opts.onChange) {
-            // `change` fires on blur — the whole canvas re-renders then,
-            // avoiding mid-typing steals of focus.
-            $input.addEventListener('change', function () {
-                opts.onChange($input.value);
+    }
+
+    function refreshObjectTemplateSelect($pane, el) {
+        var $sel = $pane.querySelector('[data-et-object-template-select]');
+        if (!$sel) { return; }
+        var ot = el.object_template || {};
+        var want = ot.uuid ? (ot.uuid + '@' + ot.pinned_version) : '';
+        $sel.value = want;
+    }
+
+    function refreshObjectFieldSelects($pane, el) {
+        var existing = state.definition.structure
+            .filter(function (e) { return e.type === 'object_field'; })
+            .map(function (e) {
+                return {id: e.id, label: e.label || e.id};
             });
-        }
-        return h('div', {'class': 'control-group'},
-            $label,
-            h('div', {'class': 'controls'}, $input)
-        );
+        $pane.querySelectorAll('[data-et-object-field-select]').forEach(function ($sel) {
+            var field = $sel.getAttribute('data-et-field');
+            var current = getDeep(el, field) || '';
+            $sel.innerHTML = '';
+            var $opt = document.createElement('option');
+            $opt.value = '';
+            $opt.textContent = '— select —';
+            $sel.appendChild($opt);
+            existing.forEach(function (of) {
+                var $o = document.createElement('option');
+                $o.value = of.id;
+                $o.textContent = of.label + ' (' + of.id + ')';
+                if (of.id === current) { $o.selected = true; }
+                $sel.appendChild($o);
+            });
+            if (current && !existing.some(function (of) { return of.id === current; })) {
+                // Still preserve the current value even if it doesn't exist
+                // in the list (e.g. the user deleted the target object_field).
+                var $stale = document.createElement('option');
+                $stale.value = current;
+                $stale.textContent = current + ' (missing)';
+                $stale.selected = true;
+                $sel.appendChild($stale);
+            }
+        });
     }
 
     function renderErrors() {
@@ -423,8 +561,17 @@
         ));
     }
 
+    var savedButtonLabel = null;
+    function renderSaveButton() {
+        var $btn = document.getElementById('et-save-button');
+        if (!$btn) { return; }
+        if (savedButtonLabel === null) { savedButtonLabel = $btn.textContent; }
+        $btn.disabled = !!state.saving;
+        $btn.textContent = state.saving ? 'Saving…' : savedButtonLabel;
+    }
+
     // ---------------------------------------------------------------
-    // Tiny DOM helper (keeps the builder lib-free)
+    // Tiny DOM helper
     // ---------------------------------------------------------------
 
     function h(tag, attrs) {
@@ -449,11 +596,11 @@
     }
 
     // ---------------------------------------------------------------
-    // Wiring
+    // Wiring — one-time; all property-pane inputs route through here.
     // ---------------------------------------------------------------
 
     function wire() {
-        var bind = function (id, field, event) {
+        var bindEnvelope = function (id, field, event) {
             var $el = document.getElementById(id);
             if (!$el) { return; }
             $el.addEventListener(event || 'input', function () {
@@ -461,16 +608,74 @@
                 setEnvelopeField(field, v);
             });
         };
-        bind('et-envelope-name', 'name', 'input');
-        bind('et-envelope-description', 'description', 'input');
-        bind('et-envelope-distribution', 'distribution', 'change');
-        bind('et-envelope-active', 'active', 'change');
+        bindEnvelope('et-envelope-name', 'name', 'input');
+        bindEnvelope('et-envelope-description', 'description', 'input');
+        bindEnvelope('et-envelope-distribution', 'distribution', 'change');
+        bindEnvelope('et-envelope-active', 'active', 'change');
 
         document.querySelectorAll('[data-et-add]').forEach(function ($btn) {
             $btn.addEventListener('click', function () {
                 addElement($btn.getAttribute('data-et-add'));
             });
         });
+
+        // Generic data-et-field inputs: commit on `change` (blur) so
+        // typing into text inputs doesn't cause focus loss via re-render.
+        document.querySelectorAll('[data-et-properties-for] [data-et-field]')
+            .forEach(function ($i) {
+                $i.addEventListener('change', function () {
+                    if (!state.selectedId) { return; }
+                    var field = $i.getAttribute('data-et-field');
+                    var v = $i.type === 'checkbox' ? $i.checked : $i.value;
+                    setElementFieldDeep(state.selectedId, field, v);
+                    // Attribute category change also re-filters the type
+                    // options list. Re-render the pane so the second
+                    // dropdown reflects the new category.
+                    if (field === 'misp.category') {
+                        renderProperties();
+                    }
+                });
+            });
+
+        // CSV fields: commit as array on change.
+        document.querySelectorAll('[data-et-properties-for] [data-et-field-csv]')
+            .forEach(function ($i) {
+                $i.addEventListener('change', function () {
+                    if (!state.selectedId) { return; }
+                    var field = $i.getAttribute('data-et-field-csv');
+                    var arr = $i.value.split(',')
+                        .map(function (s) { return s.trim(); })
+                        .filter(function (s) { return s.length > 0; });
+                    setElementFieldDeep(state.selectedId, field, arr);
+                });
+            });
+
+        // Object template picker: decompose "<uuid>@<version>" into
+        // object_template.{uuid, name, pinned_version} and mutate state.
+        document.querySelectorAll('[data-et-object-template-select]')
+            .forEach(function ($sel) {
+                $sel.addEventListener('change', function () {
+                    if (!state.selectedId) { return; }
+                    var v = $sel.value;
+                    if (!v) {
+                        setElementFieldDeep(state.selectedId, 'object_template.uuid', '');
+                        setElementFieldDeep(state.selectedId, 'object_template.name', '');
+                        setElementFieldDeep(state.selectedId, 'object_template.pinned_version', 0);
+                    } else {
+                        var parts = v.split('@');
+                        var uuid = parts[0];
+                        var version = parseInt(parts[1], 10) || 0;
+                        var $opt = $sel.options[$sel.selectedIndex];
+                        var name = $opt ? $opt.getAttribute('data-name') : '';
+                        setElementFieldDeep(state.selectedId, 'object_template.uuid', uuid);
+                        setElementFieldDeep(state.selectedId, 'object_template.name', name || '');
+                        setElementFieldDeep(state.selectedId, 'object_template.pinned_version', version);
+                    }
+                    // The readonly uuid/name/version inputs are inside the
+                    // same pane; re-render to refresh them.
+                    renderProperties();
+                });
+            });
 
         var $save = document.getElementById('et-save-button');
         if ($save) {

@@ -22,6 +22,24 @@
     $pageTitle = $builderMode === 'edit'
         ? __('Edit Event Template')
         : __('Add Event Template');
+
+    $attrCategories = isset($attributeCategoryDefinitions)
+        ? $attributeCategoryDefinitions
+        : [];
+    $objectTemplates = isset($objectTemplatesAvailable)
+        ? $objectTemplatesAvailable
+        : [];
+
+    $paletteButtons = [
+        'section'          => ['label' => __('Section'),          'icon' => 'folder'],
+        'text_block'       => ['label' => __('Text block'),       'icon' => 'align-left'],
+        'attribute_field'  => ['label' => __('Attribute field'),  'icon' => 'tag'],
+        'object_field'     => ['label' => __('Object field'),     'icon' => 'cube'],
+        'tag_field'        => ['label' => __('Tag field'),        'icon' => 'tags'],
+        'galaxy_field'     => ['label' => __('Galaxy field'),     'icon' => 'globe'],
+        'file_field'       => ['label' => __('File field'),       'icon' => 'file'],
+        'object_reference' => ['label' => __('Object reference'), 'icon' => 'link'],
+    ];
 ?>
 <style>
 .eventTemplates.builder { padding: 0 10px 20px 10px; }
@@ -36,9 +54,9 @@
 .eventTemplates.builder .et-envelope .control-group { margin-bottom: 6px; }
 .eventTemplates.builder .et-grid {
     display: grid;
-    grid-template-columns: 200px 1fr 320px;
+    grid-template-columns: 200px 1fr 340px;
     gap: 10px;
-    min-height: 400px;
+    min-height: 420px;
 }
 .eventTemplates.builder .et-palette,
 .eventTemplates.builder .et-canvas,
@@ -88,6 +106,10 @@
 }
 .eventTemplates.builder .et-save-bar { margin-top: 14px; }
 .eventTemplates.builder #et-errors:empty { display: none; }
+.eventTemplates.builder .et-properties-pane .control-group { margin-bottom: 8px; }
+.eventTemplates.builder .et-properties-pane .control-group > label { font-weight: 600; }
+.eventTemplates.builder .et-properties-pane .control-group label.checkbox { font-weight: normal; }
+.eventTemplates.builder .et-properties-pane .help-block { color: #888; font-size: 11px; }
 </style>
 <div class="eventTemplates builder form">
     <h2><?php echo h($pageTitle); ?></h2>
@@ -119,20 +141,49 @@
     <div class="et-grid">
         <div class="et-palette">
             <h4><?php echo __('Add element'); ?></h4>
-            <button type="button" class="btn btn-mini" data-et-add="section">
-                <i class="fa fa-folder"></i> <?php echo __('Section'); ?>
-            </button>
-            <button type="button" class="btn btn-mini" data-et-add="text_block">
-                <i class="fa fa-align-left"></i> <?php echo __('Text block'); ?>
-            </button>
-            <div style="margin-top:10px; font-size:11px; color:#888;">
-                <?php echo __('Attribute / object / tag / galaxy / file / reference element types land in the next builder commit.'); ?>
-            </div>
+            <?php foreach ($paletteButtons as $type => $meta): ?>
+                <button type="button" class="btn btn-mini" data-et-add="<?php echo h($type); ?>">
+                    <i class="fa fa-<?php echo h($meta['icon']); ?>"></i>
+                    <?php echo h($meta['label']); ?>
+                </button>
+            <?php endforeach; ?>
         </div>
 
         <div class="et-canvas" id="et-canvas"></div>
 
-        <div class="et-properties-pane" id="et-properties"></div>
+        <div class="et-properties-pane">
+            <div id="et-properties-empty" class="et-empty">
+                <?php echo __('Select an element in the canvas to edit its properties.'); ?>
+            </div>
+            <div data-et-properties-for="section" style="display:none;">
+                <?php echo $this->element('eventTemplates/builder/properties_section'); ?>
+            </div>
+            <div data-et-properties-for="text_block" style="display:none;">
+                <?php echo $this->element('eventTemplates/builder/properties_text_block'); ?>
+            </div>
+            <div data-et-properties-for="attribute_field" style="display:none;">
+                <?php echo $this->element('eventTemplates/builder/properties_attribute_field', [
+                    'attributeCategoryDefinitions' => $attrCategories,
+                ]); ?>
+            </div>
+            <div data-et-properties-for="object_field" style="display:none;">
+                <?php echo $this->element('eventTemplates/builder/properties_object_field', [
+                    'objectTemplatesAvailable' => $objectTemplates,
+                ]); ?>
+            </div>
+            <div data-et-properties-for="tag_field" style="display:none;">
+                <?php echo $this->element('eventTemplates/builder/properties_tag_field'); ?>
+            </div>
+            <div data-et-properties-for="galaxy_field" style="display:none;">
+                <?php echo $this->element('eventTemplates/builder/properties_galaxy_field'); ?>
+            </div>
+            <div data-et-properties-for="file_field" style="display:none;">
+                <?php echo $this->element('eventTemplates/builder/properties_file_field'); ?>
+            </div>
+            <div data-et-properties-for="object_reference" style="display:none;">
+                <?php echo $this->element('eventTemplates/builder/properties_object_reference'); ?>
+            </div>
+        </div>
     </div>
 
     <div class="et-save-bar">
@@ -155,7 +206,9 @@
         submitUrl:  <?php echo json_encode($submitUrl); ?>,
         baseurl:    <?php echo json_encode($baseurl); ?>,
         envelope:   <?php echo json_encode($envelope); ?>,
-        definition: <?php echo json_encode($initialDefinition); ?>
+        definition: <?php echo json_encode($initialDefinition); ?>,
+        attrCategories: <?php echo json_encode($attrCategories); ?>,
+        objectTemplates: <?php echo json_encode($objectTemplates); ?>
     };
 </script>
 <?php
