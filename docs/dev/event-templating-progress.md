@@ -184,7 +184,7 @@ Nothing else.
 
 ## Phase 2 — Default-theme UI
 
-**Status:** not started
+**Status:** complete
 **Depends on:** Phase 1 complete.
 **Exit criteria:** template creator can build and save a non-trivial template; template user can create an event from it end-to-end in the classic theme.
 
@@ -193,12 +193,12 @@ Nothing else.
 - [x] `app/View/EventTemplates/index.ctp` — list view (IndexTable-based)
 - [x] `app/View/EventTemplates/view.ctp` — read-only detail (viewMetaTable + JSON dump)
 - [x] `app/View/EventTemplates/add.ctp` + `edit.ctp` — builder (shared partial `Elements/eventTemplates/builder/shell.ctp`)
-- [ ] `app/View/EventTemplates/preview.ctp` — creator's preview of the user form
-- [ ] `app/View/EventTemplates/user_form.ctp` — the form the template user fills in
+- [x] `app/View/EventTemplates/preview.ctp` — creator's preview of the user form (yellow banner, submit disabled)
+- [x] `app/View/EventTemplates/user_form.ctp` — the form the template user fills in
 - [x] `app/View/EventTemplates/import.ctp` — import form (genericForm + file upload + mode selector)
 - [x] `app/View/Elements/eventTemplates/builder/` — properties panel partials (one per element type)
-- [ ] `app/View/Elements/eventTemplates/userForm/` — render partials (one per element type)
-- [ ] `app/View/Elements/eventTemplates/templatePickerModal.ctp` — used from events index
+- [x] `app/View/Elements/eventTemplates/userForm/` — render partials (one per element type; section/text_block/attribute/object/tag/galaxy/file — object_reference is not user-facing)
+- [x] `app/View/Elements/eventTemplates/templatePickerModal.ctp` — used from events index
 
 ### 2.2 Builder JS (classic theme)
 
@@ -224,9 +224,9 @@ Nothing else.
 ### 2.4 Nav
 
 - [x] Side-menu entry for Event Templates (gated on read access) — global_menu.ctp + side_menu.ctp
-- [ ] "Add Event → From Template" button wired on events index (placeholder; full entry-point polish is Phase 4)
+- [x] "Add Event → From Template" button wired on events index — ListTopBar toolbar button next to the filter control, gated on eventTemplates/instantiate + eventTemplates/index ACL; click opens a Bootstrap-2 modal fed by /event_templates/index.json (cached for page lifetime) with a live filter across name/description/org. Full entry-point polish (Add-Event button primacy, per-theme shortcuts) stays on Phase 4.
 
-- [ ] **Phase 2 complete**
+- [x] **Phase 2 complete**
 
 ---
 
