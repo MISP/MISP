@@ -89,7 +89,7 @@
 .eventTemplates.builder .et-save-bar { margin-top: 14px; }
 .eventTemplates.builder #et-errors:empty { display: none; }
 </style>
-<div class="eventTemplates builder">
+<div class="eventTemplates builder form">
     <h2><?php echo h($pageTitle); ?></h2>
     <div id="et-errors"></div>
 

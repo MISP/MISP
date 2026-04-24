@@ -173,11 +173,6 @@
             }
         };
 
-        var $btn = document.getElementById('et-save-button');
-        if ($btn) {
-            $btn.disabled = true;
-            $btn.textContent = 'Saving…';
-        }
         render();
 
         fetch(cfg.submitUrl, {
@@ -237,6 +232,26 @@
         renderCanvas();
         renderProperties();
         renderErrors();
+        renderSaveButton();
+    }
+
+    // Cached once at wire() time so we can localise the initial label via
+    // PHP __() and still restore it correctly after a save failure.
+    var savedButtonLabel = null;
+
+    function renderSaveButton() {
+        var $btn = document.getElementById('et-save-button');
+        if (!$btn) { return; }
+        if (savedButtonLabel === null) {
+            savedButtonLabel = $btn.textContent;
+        }
+        if (state.saving) {
+            $btn.disabled = true;
+            $btn.textContent = 'Saving…';
+        } else {
+            $btn.disabled = false;
+            $btn.textContent = savedButtonLabel;
+        }
     }
 
     function renderEnvelope() {
