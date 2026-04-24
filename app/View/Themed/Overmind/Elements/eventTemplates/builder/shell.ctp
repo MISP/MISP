@@ -88,6 +88,14 @@
 .eventTemplates.builder .et-canvas-element.et-sortable-chosen {
     box-shadow: 0 4px 10px rgba(0,0,0,0.12);
 }
+.eventTemplates.builder .et-canvas-element.et-has-error {
+    border-color: var(--bs-danger);
+    box-shadow: 0 0 0 1px var(--bs-danger);
+}
+.eventTemplates.builder .et-canvas-element.et-has-error.selected {
+    box-shadow: 0 0 0 1px var(--bs-danger),
+                0 0 0 3px rgba(var(--bs-primary-rgb), 0.25);
+}
 .eventTemplates.builder .et-element-type-badge {
     background: #eee;
     padding: 2px 6px;
@@ -213,7 +221,10 @@
                         </div>
                         <template x-for="el in definition.structure" :key="el.id">
                             <div class="et-canvas-element"
-                                 :class="{ selected: el.id === selectedId }"
+                                 :class="{
+                                     selected: el.id === selectedId,
+                                     'et-has-error': errorsForElement(el.id).length
+                                 }"
                                  :data-element-id="el.id"
                                  @click.self="selectElement(el.id)">
                                 <div class="et-element-header d-flex align-items-center gap-2"
@@ -225,12 +236,25 @@
                                     <span class="et-element-summary"
                                           x-text="elementSummary(el)"></span>
                                     <code class="et-element-id" x-text="el.id"></code>
+                                    <span class="badge bg-danger"
+                                          x-show="errorsForElement(el.id).length"
+                                          x-text="errorsForElement(el.id).length"
+                                          :title="'<?= __('Validation errors on this element') ?>'"></span>
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger et-delete-button"
                                             title="<?= __('Delete element') ?>"
                                             @click.stop="removeElement(el.id)">
                                         <i class="fas fa-times"></i>
                                     </button>
+                                </div>
+                                <div class="et-element-errors alert alert-danger py-1 px-2 mt-2 mb-0 small"
+                                     x-show="errorsForElement(el.id).length">
+                                    <ul class="mb-0 ps-3">
+                                        <template x-for="msg in errorsForElement(el.id)"
+                                                  :key="msg">
+                                            <li x-text="msg"></li>
+                                        </template>
+                                    </ul>
                                 </div>
                             </div>
                         </template>

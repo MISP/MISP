@@ -247,6 +247,52 @@
             get hasElements() {
                 return this.definition.structure.length > 0;
             },
+            get errorsByElementId() {
+                const map = {};
+                if (!this.errors || !this.errors.length) { return map; }
+                const idsByIndex = this.definition.structure.map((el) => el.id);
+                this.errors.forEach((err) => {
+                    const ids = this._errorElementIds(err, idsByIndex);
+                    ids.forEach((id) => {
+                        if (!map[id]) { map[id] = []; }
+                        map[id].push(err);
+                    });
+                });
+                return map;
+            },
+            errorsForElement(id) {
+                return this.errorsByElementId[id] || [];
+            },
+            _errorElementIds(err, idsByIndex) {
+                // Validator messages that name an element come in four
+                // shapes; collect any ids each match yields. The patterns
+                // are deliberately narrow to avoid false positives like
+                // matching "Network" out of '… in category "Network"'.
+                const ids = new Set();
+                // [schema] /structure/<N>/...
+                const schema = err.match(/\[schema\][^\/]*\/structure\/(\d+)/);
+                if (schema) {
+                    const idx = parseInt(schema[1], 10);
+                    if (idsByIndex[idx]) { ids.add(idsByIndex[idx]); }
+                }
+                // <type> "<id>": ...   (e.g. attribute_field "foo": …)
+                const typed = err.match(/^([a-z_]+) "([^"]+)":/);
+                if (typed) { ids.add(typed[2]); }
+                // duplicate element id: <id>
+                const dup = err.match(/duplicate element id: (\S+)/);
+                if (dup) { ids.add(dup[1]); }
+                // info_template references unknown field id: <id>
+                const info = err.match(
+                    /info_template references unknown field id: (\S+)/
+                );
+                if (info) { ids.add(info[1]); }
+                // object_reference (from|to) "<id>" does not point to ...
+                const ref = err.match(
+                    /object_reference (?:from|to) "([^"]+)" does not point to/
+                );
+                if (ref) { ids.add(ref[1]); }
+                return Array.from(ids);
+            },
             get attributeTypeOptions() {
                 if (!this.selected || this.selected.type !== 'attribute_field') {
                     return [];
