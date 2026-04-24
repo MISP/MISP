@@ -1,4 +1,7 @@
 <?php
+    echo $this->element('genericElements/assetLoader', [
+        'js' => ['jquery-ui.min'],
+    ]);
     $existing = isset($data['EventTemplate']) ? $data['EventTemplate'] : null;
     $builderMode = $existing ? 'edit' : 'add';
     $submitUrl = $existing
@@ -76,6 +79,25 @@
     margin-bottom: 6px;
     cursor: pointer;
     background: #fbfbfb;
+}
+.eventTemplates.builder .et-drag-handle {
+    color: #aaa;
+    cursor: grab;
+    font-size: 14px;
+    padding: 0 4px;
+    user-select: none;
+}
+.eventTemplates.builder .et-drag-handle:hover { color: #555; }
+.eventTemplates.builder .et-drag-handle:active { cursor: grabbing; }
+.eventTemplates.builder .et-canvas-element.et-sortable-placeholder {
+    border: 1px dashed #08c;
+    background: #f0f8ff;
+    height: 34px;
+    visibility: visible !important;
+}
+.eventTemplates.builder .et-canvas-element.ui-sortable-helper {
+    opacity: 0.85;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 .eventTemplates.builder .et-canvas-element.selected {
     border-color: #08c;

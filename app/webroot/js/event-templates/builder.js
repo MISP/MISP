@@ -377,6 +377,10 @@
     function renderCanvas() {
         var $canvas = document.getElementById('et-canvas');
         if (!$canvas) { return; }
+        // jQuery UI sortable attaches handlers to the canvas's current
+        // children; rebuilding the DOM underneath it leaves stale
+        // references. Tear down before the rebuild, re-init after.
+        teardownSortable($canvas);
         $canvas.innerHTML = '';
         if (!state.definition.structure.length) {
             $canvas.appendChild(h('div', {'class': 'et-empty'},
@@ -386,6 +390,64 @@
         }
         state.definition.structure.forEach(function (el) {
             $canvas.appendChild(renderCanvasElement(el));
+        });
+        initSortable($canvas);
+    }
+
+    function teardownSortable($canvas) {
+        if (!window.jQuery) { return; }
+        var $j = window.jQuery($canvas);
+        if ($j.hasClass('ui-sortable') || $j.data('ui-sortable')) {
+            try { $j.sortable('destroy'); } catch (e) { /* noop */ }
+        }
+    }
+
+    function initSortable($canvas) {
+        if (!window.jQuery || !window.jQuery.fn || !window.jQuery.fn.sortable) {
+            return; // jQuery UI not loaded (shouldn't happen on the add/edit views)
+        }
+        window.jQuery($canvas).sortable({
+            items: '.et-canvas-element',
+            handle: '.et-drag-handle',
+            placeholder: 'et-canvas-element et-sortable-placeholder',
+            forcePlaceholderSize: true,
+            tolerance: 'pointer',
+            update: function () {
+                // Rebuild structure from DOM order. selectedId is preserved
+                // because we key by id, not index.
+                var byId = {};
+                state.definition.structure.forEach(function (el) {
+                    byId[el.id] = el;
+                });
+                var reordered = [];
+                window.jQuery($canvas).find('.et-canvas-element').each(function () {
+                    var id = this.getAttribute('data-element-id');
+                    if (byId[id]) { reordered.push(byId[id]); }
+                });
+                // Only commit if the set of ids matches (guard against
+                // any stray DOM nodes sortable might have injected).
+                if (reordered.length === state.definition.structure.length) {
+                    state.definition.structure = reordered;
+                    // A full renderCanvas() would destroy/rebuild DOM
+                    // mid-sortable-callback and corrupt jQuery UI state;
+                    // the DOM already reflects the new order, so we just
+                    // refresh selection highlights if needed.
+                    refreshSelectionHighlight();
+                }
+            }
+        });
+    }
+
+    function refreshSelectionHighlight() {
+        var $canvas = document.getElementById('et-canvas');
+        if (!$canvas) { return; }
+        $canvas.querySelectorAll('.et-canvas-element').forEach(function ($el) {
+            var id = $el.getAttribute('data-element-id');
+            if (id === state.selectedId) {
+                $el.classList.add('selected');
+            } else {
+                $el.classList.remove('selected');
+            }
         });
     }
 
@@ -398,10 +460,15 @@
         });
         $row.addEventListener('click', function (e) {
             if (e.target.closest('.et-delete-button')) { return; }
+            if (e.target.closest('.et-drag-handle')) { return; }
             selectElement(el.id);
         });
         var summary = spec.summary ? spec.summary(el) : el.id;
         $row.appendChild(h('div', {'class': 'et-element-header'},
+            h('span', {
+                'class': 'et-drag-handle',
+                'title': 'Drag to reorder'
+            }, '☰'),
             h('span', {'class': 'et-element-type-badge'}, spec.label || el.type),
             h('span', {'class': 'et-element-summary'}, summary),
             h('code', {'class': 'et-element-id'}, el.id),
