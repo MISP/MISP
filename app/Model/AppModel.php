@@ -97,7 +97,7 @@ class AppModel extends Model
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
-        147 => false, 148 => false, 149 => false
+        147 => false, 148 => false, 149 => false, 150 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2611,6 +2611,14 @@ class AppModel extends Model
                 break;
             case 149:
                 $sqlArray[] = "ALTER TABLE `event_templates` CHANGE `share_within_org` `distribution` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 150:
+                // Library-managed flag (PRD docs/dev/event-template-library-prd.md §6).
+                // 1 = managed by misp-event-templates submodule (auto-updated on
+                // `Update from library`); 0 = locally authored or operator-forked
+                // (library updates skip). `default` is a MySQL reserved word, so
+                // it stays backticked everywhere it's referenced.
+                $sqlArray[] = "ALTER TABLE `event_templates` ADD `default` tinyint(1) NOT NULL DEFAULT 0 AFTER `active`;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

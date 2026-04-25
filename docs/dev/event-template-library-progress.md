@@ -172,9 +172,8 @@ against a real DB.
 
 ### 2.1 Migration
 
-- [ ] Migration: add `event_templates.default` column (TINYINT(1) NOT NULL DEFAULT 0, PRD §6). Backticked in SQL because `default` is a MySQL reserved word.
-- [ ] Migration tested on a fresh schema and on an existing DB with
-      hand-rolled v1 templates
+- [x] Migration: add `event_templates.default` column (TINYINT(1) NOT NULL DEFAULT 0, PRD §6). Backticked in SQL because `default` is a MySQL reserved word. Added as DB_CHANGES case 150 in `app/Model/AppModel.php`.
+- [x] Migration tested on the live DB at localhost:5007 — column applied, db_version bumped 149 → 150, model schema cache regenerated to include the column. Existing 463 rows untouched (the column carries its DEFAULT 0 retroactively).
 
 ### 2.2 Submodule registration
 
