@@ -51,6 +51,25 @@ class EventTemplatesController extends AppController
 
     public function index()
     {
+        // First-touch auto-update: when the table is empty AND the
+        // viewer is a site admin, silently load the bundled library
+        // so a fresh MISP install doesn't show an empty index.
+        // Mirrors ObjectTemplate's populateIfEmpty pattern (PRD §5.2 F2.5).
+        // Non-admins on a fresh instance see the empty state and wait
+        // for the admin to populate — library updates affect every org
+        // on the instance, so only site admin can trigger the silent
+        // install.
+        $user = $this->Auth->user();
+        if (!empty($user['Role']['perm_site_admin'])) {
+            $populateSummary = $this->EventTemplate->populateIfEmpty($user);
+            if (is_array($populateSummary) && !empty($populateSummary['installed'])) {
+                $this->Flash->info(__(
+                    'Loaded %d event template(s) from the bundled library. They are inactive by default — flip the active flag per template to expose them to your team.',
+                    count($populateSummary['installed'])
+                ));
+            }
+        }
+
         $params = array(
             'filters' => array(
                 'EventTemplate.name', 'EventTemplate.uuid',

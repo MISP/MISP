@@ -576,6 +576,26 @@ class EventTemplate extends AppModel
         return json_encode($canon($a)) === json_encode($canon($b));
     }
 
+    /**
+     * Auto-populate the event_templates table from the bundled
+     * misp-event-templates submodule when it's currently empty.
+     * Mirrors ObjectTemplate::populateIfEmpty() — same pattern,
+     * same name. Site-admin gating is the controller's responsibility.
+     *
+     * Returns the loader's summary if a populate ran, or null if
+     * the table was non-empty (no work done).
+     *
+     * @param array $user CakePHP Auth user (id + org_id)
+     * @return array|null
+     */
+    public function populateIfEmpty(array $user)
+    {
+        if ($this->hasAny()) {
+            return null;
+        }
+        return $this->updateFromLibrary($user);
+    }
+
     private function __flattenValidationErrors($validationErrors)
     {
         if (!is_array($validationErrors) || empty($validationErrors)) {

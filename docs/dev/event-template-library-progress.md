@@ -198,11 +198,9 @@ against a real DB.
 
 ### 2.5 First-touch auto-update hook
 
-- [ ] `EventTemplate::checkAndUpdate()` — analogous to
-      `ObjectTemplate::checkAndUpdate`, called from
-      `EventTemplatesController::index` when the table is empty
-- [ ] Flash message surfaces what happened ("Loaded N templates from
-      the library")
+- [x] `EventTemplate::populateIfEmpty($user)` — mirrors `ObjectTemplate::populateIfEmpty()` exactly. Calls `updateFromLibrary` only if `hasAny()` returns false. Returns the loader summary or null.
+- [x] Hooked into `EventTemplatesController::index()` — auto-trigger gated on `perm_site_admin` (library updates affect every org on the instance, so non-admins shouldn't trigger silent installs). Smoke-tested that the hook is silent on a non-empty table (live instance has ~7 templates, index renders normally with no flash).
+- [x] Flash message surfaces what was installed ("Loaded N event template(s) from the bundled library. They are inactive by default…") so the operator knows the table just gained content.
 
 ### 2.6 Tests
 
