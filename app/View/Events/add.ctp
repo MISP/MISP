@@ -5,30 +5,6 @@
         $action === 'add'
         && $this->Acl->canAccess('eventTemplates', 'instantiate')
     );
-    if ($offerTemplateAlternative):
-?>
-<div class="event-template-callout"
-     style="display:flex; align-items:center; gap:12px;
-            background:#eef5fc; border:1px solid #bcd7ee;
-            border-left:4px solid #2b8acb; border-radius:4px;
-            padding:10px 14px; margin:0 0 14px 0;">
-    <i class="fa fa-bolt" style="font-size:18px; color:#2b8acb;"></i>
-    <div style="flex:1; line-height:1.35;">
-        <div style="font-weight:600; color:#1a4f73;">
-            <?php echo __('Have a template for this incident?'); ?>
-        </div>
-        <div style="color:#3a5a72; font-size:12px;">
-            <?php echo __('Skip the blank form and pick a guided event-template walkthrough — pre-filled fields, attached objects, mandatory checks.'); ?>
-        </div>
-    </div>
-    <button type="button" class="btn btn-primary"
-            onclick="event.preventDefault(); openEventTemplatePicker();">
-        <i class="fa fa-bolt"></i>
-        <?php echo __('Create event via template instead'); ?>
-    </button>
-</div>
-<?php
-    endif;
     echo $this->element('genericElements/Form/genericForm', array(
         'form' => $this->Form,
         'data' => array(
@@ -103,16 +79,65 @@
         'menuItem' => $action === 'add' ? 'add' : 'editEvent',
         'event' => isset($event) ? $event : null,
     ));
-    if ($offerTemplateAlternative) {
-        // Cake's theme resolution picks the BS5 partial under
-        // Themed/Overmind/Elements/eventTemplates/templatePickerModal.ctp
-        // when the Overmind theme is active; otherwise the default
-        // BS2 partial. Either way the partial exposes
-        // window.openEventTemplatePicker() — the same global the
-        // callout button above invokes.
-        echo $this->element('eventTemplates/templatePickerModal');
-    }
 ?>
+<?php if ($offerTemplateAlternative): ?>
+<div id="event-template-callout"
+     style="display:none; max-width:600px; margin:18px 0 0 220px;
+            padding:12px 14px; border:1px solid #d0d7de;
+            border-radius:5px; background:#f7f8fa;">
+    <div style="display:flex; align-items:center; gap:14px;">
+        <div style="flex:1; line-height:1.4;">
+            <div style="font-weight:600; color:#243447;">
+                <?php echo __('Have a template for this incident?'); ?>
+            </div>
+            <div style="color:#5a6876; font-size:12px; margin-top:2px;">
+                <?php echo __('Skip the blank form and pick a guided event-template walkthrough — pre-filled fields, attached objects, mandatory checks.'); ?>
+            </div>
+        </div>
+        <button type="button" class="btn"
+                onclick="event.preventDefault(); openEventTemplatePicker();">
+            <i class="fa fa-bolt"></i>
+            <?php echo __('Create event via template instead'); ?>
+        </button>
+    </div>
+</div>
+<?php
+    // Cake's theme resolution picks the BS5 partial under
+    // Themed/Overmind/Elements/eventTemplates/templatePickerModal.ctp
+    // when the Overmind theme is active; otherwise the default
+    // BS2 partial. Either way the partial exposes
+    // window.openEventTemplatePicker() — the same global the
+    // callout button above invokes.
+    echo $this->element('eventTemplates/templatePickerModal');
+?>
+<script>
+(function () {
+    // Reveal the callout only if at least one active event template
+    // is visible to this user — no point dangling the offer if the
+    // instance hasn't been seeded with any templates yet.
+    fetch('<?php echo h($baseurl); ?>/event_templates/index.json', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    }).then(function (r) {
+        if (!r.ok) { throw new Error('HTTP ' + r.status); }
+        return r.json();
+    }).then(function (rows) {
+        var hasActive = (rows || []).some(function (row) {
+            var t = row.EventTemplate || {};
+            return t.active === true || t.active === 1 || t.active === '1';
+        });
+        if (hasActive) {
+            var $c = document.getElementById('event-template-callout');
+            if ($c) { $c.style.display = ''; }
+        }
+    }).catch(function () { /* silent — no callout, no harm */ });
+})();
+</script>
+<?php endif; ?>
 
 <script type="text/javascript">
     $('#EventDistribution').change(function() {
