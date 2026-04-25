@@ -63,6 +63,14 @@ class NavbarHelper extends AppHelper {
                         'icon' => 'fas fa-plus'
                     ],
                     [
+                        'label' => __('Add from Template'),
+                        'url' => $baseurl . '/event_templates/index',
+                        'controller' => 'event_templates',
+                        'action' => 'index',
+                        'requirement' => $this->Acl->canAccess('eventTemplates', 'instantiate'),
+                        'icon' => 'fas fa-bolt'
+                    ],
+                    [
                         'label' => __('Index'),
                         'url' => $baseurl . '/events/index',
                         'controller' => 'events',
@@ -298,6 +306,22 @@ class NavbarHelper extends AppHelper {
                         'controller' => 'objectTemplates',
                         'action' => 'templex',
                         'icon' => 'fas fa-cubes'
+                    ],
+                    [
+                        'label' => __('Event Templates'),
+                        'url' => $baseurl . '/event_templates/index',
+                        'controller' => 'event_templates',
+                        'action' => 'index',
+                        'requirement' => $this->Acl->canAccess('eventTemplates', 'index'),
+                        'icon' => 'fas fa-file-invoice'
+                    ],
+                    [
+                        'label' => __('Add Event Template'),
+                        'url' => $baseurl . '/event_templates/add',
+                        'controller' => 'event_templates',
+                        'action' => 'add',
+                        'requirement' => $this->Acl->canAccess('eventTemplates', 'add'),
+                        'icon' => 'fas fa-plus'
                     ]
                 ]
             ],
