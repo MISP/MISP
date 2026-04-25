@@ -273,7 +273,7 @@ Nothing else.
 
 ## Phase 4 — Entry points and polish
 
-**Status:** not started
+**Status:** complete
 **Depends on:** Phase 2 and/or Phase 3 complete (theme-specific polish).
 **Exit criteria:** feature is discoverable; a new template user can find it without being told where.
 
@@ -284,9 +284,9 @@ Nothing else.
 - [x] Preview mode wired from builder for both themes — Preview button added to the et-save-bar in `Elements/eventTemplates/builder/shell.ctp` (default) and `Themed/Overmind/Elements/eventTemplates/builder/shell.ctp`. Gated on `$existing` (only shown for saved templates — the add view has nothing to preview yet). Opens `/event_templates/preview/{id}` in a new tab via `target="_blank"` so the builder's draft state is preserved. Tooltip clarifies that preview reflects the last saved version. The yellow "preview" banner + disabled-submit on the user form was already shipped in Phase 2/3, so no view-side change was needed.
 - [x] Import/export UI flows (download button on view, upload form on index) — Overmind view shipped Export in headerActions during Phase 3.2 (`view.ctp` line 41). Default-theme view now grows a small toolbar floated next to the H2 title with Create event from template / Edit / Export buttons, gated by their respective ACLs (`view.ctp` `et-view-toolbar`). Upload flow on the index header was already wired both themes (Phase 2.4 + Phase 3.2): Import button → `/event_templates/import` which renders the dedicated upload form (file input + collision-mode selector). Treating the "upload form on index" requirement as satisfied by that header button — putting an inline upload widget on the index would duplicate the dedicated import view for marginal UX gain.
 - [x] Empty-state and error-state UX (no templates yet, no compatible object templates, etc.) — Both index views now render a welcoming empty-state callout when the table is genuinely empty (no filter active): explanatory copy + Add / Import CTAs gated on ACL. The check distinguishes "instance is empty" from "filter returned zero hits" by inspecting `$this->request->params['named']` + `$this->request->query`, so a user who typed into the search box gets the IndexTable's standard "no matching records" rendering instead of a misleading welcome banner. Per-element "object template missing" alert in the user form was already shipped in Phase 2 (`userForm/object_field.ctp`) and renders in both themes; that covers the "no compatible object templates" sub-bullet at instantiation time.
-- [ ] User-facing documentation: creator guide and user quickstart
+- [x] User-facing documentation: creator guide and user quickstart — `docs/event-templates-quickstart.md` (template-user audience: how to find the From-template button, fill the form, what each field type means, common errors). `docs/event-templates-creator-guide.md` (template-creator audience: builder flow, every element type, labels & help text discipline, info-template variables, object references, validation behaviour, preview, permissions, import/export, audit log integration). Both target the docs/ root alongside the existing top-level user docs.
 
-- [ ] **Phase 4 complete (v1 shipping target reached)**
+- [x] **Phase 4 complete (v1 shipping target reached)**
 
 ---
 
