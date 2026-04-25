@@ -63,14 +63,6 @@ class NavbarHelper extends AppHelper {
                         'icon' => 'fas fa-plus'
                     ],
                     [
-                        'label' => __('Add from Template'),
-                        'url' => $baseurl . '/event_templates/index',
-                        'controller' => 'event_templates',
-                        'action' => 'index',
-                        'requirement' => $this->Acl->canAccess('eventTemplates', 'instantiate'),
-                        'icon' => 'fas fa-bolt'
-                    ],
-                    [
                         'label' => __('Index'),
                         'url' => $baseurl . '/events/index',
                         'controller' => 'events',
