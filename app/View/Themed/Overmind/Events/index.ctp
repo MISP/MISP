@@ -171,6 +171,19 @@ if ($this->Acl->canAccess('events', 'add')) {
     ]);
 }
 
+// "Add Event → From Template" entry point — Overmind toolbar parity
+// with the default theme (PRD §5.2 F2.1). Renders the searchable
+// picker modal and injects a sibling button next to the existing
+// header action via a small client-side script. The injection avoids
+// editing the shared headerSection.ctp element (additive posture).
+$canPickTemplate = (
+    $this->Acl->canAccess('eventTemplates', 'index')
+    && $this->Acl->canAccess('eventTemplates', 'instantiate')
+);
+if ($canPickTemplate) {
+    echo $this->element('eventTemplates/templatePickerModal');
+}
+
 /**
  * ==============================================================
  * Call the generic scaffold
@@ -183,7 +196,39 @@ if ($this->Acl->canAccess('events', 'add')) {
  * - scaffold_data.data.fields     : Column definitions
  * - index_url                     : Base URL for pagination / filters
  */
+?>
 
+<?php if ($canPickTemplate): ?>
+<script>
+// Inject "From template" beside the headerSection's existing Add Event
+// button. Keeps the trigger inline with the page-level entry point
+// without editing the shared element (PRD §5.2 F2.1, Phase 4 #1).
+document.addEventListener('DOMContentLoaded', function () {
+    var slot = document.querySelector(
+        'main .bg-primary .d-flex.justify-content-between > .d-flex.gap-2'
+    );
+    if (!slot || document.getElementById('event-template-picker-button')) {
+        return;
+    }
+    var $a = document.createElement('a');
+    $a.id = 'event-template-picker-button';
+    $a.className = 'btn bg-white text-primary border-0 shadow-sm ' +
+        'fw-semibold d-flex align-items-center gap-2';
+    $a.href = '#';
+    $a.title = <?= json_encode(__('Create event from template')) ?>;
+    $a.innerHTML = '<i class="fas fa-clone"></i> ' +
+        <?= json_encode(__('From template')) ?>;
+    $a.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (typeof window.openEventTemplatePicker === 'function') {
+            window.openEventTemplatePicker();
+        }
+    });
+    slot.appendChild($a);
+});
+</script>
+<?php endif; ?>
+<?php
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [

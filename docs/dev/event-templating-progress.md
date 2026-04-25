@@ -277,7 +277,7 @@ Nothing else.
 **Depends on:** Phase 2 and/or Phase 3 complete (theme-specific polish).
 **Exit criteria:** feature is discoverable; a new template user can find it without being told where.
 
-- [ ] "Add Event → From Template" primary button on events index (both themes)
+- [x] "Add Event → From Template" primary button on events index (both themes) — default theme shipped Phase 2.4 (`12e4ae647`); Overmind parity wired by rendering the existing `templatePickerModal` partial and injecting a sibling button into the `headerSection` BS5 action area via a small inline script (kept additive — no edit to the shared `headerSection.ctp` element). Gated on `eventTemplates/index` + `eventTemplates/instantiate` ACL.
 - [x] Template picker renders name, description, last-updated, creator org; searchable — verified against PRD §5.2 F2.2 in both themes (`templatePickerModal.ctp` + Overmind variant). Both partials show name + org + "modified <date>" + description with a single filter input that searches name+description+org. Shipped during Phase 2.4 + commit `4a7861945`. No code change required.
 - [ ] Events created from a template record `template_uuid` + `template_version` in event metadata (location TBD: tag, event note, or dedicated column — decide during implementation)
 - [ ] Audit log entry on "event created from template" (PRD §5.3 F3.4)
