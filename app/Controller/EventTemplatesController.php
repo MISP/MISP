@@ -431,7 +431,15 @@ class EventTemplatesController extends AppController
             $result = $instantiator->instantiate(
                 $definition,
                 $values,
-                $this->Auth->user()
+                $this->Auth->user(),
+                array(
+                    'template' => array(
+                        'id' => (int)$source['EventTemplate']['id'],
+                        'uuid' => (string)$source['EventTemplate']['uuid'],
+                        'version' => (int)$source['EventTemplate']['version'],
+                        'name' => (string)$source['EventTemplate']['name'],
+                    ),
+                )
             );
         } catch (EventTemplateInstantiationException $e) {
             $errors = array_merge(array($e->getMessage()), $e->getErrors());

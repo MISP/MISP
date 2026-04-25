@@ -57,14 +57,19 @@ class EventTemplateInstantiator
      * @param array $definition template definition (decoded JSON)
      * @param array $userInput  map: element id -> value | array of values
      * @param array $user       CakePHP Auth user shape (id, org_id, Role[], ...)
-     * @param array $options    unused in v1; reserved for future audit metadata
+     * @param array $options    optional context for the call. Recognised keys:
+     *                          - 'template' => ['id', 'uuid', 'version', 'name']
+     *                            When present, an `instantiate` audit-log row
+     *                            is written post-commit linking the new event
+     *                            back to the source template (PRD §5.3 F3.4).
+     *                            Omitting it skips the audit row — useful for
+     *                            tests or anonymous programmatic uses.
      * @return array ['event_id' => int, 'event_uuid' => string]
      * @throws EventTemplateInstantiationException
      * @throws EventTemplateDependencyMissingException
      */
     public function instantiate(array $definition, array $userInput, array $user, array $options = array())
     {
-        unset($options);
         EventTemplateDependencies::requireAll();
 
         $validator = new EventTemplateValidator();
@@ -172,6 +177,8 @@ class EventTemplateInstantiator
             ));
             $eventUuid = isset($eventRow['Event']['uuid']) ? $eventRow['Event']['uuid'] : '';
 
+            $this->writeInstantiationAuditRow($newId, (string)$eventUuid, $options);
+
             return array(
                 'event_id' => $newId,
                 'event_uuid' => (string)$eventUuid,
@@ -185,6 +192,50 @@ class EventTemplateInstantiator
                 $db->rollback();
             }
             throw $e;
+        }
+    }
+
+    // --- Audit log ----------------------------------------------------------
+
+    /**
+     * Writes an `instantiate` audit-log row tying the freshly-created event
+     * back to the source template (PRD §5.3 F3.4). Skipped silently if the
+     * caller did not pass `$options['template']` — useful for tests and
+     * programmatic uses outside the controller.
+     *
+     * Audit failures must not affect the successfully-committed event, so
+     * any exception from the AuditLog model is swallowed and demoted to
+     * a CakeLog warning. The event row is already on disk by this point.
+     */
+    private function writeInstantiationAuditRow($eventId, $eventUuid, array $options)
+    {
+        if (empty($options['template']) || !is_array($options['template'])) {
+            return;
+        }
+        $tpl = $options['template'];
+        try {
+            App::uses('AuditLog', 'Model');
+            $auditLog = ClassRegistry::init('AuditLog');
+            $auditLog->insert(array(
+                'action' => AuditLog::ACTION_INSTANTIATE,
+                'model' => 'EventTemplate',
+                'model_id' => isset($tpl['id']) ? (int)$tpl['id'] : 0,
+                'model_title' => isset($tpl['name']) ? (string)$tpl['name'] : '',
+                'event_id' => (int)$eventId,
+                'change' => array(
+                    'event_template_id'      => isset($tpl['id'])      ? (int)$tpl['id']         : 0,
+                    'event_template_uuid'    => isset($tpl['uuid'])    ? (string)$tpl['uuid']    : '',
+                    'event_template_version' => isset($tpl['version']) ? (int)$tpl['version']    : 0,
+                    'event_template_name'    => isset($tpl['name'])    ? (string)$tpl['name']    : '',
+                    'event_uuid'             => (string)$eventUuid,
+                ),
+            ));
+        } catch (Throwable $e) {
+            CakeLog::warning(
+                'EventTemplateInstantiator: failed to write instantiation '
+                . 'audit row for event_id=' . (int)$eventId . ': '
+                . $e->getMessage()
+            );
         }
     }
 
