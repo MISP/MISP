@@ -82,25 +82,23 @@
 ?>
 <?php if ($offerTemplateAlternative): ?>
 <!--
-    The form (div.form) and the side menu (div.actions) are both
-    floated in MISP's classic layout, so anything that follows
-    them in the DOM has to clear both floats first or the browser
-    squeezes it into the empty sliver between them and overlaps
-    the form. clear:both takes care of that; the matching
-    margin-left lines the callout up with the form column rather
-    than spanning the side-menu gutter too.
+    Rendered as a sibling of div.form so it ends up outside the
+    floated form column by default; the inline JS below moves it
+    INTO div.form (or .menuless-form) at the bottom, after the
+    submit button, so it shares the form column's geometry and
+    doesn't have to fight the parent layout's floats.
 -->
 <div id="event-template-callout"
-     style="display:none; clear:both; margin:18px 18px 24px 220px;
+     style="display:none; margin:18px 0 0 0;
             padding:12px 14px; border:1px solid #d0d7de;
             border-radius:5px; background:#f7f8fa;">
     <div style="display:flex; align-items:center; gap:14px;">
         <div style="flex:1; line-height:1.4;">
             <div style="font-weight:600; color:#243447;">
-                <?php echo __('Have a template for this incident?'); ?>
+                <?php echo __('Have a template for this report?'); ?>
             </div>
             <div style="color:#5a6876; font-size:12px; margin-top:2px;">
-                <?php echo __('Skip the blank form and pick a guided event-template walkthrough — pre-filled fields, attached objects, mandatory checks.'); ?>
+                <?php echo __('Skip the manual creation and pick a guided event-template walkthrough — pre-filled fields, attached objects, mandatory checks.'); ?>
             </div>
         </div>
         <button type="button" class="btn"
@@ -122,29 +120,44 @@
 ?>
 <script>
 (function () {
-    // Reveal the callout only if at least one active event template
-    // is visible to this user — no point dangling the offer if the
-    // instance hasn't been seeded with any templates yet.
-    fetch('<?php echo h($baseurl); ?>/event_templates/index.json', {
-        method: 'GET',
-        credentials: 'same-origin',
-        headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+    // Two things on load:
+    //   1. Move the callout INTO the form's wrapper div so it
+    //      sits inside the same float context as the form (the
+    //      classic-theme layout floats div.form so anything left
+    //      outside collides with the side menu).
+    //   2. Reveal it only if at least one active event template
+    //      is visible to this user — no point dangling the offer
+    //      if the instance hasn't been seeded with any templates.
+    function reveal() {
+        var $c = document.getElementById('event-template-callout');
+        if (!$c) { return; }
+        var $host = document.querySelector('div.form, div.menuless-form');
+        if ($host && $c.parentNode !== $host) {
+            $host.appendChild($c);
         }
-    }).then(function (r) {
-        if (!r.ok) { throw new Error('HTTP ' + r.status); }
-        return r.json();
-    }).then(function (rows) {
-        var hasActive = (rows || []).some(function (row) {
-            var t = row.EventTemplate || {};
-            return t.active === true || t.active === 1 || t.active === '1';
-        });
-        if (hasActive) {
-            var $c = document.getElementById('event-template-callout');
-            if ($c) { $c.style.display = ''; }
-        }
-    }).catch(function () { /* silent — no callout, no harm */ });
+        fetch('<?php echo h($baseurl); ?>/event_templates/index.json', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        }).then(function (r) {
+            if (!r.ok) { throw new Error('HTTP ' + r.status); }
+            return r.json();
+        }).then(function (rows) {
+            var hasActive = (rows || []).some(function (row) {
+                var t = row.EventTemplate || {};
+                return t.active === true || t.active === 1 || t.active === '1';
+            });
+            if (hasActive) { $c.style.display = ''; }
+        }).catch(function () { /* silent — no callout, no harm */ });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', reveal);
+    } else {
+        reveal();
+    }
 })();
 </script>
 <?php endif; ?>
