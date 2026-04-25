@@ -350,8 +350,14 @@
               }"
               x-text="validateStatus"></span>
         <?php if ($existing): ?>
+            <a href="<?= h($baseurl . '/event_templates/preview/' . (int)$existing['id']) ?>"
+               target="_blank" rel="noopener"
+               class="btn btn-outline-primary ms-auto"
+               title="<?= __('Open the user form in a new tab — reflects the last saved version. Save first to preview unsaved changes.') ?>">
+                <i class="fas fa-eye me-1"></i><?= __('Preview') ?>
+            </a>
             <a href="<?= h($baseurl . '/event_templates/view/' . (int)$existing['id']) ?>"
-               class="btn btn-outline-secondary ms-auto">
+               class="btn btn-outline-secondary">
                 <?= __('Cancel') ?>
             </a>
         <?php else: ?>

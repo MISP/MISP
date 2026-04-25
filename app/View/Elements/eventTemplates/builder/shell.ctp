@@ -277,6 +277,12 @@
         </button>
         <span id="et-validate-status" style="margin-left:10px;"></span>
         <?php if ($existing): ?>
+            <a href="<?php echo h($baseurl . '/event_templates/preview/' . (int)$existing['id']); ?>"
+               target="_blank" rel="noopener"
+               class="btn"
+               title="<?php echo __('Open the user form in a new tab — reflects the last saved version. Save first to preview unsaved changes.'); ?>">
+                <?php echo __('Preview'); ?>
+            </a>
             <a href="<?php echo h($baseurl . '/event_templates/view/' . (int)$existing['id']); ?>"
                class="btn"><?php echo __('Cancel'); ?></a>
         <?php else: ?>
