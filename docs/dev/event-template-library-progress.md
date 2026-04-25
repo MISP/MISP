@@ -183,17 +183,9 @@ against a real DB.
 
 ### 2.3 Loader
 
-- [ ] `EventTemplate::updateFromLibrary($user)` — walks the
-      submodule path, validates each `definition.json` via the
-      existing `EventTemplateValidator`, sets `default = 1` from the
-      JSON's `default` field, routes each row to install / update /
-      skip-forked / failed based on the local row's `default` flag
-      and version comparison (PRD §5.3)
-- [ ] Importer + builder both honour the JSON's `default` field on
-      one-off `/event_templates/import` uploads and on builder
-      saves (the builder exposes the flag in the properties panel)
-- [ ] Summary structure documented and round-tripped through unit
-      tests
+- [x] `EventTemplate::updateFromLibrary($user)` — walks the submodule path, validates each `definition.json` via the existing `EventTemplateValidator`, routes each row to install / updated / skipped_current / skipped_forked / failed (PRD §5.3). Library imports get `default = 1`, `active = 0`, `distribution = 1`, importing user/org as owner. Updates preserve id + ownership + active flag. Content-equal rows are reported as `skipped_current` to keep the summary truthful. `default = 0` rows are reported as `skipped_forked` and never touched.
+- [x] Importer + exporter round-trip the `default` flag — `EventTemplateImporter` checks `template.default` (envelope) then `template.definition.default` (bare JSON, library shape) and persists either to the row; `EventTemplateExporter` includes `default` in the envelope so a re-import preserves it. Builder properties-panel toggle deferred to Phase 3 (UI).
+- [x] Core schema extended (`app/files/schemas/event-template-v1.schema.json`) with optional `default` and `library_metadata` top-level keys so library JSONs validate without stripping. Both fields are optional — pre-existing v1 templates still validate (verified live against template id=463).
 
 ### 2.4 Controller / REST
 

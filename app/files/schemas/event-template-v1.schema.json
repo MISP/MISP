@@ -11,6 +11,28 @@
     "uuid":           { "type": "string", "format": "uuid" },
     "name":           { "type": "string", "minLength": 1 },
     "description":    { "type": ["string", "null"] },
+    "default":        { "type": "boolean", "description": "Library-managed flag — see docs/dev/event-template-library-prd.md §5.3. When true on import, the row is auto-updated by `Update from library`; when false, library updates skip it (operator-forked or locally authored)." },
+    "library_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Provenance + applicability metadata for templates that came from the misp-event-templates submodule. Ignored by core import; used by the library loader.",
+      "properties": {
+        "compatible_misp_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$" },
+        "authors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+              "name":    { "type": "string", "minLength": 1 },
+              "contact": { "type": "string" }
+            }
+          }
+        },
+        "tags": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
     "event_defaults": { "$ref": "#/definitions/event_defaults" },
     "structure": {
       "type": "array",

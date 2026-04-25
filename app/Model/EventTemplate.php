@@ -2,6 +2,9 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeText', 'Utility');
 App::uses('JsonTool', 'Tools');
+App::uses('Folder', 'Utility');
+App::uses('File', 'Utility');
+App::uses('EventTemplateValidator', 'Tools');
 
 /**
  * EventTemplate — v2 event templating system.
@@ -296,6 +299,281 @@ class EventTemplate extends AppModel
             );
         }
         return $rows;
+    }
+
+    /**
+     * Path to the bundled library submodule. The library is checked in
+     * via .gitmodules and shipped alongside other content submodules
+     * (misp-objects, misp-galaxy, etc.). Each `templates/<slug>/definition.json`
+     * is a self-contained event-template definition; see the library's
+     * README + schema_event_template.json for the shape.
+     */
+    const LIBRARY_DIR = APP . 'files' . DS . 'misp-event-templates' . DS . 'templates';
+
+    /**
+     * Walk the bundled misp-event-templates submodule and reconcile its
+     * contents with this instance's `event_templates` table. Each on-disk
+     * `definition.json` is parsed, validated against the v1 schema +
+     * semantic checks, and routed to one of four outcomes per PRD §5.3:
+     *
+     *   - install        — uuid not present locally → insert with
+     *                      default = 1, active = 0, distribution = 1.
+     *   - updated        — present locally with default = 1 AND content
+     *                      differs from the library version → overwrite,
+     *                      preserving id and ownership.
+     *   - skipped_current — present locally with default = 1 but content
+     *                      already matches the library version → no-op.
+     *   - skipped_forked — present locally with default = 0 → operator
+     *                      has explicitly forked this row; library
+     *                      updates leave it alone (PRD §5.3 / §15.3).
+     *
+     * Failures (parse errors, schema validation, save failures) land
+     * under `failed` with a message and the offending file path.
+     *
+     * Site-admin gating is the controller's responsibility — this model
+     * method is permission-agnostic. The importing user is recorded as
+     * the row's creator_user_id / org_id on every install.
+     *
+     * @param array $user CakePHP Auth user shape (id, org_id, …)
+     * @return array {
+     *     installed: array<int, array{slug,uuid,name,id}>,
+     *     updated: array<int, array{slug,uuid,name,id}>,
+     *     skipped_current: array<int, array{slug,uuid,name,id}>,
+     *     skipped_forked: array<int, array{slug,uuid,name,id}>,
+     *     failed: array<int, array{slug,error}>,
+     *   }
+     */
+    public function updateFromLibrary(array $user)
+    {
+        $summary = array(
+            'installed' => array(),
+            'updated' => array(),
+            'skipped_current' => array(),
+            'skipped_forked' => array(),
+            'failed' => array(),
+        );
+
+        if (!is_dir(self::LIBRARY_DIR)) {
+            $summary['failed'][] = array(
+                'slug' => null,
+                'error' => sprintf(
+                    'Library path %s does not exist. Run `git submodule update --init app/files/misp-event-templates`.',
+                    self::LIBRARY_DIR
+                ),
+            );
+            return $summary;
+        }
+
+        $folder = new Folder(self::LIBRARY_DIR);
+        list($subdirs,) = $folder->read(true, false, true);
+        if (empty($subdirs)) {
+            return $summary;
+        }
+
+        $validator = new EventTemplateValidator();
+
+        foreach ($subdirs as $dir) {
+            $slug = basename($dir);
+            $path = $dir . DS . 'definition.json';
+            if (!file_exists($path)) {
+                $summary['failed'][] = array(
+                    'slug' => $slug,
+                    'error' => 'definition.json missing in template directory',
+                );
+                continue;
+            }
+
+            $raw = @file_get_contents($path);
+            if ($raw === false) {
+                $summary['failed'][] = array(
+                    'slug' => $slug,
+                    'error' => 'cannot read definition.json',
+                );
+                continue;
+            }
+
+            $definition = json_decode($raw, true);
+            if (!is_array($definition)) {
+                $summary['failed'][] = array(
+                    'slug' => $slug,
+                    'error' => 'definition.json is not valid JSON',
+                );
+                continue;
+            }
+
+            $errs = $validator->validate($definition);
+            if (!empty($errs)) {
+                $summary['failed'][] = array(
+                    'slug' => $slug,
+                    'error' => 'schema/semantic validation failed: ' . implode('; ', $errs),
+                );
+                continue;
+            }
+
+            $libraryUuid = isset($definition['uuid']) ? strtolower((string)$definition['uuid']) : '';
+            if ($libraryUuid === '') {
+                $summary['failed'][] = array(
+                    'slug' => $slug,
+                    'error' => 'definition.json has no uuid',
+                );
+                continue;
+            }
+
+            $existing = $this->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('EventTemplate.uuid' => $libraryUuid),
+            ));
+
+            $libraryName = isset($definition['name']) ? (string)$definition['name'] : '';
+
+            if (empty($existing)) {
+                // INSTALL — fresh row, library-managed, inactive by default.
+                $row = array(
+                    'uuid' => $libraryUuid,
+                    'name' => $libraryName,
+                    'description' => isset($definition['description']) ? $definition['description'] : null,
+                    'org_id' => isset($user['org_id']) ? (int)$user['org_id'] : 0,
+                    'creator_user_id' => isset($user['id']) ? (int)$user['id'] : 0,
+                    'distribution' => 1,
+                    'active' => 0,
+                    'default' => 1,
+                    'definition' => $definition,
+                );
+                $this->create();
+                $ok = $this->save(array('EventTemplate' => $row));
+                if (!$ok) {
+                    $summary['failed'][] = array(
+                        'slug' => $slug,
+                        'error' => 'install save failed: '
+                            . $this->__flattenValidationErrors($this->validationErrors),
+                    );
+                    continue;
+                }
+                $summary['installed'][] = array(
+                    'slug' => $slug,
+                    'uuid' => $libraryUuid,
+                    'name' => $libraryName,
+                    'id' => (int)$this->id,
+                );
+                continue;
+            }
+
+            // Existing row.
+            if ((int)$existing['EventTemplate']['default'] !== 1) {
+                // SKIPPED_FORKED — operator has flipped default to 0.
+                $summary['skipped_forked'][] = array(
+                    'slug' => $slug,
+                    'uuid' => $libraryUuid,
+                    'name' => $libraryName,
+                    'id' => (int)$existing['EventTemplate']['id'],
+                );
+                continue;
+            }
+
+            // default = 1 → eligible for update. Compare content to skip
+            // no-op overwrites. Comparison is on the schema-relevant
+            // bits of the definition only — name and description are
+            // also part of the contract.
+            $existingDefinition = $existing['EventTemplate']['definition'];
+            if (is_string($existingDefinition)) {
+                $existingDefinition = json_decode($existingDefinition, true);
+            }
+            $sameDefinition = $this->__definitionsEqual(
+                is_array($existingDefinition) ? $existingDefinition : array(),
+                $definition
+            );
+            $sameMeta = (
+                ((string)$existing['EventTemplate']['name']) === $libraryName
+                && (string)($existing['EventTemplate']['description'] ?? '')
+                    === (string)($definition['description'] ?? '')
+            );
+            if ($sameDefinition && $sameMeta) {
+                $summary['skipped_current'][] = array(
+                    'slug' => $slug,
+                    'uuid' => $libraryUuid,
+                    'name' => $libraryName,
+                    'id' => (int)$existing['EventTemplate']['id'],
+                );
+                continue;
+            }
+
+            // UPDATED — overwrite preserving id, ownership, active flag.
+            $row = array(
+                'id' => (int)$existing['EventTemplate']['id'],
+                'uuid' => $libraryUuid,
+                'name' => $libraryName,
+                'description' => isset($definition['description']) ? $definition['description'] : null,
+                'distribution' => isset($existing['EventTemplate']['distribution'])
+                    ? (int)$existing['EventTemplate']['distribution']
+                    : 1,
+                'active' => isset($existing['EventTemplate']['active'])
+                    ? (int)$existing['EventTemplate']['active']
+                    : 0,
+                'default' => 1,
+                'definition' => $definition,
+            );
+            $this->id = (int)$existing['EventTemplate']['id'];
+            $ok = $this->save(array('EventTemplate' => $row));
+            if (!$ok) {
+                $summary['failed'][] = array(
+                    'slug' => $slug,
+                    'error' => 'update save failed: '
+                        . $this->__flattenValidationErrors($this->validationErrors),
+                );
+                continue;
+            }
+            $summary['updated'][] = array(
+                'slug' => $slug,
+                'uuid' => $libraryUuid,
+                'name' => $libraryName,
+                'id' => (int)$existing['EventTemplate']['id'],
+            );
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Deep-equal two decoded template definitions. Used by
+     * updateFromLibrary to skip no-op overwrites in the summary.
+     * Order-sensitive on arrays (which is correct for `structure[]`)
+     * and order-insensitive on object keys via canonical JSON encode.
+     */
+    private function __definitionsEqual(array $a, array $b)
+    {
+        $canon = function ($v) use (&$canon) {
+            if (is_array($v)) {
+                if (array_keys($v) === range(0, count($v) - 1)) {
+                    return array_map($canon, $v);
+                }
+                ksort($v);
+                $out = array();
+                foreach ($v as $k => $vv) {
+                    $out[$k] = $canon($vv);
+                }
+                return $out;
+            }
+            return $v;
+        };
+        return json_encode($canon($a)) === json_encode($canon($b));
+    }
+
+    private function __flattenValidationErrors($validationErrors)
+    {
+        if (!is_array($validationErrors) || empty($validationErrors)) {
+            return '(no detail)';
+        }
+        $out = array();
+        foreach ($validationErrors as $field => $msgs) {
+            if (is_array($msgs)) {
+                foreach ($msgs as $m) {
+                    $out[] = sprintf('%s: %s', $field, (string)$m);
+                }
+            } else {
+                $out[] = sprintf('%s: %s', $field, (string)$msgs);
+            }
+        }
+        return implode('; ', $out);
     }
 
 }
