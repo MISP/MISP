@@ -5,6 +5,9 @@
         $action === 'add'
         && $this->Acl->canAccess('eventTemplates', 'instantiate')
     );
+    if ($offerTemplateAlternative) {
+        ob_start();
+    }
     echo $this->element('genericElements/Form/genericForm', array(
         'form' => $this->Form,
         'data' => array(
@@ -74,42 +77,44 @@
             )
         )
     ));
+    if ($offerTemplateAlternative) {
+        // Capture genericForm's output and splice the callout in
+        // just before the wrapper's closing </div>, so the callout
+        // ends up inside div.form (or .menuless-form) and shares
+        // the form's float column geometry — no JS relocation, no
+        // first-paint gap from a node moving after layout.
+        $formHtml = ob_get_clean();
+        $title = h(__('Have a template for this report?'));
+        $hint  = h(__('Skip the manual creation and pick a guided event-template walkthrough — pre-filled fields, attached objects, mandatory checks.'));
+        $cta   = h(__('Create event via template instead'));
+        $callout = <<<HTML
+<div id="event-template-callout" style="display:none; max-width:600px; margin:18px 0 0 0; padding:12px 14px; border:1px solid #d0d7de; border-radius:5px; background:#f7f8fa;">
+    <div style="display:flex; align-items:center; gap:14px;">
+        <div style="flex:1; line-height:1.4;">
+            <div style="font-weight:600; color:#243447;">{$title}</div>
+            <div style="color:#5a6876; font-size:12px; margin-top:2px;">{$hint}</div>
+        </div>
+        <button type="button" class="btn btn-primary" style="flex-shrink:0; white-space:nowrap;" onclick="event.preventDefault(); openEventTemplatePicker();"><i class="fa fa-bolt"></i> {$cta}</button>
+    </div>
+</div>
+HTML;
+        $insertAt = strrpos($formHtml, '</div>');
+        if ($insertAt !== false) {
+            $formHtml = substr($formHtml, 0, $insertAt)
+                . $callout
+                . substr($formHtml, $insertAt);
+        } else {
+            $formHtml .= $callout;
+        }
+        echo $formHtml;
+    }
     echo $this->element('/genericElements/SideMenu/side_menu', array(
         'menuList' => $action === 'add' ? 'event-collection' : 'event',
         'menuItem' => $action === 'add' ? 'add' : 'editEvent',
         'event' => isset($event) ? $event : null,
     ));
 ?>
-<?php if ($offerTemplateAlternative): ?>
-<!--
-    Rendered as a sibling of div.form so it ends up outside the
-    floated form column by default; the inline JS below moves it
-    INTO div.form (or .menuless-form) at the bottom, after the
-    submit button, so it shares the form column's geometry and
-    doesn't have to fight the parent layout's floats.
--->
-<div id="event-template-callout"
-     style="display:none; max-width:600px; margin:18px 0 0 0;
-            padding:12px 14px; border:1px solid #d0d7de;
-            border-radius:5px; background:#f7f8fa;">
-    <div style="display:flex; align-items:center; gap:14px;">
-        <div style="flex:1; line-height:1.4;">
-            <div style="font-weight:600; color:#243447;">
-                <?php echo __('Have a template for this report?'); ?>
-            </div>
-            <div style="color:#5a6876; font-size:12px; margin-top:2px;">
-                <?php echo __('Skip the manual creation and pick a guided event-template walkthrough — pre-filled fields, attached objects, mandatory checks.'); ?>
-            </div>
-        </div>
-        <button type="button" class="btn btn-primary"
-                style="flex-shrink:0; white-space:nowrap;"
-                onclick="event.preventDefault(); openEventTemplatePicker();">
-            <i class="fa fa-bolt"></i>
-            <?php echo __('Create event via template instead'); ?>
-        </button>
-    </div>
-</div>
-<?php
+<?php if ($offerTemplateAlternative):
     // Cake's theme resolution picks the BS5 partial under
     // Themed/Overmind/Elements/eventTemplates/templatePickerModal.ctp
     // when the Overmind theme is active; otherwise the default
@@ -120,44 +125,32 @@
 ?>
 <script>
 (function () {
-    // Two things on load:
-    //   1. Move the callout INTO the form's wrapper div so it
-    //      sits inside the same float context as the form (the
-    //      classic-theme layout floats div.form so anything left
-    //      outside collides with the side menu).
-    //   2. Reveal it only if at least one active event template
-    //      is visible to this user — no point dangling the offer
-    //      if the instance hasn't been seeded with any templates.
-    function reveal() {
-        var $c = document.getElementById('event-template-callout');
-        if (!$c) { return; }
-        var $host = document.querySelector('div.form, div.menuless-form');
-        if ($host && $c.parentNode !== $host) {
-            $host.appendChild($c);
+    // Reveal the callout only if at least one active event template
+    // is visible to this user — no point dangling the offer if the
+    // instance hasn't been seeded with any templates yet. The
+    // callout itself is already in the right place server-side
+    // (spliced into div.form via output buffering) so no DOM moves
+    // are needed here.
+    fetch('<?php echo h($baseurl); ?>/event_templates/index.json', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
         }
-        fetch('<?php echo h($baseurl); ?>/event_templates/index.json', {
-            method: 'GET',
-            credentials: 'same-origin',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        }).then(function (r) {
-            if (!r.ok) { throw new Error('HTTP ' + r.status); }
-            return r.json();
-        }).then(function (rows) {
-            var hasActive = (rows || []).some(function (row) {
-                var t = row.EventTemplate || {};
-                return t.active === true || t.active === 1 || t.active === '1';
-            });
-            if (hasActive) { $c.style.display = ''; }
-        }).catch(function () { /* silent — no callout, no harm */ });
-    }
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', reveal);
-    } else {
-        reveal();
-    }
+    }).then(function (r) {
+        if (!r.ok) { throw new Error('HTTP ' + r.status); }
+        return r.json();
+    }).then(function (rows) {
+        var hasActive = (rows || []).some(function (row) {
+            var t = row.EventTemplate || {};
+            return t.active === true || t.active === 1 || t.active === '1';
+        });
+        if (hasActive) {
+            var $c = document.getElementById('event-template-callout');
+            if ($c) { $c.style.display = ''; }
+        }
+    }).catch(function () { /* silent — no callout, no harm */ });
 })();
 </script>
 <?php endif; ?>
