@@ -89,7 +89,7 @@
     doesn't have to fight the parent layout's floats.
 -->
 <div id="event-template-callout"
-     style="display:none; margin:18px 0 0 0;
+     style="display:none; max-width:600px; margin:18px 0 0 0;
             padding:12px 14px; border:1px solid #d0d7de;
             border-radius:5px; background:#f7f8fa;">
     <div style="display:flex; align-items:center; gap:14px;">
@@ -101,7 +101,7 @@
                 <?php echo __('Skip the manual creation and pick a guided event-template walkthrough — pre-filled fields, attached objects, mandatory checks.'); ?>
             </div>
         </div>
-        <button type="button" class="btn"
+        <button type="button" class="btn btn-primary"
                 style="flex-shrink:0; white-space:nowrap;"
                 onclick="event.preventDefault(); openEventTemplatePicker();">
             <i class="fa fa-bolt"></i>
