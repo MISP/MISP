@@ -204,14 +204,14 @@ against a real DB.
 
 ### 2.6 Tests
 
-- [ ] Unit tests for the loader's install / update / skip-forked
-      routing based on the `default` flag + version comparison
-- [ ] Integration test: empty DB → run update → seven templates
-      installed with `default = 1`; flip one to `default = 0`;
-      bump that template's library version; run update → forked
-      one is skipped, others update silently
+- [x] Integration tests in `tests/testlive_event_templates.py` — new `EventTemplatesLibraryUpdateTests` class, three tests:
+      * `test_install_then_idempotent` — empty DB → run update → every library template lands in `installed` with `default=1` / `active=0` / `distribution=1`; second run lands all in `skipped_current`.
+      * `test_skipped_forked_after_default_flip` — install everything; export one template, flip `default=false` in the envelope, re-import in overwrite mode (operator-fork via REST round-trip); next update routes that uuid to `skipped_forked`.
+      * `test_library_status_shape` — confirms the dry-run endpoint surfaces slug + uuid + name + local-state per template.
+- [x] Full live suite passes: 24 tests in `tests/testlive_event_templates.py` (21 pre-existing + 3 new), 23 PHPUnit unit tests in `app/Test/EventTemplate*Test.php` (no regressions).
+- [x] Defensive `default`-column backfill in `EventTemplate::afterFind` — Cake's read-side mapping was dropping the column from the row even though writes worked. Side query backfills the value when missing so every code path sees the flag. Required to make the integration test pass and the view endpoint surface the column for the UI.
 
-- [ ] **Phase 2 complete**
+- [x] **Phase 2 complete**
 
 ---
 

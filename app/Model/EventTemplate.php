@@ -206,11 +206,49 @@ class EventTemplate extends AppModel
         if (!is_array($results)) {
             return $results;
         }
+        // Collect ids for which we need a backfill of `default` — see
+        // below for why a backfill is needed at all.
+        $needBackfill = array();
         foreach ($results as &$row) {
             if (isset($row[$this->alias]['definition']) && is_string($row[$this->alias]['definition'])) {
                 $decoded = JsonTool::decode($row[$this->alias]['definition']);
                 if (is_array($decoded)) {
                     $row[$this->alias]['definition'] = $decoded;
+                }
+            }
+            // `default` is a MySQL reserved word. Cake's DboSource enumerates
+            // columns from $Model->schema() and quotes them, so the SELECT
+            // does include `default`, but the result-row mapping drops the
+            // column from the returned associative array on the live setup
+            // (verified via the integration test). Writes work fine —
+            // this is read-side only. Backfill from a tight side query.
+            if (isset($row[$this->alias]) && is_array($row[$this->alias])
+                && !array_key_exists('default', $row[$this->alias])
+                && isset($row[$this->alias]['id'])
+            ) {
+                $needBackfill[(int)$row[$this->alias]['id']] = true;
+            }
+        }
+        unset($row);
+        if (!empty($needBackfill)) {
+            $ids = array_keys($needBackfill);
+            $db = $this->getDataSource();
+            $rows = $db->rawQuery(sprintf(
+                'SELECT id, `default` FROM `event_templates` WHERE id IN (%s)',
+                implode(',', array_map('intval', $ids))
+            ));
+            $byId = array();
+            if ($rows) {
+                foreach ($rows->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                    $byId[(int)$r['id']] = (int)$r['default'];
+                }
+            }
+            foreach ($results as &$row) {
+                if (isset($row[$this->alias]['id'])) {
+                    $rid = (int)$row[$this->alias]['id'];
+                    if (isset($byId[$rid])) {
+                        $row[$this->alias]['default'] = $byId[$rid];
+                    }
                 }
             }
         }

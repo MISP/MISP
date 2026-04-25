@@ -823,5 +823,165 @@ class EventTemplatesImportExportTests(unittest.TestCase):
         }
 
 
+class EventTemplatesLibraryUpdateTests(unittest.TestCase):
+    """
+    Integration tests for the misp-event-templates submodule loader
+    (PRD §5.3 / docs/dev/event-template-library-prd.md). Exercises the
+    /event_templates/update + /event_templates/library_status endpoints
+    end-to-end against a running MISP instance with the submodule
+    checked out. Requires:
+
+      - MISP core has the bundled misp-event-templates submodule
+        populated at app/files/misp-event-templates/ (Phase 2.2).
+      - The auth key belongs to a site_admin (only site admins can
+        trigger update — PRD §8).
+
+    Cleans up its own rows in tearDown so the suite is safe to re-run.
+    """
+
+    def setUp(self) -> None:
+        self._library_uuids: List[str] = []
+        # First call library_status to discover what's on disk; tearDown
+        # uses the list to clean up only those rows.
+        r = requests.get(
+            f"{URL}/event_templates/library_status",
+            headers=_headers(),
+            timeout=10,
+        )
+        self.assertEqual(
+            r.status_code, 200,
+            f"library_status failed (perhaps non-admin?): {r.text[:200]}",
+        )
+        body = r.json()
+        for entry in body.get("present_in_library", []):
+            self._library_uuids.append(entry["uuid"])
+        self.assertGreater(
+            len(self._library_uuids), 0,
+            "submodule directory has no templates — populate "
+            "app/files/misp-event-templates/templates/ before running",
+        )
+
+    def tearDown(self) -> None:
+        # Look up the local row id for each library uuid and delete it.
+        for tpl_uuid in self._library_uuids:
+            r = requests.get(
+                f"{URL}/event_templates/view/{tpl_uuid}",
+                headers=_headers(),
+                timeout=10,
+            )
+            if r.status_code == 200:
+                local_id = int(r.json()["EventTemplate"]["id"])
+                requests.post(
+                    f"{URL}/event_templates/delete/{local_id}",
+                    headers=_headers(),
+                    timeout=10,
+                )
+
+    def _update(self) -> Dict[str, Any]:
+        r = requests.post(
+            f"{URL}/event_templates/update",
+            headers=_headers(),
+            timeout=15,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        return r.json()
+
+    def test_install_then_idempotent(self) -> None:
+        # Run 1: every library template lands in `installed`.
+        s1 = self._update()
+        installed_uuids = {row["uuid"] for row in s1["installed"]}
+        self.assertEqual(installed_uuids, set(self._library_uuids))
+        self.assertEqual(s1["updated"], [])
+        self.assertEqual(s1["skipped_current"], [])
+        self.assertEqual(s1["skipped_forked"], [])
+        self.assertEqual(s1["failed"], [])
+
+        # Verify the row carries default=1 / active=0 / distribution=1.
+        for tpl_uuid in self._library_uuids:
+            r = requests.get(
+                f"{URL}/event_templates/view/{tpl_uuid}",
+                headers=_headers(),
+                timeout=10,
+            )
+            self.assertEqual(r.status_code, 200)
+            row = r.json()["EventTemplate"]
+            self.assertEqual(int(row["default"]), 1, f"{tpl_uuid} default")
+            self.assertEqual(
+                bool(int(row["active"])), False,
+                f"{tpl_uuid} active should default to 0",
+            )
+            self.assertEqual(
+                int(row["distribution"]), 1,
+                f"{tpl_uuid} distribution should default to 1",
+            )
+
+        # Run 2: same content, every template should land in skipped_current.
+        s2 = self._update()
+        self.assertEqual(s2["installed"], [])
+        self.assertEqual(s2["updated"], [])
+        skipped_uuids = {row["uuid"] for row in s2["skipped_current"]}
+        self.assertEqual(skipped_uuids, set(self._library_uuids))
+
+    def test_skipped_forked_after_default_flip(self) -> None:
+        # Install everything first.
+        self._update()
+
+        # Fork one template by editing the row to default=0. Done by
+        # round-tripping through the edit endpoint with the current
+        # definition + default override. (We can't directly hit the
+        # column without a dedicated endpoint, so we exercise the
+        # downstream flow via export → strip default flag → overwrite.)
+        target_uuid = self._library_uuids[0]
+        r = requests.get(
+            f"{URL}/event_templates/view/{target_uuid}",
+            headers=_headers(),
+            timeout=10,
+        )
+        local_id = int(r.json()["EventTemplate"]["id"])
+        # Use the export envelope to flip default off.
+        export = requests.get(
+            f"{URL}/event_templates/export/{local_id}",
+            headers=_headers(),
+            timeout=10,
+        ).json()
+        export["template"]["default"] = False
+        # Re-import in overwrite mode.
+        requests.post(
+            f"{URL}/event_templates/import",
+            headers=_headers(),
+            params={"mode": "overwrite"},
+            json=export,
+            timeout=10,
+        )
+
+        # Now run update — the forked template should be skipped.
+        s = self._update()
+        forked_uuids = {row["uuid"] for row in s["skipped_forked"]}
+        self.assertIn(
+            target_uuid, forked_uuids,
+            f"expected {target_uuid} in skipped_forked, got {forked_uuids}",
+        )
+
+    def test_library_status_shape(self) -> None:
+        s = requests.get(
+            f"{URL}/event_templates/library_status",
+            headers=_headers(),
+            timeout=10,
+        ).json()
+        self.assertIn("present_in_library", s)
+        self.assertIn("failed", s)
+        for entry in s["present_in_library"]:
+            self.assertIn("slug", entry)
+            self.assertIn("uuid", entry)
+            self.assertIn("name", entry)
+            self.assertIn("local", entry)
+            # `local` is null when not yet installed, otherwise an
+            # object with id/active/default integers.
+            if entry["local"] is not None:
+                self.assertIsInstance(entry["local"]["id"], int)
+                self.assertIn("active", entry["local"])
+                self.assertIn("default", entry["local"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
