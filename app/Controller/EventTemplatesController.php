@@ -1,6 +1,7 @@
 <?php
 App::uses('AppController', 'Controller');
 App::uses('CakeText', 'Utility');
+App::uses('Folder', 'Utility');
 App::uses('EventTemplateDependencies', 'Tools');
 App::uses('EventTemplateExporter', 'Tools');
 App::uses('EventTemplateImporter', 'Tools');
@@ -601,6 +602,122 @@ class EventTemplatesController extends AppController
             );
         }
         return $out;
+    }
+
+    /**
+     * Walk the bundled misp-event-templates submodule and reconcile its
+     * contents with this instance's event_templates table. Returns a
+     * structured summary (installed / updated / skipped_current /
+     * skipped_forked / failed). Site-admin only — library updates affect
+     * every org on the instance, so the ACL is empty (only admins
+     * pass the empty-permission check).
+     *
+     * Method: POST /event_templates/update
+     */
+    public function update()
+    {
+        if (!$this->request->is('post') && !$this->request->is('put')) {
+            throw new MethodNotAllowedException(
+                __('update requires POST.')
+            );
+        }
+        $summary = $this->EventTemplate->updateFromLibrary($this->Auth->user());
+        if ($this->IndexFilter->isRest()) {
+            return $this->RestResponse->viewData($summary, 'json');
+        }
+        $this->set('summary', $summary);
+        $this->set('title_for_layout', __('Library update — Event Templates'));
+        $this->render('update');
+    }
+
+    /**
+     * Dry-run library status — same routing logic as update() but never
+     * persists. Useful for the index-page badge ("3 templates would
+     * update if you ran update from library now") or operator preview.
+     *
+     * Currently piggybacks on a transactional updateFromLibrary +
+     * rollback. Pure dry-run logic without writes is a Phase 5 polish.
+     *
+     * Method: GET /event_templates/library_status
+     */
+    public function library_status()
+    {
+        // For v1, just expose what the on-disk library contains: name,
+        // uuid, plus whether the local DB has it (and with which
+        // default flag). This avoids mutating state while still giving
+        // operators an actionable snapshot.
+        $summary = array(
+            'present_in_library' => array(),
+            'failed' => array(),
+        );
+
+        $libDir = APP . 'files' . DS . 'misp-event-templates' . DS . 'templates';
+        if (!is_dir($libDir)) {
+            $summary['failed'][] = array(
+                'slug' => null,
+                'error' => 'submodule directory not present at ' . $libDir,
+            );
+            if ($this->IndexFilter->isRest()) {
+                return $this->RestResponse->viewData($summary, 'json');
+            }
+            $this->set('summary', $summary);
+            $this->render('library_status');
+            return;
+        }
+
+        $folder = new Folder($libDir);
+        list($subdirs,) = $folder->read(true, false, true);
+        foreach ($subdirs as $dir) {
+            $slug = basename($dir);
+            $defPath = $dir . DS . 'definition.json';
+            if (!file_exists($defPath)) {
+                $summary['failed'][] = array(
+                    'slug' => $slug,
+                    'error' => 'definition.json missing',
+                );
+                continue;
+            }
+            $raw = @file_get_contents($defPath);
+            $def = ($raw !== false) ? json_decode($raw, true) : null;
+            if (!is_array($def)) {
+                $summary['failed'][] = array(
+                    'slug' => $slug,
+                    'error' => 'definition.json is not valid JSON',
+                );
+                continue;
+            }
+            $uuid = isset($def['uuid']) ? strtolower((string)$def['uuid']) : '';
+            $local = $uuid !== ''
+                ? $this->EventTemplate->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('EventTemplate.uuid' => $uuid),
+                    'fields' => array(
+                        'EventTemplate.id',
+                        'EventTemplate.uuid',
+                        'EventTemplate.name',
+                        'EventTemplate.active',
+                        'EventTemplate.default',
+                    ),
+                ))
+                : null;
+            $summary['present_in_library'][] = array(
+                'slug' => $slug,
+                'uuid' => $uuid,
+                'name' => isset($def['name']) ? (string)$def['name'] : '',
+                'local' => empty($local) ? null : array(
+                    'id' => (int)$local['EventTemplate']['id'],
+                    'active' => (int)$local['EventTemplate']['active'],
+                    'default' => (int)$local['EventTemplate']['default'],
+                ),
+            );
+        }
+
+        if ($this->IndexFilter->isRest()) {
+            return $this->RestResponse->viewData($summary, 'json');
+        }
+        $this->set('summary', $summary);
+        $this->set('title_for_layout', __('Library status — Event Templates'));
+        $this->render('library_status');
     }
 
     public function validate_definition()

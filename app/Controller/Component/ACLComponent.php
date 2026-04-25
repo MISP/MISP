@@ -295,6 +295,9 @@ class ACLComponent extends Component
             'instantiate' => array('perm_add'),
             'preview' => array('perm_template'),
             'validate_definition' => array('perm_template'),
+            // Library updates affect every org on the instance — site_admin only.
+            'update' => array(),
+            'library_status' => array(),
         ),
         'events' => array(
             'add' => array('perm_add'),

@@ -189,13 +189,12 @@ against a real DB.
 
 ### 2.4 Controller / REST
 
-- [ ] `EventTemplatesController::update()` — site-admin gated, calls
-      the loader, renders or returns the summary
-- [ ] `EventTemplatesController::library_status()` — dry-run diff,
-      same gate, same shape minus the writes
-- [ ] ACL list entries in `ACLComponent::$aclList['eventTemplates']`
-      for `update` and `library_status`
-- [ ] REST envelope conforms to `RestResponseComponent` conventions
+- [x] `EventTemplatesController::update()` — site-admin gated, POST-only, calls the loader and renders / returns the summary. Live-verified end-to-end against the live instance: install / skipped_current (idempotent re-run) / skipped_forked (operator-flipped row) / updated (drift overwrite preserving id+ownership) all surfaced correctly in the JSON envelope.
+- [x] `EventTemplatesController::library_status()` — dry-run snapshot of on-disk library vs local DB rows (no writes, GET). Returns slug + uuid + name per template plus the local row's id/active/default if installed.
+- [x] ACL list entries in `ACLComponent::$aclList['eventTemplates']` for `update` and `library_status` (empty array — site-admin only). Touch on the shared ACL component is established acceptable per the existing protocol.
+- [x] REST envelope: when `IndexFilter::isRest()` true, `RestResponse::viewData()` JSON-encodes the summary directly. HTML branch renders the placeholder views below.
+- [x] Placeholder HTML views shipped on both themes (default + Overmind): `EventTemplates/update.ctp` and `EventTemplates/library_status.ctp`. Phase 3 replaces these with proper styled summaries.
+- [x] Overmind BS5 layout whitelist (`Themed/Overmind/Layouts/default.ctp`) updated to include `update` and `library_status` so they render under the BS5 stack.
 
 ### 2.5 First-touch auto-update hook
 

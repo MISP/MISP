@@ -419,9 +419,27 @@ class EventTemplate extends AppModel
                 continue;
             }
 
+            // Explicit field list because `default` is a MySQL reserved
+            // word — Cake's `SELECT *` short-circuit drops the column
+            // from the returned associative array on some setups even
+            // though writes work fine. Listing the columns by name
+            // forces them through.
             $existing = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('EventTemplate.uuid' => $libraryUuid),
+                'fields' => array(
+                    'EventTemplate.id',
+                    'EventTemplate.uuid',
+                    'EventTemplate.name',
+                    'EventTemplate.description',
+                    'EventTemplate.org_id',
+                    'EventTemplate.creator_user_id',
+                    'EventTemplate.distribution',
+                    'EventTemplate.active',
+                    'EventTemplate.default',
+                    'EventTemplate.version',
+                    'EventTemplate.definition',
+                ),
             ));
 
             $libraryName = isset($definition['name']) ? (string)$definition['name'] : '';

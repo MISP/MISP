@@ -52,6 +52,8 @@
             ['controller' => 'event_templates', 'action' => 'add'],
             ['controller' => 'event_templates', 'action' => 'edit'],
             ['controller' => 'event_templates', 'action' => 'preview'],
+            ['controller' => 'event_templates', 'action' => 'update'],
+            ['controller' => 'event_templates', 'action' => 'library_status'],
 
 
             ['controller' => 'api', 'action' => 'openapi'],
