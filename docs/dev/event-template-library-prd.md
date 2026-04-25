@@ -198,36 +198,53 @@ misp-event-templates/
 
 ### 5.3 Update / upgrade semantics
 
-The interesting case is when an upstream template bumps versions
-*and* the operator has edited the local copy.
+The decision driving update behaviour is an explicit per-template
+**default** flag, not a heuristic. Same convention `DecayingModel`
+uses for content-from-submodule rows.
 
-- **F3.1** Every library template carries a `version` integer. The
-  loader compares it to the local `event_templates.version`.
-- **F3.2** Operator-edit detection is by content hash of the
-  decoded definition (excluding ownership envelope: org_id,
-  creator_user_id, created, modified, active). When the local hash
-  differs from the library hash for the prior version (computed by
-  re-validating the in-repo previous version, or stored in the
-  template row as `library_synced_hash`), the loader treats the row
-  as operator-edited.
-- **F3.3** Three update behaviours per row, decided by content
-  comparison:
-  - **install** — uuid not present locally → insert.
-  - **upgrade-clean** — present locally, library version higher,
-    local hash matches the library's prior-version hash (i.e. no
-    operator edits) → overwrite.
-  - **skip-edited** — present locally, library version higher,
-    operator-edited → skip with a clear summary entry. Operator must
-    pass `?force=1` to overwrite, or use the existing
-    `event_templates/import?mode=duplicate_as_new` flow to take the
-    upstream copy as a fresh row alongside their edits.
+- **F3.1** Every library template's `definition.json` carries a
+  top-level `"default": true` field. Library PR review ensures this
+  is set on every template that ships in the catalogue.
+- **F3.2** A new `event_templates.default` boolean column is set
+  from the JSON's `default` field on every library import (and on
+  one-off `/event_templates/import` uploads, if the JSON has it).
+  Default `false` for hand-built templates from the builder.
+- **F3.3** Three update behaviours per row, decided by the flag:
+  - **install** — uuid not present locally → insert with
+    `default = 1`.
+  - **update** — present locally, `default = 1`, library version is
+    higher → overwrite. The flag is the operator's contract: "I
+    accept upstream updates on this row."
+  - **skip-forked** — present locally, `default = 0` → skip. The
+    operator has explicitly forked this row; library updates leave
+    it alone. Operator can flip the flag back to `1` to opt in to
+    future updates (the next update will overwrite).
 - **F3.4** No silent deletes. Templates removed upstream are *not*
   removed from the operator's DB. The summary report flags them as
   "no longer in library" so the operator can decide.
 - **F3.5** Library imports default to `active = 0` and
   `distribution = 1`. Operator manually flips `active` per template
-  to expose it to template users. Defaults documented in §15
-  resolutions.
+  to expose it to template users.
+- **F3.6** UI surfaces the implication clearly: when the operator
+  edits a `default = 1` template via the builder, a banner warns
+  that edits will be overwritten on the next library update unless
+  they fork by flipping the flag.
+
+### 5.3.1 Why a flag, not a hash
+
+The earlier draft proposed hash-based edit detection (compare a
+content hash of the local definition against a stored
+`library_synced_hash` to decide skip vs upgrade). The flag model is
+simpler:
+
+- No stored hash, no recomputation, no edge cases around what
+  fields participate in the hash.
+- Operator intent is explicit: flipping `default = 0` is a clear,
+  visible "I'm forking this row."
+- Survives operator edits to a non-`default` row without surprise:
+  the row is forked, period, and stays that way until the operator
+  flips back.
+- Matches the existing MISP convention (`DecayingModel.default`).
 
 ### 5.4 Coexistence with the existing import flow
 
@@ -250,24 +267,34 @@ A single new column on `event_templates`:
 
 ```sql
 ALTER TABLE event_templates
-  ADD COLUMN library_synced_hash VARCHAR(64) NULL DEFAULT NULL
-  AFTER definition;
+  ADD COLUMN `default` TINYINT(1) NOT NULL DEFAULT 0
+  AFTER `active`;
 ```
 
-- `NULL` — local template, never reconciled with the library.
-- `<sha256>` — last library hash this row was reconciled to.
-  Compared on the next update to detect operator edits.
+- `0` (default) — locally-authored template OR forked-from-library
+  row. Library updates skip it.
+- `1` — library-managed template. Library updates overwrite it on
+  every version bump.
+
+Set automatically to the value of the `default` field in
+`definition.json` on import. Hand-built templates from the builder
+default to `0`. Operators can flip the column manually via the
+builder's properties panel or REST.
+
+The column name matches the `DecayingModel.default` convention.
+Quoted with backticks because `default` is a reserved word in MySQL.
 
 No other schema changes. The `version` column already exists per
 event-templating-prd.md §6.2 and is reused.
 
 ## 7. JSON schema additions
 
-The library schema extends the core schema with one optional top-level
-key:
+The library schema extends the core schema with two optional
+top-level keys:
 
 ```jsonc
 {
+  "default": true,
   "library_metadata": {
     "compatible_misp_version": "2.5.0",
     "authors": [
@@ -281,9 +308,15 @@ key:
 }
 ```
 
-`library_metadata` is ignored when the JSON is imported via the
-non-library flow. The library loader uses it for compatibility
-gating and the catalogue browser (future polish).
+- `default` — boolean. Maps to `event_templates.default` on import.
+  Library PR review enforces `true` on every shipped template.
+  Hand-built templates from the builder leave it absent / `false`.
+- `library_metadata` — informational. Ignored when the JSON is
+  imported via the non-library flow. The library loader uses it for
+  compatibility gating and the future catalogue browser.
+
+Both keys are additive — a v1 template authored before this project
+landed validates fine without them.
 
 ## 8. Permissions
 
@@ -318,11 +351,22 @@ upgraded / skipped / failed / no-longer-upstream. Each row is
 linkable to the template's view page. Summary copy explains the
 skip-edited semantics so the operator understands what to do next.
 
-### 10.3 Library badge on index rows
+### 10.3 Default-template badge on index rows
 
-Templates with a non-null `library_synced_hash` get a small badge
-or icon on the index — same visual treatment as MISP's existing
-"system tag" indicators. No behavioural difference.
+Templates with `default = 1` get a small badge or icon on the index
+indicating "library-managed; will be auto-updated." Same visual
+treatment as MISP's existing system tag / default indicators. No
+behavioural difference for template users; this is operator-facing
+information.
+
+### 10.4 Builder warning on default-template edit
+
+When a template creator opens the builder for a `default = 1`
+template, a banner near the save bar warns: "This is a library
+template — your edits will be overwritten on the next library
+update unless you fork it (flip the Default flag in the properties
+panel)." Soft warning, not a block; the operator may have a good
+reason to make a transient edit before the next update.
 
 ### 10.4 First-touch silent update
 
@@ -396,34 +440,39 @@ event-templating workflow.
 
 ## 15. Open questions
 
-Four design decisions need closure before Phase 0 sign-off. Pre-filled
-with the recommended default; flip any of them and resolve here.
-
-1. **Default `active` for library-imported templates** — *Recommended:
-   `0` (inactive)*. Operators get agency before community-authored
-   templates show up in their team's picker. Argument for `1`: zero
-   manual step on first install. Argument for `0`: predictable
-   behaviour, no surprise rows leaking into a team's workflow.
-2. **Default `distribution` for library-imported templates** —
-   *Recommended: `1` (community)*. Library templates target community
-   use by definition; org-only would be surprising for shipped
-   content. Argument for `0`: stay private until operator decides.
-3. **Upgrade behaviour when upstream version bumps and operator has
-   edited locally** — *Recommended: refuse + require explicit
-   `force=1`*. Mirrors the import endpoint's existing `mode`
-   semantics. Argument for silent-overwrite: matches how object
-   templates work. Argument for refuse: event templates are far more
-   likely to be operator-customised; silent overwrite would lose work.
-4. **First batch of starter templates** — *Recommended: spearphishing
-   email, ransomware incident, credential exposure, suspicious-domain
-   triage, malware-sample submission, vulnerability disclosure,
-   supply-chain compromise*. Seven covers ~80% of recurring SOC
-   playbooks; community can grow it. Argument to start smaller (just
-   2–3): faster Phase 1, lets us validate the loader before investing
-   in catalogue depth. Argument to start with seven: makes the
-   release notes meaningful and gives operators a usable catalogue
-   from day one.
+All Phase 0 questions resolved. Recorded here as a decision log; no
+open items remain.
 
 *Resolved 2026-04-25 (scoping):* heavyweight option chosen — new PRD,
 new tracker, six-phase delivery, mirroring the event-templating v1
-workflow. Branch off `templating` once Phase 0 closes.
+workflow.
+
+*Resolved 2026-04-25 (Phase 0 closure):*
+
+1. **Default `active` for library-imported templates** —
+   **`0` (inactive)**. Operators get agency before community-authored
+   templates show up in their team's picker.
+2. **Default `distribution` for library-imported templates** —
+   **`1` (community)**. Library templates target community use by
+   definition; org-only would be surprising for shipped content.
+3. **Upgrade behaviour when upstream version bumps and operator has
+   edited locally** — **explicit `default` flag**, replacing the
+   originally-proposed hash-based detection. New
+   `event_templates.default` column, set from the JSON's `default`
+   field on import. Library updates auto-overwrite rows where
+   `default = 1`; rows where `default = 0` are left alone (forked
+   from library or never library-managed). Operator forks by flipping
+   the flag. See §5.3 for the full mechanic and §5.3.1 for why a
+   flag was preferred over a hash.
+4. **First batch of starter templates** — **seven**: spearphishing
+   email, ransomware incident, credential exposure, suspicious-domain
+   triage, malware-sample submission, vulnerability disclosure,
+   supply-chain compromise. Makes the release notes meaningful and
+   gives operators a usable catalogue from day one.
+5. **Target branch** — **stay on `templating`**. The library work
+   builds directly on event-templating v1 and benefits from sharing
+   a single PR/review surface. No fresh branch.
+6. **Public repo URL** — `https://github.com/MISP/misp-event-templates`.
+   Operator (Andras) created the empty repo on 2026-04-25; Phase 1
+   produces the initial commits, operator pushes them, Phase 2.2
+   registers the submodule against the now-populated repo.

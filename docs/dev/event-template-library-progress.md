@@ -98,20 +98,21 @@ commit. Never `--amend` / `--no-verify` / `--no-gpg-sign`.
 
 ## Phase 0 — Spec finalisation
 
-**Status:** in progress
+**Status:** complete
 **Exit criteria:** PRD approved; four open questions in PRD §15
 closed with explicit decisions; library schema mirror plan locked;
 target branch decided.
 
 - [x] Draft PRD v0.1 (see `event-template-library-prd.md`)
-- [ ] Close open question §15.1 — default `active` for library imports
-- [ ] Close open question §15.2 — default `distribution` for library imports
-- [ ] Close open question §15.3 — upgrade behaviour on operator edits
-- [ ] Close open question §15.4 — first batch of starter templates
-- [ ] Decide target branch: stay on `templating` or branch off to `template-library`
-- [ ] User sign-off on PRD v0.1
+- [x] Close open question §15.1 — default `active = 0` for library imports
+- [x] Close open question §15.2 — default `distribution = 1` for library imports
+- [x] Close open question §15.3 — explicit `default` flag replaces hash-based edit detection (§5.3)
+- [x] Close open question §15.4 — seven starter templates
+- [x] Close open question §15.5 — stay on `templating`
+- [x] Close open question §15.6 — public repo URL `https://github.com/MISP/misp-event-templates` (operator-created, empty)
+- [x] User sign-off on PRD v0.1
 
-- [ ] **Phase 0 complete**
+- [x] **Phase 0 complete**
 
 ---
 
@@ -171,8 +172,7 @@ against a real DB.
 
 ### 2.1 Migration
 
-- [ ] Migration: add `event_templates.library_synced_hash` column
-      (PRD §6)
+- [ ] Migration: add `event_templates.default` column (TINYINT(1) NOT NULL DEFAULT 0, PRD §6). Backticked in SQL because `default` is a MySQL reserved word.
 - [ ] Migration tested on a fresh schema and on an existing DB with
       hand-rolled v1 templates
 
@@ -184,20 +184,22 @@ against a real DB.
 
 ### 2.3 Loader
 
-- [ ] `EventTemplate::updateFromLibrary($user, $force = false)` —
-      walks the submodule path, validates each `definition.json` via
-      the existing `EventTemplateValidator`, computes the content
-      hash (excluding ownership envelope), routes each row to
-      install / upgrade-clean / skip-edited / failed
-- [ ] Helper `EventTemplate::computeLibraryHash(array $definition)`
-      — deterministic hash over the schema-relevant fields
+- [ ] `EventTemplate::updateFromLibrary($user)` — walks the
+      submodule path, validates each `definition.json` via the
+      existing `EventTemplateValidator`, sets `default = 1` from the
+      JSON's `default` field, routes each row to install / update /
+      skip-forked / failed based on the local row's `default` flag
+      and version comparison (PRD §5.3)
+- [ ] Importer + builder both honour the JSON's `default` field on
+      one-off `/event_templates/import` uploads and on builder
+      saves (the builder exposes the flag in the properties panel)
 - [ ] Summary structure documented and round-tripped through unit
       tests
 
 ### 2.4 Controller / REST
 
-- [ ] `EventTemplatesController::update($force = false)` — site-admin
-      gated, calls the loader, renders or returns the summary
+- [ ] `EventTemplatesController::update()` — site-admin gated, calls
+      the loader, renders or returns the summary
 - [ ] `EventTemplatesController::library_status()` — dry-run diff,
       same gate, same shape minus the writes
 - [ ] ACL list entries in `ACLComponent::$aclList['eventTemplates']`
@@ -214,13 +216,12 @@ against a real DB.
 
 ### 2.6 Tests
 
-- [ ] Unit tests for `computeLibraryHash` — deterministic, ignores
-      ownership envelope
-- [ ] Unit tests for the loader's install / upgrade-clean /
-      skip-edited routing
+- [ ] Unit tests for the loader's install / update / skip-forked
+      routing based on the `default` flag + version comparison
 - [ ] Integration test: empty DB → run update → seven templates
-      installed; mutate one; bump library version; run update →
-      that one is skipped, others upgrade
+      installed with `default = 1`; flip one to `default = 0`;
+      bump that template's library version; run update → forked
+      one is skipped, others update silently
 
 - [ ] **Phase 2 complete**
 
@@ -237,10 +238,15 @@ view summary, see library badges — from the UI on both themes.
 
 - [ ] "Update from library" button on the event-templates index
       toolbar, gated on the new ACL entry, sits next to Import
-- [ ] Update result page rendering installed / upgraded / skipped /
-      failed sections with copy explaining the skip-edited semantics
-- [ ] Library badge column on the index for rows with non-null
-      `library_synced_hash`
+- [ ] Update result page rendering installed / updated / skipped-forked /
+      failed sections with copy explaining the `default` flag mechanic
+- [ ] Default-template badge column on the index for rows with
+      `default = 1`
+- [ ] Builder banner near the save bar warning that edits to a
+      `default = 1` row will be overwritten on the next library
+      update unless the operator flips the flag (PRD §10.4)
+- [ ] Properties-panel toggle exposing the `default` flag to the
+      builder
 
 ### 3.2 Overmind theme (BS5)
 
@@ -248,7 +254,9 @@ view summary, see library badges — from the UI on both themes.
       event-templates index, same ACL gate
 - [ ] BS5-flavoured update result view (cards / sections per
       outcome category)
-- [ ] Library badge in the IndexTable card / table fields
+- [ ] Default-template badge in the IndexTable card / table fields
+- [ ] Builder warning + properties-panel toggle (parity with the
+      default theme)
 
 ### 3.3 First-touch auto-update flash
 
