@@ -177,9 +177,9 @@ against a real DB.
 
 ### 2.2 Submodule registration
 
-- [ ] Add `app/files/misp-event-templates/` entry to `.gitmodules`
-      pointing at `MISP/misp-event-templates#main`
-- [ ] Initial submodule checkout committed at the Phase-1 head SHA
+- [x] Add `app/files/misp-event-templates/` entry to `.gitmodules` pointing at `https://github.com/MISP/misp-event-templates#main` — HTTPS URL (matching every other content submodule's convention) so users without a GitHub account can fetch.
+- [x] Add un-ignore entries to `.gitignore` so the submodule path is tracked.
+- [x] Initial submodule checkout pinned to Phase-1 head SHA `99f97d57af8836f5660ea7c429bf9964f4d80e53`.
 
 ### 2.3 Loader
 

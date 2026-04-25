@@ -54,6 +54,8 @@ app/Lib/EventWarning/Custom/*
 !/app/files/misp-galaxy/*
 !/app/files/misp-objects
 !/app/files/misp-objects/*
+!/app/files/misp-event-templates
+!/app/files/misp-event-templates/*
 !/app/files/misp-decaying-models
 !/app/files/misp-decaying-models/*
 !/app/files/misp-workflow-blueprints
