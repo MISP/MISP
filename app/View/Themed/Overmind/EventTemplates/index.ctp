@@ -142,6 +142,52 @@ if ($this->Acl->canAccess('eventTemplates', 'import')) {
 }
 $this->set('headerActions', $headerActions);
 
+// Genuine empty state vs filtered-with-no-hits. See default-theme index for
+// the rationale — let IndexTable's standard "no matching records" handle the
+// latter so we don't misled a user who typed in the search box.
+$indexFilters = isset($this->request->params['named']) ? $this->request->params['named'] : array();
+$indexQuery = isset($this->request->query) ? $this->request->query : array();
+$filterActive = !empty($indexFilters) || !empty($indexQuery);
+if (empty($list) && !$filterActive) {
+    $canAdd = $this->Acl->canAccess('eventTemplates', 'add');
+    $canImport = $this->Acl->canAccess('eventTemplates', 'import');
+    ?>
+    <div class="container-fluid mt-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <div class="mb-3 text-primary" style="font-size:3rem;">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <h4 class="mb-2"><?= __('No event templates yet') ?></h4>
+                <p class="text-muted mb-4 mx-auto" style="max-width:560px;">
+                    <?= __('Event templates let your team scaffold a consistent event for a '
+                        . 'recurring incident type — the creator authors the structure once '
+                        . '(sections, attribute fields, MISP objects, tags, galaxies), and '
+                        . 'other users fill in just the values for each new event.') ?>
+                </p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <?php if ($canAdd): ?>
+                        <a href="<?= h($baseurl . '/event_templates/add') ?>"
+                           class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>
+                            <?= __('Add your first template') ?>
+                        </a>
+                    <?php endif; ?>
+                    <?php if ($canImport): ?>
+                        <a href="<?= h($baseurl . '/event_templates/import') ?>"
+                           class="btn btn-outline-secondary">
+                            <i class="fas fa-upload me-1"></i>
+                            <?= __('Import from JSON') ?>
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php
+    return;
+}
+
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [

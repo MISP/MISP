@@ -1,5 +1,43 @@
 <?php
 echo '<div class="eventTemplates index">';
+// Only show the welcoming empty state when the index is genuinely empty —
+// not when a filter merely returned zero rows. The latter is left to the
+// IndexTable's standard "no matching records" rendering so we don't mislead
+// users who just typed something into the search box.
+$indexFilters = isset($this->request->params['named']) ? $this->request->params['named'] : array();
+$indexQuery = isset($this->request->query) ? $this->request->query : array();
+$filterActive = !empty($indexFilters) || !empty($indexQuery);
+$emptyState = empty($list) && !$filterActive;
+if ($emptyState) {
+    $canAdd = $this->Acl->canAccess('eventTemplates', 'add');
+    $canImport = $this->Acl->canAccess('eventTemplates', 'import');
+    $cta = '';
+    if ($canAdd) {
+        $cta .= sprintf(
+            '<a href="%s" class="btn btn-primary"><i class="fa fa-plus"></i> %s</a> ',
+            h($baseurl . '/event_templates/add'),
+            __('Add your first template')
+        );
+    }
+    if ($canImport) {
+        $cta .= sprintf(
+            '<a href="%s" class="btn"><i class="fa fa-upload"></i> %s</a>',
+            h($baseurl . '/event_templates/import'),
+            __('Import from JSON')
+        );
+    }
+    echo sprintf(
+        '<div class="alert alert-info" style="margin-top:14px;">'
+        . '<h4 style="margin-top:0;">%s</h4>'
+        . '<p>%s</p>'
+        . ($cta !== '' ? '<p style="margin-bottom:0;">' . $cta . '</p>' : '')
+        . '</div>',
+        __('No event templates yet'),
+        __('Event templates let your team scaffold a consistent event for a recurring incident type — '
+            . 'the creator authors the structure once (sections, attribute fields, MISP objects, '
+            . 'tags, galaxies), and other users fill in just the values for each new event.')
+    );
+}
 echo $this->element('/genericElements/IndexTable/index_table', [
     'data' => [
         'title' => __('Event Templates'),
