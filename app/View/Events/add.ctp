@@ -81,8 +81,17 @@
     ));
 ?>
 <?php if ($offerTemplateAlternative): ?>
+<!--
+    The form (div.form) and the side menu (div.actions) are both
+    floated in MISP's classic layout, so anything that follows
+    them in the DOM has to clear both floats first or the browser
+    squeezes it into the empty sliver between them and overlaps
+    the form. clear:both takes care of that; the matching
+    margin-left lines the callout up with the form column rather
+    than spanning the side-menu gutter too.
+-->
 <div id="event-template-callout"
-     style="display:none; max-width:600px; margin:18px 0 0 220px;
+     style="display:none; clear:both; margin:18px 18px 24px 220px;
             padding:12px 14px; border:1px solid #d0d7de;
             border-radius:5px; background:#f7f8fa;">
     <div style="display:flex; align-items:center; gap:14px;">
@@ -95,6 +104,7 @@
             </div>
         </div>
         <button type="button" class="btn"
+                style="flex-shrink:0; white-space:nowrap;"
                 onclick="event.preventDefault(); openEventTemplatePicker();">
             <i class="fa fa-bolt"></i>
             <?php echo __('Create event via template instead'); ?>
