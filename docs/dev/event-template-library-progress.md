@@ -248,28 +248,23 @@ view summary, see library badges — from the UI on both themes.
 
 ## Phase 4 — Starter catalogue
 
-**Status:** not started
+**Status:** complete
 **Depends on:** Phase 3 complete (so each template can be smoke-tested
 through the full flow).
 **Exit criteria:** seven peer-reviewed templates merged into the
 library repo, all rendering correctly through the user form on both
 themes.
 
-- [ ] Template: `spearphishing-email` (already shipped Phase 1.3 as
-      reference; review for catalogue-quality and bump the version
-      if needed)
-- [ ] Template: `ransomware-incident` (same)
-- [ ] Template: `credential-exposure`
-- [ ] Template: `suspicious-domain-triage`
-- [ ] Template: `malware-sample-submission`
-- [ ] Template: `vulnerability-disclosure`
-- [ ] Template: `supply-chain-compromise`
-- [ ] Each template smoke-tested: import via library update, render
-      the user form, fill mandatory fields, instantiate, verify the
-      resulting event has the expected attributes / objects /
-      tags / clusters / object references
+- [x] Template: `spearphishing-email` — reviewed; the Phase 1.3 version is catalogue-quality (extensive labels and per-relation help on the email + file objects). Kept as-is.
+- [x] Template: `ransomware-incident` — same; Phase 1.3 shape is solid.
+- [x] Template: `credential-exposure` — paste-site dumps / breach data marketplace listings / OSINT tips. Library commit `a26cb89`.
+- [x] Template: `suspicious-domain-triage` — first-pass triage on a flagged domain with WHOIS + DNS resolution objects. Library commit `987e35c`.
+- [x] Template: `malware-sample-submission` — analyst-with-the-binary submission with full hash set + AV labels + sandbox C2 indicators. Library commit `4ef9b91`.
+- [x] Template: `vulnerability-disclosure` — CVE tracking with the misp-objects vulnerability object + exploit-status / PoC URL fields. Library commit `f24e291`.
+- [x] Template: `supply-chain-compromise` — backdoored-package incident with affected-versions / distribution-channel / behaviour-notes structure. Library commit `58b2b70`.
+- [x] Each template smoke-tested: full library update against the live MISP installs all 7 with `misp_default = 1`; minimal-mandatory instantiation through `/event_templates/instantiate/{id}` produces an event with the expected info-field substitution, attribute set, default threat-level/distribution/analysis, and tlp tag. Cleanup-after on each.
 
-- [ ] **Phase 4 complete (v1 shipping target reached)**
+- [x] **Phase 4 complete (v1 shipping target reached)**
 
 ---
 
