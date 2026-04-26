@@ -284,16 +284,47 @@ $hasActiveFilters = !empty($currentFilters);
 
             <?php if (!empty($filter_bar['enable'])): ?>
                 <button id="mass-enable-button"
-                        class="btn btn-success btn-sm d-none"
+                        class="btn btn-outline-success btn-sm d-none"
                         title="<?=__('Enable selected items')?>"
                         onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massEnable');?>')">
                     <i class="fas fa-play"></i> <?= __('Enable') ?>
                 </button>
                 <button id="mass-disable-button"
-                        class="btn btn-warning btn-sm d-none"
+                        class="btn btn-outline-danger btn-sm d-none"
                         title="<?=__('Disable selected items')?>"
                         onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massDisable');?>')">
                     <i class="fas fa-stop"></i> <?= __('Disable') ?>
+                </button>
+            <?php endif; ?>
+
+            <?php if (!empty($filter_bar['require'])): ?>
+                <button id="mass-require-button"
+                        class="btn btn-dark btn-sm d-none"
+                        title="<?=__('Make the selected items required')?>"
+                        onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massRequire');?>')">
+                    <i class="fas fa-asterisk"></i> <?= __('Required') ?>
+                </button>
+                <button id="mass-optional-button"
+                        class="btn btn-outline-dark btn-sm d-none"
+                        title="<?=__('Make the selected items optional')?>"
+                        onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massOptional');?>')">
+                    <i class="fas fa-question"></i> <?= __('Optional') ?>
+                </button>
+            <?php endif; ?>
+
+
+            <?php if (!empty($filter_bar['highlight'])): ?>
+                <button id="mass-highlight-button"
+                        class="btn btn-primary btn-sm d-none"
+                        title="<?=__('Highlight selected items')?>"
+                        onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massHighlight');?>')">
+                    <i class="fas fa-highlighter"></i> <?= __('Highlight') ?>
+                </button>
+                <button id="mass-removehighlight-button"
+                        class="btn btn-outline-primary btn-sm d-none"
+                        title="<?=__('Remove highlight for selected items')?>"
+                        onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massRemoveHighlight');?>')">
+                    <i class="fas fa-down-long"></i> <?= __('Remove Highlight') ?>
                 </button>
             <?php endif; ?>
 
@@ -391,9 +422,13 @@ function setView(view, save = true) {
         const checkbox = e.target;
         const id       = checkbox.dataset.itemId;
         const canDelete = checkbox.dataset.canDelete == "1";
+        const publish    = checkbox.dataset.publish;
+        const enable    = checkbox.dataset.enable;
+        const require    = checkbox.dataset.require;
+        const highlight    = checkbox.dataset.highlight;
 
         if (checkbox.checked) {
-            selectedItems.set(id, { id, canDelete });
+            selectedItems.set(id, { id, canDelete, publish, enable, require, highlight});
         } else {
             selectedItems.delete(id);
         }

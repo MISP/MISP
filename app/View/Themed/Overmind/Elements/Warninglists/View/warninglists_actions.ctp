@@ -41,7 +41,7 @@ if ($isSiteAdmin) {
 if ($isSiteAdmin) {
     $actions[] = [
         'url' => "$baseurl/warninglists/delete/$warninglistId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/warninglists/delete2/$warninglistId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/warninglists/deleteSelection/$warninglistId', 'sm');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete Warninglist'),
         'danger' => true

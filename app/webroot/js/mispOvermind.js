@@ -114,6 +114,10 @@ function updateMultiSelectToolbar() {
     const sightingButton = document.getElementById('mass-sighting-button');
     const enableButton   = document.getElementById('mass-enable-button');
     const disableButton  = document.getElementById('mass-disable-button');
+    const requireButton   = document.getElementById('mass-require-button');
+    const optionalButton  = document.getElementById('mass-optional-button');
+    const highlightButton   = document.getElementById('mass-highlight-button');
+    const removehighlightButton  = document.getElementById('mass-removehighlight-button');
 
     const count          = selectedItems.size;
 
@@ -128,12 +132,21 @@ function updateMultiSelectToolbar() {
     let canDeleteAll = true;
     let allEnabled = true;
     let allDisabled = true;
+    let allRequired = true;
+    let allOptional = true;
+    let allHighlighted = true;
+    let allRemovehighlighted = true;
 
     selectedItems.forEach(item => {
         if (!item.canDelete) canDeleteAll = false;
-        if (item.state === '1') allDisabled = false;
-        if (item.state === '0') allEnabled = false;
+        if (item.enable === '1') allDisabled = false;
+        if (item.enable === '0') allEnabled = false;
+        if (item.require === '1') allOptional = false;
+        if (item.require === '0') allRequired = false;
+        if (item.highlight === '1') allRemovehighlighted = false;
+        if (item.highlight === '0') allHighlighted = false;
     });
+
 
     const isHidden = !canDeleteAll;
 
@@ -158,6 +171,34 @@ function updateMultiSelectToolbar() {
         } else {
             enableButton.classList.remove('d-none');
             disableButton.classList.remove('d-none');
+        }
+    }
+
+    // Specific logic for the Require/Optional buttons
+    if (requireButton && optionalButton) {
+        if (allOptional) {
+            requireButton.classList.remove('d-none');
+            optionalButton.classList.add('d-none');
+        } else if (allRequired) {
+            requireButton.classList.add('d-none');
+            optionalButton.classList.remove('d-none');
+        } else {
+            requireButton.classList.remove('d-none');
+            optionalButton.classList.remove('d-none');
+        }
+    }
+
+    // Specific logic for the Highlight/remove highlight buttons
+    if (highlightButton && removehighlightButton) {
+        if (allRemovehighlighted) {
+            highlightButton.classList.remove('d-none');
+            removehighlightButton.classList.add('d-none');
+        } else if (allHighlighted) {
+            highlightButton.classList.add('d-none');
+            removehighlightButton.classList.remove('d-none');
+        } else {
+            highlightButton.classList.remove('d-none');
+            removehighlightButton.classList.remove('d-none');
         }
     }
 }
@@ -256,10 +297,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const checkbox = e.target;
         const id       = checkbox.dataset.itemId;
         const canDelete = checkbox.dataset.canDelete == "1";
-        const state    = checkbox.dataset.state;
+        const publish    = checkbox.dataset.publish;
+        const enable    = checkbox.dataset.enable;
+        const require    = checkbox.dataset.require;
+        const highlight    = checkbox.dataset.highlight;
 
         if (checkbox.checked) {
-            selectedItems.set(id, { id, canDelete, state });
+            selectedItems.set(id, { id, canDelete, publish, enable, require, highlight});
         } else {
             selectedItems.delete(id);
         }
@@ -268,6 +312,79 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+
+/*******************************
+ * Tags
+ *******************************/
+
+function toggleTags(badge) {
+    const container = badge.closest('.tag-container');
+    const hiddenTags = container.querySelectorAll('.extra-tag');
+
+    if (!hiddenTags.length) return;
+
+    const isHidden = hiddenTags[0].classList.contains('d-none');
+
+    hiddenTags.forEach(g => g.classList.toggle('d-none'));
+
+    badge.textContent = isHidden ? '−' : '+' + hiddenTags.length;
+}
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
+
+    document.body.addEventListener('click', async function(e) {
+        const starIcon = e.target.closest('.tag-star');
+
+        if (starIcon) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const tagId = starIcon.getAttribute('data-id');
+            const wasFavourite = starIcon.classList.contains('fas');
+            starIcon.classList.toggle('fas');
+            starIcon.classList.toggle('far');
+
+            const formData = new URLSearchParams();
+            formData.append('data[FavouriteTag][data]', tagId);
+
+            try {
+                const url = (typeof baseurl !== 'undefined' ? baseurl : '') + '/favourite_tags/toggle';
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!result.saved) {
+                    revertStar(starIcon, wasFavourite);
+                    console.error('Erreur lors du changement de favori:', result.fails);
+                    // Todo: Add toast message
+                }
+            } catch (error) {
+                revertStar(starIcon, wasFavourite);
+                console.error('Erreur réseau lors de la mise à jour du favori:', error);
+            }
+        }
+    });
+
+    function revertStar(element, shouldBeFavourite) {
+        if (shouldBeFavourite) {
+            element.classList.add('fas text-warning');
+            element.classList.remove('far text-muted');
+        } else {
+            element.classList.add('far text-muted');
+            element.classList.remove('fas text-warning');
+        }
+    }
+});
 
 /*******************************
  * Other

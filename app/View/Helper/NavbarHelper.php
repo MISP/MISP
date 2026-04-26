@@ -206,14 +206,6 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-tags',
                 'children' => [
                     [
-                        'label' => __('Add Tag'),
-                        'url' => $baseurl . '/tags/add',
-                        'controller' => 'tags',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('tags', 'add'),
-                        'icon' => 'fas fa-plus'
-                    ],
-                    [
                         'label' => __('List Tags'),
                         'url' => $baseurl . '/tags/index',
                         'controller' => 'tags',

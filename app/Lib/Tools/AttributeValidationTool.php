@@ -478,6 +478,7 @@ class AttributeValidationTool
             case 'mutex':
             case 'process-state':
             case 'snort':
+            case 'suricata':
             case 'bro':
             case 'zeek':
             case 'community-id':
