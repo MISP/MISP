@@ -260,7 +260,7 @@
         </div>
 
         <!-- CANVAS -->
-        <div class="col-lg-6 col-md-5">
+        <div class="col-lg-5 col-md-4">
             <div class="card shadow-sm">
                 <div class="card-body">
                     <div class="et-canvas" id="et-canvas" style="min-height:420px;">
@@ -312,7 +312,7 @@
         </div>
 
         <!-- PROPERTIES -->
-        <div class="col-lg-4 col-md-4">
+        <div class="col-lg-5 col-md-5">
             <div class="card shadow-sm et-properties-pane">
                 <div class="card-body">
                     <div class="et-empty" x-show="!selectedId">

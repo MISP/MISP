@@ -62,7 +62,7 @@
 .eventTemplates.builder .et-envelope .control-group { margin-bottom: 6px; }
 .eventTemplates.builder .et-grid {
     display: grid;
-    grid-template-columns: 200px 1fr 340px;
+    grid-template-columns: 200px 1fr 1fr;
     gap: 10px;
     min-height: 420px;
 }
