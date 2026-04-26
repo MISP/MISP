@@ -328,6 +328,55 @@
 }
 </style>
 
+<div id="et-galaxy-picker-modal" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3><?php echo __('Select galaxy clusters'); ?></h3>
+    </div>
+    <div class="modal-body">
+        <div id="et-galaxy-picker-restriction-hint" style="color:#666; font-size:11px; margin-bottom:6px;"></div>
+        <input type="text" id="et-galaxy-picker-search" class="input-block-level"
+               placeholder="<?php echo __('Type to search clusters by name or description…'); ?>">
+        <div id="et-galaxy-picker-status" style="color:#888; padding:8px 4px; min-height:20px;"></div>
+        <div id="et-galaxy-picker-list" style="max-height:420px; overflow-y:auto; border:1px solid #eee; border-radius:3px;">
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn" data-dismiss="modal">
+            <?php echo __('Cancel'); ?>
+        </button>
+        <button type="button" class="btn btn-primary" id="et-galaxy-picker-apply">
+            <?php echo __('Apply'); ?>
+        </button>
+    </div>
+</div>
+
+<style>
+#et-galaxy-picker-modal { width: 560px; }
+#et-galaxy-picker-modal label.et-galaxy-picker-item {
+    display: block;
+    padding: 5px 10px;
+    border-bottom: 1px solid #f3f3f3;
+    margin: 0;
+    cursor: pointer;
+}
+#et-galaxy-picker-modal label.et-galaxy-picker-item:hover { background: #f0f8ff; }
+#et-galaxy-picker-modal label.et-galaxy-picker-item input[type=checkbox] { margin-right: 8px; }
+#et-galaxy-picker-modal .et-galaxy-picker-name { font-weight: 500; }
+#et-galaxy-picker-modal .et-galaxy-picker-type {
+    color: #888; font-size: 11px; margin-left: 6px;
+}
+#et-galaxy-picker-modal .et-galaxy-picker-desc {
+    display: block;
+    color: #666;
+    font-size: 11px;
+    margin-left: 24px;
+    margin-top: 2px;
+    max-height: 3em;
+    overflow: hidden;
+}
+</style>
+
 <script>
     window.ET_USER_FORM_CONFIG = {
         baseurl:    <?php echo json_encode($baseurl); ?>,

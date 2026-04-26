@@ -22,18 +22,30 @@
             <?php echo $this->EventTemplateMarkdown->render($help); ?>
         </div>
     <?php endif; ?>
-    <input type="text" class="input-block-level et-value"
-           data-et-path="<?php echo h($id); ?>"
-           data-et-csv="1"
-           placeholder="<?php
-               echo $multiple
-                   ? __('Comma-separated galaxy cluster values')
-                   : __('A single galaxy cluster value');
-           ?>">
-    <span style="color:#888; font-size:11px;">
+    <div style="display:flex; gap:6px; align-items:center;">
+        <input type="text" class="input-block-level et-value"
+               data-et-path="<?php echo h($id); ?>"
+               data-et-csv="1"
+               style="flex:1; margin-bottom:0;"
+               placeholder="<?php
+                   echo $multiple
+                       ? __('Comma-separated galaxy cluster values (e.g. APT41, FIN7)')
+                       : __('A single galaxy cluster value (e.g. APT41)');
+               ?>">
         <?php if (!empty($galaxyTypes)): ?>
-            <?php echo __('Restricted to galaxy types: %s', h(implode(', ', $galaxyTypes))); ?>.
+            <button type="button" class="btn"
+                    data-et-open-galaxy-picker="<?php echo h($id); ?>">
+                <i class="fa fa-globe"></i> <?php echo __('Choose…'); ?>
+            </button>
         <?php endif; ?>
-        <?php echo __('Inline picker integration lands in the next commit.'); ?>
-    </span>
+    </div>
+    <?php if (!empty($galaxyTypes)): ?>
+        <span style="color:#888; font-size:11px;">
+            <?php echo __('Restricted to galaxy types: %s', h(implode(', ', $galaxyTypes))); ?>.
+        </span>
+    <?php else: ?>
+        <span style="color:#888; font-size:11px;">
+            <?php echo __('No galaxy-type restriction set on this field; type values manually.'); ?>
+        </span>
+    <?php endif; ?>
 </div>

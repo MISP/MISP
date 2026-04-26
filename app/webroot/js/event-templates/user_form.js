@@ -815,6 +815,224 @@
     }
 
     // -----------------------------------------------------------------
+    // Galaxy cluster picker — server-side search, scoped to the field's
+    // restrict_galaxy_types. Mirrors the tag picker's modal flow but
+    // hits /galaxy_clusters/search?galaxy_type=<type>&q=<term> per-type
+    // and merges results client-side (the restriction can list more
+    // than one galaxy type).
+    // -----------------------------------------------------------------
+
+    var galaxyPickerCtx = null;
+    var galaxyPickerSearchTimer = null;
+
+    function wireGalaxyPicker() {
+        document.addEventListener('click', function (e) {
+            var $btn = e.target.closest('[data-et-open-galaxy-picker]');
+            if ($btn) {
+                e.preventDefault();
+                openGalaxyPicker($btn.getAttribute('data-et-open-galaxy-picker'));
+            }
+        });
+        var $search = document.getElementById('et-galaxy-picker-search');
+        if ($search) {
+            $search.addEventListener('input', function () {
+                if (galaxyPickerSearchTimer) {
+                    clearTimeout(galaxyPickerSearchTimer);
+                }
+                galaxyPickerSearchTimer = setTimeout(function () {
+                    runGalaxyPickerSearch($search.value);
+                }, 200);
+            });
+        }
+        var $apply = document.getElementById('et-galaxy-picker-apply');
+        if ($apply) {
+            $apply.addEventListener('click', function (e) {
+                e.preventDefault();
+                applyGalaxyPicker();
+            });
+        }
+    }
+
+    function openGalaxyPicker(elementId) {
+        var $field = document.querySelector('.et-field[data-et-element-id="' + cssEscape(elementId) + '"]');
+        if (!$field) { return; }
+        var restrictJson = $field.getAttribute('data-et-restrict-galaxy-types') || '[]';
+        var restrict = [];
+        try { restrict = JSON.parse(restrictJson); } catch (e) { restrict = []; }
+        var multiple = $field.getAttribute('data-et-multiple') === '1';
+        var $input = $field.querySelector('input.et-value[data-et-path]');
+        var currentCsv = ($input && $input.value) || '';
+
+        galaxyPickerCtx = {
+            elementId: elementId,
+            multiple: multiple,
+            restrict: restrict.map(function (t) { return String(t).trim(); }).filter(Boolean),
+            targetInput: $input,
+            preChecked: currentCsv.split(',')
+                .map(function (s) { return s.trim(); })
+                .filter(Boolean),
+            // Cache of {value, label, description, uuid} keyed by label
+            // so re-rendering after a search / apply preserves selections
+            // outside the current visible result set.
+            stickySelected: {}
+        };
+        // Seed sticky-selected with current values so they stay checked
+        // even when the user types a search that filters them out.
+        galaxyPickerCtx.preChecked.forEach(function (label) {
+            galaxyPickerCtx.stickySelected[label] = {label: label, description: ''};
+        });
+
+        var $hint = document.getElementById('et-galaxy-picker-restriction-hint');
+        if ($hint) {
+            if (galaxyPickerCtx.restrict.length) {
+                $hint.textContent =
+                    'Searching galaxy types: ' + galaxyPickerCtx.restrict.join(', ');
+            } else {
+                $hint.textContent = 'No galaxy-type restriction — picker disabled. Type values manually.';
+            }
+        }
+        var $search = document.getElementById('et-galaxy-picker-search');
+        if ($search) { $search.value = ''; }
+
+        var $modal = document.getElementById('et-galaxy-picker-modal');
+        if ($modal) {
+            if (window.bootstrap && window.bootstrap.Modal) {
+                window.bootstrap.Modal.getOrCreateInstance($modal).show();
+            } else if (window.jQuery) {
+                window.jQuery($modal).modal('show');
+            }
+            if ($search) { setTimeout(function () { $search.focus(); }, 150); }
+        }
+
+        if (!galaxyPickerCtx.restrict.length) {
+            renderGalaxyPickerStatus('Picker requires at least one galaxy_type on the field.');
+            renderGalaxyPickerList([]);
+            return;
+        }
+        // Initial fetch with empty query — shows the first 50 clusters
+        // per restricted type so the modal is never empty on open.
+        runGalaxyPickerSearch('');
+    }
+
+    function runGalaxyPickerSearch(query) {
+        if (!galaxyPickerCtx) { return; }
+        if (!galaxyPickerCtx.restrict.length) { return; }
+        renderGalaxyPickerStatus('Searching…');
+        var fetches = galaxyPickerCtx.restrict.map(function (type) {
+            var url = cfg.baseurl + '/galaxy_clusters/search?galaxy_type='
+                + encodeURIComponent(type)
+                + (query ? '&q=' + encodeURIComponent(query) : '');
+            return fetch(url, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(function (r) {
+                if (!r.ok) { return []; }
+                return r.json();
+            }).catch(function () { return []; });
+        });
+        Promise.all(fetches).then(function (results) {
+            var seen = {};
+            var merged = [];
+            results.forEach(function (rows) {
+                (rows || []).forEach(function (row) {
+                    if (!row || !row.label) { return; }
+                    if (seen[row.label]) { return; }
+                    seen[row.label] = true;
+                    merged.push(row);
+                });
+            });
+            renderGalaxyPickerList(merged);
+            if (merged.length === 0) {
+                renderGalaxyPickerStatus(query
+                    ? 'No clusters match "' + query + '".'
+                    : 'No clusters available.');
+            } else {
+                renderGalaxyPickerStatus(merged.length >= 50
+                    ? 'Showing first 50 matches per galaxy type. Refine search to narrow.'
+                    : merged.length + ' result' + (merged.length === 1 ? '' : 's') + '.');
+            }
+        });
+    }
+
+    function renderGalaxyPickerStatus(text) {
+        var $status = document.getElementById('et-galaxy-picker-status');
+        if ($status) { $status.textContent = text || ''; }
+    }
+
+    function renderGalaxyPickerList(rows) {
+        var $list = document.getElementById('et-galaxy-picker-list');
+        if (!$list || !galaxyPickerCtx) { return; }
+        var preSet = {};
+        galaxyPickerCtx.preChecked.forEach(function (n) { preSet[n] = true; });
+        $list.innerHTML = '';
+        rows.forEach(function (row) {
+            var label = row.label || '';
+            var desc = row.description || '';
+            // Cache visible rows by label so applyGalaxyPicker has the
+            // canonical metadata on hand even if the user re-searches.
+            galaxyPickerCtx.stickySelected[label] = galaxyPickerCtx.stickySelected[label] || {
+                label: label,
+                description: desc
+            };
+            var $label = document.createElement('label');
+            $label.className = 'et-galaxy-picker-item';
+            $label.setAttribute('data-galaxy-label', label);
+            var $cb = document.createElement('input');
+            $cb.type = 'checkbox';
+            $cb.value = label;
+            if (preSet[label]) { $cb.checked = true; }
+            $cb.addEventListener('change', function () {
+                if (this.checked) {
+                    if (!galaxyPickerCtx.preChecked.includes(label)) {
+                        galaxyPickerCtx.preChecked.push(label);
+                    }
+                } else {
+                    galaxyPickerCtx.preChecked = galaxyPickerCtx.preChecked
+                        .filter(function (x) { return x !== label; });
+                }
+            });
+            var $name = document.createElement('span');
+            $name.className = 'et-galaxy-picker-name';
+            $name.textContent = label;
+            $label.appendChild($cb);
+            $label.appendChild($name);
+            if (desc) {
+                var $desc = document.createElement('span');
+                $desc.className = 'et-galaxy-picker-desc';
+                $desc.textContent = desc;
+                $label.appendChild($desc);
+            }
+            $list.appendChild($label);
+        });
+    }
+
+    function applyGalaxyPicker() {
+        if (!galaxyPickerCtx) { return; }
+        var picked = galaxyPickerCtx.preChecked.slice();
+        if (galaxyPickerCtx.targetInput) {
+            if (!galaxyPickerCtx.multiple && picked.length > 1) {
+                picked = picked.slice(0, 1);
+            }
+            galaxyPickerCtx.targetInput.value = picked.join(', ');
+            galaxyPickerCtx.targetInput.dispatchEvent(new Event('input', {bubbles: true}));
+        }
+        var $modal = document.getElementById('et-galaxy-picker-modal');
+        if ($modal) {
+            if (window.bootstrap && window.bootstrap.Modal) {
+                var inst = window.bootstrap.Modal.getInstance($modal);
+                if (inst) { inst.hide(); }
+            } else if (window.jQuery) {
+                window.jQuery($modal).modal('hide');
+            }
+        }
+        galaxyPickerCtx = null;
+    }
+
+    // -----------------------------------------------------------------
     // Wizard mode — show one section at a time with prev/next nav.
     // All sections stay in the DOM so submit collects every value
     // exactly as in single-page mode; only visibility differs.
@@ -941,6 +1159,7 @@
         wireMandatoryGuard();
         wireSubmit();
         wireTagPicker();
+        wireGalaxyPicker();
         wireFileInputs();
         wireObjectCollapsing();
         wireWizardMode();
