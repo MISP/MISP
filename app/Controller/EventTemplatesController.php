@@ -100,6 +100,15 @@ class EventTemplatesController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        // The default-theme index uses the shared `distribution_levels`
+        // field renderer, which expects this view var. Event templates
+        // only support two distribution values (PRD §6.2 / §8): 0 = org
+        // only, 1 = community. The labels mirror the wording on the
+        // builder envelope and the picker modal.
+        $this->set('distributionLevels', array(
+            0 => __('Your organisation only'),
+            1 => __('Community'),
+        ));
         $this->set('list', $this->viewVars['data']);
     }
 

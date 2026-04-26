@@ -94,10 +94,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'name' => __('UUID'),
                 'sort' => 'EventTemplate.uuid',
-                'class' => 'short',
-                'element' => 'shortUUID',
                 'data_path' => 'EventTemplate.uuid',
-                'object_type' => 'EventTemplate',
             ],
             [
                 'name' => __('Organisation'),
@@ -111,11 +108,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'sort' => 'EventTemplate.distribution',
                 'class' => 'short',
                 'data_path' => 'EventTemplate.distribution',
-                'element' => 'generic_field',
-                'mapping' => [
-                    0 => __('Org only'),
-                    1 => __('Community'),
-                ],
+                'element' => 'distribution_levels',
             ],
             [
                 'name' => __('Active'),
