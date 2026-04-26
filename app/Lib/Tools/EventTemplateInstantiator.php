@@ -572,7 +572,12 @@ class EventTemplateInstantiator
                     'meta-category' => $spec['meta_category'],
                     'description' => $spec['description'],
                     'template_uuid' => $otUuid,
-                    'template_version' => (string)$otVersion,
+                    // Record the version actually used to build the
+                    // object, not the template's pinned minimum. The
+                    // pinned_version is a "minimum required" floor; the
+                    // matched version is what shaped the relation set
+                    // we just persisted (PRD §13).
+                    'template_version' => (string)(isset($spec['matched_version']) ? $spec['matched_version'] : $otVersion),
                     'uuid' => $objectUuid,
                     'distribution' => 5,
                     'Attribute' => $nestedAttrs,
@@ -748,22 +753,35 @@ class EventTemplateInstantiator
             return $this->objectTemplateSpec[$cacheKey];
         }
 
+        // Treat the template's `pinned_version` as a *minimum*
+        // (PRD §13). When the operator's instance carries a newer
+        // misp-objects version than the template's pin, instantiation
+        // should still work — picks the lowest installed version >=
+        // pinned so we use the shape closest to what the template
+        // author tested against. Same pattern as the controller's
+        // __collectObjectRelationSpecs which renders the user form.
         $ot = ClassRegistry::init('ObjectTemplate')->find('first', array(
             'conditions' => array(
                 'ObjectTemplate.uuid' => strtolower((string)$uuid),
-                'ObjectTemplate.version' => (int)$version,
+                'ObjectTemplate.version >=' => (int)$version,
+                'ObjectTemplate.active' => true,
             ),
             'contain' => array('ObjectTemplateElement'),
+            'order' => array('ObjectTemplate.version' => 'ASC'),
         ));
         $relations = array();
         $metaCategory = 'misc';
         $description = '';
+        $matchedVersion = (int)$version;
         if (!empty($ot)) {
             if (!empty($ot['ObjectTemplate']['meta-category'])) {
                 $metaCategory = (string)$ot['ObjectTemplate']['meta-category'];
             }
             if (!empty($ot['ObjectTemplate']['description'])) {
                 $description = (string)$ot['ObjectTemplate']['description'];
+            }
+            if (!empty($ot['ObjectTemplate']['version'])) {
+                $matchedVersion = (int)$ot['ObjectTemplate']['version'];
             }
             if (!empty($ot['ObjectTemplateElement'])) {
                 foreach ($ot['ObjectTemplateElement'] as $elDef) {
@@ -791,6 +809,7 @@ class EventTemplateInstantiator
             'meta_category' => $metaCategory,
             'description' => $description,
             'relations' => $relations,
+            'matched_version' => $matchedVersion,
         );
         $this->objectTemplateSpec[$cacheKey] = $spec;
         return $spec;

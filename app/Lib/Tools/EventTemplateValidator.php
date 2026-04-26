@@ -211,6 +211,12 @@ class EventTemplateValidator
 
     private function objectTemplateAvailable($uuid, $pinnedVersion)
     {
+        // Treat `pinned_version` as a *minimum* requirement (PRD §13).
+        // MISP keeps multiple rows per object-template uuid (one per
+        // upstream version bump), so a plain find('first') without an
+        // order clause may return any row and the >= check then
+        // false-negatives. Look up the highest installed version with
+        // a single query and compare.
         $objectTemplate = ClassRegistry::init('ObjectTemplate');
         $row = $objectTemplate->find('first', array(
             'conditions' => array(
@@ -218,6 +224,7 @@ class EventTemplateValidator
                 'ObjectTemplate.active' => true,
             ),
             'fields' => array('ObjectTemplate.version'),
+            'order' => array('ObjectTemplate.version' => 'DESC'),
             'recursive' => -1,
         ));
         if (empty($row)) {
