@@ -98,7 +98,7 @@ class AppModel extends Model
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
         147 => false, 148 => false, 149 => false, 150 => false,
-        151 => false, 152 => false
+        151 => false, 152 => false, 153 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2658,6 +2658,19 @@ class AppModel extends Model
                 // events.disable_correlation / similar, where bool in
                 // JSON is the established convention.
                 $sqlArray[] = "ALTER TABLE `event_templates` MODIFY `distribution` tinyint(4) NOT NULL DEFAULT 0;";
+                break;
+            case 153:
+                // Rename event_template_object_dependencies.pinned_version
+                // → minimum_version to match the field's actual semantics.
+                // The validator + instantiator + user-form renderer all
+                // treat the value as a *minimum required* version (PRD
+                // §13 forward-compatibility) — the running MISP instance
+                // is free to use a newer object-template version if one
+                // is installed. The "pinned" framing was misleading;
+                // operators read it as "must use this exact version".
+                // The matching JSON field, schema property, and PHP code
+                // refs all flip in the same commit.
+                $sqlArray[] = "ALTER TABLE `event_template_object_dependencies` CHANGE `pinned_version` `minimum_version` int(11) unsigned NOT NULL;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

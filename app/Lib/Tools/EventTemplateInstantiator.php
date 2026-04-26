@@ -539,7 +539,7 @@ class EventTemplateInstantiator
                 : array();
             $otUuid = isset($ot['uuid']) ? (string)$ot['uuid'] : '';
             $otName = isset($ot['name']) ? (string)$ot['name'] : '';
-            $otVersion = isset($ot['pinned_version']) ? (int)$ot['pinned_version'] : 1;
+            $otVersion = isset($ot['minimum_version']) ? (int)$ot['minimum_version'] : 1;
 
             $spec = $this->loadObjectTemplateSpec($otUuid, $otVersion);
             $relationMap = $spec['relations'];
@@ -574,7 +574,7 @@ class EventTemplateInstantiator
                     'template_uuid' => $otUuid,
                     // Record the version actually used to build the
                     // object, not the template's pinned minimum. The
-                    // pinned_version is a "minimum required" floor; the
+                    // minimum_version is a "minimum required" floor; the
                     // matched version is what shaped the relation set
                     // we just persisted (PRD §13).
                     'template_version' => (string)(isset($spec['matched_version']) ? $spec['matched_version'] : $otVersion),
@@ -753,7 +753,7 @@ class EventTemplateInstantiator
             return $this->objectTemplateSpec[$cacheKey];
         }
 
-        // Treat the template's `pinned_version` as a *minimum*
+        // Treat the template's `minimum_version` as a *minimum*
         // (PRD §13). When the operator's instance carries a newer
         // misp-objects version than the template's pin, instantiation
         // should still work — picks the lowest installed version >=

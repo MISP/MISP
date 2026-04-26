@@ -59,10 +59,10 @@
            :value="getField('object_template.uuid')">
 </div>
 <div class="mb-3">
-    <label class="form-label fw-semibold small mb-1"><?= __('Pinned version') ?></label>
+    <label class="form-label fw-semibold small mb-1"><?= __('Minimum version') ?></label>
     <input type="text"
            class="form-control form-control-sm bg-light" readonly
-           :value="getField('object_template.pinned_version')">
+           :value="getField('object_template.minimum_version')">
 </div>
 <hr>
 <div class="mb-3">

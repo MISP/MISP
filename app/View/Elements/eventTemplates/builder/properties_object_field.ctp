@@ -43,8 +43,8 @@
     <input type="text" data-et-field="object_template.uuid" class="input-block-level" readonly>
 </div>
 <div class="control-group">
-    <label><?php echo __('Pinned version'); ?></label>
-    <input type="text" data-et-field="object_template.pinned_version" class="input-block-level" readonly>
+    <label><?php echo __('Minimum version'); ?></label>
+    <input type="text" data-et-field="object_template.minimum_version" class="input-block-level" readonly>
 </div>
 <hr>
 <div class="control-group">

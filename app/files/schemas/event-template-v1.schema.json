@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://misp-project.org/schemas/event-template-v1.json",
   "title": "MISP Event Template v1",
-  "description": "Structural schema for a MISP event template's `definition` document (PRD §7). Semantic validation (attribute category+type validity, object template existence at pinned_version, cross-element id references, info_template variable ids pointing at real elements) is performed by the server-side EventTemplateValidator, not here.",
+  "description": "Structural schema for a MISP event template's `definition` document (PRD §7). Semantic validation (attribute category+type validity, object template existence at minimum_version, cross-element id references, info_template variable ids pointing at real elements) is performed by the server-side EventTemplateValidator, not here.",
   "type": "object",
   "required": ["schema_version", "uuid", "name", "event_defaults", "structure"],
   "additionalProperties": false,
@@ -168,12 +168,12 @@
         "repeatable": { "type": "boolean" },
         "object_template": {
           "type": "object",
-          "required": ["uuid", "name", "pinned_version"],
+          "required": ["uuid", "name", "minimum_version"],
           "additionalProperties": false,
           "properties": {
             "uuid":           { "type": "string", "format": "uuid" },
             "name":           { "type": "string", "minLength": 1 },
-            "pinned_version": { "type": "integer", "minimum": 1 }
+            "minimum_version": { "type": "integer", "minimum": 1 }
           }
         },
         "relations": {

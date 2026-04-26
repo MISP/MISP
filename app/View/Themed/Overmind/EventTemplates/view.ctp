@@ -146,7 +146,7 @@ $this->set('headerActions', $headerActions);
                             <tr>
                                 <th><?= __('Object template name') ?></th>
                                 <th><?= __('Object template UUID') ?></th>
-                                <th class="text-end"><?= __('Pinned version') ?></th>
+                                <th class="text-end"><?= __('Minimum version') ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -154,7 +154,7 @@ $this->set('headerActions', $headerActions);
                                 <tr>
                                     <td><?= h($dep['object_template_name'] ?? '') ?></td>
                                     <td><code><?= h($dep['object_template_uuid'] ?? '') ?></code></td>
-                                    <td class="text-end"><?= (int)($dep['pinned_version'] ?? 0) ?></td>
+                                    <td class="text-end"><?= (int)($dep['minimum_version'] ?? 0) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>

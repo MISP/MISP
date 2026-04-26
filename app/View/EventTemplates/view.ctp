@@ -36,14 +36,14 @@ if (!empty($deps)) {
         . '<thead><tr>'
         . '<th>' . __('Object template name') . '</th>'
         . '<th>' . __('Object template UUID') . '</th>'
-        . '<th>' . __('Pinned version') . '</th>'
+        . '<th>' . __('Minimum version') . '</th>'
         . '</tr></thead><tbody>';
     foreach ($deps as $dep) {
         $depRows .= sprintf(
             '<tr><td>%s</td><td><code>%s</code></td><td>%d</td></tr>',
             h($dep['object_template_name']),
             h($dep['object_template_uuid']),
-            (int)$dep['pinned_version']
+            (int)$dep['minimum_version']
         );
     }
     $depRows .= '</tbody></table>';

@@ -66,14 +66,14 @@
                 type: 'object_field', id,
                 label: 'New object', help: '',
                 mandatory: false, repeatable: false,
-                object_template: {uuid: '', name: '', pinned_version: 0},
+                object_template: {uuid: '', name: '', minimum_version: 0},
                 relations: []
             }),
             summary: (el) => {
                 const label = el.label || '(unnamed)';
                 const ot = el.object_template || {};
                 return label + ' — ' + (ot.name || 'no template') +
-                    (ot.pinned_version ? ' v' + ot.pinned_version : '');
+                    (ot.minimum_version ? ' v' + ot.minimum_version : '');
             }
         },
         tag_field: {
@@ -403,7 +403,7 @@
                 const elementId = this.selectedId;
                 this.setField('object_template.uuid', uuid);
                 this.setField('object_template.name', name);
-                this.setField('object_template.pinned_version',
+                this.setField('object_template.minimum_version',
                     parseInt(version, 10) || 0);
                 // Load relations + default to "all selected" — same UX
                 // contract as the Phase-2 builder.

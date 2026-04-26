@@ -89,7 +89,7 @@
                     type: 'object_field', id: id,
                     label: 'New object', help: '',
                     mandatory: false, repeatable: false,
-                    object_template: { uuid: '', name: '', pinned_version: 0 },
+                    object_template: { uuid: '', name: '', minimum_version: 0 },
                     relations: []
                 };
             },
@@ -97,7 +97,7 @@
                 var label = el.label || '(unnamed)';
                 var ot = el.object_template || {};
                 return label + ' — ' + (ot.name || 'no template') +
-                    (ot.pinned_version ? ' v' + ot.pinned_version : '');
+                    (ot.minimum_version ? ' v' + ot.minimum_version : '');
             }
         },
         tag_field: {
@@ -714,7 +714,7 @@
             }
         }
         if ($ver) {
-            $ver.textContent = ot.pinned_version ? ('v' + ot.pinned_version) : '';
+            $ver.textContent = ot.minimum_version ? ('v' + ot.minimum_version) : '';
         }
         if ($meta) {
             // Meta isn't persisted in state, but we can resolve it via
@@ -928,7 +928,7 @@
         var elementId = state.selectedId;
         setElementFieldDeep(elementId, 'object_template.uuid', uuid);
         setElementFieldDeep(elementId, 'object_template.name', name);
-        setElementFieldDeep(elementId, 'object_template.pinned_version', version);
+        setElementFieldDeep(elementId, 'object_template.minimum_version', version);
 
         // Default to "all relations included" — creator opts OUT of
         // the ones they don't want the user to see. Matches the natural

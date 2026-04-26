@@ -20,7 +20,7 @@ App::uses('ClassRegistry', 'Utility');
  *   - attribute_field.misp.category + type is a valid MISP combo
  *     (against MispAttribute::categoryDefinitions)
  *   - object_field.object_template.uuid is installed on this
- *     instance at version >= pinned_version
+ *     instance at version >= minimum_version
  *   - info_template `{{field:<id>}}` refs resolve to element ids
  *
  * Both layers run every call; the combined list lets the caller fix
@@ -167,7 +167,7 @@ class EventTemplateValidator
                     ? $element['object_template']
                     : array();
                 $uuid = isset($ot['uuid']) ? $ot['uuid'] : null;
-                $pinned = isset($ot['pinned_version']) ? (int)$ot['pinned_version'] : null;
+                $pinned = isset($ot['minimum_version']) ? (int)$ot['minimum_version'] : null;
                 if ($uuid === null || $pinned === null) {
                     continue;
                 }
@@ -209,9 +209,9 @@ class EventTemplateValidator
         return in_array($type, $catDefs[$category]['types'], true);
     }
 
-    private function objectTemplateAvailable($uuid, $pinnedVersion)
+    private function objectTemplateAvailable($uuid, $minimumVersion)
     {
-        // Treat `pinned_version` as a *minimum* requirement (PRD §13).
+        // Treat `minimum_version` as a *minimum* requirement (PRD §13).
         // MISP keeps multiple rows per object-template uuid (one per
         // upstream version bump), so a plain find('first') without an
         // order clause may return any row and the >= check then
@@ -230,6 +230,6 @@ class EventTemplateValidator
         if (empty($row)) {
             return false;
         }
-        return (int)$row['ObjectTemplate']['version'] >= (int)$pinnedVersion;
+        return (int)$row['ObjectTemplate']['version'] >= (int)$minimumVersion;
     }
 }

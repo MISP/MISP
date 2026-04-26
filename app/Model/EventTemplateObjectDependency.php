@@ -40,9 +40,9 @@ class EventTemplateObjectDependency extends AppModel
             'rule' => 'notBlank',
             'message' => 'object_template_name is required',
         ),
-        'pinned_version' => array(
+        'minimum_version' => array(
             'rule' => 'naturalNumber',
-            'message' => 'pinned_version is required',
+            'message' => 'minimum_version is required',
         ),
     );
 }

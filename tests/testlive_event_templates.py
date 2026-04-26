@@ -426,18 +426,18 @@ class EventTemplatesObjectDependencyTrackingTests(unittest.TestCase):
     """
 
     # Two real, installed object templates on a default MISP instance.
-    # We use stable uuids and pinned_versions so the semantic validator
+    # We use stable uuids and minimum_versions so the semantic validator
     # is happy on every supported MISP. If these uuids are ever removed
     # from misp-object upstream this will need updating.
     EMAIL_OT = {
         "uuid": "a0c666e0-fc65-4be8-b48f-3423d788b552",
         "name": "email",
-        "pinned_version": 1,
+        "minimum_version": 1,
     }
     FILE_OT = {
         "uuid": "688c46fb-5edb-40a3-8273-1af7923e2215",
         "name": "file",
-        "pinned_version": 1,
+        "minimum_version": 1,
     }
 
     _templates: List[int]
@@ -545,7 +545,7 @@ class EventTemplatesObjectDependencyTrackingTests(unittest.TestCase):
     def test_dependencies_deduplicated_across_multiple_fields(self) -> None:
         # Two object_fields referencing the same object template — the
         # sidecar keeps one row (extractObjectDependencies dedupes by
-        # uuid and keeps the highest pinned_version).
+        # uuid and keeps the highest minimum_version).
         definition = self._definition_with_object_fields([
             self.EMAIL_OT, self.EMAIL_OT,
         ])

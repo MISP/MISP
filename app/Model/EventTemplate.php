@@ -261,7 +261,7 @@ class EventTemplate extends AppModel
 
     /**
      * Walks the definition's structure and returns a deduplicated array of
-     * {object_template_uuid, object_template_name, pinned_version} rows, one
+     * {object_template_uuid, object_template_name, minimum_version} rows, one
      * per distinct object template referenced by the template.
      */
     public function extractObjectDependencies(array $definition)
@@ -281,13 +281,13 @@ class EventTemplate extends AppModel
                 : array();
             $uuid = isset($ot['uuid']) ? strtolower((string)$ot['uuid']) : null;
             $name = isset($ot['name']) ? (string)$ot['name'] : null;
-            $pinned = isset($ot['pinned_version']) ? (int)$ot['pinned_version'] : null;
+            $pinned = isset($ot['minimum_version']) ? (int)$ot['minimum_version'] : null;
             if ($uuid === null || $name === null || $pinned === null) {
                 continue;
             }
             if (isset($seen[$uuid])) {
-                if ($pinned > $rows[$seen[$uuid]]['pinned_version']) {
-                    $rows[$seen[$uuid]]['pinned_version'] = $pinned;
+                if ($pinned > $rows[$seen[$uuid]]['minimum_version']) {
+                    $rows[$seen[$uuid]]['minimum_version'] = $pinned;
                 }
                 continue;
             }
@@ -295,7 +295,7 @@ class EventTemplate extends AppModel
             $rows[] = array(
                 'object_template_uuid' => $uuid,
                 'object_template_name' => $name,
-                'pinned_version' => $pinned,
+                'minimum_version' => $pinned,
             );
         }
         return $rows;

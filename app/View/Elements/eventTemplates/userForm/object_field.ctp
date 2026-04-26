@@ -29,7 +29,7 @@
         <div class="alert alert-error">
             <?php echo __('Referenced object template is not installed on this instance (uuid %s at pinned version %s).',
                 !empty($spec['uuid']) ? h($spec['uuid']) : '?',
-                !empty($spec['pinned_version']) ? (int)$spec['pinned_version'] : '?'
+                !empty($spec['minimum_version']) ? (int)$spec['minimum_version'] : '?'
             ); ?>
         </div>
     <?php else: ?>

@@ -168,7 +168,7 @@ CREATE TABLE event_template_object_dependencies (
   event_template_id     INT(11) UNSIGNED NOT NULL,
   object_template_uuid  VARCHAR(40)      NOT NULL,
   object_template_name  VARCHAR(255)     NOT NULL,
-  pinned_version        INT(11) UNSIGNED NOT NULL,
+  minimum_version        INT(11) UNSIGNED NOT NULL,
   PRIMARY KEY (id),
   KEY event_template_id (event_template_id),
   KEY object_template_uuid (object_template_uuid)
@@ -236,7 +236,7 @@ The JSON schema below is the v1 target. Full schema lives in `app/files/schemas/
       "object_template": {
         "uuid": "a0c666e0-fc67-4...",
         "name": "email",
-        "pinned_version": 12
+        "minimum_version": 12
       },
       "relations": [
         { "object_relation": "from",    "mandatory": true,  "default_value": null, "hidden": false, "label_override": "Sender address",    "help_override": "Exactly as it appears in the From: header — do not normalise." },
@@ -251,7 +251,7 @@ The JSON schema below is the v1 target. Full schema lives in `app/files/schemas/
       "help": "Files that were attached to the email, if any.",
       "mandatory": false,
       "repeatable": true,
-      "object_template": { "uuid": "...", "name": "file", "pinned_version": 25 },
+      "object_template": { "uuid": "...", "name": "file", "minimum_version": 25 },
       "relations": [
         { "object_relation": "filename", "mandatory": true,  "hidden": false, "label_override": null, "help_override": "Original filename as seen in the attachment." },
         { "object_relation": "sha256",   "mandatory": false, "hidden": false, "label_override": null, "help_override": null }
@@ -457,7 +457,7 @@ Object-template dependencies are embedded by reference (uuid + pinned version), 
 `POST /event_templates/import` accepts the same JSON. Validation pipeline:
 
 1. JSON-schema validation against `event-template-v1.schema.json`.
-2. For each `object_field`: verify the referenced object template exists on this instance and its version ≥ `pinned_version`. On version mismatch, report precisely which objects are missing/outdated.
+2. For each `object_field`: verify the referenced object template exists on this instance and its version ≥ `minimum_version`. On version mismatch, report precisely which objects are missing/outdated.
 3. UUID collision handling: if an event template with that uuid already exists, caller must pass `?mode=overwrite` or `?mode=duplicate_as_new` (fresh uuid).
 4. The importer is assigned as creator. Template is assigned to importer's org.
 5. On any failure, no DB state changes.

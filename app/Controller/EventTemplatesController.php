@@ -556,7 +556,7 @@ class EventTemplatesController extends AppController
             $id = $el['id'] ?? null;
             $ot = $el['object_template'] ?? array();
             $uuid = isset($ot['uuid']) ? strtolower((string)$ot['uuid']) : '';
-            $pinned = isset($ot['pinned_version']) ? (int)$ot['pinned_version'] : 0;
+            $pinned = isset($ot['minimum_version']) ? (int)$ot['minimum_version'] : 0;
             if ($id === null || $uuid === '' || $pinned === 0) {
                 continue;
             }
@@ -574,7 +574,7 @@ class EventTemplatesController extends AppController
                 $out[$id] = array(
                     'missing' => true,
                     'uuid' => $uuid,
-                    'pinned_version' => $pinned,
+                    'minimum_version' => $pinned,
                     'relations' => array(),
                 );
                 continue;
@@ -627,7 +627,7 @@ class EventTemplatesController extends AppController
             $out[$id] = array(
                 'missing' => false,
                 'uuid' => $uuid,
-                'pinned_version' => $pinned,
+                'minimum_version' => $pinned,
                 'found_version' => (int)$row['ObjectTemplate']['version'],
                 'meta_category' => $row['ObjectTemplate']['meta-category'] ?? '',
                 'template_description' => $row['ObjectTemplate']['description'] ?? '',
