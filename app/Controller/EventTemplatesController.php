@@ -217,6 +217,12 @@ class EventTemplatesController extends AppController
         if (array_key_exists('active', $row)) {
             $row['active'] = (int)$row['active'];
         }
+        if (array_key_exists('misp_default', $row)) {
+            // Same coercion rationale as `active` / `distribution`: tinyint(1)
+            // round-trips as a PHP bool through Cake's read path, which the
+            // boolean validator would otherwise reject on re-save.
+            $row['misp_default'] = (int)(bool)$row['misp_default'];
+        }
         $row['id'] = $id;
         $this->EventTemplate->id = $id;
         $saved = $this->EventTemplate->save(array('EventTemplate' => $row));

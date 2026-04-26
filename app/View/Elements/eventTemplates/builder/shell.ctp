@@ -12,6 +12,7 @@
         'description'  => $existing['description'] ?? '',
         'distribution' => (int)($existing['distribution'] ?? 0),
         'active'       => !empty($existing['active']) ? 1 : ($existing ? 0 : 1),
+        'misp_default' => !empty($existing['misp_default']) ? 1 : 0,
     ];
     $initialDefinition = ($existing && is_array($existing['definition'] ?? null))
         ? $existing['definition']
@@ -197,6 +198,15 @@
     <h2><?php echo h($pageTitle); ?></h2>
     <div id="et-errors"></div>
 
+    <?php if (!empty($envelope['misp_default'])): ?>
+        <div class="alert alert-block" style="background:#fff3e0;border-color:#ffcc80;color:#5d4037;">
+            <strong><i class="fa fa-cube"></i> <?php echo __('Library-managed template'); ?></strong>
+            <p style="margin:6px 0 0 0;">
+                <?php echo __('This template is managed by the <code>misp-event-templates</code> submodule. The next <em>Update from library</em> run will overwrite your edits unless you uncheck <em>Library-managed</em> below — that flips this row to a fork and library updates will leave it alone.'); ?>
+            </p>
+        </div>
+    <?php endif; ?>
+
     <div class="et-envelope">
         <div class="control-group">
             <label for="et-envelope-name"><?php echo __('Name'); ?></label>
@@ -216,6 +226,11 @@
             <label class="checkbox inline" for="et-envelope-active">
                 <input type="checkbox" id="et-envelope-active" checked>
                 <?php echo __('Active'); ?>
+            </label>
+            <label class="checkbox inline" for="et-envelope-misp-default"
+                   title="<?php echo __('When checked, the template is managed by the misp-event-templates submodule and library updates will overwrite it. Uncheck to fork — your edits will be preserved across library updates.'); ?>">
+                <input type="checkbox" id="et-envelope-misp-default">
+                <?php echo __('Library-managed'); ?>
             </label>
         </div>
     </div>

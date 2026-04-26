@@ -228,11 +228,8 @@ view summary, see library badges — from the UI on both themes.
 - [x] Update flow restructured to GET (confirm page) + POST (execute) so the toolbar button can be a normal `<a href>` link — GET shows what would change, the form on the page POSTs back to the same URL to apply. REST clients still POST directly; GET in REST returns 405. New private helper `__buildLibraryStatusSummary()` shared between `update()` GET-confirm and `library_status()`.
 - [x] Update result page rendering installed / updated / skipped_current / skipped_forked / failed sections with copy explaining the `misp_default` flag mechanic. `app/View/EventTemplates/update.ctp` (replaces the placeholder), plus new `update_confirm.ctp` for the dry-run preview.
 - [x] Default-template badge column on the index for rows with `misp_default = 1` — new "Source" column on the events-templates index. Library-managed rows get a blue "Library" pill with a fa-cube icon and a tooltip explaining the auto-update behaviour; locally-authored / forked rows get a soft-grey "local" label. New shared field renderer at `app/View/Elements/genericElements/IndexTable/Fields/library_managed.ctp` (additive — new file, no edits to existing field elements).
-- [ ] Builder banner near the save bar warning that edits to a
-      `misp_default = 1` row will be overwritten on the next library
-      update unless the operator flips the flag (PRD §10.4)
-- [ ] Properties-panel toggle exposing the `misp_default` flag to the
-      builder
+- [x] Builder banner near the save bar warning that edits to a `misp_default = 1` row will be overwritten on the next library update unless the operator flips the flag (PRD §10.4) — amber alert above the envelope on `Elements/eventTemplates/builder/shell.ctp` when `$envelope['misp_default']` is set, with copy that explains the consequence and points at the toggle below.
+- [x] Properties-panel toggle exposing the `misp_default` flag to the builder — checkbox added to the envelope row alongside Active. Round-trips through the JS state (`builder.js` `state.envelope.misp_default`), the save body POST/PUT shape, and the controller's `edit` action (which now coerces the field to int the same way it does `active`/`distribution`). Live-verified: install → flip via PUT /event_templates/edit/{id} body `{misp_default: 0}` → next update routes the row to `skipped_forked`.
 
 ### 3.2 Overmind theme (BS5)
 

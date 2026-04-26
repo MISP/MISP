@@ -28,7 +28,8 @@
             name: '',
             description: '',
             distribution: 0,
-            active: 1
+            active: 1,
+            misp_default: 0
         }, cfg.envelope || {}),
         definition: cloneDefinition(cfg.definition || minimalDefinition()),
         selectedId: null,
@@ -298,6 +299,7 @@
                 description: state.envelope.description,
                 distribution: Number(state.envelope.distribution) || 0,
                 active: state.envelope.active ? 1 : 0,
+                misp_default: state.envelope.misp_default ? 1 : 0,
                 definition: state.definition
             }
         };
@@ -428,10 +430,12 @@
         var $d = document.getElementById('et-envelope-description');
         var $dist = document.getElementById('et-envelope-distribution');
         var $a = document.getElementById('et-envelope-active');
+        var $md = document.getElementById('et-envelope-misp-default');
         if ($n && document.activeElement !== $n) { $n.value = state.envelope.name || ''; }
         if ($d && document.activeElement !== $d) { $d.value = state.envelope.description || ''; }
         if ($dist) { $dist.value = String(state.envelope.distribution || 0); }
         if ($a) { $a.checked = !!state.envelope.active; }
+        if ($md) { $md.checked = !!state.envelope.misp_default; }
     }
 
     function renderCanvas() {
@@ -1180,6 +1184,7 @@
         bindEnvelope('et-envelope-description', 'description', 'input');
         bindEnvelope('et-envelope-distribution', 'distribution', 'change');
         bindEnvelope('et-envelope-active', 'active', 'change');
+        bindEnvelope('et-envelope-misp-default', 'misp_default', 'change');
 
         document.querySelectorAll('[data-et-add]').forEach(function ($btn) {
             $btn.addEventListener('click', function () {
