@@ -178,6 +178,9 @@ class EventTemplateInstantiator
             $eventUuid = isset($eventRow['Event']['uuid']) ? $eventRow['Event']['uuid'] : '';
 
             $this->saveEventReports($definition, $userInput, $user, $newId);
+            $this->writeInstantiationSummaryReport(
+                $newId, (string)$eventUuid, $definition, $userInput, $user, $options
+            );
             $this->writeInstantiationAuditRow($newId, (string)$eventUuid, $options);
 
             return array(
@@ -251,6 +254,173 @@ class EventTemplateInstantiator
                 . 'for event_id=' . (int)$eventId . ': ' . $e->getMessage()
             );
         }
+    }
+
+    /**
+     * Writes a system-generated EventReport summarising the instantiation
+     * call: which template was used, by whom, and the field-by-field
+     * choices. Useful audit trail for the resulting event.
+     *
+     * Gated on `$options['template']` for the same reason as the audit
+     * row — without template metadata we have no name/uuid/version to
+     * reference. Save failures are logged as warnings rather than rolling
+     * back the freshly-committed event (mirrors the audit-row pattern).
+     *
+     * `event_report` elements are skipped — they are already attached as
+     * their own EventReport rows by saveEventReports(). Section,
+     * text_block, and object_reference elements have no user input so
+     * they're skipped too.
+     *
+     * v1 always emits the report. If it gets noisy, the natural follow-up
+     * is a config flag (e.g. MISP.event_template_instantiation_summary)
+     * gating the call.
+     */
+    private function writeInstantiationSummaryReport(
+        $eventId, $eventUuid, array $definition, array $userInput, array $user, array $options
+    ) {
+        if (empty($options['template']) || !is_array($options['template'])) {
+            return;
+        }
+        $tpl = $options['template'];
+        $name = isset($tpl['name']) ? (string)$tpl['name'] : '(unknown)';
+        $uuid = isset($tpl['uuid']) ? (string)$tpl['uuid'] : '';
+        $version = isset($tpl['version']) ? (int)$tpl['version'] : 0;
+        $userEmail = isset($user['email']) ? (string)$user['email'] : '(unknown)';
+        $isoTime = gmdate('c');
+
+        $structure = isset($definition['structure']) && is_array($definition['structure'])
+            ? $definition['structure']
+            : array();
+        $skipTypes = array('section', 'text_block', 'object_reference', 'event_report');
+        $bullets = array();
+        foreach ($structure as $el) {
+            if (!is_array($el) || !isset($el['type'], $el['id'])) {
+                continue;
+            }
+            if (in_array($el['type'], $skipTypes, true)) {
+                continue;
+            }
+            $id = $el['id'];
+            if (!isset($userInput[$id]) || $this->isEmptyValue($userInput[$id])) {
+                continue;
+            }
+            $label = isset($el['label']) ? (string)$el['label'] : $id;
+            $rendered = $this->renderUserValueForSummary($el['type'], $userInput[$id]);
+            if ($rendered === '') {
+                continue;
+            }
+            $bullets[] = sprintf('- **%s**: %s', $label, $rendered);
+        }
+
+        $body = sprintf(
+            "This event was created from event template **%s** (uuid `%s`, version %d) by %s on %s.\n\n## Filled values\n\n",
+            $name, $uuid, $version, $userEmail, $isoTime
+        );
+        $body .= empty($bullets)
+            ? "_(no fields were filled)_\n"
+            : implode("\n", $bullets) . "\n";
+
+        $reportName = sprintf('Instantiation report — %s v%d', $name, $version);
+
+        try {
+            $eventReport = ClassRegistry::init('EventReport');
+            $errs = $eventReport->addReport($user, array(
+                'name' => $reportName,
+                'content' => $body,
+                'distribution' => 5,
+                'event_id' => (int)$eventId,
+            ), (int)$eventId);
+            if (!empty($errs)) {
+                CakeLog::warning(
+                    'EventTemplateInstantiator: instantiation summary report save '
+                    . 'returned errors for event_id=' . (int)$eventId . ': '
+                    . json_encode($errs)
+                );
+            }
+        } catch (Throwable $e) {
+            CakeLog::warning(
+                'EventTemplateInstantiator: failed to save instantiation summary '
+                . 'report for event_id=' . (int)$eventId . ': ' . $e->getMessage()
+            );
+        }
+    }
+
+    /**
+     * Renders the user's value for one element into an inline-Markdown
+     * fragment for the instantiation summary. Output is single-line for
+     * scalar inputs (attribute / tag / galaxy fields, single object
+     * fields, file fields) and multi-line with sub-bullets for repeatable
+     * object fields with more than one instance.
+     */
+    private function renderUserValueForSummary($type, $value)
+    {
+        if ($type === 'file_field') {
+            $names = array();
+            foreach ($this->normaliseFileInstances($value) as $inst) {
+                if (is_array($inst) && !empty($inst['filename'])) {
+                    $names[] = '`' . str_replace('`', '', (string)$inst['filename']) . '`';
+                }
+            }
+            return implode(', ', $names);
+        }
+        if ($type === 'object_field') {
+            $instances = $this->normaliseObjectInstances($value);
+            $instances = array_values(array_filter($instances, function ($inst) {
+                return is_array($inst) && !empty($inst);
+            }));
+            if (count($instances) === 0) {
+                return '';
+            }
+            if (count($instances) === 1) {
+                return $this->renderRelationMapForSummary($instances[0]);
+            }
+            $lines = array();
+            foreach ($instances as $idx => $inst) {
+                $line = $this->renderRelationMapForSummary($inst);
+                if ($line !== '') {
+                    $lines[] = sprintf("\n    - instance %d: %s", $idx + 1, $line);
+                }
+            }
+            return implode('', $lines);
+        }
+        // attribute_field, tag_field, galaxy_field — scalar or list of strings.
+        if (is_array($value)) {
+            $items = array();
+            foreach ($value as $v) {
+                $s = $this->summariseScalarValue($v);
+                if ($s !== '') {
+                    $items[] = $s;
+                }
+            }
+            return implode(', ', $items);
+        }
+        return $this->summariseScalarValue($value);
+    }
+
+    private function renderRelationMapForSummary(array $map)
+    {
+        $pairs = array();
+        foreach ($map as $rel => $v) {
+            $s = $this->summariseScalarValue($v);
+            if ($s !== '') {
+                $pairs[] = sprintf('%s=%s', (string)$rel, $s);
+            }
+        }
+        return implode(', ', $pairs);
+    }
+
+    private function summariseScalarValue($v)
+    {
+        if ($v === null || !is_scalar($v)) {
+            return '';
+        }
+        $s = trim((string)$v);
+        if ($s === '') {
+            return '';
+        }
+        // Single-line: collapse internal whitespace runs.
+        $s = preg_replace('/\s+/', ' ', $s);
+        return '`' . str_replace('`', '', $s) . '`';
     }
 
     // --- Audit log ----------------------------------------------------------
