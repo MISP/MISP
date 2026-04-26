@@ -233,20 +233,16 @@ view summary, see library badges — from the UI on both themes.
 
 ### 3.2 Overmind theme (BS5)
 
-- [ ] "Update from library" entry in `headerActions` on the
-      event-templates index, same ACL gate
-- [ ] BS5-flavoured update result view (cards / sections per
-      outcome category)
-- [ ] Default-template badge in the IndexTable card / table fields
-- [ ] Builder warning + properties-panel toggle (parity with the
-      default theme)
+- [x] "Update from library" entry in `headerActions` on the event-templates index, gated on `eventTemplates/update` ACL. Wired in `Themed/Overmind/EventTemplates/index.ctp` next to Add / Import.
+- [x] BS5 update result view (`Themed/Overmind/EventTemplates/update.ctp`): cards-grid layout with one card per outcome category (installed / updated / already-current / skipped-forked / failed), each carrying a badge with the count and the same explanatory copy as the default-theme view. Plus the matching confirm view (`update_confirm.ctp`) with three pre-run buckets and an Apply button.
+- [x] Default-template badge in the IndexTable card / table fields — new `Themed/Overmind/Elements/genericElementsBS5/IndexTable/Fields/library_managed.ctp` field renderer mirroring the default-theme one with BS5 badge styling. Wired into the index `$fields` array as a "Source" column shown in both table and card layouts.
+- [x] Builder warning + properties-panel toggle (parity with the default theme) — Alpine `x-show="envelope.misp_default"` warning banner above the envelope card with copy explaining the auto-update consequence, plus a "Library-managed" checkbox alongside Active in the envelope row (`x-model="envelope.misp_default"`). `builder-overmind.js` defaults the field to 0 in `envelope` and includes it in the save body.
 
 ### 3.3 First-touch auto-update flash
 
-- [ ] Wire the controller's index action to the auto-update hook
-      from Phase 2.5; surface the flash on both themes
+- [x] Already wired during Phase 2.5 — the populate hook lives in the shared `EventTemplatesController::index()`, which runs for both themes. `Flash->info()` is theme-agnostic; the Overmind theme's BS5 Flash partials at `Themed/Overmind/Elements/Flash/info.ctp` render the message with `alert alert-info` markup.
 
-- [ ] **Phase 3 complete**
+- [x] **Phase 3 complete**
 
 ---
 

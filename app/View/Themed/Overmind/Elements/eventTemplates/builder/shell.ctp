@@ -32,6 +32,7 @@
         'description'  => $existing['description'] ?? '',
         'distribution' => (int)($existing['distribution'] ?? 0),
         'active'       => !empty($existing['active']) ? 1 : ($existing ? 0 : 1),
+        'misp_default' => !empty($existing['misp_default']) ? 1 : 0,
     ];
     $initialDefinition = ($existing && is_array($existing['definition'] ?? null))
         ? $existing['definition']
@@ -171,6 +172,17 @@
         </ul>
     </div>
 
+    <div class="alert alert-warning d-flex align-items-start gap-3"
+         x-show="envelope.misp_default">
+        <i class="fas fa-cube fs-4 mt-1"></i>
+        <div>
+            <strong><?= __('Library-managed template') ?></strong>
+            <div class="small">
+                <?= __('This template is managed by the <code>misp-event-templates</code> submodule. The next <em>Update from library</em> run will overwrite your edits unless you uncheck <em>Library-managed</em> below — that flips this row to a fork and library updates will leave it alone.') ?>
+            </div>
+        </div>
+    </div>
+
     <div class="card mb-3 shadow-sm et-envelope">
         <div class="card-body">
             <div class="row g-3">
@@ -197,12 +209,21 @@
                     </select>
                 </div>
                 <div class="col-md-3 d-flex align-items-end pb-1">
-                    <div class="form-check">
+                    <div class="form-check me-3">
                         <input class="form-check-input" type="checkbox"
                                id="et-envelope-active"
                                x-model="envelope.active">
                         <label class="form-check-label" for="et-envelope-active">
                             <?= __('Active') ?>
+                        </label>
+                    </div>
+                    <div class="form-check"
+                         title="<?= h(__('When checked, the template is managed by the misp-event-templates submodule and library updates will overwrite it. Uncheck to fork — your edits will be preserved across library updates.')) ?>">
+                        <input class="form-check-input" type="checkbox"
+                               id="et-envelope-misp-default"
+                               x-model="envelope.misp_default">
+                        <label class="form-check-label" for="et-envelope-misp-default">
+                            <?= __('Library-managed') ?>
                         </label>
                     </div>
                 </div>

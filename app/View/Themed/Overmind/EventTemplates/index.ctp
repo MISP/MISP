@@ -105,6 +105,14 @@ $fields = [
         'display_in' => ['table', 'card'],
     ],
     [
+        'name' => __('Source'),
+        'sort' => 'EventTemplate.misp_default',
+        'data_path' => 'EventTemplate.misp_default',
+        'element' => 'library_managed',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card'],
+    ],
+    [
         'name' => __('Version'),
         'sort' => 'EventTemplate.version',
         'data_path' => 'EventTemplate.version',
@@ -138,6 +146,14 @@ if ($this->Acl->canAccess('eventTemplates', 'import')) {
         'label' => __('Import'),
         'icon' => 'upload',
         'url' => $baseurl . '/event_templates/import',
+    ];
+}
+if ($this->Acl->canAccess('eventTemplates', 'update')) {
+    $headerActions[] = [
+        'type' => 'link',
+        'label' => __('Update from library'),
+        'icon' => 'sync',
+        'url' => $baseurl . '/event_templates/update',
     ];
 }
 $this->set('headerActions', $headerActions);

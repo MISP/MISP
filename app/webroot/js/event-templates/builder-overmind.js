@@ -168,7 +168,7 @@
         window.Alpine.data('etBuilder', () => {
         const cfg = getCfg();
         return {
-            envelope: {name: '', description: '', distribution: 0, active: 1},
+            envelope: {name: '', description: '', distribution: 0, active: 1, misp_default: 0},
             definition: {
                 schema_version: 1, uuid: '', name: '',
                 event_defaults: {distribution: 0}, structure: []
@@ -689,6 +689,7 @@
                         description: this.envelope.description,
                         distribution: Number(this.envelope.distribution) || 0,
                         active: this.envelope.active ? 1 : 0,
+                        misp_default: this.envelope.misp_default ? 1 : 0,
                         definition: this.definition
                     }
                 };
