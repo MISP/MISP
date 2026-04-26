@@ -290,7 +290,6 @@ class EventTemplateInstantiator
         $name = isset($tpl['name']) ? (string)$tpl['name'] : '(unknown)';
         $uuid = isset($tpl['uuid']) ? (string)$tpl['uuid'] : '';
         $version = isset($tpl['version']) ? (int)$tpl['version'] : 0;
-        $userEmail = isset($user['email']) ? (string)$user['email'] : '(unknown)';
         $isoTime = gmdate('c');
 
         $structure = isset($definition['structure']) && is_array($definition['structure'])
@@ -318,8 +317,8 @@ class EventTemplateInstantiator
         }
 
         $body = sprintf(
-            "This event was created from event template **%s** (uuid `%s`, version %d) by %s on %s.\n\n## Filled values\n\n",
-            $name, $uuid, $version, $userEmail, $isoTime
+            "This event was created from event template **%s** (uuid `%s`, version %d) on %s.\n\n## Filled values\n\n",
+            $name, $uuid, $version, $isoTime
         );
         $body .= empty($bullets)
             ? "_(no fields were filled)_\n"
