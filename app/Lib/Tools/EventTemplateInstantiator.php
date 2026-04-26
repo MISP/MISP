@@ -177,9 +177,10 @@ class EventTemplateInstantiator
             ));
             $eventUuid = isset($eventRow['Event']['uuid']) ? $eventRow['Event']['uuid'] : '';
 
-            $this->saveEventReports($definition, $userInput, $user, $newId);
+            $autoLinkMap = $this->buildAutoLinkMap($definition, $userInput, $newId);
+            $this->saveEventReports($definition, $userInput, $user, $newId, $autoLinkMap);
             $this->writeInstantiationSummaryReport(
-                $newId, (string)$eventUuid, $definition, $userInput, $user, $options
+                $newId, (string)$eventUuid, $definition, $userInput, $user, $options, $autoLinkMap
             );
             $this->writeInstantiationAuditRow($newId, (string)$eventUuid, $options);
 
@@ -207,8 +208,12 @@ class EventTemplateInstantiator
      * EventReport.event_id references the just-saved event row; a save
      * failure is logged as a warning but does not roll back the event
      * (mirrors the audit-row pattern — the event is already on disk).
+     *
+     * `$autoLinkMap` (from buildAutoLinkMap) is applied to each report's
+     * content before save so attribute / tag / galaxy references in the
+     * user's prose render as proper EventReport links.
      */
-    private function saveEventReports(array $definition, array $userInput, array $user, $eventId)
+    private function saveEventReports(array $definition, array $userInput, array $user, $eventId, array $autoLinkMap = array())
     {
         $structure = isset($definition['structure']) && is_array($definition['structure'])
             ? $definition['structure']
@@ -228,7 +233,7 @@ class EventTemplateInstantiator
             }
             $reports[] = array(
                 'name' => isset($el['label']) ? (string)$el['label'] : $id,
-                'content' => $content,
+                'content' => $this->applyAutoLinks($content, $autoLinkMap),
                 'distribution' => 5,
                 'event_id' => (int)$eventId,
             );
@@ -276,7 +281,7 @@ class EventTemplateInstantiator
      * gating the call.
      */
     private function writeInstantiationSummaryReport(
-        $eventId, $eventUuid, array $definition, array $userInput, array $user, array $options
+        $eventId, $eventUuid, array $definition, array $userInput, array $user, array $options, array $autoLinkMap = array()
     ) {
         if (empty($options['template']) || !is_array($options['template'])) {
             return;
@@ -319,6 +324,10 @@ class EventTemplateInstantiator
         $body .= empty($bullets)
             ? "_(no fields were filled)_\n"
             : implode("\n", $bullets) . "\n";
+
+        // Apply auto-link substitutions so attribute / tag / galaxy values
+        // in the bullets render as report links rather than literal text.
+        $body = $this->applyAutoLinks($body, $autoLinkMap);
 
         $reportName = sprintf('Instantiation report — %s v%d', $name, $version);
 
@@ -418,9 +427,120 @@ class EventTemplateInstantiator
         if ($s === '') {
             return '';
         }
-        // Single-line: collapse internal whitespace runs.
-        $s = preg_replace('/\s+/', ' ', $s);
-        return '`' . str_replace('`', '', $s) . '`';
+        // Single-line: collapse internal whitespace runs. No inline-code
+        // wrapping — bare scalars let auto-link substitutions render as
+        // proper @[attribute]/@[tag] links instead of literal code spans.
+        return preg_replace('/\s+/', ' ', $s);
+    }
+
+    // --- Auto-link enrichment ---------------------------------------------
+
+    /**
+     * Builds a value→marker map for cross-linking just-saved entities
+     * inside EventReport content. Three sources, in priority order:
+     *
+     *   1. Attribute uuids — queried from the event row by event_id.
+     *      Marker: @[attribute](<uuid>). Catches any attribute whose
+     *      value (length >= 3) appears verbatim in the report prose.
+     *
+     *   2. tag_field user input — link by raw tag name.
+     *      Marker: @[tag](<name>).
+     *
+     *   3. galaxy_field user input — link by raw value, but the marker
+     *      uses the synthesised tag_name (`misp-galaxy:<type>="<value>"`)
+     *      since that is what is actually attached to the event.
+     *
+     * Object references and synonym matches are deferred to v2 — there
+     * is no clean value-to-marker mapping for misp-objects (the user
+     * never sees the object's uuid in their input), and the broad
+     * synonym scan that EventReport::extractWithReplacements does walks
+     * every galaxy cluster in the DB, which would dominate
+     * instantiation latency.
+     */
+    private function buildAutoLinkMap(array $definition, array $userInput, $eventId)
+    {
+        $map = array();
+        $structure = isset($definition['structure']) && is_array($definition['structure'])
+            ? $definition['structure']
+            : array();
+
+        $attributeModel = ClassRegistry::init('Attribute');
+        $rows = $attributeModel->find('all', array(
+            'conditions' => array(
+                'Attribute.event_id' => (int)$eventId,
+                'Attribute.deleted' => 0,
+            ),
+            'fields' => array('Attribute.uuid', 'Attribute.value'),
+            'recursive' => -1,
+        ));
+        foreach ($rows as $r) {
+            $val = isset($r['Attribute']['value']) ? (string)$r['Attribute']['value'] : '';
+            $uuid = isset($r['Attribute']['uuid']) ? (string)$r['Attribute']['uuid'] : '';
+            if (strlen($val) >= 3 && $uuid !== '' && !isset($map[$val])) {
+                $map[$val] = sprintf('@[attribute](%s)', $uuid);
+            }
+        }
+
+        foreach ($structure as $el) {
+            if (!is_array($el) || !isset($el['type'], $el['id'])) {
+                continue;
+            }
+            $type = $el['type'];
+            if ($type !== 'tag_field' && $type !== 'galaxy_field') {
+                continue;
+            }
+            $id = $el['id'];
+            if (!isset($userInput[$id])) {
+                continue;
+            }
+            $values = is_array($userInput[$id]) ? $userInput[$id] : array($userInput[$id]);
+            $galaxyType = null;
+            if ($type === 'galaxy_field') {
+                $restrict = isset($el['restrict_galaxy_types']) && is_array($el['restrict_galaxy_types'])
+                    ? $el['restrict_galaxy_types']
+                    : array();
+                $galaxyType = $restrict ? (string)reset($restrict) : 'unknown';
+            }
+            foreach ($values as $v) {
+                if (!is_string($v)) {
+                    continue;
+                }
+                $v = trim($v);
+                if (strlen($v) < 3 || isset($map[$v])) {
+                    continue;
+                }
+                if ($type === 'tag_field') {
+                    $map[$v] = sprintf('@[tag](%s)', $v);
+                } else {
+                    $map[$v] = sprintf('@[tag](misp-galaxy:%s="%s")', $galaxyType, $v);
+                }
+            }
+        }
+
+        // Sort by descending key length so longer matches replace before
+        // shorter substrings that might overlap (e.g. "8.8.4.4" before
+        // any 3-char prefix).
+        uksort($map, function ($a, $b) {
+            return strlen($b) - strlen($a);
+        });
+
+        return $map;
+    }
+
+    /**
+     * Applies a value→marker substitution map to a Markdown content
+     * string. Pure str_replace; relies on the caller's length-sorted
+     * map to handle overlapping matches.
+     */
+    private function applyAutoLinks($content, array $map)
+    {
+        if (!is_string($content) || $content === '' || empty($map)) {
+            return $content;
+        }
+        foreach ($map as $needle => $marker) {
+            $content = str_replace($needle, $marker, $content);
+        }
+        return $content;
     }
 
     // --- Audit log ----------------------------------------------------------
