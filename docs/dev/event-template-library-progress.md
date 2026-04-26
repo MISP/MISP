@@ -183,7 +183,7 @@ against a real DB.
 
 ### 2.3 Loader
 
-- [x] `EventTemplate::updateFromLibrary($user)` — walks the submodule path, validates each `definition.json` via the existing `EventTemplateValidator`, routes each row to install / updated / skipped_current / skipped_forked / failed (PRD §5.3). Library imports get `default = 1`, `active = 0`, `distribution = 1`, importing user/org as owner. Updates preserve id + ownership + active flag. Content-equal rows are reported as `skipped_current` to keep the summary truthful. `default = 0` rows are reported as `skipped_forked` and never touched.
+- [x] `EventTemplate::updateFromLibrary($user)` — walks the submodule path, validates each `definition.json` via the existing `EventTemplateValidator`, routes each row to install / updated / skipped_current / skipped_forked / failed (PRD §5.3). Library imports get `misp_default = 1`, `active = 0`, `distribution = 1`, importing user/org as owner. Updates preserve id + ownership + active flag. Content-equal rows are reported as `skipped_current` to keep the summary truthful. `default = 0` rows are reported as `skipped_forked` and never touched.
 - [x] Importer + exporter round-trip the `default` flag — `EventTemplateImporter` checks `template.default` (envelope) then `template.definition.default` (bare JSON, library shape) and persists either to the row; `EventTemplateExporter` includes `default` in the envelope so a re-import preserves it. Builder properties-panel toggle deferred to Phase 3 (UI).
 - [x] Core schema extended (`app/files/schemas/event-template-v1.schema.json`) with optional `default` and `library_metadata` top-level keys so library JSONs validate without stripping. Both fields are optional — pre-existing v1 templates still validate (verified live against template id=463).
 
@@ -224,16 +224,15 @@ view summary, see library badges — from the UI on both themes.
 
 ### 3.1 Default theme (BS2)
 
-- [ ] "Update from library" button on the event-templates index
-      toolbar, gated on the new ACL entry, sits next to Import
-- [ ] Update result page rendering installed / updated / skipped-forked /
-      failed sections with copy explaining the `default` flag mechanic
+- [x] "Update from library" button on the event-templates index toolbar, gated on the new `eventTemplates/update` ACL entry, sits next to Import. Wired in `app/View/EventTemplates/index.ctp` `top_bar.children` array.
+- [x] Update flow restructured to GET (confirm page) + POST (execute) so the toolbar button can be a normal `<a href>` link — GET shows what would change, the form on the page POSTs back to the same URL to apply. REST clients still POST directly; GET in REST returns 405. New private helper `__buildLibraryStatusSummary()` shared between `update()` GET-confirm and `library_status()`.
+- [x] Update result page rendering installed / updated / skipped_current / skipped_forked / failed sections with copy explaining the `misp_default` flag mechanic. `app/View/EventTemplates/update.ctp` (replaces the placeholder), plus new `update_confirm.ctp` for the dry-run preview.
 - [ ] Default-template badge column on the index for rows with
-      `default = 1`
+      `misp_default = 1`
 - [ ] Builder banner near the save bar warning that edits to a
-      `default = 1` row will be overwritten on the next library
+      `misp_default = 1` row will be overwritten on the next library
       update unless the operator flips the flag (PRD §10.4)
-- [ ] Properties-panel toggle exposing the `default` flag to the
+- [ ] Properties-panel toggle exposing the `misp_default` flag to the
       builder
 
 ### 3.2 Overmind theme (BS5)

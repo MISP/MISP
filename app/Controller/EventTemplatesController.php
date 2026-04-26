@@ -625,28 +625,44 @@ class EventTemplatesController extends AppController
 
     /**
      * Walk the bundled misp-event-templates submodule and reconcile its
-     * contents with this instance's event_templates table. Returns a
-     * structured summary (installed / updated / skipped_current /
-     * skipped_forked / failed). Site-admin only — library updates affect
-     * every org on the instance, so the ACL is empty (only admins
-     * pass the empty-permission check).
+     * contents with this instance's event_templates table. Site-admin
+     * only — library updates affect every org on the instance, so the
+     * ACL is empty (only admins pass the empty-permission check).
      *
-     * Method: POST /event_templates/update
+     *   POST /event_templates/update       — execute the reconciliation,
+     *                                        return / render the summary.
+     *   GET  /event_templates/update       — HTML: confirm page showing
+     *                                        what would change. REST: 405.
+     *
+     * The confirm page on GET shows a dry-run snapshot of the library
+     * vs local DB, so the operator can see what the run would do before
+     * pressing Apply.
      */
     public function update()
     {
-        if (!$this->request->is('post') && !$this->request->is('put')) {
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $summary = $this->EventTemplate->updateFromLibrary($this->Auth->user());
+            if ($this->IndexFilter->isRest()) {
+                return $this->RestResponse->viewData($summary, 'json');
+            }
+            $this->set('summary', $summary);
+            $this->set('title_for_layout', __('Library update — Event Templates'));
+            $this->render('update');
+            return;
+        }
+        if ($this->IndexFilter->isRest()) {
             throw new MethodNotAllowedException(
-                __('update requires POST.')
+                __('update requires POST. GET /event_templates/library_status returns the dry-run snapshot.')
             );
         }
-        $summary = $this->EventTemplate->updateFromLibrary($this->Auth->user());
-        if ($this->IndexFilter->isRest()) {
-            return $this->RestResponse->viewData($summary, 'json');
-        }
-        $this->set('summary', $summary);
-        $this->set('title_for_layout', __('Library update — Event Templates'));
-        $this->render('update');
+        // HTML confirm page — reuses the library_status payload shape so
+        // the view can render the same preview and a form that POSTs to
+        // this same URL to execute.
+        $libDir = APP . 'files' . DS . 'misp-event-templates' . DS . 'templates';
+        $preview = $this->__buildLibraryStatusSummary($libDir);
+        $this->set('preview', $preview);
+        $this->set('title_for_layout', __('Update from library — Event Templates'));
+        $this->render('update_confirm');
     }
 
     /**
@@ -661,29 +677,37 @@ class EventTemplatesController extends AppController
      */
     public function library_status()
     {
-        // For v1, just expose what the on-disk library contains: name,
-        // uuid, plus whether the local DB has it (and with which
-        // default flag). This avoids mutating state while still giving
-        // operators an actionable snapshot.
+        $libDir = APP . 'files' . DS . 'misp-event-templates' . DS . 'templates';
+        $summary = $this->__buildLibraryStatusSummary($libDir);
+        if ($this->IndexFilter->isRest()) {
+            return $this->RestResponse->viewData($summary, 'json');
+        }
+        $this->set('summary', $summary);
+        $this->set('title_for_layout', __('Library status — Event Templates'));
+        $this->render('library_status');
+    }
+
+    /**
+     * Walk the library submodule and produce a dry-run snapshot:
+     * { present_in_library: [...], failed: [...] }. No writes; safe to
+     * call from any read path. Each entry's `local` field is null when
+     * the uuid is not yet installed, otherwise an object with id /
+     * active / misp_default integers — enough for the confirm view to
+     * show what an update would do.
+     */
+    private function __buildLibraryStatusSummary($libDir)
+    {
         $summary = array(
             'present_in_library' => array(),
             'failed' => array(),
         );
-
-        $libDir = APP . 'files' . DS . 'misp-event-templates' . DS . 'templates';
         if (!is_dir($libDir)) {
             $summary['failed'][] = array(
                 'slug' => null,
                 'error' => 'submodule directory not present at ' . $libDir,
             );
-            if ($this->IndexFilter->isRest()) {
-                return $this->RestResponse->viewData($summary, 'json');
-            }
-            $this->set('summary', $summary);
-            $this->render('library_status');
-            return;
+            return $summary;
         }
-
         $folder = new Folder($libDir);
         list($subdirs,) = $folder->read(true, false, true);
         foreach ($subdirs as $dir) {
@@ -730,13 +754,7 @@ class EventTemplatesController extends AppController
                 ),
             );
         }
-
-        if ($this->IndexFilter->isRest()) {
-            return $this->RestResponse->viewData($summary, 'json');
-        }
-        $this->set('summary', $summary);
-        $this->set('title_for_layout', __('Library status — Event Templates'));
-        $this->render('library_status');
+        return $summary;
     }
 
     public function validate_definition()

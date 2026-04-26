@@ -60,6 +60,13 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                             'text' => __('Import'),
                             'requirement' => $this->Acl->canAccess('eventTemplates', 'import'),
                         ],
+                        [
+                            'url' => $baseurl . '/event_templates/update',
+                            'icon' => 'sync',
+                            'text' => __('Update from library'),
+                            'title' => __('Reconcile event_templates with the bundled misp-event-templates submodule (site-admin only).'),
+                            'requirement' => $this->Acl->canAccess('eventTemplates', 'update'),
+                        ],
                     ],
                 ],
                 [
