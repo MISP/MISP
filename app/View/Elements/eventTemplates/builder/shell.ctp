@@ -365,16 +365,24 @@
     </div>
 </div>
 
+<?php
+    // JSON_HEX_TAG / AMP / APOS / QUOT harden against HTML5 script-data
+    // state-machine quirks for content controlled by template authors —
+    // labels / help / descriptions inside $initialDefinition + $envelope
+    // can otherwise sneak `<!--<script>...` sequences past the script
+    // boundary even though `/` is escaped by default.
+    $jsonScriptFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+?>
 <script>
     window.ET_BUILDER_CONFIG = {
-        mode:       <?php echo json_encode($builderMode); ?>,
-        submitUrl:  <?php echo json_encode($submitUrl); ?>,
-        baseurl:    <?php echo json_encode($baseurl); ?>,
-        envelope:   <?php echo json_encode($envelope); ?>,
-        definition: <?php echo json_encode($initialDefinition); ?>,
-        attrCategories: <?php echo json_encode($attrCategories); ?>,
-        objectTemplates: <?php echo json_encode($objectTemplates); ?>,
-        multipickerSources: <?php echo json_encode($multipickerSources); ?>
+        mode:       <?php echo json_encode($builderMode, $jsonScriptFlags); ?>,
+        submitUrl:  <?php echo json_encode($submitUrl, $jsonScriptFlags); ?>,
+        baseurl:    <?php echo json_encode($baseurl, $jsonScriptFlags); ?>,
+        envelope:   <?php echo json_encode($envelope, $jsonScriptFlags); ?>,
+        definition: <?php echo json_encode($initialDefinition, $jsonScriptFlags); ?>,
+        attrCategories: <?php echo json_encode($attrCategories, $jsonScriptFlags); ?>,
+        objectTemplates: <?php echo json_encode($objectTemplates, $jsonScriptFlags); ?>,
+        multipickerSources: <?php echo json_encode($multipickerSources, $jsonScriptFlags); ?>
     };
 </script>
 <?php

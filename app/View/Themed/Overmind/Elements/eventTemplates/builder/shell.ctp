@@ -69,6 +69,12 @@
         'event_report'     => ['label' => __('Event report'),     'icon' => 'file-alt'],
         'object_reference' => ['label' => __('Object reference'), 'icon' => 'link'],
     ];
+    // JSON_HEX_TAG / AMP / APOS / QUOT harden against HTML5 script-data
+    // state-machine quirks for content controlled by template authors —
+    // labels / help / descriptions inside $initialDefinition + $envelope
+    // can otherwise sneak `<!--<script>...` sequences past the script
+    // boundary even though `/` is escaped by default.
+    $jsonScriptFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 ?>
 <script>
     // Set BEFORE the x-data div is parsed so that when Alpine's
@@ -76,14 +82,14 @@
     // etBuilder factory, the factory's cfg lookup finds the
     // populated config object.
     window.ET_BUILDER_CONFIG = {
-        mode:       <?= json_encode($builderMode) ?>,
-        submitUrl:  <?= json_encode($submitUrl) ?>,
-        baseurl:    <?= json_encode($baseurl) ?>,
-        envelope:   <?= json_encode($envelope) ?>,
-        definition: <?= json_encode($initialDefinition) ?>,
-        attrCategories: <?= json_encode($attrCategories) ?>,
-        objectTemplates: <?= json_encode($objectTemplates) ?>,
-        multipickerSources: <?= json_encode($multipickerSources) ?>
+        mode:       <?= json_encode($builderMode, $jsonScriptFlags) ?>,
+        submitUrl:  <?= json_encode($submitUrl, $jsonScriptFlags) ?>,
+        baseurl:    <?= json_encode($baseurl, $jsonScriptFlags) ?>,
+        envelope:   <?= json_encode($envelope, $jsonScriptFlags) ?>,
+        definition: <?= json_encode($initialDefinition, $jsonScriptFlags) ?>,
+        attrCategories: <?= json_encode($attrCategories, $jsonScriptFlags) ?>,
+        objectTemplates: <?= json_encode($objectTemplates, $jsonScriptFlags) ?>,
+        multipickerSources: <?= json_encode($multipickerSources, $jsonScriptFlags) ?>
     };
 </script>
 <style>

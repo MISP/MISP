@@ -773,10 +773,13 @@
             renderRelationsList($list, current, rels);
         }).catch(function (err) {
             if ($list) {
-                $list.innerHTML = '<div style="padding:10px; color:#c33;">' +
-                    'Failed to load relations: ' +
-                    (err && err.message ? err.message : err) +
-                    '</div>';
+                $list.innerHTML = '';
+                var $errBox = document.createElement('div');
+                $errBox.style.padding = '10px';
+                $errBox.style.color = '#c33';
+                $errBox.textContent = 'Failed to load relations: '
+                    + (err && err.message ? err.message : String(err));
+                $list.appendChild($errBox);
             }
         });
     }

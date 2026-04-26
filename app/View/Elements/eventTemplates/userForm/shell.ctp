@@ -377,12 +377,17 @@
 }
 </style>
 
+<?php
+    // JSON_HEX_TAG / AMP / APOS / QUOT harden against HTML5 script-data
+    // state-machine quirks for any DB-sourced strings landing here.
+    $jsonScriptFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+?>
 <script>
     window.ET_USER_FORM_CONFIG = {
-        baseurl:    <?php echo json_encode($baseurl); ?>,
+        baseurl:    <?php echo json_encode($baseurl, $jsonScriptFlags); ?>,
         templateId: <?php echo (int)$templateId; ?>,
         isPreview:  <?php echo $isPreview ? 'true' : 'false'; ?>,
-        viewMode:   <?php echo json_encode($viewMode); ?>
+        viewMode:   <?php echo json_encode($viewMode, $jsonScriptFlags); ?>
     };
 </script>
 <?php
