@@ -206,49 +206,11 @@ class EventTemplate extends AppModel
         if (!is_array($results)) {
             return $results;
         }
-        // Collect ids for which we need a backfill of `default` — see
-        // below for why a backfill is needed at all.
-        $needBackfill = array();
         foreach ($results as &$row) {
             if (isset($row[$this->alias]['definition']) && is_string($row[$this->alias]['definition'])) {
                 $decoded = JsonTool::decode($row[$this->alias]['definition']);
                 if (is_array($decoded)) {
                     $row[$this->alias]['definition'] = $decoded;
-                }
-            }
-            // `default` is a MySQL reserved word. Cake's DboSource enumerates
-            // columns from $Model->schema() and quotes them, so the SELECT
-            // does include `default`, but the result-row mapping drops the
-            // column from the returned associative array on the live setup
-            // (verified via the integration test). Writes work fine —
-            // this is read-side only. Backfill from a tight side query.
-            if (isset($row[$this->alias]) && is_array($row[$this->alias])
-                && !array_key_exists('default', $row[$this->alias])
-                && isset($row[$this->alias]['id'])
-            ) {
-                $needBackfill[(int)$row[$this->alias]['id']] = true;
-            }
-        }
-        unset($row);
-        if (!empty($needBackfill)) {
-            $ids = array_keys($needBackfill);
-            $db = $this->getDataSource();
-            $rows = $db->rawQuery(sprintf(
-                'SELECT id, `default` FROM `event_templates` WHERE id IN (%s)',
-                implode(',', array_map('intval', $ids))
-            ));
-            $byId = array();
-            if ($rows) {
-                foreach ($rows->fetchAll(PDO::FETCH_ASSOC) as $r) {
-                    $byId[(int)$r['id']] = (int)$r['default'];
-                }
-            }
-            foreach ($results as &$row) {
-                if (isset($row[$this->alias]['id'])) {
-                    $rid = (int)$row[$this->alias]['id'];
-                    if (isset($byId[$rid])) {
-                        $row[$this->alias]['default'] = $byId[$rid];
-                    }
                 }
             }
         }
@@ -355,15 +317,17 @@ class EventTemplate extends AppModel
      * semantic checks, and routed to one of four outcomes per PRD §5.3:
      *
      *   - install        — uuid not present locally → insert with
-     *                      default = 1, active = 0, distribution = 1.
-     *   - updated        — present locally with default = 1 AND content
-     *                      differs from the library version → overwrite,
-     *                      preserving id and ownership.
-     *   - skipped_current — present locally with default = 1 but content
-     *                      already matches the library version → no-op.
-     *   - skipped_forked — present locally with default = 0 → operator
-     *                      has explicitly forked this row; library
-     *                      updates leave it alone (PRD §5.3 / §15.3).
+     *                      misp_default = 1, active = 0, distribution = 1.
+     *   - updated        — present locally with misp_default = 1 AND
+     *                      content differs from the library version →
+     *                      overwrite, preserving id and ownership.
+     *   - skipped_current — present locally with misp_default = 1 but
+     *                      content already matches the library version
+     *                      → no-op.
+     *   - skipped_forked — present locally with misp_default = 0 →
+     *                      operator has explicitly forked this row;
+     *                      library updates leave it alone
+     *                      (PRD §5.3 / §15.3).
      *
      * Failures (parse errors, schema validation, save failures) land
      * under `failed` with a message and the offending file path.
@@ -457,27 +421,9 @@ class EventTemplate extends AppModel
                 continue;
             }
 
-            // Explicit field list because `default` is a MySQL reserved
-            // word — Cake's `SELECT *` short-circuit drops the column
-            // from the returned associative array on some setups even
-            // though writes work fine. Listing the columns by name
-            // forces them through.
             $existing = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('EventTemplate.uuid' => $libraryUuid),
-                'fields' => array(
-                    'EventTemplate.id',
-                    'EventTemplate.uuid',
-                    'EventTemplate.name',
-                    'EventTemplate.description',
-                    'EventTemplate.org_id',
-                    'EventTemplate.creator_user_id',
-                    'EventTemplate.distribution',
-                    'EventTemplate.active',
-                    'EventTemplate.default',
-                    'EventTemplate.version',
-                    'EventTemplate.definition',
-                ),
             ));
 
             $libraryName = isset($definition['name']) ? (string)$definition['name'] : '';
@@ -492,7 +438,7 @@ class EventTemplate extends AppModel
                     'creator_user_id' => isset($user['id']) ? (int)$user['id'] : 0,
                     'distribution' => 1,
                     'active' => 0,
-                    'default' => 1,
+                    'misp_default' => 1,
                     'definition' => $definition,
                 );
                 $this->create();
@@ -515,7 +461,7 @@ class EventTemplate extends AppModel
             }
 
             // Existing row.
-            if ((int)$existing['EventTemplate']['default'] !== 1) {
+            if ((int)$existing['EventTemplate']['misp_default'] !== 1) {
                 // SKIPPED_FORKED — operator has flipped default to 0.
                 $summary['skipped_forked'][] = array(
                     'slug' => $slug,
@@ -565,7 +511,7 @@ class EventTemplate extends AppModel
                 'active' => isset($existing['EventTemplate']['active'])
                     ? (int)$existing['EventTemplate']['active']
                     : 0,
-                'default' => 1,
+                'misp_default' => 1,
                 'definition' => $definition,
             );
             $this->id = (int)$existing['EventTemplate']['id'];

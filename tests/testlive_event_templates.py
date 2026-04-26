@@ -896,7 +896,7 @@ class EventTemplatesLibraryUpdateTests(unittest.TestCase):
         self.assertEqual(s1["skipped_forked"], [])
         self.assertEqual(s1["failed"], [])
 
-        # Verify the row carries default=1 / active=0 / distribution=1.
+        # Verify the row carries misp_default=1 / active=0 / distribution=1.
         for tpl_uuid in self._library_uuids:
             r = requests.get(
                 f"{URL}/event_templates/view/{tpl_uuid}",
@@ -905,7 +905,7 @@ class EventTemplatesLibraryUpdateTests(unittest.TestCase):
             )
             self.assertEqual(r.status_code, 200)
             row = r.json()["EventTemplate"]
-            self.assertEqual(int(row["default"]), 1, f"{tpl_uuid} default")
+            self.assertEqual(int(row["misp_default"]), 1, f"{tpl_uuid} misp_default")
             self.assertEqual(
                 bool(int(row["active"])), False,
                 f"{tpl_uuid} active should default to 0",
@@ -926,11 +926,11 @@ class EventTemplatesLibraryUpdateTests(unittest.TestCase):
         # Install everything first.
         self._update()
 
-        # Fork one template by editing the row to default=0. Done by
-        # round-tripping through the edit endpoint with the current
-        # definition + default override. (We can't directly hit the
-        # column without a dedicated endpoint, so we exercise the
-        # downstream flow via export → strip default flag → overwrite.)
+        # Fork one template by editing the row to misp_default=0. Done
+        # by round-tripping through the import endpoint with the
+        # current definition + flag override. (We can't directly hit
+        # the column without a dedicated endpoint, so we exercise the
+        # downstream flow via export → flip the flag → overwrite.)
         target_uuid = self._library_uuids[0]
         r = requests.get(
             f"{URL}/event_templates/view/{target_uuid}",
@@ -938,13 +938,13 @@ class EventTemplatesLibraryUpdateTests(unittest.TestCase):
             timeout=10,
         )
         local_id = int(r.json()["EventTemplate"]["id"])
-        # Use the export envelope to flip default off.
+        # Use the export envelope to flip misp_default off.
         export = requests.get(
             f"{URL}/event_templates/export/{local_id}",
             headers=_headers(),
             timeout=10,
         ).json()
-        export["template"]["default"] = False
+        export["template"]["misp_default"] = False
         # Re-import in overwrite mode.
         requests.post(
             f"{URL}/event_templates/import",
@@ -976,11 +976,11 @@ class EventTemplatesLibraryUpdateTests(unittest.TestCase):
             self.assertIn("name", entry)
             self.assertIn("local", entry)
             # `local` is null when not yet installed, otherwise an
-            # object with id/active/default integers.
+            # object with id/active/misp_default integers.
             if entry["local"] is not None:
                 self.assertIsInstance(entry["local"]["id"], int)
                 self.assertIn("active", entry["local"])
-                self.assertIn("default", entry["local"])
+                self.assertIn("misp_default", entry["local"])
 
 
 if __name__ == "__main__":

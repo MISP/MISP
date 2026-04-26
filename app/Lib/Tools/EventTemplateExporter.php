@@ -68,7 +68,7 @@ class EventTemplateExporter
                 'version' => isset($t['version']) ? (int)$t['version'] : 1,
                 'distribution' => isset($t['distribution']) ? (int)$t['distribution'] : 0,
                 'active' => !isset($t['active']) ? true : (bool)$t['active'],
-                'default' => !empty($t['default']),
+                'misp_default' => !empty($t['misp_default']),
                 'definition' => $definition,
             ),
         );

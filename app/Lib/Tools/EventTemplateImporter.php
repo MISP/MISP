@@ -87,15 +87,15 @@ class EventTemplateImporter
         }
 
         // Library-managed flag may sit either at the envelope level
-        // (template.default — what the exporter writes) or inside the
-        // bare definition itself (definition.default — what
+        // (template.misp_default — what the exporter writes) or inside
+        // the bare definition itself (definition.misp_default — what
         // misp-event-templates submodule files use). Envelope takes
         // precedence; if neither is present, falls through to 0
         // (operator-authored, not library-managed).
-        if (isset($template['default'])) {
-            $libraryManaged = !empty($template['default']) ? 1 : 0;
-        } elseif (isset($definition['default'])) {
-            $libraryManaged = !empty($definition['default']) ? 1 : 0;
+        if (isset($template['misp_default'])) {
+            $libraryManaged = !empty($template['misp_default']) ? 1 : 0;
+        } elseif (isset($definition['misp_default'])) {
+            $libraryManaged = !empty($definition['misp_default']) ? 1 : 0;
         } else {
             $libraryManaged = 0;
         }
@@ -105,7 +105,7 @@ class EventTemplateImporter
             'description' => isset($template['description']) ? $template['description'] : null,
             'distribution' => isset($template['distribution']) ? (int)$template['distribution'] : 0,
             'active' => !isset($template['active']) ? 1 : ($template['active'] ? 1 : 0),
-            'default' => $libraryManaged,
+            'misp_default' => $libraryManaged,
             'definition' => $definition,
         );
 

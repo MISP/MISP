@@ -97,7 +97,8 @@ class AppModel extends Model
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
-        147 => false, 148 => false, 149 => false, 150 => false
+        147 => false, 148 => false, 149 => false, 150 => false,
+        151 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2616,9 +2617,30 @@ class AppModel extends Model
                 // Library-managed flag (PRD docs/dev/event-template-library-prd.md §6).
                 // 1 = managed by misp-event-templates submodule (auto-updated on
                 // `Update from library`); 0 = locally authored or operator-forked
-                // (library updates skip). `default` is a MySQL reserved word, so
-                // it stays backticked everywhere it's referenced.
+                // (library updates skip). Originally named `default` to match
+                // DecayingModel.default; renamed to `misp_default` in case 151
+                // to dodge MySQL's reserved word. This case is kept verbatim
+                // so dev DBs that ran 150 first land in the correct final
+                // shape after 151's CHANGE; fresh DBs run both sequentially
+                // without any intermediate state being visible to the app.
                 $sqlArray[] = "ALTER TABLE `event_templates` ADD `default` tinyint(1) NOT NULL DEFAULT 0 AFTER `active`;";
+                break;
+            case 151:
+                // Rename event_templates.default → event_templates.misp_default.
+                // `default` is a MySQL reserved word; quoting works in DDL
+                // but Cake's persistent method cache memoises the SELECT
+                // column list per model and on this setup occasionally
+                // produced a SELECT that omitted the `default` column
+                // — symptom only on read, writes were fine. Renaming
+                // the column dodges the issue entirely.
+                //
+                // Operators upgrading must clear Cake's cached method
+                // list once after this migration runs:
+                //   rm -f app/tmp/cache/persistent/myapp_cake_core_method_cache
+                // The `cake Admin runUpdates` flow does this automatically
+                // via the schema-cache invalidation hook; manual operators
+                // should follow the same step.
+                $sqlArray[] = "ALTER TABLE `event_templates` CHANGE `default` `misp_default` tinyint(1) NOT NULL DEFAULT 0;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

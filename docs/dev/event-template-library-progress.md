@@ -209,7 +209,7 @@ against a real DB.
       * `test_skipped_forked_after_default_flip` — install everything; export one template, flip `default=false` in the envelope, re-import in overwrite mode (operator-fork via REST round-trip); next update routes that uuid to `skipped_forked`.
       * `test_library_status_shape` — confirms the dry-run endpoint surfaces slug + uuid + name + local-state per template.
 - [x] Full live suite passes: 24 tests in `tests/testlive_event_templates.py` (21 pre-existing + 3 new), 23 PHPUnit unit tests in `app/Test/EventTemplate*Test.php` (no regressions).
-- [x] Defensive `default`-column backfill in `EventTemplate::afterFind` — Cake's read-side mapping was dropping the column from the row even though writes worked. Side query backfills the value when missing so every code path sees the flag. Required to make the integration test pass and the view endpoint surface the column for the UI.
+- [x] ~~Defensive `default`-column backfill in `EventTemplate::afterFind`~~ — replaced. Root cause turned out to be Cake's persistent method-cache (`app/tmp/cache/persistent/myapp_cake_core_method_cache`) memoising the SELECT column list per model. On a setup where the column was added after the method cache populated, the cached SELECT omitted the column even though writes worked fine. Renaming `default` → `misp_default` (Phase 2.1+ migration case 151) removed the original suspicion of a reserved-word issue and the cache invalidation removed the actual bug; the afterFind hack is gone, and the view + loader paths surface the column with no special handling.
 
 - [x] **Phase 2 complete**
 

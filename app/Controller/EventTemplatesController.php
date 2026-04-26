@@ -715,7 +715,7 @@ class EventTemplatesController extends AppController
                         'EventTemplate.uuid',
                         'EventTemplate.name',
                         'EventTemplate.active',
-                        'EventTemplate.default',
+                        'EventTemplate.misp_default',
                     ),
                 ))
                 : null;
@@ -726,7 +726,7 @@ class EventTemplatesController extends AppController
                 'local' => empty($local) ? null : array(
                     'id' => (int)$local['EventTemplate']['id'],
                     'active' => (int)$local['EventTemplate']['active'],
-                    'default' => (int)$local['EventTemplate']['default'],
+                    'misp_default' => (int)$local['EventTemplate']['misp_default'],
                 ),
             );
         }
