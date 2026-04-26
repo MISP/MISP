@@ -520,11 +520,19 @@ class EventTemplatesController extends AppController
     private function __renderUserForm(array $source, array $definition, $isPreview)
     {
         $relationSpecs = $this->__collectObjectRelationSpecs($definition);
+        $userSetting = ClassRegistry::init('UserSetting');
+        $viewMode = $userSetting->getValueForUser(
+            $this->Auth->user('id'), 'event_template_user_form_mode'
+        );
+        if (!is_string($viewMode) || $viewMode === '') {
+            $viewMode = 'all';
+        }
         $this->set('data', $source);
         $this->set('id', (int)$source['EventTemplate']['id']);
         $this->set('definition', $definition);
         $this->set('objectRelationSpecs', $relationSpecs);
         $this->set('isPreview', (bool)$isPreview);
+        $this->set('viewMode', $viewMode);
         $this->set('title_for_layout',
             $isPreview
                 ? __('Preview — %s', $source['EventTemplate']['name'])

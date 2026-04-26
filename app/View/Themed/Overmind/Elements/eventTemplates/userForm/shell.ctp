@@ -8,6 +8,7 @@
     $specs = isset($objectRelationSpecs) ? $objectRelationSpecs : [];
     $isPreview = !empty($isPreview);
     $templateId = (int)($tpl['id'] ?? 0);
+    $viewMode = isset($viewMode) && in_array($viewMode, ['all', 'wizard'], true) ? $viewMode : 'all';
 
     // object_reference elements never render into the user form — they
     // materialise at instantiation time based on the filled object_fields.
@@ -48,6 +49,30 @@
     color: #c62828 !important;
     border-color: #f5c2c2 !important;
 }
+.event-template-user-form .et-view-toggle {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.event-template-user-form .et-wizard-nav { display: none; }
+.event-template-user-form.et-mode-wizard .et-wizard-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px 14px 16px;
+    border-top: 1px dashed var(--bs-border-color);
+}
+.event-template-user-form.et-mode-wizard .et-wizard-nav .et-step-counter {
+    color: var(--bs-secondary);
+    font-size: 0.85rem;
+}
+.event-template-user-form.et-mode-wizard .et-section-group { display: none; }
+.event-template-user-form.et-mode-wizard .et-section-group.et-step-active { display: block; }
+.event-template-user-form.et-mode-wizard .et-save-bar { display: none !important; }
+.event-template-user-form.et-mode-wizard.et-on-last-step .et-save-bar { display: flex !important; }
 </style>
 
 <div class="event-template-user-form container mt-3">
@@ -71,6 +96,18 @@
     <div class="et-errors-panel alert alert-danger"
          id="et-user-form-errors"
          style="display:none;"></div>
+
+    <div class="et-view-toggle">
+        <div class="form-check form-switch m-0"
+             title="<?= __('Show one section at a time with previous/next navigation. The choice is remembered for your account.') ?>">
+            <input class="form-check-input" type="checkbox" role="switch"
+                   id="et-wizard-toggle"
+                   <?= $viewMode === 'wizard' ? 'checked' : '' ?>>
+            <label class="form-check-label small" for="et-wizard-toggle">
+                <?= __('Step-by-step') ?>
+            </label>
+        </div>
+    </div>
 
     <form id="et-user-form"
           data-et-template-id="<?= (int)$templateId ?>"
@@ -117,7 +154,7 @@
             </section>
         <?php endforeach; ?>
 
-        <div class="d-flex align-items-center gap-2 mt-3">
+        <div class="et-save-bar d-flex align-items-center gap-2 mt-3">
             <?php if ($isPreview): ?>
                 <button type="button" class="btn btn-secondary" disabled>
                     <?= __('Create event (disabled in preview)') ?>
@@ -144,7 +181,8 @@
     window.ET_USER_FORM_CONFIG = {
         baseurl:    <?= json_encode($baseurl) ?>,
         templateId: <?= (int)$templateId ?>,
-        isPreview:  <?= $isPreview ? 'true' : 'false' ?>
+        isPreview:  <?= $isPreview ? 'true' : 'false' ?>,
+        viewMode:   <?= json_encode($viewMode) ?>
     };
 </script>
 <?php

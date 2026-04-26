@@ -814,6 +814,128 @@
         });
     }
 
+    // -----------------------------------------------------------------
+    // Wizard mode — show one section at a time with prev/next nav.
+    // All sections stay in the DOM so submit collects every value
+    // exactly as in single-page mode; only visibility differs.
+    // -----------------------------------------------------------------
+
+    function wireWizardMode() {
+        var formRoot = document.querySelector('.event-template-user-form');
+        var form = document.getElementById('et-user-form');
+        var toggle = document.getElementById('et-wizard-toggle');
+        if (!formRoot || !form || !toggle) { return; }
+
+        var groups = qsa(form, '.et-section-group');
+        if (groups.length === 0) { return; }
+
+        var currentStep = 0;
+
+        groups.forEach(function (g, idx) {
+            var nav = document.createElement('div');
+            nav.className = 'et-wizard-nav';
+            var isFirst = idx === 0;
+            var isLast = idx === groups.length - 1;
+
+            var leftBtn;
+            if (isFirst) {
+                leftBtn = document.createElement('a');
+                leftBtn.className = 'btn';
+                leftBtn.textContent = 'Cancel';
+                leftBtn.href = (cfg && cfg.baseurl ? cfg.baseurl : '') + '/event_templates/index';
+            } else {
+                leftBtn = document.createElement('button');
+                leftBtn.type = 'button';
+                leftBtn.className = 'btn';
+                leftBtn.textContent = '← Previous';
+                leftBtn.setAttribute('data-et-wizard-prev', '');
+                leftBtn.addEventListener('click', function () { goTo(idx - 1); });
+            }
+            var leftWrap = document.createElement('div');
+            leftWrap.appendChild(leftBtn);
+            nav.appendChild(leftWrap);
+
+            var counter = document.createElement('span');
+            counter.className = 'et-step-counter';
+            counter.textContent = 'Step ' + (idx + 1) + ' of ' + groups.length;
+            nav.appendChild(counter);
+
+            var rightBtn = document.createElement('button');
+            rightBtn.type = 'button';
+            rightBtn.className = 'btn btn-primary';
+            if (isLast) {
+                rightBtn.textContent = (cfg && cfg.isPreview)
+                    ? 'Create event (disabled in preview)'
+                    : 'Create event';
+                rightBtn.setAttribute('data-et-wizard-submit', '');
+                if (cfg && cfg.isPreview) { rightBtn.disabled = true; }
+                rightBtn.addEventListener('click', function () {
+                    var realSubmit = document.getElementById('et-user-form-submit');
+                    if (realSubmit) { realSubmit.click(); }
+                });
+            } else {
+                rightBtn.textContent = 'Next →';
+                rightBtn.setAttribute('data-et-wizard-next', '');
+                rightBtn.addEventListener('click', function () { goTo(idx + 1); });
+            }
+            var rightWrap = document.createElement('div');
+            rightWrap.appendChild(rightBtn);
+            nav.appendChild(rightWrap);
+
+            g.appendChild(nav);
+        });
+
+        function goTo(target) {
+            if (target < 0 || target >= groups.length) { return; }
+            currentStep = target;
+            renderStep();
+            // Smooth-scroll to the top of the active section. Use the form
+            // top as the anchor when we step back to 0 to avoid jumping.
+            var anchor = target === 0 ? formRoot : groups[target];
+            anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function renderStep() {
+            groups.forEach(function (g, idx) {
+                g.classList.toggle('et-step-active', idx === currentStep);
+            });
+            formRoot.classList.toggle('et-on-last-step', currentStep === groups.length - 1);
+        }
+
+        function applyMode(mode) {
+            formRoot.classList.toggle('et-mode-wizard', mode === 'wizard');
+            if (mode === 'wizard') {
+                currentStep = 0;
+                renderStep();
+            }
+        }
+
+        function persistMode(mode) {
+            var url = (cfg && cfg.baseurl ? cfg.baseurl : '')
+                + '/userSettings/setEventTemplateUserFormMode/'
+                + encodeURIComponent(mode);
+            try {
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin',
+                    cache: 'no-cache'
+                });
+            } catch (e) { /* persistence is best-effort */ }
+        }
+
+        toggle.addEventListener('change', function () {
+            var mode = this.checked ? 'wizard' : 'all';
+            applyMode(mode);
+            persistMode(mode);
+        });
+
+        applyMode((cfg && cfg.viewMode) || 'all');
+    }
+
     function init() {
         wireRepeatable();
         wireMandatoryGuard();
@@ -821,6 +943,7 @@
         wireTagPicker();
         wireFileInputs();
         wireObjectCollapsing();
+        wireWizardMode();
         // Initial state — disable submit if any mandatory field is empty.
         qsa(document, '#et-user-form .et-field[data-et-repeatable="1"]').forEach(refreshRemoveButtons);
         // Paint the filled-state chips for every object entry once

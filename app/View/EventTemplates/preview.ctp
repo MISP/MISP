@@ -4,4 +4,5 @@ echo $this->element('eventTemplates/userForm/shell', array(
     'definition' => $definition,
     'objectRelationSpecs' => $objectRelationSpecs,
     'isPreview' => true,
+    'viewMode' => isset($viewMode) ? $viewMode : 'all',
 ));
