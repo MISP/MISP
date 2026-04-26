@@ -6,6 +6,11 @@ echo $this->element('genericElements/Form/genericForm', [
     ],
     'data' => [
         'model' => 'EventTemplate',
+        // The submit button's onClick uses `$('#EventTemplateImportForm').submit()`
+        // which depends on the action being passed through to submitButton.ctp.
+        // genericForm does not derive it from the request automatically, so set
+        // it explicitly here.
+        'submit' => ['action' => 'import'],
         'title' => __('Import event template'),
         'description' => __(
             'Paste a previously-exported event template JSON below, '
