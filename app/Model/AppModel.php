@@ -98,7 +98,7 @@ class AppModel extends Model
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
         147 => false, 148 => false, 149 => false, 150 => false,
-        151 => false
+        151 => false, 152 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2641,6 +2641,23 @@ class AppModel extends Model
                 // via the schema-cache invalidation hook; manual operators
                 // should follow the same step.
                 $sqlArray[] = "ALTER TABLE `event_templates` CHANGE `default` `misp_default` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 152:
+                // Widen event_templates.distribution from tinyint(1) to
+                // tinyint(4) to match the convention everywhere else in
+                // MISP (events.distribution, attributes.distribution are
+                // both tinyint(4)). The original tinyint(1) caused Cake's
+                // MySQL driver to coerce the column to PHP bool on read
+                // (the driver applies the bool cast when len == 1 AND
+                // native_type is TINY), which then JSON-rendered as
+                // true/false instead of 0/1. The wider tinyint stays an
+                // integer end-to-end.
+                //
+                // active and misp_default remain tinyint(1) — they are
+                // genuine boolean flags and matching events.published /
+                // events.disable_correlation / similar, where bool in
+                // JSON is the established convention.
+                $sqlArray[] = "ALTER TABLE `event_templates` MODIFY `distribution` tinyint(4) NOT NULL DEFAULT 0;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
