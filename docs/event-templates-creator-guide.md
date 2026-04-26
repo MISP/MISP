@@ -200,3 +200,18 @@ PRD §9 for the full list. The builder uses
 `POST /event_templates/validate_definition` to surface server errors
 inline; `POST /event_templates/instantiate/{id}` is what the user
 form posts to.
+
+## The shared library
+
+There is a community-curated catalogue of event templates at
+[MISP/misp-event-templates](https://github.com/MISP/misp-event-templates),
+shipped with MISP as a submodule at
+`app/files/misp-event-templates/`. Site admins drive it via the
+**Update from library** button on the events-templates index — see
+the [event-template library admin guide](event-template-library-admin)
+for the operator-side flow.
+
+If you author a template that you think other teams could use,
+consider contributing it upstream — the bar is "a template several
+SOC teams could plausibly want." See that repo's `CONTRIBUTE.md`
+for the authoring conventions and PR review checklist.

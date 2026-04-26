@@ -270,24 +270,18 @@ themes.
 
 ## Phase 5 — Docs and release polish
 
-**Status:** not started
-**Concurrent with:** Phase 4 (can land in parallel — these tasks
-don't touch the same files).
+**Status:** complete
+**Concurrent with:** Phase 4 (these tasks don't touch the same files).
 **Exit criteria:** operators and library authors can find their
 way through the workflow without asking us.
 
-- [ ] Library `README.md` final pass — make sure it describes both
-      MISP-driven and external use
-- [ ] Library `CONTRIBUTE.md` — JSON authoring conventions, schema
-      summary, validation script usage, PR review checklist
-- [ ] MISP-side admin doc at `docs/event-template-library-admin.md`
-      — explaining `git submodule update` + the update endpoint +
-      the skip-edited semantics
-- [ ] Release notes entry in MISP core's changelog
-- [ ] Cross-link from `docs/event-templates-creator-guide.md` to
-      "the curated library is at MISP/misp-event-templates"
+- [x] Library `README.md` final pass — adds a "Templates included" table at the top describing each of the seven starter templates with a one-line use-case. Also flips the stale `default` references to `misp_default` after the rename. Library commit `014736c`.
+- [x] Library `CONTRIBUTE.md` — same `default` → `misp_default` rename in the JSON authoring conventions block, with a short note explaining why the field is prefixed. (PR review checklist + validation script usage already shipped in Phase 1.1.)
+- [x] MISP-side admin doc at `docs/event-template-library-admin.md` — full operator guide: what the library is, the `git submodule update` + UI/REST update flow, the loader's routing table, the `misp_default` flag and operator-fork mechanic, troubleshooting (including the persistent-method-cache invalidation step from the Phase 2.6 follow-up), how to contribute back upstream.
+- [x] Release notes entry — handled automatically by MISP's gitchangelog flow. Every commit on this branch follows the `new:` / `chg: [event-template-library(<sub>)]` convention so the next release cut picks them up without a manual changelog edit.
+- [x] Cross-link from `docs/event-templates-creator-guide.md` to the library — new "The shared library" section at the end of the creator guide pointing at the upstream repo and the new admin doc, with an invitation to contribute templates back.
 
-- [ ] **Phase 5 complete**
+- [x] **Phase 5 complete**
 
 ---
 
