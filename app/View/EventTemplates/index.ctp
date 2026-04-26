@@ -125,6 +125,14 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'data_path' => 'EventTemplate.active',
             ],
             [
+                'name' => __('Source'),
+                'sort' => 'EventTemplate.misp_default',
+                'class' => 'short',
+                'element' => 'library_managed',
+                'data_path' => 'EventTemplate.misp_default',
+                'title' => __('Library = managed by misp-event-templates submodule, auto-updated. Local = authored on this instance or operator-forked.'),
+            ],
+            [
                 'name' => __('Version'),
                 'sort' => 'EventTemplate.version',
                 'class' => 'short',

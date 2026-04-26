@@ -227,8 +227,7 @@ view summary, see library badges — from the UI on both themes.
 - [x] "Update from library" button on the event-templates index toolbar, gated on the new `eventTemplates/update` ACL entry, sits next to Import. Wired in `app/View/EventTemplates/index.ctp` `top_bar.children` array.
 - [x] Update flow restructured to GET (confirm page) + POST (execute) so the toolbar button can be a normal `<a href>` link — GET shows what would change, the form on the page POSTs back to the same URL to apply. REST clients still POST directly; GET in REST returns 405. New private helper `__buildLibraryStatusSummary()` shared between `update()` GET-confirm and `library_status()`.
 - [x] Update result page rendering installed / updated / skipped_current / skipped_forked / failed sections with copy explaining the `misp_default` flag mechanic. `app/View/EventTemplates/update.ctp` (replaces the placeholder), plus new `update_confirm.ctp` for the dry-run preview.
-- [ ] Default-template badge column on the index for rows with
-      `misp_default = 1`
+- [x] Default-template badge column on the index for rows with `misp_default = 1` — new "Source" column on the events-templates index. Library-managed rows get a blue "Library" pill with a fa-cube icon and a tooltip explaining the auto-update behaviour; locally-authored / forked rows get a soft-grey "local" label. New shared field renderer at `app/View/Elements/genericElements/IndexTable/Fields/library_managed.ctp` (additive — new file, no edits to existing field elements).
 - [ ] Builder banner near the save bar warning that edits to a
       `misp_default = 1` row will be overwritten on the next library
       update unless the operator flips the flag (PRD §10.4)
