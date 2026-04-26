@@ -97,8 +97,7 @@ class AppModel extends Model
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
-        147 => false, 148 => false, 149 => false, 150 => false,
-        151 => false, 152 => false, 153 => false, 154 => false
+        147 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2578,6 +2577,17 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `bookmarks` MODIFY `url` TEXT NOT NULL;";
                 break;
             case 147:
+                // Event-template feature scaffolding — both tables created
+                // in their final shape. distribution is tinyint(4) (matches
+                // events.distribution / attributes.distribution and stays
+                // an integer end-to-end through Cake's MySQL driver, which
+                // would otherwise bool-coerce a tinyint(1) column on read).
+                // misp_default is the library-managed flag — named with
+                // the misp_ prefix to avoid colliding with MySQL's
+                // reserved `default` keyword. minimum_version on the
+                // dependencies table reflects the field's semantics — the
+                // running MISP instance is free to use a newer
+                // object-template version if installed (PRD §13).
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_templates` (
                     `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
                     `uuid` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -2585,8 +2595,9 @@ class AppModel extends Model
                     `description` text COLLATE utf8mb4_unicode_ci NULL,
                     `org_id` int(11) UNSIGNED NOT NULL,
                     `creator_user_id` int(11) UNSIGNED NOT NULL,
-                    `share_within_org` tinyint(1) NOT NULL DEFAULT 0,
+                    `distribution` tinyint(4) NOT NULL DEFAULT 0,
                     `active` tinyint(1) NOT NULL DEFAULT 1,
+                    `misp_default` tinyint(1) NOT NULL DEFAULT 0,
                     `version` int(11) UNSIGNED NOT NULL DEFAULT 1,
                     `definition` mediumtext COLLATE utf8mb4_unicode_ci NOT NULL,
                     `created` datetime NOT NULL,
@@ -2597,93 +2608,16 @@ class AppModel extends Model
                 $indexArray[] = array('event_templates', 'org_id');
                 $indexArray[] = array('event_templates', 'name');
                 $indexArray[] = array('event_templates', 'active');
-                break;
-            case 148:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_template_object_dependencies` (
                     `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
                     `event_template_id` int(11) UNSIGNED NOT NULL,
                     `object_template_uuid` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
                     `object_template_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-                    `pinned_version` int(11) UNSIGNED NOT NULL,
+                    `minimum_version` int(11) UNSIGNED NOT NULL,
                     PRIMARY KEY (`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 $indexArray[] = array('event_template_object_dependencies', 'event_template_id');
                 $indexArray[] = array('event_template_object_dependencies', 'object_template_uuid');
-                break;
-            case 149:
-                $sqlArray[] = "ALTER TABLE `event_templates` CHANGE `share_within_org` `distribution` tinyint(1) NOT NULL DEFAULT 0;";
-                break;
-            case 150:
-                // Library-managed flag (PRD docs/dev/event-template-library-prd.md §6).
-                // 1 = managed by misp-event-templates submodule (auto-updated on
-                // `Update from library`); 0 = locally authored or operator-forked
-                // (library updates skip). Originally named `default` to match
-                // DecayingModel.default; renamed to `misp_default` in case 151
-                // to dodge MySQL's reserved word. This case is kept verbatim
-                // so dev DBs that ran 150 first land in the correct final
-                // shape after 151's CHANGE; fresh DBs run both sequentially
-                // without any intermediate state being visible to the app.
-                $sqlArray[] = "ALTER TABLE `event_templates` ADD `default` tinyint(1) NOT NULL DEFAULT 0 AFTER `active`;";
-                break;
-            case 151:
-                // Rename event_templates.default → event_templates.misp_default.
-                // `default` is a MySQL reserved word; quoting works in DDL
-                // but Cake's persistent method cache memoises the SELECT
-                // column list per model and on this setup occasionally
-                // produced a SELECT that omitted the `default` column
-                // — symptom only on read, writes were fine. Renaming
-                // the column dodges the issue entirely.
-                //
-                // Operators upgrading must clear Cake's cached method
-                // list once after this migration runs:
-                //   rm -f app/tmp/cache/persistent/myapp_cake_core_method_cache
-                // The `cake Admin runUpdates` flow does this automatically
-                // via the schema-cache invalidation hook; manual operators
-                // should follow the same step.
-                $sqlArray[] = "ALTER TABLE `event_templates` CHANGE `default` `misp_default` tinyint(1) NOT NULL DEFAULT 0;";
-                break;
-            case 152:
-                // Widen event_templates.distribution from tinyint(1) to
-                // tinyint(4) to match the convention everywhere else in
-                // MISP (events.distribution, attributes.distribution are
-                // both tinyint(4)). The original tinyint(1) caused Cake's
-                // MySQL driver to coerce the column to PHP bool on read
-                // (the driver applies the bool cast when len == 1 AND
-                // native_type is TINY), which then JSON-rendered as
-                // true/false instead of 0/1. The wider tinyint stays an
-                // integer end-to-end.
-                //
-                // active and misp_default remain tinyint(1) — they are
-                // genuine boolean flags and matching events.published /
-                // events.disable_correlation / similar, where bool in
-                // JSON is the established convention.
-                $sqlArray[] = "ALTER TABLE `event_templates` MODIFY `distribution` tinyint(4) NOT NULL DEFAULT 0;";
-                break;
-            case 153:
-                // Rename event_template_object_dependencies.pinned_version
-                // → minimum_version to match the field's actual semantics.
-                // The validator + instantiator + user-form renderer all
-                // treat the value as a *minimum required* version (PRD
-                // §13 forward-compatibility) — the running MISP instance
-                // is free to use a newer object-template version if one
-                // is installed. The "pinned" framing was misleading;
-                // operators read it as "must use this exact version".
-                // The matching JSON field, schema property, and PHP code
-                // refs all flip in the same commit.
-                $sqlArray[] = "ALTER TABLE `event_template_object_dependencies` CHANGE `pinned_version` `minimum_version` int(11) unsigned NOT NULL;";
-                break;
-            case 154:
-                // Companion to 153: 153 only renamed the column on the
-                // dependencies table. The same key lived inside the JSON
-                // stored in event_templates.definition (object_template
-                // blocks of object_field elements) and was not migrated,
-                // so legacy rows authored before the rename still carry
-                // "pinned_version" and now fail schema validation on
-                // instantiate / validate_definition. The key is
-                // unambiguous — it only appears as an object_template
-                // member, never elsewhere in a definition — so a plain
-                // REPLACE on the mediumtext column is safe.
-                $sqlArray[] = "UPDATE `event_templates` SET `definition` = REPLACE(`definition`, '\"pinned_version\"', '\"minimum_version\"') WHERE `definition` LIKE '%\"pinned_version\"%';";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
