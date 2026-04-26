@@ -66,6 +66,7 @@
         'tag_field'        => ['label' => __('Tag field'),        'icon' => 'tags'],
         'galaxy_field'     => ['label' => __('Galaxy field'),     'icon' => 'globe'],
         'file_field'       => ['label' => __('File field'),       'icon' => 'file'],
+        'event_report'     => ['label' => __('Event report'),     'icon' => 'file-alt'],
         'object_reference' => ['label' => __('Object reference'), 'icon' => 'link'],
     ];
 ?>
@@ -342,6 +343,9 @@
                     </div>
                     <div x-show="selectedType === 'file_field'">
                         <?= $this->element('eventTemplates/builder/properties_file_field') ?>
+                    </div>
+                    <div x-show="selectedType === 'event_report'">
+                        <?= $this->element('eventTemplates/builder/properties_event_report') ?>
                     </div>
                     <div x-show="selectedType === 'object_reference'">
                         <?= $this->element('eventTemplates/builder/properties_object_reference') ?>

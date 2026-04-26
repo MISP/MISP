@@ -107,6 +107,16 @@
             summary: (el) =>
                 (el.label || '(unnamed)') + ' — as ' + (el.as || 'attachment')
         },
+        event_report: {
+            label: 'Event report',
+            factory: (id) => ({
+                type: 'event_report', id,
+                label: 'New report', help: '',
+                mandatory: false,
+                default_content: ''
+            }),
+            summary: (el) => el.label || '(unnamed report)'
+        },
         object_reference: {
             label: 'Reference',
             factory: (id) => ({
@@ -123,7 +133,8 @@
         section: 'section', text_block: 'text',
         attribute_field: 'attr', object_field: 'obj',
         tag_field: 'tags', galaxy_field: 'gal',
-        file_field: 'file', object_reference: 'ref'
+        file_field: 'file', event_report: 'report',
+        object_reference: 'ref'
     };
 
     function uuidv4() {

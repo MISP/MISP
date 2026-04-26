@@ -138,6 +138,18 @@
                 return (el.label || '(unnamed)') + ' — as ' + (el.as || 'attachment');
             }
         },
+        event_report: {
+            label: 'Event report',
+            factory: function (id) {
+                return {
+                    type: 'event_report', id: id,
+                    label: 'New report', help: '',
+                    mandatory: false,
+                    default_content: ''
+                };
+            },
+            summary: function (el) { return el.label || '(unnamed report)'; }
+        },
         object_reference: {
             label: 'Reference',
             factory: function (id) {
@@ -185,7 +197,8 @@
             section: 'section', text_block: 'text',
             attribute_field: 'attr', object_field: 'obj',
             tag_field: 'tags', galaxy_field: 'gal',
-            file_field: 'file', object_reference: 'ref'
+            file_field: 'file', event_report: 'report',
+            object_reference: 'ref'
         }[type] || 'el';
         var existing = {};
         state.definition.structure.forEach(function (el) {

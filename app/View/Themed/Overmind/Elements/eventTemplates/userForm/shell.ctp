@@ -13,7 +13,7 @@
     // materialise at instantiation time based on the filled object_fields.
     $renderableTypes = [
         'section', 'text_block', 'attribute_field', 'object_field',
-        'tag_field', 'galaxy_field', 'file_field',
+        'tag_field', 'galaxy_field', 'file_field', 'event_report',
     ];
 ?>
 <style>

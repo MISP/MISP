@@ -46,6 +46,7 @@
         'tag_field'        => ['label' => __('Tag field'),        'icon' => 'tags'],
         'galaxy_field'     => ['label' => __('Galaxy field'),     'icon' => 'globe'],
         'file_field'       => ['label' => __('File field'),       'icon' => 'file'],
+        'event_report'     => ['label' => __('Event report'),     'icon' => 'file-alt'],
         'object_reference' => ['label' => __('Object reference'), 'icon' => 'link'],
     ];
 ?>
@@ -276,6 +277,9 @@
             </div>
             <div data-et-properties-for="file_field" style="display:none;">
                 <?php echo $this->element('eventTemplates/builder/properties_file_field'); ?>
+            </div>
+            <div data-et-properties-for="event_report" style="display:none;">
+                <?php echo $this->element('eventTemplates/builder/properties_event_report'); ?>
             </div>
             <div data-et-properties-for="object_reference" style="display:none;">
                 <?php echo $this->element('eventTemplates/builder/properties_object_reference'); ?>

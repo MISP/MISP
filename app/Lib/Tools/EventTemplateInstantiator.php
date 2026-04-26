@@ -177,6 +177,7 @@ class EventTemplateInstantiator
             ));
             $eventUuid = isset($eventRow['Event']['uuid']) ? $eventRow['Event']['uuid'] : '';
 
+            $this->saveEventReports($definition, $userInput, $user, $newId);
             $this->writeInstantiationAuditRow($newId, (string)$eventUuid, $options);
 
             return array(
@@ -192,6 +193,63 @@ class EventTemplateInstantiator
                 $db->rollback();
             }
             throw $e;
+        }
+    }
+
+    // --- Event reports ------------------------------------------------------
+
+    /**
+     * Saves an EventReport row for each `event_report` element in the
+     * template whose user input is non-empty. Runs post-commit because
+     * EventReport.event_id references the just-saved event row; a save
+     * failure is logged as a warning but does not roll back the event
+     * (mirrors the audit-row pattern — the event is already on disk).
+     */
+    private function saveEventReports(array $definition, array $userInput, array $user, $eventId)
+    {
+        $structure = isset($definition['structure']) && is_array($definition['structure'])
+            ? $definition['structure']
+            : array();
+        $reports = array();
+        foreach ($structure as $el) {
+            if (!is_array($el) || ($el['type'] ?? null) !== 'event_report') {
+                continue;
+            }
+            $id = $el['id'] ?? '';
+            if ($id === '' || !isset($userInput[$id])) {
+                continue;
+            }
+            $content = $userInput[$id];
+            if (!is_string($content) || trim($content) === '') {
+                continue;
+            }
+            $reports[] = array(
+                'name' => isset($el['label']) ? (string)$el['label'] : $id,
+                'content' => $content,
+                'distribution' => 5,
+                'event_id' => (int)$eventId,
+            );
+        }
+        if (empty($reports)) {
+            return;
+        }
+        try {
+            $eventReport = ClassRegistry::init('EventReport');
+            foreach ($reports as $report) {
+                $errs = $eventReport->addReport($user, $report, (int)$eventId);
+                if (!empty($errs)) {
+                    CakeLog::warning(
+                        'EventTemplateInstantiator: event_report save returned errors '
+                        . 'for event_id=' . (int)$eventId . ': '
+                        . json_encode($errs)
+                    );
+                }
+            }
+        } catch (Throwable $e) {
+            CakeLog::warning(
+                'EventTemplateInstantiator: failed to save event_report rows '
+                . 'for event_id=' . (int)$eventId . ': ' . $e->getMessage()
+            );
         }
     }
 
@@ -296,6 +354,21 @@ class EventTemplateInstantiator
                         $id, $idx + 1
                     );
                 }
+            }
+        }
+
+        // event_report inputs must be plain strings (Markdown body of the
+        // report). Reject array shapes so a stale form widget doesn't slip
+        // through unnoticed.
+        foreach ($interactiveIds as $id => $el) {
+            if ($el['type'] !== 'event_report' || !isset($userInput[$id])) {
+                continue;
+            }
+            if ($userInput[$id] !== null && !is_string($userInput[$id])) {
+                $errors[] = sprintf(
+                    'event_report "%s": expected string, got %s',
+                    $id, gettype($userInput[$id])
+                );
             }
         }
 
