@@ -98,7 +98,7 @@ class AppModel extends Model
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
         141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
         147 => false, 148 => false, 149 => false, 150 => false,
-        151 => false, 152 => false, 153 => false
+        151 => false, 152 => false, 153 => false, 154 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2671,6 +2671,19 @@ class AppModel extends Model
                 // The matching JSON field, schema property, and PHP code
                 // refs all flip in the same commit.
                 $sqlArray[] = "ALTER TABLE `event_template_object_dependencies` CHANGE `pinned_version` `minimum_version` int(11) unsigned NOT NULL;";
+                break;
+            case 154:
+                // Companion to 153: 153 only renamed the column on the
+                // dependencies table. The same key lived inside the JSON
+                // stored in event_templates.definition (object_template
+                // blocks of object_field elements) and was not migrated,
+                // so legacy rows authored before the rename still carry
+                // "pinned_version" and now fail schema validation on
+                // instantiate / validate_definition. The key is
+                // unambiguous — it only appears as an object_template
+                // member, never elsewhere in a definition — so a plain
+                // REPLACE on the mediumtext column is safe.
+                $sqlArray[] = "UPDATE `event_templates` SET `definition` = REPLACE(`definition`, '\"pinned_version\"', '\"minimum_version\"') WHERE `definition` LIKE '%\"pinned_version\"%';";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
