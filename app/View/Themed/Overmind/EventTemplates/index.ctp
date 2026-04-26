@@ -105,6 +105,22 @@ $fields = [
         'display_in' => ['table', 'card'],
     ],
     [
+        'name' => __('Sections'),
+        'data_path' => 'EventTemplate.definition.structure',
+        'element' => 'event_template_element_count',
+        'count_type' => 'section',
+        'card_section' => 'extra',
+        'display_in' => ['table', 'card'],
+    ],
+    [
+        'name' => __('Elements'),
+        'data_path' => 'EventTemplate.definition.structure',
+        'element' => 'event_template_element_count',
+        'count_type' => 'non_section',
+        'card_section' => 'extra',
+        'display_in' => ['table', 'card'],
+    ],
+    [
         'name' => __('Source'),
         'sort' => 'EventTemplate.misp_default',
         'data_path' => 'EventTemplate.misp_default',

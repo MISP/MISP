@@ -118,6 +118,22 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'data_path' => 'EventTemplate.active',
             ],
             [
+                'name' => __('Sections'),
+                'class' => 'short',
+                'element' => 'event_template_element_count',
+                'data_path' => 'EventTemplate.definition.structure',
+                'count_type' => 'section',
+                'title' => __('Number of section elements in the template'),
+            ],
+            [
+                'name' => __('Elements'),
+                'class' => 'short',
+                'element' => 'event_template_element_count',
+                'data_path' => 'EventTemplate.definition.structure',
+                'count_type' => 'non_section',
+                'title' => __('Number of non-section elements (attribute / object / tag / galaxy / file fields, plus text blocks and object references)'),
+            ],
+            [
                 'name' => __('Source'),
                 'sort' => 'EventTemplate.misp_default',
                 'class' => 'short',
