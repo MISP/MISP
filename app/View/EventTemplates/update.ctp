@@ -112,6 +112,6 @@ $renderRows = function ($rows) use ($baseurl) {
 <?php
 echo $this->element('/genericElements/SideMenu/side_menu', array(
     'menuList' => 'eventTemplates',
-    'menuItem' => 'index',
+    'menuItem' => 'update',
 ));
 ?>

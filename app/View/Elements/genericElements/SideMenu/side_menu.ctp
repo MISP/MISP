@@ -1407,6 +1407,16 @@ $divider = '<li class="divider"></li>';
                             'text' => __('Import Event Template'),
                         ));
                     }
+                    if ($this->Acl->canAccess('eventTemplates', 'update')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'update',
+                            'onClick' => array(
+                                'function' => 'getPopup',
+                                'params' => array('', 'event_templates', 'update'),
+                            ),
+                            'text' => __('Update from library'),
+                        ));
+                    }
                     if (in_array($menuItem, array('view', 'edit', 'preview', 'instantiate'), true) && !empty($id)) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',

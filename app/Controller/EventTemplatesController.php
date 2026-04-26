@@ -670,14 +670,15 @@ class EventTemplatesController extends AppController
                 __('update requires POST. GET /event_templates/library_status returns the dry-run snapshot.')
             );
         }
-        // HTML confirm page — reuses the library_status payload shape so
-        // the view can render the same preview and a form that POSTs to
-        // this same URL to execute.
+        // HTML confirm popover — reuses the library_status payload shape
+        // so the view can render the dry-run summary and a form that POSTs
+        // to this same URL to execute. Layout is suppressed so the snippet
+        // can be injected into #popover_form by getPopup().
         $libDir = APP . 'files' . DS . 'misp-event-templates' . DS . 'templates';
         $preview = $this->__buildLibraryStatusSummary($libDir);
         $this->set('preview', $preview);
-        $this->set('title_for_layout', __('Update from library — Event Templates'));
-        $this->render('update_confirm');
+        $this->layout = false;
+        $this->render('ajax/update_confirm');
     }
 
     /**
