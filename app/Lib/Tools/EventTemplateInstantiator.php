@@ -529,8 +529,12 @@ class EventTemplateInstantiator
 
     /**
      * Applies a value→marker substitution map to a Markdown content
-     * string. Pure str_replace; relies on the caller's length-sorted
-     * map to handle overlapping matches.
+     * string. Word-boundary aware: a 3-char value like "npm" should
+     * link "the npm package" but NOT the "npm" substring inside
+     * ".npmrc". Boundaries are only emitted at edges where the value
+     * starts/ends with a word character — URL values ending in "/"
+     * don't get a trailing boundary, otherwise they wouldn't match
+     * before whitespace (a non-word/non-word boundary doesn't fire).
      */
     private function applyAutoLinks($content, array $map)
     {
@@ -538,7 +542,17 @@ class EventTemplateInstantiator
             return $content;
         }
         foreach ($map as $needle => $marker) {
-            $content = str_replace($needle, $marker, $content);
+            $leading = preg_match('/^\w/', $needle) ? '\b' : '';
+            $trailing = preg_match('/\w$/', $needle) ? '\b' : '';
+            $pattern = '/' . $leading . preg_quote($needle, '/') . $trailing . '/';
+            // Replacement strings in preg_replace treat \ and $ specially
+            // (back-references). Escape them so a tag value like 'foo$1'
+            // doesn't confuse the regex engine.
+            $replacement = addcslashes($marker, '\\$');
+            $replaced = preg_replace($pattern, $replacement, $content);
+            if ($replaced !== null) {
+                $content = $replaced;
+            }
         }
         return $content;
     }
