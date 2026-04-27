@@ -288,8 +288,15 @@ class NavbarHelper extends AppHelper {
                         'label' => __('List Object Templates'),
                         'url' => $baseurl . '/objectTemplates/index',
                         'controller' => 'objectTemplates',
-                        'action' => 'templex',
+                        'action' => 'index',
                         'icon' => 'fas fa-cubes'
+                    ],
+                    [
+                        'label' => __('List Object Relationships'),
+                        'url' => $baseurl . '/object_relationships/index',
+                        'controller' => 'object_relationships',
+                        'action' => 'index',
+                        'icon' => 'fas fa-object-ungroup'
                     ]
                 ]
             ],

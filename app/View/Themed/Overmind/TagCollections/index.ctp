@@ -18,7 +18,7 @@ $fields = [
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/tagCollections/editWithTags/%id%',
-                'requirement' => 'check_edit_rights'
+                'requirement' => $me['Role']['perm_tag_editor']
             ],
             [
                 'type' => 'ajax',
@@ -26,7 +26,7 @@ $fields = [
                 'icon' => 'trash',
                 'url' => $baseurl . '/tagCollections/deleteSelection/%id%',
                 'class' => 'text-danger',
-                'requirement' => 'check_edit_rights'
+                'requirement' => $me['Role']['perm_tag_editor']
             ]
         ]
     ],

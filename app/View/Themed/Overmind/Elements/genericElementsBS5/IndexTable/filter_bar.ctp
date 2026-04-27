@@ -328,6 +328,21 @@ $hasActiveFilters = !empty($currentFilters);
                 </button>
             <?php endif; ?>
 
+            <?php if (!empty($filter_bar['activate'])): ?>
+                <button id="mass-activate-button"
+                        class="btn btn-outline-success btn-sm d-none"
+                        title="<?=__('Activate selected items')?>"
+                        onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massActivate');?>')">
+                    <i class="fas fa-play"></i> <?= __('Highlight') ?>
+                </button>
+                <button id="mass-deactivate-button"
+                        class="btn btn-outline-danger btn-sm d-none"
+                        title="<?=__('Deactivate selected items')?>"
+                        onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massDeactivate');?>')">
+                    <i class="fas fa-stop"></i> <?= __('Remove Highlight') ?>
+                </button>
+            <?php endif; ?>
+
             <?php if (!empty($filter_bar['delete'])): ?>
                 <button id="multi-delete-button"
                         class="btn btn-danger btn-sm d-none"
