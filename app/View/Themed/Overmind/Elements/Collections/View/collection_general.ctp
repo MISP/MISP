@@ -61,7 +61,7 @@ $collection = $data['Collection'] ?? $data;
                     <!-- COPY BUTTON -->
                     <button
                         class="text-muted border-0 bg-white"
-                        onclick="copyToClipboard(this, '<?= h($collection['uuid'] ?? '') ?>')"
+                        onclick="copyToClipboard(this, '<?= h(h($collection['uuid'] ?? '')) ?>')"
                         data-bs-toggle="tooltip"
                         title="<?= __('Copy UUID') ?>"
                         aria-label="<?= __('Copy UUID') ?>">
