@@ -37,7 +37,7 @@ $fields = [
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/templateElements/editV2/%id%',
-                'requirement' => $isSiteAdmin
+                'requirement' => $me['Role']['perm_template']
             ],
             [
                 'type' => 'ajax',
@@ -45,7 +45,7 @@ $fields = [
                 'icon' => 'trash',
                 'url' => $baseurl . '/templateElements/deleteSelection/%id%',
                 'class' => 'text-danger',
-                'requirement' => $isSiteAdmin
+                'requirement' => $me['Role']['perm_template']
             ],
         ]
     ],

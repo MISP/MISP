@@ -47,7 +47,7 @@ $fields = [
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/warninglists/edit/%id%',
-                'requirement' => 'check_edit_warninglists_rights'
+                'requirement' => $me['Role']['perm_warninglist']
             ],
             [
                 'type' => 'ajax',
@@ -55,12 +55,12 @@ $fields = [
                 'icon' => 'trash',
                 'url' => $baseurl . '/warninglists/deleteSelection/%id%',
                 'class' => 'text-danger',
-                'requirement' => 'check_site_admin'
+                'requirement' => $me['Role']['perm_warninglist']
             ],
             [
                 'type' => 'divider',
                 'url' => '#',
-                'requirement' => 'check_site_admin'
+                'requirement' => $me['Role']['perm_warninglist']
             ],
             [
                 'type' => 'toggle',
@@ -70,7 +70,7 @@ $fields = [
                 'icon_off' => 'play',
                 'url' => $baseurl . '/warninglists/toggleEnable/%id%', 
                 'enable_path' => 'Warninglist.enabled',
-                'requirement' => 'check_site_admin'
+                'requirement' => $me['Role']['perm_warninglist']
             ]
         ]
     ],

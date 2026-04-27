@@ -17,6 +17,7 @@ $fields = [
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/templates/edit/%id%',
+                'requirement' => $me['Role']['perm_template']
             ],
             [
                 'type' => 'ajax',
@@ -24,6 +25,7 @@ $fields = [
                 'icon' => 'trash',
                 'url' => $baseurl . '/templates/deleteSelection/%id%',
                 'class' => 'text-danger',
+                'requirement' => $me['Role']['perm_template']
             ]
         ]
     ],
