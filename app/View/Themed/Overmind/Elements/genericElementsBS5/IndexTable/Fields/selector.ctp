@@ -49,7 +49,7 @@ if ($field['data_path'] === 'Attribute.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
-if ($field['data_path'] === 'Collection.id' || $field['data_path'] === 'id') {
+if ($field['data_path'] === 'Collection.id' || !empty($data['Collection'])) {
     if (!isset($mayModify)){
         $mayModify = $this->Acl->canModifyCollection($row);
     }
@@ -115,6 +115,32 @@ if ($field['data_path'] === 'TagCollection.id') {
 }
 
 if ($field['data_path'] === 'Taxonomy.id') {
+    if (!isset($mayModify)){
+        $mayModify = $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+if ($field['data_path'] === 'Template.id') {
+    if (!isset($mayModify)){
+        $mayModify = $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+
+if ($field['data_path'] === 'ObjectTemplate.id') {
+    if (!isset($mayModify)){
+        $mayModify = $mayModify = $isSiteAdmin;
+    }
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
+}
+
+
+if ($field['data_path'] === 'id') {
     if (!isset($mayModify)){
         $mayModify = $mayModify = $isSiteAdmin;
     }
@@ -203,28 +229,35 @@ if ($field['data_path'] === 'existing_tag.Tag.id') {
                                 $state = Hash::get($row, $action['publish_path']);
                                 $label = $state ? $action['label_on'] : $action['label_off'];
                                 $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], [$state ? 'unpublish' : 'publish', $id], $action['url']);
+                                $url = str_replace(['%action%', '%id%'], [$state ? 'unpublish' : 'publish', $id], $url);
                             }
 
                             if ($action['label_on'] === "Disable"){
                                 $state = Hash::get($row, $action['enable_path']);
                                 $label = $state ? $action['label_on'] : $action['label_off'];
                                 $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], ['toggleEnable', $id], $action['url']);
+                                $url = str_replace(['%action%', '%id%'], ['toggleEnable', $id], $url);
                             }
 
                             if ($action['label_on'] === "Optional"){
                                 $state = Hash::get($row, $action['require_path']);
                                 $label = $state ? $action['label_on'] : $action['label_off'];
                                 $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], ['toggleRequired', $id], $action['url']);
+                                $url = str_replace(['%action%', '%id%'], ['toggleRequired', $id], $url);
                             }
 
                             if ($action['label_on'] === "Remove Highlight"){
                                 $state = Hash::get($row, $action['highlight_path']);
                                 $label = $state ? $action['label_on'] : $action['label_off'];
                                 $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
-                                $url = str_replace(['%action%', '%id%'], ['toggleHighlighted', $id], $action['url']);
+                                $url = str_replace(['%action%', '%id%'], ['toggleHighlighted', $id], $url);
+                            }
+
+                            if ($action['label_on'] === "Deactivate"){
+                                $state = Hash::get($row, $action['active_path']);
+                                $label = $state ? $action['label_on'] : $action['label_off'];
+                                $iconClass = $state ? $action['icon_on'] : $action['icon_off'];
+                                $url = str_replace(['%action%', '%id%'], ['toggleActive', $id], $url);
                             }
                         ?>
                         <?php if ($label === "Publish" || $label === "Unpublish"): ?>
