@@ -1386,6 +1386,62 @@ $divider = '<li class="divider"></li>';
                         }
                     }
                     break;
+
+                case 'eventTemplates':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => $baseurl . '/event_templates/index',
+                        'text' => __('List Event Templates'),
+                    ));
+                    if ($this->Acl->canAccess('eventTemplates', 'add')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add',
+                            'url' => $baseurl . '/event_templates/add',
+                            'text' => __('Add Event Template'),
+                        ));
+                    }
+                    if ($this->Acl->canAccess('eventTemplates', 'import')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'import',
+                            'url' => $baseurl . '/event_templates/import',
+                            'text' => __('Import Event Template'),
+                        ));
+                    }
+                    if ($this->Acl->canAccess('eventTemplates', 'update')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'update',
+                            'onClick' => array(
+                                'function' => 'getPopup',
+                                'params' => array('', 'event_templates', 'update'),
+                            ),
+                            'text' => __('Update from library'),
+                        ));
+                    }
+                    if (in_array($menuItem, array('view', 'edit', 'preview', 'instantiate'), true) && !empty($id)) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => $baseurl . '/event_templates/view/' . h($id),
+                            'text' => __('View Event Template'),
+                        ));
+                        if ($this->Acl->canAccess('eventTemplates', 'edit')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'edit',
+                                'url' => $baseurl . '/event_templates/edit/' . h($id),
+                                'text' => __('Edit Event Template'),
+                            ));
+                        }
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => $baseurl . '/event_templates/export/' . h($id),
+                            'text' => __('Export'),
+                        ));
+                        if ($this->Acl->canAccess('eventTemplates', 'instantiate')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => $baseurl . '/event_templates/instantiate/' . h($id),
+                                'text' => __('Create event from template'),
+                            ));
+                        }
+                    }
+                    break;
                 case 'decayingModel':
                     if ($isAdmin) {
                         if ($isSiteAdmin && ($menuItem === 'view' || $menuItem === 'index')) {

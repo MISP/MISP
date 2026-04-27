@@ -283,6 +283,22 @@ class ACLComponent extends Component
             'delete' => [],
             'index' => ['*'],
         ),
+        'eventTemplates' => array(
+            'index' => array('*'),
+            'view' => array('*'),
+            'add' => array('perm_template'),
+            'edit' => array('perm_template'),
+            'delete' => array('perm_template'),
+            'duplicate' => array('perm_template'),
+            'export' => array('*'),
+            'import' => array('perm_template'),
+            'instantiate' => array('perm_add'),
+            'preview' => array('perm_template'),
+            'validate_definition' => array('perm_template'),
+            // Library updates affect every org on the instance — site_admin only.
+            'update' => array(),
+            'library_status' => array(),
+        ),
         'events' => array(
             'add' => array('perm_add'),
             'addIOC' => array('perm_add'),
@@ -440,6 +456,7 @@ class ACLComponent extends Component
             'publish' => array('perm_galaxy_editor'),
             'restore' => array('perm_galaxy_editor'),
             'restSearch' => array('*'),
+            'search' => array('*'),
             'unpublish' => array('perm_galaxy_editor'),
             'updateCluster' => array('perm_galaxy_editor'),
             'view' => array('*'),
@@ -936,6 +953,7 @@ class ACLComponent extends Component
             'setHomePage' => array('not_read_only_authkey'),
             'eventIndexColumnToggle' => ['*'],
             'setTheme' => ['*'],
+            'setEventTemplateUserFormMode' => ['*']
         ),
         'warninglists' => array(
             'checkValue' => ['*'],

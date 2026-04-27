@@ -58,3 +58,7 @@
 	path = app/files/misp-workflow-blueprints
 	url = https://github.com/MISP/misp-workflow-blueprints
 	branch = main
+[submodule "app/files/misp-event-templates"]
+	path = app/files/misp-event-templates
+	url = https://github.com/MISP/misp-event-templates
+	branch = main

@@ -123,6 +123,16 @@ if (!empty($me)) {
                     'url' => $baseurl . '/templates/index'
                 ),
                 array(
+                    'text' => __('List Event Templates'),
+                    'url' => $baseurl . '/event_templates/index',
+                    'requirement' => $this->Acl->canAccess('eventTemplates', 'index'),
+                ),
+                array(
+                    'text' => __('Add Event Template'),
+                    'url' => $baseurl . '/event_templates/add',
+                    'requirement' => $this->Acl->canAccess('eventTemplates', 'add'),
+                ),
+                array(
                     'type' => 'separator'
                 ),
                 array(
