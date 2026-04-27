@@ -1,3 +1,11 @@
+// Initializing Bootstrap 5 tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+});
+
 /*******************************
  * Index Filtering Bar
  *******************************/
@@ -13,8 +21,7 @@ function openModal(url, size = 'xl') {
         .then(html => {
             const container = document.getElementById('mainModalBody');
             container.innerHTML = html;
-            // Execute script if defined in the modal
-            container.querySelectorAll('script').forEach(oldScript => {
+            container.querySelectorAll('script:not([type="application/json"])').forEach(oldScript => {
                 const newScript = document.createElement('script');
                 if (oldScript.src) {
                     newScript.src = oldScript.src;
@@ -24,8 +31,11 @@ function openModal(url, size = 'xl') {
                 document.body.appendChild(newScript);
                 document.body.removeChild(newScript);
             });
+
             initTomSelect(container);
-            initCollectionForm(container); //Not really great, temp solution
+            initCollectionForm(container);
+            initTemplateElementForm(container);
+            
             let modal = new bootstrap.Modal(document.getElementById('mainModal'));
             modal.show();
         });
@@ -49,7 +59,6 @@ function multiSelectItems2(url) {
     openModal(fullUrl);
 }
 
-
 function redirectToExportResult() {
     const returnFormat = document.getElementById('EventReturnFormat')?.value;
     let idListStr = document.getElementById('PromptForm')?.dataset.idlist;
@@ -65,7 +74,6 @@ function redirectToExportResult() {
 
 function toggleAllAttributeCheckboxes() {
     const checked = document.getElementById('select_all').checked;
-
     const checkboxes = document.querySelectorAll('.item-checkbox');
 
     checkboxes.forEach(checkbox => {
@@ -73,7 +81,6 @@ function toggleAllAttributeCheckboxes() {
         checkbox.dispatchEvent(new Event('change', { bubbles: true }));
     });
 }
-
 
 function isMobile() {
     return window.innerWidth < 768;
@@ -98,7 +105,6 @@ function setView(view, save = true) {
 
     if (save) localStorage.setItem('indexViewMode', view);
 }
-
 
 function updateMultiSelectToolbar() {
     const toolbar        = document.getElementById('multiSelectToolbar');
@@ -147,7 +153,6 @@ function updateMultiSelectToolbar() {
         if (item.highlight === '0') allHighlighted = false;
     });
 
-
     const isHidden = !canDeleteAll;
 
     deleteButton?.classList.toggle('d-none', isHidden);
@@ -160,7 +165,6 @@ function updateMultiSelectToolbar() {
     relationshipButton?.classList.toggle('d-none', isHidden);
     sightingButton?.classList.toggle('d-none', isHidden);
 
-    // Specific logic for the Enable/Disable buttons
     if (enableButton && disableButton) {
         if (allDisabled) {
             enableButton.classList.remove('d-none');
@@ -174,7 +178,6 @@ function updateMultiSelectToolbar() {
         }
     }
 
-    // Specific logic for the Require/Optional buttons
     if (requireButton && optionalButton) {
         if (allOptional) {
             requireButton.classList.remove('d-none');
@@ -188,7 +191,6 @@ function updateMultiSelectToolbar() {
         }
     }
 
-    // Specific logic for the Highlight/remove highlight buttons
     if (highlightButton && removehighlightButton) {
         if (allRemovehighlighted) {
             highlightButton.classList.remove('d-none');
@@ -202,9 +204,6 @@ function updateMultiSelectToolbar() {
         }
     }
 }
-
-
-
 
 function buildFilterUrl() {
     const base = baseIndexUrl.replace(/\/search.*/, '');
@@ -265,17 +264,13 @@ function buildFilterUrl() {
     return newUrl;
 }
 
-// Listener for non-ajax index
 document.addEventListener('DOMContentLoaded', () => {
-    // View Mode Toggle
     document.getElementById('viewList')?.addEventListener('click', () => setView('table'));
     document.getElementById('viewCard')?.addEventListener('click', () => setView('card'));
 
     const savedView = localStorage.getItem('indexViewMode');
     setView(savedView ? savedView : (isMobile() ? 'card' : 'table'), false);
 
-
-    // Filtering calls
     document.getElementById('quickFilterButton')?.addEventListener('click', () => {
         window.location.href = buildFilterUrl();
     });
@@ -290,7 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Checkbox handler
     document.addEventListener('change', function(e) {
         if (!e.target.classList.contains('item-checkbox')) return;
 
@@ -312,11 +306,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-
 /*******************************
  * Tags
  *******************************/
-
 function toggleTags(badge) {
     const container = badge.closest('.tag-container');
     const hiddenTags = container.querySelectorAll('.extra-tag');
@@ -324,16 +316,12 @@ function toggleTags(badge) {
     if (!hiddenTags.length) return;
 
     const isHidden = hiddenTags[0].classList.contains('d-none');
-
     hiddenTags.forEach(g => g.classList.toggle('d-none'));
 
     badge.textContent = isHidden ? '−' : '+' + hiddenTags.length;
 }
 
-
-
 document.addEventListener('DOMContentLoaded', function() {
-
     document.body.addEventListener('click', async function(e) {
         const starIcon = e.target.closest('.tag-star');
 
@@ -366,7 +354,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!result.saved) {
                     revertStar(starIcon, wasFavourite);
                     console.error('Erreur lors du changement de favori:', result.fails);
-                    // Todo: Add toast message
                 }
             } catch (error) {
                 revertStar(starIcon, wasFavourite);
@@ -390,10 +377,8 @@ document.addEventListener('DOMContentLoaded', function() {
  * Other
  *******************************/
 async function getPopup(id, context, target, admin, popupType) {
-    //Fetch DOM element
     const grayOut = document.querySelector("#gray_out");
     const loadingIcons = document.querySelectorAll(".loading");
-    // Default popup type 
     if (!popupType) popupType = '#popover_form';
     const popupElement = document.querySelector(popupType);
 
@@ -401,7 +386,7 @@ async function getPopup(id, context, target, admin, popupType) {
         grayOut.style.display = "block";
         grayOut.style.opacity = "1";
     }
-    //BUILD URL 
+
     let url = baseurl;
     if (admin) url += "/admin";
     if (context) url += "/" + context;
@@ -422,11 +407,9 @@ async function getPopup(id, context, target, admin, popupType) {
         loadingIcons.forEach(el => el.style.display = "none");
         if (popupElement) {
             popupElement.innerHTML = data;
-            //Need to rewrite openPopup
             openPopup(popupType, false);
         }
     } catch (error) {
-        //Handling error by calling error callback
         loadingIcons.forEach(el => el.style.display = "none");
         if (grayOut) grayOut.style.display = "none";
         if (typeof xhrFailCallback === "function") {
@@ -434,8 +417,6 @@ async function getPopup(id, context, target, admin, popupType) {
         }
     }
 }
-
-
 
 function publishPopup(id, type, scope) {
     scope = scope === undefined ? 'events' : scope;
@@ -456,7 +437,6 @@ function publishPopup(id, type, scope) {
         });
 }
 
-
 function openConfirmation(data) {
     const box = document.getElementById("confirmation_box");
     if (box) {
@@ -464,7 +444,6 @@ function openConfirmation(data) {
         openPopup(box);
     }
 }
-
 
 function openPopup(id, adjust_layout = true, callback) {
     const el = (typeof id === 'string') ? document.querySelector(id) : id;
@@ -528,9 +507,7 @@ function initTomSelect(container) {
     });
 }
 
-
 function initCollectionForm(container) {
-
     const distributionSelect = container.querySelector('#distribution-select');
     const sgContainer = container.querySelector('#sg-container');
 
@@ -545,17 +522,132 @@ function initCollectionForm(container) {
     }
 
     toggleSharingGroup();
-
     distributionSelect.addEventListener('change', toggleSharingGroup);
 }
 
+/*******************************
+ * Template Element Add
+ *******************************/
+function initTemplateElementForm(container) {
+    const form = container.querySelector('#templateElementAddForm');
+    if (!form) return;
+
+    const configDataNode = container.querySelector('#templateElementFormConfig');
+    if (!configDataNode) return;
+
+    let configData = {};
+    try {
+        configData = JSON.parse(configDataNode.textContent);
+    } catch (e) {
+        console.error("Erreur de parsing JSON pour le template element form", e);
+        return;
+    }
+
+    const typeSelectorEl = container.querySelector('#ElementTypeSelector');
+    const categoryEl = container.querySelector('#DynamicCategory');
+    const typeEl = container.querySelector('#DynamicType');
+
+    const typeSelectorTs = typeSelectorEl ? typeSelectorEl.tomselect : null;
+    const categoryTs = categoryEl ? categoryEl.tomselect : null;
+    const typeTs = typeEl ? typeEl.tomselect : null;
+
+    const dynamicFormFields = container.querySelector('#dynamicFormFields');
+    const checkComplex = container.querySelector('#checkComplex');
+
+    function toggleGroups(selectedType) {
+        if (!selectedType) {
+            dynamicFormFields.classList.add('d-none');
+            return;
+        }
+
+        dynamicFormFields.classList.remove('d-none');
+        container.querySelectorAll('.element-group-attr, .element-group-file').forEach(el => el.classList.add('d-none'));
+
+        if (selectedType === 'attribute') {
+            container.querySelectorAll('.element-group-attr').forEach(el => el.classList.remove('d-none'));
+            populateCategoryDropdown('attribute');
+        } else if (selectedType === 'file') {
+            container.querySelectorAll('.element-group-file').forEach(el => el.classList.remove('d-none'));
+            populateCategoryDropdown('file');
+        }
+    }
+
+    function populateCategoryDropdown(mode) {
+        if (!categoryTs) return;
+
+        categoryTs.clear(true);
+        categoryTs.clearOptions();
+        categoryTs.addOption({value: '', text: 'Select Category...'});
+
+        const options = (mode === 'attribute') ? configData.categoriesAttr : configData.categoriesFile;
+
+        Object.keys(options).forEach(key => {
+            categoryTs.addOption({value: key, text: options[key]});
+        });
+        categoryTs.refreshOptions(false);
+
+        if (configData.preSelectedCategory) {
+            categoryTs.setValue(configData.preSelectedCategory, true);
+            if (mode === 'attribute') populateTypeDropdown();
+        }
+    }
+
+    function populateTypeDropdown() {
+        if (!typeTs || !categoryTs) return;
+
+        const category = categoryTs.getValue();
+        typeTs.clear(true);
+        typeTs.clearOptions();
+        typeTs.addOption({value: '', text: 'Select Type...'});
+
+        if (!category) return;
+
+        const isComplex = checkComplex && checkComplex.checked;
+        let typesList = [];
+
+        if (isComplex && configData.typeGroupCategoryMapping[category]) {
+            typesList = configData.typeGroupCategoryMapping[category];
+        } else if (!isComplex && configData.categoryTypesAttr[category]) {
+            typesList = configData.categoryTypesAttr[category];
+        }
+
+        typesList.forEach(val => {
+            typeTs.addOption({value: val, text: val});
+        });
+
+        typeTs.refreshOptions(false);
+
+        if (configData.preSelectedType) {
+            typeTs.setValue(configData.preSelectedType, true);
+        }
+    }
+
+    if (typeSelectorTs) {
+        typeSelectorTs.on('change', toggleGroups);
+    }
+
+    if (categoryTs) {
+        categoryTs.on('change', () => {
+            const elType = typeSelectorTs ? typeSelectorTs.getValue() : null;
+            if (elType === 'attribute') {
+                populateTypeDropdown();
+            }
+        });
+    }
+
+    if (checkComplex) {
+        checkComplex.addEventListener('change', populateTypeDropdown);
+    }
+
+    if (typeSelectorTs) {
+        const initialType = typeSelectorTs.getValue();
+        if (initialType) toggleGroups(initialType);
+    }
+}
 
 
 /**
  * Displays a success or error message
- * @param {string} success - 'success' or 'error' (used for the element ID)
- * @param {string} message - The message text
- * @param {string} fullError - Error details for the popover
  */
 function showMessage(success, message, fullError) {
     let duration = 1000 + (message.length * 40);
@@ -574,7 +666,6 @@ function showMessage(success, message, fullError) {
     }
 
     contentElem.innerHTML = message;
-
     containerElem.style.display = 'block';
 
     const fadeIn = containerElem.animate([{ opacity: 0 }, { opacity: 1 }], {
@@ -596,7 +687,6 @@ function showMessage(success, message, fullError) {
     };
 }
 
-
 function escapeHtml(unsafe) {
     if (typeof unsafe === "boolean" || typeof unsafe === "number") {
         return unsafe;
@@ -614,10 +704,72 @@ function escapeHtml(unsafe) {
     return unsafe.replace(/[&<>"']/g, (m) => map[m]);
 }
 
-
-
-
 function getCsrfToken() {
     const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]*)/);
     return match ? decodeURIComponent(match[1]) : '';
+}
+
+function copyToClipboard(btn, text) {
+    const originalHtml = btn.innerHTML;
+
+    const proceedCopy = () => {
+        btn.innerHTML = '<i class="fas fa-check text-primary"></i>';
+
+        const tooltip = bootstrap.Tooltip.getInstance(btn);
+        if (tooltip) {
+            btn.setAttribute('data-bs-original-title', 'Copied!');
+            tooltip.show();
+        }
+
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            if (tooltip) {
+                btn.setAttribute('data-bs-original-title', 'Copy to clipboard');
+                tooltip.hide();
+            }
+        }, 2000);
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(proceedCopy);
+    } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+            document.execCommand("copy");
+            proceedCopy();
+        } catch (err) {
+            console.error('Fallback copy failed', err);
+        }
+        document.body.removeChild(textarea);
+    }
+}
+
+function toggleFormats(button, containerId) {
+    const container = document.getElementById(containerId);
+    const extraFormats = container.querySelectorAll('.extra-format');
+    const isExpanding = extraFormats[0].classList.contains('d-none');
+
+    extraFormats.forEach(el => {
+        if (isExpanding) {
+            el.classList.remove('d-none');
+            el.classList.add('animate__animated', 'animate__fadeIn');
+        } else {
+            el.classList.add('d-none');
+        }
+    });
+
+    if (isExpanding) {
+        button.innerHTML = '<i class="fas fa-minus small me-1"></i>';
+        button.classList.replace('bg-dark', 'bg-primary');
+        button.classList.replace('text-primary', 'text-dark');
+    } else {
+        button.innerHTML = '<i class="fas fa-plus small me-1"></i>' + extraFormats.length;
+        button.classList.replace('bg-primary', 'bg-dark');
+        button.classList.replace('text-dark', 'text-primary');
+    }
 }

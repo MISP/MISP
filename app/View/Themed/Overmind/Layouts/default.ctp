@@ -20,6 +20,12 @@
             ['controller' => 'attributes', 'action' => 'index'],
             ['controller' => 'attributes', 'action' => 'delete'],
 
+            ['controller' => 'collections', 'action' => 'index'],
+            ['controller' => 'collections', 'action' => 'view'],
+            ['controller' => 'collections', 'action' => 'add'],
+            ['controller' => 'collections', 'action' => 'edit'],
+            ['controller' => 'CollectionElements', 'action' => 'add'],
+
             ['controller' => 'tags', 'action' => 'index'],
             ['controller' => 'tags', 'action' => 'add'],
             ['controller' => 'tags', 'action' => 'edit'],
@@ -35,11 +41,24 @@
             ['controller' => 'taxonomies', 'action' => 'addTag'],
             ['controller' => 'taxonomies', 'action' => 'disableTag'],
 
-            ['controller' => 'collections', 'action' => 'index'],
-            ['controller' => 'collections', 'action' => 'view'],
-            ['controller' => 'collections', 'action' => 'add'],
-            ['controller' => 'collections', 'action' => 'edit'],
-            ['controller' => 'CollectionElements', 'action' => 'add'],
+            ['controller' => 'templates', 'action' => 'index'],
+            ['controller' => 'templates', 'action' => 'delete'],
+            ['controller' => 'templates', 'action' => 'add'],
+            ['controller' => 'templates', 'action' => 'view'],
+
+            ['controller' => 'templateElements', 'action' => 'delete'],
+            ['controller' => 'templateElements', 'action' => 'addV2'],
+            ['controller' => 'templateElements', 'action' => 'editV2'],
+
+            ['controller' => 'objectTemplates', 'action' => 'index'],
+            ['controller' => 'objectTemplates', 'action' => 'delete'],
+            ['controller' => 'objectTemplates', 'action' => 'add'],
+            ['controller' => 'objectTemplates', 'action' => 'view'],
+
+            ['controller' => 'object_relationships', 'action' => 'index'],
+            ['controller' => 'object_relationships', 'action' => 'delete'],
+            ['controller' => 'object_relationships', 'action' => 'add'],
+            ['controller' => 'object_relationships', 'action' => 'edit'],
 
             ['controller' => 'warninglists', 'action' => 'index'],
             ['controller' => 'warninglists', 'action' => 'view'],
