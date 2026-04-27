@@ -61,7 +61,12 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                             'requirement' => $this->Acl->canAccess('eventTemplates', 'import'),
                         ],
                         [
-                            'url' => $baseurl . '/event_templates/update',
+                            // element_simple.ctp's onClick wiring drops
+                            // event.preventDefault when a url is set, so we
+                            // omit the url here and rely on getPopup to
+                            // load /event_templates/update into the
+                            // popover_form container instead of navigating.
+                            'onClick' => 'openEventTemplateLibraryUpdatePopup',
                             'icon' => 'sync',
                             'text' => __('Update from library'),
                             'title' => __('Reconcile event_templates with the bundled misp-event-templates submodule (site-admin only).'),

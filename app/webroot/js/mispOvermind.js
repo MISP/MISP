@@ -527,6 +527,12 @@ function cancelPrompt(isolated) {
     });
 }
 
+// No-arg wrapper so the index-page top-bar action and the side menu
+// can both trigger the same popover without inlining getPopup args.
+function openEventTemplateLibraryUpdatePopup() {
+    getPopup('', 'event_templates', 'update');
+}
+
 async function submitEventTemplatesLibraryUpdate() {
     const loadingIcons = document.querySelectorAll('.loading');
     loadingIcons.forEach(el => el.style.display = 'block');

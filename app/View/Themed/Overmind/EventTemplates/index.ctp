@@ -169,7 +169,12 @@ if ($this->Acl->canAccess('eventTemplates', 'update')) {
         'type' => 'link',
         'label' => __('Update from library'),
         'icon' => 'sync',
+        // headerSection.ctp's onClick wiring fires
+        // `event.preventDefault(); FUNC();` so the href is never followed —
+        // the popover loads via getPopup into #popover_form. The url is
+        // kept as a no-script fallback / right-click target.
         'url' => $baseurl . '/event_templates/update',
+        'onClick' => 'openEventTemplateLibraryUpdatePopup',
     ];
 }
 $this->set('headerActions', $headerActions);

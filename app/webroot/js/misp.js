@@ -227,6 +227,12 @@ function submitDeletion(context_id, action, type, id) {
     });
 }
 
+// No-arg wrapper so the index-page top-bar action and the side menu
+// can both trigger the same popover without inlining getPopup args.
+function openEventTemplateLibraryUpdatePopup() {
+    getPopup('', 'event_templates', 'update');
+}
+
 function submitEventTemplatesLibraryUpdate() {
     xhr({
         url: '/event_templates/update',
