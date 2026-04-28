@@ -111,7 +111,12 @@ switch ($object['type']) {
         break;
 
     case 'link':
-        echo $this->Html->link($object['value'], $object['value'], ['class' => $linkClass, 'rel' => 'noreferrer noopener']);
+        if (!preg_match('/^https?:\/\//i', $object['value'])) {
+            echo h($object['value']);
+        }else{
+            echo $this->Html->link($object['value'], $object['value'], ['class' => $linkClass, 'rel' => 'noreferrer noopener']);
+        }
+
         break;
 
     case 'cortex':

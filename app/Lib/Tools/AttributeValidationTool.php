@@ -508,6 +508,9 @@ class AttributeValidationTool
                 return true;
             case 'link':
                 // Moved to a native function whilst still enforcing the scheme as a requirement
+                if (!preg_match('/^https?:\/\//i', $value)) {
+                    return false;
+                }
                 return (bool)filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED);
             case 'hex':
                 return ctype_xdigit($value);
