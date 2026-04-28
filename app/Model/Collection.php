@@ -69,6 +69,13 @@ class Collection extends AppModel
 
     public $current_user = null;
 
+    public $validate = [
+        'uuid' => [
+            'rule' => 'uuid',
+            'message' => 'Please provide a valid RFC 4122 UUID',
+        ]
+    ];
+
 
     public function beforeValidate($options = array())
     {
