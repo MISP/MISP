@@ -50,13 +50,7 @@ $divider = '<li class="divider"></li>';
                     $mayModify = $mayModify ?? $this->Acl->canModifyEvent($event);
                     $mayPublish = $mayPublish ?? ($mayModify && $this->Acl->canPublishEvent($event));
 
-                    if ($menuItem === 'template_populate_results') {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'template_populate_results',
-                            'url' => $baseurl . '/templates/index',
-                            'text' => __('Populate From Template')
-                        ));
-                    } else if ($menuItem === 'enrichmentResults') {
+                    if ($menuItem === 'enrichmentResults') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'enrichmentResults',
                             'text' => __('Enrichment Module Result')
@@ -130,13 +124,6 @@ $divider = '<li class="divider"></li>';
                             ),
                             'text' => __('Populate from…')
                         ));
-                        if ($menuItem === 'populateFromtemplate') {
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'element_id' => 'populateFromtemplate',
-                                'url' => $baseurl . '/templates/populateEventFromTemplate/' . $template_id . '/' . $eventId,
-                                'text' => __('Populate From Template')
-                            ));
-                        }
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'onClick' => array(
                                 'function' => 'genericPopup',
