@@ -297,6 +297,22 @@ class NavbarHelper extends AppHelper {
                         'controller' => 'object_relationships',
                         'action' => 'index',
                         'icon' => 'fas fa-object-ungroup'
+                    ],
+                    [
+                        'label' => __('Event Templates'),
+                        'url' => $baseurl . '/event_templates/index',
+                        'controller' => 'event_templates',
+                        'action' => 'index',
+                        'requirement' => $this->Acl->canAccess('eventTemplates', 'index'),
+                        'icon' => 'fas fa-file-invoice'
+                    ],
+                    [
+                        'label' => __('Add Event Template'),
+                        'url' => $baseurl . '/event_templates/add',
+                        'controller' => 'event_templates',
+                        'action' => 'add',
+                        'requirement' => $this->Acl->canAccess('eventTemplates', 'add'),
+                        'icon' => 'fas fa-plus'
                     ]
                 ]
             ],

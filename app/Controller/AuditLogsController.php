@@ -102,6 +102,7 @@ class AuditLogsController extends AppController
             AuditLog::ACTION_REMOVE_GALAXY_LOCAL => __('Remove galaxy cluster'),
             AuditLog::ACTION_PUBLISH => __('Publish'),
             AuditLog::ACTION_PUBLISH_SIGHTINGS => __('Publish sightings'),
+            AuditLog::ACTION_INSTANTIATE => __('Instantiate'),
         ];
     }
 
@@ -162,6 +163,7 @@ class AuditLogsController extends AppController
             AuditLog::ACTION_REMOVE_GALAXY . '||' . AuditLog::ACTION_REMOVE_GALAXY_LOCAL => __('Remove galaxy cluster'),
             AuditLog::ACTION_PUBLISH => __('Publish'),
             AuditLog::ACTION_PUBLISH_SIGHTINGS => $this->actions[AuditLog::ACTION_PUBLISH_SIGHTINGS],
+            AuditLog::ACTION_INSTANTIATE => $this->actions[AuditLog::ACTION_INSTANTIATE],
         ]);
         $models = $this->models;
         sort($models);

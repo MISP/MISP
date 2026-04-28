@@ -71,6 +71,16 @@
                             'fa-icon' => 'search',
                             'onClick' => 'getPopup',
                             'onClickParams' => array(h($urlparams), 'events', 'filterEventIndex')
+                        ),
+                        array(
+                            'id' => 'event-template-picker-button',
+                            'requirement' => (
+                                $this->Acl->canAccess('eventTemplates', 'index')
+                                && $this->Acl->canAccess('eventTemplates', 'instantiate')
+                            ),
+                            'title' => __('Create event from template'),
+                            'fa-icon' => 'clone',
+                            'onClick' => 'openEventTemplatePicker'
                         )
                     )
                 ),
@@ -191,6 +201,17 @@ echo $this->element('genericElements/assetLoader', [
     'css' => ['vis', 'distribution-graph'],
     'js' => ['vis', 'jquery-ui.min', 'network-distribution-graph'],
 ]);
+// Event-template picker modal for "Add Event → From Template" (PRD §5.2
+// F2.1/F2.2). Self-contained — exposes window.openEventTemplatePicker
+// which the toolbar button's onClick hands to ListTopBar. Gated on the
+// eventTemplates/instantiate ACL via the toolbar's `requirement`, so
+// users without access never see the button nor load the modal.
+if (!$ajax
+    && $this->Acl->canAccess('eventTemplates', 'index')
+    && $this->Acl->canAccess('eventTemplates', 'instantiate')
+) {
+    echo $this->element('eventTemplates/templatePickerModal');
+}
 if (!$ajax) {
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));
 }

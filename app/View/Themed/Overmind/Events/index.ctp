@@ -161,16 +161,36 @@ $fields = [
 ];
 
 
+$headerActions = [];
 if ($this->Acl->canAccess('events', 'add')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'link',
-            'label' => __('Add Event'),
-            'icon' => 'plus',
-            'url' => $baseurl . '/events/add'
-        ]
-    ]);
+    $headerActions[] = [
+        'type' => 'link',
+        'label' => __('Add Event'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/events/add'
+    ];
 }
+
+// "Add Event → From Template" entry point — Overmind toolbar parity
+// with the default theme (PRD §5.2 F2.1). Renders the searchable
+// picker modal once on the page and adds a header action that opens
+// it via headerSection's link.onClick callback.
+$canPickTemplate = (
+    $this->Acl->canAccess('eventTemplates', 'index')
+    && $this->Acl->canAccess('eventTemplates', 'instantiate')
+);
+if ($canPickTemplate) {
+    $headerActions[] = [
+        'type' => 'link',
+        'id' => 'event-template-picker-button',
+        'label' => __('From template'),
+        'icon' => 'clone',
+        'url' => '#',
+        'onClick' => 'openEventTemplatePicker'
+    ];
+    echo $this->element('eventTemplates/templatePickerModal');
+}
+$this->set('headerActions', $headerActions);
 
 /**
  * ==============================================================

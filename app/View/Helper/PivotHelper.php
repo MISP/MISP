@@ -51,7 +51,7 @@ class PivotHelper extends AppHelper
 
         $data[] = '<span class="' . $pivotSpanType . '">';
         if ($pivot['deletable']) {
-            $data[] = '<a class="pivotDelete fa fa-times" href="' . h(Configure::read('MISP.baseurl')) . '/events/removePivot/' . $pivot['id'] . '/' . $currentEventId . '" title="' . __('Remove pivot') . '"></a>';
+            $data[] = '<a class="pivotDelete fa fa-times" href="' . h(Configure::read('MISP.baseurl')) . '/events/removePivot/' . $pivot['id'] . '/' . $currentEventId . '" title="' . __('Remove pivot') . '" aria-label="' . __('Remove pivot') . '"></a>';
         }
         $data[] = '<a class="' . $pivotType . '" href="' . h(Configure::read('MISP.baseurl')) . '/events/view/' . $pivot['id'] . '/1/' . $currentEventId . '" title="' . $info . ' (' . $pivot['date'] . ')">' . $text . '</a>';
         $data[] = '</span>';
