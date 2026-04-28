@@ -622,3 +622,30 @@ th .sort-icon::before {
 .btn-warning-subtle:hover {
     background: #fff2cd;
 }
+
+
+
+
+
+.graph-container {
+    position: relative;
+    width: 100%;
+    height: 600px;
+}
+
+.graph-chart {
+    width: 100%;
+    height: 100%;
+}
+
+/* FULLSCREEN MODE */
+.graph-container.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2000;
+    background: #fff;
+    padding: 10px;
+}

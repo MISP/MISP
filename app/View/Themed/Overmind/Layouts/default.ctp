@@ -26,6 +26,40 @@
             ['controller' => 'collections', 'action' => 'edit'],
             ['controller' => 'CollectionElements', 'action' => 'add'],
 
+            ['controller' => 'tags', 'action' => 'index'],
+            ['controller' => 'tags', 'action' => 'add'],
+            ['controller' => 'tags', 'action' => 'edit'],
+            ['controller' => 'tags', 'action' => 'viewGraph'],
+
+            ['controller' => 'tagCollections', 'action' => 'index'],
+            ['controller' => 'tagCollections', 'action' => 'addWithTags'],
+            ['controller' => 'tagCollections', 'action' => 'editWithTags'],
+
+            ['controller' => 'taxonomies', 'action' => 'index'],
+            ['controller' => 'taxonomies', 'action' => 'delete'],
+            ['controller' => 'taxonomies', 'action' => 'view'],
+            ['controller' => 'taxonomies', 'action' => 'addTag'],
+            ['controller' => 'taxonomies', 'action' => 'disableTag'],
+
+            ['controller' => 'templates', 'action' => 'index'],
+            ['controller' => 'templates', 'action' => 'delete'],
+            ['controller' => 'templates', 'action' => 'add'],
+            ['controller' => 'templates', 'action' => 'view'],
+
+            ['controller' => 'templateElements', 'action' => 'delete'],
+            ['controller' => 'templateElements', 'action' => 'addV2'],
+            ['controller' => 'templateElements', 'action' => 'editV2'],
+
+            ['controller' => 'objectTemplates', 'action' => 'index'],
+            ['controller' => 'objectTemplates', 'action' => 'delete'],
+            ['controller' => 'objectTemplates', 'action' => 'add'],
+            ['controller' => 'objectTemplates', 'action' => 'view'],
+
+            ['controller' => 'object_relationships', 'action' => 'index'],
+            ['controller' => 'object_relationships', 'action' => 'delete'],
+            ['controller' => 'object_relationships', 'action' => 'add'],
+            ['controller' => 'object_relationships', 'action' => 'edit'],
+
             ['controller' => 'warninglists', 'action' => 'index'],
             ['controller' => 'warninglists', 'action' => 'view'],
             ['controller' => 'warninglists', 'action' => 'add'],
@@ -44,7 +78,6 @@
 
             ['controller' => 'correlation_exclusions', 'action' => 'index'],
             ['controller' => 'correlation_exclusions', 'action' => 'add'],
-
 
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],

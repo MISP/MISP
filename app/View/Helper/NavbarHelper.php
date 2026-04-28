@@ -206,14 +206,6 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-tags',
                 'children' => [
                     [
-                        'label' => __('Add Tag'),
-                        'url' => $baseurl . '/tags/add',
-                        'controller' => 'tags',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('tags', 'add'),
-                        'icon' => 'fas fa-plus'
-                    ],
-                    [
                         'label' => __('List Tags'),
                         'url' => $baseurl . '/tags/index',
                         'controller' => 'tags',
@@ -296,8 +288,15 @@ class NavbarHelper extends AppHelper {
                         'label' => __('List Object Templates'),
                         'url' => $baseurl . '/objectTemplates/index',
                         'controller' => 'objectTemplates',
-                        'action' => 'templex',
+                        'action' => 'index',
                         'icon' => 'fas fa-cubes'
+                    ],
+                    [
+                        'label' => __('List Object Relationships'),
+                        'url' => $baseurl . '/object_relationships/index',
+                        'controller' => 'object_relationships',
+                        'action' => 'index',
+                        'icon' => 'fas fa-object-ungroup'
                     ]
                 ]
             ],

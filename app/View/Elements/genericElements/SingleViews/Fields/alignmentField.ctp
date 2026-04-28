@@ -11,13 +11,15 @@ if (!empty($field['path'])) {
 if ($field['scope'] === 'individuals') {
     foreach ($extracted['alignments'] as $alignment) {
         $alignments .= sprintf(
-            '<div><span class="font-weight-bold">%s</span> @ %s <a href="#" class="fas fa-trash" onClick="%s"></a></div>',
+            '<div><span class="font-weight-bold">%s</span> @ %s <a href="#" class="fas fa-trash" title="%s" aria-label="%s" onClick="%s"></a></div>',
             h($alignment['type']),
             sprintf(
                 '<a href="/organisations/view/%s">%s</a>',
                 h($alignment['organisation']['id']),
                 h($alignment['organisation']['name'])
             ),
+            __('Delete alignment'),
+            __('Delete alignment'),
             sprintf(
                 "populateAndLoadModal(%s);",
                 sprintf(
@@ -30,13 +32,15 @@ if ($field['scope'] === 'individuals') {
 } else if ($field['scope'] === 'organisations') {
     foreach ($extracted['alignments'] as $alignment) {
         $alignments .= sprintf(
-            '<div>[<span class="font-weight-bold">%s</span>] %s <a href="#" class="fas fa-trash" onClick="%s"></a></div>',
+            '<div>[<span class="font-weight-bold">%s</span>] %s <a href="#" class="fas fa-trash" title="%s" aria-label="%s" onClick="%s"></a></div>',
             h($alignment['type']),
             sprintf(
                 '<a href="/individuals/view/%s">%s</a>',
                 h($alignment['individual']['id']),
                 h($alignment['individual']['email'])
             ),
+            __('Delete alignment'),
+            __('Delete alignment'),
             sprintf(
                 "populateAndLoadModal(%s);",
                 sprintf(
