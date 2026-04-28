@@ -6898,6 +6898,15 @@ class Server extends AppModel
                     'type' => 'string',
                     'cli_only' => 1
                 ),
+                'eventreport_enable_arbitrary_urls' => array(
+                    'level' => 0,
+                    'description' => __('Enable this setting if you wish for users to be able to query any arbitrary URL via event report import from URL feature. Keep in mind that queries are executed by the MISP server, so internal IPs in your MISP\'s network may be reachable. Only a compromised site-admin account could cause damage.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                    'cli_only' => 1
+                ),
                 'syslog' => array(
                     'level' => 0,
                     'description' => __('Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data.'),
