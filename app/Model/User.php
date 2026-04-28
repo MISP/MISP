@@ -1259,16 +1259,22 @@ class User extends AppModel
 
     public function resetauthkey($user, $id, $alert = false, $keyId = null)
     {
-        $this->id = $id;
-        if (!$id || !$this->exists($id)) {
+        $updatedUser = $this->find('first', array(
+            'conditions' => ['User.id' => $id],
+            'recursive' => -1,
+            'contain' => ['Role']
+        ));
+        if (empty($updatedUser)) {
             return false;
         }
-        $updatedUser = $this->read();
+        if (empty($user['Role']['perm_site_admin']) && !empty($updatedUser['Role']['perm_site_admin'])) {
+            return false;
+        }
         if (empty($user['Role']['perm_site_admin']) && !($user['Role']['perm_admin'] && $user['org_id'] == $updatedUser['User']['org_id']) && ($user['id'] != $id)) {
             return false;
         }
         if (empty(Configure::read('Security.advanced_authkeys'))) {
-            $oldKey = $this->data['User']['authkey'];
+            $oldKey = $updatedUser['User']['authkey'];
             $newkey = $this->generateAuthKey();
             $this->updateField($updatedUser['User'], 'authkey', $newkey);
             $this->extralog(
