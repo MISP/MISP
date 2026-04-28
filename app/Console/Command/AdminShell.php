@@ -1519,11 +1519,19 @@ class AdminShell extends AppShell
      *   attribute element (non-complex) → attribute_field (batch flag
      *     becomes repeatable; mandatory + category + type carry over;
      *     to_ids → to_ids_default)
-     *   attribute element (complex File / CnC) → an inline text_block
-     *     describing the group, plus one attribute_field per subtype
-     *     (filename / md5 / sha1 / sha256 / filename|<hash> for File;
-     *     url / domain / hostname / ip-dst for CnC). All wrapped in
-     *     the currently-open section.
+     *   attribute element (complex File) → object_field referencing the
+     *     misp-objects `file` template, relations: filename / md5 / sha1
+     *     / sha256, repeatable (one instance per indicator). Legacy
+     *     filename|<hash> composites collapse onto instances where the
+     *     operator fills filename + hash on the same row.
+     *   attribute element (complex CnC) → object_field referencing the
+     *     misp-objects `domain-ip` template, relations: domain /
+     *     hostname / ip, repeatable. Legacy `url` subtype is dropped
+     *     (domain-ip has no url relation; reachable as a separate
+     *     attribute_field if operators want it back).
+     *   Both fall back to expanding into N attribute_fields with an
+     *     inline text_block header when the named object template is
+     *     not installed locally.
      *   file element → file_field (malware=1 → as: malware-sample,
      *     otherwise as: attachment)
      *   template_tags → event_defaults.tags (resolved to tag names).
@@ -1677,7 +1685,7 @@ class AdminShell extends AppShell
 
         $structure = [];
         $currentSection = null;
-        $counters = ['sec' => 0, 'note' => 0, 'attr' => 0, 'file' => 0];
+        $counters = ['sec' => 0, 'note' => 0, 'attr' => 0, 'file' => 0, 'obj' => 0];
 
         foreach ($elements as $entry) {
             $te = $entry['TemplateElement'];
@@ -1715,7 +1723,41 @@ class AdminShell extends AppShell
                     continue;
                 }
                 if (!empty($row['complex'])) {
-                    // Complex File / CnC — emit an inline note + one
+                    // Complex File / CnC — emit a single object_field
+                    // referencing the canonical misp-objects template
+                    // for the group (file / domain-ip), repeatable so
+                    // the operator can add one instance per indicator.
+                    // Falls back to expanding into N attribute_fields if
+                    // the object template is not installed locally.
+                    $objSpec = $this->__resolveObjectTemplateForComplex((string)$row['type']);
+                    if ($objSpec !== null) {
+                        $counters['obj']++;
+                        $field = [
+                            'type' => 'object_field',
+                            'id' => 'obj_' . $counters['obj'],
+                            'label' => (string)$row['name'],
+                            'mandatory' => !empty($row['mandatory']),
+                            'repeatable' => true,
+                            'object_template' => [
+                                'uuid' => $objSpec['uuid'],
+                                'name' => $objSpec['name'],
+                                'minimum_version' => $objSpec['version'],
+                            ],
+                            'relations' => array_map(function ($rel) {
+                                return ['object_relation' => $rel];
+                            }, $objSpec['relations']),
+                        ];
+                        if ($currentSection !== null) {
+                            $field['parent'] = $currentSection;
+                        }
+                        if (!empty($row['description'])) {
+                            $field['help'] = (string)$row['description'];
+                        }
+                        $structure[] = $field;
+                        continue;
+                    }
+
+                    // Fallback path — emit an inline note + one
                     // attribute_field per subtype, all under the current
                     // section (no new section so a subsequent non-complex
                     // attribute stays grouped with the original).
@@ -1851,6 +1893,58 @@ class AdminShell extends AppShell
             'conditions' => ['template_element_id' => (int)$teId],
         ]);
         return isset($row[$modelName]) ? $row[$modelName] : null;
+    }
+
+    /**
+     * @internal
+     * Resolve a legacy complex attribute group (File / CnC) to a misp-objects
+     * template + the relations we want exposed in the new template's
+     * object_field. Returns null if the template is not installed locally,
+     * which the caller treats as a signal to fall back to multi
+     * attribute_field expansion.
+     *
+     *   File → file object (filename, md5, sha1, sha256). The legacy
+     *     filename|md5 / |sha1 / |sha256 composites collapse onto an
+     *     instance where the operator fills both filename and the
+     *     hash, since object relations are atomic.
+     *   CnC  → domain-ip object (domain, hostname, ip). The legacy
+     *     `url` subtype is dropped — domain-ip has no url relation,
+     *     and operators wanting url indicators can add an
+     *     attribute_field manually.
+     */
+    private function __resolveObjectTemplateForComplex($type)
+    {
+        $key = strtolower(trim((string)$type));
+        $map = [
+            'file' => [
+                'uuid' => '688c46fb-5edb-40a3-8273-1af7923e2215',
+                'name' => 'file',
+                'relations' => ['filename', 'md5', 'sha1', 'sha256'],
+            ],
+            'cnc' => [
+                'uuid' => '43b3b146-77eb-4931-b4cc-b66c60f28734',
+                'name' => 'domain-ip',
+                'relations' => ['domain', 'hostname', 'ip'],
+            ],
+        ];
+        if (!isset($map[$key])) {
+            return null;
+        }
+        $spec = $map[$key];
+        $row = $this->ObjectTemplate->find('first', [
+            'recursive' => -1,
+            'conditions' => array(
+                'ObjectTemplate.uuid' => $spec['uuid'],
+                'ObjectTemplate.active' => true,
+            ),
+            'fields' => ['ObjectTemplate.version'],
+            'order' => ['ObjectTemplate.version' => 'DESC'],
+        ]);
+        if (empty($row)) {
+            return null;
+        }
+        $spec['version'] = (int)$row['ObjectTemplate']['version'];
+        return $spec;
     }
 
     /** @internal Expand a legacy complex attribute (File / CnC) into its concrete subtypes. */
