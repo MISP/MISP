@@ -10,7 +10,7 @@ class Polynomial extends DecayingModelBase
     public function computeScore($model, $attribute, $base_score, $elapsed_time)
     {
         if ($elapsed_time < 0) {
-            return 0;
+            return $base_score;
         }
         $decay_speed = $model['DecayingModel']['parameters']['decay_speed'];
         $lifetime = $model['DecayingModel']['parameters']['lifetime']*24*60*60;

@@ -61,13 +61,13 @@ echo $this->element(
         ],
         'children' => [
             [
-                'url' => '/taxii_servers/collectionsIndex/{{0}}/',
+                'url' => $baseurl . '/taxii_servers/collectionsIndex/{{0}}/',
                 'url_params' => ['TaxiiServer.id'],
                 'title' => __('Collections'),
                 'elementId' => 'taxii_collections'
             ],
             [
-                'url' => '/taxii_servers/objectsIndex/{{0}}/{{1}}/',
+                'url' => $baseurl . '/taxii_servers/objectsIndex/{{0}}/{{1}}/',
                 'url_params' => ['TaxiiServer.id', 'TaxiiServer.collection'],
                 'title' => __('Objects in selected Collection'),
                 'elementId' => 'taxii_objects'

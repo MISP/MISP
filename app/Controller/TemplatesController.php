@@ -89,6 +89,7 @@ class TemplatesController extends AppController
             }
         }
         $this->request->data = $template;
+        $share = $template['Template']['share'];
 
         // get all existing tags for the tag add dropdown menu
         $this->loadModel('Tags');
@@ -104,6 +105,17 @@ class TemplatesController extends AppController
             'contain' => 'Tag',
             'conditions' => array('template_id' => $id),
         ));
+
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+            if (!empty($currentTags)) {
+                $this->request->data['Template']['tags'] = Hash::extract(
+                    $currentTags,
+                    '{n}.Tag.id'
+                );
+            }
+        }
+        $this->set('share', $share);
         $this->set('currentTags', $currentTags);
         $this->set('id', $id);
         $this->set('template', $template);
@@ -157,7 +169,7 @@ class TemplatesController extends AppController
             $this->Template->create();
             if ($this->Template->save($this->request->data)) {
                 $id = $this->Template->id;
-                $tagArray = json_decode($tags);
+                $tagArray = is_array($tags) ? $tags : json_decode($tags);
                 $this->loadModel('TemplateTag');
                 $this->loadModel('Tag');
                 foreach ($tagArray as $t) {
@@ -179,6 +191,9 @@ class TemplatesController extends AppController
         $tagArray = array();
         foreach ($tags as $tag) {
             $tagArray[$tag['Tags']['id']] = $tag['Tags']['name'];
+        }
+        if($this->theme === "Overmind"){
+            $this->layout = false;
         }
         $this->set('tags', $tagArray);
         $this->set('tagInfo', $tags);
@@ -247,6 +262,22 @@ class TemplatesController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'Template',
+            'restName' => 'Templates',
+            'itemName' => 'template',
+            'view' => 'ajax/templateDeleteConfirmationForm',
+            'checkModifyCallback' => function() {
+                return $this->userRole['perm_site_admin'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s template deleted.', '%s templates deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function templateChoices($id)

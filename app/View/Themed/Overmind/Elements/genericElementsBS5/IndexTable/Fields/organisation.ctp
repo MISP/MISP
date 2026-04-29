@@ -5,8 +5,11 @@ if (empty($org)) {
     return;
 }
 
+$id = !empty($org['id']) ? $org['id'] : null;
 $isCreator = $data_path === 'Orgc';
 $isCard = isset($viewMode) && $viewMode === 'card';
+
+
 ?>
 
 <div class="d-flex flex-column gap-1">
@@ -21,13 +24,16 @@ $isCard = isset($viewMode) && $viewMode === 'card';
 
         <?= $this->OrgImg->getOrgLogoV2($org, 24)?>
 
-        <a href="<?= $baseurl ?>/organisations/view/<?= h($org['id']) ?>"
-            class="text-decoration-none fw-semibold text-primary">
-
-            <?= h($org['name']) ?>
-
-        </a>
-
+        <?php if (!empty($id)): ?>
+            <a href="<?= $baseurl ?>/organisations/view/<?= h($id) ?>"
+                class="text-decoration-none fw-semibold text-primary">
+                <?= h($org['name']) ?>
+            </a>
+        <?php else: ?>
+            <p class="text-decoration-none fw-semibold text-primary mb-0">
+                <?= h($org[0]) ?>
+            </p>
+        <?php endif; ?>
     </div>
 
 </div>

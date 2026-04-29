@@ -180,6 +180,10 @@ class TagsController extends AppController
             $this->set('users', $users);
         }
 
+        if ($this->theme === 'Overmind'){
+            $this->layout = false;
+        }
+
         $this->set('menuData', ['menuList' => 'tags', 'menuItem' => 'add']);
     }
 
@@ -219,6 +223,9 @@ class TagsController extends AppController
             'fields' => ['id', 'email'],
             'order' => 'email',
         ]);
+        if ($this->theme === 'Overmind'){
+            $this->layout = false;
+        }
         $users = [0 => 'Unrestricted'] + $users;
         $this->set('users', $users);
         $this->set('menuData', ['menuList' => 'tags', 'menuItem' => 'edit']);
@@ -234,6 +241,23 @@ class TagsController extends AppController
             return $this->restResponsePayload;
         }
     }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'Tag',
+            'restName' => 'Tags',
+            'itemName' => 'tag',
+            'view' => 'ajax/tagDeleteConfirmationForm',
+            'checkModifyCallback' => function() {
+                return $this->userRole['perm_site_admin'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s tag deleted.', '%s tags deleted.', $count, $count);
+            }
+        ]);
+    }
+
 
     public function view($id)
     {

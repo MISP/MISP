@@ -232,7 +232,10 @@ class Module_add_analyst_data extends WorkflowBaseActionModule
     protected function __addNotes(array $matchingItems, array $options, array $user): bool
     {
         $success = false;
-        foreach ($matchingItems as $matchingItem) {
+        foreach ($matchingItems as $itemKey => $matchingItem) {
+            if ($itemKey == '_env') {
+                continue;
+            }
             $options['object_type'] = $options['target'];
             $options['object_uuid'] = $matchingItem['uuid'];
             if (!Validation::uuid($options['object_uuid'])) {

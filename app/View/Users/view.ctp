@@ -23,9 +23,10 @@ $tableData = [
     array(
         'key' => __('Email'),
         'html' => h($user['User']['email']) . ($admin_view ? sprintf(
-                ' <a class="fas fa-envelope" style="color: #333" href="%s/admin/users/quickEmail/%s" title="%s"></a>',
+                ' <a class="fas fa-envelope" style="color: #333" href="%s/admin/users/quickEmail/%s" title="%s" aria-label="%s"></a>',
                 $baseurl,
                 h($user['User']['id']),
+                __('Send email to user'),
                 __('Send email to user')
             ) : ''),
     ),
@@ -119,12 +120,13 @@ $org_admin_data = array();
 if ($admin_view) {
     foreach ($user['User']['orgAdmins'] as $orgAdminId => $orgAdminEmail) {
         $org_admin_data[] = sprintf(
-            '<a href="%s/admin/users/view/%s">%s</a> <a class="fas fa-envelope" style="color: #333" href="%s/admin/users/quickEmail/%s" title="%s"></a>',
+            '<a href="%s/admin/users/view/%s">%s</a> <a class="fas fa-envelope" style="color: #333" href="%s/admin/users/quickEmail/%s" title="%s" aria-label="%s"></a>',
             $baseurl,
             h($orgAdminId),
             h($orgAdminEmail),
             $baseurl,
             h($orgAdminId),
+            __('Send email to user'),
             __('Send email to user')
         );
     }

@@ -89,6 +89,7 @@ class IOCImportComponent extends Component
             'user-agent' => false,
             'regkey' => true,
             'snort' => true,
+            'suricata' => true,
             'pattern-in-file' => true,
             'comment' => false,
             'other' => false,
@@ -420,6 +421,9 @@ class IOCImportComponent extends Component
                 return array('Persistence mechanism', 'tempRegName', false);
             case 'Snort/Snort':
                 return array('Network activity', 'snort', true);
+                break;
+            case 'Suricata/Suricata':
+                return array('Network activity', 'suricata', true);
                 break;
             case 'TaskItem/Comment':
                 return array('Other', 'comment', false);

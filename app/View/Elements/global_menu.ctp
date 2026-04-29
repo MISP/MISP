@@ -119,8 +119,14 @@ if (!empty($me)) {
                     'url' => $baseurl . '/taxonomies/index'
                 ),
                 array(
-                    'text' => __('List Templates'),
-                    'url' => $baseurl . '/templates/index'
+                    'text' => __('List Event Templates'),
+                    'url' => $baseurl . '/event_templates/index',
+                    'requirement' => $this->Acl->canAccess('eventTemplates', 'index'),
+                ),
+                array(
+                    'text' => __('Add Event Template'),
+                    'url' => $baseurl . '/event_templates/add',
+                    'requirement' => $this->Acl->canAccess('eventTemplates', 'add'),
                 ),
                 array(
                     'type' => 'separator'
@@ -413,7 +419,7 @@ if (!empty($me)) {
                 ),
                 array(
                     'text' => __('Event ID translator'),
-                    'url' => '/servers/idTranslator',
+                    'url' => $baseurl . '/servers/idTranslator',
                     'requirement' => $this->Acl->canAccess('servers', 'idTranslator')
                 )
             )

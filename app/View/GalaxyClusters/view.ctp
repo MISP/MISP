@@ -27,7 +27,7 @@ $extendedByHtml = '';
 $extendByLinks = array();
 foreach ($cluster['GalaxyCluster']['extended_by'] as $extendCluster) {
     $element = $this->element('genericElements/IndexTable/Fields/links', array(
-        'url' => '/galaxy_clusters/view/',
+        'url' => $baseurl . '/galaxy_clusters/view/',
         'row' => $extendCluster,
         'field' => array(
             'data_path' => 'GalaxyCluster.id',

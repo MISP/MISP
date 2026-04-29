@@ -1,6 +1,7 @@
 :root {
     --bs-link-color : #1892B1;
     --bs-link-hover-color : #1892B1;
+    --bs-link-hover-color-rgb: 24, 146, 177;
     --bs-link-color-rgb: 24, 146, 177;
 }
 
@@ -500,6 +501,73 @@ th .sort-icon::before {
 }
 
 
+/* =======================================================
+   REST Custom CSS
+======================================================= */
+
+
+.custom-code-text {
+    color: #6cff9a !important;
+    font-size: 13px; 
+}
+
+.hover-dark:hover {
+    color: #000 !important;
+}
+
+
+
+.api-tooltip {
+    position: absolute;
+    z-index: 9999;
+    width: 350px;
+    max-height: 400px;
+    overflow-y: auto;
+
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+
+    padding: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+
+    display: none;
+}
+
+
+/* =======================================================
+   Category & Query Card Custom CSS
+======================================================= */
+
+/* Left border color */
+.query-container,
+.category-container {
+    --misp-border-color: var(--bs-secondary-rgb);
+    border-inline-start-color: rgba(var(--misp-border-color), 1) !important;
+    transition: border-color 0.2s ease;
+}
+
+/* Left border color hovered */
+.query-container:has(.card-body:hover),
+.category-container:has(.card-header:hover),
+.category-container:has(.card-header:not(.collapsed)) {
+    border-inline-start-color: var(--bs-primary) !important;
+}
+
+/* Header color hovered */
+.query-card .card-body:hover,
+.category-card .card-header:hover,
+.category-card .card-header:not(.collapsed) {
+    background-color: rgba(135, 198, 214, 0.2);
+    border-radius: 0;
+}
+
+
+
+
+/* =======================================================
+   To be sorted
+======================================================= */
 
 .dropdown-filters .dropdown-toggle::after {
     display: none !important;
@@ -553,4 +621,73 @@ th .sort-icon::before {
 
 .btn-warning-subtle:hover {
     background: #fff2cd;
+}
+
+
+
+
+
+.graph-container {
+    position: relative;
+    width: 100%;
+    height: 600px;
+}
+
+.graph-chart {
+    width: 100%;
+    height: 100%;
+}
+
+/* FULLSCREEN MODE */
+.graph-container.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2000;
+    background: #fff;
+    padding: 10px;
+}
+
+/*
+ * AJAX popover container — used by misp.js / mispOvermind.js getPopup
+ * + cancelPrompt for content like the event-template Update from
+ * library confirm. The default theme defines these in main.css; the
+ * BS5 / Overmind page bundle does not load main.css so we re-state
+ * them here, modernised: rounded corners, BS5-aligned background,
+ * higher z-index than BS5 modal backdrops (1050) so the popover sits
+ * above any in-flight modal as well.
+ */
+#gray_out {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background-color: #000;
+    z-index: 1054 !important;
+}
+.ajax_popover_form {
+    display: none;
+    position: fixed !important;
+    top: 10vh !important;
+    left: calc(50% - 350px) !important;
+    width: 700px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background-color: #f8f9fa;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.25);
+    z-index: 1055 !important;
+}
+.ajax_popover_form_large {
+    width: 1100px;
+    left: calc(50% - 550px) !important;
+}
+.ajax_popover_form_x_large {
+    width: 1500px;
+    left: calc(50% - 750px) !important;
 }
