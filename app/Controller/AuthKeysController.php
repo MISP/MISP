@@ -226,6 +226,14 @@ class AuthKeysController extends AppController
             $conditions = []; // site admin can see/edit all keys
         } else if ($user['Role']['perm_admin']) {
             $conditions['AND'][]['User.org_id'] = $user['org_id']; // org admin can see his/her user org auth keys
+            $siteAdminRoleIds = $this->AuthKey->User->Role->find('list', [
+                'recursive' => -1,
+                'fields' => ['Role.id', 'Role.id'],
+                'conditions' => ['Role.perm_site_admin' => true],
+            ]);
+            if (!empty($siteAdminRoleIds)) {
+                $conditions['AND'][]['User.role_id NOT IN'] = array_keys($siteAdminRoleIds);
+            }
         } else {
             $conditions['AND'][]['User.id'] = $user['id'];
         }
