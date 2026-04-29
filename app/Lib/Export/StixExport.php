@@ -271,7 +271,7 @@ abstract class StixExport
             }
         }
         $this->__write_misp_content(
-            JsonTool::encode(JSONConverterTool::convert($data, false, true)), // we don't need pretty printed JSON
+            JsonTool::encode(JSONConverterTool::convert($event, false, true)), // we don't need pretty printed JSON
             $attributes_count
         );
         return '';

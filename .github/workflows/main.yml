@@ -54,7 +54,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: 'recursive'
 
@@ -294,7 +294,7 @@ jobs:
           sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
 
       - name: Clone test files
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: viper-framework/viper-test-files
           path: PyMISP/tests/viper-test-files
@@ -311,10 +311,7 @@ jobs:
           pushd PyMISP
           cp tests/keys.py .
           python -m pytest -v --durations=0 tests/test_mispevent.py
-          # Skip test_search_stix — known failure unrelated to this branch
-          # (broken stix integration upstream). Drop the deselect once the
-          # underlying stix issue is fixed.
-          python -m pytest -v --durations=0 -k 'not test_search_stix' tests/testlive_comprehensive.py
+          python -m pytest -v --durations=0 tests/testlive_comprehensive.py
           popd
           python tests/testlive_comprehensive_local.py -v
           python tests/testlive_sync.py -v
