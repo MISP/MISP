@@ -1349,8 +1349,8 @@ class ACLComponent extends Component
         if (!empty($user['Role']['perm_site_admin'])) {
             return true;
         }
-        if (!$user['Role']['perm_warninglist']) {
-            return false;
+        if (!empty($user['Role']['perm_warninglist'])) {
+            return true;
         }
         return false;
     }
