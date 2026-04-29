@@ -54,7 +54,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: 'recursive'
 
@@ -294,7 +294,7 @@ jobs:
           sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
 
       - name: Clone test files
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: viper-framework/viper-test-files
           path: PyMISP/tests/viper-test-files
