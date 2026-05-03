@@ -119,10 +119,6 @@ if (!empty($me)) {
                     'url' => $baseurl . '/taxonomies/index'
                 ),
                 array(
-                    'text' => __('List Templates'),
-                    'url' => $baseurl . '/templates/index'
-                ),
-                array(
                     'text' => __('List Event Templates'),
                     'url' => $baseurl . '/event_templates/index',
                     'requirement' => $this->Acl->canAccess('eventTemplates', 'index'),

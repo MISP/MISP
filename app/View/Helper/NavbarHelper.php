@@ -278,13 +278,6 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-file-code',
                 'children' => [
                     [
-                        'label' => __('List Templates'),
-                        'url' => $baseurl . '/templates/index',
-                        'controller' => 'templates',
-                        'action' => 'index',
-                        'icon' => 'fas fa-file-code'
-                    ],
-                    [
                         'label' => __('List Object Templates'),
                         'url' => $baseurl . '/objectTemplates/index',
                         'controller' => 'objectTemplates',
