@@ -57,7 +57,7 @@ class TasksController extends AppController
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
         if (!$this->_isHAPrimary()) {
-           throw new MethodNotAllowedException('The is not the primary instance in a HA deployment.');
+           throw new MethodNotAllowedException('Not a Primary instance in a HA deployment.');
         }
 
         $task = $this->Task->find('first', array(
@@ -90,7 +90,7 @@ class TasksController extends AppController
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
         if (!$this->_isHAPrimary()) {
-           throw new MethodNotAllowedException('The is not the primary instance in a HA deployment.');
+           throw new MethodNotAllowedException('Not a Primary instance in a HA deployment.');
         }
 
         $this->set('dropdownData', $this->__getDropdownData());
@@ -118,7 +118,7 @@ class TasksController extends AppController
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
         if (!$this->_isHAPrimary()) {
-           throw new MethodNotAllowedException('The is not the primary instance in a HA deployment.');
+           throw new MethodNotAllowedException('Not a Primary instance in a HA deployment.');
         }
 
         $this->set('dropdownData', $this->__getDropdownData());
@@ -210,7 +210,7 @@ class TasksController extends AppController
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
         if (!$this->_isHAPrimary()) {
-           throw new MethodNotAllowedException('The is not the primary instance in a HA deployment.');
+           throw new MethodNotAllowedException('Not a Primary instance in a HA deployment.');
         }
 
         $this->CRUD->delete($id);
@@ -225,7 +225,7 @@ class TasksController extends AppController
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
         if (!$this->_isHAPrimary()) {
-           throw new MethodNotAllowedException('The is not the primary instance in a HA deployment.');
+           throw new MethodNotAllowedException('Not a Primary instance in a HA deployment.');
         }
         $task = $this->Task->find('first', array(
             'recursive' => -1,
