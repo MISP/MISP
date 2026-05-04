@@ -1113,6 +1113,9 @@ class Server extends AppModel
      */
     public function push($id, $technique, $jobId = false, $HttpSocket, array $user)
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP._uuid')) {
+            throw  new Exception('Not a Primary Instance in a HA deployment.');
+        }
         if ($jobId) {
             $job = ClassRegistry::init('Job');
         }
@@ -4672,6 +4675,9 @@ class Server extends AppModel
 
     public function update(array $status, &$raw = [], array $settings = [])
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP._uuid')) {
+            return array();
+        }
         $final = '';
         $workingDirectoryPrefix = 'cd $(git rev-parse --show-toplevel) && ';
         $cleanup_commands = array(
@@ -5708,6 +5714,14 @@ class Server extends AppModel
                     'level' => 0,
                     'description' => __('The MISP instance UUID. This UUID is used to identify this instance.'),
                     'value' => '0',
+                    'errorMessage' => __('No valid UUID set'),
+                    'test' => 'testUuid',
+                    'type' => 'string'
+                ),
+                'primary_uuid' => array(
+                    'level' => 0,
+                    'description' => __('The MISP primary instance UUID. This UUID is used to identify the instance allowed to run tasks in a HA deployment.'),
+                    'value' => '',
                     'errorMessage' => __('No valid UUID set'),
                     'test' => 'testUuid',
                     'type' => 'string'

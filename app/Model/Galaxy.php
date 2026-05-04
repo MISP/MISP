@@ -332,6 +332,9 @@ class Galaxy extends AppModel
 
     public function update($force = false)
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+            return false;
+        }
         $galaxies = $this->__load_galaxies($force);
         $files = new GlobIterator(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters' . DS . '*.json');
         $force = (bool)$force;
@@ -372,6 +375,9 @@ class Galaxy extends AppModel
      */
     public function captureGalaxy(array $user, array $galaxy, $fromPull=false, $orgId=0)
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+            return false;
+        }
         if (empty($galaxy['uuid'])) {
             return false;
         }
@@ -462,6 +468,9 @@ class Galaxy extends AppModel
     public function importGalaxyAndClusters(array $user, array $clusters)
     {
         $results = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => array());
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+            return $results;
+        }
         foreach ($clusters as $cluster) {
             if (!empty($cluster['GalaxyCluster']['Galaxy'])) {
                 $existingGalaxy = $this->captureGalaxy($user, $cluster['GalaxyCluster']['Galaxy']);
@@ -718,6 +727,9 @@ class Galaxy extends AppModel
 
     public function editGalaxy($user, $galaxy)
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+            $errors[] = __('Not a Primary Instance in a HA deployment.');
+        }
         $errors = [];
         if (!$user['Role']['perm_galaxy_editor'] && !$user['Role']['perm_site_admin']) {
             $errors[] = __('Incorrect permission');
@@ -767,6 +779,9 @@ class Galaxy extends AppModel
      */
     public function fetchTarget(array $user, $targetType, $targetId)
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+            throw new Exception("Not a Primary Instance in a HA deployment.");
+        }
         $this->Tag = ClassRegistry::init('Tag');
         if ($targetType === 'event') {
             return $this->Tag->EventTag->Event->fetchSimpleEvent($user, $targetId);
@@ -794,6 +809,9 @@ class Galaxy extends AppModel
      */
     public function attachCluster(array $user, $targetType, array $target, $cluster_id, $local = false)
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+            throw new Exception("Not a Primary Instance in a HA deployment.");
+        }
         $connectorModel = Inflector::camelize($targetType) . 'Tag';
         $local = $local == 1 || $local === true ? 1 : 0;
         $cluster_alias = $this->GalaxyCluster->alias;
@@ -851,6 +869,9 @@ class Galaxy extends AppModel
 
     public function detachCluster($user, $target_type, $target_id, $cluster_id)
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+            throw new Exception("Not a Primary Instance in a HA deployment.");
+        }
         $cluster = $this->GalaxyCluster->find('first', array(
             'recursive' => -1,
             'conditions' => array('id' => $cluster_id),
@@ -966,6 +987,9 @@ class Galaxy extends AppModel
      */
     public function detachClusterByTagId(array $user, $targetId, $targetType, $tagId)
     {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+            throw new Exception("Not a Primary Instance in a HA deployment.");
+        }
         $local = false;
         if ($targetType === 'attribute') {
             $attribute = $this->GalaxyCluster->Tag->EventTag->Event->Attribute->find('first', array(
