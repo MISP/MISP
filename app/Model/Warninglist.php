@@ -110,7 +110,7 @@ class Warninglist extends AppModel
      */
     public function attachWarninglistToAttributes(array &$attributes)
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             return [];
         }
         if (empty($attributes)) {
@@ -292,7 +292,7 @@ class Warninglist extends AppModel
 
     public function update()
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             return ['success' => [], 'fails' => []];
         }
         // Fetch existing default warninglists
@@ -337,7 +337,7 @@ class Warninglist extends AppModel
 
     public function quickDelete($id)
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             throw new Exception("Not a Primary Instance in a HA deployment.");
         }
         $result = $this->WarninglistEntry->deleteAll(
@@ -364,7 +364,7 @@ class Warninglist extends AppModel
      */
     public function import(array $list)
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             throw new Exception("Not a Primary Instance in a HA deployment.");
         }
         $existingWarninglist = $this->find('first', [
@@ -837,7 +837,7 @@ class Warninglist extends AppModel
      */
     public function save($data = null, $validate = true, $fieldList = array())
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             throw new Exception("Not a Primary Instance in a HA deployment.");
         }
         $db = $this->getDataSource();

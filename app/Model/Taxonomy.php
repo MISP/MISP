@@ -37,7 +37,7 @@ class Taxonomy extends AppModel
 
     public function update($force = false)
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             return array();
         }
         $existing = $this->find('all', array(
@@ -106,7 +106,7 @@ class Taxonomy extends AppModel
      */
     public function import(array $vocab)
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             throw new Exception("Not a Primary Instance in a HA deployment.");
         }
         foreach (['namespace', 'description', 'predicates'] as $requiredField) {
@@ -428,7 +428,7 @@ class Taxonomy extends AppModel
 
     public function addTags($id, $tagList = false)
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             throw new Exception("Not a Primary Instance in a HA deployment.");
         }
         if ($tagList && !is_array($tagList)) {
@@ -475,7 +475,7 @@ class Taxonomy extends AppModel
 
     public function disableTags($id, $tagList = false)
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             throw new Exception("Not a Primary Instance in a HA deployment.");
         }
         if ($tagList && !is_array($tagList)) {
@@ -507,7 +507,7 @@ class Taxonomy extends AppModel
 
     public function hideTags($id, $tagList = false)
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             throw new Exception("Not a Primary Instance in a HA deployment.");
         }
         if ($tagList && !is_array($tagList)) {
@@ -543,7 +543,7 @@ class Taxonomy extends AppModel
 
     public function unhideTags($id, $tagList = false)
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.publish_uuid') !== Configure::read('MISP.publish_uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             throw new Exception("Not a Primary Instance in a HA deployment.");
         }
         if ($tagList && !is_array($tagList)) {
