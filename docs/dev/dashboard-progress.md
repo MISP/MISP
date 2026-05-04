@@ -1,0 +1,659 @@
+# Dashboard v2 — Implementation Progress Tracker
+
+**Source of truth for what's done, what's next, and what's blocked.**
+A fresh session must be able to pick up the work by reading
+[`dashboard-prd.md`](dashboard-prd.md) for the spec and **this file**
+for state. Conversation context is not persisted — anything a future
+session needs lives here.
+
+## How to use this file
+
+- Tasks are checked off **one at a time** as they complete. Do not
+  batch checkmarks. Do not pre-check ahead of completion.
+- **Each completed task is followed by a git commit.** One task =
+  one commit. The progress tracker says *what's next*; the git log
+  says *what's been done*. See `feedback_commit_per_task.md` in user
+  memory for the discipline. Commit message format:
+
+  ```
+  new: [dashboard-v2] <short imperative summary>
+
+  Closes Phase X.Y task: <task name as it appears in this file>
+  ```
+
+  Use `new:` for additions, `chg:` for refactors / changes, `fix:`
+  for bug fixes, per the MISP commit-message convention in
+  `CLAUDE.md`. Stage only the files the task actually touched plus
+  the update to this progress tracker — never `git add -A`.
+- Phases run **strictly sequentially**. Do not start a task in Phase
+  N+1 before every task in Phase N is checked.
+- Within a phase, tasks are also sequential unless explicitly marked
+  *(parallelisable)* — which only applies to research/lookups, never
+  to code writing (per `feedback_sequential_implementation.md`).
+- When a task closes, append a **Done note** under it: a 1–3 line
+  summary of what was actually done, the file paths touched, and any
+  surprise that future-you should know about. The Done note + the
+  commit hash form the audit trail.
+- When a task is **blocked**, mark it `[~]` (in progress / blocked) and
+  append a `Blocked by:` line naming the open question or upstream
+  task. Do not check it off until the block is resolved. Do not
+  commit a blocked task.
+- New tasks discovered mid-phase are appended at the end of the
+  current phase or filed under "Discovered work" at the bottom of this
+  file with a clear "introduces what / why / where it goes" note.
+
+## Live test instance
+
+A working MISP runs at `http://localhost:5007` directly off this
+codebase. Admin API key in PRD §"Local test instance". Use it for
+visual verification, smoke tests, and REST checks during all
+implementation phases.
+
+## Status legend
+
+- `[ ]` not started
+- `[~]` in progress (one at a time max — kill before starting another)
+- `[x]` done; see Done note below it
+- `[-]` cancelled / superseded; see note below it
+
+## Working mode log
+
+Track which mode the user is in across sessions. This influences the
+size of step the implementer should take before pausing for review.
+
+| Date (YYYY-MM-DD) | Mode | Note |
+|---|---|---|
+| 2026-05-04 | hitm | PRD + progress doc bootstrapped; Phase 0 §13 questions still open |
+| 2026-05-04 | hitm | Scope cut: G2 (multi-board) and G12 (persistence rework) dropped; reuse `UserSetting:dashboard` + `dashboards` table verbatim. Blob shape evolves additively to `{scope, widgets}`. Progress tracker pruned accordingly below. |
+
+---
+
+## Phase 0 — Alignment + prototype
+
+**Goal:** resolve `dashboard-prd.md` §13 open questions, validate the
+risky technical bets (Gridstack v11, ECharts adoption, four-level
+theming, canonical-type plumbing) on a throwaway branch, get user
+sign-off before writing production code.
+
+**Exit criteria:** all §13 questions resolved (in this file under
+"Resolved questions" below); prototype demonstrably renders 3
+representative widgets in the new frame, themes successfully across
+Levels 1 and 3 (§8), and reacts to a board-toolbar `time_window`
+change with widgets re-rendering in inherit/pinned modes.
+
+### 0.1 Resolve open questions (§13)
+
+- [x] §13 Q1 — Templates carry default scope? *(superseded 2026-05-04 by Model 4 — see follow-on note in Resolved questions; templates still carry per-widget configs which can include canonical-typed values, but there is no separate "scope" concept any more)*
+- [-] §13 Q2 — *Moot* (multi-board dropped 2026-05-04)
+- [x] §13 Q3 — Drill-down auto-wrap vs. explicit `$drilldown`?
+- [x] §13 Q4 — Gridstack v11 vs. Pragmatic DnD → DD-01 (Pragmatic DnD + CSS Grid + custom math)
+- [x] §13 Q5 — Posture on touching legacy → straight replacement on `dashboards` branch, no flag, three-parity merge gate
+- [x] §13 Q6 — Frame ships own CSS file vs. inherits host theme BS variables → own CSS file, self-contained
+- [x] §13 Q7 — Backfill `$schema` on all 30 built-in widgets, or only canonical slots → tiered (Option C); 9 widgets get full schema, rest get canonical slots + JSON textarea fallback
+- [-] §13 Q8 — *Moot* (multi-board endpoints withdrawn 2026-05-04)
+- [-] §13 Q9 — *Moot* (sharing tiers dropped 2026-05-04)
+- [-] §13 Q10 — *Moot* under Model 4 (toolbar is bulk-edit; no inherit/pinned state; see Resolved §Q10/Q11 follow-on)
+- [x] §13 Q11 — Toolbar persistence in view mode → toolbar is mode-independent and writes immediately; edit mode required only for layout/structural changes
+- [-] §13 Q12 — *Moot* (soft-delete dropped 2026-05-04)
+- [-] §13 Q13 — *Moot* (G12 dropped; existing import semantics inherited 2026-05-04)
+
+### 0.2 Library bring-up + risk validation
+
+DD-01 (Pragmatic DnD) and DD-02 (ECharts) are committed in
+`dashboard-design-decisions.md`. Phase 0.2 is therefore not a
+comparison — it's a thin bring-up to validate the implementation
+risk on the chosen libraries before committing Phase 1 effort.
+
+- [ ] Vendor Pragmatic Drag and Drop at `dashboard-v2-proto/js/grid/vendor/`
+- [ ] Build a minimal `GridModule` (snap, collision, resize-cascade) against CSS Grid for a 12-column dashboard layout; render 3 placeholder widget tiles; confirm drag/resize/snap UX feels right
+- [ ] **Risk check (DD-01 forcing function):** measure custom grid-math LOC after the bring-up. If >300 lines for a single-widget-resize scenario, escalate to user before continuing — the >40% Phase 1 budget warning may trigger early.
+- [ ] Vendor ECharts at `dashboard-v2-proto/js/charts/vendor/` (tree-shaken: bar + line + geo)
+- [ ] Bundle-size measurement: record minified+gzipped size of the tree-shaken ECharts build in DD-02 Done note
+- [ ] **uPlot follow-up trial** (DD-02 open question): render `MispSystemResourceWidget` time-series via uPlot; record render-time and LOC vs. ECharts equivalent. Decide: ECharts only, or mixed ECharts+uPlot?
+- [ ] AGPL × Apache 2.0 licence sanity-check formalised — link the authoritative source (FSF compatibility list, MISP project's existing precedents) into DD-01 and DD-02
+
+### 0.3 Build the throwaway prototype
+
+- [ ] Create a working branch off `dashboards`: `dashboard-v2-proto`
+- [ ] Stand up a minimal `DashboardsProtoController` + view at `/dashboards/proto` (no routes change to v1)
+- [ ] Vendor the chosen grid library (per 0.2) and the chosen chart library (per 0.2)
+- [ ] Implement the CSS token catalogue from PRD §8.1 in `webroot/css/dashboard/dashboard.default.css`
+- [ ] Implement the JS hook contract from PRD §8.5 (`data-misp-board-root`, `data-misp-widget`, `data-misp-widget-action`, custom events)
+- [ ] Render `MispStatusWidget` in the new frame via the `SimpleList` renderer (no chart library needed)
+- [ ] Render `TrendingTagsWidget` via ECharts bar chart
+- [ ] Render `OrganisationMapWidget` via ECharts geo (replaces jvectormap)
+- [ ] Implement schema-driven two-tier configure form for `time_window` (per DD-06): typed picker in top tier, dot-notation key-value list with a single example key in bottom tier
+- [ ] Implement dashboard toolbar with a single `time_window` slot
+- [ ] **Demonstrate Model 4 bulk edit** (per DD-05): pull toolbar `time_window` to "P1D" → all 3 widgets re-render with that window, all 3 widgets' saved configs now show `time_window: P1D`. Open a widget's configure form, change its `time_window` to "P30D", save → toolbar now shows "(mixed)".
+- [ ] Demonstrate per-widget on-read fix-ups: seed a v1-shape `UserSetting:dashboard` row (no `instance_id`, `width/height` not `w/h`), load the prototype, confirm widgets render, save → row now has `w/h` + `instance_id` per widget; top-level shape stays bare-array
+- [ ] Add CSS-only "midnight" overlay theme and confirm Level 1 retheming works for both UI and charts (chart palette derived from tokens)
+- [ ] Add a `Themed/Overmind/Elements/dashboard/widget/wrapper.ctp` BS5 markup override and confirm Level 3 retheming works without breaking drag/configure/refresh
+
+### 0.4 Sign-off
+
+- [ ] Walk-through with user (hitm session); user explicitly approves to proceed to Phase 1
+- [ ] Lock the resolved §13 answers and library decisions into the PRD (move "Resolved questions" out of this file into PRD §13 with strikethrough notation)
+- [ ] Tear down the prototype branch (or merge a curated subset back to `dashboards` as Phase 1 starting point — decide at sign-off)
+
+---
+
+## Phase 1 — Frame (in-place replacement)
+
+**Goal:** replace v1 controller actions, views, JS, and CSS with v2
+equivalents on canonical `/dashboards/*` routes. v1 files are deleted
+as v2 takes over the same URL — no parallel mounting, no flag.
+
+**Exit criteria:** the existing `/dashboards` URL serves v2 only.
+A user lands on a working dashboard, reading from / writing to the
+existing `UserSetting:dashboard` row using the new `{scope, widgets}`
+blob shape (with backward-compat read of legacy bare-array form),
+identical-looking on default and Overmind themes.
+
+- [ ] Decompose view tree per PRD §8.3: scaffold each new `.ctp` with placeholder content (replaces v1 `View/Dashboards/index.ctp` + friends in place)
+- [ ] CSS architecture: `webroot/css/dashboard/dashboard.default.css` with full token catalogue, BEM-ish class names, no inline styles
+- [ ] JS hook contract: dashboard JS lives in `webroot/js/dashboard-v2/` (own dir, replacing the v1 dashboard JS in `misp.js`); binds via `data-*` attributes only
+- [ ] Remove v1 dashboard JS from `app/webroot/js/misp.js` (lines ~5570–5730: `submitDashboardForm`, `saveDashboardState`, `resetDashboardGrid`, click handlers)
+- [ ] Vendor Pragmatic Drag and Drop at `webroot/js/dashboard-v2/grid/vendor/` (per DD-01)
+- [ ] Build the custom `GridModule` (snap, collision, resize-cascade) per DD-01 — **escalate to user if exceeds ~600 lines**
+- [ ] Vendor ECharts at `webroot/js/dashboard-v2/charts/vendor/` (per DD-02; tree-shaken bundle: bar + line + geo at minimum)
+- [ ] ECharts theme registration: derive `"misp"` theme from CSS tokens at boot (PRD §8.2)
+- [ ] Rewrite `DashboardsController::index` for v2 (replaces existing in place)
+- [ ] Rewrite `DashboardsController::renderWidget` for v2 with payload extended by `scope` (per PRD §5.8)
+- [ ] **Per-widget on-read fix-ups** (per DD-05 — no top-level shape change). Promote `width/height → w/h` and mint `instance_id` on each widget that lacks one. Verified by unit test that round-trips a v1 fixture without data loss.
+- [ ] First-load default: load layout from `dashboards.default = 1` if present; else hardcoded fallback (single MispStatusWidget)
+- [ ] Widget wrapper element using `data-misp-widget` and stable hooks; no inline styles, no hardcoded `#0088cc` border
+- [ ] Empty-state element for "no widgets yet"
+- [ ] `DashboardURLValidator` helper under `app/Lib/Dashboard/Tools/` (used by every drilldown-aware renderer per DD-03)
+- [ ] Side menu update on default theme `Elements/genericElements/SideMenu/side_menu.ctp` (adjust the `dashboard` case in place — no v1/v2 split)
+- [ ] Side menu update on `Themed/UiBeta/Elements/genericElements/SideMenu/side_menu.ctp` (mirror the default update)
+- [ ] Smoke test: visit `/dashboards`, see MispStatusWidget render correctly on default theme
+- [ ] Smoke test: visit `/dashboards` under Overmind theme, confirm no broken layout
+- [ ] Smoke test: user has a v1-shape `UserSetting:dashboard` row, visit `/dashboards` → widgets render → save → row now has `w/h` + `instance_id` per widget, top-level shape unchanged (still bare array)
+
+---
+
+## Phase 2 — Authoring UX
+
+**Goal:** users can add, configure, and remove widgets via the new
+schema-driven form with live preview; edit-mode vs. view-mode is
+explicit; saves are atomic.
+
+**Exit criteria:** a user can build a board from scratch by clicking
+"Add widget" → picking from the gallery → filling the schema-driven
+form → seeing live preview → placing → saving the whole board atomically.
+
+- [ ] Define `$schema` property contract on widget classes (PRD §5.7)
+- [ ] Full-tier `$schema` backfill (per Q7 — Option C): `MispStatusWidget`
+- [ ] Full-tier `$schema` backfill: `TrendingTagsWidget`
+- [ ] Full-tier `$schema` backfill: `TrendingAttributesWidget`
+- [ ] Full-tier `$schema` backfill: `UsageDataWidget`
+- [ ] Full-tier `$schema` backfill: `OrgEventsWidget`
+- [ ] Full-tier `$schema` backfill: `AttackWidget`
+- [ ] Full-tier `$schema` backfill: `OrganisationMapWidget`
+- [ ] Full-tier `$schema` backfill: `RecentSightingsWidget`
+- [ ] Full-tier `$schema` backfill: `EventEvolutionLineWidget`
+- [ ] Two-tier configure form element (per DD-06): `Elements/dashboard/widget/config_form.ctp`. Top tier renders typed fields from `$schema`; bottom tier renders unstructured params as a flat key-value list with dot-notation paths.
+- [ ] Per-canonical-type form field elements (only `time_window` for now; others land in Phase 3)
+- [ ] Key-value list component for the bottom tier: rows of `(dot.path.key, value)` with add/remove
+- [ ] Chip input component for array-typed values in the bottom tier (type-and-Enter to add, click × to remove); also reusable in canonical pickers like `tag_filter`
+- [ ] Bottom-tier seeding: when adding a new widget, parse `$placeholder` JSON and populate the key-value list with the example keys/values (replacement for the JSON-textarea workflow)
+- [ ] Bottom-tier dot-notation flattening on read; re-nesting on save; round-trip lossless for nested objects, arrays, scalars, booleans (unit-tested)
+- [ ] Side-panel container for configure form (replaces modal); sticky preview pane
+- [ ] Live preview: debounced (250ms) re-render of the widget on form-input change
+- [ ] Widget gallery: `Elements/dashboard/gallery/grid.ctp` + `card.ctp`; grouped by `$category`; search box; static-thumbnail support via `$thumbnail`
+- [ ] Add Widget flow: gallery card → schema form opens in side panel → live preview on right → place/cancel
+- [ ] Edit Widget flow: click configure → form opens populated → preview → save/cancel
+- [ ] Edit-mode vs. view-mode toggle on board toolbar; mode is a `data-misp-board-mode` attribute on the root
+- [ ] **Layout-only atomic save** (per DD-05): edit-mode Save persists only layout changes (positions, additions, removals) for the dashboard. Configure-form Save and toolbar pulls each save independently.
+- [ ] Discard (edit mode): confirm dialog if dirty layout, then revert layout from server state
+- [ ] Drag/resize/add/remove only fire in edit mode; staged in client memory, not persisted until edit-mode Save
+- [ ] Configure-form Save: per-widget POST to `/dashboards/updateSettings` with the affected widget's instance ID + new config; rest of blob unchanged on the server
+- [ ] Console.log cleanup: confirm no debug log statements ship in dashboard-v2 JS
+
+---
+
+## Phase 3 — Canonical-type toolbar
+
+**Goal:** the canonical-type catalogue + dashboard-level filter toolbar
+(PRD G4 + G13) work end-to-end on the singleton dashboard.
+
+**Exit criteria:** the user can use the dashboard toolbar to bulk-edit
+all applicable widgets' `time_window` / `tag_filter` / `org_filter` /
+`galaxy_cluster_filter` / etc. simultaneously. Toolbar pulls write
+immediately to per-widget configs; toolbar's displayed value is
+computed from those configs (with "(mixed)" indicator on disagreement).
+
+- [ ] Implement remaining canonical types from PRD §5.5: `tag_filter`, `org_filter`, `sharing_group_filter`, `galaxy_cluster_filter`, `distribution_filter`, `threat_level_filter`, `analysis_filter`
+- [ ] Per-canonical-type form field elements for the configure form's typed-fields tier (full set)
+- [ ] Per-canonical-type validators (validate `$config[<canonical_type>]` shapes server-side before save)
+- [ ] **Toolbar control logic** (per DD-05). For each canonical type declared by at least one widget on the dashboard, render a toolbar control. Compute its display state from the current widgets:
+  - all applicable widgets agree → show value
+  - disagree → show "(mixed)" indicator
+  - none declare it → control hidden
+- [ ] Toolbar UI: time_window picker, tag picker (taxonomy-aware), org typeahead, galaxy cluster picker, sharing group picker
+- [ ] **Toolbar bulk-edit write path:** pulling a control walks every widget that declares the matching canonical type, writes the new value into each widget's `config[<canonical_type>]`, posts the whole blob to `updateSettings`, re-renders affected widgets (debounced 250ms)
+- [ ] **New-widget toolbar inheritance** (PRD F5.6.4): when a widget added in edit mode declares a canonical type for which the toolbar shows a non-mixed value, the new widget's `config[<canonical_type>]` initialises to that value
+- [ ] Per-control "Clear" action (PRD F5.6.5): unsets the canonical-typed value on all applicable widgets
+- [ ] Toolbar pulls work in any mode (no edit mode required)
+- [ ] Canonical-only `$schema` sweep across the remaining ~20 in-tree widgets (per Q7 — Option C). For each, declare the canonical-typed slots used (`time_window`, `tag_filter`, `org_filter`, etc.) and leave non-canonical params on the legacy `$params` + `$placeholder` fallback path (rendered in the configure form's bottom tier per DD-06). The 9 full-tier widgets from Phase 2 are already done.
+- [ ] Cache-key sanity-check: existing per-widget Redis cache key already includes a hash of the widget config, so toolbar bulk edits naturally invalidate the cache for the affected widgets — no separate scope-hash needed (per DD-05)
+
+---
+
+## Phase 4 — Template gallery polish
+
+**Goal:** replace today's `listTemplates` table view with a gallery
+surface (thumbnails, categories, search). The existing `dashboards`
+schema and `restrict_to_*` semantics are preserved verbatim — this
+phase is purely a presentation layer change plus a small thumbnail
+generator.
+
+**Exit criteria:** the user can browse and pick templates in a visual
+gallery, "Save as template" still produces the same `dashboards` row
+shape, and the existing restrict-to-org / role / permission rules still
+gate visibility correctly.
+
+- [ ] Template gallery view: `Elements/dashboard/gallery/grid.ctp` (already scaffolded in Phase 2 for Add Widget; reuse the layout)
+- [ ] Template thumbnails: server-rendered miniatures of the layout (no live data — just the widget tiles + titles), cached on disk under `webroot/img/dashboard/templates/`
+- [ ] Refresh-thumbnail action (manual; runs on save-template by default)
+- [ ] Existing `restrict_to_org_id / role_id / permission_flag` rules preserved on read
+- [ ] "Save as template" form: same fields as today (`name`, `description`, `selectable`, restrict flags); fed by the new blob shape `{scope, widgets}`
+- [ ] "Reset from template" replaces `UserSetting:dashboard` with the chosen template's `value`, with a confirmation prompt if the user has unsaved layout edits. No "Also apply default filters" checkbox — the template's per-widget configs (which may include canonical-typed values) become the user's per-widget configs verbatim (per DD-05 supersedes-DD-04).
+- [ ] Existing `listTemplates`, `saveTemplate`, `deleteTemplate` endpoints unchanged on the wire; only the UI is reworked
+- [ ] Existing `import` / `export` endpoints unchanged on the wire; their output adopts the new blob shape (legacy bare-array form still readable on import)
+
+---
+
+## Phase 5 — Drill-down + refresh scheduler
+
+**Goal:** widget cells link through to filtered MISP views; refresh
+is centrally scheduled, pausable, and tab-visibility-aware.
+
+**Exit criteria:** clicking a tag count opens the events index
+filtered to that tag and the active board scope. Refresh storms are
+gone; pause toggle works; auto-pause on hidden tab works.
+
+- [ ] `$drilldown` schema property documented and exposed in widget metadata
+- [ ] Drill-down convention per Q3 resolution (auto-wrap vs. explicit)
+- [ ] Renderer-level wrapping for SimpleList (links on rows where applicable)
+- [ ] ECharts click handlers calling drill-down (bar/line/geo)
+- [ ] Board-level refresh scheduler: single timer, max 4 concurrent renders in flight (PRD §10)
+- [ ] Pause-refresh toggle on board toolbar
+- [ ] Per-instance refresh override in widget config form
+- [ ] Auto-pause when document hidden (Page Visibility API)
+- [ ] Manual refresh on a single widget (button on widget chrome in view mode)
+- [ ] Refresh indicator chip: "updated 30s ago"; uses relative-time formatting that respects locale
+- [ ] Verify cache key includes board scope hash so scope-aware widgets don't cross-pollute (PRD F3.3)
+
+---
+
+## Phase 5.5 — Widget Parity Sweep (merge gate)
+
+**Goal:** explicitly check off the three-parity merge gate from PRD §12
+before the `dashboards` branch can be merged to `develop`.
+
+**Exit criteria:** all three parities verified; smoke-test matrix
+filled in; nothing in v1's surface is broken or missing.
+
+### Widget parity
+
+For each built-in widget, smoke-check that it loads, renders, and
+honours its config. Tick when verified on default theme; double-tick
+when also verified on Overmind.
+
+- [ ] `AchievementsWidget`
+- [ ] `APIActivityWidget`
+- [ ] `AttackWidget`
+- [ ] `AuthenticationFailureWidget`
+- [ ] `BenchmarkTopListWidget`
+- [ ] `ButtonWidget`
+- [ ] `CsseCovidMapWidget`
+- [ ] `CsseCovidTrendsWidget`
+- [ ] `CsseCovidWidget`
+- [ ] `EventEvolutionLineWidget`
+- [ ] `EventStreamWidget`
+- [ ] `LoginsWidget`
+- [ ] `MispAdminResourceWidget`
+- [ ] `MispAdminSyncTestWidget`
+- [ ] `MispAdminWorkerWidget`
+- [ ] `MispStatusWidget`
+- [ ] `MispSystemResourceWidget`
+- [ ] `NewOrgsWidget`
+- [ ] `NewUsersWidget`
+- [ ] `OrgContributionToplistWidget`
+- [ ] `OrgEventsWidget`
+- [ ] `OrgEvolutionLineWidget`
+- [ ] `OrganisationListWidget`
+- [ ] `OrganisationMapWidget`
+- [ ] `OrgsContributorLastMonthWidget`
+- [ ] `OrgsEvolutionWidget`
+- [ ] `OrgsUsingMitreWidget`
+- [ ] `OrgsUsingObjectsWidget`
+- [ ] `RecentSightingsWidget`
+- [ ] `SharingGraphWidget`
+- [ ] `ThresholdSightingsWidget`
+- [ ] `TrendingAttributesWidget`
+- [ ] `TrendingTagsWidget`
+- [ ] `UsageDataWidget`
+- [ ] `UserContributionToplistWidget`
+- [ ] `UsersEvolutionWidget`
+- [ ] `WhoamiWidget`
+- [ ] Custom widget loader path verified: `Custom/` and `Custom/<subdir>/` resolution still works (`HelloWorldWidget`, `CsseCovidWidget` under `widget-collection/`)
+
+### Data parity
+
+- [ ] Legacy `UserSetting:dashboard` bare-array form loads cleanly into v2 (per-widget on-read fix-ups apply)
+- [ ] Legacy `dashboards.value` (templates) load cleanly into v2
+- [ ] Round-trip: export a v2-saved blob (with `instance_id` + `w/h`), re-import, layout preserved
+- [ ] Round-trip: import a legacy v1 blob (no `instance_id`, `width/height` form), v2 reads + applies per-widget fix-ups on first save
+- [ ] No data loss across the per-widget fix-ups: instance ID minting is deterministic for the same input on a single read, `width/height → w/h` preserves the numeric values exactly
+
+### Surface parity
+
+- [ ] `/dashboards` (View Dashboard) — works
+- [ ] `/dashboards/getForm/add` (Add Widget modal) — replaced by v2 gallery, but the URL still resolves to *something usable*
+- [ ] `/dashboards/import` — works with both blob shapes
+- [ ] `/dashboards/export` — works
+- [ ] `/dashboards/listTemplates` — works (in v2 gallery form per Phase 4)
+- [ ] `/dashboards/saveTemplate` — works
+- [ ] `/dashboards/saveTemplate/<id>` — update path works
+- [ ] `/dashboards/deleteTemplate/<id>` — works
+- [ ] `/dashboards/renderWidget/<id>` — works (request payload unchanged from v1; per DD-05 there is no `scope` payload)
+- [ ] `/dashboards/updateSettings` — works; new blob shape persisted
+
+### Pre-merge cleanup
+
+- [ ] Remove `app/webroot/js/gridstack.all.js.bk`, `app/webroot/css/gridstack.min.css.bk`
+- [ ] Remove `app/webroot/js/gridstack.all.js`, `app/webroot/css/gridstack.min.css` (no longer used post-DD-01)
+- [ ] Remove `jquery-jvectormap-2.0.5.min.js` and the `world-mill` GeoJSON if no other consumer remains (check first via `git grep`)
+- [ ] Remove the D3 v3 dependency from `webroot/js/d3.js` if no other consumer remains (check first via `git grep`)
+- [ ] Audit `Chart.min.js` consumers; leave for follow-up if non-dashboard pages still use it (out of scope to migrate here)
+- [ ] Remove the legacy `$placeholder` / `$params` JSON-textarea fallback path only if all in-tree widgets have `$schema` (per Q7 resolution)
+- [ ] `git grep -i 'dashboard'` audit: no stale references to v1-only files, no orphaned `.ctp`s
+
+---
+
+## Phase 6 — Merge to `develop`
+
+**Goal:** with the parity sweep green, the `dashboards` branch
+merges to `develop` for inclusion in the next 2.5 release cycle.
+
+**Exit criteria:** PR opened, reviewed, merged. Branch deleted.
+
+- [ ] Drafted user-facing changelog entry highlighting the visual rework, the canonical-type toolbar, and the no-action-needed migration story
+- [ ] Operator-facing release note (drop in `docs/dev/` or wherever release notes are aggregated) — emphasise **no migration**: existing users keep their layout; per-widget on-read fix-ups (`instance_id` mint, `width/height → w/h` rename) apply transparently on first save
+- [ ] PR opened against `develop` with link to PRD + this progress doc
+- [ ] Review feedback addressed
+- [ ] Merge
+- [ ] Branch `dashboards` deleted
+
+---
+
+## Discovered work
+
+Items found during implementation that didn't fit a planned task. Add
+them here with a short note describing what surfaced them and where
+they should land. Promote into a phase when one is resolved.
+
+*(none yet)*
+
+---
+
+## Resolved questions
+
+When a §13 question is resolved, copy its number, the resolution, and
+the deciding rationale here so a fresh session sees the answer
+without having to re-read the conversation. After Phase 0 sign-off,
+also fold the resolutions back into PRD §13 with strikethrough +
+"Resolved:" notation.
+
+### Q10 + Q11 + Q1 follow-on — Toolbar semantics: bulk edit (Model 4) — **Resolved 2026-05-04**
+
+Supersedes parts of the original Q1 resolution and collapses Q10
+entirely. The toolbar is **a bulk-edit UI for per-widget configs**,
+not a session overlay or a separate "scope" persistence layer.
+
+**Mechanics.**
+- Pulling a toolbar control walks every widget that declares the
+  matching canonical type in `$schema` and writes the new value into
+  each widget's saved config (in `UserSetting:dashboard`).
+- Toolbar's *displayed* value is computed at render time from the
+  widgets: all agree → show value; disagree → show "(mixed)"; no
+  applicable widgets on the dashboard → hide that toolbar control.
+- A new widget added to the dashboard initialises a canonical-typed
+  slot to whatever the toolbar currently shows (so adding mid-session
+  doesn't surprise the user).
+- **Toolbar is mode-independent.** Pulls write immediately, no edit
+  mode required. Edit mode is reserved for *layout/structural*
+  changes (drag, resize, add, remove widgets).
+- **No inherit/pinned state.** Per-widget configs are the only source
+  of truth; the toolbar just edits them in bulk. Widgets without the
+  canonical type in their `$schema` are simply unaddressed by the
+  toolbar.
+
+**Cascade simplifications recorded by this resolution:**
+
+- **Q10 collapses entirely.** No UX affordance question — there's no
+  state to pick.
+- **Q1's `scope`-key + "Also apply default filters" mechanism is
+  retired.** Templates carry per-widget configs (which can include
+  canonical-typed values like `time_window: P7D` directly on each
+  widget instance). Reset-from-template replaces the user's
+  `UserSetting:dashboard` row with the template's blob — full stop.
+  No checkbox, no separate scope concept.
+- **Blob-shape promotion is dropped.** The `UserSetting:dashboard`
+  row stays as today's bare widget array; no `{scope, widgets}`
+  envelope. The only on-read evolution still needed is minting
+  `instance_id` and the `width/height → w/h` rename (both
+  per-widget housekeeping for Pragmatic DnD's grid math, not
+  shape-level).
+- **PRD §5.5's three-state inherit / pinned / not-declared model is
+  removed.** Replaced by a flat "widget declares canonical type X
+  in `$schema` → toolbar reaches it; otherwise the toolbar can't
+  see it".
+
+**Implementation hooks:**
+- DD-05 in `dashboard-design-decisions.md` carries the architectural
+  consequences.
+- DD-04 (templates carry default scope) is superseded in part by
+  DD-05 — the per-template scope key is gone, but templates
+  continue to carry per-widget configs as today.
+
+### Q7 — `$schema` backfill scope — **Resolved: tiered (Option C)** (2026-05-04)
+
+User accepted with mild hesitation; resolution pins the line
+concretely so the tier doesn't drift.
+
+**Full-backfill tier (9 widgets).** Every parameter gets a typed
+`$schema` entry with help text, validation, and (where applicable) a
+canonical-type-driven picker. No JSON textarea anywhere in their
+configure form.
+
+1. `MispStatusWidget`
+2. `TrendingTagsWidget`
+3. `TrendingAttributesWidget`
+4. `UsageDataWidget`
+5. `OrgEventsWidget`
+6. `AttackWidget`
+7. `OrganisationMapWidget`
+8. `RecentSightingsWidget`
+9. `EventEvolutionLineWidget`
+
+(Selection criteria: high configure-frequency × complex params ×
+strong toolbar adjacency. `ThresholdSightingsWidget` was a candidate
+but dropped — its config is already small enough that canonical-only
+covers it well.)
+
+**Canonical-only tier (rest of the in-tree widgets).** Parameters
+that map to canonical types (§5.5 — `time_window`, `tag_filter`, etc.)
+get typed `$schema` entries so the dashboard toolbar reaches them.
+Other widget-specific knobs continue using the legacy
+`$params` + `$placeholder` JSON-textarea path in the configure form's
+"Advanced" section.
+
+**Custom widgets (`Custom/`).** Same legacy fallback path — third-party
+widget authors are not forced to migrate.
+
+**Promotion path.** Moving a widget from canonical-only to
+full-backfill is a self-contained PR: add `$schema` entries for the
+remaining params, drop the `$placeholder` if no longer needed. No
+phase or architecture changes. The configure form auto-detects which
+fields have schema entries and renders accordingly.
+
+**Implementation hooks:**
+- Phase 2 task "Backfill `$schema` on the 5 highest-priority built-in
+  widgets" → broaden to the 9 listed above; track each as its own
+  sub-task in Phase 2.
+- Phase 3 task "Backfill canonical-type slots on the existing 30
+  widgets" → applies to the canonical-only tier (the 9 above are
+  already done by Phase 2).
+- Phase 5.5 widget-parity smoke checks remain valid as written.
+
+### Q6 — Frame's own CSS vs. inherit host theme — **Resolved: own CSS file, self-contained** (2026-05-04)
+
+The v2 dashboard ships its own complete CSS at
+`webroot/css/dashboard/dashboard.default.css` with a full design-token
+catalogue. Rules style dashboard markup using *only* those tokens; the
+file does not depend on Bootstrap (any version) being loaded.
+
+**Why this matters concretely.** MISP's themes already span BS versions
+(default = 2.3.2, Overmind = BS5). BS2.3.2 has no CSS custom
+properties at all, so a "borrow the host's `--bs-*` variables"
+approach would only ever work for BS5+ themes and would have required
+a shim file for the default theme reproducing BS variable names that
+weren't designed for dashboards. Self-contained is cleaner and
+forward-proof against future BS migrations.
+
+**"Easy to integrate" — what that means in practice:**
+
+- **Typography inherits.** No `font-family` / `font-weight` declarations
+  on the dashboard root or any common element; all typography flows
+  from the host's `body` styles. Tokens carry *sizes and weights*
+  for dashboard-specific elements (widget title, chip text), not
+  font families.
+- **Colour flows through tokens only.** No raw hex / RGB values
+  outside the token definitions block. No `class="blue"` /
+  `class="green bold"` style hooks in v2 markup (those are the v1
+  patterns we're explicitly leaving behind — see PRD §6.3).
+- **Scoped rules.** Dashboard CSS rules are scoped under a wrapper
+  class (e.g. `.misp-dashboard-root`) so the stylesheet can be
+  loaded globally without leaking into other pages. Helps when an
+  embedded mini-dashboard (e.g. an event-page summary panel) wants
+  the styles without colliding with the surrounding page.
+- **Theme overlays via additional stylesheets.** Heavy themes ship
+  *their own* CSS file that redefines the tokens (and optionally
+  adds rules that consume them); load order is the standard
+  `additionalCss` mechanism. The dashboard never inspects the
+  active theme by name; it just consumes whatever tokens are
+  currently in scope.
+
+**Implementation hooks:**
+- Phase 1 task "CSS architecture" → spec the full token catalogue +
+  scoped wrapper class up front so widget renderers can consume them
+  from day one.
+- Phase 1 task "ECharts theme registration" → derive the `"misp"`
+  ECharts theme from the same tokens via `getComputedStyle` (PRD §8.2).
+
+### Q5 — Posture on touching legacy — **Resolved: straight replacement on `dashboards` branch** (2026-05-04)
+
+**Branch isolation removes the user-facing risk** that the standing
+additive-only rule (`feedback_additive_only_posture.md`) was guarding
+against: nothing on this branch reaches `develop` (and therefore no
+end user) until the rework is complete. The flag, the v2 path prefix,
+and the parallel mounting are therefore unnecessary overhead — v1
+files are deleted in place as v2 takes over the canonical
+`/dashboards/*` routes.
+
+The merge to `develop` is gated by **three parities** (PRD §12):
+
+1. **Widget parity** — every built-in widget renders in v2; smoke-test
+   matrix attached to Phase 5.5 of this tracker. Custom widgets'
+   loader path still resolves them.
+2. **Data parity** — legacy `UserSetting:dashboard` blob shape and
+   legacy `dashboards.value` rows both read cleanly via the
+   backward-compat read; round-trips don't lose data.
+3. **Surface parity** — every URL the side menu links to today
+   resolves to a working v2 view; `import` / `export` /
+   `saveTemplate` / `listTemplates` / `deleteTemplate` all keep
+   working on the same URLs.
+
+Phase 5.5 ("Widget Parity Sweep") is the explicit checkpoint where
+all three are verified before the PR opens. Phase 6 collapses to
+"merge". Phase 7 is gone — pre-merge cleanup absorbed into Phase 5.5.
+
+**Implementation hooks:**
+- Phase 1 starts by replacing v1 controller/views/JS *in place* on
+  canonical routes — no `MISP.dashboard_v2` flag, no `/dashboards/v2/`
+  prefix.
+- Phase 5.5 enumerates the ~30 built-in widgets, each as its own
+  smoke-check task.
+- Phase 6 is a thin merge phase, not a feature phase.
+
+### Q4 — Gridstack vs. Pragmatic DnD — **Resolved: Pragmatic DnD + CSS Grid + custom math** (2026-05-04)
+
+See `dashboard-design-decisions.md` DD-01 for full rationale, licence
+verdict, maintainability evidence, and reversibility forcing function.
+
+**Phase 0.2 reframe:** no comparison; thin bring-up against the chosen
+libraries with a LOC-budget risk check (>300 lines of grid math at
+the bring-up stage triggers an escalation conversation before Phase 1
+starts).
+
+### Q3 — Drill-down convention — **Resolved: per-datum drilldown in widget data (Option C)** (2026-05-04)
+
+Renderers wrap an element in a link only when the corresponding datum
+in the widget's `handler()` return value carries a `drilldown` URL.
+No class-level `$drilldown` property; no auto-wrap by convention.
+
+**Shape conventions:**
+- `SimpleList`: each row may have a `drilldown` key alongside `title` /
+  `value` / `html` / `change`. When present, the title becomes a link.
+- `BarChart` / `MultiLineChart`: an optional `data['drilldown']` map
+  keyed by series/category name. When present, bar / point / legend
+  entries become click targets.
+- `WorldMap`: an optional `data['drilldown']` map keyed by ISO country
+  code, applied to map regions.
+- Other renderers follow the same "optional `drilldown` key in the
+  data shape they already consume" pattern.
+
+**Security helper:** a `DashboardURLValidator` (new, under
+`app/Lib/Dashboard/Tools/`) sanity-checks every drilldown URL before
+emission: must be relative or share `Configure::read('MISP.baseurl')`
+host; `javascript:` / `data:` / off-host URLs are silently dropped
+(rendered as plain text). Defends against a buggy or malicious widget.
+
+**Implementation hooks:**
+- Phase 5 task "Renderer-level wrapping for SimpleList" → adopt the
+  per-datum convention.
+- Phase 5 task "ECharts click handlers" → consume `data['drilldown']`
+  map.
+- Phase 1 introduces the `DashboardURLValidator` helper (used by
+  every renderer that wraps drilldown links).
+- Existing `MispStatusWidget`'s hand-rolled `(View)` link in `html`
+  migrates to the `drilldown` key during Phase 2's $schema backfill.
+
+### Q1 — Templates carry default scope? — **Resolved: yes (with confirmation)** (2026-05-04)
+
+Templates may carry a `scope` key alongside `widgets` in their
+`dashboards.value` blob. When the user picks a template
+(Reset-from-template), the confirmation dialog includes a checkbox
+**"Also apply this template's default filters"**, ticked by default
+if the template carries a non-empty scope, hidden if it doesn't.
+Unchecking preserves the user's existing toolbar state.
+
+**Implementation hooks:**
+- Phase 4 task "Q1 resolution applied" → wire the checkbox into
+  `Reset from template` confirmation; only show when template's blob
+  has a non-empty `scope`.
+- Phase 1 blob-shape work already covers reading the optional `scope`
+  key.
+
+---
+
+## Design-decision log pointer
+
+Significant cross-phase decisions (library choices, schema shapes,
+URL structure, theme-token names) live in
+`dashboard-design-decisions.md` — created the first time an
+0.2/0.3 task lands a decision worth recording. If that file does not
+yet exist, it has not yet been needed.
