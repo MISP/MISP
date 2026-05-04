@@ -940,7 +940,7 @@ class Event extends AppModel
     {
         $this->Server = ClassRegistry::init('Server');
 
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP._uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             return 'Not a Primary Instance in a HA deployment.';
         }
 
@@ -5949,7 +5949,7 @@ class Event extends AppModel
      */
     public function publishSightings($id, $passAlong = null, array $sightingsUuidsToPush = [])
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP._uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             return false;
         }
         if (is_numeric($id)) {

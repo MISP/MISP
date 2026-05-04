@@ -1113,7 +1113,7 @@ class Server extends AppModel
      */
     public function push($id, $technique, $jobId = false, $HttpSocket, array $user)
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP._uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             throw  new Exception('Not a Primary Instance in a HA deployment.');
         }
         if ($jobId) {
@@ -4675,7 +4675,7 @@ class Server extends AppModel
 
     public function update(array $status, &$raw = [], array $settings = [])
     {
-        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP._uuid')) {
+        if (!empty(Configure::read('MISP.primary_uuid')) && Configure::read('MISP.primary_uuid') !== Configure::read('MISP.uuid')) {
             return array();
         }
         $final = '';
