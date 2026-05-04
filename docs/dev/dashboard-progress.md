@@ -104,10 +104,10 @@ DD-01 (Pragmatic DnD) and DD-02 (ECharts) are committed in
 comparison — it's a thin bring-up to validate the implementation
 risk on the chosen libraries before committing Phase 1 effort.
 
-- [ ] Vendor Pragmatic Drag and Drop at `dashboard-v2-proto/js/grid/vendor/`
-- [ ] Build a minimal `GridModule` (snap, collision, resize-cascade) against CSS Grid for a 12-column dashboard layout; render 3 placeholder widget tiles; confirm drag/resize/snap UX feels right
+- [ ] Vendor Pragmatic Drag and Drop at `app/webroot/js/dashboard-v2/grid/vendor/`
+- [ ] Build a minimal `GridModule` (snap, collision, resize-cascade) against CSS Grid for a 12-column dashboard layout at `app/webroot/js/dashboard-v2/grid/`; render 3 placeholder widget tiles in a standalone HTML demo page (no MISP integration yet); confirm drag/resize/snap UX feels right
 - [ ] **Risk check (DD-01 forcing function):** measure custom grid-math LOC after the bring-up. If >300 lines for a single-widget-resize scenario, escalate to user before continuing — the >40% Phase 1 budget warning may trigger early.
-- [ ] Vendor ECharts at `dashboard-v2-proto/js/charts/vendor/` (tree-shaken: bar + line + geo)
+- [ ] Vendor ECharts at `app/webroot/js/dashboard-v2/charts/vendor/` (tree-shaken: bar + line + geo)
 - [ ] Bundle-size measurement: record minified+gzipped size of the tree-shaken ECharts build in DD-02 Done note
 - [ ] **uPlot follow-up trial** (DD-02 open question): render `MispSystemResourceWidget` time-series via uPlot; record render-time and LOC vs. ECharts equivalent. Decide: ECharts only, or mixed ECharts+uPlot?
 - [ ] AGPL × Apache 2.0 licence sanity-check formalised — link the authoritative source (FSF compatibility list, MISP project's existing precedents) into DD-01 and DD-02
