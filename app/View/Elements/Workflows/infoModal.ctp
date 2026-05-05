@@ -9,6 +9,7 @@
             <li class=""><a href=" #modal-hash-path" data-toggle="tab"><?= __('Hash Path') ?></a></li>
             <li class=""><a href=" #modal-core-format" data-toggle="tab"><?= __('MISP Core Format') ?></a></li>
             <li class=""><a href=" #modal-jinja2" data-toggle="tab"><?= __('Jinja2 Syntax') ?></a></li>
+            <li class=""><a href=" #modal-misp-module-results" data-toggle="tab"><?= __('misp-modules results') ?></a></li>
             <li class=""><a href=" #modal-blueprint" data-toggle="tab"><?= __('Blueprints') ?></a></li>
             <li class=""><a href=" #modal-debugging" data-toggle="tab"><?= __('Debugging') ?></a></li>
             <li><a href="#modal-info-usage" data-toggle="tab"><?= __('Usage & Shortcuts') ?></a></li>
@@ -880,6 +881,38 @@ $data_passed_to_if_module = [
 }
 </pre>
 
+            </div>
+
+            <div class=" tab-pane" id="modal-misp-module-results">
+                <h3><?= __('misp-modules results') ?></h3>
+                <p>An action misp-module can also return a result that will be stored in the workflow's roaming data.
+                    To do this, you must define a <code>result_key</code>. The returned result will then be saved under
+                    the environment variable <code>_env</code>, together with the <code>data</code>.</p>
+                <p>Below is an example of a misp-module returning data:</p>
+                <pre>
+def handler(q=False):
+    if q is False:
+        return False
+    request = json.loads(q)  # noqa
+    params = request["params"]
+    result_key = 'my_key'
+    # Or from a parameter set in the workflow
+    # result_key = params["result_key"]
+
+    r = {
+        "data": {
+            "event_uuid": "cd12c41f-0090-41ea-b4ea-1c174ae6e206",
+            "value": [1,2,3,4]
+        },
+        "result_key": result_key,
+    }
+    return r</pre>
+
+                <p>You can then access the stored result using <code>_env.misp_module_results.[result_key]</code>.</p>
+                <p>For example, to access the UUID returned by the module above:</p>
+                <pre>
+                {{ _env.misp_module_results.my_key.event_uuid }}
+                </pre>
             </div>
 
             <div class=" tab-pane" id="modal-blueprint">

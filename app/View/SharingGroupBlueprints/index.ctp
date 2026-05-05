@@ -62,7 +62,9 @@
                                         h($row['SharingGroup']['id']),
                                         h($row['SharingGroup']['name']),
                                         sprintf(
-                                            '<a href="#" class="black fas fa-trash" onClick="openGenericModal(\'%s/sharing_group_blueprints/detach/%s\');"></a>',
+                                            '<a href="#" class="black fas fa-trash" title="%s" aria-label="%s" onClick="openGenericModal(\'%s/sharing_group_blueprints/detach/%s\');"></a>',
+                                            __('Detach sharing group'),
+                                            __('Detach sharing group'),
                                             $baseurl,
                                             h($row['SharingGroupBlueprint']['id'])
                                         )

@@ -26,13 +26,14 @@
  * - url            : URL (supports %id% and %action%)
  * - class          : CSS class
  * - requirement    : Permission check function
- * - state_path     : Path to the boolean value (toggle)
+ * - publish_path     : Path to the published value (toggle)
  */
 
 $fields = [
     [
         'element' => 'selector',
         'data_path' => 'Event.id',
+        'publish_path' => 'Event.published',
         'card_section' => 'selector',
         'actions' => [
             [
@@ -68,7 +69,7 @@ $fields = [
                 'icon_on' => 'download',
                 'icon_off' => 'upload',
                 'url' => $baseurl . '/events/%action%/%id%',
-                'state_path' => 'Event.published',
+                'publish_path' => 'Event.published',
                 'requirement' => 'check_publish_rights'
             ]
         ]
@@ -123,7 +124,7 @@ $fields = [
     [
         'name' => __('Tags'),
         'data_path' => 'EventTag',
-        'element' => 'tag',
+        'element' => 'tag_list',
         'card_section' => 'tag',
         'display_in' => ['table', 'card']
     ],
@@ -160,15 +161,36 @@ $fields = [
 ];
 
 
+$headerActions = [];
 if ($this->Acl->canAccess('events', 'add')) {
-    $this->set('headerActions', [
-        [
-            'url' => $baseurl . '/events/add',
-            'label' => __('Add Event'),
-            'icon' => 'plus'
-        ]
-    ]);
+    $headerActions[] = [
+        'type' => 'link',
+        'label' => __('Add Event'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/events/add'
+    ];
 }
+
+// "Add Event → From Template" entry point — Overmind toolbar parity
+// with the default theme (PRD §5.2 F2.1). Renders the searchable
+// picker modal once on the page and adds a header action that opens
+// it via headerSection's link.onClick callback.
+$canPickTemplate = (
+    $this->Acl->canAccess('eventTemplates', 'index')
+    && $this->Acl->canAccess('eventTemplates', 'instantiate')
+);
+if ($canPickTemplate) {
+    $headerActions[] = [
+        'type' => 'link',
+        'id' => 'event-template-picker-button',
+        'label' => __('From template'),
+        'icon' => 'clone',
+        'url' => '#',
+        'onClick' => 'openEventTemplatePicker'
+    ];
+    echo $this->element('eventTemplates/templatePickerModal');
+}
+$this->set('headerActions', $headerActions);
 
 /**
  * ==============================================================
@@ -193,7 +215,10 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'button' => 'Search',
-                        'placeholder' => 'Search by info, ID or UUID'
+                        'placeholder' => 'Search by info, ID or UUID',
+                        'name'        => 'eventinfo',
+                        'mode'        => 'event',
+                        'id_field'    => 'eventid',
                     ],
                     [
                         'type' => 'button',
@@ -257,7 +282,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     ]
                 ],
                 'export' => 1,
-                'delete' => 1
+                'delete' => '/delete'
             ],
             'fields' => $fields,
         ]

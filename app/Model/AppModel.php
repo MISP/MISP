@@ -96,7 +96,8 @@ class AppModel extends Model
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
         129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
         135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
-        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false
+        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
+        147 => false
     );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2578,6 +2579,47 @@ class AppModel extends Model
             case 147:
                 // Fix attributes.comment to support 4-byte UTF-8 (emoji) characters
                 $sqlArray[] = "ALTER TABLE `attributes` MODIFY COLUMN `comment` text COLLATE utf8mb4_unicode_ci;";
+                // Event-template feature scaffolding — both tables created
+                // in their final shape. distribution is tinyint(4) (matches
+                // events.distribution / attributes.distribution and stays
+                // an integer end-to-end through Cake's MySQL driver, which
+                // would otherwise bool-coerce a tinyint(1) column on read).
+                // misp_default is the library-managed flag — named with
+                // the misp_ prefix to avoid colliding with MySQL's
+                // reserved `default` keyword. minimum_version on the
+                // dependencies table reflects the field's semantics — the
+                // running MISP instance is free to use a newer
+                // object-template version if installed (PRD §13).
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_templates` (
+                    `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `description` text COLLATE utf8mb4_unicode_ci NULL,
+                    `org_id` int(11) UNSIGNED NOT NULL,
+                    `creator_user_id` int(11) UNSIGNED NOT NULL,
+                    `distribution` tinyint(4) NOT NULL DEFAULT 0,
+                    `active` tinyint(1) NOT NULL DEFAULT 1,
+                    `misp_default` tinyint(1) NOT NULL DEFAULT 0,
+                    `version` int(11) UNSIGNED NOT NULL DEFAULT 1,
+                    `definition` mediumtext COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `created` datetime NOT NULL,
+                    `modified` datetime NOT NULL,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                $indexArray[] = array('event_templates', 'org_id');
+                $indexArray[] = array('event_templates', 'name');
+                $indexArray[] = array('event_templates', 'active');
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_template_object_dependencies` (
+                    `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `event_template_id` int(11) UNSIGNED NOT NULL,
+                    `object_template_uuid` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `object_template_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `minimum_version` int(11) UNSIGNED NOT NULL,
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                $indexArray[] = array('event_template_object_dependencies', 'event_template_id');
+                $indexArray[] = array('event_template_object_dependencies', 'object_template_uuid');
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

@@ -7,7 +7,7 @@ $containerId = empty($scaffold_data['containerId'])
 echo '<div id="' . $containerId . '_content">';
 ?>
 
-<div class="container-fluid">
+<div class="container-fluid mt-4">
 
     <!-- CARD 1 : FILTERS -->
     <?php if (!empty($scaffold_data['data']['filter_bar'])): ?>
@@ -46,7 +46,7 @@ echo '<div id="' . $containerId . '_content">';
 
     <!-- CARD 3 : PAGINATION -->
     <?php if (empty($scaffold_data['data']['skip_pagination'])): ?>
-        <div class="card shadow-sm mb-5">
+        <div class="card shadow-sm mb-4">
             <div class="card-body">
                 <?= $this->element(
                     'genericElementsBS5/IndexTable/pagination',

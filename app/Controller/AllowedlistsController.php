@@ -24,6 +24,9 @@ class AllowedlistsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->set('action', 'add');
     }
 
@@ -47,6 +50,9 @@ class AllowedlistsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->set('action', 'edit');
         $this->set('id', $id);
         $this->render('admin_add');
@@ -59,6 +65,23 @@ class AllowedlistsController extends AppController
             return $this->restResponsePayload;
         }
     }
+
+    public function admin_deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'Allowedlist',
+            'restName' => 'Allowedlists',
+            'itemName' => 'allowedlist',
+            'view' => 'ajax/allowedlistDeleteConfirmationForm',
+            'checkModifyCallback' => function() {
+                return $this->userRole['perm_regexp_access'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s allowedlist deleted.', '%s allowedlists deleted.', $count, $count);
+            }
+        ]);
+    }
+
 
     public function index()
     {

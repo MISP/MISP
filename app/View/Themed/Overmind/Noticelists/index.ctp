@@ -3,6 +3,7 @@ $fields = [
     [
         'element' => 'selector',
         'data_path' => 'Noticelist.id',
+        'enable_path' => 'Noticelist.enabled',
         'card_section' => 'selector',
         'actions' => [
             [
@@ -15,10 +16,10 @@ $fields = [
                 'type' => 'toggle',
                 'label_on' => __('Disable'),
                 'label_off' => __('Enable'),
-                'icon_on' => 'times-circle text-danger',
-                'icon_off' => 'check-circle text-success',
+                'icon_on' => 'stop text-danger',
+                'icon_off' => 'play text-success',
                 'url' => '/noticelists/%action%/%id%',
-                'state_path' => 'Noticelist.enabled',
+                'enable_path' => 'Noticelist.enabled',
                 'requirement' => $isSiteAdmin
             ]
         ]
@@ -56,7 +57,7 @@ $fields = [
     [
         'name' => __('Geographical area'),
         'data_path' => 'Noticelist.geographical_area',
-        'element' => 'flag',
+        'element' => 'country',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
     ],
@@ -89,9 +90,10 @@ $fields = [
 if ($this->Acl->canAccess('noticelists', 'update')) {
     $this->set('headerActions', [
         [
-            'url' => $baseurl . '/noticelists/update',
+            'type' => 'post',
             'label' => __('Update Noticelists'),
-            'icon' => 'sync'
+            'icon' => 'sync',
+            'url' => $baseurl . '/noticelists/update'
         ]
     ]);
 }
@@ -106,10 +108,11 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'button' => __('Filter'),
-                        'placeholder' => __('Enter value to search'),
+                        'placeholder' => __('Not available for the moment'),
                         'searchKey' => 'quickFilter',
                     ]
-                ]
+                ],
+                'enable' => 1
             ],
             'fields' => $fields,
         ]

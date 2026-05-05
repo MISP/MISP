@@ -1,28 +1,30 @@
 <?php
-$value = Hash::get($row, $field['data_path']);
-$isEnabled = !empty($value);
+/*
+ * enabled.ctp
+ *
+ * Expected:
+ * $data_path => item.enabled'
+ */
+
+$enabled = Hash::extract($row, $field['data_path']);
+
+if (empty($enabled)) {
+    return;
+}
+$boolean = !empty($field['boolean_reverse']) ? !$enabled[0] : $enabled[0];
 $isCard = isset($viewMode) && $viewMode === 'card';
+
+echo $this->element(
+    'genericElementsBS5/Badges/boolean',
+    [
+        'boolean' => $boolean,
+        'full' => $isCard,
+        'true' => __('Enabled'),
+        'false' => __('Disabled'),
+        'trueColor'  => 'success',
+        'falseColor' => 'danger',
+        'trueIcon'   => 'fa-check-circle',
+        'falseIcon'  => 'fa-times-circle'
+    ]
+);
 ?>
-
-<div class="d-flex align-items-center">
-    <?php if ($isCard): ?>
-
-        <!-- CARD MODE -->
-        <span class="badge d-inline-flex align-items-center px-2 py-1 border 
-            <?= $isEnabled ? 'border-success text-success' : 'border-danger text-danger' ?>">
-            <i class="fas <?= $isEnabled ? 'fa-check-circle text-success' : 'fa-times-circle text-danger' ?> me-1"></i>
-            <?= $isEnabled ? __('Enabled') : __('Disabled') ?>
-        </span>
-
-    <?php else: ?>
-
-        <!-- TABLE MODE -->
-        <i class="fas
-            <?= $isEnabled ? 'fa-check-circle text-success' : 'fa-times-circle text-danger' ?>"
-        style="font-size: 1.3em;"
-        title="<?= $isEnabled ? __('Enabled') : __('Disabled') ?>"
-        aria-label="<?= $isEnabled ? __('Enabled') : __('Disabled') ?>">
-        </i>
-
-    <?php endif; ?>
-</div>

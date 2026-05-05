@@ -1,24 +1,24 @@
 <?php
-$value = Hash::get($row, $field['data_path']);
-$isDefault = !empty($value);
+/*
+ * distribution.ctp
+ *
+ * Expected:
+ * $data_path => item.distribution'
+ */
+
+$default = Hash::extract($row, $field['data_path']);
+
+if (empty($default)) {
+    return;
+}
+
 $isCard = isset($viewMode) && $viewMode === 'card';
+
+echo $this->element(
+    'genericElementsBS5/Badges/default',
+    [
+        'default' => $default[0],
+        'full' => $isCard
+    ]
+);
 ?>
-
-<div class="d-flex align-items-center">
-    <?php if ($isCard): ?>
-        <!-- CARD MODE -->
-        <span class="badge default-color default-bg fw-semibold px-3 py-2">
-            <?= $isDefault ? __('Default') : __('Not default') ?>
-        </span>
-
-    <?php else: ?>
-        <!-- TABLE MODE -->
-        <i class="fas
-            <?= $isDefault ? 'fa-check default-color' : 'fa-minus default-color' ?>"
-        style="font-size: 1.3em;"
-        title="<?= $isDefault ? __('Default') : __('Not default') ?>"
-        aria-label="<?= $isDefault ? __('Default') : __('Not default') ?>">
-        </i>
-
-    <?php endif; ?>
-</div>

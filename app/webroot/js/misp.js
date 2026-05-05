@@ -227,6 +227,37 @@ function submitDeletion(context_id, action, type, id) {
     });
 }
 
+// No-arg wrapper so the index-page top-bar action and the side menu
+// can both trigger the same popover without inlining getPopup args.
+function openEventTemplateLibraryUpdatePopup() {
+    getPopup('', 'event_templates', 'update');
+}
+
+function submitEventTemplatesLibraryUpdate() {
+    xhr({
+        url: '/event_templates/update',
+        type: 'post',
+        dataType: 'json',
+        headers: {'Accept': 'application/json'},
+        success: function (summary) {
+            cancelPrompt();
+            var counts = {
+                installed: (summary.installed || []).length,
+                updated: (summary.updated || []).length,
+                skipped_current: (summary.skipped_current || []).length,
+                skipped_forked: (summary.skipped_forked || []).length,
+                failed: (summary.failed || []).length
+            };
+            var msg = 'Library update — installed ' + counts.installed
+                + ', updated ' + counts.updated
+                + ', skipped ' + (counts.skipped_current + counts.skipped_forked)
+                + ', failed ' + counts.failed + '.';
+            showMessage(counts.failed > 0 ? 'fail' : 'success', msg);
+            setTimeout(function () { window.location.reload(); }, 800);
+        }
+    });
+}
+
 function removeSighting(caller) {
     var id = $(caller).data('id');
     var rawid = $(caller).data('rawid');
@@ -6130,3 +6161,285 @@ function sanitizeUrlForTraversal(url) {
 
     return url;
 }
+
+// Geolocation/GPX map popover helpers
+function openMapPopover(title, tileUrl, callback) {
+    var $popover = $('#popover_form');
+    var html = '<legend>' + title +
+        '<span class="pull-right">' +
+        '<span class="fa fa-times useCursorPointer" ' +
+        'onClick="cancelPopoverForm();"></span>' +
+        '</span></legend>' +
+        '<div id="geolocation-map" ' +
+        'style="width:100%;height:400px;"></div>' +
+        '<div id="geolocation-map-info" ' +
+        'style="padding:5px 10px;color:#555;"></div>';
+    $popover.html(html);
+    $popover.fadeIn();
+    var left = ($(window).width() / 2) -
+        ($popover.width() / 2);
+    $popover.css({'left': left + 'px'});
+    $("#gray_out").fadeIn();
+    var map = L.map('geolocation-map');
+    L.tileLayer(tileUrl + '/hot/{z}/{x}/{y}.png', {
+        maxZoom: 21,
+        maxNativeZoom: 20,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    setTimeout(function() { map.invalidateSize(); }, 200);
+    callback(map);
+}
+
+function parseGpxToLayers(xmlString, map) {
+    var parser = new DOMParser();
+    var gpx = parser.parseFromString(xmlString, 'application/xml');
+    var bounds = L.latLngBounds();
+    var hasData = false;
+
+    // Parse waypoints
+    var wpts = gpx.querySelectorAll('wpt');
+    for (var i = 0; i < wpts.length; i++) {
+        var lat = parseFloat(wpts[i].getAttribute('lat'));
+        var lon = parseFloat(wpts[i].getAttribute('lon'));
+        if (isNaN(lat) || isNaN(lon)) continue;
+        var ll = L.latLng(lat, lon);
+        var nameEl = wpts[i].querySelector('name');
+        var marker = L.marker(ll).addTo(map);
+        if (nameEl && nameEl.textContent) {
+            marker.bindPopup(nameEl.textContent);
+        }
+        bounds.extend(ll);
+        hasData = true;
+    }
+
+    // Parse tracks
+    var trks = gpx.querySelectorAll('trk');
+    for (var i = 0; i < trks.length; i++) {
+        var segments = trks[i].querySelectorAll('trkseg');
+        for (var j = 0; j < segments.length; j++) {
+            var pts = segments[j].querySelectorAll('trkpt');
+            var latlngs = [];
+            for (var k = 0; k < pts.length; k++) {
+                var lat = parseFloat(pts[k].getAttribute('lat'));
+                var lon = parseFloat(pts[k].getAttribute('lon'));
+                if (isNaN(lat) || isNaN(lon)) continue;
+                var ll = L.latLng(lat, lon);
+                latlngs.push(ll);
+                bounds.extend(ll);
+            }
+            if (latlngs.length > 0) {
+                L.polyline(latlngs, {
+                    color: '#3388ff', weight: 3
+                }).addTo(map);
+                hasData = true;
+            }
+        }
+    }
+
+    // Parse routes
+    var rtes = gpx.querySelectorAll('rte');
+    for (var i = 0; i < rtes.length; i++) {
+        var pts = rtes[i].querySelectorAll('rtept');
+        var latlngs = [];
+        for (var j = 0; j < pts.length; j++) {
+            var lat = parseFloat(pts[j].getAttribute('lat'));
+            var lon = parseFloat(pts[j].getAttribute('lon'));
+            if (isNaN(lat) || isNaN(lon)) continue;
+            var ll = L.latLng(lat, lon);
+            latlngs.push(ll);
+            bounds.extend(ll);
+        }
+        if (latlngs.length > 0) {
+            L.polyline(latlngs, {
+                color: '#ff3333', weight: 3
+            }).addTo(map);
+            hasData = true;
+        }
+    }
+
+    if (hasData && bounds.isValid()) {
+        map.fitBounds(bounds, {padding: [20, 20]});
+    } else {
+        map.setView([0, 0], 2);
+    }
+
+    return {
+        waypoints: wpts.length,
+        tracks: trks.length,
+        routes: rtes.length
+    };
+}
+
+// Geolocation object click handler
+$(document).on("click", ".geolocation-map-icon", function() {
+    var lat = parseFloat($(this).data('lat'));
+    var lon = parseFloat($(this).data('lon'));
+    if (isNaN(lat) || isNaN(lon)) return;
+    var tileUrl = $(this).data('tile-url');
+    var radiusKm = parseFloat($(this).data('radius'));
+    openMapPopover('Geolocation', tileUrl, function(map) {
+        map.setView([lat, lon], 14);
+        L.marker([lat, lon]).addTo(map);
+        var info = lat.toFixed(6) + ', ' + lon.toFixed(6);
+        if (!isNaN(radiusKm) && radiusKm > 0) {
+            var circle = L.circle([lat, lon], {
+                radius: radiusKm * 1000,
+                color: '#3388ff',
+                fillColor: '#3388ff',
+                fillOpacity: 0.15,
+                weight: 2
+            }).addTo(map);
+            map.fitBounds(
+                L.latLng(lat, lon).toBounds(radiusKm * 2000),
+                {padding: [20, 20]}
+            );
+            info += ' (radius: ' + radiusKm + ' km)';
+            var RadiusToggle = L.Control.extend({
+                options: {position: 'topleft'},
+                onAdd: function() {
+                    var container = L.DomUtil.create('div',
+                        'leaflet-bar leaflet-control');
+                    var btn = L.DomUtil.create('a', '', container);
+                    btn.href = '#';
+                    btn.title = 'Toggle radius';
+                    btn.innerHTML = '&#9702;';
+                    btn.style.fontSize = '22px';
+                    btn.style.lineHeight = '26px';
+                    btn.style.textAlign = 'center';
+                    btn.style.width = '26px';
+                    btn.style.height = '26px';
+                    L.DomEvent.disableClickPropagation(container);
+                    L.DomEvent.on(btn, 'click', function(e) {
+                        L.DomEvent.preventDefault(e);
+                        if (map.hasLayer(circle)) {
+                            map.removeLayer(circle);
+                            btn.style.opacity = '0.5';
+                        } else {
+                            map.addLayer(circle);
+                            btn.style.opacity = '1';
+                        }
+                    });
+                    return container;
+                }
+            });
+            map.addControl(new RadiusToggle());
+        }
+        $('#geolocation-map-info').text(info);
+    });
+});
+
+// GPX object click handler
+$(document).on("click", ".gpx-map-icon", function() {
+    var attachmentId = $(this).data('attachment-id');
+    var tileUrl = $(this).data('tile-url');
+    if (!attachmentId) return;
+    openMapPopover('GPX Track', tileUrl, function(map) {
+        map.setView([0, 0], 2);
+        $('#geolocation-map-info').text('Loading GPX data...');
+        $.ajax({
+            url: baseurl + '/attributes/download/' + attachmentId,
+            dataType: 'text',
+            success: function(data) {
+                var stats = parseGpxToLayers(data, map);
+                var info = [];
+                if (stats.tracks > 0) {
+                    info.push(stats.tracks + ' track(s)');
+                }
+                if (stats.routes > 0) {
+                    info.push(stats.routes + ' route(s)');
+                }
+                if (stats.waypoints > 0) {
+                    info.push(stats.waypoints + ' waypoint(s)');
+                }
+                $('#geolocation-map-info').text(
+                    info.length > 0 ? info.join(', ') :
+                    'No geographic data found'
+                );
+                setTimeout(function() {
+                    map.invalidateSize();
+                }, 200);
+            },
+            error: function() {
+                $('#geolocation-map-info').text(
+                    'Failed to load GPX attachment.'
+                );
+            }
+        });
+    });
+});
+
+// GeoJSON object click handler
+$(document).on("click", ".geojson-map-icon", function() {
+    var attachmentId = $(this).data('attachment-id');
+    var tileUrl = $(this).data('tile-url');
+    if (!attachmentId) return;
+    openMapPopover('GeoJSON', tileUrl, function(map) {
+        map.setView([0, 0], 2);
+        $('#geolocation-map-info').text('Loading GeoJSON data...');
+        $.ajax({
+            url: baseurl + '/attributes/download/' + attachmentId,
+            dataType: 'json',
+            success: function(data) {
+                var layer = L.geoJSON(data, {
+                    pointToLayer: function(feature, latlng) {
+                        return L.marker(latlng);
+                    },
+                    onEachFeature: function(feature, layer) {
+                        if (feature.properties) {
+                            var props = [];
+                            for (var key in feature.properties) {
+                                if (feature.properties[key] !== null) {
+                                    props.push(
+                                        '<strong>' + key +
+                                        '</strong>: ' +
+                                        feature.properties[key]
+                                    );
+                                }
+                            }
+                            if (props.length > 0) {
+                                layer.bindPopup(props.join('<br>'));
+                            }
+                        }
+                    }
+                }).addTo(map);
+                var bounds = layer.getBounds();
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds, {padding: [20, 20]});
+                }
+                var featureCount = 0;
+                var geometryTypes = {};
+                if (data.type === 'FeatureCollection' &&
+                    data.features) {
+                    featureCount = data.features.length;
+                    data.features.forEach(function(f) {
+                        if (f.geometry && f.geometry.type) {
+                            geometryTypes[f.geometry.type] = true;
+                        }
+                    });
+                } else if (data.type === 'Feature') {
+                    featureCount = 1;
+                    if (data.geometry && data.geometry.type) {
+                        geometryTypes[data.geometry.type] = true;
+                    }
+                } else if (data.type) {
+                    featureCount = 1;
+                    geometryTypes[data.type] = true;
+                }
+                var types = Object.keys(geometryTypes);
+                var info = featureCount + ' feature(s)';
+                if (types.length > 0) {
+                    info += ' (' + types.join(', ') + ')';
+                }
+                $('#geolocation-map-info').text(info);
+                setTimeout(function() {
+                    map.invalidateSize();
+                }, 200);
+            },
+            error: function() {
+                $('#geolocation-map-info').text(
+                    'Failed to load GeoJSON attachment.'
+                );
+            }
+        });
+    });
+});

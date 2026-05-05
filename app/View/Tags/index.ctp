@@ -86,7 +86,7 @@
                     'class' => 'short',
                     'element' => 'links',
                     'data_path' => 'Tag.Taxonomy.namespace',
-                    'url' => '/taxonomies/view',
+                    'url' => $baseurl . '/taxonomies/view',
                     'url_params_data_paths' => ['Tag.Taxonomy.id']
                 ],
                 [
@@ -101,7 +101,7 @@
                     'class' => 'short',
                     'element' => 'count',
                     'data_path' => 'Tag.attribute_count',
-                    'url' => '/attributes/index/tags:%d',
+                    'url' => $baseurl . '/attributes/index/tags:%d',
                     'url_params_data_path' => ['Tag.id'],
                     'requirement' => empty($exclude_statistics)
                 ],

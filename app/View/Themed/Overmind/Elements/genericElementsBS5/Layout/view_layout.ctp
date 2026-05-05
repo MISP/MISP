@@ -1,6 +1,8 @@
 <div class="container-fluid mt-3">
     <h2 class="mb-3">
-        <?= h($title) ?>
+        <?php if (!empty($title)): ?>
+            <?= h($title) ?>
+        <?php endif; ?>
     </h2>
     <ul class="nav nav-tabs mb-3 fs-5" role="tablist">
         <?php foreach ($tabs as $i => $tab): ?>
@@ -15,7 +17,9 @@
                         <i class="fas fa-<?= h($tab['icon']) ?>"></i>
                     <?php endif; ?>
 
-                    <?= h($tab['title']) ?>
+                    <?php if (!empty($tab['title'])): ?>
+                        <?= h($tab['title']) ?>
+                    <?php endif; ?>
 
                     <?php if (!empty($tab['count'])): ?>
                         <span> (<?= h($tab['count']) ?>) </span>
@@ -36,8 +40,6 @@
                         <?php
                             if (!empty($tab['left'])) {
                                 foreach ($tab['left'] as $card) {
-
-                                    // Nouveau format (avec ajax)
                                     if (is_array($card)) {
 
                                         if (!empty($card['ajax'])) {
@@ -51,7 +53,6 @@
                                         }
 
                                     } else {
-                                        // Ancien format (string)
                                         echo $this->element($card, ['data' => $data]);
                                     }
                                 }
@@ -76,7 +77,6 @@
                                         }
 
                                     } else {
-                                        // Ancien format (string)
                                         echo $this->element($card, ['data' => $data]);
                                     }
                                 }

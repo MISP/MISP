@@ -64,7 +64,7 @@
             'actions' => array(
                 array(
                     'title' => 'Edit',
-                    'url' => '/galaxy_cluster_blocklists/edit',
+                    'url' => $baseurl . '/galaxy_cluster_blocklists/edit',
                     'url_params_data_paths' => array(
                         'GalaxyClusterBlocklist.id'
                     ),

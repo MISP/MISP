@@ -962,4 +962,90 @@ class GalaxyClustersController extends AppController
         $this->set('testtest', 'testtest');
         $this->render('/Elements/GalaxyClusters/view_relation_tree');
     }
+
+    /**
+     * Lean read-only search across galaxy clusters scoped to a single
+     * Galaxy.type. Built for the event-template user-form's inline
+     * cluster picker (PRD §10.4); paginates client-side via the q
+     * query parameter rather than offset/limit, and returns at most
+     * 50 rows per call so the typeahead stays cheap.
+     *
+     *   GET /galaxy_clusters/search?galaxy_type=tlp&q=amber
+     *
+     * Response: array of {value, label, description, uuid} where
+     * `value` is the canonical tag_name (what the instantiator
+     * stores) and `label` is the human-readable cluster value.
+     */
+    public function search()
+    {
+        $galaxyType = isset($this->request->query['galaxy_type'])
+            ? trim((string)$this->request->query['galaxy_type'])
+            : '';
+        if ($galaxyType === '') {
+            throw new BadRequestException(
+                __('galaxy_type query parameter is required.')
+            );
+        }
+        $q = isset($this->request->query['q'])
+            ? trim((string)$this->request->query['q'])
+            : '';
+
+        $galaxy = $this->GalaxyCluster->Galaxy->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Galaxy.type' => $galaxyType),
+            'fields' => array('Galaxy.id', 'Galaxy.type', 'Galaxy.name'),
+        ));
+        if (empty($galaxy)) {
+            // Unknown galaxy type — empty result rather than 404 so the
+            // typeahead degrades to "no matches" instead of a popup.
+            return $this->RestResponse->viewData(array(), 'json');
+        }
+
+        $aclConditions = $this->GalaxyCluster->buildConditions($this->Auth->user());
+        $conditions = array(
+            'GalaxyCluster.galaxy_id' => $galaxy['Galaxy']['id'],
+            'GalaxyCluster.deleted' => false,
+        );
+        if (!empty($aclConditions)) {
+            $conditions['AND'][] = $aclConditions;
+        }
+        if ($q !== '') {
+            $like = '%' . strtolower($q) . '%';
+            $conditions['AND'][] = array(
+                'OR' => array(
+                    'LOWER(GalaxyCluster.value) LIKE' => $like,
+                    'LOWER(GalaxyCluster.tag_name) LIKE' => $like,
+                    'LOWER(GalaxyCluster.description) LIKE' => $like,
+                ),
+            );
+        }
+
+        $rows = $this->GalaxyCluster->find('all', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => array(
+                'GalaxyCluster.id',
+                'GalaxyCluster.uuid',
+                'GalaxyCluster.value',
+                'GalaxyCluster.tag_name',
+                'GalaxyCluster.description',
+            ),
+            'order' => array('GalaxyCluster.value' => 'ASC'),
+            'limit' => 50,
+        ));
+
+        $payload = array();
+        foreach ($rows as $row) {
+            $cluster = $row['GalaxyCluster'];
+            $payload[] = array(
+                'value' => $cluster['tag_name'],
+                'label' => $cluster['value'],
+                'description' => isset($cluster['description'])
+                    ? (string)$cluster['description']
+                    : '',
+                'uuid' => $cluster['uuid'],
+            );
+        }
+        return $this->RestResponse->viewData($payload, 'json');
+    }
 }

@@ -488,6 +488,27 @@ class AttributesController extends AppController
             $fails = array();
             $success = 0;
 
+            $malware = !empty($this->request->data['Attribute']['malware']);
+            $pool = $malware ? 'malicious' : 'non_malicious';
+            // Back-compat: when no template is posted (legacy REST callers), fall back to
+            // the pool default — the `file` object for malware samples, and the flat
+            // `attachment` attribute (null sentinel) for the non-malicious path.
+            if ($malware) {
+                $templateUuid = isset($this->request->data['Attribute']['object_template_malicious'])
+                    ? $this->request->data['Attribute']['object_template_malicious']
+                    : null;
+                if (empty($templateUuid)) {
+                    $templateUuid = MispAttribute::ATTACHMENT_OBJECT_TEMPLATES['malicious'][0]['uuid'];
+                }
+            } else {
+                $templateUuid = isset($this->request->data['Attribute']['object_template_non_malicious'])
+                    ? $this->request->data['Attribute']['object_template_non_malicious']
+                    : null;
+                if ($templateUuid === '') {
+                    $templateUuid = null;
+                }
+            }
+
             foreach ($this->request->data['Attribute']['values'] as $value) {
                 // Check if there were problems with the file upload
                 // only keep the last part of the filename, this should prevent directory attacks
@@ -504,67 +525,54 @@ class AttributesController extends AppController
                     continue;
                 }
 
-                if ($this->request->data['Attribute']['malware']) {
-                    if ($this->request->data['Attribute']['advanced']) {
-                        $result = $this->MispAttribute->advancedAddMalwareSample(
-                            $event['Event']['id'],
-                            $this->request->data['Attribute'],
-                            $filename,
-                            $tmpfile
-                        );
-                    } else {
-                        $result = $this->MispAttribute->simpleAddMalwareSample(
-                            $event['Event']['id'],
-                            $this->request->data['Attribute'],
-                            $filename,
-                            $tmpfile
-                        );
-                    }
-
-                    if ($result) {
-                        $success++;
-                    } else {
-                        $fails[] = $filename;
-                    }
-
-                    if (!empty($result)) {
-                        foreach ($result['Object'] as $object) {
-                            $object['distribution'] = $this->request->data['Attribute']['distribution'];
-                            if (!empty($this->request->data['sharing_group_id'])) {
-                                $object['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
-                            }
-                            foreach ($object['Attribute'] as $ka => $attribute) {
-                                $object['Attribute'][$ka]['distribution'] = 5;
-                            }
-                            $this->MispAttribute->Object->captureObject(array('Object' => $object), $event['Event']['id'], $this->Auth->user());
-                        }
-                        if (!empty($result['ObjectReference'])) {
-                            foreach ($result['ObjectReference'] as $reference) {
-                                $this->MispAttribute->Object->ObjectReference->smartSave($reference, $event['Event']['id']);
-                            }
-                        }
-                    }
-                } else {
-                    $attribute = array(
-                        'Attribute' => array(
-                            'value' => $filename,
-                            'category' => $this->request->data['Attribute']['category'],
-                            'type' => 'attachment',
-                            'event_id' => $event['Event']['id'],
-                            'data_raw' => $tmpfile->read(),
-                            'comment' => $this->request->data['Attribute']['comment'],
-                            'to_ids' => 0,
-                            'distribution' => $this->request->data['Attribute']['distribution'],
-                            'sharing_group_id' => isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : 0,
-                        )
+                try {
+                    $result = $this->MispAttribute->buildAttachmentPayload(
+                        $pool,
+                        $templateUuid,
+                        $event['Event']['id'],
+                        $this->request->data['Attribute'],
+                        $filename,
+                        $tmpfile
                     );
+                } catch (InvalidArgumentException $e) {
+                    // Invalid or not-yet-implemented template — the same choice applies to every
+                    // file in the batch, so fail the whole request with a 400 rather than looping.
+                    throw new BadRequestException($e->getMessage());
+                }
+
+                $fileSucceeded = false;
+
+                foreach ($result['Attribute'] as $attribute) {
                     $this->MispAttribute->create();
-                    $r = $this->MispAttribute->save($attribute);
-                    if ($r == false) {
-                        $fails[] = $filename;
-                    } else {
-                        $success++;
+                    if ($this->MispAttribute->save(array('Attribute' => $attribute))) {
+                        $fileSucceeded = true;
                     }
+                }
+
+                if (!empty($result['Object'])) {
+                    foreach ($result['Object'] as $object) {
+                        $object['distribution'] = $this->request->data['Attribute']['distribution'];
+                        if (!empty($this->request->data['Attribute']['sharing_group_id'])) {
+                            $object['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
+                        }
+                        foreach ($object['Attribute'] as $ka => $attribute) {
+                            $object['Attribute'][$ka]['distribution'] = 5;
+                        }
+                        $this->MispAttribute->Object->captureObject(array('Object' => $object), $event['Event']['id'], $this->Auth->user());
+                    }
+                    $fileSucceeded = true;
+                }
+
+                if (!empty($result['ObjectReference'])) {
+                    foreach ($result['ObjectReference'] as $reference) {
+                        $this->MispAttribute->Object->ObjectReference->smartSave($reference, $event['Event']['id']);
+                    }
+                }
+
+                if ($fileSucceeded) {
+                    $success++;
+                } else {
+                    $fails[] = $filename;
                 }
             }
             $message = __n('The attachment have been uploaded.', 'The attachments have been uploaded.', $success);
@@ -626,6 +634,7 @@ class AttributesController extends AppController
         $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
         $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
         $this->set('advancedExtractionAvailable', $this->MispAttribute->isAdvancedExtractionAvailable());
+        $this->set('attachmentObjectTemplates', MispAttribute::ATTACHMENT_OBJECT_TEMPLATES);
         $this->__common();
         $this->set('title_for_layout', __('Add attachment'));
         $this->set('event', $event);
