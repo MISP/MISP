@@ -2577,6 +2577,8 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `bookmarks` MODIFY `url` TEXT NOT NULL;";
                 break;
             case 147:
+                // Fix attributes.comment to support 4-byte UTF-8 (emoji) characters
+                $sqlArray[] = "ALTER TABLE `attributes` MODIFY COLUMN `comment` text COLLATE utf8mb4_unicode_ci;";
                 // Event-template feature scaffolding — both tables created
                 // in their final shape. distribution is tinyint(4) (matches
                 // events.distribution / attributes.distribution and stays
