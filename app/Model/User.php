@@ -2178,9 +2178,9 @@ class User extends AppModel
         $baseurl = Configure::check('MISP.external_baseurl') ? Configure::read('MISP.external_baseurl') : Configure::read('MISP.baseurl');
         $default_forgot_email = [];
         $default_forgot_email['enc'] = Configure::read('MISP.forgotPasswordText') ? 
-            Configure::read('MISP.default_forgot_email') :
+            Configure::read('MISP.forgotPasswordText') :
                 'Dear MISP user,\n\nyou have requested a password reset on the MISP instance at $misp. Click the link below to change your password.\n\n\$reset_link\n\nThe link above is only valid for 10 minutes, feel free to request a new one if it has expired.\n\nIf you haven\'t requested a password reset, reach out to your admin team and let them know that someone has attempted it in your stead.\n\nMake sure you keep the contents of this e-mail confidential, do NOT ever forward it as it contains a reset token that is equivalent of a password if acted upon. The IP used to trigger the request was: $ip\n\nBest regards,\nYour MISP admin team';
-        $default_forgot_email['no_enc'] = Configure::read('MISP.default_forgot_email_no_enc') ? 
+        $default_forgot_email['no_enc'] = Configure::read('MISP.forgotPasswordTextNoEnc') ? 
             Configure::read('MISP.forgotPasswordTextNoEnc') :
                 'Dear MISP user,\n\nyou have requested a password reset on the MISP instance at $misp, however, no valid encryption key was found for your user and thus we cannot deliver your reset token. Please get in touch with your org admin / with an instance site admin to ask for a reset.\n\nThe IP used to trigger the request was: $ip\n\nBest regards,\nYour MISP admin team';
         $body = [];
