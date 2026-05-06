@@ -254,9 +254,23 @@ risk on the chosen libraries before committing Phase 1 effort.
   Smoke-tested: PHP lint passes; v1 routes still 302 to login
   normally; `/dashboards2/index` and `/dashboards2/renderWidget/`
   reach the controller and return ACL-passing responses (login
-  redirect for HTML, 500 only when forced into JsonView via
-  `Accept: application/json` because there's no `Dashboards2/json/`
-  view dir — same shape as v1, irrelevant for browser sessions).
+  redirect for HTML).
+
+  **Follow-up commit (same day):** branch on `_isRest()` per user
+  feedback — when the request is REST (Accept:json/xml/csv or .json
+  ext), return data via `RestResponse->viewData()` instead of letting
+  CakePHP's JsonView try to load a non-existent view file. Mirrors
+  the v1 dashboards `export()` pattern exactly. Also added explicit
+  `?exportjson` / `?exportcsv` named-param branches on `renderWidget`
+  to match the v1 endpoint's behaviour for REST clients written
+  against v1.
+
+  Full chain now smoke-testable via curl (no browser session needed):
+  `GET /dashboards2/index Accept:json` returns the widget layout
+  array; `POST /dashboards2/renderWidget/w_1 widget=MispStatusWidget`
+  with Accept:json runs the widget's `handler()` and returns the
+  data + renderer + config. Browser-side HTML rendering still needs
+  the GridModule + BoardModule chain to actually paint.
 - [x] Vendor the chosen grid library (per 0.2) and the chosen chart library (per 0.2)
 
   **Done note (2026-05-06).** Already completed during Phase 0.2.

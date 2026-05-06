@@ -32,8 +32,6 @@ class Dashboards2Controller extends AppController
 
     public function index()
     {
-        $this->layout = false;
-
         // Hardcoded prototype layout — three real MISP widgets.
         // Real persistence (UserSetting:dashboard read with on-read
         // fix-ups) lands in the last Phase 0.3 task.
@@ -60,6 +58,15 @@ class Dashboards2Controller extends AppController
                 'position'    => array('x' => 9, 'y' => 0, 'w' => 3, 'h' => 4),
             ),
         );
+
+        // REST clients get the layout payload as JSON via the
+        // RestResponse component (matches the v1 dashboards export()
+        // pattern). Web UI falls through to View/Dashboards2/index.ctp.
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($widgets, $this->response->type());
+        }
+
+        $this->layout = false;
         $this->set('widgets', $widgets);
     }
 
@@ -79,15 +86,68 @@ class Dashboards2Controller extends AppController
 
         $widget = $this->Dashboard->loadWidget($this->Auth->user(), $widgetName);
         $data = $widget->handler($this->Auth->user(), $config);
+        $renderer = method_exists($widget, 'getRenderer')
+            ? $widget->getRenderer($config)
+            : $widget->render;
 
+        // Mirrors the v1 dashboards renderWidget pattern: explicit
+        // exportjson / exportcsv named params force REST output even
+        // from a browser session; otherwise _isRest() drives the choice.
+        $named = isset($this->request->params['named']) ? $this->request->params['named'] : array();
+        if (!empty($named['exportjson']) || ($this->_isRest() && empty($named['exportcsv']))) {
+            return $this->RestResponse->viewData(array(
+                'instance_id' => $instance_id,
+                'widget'      => $widgetName,
+                'config'      => $config,
+                'renderer'    => $renderer,
+                'data'        => $data,
+            ), $this->response->type());
+        }
+        if (!empty($named['exportcsv'])) {
+            return $this->RestResponse->viewData(
+                $this->_dataToCsv($data),
+                'text/csv',
+                false,
+                true
+            );
+        }
+
+        // Web UI: render the widget body HTML via the renderer dispatcher.
         $this->layout = false;
         $this->set('widget', $widget);
         $this->set('data', $data);
         $this->set('instance_id', $instance_id);
-        $this->set('renderer', method_exists($widget, 'getRenderer')
-            ? $widget->getRenderer($config)
-            : $widget->render);
+        $this->set('renderer', $renderer);
         $this->set('config', $config);
         $this->render('render_widget');
+    }
+
+    /**
+     * Flatten a widget's `handler()` return into a CSV string.
+     * Mirrors the v1 dashboards renderWidget exportcsv branch closely
+     * enough that REST clients written against v1 keep working.
+     */
+    private function _dataToCsv($data)
+    {
+        $toConvert = !empty($data) ? (!empty($data['data']) ? $data['data'] : $data) : array();
+        if (empty($toConvert)) {
+            return '';
+        }
+        $firstKey = key($toConvert);
+        if (is_string($firstKey)) {
+            $rows = array();
+            foreach ($toConvert as $k => $v) {
+                $rows[] = sprintf('%s,%s', $k, json_encode($v));
+            }
+            return implode(PHP_EOL, $rows) . PHP_EOL;
+        }
+        $headerKeys = array_keys(Hash::flatten($toConvert[0]));
+        $header = implode(',', array_map(function ($s) { return sprintf('"%s"', $s); }, array_map('strval', $headerKeys)));
+        $rows = array_map(function ($row) {
+            $flat = array_values(Hash::flatten($row));
+            $strs = array_map('strval', $flat);
+            return implode(',', array_map(function ($s) { return sprintf('"%s"', $s); }, $strs));
+        }, $toConvert);
+        return $header . PHP_EOL . implode(PHP_EOL, array_values($rows)) . PHP_EOL;
     }
 }
