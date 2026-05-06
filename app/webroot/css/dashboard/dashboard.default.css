@@ -1,0 +1,367 @@
+/*
+ * dashboard-v2 default stylesheet
+ *
+ * Phase 0.3 prototype — PRD §8.1 token catalogue + base styling.
+ * Self-contained: depends on no Bootstrap version, no preset typography
+ * stack. Themes opt in to one of four override levels (PRD §8.1–§8.4):
+ *
+ *   Level 1 — drop a stylesheet that redefines the tokens below.
+ *             Nothing else changes. Charts retheme automatically
+ *             because the ECharts theme is derived from these tokens.
+ *
+ *   Level 2 — additionally register a named ECharts theme JSON for
+ *             finer chart-palette control.
+ *
+ *   Level 3 — override individual .ctp files under
+ *             View/Themed/<Name>/Elements/dashboard/...
+ *
+ *   Level 4 — supply parallel framework-version generic primitives
+ *             (BS5, etc.) under View/Themed/<Name>/Elements/dashboard/generic/.
+ *
+ * Token names are a stable contract; bumps go through deprecation
+ * notice. Dashboard JS reads a few of them (--misp-dash-accent etc.)
+ * via getComputedStyle to drive ECharts theme registration at boot.
+ */
+
+:root {
+  /* ---- Surface ---- */
+  --misp-dash-surface:        #f7f8fa;
+  --misp-dash-surface-raised: #ffffff;
+  --misp-dash-surface-sunken: #eef0f3;
+
+  /* ---- Border ---- */
+  --misp-dash-border:         #d8dde4;
+  --misp-dash-border-strong:  #b6bdc7;
+
+  /* ---- Text ---- */
+  --misp-dash-text:           #1d2025;
+  --misp-dash-text-muted:     #6b7280;
+  --misp-dash-text-on-accent: #ffffff;
+
+  /* ---- Accent + status ---- */
+  --misp-dash-accent:         #2563eb;
+  --misp-dash-accent-hover:   #1d4ed8;
+  --misp-dash-accent-muted:   rgba(37, 99, 235, 0.10);
+  --misp-dash-success:        #16a34a;
+  --misp-dash-danger:         #dc2626;
+  --misp-dash-warning:        #d97706;
+  --misp-dash-info:           #0891b2;
+
+  /* ---- Spacing scale ---- */
+  --misp-dash-space-1: 4px;
+  --misp-dash-space-2: 8px;
+  --misp-dash-space-3: 12px;
+  --misp-dash-space-4: 16px;
+  --misp-dash-space-5: 24px;
+
+  /* ---- Radii ---- */
+  --misp-dash-radius-sm: 3px;
+  --misp-dash-radius-md: 6px;
+  --misp-dash-radius-lg: 10px;
+
+  /* ---- Shadows ---- */
+  --misp-dash-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --misp-dash-shadow-md: 0 1px 6px rgba(0, 0, 0, 0.08);
+  --misp-dash-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+  /* ---- Typography ---- */
+  --misp-dash-fs-xs:    11px;
+  --misp-dash-fs-sm:    12px;
+  --misp-dash-fs-base:  14px;
+  --misp-dash-fs-lg:    16px;
+  --misp-dash-fs-xl:    20px;
+  --misp-dash-fw-normal: 400;
+  --misp-dash-fw-medium: 500;
+  --misp-dash-fw-bold:   600;
+
+  /* ---- Motion ---- */
+  --misp-dash-transition-fast: 0.10s ease;
+  --misp-dash-transition-base: 0.18s ease;
+
+  /* ---- Grid runtime hints (consumed by GridModule JS) ---- */
+  --misp-dash-grid-cols: 12;
+  --misp-dash-grid-row-h: 80px;
+  --misp-dash-grid-gap:   var(--misp-dash-space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --misp-dash-transition-fast: 0s;
+    --misp-dash-transition-base: 0s;
+  }
+}
+
+/* ============================================================
+ * Base — page shell
+ * ============================================================ */
+
+body.misp-dashboard-page {
+  margin: 0;
+  background: var(--misp-dash-surface);
+  color:      var(--misp-dash-text);
+  /* Typography inherits from host theme's body / html — we deliberately
+   * do not declare font-family here so a theme's font choice flows
+   * through. We DO scope sizes via tokens so the dashboard density
+   * is consistent regardless of host typography. */
+  font-size: var(--misp-dash-fs-base);
+  line-height: 1.5;
+}
+
+.misp-dashboard-header {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-4);
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-5);
+  background: var(--misp-dash-surface-raised);
+  border-bottom: 1px solid var(--misp-dash-border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.misp-dashboard-title {
+  font-size: var(--misp-dash-fs-lg);
+  font-weight: var(--misp-dash-fw-bold);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+}
+
+.misp-dashboard-pill {
+  display: inline-block;
+  padding: 1px var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text-on-accent);
+  background: var(--misp-dash-accent);
+  border-radius: var(--misp-dash-radius-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.misp-dashboard-toolbar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-3);
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  min-height: 32px;
+}
+.misp-dashboard-toolbar-empty {
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+  font-style: italic;
+}
+
+.misp-dashboard-modecontrols {
+  display: flex;
+  gap: var(--misp-dash-space-2);
+}
+
+.misp-dashboard-btn {
+  appearance: none;
+  border: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-3);
+  border-radius: var(--misp-dash-radius-sm);
+  cursor: pointer;
+  transition: background var(--misp-dash-transition-fast),
+              border-color var(--misp-dash-transition-fast);
+}
+.misp-dashboard-btn:hover {
+  background: var(--misp-dash-surface-sunken);
+  border-color: var(--misp-dash-border-strong);
+}
+.misp-dashboard-btn:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+.misp-dashboard-btn[aria-pressed="true"] {
+  background: var(--misp-dash-accent);
+  border-color: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+}
+
+/* ============================================================
+ * Board grid + widgets
+ * ============================================================ */
+
+.misp-dashboard-main {
+  position: relative;
+  padding: var(--misp-dash-space-4) var(--misp-dash-space-5);
+  /* Grid layout properties (display, grid-template-columns,
+   * grid-auto-rows, gap) are set inline by GridModule because they
+   * depend on JS-resolved tile counts and runtime measurements.
+   * Do not duplicate them here. */
+}
+
+.misp-widget {
+  position: relative;
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow var(--misp-dash-transition-fast);
+}
+.misp-widget:hover {
+  box-shadow: var(--misp-dash-shadow-sm);
+}
+.misp-widget.dgrid-dragging {
+  opacity: 0.5;
+}
+.misp-widget.dgrid-resizing {
+  box-shadow: var(--misp-dash-shadow-md);
+  outline: 2px solid var(--misp-dash-accent-muted);
+  outline-offset: -2px;
+}
+
+.misp-widget-titlebar {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
+  border-bottom: 1px solid var(--misp-dash-border);
+  background: linear-gradient(to bottom,
+    var(--misp-dash-surface-raised),
+    var(--misp-dash-surface-sunken));
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  user-select: none;
+  cursor: default;
+}
+.misp-widget-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Drag handle visible only in edit mode. The leading grip glyph
+ * also appears only in edit mode. */
+[data-misp-board-mode="edit"] .misp-widget-titlebar[data-drag-handle] {
+  cursor: move;
+}
+[data-misp-board-mode="edit"] .misp-widget-titlebar[data-drag-handle]::before {
+  content: "⠿";
+  color: var(--misp-dash-text-muted);
+  margin-right: var(--misp-dash-space-1);
+}
+
+.misp-widget-actions {
+  display: flex;
+  gap: var(--misp-dash-space-1);
+}
+
+.misp-widget-iconbtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--misp-dash-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  width: 22px; height: 22px;
+  border-radius: var(--misp-dash-radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--misp-dash-transition-fast),
+              color var(--misp-dash-transition-fast);
+}
+.misp-widget-iconbtn:hover {
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text);
+}
+.misp-widget-iconbtn:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+}
+
+/* "edit-only" buttons (Remove, etc.) hide outside edit mode. */
+[data-misp-board-mode="view"] .misp-widget-iconbtn-edit-only {
+  display: none;
+}
+
+.misp-widget-body {
+  flex: 1;
+  padding: var(--misp-dash-space-3);
+  overflow: auto;
+  min-height: 0;
+}
+.misp-widget-loading {
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+  font-style: italic;
+  text-align: center;
+  padding: var(--misp-dash-space-4) 0;
+}
+
+.misp-widget-resize {
+  position: absolute;
+  right: 0; bottom: 0;
+  width: 14px; height: 14px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, var(--misp-dash-text-muted) 50%);
+  opacity: 0.35;
+  transition: opacity var(--misp-dash-transition-fast);
+}
+.misp-widget-resize:hover {
+  opacity: 0.75;
+}
+[data-misp-board-mode="view"] .misp-widget-resize {
+  display: none;
+}
+
+/* ============================================================
+ * GridModule ghost (drag/resize preview)
+ * ============================================================ */
+.dgrid-ghost {
+  position: absolute;
+  pointer-events: none;
+  border: 2px dashed var(--misp-dash-accent);
+  background: var(--misp-dash-accent-muted);
+  border-radius: var(--misp-dash-radius-md);
+  z-index: 10;
+  display: none;
+  transition: left var(--misp-dash-transition-fast),
+              top var(--misp-dash-transition-fast),
+              width var(--misp-dash-transition-fast),
+              height var(--misp-dash-transition-fast);
+}
+.dgrid-ghost.dgrid-ghost-invalid {
+  border-color: var(--misp-dash-danger);
+  background: rgba(220, 38, 38, 0.10);
+}
+
+/* ============================================================
+ * Footer (debug readout)
+ * ============================================================ */
+.misp-dashboard-footer {
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-5);
+  border-top: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-raised);
+}
+.misp-dashboard-footer code {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ============================================================
+ * Density toggle (compact = tighter padding + smaller font scale)
+ * ============================================================ */
+[data-density="compact"] .misp-widget-titlebar { padding: 4px 8px; font-size: var(--misp-dash-fs-xs); }
+[data-density="compact"] .misp-widget-body     { padding: var(--misp-dash-space-2); }
+[data-density="compact"] .misp-dashboard-header{ padding: var(--misp-dash-space-2) var(--misp-dash-space-4); }

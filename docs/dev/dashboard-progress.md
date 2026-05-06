@@ -246,7 +246,20 @@ risk on the chosen libraries before committing Phase 1 effort.
   PDD bundle at `app/webroot/js/dashboard-v2/grid/vendor/`, ECharts
   + world GeoJSON at `app/webroot/js/dashboard-v2/charts/vendor/`.
   See Phase 0.2 Done notes and DD-01/DD-02/DD-07 for details.
-- [ ] Implement the CSS token catalogue from PRD §8.1 in `webroot/css/dashboard/dashboard.default.css`
+- [x] Implement the CSS token catalogue from PRD §8.1 in `webroot/css/dashboard/dashboard.default.css`
+
+  **Done note (2026-05-06).** 367 lines, 11 KB raw / 3 KB gzipped.
+  Self-contained — no Bootstrap dep, typography inherits from host
+  body. Token catalogue covers surface + border + text + accent +
+  status colours, spacing scale (1..5), radii (sm/md/lg), shadows
+  (sm/md/lg), typography sizes/weights, motion timings, and grid
+  runtime hints (`--misp-dash-grid-cols` / `-row-h` / `-gap`). Honours
+  `prefers-reduced-motion`. State-driven styling via
+  `[data-misp-board-mode="view|edit"]` (hides edit chrome in view
+  mode), `[data-density="compact"]` (denser variant). Ghost preview
+  styling for the GridModule moved out of the JS into the CSS file.
+  ECharts theme registration in the next commit will derive its
+  palette from these tokens via `getComputedStyle`.
 - [ ] Implement the JS hook contract from PRD §8.5 (`data-misp-board-root`, `data-misp-widget`, `data-misp-widget-action`, custom events)
 - [ ] Render `MispStatusWidget` in the new frame via the `SimpleList` renderer (no chart library needed)
 - [ ] Render `TrendingTagsWidget` via ECharts bar chart
