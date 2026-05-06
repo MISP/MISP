@@ -108,7 +108,7 @@ class CollectionElement extends AppModel
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
-        if ($collection['Collection']['org_id'] == $user('org_id')) {
+        if ($collection['Collection']['org_id'] == $user['org_id']) {
             return true;
         }
         if (in_array($collection['Collection']['distribution'], [1,2,3])) {
