@@ -37,13 +37,6 @@
 	Router::connect('/logs/admin_index/*', array('controller' => 'logs', 'action' => 'index', 'admin' => true));
 	Router::connect('/regexp/admin_index/*', array('controller' => 'regexp', 'action' => 'index', 'admin' => true));
 
-	// Dashboard v2 prototype (Phase 0.3, throwaway).
-	// Maps /dashboards/proto/* onto DashboardsProtoController without
-	// disturbing the v1 /dashboards/* routes. Removed when Phase 1
-	// starts the in-place replacement of v1 (see dashboard-prd.md §12).
-	Router::connect('/dashboards/proto',           array('controller' => 'dashboards_proto', 'action' => 'index'));
-	Router::connect('/dashboards/proto/:action/*', array('controller' => 'dashboards_proto'));
-
 	// Activate REST
 	Router::mapResources(array('events', 'attributes'));
 	Router::parseExtensions('xml', 'json', 'csv');

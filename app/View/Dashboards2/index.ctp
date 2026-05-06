@@ -50,7 +50,7 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
 <main class="misp-dashboard-main"
       data-misp-board-root
       data-misp-board-mode="view"
-      data-misp-board-renderwidget-url="<?= h($baseurl) ?>/dashboards/proto/renderWidget">
+      data-misp-board-renderwidget-url="<?= h($baseurl) ?>/dashboards2/renderWidget">
 
     <?php foreach ($widgets as $w): ?>
     <article class="misp-widget"
