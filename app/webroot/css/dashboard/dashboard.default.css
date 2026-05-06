@@ -563,6 +563,21 @@ body.misp-dashboard-page {
   padding-right: var(--misp-dash-space-5);
 }
 
+.misp-time-window-presets {
+  display: flex;
+  gap: var(--misp-dash-space-1);
+  margin-top: var(--misp-dash-space-1);
+}
+.misp-time-window-preset {
+  font-size: var(--misp-dash-fs-xs);
+  padding: 2px var(--misp-dash-space-2);
+}
+.misp-time-window-preset.is-active {
+  background: var(--misp-dash-accent);
+  border-color: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+}
+
 .misp-kv-list {
   list-style: none;
   margin: 0 0 var(--misp-dash-space-2) 0;

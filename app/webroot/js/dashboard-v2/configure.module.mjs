@@ -25,12 +25,15 @@ const ATTR_WIDGET_NAME    = 'data-widget-name';
 // config key in this set; everything else flows into the kv tier.
 const CANONICAL_TYPES = new Set(['time_window']);
 
+// Quick-pick shortcuts. The input itself is the source of truth — these
+// just stamp a value in. The widget format is "<N>d" for days or a raw
+// integer for seconds; "-1" is the all-time sentinel.
 const TIME_WINDOW_PRESETS = [
-  { value: '1d',  label: 'Last 24 hours' },
-  { value: '7d',  label: 'Last 7 days' },
-  { value: '30d', label: 'Last 30 days' },
-  { value: '90d', label: 'Last 90 days' },
-  { value: '-1',  label: 'All time' },
+  { value: '1d',  label: '24h' },
+  { value: '7d',  label: '7d' },
+  { value: '30d', label: '30d' },
+  { value: '90d', label: '90d' },
+  { value: '-1',  label: 'All' },
 ];
 
 // Pending state for the currently-open panel.
@@ -103,33 +106,54 @@ function el(tag, attrs = {}, ...children) {
 }
 
 function buildTimeWindowField(currentValue) {
-  // Match the closest preset; if the saved value isn't a preset
-  // string, append a (stale) "Custom" option so we don't lose it.
-  const valueStr = String(currentValue);
-  const known = TIME_WINDOW_PRESETS.some((p) => p.value === valueStr);
-  const select = el('select', {
-    class: 'misp-field-select',
+  // Single text input (source of truth) + preset shortcut buttons.
+  // The input keeps the canonical-type hook so readBack() finds it.
+  const value = currentValue == null ? '' : String(currentValue);
+  const input = el('input', {
+    type: 'text',
+    class: 'misp-field-input',
     'data-canonical': 'time_window',
+    value,
+    placeholder: 'e.g. 7d, 86400, -1',
+    'aria-label': 'Time window',
   });
+
+  const presets = el('div', { class: 'misp-time-window-presets' });
+  function syncActive() {
+    const v = input.value;
+    for (const b of presets.children) {
+      b.classList.toggle(
+        'is-active',
+        b.getAttribute('data-preset') === v,
+      );
+    }
+  }
   for (const p of TIME_WINDOW_PRESETS) {
-    const opt = el('option', { value: p.value, text: p.label });
-    if (p.value === valueStr) opt.selected = true;
-    select.appendChild(opt);
-  }
-  if (!known && currentValue !== undefined) {
-    const opt = el('option', {
-      value: valueStr,
-      text: `${valueStr} (custom)`,
+    const btn = el('button', {
+      type: 'button',
+      class: 'misp-dashboard-btn misp-time-window-preset',
+      'data-preset': p.value,
+      text: p.label,
+      onclick: () => {
+        input.value = p.value;
+        syncActive();
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      },
     });
-    opt.selected = true;
-    select.appendChild(opt);
+    presets.appendChild(btn);
   }
+  input.addEventListener('input', syncActive);
+  // Initial sync after both elements exist so the matching preset
+  // (if any) lights up on first render.
+  Promise.resolve().then(syncActive);
+
   return el('label', { class: 'misp-field' },
     el('span', { class: 'misp-field-label', text: 'Time window' }),
-    select,
+    input,
+    presets,
     el('span', {
       class: 'misp-field-help',
-      text: 'How far back to look. Canonical type — Phase 3 toolbar will edit this across every widget that declares it.',
+      text: 'Use Nd for days (e.g. 14d), an integer for seconds, or -1 for all time. Canonical type — Phase 3 toolbar will edit this across every widget that declares it.',
     }),
   );
 }
