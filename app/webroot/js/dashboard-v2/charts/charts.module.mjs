@@ -58,42 +58,151 @@ function buildBarOption(payload) {
   };
 }
 
+// ---- geo (world map) ----
+
+let worldMapPromise = null;
+
+/**
+ * Lazy-load + register the vendored world GeoJSON. First call kicks
+ * off the fetch; subsequent calls await the same promise so the file
+ * is only downloaded once per page load. Registration happens after
+ * the JSON is parsed.
+ */
+function ensureWorldMap() {
+  if (worldMapPromise) return worldMapPromise;
+  const url = new URL('./vendor/world-110m.geojson', import.meta.url);
+  worldMapPromise = fetch(url.href, { credentials: 'same-origin' })
+    .then((r) => {
+      if (!r.ok) throw new Error(`world-110m.geojson HTTP ${r.status}`);
+      return r.json();
+    })
+    .then((geo) => {
+      echarts.registerMap('world', geo);
+      return true;
+    });
+  return worldMapPromise;
+}
+
+/**
+ * Read a CSS custom property, trim, fall back to the supplied default.
+ * Resolved against the chart container so a wrapper class redefining
+ * tokens for an embedded mini-dashboard would be honoured.
+ */
+function tokenOn(el, name, fallback) {
+  const v = getComputedStyle(el).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+function buildGeoOption(payload, hostEl) {
+  const data = payload.data || {};
+  const scope = payload.scope || '';
+  const seriesData = Object.entries(data).map(([name, value]) => ({
+    name,
+    value: Number(value) || 0,
+  }));
+  const values = seriesData.map((d) => d.value);
+  const maxV = values.length ? Math.max(...values) : 1;
+
+  // Drive the colour ramp from CSS tokens so a Level 1 theme (PRD §8.1)
+  // retones the map without writing JS. The v1 jvectormap renderer
+  // hard-coded a 12-stop palette; we ship a simpler 2-stop gradient
+  // anchored on the accent token, which themes already redefine.
+  const rampLow  = tokenOn(hostEl, '--misp-dash-accent-muted', 'rgba(37,99,235,0.10)');
+  const rampHigh = tokenOn(hostEl, '--misp-dash-accent-hover', '#1d4ed8');
+  const border   = tokenOn(hostEl, '--misp-dash-border',       '#d8dde4');
+  const surface  = tokenOn(hostEl, '--misp-dash-surface',      '#f7f8fa');
+  const text     = tokenOn(hostEl, '--misp-dash-text',         '#1d2025');
+
+  return {
+    tooltip: {
+      trigger: 'item',
+      formatter: (p) => {
+        // Countries with no data show value=undefined; keep the tooltip
+        // minimal in that case so the map is still browsable.
+        const v = p.data && typeof p.data.value === 'number' ? p.data.value : null;
+        if (v === null) return p.name;
+        return `${p.name}<br/>${scope}: ${v}`;
+      },
+    },
+    visualMap: {
+      type: 'continuous',
+      min: 0,
+      max: maxV || 1,
+      left: 6,
+      bottom: 6,
+      orient: 'vertical',
+      calculable: false,
+      itemWidth: 8,
+      itemHeight: 80,
+      textStyle: { fontSize: 10, color: text },
+      inRange: { color: [rampLow, rampHigh] },
+    },
+    series: [{
+      type: 'map',
+      map: 'world',
+      roam: true,
+      itemStyle: {
+        areaColor: surface,
+        borderColor: border,
+        borderWidth: 0.4,
+      },
+      emphasis: {
+        label: { show: false },
+        itemStyle: { areaColor: rampHigh },
+      },
+      select: { disabled: true },
+      data: seriesData,
+    }],
+  };
+}
+
 const builders = {
   bar: buildBarOption,
+  geo: buildGeoOption,
 };
 
 // ---- public API ----
 
 /**
- * Initialise every chart container found inside `containerEl`.
- * Idempotent: re-initialising over an already-live chart disposes the
- * old instance first.
+ * Initialise a single chart container. Async so geo charts can wait
+ * for the world-map registration; bar charts resolve synchronously.
+ * Idempotent: a live chart on the same element is disposed first.
+ */
+async function initChart(el) {
+  if (liveCharts.has(el)) disposeChart(el);
+  const kind = el.getAttribute(ATTR_CHART);
+  const builder = builders[kind];
+  if (!builder) {
+    console.warn(`[misp-dashboard] unknown chart kind "${kind}"`);
+    return;
+  }
+  let payload = {};
+  try {
+    payload = JSON.parse(el.getAttribute(ATTR_CHART_PAYLOAD) || '{}');
+  } catch (err) {
+    console.warn(`[misp-dashboard] malformed chart payload`, err);
+  }
+  if (kind === 'geo') {
+    await ensureWorldMap();
+  }
+  const chart = echarts.init(el, MISP_THEME_NAME, { renderer: 'canvas' });
+  chart.setOption(builder(payload, el));
+
+  const observer = new ResizeObserver(() => chart.resize());
+  observer.observe(el);
+  liveCharts.set(el, { chart, observer });
+}
+
+/**
+ * Initialise every chart container found inside `containerEl`. Returns
+ * a promise that resolves once every chart has been created — callers
+ * may await it (e.g. tests) or fire-and-forget (BoardModule). Idempotent.
  */
 export function initChartsIn(containerEl) {
-  if (!containerEl) return;
+  if (!containerEl) return Promise.resolve();
   registerMispTheme();
-  const els = containerEl.querySelectorAll(`[${ATTR_CHART}]`);
-  for (const el of els) {
-    if (liveCharts.has(el)) disposeChart(el);
-    const kind = el.getAttribute(ATTR_CHART);
-    const builder = builders[kind];
-    if (!builder) {
-      console.warn(`[misp-dashboard] unknown chart kind "${kind}"`);
-      continue;
-    }
-    let payload = {};
-    try {
-      payload = JSON.parse(el.getAttribute(ATTR_CHART_PAYLOAD) || '{}');
-    } catch (err) {
-      console.warn(`[misp-dashboard] malformed chart payload`, err);
-    }
-    const chart = echarts.init(el, MISP_THEME_NAME, { renderer: 'canvas' });
-    chart.setOption(builder(payload));
-
-    const observer = new ResizeObserver(() => chart.resize());
-    observer.observe(el);
-    liveCharts.set(el, { chart, observer });
-  }
+  const els = [...containerEl.querySelectorAll(`[${ATTR_CHART}]`)];
+  return Promise.all(els.map(initChart));
 }
 
 /** Dispose a single chart container (no-op if not live). */

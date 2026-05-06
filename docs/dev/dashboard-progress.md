@@ -393,7 +393,41 @@ risk on the chosen libraries before committing Phase 1 effort.
   per-tag colours where the widget supplied them. Drag/resize on the
   tile should keep the chart rendering at the new size.
 
-- [ ] Render `OrganisationMapWidget` via ECharts geo (replaces jvectormap)
+- [x] Render `OrganisationMapWidget` via ECharts geo (replaces jvectormap)
+
+  **Done note (2026-05-06).** One new renderer + a `geo` builder
+  added to the existing charts module:
+  - `app/View/Elements/dashboard-v2/Widgets/WorldMap.ctp` — the v1
+    WorldMap data shape is `{data: {<alpha-2>: count}, scope: '...'}`,
+    but the vendored Natural-Earth GeoJSON keys features by English
+    `name` ("Bosnia and Herz." etc.). The renderer translates
+    server-side using `WidgetToolkit::getCountryCodeMapping()`
+    inverted, so the JS side gets a payload it can hand straight to
+    ECharts. Codes the toolkit doesn't know about are silently
+    dropped — same posture as the v1 widget itself. Empty-state path
+    matches BarChart's "No data." fallback.
+  - `app/webroot/js/dashboard-v2/charts/charts.module.mjs` — added a
+    `geo` builder that lazy-fetches `vendor/world-110m.geojson` once
+    via `import.meta.url` resolution, calls `echarts.registerMap('world',
+    geo)`, and returns options with `series: [{type:'map', map:'world'}]`,
+    `roam: true`, and a `visualMap` colour ramp driven by the
+    `--misp-dash-accent-muted` and `--misp-dash-accent-hover` tokens
+    (so PRD §8.1 Level 1 themes retone the map without writing JS).
+    `initChartsIn` is now async so geo charts await the registration
+    fetch; bar charts still resolve synchronously.
+
+  Smoke-tested: `node --check`, `parallel-lint`, GeoJSON serves 200,
+  REST probe of `OrganisationMapWidget` returns the expected 10
+  countries.
+
+  **Browser verification needed** — visit
+  `http://localhost:5007/dashboards2`, expect the right tile to show
+  a world map with countries shaded by org count (Norway/Hungary
+  darker than the rest, since both have 2). Pan/zoom works (`roam:
+  true`); drag/resize the tile and the map re-renders cleanly via
+  ResizeObserver.
+
+
 - [ ] Implement schema-driven two-tier configure form for `time_window` (per DD-06): typed picker in top tier, dot-notation key-value list with a single example key in bottom tier
 - [ ] Implement dashboard toolbar with a single `time_window` slot
 - [ ] **Demonstrate Model 4 bulk edit** (per DD-05): pull toolbar `time_window` to "P1D" → all 3 widgets re-render with that window, all 3 widgets' saved configs now show `time_window: P1D`. Open a widget's configure form, change its `time_window` to "P30D", save → toolbar now shows "(mixed)".
