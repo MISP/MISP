@@ -742,6 +742,37 @@ Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
 
+### `date_range` as a separate canonical type for absolute date pickers
+
+**Surfaced 2026-05-06 during configure-form prototype review.**
+
+User asked whether the `time_window` picker can also accept absolute
+date ranges. It cannot today — every relative-duration widget
+(`TrendingTagsWidget`, `EventEvolutionLineWidget`, etc.) parses
+`time_window` as "count back from now" (`Nd` or seconds). Some other
+widgets (`OrganisationMapWidget` notably) carry separate `start_date`
++ `end_date` `$params`, but those are widget-specific, not canonical.
+
+**Where it lands:** Phase 3 — alongside the rest of the canonical-
+type catalogue work. Two changes:
+
+1. **PRD §5.5 revision** — add `date_range` as a canonical type
+   producing `{from: ISO-date, to: ISO-date}`. Feature-parity-with-v1
+   is the floor: better filter UX is fine per
+   `feedback_parity_vs_improvement.md`.
+2. **Adapter + picker**: a date-range picker in the configure form's
+   typed tier, plus an entry in the canonical→legacy adapter that
+   walks widgets which only consume relative durations and either
+   warns or computes a relative fallback (`today - from` in days)
+   when the saved canonical value is `date_range`. Widgets that have
+   their own `start_date`/`end_date` `$params` migrate those slots
+   to declare `date_range` in `$schema`.
+
+Don't do this in Phase 0–2: today's relative-only widgets reject any
+absolute-shaped value, and a lossy "convert range to days" fallback
+in the picker would silently lose the upper bound. Defer until the
+adapter and toolbar are in place.
+
 ### Antimeridian splitting required when re-vendoring world GeoJSON
 
 **Surfaced 2026-05-06 during WorldMap browser verification.**
