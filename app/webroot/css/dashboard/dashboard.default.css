@@ -360,6 +360,62 @@ body.misp-dashboard-page {
 }
 
 /* ============================================================
+ * SimpleList renderer
+ * ============================================================ */
+.misp-list-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--misp-dash-space-1);
+  padding: 2px 0;
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-list-title {
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text);
+}
+.misp-list-sep {
+  color: var(--misp-dash-text-muted);
+}
+.misp-list-value {
+  color: var(--misp-dash-accent);
+  font-weight: var(--misp-dash-fw-medium);
+}
+.misp-list-link {
+  color: var(--misp-dash-accent);
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color var(--misp-dash-transition-fast);
+}
+.misp-list-link:hover {
+  border-bottom-color: currentColor;
+}
+.misp-list-delta-positive {
+  color: var(--misp-dash-success);
+  font-weight: var(--misp-dash-fw-medium);
+  font-size: var(--misp-dash-fs-xs);
+}
+.misp-list-delta-negative {
+  color: var(--misp-dash-danger);
+  font-weight: var(--misp-dash-fw-medium);
+  font-size: var(--misp-dash-fs-xs);
+}
+.misp-list-gap {
+  height: var(--misp-dash-space-3);
+}
+.misp-list-empty,
+.misp-widget-error {
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: var(--misp-dash-space-3) 0;
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-widget-error {
+  color: var(--misp-dash-danger);
+  font-style: normal;
+}
+
+/* ============================================================
  * Density toggle (compact = tighter padding + smaller font scale)
  * ============================================================ */
 [data-density="compact"] .misp-widget-titlebar { padding: 4px 8px; font-size: var(--misp-dash-fs-xs); }

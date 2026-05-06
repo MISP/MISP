@@ -299,7 +299,34 @@ risk on the chosen libraries before committing Phase 1 effort.
   the GridModule's column count and row height come from the design
   tokens (theme can override them in CSS). Bootstraps on DOMContentLoaded;
   exposes `window.MISPBoard` for devtools poking.
-- [ ] Render `MispStatusWidget` in the new frame via the `SimpleList` renderer (no chart library needed)
+- [x] Render `MispStatusWidget` in the new frame via the `SimpleList` renderer (no chart library needed)
+
+  **Done note (2026-05-06).** Two new files:
+  - `app/View/Dashboards2/render_widget.ctp` — dispatcher invoked by
+    `Dashboards2Controller::renderWidget`. Loads
+    `Elements/dashboard-v2/Widgets/<renderer>.ctp` based on the widget's
+    `$render` (or `$widget->getRenderer($config)` when defined).
+  - `app/View/Elements/dashboard-v2/Widgets/SimpleList.ctp` — flat
+    rows of `{title, value, …}`. Token-driven CSS classes
+    (`.misp-list-row`, `.misp-list-title`, `.misp-list-value`,
+    `.misp-list-link`, `.misp-list-delta-{positive,negative}`,
+    `.misp-list-gap`, `.misp-list-empty`). Per DD-03, supports
+    per-datum `drilldown` URL (rendered as `<a class="misp-list-link">`
+    around the title) with an inline placeholder `_isSafeDashboardUrl`
+    helper that mimics the Phase 1 `DashboardURLValidator`. Also
+    falls back to v1's `html` field for legacy MispStatusWidget-style
+    `(View)` links — bridge until Phase 2's $schema backfill migrates
+    that widget to `drilldown`.
+
+  CSS extended in `webroot/css/dashboard/dashboard.default.css` with
+  `.misp-list-*` rules (44 LOC) and a `.misp-widget-error` rule for
+  the JS hook contract's error path.
+
+  Browser verification needed (curl session-auth is awkward): visit
+  `http://localhost:5007/dashboards2` in a logged-in browser, see
+  the MispStatus widget render with a "MISP Status" title bar and
+  rows like "Events modified: 0 (View)". Tile interactions (drag,
+  resize, refresh) come from the BoardModule + GridModule.
 - [ ] Render `TrendingTagsWidget` via ECharts bar chart
 - [ ] Render `OrganisationMapWidget` via ECharts geo (replaces jvectormap)
 - [ ] Implement schema-driven two-tier configure form for `time_window` (per DD-06): typed picker in top tier, dot-notation key-value list with a single example key in bottom tier
