@@ -222,7 +222,24 @@ risk on the chosen libraries before committing Phase 1 effort.
   prototype turns out genuinely throwaway we delete the dirs;
   if it's the basis of Phase 1 the paths are already where Phase 1
   puts things.
-- [ ] Stand up a minimal `DashboardsProtoController` + view at `/dashboards/proto` (no routes change to v1)
+- [x] Stand up a minimal `DashboardsProtoController` + view at `/dashboards/proto` (no routes change to v1)
+
+  **Done note (2026-05-06).** Controller at
+  `app/Controller/DashboardsProtoController.php` with `index` and
+  `renderWidget` actions; view at `app/View/DashboardsProto/index.ctp`
+  with the §8.5 hook contract (`data-misp-board-root`,
+  `data-misp-widget` + `data-widget-{name,instance-id,config}`,
+  `data-misp-{widget,board}-action="*"`). Two routes added in
+  `routes.php` (one literal, one wildcard for sub-actions); v1
+  routes untouched. Hardcoded prototype layout in `index()` for
+  three real MISP widgets (MispStatus + TrendingTags + OrgMap);
+  the on-read fix-ups demo (Phase 0.3 final task) wires real
+  `UserSetting:dashboard` reading later. Smoke-tested: PHP lint
+  passes, all v1 dashboard routes still 302 to login normally,
+  `/dashboards/proto` route resolves to the controller (also 302s
+  to login because session auth runs before route action — actual
+  visual verification needs a browser session, deferred until the
+  CSS + JS + renderers land in subsequent commits).
 - [x] Vendor the chosen grid library (per 0.2) and the chosen chart library (per 0.2)
 
   **Done note (2026-05-06).** Already completed during Phase 0.2.
