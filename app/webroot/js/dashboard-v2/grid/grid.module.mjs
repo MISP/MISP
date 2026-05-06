@@ -182,6 +182,11 @@ export class Grid {
     const handle = tile.el.querySelector('[data-drag-handle]') ?? tile.el;
     const cleanup = draggable({
       element: handle,
+      // Drag is gated by the board's edit mode (read off the board
+      // root's data-misp-board-mode attribute, which the BoardModule
+      // toggles). PDD calls canDrag at gesture-start, so flipping the
+      // attribute mid-page takes effect immediately without a re-bind.
+      canDrag: () => this.root.getAttribute('data-misp-board-mode') === 'edit',
       getInitialData: () => ({ type: DRAG_TYPE, tileId: tile.id }),
     });
     this.cleanups.push(cleanup);
