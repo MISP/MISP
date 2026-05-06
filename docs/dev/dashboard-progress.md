@@ -701,6 +701,30 @@ Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
 
+### Antimeridian splitting required when re-vendoring world GeoJSON
+
+**Surfaced 2026-05-06 during WorldMap browser verification.**
+
+`world-atlas@2.0.2`'s TopoJSON encodes Russia / Fiji / Antarctica
+with ring segments going directly from ~+180° to ~-180° in a single
+polygon (the polygon spans the date line). ECharts' geo renderer
+draws those as straight horizontal grey bands across the whole map.
+The original Phase 0.2 vendoring used `topojson-client.feature()`
+directly, which preserves the unsplit form.
+
+Phase 0.3 fixed this by adding a `polygon-clipping`-based post-pass
+that "unwraps" each ring's longitudes into continuous space and
+clips against the eastern + western [-180, 180] tiles, splitting any
+ring that crosses. Recipe is in
+`webroot/js/dashboard-v2/charts/vendor/VENDORING.md`.
+
+**Where it lands:** keep the recipe up-to-date if we ever upgrade
+`world-atlas` or move to `countries-50m`. Higher-resolution data has
+the same issue (poly count goes up but Russia still spans the date
+line as a single ring). `d3-geo-projection`'s `geoStitch` was tried
+first; it only handles the inverse direction (joining pre-split
+parts) and didn't help here.
+
 ### Canonical-type → legacy widget-format adapter for `time_window`
 
 **Surfaced 2026-05-06 during BarChart browser verification.**
