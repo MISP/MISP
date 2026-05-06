@@ -35,6 +35,7 @@
 
 import { Grid } from './grid/grid.module.mjs';
 import { initChartsIn, disposeChartsIn } from './charts/charts.module.mjs';
+import { openConfigure } from './configure.module.mjs';
 
 const ATTR_BOARD_ROOT       = 'data-misp-board-root';
 const ATTR_BOARD_MODE       = 'data-misp-board-mode';
@@ -194,8 +195,12 @@ class Board {
           break;
         case 'configure':
           e.preventDefault();
-          // Configure form lands in Phase 0.3 commit 7 (DD-06 two-tier form).
-          console.info(`[misp-dashboard] configure action stub for ${widgetEl.getAttribute(ATTR_WIDGET_NAME)}`);
+          // Configure form is the DD-06 two-tier side panel; on save
+          // it writes the new config back to data-widget-config and
+          // returns the widget element here so we can re-render with
+          // the new shape. Persistence to UserSetting:dashboard is
+          // Phase 1 task ("per-widget POST to /updateSettings").
+          openConfigure(widgetEl, (savedEl) => this._renderWidget(savedEl));
           break;
         case 'export-json':
         case 'export-csv':

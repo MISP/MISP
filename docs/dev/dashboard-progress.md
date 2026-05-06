@@ -428,7 +428,48 @@ risk on the chosen libraries before committing Phase 1 effort.
   ResizeObserver.
 
 
-- [ ] Implement schema-driven two-tier configure form for `time_window` (per DD-06): typed picker in top tier, dot-notation key-value list with a single example key in bottom tier
+- [x] Implement schema-driven two-tier configure form for `time_window` (per DD-06): typed picker in top tier, dot-notation key-value list with a single example key in bottom tier
+
+  **Done note (2026-05-06).** Side-panel side-by-side configuration
+  form. Three-file change + index markup:
+  - `app/View/Dashboards2/index.ctp` — appended a hidden side-panel
+    skeleton (`<aside data-misp-configure-root>` + backdrop) with
+    stable data-misp-configure-* hooks for theme overrides.
+  - `app/webroot/css/dashboard/dashboard.default.css` — slide-in
+    panel styles (transform: translateX), backdrop dim, two-tier
+    section headings, typed-field + key-value-row controls, all
+    token-driven so a Level 1 theme retones the form for free.
+  - `app/webroot/js/dashboard-v2/configure.module.mjs` — `openConfigure
+    (widgetEl, onSave)` builds the form: top tier renders a
+    `time_window` preset picker (1d/7d/30d/90d/all-time, legacy
+    wire format) when the widget config has that canonical key;
+    bottom tier flattens the rest of the config to dot-notation
+    rows via a small `flatten`/`reNest` pair (round-trip lossless
+    for nested objects/arrays/scalars/booleans). Save: re-nests,
+    writes back to `data-widget-config`, fires the BoardModule's
+    re-render. Cancel/ESC/backdrop close without saving.
+  - `app/webroot/js/dashboard-v2/board.module.mjs` — replaced the
+    `'configure'` widget-action stub with a call into
+    `openConfigure(widgetEl, savedEl => this._renderWidget(savedEl))`,
+    so saved configs immediately re-render the affected widget.
+
+  Persistence (POST to `/updateSettings`) is Phase 1 work — the
+  prototype updates only client state so layout edits don't survive
+  a page reload yet.
+
+  Wire-format note: per the design call earlier this session, the
+  `time_window` picker emits legacy `<N>d` strings so unmodified
+  widgets parse them directly. Phase 2's $schema backfill swaps the
+  output to ISO 8601 alongside the canonical→legacy adapter.
+
+  **Browser verification needed** — click ⚙ on the TrendingTags
+  tile, panel slides in from the right with a "Time window" picker
+  showing "All time" (current value `-1`) plus a "threshold = 10"
+  row in the Advanced tier. Change to "Last 7 days", Save → tile
+  re-renders with whatever `7d` of events look like on this
+  instance. ESC / backdrop / Cancel / ✕ all close without saving.
+
+
 - [ ] Implement dashboard toolbar with a single `time_window` slot
 - [ ] **Demonstrate Model 4 bulk edit** (per DD-05): pull toolbar `time_window` to "P1D" → all 3 widgets re-render with that window, all 3 widgets' saved configs now show `time_window: P1D`. Open a widget's configure form, change its `time_window` to "P30D", save → toolbar now shows "(mixed)".
 - [ ] Demonstrate per-widget on-read fix-ups: seed a v1-shape `UserSetting:dashboard` row (no `instance_id`, `width/height` not `w/h`), load the prototype, confirm widgets render, save → row now has `w/h` + `instance_id` per widget; top-level shape stays bare-array

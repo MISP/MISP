@@ -83,6 +83,38 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
     <code data-misp-debug-readout>{}</code>
 </footer>
 
+<!-- Configure side panel (Phase 0.3 commit: schema-driven two-tier form per DD-06).
+     Hidden by default; shown by the ConfigureModule when the user clicks a
+     widget's ⚙ button. Single panel per board; opening for a different widget
+     repopulates the form. Matches the PRD §8.5 contract via stable
+     data-misp-configure-* hooks so a theme can override the markup. -->
+<div class="misp-configure-backdrop" data-misp-configure-backdrop hidden></div>
+<aside class="misp-configure-panel"
+       data-misp-configure-root
+       role="dialog"
+       aria-labelledby="misp-configure-title"
+       aria-modal="true"
+       hidden>
+    <header class="misp-configure-header">
+        <h2 id="misp-configure-title" class="misp-configure-title"
+            data-misp-configure-title><?= __('Configure') ?></h2>
+        <button type="button"
+                class="misp-widget-iconbtn"
+                data-misp-configure-action="cancel"
+                title="<?= __('Close') ?>"
+                aria-label="<?= __('Close') ?>">✕</button>
+    </header>
+    <div class="misp-configure-body" data-misp-configure-body></div>
+    <footer class="misp-configure-footer">
+        <button type="button"
+                class="misp-dashboard-btn"
+                data-misp-configure-action="cancel"><?= __('Cancel') ?></button>
+        <button type="button"
+                class="misp-dashboard-btn misp-dashboard-btn-primary"
+                data-misp-configure-action="save"><?= __('Save') ?></button>
+    </footer>
+</aside>
+
 <script type="module" src="<?= h($baseurl) ?>/js/dashboard-v2/board.module.mjs"></script>
 
 </body>

@@ -430,6 +430,177 @@ body.misp-dashboard-page {
 }
 
 /* ============================================================
+ * Configure side panel (DD-06 two-tier form)
+ *
+ * Slides in from the right; backdrop dims the rest of the page so
+ * focus is unambiguous, but the dashboard underneath stays visible
+ * (live-preview intent of DD-06). Themes can override either markup
+ * or these rules; the data-misp-configure-* hooks are stable.
+ * ============================================================ */
+.misp-configure-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.30);
+  z-index: 100;
+  opacity: 0;
+  transition: opacity var(--misp-dash-transition-base);
+}
+.misp-configure-backdrop[hidden] { display: none !important; }
+.misp-configure-backdrop.is-open { opacity: 1; }
+
+.misp-configure-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(420px, 100vw);
+  background: var(--misp-dash-surface-raised);
+  border-left: 1px solid var(--misp-dash-border);
+  box-shadow: var(--misp-dash-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  z-index: 101;
+  transform: translateX(100%);
+  transition: transform var(--misp-dash-transition-base);
+}
+.misp-configure-panel[hidden] { display: none !important; }
+.misp-configure-panel.is-open { transform: translateX(0); }
+
+.misp-configure-header {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-4);
+  border-bottom: 1px solid var(--misp-dash-border);
+}
+.misp-configure-title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--misp-dash-fs-lg);
+  font-weight: var(--misp-dash-fw-bold);
+}
+
+.misp-configure-body {
+  flex: 1;
+  overflow: auto;
+  padding: var(--misp-dash-space-4);
+}
+
+.misp-configure-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-4);
+  border-top: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-sunken);
+}
+
+.misp-dashboard-btn-primary {
+  background: var(--misp-dash-accent);
+  border-color: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+}
+.misp-dashboard-btn-primary:hover {
+  background: var(--misp-dash-accent-hover);
+  border-color: var(--misp-dash-accent-hover);
+}
+
+.misp-configure-tier {
+  margin-bottom: var(--misp-dash-space-5);
+}
+.misp-configure-tier-title {
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--misp-dash-text-muted);
+  margin: 0 0 var(--misp-dash-space-2) 0;
+  padding-bottom: var(--misp-dash-space-1);
+  border-bottom: 1px solid var(--misp-dash-border);
+}
+
+.misp-field {
+  display: block;
+  margin-bottom: var(--misp-dash-space-3);
+}
+.misp-field-label {
+  display: block;
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  margin-bottom: var(--misp-dash-space-1);
+}
+.misp-field-help {
+  display: block;
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  margin-top: var(--misp-dash-space-1);
+}
+
+.misp-field-input,
+.misp-field-select {
+  width: 100%;
+  appearance: none;
+  border: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-base);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-sm);
+  transition: border-color var(--misp-dash-transition-fast);
+}
+.misp-field-input:focus,
+.misp-field-select:focus {
+  outline: 0;
+  border-color: var(--misp-dash-accent);
+  box-shadow: 0 0 0 2px var(--misp-dash-accent-muted);
+}
+.misp-field-select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--misp-dash-text-muted) 50%),
+    linear-gradient(-45deg, transparent 50%, var(--misp-dash-text-muted) 50%);
+  background-position:
+    calc(100% - 12px) 50%,
+    calc(100% - 6px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: var(--misp-dash-space-5);
+}
+
+.misp-kv-list {
+  list-style: none;
+  margin: 0 0 var(--misp-dash-space-2) 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+}
+.misp-kv-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: var(--misp-dash-space-1);
+  align-items: center;
+}
+.misp-kv-key,
+.misp-kv-value {
+  width: 100%;
+  border: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font: inherit;
+  font-size: var(--misp-dash-fs-sm);
+  padding: 4px var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-kv-key {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+.misp-kv-value {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+.misp-kv-key:focus,
+.misp-kv-value:focus {
+  outline: 0;
+  border-color: var(--misp-dash-accent);
+}
+
+/* ============================================================
  * Density toggle (compact = tighter padding + smaller font scale)
  * ============================================================ */
 [data-density="compact"] .misp-widget-titlebar { padding: 4px 8px; font-size: var(--misp-dash-fs-xs); }
