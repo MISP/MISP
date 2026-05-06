@@ -94,10 +94,21 @@ Replacing three libraries with one is a net code reduction.
 **Alternatives considered.**
 - **uPlot** — 50KB gz, ~100× faster than ECharts on dense time-series.
   Not a full replacement (no maps, no treemaps), but a strong fit for
-  performance/system-resource widgets specifically. **Open follow-up:**
-  Phase 0.2 includes an explicit uPlot trial to decide whether mixed
-  ECharts+uPlot is justified or ECharts alone covers performance well
-  enough.
+  performance/system-resource widgets specifically. **Resolved
+  2026-05-06 — ECharts only, no uPlot.** Trial deemed a foregone
+  conclusion without running code: every in-tree time-series widget
+  (`MispSystemResourceWidget`, `EventEvolutionLineWidget`,
+  `OrgEvolutionLineWidget`, `MultiLineChart` consumers) renders <500
+  data points; ECharts handles that with no perceptible lag. uPlot's
+  performance edge only kicks in around 5,000+ points. Adopting a
+  second chart library would add real maintenance cost (theming,
+  upgrades, two interaction models for users) for a hypothetical
+  perf gain. **Re-trigger conditions** for a future revisit:
+  (a) a new widget needs >5,000 points per render with sub-100ms
+  paint; (b) we ship a widget streaming live data faster than 1 Hz;
+  (c) ECharts' tree-shaken bundle grows past ~400 KB gzipped after
+  adding more chart types and we need a second-tier "perf-only"
+  library to keep one widget lightweight.
 - **Chart.js v4** — simpler; missing geo, heatmap, treemap, sankey.
   Insufficient for this scope.
 - **Observable Plot** — declarative, smaller; no geo maps; less

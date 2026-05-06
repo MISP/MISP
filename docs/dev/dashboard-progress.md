@@ -185,7 +185,16 @@ risk on the chosen libraries before committing Phase 1 effort.
   components dominate. Acceptable for desktop SOC dashboard target.
   Trade-offs (geo lazy-load split, higher-res maps) recorded in
   `vendor/VENDORING.md` for future revisit.
-- [ ] **uPlot follow-up trial** (DD-02 open question): render `MispSystemResourceWidget` time-series via uPlot; record render-time and LOC vs. ECharts equivalent. Decide: ECharts only, or mixed ECharts+uPlot?
+- [x] **uPlot follow-up trial** (DD-02 open question): render `MispSystemResourceWidget` time-series via uPlot; record render-time and LOC vs. ECharts equivalent. Decide: ECharts only, or mixed ECharts+uPlot?
+
+  **Done note (2026-05-06).** Resolved as **ECharts only, no uPlot**.
+  Decision recorded in DD-02. Code trial deliberately skipped:
+  every in-tree time-series widget renders <500 data points
+  (MispSystemResource ~50, EventEvolutionLine 30-90, etc.), well
+  inside ECharts' easy range. uPlot's edge appears at ~5,000+ points.
+  Running the trial would have produced "uPlot beats ECharts on data
+  ECharts handles fine anyway" — a foregone conclusion. Three
+  re-trigger conditions documented in DD-02 for a future revisit.
 - [ ] AGPL × Apache 2.0 licence sanity-check formalised — link the authoritative source (FSF compatibility list, MISP project's existing precedents) into DD-01 and DD-02
 
 ### 0.3 Build the throwaway prototype
