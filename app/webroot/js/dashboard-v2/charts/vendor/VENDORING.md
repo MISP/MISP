@@ -1,0 +1,141 @@
+# ECharts + world map — vendoring notes
+
+Dashboard v2 charts use Apache ECharts (DD-02) with a tree-shaken
+bundle pulling in only the chart types, components, and renderer the
+in-tree widgets actually need. We also vendor a low-resolution world
+GeoJSON for the OrganisationMap widget and similar geo-typed widgets.
+
+## Files in this directory
+
+| File | Origin | Size (raw / gzipped) |
+|---|---|---|
+| `echarts.bundle.mjs` | Built locally with esbuild from `echarts@6.0.0`. ESM, minified. Includes BarChart, LineChart, MapChart + supporting components + Canvas renderer. | 649 KB / 216 KB |
+| `echarts.bundle.LEGAL.txt` | esbuild-extracted attribution comments from ECharts source. Required to ship alongside. | 1 KB / — |
+| `LICENSE.echarts` | The ECharts package's upstream `LICENSE` file (Apache 2.0, with NOTICE-style attributions to upstream contributors). Required by the licence. | 12 KB / — |
+| `world-110m.geojson` | World countries GeoJSON at 1:110,000,000 resolution (177 country features), converted from TopoJSON in `world-atlas@2.0.2` via `topojson-client.feature()`. Suitable for ECharts geo widgets. | 425 KB / 146 KB |
+| `LICENSE.world-atlas` | The world-atlas package's upstream LICENSE file (ISC, by Mike Bostock + Natural Earth public-domain data). | 1 KB / — |
+| `VENDORING.md` | This file. | — |
+
+**Combined wire weight for a dashboard with a geo widget:**
+JS + GeoJSON ≈ 1 MB raw / ≈ 360 KB gzipped on first load.
+JS only (no geo widget): 216 KB gzipped — significantly lighter if a
+deployment doesn't ship `OrganisationMapWidget` or similar map types.
+
+## Reproducing the bundle
+
+```bash
+mkdir -p /tmp/echarts-bundle && cd /tmp/echarts-bundle
+npm init -y > /dev/null
+npm install --silent --no-audit --no-fund echarts@6.0.0 esbuild@0.24.0
+
+cat > entry.mjs <<'EOF'
+import * as echarts from 'echarts/core';
+import { BarChart, LineChart, MapChart } from 'echarts/charts';
+import {
+  GridComponent, TooltipComponent, LegendComponent, TitleComponent,
+  DataZoomComponent, GeoComponent, VisualMapComponent, DatasetComponent,
+} from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
+echarts.use([
+  BarChart, LineChart, MapChart,
+  GridComponent, TooltipComponent, LegendComponent, TitleComponent,
+  DataZoomComponent, GeoComponent, VisualMapComponent, DatasetComponent,
+  CanvasRenderer,
+]);
+export default echarts;
+export { echarts };
+EOF
+
+./node_modules/.bin/esbuild entry.mjs \
+  --bundle --format=esm --target=es2022 --minify \
+  --legal-comments=external \
+  --outfile=echarts.bundle.mjs
+
+cp echarts.bundle.mjs echarts.bundle.mjs.LEGAL.txt \
+   /var/www/MISP7/app/webroot/js/dashboard-v2/charts/vendor/
+cp node_modules/echarts/LICENSE \
+   /var/www/MISP7/app/webroot/js/dashboard-v2/charts/vendor/LICENSE.echarts
+```
+
+## Reproducing the world GeoJSON
+
+```bash
+mkdir -p /tmp/world-atlas && cd /tmp/world-atlas
+npm init -y > /dev/null
+npm install --silent --no-audit --no-fund world-atlas@2.0.2 topojson-client@3
+
+cat > convert.mjs <<'EOF'
+import * as topojson from 'topojson-client';
+import { readFileSync, writeFileSync } from 'fs';
+const topo = JSON.parse(readFileSync('node_modules/world-atlas/countries-110m.json', 'utf8'));
+const geojson = topojson.feature(topo, topo.objects.countries);
+writeFileSync('world-110m.geojson', JSON.stringify(geojson));
+EOF
+
+node convert.mjs
+cp world-110m.geojson \
+   /var/www/MISP7/app/webroot/js/dashboard-v2/charts/vendor/
+cp node_modules/world-atlas/LICENSE.md \
+   /var/www/MISP7/app/webroot/js/dashboard-v2/charts/vendor/LICENSE.world-atlas
+```
+
+## Usage from dashboard v2
+
+```js
+import echarts from '/js/dashboard-v2/charts/vendor/echarts.bundle.mjs';
+
+// For non-geo charts:
+const chart = echarts.init(el);
+chart.setOption({
+  xAxis: { type: 'category', data: [...] },
+  yAxis: { type: 'value' },
+  series: [{ type: 'bar', data: [...] }],
+});
+
+// For geo charts:
+const worldGeo = await fetch('/js/dashboard-v2/charts/vendor/world-110m.geojson').then(r => r.json());
+echarts.registerMap('world', worldGeo);
+const map = echarts.init(el);
+map.setOption({
+  series: [{ type: 'map', map: 'world', data: [{ name: 'United States of America', value: 42 }, ...] }],
+  visualMap: { min: 0, max: 100, calculable: true },
+});
+```
+
+The `name` field in geo data must match the GeoJSON `properties.name` —
+the world-atlas dataset uses Natural Earth's English country names
+(e.g. `"United States of America"`, not `"United States"`).
+
+## Bundled features
+
+The current bundle includes:
+
+- **Charts:** Bar, Line, Map (geo)
+- **Components:** Grid (cartesian axes), Tooltip, Legend, Title,
+  DataZoom (time scrubbing), Geo, VisualMap (choropleth coloring),
+  Dataset (multi-series source)
+- **Renderer:** Canvas
+
+Adding more chart types later (Pie, Heatmap, Treemap, Sunburst,
+Sankey) means: add to `entry.mjs`, rebuild, expect bundle-size growth.
+A rough rule of thumb for tree-shaken ECharts: each additional simple
+chart type ≈ 5–15 KB gzipped; map / heatmap / sankey ≈ 20–40 KB
+gzipped each.
+
+## Trade-offs to revisit later
+
+- **Geo support is the heavy item.** Roughly 60-70 KB gzipped of the
+  216 KB ECharts bundle is geo machinery (MapChart + GeoComponent +
+  VisualMapComponent + label-layout helpers). If a deployment ships
+  no geo widget, splitting the bundle into "core" + "geo" lazy-loaded
+  pieces would save first-paint weight. Not worth the complexity in
+  Phase 0–2; revisit if dashboard load times become an issue.
+- **High-res world map.** `countries-110m` is small but the country
+  shapes look chunky at large zoom. If we end up needing finer
+  resolution, `world-atlas`'s `countries-50m` (756 KB raw) is the
+  next step up.
+- **Country naming.** The Natural Earth naming convention may not
+  match every internal MISP use of country names (e.g. organisation
+  records). A small mapping table (likely in `WidgetToolkit.php`,
+  alongside the existing country-code table) may be needed when the
+  OrganisationMap widget is ported in Phase 5.5.

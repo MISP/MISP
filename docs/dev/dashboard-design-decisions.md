@@ -129,6 +129,20 @@ later if needed; not a one-way door.
   from the dashboard path (after verifying no other consumer remains
   in the codebase).
 
+**Bundle size (measured 2026-05-06 in Phase 0.2).** Tree-shaken
+build with BarChart + LineChart + MapChart + supporting components
+(Grid, Tooltip, Legend, Title, DataZoom, Geo, VisualMap, Dataset) +
+Canvas renderer = **649 KB raw / 216 KB gzipped**. World GeoJSON for
+the geo widget adds another **425 KB raw / 146 KB gzipped**. Combined
+first-paint cost for a dashboard with geo: ~1 MB raw / ~360 KB
+gzipped. Larger than the earlier informal estimate of "~300 KB
+gzipped" because geo components dominate. A deployment without geo
+widgets pays only the JS cost (216 KB gz). Acceptable for the
+desktop SOC dashboard target (PRD non-goal: no mobile-first redesign).
+See `webroot/js/dashboard-v2/charts/vendor/VENDORING.md` for the
+full breakdown and the trade-offs to revisit later (geo lazy-load,
+higher-res maps, naming conventions).
+
 ---
 
 ## DD-03 — Drilldown convention: **per-datum `drilldown` URL in widget data**

@@ -160,8 +160,31 @@ risk on the chosen libraries before committing Phase 1 effort.
   push us past 300 quickly. Recommend logging each addition's LOC
   delta in this tracker as Phase 1 progresses, to catch the >40%
   Phase 1 budget warning early.
-- [ ] Vendor ECharts at `app/webroot/js/dashboard-v2/charts/vendor/` (tree-shaken: bar + line + geo)
-- [ ] Bundle-size measurement: record minified+gzipped size of the tree-shaken ECharts build in DD-02 Done note
+- [x] Vendor ECharts at `app/webroot/js/dashboard-v2/charts/vendor/` (tree-shaken: bar + line + geo)
+
+  **Done note (2026-05-06).** Bundled `echarts@6.0.0` via esbuild,
+  ESM, minified, only the imports dashboard-v2 widgets actually use:
+  BarChart + LineChart + MapChart + GridComponent + TooltipComponent +
+  LegendComponent + TitleComponent + DataZoomComponent +
+  GeoComponent + VisualMapComponent + DatasetComponent + Canvas
+  renderer. Bundle size **649 KB raw / 216 KB gzipped**. Upstream
+  `LICENSE` (Apache 2.0) and esbuild-extracted attribution comments
+  (`echarts.bundle.LEGAL.txt`) shipped alongside. Reproduction recipe
+  in `vendor/VENDORING.md`. Also vendored a low-res world GeoJSON for
+  the geo widget: `world-110m.geojson` (425 KB raw / 146 KB gzipped),
+  converted from `world-atlas@2.0.2` (ISC) via `topojson-client`.
+  Both files serve 200 from the test instance. Combined first-paint
+  cost for a dashboard with geo ≈ 1 MB raw / 360 KB gzipped.
+
+- [x] Bundle-size measurement: record minified+gzipped size of the tree-shaken ECharts build in DD-02 Done note
+
+  **Done note (2026-05-06).** Recorded in `dashboard-design-decisions.md`
+  DD-02 alongside the original decision. JS bundle 216 KB gzipped;
+  world GeoJSON adds 146 KB gzipped. Larger than the informal "~300 KB
+  gzipped" estimate from the earlier conversation because geo
+  components dominate. Acceptable for desktop SOC dashboard target.
+  Trade-offs (geo lazy-load split, higher-res maps) recorded in
+  `vendor/VENDORING.md` for future revisit.
 - [ ] **uPlot follow-up trial** (DD-02 open question): render `MispSystemResourceWidget` time-series via uPlot; record render-time and LOC vs. ECharts equivalent. Decide: ECharts only, or mixed ECharts+uPlot?
 - [ ] AGPL × Apache 2.0 licence sanity-check formalised — link the authoritative source (FSF compatibility list, MISP project's existing precedents) into DD-01 and DD-02
 
