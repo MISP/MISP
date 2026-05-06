@@ -260,7 +260,28 @@ risk on the chosen libraries before committing Phase 1 effort.
   styling for the GridModule moved out of the JS into the CSS file.
   ECharts theme registration in the next commit will derive its
   palette from these tokens via `getComputedStyle`.
-- [ ] Implement the JS hook contract from PRD §8.5 (`data-misp-board-root`, `data-misp-widget`, `data-misp-widget-action`, custom events)
+- [x] Implement the JS hook contract from PRD §8.5 (`data-misp-board-root`, `data-misp-widget`, `data-misp-widget-action`, custom events)
+
+  **Done note (2026-05-06).** `app/webroot/js/dashboard-v2/board.module.mjs`:
+  239 lines / 9 KB raw / 3 KB gzipped. ESM module loaded via
+  `<script type="module">` from the prototype index view. Implements
+  the §8.5 stable contract:
+  - reads board root + widgets via the data-* attributes,
+  - hands tiles to the GridModule for layout,
+  - AJAX-renders each widget via POST to
+    `/dashboards/proto/renderWidget/<id>`,
+  - wires widget action buttons (`refresh`, `remove` in edit mode,
+    `configure` stubbed for commit 7),
+  - wires board action buttons (`toggle-mode`; `save` / `discard` /
+    `add-widget` / `set-scope` / `pause-refresh` stubbed with
+    console.info so missing handlers are visible during proto review
+    without crashing),
+  - dispatches custom events `misp-board:{mode-changed,widget-rendered,
+    widget-error,saved,scope-changed}` on the board root.
+  Reads `--misp-dash-grid-cols/-row-h/-gap` tokens from the CSS so
+  the GridModule's column count and row height come from the design
+  tokens (theme can override them in CSS). Bootstraps on DOMContentLoaded;
+  exposes `window.MISPBoard` for devtools poking.
 - [ ] Render `MispStatusWidget` in the new frame via the `SimpleList` renderer (no chart library needed)
 - [ ] Render `TrendingTagsWidget` via ECharts bar chart
 - [ ] Render `OrganisationMapWidget` via ECharts geo (replaces jvectormap)
