@@ -51,7 +51,10 @@ class Dashboards2Controller extends AppController
                 // not the ISO-8601 `P7D` the canonical-type catalogue
                 // uses — the canonical → legacy adapter is a Phase 2
                 // task. See progress tracker "Discovered work".
-                'config'      => array('time_window' => '7d', 'threshold' => 10),
+                // `-1` is the widget's "all time" sentinel so the
+                // prototype renders bars regardless of how recent
+                // event activity is on this instance.
+                'config'      => array('time_window' => '-1', 'threshold' => 10),
                 'position'    => array('x' => 4, 'y' => 0, 'w' => 5, 'h' => 4),
             ),
             array(
