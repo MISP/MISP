@@ -470,7 +470,56 @@ risk on the chosen libraries before committing Phase 1 effort.
   instance. ESC / backdrop / Cancel / ✕ all close without saving.
 
 
-- [ ] Implement dashboard toolbar with a single `time_window` slot
+- [x] Implement dashboard toolbar with a single `time_window` slot
+
+  **Done note (2026-05-06).** New `canonical/` directory + toolbar
+  module + lean refactor of the configure module:
+  - `app/webroot/js/dashboard-v2/canonical/time_window.mjs` — owns
+    `KEY`, `LABEL`, `PRESETS`, `displayLabel(v)`, and `buildField
+    (currentValue, {compact})`. Compact mode drops the help text for
+    tight surfaces (toolbar popover). Sets up the per-canonical-type
+    file layout for Phase 3's catalogue sweep.
+  - `app/webroot/js/dashboard-v2/configure.module.mjs` — refactored
+    to import `TimeWindow.buildField` instead of carrying its own
+    copy. `CANONICAL_TYPES` is sourced from `[TimeWindow.KEY]`.
+  - `app/webroot/js/dashboard-v2/toolbar.module.mjs` — scans the
+    board's widget configs at init time (and after configure saves)
+    for canonical-type declarers. Each declared type renders as a
+    compact `.misp-toolbar-chip` showing label + computed value:
+    *all-agree* → that value; *disagree* → "(mixed)" in italic
+    warning colour; *no declarers* → no chip. Click a chip → popover
+    anchored under it with the shared `buildField()` + Cancel /
+    "Apply to N widgets". Commit walks declarers, writes each
+    widget's `data-widget-config`, fires the BoardModule's
+    re-render, refreshes chip state. ESC, outside-click, and toggle-
+    click on the same chip all close the popover. Re-opens
+    automatically if a refresh happens mid-edit so the user doesn't
+    lose work.
+  - `app/webroot/js/dashboard-v2/board.module.mjs` — calls
+    `initToolbar(this.root, {onWidgetChange: el => this._renderWidget(el)})`
+    after grid setup; the configure-save callback now also fires
+    `refreshToolbar(this.root)` because saves can add/remove
+    canonical declarers or change the all-agree state.
+  - `app/View/Dashboards2/index.ctp` — toolbar slot is now an empty
+    div the toolbar module fills; the empty-state hint moved into
+    the JS so it shows / hides reactively.
+  - `app/webroot/css/dashboard/dashboard.default.css` — chip + popover
+    rules; chip uses the accent-muted token for the open state,
+    warning token for "(mixed)" so a Level 1 theme retones it for free.
+
+  Phase 0.3 layout has only TrendingTagsWidget declaring `time_window`,
+  so the chip shows a single agreed value out of the box. The Model
+  4 demo task (next) seeds a second declarer to surface "(mixed)".
+
+  **Browser verification needed** — reload `/dashboards2`. Header
+  shows a chip "Time window: All time" (or whatever the current
+  config has). Click → popover opens with the field; pick "7d" →
+  popover closes, chip reads "Time window: 7d", TrendingTags
+  re-renders with 7d data. Open ⚙ on TrendingTags, set time_window
+  to "30d", save → chip updates to "30d". Outside-click and ESC
+  close the popover.
+
+
 - [ ] **Demonstrate Model 4 bulk edit** (per DD-05): pull toolbar `time_window` to "P1D" → all 3 widgets re-render with that window, all 3 widgets' saved configs now show `time_window: P1D`. Open a widget's configure form, change its `time_window` to "P30D", save → toolbar now shows "(mixed)".
 - [ ] Demonstrate per-widget on-read fix-ups: seed a v1-shape `UserSetting:dashboard` row (no `instance_id`, `width/height` not `w/h`), load the prototype, confirm widgets render, save → row now has `w/h` + `instance_id` per widget; top-level shape stays bare-array
 - [ ] Add CSS-only "midnight" overlay theme and confirm Level 1 retheming works for both UI and charts (chart palette derived from tokens)

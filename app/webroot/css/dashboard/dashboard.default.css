@@ -563,6 +563,87 @@ body.misp-dashboard-page {
   padding-right: var(--misp-dash-space-5);
 }
 
+/* ============================================================
+ * Toolbar bulk-edit chips + popover (DD-05 Model 4)
+ *
+ * Each canonical type with at least one declarer on the board gets
+ * a compact chip in the toolbar slot. Clicking a chip opens a
+ * popover anchored beneath it; the popover hosts the same shared
+ * field builder the configure form uses, plus Cancel + "Apply to N
+ * widgets" buttons.
+ * ============================================================ */
+.misp-toolbar-slot {
+  position: relative;        /* anchors the popover */
+  display: inline-flex;
+  align-items: center;
+}
+
+.misp-toolbar-chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  padding: 2px var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  border-radius: var(--misp-dash-radius-md);
+  cursor: pointer;
+  transition: background var(--misp-dash-transition-fast),
+              border-color var(--misp-dash-transition-fast);
+}
+.misp-toolbar-chip:hover {
+  background: var(--misp-dash-surface-sunken);
+  border-color: var(--misp-dash-border-strong);
+}
+.misp-toolbar-chip[aria-expanded="true"] {
+  background: var(--misp-dash-accent-muted);
+  border-color: var(--misp-dash-accent);
+}
+.misp-toolbar-chip-label {
+  color: var(--misp-dash-text-muted);
+  font-weight: var(--misp-dash-fw-normal);
+}
+.misp-toolbar-chip-value {
+  color: var(--misp-dash-text);
+}
+.misp-toolbar-chip.is-mixed .misp-toolbar-chip-value {
+  font-style: italic;
+  color: var(--misp-dash-warning);
+}
+.misp-toolbar-chip-caret {
+  font-size: 9px;
+  color: var(--misp-dash-text-muted);
+}
+
+.misp-toolbar-popover {
+  position: absolute;
+  top: calc(100% + var(--misp-dash-space-1));
+  left: 0;
+  min-width: 280px;
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  box-shadow: var(--misp-dash-shadow-lg);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+}
+.misp-toolbar-popover-body {
+  padding: var(--misp-dash-space-3);
+}
+.misp-toolbar-popover-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
+  border-top: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-sunken);
+  border-radius: 0 0 var(--misp-dash-radius-md) var(--misp-dash-radius-md);
+}
+
 .misp-time-window-presets {
   display: flex;
   gap: var(--misp-dash-space-1);

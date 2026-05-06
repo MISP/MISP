@@ -31,12 +31,12 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
 
 <header class="misp-dashboard-header">
     <h1 class="misp-dashboard-title">Dashboard <span class="misp-dashboard-pill">v2 proto</span></h1>
+    <!-- Bulk-edit toolbar slot (DD-05). Toolbar module populates this
+         with one chip per canonical type that at least one widget on
+         the board declares; an empty-state hint shows otherwise. -->
     <div class="misp-dashboard-toolbar"
          data-misp-board-toolbar
-         aria-label="<?= __('Dashboard filters') ?>">
-        <!-- Phase 0.3 commit 7: time_window slot lands here -->
-        <span class="misp-dashboard-toolbar-empty"><?= __('Toolbar slots will appear here once a widget on this dashboard declares a canonical type in $schema.') ?></span>
-    </div>
+         aria-label="<?= __('Dashboard filters') ?>"></div>
     <div class="misp-dashboard-modecontrols">
         <button type="button"
                 class="misp-dashboard-btn"

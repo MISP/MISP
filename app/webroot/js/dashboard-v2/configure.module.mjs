@@ -6,10 +6,14 @@
 // remaining canonical types (tag_filter, org_filter, …) land in
 // Phase 3 alongside the toolbar.
 //
-// Wire value for time_window stays in the legacy `<N>d` form so the
-// unmodified widgets still parse it correctly. Phase 2 swaps the
-// wire value to ISO 8601 once the canonical→legacy adapter lands —
-// see "Discovered work" in dashboard-progress.md.
+// Per-canonical-type field builders live under `canonical/`; this
+// module composes them with the dot-notation kv tier and the panel
+// chrome. The toolbar (toolbar.module.mjs) reuses the same field
+// builders.
+
+import * as TimeWindow from './canonical/time_window.mjs';
+
+const CANONICAL_TYPES = new Set([TimeWindow.KEY]);
 
 const ATTR_PANEL          = 'data-misp-configure-root';
 const ATTR_BACKDROP       = 'data-misp-configure-backdrop';
@@ -19,22 +23,6 @@ const ATTR_ACTION         = 'data-misp-configure-action';
 const ATTR_KV_ACTION      = 'data-misp-kv-action';
 const ATTR_WIDGET_CONFIG  = 'data-widget-config';
 const ATTR_WIDGET_NAME    = 'data-widget-name';
-
-// Canonical-type catalogue (PRD §5.5 — currently only one entry,
-// expanded in Phase 3). The form renders a typed picker for any
-// config key in this set; everything else flows into the kv tier.
-const CANONICAL_TYPES = new Set(['time_window']);
-
-// Quick-pick shortcuts. The input itself is the source of truth — these
-// just stamp a value in. The widget format is "<N>d" for days or a raw
-// integer for seconds; "-1" is the all-time sentinel.
-const TIME_WINDOW_PRESETS = [
-  { value: '1d',  label: '24h' },
-  { value: '7d',  label: '7d' },
-  { value: '30d', label: '30d' },
-  { value: '90d', label: '90d' },
-  { value: '-1',  label: 'All' },
-];
 
 // Pending state for the currently-open panel.
 let openTarget = null;     // the widget element being configured
@@ -105,59 +93,6 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
-function buildTimeWindowField(currentValue) {
-  // Single text input (source of truth) + preset shortcut buttons.
-  // The input keeps the canonical-type hook so readBack() finds it.
-  const value = currentValue == null ? '' : String(currentValue);
-  const input = el('input', {
-    type: 'text',
-    class: 'misp-field-input',
-    'data-canonical': 'time_window',
-    value,
-    placeholder: 'e.g. 7d, 86400, -1',
-    'aria-label': 'Time window',
-  });
-
-  const presets = el('div', { class: 'misp-time-window-presets' });
-  function syncActive() {
-    const v = input.value;
-    for (const b of presets.children) {
-      b.classList.toggle(
-        'is-active',
-        b.getAttribute('data-preset') === v,
-      );
-    }
-  }
-  for (const p of TIME_WINDOW_PRESETS) {
-    const btn = el('button', {
-      type: 'button',
-      class: 'misp-dashboard-btn misp-time-window-preset',
-      'data-preset': p.value,
-      text: p.label,
-      onclick: () => {
-        input.value = p.value;
-        syncActive();
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-      },
-    });
-    presets.appendChild(btn);
-  }
-  input.addEventListener('input', syncActive);
-  // Initial sync after both elements exist so the matching preset
-  // (if any) lights up on first render.
-  Promise.resolve().then(syncActive);
-
-  return el('label', { class: 'misp-field' },
-    el('span', { class: 'misp-field-label', text: 'Time window' }),
-    input,
-    presets,
-    el('span', {
-      class: 'misp-field-help',
-      text: 'Use Nd for days (e.g. 14d), an integer for seconds, or -1 for all time. Canonical type — Phase 3 toolbar will edit this across every widget that declares it.',
-    }),
-  );
-}
-
 function buildKVRow(key, value) {
   return el('li', { class: 'misp-kv-row' },
     el('input', {
@@ -199,7 +134,7 @@ function buildForm(widgetConfig) {
 
   const typedTier = el('section', { class: 'misp-configure-tier' },
     el('h3', { class: 'misp-configure-tier-title', text: 'Filters' }),
-    buildTimeWindowField(canonical.time_window),
+    TimeWindow.buildField(canonical[TimeWindow.KEY]),
   );
 
   const kvList = el('ul', { class: 'misp-kv-list', 'data-misp-kv-list': '' });

@@ -36,6 +36,7 @@
 import { Grid } from './grid/grid.module.mjs';
 import { initChartsIn, disposeChartsIn } from './charts/charts.module.mjs';
 import { openConfigure } from './configure.module.mjs';
+import { initToolbar, refresh as refreshToolbar } from './toolbar.module.mjs';
 
 const ATTR_BOARD_ROOT       = 'data-misp-board-root';
 const ATTR_BOARD_MODE       = 'data-misp-board-mode';
@@ -88,6 +89,13 @@ class Board {
     }
 
     this._updateDebugReadout();
+
+    // Mount the bulk-edit toolbar for any canonical types declared
+    // on this board. The toolbar walks declarer widgets on commit
+    // and re-renders each via the same path used for refresh.
+    initToolbar(this.root, {
+      onWidgetChange: (widgetEl) => this._renderWidget(widgetEl),
+    });
   }
 
   // ---- mode ----
@@ -200,7 +208,13 @@ class Board {
           // returns the widget element here so we can re-render with
           // the new shape. Persistence to UserSetting:dashboard is
           // Phase 1 task ("per-widget POST to /updateSettings").
-          openConfigure(widgetEl, (savedEl) => this._renderWidget(savedEl));
+          openConfigure(widgetEl, (savedEl) => {
+            this._renderWidget(savedEl);
+            // The save may have added or removed a canonical-type
+            // declaration, or moved this widget toward / away from
+            // "(mixed)" with its peers — the toolbar must refresh.
+            refreshToolbar(this.root);
+          });
           break;
         case 'export-json':
         case 'export-csv':
