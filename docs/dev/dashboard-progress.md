@@ -341,7 +341,58 @@ risk on the chosen libraries before committing Phase 1 effort.
   the MispStatus widget render with a "MISP Status" title bar and
   rows like "Events modified: 0 (View)". Tile interactions (drag,
   resize, refresh) come from the BoardModule + GridModule.
-- [ ] Render `TrendingTagsWidget` via ECharts bar chart
+- [x] Render `TrendingTagsWidget` via ECharts bar chart
+
+  **Done note (2026-05-06).** Three new files + one CSS rule + one
+  BoardModule edit:
+  - `app/webroot/js/dashboard-v2/charts/echarts-theme.mjs` — registers
+    the `"misp"` ECharts theme by reading `--misp-dash-{accent,success,
+    danger,warning,info,text,text-muted,border,surface-raised}` via
+    `getComputedStyle(document.documentElement)`. Idempotent. Implements
+    PRD §8.2 Level 2 ("CSS-only theme retheming charts for free").
+  - `app/webroot/js/dashboard-v2/charts/charts.module.mjs` — scans a
+    container for `[data-misp-chart]` divs and instantiates ECharts
+    on each, with a per-container `ResizeObserver` so the chart
+    resizes when the GridModule changes tile dimensions. Exposes
+    `initChartsIn`, `disposeChartsIn`, `disposeChart` so the
+    BoardModule can dispose before refresh / removal (otherwise
+    ECharts' window listeners leak).
+  - `app/View/Elements/dashboard-v2/Widgets/BarChart.ctp` — emits a
+    static `<div class="misp-chart" data-misp-chart="bar"
+    data-misp-chart-payload="<json>"></div>`. The renderer is purely
+    declarative; ECharts boots from the JSON payload client-side.
+    Drilldown wiring is intentionally deferred to Phase 5 (DD-03 click
+    handlers + `DashboardURLValidator`).
+  - `app/webroot/css/dashboard/dashboard.default.css` — adds a 7-line
+    `.misp-chart { width:100%; height:100%; min-height:180px }` rule
+    so the canvas can compute layout inside `.misp-widget-body`'s
+    flex-1 box.
+  - `app/webroot/js/dashboard-v2/board.module.mjs` — imports the
+    charts module; calls `disposeChartsIn(target)` then
+    `initChartsIn(target)` around `target.innerHTML = html` in
+    `_renderWidget` (success and error paths); calls
+    `disposeChartsIn(widgetEl)` before `grid.removeTile(id)`.
+
+  Chart container pattern chosen because BoardModule injects renderer
+  HTML via `target.innerHTML = html`, and `<script>` tags created that
+  way do not execute. Static markup + post-render scan is the
+  simplest pattern that works.
+
+  Smoke-tested: PHP lint passes; `node --check` passes on all three
+  JS modules; vendored ECharts bundle, the new theme module, the new
+  charts module, and the updated CSS all serve 200 from the test
+  instance. REST probe of `/dashboards2/renderWidget/w_2` (via
+  `Accept: application/json`) returns the expected `{data: {tag:
+  count}, colours: {tag: hex}}` shape. Browser-side render path
+  needs eyeballs.
+
+  **Browser verification needed** — visit
+  `http://localhost:5007/dashboards2` in a logged-in browser, expect
+  the middle TrendingTagsWidget tile to show a horizontal bar chart
+  themed against the dashboard tokens (accent-blue bars), with
+  per-tag colours where the widget supplied them. Drag/resize on the
+  tile should keep the chart rendering at the new size.
+
 - [ ] Render `OrganisationMapWidget` via ECharts geo (replaces jvectormap)
 - [ ] Implement schema-driven two-tier configure form for `time_window` (per DD-06): typed picker in top tier, dot-notation key-value list with a single example key in bottom tier
 - [ ] Implement dashboard toolbar with a single `time_window` slot

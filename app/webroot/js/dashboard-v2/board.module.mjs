@@ -34,6 +34,7 @@
 //     misp-board:scope-changed     detail: { scope }   (Phase 0.3 commit 8)
 
 import { Grid } from './grid/grid.module.mjs';
+import { initChartsIn, disposeChartsIn } from './charts/charts.module.mjs';
 
 const ATTR_BOARD_ROOT       = 'data-misp-board-root';
 const ATTR_BOARD_MODE       = 'data-misp-board-mode';
@@ -124,9 +125,15 @@ class Board {
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const html = await resp.text();
+      // Dispose any charts in the previous render *before* innerHTML
+      // replacement so ECharts instances + their global listeners
+      // don't leak when a widget is refreshed.
+      disposeChartsIn(target);
       target.innerHTML = html;
+      initChartsIn(target);
       this._dispatchEvent('widget-rendered', { instanceId: id, widgetName: name });
     } catch (err) {
+      disposeChartsIn(target);
       target.innerHTML = `<div class="misp-widget-error" role="alert">${escapeHtml(String(err))}</div>`;
       this._dispatchEvent('widget-error', { instanceId: id, widgetName: name, error: String(err) });
     }
@@ -179,6 +186,9 @@ class Board {
           e.preventDefault();
           if (this.mode !== 'edit') return;
           const id = widgetEl.getAttribute(ATTR_WIDGET_INSTANCE);
+          // Tear down chart instances inside the tile before the DOM
+          // node goes away so ECharts releases its window listeners.
+          disposeChartsIn(widgetEl);
           this.grid.removeTile(id);
           this._updateDebugReadout();
           break;
