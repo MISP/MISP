@@ -85,10 +85,10 @@ class CollectionElement extends AppModel
             return false;
         }
         if (!empty($user['Role']['perm_modify_org'])) {
-            if ($user['org_id'] == $collection['Collection']['Orgc_id']) {
+            if ($user['org_id'] == $collection['Collection']['orgc_id']) {
                 return true;
             }
-            if ($user['Role']['perm_sync'] && $user['org_id'] == $collection['Collection']['Org_id']) {
+            if ($user['Role']['perm_sync'] && $user['org_id'] == $collection['Collection']['org_id']) {
                 return true;
             }            
         }
