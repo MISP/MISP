@@ -120,7 +120,7 @@ risk on the chosen libraries before committing Phase 1 effort.
   leaves `bind-event-listener` as an external import — so a real
   bundler step is required. Documented in VENDORING.md so a fresh
   session knows the constraint.
-- [~] Build a minimal `GridModule` (snap, collision, resize-cascade) against CSS Grid for a 12-column dashboard layout at `app/webroot/js/dashboard-v2/grid/`; render 3 placeholder widget tiles in a standalone HTML demo page (no MISP integration yet); confirm drag/resize/snap UX feels right
+- [x] Build a minimal `GridModule` (snap, collision, resize-cascade) against CSS Grid for a 12-column dashboard layout at `app/webroot/js/dashboard-v2/grid/`; render 3 placeholder widget tiles in a standalone HTML demo page (no MISP integration yet); confirm drag/resize/snap UX feels right — *user confirmed UX 2026-05-06*
 
   **Done note (2026-05-06).** Code complete. `grid.module.mjs` covers
   drag (PDD-driven via `monitorForElements({onDrag})` for live-position
