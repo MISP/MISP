@@ -120,8 +120,46 @@ risk on the chosen libraries before committing Phase 1 effort.
   leaves `bind-event-listener` as an external import — so a real
   bundler step is required. Documented in VENDORING.md so a fresh
   session knows the constraint.
-- [ ] Build a minimal `GridModule` (snap, collision, resize-cascade) against CSS Grid for a 12-column dashboard layout at `app/webroot/js/dashboard-v2/grid/`; render 3 placeholder widget tiles in a standalone HTML demo page (no MISP integration yet); confirm drag/resize/snap UX feels right
-- [ ] **Risk check (DD-01 forcing function):** measure custom grid-math LOC after the bring-up. If >300 lines for a single-widget-resize scenario, escalate to user before continuing — the >40% Phase 1 budget warning may trigger early.
+- [~] Build a minimal `GridModule` (snap, collision, resize-cascade) against CSS Grid for a 12-column dashboard layout at `app/webroot/js/dashboard-v2/grid/`; render 3 placeholder widget tiles in a standalone HTML demo page (no MISP integration yet); confirm drag/resize/snap UX feels right
+
+  **Done note (2026-05-06).** Code complete. `grid.module.mjs` covers
+  drag (PDD-driven via `monitorForElements({onDrag})` for live-position
+  tracking), resize (raw pointer events on a per-tile resize handle),
+  snap-to-cell, collision detection, and downward-cascade when a
+  tile lands on others. Demo at
+  `app/webroot/js/dashboard-v2/proto/demo.html`, served live at
+  `http://localhost:5007/js/dashboard-v2/proto/demo.html` (3 tiles +
+  "Add tile" + "Reset layout" + live JSON layout readout).
+  Syntax-checked (`node --check`) and all three files serve 200 from
+  the test instance.
+
+  **Blocked by:** user UX verification — open the demo URL, exercise
+  drag/resize, confirm the feel before fully ticking. PDD's drag
+  model uses HTML5 D&D under the hood, which has a known
+  "drag-image-snaps-to-cursor-with-offset" quirk on some browsers; if
+  the ghost preview lags or feels wrong, we may need to swap to raw
+  pointer events for drag too (would simplify to one event model and
+  drop the PDD vendoring entirely — DD-01 reconsideration trigger).
+  Note: in this build I rely on PDD's `monitorForElements({onDrag})`
+  rather than the native drag preview, which should sidestep most of
+  the HTML5 D&D ergonomic issues — but eyeballs are the only judge.
+
+- [x] **Risk check (DD-01 forcing function):** measure custom grid-math LOC after the bring-up.
+
+  **Done note (2026-05-06).** `grid.module.mjs`: 291 total lines
+  (incl. blanks + JSDoc-style comments), 238 substantive lines (non-
+  blank, non-pure-comment). The DD-01 hard threshold was >300 LOC
+  triggering escalation — we're at 291 / 238 substantive, **under
+  the threshold but at the upper edge**. The module covers drag +
+  resize + collision + cascade, so this is *not* the "single-widget-
+  resize scenario" the threshold was specifically scoped to — for
+  that minimal scope alone, the count would be roughly 100 lines
+  (drag + collision only, no cascade, no resize). Phase 1 should be
+  watchful: adding mobile/touch fallback, keyboard movement (a11y),
+  empty-row collapse, and dynamic column-count change could each
+  push us past 300 quickly. Recommend logging each addition's LOC
+  delta in this tracker as Phase 1 progresses, to catch the >40%
+  Phase 1 budget warning early.
 - [ ] Vendor ECharts at `app/webroot/js/dashboard-v2/charts/vendor/` (tree-shaken: bar + line + geo)
 - [ ] Bundle-size measurement: record minified+gzipped size of the tree-shaken ECharts build in DD-02 Done note
 - [ ] **uPlot follow-up trial** (DD-02 open question): render `MispSystemResourceWidget` time-series via uPlot; record render-time and LOC vs. ECharts equivalent. Decide: ECharts only, or mixed ECharts+uPlot?

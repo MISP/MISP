@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>dashboard-v2 grid prototype</title>
+<style>
+  /*
+   * Minimal styling — Phase 0.2 prototype only.
+   * Production CSS will live in webroot/css/dashboard/dashboard.default.css
+   * with the full design-token catalogue (PRD §8).
+   */
+  :root {
+    --surf:   #f7f8fa;
+    --raised: #ffffff;
+    --border: #d8dde4;
+    --text:   #1d2025;
+    --muted:  #6b7280;
+    --accent: #2563eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--surf); color: var(--text);
+  }
+  h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin-bottom: 20px; font-size: 13px; }
+  .toolbar {
+    display: flex; gap: 12px; align-items: center;
+    margin-bottom: 16px; padding: 8px 12px;
+    background: var(--raised); border: 1px solid var(--border); border-radius: 6px;
+  }
+  .toolbar button {
+    border: 1px solid var(--border); background: var(--raised);
+    color: var(--text); padding: 4px 10px; border-radius: 4px;
+    cursor: pointer; font-size: 13px;
+  }
+  .toolbar button:hover { background: #eef0f3; }
+  .toolbar code {
+    margin-left: auto; color: var(--muted); font-size: 12px;
+    background: #eef0f3; padding: 2px 6px; border-radius: 3px;
+  }
+  .tile {
+    background: var(--raised);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: box-shadow .15s;
+  }
+  .tile:hover { box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+  .tile.dgrid-dragging { opacity: 0.4; }
+  .tile.dgrid-resizing { box-shadow: 0 1px 8px rgba(37,99,235,0.25); }
+  .tile-title {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(to bottom, #fcfdfe, #f4f6f9);
+    font-size: 13px; font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+    cursor: move; user-select: none;
+  }
+  .tile-title::before {
+    content: "⠿"; color: var(--muted); font-size: 14px;
+  }
+  .tile-body {
+    flex: 1; padding: 12px; color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; min-height: 0;
+  }
+  .tile-resize {
+    position: absolute; right: 0; bottom: 0;
+    width: 14px; height: 14px;
+    cursor: nwse-resize;
+    background: linear-gradient(135deg, transparent 50%, var(--muted) 50%);
+    opacity: 0.4;
+  }
+  .tile-resize:hover { opacity: 0.8; }
+</style>
+</head>
+<body>
+
+<h1>dashboard-v2 — Grid prototype (Phase 0.2)</h1>
+<p class="sub">
+  Standalone demo of the GridModule. Pragmatic DnD handles drag start/drop;
+  raw pointer events handle resize. Drag the title bar; drag the bottom-right
+  corner to resize.
+</p>
+
+<div class="toolbar">
+  <button id="add">+ Add tile</button>
+  <button id="reset">Reset layout</button>
+  <code id="layout-out">[]</code>
+</div>
+
+<div id="grid"></div>
+
+<script type="module">
+import { Grid } from '/js/dashboard-v2/grid/grid.module.mjs';
+
+const root = document.getElementById('grid');
+const out  = document.getElementById('layout-out');
+
+function makeTileEl(label) {
+  const el = document.createElement('div');
+  el.className = 'tile';
+  el.innerHTML = `
+    <div class="tile-title" data-drag-handle>${label}</div>
+    <div class="tile-body">${label}</div>
+    <div class="tile-resize" data-resize-handle></div>
+  `;
+  return el;
+}
+
+const initial = [
+  { id: 't1', x: 0, y: 0, w: 4, h: 3, label: 'MispStatus (placeholder)' },
+  { id: 't2', x: 4, y: 0, w: 5, h: 4, label: 'TrendingTags (placeholder)' },
+  { id: 't3', x: 9, y: 0, w: 3, h: 2, label: 'OrgMap (placeholder)' },
+];
+
+let g = null;
+function rebuild(layout) {
+  if (g) g.destroy();
+  document.querySelectorAll('.tile').forEach(t => t.remove());
+  g = new Grid(root, { cols: 12, rowHeight: 80, gap: 8 });
+  layout.forEach(t => g.addTile({ ...t, el: makeTileEl(t.label) }));
+  refresh();
+}
+function refresh() {
+  out.textContent = JSON.stringify(g.serialize());
+}
+
+document.getElementById('add').addEventListener('click', () => {
+  const id = 't' + (g.serialize().length + 1);
+  const label = `Widget ${id}`;
+  // Find first free spot at y=0; if no room, drop at end.
+  let x = 0;
+  while (x <= 12 - 3) {
+    let collide = false;
+    for (const t of g.serialize()) {
+      if (x < t.x + t.w && x + 3 > t.x && 0 < t.y + t.h && 3 > t.y) collide = true;
+    }
+    if (!collide) break;
+    x += 1;
+  }
+  if (x > 12 - 3) x = 0;
+  // If no room at y=0, drop below the lowest existing tile.
+  const maxBottom = g.serialize().reduce((m, t) => Math.max(m, t.y + t.h), 0);
+  const y = (x + 3 <= 12 && !g.serialize().some(t =>
+    x < t.x + t.w && x + 3 > t.x && 0 < t.y + t.h && 3 > t.y)) ? 0 : maxBottom;
+  g.addTile({ id, x, y, w: 3, h: 2, el: makeTileEl(label) });
+  refresh();
+});
+document.getElementById('reset').addEventListener('click', () => rebuild(initial));
+
+// Refresh layout readout after every drag/resize commit.
+const origCommit = Object.getPrototypeOf(Grid.prototype) === Object.prototype ? null : null;
+new MutationObserver(refresh).observe(root, { attributes: true, subtree: true, attributeFilter: ['style'] });
+
+rebuild(initial);
+</script>
+
+</body>
+</html>
