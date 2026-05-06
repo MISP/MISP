@@ -667,7 +667,43 @@ Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
 
-*(none yet)*
+### Canonical-type → legacy widget-format adapter for `time_window`
+
+**Surfaced 2026-05-06 during BarChart browser verification.**
+
+PRD §5.5 catalogues `time_window` as ISO 8601 duration (`P7D`,
+`PT1H`, `P30D`, …). Most v1 in-tree widgets parse a different
+in-house format: `TrendingTagsWidget` expects a lowercase `Nd` suffix
+for days and falls through to `(int)$value` otherwise; sending `P7D`
+yields `(int)'P7D' === 0` → empty result set. The Phase 0.3 prototype
+seed config was changed from `P7D` to `7d` to unblock browser
+verification, but that's a band-aid.
+
+**Where it lands:** Phase 2 — bottom of "Per-canonical-type form
+field elements (only `time_window` for now)". The canonical-type
+field renders the picker in ISO 8601 and persists ISO 8601, but at
+`handler()`-call time the widget receives a *translated* legacy
+value. Translation is a one-place adapter, *not* a per-widget edit
+(per the additive-only posture).
+
+Sketch: in `Dashboards2Controller::renderWidget`, before
+`$widget->handler($user, $config)`, walk `$config` and translate any
+canonical-typed slot whose widget hasn't been migrated to the
+canonical format. Drives off `$widget->$schema` to know which slots
+are canonical and a small `CanonicalTypeAdapter` helper to do the
+translation. Same hook applies for the bulk-edit toolbar's persisted
+configs.
+
+The translation table for `time_window`:
+- `P<N>D` → `<N>d` (legacy days form)
+- `P<N>W` → `(<N>*7)d`
+- `PT<N>H` → `(<N>*3600)` seconds
+- `-1` (sentinel "all time") → `-1` unchanged
+- arbitrary integer seconds → unchanged
+
+Per-widget migration is then orthogonal: a widget that adopts the
+canonical format directly (in Phase 2's $schema backfill) gets its
+canonical slot through *un*translated.
 
 ---
 

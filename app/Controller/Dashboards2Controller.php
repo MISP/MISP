@@ -47,7 +47,11 @@ class Dashboards2Controller extends AppController
                 'instance_id' => 'w_2',
                 'widget'      => 'TrendingTagsWidget',
                 'alias'       => null,
-                'config'      => array('time_window' => 'P7D', 'threshold' => 10),
+                // NB: legacy widget parser expects "7d" (lowercase),
+                // not the ISO-8601 `P7D` the canonical-type catalogue
+                // uses — the canonical → legacy adapter is a Phase 2
+                // task. See progress tracker "Discovered work".
+                'config'      => array('time_window' => '7d', 'threshold' => 10),
                 'position'    => array('x' => 4, 'y' => 0, 'w' => 5, 'h' => 4),
             ),
             array(
