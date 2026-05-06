@@ -213,9 +213,22 @@ risk on the chosen libraries before committing Phase 1 effort.
 
 ### 0.3 Build the throwaway prototype
 
-- [ ] Create a working branch off `dashboards`: `dashboard-v2-proto`
+- [-] Create a working branch off `dashboards`: `dashboard-v2-proto`
+
+  **Cancelled (2026-05-06).** Decided in the same session to stay on
+  `dashboards` directly. Rationale: a sub-branch adds checkout
+  friction for the user reviewing work, and per Q5 we're doing
+  straight in-place replacement on `dashboards` anyway. If the
+  prototype turns out genuinely throwaway we delete the dirs;
+  if it's the basis of Phase 1 the paths are already where Phase 1
+  puts things.
 - [ ] Stand up a minimal `DashboardsProtoController` + view at `/dashboards/proto` (no routes change to v1)
-- [ ] Vendor the chosen grid library (per 0.2) and the chosen chart library (per 0.2)
+- [x] Vendor the chosen grid library (per 0.2) and the chosen chart library (per 0.2)
+
+  **Done note (2026-05-06).** Already completed during Phase 0.2.
+  PDD bundle at `app/webroot/js/dashboard-v2/grid/vendor/`, ECharts
+  + world GeoJSON at `app/webroot/js/dashboard-v2/charts/vendor/`.
+  See Phase 0.2 Done notes and DD-01/DD-02/DD-07 for details.
 - [ ] Implement the CSS token catalogue from PRD §8.1 in `webroot/css/dashboard/dashboard.default.css`
 - [ ] Implement the JS hook contract from PRD §8.5 (`data-misp-board-root`, `data-misp-widget`, `data-misp-widget-action`, custom events)
 - [ ] Render `MispStatusWidget` in the new frame via the `SimpleList` renderer (no chart library needed)
