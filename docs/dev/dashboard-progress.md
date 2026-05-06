@@ -195,7 +195,21 @@ risk on the chosen libraries before committing Phase 1 effort.
   Running the trial would have produced "uPlot beats ECharts on data
   ECharts handles fine anyway" — a foregone conclusion. Three
   re-trigger conditions documented in DD-02 for a future revisit.
-- [ ] AGPL × Apache 2.0 licence sanity-check formalised — link the authoritative source (FSF compatibility list, MISP project's existing precedents) into DD-01 and DD-02
+- [x] AGPL × Apache 2.0 licence sanity-check formalised — link the authoritative source (FSF compatibility list, MISP project's existing precedents) into DD-01 and DD-02
+
+  **Done note (2026-05-06).** Full audit recorded as DD-07 (its own
+  decision entry rather than scattered notes across DD-01/DD-02 —
+  it's a cross-cutting concern). Verdict: all five licences in play
+  (Apache-2.0 from PDD + ECharts; 0BSD for tslib bundled inside
+  ECharts; BSD-3-Clause for zrender bundled inside ECharts; ISC for
+  world-atlas) are GPL-compatible per the FSF list, therefore
+  AGPL-compatible. Combined work must ship under AGPL-3.0 with the
+  permissive notices preserved — operationally satisfied since each
+  vendor dir already ships `LICENSE.*` files and esbuild's
+  `*.LEGAL.txt` sidecars. MISP precedent for vendoring permissive
+  JS/CSS assets is well-established (Bootstrap, jQuery, Chart.js,
+  D3, etc. already in webroot/). Authoritative source linked:
+  <https://www.gnu.org/licenses/license-list.html>.
 
 ### 0.3 Build the throwaway prototype
 

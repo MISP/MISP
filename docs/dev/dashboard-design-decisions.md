@@ -305,6 +305,81 @@ deliberate UX addition. Not a one-way door.
 
 ---
 
+## DD-07 — Licence compatibility audit (vendored deps × MISP AGPL-3.0)
+
+**Date.** 2026-05-06
+**Phase context.** Closes the formal licence sanity-check called out
+in Phase 0.2 (formerly hand-waved as "should be fine" in DD-01 and
+DD-02). Affects Phase 7 cleanup and any future vendoring.
+
+**Decision.** All Phase 0.2 vendored dependencies are licence-compatible
+with MISP's AGPL-3.0. The combined work can be distributed as AGPL-3.0
+provided the upstream licence files travel with the bundle (which they
+do — see the per-vendor `LICENSE.*` files in
+`app/webroot/js/dashboard-v2/{grid,charts}/vendor/`).
+
+**Inventory of licences in scope.**
+
+| Vendored item | Upstream licence | Source | Compatibility verdict |
+|---|---|---|---|
+| `pragmatic-drag-and-drop.bundle.mjs` | **Apache-2.0** | Atlassian Pty Ltd | ✅ |
+| `echarts.bundle.mjs` | **Apache-2.0** | Apache Software Foundation | ✅ |
+| `tslib` *(transitive, bundled inside echarts.bundle.mjs)* | **0BSD** (Microsoft) | TypeScript runtime helpers | ✅ — notice preserved in `echarts.bundle.LEGAL.txt` |
+| `zrender` *(transitive, bundled inside echarts.bundle.mjs)* | **BSD-3-Clause** (Baidu Inc.) | ECharts' rendering library | ✅ — notice preserved in `echarts.bundle.LEGAL.txt` |
+| `world-110m.geojson` | **ISC** (Mike Bostock; data from Natural Earth, public domain) | world-atlas npm package | ✅ |
+
+**Authoritative basis.**
+
+- **FSF licence compatibility list** — <https://www.gnu.org/licenses/license-list.html>
+  - Apache 2.0: listed under *"GPL-Compatible Free Software Licenses"*
+    with the note "compatible with version 3 of the GPL"; AGPL-3.0
+    inherits this since it's a superset of GPL-3.0 with the network-use
+    clause.
+  - ISC: same section, "compatible with the GNU GPL". Functionally
+    equivalent to MIT for compatibility purposes.
+  - BSD-3-Clause: same section, "compatible with the GNU GPL".
+  - 0BSD: same section, "compatible with the GNU GPL". Effectively
+    public-domain-equivalent.
+- **One-way compatibility direction.** All of the above are permissive
+  licences; combining them into an AGPL work is allowed and the
+  combined work must be distributed under AGPL-3.0 (with the
+  permissive notices preserved). The reverse — including AGPL code in
+  an Apache 2.0 work — is *not* permitted, but that's not our
+  direction.
+
+**MISP project precedent.**
+
+The MISP repo already vendors many permissively-licensed JS / CSS
+assets in `app/webroot/js/` and `app/webroot/css/`:
+
+- Bootstrap (MIT), jQuery (MIT), Chart.js (MIT), D3 (BSD-3-Clause),
+  Moment (MIT), CodeMirror (MIT), Drawflow (MIT), and others ship
+  alongside the AGPL MISP source.
+- The pattern (vendor under `webroot/`, preserve LICENSE files
+  alongside, document attribution) is established. Phase 0.2's
+  vendoring follows the same convention.
+
+**Operational requirements** (already satisfied by Phase 0.2 work):
+
+1. Each vendored dependency ships its upstream LICENSE file alongside
+   the bundle, named `LICENSE.<package>` so origin is unambiguous.
+2. esbuild's `--legal-comments=external` option emits a `*.LEGAL.txt`
+   sidecar capturing copyright notices from any transitively bundled
+   source code (ECharts pulls in `tslib` and `zrender`). The sidecar
+   is shipped alongside the bundle as a separate file.
+3. Each vendor directory has a `VENDORING.md` documenting origin,
+   version, build recipe, and the licences in play.
+4. No upstream dependency requires source disclosure in the AGPL
+   sense (none are themselves AGPL or copyleft).
+
+**Reversibility.** Should a future vendored dependency turn up with an
+incompatible licence (e.g. proprietary, commercial-use-restricted, or
+a different copyleft like LGPL-with-static-linking-restrictions), the
+audit table above is the place to flag it; the bundle would have to
+be rebuilt without that dependency or the dependency replaced.
+
+---
+
 ## DD-06 — Configure form is two-tier (typed fields + dot-notation key-value list)
 
 **Date.** 2026-05-04
