@@ -104,7 +104,22 @@ DD-01 (Pragmatic DnD) and DD-02 (ECharts) are committed in
 comparison — it's a thin bring-up to validate the implementation
 risk on the chosen libraries before committing Phase 1 effort.
 
-- [ ] Vendor Pragmatic Drag and Drop at `app/webroot/js/dashboard-v2/grid/vendor/`
+- [x] Vendor Pragmatic Drag and Drop at `app/webroot/js/dashboard-v2/grid/vendor/`
+
+  **Done note (2026-05-06).** Bundled via `npx esbuild` from the npm
+  package's selected entry points (`element/adapter` + `combine`) into
+  a single self-contained ESM file: 21.5 KB raw, 6.8 KB gzipped.
+  Vendoring procedure documented in `vendor/VENDORING.md` (reproducible
+  byte-for-byte from a clean directory). Upstream `LICENSE.md`
+  (Apache 2.0, Copyright 2022 Atlassian Pty Ltd) copied alongside.
+  Surprise: PDD's npm root export is intentionally empty; you must
+  consume sub-paths and bundle them. The package also pulls in three
+  internal deps (`bind-event-listener`, `raf-schd`, `@babel/runtime`),
+  all transitively vendored by the bundle. esm.sh's `?bundle` query
+  was investigated but its output isn't fully self-contained — it
+  leaves `bind-event-listener` as an external import — so a real
+  bundler step is required. Documented in VENDORING.md so a fresh
+  session knows the constraint.
 - [ ] Build a minimal `GridModule` (snap, collision, resize-cascade) against CSS Grid for a 12-column dashboard layout at `app/webroot/js/dashboard-v2/grid/`; render 3 placeholder widget tiles in a standalone HTML demo page (no MISP integration yet); confirm drag/resize/snap UX feels right
 - [ ] **Risk check (DD-01 forcing function):** measure custom grid-math LOC after the bring-up. If >300 lines for a single-widget-resize scenario, escalate to user before continuing — the >40% Phase 1 budget warning may trigger early.
 - [ ] Vendor ECharts at `app/webroot/js/dashboard-v2/charts/vendor/` (tree-shaken: bar + line + geo)
