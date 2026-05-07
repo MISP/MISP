@@ -2,6 +2,9 @@
 
 App::uses('AppModel', 'Model');
 
+/**
+ * @property MispAttribute $Attribute
+ */
 class TemplateElementAttribute extends AppModel
 {
     public $actsAs = array('Containable');
@@ -40,8 +43,19 @@ class TemplateElementAttribute extends AppModel
                 )
             ),
     );
+
     public function beforeValidate($options = array())
     {
+        $MispAttribute = ClassRegistry::init('MispAttribute');
+
+        if (isset($this->data['TemplateElementAttribute']['type']) && !array_key_exists($this->data['TemplateElementAttribute']['type'], $MispAttribute->typeDefinitions)) {
+            $this->invalidate('type', 'Invalid type selected.');
+        }
+
+        if (isset($this->data['TemplateElementAttribute']['category']) && !array_key_exists($this->data['TemplateElementAttribute']['category'], $MispAttribute->categoryDefinitions)) {
+            $this->invalidate('category', 'Invalid category selected.');
+        }
+
         parent::beforeValidate();
     }
 
