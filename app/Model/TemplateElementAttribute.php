@@ -2,9 +2,6 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * @property MispAttribute $Attribute
- */
 class TemplateElementAttribute extends AppModel
 {
     public $actsAs = array('Containable');
