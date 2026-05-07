@@ -5273,7 +5273,7 @@ class Event extends AppModel
         } else {
             throw new InvalidArgumentException("No event UUID or ID provided.");
         }
-        $existingEvent = $this->find('first', ['conditions' => $conditions, 'recursive' => -1]);
+        $existingEvent = $this->find('first', ['conditions' => $conditions, 'recursive' => -1, 'contain' => ['EventTag' => 'Tag']]);
         if ($passAlong) {
             $this->Server = ClassRegistry::init('Server');
             $server = $this->Server->find('first', array(
@@ -5300,7 +5300,11 @@ class Event extends AppModel
             // Conditions affecting all:
             // user.org == event.org
             // edit timestamp newer than existing event timestamp
-            if ($force || !isset($data['Event']['timestamp']) || $data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+            if (
+                $force ||
+                !isset($data['Event']['timestamp']) || $data['Event']['timestamp'] > $existingEvent['Event']['timestamp'] ||
+                (!empty($server['Server']['internal']) && $this->areLocalTagsDifferent($existingEvent['EventTag'], $data['Event']['Tag']))
+            ) {
                 if (!isset($data['Event']['timestamp'])) {
                     $data['Event']['timestamp'] = time();
                 }
@@ -5515,6 +5519,37 @@ class Event extends AppModel
             return true;
         }
         return $this->validationErrors;
+    }
+
+    public function areLocalTagsDifferent(array $localEventsTags, array $eventTags): bool
+    {
+        $normalizeFn = function (array $tags): array {
+            $result = [];
+
+            foreach ($tags as $tag) {
+                $name = $tag['Tag']['name'] ?? ($tag['name'] ?? null);
+
+                if ($name === null) {
+                    continue;
+                }
+
+                $local = (bool) ($tag['local'] ?? false);
+                $relationship = $tag['relationship_type'] ?? '';
+
+                // build a comparable signature
+                $result[] = $name . '|' . (int)$local . '|' . $relationship;
+            }
+
+            $result = array_values(array_unique($result));
+            sort($result);
+
+            return $result;
+        };
+
+        $localTagsFromExistingEvent = $normalizeFn($localEventsTags ?? []);
+        $localTagsFromEvent = $normalizeFn($eventTags ?? []);
+
+        return $localTagsFromExistingEvent !== $localTagsFromEvent;
     }
 
     // format has to be:
