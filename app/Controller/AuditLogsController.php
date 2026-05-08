@@ -20,6 +20,7 @@ class AuditLogsController extends AppController
         'Allowedlist',
         'AnalystDataBlocklist',
         'AuthKey',
+        'Bookmark',
         'Cerebrate',
         'CorrelationExclusion',
         'CryptographicKey',
