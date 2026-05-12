@@ -536,6 +536,10 @@ body.misp-dashboard-page {
 .misp-field-input,
 .misp-field-select {
   width: 100%;
+  /* border-box keeps padding+border inside the declared width so the
+   * input never overflows its parent (the popover body is only
+   * 256px content-width). */
+  box-sizing: border-box;
   appearance: none;
   border: 1px solid var(--misp-dash-border);
   background: var(--misp-dash-surface-raised);
@@ -676,6 +680,7 @@ body.misp-dashboard-page {
 .misp-kv-key,
 .misp-kv-value {
   width: 100%;
+  box-sizing: border-box;
   border: 1px solid var(--misp-dash-border);
   background: var(--misp-dash-surface-raised);
   color: var(--misp-dash-text);

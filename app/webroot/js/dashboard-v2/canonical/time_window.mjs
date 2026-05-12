@@ -101,16 +101,19 @@ export function buildField(currentValue, opts = {}) {
   input.addEventListener('input', syncActive);
   Promise.resolve().then(syncActive);
 
-  const children = [
+  // Format hint always present so users see the supported grammar
+  // without leaving the popover. The "canonical type" tail is
+  // contextual to the configure form (toolbar already implies it)
+  // so we drop it in compact mode.
+  const formatHelp = 'Use Nd for days (e.g. 14d), an integer for seconds, or -1 for all time.';
+  const canonicalHelp = 'Canonical type — the dashboard toolbar bulk-edits this across every widget that declares it.';
+  return el('label', { class: 'misp-field' },
     el('span', { class: 'misp-field-label', text: LABEL }),
     input,
     presets,
-  ];
-  if (!opts.compact) {
-    children.push(el('span', {
+    el('span', {
       class: 'misp-field-help',
-      text: 'Use Nd for days (e.g. 14d), an integer for seconds, or -1 for all time. Canonical type — the dashboard toolbar bulk-edits this across every widget that declares it.',
-    }));
-  }
-  return el('label', { class: 'misp-field' }, ...children);
+      text: opts.compact ? formatHelp : `${formatHelp} ${canonicalHelp}`,
+    }),
+  );
 }
