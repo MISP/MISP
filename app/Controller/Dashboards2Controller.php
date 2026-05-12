@@ -64,6 +64,18 @@ class Dashboards2Controller extends AppController
                 'config'      => array(),
                 'position'    => array('x' => 9, 'y' => 0, 'w' => 3, 'h' => 4),
             ),
+            // Second `time_window` declarer so the toolbar's bulk-edit
+            // path (DD-05) has more than one widget to sync — seeded
+            // with a different window from TrendingTags so the chip
+            // shows "(mixed)" on first load and the bulk-pull is
+            // immediately observable. Uses the existing BarChart shim.
+            array(
+                'instance_id' => 'w_4',
+                'widget'      => 'OrgContributionToplistWidget',
+                'alias'       => null,
+                'config'      => array('time_window' => '30d', 'threshold' => 10),
+                'position'    => array('x' => 0, 'y' => 4, 'w' => 12, 'h' => 4),
+            ),
         );
 
         // REST clients get the layout payload as JSON via the

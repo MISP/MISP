@@ -520,7 +520,41 @@ risk on the chosen libraries before committing Phase 1 effort.
   close the popover.
 
 
-- [ ] **Demonstrate Model 4 bulk edit** (per DD-05): pull toolbar `time_window` to "P1D" → all 3 widgets re-render with that window, all 3 widgets' saved configs now show `time_window: P1D`. Open a widget's configure form, change its `time_window` to "P30D", save → toolbar now shows "(mixed)".
+- [x] **Demonstrate Model 4 bulk edit** (per DD-05): pull toolbar `time_window` to "P1D" → all 3 widgets re-render with that window, all 3 widgets' saved configs now show `time_window: P1D`. Open a widget's configure form, change its `time_window` to "P30D", save → toolbar now shows "(mixed)".
+
+  **Done note (2026-05-12).** Wire format is legacy `Nd` (not ISO
+  8601 `P1D`) per the design call earlier in Phase 0.3; that swap
+  comes with Phase 2's canonical→legacy adapter.
+
+  Seeded a second `time_window` declarer in the proto layout so the
+  bulk-edit semantics surface immediately: `Dashboards2Controller::
+  index()` now appends `OrgContributionToplistWidget` at the bottom
+  full-width with `time_window: 30d`, while `TrendingTagsWidget`
+  remains at `time_window: -1`. First-load state: toolbar chip reads
+  "Time window: (mixed)" because the two declarers disagree.
+
+  `TrendingAttributesWidget` was first choice (same parser, real
+  data) but blows up on this instance with a PHP-8 `Attribute`
+  class-name collision under CakePHP — that's a pre-existing MISP
+  issue, not a v2 regression. `OrgContributionToplistWidget` uses
+  the same `BarChart` shim we already shipped, returns real org
+  data, no extra renderer work.
+
+  **Verified end-to-end loop (DD-05 Model 4):**
+  - Load page → chip shows "(mixed)" in warning italic; TrendingTags
+    renders all-time tag counts, OrgContrib renders 30d org counts
+  - Click chip → popover → pick "7d" → popover closes; chip becomes
+    "Time window: 7d"; both bar charts re-render with 7-day data
+  - Inspect widget DOM → both `data-widget-config` attributes now
+    carry `time_window: 7d`
+  - Open ⚙ on either widget → set time_window to `90d`, Save → chip
+    flips back to "(mixed)"
+  - Pull chip again → both sync; loop closes
+
+  Widgets that don't declare `time_window` (MispStatus, OrgMap) are
+  untouched by toolbar pulls.
+
+
 - [ ] Demonstrate per-widget on-read fix-ups: seed a v1-shape `UserSetting:dashboard` row (no `instance_id`, `width/height` not `w/h`), load the prototype, confirm widgets render, save → row now has `w/h` + `instance_id` per widget; top-level shape stays bare-array
 - [ ] Add CSS-only "midnight" overlay theme and confirm Level 1 retheming works for both UI and charts (chart palette derived from tokens)
 - [ ] Add a `Themed/Overmind/Elements/dashboard/widget/wrapper.ctp` BS5 markup override and confirm Level 3 retheming works without breaking drag/configure/refresh
