@@ -452,3 +452,99 @@ coverage for every widget — a future-PR call.
 - Phase 2 new task: chip input component for array values in the
   bottom tier.
 - Phase 2 new task: key-value-with-dot-notation list component.
+
+---
+
+## DD-08 — Dashboard owns its chrome; side menu skipped
+
+**Date.** 2026-05-13
+**Phase context.** Surfaced during Phase 1 v1-audit. Affects PRD §6.2
+(audit table), §8.3 (view tree note), §12 (surface-parity gate),
+Phase 1 task list (side-menu update → side-menu *removal*), Phase 4
+(import/export/save-template/list-templates land as in-page
+controls, not side-menu links).
+
+**Decision.** The v2 dashboard does not use MISP's side menu. It runs
+under a custom Cake layout `app/View/Layouts/dashboard.ctp` that mirrors
+`default.ctp`'s page chrome (CSS/JS includes, top nav, flash messages,
+footer) but omits the side-menu region entirely. Every action that
+previously lived in the side menu's `dashboard` case is hosted by the
+dashboard's own header bar (proto's `<header class="misp-dashboard-
+header">`): the canonical-type bulk-edit toolbar (DD-05), the edit-
+mode toggle, the eventual Add Widget action (Phase 2), and a "⋯ More"
+dropdown grouping the low-frequency template actions (Import, Export,
+Save Template, List Templates).
+
+**Rationale.** The dashboard is a workspace, not a CRUD index/view
+surface. In-context controls beat left-rail navigation for the
+operations that matter (edit layout, bulk-edit filters, add/remove
+widgets); the actions that don't matter most of the time (template
+import/export) belong behind one dropdown gesture, not in a permanent
+left rail. User explicitly accepted UX divergence from the rest of
+MISP for this surface specifically — "don't get hung up on the prior
+design, modern and pleasant is the goal" (2026-05-13).
+
+**Alternatives considered.**
+- **Keep MISP's side menu, update the dashboard case in place.**
+  Originally what Phase 1 assumed. Rejected: the side menu's horizontal
+  real estate is dead weight on a workspace surface; the only items
+  it surfaced were primary actions that belong in-context anyway.
+- **Targeted Themed override of side_menu.ctp that empties the
+  `dashboard` case.** A halfway move that still costs a left-rail
+  region in the layout. Rejected — if the dashboard renders no side
+  menu, the right place to encode that is the layout, not the menu
+  element.
+- **Drop the side menu but render dashboard inside `default.ctp` by
+  leaving `$menuList` empty.** Cake's default layout still allocates
+  the rail and styles the surrounding columns assuming it. The
+  surrounding scaffold leaks visual weight even when the menu is
+  empty. Rejected — `dashboard.ctp` cleanly removes the scaffold.
+
+**Action mapping (side menu → in-page).**
+
+| v1 side-menu item | Phase 1 home | Notes |
+|---|---|---|
+| View Dashboard | n/a | self — landing page is the dashboard |
+| Add Widget | Phase 2 | Not in Phase 1 chrome (Phase 2 lands the in-page Add flow per the existing add-widget board action hook) |
+| Import Config JSON | "⋯ More" dropdown | Calls v1-carryover `/dashboards/import` until Phase 4 reimplements |
+| Export Config JSON | "⋯ More" dropdown | v1-carryover `/dashboards/export` |
+| Save Dashboard Config | "⋯ More" dropdown | v1-carryover `/dashboards/saveTemplate` |
+| List Dashboard Templates | "⋯ More" dropdown | v1-carryover `/dashboards/listTemplates` |
+
+**A11y requirements** (binding for the header chrome).
+- All header controls focusable via Tab; visible focus ring.
+- "⋯ More" dropdown follows the WAI-ARIA Menu Button pattern:
+  `aria-haspopup="menu"`, `aria-expanded`, Escape closes, Up/Down
+  navigates items, Enter activates.
+- Edit-mode toggle is a button with `aria-pressed`, already proto-
+  shaped (just carries forward).
+- Toolbar chips' popovers (DD-05) inherit the existing focus-trap
+  pattern from the configure side panel (DD-06).
+
+**Reversibility.** Re-introducing the side menu later is additive:
+delete `app/View/Layouts/dashboard.ctp`, restore the `case 'dashboard':`
+block in `Elements/genericElements/SideMenu/side_menu.ctp` (+ UiBeta
+mirror), wire the header actions to navigate to the menu URLs. No
+data-shape or contract change.
+
+**Implementation hooks** (Phase 1).
+- New: `app/View/Layouts/dashboard.ctp` (mirror of `default.ctp`,
+  side-menu region omitted).
+- Delete: `case 'dashboard':` block (lines 9–46) in
+  `Elements/genericElements/SideMenu/side_menu.ctp` and the UiBeta
+  mirror.
+- New: "⋯ More" dropdown component in the dashboard's header bar,
+  with the four template-action items (Import / Export / Save / List)
+  wired to the v1-carryover URLs.
+- The previously-tracked Phase 1 tasks "Side menu update on default
+  theme" and "Side menu update on Themed/UiBeta" are replaced by:
+  - "Delete `case 'dashboard':` from default side_menu.ctp"
+  - "Delete `case 'dashboard':` from Themed/UiBeta side_menu.ctp"
+
+**PRD wording corrections (folded in this commit).**
+- §6.2: side-menu rows recast — they document the v1 surface being
+  *removed*, not updated.
+- §12 surface-parity gate: "every URL on the side menu" → "every URL
+  surfaced by the dashboard's in-page controls". Also drops the
+  stale `{scope, widgets}` envelope reference (DD-05 retired it).
+- §15 picks up DD-08 as a binding row.

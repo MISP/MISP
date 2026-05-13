@@ -566,8 +566,8 @@ implementation work has a starting map.
 | Widget classes | `app/Lib/Dashboard/*Widget.php` (~30) | All retained. Examples: `MispStatusWidget`, `TrendingTagsWidget`, `UsageDataWidget`, `OrgEventsWidget`, `AttackWidget`, `OrganisationMapWidget`, `MispAdminWorkerWidget`. |
 | Custom widgets | `app/Lib/Dashboard/Custom/` (incl. `widget-collection/` subdir loader) | Drop-in pattern preserved as-is. |
 | Helpers | `app/Lib/Dashboard/Tools/WidgetToolkit.php` | Currently only `getCountryCodeMapping`. |
-| Side menu wiring | `app/View/Elements/genericElements/SideMenu/side_menu.ctp` (case `dashboard`) | Entries: View, Add (modal), Import, Export, ListTemplates. |
-| Side menu (UiBeta) | `app/View/Themed/UiBeta/Elements/genericElements/SideMenu/side_menu.ctp` | Mirror of the same entries — we update both. |
+| ~~Side menu wiring~~ | `app/View/Elements/genericElements/SideMenu/side_menu.ctp` (case `dashboard`) | Entries: View, Add (modal), Import, Export, ListTemplates. **DD-08 retires this surface** — the `case 'dashboard':` block is deleted; dashboard runs under custom `app/View/Layouts/dashboard.ctp` with all actions in its own header. |
+| ~~Side menu (UiBeta)~~ | `app/View/Themed/UiBeta/Elements/genericElements/SideMenu/side_menu.ctp` | Mirror of the same entries — **DD-08 deletes both copies.** |
 
 ### 6.2 Client-side (views, JS, CSS)
 
@@ -949,12 +949,14 @@ landed for the merge-gate spec).
    `dashboards` template row loads. Round-trip the legacy bare-array
    form through v2 and back to a v1 reader (during the branch's
    lifetime, before v1 is deleted) without data loss.
-3. **Surface parity.** Every URL the side menu links to today
-   resolves to a working v2 view. Import / export / `saveTemplate` /
-   `listTemplates` / `deleteTemplate` all keep working on the same
-   URLs with the same request shapes (the response shapes adopt the
-   new `{scope, widgets}` blob form, with backward-compat read on
-   import).
+3. **Surface parity.** Every URL surfaced by the dashboard's in-page
+   controls (per DD-08, dashboard skips the side menu) resolves to a
+   working v2 view. The "⋯ More" header dropdown's four template
+   actions — `import`, `export`, `saveTemplate`, `listTemplates` —
+   plus `deleteTemplate` all keep working on the same URLs with the
+   same request shapes. The on-disk blob remains a bare widget array
+   per DD-05 (no `{scope, widgets}` envelope); legacy
+   `UserSetting:dashboard` rows continue to read cleanly.
 
 These three gates are checked off in Phase 5.5 (Widget Parity Sweep)
 of the progress tracker.
@@ -1114,10 +1116,11 @@ read-promote).
   - **Data parity:** legacy `UserSetting:dashboard` blob shape reads
     cleanly; legacy `dashboards.value` reads cleanly; round-trip via
     import/export preserves both shapes.
-  - **Surface parity:** every URL on the side menu (View, Add, Import,
-    Export, ListTemplates) resolves; `saveTemplate` /
-    `listTemplates` / `deleteTemplate` /  `import` / `export` keep
-    working on their existing URLs.
+  - **Surface parity:** every URL surfaced by the dashboard's
+    in-page controls resolves (per DD-08: View self, "⋯ More"
+    dropdown → Import / Export / Save Template / List Templates).
+    `saveTemplate` / `listTemplates` / `deleteTemplate` / `import` /
+    `export` keep working on their existing URLs.
 - **Phase 6 — Merge to `develop`.** With Phase 5.5 green, the
   `dashboards` branch merges to `develop` for the next 2.5 release
   cycle. No flag, no migration helper, no admin-runnable cleanup —
@@ -1146,6 +1149,7 @@ was decided".
 | DD-05 | 2026-05-04 | §G4, §5.5, §5.6, §5.7, §7.1 | Toolbar is a **bulk-edit UI for per-widget configs**, not a runtime scope. Toolbar pull walks declarer widgets and writes their `config[<canonical>]` directly; toolbar's displayed value is computed at render time (all-agree / mixed / hidden). No `BoardScopeHelper`, no `_scope` blob, no `$scopeAware` flag. Toolbar pulls write immediately, any mode. | binding |
 | DD-06 | 2026-05-04 | §5.2 F2.2, §5.7, Phase 2 | Configure form is **two-tier**: typed-fields top tier driven by `$schema`; dot-notation key-value list bottom tier ("Advanced") for params without schema entries. Round-trips losslessly via dot-path flatten/re-nest. Custom widgets without `$schema` collapse to the bottom tier only. | binding |
 | DD-07 | 2026-05-06 | §G10, §11 (security/licensing), Phase 7 cleanup | All Phase 0.2 vendored deps are AGPL-3.0-compatible: Pragmatic DnD (Apache 2.0), ECharts (Apache 2.0 + transitive tslib 0BSD + zrender BSD-3-Clause), world-110m.geojson (ISC). LICENSE.* files travel with each bundle; esbuild `--legal-comments=external` emits the `*.LEGAL.txt` sidecar for transitives. | binding |
+| DD-08 | 2026-05-13 | §6.2, §8.3, §12, Phase 1 + Phase 4 | **Dashboard owns its chrome; side menu skipped.** Custom Cake layout `app/View/Layouts/dashboard.ctp` (mirror of `default.ctp` minus the side-menu region). All actions live in the dashboard's own header: DD-05 toolbar chips, edit-mode toggle, Phase 2 Add Widget, and a "⋯ More" dropdown for the low-frequency template actions (Import / Export / Save Template / List Templates). The `case 'dashboard':` block in `side_menu.ctp` (+ UiBeta mirror) is deleted. A11y: WAI-ARIA Menu Button pattern on "⋯ More"; Tab-walkable header. | binding |
 
 **On adding new decisions.** Append to `dashboard-design-decisions.md`
 under a fresh `DD-NN` heading with date + rationale + alternatives +
