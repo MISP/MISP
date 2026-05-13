@@ -297,6 +297,22 @@ body.misp-dashboard-page {
   overflow: auto;
   min-height: 0;
 }
+/* Unclassed anchors inside widget bodies pick up the accent token
+ * instead of the browser-default blue/visited-purple combo. Mostly
+ * relevant for legacy widgets like MispStatusWidget that emit raw
+ * `<a href>` in their data's `html` field — Phase 2's $schema
+ * backfill migrates those to DD-03 `drilldown` keys which the
+ * SimpleList renderer wraps in `.misp-list-link`. */
+.misp-widget-body a,
+.misp-widget-body a:visited {
+  color: var(--misp-dash-accent);
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color var(--misp-dash-transition-fast);
+}
+.misp-widget-body a:hover {
+  border-bottom-color: currentColor;
+}
 .misp-widget-loading {
   color: var(--misp-dash-text-muted);
   font-size: var(--misp-dash-fs-sm);

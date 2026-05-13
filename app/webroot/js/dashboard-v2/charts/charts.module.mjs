@@ -107,11 +107,18 @@ function buildGeoOption(payload, hostEl) {
   // retones the map without writing JS. The v1 jvectormap renderer
   // hard-coded a 12-stop palette; we ship a simpler 2-stop gradient
   // anchored on the accent token, which themes already redefine.
-  const rampLow  = tokenOn(hostEl, '--misp-dash-accent-muted', 'rgba(37,99,235,0.10)');
-  const rampHigh = tokenOn(hostEl, '--misp-dash-accent-hover', '#1d4ed8');
-  const border   = tokenOn(hostEl, '--misp-dash-border',       '#d8dde4');
-  const surface  = tokenOn(hostEl, '--misp-dash-surface',      '#f7f8fa');
-  const text     = tokenOn(hostEl, '--misp-dash-text',         '#1d2025');
+  const rampLow      = tokenOn(hostEl, '--misp-dash-accent-muted', 'rgba(37,99,235,0.10)');
+  const rampHigh     = tokenOn(hostEl, '--misp-dash-accent-hover', '#1d4ed8');
+  const text         = tokenOn(hostEl, '--misp-dash-text',         '#1d2025');
+  // Country fill: `border` is mid-gray in light + slightly lighter
+  // than surface-raised in dark, giving consistent visibility in both
+  // themes. Previously used `surface` (page-bg) which is always darker
+  // than the widget body → invisible non-active countries on dark.
+  // Country outline: `border-strong` is one step further from fill in
+  // both directions (darker than fill in light, lighter in dark) so
+  // the country edges read.
+  const countryFill   = tokenOn(hostEl, '--misp-dash-border',        '#d8dde4');
+  const countryStroke = tokenOn(hostEl, '--misp-dash-border-strong', '#b6bdc7');
 
   return {
     tooltip: {
@@ -142,8 +149,8 @@ function buildGeoOption(payload, hostEl) {
       map: 'world',
       roam: true,
       itemStyle: {
-        areaColor: surface,
-        borderColor: border,
+        areaColor: countryFill,
+        borderColor: countryStroke,
         borderWidth: 0.4,
       },
       emphasis: {

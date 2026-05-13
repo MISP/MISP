@@ -66,7 +66,19 @@ export function registerMispTheme(scopeEl) {
       axisLabel: { color: muted },
       splitLine: { lineStyle: { color: border, type: 'dashed' } },
     },
-    bar:  { itemStyle: { borderRadius: [3, 3, 0, 0] } },
+    bar: {
+      itemStyle: { borderRadius: [3, 3, 0, 0] },
+      // Value labels sit on the chart background (`position: 'right'`
+      // outside the bars), so they must read against surface-raised.
+      // ECharts' default is black + white stroke ("contrasts against
+      // anything") which is unreadable on the dark overlay — drive
+      // both colour and stroke from the text token instead.
+      label: {
+        color: text,
+        textBorderColor: 'transparent',
+        textBorderWidth: 0,
+      },
+    },
     line: { itemStyle: { borderWidth: 0 }, lineStyle: { width: 2 } },
   });
   registered = true;
