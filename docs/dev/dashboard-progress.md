@@ -774,12 +774,17 @@ in the rename pass below, not rebuilt.
 
 ### v1 audit + removal (in place)
 
-- [ ] Audit pass: enumerate v1 surface — controller (`app/Controller/DashboardsController.php`), views (`app/View/Dashboards/`), dashboard JS in `app/webroot/js/misp.js` (lines ~5570–5730: `submitDashboardForm`, `saveDashboardState`, `resetDashboardGrid`, click handlers), Gridstack vendored assets (`gridstack.all.js`, `gridstack.min.css` and `.bk` siblings), v1 dashboard CSS. List each candidate file before deletion.
-- [ ] Delete v1 `app/Controller/DashboardsController.php` (or migrate any still-needed action — e.g. `import` / `export` / `saveTemplate` — into the v2 controller before deletion).
-- [ ] Delete v1 `app/View/Dashboards/` view tree (whatever remains after migrating any reusable elements).
-- [ ] Remove v1 dashboard JS from `app/webroot/js/misp.js`. Verify no other page in misp.js references the removed functions.
-- [ ] Remove Gridstack vendored assets per DD-01 (superseded by Pragmatic DnD).
-- [ ] Delete v1 dashboard CSS / asset siblings flagged in the audit pass.
+- [x] Audit pass: enumerate v1 surface — controller, views, dashboard JS in `misp.js`, Gridstack vendored assets, dashboard CSS — with reverse-grep proof that nothing outside the v1 dashboard surface references each candidate. **Done 2026-05-13.** Inventory:
+  - `app/Controller/DashboardsController.php` (19 KB, 444 L). 10 actions; 5 replaced by proto (`index`, `getForm`, `updateSettings`, `getEmptyWidget`, `renderWidget`), 5 carry over verbatim until Phase 4 (`import`, `export`, `saveTemplate`, `listTemplates`, `deleteTemplate`) so side-menu-equivalent URLs keep working (per DD-08, those now hit the dashboard's "⋯ More" dropdown).
+  - `app/View/Dashboards/` — 10 files. 6 deleted (`index.ctp`, `add.ctp`, `edit.ctp`, `get_empty_widget.ctp`, `widget_loader.ctp`, `update_settings.ctp`); 4 carry over (`import.ctp`, `export.ctp`, `save_template.ctp`, `list_templates.ctp`).
+  - `app/webroot/js/misp.js` lines 5592–5728 (137 lines): `submitDashboardForm`, `saveDashboardState`, `resetDashboardGrid`, plus inline `.edit-widget` / `.remove-widget` / `.widget-export-menu` click handlers. Self-contained per reverse-grep.
+  - Gridstack vendored assets: `app/webroot/js/gridstack.all.js` (83 KB), `app/webroot/js/gridstack.all.js.bk` (184 KB), `app/webroot/css/gridstack.min.css` (3.6 KB), `app/webroot/css/gridstack.min.css.bk` (9.2 KB). No live refs outside the v1 dashboard surface; `package.json` / `package-lock.json` listings get cleaned alongside.
+  - Side menu surface: `case 'dashboard':` block in `app/View/Elements/genericElements/SideMenu/side_menu.ctp` (lines 9–46) + the `Themed/UiBeta` mirror — deleted per DD-08, not "updated in place" as the original task wording assumed.
+- [ ] **Copy carryover actions + views into Dashboards2** (before deleting v1): copy `import` / `export` / `saveTemplate` / `listTemplates` / `deleteTemplate` actions from `app/Controller/DashboardsController.php` into `Dashboards2Controller.php` *untouched*. Copy `import.ctp` / `export.ctp` / `save_template.ctp` / `list_templates.ctp` from `app/View/Dashboards/` into `app/View/Dashboards2/` *untouched*. Phase 4 reimplements them the v2 way later — Phase 1 keeps them on life support.
+- [ ] Delete v1 `app/Controller/DashboardsController.php` (after the carryover copy above).
+- [ ] Delete v1 `app/View/Dashboards/` view tree (all 10 files — 4 are now duplicated under `Dashboards2/`).
+- [ ] Remove v1 dashboard JS from `app/webroot/js/misp.js` (lines 5592–5728). Verify no other page in misp.js references the removed functions.
+- [ ] Remove Gridstack vendored assets per DD-01: `gridstack.all.js`, `gridstack.all.js.bk`, `gridstack.min.css`, `gridstack.min.css.bk`. Clean `gridstack` entries from `app/webroot/js/package.json` and `package-lock.json`.
 
 ### Rename pass (proto → canonical paths)
 
@@ -789,7 +794,7 @@ in the rename pass below, not rebuilt.
 - [ ] Rename `app/View/Themed/Overmind/Elements/dashboard-v2/ → app/View/Themed/Overmind/Elements/dashboard/`. Themed CSS at `Themed/Overmind/webroot/css/dashboard/overmind.css` keeps its path.
 - [ ] Rename `app/View/Dashboards2/ → app/View/Dashboards/` (collides with v1; v1 must be removed first per the audit step above).
 - [ ] Drop the proto-only `?theme=<overlay>` / `?ui_theme=<name>` query-param activation paths from `DashboardsController` and `Dashboards/index.ctp`. Production activation is MISP's theme system per PRD §8.1.
-- [ ] Drop the standalone `<!DOCTYPE html><html>…</html>` markup from `Dashboards/index.ctp`. Set `$this->layout = 'default'` so MISP's regular layout chrome wraps the dashboard; the view emits only the dashboard's own markup + `<script type="module">` tag.
+- [ ] Drop the standalone `<!DOCTYPE html><html>…</html>` markup from `Dashboards/index.ctp`. Set `$this->layout = 'dashboard'` so the new custom layout (per DD-08, below) wraps the dashboard; the view emits only the dashboard's own markup + `<script type="module">` tag.
 
 ### New Phase 1 work (additive)
 
@@ -797,8 +802,10 @@ in the rename pass below, not rebuilt.
 - [ ] Empty-state element for "no widgets yet" — shown when both the user's `UserSetting:dashboard` and any default template are empty/absent.
 - [ ] `DashboardURLValidator` helper under `app/Lib/Dashboard/Tools/` (per DD-03 — Phase 5 renderers will use it from day one; Phase 1 introduces the helper + a smoke test so the contract is in place).
 - [ ] Drag/resize commit callback in `grid.module.mjs` so `BoardModule._scheduleSave()` fires on layout commits. The proto deliberately omitted this — layout changes don't persist today.
-- [ ] Side menu update on default theme `Elements/genericElements/SideMenu/side_menu.ctp` — adjust the existing `dashboard` case in place; no separate v2 entry to add (routes are already canonical post-rename).
-- [ ] Side menu update on `Themed/UiBeta/Elements/genericElements/SideMenu/side_menu.ctp` (UiBeta is the only theme that overrides side_menu.ctp — Overmind inherits the default).
+- [ ] **Custom layout** `app/View/Layouts/dashboard.ctp` per DD-08: mirror of `default.ctp`'s chrome (CSS/JS includes, top nav, flash messages, footer) with the side-menu region omitted entirely. The view sits in the full content column.
+- [ ] **Header bar "⋯ More" dropdown** per DD-08: hosts the four template actions (Import / Export / Save Template / List Templates), each pointing at the v1-carryover URLs. WAI-ARIA Menu Button pattern: `aria-haspopup="menu"`, `aria-expanded`, Escape closes, Up/Down navigates, Enter activates. Tab-walkable focus order across the entire header (title row + toolbar chips + Edit toggle + ⋯ More).
+- [ ] **Delete `case 'dashboard':`** (lines 9–46) from `app/View/Elements/genericElements/SideMenu/side_menu.ctp` per DD-08. Verify no `'menuList' => 'dashboard'` callers remain (the new layout doesn't render side_menu at all, so a stale caller would silently no-op — but grep cleanly anyway).
+- [ ] **Delete `case 'dashboard':`** from `app/View/Themed/UiBeta/Elements/genericElements/SideMenu/side_menu.ctp` per DD-08.
 
 ### Smoke tests (close-out)
 
