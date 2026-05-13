@@ -1088,6 +1088,42 @@ line as a single ring). `d3-geo-projection`'s `geoStitch` was tried
 first; it only handles the inverse direction (joining pre-split
 parts) and didn't help here.
 
+### GridModule drag/resize math ignored grid-root CSS padding — **fixed 2026-05-13**
+
+**Surfaced 2026-05-13 during Phase 0.4 walk-through (drag test).**
+
+User reported: dragging a widget's title bar showed a red preview box
+"misaligned far to the right" and the drop cancelled. Most visible on
+the full-row OrgContributionToplist (w=12).
+
+Root cause: `.misp-dashboard-main` carries
+`padding: var(--misp-dash-space-4) var(--misp-dash-space-5)` (16/24px),
+but `GridModule._cellSize / _pointerToCell / _showGhost` treated
+`getBoundingClientRect()` as the content box. Three compounding
+effects:
+
+1. `cellW = (rect.width - totalGap) / cols` overestimated the column
+   width by `(2 * paddingLeft) / cols` ≈ 4px/col. For w=12 the ghost
+   ended up ~48px wider than the actual 12-col span — its right edge
+   visibly hung off the board.
+2. `_collides` then rejected drops via `x + w > this.cols` because
+   pointer-to-cell rounded x up to 1 for w=12 (out of bounds).
+3. The ghost (`position: absolute` inside a `position: relative` root)
+   resolves `left: 0` to the **padding-box outer edge** (= rect.left
+   with no border), so without adding `paddingLeft` to ghost.left, the
+   ghost sat at the wrong starting offset.
+
+Fix in `app/webroot/js/dashboard-v2/grid/grid.module.mjs`:
+`_cellSize` now reads padding from `getComputedStyle`, returns padL/padT;
+`_pointerToCell` subtracts them from localX/localY; `_showGhost` adds
+them to ghost.left/top. Resize uses the same path, so resize is fixed
+too without a separate change.
+
+**Where it lands:** Phase 0.3 (GridModule prototype) — fixed in this
+session's commit. Keep a regression test in mind for Phase 1 when
+the controller switches `$this->layout = 'default'` and the grid root
+inherits MISP layout padding instead of the prototype's own.
+
 ### Canonical-type → legacy widget-format adapter for `time_window`
 
 **Surfaced 2026-05-06 during BarChart browser verification.**

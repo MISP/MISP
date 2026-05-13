@@ -100,14 +100,25 @@ export class Grid {
   _cellSize() {
     const totalGap = this.gap * (this.cols - 1);
     const rect = this.root.getBoundingClientRect();
-    const cellW = (rect.width - totalGap) / this.cols;
-    return { cellW, cellH: this.rowHeight, rect };
+    // The grid root may carry CSS padding (.misp-dashboard-main has
+    // 16px/24px). getBoundingClientRect() includes that padding, but
+    // CSS Grid lays columns out across the content box, and an
+    // absolutely-positioned child's `left: 0` resolves to the padding
+    // box's outer edge (= rect.left with no border). Both `pointerToCell`
+    // and `showGhost` need the padding to translate between page coords
+    // and column coords correctly.
+    const cs = getComputedStyle(this.root);
+    const padL = parseFloat(cs.paddingLeft) || 0;
+    const padR = parseFloat(cs.paddingRight) || 0;
+    const padT = parseFloat(cs.paddingTop) || 0;
+    const cellW = (rect.width - padL - padR - totalGap) / this.cols;
+    return { cellW, cellH: this.rowHeight, rect, padL, padT };
   }
 
   _pointerToCell(clientX, clientY) {
-    const { cellW, cellH, rect } = this._cellSize();
-    const localX = clientX - rect.left;
-    const localY = clientY - rect.top;
+    const { cellW, cellH, rect, padL, padT } = this._cellSize();
+    const localX = clientX - rect.left - padL;
+    const localY = clientY - rect.top  - padT;
     // Round to nearest cell, including the gaps as part of the cell width.
     const x = Math.max(0, Math.min(this.cols - 1,
       Math.floor(localX / (cellW + this.gap))));
@@ -229,9 +240,12 @@ export class Grid {
   }
 
   _showGhost(x, y, w, h, valid) {
-    const { cellW, cellH } = this._cellSize();
-    this.ghost.style.left = `${x * (cellW + this.gap)}px`;
-    this.ghost.style.top  = `${y * (cellH + this.gap)}px`;
+    const { cellW, cellH, padL, padT } = this._cellSize();
+    // ghost is position:absolute inside the root, so left/top resolve
+    // to the padding-box outer edge — add the root's padding so the
+    // ghost aligns with where CSS Grid actually places column 1 / row 1.
+    this.ghost.style.left = `${padL + x * (cellW + this.gap)}px`;
+    this.ghost.style.top  = `${padT + y * (cellH + this.gap)}px`;
     this.ghost.style.width  = `${w * cellW + (w - 1) * this.gap}px`;
     this.ghost.style.height = `${h * cellH + (h - 1) * this.gap}px`;
     this.ghost.style.borderColor = valid ? '#5aa9ff' : '#ff6b6b';
