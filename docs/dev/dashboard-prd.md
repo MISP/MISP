@@ -936,9 +936,20 @@ read-promote).
    scope concept and no "Also apply default filters" checkbox.
 2. ~~Tabs vs. dropdown vs. sidebar for board switcher.~~ **Moot** —
    multi-board (G2) was dropped 2026-05-04. One dashboard per user.
-3. **Drill-down convention.** Should the renderer auto-wrap *all*
-   labels, or only when the widget declares `$drilldown`? (Auto =
-   better default coverage; explicit = no surprise navigations.)
+3. ~~Drill-down convention.~~ **Resolved 2026-05-04 — per-datum
+   drilldown in widget data (Option C).** Renderers wrap an element
+   in a link only when the corresponding datum in the widget's
+   `handler()` return value carries a `drilldown` URL. No class-level
+   `$drilldown` property; no auto-wrap by convention. Shape conventions
+   per renderer: `SimpleList` rows may have a `drilldown` key alongside
+   `title` / `value` / `html` / `change`; `BarChart` / `MultiLineChart` /
+   `WorldMap` accept an optional `data['drilldown']` map keyed by
+   series/category/ISO-code. A `DashboardURLValidator` helper (new,
+   under `app/Lib/Dashboard/Tools/`) sanity-checks every drilldown URL
+   before emission: must be relative or share
+   `Configure::read('MISP.baseurl')` host; `javascript:` / `data:` /
+   off-host URLs are silently dropped (rendered as plain text).
+   Defends against a buggy or malicious widget.
 4. ~~Gridstack v11 vs. Pragmatic DnD.~~ **Resolved 2026-05-04 — Pragmatic
    DnD + CSS Grid + custom snap/collision math.** See
    `dashboard-design-decisions.md` DD-01 for rationale, licence verdict,
@@ -955,16 +966,39 @@ read-promote).
 6. ~~Theme-native vs. one shared frame; frame's own CSS vs. inherit host BS variables.~~
    **Resolved 2026-05-04 — single shared frame parameterised by
    tokens (resolved earlier), shipping its own self-contained CSS file
-   that does not depend on any Bootstrap version.** See
-   `dashboard-progress.md` Resolved questions §Q6 for the
-   "easy to integrate" practical constraints (typography inherits,
-   scoped rules, theme overlays via the existing `additionalCss`
-   mechanism).
+   that does not depend on any Bootstrap version.** Concretely: MISP's
+   themes span BS versions (default = 2.3.2 has no CSS custom properties
+   at all; Overmind = BS5), so "borrow the host's `--bs-*` variables"
+   was a non-starter. Practical constraints baked in:
+   - Typography inherits from the host theme (no `font-family` /
+     `font-weight` declarations on the dashboard root); tokens carry
+     *sizes and weights* only for dashboard-specific elements.
+   - Colour flows through tokens only — no raw hex outside the token
+     definitions block; no `class="blue"` / `class="green bold"`
+     v1-style hooks in v2 markup.
+   - Rules scoped under a wrapper class so the stylesheet can be
+     loaded globally without leaking into other pages (helps when an
+     embedded mini-dashboard wants the styles without colliding with
+     the surrounding page).
+   - Theme overlays are additional stylesheets that redefine the
+     tokens; load order is the standard `additionalCss` mechanism.
+     The dashboard never inspects the active theme by name.
 7. ~~Widget `$schema` migration.~~ **Resolved 2026-05-04 — tiered
    (Option C).** Nine widgets get full-tier backfill (every param
-   typed); the rest get canonical-only and keep the legacy JSON-textarea
-   fallback for non-canonical params. Specific widget list pinned in
-   `dashboard-progress.md` Resolved questions §Q7.
+   typed, no JSON textarea anywhere in their configure form):
+   `MispStatusWidget`, `TrendingTagsWidget`, `TrendingAttributesWidget`,
+   `UsageDataWidget`, `OrgEventsWidget`, `AttackWidget`,
+   `OrganisationMapWidget`, `RecentSightingsWidget`,
+   `EventEvolutionLineWidget`. Selection criteria: high configure-
+   frequency × complex params × strong toolbar adjacency. The rest of
+   the in-tree widgets, and all `Custom/` widgets, get canonical-only:
+   typed `$schema` entries for canonical-typed slots (§5.5) so the
+   dashboard toolbar reaches them, with non-canonical knobs continuing
+   on the legacy `$params` + `$placeholder` JSON-textarea path
+   (rendered in the configure form's "Advanced" bottom tier per DD-06).
+   Promotion from canonical-only to full-backfill is a self-contained
+   PR — no phase or architecture changes; the configure form auto-
+   detects which fields have schema entries.
 8. ~~REST URL shape.~~ **Moot** — the multi-board endpoints were
    withdrawn (§5.8). Existing verb-action endpoints are reused
    verbatim; only `GET /dashboards/widgets` is new and follows the
