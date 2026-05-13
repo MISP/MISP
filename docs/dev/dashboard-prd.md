@@ -401,7 +401,8 @@ schema-driven configure form (§5.2 F2.2) work.
 
 | Canonical type | JSON shape | Toolbar-eligible | Notes |
 |---|---|---|---|
-| `time_window` | `{ kind: "rolling", duration: "<ISO8601>" }` or `{ kind: "absolute", from: "<ISO date>", to: "<ISO date>"|null }` | yes | Replaces today's mix of `time_window: "7d"`, `start_date/end_date`, raw integer seconds. `kind: "rolling"` accepts ISO durations (`P7D`, `P1M`) and the legacy `7d`/`30d`/`-1` shorthands for back-compat. |
+| `time_window` | ISO 8601 duration string (`P7D`, `PT1H`, `P30D`, …) plus the sentinel `-1` for "all time" | yes | Relative / rolling only. Replaces today's mix of `time_window: "7d"`, raw integer seconds, etc. Legacy widgets parse a different in-house format (`Nd`, `(int)$value` seconds); the per-widget configs persist canonical ISO 8601 and the adapter described below translates on the way to `handler()`. |
+| `date_range` | `{ from: "<ISO date>", to: "<ISO date>" \| null }` | yes | Absolute date range. Separate from `time_window` because the two consumption patterns don't overlap cleanly in existing widgets: relative-only widgets reject absolute-shaped values, and forcing a tagged-union `time_window` would require every legacy widget to grow a `kind` discriminator. Widgets that today carry hardcoded `start_date` / `end_date` `$params` (`OrganisationMapWidget`, etc.) migrate those slots to declare `date_range` in `$schema`. Phase 3 landing. |
 | `tag_filter` | `{ include: string[], exclude: string[], taxonomies?: string[], match_event_tags?: bool, match_attribute_tags?: bool }` | yes | Strings are tag-name expressions (full match) or substrings (`tlp:` prefix). Taxonomy restriction lets the picker suggest only relevant tags. |
 | `org_filter` | `{ orgs: { uuid?: string, id?: int, name?: string }[], role: "creator"|"distribution"|"any" }` | yes | `role` lets a widget say *which* org relationship it filters on — TrendingTags filters by orgc, OrgsContributorLastMonth filters by anyone touching the event. |
 | `sharing_group_filter` | `{ sharing_group_ids: int[] }` | yes | Single shape across all widgets. |
@@ -427,6 +428,32 @@ There is no inherit/pinned per-widget state, no `BoardScopeHelper`
 inheritance resolution, no scope persistence layer. Widget classes
 read their own `$options` exactly as today; the toolbar's effect is
 realised by having already written to those configs.
+
+**Canonical → legacy translation (per-widget adapter).** Configs
+persist in canonical shape (ISO 8601 durations, `date_range` objects,
+etc.) regardless of whether the consuming widget has been migrated to
+the canonical format internally. Per the additive-only posture, we
+don't touch every legacy widget's `handler()`; instead a single
+adapter sits in front of `handler()` and translates the canonical
+slots into the shape each widget expects, driven off `$widget->$schema`
+to know which slots are canonical. The adapter lives in
+`app/Lib/Dashboard/Tools/CanonicalTypeAdapter` and is called from
+`DashboardsController::renderWidget` before `$widget->handler($user,
+$config)`; the bulk-edit toolbar's persisted configs flow through the
+same hook. Translation table for `time_window`:
+
+- `P<N>D` → `<N>d` (legacy days form)
+- `P<N>W` → `(<N> * 7)d`
+- `PT<N>H` → `(<N> * 3600)` seconds
+- `-1` (sentinel "all time") → `-1` unchanged
+- arbitrary integer seconds → unchanged
+
+A widget that adopts the canonical format directly (in the Phase 2
+`$schema` full-tier backfill) gets its canonical slot through
+*un*translated — per-widget migration and the adapter are orthogonal.
+Same shape for `date_range` once a Phase 3 sweep migrates the existing
+`start_date` / `end_date` `$params` slots; legacy parsing currently
+in widgets like `OrganisationMapWidget` is the translation target.
 
 ### 5.6 Dashboard toolbar (G4 bulk edit)
 
@@ -697,12 +724,22 @@ The intended posture for "I just want a different colour scheme".
   `webroot/css/dashboard/dashboard.default.css`) that:
   1. defines the token set with default values,
   2. styles the dashboard markup using only those tokens.
-- A CSS-only theme drops a single override stylesheet that **redefines
-  the tokens** (and nothing else). No `.ctp` overrides, no JS, no
-  markup surgery. Example:
+- **Activation is owned by MISP's theme system, not the dashboard.**
+  A theme that wants to retone the dashboard ships its overlay at
+  `app/View/Themed/<Name>/webroot/css/dashboard/<Name>.css` (or
+  whichever path the theme's main stylesheet loads). The overlay
+  redefines `--misp-dash-*` tokens — that is the only contract. UI
+  retones via the cascade; ECharts retones on next paint because
+  `echarts-theme.mjs` reads tokens via `getComputedStyle` at first
+  init. The dashboard never inspects the active theme by name and
+  exposes no toggle of its own; switching themes is a full page
+  navigation owned by MISP's profile / config layer. Example token
+  redefinition (placement in the theme's stylesheet — the selector
+  is up to the theme, this PRD only prescribes the token names):
 
   ```css
-  :root[data-theme="midnight"] {
+  /* in app/View/Themed/Midnight/webroot/css/dashboard/midnight.css */
+  .misp-dashboard {
     --misp-dash-surface:        #0e0f12;
     --misp-dash-surface-raised: #161821;
     --misp-dash-border:         #2a2d36;
@@ -712,6 +749,10 @@ The intended posture for "I just want a different colour scheme".
     /* ... */
   }
   ```
+
+  (The Phase 0.3 prototype's `?theme=<name>` query-param activation
+  on the standalone `/dashboards2` view is a verification convenience
+  only; it does not survive into the Phase 1 in-place view.)
 
 - Token names are stable contract; we treat them as a public API and
   bump them only with a deprecation note.

@@ -1001,69 +1001,6 @@ Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
 
-### PRD §8.1 wording: theme activation belongs to MISP's theme system, not the dashboard
-
-**Surfaced 2026-05-13 during midnight-overlay implementation.**
-
-PRD §8.1 currently shows the activation example as
-`:root[data-theme="midnight"] { … }` and reads as a dashboard-owned
-toggle. That's misleading: MISP already has a theme system at the
-user/site level (Cake's `app/View/Themed/<Name>/...`), and the
-dashboard should inherit it, not introduce a parallel toggle. The
-attribute selector is fine as a *prototype* convenience for
-verifying the token-redefinition mechanism, but it isn't the
-production activation API.
-
-**What the PRD should say after Phase 0.4 lock-in:**
-- A theme that wants to retone the dashboard ships its overlay at
-  `app/View/Themed/<Name>/webroot/css/dashboard/<Name>.css` (or
-  whichever path the theme's main stylesheet loads).
-- The overlay redefines the `--misp-dash-*` tokens — that's the
-  only contract. UI retones via the cascade; charts retone on next
-  paint because `echarts-theme.mjs` reads tokens via
-  `getComputedStyle` at first init.
-- No dashboard-specific toggle exists. Switching themes is a full
-  page navigation owned by MISP's profile / config layer.
-- Phase 1 inheritance work: `Dashboards2Controller::index` sets
-  `$this->layout = 'default'` (not the prototype's `= false`) so
-  the active-theme CSS chain loads automatically before any
-  dashboard markup.
-
-**Where it lands:** Phase 0.4 task "Lock the resolved §13 answers
-and library decisions into the PRD" should also fold this §8.1
-clarification in. Pure wording change — no architecture impact.
-
-### `date_range` as a separate canonical type for absolute date pickers
-
-**Surfaced 2026-05-06 during configure-form prototype review.**
-
-User asked whether the `time_window` picker can also accept absolute
-date ranges. It cannot today — every relative-duration widget
-(`TrendingTagsWidget`, `EventEvolutionLineWidget`, etc.) parses
-`time_window` as "count back from now" (`Nd` or seconds). Some other
-widgets (`OrganisationMapWidget` notably) carry separate `start_date`
-+ `end_date` `$params`, but those are widget-specific, not canonical.
-
-**Where it lands:** Phase 3 — alongside the rest of the canonical-
-type catalogue work. Two changes:
-
-1. **PRD §5.5 revision** — add `date_range` as a canonical type
-   producing `{from: ISO-date, to: ISO-date}`. Feature-parity-with-v1
-   is the floor: better filter UX is fine per
-   `feedback_parity_vs_improvement.md`.
-2. **Adapter + picker**: a date-range picker in the configure form's
-   typed tier, plus an entry in the canonical→legacy adapter that
-   walks widgets which only consume relative durations and either
-   warns or computes a relative fallback (`today - from` in days)
-   when the saved canonical value is `date_range`. Widgets that have
-   their own `start_date`/`end_date` `$params` migrate those slots
-   to declare `date_range` in `$schema`.
-
-Don't do this in Phase 0–2: today's relative-only widgets reject any
-absolute-shaped value, and a lossy "convert range to days" fallback
-in the picker would silently lose the upper bound. Defer until the
-adapter and toolbar are in place.
-
 ### Antimeridian splitting required when re-vendoring world GeoJSON
 
 **Surfaced 2026-05-06 during WorldMap browser verification.**
@@ -1123,44 +1060,6 @@ too without a separate change.
 session's commit. Keep a regression test in mind for Phase 1 when
 the controller switches `$this->layout = 'default'` and the grid root
 inherits MISP layout padding instead of the prototype's own.
-
-### Canonical-type → legacy widget-format adapter for `time_window`
-
-**Surfaced 2026-05-06 during BarChart browser verification.**
-
-PRD §5.5 catalogues `time_window` as ISO 8601 duration (`P7D`,
-`PT1H`, `P30D`, …). Most v1 in-tree widgets parse a different
-in-house format: `TrendingTagsWidget` expects a lowercase `Nd` suffix
-for days and falls through to `(int)$value` otherwise; sending `P7D`
-yields `(int)'P7D' === 0` → empty result set. The Phase 0.3 prototype
-seed config was changed from `P7D` to `7d` to unblock browser
-verification, but that's a band-aid.
-
-**Where it lands:** Phase 2 — bottom of "Per-canonical-type form
-field elements (only `time_window` for now)". The canonical-type
-field renders the picker in ISO 8601 and persists ISO 8601, but at
-`handler()`-call time the widget receives a *translated* legacy
-value. Translation is a one-place adapter, *not* a per-widget edit
-(per the additive-only posture).
-
-Sketch: in `Dashboards2Controller::renderWidget`, before
-`$widget->handler($user, $config)`, walk `$config` and translate any
-canonical-typed slot whose widget hasn't been migrated to the
-canonical format. Drives off `$widget->$schema` to know which slots
-are canonical and a small `CanonicalTypeAdapter` helper to do the
-translation. Same hook applies for the bulk-edit toolbar's persisted
-configs.
-
-The translation table for `time_window`:
-- `P<N>D` → `<N>d` (legacy days form)
-- `P<N>W` → `(<N>*7)d`
-- `PT<N>H` → `(<N>*3600)` seconds
-- `-1` (sentinel "all time") → `-1` unchanged
-- arbitrary integer seconds → unchanged
-
-Per-widget migration is then orthogonal: a widget that adopts the
-canonical format directly (in Phase 2's $schema backfill) gets its
-canonical slot through *un*translated.
 
 ---
 
