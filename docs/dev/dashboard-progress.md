@@ -784,7 +784,7 @@ in the rename pass below, not rebuilt.
 - [x] Delete v1 `app/Controller/DashboardsController.php` (after the carryover copy above). — **Done 2026-05-13** in this commit.
 - [x] Delete v1 `app/View/Dashboards/` view tree (all 10 files — 4 are now duplicated under `Dashboards2/`). — **Done 2026-05-13** in this commit. All 10 .ctp files removed; `app/View/Dashboards/` directory itself gone (will reappear at the rename step when `Dashboards2/ → Dashboards/`).
 - [x] Remove v1 dashboard JS from `app/webroot/js/misp.js` (lines 5592–5728). Verify no other page in misp.js references the removed functions. — **Done 2026-05-13.** Block deleted (138 lines incl. trailing blank); file went 6444 → 6306 lines. Pre-delete reverse-grep for `submitDashboardForm` / `saveDashboardState` / `resetDashboardGrid` / `updateDashboardWidget` and the `#DashboardConfig` / `#DashboardValue` form-field IDs was clean across `app/` (all hits were inside the doomed range itself). The `.grid-stack-item` / `.edit-widget` / `.remove-widget` / `.widget-export-menu` jQuery selectors were live-bound at the document root by `resetDashboardGrid`; the v1 markup that emitted those classes is already gone with the controller + view tree, so the binding had nothing to attach to anyway.
-- [ ] Remove Gridstack vendored assets per DD-01: `gridstack.all.js`, `gridstack.all.js.bk`, `gridstack.min.css`, `gridstack.min.css.bk`. Clean `gridstack` entries from `app/webroot/js/package.json` and `package-lock.json`.
+- [x] Remove Gridstack vendored assets per DD-01: `gridstack.all.js`, `gridstack.all.js.bk`, `gridstack.min.css`, `gridstack.min.css.bk`. Clean `gridstack` entries from `app/webroot/js/package.json` and `package-lock.json`. — **Done 2026-05-13.** Two tracked assets removed via `git rm` (`gridstack.all.js`, `gridstack.min.css`); the four untracked files (`gridstack.all.js.bk`, `gridstack.min.css.bk`, `package.json`, `package-lock.json`) deleted from the working tree only — they were never tracked. Deviation from literal task wording: deleted package.json/package-lock outright instead of "cleaning entries" because (a) they were untracked scratch from the gridstack vendoring effort, (b) gridstack was the only entry so cleaning would yield empty `dependencies: {}` stubs, and (c) v2 has no npm-driven build pipeline (vendored ESM under `dashboard-v2/{grid,charts}/vendor/`). If anyone later wants an npm pipeline they can introduce one fresh. Reverse-grep across `app/` for `gridstack` came up clean (only the asset files themselves + the package files; historic `Request URL: /js/gridstack.min.map` 404s in error.log are stale browser sourcemap requests, not code refs). **Discovered:** `app/webroot/css/main.css:2752–2769` carries 18 lines of v1-only dashboard CSS (`.grid-stack-item`, `.grid-stack-item-content`, `.widget-wrapper`, `.widgetContent`) that the original audit inventory missed — see Discovered work entry below.
 
 ### Rename pass (proto → canonical paths)
 
@@ -1098,6 +1098,34 @@ too without a separate change.
 session's commit. Keep a regression test in mind for Phase 1 when
 the controller switches `$this->layout = 'default'` and the grid root
 inherits MISP layout padding instead of the prototype's own.
+
+### v1 dashboard CSS rules left over in main.css
+
+**Surfaced 2026-05-13 during the gridstack asset removal task.**
+
+`app/webroot/css/main.css:2752–2769` carries 18 lines of v1-only
+dashboard CSS — five rules targeting `.grid-stack-item`,
+`.grid-stack-item-content`, `.grid-stack-item .grid-stack-item-content`,
+`.grid-stack-item .widget-wrapper`, and `.grid-stack-item .widgetContent`.
+These were MISP-side overrides on top of gridstack's base CSS for v1
+widget layout. The original Phase 1 audit task inventory listed
+"dashboard CSS" in the surface to delete but didn't enumerate this
+specific block — it lives in the global stylesheet rather than a
+dedicated dashboard CSS file.
+
+With v1's controller, view tree, and JS now gone, no surviving markup
+emits `.grid-stack-item` / `.widget-wrapper` / `.widgetContent`
+classes. v2 uses different class names (PDD-driven `.misp-board-*`
+namespace per the proto). Reverse-grep across `app/webroot/js/dashboard-v2/`,
+`app/View/Dashboards2/`, `app/View/Elements/dashboard-v2/` for those
+selectors comes up empty.
+
+**Where it lands:** add a follow-up task to the Phase 1 v1-removal
+band to delete those 18 lines from main.css. Touching main.css is
+mildly out-of-scope per the additive-only posture; sign off before
+removing. Lines are pure dead CSS — risk is zero — but main.css is
+the global stylesheet and shouldn't be touched casually without
+naming it on the tracker first.
 
 ---
 
