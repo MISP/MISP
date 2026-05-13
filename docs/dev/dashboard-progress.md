@@ -745,36 +745,67 @@ risk on the chosen libraries before committing Phase 1 effort.
 
 ## Phase 1 — Frame (in-place replacement)
 
-**Goal:** replace v1 controller actions, views, JS, and CSS with v2
-equivalents on canonical `/dashboards/*` routes. v1 files are deleted
-as v2 takes over the same URL — no parallel mounting, no flag.
+**Goal:** integrate the Phase 0.3 proto in place at `/dashboards/*`,
+removing v1 in the same change. The proto code (controller, views,
+JS, CSS, renderers, persistence, drag/resize, configure side panel,
+toolbar bulk-edit, theme overlays) is the basis per Phase 0.4 sign-off;
+Phase 1 is the rename + integration pass that lands it on canonical
+URLs under MISP's regular page chrome.
 
-**Exit criteria:** the existing `/dashboards` URL serves v2 only.
-A user lands on a working dashboard, reading from / writing to the
-existing `UserSetting:dashboard` row using the new `{scope, widgets}`
-blob shape (with backward-compat read of legacy bare-array form),
-identical-looking on default and Overmind themes.
+**Exit criteria:** `/dashboards` serves v2 only on default and Overmind
+themes. A user lands on a working dashboard reading from / writing to
+the existing `UserSetting:dashboard` row (**bare widget array** —
+per DD-05 there is no `{scope, widgets}` envelope; on-read fix-ups
+mint `instance_id` and rename `width/height → w/h` without changing
+the top-level shape). v1 controller actions, views, JS, and assets
+are deleted in place.
 
-- [ ] Decompose view tree per PRD §8.3: scaffold each new `.ctp` with placeholder content (replaces v1 `View/Dashboards/index.ctp` + friends in place)
-- [ ] CSS architecture: `webroot/css/dashboard/dashboard.default.css` with full token catalogue, BEM-ish class names, no inline styles
-- [ ] JS hook contract: dashboard JS lives in `webroot/js/dashboard-v2/` (own dir, replacing the v1 dashboard JS in `misp.js`); binds via `data-*` attributes only
-- [ ] Remove v1 dashboard JS from `app/webroot/js/misp.js` (lines ~5570–5730: `submitDashboardForm`, `saveDashboardState`, `resetDashboardGrid`, click handlers)
-- [ ] Vendor Pragmatic Drag and Drop at `webroot/js/dashboard-v2/grid/vendor/` (per DD-01)
-- [ ] Build the custom `GridModule` (snap, collision, resize-cascade) per DD-01 — **escalate to user if exceeds ~600 lines**
-- [ ] Vendor ECharts at `webroot/js/dashboard-v2/charts/vendor/` (per DD-02; tree-shaken bundle: bar + line + geo at minimum)
-- [ ] ECharts theme registration: derive `"misp"` theme from CSS tokens at boot (PRD §8.2)
-- [ ] Rewrite `DashboardsController::index` for v2 (replaces existing in place)
-- [ ] Rewrite `DashboardsController::renderWidget` for v2 with payload extended by `scope` (per PRD §5.8)
-- [ ] **Per-widget on-read fix-ups** (per DD-05 — no top-level shape change). Promote `width/height → w/h` and mint `instance_id` on each widget that lacks one. Verified by unit test that round-trips a v1 fixture without data loss.
-- [ ] First-load default: load layout from `dashboards.default = 1` if present; else hardcoded fallback (single MispStatusWidget)
-- [ ] Widget wrapper element using `data-misp-widget` and stable hooks; no inline styles, no hardcoded `#0088cc` border
-- [ ] Empty-state element for "no widgets yet"
-- [ ] `DashboardURLValidator` helper under `app/Lib/Dashboard/Tools/` (used by every drilldown-aware renderer per DD-03)
-- [ ] Side menu update on default theme `Elements/genericElements/SideMenu/side_menu.ctp` (adjust the `dashboard` case in place — no v1/v2 split)
-- [ ] Side menu update on `Themed/UiBeta/Elements/genericElements/SideMenu/side_menu.ctp` (mirror the default update)
-- [ ] Smoke test: visit `/dashboards`, see MispStatusWidget render correctly on default theme
-- [ ] Smoke test: visit `/dashboards` under Overmind theme, confirm no broken layout
-- [ ] Smoke test: user has a v1-shape `UserSetting:dashboard` row, visit `/dashboards` → widgets render → save → row now has `w/h` + `instance_id` per widget, top-level shape unchanged (still bare array)
+**Carried over from Phase 0.3 proto (no Phase 1 work needed).** CSS
+token catalogue + base stylesheet; the §8.5 JS hook contract; PDD +
+ECharts vendored at `app/webroot/js/dashboard-v2/{grid,charts}/vendor/`;
+custom GridModule (snap/collision/cascade); ECharts "misp" theme
+derived from tokens; the widget wrapper element with stable hooks;
+LayoutFixup on-read fix-ups; persistence to `UserSetting:dashboard`
+via `Dashboards2Controller::updateSettings`; SimpleList / BarChart /
+WorldMap renderers; DD-06 two-tier configure side panel; DD-05
+toolbar bulk-edit chip + popover; midnight overlay theme; Overmind
+Level-3 wrapper override. These are all renamed onto canonical paths
+in the rename pass below, not rebuilt.
+
+### v1 audit + removal (in place)
+
+- [ ] Audit pass: enumerate v1 surface — controller (`app/Controller/DashboardsController.php`), views (`app/View/Dashboards/`), dashboard JS in `app/webroot/js/misp.js` (lines ~5570–5730: `submitDashboardForm`, `saveDashboardState`, `resetDashboardGrid`, click handlers), Gridstack vendored assets (`gridstack.all.js`, `gridstack.min.css` and `.bk` siblings), v1 dashboard CSS. List each candidate file before deletion.
+- [ ] Delete v1 `app/Controller/DashboardsController.php` (or migrate any still-needed action — e.g. `import` / `export` / `saveTemplate` — into the v2 controller before deletion).
+- [ ] Delete v1 `app/View/Dashboards/` view tree (whatever remains after migrating any reusable elements).
+- [ ] Remove v1 dashboard JS from `app/webroot/js/misp.js`. Verify no other page in misp.js references the removed functions.
+- [ ] Remove Gridstack vendored assets per DD-01 (superseded by Pragmatic DnD).
+- [ ] Delete v1 dashboard CSS / asset siblings flagged in the audit pass.
+
+### Rename pass (proto → canonical paths)
+
+- [ ] Rename `app/Controller/Dashboards2Controller.php → DashboardsController.php`. ACL whitelist key `dashboards2 → dashboards`. Route adjustments if any.
+- [ ] Rename `app/webroot/js/dashboard-v2/ → app/webroot/js/dashboard/`. Update every `import` path in the JS modules; update `<script>` tags in the view.
+- [ ] Rename `app/View/Elements/dashboard-v2/ → app/View/Elements/dashboard/` and every `$this->element('dashboard-v2/...')` callsite.
+- [ ] Rename `app/View/Themed/Overmind/Elements/dashboard-v2/ → app/View/Themed/Overmind/Elements/dashboard/`. Themed CSS at `Themed/Overmind/webroot/css/dashboard/overmind.css` keeps its path.
+- [ ] Rename `app/View/Dashboards2/ → app/View/Dashboards/` (collides with v1; v1 must be removed first per the audit step above).
+- [ ] Drop the proto-only `?theme=<overlay>` / `?ui_theme=<name>` query-param activation paths from `DashboardsController` and `Dashboards/index.ctp`. Production activation is MISP's theme system per PRD §8.1.
+- [ ] Drop the standalone `<!DOCTYPE html><html>…</html>` markup from `Dashboards/index.ctp`. Set `$this->layout = 'default'` so MISP's regular layout chrome wraps the dashboard; the view emits only the dashboard's own markup + `<script type="module">` tag.
+
+### New Phase 1 work (additive)
+
+- [ ] First-load default: load layout from `dashboards.default = 1` row if present; else hardcoded fallback (single MispStatusWidget). Replaces the proto's four-widget seed in `Dashboards2Controller::index`.
+- [ ] Empty-state element for "no widgets yet" — shown when both the user's `UserSetting:dashboard` and any default template are empty/absent.
+- [ ] `DashboardURLValidator` helper under `app/Lib/Dashboard/Tools/` (per DD-03 — Phase 5 renderers will use it from day one; Phase 1 introduces the helper + a smoke test so the contract is in place).
+- [ ] Drag/resize commit callback in `grid.module.mjs` so `BoardModule._scheduleSave()` fires on layout commits. The proto deliberately omitted this — layout changes don't persist today.
+- [ ] Side menu update on default theme `Elements/genericElements/SideMenu/side_menu.ctp` — adjust the existing `dashboard` case in place; no separate v2 entry to add (routes are already canonical post-rename).
+- [ ] Side menu update on `Themed/UiBeta/Elements/genericElements/SideMenu/side_menu.ctp` (UiBeta is the only theme that overrides side_menu.ctp — Overmind inherits the default).
+
+### Smoke tests (close-out)
+
+- [ ] Visit `/dashboards` on default theme: dashboard renders inside MISP layout chrome, MispStatusWidget shows correctly, edit-mode toggle works, drag commits AND persists (regression check on the new commit callback).
+- [ ] Visit `/dashboards` under Overmind theme: title-bar drag works, configure side panel opens, toolbar bulk-edit chip works, no broken layout.
+- [ ] Legacy-row migration: user has a v1-shape `UserSetting:dashboard` row → visit `/dashboards` → widgets render → save → row now carries `w/h` + `instance_id` per widget, top-level shape unchanged (still bare array per DD-05).
+- [ ] Grep sanity: `Dashboards2Controller`, `dashboard-v2`, and `?theme=`/`?ui_theme=` references are all gone (no straggling imports / 404s / dead branches).
 
 ---
 
