@@ -1128,3 +1128,27 @@ read-promote).
 
 Per-task detail will live in `docs/dev/dashboard-progress.md` once Phase 0
 is signed off.
+
+## 15. Binding design decisions
+
+The following cross-phase decisions are binding for v2. Rationale,
+alternatives considered, licence checks, reversibility, and the dated
+trail for each live in `docs/dev/dashboard-design-decisions.md` — this
+section captures the *call* so the PRD stays self-contained on "what
+was decided".
+
+| ID | Date | Binds | Call (one-line) | Status |
+|---|---|---|---|---|
+| DD-01 | 2026-05-04 | §G10, §8.5, §13 Q4, Phase 0.2, Phase 1 | Drag/grid layout: **Pragmatic Drag and Drop (Atlassian, Apache 2.0) + CSS Grid + ~200–400 LOC custom snap/collision math** — replaces Gridstack entirely. Reversibility: wrapped behind a small `PragmaticDndAdapter`; revisit if Phase 1 grid math exceeds ~600 lines. | binding |
+| DD-02 | 2026-05-04 (uPlot trial closed 2026-05-06) | §G10, §6.5, all renderer work | Charting library: **Apache ECharts only** (Apache 2.0). Single library covers bar / line / multi-line / geo / heatmap / treemap. uPlot trial closed — every in-tree time-series widget renders <500 points; uPlot's edge starts ~5,000+. | binding |
+| DD-03 | 2026-05-04 | §13 Q3, §5.7, Phase 1 + Phase 5 | Drilldown: **per-datum `drilldown` URL in widget data** (no class-level `$drilldown`, no auto-wrap). `DashboardURLValidator` helper sanity-checks every URL (relative or same-host only). | binding |
+| DD-04 | 2026-05-04 | originally §13 Q1, §5.4 | ~~Templates carry a `scope` key + Reset offers "Also apply default filters" checkbox.~~ | superseded by DD-05 |
+| DD-05 | 2026-05-04 | §G4, §5.5, §5.6, §5.7, §7.1 | Toolbar is a **bulk-edit UI for per-widget configs**, not a runtime scope. Toolbar pull walks declarer widgets and writes their `config[<canonical>]` directly; toolbar's displayed value is computed at render time (all-agree / mixed / hidden). No `BoardScopeHelper`, no `_scope` blob, no `$scopeAware` flag. Toolbar pulls write immediately, any mode. | binding |
+| DD-06 | 2026-05-04 | §5.2 F2.2, §5.7, Phase 2 | Configure form is **two-tier**: typed-fields top tier driven by `$schema`; dot-notation key-value list bottom tier ("Advanced") for params without schema entries. Round-trips losslessly via dot-path flatten/re-nest. Custom widgets without `$schema` collapse to the bottom tier only. | binding |
+| DD-07 | 2026-05-06 | §G10, §11 (security/licensing), Phase 7 cleanup | All Phase 0.2 vendored deps are AGPL-3.0-compatible: Pragmatic DnD (Apache 2.0), ECharts (Apache 2.0 + transitive tslib 0BSD + zrender BSD-3-Clause), world-110m.geojson (ISC). LICENSE.* files travel with each bundle; esbuild `--legal-comments=external` emits the `*.LEGAL.txt` sidecar for transitives. | binding |
+
+**On adding new decisions.** Append to `dashboard-design-decisions.md`
+under a fresh `DD-NN` heading with date + rationale + alternatives +
+reversibility. Once stable, add a one-row entry to this table with a
+reference. Overturning an existing decision lands as a *new* DD entry
+(`DD-NN — supersedes DD-MM`), not an edit in place; the trail matters.

@@ -738,7 +738,7 @@ risk on the chosen libraries before committing Phase 1 effort.
 ### 0.4 Sign-off
 
 - [x] Walk-through with user (hitm session); user explicitly approves to proceed to Phase 1 — **Done 2026-05-13**. Default + ?theme=midnight + ?ui_theme=Overmind + combined all verified. One regression surfaced (GridModule padding-aware math) and fixed in `04c2e308f`; see Discovered work entry. User explicit "Looks good!" → cleared to proceed.
-- [ ] Lock the resolved §13 answers and library decisions into the PRD (move "Resolved questions" out of this file into PRD §13 with strikethrough notation)
+- [x] Lock the resolved §13 answers and library decisions into the PRD (move "Resolved questions" out of this file into PRD §13 with strikethrough notation) — **Done 2026-05-13** across three split commits: (a) §13 lock-in (Q3 resolution inlined + Q6/Q7 pointers replaced with detail; Resolved questions section stripped from this file), (b) architectural Discovered work entries folded into PRD body (§8.1 activation rewritten; §5.5 `time_window`/`date_range` split + canonical→legacy adapter paragraph added), (c) DD-01..DD-07 catalogued in new PRD §15 with rationale staying in `dashboard-design-decisions.md`.
 - [ ] Tear down the prototype branch (or merge a curated subset back to `dashboards` as Phase 1 starting point — decide at sign-off)
 
 ---
@@ -1074,8 +1074,8 @@ commit just before Phase 0.4 task 2).
 
 ## Design-decision log pointer
 
-Significant cross-phase decisions (library choices, schema shapes,
-URL structure, theme-token names) live in
-`dashboard-design-decisions.md` — created the first time an
-0.2/0.3 task lands a decision worth recording. If that file does not
-yet exist, it has not yet been needed.
+Binding cross-phase decisions are catalogued in PRD §15 (one-line call
+per decision with the PRD section it binds). Full rationale,
+alternatives considered, licence checks, and reversibility for each
+live in `dashboard-design-decisions.md`. New decisions land in the
+log first; once stable, a one-row entry is added to PRD §15.
