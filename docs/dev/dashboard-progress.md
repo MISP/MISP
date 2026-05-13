@@ -737,7 +737,7 @@ risk on the chosen libraries before committing Phase 1 effort.
 
 ### 0.4 Sign-off
 
-- [ ] Walk-through with user (hitm session); user explicitly approves to proceed to Phase 1
+- [x] Walk-through with user (hitm session); user explicitly approves to proceed to Phase 1 — **Done 2026-05-13**. Default + ?theme=midnight + ?ui_theme=Overmind + combined all verified. One regression surfaced (GridModule padding-aware math) and fixed in `04c2e308f`; see Discovered work entry. User explicit "Looks good!" → cleared to proceed.
 - [ ] Lock the resolved §13 answers and library decisions into the PRD (move "Resolved questions" out of this file into PRD §13 with strikethrough notation)
 - [ ] Tear down the prototype branch (or merge a curated subset back to `dashboards` as Phase 1 starting point — decide at sign-off)
 
