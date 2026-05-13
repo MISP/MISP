@@ -54,11 +54,70 @@ class Board {
   constructor(rootEl) {
     this.root = rootEl;
     this.renderUrl = rootEl.getAttribute(ATTR_RENDER_URL);
+    this.saveUrl  = rootEl.getAttribute('data-misp-board-save-url');
     this.mode = rootEl.getAttribute(ATTR_BOARD_MODE) || 'view';
     this.grid = null;
+    this._saveTimer = null;
     this._wireBoardActions();
     this._wireWidgetActions();
     this._init();
+  }
+
+  // ---- persistence ----
+
+  /**
+   * Serialise the current board state to the v2 widget shape and
+   * POST it to /dashboards2/updateSettings. Debounced 50ms so the
+   * toolbar's per-declarer callback (fires N times for an N-widget
+   * bulk commit) collapses to a single network round-trip.
+   */
+  _scheduleSave() {
+    if (!this.saveUrl) return;
+    if (this._saveTimer) clearTimeout(this._saveTimer);
+    this._saveTimer = setTimeout(() => this._saveLayout(), 50);
+  }
+
+  async _saveLayout() {
+    if (!this.grid || !this.saveUrl) return;
+    const positions = this.grid.serialize();
+    const widgets = [];
+    for (const p of positions) {
+      const wEl = this.root.querySelector(
+        `[${ATTR_WIDGET_INSTANCE}="${CSS.escape(p.id)}"]`,
+      );
+      if (!wEl) continue;
+      let config = {};
+      try {
+        config = JSON.parse(wEl.getAttribute(ATTR_WIDGET_CONFIG) || '{}');
+      } catch (_) { /* keep empty */ }
+      widgets.push({
+        instance_id: p.id,
+        widget: wEl.getAttribute(ATTR_WIDGET_NAME),
+        alias:  wEl.getAttribute('data-widget-alias') || null,
+        config,
+        position: { x: p.x, y: p.y, w: p.w, h: p.h },
+      });
+    }
+    try {
+      const body = new URLSearchParams({
+        'Dashboard[value]': JSON.stringify(widgets),
+      });
+      const resp = await fetch(this.saveUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body,
+        credentials: 'same-origin',
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      this._dispatchEvent('saved', { count: widgets.length });
+    } catch (err) {
+      console.warn('[misp-dashboard] save failed', err);
+      this._dispatchEvent('save-failed', { error: String(err) });
+    }
   }
 
   // ---- boot ----
@@ -91,10 +150,15 @@ class Board {
     this._updateDebugReadout();
 
     // Mount the bulk-edit toolbar for any canonical types declared
-    // on this board. The toolbar walks declarer widgets on commit
-    // and re-renders each via the same path used for refresh.
+    // on this board. The toolbar walks declarer widgets on commit,
+    // re-renders each via the same path used for refresh, and asks
+    // the board to persist (debounced so an N-declarer commit
+    // collapses to a single round-trip).
     initToolbar(this.root, {
-      onWidgetChange: (widgetEl) => this._renderWidget(widgetEl),
+      onWidgetChange: (widgetEl) => {
+        this._renderWidget(widgetEl);
+        this._scheduleSave();
+      },
     });
   }
 
@@ -214,6 +278,7 @@ class Board {
             // declaration, or moved this widget toward / away from
             // "(mixed)" with its peers — the toolbar must refresh.
             refreshToolbar(this.root);
+            this._scheduleSave();
           });
           break;
         case 'export-json':

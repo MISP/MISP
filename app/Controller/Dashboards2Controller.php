@@ -17,24 +17,111 @@ App::uses('AppController', 'Controller');
 class Dashboards2Controller extends AppController
 {
     public $components = array('Session', 'RequestHandler');
-    public $uses = array('Dashboard');
+    public $uses = array('Dashboard', 'User');
 
     public function beforeFilter()
     {
         parent::beforeFilter();
-        // POST /renderWidget carries widget config in its body — same
-        // CSRF posture as the v1 dashboard renderer.
-        $this->Security->unlockedActions[] = 'renderWidget';
-        if ($this->request->action === 'renderWidget') {
+        // POSTs carry widget data in their body — same CSRF posture
+        // as the v1 dashboards endpoints.
+        foreach (array('renderWidget', 'updateSettings') as $a) {
+            $this->Security->unlockedActions[] = $a;
+        }
+        if (in_array($this->request->action, array('renderWidget', 'updateSettings'), true)) {
             $this->Security->doNotGenerateToken = true;
         }
     }
 
     public function index()
     {
-        // Hardcoded prototype layout — three real MISP widgets.
-        // Real persistence (UserSetting:dashboard read with on-read
-        // fix-ups) lands in the last Phase 0.3 task.
+        App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
+        // Persistence path (Phase 0.3 demo of DD-05 on-read fix-ups):
+        //   1. read UserSetting:dashboard for the current user,
+        //   2. apply per-widget read fix-ups (width/height → w/h,
+        //      instance_id mint) so legacy v1 rows render correctly,
+        //   3. fall back to the hardcoded proto layout if no row exists
+        //      so a first-time viewer sees the demo state.
+        // updateSettings writes go through the same fix-up so persisted
+        // shape is canonical. Top-level stays bare-array (DD-05).
+        $saved = $this->User->UserSetting->getSetting(
+            $this->Auth->user('id'),
+            'dashboard'
+        );
+        if (!empty($saved) && is_array($saved)) {
+            $widgets = LayoutFixup::applyReadFixups($saved);
+        } else {
+            $widgets = $this->_defaultProtoLayout();
+        }
+
+        // REST clients get the layout payload as JSON via the
+        // RestResponse component (matches the v1 dashboards export()
+        // pattern). Web UI falls through to View/Dashboards2/index.ctp.
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($widgets, $this->response->type());
+        }
+
+        $this->layout = false;
+        $this->set('widgets', $widgets);
+    }
+
+    /**
+     * Persist the user's dashboard layout. Mirrors v1's
+     * `DashboardsController::updateSettings` contract so REST clients
+     * written against v1 keep working: `POST {Dashboard: {value:
+     * [...widgets]}}`. Top-level shape stays a bare array; per-widget
+     * fix-ups apply on write so the saved shape is canonical.
+     */
+    public function updateSettings()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('POST only.'));
+        }
+        if (!isset($this->request->data['Dashboard']['value'])) {
+            throw new BadRequestException(__('No setting data found.'));
+        }
+        $widgets = $this->request->data['Dashboard']['value'];
+        if (is_string($widgets)) {
+            $decoded = json_decode($widgets, true);
+            $widgets = is_array($decoded) ? $decoded : array();
+        }
+        App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
+        $widgets = LayoutFixup::applyReadFixups($widgets);
+
+        // UserSetting's validate_json hook expects the value as a JSON
+        // string (matches v1's wire form: Dashboard[value]=<encoded>);
+        // passing a nested array trips a json_validate type check on
+        // PHP 8.3. Encode here so the model's beforeSave passes it
+        // through unmodified.
+        $data = array(
+            'UserSetting' => array(
+                'setting' => 'dashboard',
+                'value'   => json_encode($widgets, JSON_UNESCAPED_SLASHES),
+            ),
+        );
+        $result = $this->User->UserSetting->setSetting(
+            $this->Auth->user(),
+            $data
+        );
+        if ($result) {
+            return $this->RestResponse->saveSuccessResponse(
+                'Dashboard',
+                'updateSettings',
+                false,
+                false,
+                __('Settings updated.')
+            );
+        }
+        return $this->RestResponse->saveFailResponse(
+            'Dashboard',
+            'updateSettings',
+            false,
+            $this->User->UserSetting->validationErrors,
+            $this->response->type()
+        );
+    }
+
+    private function _defaultProtoLayout()
+    {
         $widgets = array(
             array(
                 'instance_id' => 'w_1',
@@ -77,16 +164,7 @@ class Dashboards2Controller extends AppController
                 'position'    => array('x' => 0, 'y' => 4, 'w' => 12, 'h' => 4),
             ),
         );
-
-        // REST clients get the layout payload as JSON via the
-        // RestResponse component (matches the v1 dashboards export()
-        // pattern). Web UI falls through to View/Dashboards2/index.ctp.
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($widgets, $this->response->type());
-        }
-
-        $this->layout = false;
-        $this->set('widgets', $widgets);
+        return $widgets;
     }
 
     public function renderWidget($instance_id = null)

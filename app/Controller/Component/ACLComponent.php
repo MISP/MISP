@@ -189,6 +189,7 @@ class ACLComponent extends Component
         'dashboards2' => array(
             'index' => array('*'),
             'renderWidget' => array('*'),
+            'updateSettings' => array('*'),
         ),
         'decayingModel' => array(
             "update" => array(),

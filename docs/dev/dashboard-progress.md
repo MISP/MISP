@@ -555,7 +555,86 @@ risk on the chosen libraries before committing Phase 1 effort.
   untouched by toolbar pulls.
 
 
-- [ ] Demonstrate per-widget on-read fix-ups: seed a v1-shape `UserSetting:dashboard` row (no `instance_id`, `width/height` not `w/h`), load the prototype, confirm widgets render, save → row now has `w/h` + `instance_id` per widget; top-level shape stays bare-array
+- [x] Demonstrate per-widget on-read fix-ups: seed a v1-shape `UserSetting:dashboard` row (no `instance_id`, `width/height` not `w/h`), load the prototype, confirm widgets render, save → row now has `w/h` + `instance_id` per widget; top-level shape stays bare-array
+
+  **Done note (2026-05-13).** First Phase 0.3 task that touches real
+  persistence. Five files:
+
+  - `app/Lib/Dashboard/Tools/LayoutFixup.php` (new) — static
+    `applyReadFixups($widgets)` walks each widget, renames
+    `position.width → position.w` and `position.height → position.h`
+    (preserving values exactly, deleting old keys), and mints
+    `instance_id = w_<k+1>` when missing. Position-based mint is
+    deterministic for the same input on a single read (Phase 5.5
+    criterion). Idempotent — feeding v2 shape through is a no-op.
+    Top-level stays a bare array.
+
+  - `app/Controller/Dashboards2Controller.php` — `index` now reads
+    `UserSetting:dashboard` for the current user, applies fix-ups,
+    falls back to `_defaultProtoLayout()` (the hardcoded demo) when
+    no row exists. New `updateSettings` action mirrors v1's contract
+    (`POST Dashboard[value]=<json_string>`). `$uses` adds `'User'`.
+    The controller json_encodes the widgets before handing to
+    `UserSetting->setSetting` because `validate_json` (MISP's hook)
+    expects a JSON string (matches v1's wire form: an array trips a
+    `json_validate` type check on PHP 8.3). beforeSave then passes
+    the already-valid JSON string through unmodified.
+
+  - `app/Controller/Component/ACLComponent.php` — `dashboards2`
+    whitelist adds `updateSettings`. Same gotcha as `renderWidget`:
+    without this entry, requests hit `Invalid controller.` instead of
+    the action.
+
+  - `app/View/Dashboards2/index.ctp` — board root carries a new
+    `data-misp-board-save-url` attribute so the JS knows where to
+    POST. Stable hook the same way `renderwidget-url` is.
+
+  - `app/webroot/js/dashboard-v2/board.module.mjs` — new
+    `_scheduleSave()` (debounced 50ms) + `_saveLayout()` (serialises
+    the board state from `grid.serialize()` + per-widget config
+    attribute and POSTs as `application/x-www-form-urlencoded`).
+    Toolbar `onWidgetChange` and configure-save callback both fire
+    `_scheduleSave()` so an N-declarer bulk commit collapses to one
+    round-trip. Dispatches `misp-board:saved` / `:save-failed`
+    custom events so theme JS can layer in status indicators.
+
+  Drag / resize commits don't fire `_scheduleSave()` yet — the grid
+  module doesn't have a commit callback, and per the additive-only
+  posture I'd rather plumb that in Phase 1's grid-API work than
+  retrofit it now. Toolbar pulls and configure saves cover the
+  task's verification surface.
+
+  **Verified round-trip via REST**:
+  ```
+  POST /dashboards2/updateSettings with v1-shape payload
+    {"Dashboard":{"value":[{"widget":"MispStatusWidget","config":{},
+                            "position":{"x":0,"y":0,"width":2,"height":2}}]}}
+  → {"saved":true,"success":true,"name":"Settings updated."}
+
+  GET /dashboards2/index Accept:json
+  → [{"widget":"MispStatusWidget","config":[],
+      "position":{"x":0,"y":0,"w":2,"h":2},   ← renamed
+      "instance_id":"w_1"}]                    ← minted
+  ```
+  After clearing the test row, the index endpoint falls back to the
+  hardcoded proto layout (4 widgets).
+
+  **Browser verification needed** — load `/dashboards2`, pull the
+  toolbar to a new value, reload. The pulled value should persist.
+  Open ⚙, change a config, save, reload — persists too. To exercise
+  the legacy-shape read path, seed a v1-shape row with
+  ```
+  mysql -u misp -pPassword1234 misp -e "
+    INSERT INTO user_settings (user_id, setting, value, timestamp) VALUES (
+      1, 'dashboard',
+      '[{\"widget\":\"MispStatusWidget\",\"config\":{},
+         \"position\":{\"x\":0,\"y\":0,\"width\":4,\"height\":3}}]',
+      UNIX_TIMESTAMP()
+    ) ON DUPLICATE KEY UPDATE value=VALUES(value), timestamp=VALUES(timestamp);"
+  ```
+  reload — single MispStatus tile renders at 4×3. Then click ⚙ on
+  it and Save; row should have `w/h` and `instance_id` in DB.
+
 - [ ] Add CSS-only "midnight" overlay theme and confirm Level 1 retheming works for both UI and charts (chart palette derived from tokens)
 - [ ] Add a `Themed/Overmind/Elements/dashboard/widget/wrapper.ctp` BS5 markup override and confirm Level 3 retheming works without breaking drag/configure/refresh
 
