@@ -668,7 +668,72 @@ risk on the chosen libraries before committing Phase 1 effort.
   * Configure side panel + toolbar popover: also dark
   * Reload without the query param → everything back to light
 
-- [ ] Add a `Themed/Overmind/Elements/dashboard/widget/wrapper.ctp` BS5 markup override and confirm Level 3 retheming works without breaking drag/configure/refresh
+- [x] Add a `Themed/Overmind/Elements/dashboard/widget/wrapper.ctp` BS5 markup override and confirm Level 3 retheming works without breaking drag/configure/refresh
+
+  **Done note (2026-05-13).** Path uses the prototype's `dashboard-v2`
+  suffix; the rename to `dashboard` happens at end-of-cycle when v1
+  is removed. Four file changes:
+
+  - `app/View/Elements/dashboard-v2/widget/wrapper.ctp` (new) —
+    extracted the inline widget markup from `index.ctp` into a Cake
+    element. Per PRD §8.5, the file's contract is the set of
+    `data-misp-*` / `data-widget-*` / `data-drag-handle` /
+    `data-resize-handle` / `data-position-*` attributes; markup
+    around them is open.
+
+  - `app/View/Dashboards2/index.ctp` — replaced the inline foreach
+    article block with `$this->element('dashboard-v2/widget/wrapper',
+    ['widget' => $w])` per widget. Cake's Themed resolver picks the
+    override automatically when `$this->theme` is set.
+
+  - `app/View/Themed/Overmind/Elements/dashboard-v2/widget/wrapper.ctp`
+    (new) — BS5-style override using `<div class="card">`, `card-header`,
+    `card-body`, `btn-group`, plus an explicit "Overmind" badge in
+    the title bar so the override is obvious during verification.
+    All §8.5 hooks preserved exactly so drag, configure, refresh,
+    remove, resize keep working unchanged. Element types changed
+    (`div` instead of `article`), class names changed, button
+    markup changed (anchors → buttons with `btn` classes) — the
+    BoardModule and friends don't notice.
+
+  - `app/View/Themed/Overmind/webroot/css/dashboard/overmind.css`
+    (new) — minimal self-contained styling for the overridden
+    classes (`.card.misp-widget--overmind`, `.card-header`,
+    `.card-title`, `.misp-widget--overmind__*`). Token bumps
+    (radius, shadow) under `:root[data-ui-theme="Overmind"]` so the
+    cards look slightly more BS5-flavoured. In production this kind
+    of overlay joins the Overmind theme's existing CSS chain.
+
+  - `app/Controller/Dashboards2Controller.php` — `index` reads
+    `?ui_theme=<Name>` from query (regex-whitelisted) and sets
+    `$this->theme`, which is what triggers Cake's Themed resolution.
+    View receives the value and conditionally loads
+    `/theme/<Name>/css/dashboard/<lowercase>.css` (Cake serves
+    `Themed/<Name>/webroot/*` at `/theme/<Name>/*` automatically).
+    Same `?theme=midnight` posture: prototype-only convenience; in
+    production the active theme is set via the user's profile / MISP
+    config and inherited from the host page.
+
+  **Verified mechanism**: `/dashboards2?ui_theme=Overmind` returns
+  markup with `<div class="card misp-widget--overmind">` (the
+  override), not `<article class="misp-widget">` (default). The
+  `/theme/Overmind/css/dashboard/overmind.css` path serves 200.
+  Same URL without the query → default markup.
+
+  **Browser verification needed** — load
+  `http://localhost:5007/dashboards2?ui_theme=Overmind`.
+  * Widget tiles render as BS5-style cards with an "Overmind" badge
+    in the title bar (the visible signal that the override took)
+  * Edit layout → drag a tile (titlebar) → drop. Works.
+  * Configure ⚙ → side panel opens. Save → tile re-renders. Works.
+  * Refresh ↻ → tile re-fetches. Works.
+  * In edit mode: ✕ removes a tile, resize handle resizes. Works.
+  * Drop `?ui_theme` → defaults restored.
+
+  Combining with `?theme=midnight` (Level 1 overlay) on top works
+  too because both are token-driven.
+
+
 
 ### 0.4 Sign-off
 

@@ -29,15 +29,28 @@ $themeOverlay = isset($this->request->params['named']['theme'])
 $themeOverlay = preg_match('/^[a-z][a-z0-9_-]{0,30}$/', (string)$themeOverlay)
     ? $themeOverlay
     : null;
+// uiTheme (set by the controller from ?ui_theme=...) activates the
+// matching Themed/<Name> overlay. The Cake resolver auto-serves
+// Themed/<Name>/webroot/* at /theme/<Name>/*, so we just emit a
+// link tag at a predictable path: /theme/<Name>/css/dashboard/<name>.css.
+$uiThemeCss = !empty($uiTheme)
+    ? sprintf('%s/theme/%s/css/dashboard/%s.css', $baseurl, $uiTheme, strtolower($uiTheme))
+    : null;
 ?>
 <!DOCTYPE html>
-<html lang="en"<?= $themeOverlay ? ' data-theme="' . h($themeOverlay) . '"' : '' ?>>
+<html lang="en"<?php
+  if ($themeOverlay) echo ' data-theme="' . h($themeOverlay) . '"';
+  if (!empty($uiTheme)) echo ' data-ui-theme="' . h($uiTheme) . '"';
+?>>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>dashboard-v2 prototype — MISP</title>
 <link rel="stylesheet" href="<?= h($baseurl) ?>/css/dashboard/dashboard.default.css">
 <link rel="stylesheet" href="<?= h($baseurl) ?>/css/dashboard/dashboard.midnight.css">
+<?php if ($uiThemeCss): ?>
+<link rel="stylesheet" href="<?= h($uiThemeCss) ?>">
+<?php endif; ?>
 </head>
 <body class="misp-dashboard-page">
 
@@ -65,30 +78,16 @@ $themeOverlay = preg_match('/^[a-z][a-z0-9_-]{0,30}$/', (string)$themeOverlay)
       data-misp-board-renderwidget-url="<?= h($baseurl) ?>/dashboards2/renderWidget"
       data-misp-board-save-url="<?= h($baseurl) ?>/dashboards2/updateSettings">
 
-    <?php foreach ($widgets as $w): ?>
-    <article class="misp-widget"
-             data-misp-widget
-             data-widget-name="<?= h($w['widget']) ?>"
-             data-widget-instance-id="<?= h($w['instance_id']) ?>"
-             data-widget-config='<?= h(json_encode($w['config'], JSON_UNESCAPED_SLASHES)) ?>'
-             data-position-x="<?= h($w['position']['x']) ?>"
-             data-position-y="<?= h($w['position']['y']) ?>"
-             data-position-w="<?= h($w['position']['w']) ?>"
-             data-position-h="<?= h($w['position']['h']) ?>">
-        <header class="misp-widget-titlebar" data-drag-handle>
-            <span class="misp-widget-title"><?= h($w['alias'] ?? $w['widget']) ?></span>
-            <span class="misp-widget-actions">
-                <button type="button" class="misp-widget-iconbtn" data-misp-widget-action="refresh" title="<?= __('Refresh') ?>" aria-label="<?= __('Refresh') ?>">↻</button>
-                <button type="button" class="misp-widget-iconbtn" data-misp-widget-action="configure" title="<?= __('Configure') ?>" aria-label="<?= __('Configure') ?>">⚙</button>
-                <button type="button" class="misp-widget-iconbtn misp-widget-iconbtn-edit-only" data-misp-widget-action="remove" title="<?= __('Remove') ?>" aria-label="<?= __('Remove') ?>">✕</button>
-            </span>
-        </header>
-        <div class="misp-widget-body" data-misp-widget-content>
-            <div class="misp-widget-loading"><?= __('Loading…') ?></div>
-        </div>
-        <span class="misp-widget-resize" data-resize-handle aria-hidden="true"></span>
-    </article>
-    <?php endforeach; ?>
+    <?php
+    // Each widget renders through the wrapper element so themes can
+    // surgically override it (PRD §8.3 Level 3). Cake's Themed resolver
+    // picks app/View/Themed/<active>/Elements/dashboard-v2/widget/
+    // wrapper.ctp when $this->theme is set; otherwise the default
+    // element under app/View/Elements/ wins.
+    foreach ($widgets as $w) {
+        echo $this->element('dashboard-v2/widget/wrapper', array('widget' => $w));
+    }
+    ?>
 
 </main>
 
