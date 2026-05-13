@@ -268,4 +268,225 @@ class Dashboards2Controller extends AppController
         }, $toConvert);
         return $header . PHP_EOL . implode(PHP_EOL, array_values($rows)) . PHP_EOL;
     }
+
+    /* ============================================================
+     * Phase 1 v1 carryover (per audit Done note in
+     * dashboard-progress.md). The five template / import / export
+     * actions live here verbatim during Phase 1 so the dashboard
+     * header's "⋯ More" dropdown (DD-08) keeps its URLs working.
+     * Phase 4 reimplements each v2-native; until then, no edits
+     * other than what the rename pass mechanically rewrites.
+     * ============================================================ */
+
+    public function import()
+    {
+        if ($this->request->is('post')) {
+            if (!empty($this->request->data['Dashboard'])) {
+                $this->request->data = json_decode($this->request->data['Dashboard']['value'], true);
+            }
+            if (!empty($this->request->data['UserSetting'])) {
+                $this->request->data = $this->request->data['UserSetting']['value'];
+            }
+            $result = $this->Dashboard->import($this->Auth->user(), $this->request->data);
+            if ($this->_isRest()) {
+                if ($result) {
+                    return $this->RestResponse->saveSuccessResponse('Dashboard', 'import', false, false, __('Settings updated.'));
+                }
+                return $this->RestResponse->saveFailResponse('Dashboard', 'import', false, __('Settings could not be updated.'), $this->response->type());
+            } else {
+                if ($result) {
+                    $this->Flash->success(__('Settings updated.'));
+                } else {
+                    $this->Flash->error(__('Settings could not be updated.'));
+                }
+                $this->redirect($this->baseurl . '/dashboards');
+            }
+        }
+        $this->layout = false;
+    }
+
+    public function export()
+    {
+        $data = $this->Dashboard->export($this->Auth->user());
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($data, $this->response->type());
+        } else {
+            $this->set('data', $data);
+            $this->layout = false;
+        }
+    }
+
+    public function saveTemplate($update = false)
+    {
+        if (!empty($update)) {
+            $conditions = array('Dashboard.id' => $update);
+            if (Validation::uuid($update)) {
+                $conditions = array('Dashboard.uuid' => $update);
+            }
+            $existingDashboard = $this->Dashboard->find('first', array(
+                'recursive' => -1,
+                'conditions' => $conditions
+            ));
+            if (
+                empty($existingDashboard) ||
+                (!$this->_isSiteAdmin() && $existingDashboard['Dashboard']['user_id'] != $this->Auth->user('id'))
+            ) {
+                throw new NotFoundException(__('Invalid dashboard template.'));
+            }
+        }
+        if ($this->request->is('post') || $this->request->is('put')) {
+            if (isset($this->request->data['Dashboard'])) {
+                $this->request->data = $this->request->data['Dashboard'];
+            }
+            $data = $this->request->data;
+            if (empty($update)) { // save the template stored in user setting and make it persistent
+                $data['value'] = $this->User->UserSetting->getSetting($this->Auth->user('id'), 'dashboard');
+            }
+            $result = $this->Dashboard->saveDashboardTemplate($this->Auth->user(), $data, $update);
+            if ($this->_isRest()) {
+                if ($result) {
+                    return $this->RestResponse->saveSuccessResponse('Dashboard', 'saveDashboardTemplate', false, false, __('Dashboard template updated.'));
+                }
+                return $this->RestResponse->saveFailResponse('Dashboard', 'import', false, __('Dashboard template could not be updated.'), $this->response->type());
+            } else {
+                if ($result) {
+                    $this->Flash->success(__('Dashboard template updated.'));
+                } else {
+                    $this->Flash->error(__('Dashboard template could not be updated.'));
+                }
+                $this->redirect($this->baseurl . '/dashboards/listTemplates');
+            }
+        } else {
+            $this->layout = false;
+        }
+        $permFlags = array(0 => __('Unrestricted'));
+        foreach ($this->User->Role->permFlags as $perm_flag => $perm_data) {
+            $permFlags[$perm_flag] = $perm_data['text'];
+        }
+        $options = array(
+            'org_id' => (
+                array(
+                    0 => __('Unrestricted')
+                ) + // avoid re-indexing
+                $this->User->Organisation->find('list', array(
+                    'fields' => array(
+                        'Organisation.id', 'Organisation.name'
+                    ),
+                    'conditions' => array('Organisation.local' => 1)
+                ))
+            ),
+            'role_id' => (
+                array(
+                    0 => __('Unrestricted')
+                ) + // avoid re-indexing
+                $this->User->Role->find('list', array(
+                    'fields' => array(
+                        'Role.id', 'Role.name'
+                    )
+                ))
+            ),
+            'role_perms' => $permFlags
+        );
+        if (!empty($update)) {
+            $this->request->data = $existingDashboard;
+        }
+        $this->set('options', $options);
+    }
+
+    public function listTemplates()
+    {
+        $conditions = [];
+        $accessible_widgets = array_keys($this->Dashboard->loadAllWidgets($this->Auth->user()));
+
+        if (!$this->_isSiteAdmin()) {
+            $permission_flags = [];
+            foreach ($this->Auth->user('Role') as $perm => $value) {
+                if (strpos($perm, 'perm_') !== false && !empty($value)) {
+                    $permission_flags[] = $perm;
+                }
+            }
+            $conditions['AND'] = [
+                [
+                    'OR' => [
+                        'Dashboard.user_id' => $this->Auth->user('id'),
+                        'AND' => [
+                            'Dashboard.selectable' => 1,
+                            ['OR' => [
+                                ['Dashboard.restrict_to_org_id' => $this->Auth->user('org_id')],
+                                ['Dashboard.restrict_to_org_id' => 0]
+                            ]],
+                            ['OR' => [
+                                ['Dashboard.restrict_to_role_id' => $this->Auth->user('role_id')],
+                                ['Dashboard.restrict_to_role_id' => 0]
+                            ]],
+                            ['OR' => [
+                                ['Dashboard.restrict_to_permission_flag' => $permission_flags],
+                                ['Dashboard.restrict_to_permission_flag' => 0]
+                            ]]
+                        ]
+                    ]
+                ]
+            ];
+        }
+
+        $currentUserId = $this->Auth->user('id');
+        $params = [
+            'filters' => ['name', 'description', 'uuid', 'value'],
+            'quickFilters' => ['name', 'description', 'uuid'],
+            'quickFilterParameter' => 'value',
+            'conditions' => $conditions,
+            'contain' => ['User.id', 'User.email'],
+            'afterFind' => function ($data) use ($accessible_widgets, $currentUserId) {
+                foreach ($data as &$element) {
+                    $element['Dashboard']['value'] = json_decode($element['Dashboard']['value'], true);
+                    if (!$this->_isRest()) {
+                        $widgets = [];
+                        foreach ($element['Dashboard']['value'] as $val) {
+                            $widgets[$val['widget']] = 1;
+                        }
+                        $element['Dashboard']['widgets'] = array_keys($widgets);
+                        sort($element['Dashboard']['widgets']);
+                        $temp = [];
+                        foreach ($element['Dashboard']['widgets'] as $widget) {
+                            if (in_array($widget, $accessible_widgets)) {
+                                $temp['allow'][] = $widget;
+                            } else {
+                                $temp['deny'][] = $widget;
+                            }
+                        }
+                        $element['Dashboard']['widgets'] = $temp;
+                        if ($element['Dashboard']['user_id'] != $currentUserId) {
+                            $element['User']['email'] = '';
+                        }
+                    }
+                }
+                return $data;
+            }
+        ];
+        $this->CRUD->index($params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('data', $this->viewVars['data']);
+    }
+
+    public function deleteTemplate($id)
+    {
+        $conditions = [];
+        if (Validation::uuid($id)) {
+            $conditions['Dashboard.uuid'] = $id;
+        }
+        if (!$this->_isSiteAdmin()) {
+            $conditions['Dashboard.user_id'] = $this->Auth->user('id');
+        }
+        $params = [
+            'conditions' => $conditions,
+            'redirect' => $this->baseurl . '/dashboards/listTemplates'
+        ];
+        $this->CRUD->delete($id, $params);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+    }
 }
