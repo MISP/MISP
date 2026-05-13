@@ -47,6 +47,11 @@
   border-bottom: 1px solid var(--misp-dash-border);
   font-size: var(--misp-dash-fs-sm);
   font-weight: var(--misp-dash-fw-medium);
+  /* Without `user-select: none` a mousedown on the title text starts
+   * a browser text selection and PDD never sees the drag intent —
+   * mirrors the default theme's `.misp-widget-titlebar` rule. */
+  user-select: none;
+  cursor: default;
 }
 
 .misp-widget--overmind .card-title {
