@@ -635,7 +635,39 @@ risk on the chosen libraries before committing Phase 1 effort.
   reload — single MispStatus tile renders at 4×3. Then click ⚙ on
   it and Save; row should have `w/h` and `instance_id` in DB.
 
-- [ ] Add CSS-only "midnight" overlay theme and confirm Level 1 retheming works for both UI and charts (chart palette derived from tokens)
+- [x] Add CSS-only "midnight" overlay theme and confirm Level 1 retheming works for both UI and charts (chart palette derived from tokens)
+
+  **Done note (2026-05-13).** Two-file change:
+  - `app/webroot/css/dashboard/dashboard.midnight.css` — token-only
+    overlay scoped under `:root[data-theme="midnight"]`. Redefines
+    surface / border / text / accent / status / shadow tokens for a
+    dark palette. No other rules; UI retones via the cascade.
+  - `app/View/Dashboards2/index.ctp` — always loads midnight.css
+    (rules dormant when the attribute is unset); reads `?theme=...`
+    query param and emits `<html data-theme="...">` server-side.
+
+  **User pushback noted:** the in-dashboard toggle pattern the PRD
+  example suggested is wrong — theme activation belongs to MISP's
+  existing theme system (`app/View/Themed/<Name>/`). The query-param
+  activation here is for prototype verification only; production
+  themes overlay tokens through Cake's Themed CSS chain on a full
+  page load. PRD §8.1 wording correction filed in Discovered work.
+
+  **Charts retone for free** because `echarts-theme.mjs` reads
+  `--misp-dash-*` via `getComputedStyle(document.documentElement)`
+  at first chart init. On a fresh page load with `?theme=midnight`,
+  the tokens are dark before any chart paints, so the registered
+  "misp" theme uses the dark palette directly — no JS retheme hook,
+  no chart re-init, exactly the PRD §8.1 + §8.2 promise.
+
+  **Browser verification needed** — load
+  `http://localhost:5007/dashboards2?theme=midnight`. Expect:
+  * Dark surface, light text, accent-blue popping on the dark base
+  * Bar charts: dark backgrounds, light tooltip, accent-blue bars
+  * Geo map: dark countries with accent-blue choropleth ramp
+  * Configure side panel + toolbar popover: also dark
+  * Reload without the query param → everything back to light
+
 - [ ] Add a `Themed/Overmind/Elements/dashboard/widget/wrapper.ctp` BS5 markup override and confirm Level 3 retheming works without breaking drag/configure/refresh
 
 ### 0.4 Sign-off
@@ -903,6 +935,38 @@ merges to `develop` for inclusion in the next 2.5 release cycle.
 Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
+
+### PRD §8.1 wording: theme activation belongs to MISP's theme system, not the dashboard
+
+**Surfaced 2026-05-13 during midnight-overlay implementation.**
+
+PRD §8.1 currently shows the activation example as
+`:root[data-theme="midnight"] { … }` and reads as a dashboard-owned
+toggle. That's misleading: MISP already has a theme system at the
+user/site level (Cake's `app/View/Themed/<Name>/...`), and the
+dashboard should inherit it, not introduce a parallel toggle. The
+attribute selector is fine as a *prototype* convenience for
+verifying the token-redefinition mechanism, but it isn't the
+production activation API.
+
+**What the PRD should say after Phase 0.4 lock-in:**
+- A theme that wants to retone the dashboard ships its overlay at
+  `app/View/Themed/<Name>/webroot/css/dashboard/<Name>.css` (or
+  whichever path the theme's main stylesheet loads).
+- The overlay redefines the `--misp-dash-*` tokens — that's the
+  only contract. UI retones via the cascade; charts retone on next
+  paint because `echarts-theme.mjs` reads tokens via
+  `getComputedStyle` at first init.
+- No dashboard-specific toggle exists. Switching themes is a full
+  page navigation owned by MISP's profile / config layer.
+- Phase 1 inheritance work: `Dashboards2Controller::index` sets
+  `$this->layout = 'default'` (not the prototype's `= false`) so
+  the active-theme CSS chain loads automatically before any
+  dashboard markup.
+
+**Where it lands:** Phase 0.4 task "Lock the resolved §13 answers
+and library decisions into the PRD" should also fold this §8.1
+clarification in. Pure wording change — no architecture impact.
 
 ### `date_range` as a separate canonical type for absolute date pickers
 

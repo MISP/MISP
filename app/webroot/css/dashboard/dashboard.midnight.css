@@ -1,0 +1,48 @@
+/*
+ * dashboard-v2 — "midnight" overlay theme (Phase 0.3 demo).
+ *
+ * Purpose: prove Level 1 retheming per PRD §8.1 — a theme retones the
+ * dashboard (UI + charts) by redefining the `--misp-dash-*` tokens and
+ * nothing else. No JS, no `.ctp` overrides, no markup surgery.
+ *
+ * Activation: this file is always loaded alongside `dashboard.default.css`;
+ * its rules only apply when an ancestor carries `data-theme="midnight"`.
+ * The prototype index view sets that attribute server-side from the
+ * `?theme=midnight` query param.
+ *
+ * In production a MISP theme that wants a dark dashboard ships an
+ * overlay like this one at `app/View/Themed/<Name>/webroot/css/...`
+ * and the host page loads it via the active-theme CSS chain — no
+ * dashboard-specific toggle exists. The attribute selector is a
+ * convenience for the prototype, not a stable theme-activation API.
+ */
+
+:root[data-theme="midnight"] {
+  /* ---- Surface (dark base) ---- */
+  --misp-dash-surface:        #0e0f12;
+  --misp-dash-surface-raised: #161821;
+  --misp-dash-surface-sunken: #0a0b0e;
+
+  /* ---- Border ---- */
+  --misp-dash-border:         #2a2d36;
+  --misp-dash-border-strong:  #3b3f4b;
+
+  /* ---- Text ---- */
+  --misp-dash-text:           #e6e8ee;
+  --misp-dash-text-muted:     #8b8f99;
+  --misp-dash-text-on-accent: #ffffff;
+
+  /* ---- Accent + status ---- */
+  --misp-dash-accent:         #5aa9ff;
+  --misp-dash-accent-hover:   #7cbcff;
+  --misp-dash-accent-muted:   rgba(90, 169, 255, 0.16);
+  --misp-dash-success:        #4ade80;
+  --misp-dash-danger:         #f87171;
+  --misp-dash-warning:        #fbbf24;
+  --misp-dash-info:           #38bdf8;
+
+  /* ---- Shadows tuned for dark surfaces (subtler than the light set) ---- */
+  --misp-dash-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --misp-dash-shadow-md: 0 1px 6px rgba(0, 0, 0, 0.45);
+  --misp-dash-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.55);
+}

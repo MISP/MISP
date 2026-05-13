@@ -18,14 +18,26 @@
  * behaviour. This commit just sets up the markup.
  */
 $baseurl = Configure::read('MISP.baseurl') ?: '';
+// Phase 0.3 theme-overlay demo per PRD §8.1: the midnight stylesheet
+// is always loaded; its rules only apply when [data-theme] is set on
+// <html>. Production activation goes through MISP's regular theme
+// system (Cake's Themed/<Name>); the ?theme query param is a
+// prototype-only convenience for verification.
+$themeOverlay = isset($this->request->params['named']['theme'])
+    ? $this->request->params['named']['theme']
+    : (isset($this->request->query['theme']) ? $this->request->query['theme'] : null);
+$themeOverlay = preg_match('/^[a-z][a-z0-9_-]{0,30}$/', (string)$themeOverlay)
+    ? $themeOverlay
+    : null;
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en"<?= $themeOverlay ? ' data-theme="' . h($themeOverlay) . '"' : '' ?>>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>dashboard-v2 prototype — MISP</title>
 <link rel="stylesheet" href="<?= h($baseurl) ?>/css/dashboard/dashboard.default.css">
+<link rel="stylesheet" href="<?= h($baseurl) ?>/css/dashboard/dashboard.midnight.css">
 </head>
 <body class="misp-dashboard-page">
 
