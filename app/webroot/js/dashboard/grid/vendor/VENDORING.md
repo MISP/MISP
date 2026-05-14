@@ -11,7 +11,7 @@ JS build pipeline in MISP. Decision: see
 
 | File | Origin |
 |---|---|
-| `pragmatic-drag-and-drop.bundle.mjs` | Built locally with esbuild from the npm package + only the entry points dashboard-v2 uses. ESM, minified, 21.5KB raw / ~6.8KB gzipped. |
+| `pragmatic-drag-and-drop.bundle.mjs` | Built locally with esbuild from the npm package + only the entry points dashboard uses. ESM, minified, 21.5KB raw / ~6.8KB gzipped. |
 | `LICENSE.pragmatic-drag-and-drop.md` | The package's upstream `LICENSE.md` (Apache 2.0, Copyright 2022 Atlassian Pty Ltd), copied verbatim. Required by the licence. |
 | `VENDORING.md` | This file. |
 
@@ -39,9 +39,9 @@ EOF
 
 # Then copy the bundle and the upstream LICENSE.md into this directory:
 cp pragmatic-drag-and-drop.bundle.mjs \
-   /var/www/MISP7/app/webroot/js/dashboard-v2/grid/vendor/
+   /var/www/MISP7/app/webroot/js/dashboard/grid/vendor/
 cp node_modules/@atlaskit/pragmatic-drag-and-drop/LICENSE.md \
-   /var/www/MISP7/app/webroot/js/dashboard-v2/grid/vendor/LICENSE.pragmatic-drag-and-drop.md
+   /var/www/MISP7/app/webroot/js/dashboard/grid/vendor/LICENSE.pragmatic-drag-and-drop.md
 ```
 
 Same package version + same esbuild version + same entry file → byte-identical
@@ -62,7 +62,7 @@ All consumed via:
 
 ```js
 import { draggable, dropTargetForElements, monitorForElements, combine }
-  from '/js/dashboard-v2/grid/vendor/pragmatic-drag-and-drop.bundle.mjs';
+  from '/js/dashboard/grid/vendor/pragmatic-drag-and-drop.bundle.mjs';
 ```
 
 ## Adding more entry points later

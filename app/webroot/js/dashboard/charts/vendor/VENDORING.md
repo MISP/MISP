@@ -52,9 +52,9 @@ EOF
   --outfile=echarts.bundle.mjs
 
 cp echarts.bundle.mjs echarts.bundle.mjs.LEGAL.txt \
-   /var/www/MISP7/app/webroot/js/dashboard-v2/charts/vendor/
+   /var/www/MISP7/app/webroot/js/dashboard/charts/vendor/
 cp node_modules/echarts/LICENSE \
-   /var/www/MISP7/app/webroot/js/dashboard-v2/charts/vendor/LICENSE.echarts
+   /var/www/MISP7/app/webroot/js/dashboard/charts/vendor/LICENSE.echarts
 ```
 
 ## Reproducing the world GeoJSON
@@ -145,9 +145,9 @@ EOF
 
 node convert.mjs
 cp world-110m.geojson \
-   /var/www/MISP7/app/webroot/js/dashboard-v2/charts/vendor/
+   /var/www/MISP7/app/webroot/js/dashboard/charts/vendor/
 cp node_modules/world-atlas/LICENSE.md \
-   /var/www/MISP7/app/webroot/js/dashboard-v2/charts/vendor/LICENSE.world-atlas
+   /var/www/MISP7/app/webroot/js/dashboard/charts/vendor/LICENSE.world-atlas
 ```
 
 `polygon-clipping@0.15` is **MIT-licensed** (Mike Bostock's algorithm,
@@ -158,7 +158,7 @@ dependency only; nothing from the package lands in `webroot/`.
 ## Usage from dashboard v2
 
 ```js
-import echarts from '/js/dashboard-v2/charts/vendor/echarts.bundle.mjs';
+import echarts from '/js/dashboard/charts/vendor/echarts.bundle.mjs';
 
 // For non-geo charts:
 const chart = echarts.init(el);
@@ -169,7 +169,7 @@ chart.setOption({
 });
 
 // For geo charts:
-const worldGeo = await fetch('/js/dashboard-v2/charts/vendor/world-110m.geojson').then(r => r.json());
+const worldGeo = await fetch('/js/dashboard/charts/vendor/world-110m.geojson').then(r => r.json());
 echarts.registerMap('world', worldGeo);
 const map = echarts.init(el);
 map.setOption({

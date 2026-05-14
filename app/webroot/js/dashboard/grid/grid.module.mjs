@@ -5,7 +5,7 @@
 // from the vendored PDD bundle.
 //
 // Usage:
-//   import { Grid } from '/js/dashboard-v2/grid/grid.module.mjs';
+//   import { Grid } from '/js/dashboard/grid/grid.module.mjs';
 //   const g = new Grid(rootEl, { cols: 12, rowHeight: 80, gap: 8 });
 //   g.addTile({ id: 't1', x: 0, y: 0, w: 4, h: 3, el: someDiv });
 //   ...

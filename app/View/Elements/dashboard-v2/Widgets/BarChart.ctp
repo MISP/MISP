@@ -3,7 +3,7 @@
  * BarChart renderer (dashboard v2) — ECharts shim.
  *
  * Emits a static chart container; the chart itself is created
- * client-side by `webroot/js/dashboard-v2/charts/charts.module.mjs`
+ * client-side by `webroot/js/dashboard/charts/charts.module.mjs`
  * after the BoardModule injects this HTML via `innerHTML`. The
  * payload travels in a data-* attribute as JSON.
  *

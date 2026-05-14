@@ -4,7 +4,7 @@
  *
  * Replaces the v1 jvectormap renderer (`world_mill` SVG + jQuery).
  * The vendored Natural-Earth GeoJSON we ship at
- * `webroot/js/dashboard-v2/charts/vendor/world-110m.geojson` keys
+ * `webroot/js/dashboard/charts/vendor/world-110m.geojson` keys
  * features by English `name` (e.g. "Bosnia and Herz."), while the
  * widget produces 2-letter ISO codes (e.g. "BA"). We translate
  * server-side using `WidgetToolkit::getCountryCodeMapping()` inverted,

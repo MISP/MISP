@@ -127,7 +127,7 @@ $uiThemeCss = !empty($uiTheme)
     </footer>
 </aside>
 
-<script type="module" src="<?= h($baseurl) ?>/js/dashboard-v2/board.module.mjs"></script>
+<script type="module" src="<?= h($baseurl) ?>/js/dashboard/board.module.mjs"></script>
 
 </body>
 </html>
