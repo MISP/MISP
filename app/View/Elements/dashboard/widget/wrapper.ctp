@@ -17,7 +17,7 @@
  *   data-misp-widget-action="..."    — clickable controls
  *   data-resize-handle               — pointer-down target for resize
  *
- * Themes may override THIS file (`Themed/<Name>/Elements/dashboard-v2/
+ * Themes may override THIS file (`Themed/<Name>/Elements/dashboard/
  * widget/wrapper.ctp`) freely so long as those hooks are preserved —
  * class names, element types, ordering, and inner structure are all
  * negotiable.

@@ -2,7 +2,7 @@
  * Overmind theme — minimal dashboard overlay (Phase 0.3 demo).
  *
  * Self-contained CSS that styles the overridden Overmind widget
- * wrapper (`Themed/Overmind/Elements/dashboard-v2/widget/wrapper.ctp`).
+ * wrapper (`Themed/Overmind/Elements/dashboard/widget/wrapper.ctp`).
  * Loaded conditionally by the prototype index when ?ui_theme=Overmind.
  * In production this kind of overlay would join the Overmind theme's
  * existing CSS chain.

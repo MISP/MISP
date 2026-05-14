@@ -81,11 +81,11 @@ $uiThemeCss = !empty($uiTheme)
     <?php
     // Each widget renders through the wrapper element so themes can
     // surgically override it (PRD §8.3 Level 3). Cake's Themed resolver
-    // picks app/View/Themed/<active>/Elements/dashboard-v2/widget/
+    // picks app/View/Themed/<active>/Elements/dashboard/widget/
     // wrapper.ctp when $this->theme is set; otherwise the default
     // element under app/View/Elements/ wins.
     foreach ($widgets as $w) {
-        echo $this->element('dashboard-v2/widget/wrapper', array('widget' => $w));
+        echo $this->element('dashboard/widget/wrapper', array('widget' => $w));
     }
     ?>
 

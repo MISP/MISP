@@ -2,7 +2,7 @@
 /**
  * Overmind theme override for the widget wrapper (PRD §8.3 Level 3).
  *
- * The default wrapper is `app/View/Elements/dashboard-v2/widget/
+ * The default wrapper is `app/View/Elements/dashboard/widget/
  * wrapper.ctp` — Cake's Themed resolver picks this file instead when
  * `$this->theme = 'Overmind'`. Demonstrates that a heavy theme can
  * change *markup* (class names, element types, ordering, inner

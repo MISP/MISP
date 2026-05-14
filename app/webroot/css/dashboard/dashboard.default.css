@@ -433,7 +433,7 @@ body.misp-dashboard-page {
 
 /* ============================================================
  * Chart container — ECharts mounts inside, fills the widget body.
- * Renderers under Elements/dashboard-v2/Widgets/ emit a static
+ * Renderers under Elements/dashboard/Widgets/ emit a static
  * <div class="misp-chart"> + data-misp-chart="<kind>" attribute;
  * charts.module.mjs scans for these after each render and creates
  * the ECharts instance. Padding is owned by .misp-widget-body, so
