@@ -2,19 +2,12 @@
 App::uses('AppController', 'Controller');
 
 /**
- * Phase 0.3+ controller for dashboard v2.
- *
- * Mounted at /dashboards2/* via CakePHP's default routing. The "2"
- * suffix is intentionally cheap — it'll get renamed to /dashboards/
- * (and this file moved to DashboardsController) at the end of the
- * development cycle when v1 is removed (Q5: straight in-place
- * replacement on the `dashboards` branch).
- *
- * Keeps the v1 DashboardsController completely untouched.
+ * Dashboard controller (v2). Mounted at /dashboards/* via CakePHP's
+ * default routing.
  *
  * @property Dashboard $Dashboard
  */
-class Dashboards2Controller extends AppController
+class DashboardsController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
     public $uses = array('Dashboard', 'User');
@@ -75,8 +68,8 @@ class Dashboards2Controller extends AppController
         }
 
         // REST clients get the layout payload as JSON via the
-        // RestResponse component (matches the v1 dashboards export()
-        // pattern). Web UI falls through to View/Dashboards2/index.ctp.
+        // RestResponse component. Web UI falls through to
+        // View/Dashboards/index.ctp.
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($widgets, $this->response->type());
         }

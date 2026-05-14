@@ -173,23 +173,14 @@ class ACLComponent extends Component
             'view' => ['*']
         ],
         'dashboards' => array(
-            'getForm' => array('*'),
             'index' => array('*'),
             'updateSettings' => array('*'),
-            'getEmptyWidget' => array('*'),
             'renderWidget' => array('*'),
-            'listTemplates' => array('*'),
-            'saveTemplate' => array('*'),
-            'export' => array('*'),
             'import' => array('*'),
-            'deleteTemplate' => array('*')
-        ),
-        // dashboards v2 prototype — renamed to "dashboards" at the end
-        // of the development cycle when v1 is removed (PRD §12, Q5).
-        'dashboards2' => array(
-            'index' => array('*'),
-            'renderWidget' => array('*'),
-            'updateSettings' => array('*'),
+            'export' => array('*'),
+            'saveTemplate' => array('*'),
+            'listTemplates' => array('*'),
+            'deleteTemplate' => array('*'),
         ),
         'decayingModel' => array(
             "update" => array(),

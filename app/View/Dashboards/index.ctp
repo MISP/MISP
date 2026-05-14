@@ -75,8 +75,8 @@ $uiThemeCss = !empty($uiTheme)
 <main class="misp-dashboard-main"
       data-misp-board-root
       data-misp-board-mode="view"
-      data-misp-board-renderwidget-url="<?= h($baseurl) ?>/dashboards2/renderWidget"
-      data-misp-board-save-url="<?= h($baseurl) ?>/dashboards2/updateSettings">
+      data-misp-board-renderwidget-url="<?= h($baseurl) ?>/dashboards/renderWidget"
+      data-misp-board-save-url="<?= h($baseurl) ?>/dashboards/updateSettings">
 
     <?php
     // Each widget renders through the wrapper element so themes can

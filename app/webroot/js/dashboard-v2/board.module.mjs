@@ -67,7 +67,7 @@ class Board {
 
   /**
    * Serialise the current board state to the v2 widget shape and
-   * POST it to /dashboards2/updateSettings. Debounced 50ms so the
+   * POST it to /dashboards/updateSettings. Debounced 50ms so the
    * toolbar's per-declarer callback (fires N times for an N-widget
    * bulk commit) collapses to a single network round-trip.
    */
