@@ -27,27 +27,6 @@ class DashboardsController extends AppController
 
     public function index()
     {
-        // Prototype theme-override demo (PRD §8.3 Level 3): ?ui_theme=<Name>
-        // switches the Cake theme so $this->element() resolves to
-        // `Themed/<Name>/Elements/...` overrides. Whitelisted regex
-        // keeps this from being a directory-traversal vector.
-        $uiTheme = isset($this->request->query['ui_theme'])
-            ? $this->request->query['ui_theme']
-            : (isset($this->request->params['named']['ui_theme'])
-                ? $this->request->params['named']['ui_theme'] : null);
-        if (is_string($uiTheme) && preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,30}$/', $uiTheme)) {
-            $this->theme = $uiTheme;
-            // Cake only resolves Themed/<Name>/... when the view class
-            // is `Theme` (not `View`). AppController flips this on
-            // when MISP.enable_themes + a saved per-user theme exist,
-            // but our proto path forces it regardless so verification
-            // works on a fresh admin user with no theme preference.
-            $this->viewClass = 'Theme';
-            $this->set('uiTheme', $uiTheme);
-        } else {
-            $this->set('uiTheme', null);
-        }
-
         App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
         // Persistence path (Phase 0.3 demo of DD-05 on-read fix-ups):
         //   1. read UserSetting:dashboard for the current user,

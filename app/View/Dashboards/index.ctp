@@ -18,39 +18,15 @@
  * behaviour. This commit just sets up the markup.
  */
 $baseurl = Configure::read('MISP.baseurl') ?: '';
-// Phase 0.3 theme-overlay demo per PRD §8.1: the midnight stylesheet
-// is always loaded; its rules only apply when [data-theme] is set on
-// <html>. Production activation goes through MISP's regular theme
-// system (Cake's Themed/<Name>); the ?theme query param is a
-// prototype-only convenience for verification.
-$themeOverlay = isset($this->request->params['named']['theme'])
-    ? $this->request->params['named']['theme']
-    : (isset($this->request->query['theme']) ? $this->request->query['theme'] : null);
-$themeOverlay = preg_match('/^[a-z][a-z0-9_-]{0,30}$/', (string)$themeOverlay)
-    ? $themeOverlay
-    : null;
-// uiTheme (set by the controller from ?ui_theme=...) activates the
-// matching Themed/<Name> overlay. The Cake resolver auto-serves
-// Themed/<Name>/webroot/* at /theme/<Name>/*, so we just emit a
-// link tag at a predictable path: /theme/<Name>/css/dashboard/<name>.css.
-$uiThemeCss = !empty($uiTheme)
-    ? sprintf('%s/theme/%s/css/dashboard/%s.css', $baseurl, $uiTheme, strtolower($uiTheme))
-    : null;
 ?>
 <!DOCTYPE html>
-<html lang="en"<?php
-  if ($themeOverlay) echo ' data-theme="' . h($themeOverlay) . '"';
-  if (!empty($uiTheme)) echo ' data-ui-theme="' . h($uiTheme) . '"';
-?>>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>dashboard-v2 prototype — MISP</title>
 <link rel="stylesheet" href="<?= h($baseurl) ?>/css/dashboard/dashboard.default.css">
 <link rel="stylesheet" href="<?= h($baseurl) ?>/css/dashboard/dashboard.midnight.css">
-<?php if ($uiThemeCss): ?>
-<link rel="stylesheet" href="<?= h($uiThemeCss) ?>">
-<?php endif; ?>
 </head>
 <body class="misp-dashboard-page">
 
