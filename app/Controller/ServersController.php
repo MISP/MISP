@@ -2330,8 +2330,8 @@ class ServersController extends AppController
             $message .= ' from IP ' . $remoteIp;
         }
         $report = JsonTool::encode($report['csp-report'], true);
-        if (strlen($report) > 1024 * 1024) { // limit report to 1 kB
-            $report = substr($report, 0, 1024 * 1024) . '...';
+        if (strlen($report) > 1024) { // limit report to 1 kB
+            $report = substr($report, 0, 1024) . '...';
         }
         $this->log("$message: $report");
 
