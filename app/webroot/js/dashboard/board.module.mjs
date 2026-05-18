@@ -278,18 +278,24 @@ class Board {
           break;
         case 'configure':
           e.preventDefault();
-          // Configure form is the DD-06 two-tier side panel; on save
-          // it writes the new config back to data-widget-config and
-          // returns the widget element here so we can re-render with
-          // the new shape. Persistence to UserSetting:dashboard is
-          // Phase 1 task ("per-widget POST to /updateSettings").
-          openConfigure(widgetEl, (savedEl) => {
-            this._renderWidget(savedEl);
-            // The save may have added or removed a canonical-type
-            // declaration, or moved this widget toward / away from
-            // "(mixed)" with its peers — the toolbar must refresh.
-            refreshToolbar(this.root);
-            this._scheduleSave();
+          // Configure form is the DD-06 two-tier side panel.
+          //   onSave    - the user clicked Save. Re-render with the
+          //               new config, refresh the toolbar (the change
+          //               may have moved this widget toward / away
+          //               from "(mixed)" with its peers), and POST
+          //               the whole layout to UserSetting:dashboard.
+          //   onPreview - live-preview tick (debounced 250ms per
+          //               DD-06). data-widget-config already updated;
+          //               re-render the body without persisting.
+          openConfigure(widgetEl, {
+            onSave: (savedEl) => {
+              this._renderWidget(savedEl);
+              refreshToolbar(this.root);
+              this._scheduleSave();
+            },
+            onPreview: (previewEl) => {
+              this._renderWidget(previewEl);
+            },
           });
           break;
         case 'export-json':

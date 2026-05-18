@@ -36,8 +36,17 @@ const ATTR_WIDGET_NAME    = 'data-widget-name';
 const ATTR_SCHEMA_KEY     = 'data-schema-key';
 
 // Pending state for the currently-open panel.
-let openTarget = null;     // the widget element being configured
-let onSaveCallback = null; // invoked after a successful save
+let openTarget = null;          // the widget element being configured
+let onSaveCallback = null;      // invoked after a successful save
+let onPreviewCallback = null;   // invoked on each debounced form-input change
+let originalConfigJson = null;  // snapshot of data-widget-config at open
+let previewTimer = null;        // debounce handle for live preview
+let dirty = false;              // any input/change event seen since open
+let savedThisSession = false;   // commit sets true so closeConfigure skips the revert
+
+// Live-preview debounce in ms (DD-06: "debounced 250ms re-render of
+// the widget on form-input change").
+const PREVIEW_DEBOUNCE_MS = 250;
 
 // ---- shape helpers ----
 
@@ -345,15 +354,39 @@ function setHidden(elem, hidden) {
   }
 }
 
-export function openConfigure(widgetEl, onSave) {
+/**
+ * Open the configure side panel for the given widget element.
+ *
+ * @param {HTMLElement} widgetEl - the widget being configured.
+ * @param {{onSave?: function, onPreview?: function}|function} [opts]
+ *        - onSave(widgetEl)   - invoked after a successful Save.
+ *        - onPreview(widgetEl) - invoked after each debounced
+ *          form-input change AND after a Cancel (with the original
+ *          config restored), so the caller can re-render the widget.
+ *        For backwards compatibility, a bare function is treated as
+ *        onSave with no onPreview.
+ */
+export function openConfigure(widgetEl, opts) {
   const panel    = document.querySelector(`[${ATTR_PANEL}]`);
   const backdrop = document.querySelector(`[${ATTR_BACKDROP}]`);
   if (!panel || !backdrop) {
     console.warn('[misp-dashboard] configure panel markup not found');
     return;
   }
+  if (typeof opts === 'function') {
+    opts = { onSave: opts };
+  }
+  opts = opts || {};
   openTarget = widgetEl;
-  onSaveCallback = onSave || null;
+  onSaveCallback = opts.onSave || null;
+  onPreviewCallback = opts.onPreview || null;
+  originalConfigJson = widgetEl.getAttribute(ATTR_WIDGET_CONFIG) || '{}';
+  dirty = false;
+  savedThisSession = false;
+  if (previewTimer) {
+    clearTimeout(previewTimer);
+    previewTimer = null;
+  }
 
   const widgetName = widgetEl.getAttribute(ATTR_WIDGET_NAME) || '';
   const config = JSON.parse(widgetEl.getAttribute(ATTR_WIDGET_CONFIG) || '{}');
@@ -384,24 +417,71 @@ export function closeConfigure() {
   const panel    = document.querySelector(`[${ATTR_PANEL}]`);
   const backdrop = document.querySelector(`[${ATTR_BACKDROP}]`);
   if (!panel || !backdrop) return;
+  if (previewTimer) {
+    clearTimeout(previewTimer);
+    previewTimer = null;
+  }
+  // Cancel path: if the user made staged edits via live preview but
+  // didn't save (cancel button, ✕, Escape, backdrop click), restore
+  // the original config to data-widget-config and re-render the
+  // widget so the visible state reverts to pre-open. commit() sets
+  // savedThisSession=true so this branch is skipped on Save.
+  if (dirty && !savedThisSession && openTarget) {
+    openTarget.setAttribute(ATTR_WIDGET_CONFIG, originalConfigJson);
+    if (onPreviewCallback) onPreviewCallback(openTarget);
+  }
   setHidden(backdrop, true);
   setHidden(panel, true);
   openTarget = null;
   onSaveCallback = null;
+  onPreviewCallback = null;
+  originalConfigJson = null;
+  dirty = false;
+  savedThisSession = false;
 }
 
 function commit() {
   if (!openTarget) return;
+  if (previewTimer) {
+    clearTimeout(previewTimer);
+    previewTimer = null;
+  }
   const panel = document.querySelector(`[${ATTR_PANEL}]`);
   const newConfig = readBack(panel);
-  // Persist back into the widget element so future renders use it.
-  // A real save (Phase 1 task: per-widget POST to /updateSettings)
-  // hits the same DOM update plus a network round-trip.
+  // The board's _scheduleSave (50ms-debounced) handles persistence:
+  // the onSave callback below re-renders the widget AND posts the
+  // whole layout array (containing this widget's now-updated config)
+  // to /dashboards/updateSettings. Per DD-05 the configure-form save
+  // is independent of edit-mode layout saves.
   openTarget.setAttribute(ATTR_WIDGET_CONFIG, JSON.stringify(newConfig));
+  savedThisSession = true;
   const target = openTarget;
   const cb = onSaveCallback;
   closeConfigure();
   if (cb) cb(target);
+}
+
+/**
+ * Live-preview tick. Reads current form state, writes it into the
+ * widget element's data-widget-config (so a subsequent render picks
+ * it up), and invokes the onPreview callback so the board can
+ * re-render the widget body. Fired by the debounced input/change
+ * listener on the panel body.
+ */
+function firePreview() {
+  previewTimer = null;
+  if (!openTarget) return;
+  const panel = document.querySelector(`[${ATTR_PANEL}]`);
+  if (!panel) return;
+  const newConfig = readBack(panel);
+  openTarget.setAttribute(ATTR_WIDGET_CONFIG, JSON.stringify(newConfig));
+  if (onPreviewCallback) onPreviewCallback(openTarget);
+}
+
+function schedulePreview() {
+  dirty = true;
+  if (previewTimer) clearTimeout(previewTimer);
+  previewTimer = setTimeout(firePreview, PREVIEW_DEBOUNCE_MS);
 }
 
 // ---- event delegation ----
@@ -420,7 +500,8 @@ function init() {
     else if (action === 'save') commit();
   });
 
-  // KV-list add/remove buttons.
+  // KV-list add/remove buttons. Both also count as "dirty" edits so
+  // the cancel path can revert the change.
   root.addEventListener('click', (e) => {
     const trigger = e.target.closest(`[${ATTR_KV_ACTION}]`);
     if (!trigger) return;
@@ -430,11 +511,35 @@ function init() {
       const list = root.querySelector('.misp-kv-list');
       list.appendChild(buildKVRow('', ''));
       list.lastElementChild.querySelector('.misp-kv-key').focus();
+      // Adding an empty row alone doesn't change the config (empty
+      // keys are skipped on readBack); typing into it will trigger
+      // schedulePreview via the input listener below.
     } else if (action === 'remove') {
       e.preventDefault();
       trigger.closest('.misp-kv-row')?.remove();
+      // Removing a populated row IS a config change — schedule a
+      // preview tick so the user sees the effect immediately.
+      schedulePreview();
     }
   });
+
+  // Live preview (DD-06): every input/change inside the panel body
+  // schedules a debounced re-render of the widget. Listener lives on
+  // the body container so it survives body.replaceChildren() across
+  // successive openConfigure calls. Click events from buttons inside
+  // the form (preset shortcut buttons in the time_window picker,
+  // KV add/remove) are handled above; the input/change listener
+  // here fires when the user types into a text field, toggles a
+  // checkbox, picks an enum option, etc.
+  const bodyEl = root.querySelector(`[${ATTR_BODY}]`);
+  if (bodyEl) {
+    bodyEl.addEventListener('input', () => {
+      if (openTarget) schedulePreview();
+    });
+    bodyEl.addEventListener('change', () => {
+      if (openTarget) schedulePreview();
+    });
+  }
 
   // Backdrop click and ESC key both close the panel.
   const backdrop = document.querySelector(`[${ATTR_BACKDROP}]`);
