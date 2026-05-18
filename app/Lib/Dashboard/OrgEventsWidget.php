@@ -17,6 +17,18 @@ class OrgEventsWidget
         'months' => 'Number of past months to consider for the graph',
         'logarithmic' => 'Visualize data on logarithmic scale'
     );
+    public $schema = array(
+        'months' => array(
+            'type' => 'int',
+            'default' => 6,
+            'help' => 'Number of past months to include in the graph.',
+        ),
+        'logarithmic' => array(
+            'type' => 'bool',
+            'default' => true,
+            'help' => 'Display the y-axis on a logarithmic scale.',
+        ),
+    );
 
     public $placeholder =
 '{
