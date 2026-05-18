@@ -1044,6 +1044,50 @@ Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
 
+### Phase 3 canonical-type adapter + catalogue gaps (surfaced 2026-05-18)
+
+**Surfaced during the Phase 2 9-widget `$schema` backfill (commits `1a426b644` … `afadd0530`).**
+
+Phase 3's task list at line 875 lists 7 canonical types to implement (`tag_filter`, `org_filter`, `sharing_group_filter`, `galaxy_cluster_filter`, `distribution_filter`, `threat_level_filter`, `analysis_filter`) but **omits `date_range`** — which PRD §5.5 explicitly marks as Phase 3 landing ("Widgets that today carry hardcoded `start_date` / `end_date` `$params` (`OrganisationMapWidget`, etc.) migrate those slots to declare `date_range` in `$schema`."). Three widgets in the Phase 2 backfill (`UsageDataWidget`, `OrganisationMapWidget`, `EventEvolutionLineWidget`) have `start_date`/`end_date` (or `start_date` alone) `$params` slots that need canonical `date_range` — none could be promoted in Phase 2 because the canonical adapter doesn't exist yet.
+
+Phase 3 also omits the **canonical adapter implementation** itself — PRD §5.5 says: "Per the additive-only posture, we don't touch every legacy widget's `handler()`; instead a single adapter sits in front of `handler()` and translates the canonical slots into the shape each widget expects, driven off `$widget->$schema` to know which slots are canonical. The adapter lives in `app/Lib/Dashboard/Tools/CanonicalTypeAdapter` and is called from `DashboardsController::renderWidget` before `$widget->handler($user, $config)`". This is the keystone of the canonical-type design and has no explicit task entry in Phase 3.
+
+Open question for Phase 3 planning: **introduce a new canonical type for the org-meta-data filter shape?** Four widgets in the Phase 2 backfill (`TrendingAttributesWidget`, `UsageDataWidget`, `OrganisationMapWidget`, `EventEvolutionLineWidget`) all have a `filter`/`org_filter` param shaped as `{ sector?, type?, nationality?, name?, uuid?, local? }` with `!`-prefix negation — a recurring shape that's neither canonical `org_filter` (identity-based) nor widget-specific. Could be promoted to a new canonical `org_meta_filter` type that the toolbar surfaces as a bulk-edit chip. Alternatively, accept that meta-data filtering stays in `$params` bottom-tier permanently (4-widget consistency isn't enough to justify a catalogue addition).
+
+**Where it lands:** Phase 3 task list amendments — needs the `date_range` line item, an explicit `CanonicalTypeAdapter` implementation task, a `time_window` legacy-to-canonical translation task (PRD §5.5 lists the translation table), and a decision/task on `org_meta_filter`.
+
+### TrendingTagsWidget handler() pre-existing PHP 8.x crash
+
+**Pre-existing MISP issue, not v2-specific** — documented in the Phase 0.3 Model 4 demo Done note. The widget hits a CakePHP `Attribute` model name collision under PHP 8.x and fatals when `over_time=true` is requested. Out of scope for the v2 dashboard rework (the widget renders fine in non-`over_time` mode); separate cleanup task.
+
+### OrgEventsWidget `logarithmic` check pattern is broken (surfaced 2026-05-18)
+
+**Surfaced during the Phase 2 `$schema` backfill of OrgEventsWidget (commit `636e55dcc`).**
+
+`handler()` lines 105-107 string-compare `$options['logarithmic']` against `"true"` / `"1"` and the else-if branch literally repeats the same conditions as the if branch (modulo `empty()`):
+
+```php
+if ($options['logarithmic'] === "true" || $options['logarithmic'] === "1") {
+    // logarithmic branch
+} else if (empty($options['logarithmic']) || $options['logarithmic'] === "true" || $options['logarithmic'] === "1") {
+    // linear branch — only reachable via empty()
+}
+```
+
+Once the Phase 2 configure form writes real PHP booleans to the saved config (per `$schema['logarithmic']['type'] = 'bool'`), `$options['logarithmic'] === true` doesn't match `=== "true"`, so the widget silently falls through to the linear branch even when the user toggled logarithmic ON. **Where it lands:** Phase 2 configure form integration — needs a follow-up that broadens the check to accept PHP booleans + the legacy strings, or migrates saved configs to canonical bool shape with the same in-handler() coercion the canonical-adapter sweep applies elsewhere.
+
+### EventEvolutionLineWidget `$isCumulative` condition is inverted (surfaced 2026-05-18)
+
+**Surfaced during the Phase 2 `$schema` backfill of EventEvolutionLineWidget (commit `afadd0530`).**
+
+`handler()` line 52: `$isCumulative = isset($options['cumulative']) && empty($options['cumulative']);` — this returns `true` when `cumulative` is set to a falsy value (`false`, `0`, `""`, `null`) and `false` when `cumulative` is unset or set to a truthy value. The variable name (`$isCumulative`) and the condition that sets it are inverted relative to each other. The widget's help text says "(default: on)" — meaning the default behavior should be cumulative — but with `cumulative` unset, `$isCumulative` is `false`, so the default is actually non-cumulative. Likewise a user who explicitly toggles cumulative ON (truthy) gets the non-cumulative branch. **Where it lands:** Phase 2 configure form integration — either rename `$isCumulative` to its actual semantic, or fix the condition to match the help text. Not biting users today because the configure form hasn't shipped; the JSON-textarea workflow lets power users pass whatever value matches the current backwards semantics.
+
+### OrganisationMapWidget `limit` is dead config (surfaced 2026-05-18)
+
+**Surfaced during the Phase 2 `$schema` backfill of OrganisationMapWidget (commit `b7baad278`).**
+
+`OrganisationMapWidget::$params` declares `limit => 'Limits the number of displayed tags. Default: 10'` but `handler()` never reads `$options['limit']` — reverse-grep across the file is empty. The help text also references "tags" which is a stale copy from `TrendingTagsWidget`'s param (this widget shows orgs on a world map). **Where it lands:** either wire `limit` into `handler()` (presumably intended as a country/org cap on the world map) or remove `limit` from `$params` to retire the dead config. Out of scope for the additive backfill task.
+
 ### Antimeridian splitting required when re-vendoring world GeoJSON
 
 **Surfaced 2026-05-06 during WorldMap browser verification.**
