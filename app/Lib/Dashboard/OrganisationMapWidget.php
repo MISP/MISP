@@ -73,30 +73,33 @@ class OrganisationMapWidget
             }
         }
         $this->Organisation = ClassRegistry::init('Organisation');
-        $findArgs = [
+        // Phase 2 fix: stable order so the configurable `limit` (previously
+        // dead — declared in $params but never read) picks the most-
+        // represented countries deterministically. ORDER BY is unconditional
+        // even when no limit is set; the prior order was unspecified, and
+        // relying on it was already a bug. The LIMIT is intentionally NOT
+        // applied at the SQL level — non-mapped nationalities (e.g.
+        // "International", "Krakhozia", "Not specified") would consume
+        // limit slots before the country-code filter below could drop them,
+        // surprising users who asked for "top-N countries on the map".
+        $orgs = $this->Organisation->find('all', [
             'recursive' => -1,
             'fields' => ['Organisation.nationality', 'COUNT(Organisation.nationality) AS frequency'],
             'conditions' => $params['conditions'],
             'group' => ['Organisation.nationality'],
-            // Phase 2 fix: stable top-N order so the configurable `limit`
-            // (previously dead — declared in $params but never read) picks
-            // the most-represented countries deterministically. Adding the
-            // ORDER BY is a small behavior change even for users who don't
-            // set `limit`, but the prior order was unspecified — relying
-            // on it was already a bug.
             'order' => ['frequency DESC'],
-        ];
-        if (!empty($options['limit'])) {
-            $findArgs['limit'] = (int) $options['limit'];
-        }
-        $orgs = $this->Organisation->find('all', $findArgs);
+        ]);
         $results = ['data' => [], 'scope' => 'Organisations'];
+        $limit = !empty($options['limit']) ? (int) $options['limit'] : 0;
         foreach($orgs as $org) {
             $country = $org['Organisation']['nationality'];
             $count = $org['0']['frequency'];
             if (isset($this->countryCodes[$country])) {
                 $countryCode = $this->countryCodes[$country];
                 $results['data'][$countryCode] = $count;
+                if ($limit > 0 && count($results['data']) >= $limit) {
+                    break;
+                }
             }
         }
         return $results;

@@ -1139,6 +1139,8 @@ Same commit:
 
 `php -l` clean. The widget is now consistent with itself: schema declares the typed knob; params describes the knob; handler reads the knob; result honors the knob.
 
+**Smoke-driven follow-up (also 2026-05-18 — commit `<C3a>`):** the initial fix applied `'limit'` at the SQL level (in the `find()` call). Smoke against the live dev instance revealed a surprising interaction with the country-code filter: the test dataset's top-2 nationalities by frequency are `Krakhozia` (3) and `International` (3), neither of which maps to a country code. With `limit=3`, the SQL returned Krakhozia/International/Norway, and only Norway made it through the country-code filter → user asked for top-3 countries on the map, saw 1. **Pivot:** drop the SQL-level limit; loop the full ORDER-BY-frequency-DESC result-set in PHP, apply the country-code filter, then `break` once `count($results['data']) >= $limit`. New behavior verified with three smoke runs against `w_3` on the dev instance: no-limit → 10 mapped countries (NO, HU, NL, DE, EE, PT, AT, LU, BE, CH); limit=3 → top 3 mapped (NO, HU, NL); limit=5 → top 5 mapped (NO, HU, NL, DE, EE). The cap now matches user expectation "top-N countries that appear on the map." Trade-off: the SQL no longer LIMITs, so it returns every distinct nationality bucket; acceptable at realistic deployment scale (typical instances have <1000 organisations and far fewer distinct nationalities).
+
 ### Antimeridian splitting required when re-vendoring world GeoJSON
 
 **Surfaced 2026-05-06 during WorldMap browser verification.**
