@@ -414,35 +414,35 @@ class NavbarHelper extends AppHelper {
                 'label' => __('Sharing Groups'),
                 'icon' => 'fas fa-users-rays',
                 'children' => [
-                    [
-                        'label' => __('Add Sharing Group'),
-                        'url' => $baseurl . '/sharingGroups/add',
-                        'controller' => 'sharingGroups',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('sharing_groups', 'add'),
-                        'icon' => 'fas fa-plus'
-                    ],
+                    // [
+                    //     'label' => __('Add Sharing Group'),
+                    //     'url' => $baseurl . '/SharingGroups/add',
+                    //     'controller' => 'SharingGroups',
+                    //     'action' => 'add',
+                    //     'requirement' => $this->Acl->canAccess('SharingGroups', 'add'),
+                    //     'icon' => 'fas fa-plus'
+                    // ],
                     [
                         'label' => __('List Sharing Groups'),
-                        'url' => $baseurl . '/sharingGroups/index',
-                        'controller' => 'sharingGroups',
+                        'url' => $baseurl . '/SharingGroups/index',
+                        'controller' => 'SharingGroups',
                         'action' => 'index',
                         'icon' => 'fas fa-list'
                     ],
-                    [
-                        'label' => __('Add Sharing Group Blueprint'),
-                        'url' => $baseurl . '/sharingGroupBlueprints/add',
-                        'controller' => 'sharingGroupBlueprints',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'index'),
-                        'icon' => 'fas fa-plus'
-                    ],
+                    // [
+                    //     'label' => __('Add Sharing Group Blueprint'),
+                    //     'url' => $baseurl . '/SharingGroupBlueprints/add',
+                    //     'controller' => 'SharingGroupBlueprints',
+                    //     'action' => 'add',
+                    //     'requirement' => $this->Acl->canAccess('SharingGroupBlueprints', 'index'),
+                    //     'icon' => 'fas fa-plus'
+                    // ],
                     [
                         'label' => __('List Sharing Group Blueprints'),
-                        'url' => $baseurl . '/sharingGroupBlueprints/index',
-                        'controller' => 'sharingGroupBlueprints',
+                        'url' => $baseurl . '/SharingGroupBlueprints/index',
+                        'controller' => 'SharingGroupBlueprints',
                         'action' => 'index',
-                        'requirement' => $this->Acl->canAccess('sharing_group_blueprints', 'add'),
+                        'requirement' => $this->Acl->canAccess('SharingGroupBlueprints', 'add'),
                         'icon' => 'fas fa-drafting-compass'
                     ]
                 ]
@@ -471,8 +471,8 @@ class NavbarHelper extends AppHelper {
                     ],
                     [
                         'label' => __('TAXII Servers'),
-                        'url' => $baseurl . '/TaxiiServers/index',
-                        'controller' => 'TaxiiServers',
+                        'url' => $baseurl . '/taxiiServers/index',
+                        'controller' => 'taxiiServers',
                         'action' => 'index',
                         'requirement' => $this->Acl->canAccess('taxiiServers', 'index'),
                         'icon' => 'fas fa-cloud'
