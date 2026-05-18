@@ -1061,7 +1061,7 @@ Open question for Phase 3 planning: **introduce a new canonical type for the org
 
 **Pre-existing MISP issue, not v2-specific** — documented in the Phase 0.3 Model 4 demo Done note. The widget hits a CakePHP `Attribute` model name collision under PHP 8.x and fatals when `over_time=true` is requested. Out of scope for the v2 dashboard rework (the widget renders fine in non-`over_time` mode); separate cleanup task.
 
-### OrgEventsWidget `logarithmic` check pattern is broken (surfaced 2026-05-18)
+### OrgEventsWidget `logarithmic` check pattern is broken (surfaced 2026-05-18) — **fixed 2026-05-18**
 
 **Surfaced during the Phase 2 `$schema` backfill of OrgEventsWidget (commit `636e55dcc`).**
 
@@ -1075,7 +1075,19 @@ if ($options['logarithmic'] === "true" || $options['logarithmic'] === "1") {
 }
 ```
 
-Once the Phase 2 configure form writes real PHP booleans to the saved config (per `$schema['logarithmic']['type'] = 'bool'`), `$options['logarithmic'] === true` doesn't match `=== "true"`, so the widget silently falls through to the linear branch even when the user toggled logarithmic ON. **Where it lands:** Phase 2 configure form integration — needs a follow-up that broadens the check to accept PHP booleans + the legacy strings, or migrates saved configs to canonical bool shape with the same in-handler() coercion the canonical-adapter sweep applies elsewhere.
+Once the Phase 2 configure form writes real PHP booleans to the saved config (per `$schema['logarithmic']['type'] = 'bool'`), `$options['logarithmic'] === true` doesn't match `=== "true"`, so the widget silently falls through to the linear branch even when the user toggled logarithmic ON.
+
+**Fix:** broadened the truthy set to accept real PHP booleans alongside the legacy strings, collapsed the unreachable else-if to a plain `else`, and used `$options['logarithmic'] ?? true` so the schema default (`true` per `$schema['logarithmic']['default']`) governs the no-key case. New logic:
+
+```php
+$logRaw = $options['logarithmic'] ?? true; // schema default
+$isLogarithmic = ($logRaw === true || $logRaw === 1
+    || $logRaw === '1' || $logRaw === 'true');
+if ($isLogarithmic) { /* log branch */ }
+else                { /* linear branch */ }
+```
+
+`php -l` clean. Closes the silent fall-through gap where a value like `"yes"` would have hit neither branch and dropped the org from the chart for that month.
 
 ### EventEvolutionLineWidget `$isCumulative` condition is inverted (surfaced 2026-05-18)
 

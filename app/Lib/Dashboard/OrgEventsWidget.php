@@ -114,9 +114,18 @@ class OrgEventsWidget
             $item ['date'] = $target_year.'-'.$target_month.'-01';
             foreach($orgs as $org) {
                     $count = $this->org_events_count($user, $org, $target_month, $target_year);
-                    if($options['logarithmic'] === "true" || $options['logarithmic'] === "1") {
-                        $item[$org['Organisation']['name']] = (int) round(log($count, 1.1));  // taking the logarithmic view
-                    } else if(empty($options['logarithmic']) || $options['logarithmic'] === "true" || $options['logarithmic'] === "1"){
+                    // Phase 2 fix: the prior strict-string check (=== "true" /
+                    // === "1") silently dropped the log-scale branch once the
+                    // configure form started writing real PHP booleans per
+                    // $schema['logarithmic']['type'] = 'bool', and the else-if
+                    // repeated the same conditions as the if, leaving a
+                    // silent fall-through gap where neither branch fired.
+                    $logRaw = $options['logarithmic'] ?? true; // schema default
+                    $isLogarithmic = ($logRaw === true || $logRaw === 1
+                        || $logRaw === '1' || $logRaw === 'true');
+                    if ($isLogarithmic) {
+                        $item[$org['Organisation']['name']] = (int) round(log($count, 1.1));
+                    } else {
                         $item[$org['Organisation']['name']] = $count;
                     }
                     // if a positive score is detected at least once it's enough to be
