@@ -10,6 +10,17 @@ class RecentSightingsWidget
         'limit' => 'Maximum amount of sightings to return',
         'last' => 'Limit sightings to last 1d, 12h, ...'
     );
+    public $schema = array(
+        'limit' => array(
+            'type' => 'int',
+            'default' => 10,
+            'help' => 'Maximum number of sightings to return.',
+        ),
+        'last' => array(
+            'type' => 'time_window',
+            'help' => 'Show only sightings from the last N hours/days.',
+        ),
+    );
     public $description = 'Widget showing information on recent sightings';
     public $cacheLifetime = false;
     public $autoRefreshDelay = 30;
