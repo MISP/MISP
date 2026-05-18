@@ -10,9 +10,14 @@ class OrganisationMapWidget
         'filter' => 'A list of filters by organisation meta information (sector, type, local (- expects a boolean or a list of boolean values)) to include. (dictionary, prepending values with ! uses them as a negation)',
         'start_date' => 'The ISO 8601 date format at which to start',
         'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
-        'limit' => 'Limits the number of displayed tags. Default: 10',
+        'limit' => 'Limits the number of countries displayed on the map (top-N by organisation count). Leave empty for unlimited.',
     ];
-    public $schema = [];
+    public $schema = [
+        'limit' => [
+            'type' => 'int',
+            'help' => 'Top-N countries by organisation count (leave empty for unlimited).',
+        ],
+    ];
     public $cacheLifetime = null;
     public $autoRefreshDelay = false;
     private $validFilterKeys = [
@@ -68,12 +73,23 @@ class OrganisationMapWidget
             }
         }
         $this->Organisation = ClassRegistry::init('Organisation');
-        $orgs = $this->Organisation->find('all', [
+        $findArgs = [
             'recursive' => -1,
             'fields' => ['Organisation.nationality', 'COUNT(Organisation.nationality) AS frequency'],
             'conditions' => $params['conditions'],
-            'group' => ['Organisation.nationality']
-        ]);
+            'group' => ['Organisation.nationality'],
+            // Phase 2 fix: stable top-N order so the configurable `limit`
+            // (previously dead — declared in $params but never read) picks
+            // the most-represented countries deterministically. Adding the
+            // ORDER BY is a small behavior change even for users who don't
+            // set `limit`, but the prior order was unspecified — relying
+            // on it was already a bug.
+            'order' => ['frequency DESC'],
+        ];
+        if (!empty($options['limit'])) {
+            $findArgs['limit'] = (int) $options['limit'];
+        }
+        $orgs = $this->Organisation->find('all', $findArgs);
         $results = ['data' => [], 'scope' => 'Organisations'];
         foreach($orgs as $org) {
             $country = $org['Organisation']['nationality'];

@@ -1110,11 +1110,34 @@ So the prior handoff's claim that "a user who explicitly toggles cumulative ON g
 
 **Fix (cosmetic):** rewrote with the canonical bool semantic — `$cumulative = filter_var($options['cumulative'] ?? true, FILTER_VALIDATE_BOOLEAN, ['flags' => FILTER_NULL_ON_FAILURE])` with a `null → true` fallback for unrecognized values, plus the if/else branches flipped so `$cumulative === true` enters the running-total branch and `$cumulative === false` enters the per-interval branch. End-to-end behavior unchanged for all legacy shapes (real bool, `"true"`/`"false"`, `"1"`/`"0"`, ints, unset) except one edge case worth noting: a value of the literal string `"no"` was previously treated as cumulative (because `empty("no")` is `false`), and is now treated as per-interval (because `filter_var` recognises `"no"` as boolean-false). Vanishingly unlikely any saved config carries `"no"` — neither the placeholder nor the schema nor the params help text suggest yes/no values — but documenting the diff in case anyone trips on it. `php -l` clean.
 
-### OrganisationMapWidget `limit` is dead config (surfaced 2026-05-18)
+### OrganisationMapWidget `limit` is dead config (surfaced 2026-05-18) — **fixed 2026-05-18**
 
 **Surfaced during the Phase 2 `$schema` backfill of OrganisationMapWidget (commit `b7baad278`).**
 
-`OrganisationMapWidget::$params` declares `limit => 'Limits the number of displayed tags. Default: 10'` but `handler()` never reads `$options['limit']` — reverse-grep across the file is empty. The help text also references "tags" which is a stale copy from `TrendingTagsWidget`'s param (this widget shows orgs on a world map). **Where it lands:** either wire `limit` into `handler()` (presumably intended as a country/org cap on the world map) or remove `limit` from `$params` to retire the dead config. Out of scope for the additive backfill task.
+`OrganisationMapWidget::$params` declares `limit => 'Limits the number of displayed tags. Default: 10'` but `handler()` never reads `$options['limit']` — reverse-grep across the file is empty. The help text also references "tags" which is a stale copy from `TrendingTagsWidget`'s param (this widget shows orgs on a world map).
+
+**Fix:** wired `limit` into `handler()`'s find call with `'order' => ['frequency DESC']` added unconditionally so the top-N is deterministic. New code path:
+
+```php
+$findArgs = [
+    'recursive' => -1,
+    'fields' => ['Organisation.nationality', 'COUNT(Organisation.nationality) AS frequency'],
+    'conditions' => $params['conditions'],
+    'group' => ['Organisation.nationality'],
+    'order' => ['frequency DESC'],
+];
+if (!empty($options['limit'])) {
+    $findArgs['limit'] = (int) $options['limit'];
+}
+```
+
+Same commit:
+- `$params['limit']` help text rewritten to drop the "tags" copy-paste typo and describe top-N-by-count semantics: `"Limits the number of countries displayed on the map (top-N by organisation count). Leave empty for unlimited."`.
+- `$schema` promoted from `[]` to `['limit' => ['type' => 'int', 'help' => '...']]` since the param is now alive — the configure form's typed-fields tier surfaces it as a numeric input rather than dot-notation key-value. No `default` declared (the implicit semantic is "unlimited" when empty; declaring a default of e.g. 10 would silently cap admin's globe view for every existing widget instance on first save).
+
+**Behavior delta even for users who don't set `limit`:** the new `ORDER BY frequency DESC` is unconditional, so the result-set's row order is now deterministic. Prior order was unspecified — relying on it was already a bug (different MySQL/MariaDB versions, different buffer-pool warm states, and different `WHERE` filter combinations could each produce different orderings). The downstream code that reshapes `$orgs` into `$results['data']` keys by country code, so row order doesn't actually affect the rendered map either — the change is invisible in practice.
+
+`php -l` clean. The widget is now consistent with itself: schema declares the typed knob; params describes the knob; handler reads the knob; result honors the knob.
 
 ### Antimeridian splitting required when re-vendoring world GeoJSON
 
