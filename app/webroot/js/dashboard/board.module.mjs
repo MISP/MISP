@@ -271,6 +271,10 @@ class Board {
           disposeChartsIn(widgetEl);
           this.grid.removeTile(id);
           this._updateDebugReadout();
+          // removeTile bypasses Grid._commit (it directly mutates
+          // this.tiles), so the onCommit hook used by drag/resize
+          // doesn't fire here — persist explicitly.
+          this._scheduleSave();
           break;
         case 'configure':
           e.preventDefault();
