@@ -1,4 +1,4 @@
-// dashboard-v2 — Configure side panel (DD-06 two-tier form).
+// Configure side panel (DD-06 two-tier form).
 //
 // Phase 0.3 prototype: only the `time_window` canonical type is
 // implemented in the typed-fields tier; everything else falls into

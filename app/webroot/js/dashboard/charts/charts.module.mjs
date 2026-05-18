@@ -1,4 +1,4 @@
-// dashboard-v2 — chart bootstrap.
+// Dashboard chart bootstrap.
 //
 // Scans rendered widget content for chart containers (the `.ctp`
 // renderers emit static `<div data-misp-chart="<kind>"

@@ -1,4 +1,4 @@
-// dashboard-v2 — Dashboard toolbar (DD-05 bulk-edit Model 4).
+// Dashboard toolbar (DD-05 bulk-edit Model 4).
 //
 // For every canonical type at least one widget on the dashboard
 // declares, render a compact chip in the toolbar slot showing the

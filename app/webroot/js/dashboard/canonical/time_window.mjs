@@ -1,4 +1,4 @@
-// dashboard-v2 — `time_window` canonical type (PRD §5.5).
+// `time_window` canonical type (PRD §5.5).
 //
 // Shared between the configure form (per-widget edit) and the
 // dashboard toolbar (bulk edit, DD-05). Each canonical type lives in

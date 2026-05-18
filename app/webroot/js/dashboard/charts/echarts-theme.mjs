@@ -1,4 +1,4 @@
-// dashboard-v2 — ECharts "misp" theme registration.
+// ECharts "misp" theme registration.
 //
 // PRD §8.2 (Level 2 theming): the dashboard registers a single named
 // ECharts theme whose palette and axis colours are derived at boot

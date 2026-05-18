@@ -1,5 +1,4 @@
-// dashboard-v2 GridModule — Phase 0.2 prototype.
-// Drag, snap, collision, resize on a 12-column CSS Grid layout.
+// GridModule — drag, snap, collision, resize on a 12-column CSS Grid layout.
 // Drag is wired via Pragmatic Drag and Drop (PDD); resize uses raw
 // pointer events. The module is dependency-free at runtime apart
 // from the vendored PDD bundle.

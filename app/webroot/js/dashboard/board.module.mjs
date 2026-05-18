@@ -1,4 +1,4 @@
-// dashboard-v2 BoardModule — Phase 0.3 prototype.
+// BoardModule.
 //
 // Implements the §8.5 hook contract: scans the DOM for the stable
 // data-* attributes, hydrates a GridModule with the discovered tiles,
