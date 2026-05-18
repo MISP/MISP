@@ -1,19 +1,28 @@
 // Configure side panel (DD-06 two-tier form).
 //
-// Phase 0.3 prototype: only the `time_window` canonical type is
-// implemented in the typed-fields tier; everything else falls into
-// the dot-notation key-value tier (DD-06's "Advanced" section). The
-// remaining canonical types (tag_filter, org_filter, …) land in
-// Phase 3 alongside the toolbar.
+// The typed-fields tier is **schema-driven** (PRD §5.7): for each
+// entry in the widget's $schema, render a type-aware control if a
+// builder exists for the entry's type. Entries without a builder
+// (Phase 3 canonical types, exotic scalars) fall through to the
+// dot-notation key-value tier so their values stay editable.
 //
 // Per-canonical-type field builders live under `canonical/`; this
 // module composes them with the dot-notation kv tier and the panel
 // chrome. The toolbar (toolbar.module.mjs) reuses the same field
-// builders.
+// builders. Phase 3 brings tag_filter / org_filter / etc. into the
+// canonical registry below.
 
 import * as TimeWindow from './canonical/time_window.mjs';
 
-const CANONICAL_TYPES = new Set([TimeWindow.KEY]);
+// Builder registry keyed by canonical type name. Each builder
+// exports `KEY` (the type), `LABEL`, and `buildField(value, opts)`
+// returning a DOM node whose innermost <input>/<select> carries the
+// `data-schema-key` attribute set by the configure form (so the
+// readback finds it without knowing the builder).
+const CANONICAL_BUILDERS = {
+  [TimeWindow.KEY]: TimeWindow,
+};
+const SCALAR_TYPES = new Set(['string', 'int', 'bool', 'enum']);
 
 const ATTR_PANEL          = 'data-misp-configure-root';
 const ATTR_BACKDROP       = 'data-misp-configure-backdrop';
@@ -22,7 +31,9 @@ const ATTR_TITLE          = 'data-misp-configure-title';
 const ATTR_ACTION         = 'data-misp-configure-action';
 const ATTR_KV_ACTION      = 'data-misp-kv-action';
 const ATTR_WIDGET_CONFIG  = 'data-widget-config';
+const ATTR_WIDGET_SCHEMA  = 'data-widget-schema';
 const ATTR_WIDGET_NAME    = 'data-widget-name';
+const ATTR_SCHEMA_KEY     = 'data-schema-key';
 
 // Pending state for the currently-open panel.
 let openTarget = null;     // the widget element being configured
@@ -120,25 +131,139 @@ function buildKVRow(key, value) {
   );
 }
 
-function buildForm(widgetConfig) {
-  // Split the config into canonical-typed top-tier and "everything
-  // else" bottom-tier. The canonical extraction is a flat lookup —
-  // it doesn't recurse into nested keys.
-  const canonical = {};
+/**
+ * Build a native form control for a scalar-typed schema entry.
+ * Returns a DOM node whose inner input/select carries the
+ * data-schema-key attribute the readback uses to map back to the
+ * config key.
+ */
+function buildScalarField(key, entry, currentValue) {
+  const help = entry.help || '';
+  const label = el('span', { class: 'misp-field-label', text: key });
+  let control;
+  switch (entry.type) {
+    case 'bool': {
+      const checked = currentValue === undefined
+        ? Boolean(entry.default)
+        : Boolean(currentValue);
+      control = el('input', {
+        type: 'checkbox',
+        class: 'misp-field-checkbox',
+        [ATTR_SCHEMA_KEY]: key,
+        'data-type': 'bool',
+        'aria-label': key,
+      });
+      if (checked) control.setAttribute('checked', '');
+      break;
+    }
+    case 'enum': {
+      control = el('select', {
+        class: 'misp-field-input',
+        [ATTR_SCHEMA_KEY]: key,
+        'data-type': 'enum',
+        'aria-label': key,
+      });
+      const opts = Array.isArray(entry.enum) ? entry.enum : [];
+      const cur = currentValue !== undefined
+        ? String(currentValue)
+        : (entry.default !== undefined ? String(entry.default) : '');
+      for (const o of opts) {
+        const opt = el('option', { value: String(o), text: String(o) });
+        if (String(o) === cur) opt.setAttribute('selected', '');
+        control.appendChild(opt);
+      }
+      break;
+    }
+    case 'int': {
+      const v = currentValue !== undefined
+        ? currentValue
+        : (entry.default !== undefined ? entry.default : '');
+      control = el('input', {
+        type: 'number',
+        step: '1',
+        class: 'misp-field-input',
+        [ATTR_SCHEMA_KEY]: key,
+        'data-type': 'int',
+        value: v === '' ? '' : String(v),
+        'aria-label': key,
+      });
+      break;
+    }
+    case 'string':
+    default: {
+      const v = currentValue !== undefined
+        ? currentValue
+        : (entry.default !== undefined ? entry.default : '');
+      control = el('input', {
+        type: 'text',
+        class: 'misp-field-input',
+        [ATTR_SCHEMA_KEY]: key,
+        'data-type': 'string',
+        value: v === '' ? '' : String(v),
+        'aria-label': key,
+      });
+      break;
+    }
+  }
+  const children = [label, control];
+  if (help) {
+    children.push(el('span', { class: 'misp-field-help', text: help }));
+  }
+  return el('label', { class: 'misp-field' }, ...children);
+}
+
+function buildForm(widgetConfig, widgetSchema) {
+  // Top tier: iterate the widget's $schema entries. For each entry,
+  // route by type — canonical types with a registered builder render
+  // the type-aware field; scalar types render native controls; entries
+  // with no available builder fall through to the bottom tier so the
+  // user can still see and edit the saved value.
+  //
+  // Schema entries are tagged with their schema key via the builder's
+  // existing `data-schema-key` (formerly `data-canonical`) attribute,
+  // injected by setting `KEY = <schema_key>` on each builder call.
+  const handledKeys = new Set();
+  const typedFields = [];
+  const schemaEntries = (widgetSchema && typeof widgetSchema === 'object')
+    ? widgetSchema
+    : {};
+  for (const [key, entry] of Object.entries(schemaEntries)) {
+    if (!entry || typeof entry !== 'object' || !entry.type) continue;
+    const type = entry.type;
+    if (CANONICAL_BUILDERS[type]) {
+      // Canonical: dispatch to the registered builder. The builder
+      // returns a node whose <input>/<select> carries data-schema-key.
+      typedFields.push(CANONICAL_BUILDERS[type].buildField(
+        widgetConfig[key],
+        { schemaKey: key }
+      ));
+      handledKeys.add(key);
+    } else if (SCALAR_TYPES.has(type)) {
+      typedFields.push(buildScalarField(key, entry, widgetConfig[key]));
+      handledKeys.add(key);
+    }
+    // Unbuilt canonical types (Phase 3) fall through — the schema
+    // entry's saved value will surface in the bottom tier below
+    // because handledKeys doesn't include it.
+  }
+
+  // Bottom tier gets every config key NOT handled by the top tier.
   const rest = {};
   for (const [k, v] of Object.entries(widgetConfig)) {
-    if (CANONICAL_TYPES.has(k)) canonical[k] = v;
-    else rest[k] = v;
+    if (!handledKeys.has(k)) rest[k] = v;
   }
   const flatRest = flatten(rest);
 
-  const typedTier = el('section', { class: 'misp-configure-tier' },
-    el('h3', { class: 'misp-configure-tier-title', text: 'Filters' }),
-    TimeWindow.buildField(canonical[TimeWindow.KEY]),
-  );
+  const formNodes = [];
+  if (typedFields.length > 0) {
+    formNodes.push(el('section', { class: 'misp-configure-tier' },
+      el('h3', { class: 'misp-configure-tier-title', text: 'Filters' }),
+      ...typedFields,
+    ));
+  }
 
   const kvList = el('ul', { class: 'misp-kv-list', 'data-misp-kv-list': '' });
-  // If the widget had no non-canonical config yet, seed an empty row
+  // If the widget had no bottom-tier config yet, seed an empty row
   // so the user has somewhere to start typing — DD-06's "single
   // example key" requirement.
   if (Object.keys(flatRest).length === 0) {
@@ -154,7 +279,7 @@ function buildForm(widgetConfig) {
     [ATTR_KV_ACTION]: 'add',
     text: '+ Add row',
   });
-  const kvTier = el('section', { class: 'misp-configure-tier' },
+  formNodes.push(el('section', { class: 'misp-configure-tier' },
     el('h3', { class: 'misp-configure-tier-title', text: 'Advanced' }),
     el('p', {
       class: 'misp-field-help',
@@ -162,20 +287,37 @@ function buildForm(widgetConfig) {
     }),
     kvList,
     addBtn,
-  );
+  ));
 
-  return el('div', {}, typedTier, kvTier);
+  return el('div', {}, ...formNodes);
 }
 
 // ---- panel control ----
 
 function readBack(panel) {
   const out = {};
-  // Top tier: any element with [data-canonical] writes into the root
-  // config under its declared canonical key.
-  for (const sel of panel.querySelectorAll('[data-canonical]')) {
-    const k = sel.getAttribute('data-canonical');
-    out[k] = sel.value;
+  // Top tier: every control tagged with [data-schema-key] writes
+  // into the root config under its key. data-type drives coercion
+  // (checkboxes → bool, number inputs → int, selects/text → string).
+  for (const sel of panel.querySelectorAll(`[${ATTR_SCHEMA_KEY}]`)) {
+    const k = sel.getAttribute(ATTR_SCHEMA_KEY);
+    const t = sel.getAttribute('data-type');
+    let v;
+    if (sel.type === 'checkbox') {
+      v = sel.checked;
+    } else if (t === 'int') {
+      // Empty string stays empty so the widget's empty-fallback can
+      // engage; otherwise coerce to number (NaN is treated as empty).
+      if (sel.value === '') {
+        v = '';
+      } else {
+        const n = Number(sel.value);
+        v = Number.isFinite(n) ? Math.trunc(n) : sel.value;
+      }
+    } else {
+      v = sel.value;
+    }
+    out[k] = v;
   }
   // Bottom tier: dot-notation rows. Empty keys are skipped (lets the
   // user blank a row to delete it).
@@ -215,11 +357,20 @@ export function openConfigure(widgetEl, onSave) {
 
   const widgetName = widgetEl.getAttribute(ATTR_WIDGET_NAME) || '';
   const config = JSON.parse(widgetEl.getAttribute(ATTR_WIDGET_CONFIG) || '{}');
+  let schema = {};
+  try {
+    schema = JSON.parse(widgetEl.getAttribute(ATTR_WIDGET_SCHEMA) || '{}');
+    if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
+      schema = {};
+    }
+  } catch (_) {
+    schema = {};
+  }
 
   const titleEl = panel.querySelector(`[${ATTR_TITLE}]`);
   if (titleEl) titleEl.textContent = `Configure ${widgetName}`;
   const body = panel.querySelector(`[${ATTR_BODY}]`);
-  body.replaceChildren(buildForm(config));
+  body.replaceChildren(buildForm(config, schema));
 
   setHidden(backdrop, false);
   setHidden(panel, false);

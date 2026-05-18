@@ -28,6 +28,7 @@ class DashboardsController extends AppController
     public function index()
     {
         App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
+        App::uses('WidgetSchema', 'Lib/Dashboard/Tools');
         // Layout priority chain:
         //   1. If the user has a UserSetting:dashboard row (even with
         //      an empty array as the value), use that — a user who
@@ -67,6 +68,23 @@ class DashboardsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($widgets, $this->response->type());
         }
+
+        // Enrich each widget with its declared $schema (PRD §5.7) so
+        // the wrapper element can emit data-widget-schema and the
+        // client-side configure form (DD-06) renders the typed-fields
+        // tier from the contract instead of hardcoding. Unknown widget
+        // classes resolve to an empty schema — the configure form then
+        // collapses to the key-value tier (DD-06 custom-widgets path).
+        foreach ($widgets as &$w) {
+            $w['schema'] = [];
+            if (!empty($w['widget']) && is_string($w['widget'])) {
+                $instance = $this->Dashboard->loadWidget($user, $w['widget'], true);
+                if ($instance !== false) {
+                    $w['schema'] = WidgetSchema::getSchema($instance);
+                }
+            }
+        }
+        unset($w);
 
         $this->layout = 'dashboard';
         $this->set('title_for_layout', __('Dashboard'));

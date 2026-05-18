@@ -10,6 +10,7 @@
  *   data-widget-name                 — class name for AJAX render
  *   data-widget-instance-id          — stable instance id
  *   data-widget-config               — JSON-encoded config
+ *   data-widget-schema               — JSON-encoded $schema (PRD §5.7)
  *   data-widget-alias                — optional display alias
  *   data-position-{x,y,w,h}          — initial grid placement
  *   data-drag-handle                 — drag-trigger element (titlebar)
@@ -33,6 +34,7 @@
          data-widget-name="<?= h($widget['widget']) ?>"
          data-widget-instance-id="<?= h($widget['instance_id']) ?>"
          data-widget-config='<?= h(json_encode($widget['config'], JSON_UNESCAPED_SLASHES)) ?>'
+         data-widget-schema='<?= h(json_encode(isset($widget['schema']) && is_array($widget['schema']) ? $widget['schema'] : array(), JSON_UNESCAPED_SLASHES)) ?>'
          <?php if (!empty($widget['alias'])): ?>data-widget-alias="<?= h($widget['alias']) ?>"<?php endif; ?>
          data-position-x="<?= h($widget['position']['x']) ?>"
          data-position-y="<?= h($widget['position']['y']) ?>"

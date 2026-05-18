@@ -57,21 +57,32 @@ function el(tag, attrs = {}, ...children) {
 
 /**
  * Build the time_window field. Single text input (source of truth)
- * + preset shortcut buttons + format hint. The input carries the
- * `data-canonical="time_window"` hook so generic readback code (the
- * configure form, the toolbar popover) finds it without knowing the
- * type by name.
+ * + preset shortcut buttons + format hint. The input carries two
+ * generic readback hooks:
+ *   - `data-canonical="time_window"` — used by the dashboard
+ *     toolbar (DD-05) to find the input in its bulk-edit popover.
+ *     ALWAYS the canonical type name, regardless of the schema key.
+ *   - `data-schema-key="<schema_key>"` — used by the configure form
+ *     to map back to the widget's config key. Defaults to the
+ *     canonical type name for widgets that follow the standard
+ *     convention `'time_window' => { type: 'time_window' }`; can
+ *     differ if the widget declares time_window under a custom key.
  *
  * @param {string|number|undefined} currentValue
- * @param {{compact?: boolean}} [opts] - compact omits the help text
- *        for tight surfaces like the toolbar popover.
+ * @param {{compact?: boolean, schemaKey?: string}} [opts]
+ *        compact omits the help text for tight surfaces like the
+ *        toolbar popover; schemaKey overrides the default
+ *        data-schema-key value (used by the configure form).
  */
 export function buildField(currentValue, opts = {}) {
   const value = currentValue == null ? '' : String(currentValue);
+  const schemaKey = opts.schemaKey || KEY;
   const input = el('input', {
     type: 'text',
     class: 'misp-field-input',
     'data-canonical': KEY,
+    'data-schema-key': schemaKey,
+    'data-type': KEY,
     value,
     placeholder: 'e.g. 7d, 86400, -1',
     'aria-label': LABEL,
