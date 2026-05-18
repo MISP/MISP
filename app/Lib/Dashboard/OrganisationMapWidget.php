@@ -12,6 +12,7 @@ class OrganisationMapWidget
         'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
         'limit' => 'Limits the number of displayed tags. Default: 10',
     ];
+    public $schema = [];
     public $cacheLifetime = null;
     public $autoRefreshDelay = false;
     private $validFilterKeys = [
