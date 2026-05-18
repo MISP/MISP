@@ -108,6 +108,7 @@ class SharingGroupsController extends AppController
                         ));
                     }
                 }
+                $this->Flash->success(__('The sharing group has been addedd'));
                 $this->redirect('/SharingGroups/view/' . $this->SharingGroup->id);
             } else {
                 $validationReplacements = array(
@@ -126,7 +127,38 @@ class SharingGroupsController extends AppController
         } elseif ($this->_isRest()) {
             return $this->RestResponse->describe('SharingGroup', 'add', false, $this->response->type());
         }
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
 
+            $currentOrgId = $this->Auth->user('org_id');
+
+            $localOrgs = $this->SharingGroup->Organisation->find('all', [
+                'conditions' => [
+                    'local' => 1,
+                    'id !=' => $currentOrgId,
+                ],
+                'recursive' => -1,
+                'fields'    => ['id', 'name', 'uuid'],
+                'order'     => ['lower(name) ASC'],
+            ]);
+
+            $externalOrgs = $this->SharingGroup->Organisation->find('all', [
+                'conditions' => ['local' => 0],
+                'recursive'  => -1,
+                'fields'     => ['id', 'name', 'uuid'],
+                'order'      => ['lower(name) ASC'],
+            ]);
+
+            $availableServers = $this->SharingGroup->SharingGroupServer->Server->find('all', [
+                'recursive' => -1,
+                'fields'    => ['id', 'name', 'url'],
+                'order'     => ['lower(name) ASC'],
+            ]);
+
+            $this->set('localOrgs',       $localOrgs);
+            $this->set('externalOrgs',    $externalOrgs);
+            $this->set('availableServers', $availableServers);
+        }
         $this->set('localInstance', empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl'));
         // We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
         $this->set('user', $this->Auth->user());
@@ -220,6 +252,46 @@ class SharingGroupsController extends AppController
         $this->set('localInstance', empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl'));
         // We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
         $this->set('user', $this->Auth->user());
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+
+            $existingOrgIds    = array_column(array_column($sharingGroup['SharingGroupOrg'],    'Organisation'), 'id');
+            $existingServerIds = array_column(array_column($sharingGroup['SharingGroupServer'], 'Server'),       'id');
+            $currentOrgId      = $this->Auth->user('org_id');
+
+            $localOrgs = $this->SharingGroup->Organisation->find('all', [
+                'conditions' => [
+                    'local'  => 1,
+                    'id !='  => array_merge([$currentOrgId], $existingOrgIds),
+                ],
+                'recursive' => -1,
+                'fields'    => ['id', 'name', 'uuid'],
+                'order'     => ['lower(name) ASC'],
+            ]);
+
+            $externalOrgs = $this->SharingGroup->Organisation->find('all', [
+                'conditions' => [
+                    'local' => 0,
+                    'id !=' => $existingOrgIds,
+                ],
+                'recursive'  => -1,
+                'fields'     => ['id', 'name', 'uuid'],
+                'order'      => ['lower(name) ASC'],
+            ]);
+
+            $availableServers = $this->SharingGroup->SharingGroupServer->Server->find('all', [
+                'conditions' => ['id !=' => $existingServerIds],
+                'recursive'  => -1,
+                'fields'     => ['id', 'name', 'url'],
+                'order'      => ['lower(name) ASC'],
+            ]);
+
+            $this->set('localOrgs',        $localOrgs);
+            $this->set('externalOrgs',     $externalOrgs);
+            $this->set('availableServers', $availableServers);
+
+            $this->render('add');
+        }
     }
 
     public function delete($id)
@@ -253,12 +325,31 @@ class SharingGroupsController extends AppController
         }
     }
 
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'SharingGroup',
+            'restName' => 'SharingGroups',
+            'itemName' => 'SharingGroup',
+            'view' => 'ajax/sharingGroupDeleteConfirmationForm',
+            'checkModifyCallback' => function($itemId) {
+                return $this->userRole['perm_sharing_group'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s SharingGroup deleted.', '%s SharingGroups deleted.', $count, $count);
+            }
+        ]);
+    }
+
     public function index($passive = false)
     {
         $passive = $passive === 'true';
         $authorizedSgIds = $this->SharingGroup->authorizedIds($this->Auth->user());
         $this->paginate['conditions'][] = array('SharingGroup.id' => $authorizedSgIds);
-        $this->paginate['conditions'][] = array('SharingGroup.active' => $passive === true ? 0 : 1);
+        if (isset($this->theme) && $this->theme !== "Overmind"){
+            $this->paginate['conditions'][] = array('SharingGroup.active' => $passive === true ? 0 : 1);
+        }
 
         if (isset($this->params['named']['value'])) {
             $term = '%' . strtolower($this->params['named']['value']) . '%';
@@ -431,6 +522,26 @@ class SharingGroupsController extends AppController
             'recursive' => -1,
             'callbacks' => false,
         ]);
+
+        // check if the current user can modify or delete the SG
+        $userOrganisationUuid = $this->Auth->user()['Organisation']['uuid'];
+        $editable = false;
+        $deletable = false;
+        if ($this->userRole['perm_site_admin'] || ($this->userRole['perm_sharing_group'] && $sg['Organisation']['uuid'] === $userOrganisationUuid)) {
+            $editable = true;
+            $deletable = true;
+        } else if ($this->userRole['perm_sharing_group']) {
+            if (!empty($sg['SharingGroupOrg'])) {
+                foreach ($sg['SharingGroupOrg'] as $sgo) {
+                    if ($sgo['extend'] && $sgo['org_id'] == $this->Auth->user('org_id')) {
+                        $editable = true;
+                        break;
+                    }
+                }
+            }
+        }
+        $this->set('editable', $editable);
+        $this->set('deletable', $deletable);
 
         $this->set('mayModify', $this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $sg['SharingGroup']['id']));
         $this->set('id', $sg['SharingGroup']['id']);
