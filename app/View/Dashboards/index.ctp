@@ -1,9 +1,11 @@
 <?php
 /**
- * Phase 0.3 prototype index view for dashboard v2.
+ * Dashboard index view. Renders inside Layouts/dashboard.ctp (DD-08),
+ * which provides the MISP chrome (global menu, flash, footer) and
+ * loads the dashboard's CSS. This view emits only the dashboard's
+ * own markup + the JS module bootstrap.
  *
- * Standalone page (no MISP layout). Renders the dashboard frame with
- * the §8.5 stable hook contract:
+ * Hook contract per PRD §8.5:
  *   - data-misp-board-root        — board root element
  *   - data-misp-widget            — one widget instance
  *   - data-widget-name            — widget class name
@@ -12,26 +14,11 @@
  *   - data-misp-widget-content    — render target
  *   - data-misp-widget-action="*" — clickable widget controls
  *   - data-misp-board-action="*"  — board-level toolbar controls
- *
- * The view is intentionally minimal — Phase 0.3 commits 2 (CSS
- * tokens) and 3 (JS hook contract) populate the styling and
- * behaviour. This commit just sets up the markup.
  */
 $baseurl = Configure::read('MISP.baseurl') ?: '';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>dashboard-v2 prototype — MISP</title>
-<link rel="stylesheet" href="<?= h($baseurl) ?>/css/dashboard/dashboard.default.css">
-<link rel="stylesheet" href="<?= h($baseurl) ?>/css/dashboard/dashboard.midnight.css">
-</head>
-<body class="misp-dashboard-page">
-
 <header class="misp-dashboard-header">
-    <h1 class="misp-dashboard-title">Dashboard <span class="misp-dashboard-pill">v2 proto</span></h1>
+    <h1 class="misp-dashboard-title"><?= __('Dashboard') ?></h1>
     <!-- Bulk-edit toolbar slot (DD-05). Toolbar module populates this
          with one chip per canonical type that at least one widget on
          the board declares; an empty-state hint shows otherwise. -->
@@ -71,7 +58,7 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
     <code data-misp-debug-readout>{}</code>
 </footer>
 
-<!-- Configure side panel (Phase 0.3 commit: schema-driven two-tier form per DD-06).
+<!-- Configure side panel (schema-driven two-tier form per DD-06).
      Hidden by default; shown by the ConfigureModule when the user clicks a
      widget's ⚙ button. Single panel per board; opening for a different widget
      repopulates the form. Matches the PRD §8.5 contract via stable
@@ -104,6 +91,3 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
 </aside>
 
 <script type="module" src="<?= h($baseurl) ?>/js/dashboard/board.module.mjs"></script>
-
-</body>
-</html>

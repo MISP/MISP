@@ -48,12 +48,13 @@ class DashboardsController extends AppController
 
         // REST clients get the layout payload as JSON via the
         // RestResponse component. Web UI falls through to
-        // View/Dashboards/index.ctp.
+        // View/Dashboards/index.ctp under Layouts/dashboard.ctp.
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($widgets, $this->response->type());
         }
 
-        $this->layout = false;
+        $this->layout = 'dashboard';
+        $this->set('title_for_layout', __('Dashboard'));
         $this->set('widgets', $widgets);
     }
 
