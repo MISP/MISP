@@ -9,6 +9,7 @@ class AttackWidget
     public $params = [
         'filters' => 'A list of restsearch filters to apply to the heatmap. (dictionary, prepending values with ! uses them as a negation)'
     ];
+    public $schema = [];
     public $cacheLifetime = 1200;
     public $autoRefreshDelay = false;
     private $validFilterKeys = [
