@@ -1,4 +1,4 @@
-# Dashboard v2 — Session handoff (2026-05-16, late)
+# Dashboard v2 — Session handoff (2026-05-16, evening)
 
 Brief read-out for a fresh session to pick up cleanly. Authoritative
 state still lives in:
@@ -14,68 +14,58 @@ fit the durable docs. Replace it as work progresses.
 
 ## TL;DR
 
-**Phase 1 v1-removal band is FULLY CLOSED.** Five tasks across this
-session (plus one in the prior session). Net: ~190 LoC stripped from
-misp.js, 4 gridstack assets gone, 18 lines of dead CSS out of main.css,
-11 orphaned v1 widget renderers (1220 lines) deleted, and the v1
-controller / view tree carryovers were already absorbed pre-session.
+**Phase 1 is functionally complete.** All three Phase 1 bands closed
+this session — v1 removal (prior session), rename pass (7/7), additive
+(7/7). Net for this session: ~580 LoC of new functionality across a
+new layout + custom layout for Overmind + ⋯ More dropdown + WAI-ARIA
+Menu Button JS + drag/resize/remove persistence + first-load priority
+chain + empty-state element + DashboardURLValidator helper with 22
+PHPUnit tests. Plus 2 user-reported regressions caught and fixed
+inline (chrome typography leak; missing Overmind themed layout).
 
-**Phase 1 rename pass is 6/7 done.** The remaining task — strip the
-standalone `<!DOCTYPE html>` from `Dashboards/index.ctp` and set
-`$this->layout = 'dashboard'` — is bundled per DD-08 with the new
-`Layouts/dashboard.ctp` creation in the additive band. It'll land
-together with the layout work, not standalone.
+**Phase 1 close-out smoke tests: 1/4 done** (grep sanity, headless).
+3 remain — all need a real browser pass: default-theme E2E,
+Overmind-theme E2E, legacy v1-shape row migration on read+save.
 
-**Next session = additive band.** Design-heavy work per DD-08: custom
-`app/View/Layouts/dashboard.ctp` mirroring `default.ctp` minus the
-side-menu region, header bar with the DD-05 toolbar chips + edit
-toggle + "⋯ More" dropdown for the four template actions, side-menu
-`case 'dashboard':` deletions, first-load default + empty-state,
-DashboardURLValidator helper, drag/resize commit callback wiring.
+**Next session: pick from**
+1. Run the 3 interactive close-out smoke tests, then move to Phase 2.
+2. UiBeta themed-dashboard-layout audit (UiBeta has its own side_menu
+   but no themed `default.ctp` — does the dashboard need a themed
+   override the same way Overmind did, or does UiBeta just inherit?)
+3. Phase 2 work directly (Authoring UX — schema-driven configure
+   form, widget gallery, Add/Edit flows).
 
-User's framing carries forward: *"don't get hung up on the prior
-design, I would like to go for something modern and pleasant to work
-with"* (2026-05-13). Favour generous whitespace, soft visual weight,
-subtle shadows, smooth keyboard navigation. Match the proto's
-existing configure side-panel aesthetic. Stay away from BS2.3-era
-dropdown styling even though the host theme is BS2.3.
+User direction carries forward: *"modern and pleasant"* — generous
+whitespace, soft visual weight, subtle shadows, no animation
+flourish, smooth keyboard navigation.
 
 ## Where we are
 
 ```
 Phase 0.4 — Sign-off                                              [x]
 
-Phase 1 — Frame (in-place replacement)                            [/]
-  v1 audit + removal (CLOSED):
-    Audit pass (inventory + reverse-grep)                         [x]
-    Copy carryover actions + views into Dashboards2               [x]
-    Delete v1 DashboardsController.php                            [x]
-    Delete v1 View/Dashboards/ tree                               [x]
-    Remove v1 dashboard JS from misp.js                           [x]  this session
-    Remove v1 dashboard CSS from main.css (discovered)            [x]  this session
-    Remove Gridstack vendored assets                              [x]  this session
-    Delete orphaned v1 widget renderers (discovered)              [x]  this session
+Phase 1 — Frame (in-place replacement)                            [x]
+  v1 audit + removal                                              [x] (prior)
+  Rename pass                                                     [x] 7/7
+  Additive band                                                   [x] 7/7
+    Custom layout app/View/Layouts/dashboard.ctp                  [x] this session
+    Header "⋯ More" dropdown (WAI-ARIA Menu Button)               [x] this session
+    Delete case 'dashboard': (default + UiBeta side_menu)         [x] this session
+    Drag/resize commit callback → _scheduleSave                   [x] this session
+    Persist on widget remove (discovered)                         [x] this session
+    First-load default + empty-state                              [x] this session
+    DashboardURLValidator + PHPUnit (DD-03)                       [x] this session
 
-  Rename pass (6/7):
-    Controller rename + ACL                                       [x]  this session
-    JS tree rename                                                [x]  this session
-    Elements tree rename                                          [x]  this session
-    Themed/Overmind Elements tree rename                          [x]  this session
-    View/Dashboards2 → View/Dashboards rename                     [x]  this session
-    Drop proto-only ?theme= / ?ui_theme= activation               [x]  this session
-    Strip <!DOCTYPE> + set $this->layout = 'dashboard'            [ ]  bundled w/ layout creation per DD-08
-
-  Additive band (new Phase 1 work):                               [ ]  ← NEXT
-    Create app/View/Layouts/dashboard.ctp                         [ ]  marquee task
-    Header "⋯ More" dropdown (WAI-ARIA Menu Button)               [ ]
-    Delete side_menu.ctp `case 'dashboard':` (default)            [ ]
-    Delete side_menu.ctp `case 'dashboard':` (UiBeta)             [ ]
-    First-load default + empty-state element                      [ ]
-    DashboardURLValidator helper                                  [ ]
-    Drag/resize commit callback → _scheduleSave()                 [ ]
-
-  Smoke tests (close-out)                                         [ ]
-    4 tasks — see dashboard-progress.md
+  Close-out smoke tests                                           [/] 1/4
+    [x] Grep sanity (Dashboards2Controller, dashboard-v2,
+        ?theme= refs all gone — including cosmetic header sweep)
+    [ ] Default theme E2E: chrome integration, MispStatusWidget
+        renders, edit toggle, drag commit + persist regression
+    [ ] Overmind theme E2E: BS5 navbar (just landed), title-bar
+        drag, configure side panel, toolbar bulk-edit chip
+    [ ] Legacy v1-shape row migration: width/height → w/h +
+        instance_id mint on read, save canonicalises persisted
+        shape, top-level stays bare array (DD-05)
 ```
 
 Working tree is clean for v2 work; only the usual unrelated noise
@@ -84,256 +74,328 @@ scratch files in repo root, untracked side-projects in subdirs).
 
 ## Live test instance
 
-- URL: `http://localhost:5007/dashboards`  ← renamed from `/dashboards2`
+- URL: `http://localhost:5007/dashboards`
+- Admin user id: 1 (`admin@admin.test`), password `Password12345`
 - Admin API key: `dHVxEx4WhIwRdS6QDVsBmW9PE6pOkmgIH1FPQWiC`
-- Admin user id: 1 (`admin@admin.test`)
+- **Admin user is currently on Overmind theme** (`UserSetting:ui_theme = "Overmind"`)
+  — important for smoke tests; switch back to Default via the user
+  profile page if needed.
 - DB creds: `mysql -u misp -pPassword1234 misp`
 
-The proto-only `?theme=` / `?ui_theme=` query-param switches are
-**gone** as of `6f45d2dbb`. Production theme activation is MISP's
-regular per-user theme system in `AppController::beforeFilter()`.
-There is no dashboard-specific theme toggle.
-
-To force the hardcoded default layout to surface (e.g. after toolbar
-pulls have rewritten the saved row):
+To force the first-load default-template / empty-state surface
+(after the new priority-chain logic):
 ```bash
+# Force empty-state path:
 mysql -u misp -pPassword1234 misp -e \
   "DELETE FROM user_settings WHERE user_id=1 AND setting='dashboard';"
+
+# Force default-template path (admin has site-admin, bypasses
+# selectable + restrict_to_*, so any row with default=1 wins):
+mysql -u misp -pPassword1234 misp -e \
+  "UPDATE dashboards SET \`default\`=1 WHERE id=<row_id> LIMIT 1;"
+# … remember to reset default=0 after.
 ```
 
 ## What this session committed (in order)
 
 ```
-abec4d08d  chg: strip v1 dashboard JS from misp.js (137 lines + the
-                trailing blank; reverse-grep clean across app/)
+20f25e642  chg: custom layout app/View/Layouts/dashboard.ctp + view
+                scaffold removal + controller layout flag flip
+                (bundled per lesson #2 — functionally inseparable)
 
-bd2fe63ee  chg: remove Gridstack vendored assets (2 tracked via git rm,
-                4 untracked .bk + package.json + package-lock via plain
-                rm; deviated from "clean entries" wording — deleted the
-                package files outright since they were never tracked
-                and v2 has no npm pipeline)
+c5949f222  chg: header "⋯ More" dropdown (WAI-ARIA Menu Button)
+                — markup in index.ctp + new menu-button.module.mjs
+                (~155 lines, idempotent hydrator) + initMenuButtons
+                wiring in board.module.mjs + CSS in dashboard.default.css
 
-997438009  chg: strip v1 dashboard CSS leftover from main.css (18-line
-                block at main.css:2752–2769; discovered work promoted
-                into the v1-removal band)
+d3af9d9c3  chg: drop side_menu `case 'dashboard':` from default
+                + UiBeta mirror (bundled per lesson #2 — same theme-
+                resolver-coupling pattern as the rename pass)
 
-abc68533e  chg: rename Dashboards2 → Dashboards (controller + view tree
-                combined per the Cake convention coupling; **but only the
-                bare git mv operations were staged — content edits were
-                forgotten. HEAD broken at rest.**)
+ff7389045  chg: Grid onCommit → Board._scheduleSave for drag/resize
+                persistence (added opts.onCommit to Grid; gates the
+                callback on actual x/y/w/h change so no-op drops
+                don't trigger network round-trips)
 
-96a305ee5  fix: complete the rename — stage the content edits
-                (fix-forward for abc68533e: class rename, PHPDoc trim,
-                URL strings, ACL block merge including the discovered
-                duplicate-key bug, board.module.mjs comment URL)
+a55db9046  fix: persist on widget remove (1-line follow-up to
+                ff7389045 — removeTile bypasses _commit so the
+                onCommit hook doesn't catch it; explicit
+                _scheduleSave call added with comment)
 
-0276cc38c  chg: rename js/dashboard-v2/ → js/dashboard/ (13 files moved
-                via git mv; all internal ESM imports are relative so no
-                import statements changed; 7 absolute-path / external
-                refs updated)
+af1d460e9  new: DashboardURLValidator helper + PHPUnit (DD-03)
+                — under app/Lib/Dashboard/Tools/; 22 tests / 34
+                assertions covering relative paths, MISP filter
+                syntax (`tag:tlp:red`), absolute same/off host,
+                scheme/port match, javascript:/data:/vbscript:/
+                file: rejection, control chars, no-baseurl
+                fallback. Phase 5 wiring deferred.
 
-efa7e4b9f  chg: delete orphaned v1 widget renderers (discovered audit-
-                miss surfaced by the next rename hitting a directory
-                collision; 11 files / 1220 lines gone from
-                app/View/Elements/dashboard/ — widget.ctp + Widgets/*)
+27b2d8a31  new: first-load priority chain + empty-state element
+                (bundled per lesson #2 — same view path):
+                UserSetting:dashboard → dashboards.default=1 → empty
+                state. Switched to UserSetting::getValueForUser
+                (distinguishes "no row" from "saved []", so a user
+                who cleared their dashboard stays cleared instead
+                of re-grabbing the default template). Deleted
+                proto's _defaultProtoLayout helper. New empty_state
+                element with soft 56x56 outline glyph + "No widgets
+                yet" + hint at the ⋯ menu.
 
-3af9d320a  chg: rename Elements/dashboard-v2/ → Elements/dashboard/
-                (default + Themed/Overmind override combined per the
-                Cake theme-resolver coupling; 5 files renamed, 7 PHPDoc
-                + comment updates)
+b6ea63df3  fix: scope dashboard typography off body (user-reported
+                chrome leak) — moved color/font-size/line-height
+                off body.misp-dashboard-page onto compound
+                .misp-dashboard-{header,main,footer} + .misp-
+                configure-panel selector. Proto's body-level rule
+                was bleeding into MISP global_menu + footer text.
 
-6f45d2dbb  chg: drop proto-only ?theme= / ?ui_theme= activation paths
-                from DashboardsController + Dashboards/index.ctp
+3b65111d7  chg: cosmetic sweep, retire dashboard-v2 nickname —
+                11 single-line replacements across 10 files (7
+                .mjs headers + 2 .css headers + proto/demo.html
+                <title>/<h1>). Final grep for "dashboard-v2"
+                across app/ returns zero matches. Closes the
+                handoff doc's deferred "Cosmetic naming sweep"
+                item AND the last sub-check of close-out smoke #4.
+
+a540efdeb  fix: Themed/Overmind/Layouts/dashboard.ctp (user-
+                reported BS5 navbar regression) — Phase 1 chrome
+                work created Layouts/dashboard.ctp (default) but
+                never the Overmind themed mirror, so Cake's
+                Themed resolver fell back to the default and
+                served BS2.3 global_menu under Overmind. New
+                themed layout mirrors Overmind's BS5 chrome path
+                (mainOvermind + navbar.ctp + footerBS5 + mispOvermind
+                JS) unconditionally — the dashboard is a BS5
+                surface by design (DD-08), so the $bootstrap5Pages
+                whitelist isn't applicable here.
 ```
 
-9 commits + 1 fix-forward = 10 total this session. All signed
-(`%G?` = `U` — good signature, unknown trust per the local GPG db).
-Total LoC moved: ~190 lines of v1 misp.js gone, 18 lines of dead CSS
-gone, 1220 lines of v1 widget renderers gone, 4 gridstack asset files
-deleted (~280KB), 5 directories renamed across the controller / view
-/ JS / Elements / Themed trees with full callsite + comment audit,
-proto-only theme activation block stripped (~47 lines).
+10 commits this session. All signed (`%G?` = `U` — good signature,
+unknown trust per the local GPG db).
 
 ## Lessons from this session that the next session should bake in
 
 These bit me; don't make me bite you twice.
 
-1. **`git mv` does NOT auto-stage subsequent content edits to the moved
-   file.** When you do `git mv X.php Y.php` then edit Y.php, the edit
-   sits **unstaged** while the rename sits **staged**. `git status`
-   shows `RM` for those files. If you `git commit` without an explicit
-   `git add Y.php`, the commit lands the bare rename only — HEAD is
-   broken at rest even though your working tree (and any test that
-   reads from the working tree) is fine.
+1. **`Themed/<Name>/Layouts/<layout>.ctp` must exist for every new
+   layout you introduce.** Cake's Themed resolver looks for
+   `Themed/<active>/Layouts/<name>.ctp` first; if absent, falls back
+   to the default. I created `Layouts/dashboard.ctp` but not
+   `Themed/Overmind/Layouts/dashboard.ctp`, so under Overmind the
+   resolver fell back to the default — which renders the BS2.3
+   global_menu element. Overmind doesn't override `global_menu`
+   either (it switches chrome at the *layout* level via its own
+   `default.ctp`'s `$bootstrap5Pages` whitelist + `navbar.ctp`
+   element), so the fallback path served legacy chrome instead of
+   Overmind's BS5 chrome.
 
-   Pattern to adopt: after editing renamed files, ALWAYS run
-   `git status --short` and verify every modification you intend to
-   commit shows in the LEFT column (`M ` or `R `, not ` M` or `RM`).
-   Stage each explicitly by path. Never trust the state from a prior
-   `git mv` to roll forward.
+   Same pattern as the prior session's Themed Elements + Themed CSS
+   override coupling. The fix is symmetric — for every new layout,
+   audit `ls app/View/Themed/` and decide whether each theme needs
+   its own override. UiBeta (next on the list) likely needs the
+   same treatment.
 
-   I hit this on `abc68533e` — see the fix-forward in `96a305ee5`
-   for the recovery path. Per the user's git rule (always create new
-   commits, never amend), the fix is a follow-up commit, not a rewind.
+2. **`AppController::beforeFilter` already activates Cake's Themed
+   resolver from the user's `ui_theme` UserSetting.** Lines 282–294.
+   The controller doesn't need to set `$this->theme` for dashboard-
+   specific theming — it's already set globally. The only thing the
+   dashboard needs is themed files in the right paths.
 
-2. **Rename-pass tasks are often functionally entangled and should
-   land together.** CakePHP's convention couples the controller class
-   name to the View/<Name>/ template directory: rename one without the
-   other and Cake 500s looking for templates in the wrong place. Cake's
-   theme resolver couples the default Elements/<path>/ directory to
-   the Themed/<Name>/Elements/<path>/ override: rename one without the
-   other and the override silently no-ops. Both pairings landed as
-   single commits this session (`abc68533e` for controller+view tree,
-   `3af9d320a` for Elements+Themed). Per the user's per-task convention
-   the commit message should explicitly tick both tracker tasks and
-   explain the coupling.
+3. **Hard-refresh after CSS edits.** The `?v=185` cache-buster from
+   `AppController::__queryVersion` is hardcoded — same value for
+   every asset, doesn't bump per-file. After editing
+   `dashboard.default.css`, the browser will serve its cached copy
+   until Ctrl+Shift+R (or DevTools → Disable Cache). Hit this twice
+   this session — once on the ⋯ dropdown popover (cached pre-CSS
+   version had no `position: absolute` rule), once on the typography
+   fix verification.
 
-3. **Rename-pass collisions on existing target paths are usually
-   v1-audit misses.** Twice this session a directory rename hit a
-   pre-existing target — `Elements/dashboard/` carried 11 orphaned
-   v1 widget renderers plus 2 active user-dashboard files. Same
-   pattern as the `main.css` discovery from earlier (v1 CSS block the
-   audit didn't enumerate). When a collision shows up, **first
-   reverse-grep the existing target** for callers; if it's pure v1
-   orphan, promote into the v1-removal band, delete in its own
-   commit, then proceed with the rename in the next commit.
+4. **Body-level CSS leaks into MISP chrome once the dashboard runs
+   inside Layouts/dashboard.ctp.** The proto's `body.misp-dashboard-
+   page { font-size; line-height; color; }` rule worked when the
+   dashboard ran standalone but bled into MISP global_menu + footer
+   text via inheritance. Fix: scope typography to dashboard-content
+   surfaces (`.misp-dashboard-header,.misp-dashboard-main,.misp-
+   dashboard-footer,.misp-configure-panel`), not body. Watch for
+   other body-level rules that might still leak (background fills
+   the inter-chrome gap harmlessly, but anything inheritance-driven
+   needs to live below body).
 
-4. **The harness requires Read-after-rename before Edit.** When you
-   `git mv` a file then try to Edit at the new path, the harness
-   blocks the edit ("File has not been read yet"). Read the new path
-   first (even just a few lines around the edit target), then Edit.
-   This came up several times this session.
+5. **`UserSetting::getValueForUser` vs `getSetting` matters.**
+   `getSetting` collapses "no row" and "row exists with empty
+   value" to the same `[]`. Use `getValueForUser` directly when you
+   need to distinguish — returns `null` for no row, decoded value
+   otherwise. The first-load priority chain depends on this: a user
+   who explicitly cleared their dashboard shouldn't get the default
+   template silently re-imposed on next visit.
 
-5. **ACL component duplicate-key bug after a key rename.** When the
-   v2 ACL key `'dashboards2'` was renamed to `'dashboards'`, the v1
-   `'dashboards'` ACL block (lines 175–186) hadn't been deleted in
-   the v1-removal pass. PHP arrays silently keep only the last entry
-   for duplicate keys, so the carryover actions would have lost their
-   ACL. Merge the two blocks — narrow the action set to match the
-   actual controller's surface (drop stale entries like `getForm` /
-   `getEmptyWidget` that no longer have implementations). Confirmed
-   on this session's commit `96a305ee5`.
+6. **MISP test convention is bare `app/Test/*.php`**, NOT Cake's
+   `app/Test/Case/...` convention. Pure PHPUnit, no Cake bootstrap,
+   no DB. Stub framework classes at the top of the test file via
+   `if (!class_exists('Foo', false)) { class Foo { ... } }`. See
+   `app/Test/EventTemplateValidatorTest.php` for the `App::uses`
+   stub pattern; `DashboardURLValidatorTest.php` (this session)
+   mirrors it for `Configure`. Run with
+   `./app/Vendor/bin/phpunit app/Test/<Name>Test.php`.
+
+7. **MISP login form has a full CSRF token set** —
+   `data[_Token][key]`, `data[_Token][fields]`, `data[_Token][unlocked]`,
+   `data[_Token][debug]`. Curl-based login dance needs all four
+   extracted from the form's GET response, then POSTed back with
+   the user credentials. Admin password is `Password12345`. (The
+   handoff before me used `admin` — wrong.) Recipe:
+   ```bash
+   curl -s -c "$CJ" http://localhost:5007/users/login -o /tmp/form.html
+   TKEY=$(grep -oP 'name="data\[_Token\]\[key\]" value="\K[^"]+' /tmp/form.html)
+   TFIELDS=$(grep -oP 'name="data\[_Token\]\[fields\]" value="\K[^"]+' /tmp/form.html)
+   TUNLOCKED=$(grep -oP 'name="data\[_Token\]\[unlocked\]" value="\K[^"]*' /tmp/form.html)
+   TDEBUG=$(grep -oP 'name="data\[_Token\]\[debug\]" value="\K[^"]+' /tmp/form.html)
+   curl -s -b "$CJ" -c "$CJ" -L -o /dev/null \
+     --data-urlencode "_method=POST" \
+     --data-urlencode "data[_Token][key]=$TKEY" \
+     --data-urlencode "data[_Token][fields]=$TFIELDS" \
+     --data-urlencode "data[_Token][unlocked]=$TUNLOCKED" \
+     --data-urlencode "data[_Token][debug]=$TDEBUG" \
+     --data-urlencode "data[User][email]=admin@admin.test" \
+     --data-urlencode "data[User][password]=Password12345" \
+     http://localhost:5007/users/login
+   ```
+   Then `curl -b "$CJ" /dashboards` works.
 
 The prior session's gotchas still apply:
 
-6. **GPG agent times out the commit signature** if the pinentry dialog
-   isn't completed promptly. Symptom: `signing failed: Timeout` from
-   `gpg`. Fix: from the user's terminal, run
-   `echo "test" | gpg --clearsign > /dev/null`, enter the passphrase
-   to prime the agent, then retry the commit. The user explicitly
-   wants signed commits — never `--no-gpg-sign` without asking.
+8. **`git mv` does NOT auto-stage subsequent content edits.** Always
+   `git status --short` and verify every modification you intend to
+   commit shows in the LEFT column (`M `/`R `, not ` M`/`RM`).
+   Stage each by path. Hit this in the prior session; didn't hit
+   it this session.
 
-7. **The grid root `.misp-dashboard-main` has CSS padding** that the
-   grid math has to account for (Phase 0.3 latent bug, fixed in
-   `04c2e308f`). Watch for this if Phase 1's new layout introduces
-   additional padding on the new layout — the math now reads padding
-   off `getComputedStyle`, so as long as the padding lives on the same
-   container (`data-misp-board-root`), it self-corrects.
+9. **Functionally-coupled tasks should land together.** Rename-pass
+   items (controller + view tree, Elements + Themed override),
+   first-load + empty-state (same view path), side_menu default +
+   UiBeta deletions (theme-resolver coupling). Commit message
+   explicitly ticks both tracker tasks and explains the coupling.
+   Hit this lesson pattern three times this session — bundled
+   accordingly each time.
 
-8. **`save_template.ctp:4` has `url => 'saveDashboardTemplate'`** —
-   action-name mismatch (the action is `saveTemplate`). v1 has had
-   this for years; carried verbatim into Dashboards2 per the carryover
-   protocol. Phase 4 reimplementation fixes it. Don't "fix" it as a
-   side-quest during Phase 1.
-
-9. **`DashboardsController`'s `$components` doesn't declare
-   `RestResponse` / `Flash` / `CRUD` / `IndexFilter`** explicitly —
-   they come through `AppController` inheritance. If a fresh session
-   sees an `Undefined property ::$CRUD` error, double-check
-   AppController.php line 81+ first before adding to the controller's
-   own components list.
-
-10. **`render_widget.ctp` is referenced by `DashboardsController::
-    renderWidget`** — it's the AJAX response template for widget
-    re-renders. Don't accidentally delete it during any future view
-    sweep. It stays.
+10. **GPG agent times out the commit signature** if the pinentry
+    dialog isn't completed promptly. Symptom: `signing failed:
+    Timeout`. Fix: from the user's terminal, run `echo "test" |
+    gpg --clearsign > /dev/null`, enter the passphrase to prime
+    the agent, then retry. The user explicitly wants signed commits
+    — never `--no-gpg-sign` without asking.
 
 ## Discovered work parked for later (deferred)
 
-- **Cosmetic naming sweep:** `// dashboard-v2 — …` header comments at
-  the top of each `.mjs` file (8 files), `<title>dashboard-v2 prototype
-  — MISP</title>` at `Dashboards/index.ctp:8`, `<title>` and `<h1>`
-  in `webroot/js/dashboard/proto/demo.html`, and the headers of the
-  two CSS files at `webroot/css/dashboard/dashboard.{default,midnight}.
-  css:2`. None are functional refs; all are project-nickname mentions
-  that can be cleaned up holistically once the rename pass closes.
+- **UiBeta themed dashboard layout audit.** `Themed/UiBeta/` exists
+  and has its own side_menu (whose `case 'dashboard':` block we
+  deleted in `d3af9d9c3`), but no `Themed/UiBeta/Layouts/default.ctp`.
+  Under UiBeta theme, the dashboard currently uses my default
+  `Layouts/dashboard.ctp`. Open question: does UiBeta have its own
+  chrome conventions (a la Overmind's BS5 navbar) that would warrant
+  a themed `dashboard.ctp` override? `ls app/View/Themed/UiBeta/`
+  shows Elements but no Layouts dir at root. Likely no override
+  needed, but worth verifying before declaring Phase 1 fully done.
 
-- **Dormant `dashboard.midnight.css` loader:** `Dashboards/index.ctp:10`
-  still unconditionally loads `dashboard.midnight.css` even though the
-  `data-theme="midnight"` attribute is no longer emitted anywhere
-  (proto activation stripped in `6f45d2dbb`). The CSS is gated entirely
-  by `:root[data-theme="midnight"]` selectors so it's loaded-but-
-  dormant on every dashboard page. Worth dropping the `<link>` (and
-  possibly the file) once the new layout / DD-08 chrome lands. The
-  file's own header documents that its production replacement is the
-  Themed/<Name>/webroot/css/... pattern, not this overlay.
+- **Drop dormant `dashboard.midnight.css` loader.** Both
+  `Layouts/dashboard.ctp` AND `Themed/Overmind/Layouts/dashboard.ctp`
+  load it, but the `:root[data-theme="midnight"]` selector is never
+  matched (the `data-theme` attribute is no longer emitted anywhere
+  since the proto's `?theme=midnight` activation was stripped in
+  `6f45d2dbb`). Loaded-but-dormant on every dashboard page. Could
+  be removed from both layouts in a small cleanup. The midnight.css
+  file's own header documents that its production replacement is
+  the Themed/<Name>/webroot/css/... pattern, not this overlay —
+  so dropping the loader doesn't lose anything.
 
-- **Antimeridian splitting recipe** in `vendor/VENDORING.md` (re-apply
-  on any future world-atlas re-vendoring). Phase 0.3 detail.
+- **Antimeridian splitting recipe** in `vendor/VENDORING.md`
+  (re-apply on any future world-atlas re-vendoring). Phase 0.3 detail.
 
 - **`TrendingAttributesWidget` blows up on PHP 8.x** via a CakePHP
   `Attribute` model name collision (pre-existing MISP issue, not
   v2-specific; documented in the Phase 0.3 Model 4 demo Done note).
 
+- **Phase 5 wiring of DashboardURLValidator.** The helper landed
+  in `af1d460e9` with tests; Phase 5 renderers (`SimpleList` /
+  `BarChart` / `MultiLineChart` / `WorldMap`) need to call
+  `DashboardURLValidator::validate($drilldownUrl)` before emitting
+  `<a href>`. Not bundled with the helper per the task wording
+  ("Phase 5 renderers will use it from day one").
+
+- **`save_template.ctp:4` action-name mismatch** (`url =>
+  'saveDashboardTemplate'` — the action is `saveTemplate`). v1 has
+  had this for years; carried verbatim into v2 per the Phase 1
+  carryover protocol. Phase 4 reimplements the template flows
+  in-page per DD-08, fix the mismatch then.
+
 ## Open thread / next obvious work
 
-**The marquee task: create `app/View/Layouts/dashboard.ctp` per DD-08.**
+**Option A: close out Phase 1 with the 3 interactive smoke tests.**
 
-Pattern: mirror `app/View/Layouts/default.ctp`'s chrome (CSS/JS
-includes, top nav, flash messages, footer) with the side-menu region
-omitted entirely. The view sits in the full content column. Then in
-the same commit:
+These need a real browser pass:
 
-- Strip the standalone `<!DOCTYPE html><html>…</html>` markup from
-  `Dashboards/index.ctp` — the layout now provides it.
-- In `DashboardsController::index()`, change `$this->layout = false;`
-  to `$this->layout = 'dashboard';`.
-- The dashboard view emits only its own markup + the
-  `<script type="module">` tag.
+1. **Default theme E2E.** Switch admin's `ui_theme` to `Default`
+   (or use a second user without `ui_theme` set). Visit `/dashboards`.
+   Verify: dashboard renders inside MISP's BS2.3 chrome (global_menu
+   top nav, footer); MispStatusWidget content fetches via AJAX; the
+   ⋯ More dropdown opens as a popover (DD-08 WAI-ARIA pattern —
+   click toggle, click-outside-closes, Esc returns focus to trigger,
+   ArrowDown/Up navigates, Tab dismisses); the Edit-layout toggle
+   flips `data-misp-board-mode` and exposes drag handles + resize
+   handles; drag a widget to a new cell, drop, **reload the page**
+   — new position should stick (regression check on `ff7389045`'s
+   onCommit → _scheduleSave wiring); same for resize and remove.
 
-This closes the last rename-pass task (task 7) as a byproduct.
+2. **Overmind theme E2E.** Admin user is already on Overmind. Visit
+   `/dashboards`. Verify: Overmind's BS5 navbar renders at the top
+   (dark, BS5 dropdowns — not BS2.3 black bar); dashboard chrome
+   below uses the dashboard's own header (title + toolbar + Edit +
+   More); configure side panel opens when clicking a widget's ⚙
+   button (DD-06 two-tier form); toolbar's `time_window` bulk-edit
+   chip opens its popover on click; nothing visually broken; no
+   JS console errors.
 
-**The design-heavy task: header bar "⋯ More" dropdown per DD-08.**
+3. **Legacy v1-shape row migration.** Craft a UserSetting:dashboard
+   row with v1 shape (`width`/`height` instead of `w`/`h`, no
+   `instance_id` per widget):
+   ```sql
+   UPDATE user_settings SET value = '[{"widget":"MispStatusWidget",
+   "config":[],"position":{"x":0,"y":0,"width":4,"height":3}}]'
+   WHERE user_id=1 AND setting='dashboard';
+   ```
+   Visit `/dashboards` — `LayoutFixup::applyReadFixups` should
+   normalise on read (mint `instance_id`, rename `width/height →
+   w/h`). Widgets render. Drag the widget to a new cell, drop —
+   the save POSTs back the canonicalised shape. Re-query the row,
+   verify `w`/`h` + `instance_id` are present, top-level shape is
+   still a bare array (no `{scope, widgets}` envelope per DD-05).
 
-Hosts the four template actions (Import / Export / Save Template /
-List Templates), each pointing at the v1-carryover URLs. WAI-ARIA
-Menu Button pattern: `aria-haspopup="menu"`, `aria-expanded`, Escape
-closes, Up/Down navigates, Enter activates. Tab-walkable focus order
-across the entire header (title row + DD-05 toolbar chips + Edit
-toggle + ⋯ More).
+After all three pass, close out Phase 1 entirely and move to Phase 2.
 
-User's direction is "modern and pleasant" — favour generous whitespace,
-soft visual weight, subtle shadows, icons in dropdown items, smooth
-keyboard navigation. Stay away from BS2.3-era dropdown styling even
-though the host theme is BS2.3. Match the proto's existing configure
-side-panel aesthetic.
+**Option B: UiBeta themed dashboard layout audit.**
 
-**Side menu deletion (2 tasks).** Per DD-08: delete the
-`case 'dashboard':` block in `app/View/Elements/genericElements/
-SideMenu/side_menu.ctp` (lines 9–46 pre-delete) and the same in the
-`Themed/UiBeta` mirror. The new layout doesn't render side_menu at
-all, so a stale caller would silently no-op — but grep cleanly anyway
-for `'menuList' => 'dashboard'` callers to make sure none remain.
+Mirror the Overmind investigation for UiBeta: check what chrome
+UiBeta uses (if any — it has Elements but no Layouts/, suggesting
+it inherits the default), decide whether a `Themed/UiBeta/Layouts/
+dashboard.ctp` is needed. Quick (~30 min) given the Overmind
+playbook.
 
-**Lower-effort additive tasks** (good for ending a session cleanly):
+**Option C: Phase 2 — Authoring UX.**
 
-- **`DashboardURLValidator` helper** under `app/Lib/Dashboard/Tools/`
-  per DD-03. Phase 5 renderers will use it from day one; Phase 1
-  introduces the helper + a smoke test so the contract is in place.
-- **Drag/resize commit callback** in `grid.module.mjs` so
-  `BoardModule._scheduleSave()` fires on layout commits. The proto
-  deliberately omitted this — layout changes don't persist today.
-- **First-load default + empty-state element** — load layout from
-  `dashboards.default = 1` row if present; else hardcoded fallback
-  (single MispStatusWidget). Empty-state element for when both the
-  user's `UserSetting:dashboard` and any default template are empty.
+Tracker has 26 tasks under Phase 2. Marquee pieces:
+- `$schema` property contract on widget classes (PRD §5.7)
+- Full-tier `$schema` backfill on 9 widgets (per Q7 Option C)
+- Two-tier configure form element (DD-06)
+- Widget gallery + Add Widget flow
+- Edit-mode vs. view-mode atomic save (DD-05)
+
+Big chunk of work; would want to land the `$schema` contract +
+backfill first since the configure form depends on it.
 
 ## Convention reminders
 
 - Commit per progress-tracker task completion; never `git add -A`;
   the commit body references the task.
-- **Always `git status --short` + explicit `git add` before commit**,
-  especially after any `git mv` (see lesson #1 above).
+- **Always `git status --short` + explicit `git add` before commit**.
 - New files land with `iglocska:iglocska` ownership; `chgrp www-data`
   before committing to match repo convention.
 - The proto's wrapper-element + Themed-override pattern is the
@@ -346,4 +408,5 @@ for `'menuList' => 'dashboard'` callers to make sure none remain.
   ground truth between sessions. Tick one task at a time; the
   Done note carries the deciding context.
 - Surface context status when past 75% at task boundaries so the
-  user can choose to restart.
+  user can choose to restart. (This session ended at 32% — well
+  inside the safe band; the user requested the handoff proactively.)
