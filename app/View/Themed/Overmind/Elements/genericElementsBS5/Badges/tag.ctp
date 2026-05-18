@@ -19,9 +19,9 @@ $text = "text-align:left; white-space:normal; word-wrap:break-word";
 
 $style = sprintf('%s; color: %s; %s; %s; %s; cursor:pointer;', $bgColor, $textColor, $shadow, $metallicEffect, $text);
 
-if ($local) {
-    $style .= sprintf(' border:2px dashed %s', $textColor);
-}
+// if ($local) {
+//     $style .= sprintf(' border:2px dashed %s', $textColor);
+// }
 ?>
 
 <div class="d-inline-flex align-items-center">
