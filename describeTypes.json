@@ -137,6 +137,10 @@
                 "default_category": "Network activity",
                 "to_ids": 1
             },
+            "suricata": {
+                "default_category": "Network activity",
+                "to_ids": 1
+            },
             "bro": {
                 "default_category": "Network activity",
                 "to_ids": 1
@@ -809,6 +813,7 @@
             "regkey|value",
             "AS",
             "snort",
+            "suricata",
             "bro",
             "zeek",
             "community-id",
@@ -1289,6 +1294,7 @@
                 "http-method",
                 "AS",
                 "snort",
+                "suricata",
                 "pattern-in-file",
                 "filename-pattern",
                 "stix2-pattern",
@@ -1376,6 +1382,7 @@
                 "regkey|value",
                 "AS",
                 "snort",
+                "suricata",
                 "bro",
                 "zeek",
                 "pattern-in-file",

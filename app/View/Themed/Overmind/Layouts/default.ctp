@@ -128,6 +128,16 @@
             ['controller' => 'SharingGroupBlueprints', 'action' => 'encodeSyncRule'],
 
             ['controller' => 'servers', 'action' => 'idTranslator'],
+            ['controller' => 'event_templates', 'action' => 'index'],
+            ['controller' => 'event_templates', 'action' => 'view'],
+            ['controller' => 'event_templates', 'action' => 'import'],
+            ['controller' => 'event_templates', 'action' => 'instantiate'],
+            ['controller' => 'event_templates', 'action' => 'add'],
+            ['controller' => 'event_templates', 'action' => 'edit'],
+            ['controller' => 'event_templates', 'action' => 'preview'],
+            ['controller' => 'event_templates', 'action' => 'update'],
+            ['controller' => 'event_templates', 'action' => 'library_status'],
+
 
             ['controller' => 'api', 'action' => 'openapi'],
             ['controller' => 'api', 'action' => 'rest'],
