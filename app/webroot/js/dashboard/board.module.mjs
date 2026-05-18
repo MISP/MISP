@@ -129,6 +129,12 @@ class Board {
       cols: parseInt(getComputedStyle(this.root).getPropertyValue('--misp-dash-grid-cols')) || 12,
       rowHeight: parseInt(getComputedStyle(this.root).getPropertyValue('--misp-dash-grid-row-h')) || 80,
       gap: parseInt(getComputedStyle(this.root).getPropertyValue('--misp-dash-grid-gap')) || 8,
+      // Persist drag/resize commits. Grid fires this only when at
+      // least one tile's x/y/w/h actually changed, so a tile dropped
+      // back at its origin doesn't trigger a network round-trip.
+      // _scheduleSave is already 50ms-debounced so rapid commits
+      // (cascade-affected tiles or multi-drop sequences) coalesce.
+      onCommit: () => this._scheduleSave(),
     });
 
     const tiles = [...this.root.querySelectorAll(`[${ATTR_WIDGET}]`)];

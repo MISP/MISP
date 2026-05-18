@@ -25,6 +25,12 @@ export class Grid {
     this.cols = opts.cols ?? 12;
     this.rowHeight = opts.rowHeight ?? 80;
     this.gap = opts.gap ?? 8;
+    // opts.onCommit (optional): invoked from _commit() whenever a
+    // drag-drop or resize-end produces an actual change to any tile's
+    // x/y/w/h. Used by BoardModule to schedule a persistence save.
+    // No-op commits (e.g. a tile dropped back at its original cell)
+    // do not fire the callback.
+    this.onCommit = opts.onCommit ?? null;
     this.tiles = new Map(); // id -> tile
     this.cleanups = [];
     this.dragState = null;
@@ -178,12 +184,17 @@ export class Grid {
   }
 
   _commit(layout) {
+    let changed = false;
     for (const [id, t] of layout) {
       const cur = this.tiles.get(id);
       if (cur.x !== t.x || cur.y !== t.y || cur.w !== t.w || cur.h !== t.h) {
         cur.x = t.x; cur.y = t.y; cur.w = t.w; cur.h = t.h;
         this._applyTileStyle(cur);
+        changed = true;
       }
+    }
+    if (changed && this.onCommit) {
+      this.onCommit();
     }
   }
 
