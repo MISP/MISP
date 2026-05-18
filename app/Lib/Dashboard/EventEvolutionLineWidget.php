@@ -14,6 +14,13 @@ class EventEvolutionLineWidget
         'start_date' => 'Start date, expressed in Y-m-d format (e.g. 2012-10-01)',
         'cumulative' => '(default: on), should the data counted cumulatively over time',
     ];
+    public $schema = [
+        'cumulative' => [
+            'type' => 'bool',
+            'default' => true,
+            'help' => 'Plot data cumulatively over time (running total) instead of per-interval counts.',
+        ],
+    ];
     private $validFilterKeys = [
         'nationality',
         'sector',
