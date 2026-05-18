@@ -98,12 +98,29 @@
 body.misp-dashboard-page {
   margin: 0;
   background: var(--misp-dash-surface);
-  color:      var(--misp-dash-text);
-  /* Typography inherits from host theme's body / html — we deliberately
-   * do not declare font-family here so a theme's font choice flows
-   * through. We DO scope sizes via tokens so the dashboard density
-   * is consistent regardless of host typography. */
-  font-size: var(--misp-dash-fs-base);
+  /* Typography is scoped to the dashboard's own content surfaces
+   * below (.misp-dashboard-header / .misp-dashboard-main /
+   * .misp-dashboard-footer / .misp-configure-panel), NOT applied
+   * here on body. The proto ran standalone so a body-wide rule
+   * was fine; once Layouts/dashboard.ctp wraps the dashboard in
+   * MISP's chrome (global_menu + footer), any body-level font-size
+   * / line-height / color cascades into the chrome's inheritance-
+   * driven bits (menu link text, footer text). Background and
+   * margin stay here — they don't propagate to text styling, and
+   * the surface fills the inter-chrome gap harmlessly. */
+}
+
+/* Dashboard content typography. Applied per top-level surface so it
+ * inherits naturally into descendants (widget bodies, menu items,
+ * configure form fields, empty-state copy) without leaking into the
+ * MISP chrome above/below. font-family deliberately omitted so the
+ * host theme's choice flows through. */
+.misp-dashboard-header,
+.misp-dashboard-main,
+.misp-dashboard-footer,
+.misp-configure-panel {
+  color:       var(--misp-dash-text);
+  font-size:   var(--misp-dash-fs-base);
   line-height: 1.5;
 }
 

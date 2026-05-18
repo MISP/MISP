@@ -1067,6 +1067,31 @@ line as a single ring). `d3-geo-projection`'s `geoStitch` was tried
 first; it only handles the inverse direction (joining pre-split
 parts) and didn't help here.
 
+### Body-scoped typography leaked into MISP chrome — **fixed 2026-05-16**
+
+**Surfaced 2026-05-16 during user smoke of the Phase 1 chrome work.**
+
+The proto's `body.misp-dashboard-page { font-size: …; line-height: …;
+color: …; }` rule was fine when the dashboard ran standalone, but
+once Layouts/dashboard.ctp wraps the dashboard in MISP's chrome
+(global_menu top nav + footer), those body-level rules cascaded into
+the chrome's text styling via inheritance (any chrome element that
+didn't set its own font-size / line-height / color inherited the
+14px / 1.5 / `#1d2025` from body). The proud comment on the rule
+even claimed typography was *deliberately* left to inherit from the
+host — it wasn't (font-size and line-height *were* on body, just not
+font-family).
+
+**Fix:** moved `color` / `font-size` / `line-height` off
+`body.misp-dashboard-page` onto a new compound selector covering the
+four dashboard-content top-level surfaces — `.misp-dashboard-header`
++ `.misp-dashboard-main` + `.misp-dashboard-footer` +
+`.misp-configure-panel`. Descendants inherit naturally inside those
+surfaces (widget bodies, menu items, configure form, empty-state
+copy). Body keeps `margin: 0` and `background: var(--misp-dash-
+surface)` — those don't propagate to text styling, and the surface
+colour fills the inter-chrome gap harmlessly.
+
 ### GridModule drag/resize math ignored grid-root CSS padding — **fixed 2026-05-13**
 
 **Surfaced 2026-05-13 during Phase 0.4 walk-through (drag test).**
