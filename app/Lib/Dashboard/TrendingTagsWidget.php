@@ -14,6 +14,22 @@ class TrendingTagsWidget
         'filter_event_tags' => 'Filters to be applied on event tags',
         'over_time' => 'Toggle the trending to be over time',
     );
+    public $schema = array(
+        'time_window' => array(
+            'type' => 'time_window',
+            'help' => 'Time window over which to aggregate (last N days/hours, or all time).',
+        ),
+        'threshold' => array(
+            'type' => 'int',
+            'default' => 10,
+            'help' => 'Limits the number of displayed tags.',
+        ),
+        'over_time' => array(
+            'type' => 'bool',
+            'default' => false,
+            'help' => 'Plot trending tags over time as a multi-line chart instead of a single-snapshot bar chart.',
+        ),
+    );
     public $placeholder =
     '{
     "time_window": "7d",
