@@ -1067,6 +1067,60 @@ line as a single ring). `d3-geo-projection`'s `geoStitch` was tried
 first; it only handles the inverse direction (joining pre-split
 parts) and didn't help here.
 
+### Overmind theme served legacy BS2.3 menu on /dashboards — **fixed 2026-05-16**
+
+**Surfaced 2026-05-16 during user smoke under Overmind theme.**
+
+User reported that `/dashboards` under the Overmind theme served
+MISP's legacy BS2.3 `global_menu` instead of Overmind's Bootstrap-5
+`navbar.ctp`. Root cause: the Phase 1 chrome work created
+`app/View/Layouts/dashboard.ctp` (default-theme layout) and relied
+on Cake's Themed resolver to swap in a `Themed/Overmind/Layouts/
+dashboard.ctp` when Overmind was active — but that themed file was
+never created. The resolver fell back to the default `dashboard.
+ctp`, which calls `$this->element('global_menu')` (the legacy
+BS2.3 menu). Overmind doesn't override `global_menu` (it switches
+chrome at the *layout* level via its own `default.ctp`'s
+`$bootstrap5Pages` whitelist + `navbar.ctp` element), so the
+fallback path served BS2.3.
+
+**Fix:** new `app/View/Themed/Overmind/Layouts/dashboard.ctp` that
+mirrors Overmind's BS5 chrome path inside its `default.ctp` (BS5
+CSS pack — `bootstrap5-custom.min` + `tom-select.bootstrap5.min` +
+`mainOvermind` + `fontawesome7.min` — plus `navbar.ctp` + the
+modal/toast/popover containers + `footerBS5` + `bootstrap.bundle.
+min` + `mispOvermind` JS). Takes the BS5 path unconditionally —
+the `$bootstrap5Pages` whitelist check in Overmind's `default.ctp`
+isn't applicable here because the dashboard is a BS5-style surface
+by design (DD-08 "modern and pleasant" rules out BS2.3 chrome on
+the dashboard regardless of theme).
+
+Skipped vs Overmind's `default.ctp`: `headerSection` (the dashboard
+has its own `<header class="misp-dashboard-header">` with title +
+toolbar + Edit + More — layering Overmind's page-title bar on top
+would be redundant); the debug accordion (keeping the dashboard
+surface clean — `sql_dump` is still emitted); the TomSelect topbar-
+filter init (no `.topbar-filter` elements on the dashboard); the
+ajax-toggle / ajax-call global click handler (dashboard widgets
+use their own §8.5 hook contract; the global handler would compete
+for clicks).
+
+No controller change needed — `DashboardsController::index` still
+says `$this->layout = 'dashboard'`, and Cake's Themed resolver
+picks the right file based on `$this->theme` (set in `AppController
+::beforeFilter` from the user's `ui_theme` UserSetting).
+
+Smoke (cache cleared, admin user already on Overmind via
+`UserSetting:ui_theme = "Overmind"`): `GET /dashboards` → 200 with
+272KB HTML (up from 32KB under default theme — Overmind's navbar
+pulls in the full menu HTML); 5 BS5 navbar markers present
+(`navbar-expand-xl`, `navbar-dark bg-dark`, `mainOvermind`,
+`fontawesome7`, `bootstrap5-custom`, `mispOvermind`); 0 legacy
+markers (`id="topBar"`, `navbar-inverse`, `debugOn`); dashboard
+markup intact (`data-misp-board-root`, `misp-dashboard-header`,
+`misp-dashboard-main`, `board.module.mjs`). PHP lint clean. chgrp
+www-data applied.
+
 ### Body-scoped typography leaked into MISP chrome — **fixed 2026-05-16**
 
 **Surfaced 2026-05-16 during user smoke of the Phase 1 chrome work.**
