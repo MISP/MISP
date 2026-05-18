@@ -3317,6 +3317,7 @@ components:
         - "regkey|value"
         - "AS"
         - "snort"
+        - "suricata"
         - "bro"
         - "zeek"
         - "community-id"

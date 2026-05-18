@@ -871,10 +871,20 @@ class EventsController extends AppController
         if ($skipProtected) {
             $rules['conditions']['Event.protected'] = 0;
         }
-        $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
+        $paginationRules = array('page', 'limit', 'sort', 'direction');
         foreach ($paginationRules as $paginationRule) {
             if (isset($passedArgs[$paginationRule])) {
                 $rules[$paginationRule] = $passedArgs[$paginationRule];
+            }
+        }
+        if (isset($passedArgs['order'])) {
+            $validatedOrder = $this->Event->findOrder(
+                $passedArgs['order'],
+                'Event',
+                array_keys($fieldNames)
+            );
+            if ($validatedOrder !== null) {
+                $rules['order'] = $validatedOrder;
             }
         }
 

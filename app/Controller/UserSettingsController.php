@@ -447,4 +447,35 @@ class UserSettingsController extends AppController
             return $this->RestResponse->saveFailResponse('UserSettings', 'setTheme', false, $message, 'json');
         }
     }
+
+    /**
+     * Persist the event-template instantiation form's view-mode preference.
+     * Single-page (`all`) shows every section at once; `wizard` shows one
+     * section at a time with prev/next navigation. The setting is read by
+     * EventTemplatesController on next page load.
+     */
+    public function setEventTemplateUserFormMode($mode)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('Expecting POST request.'));
+        }
+        $valid = array_flip($this->UserSetting::VALID_SETTINGS['event_template_user_form_mode']['options']);
+        if (!isset($valid[$mode])) {
+            throw new BadRequestException(__('Invalid view mode.'));
+        }
+        $userId = $this->Auth->user('id');
+        $result = $this->UserSetting->setSettingInternal(
+            $userId, 'event_template_user_form_mode', $mode
+        );
+        if ($result) {
+            return $this->RestResponse->saveSuccessResponse(
+                'UserSettings', 'setEventTemplateUserFormMode', false, 'json',
+                __('Form view mode set to %s.', $mode)
+            );
+        }
+        return $this->RestResponse->saveFailResponse(
+            'UserSettings', 'setEventTemplateUserFormMode', false,
+            __('Failed to persist form view mode.'), 'json'
+        );
+    }
 }

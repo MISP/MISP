@@ -1,7 +1,7 @@
 [submodule "app/Lib/cakephp"]
 	path = app/Lib/cakephp
 	url = https://github.com/MISP/cakephp.git
-	branch = 2.x
+	branch = master-cakephp2-php8
 [submodule "PyMISP"]
 	path = PyMISP
 	url = https://github.com/MISP/PyMISP.git
@@ -21,6 +21,10 @@
 [submodule "app/files/misp-objects"]
 	path = app/files/misp-objects
 	url = https://github.com/MISP/misp-objects
+	branch = main
+[submodule "cti-python-stix2"]
+	path = app/files/scripts/cti-python-stix2
+	url = https://github.com/MISP/cti-python-stix2
 	branch = main
 [submodule "app/files/noticelists"]
 	path = app/files/noticelists
@@ -57,4 +61,8 @@
 [submodule "app/files/misp-workflow-blueprints"]
 	path = app/files/misp-workflow-blueprints
 	url = https://github.com/MISP/misp-workflow-blueprints
+	branch = main
+[submodule "app/files/misp-event-templates"]
+	path = app/files/misp-event-templates
+	url = https://github.com/MISP/misp-event-templates
 	branch = main

@@ -778,6 +778,62 @@ function openPopup(id, adjust_layout = true, callback) {
     };
 }
 
+function cancelPrompt(isolated) {
+    const grayOut = document.getElementById('gray_out');
+    if (grayOut && isolated === undefined) {
+        const fade = grayOut.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
+        fade.onfinish = () => { grayOut.style.display = 'none'; };
+    }
+    ['popover_form', 'confirmation_box'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const fade = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
+        fade.onfinish = () => {
+            el.style.display = 'none';
+            if (id === 'confirmation_box') el.innerHTML = '';
+        };
+    });
+}
+
+// No-arg wrapper so the index-page top-bar action and the side menu
+// can both trigger the same popover without inlining getPopup args.
+function openEventTemplateLibraryUpdatePopup() {
+    getPopup('', 'event_templates', 'update');
+}
+
+async function submitEventTemplatesLibraryUpdate() {
+    const loadingIcons = document.querySelectorAll('.loading');
+    loadingIcons.forEach(el => el.style.display = 'block');
+    try {
+        const response = await fetch(`${baseurl}/event_templates/update`, {
+            method: 'POST',
+            headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+            cache: 'no-cache',
+        });
+        if (!response.ok) throw response;
+        const summary = await response.json();
+        cancelPrompt();
+        const counts = {
+            installed: (summary.installed || []).length,
+            updated: (summary.updated || []).length,
+            skipped_current: (summary.skipped_current || []).length,
+            skipped_forked: (summary.skipped_forked || []).length,
+            failed: (summary.failed || []).length,
+        };
+        const msg = `Library update — installed ${counts.installed}, updated ${counts.updated}, `
+            + `skipped ${counts.skipped_current + counts.skipped_forked}, failed ${counts.failed}.`;
+        if (typeof showMessage === 'function') {
+            showMessage(counts.failed > 0 ? 'fail' : 'success', msg);
+        }
+        setTimeout(() => window.location.reload(), 800);
+    } catch (error) {
+        loadingIcons.forEach(el => el.style.display = 'none');
+        if (typeof xhrFailCallback === 'function') xhrFailCallback(error);
+    } finally {
+        loadingIcons.forEach(el => el.style.display = 'none');
+    }
+}
+
 function initTomSelect(container) {
     container.querySelectorAll('.tom-select').forEach(el => {
         if (el.tomselect) return;
