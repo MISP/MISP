@@ -44,6 +44,9 @@ class TaxiiServersController extends AppController
             return $this->restResponsePayload;
         }
         $dropdownData = [];
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->set(compact('dropdownData'));
         $this->set('menuData', array('menuList' => 'sync', 'menuItem' => 'add_taxii'));
     }
@@ -58,6 +61,9 @@ class TaxiiServersController extends AppController
             return $this->restResponsePayload;
         }
         $dropdownData = [];
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->set(compact('dropdownData'));
         $this->render('add');
     }
@@ -69,6 +75,23 @@ class TaxiiServersController extends AppController
             return $this->restResponsePayload;
         }
     }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'TaxiiServer',
+            'restName' => 'TaxiiServers',
+            'itemName' => 'TaxiiServer',
+            'view' => 'ajax/taxiiServerDeleteConfirmationForm',
+            'checkModifyCallback' => function($itemId) {
+                return $this->userRole['perm_site_admin'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s taxiiServer deleted.', '%s taxiiServers deleted.', $count, $count);
+            }
+        ]);
+    }
+
 
     public function view($id)
     {
@@ -106,7 +129,11 @@ class TaxiiServersController extends AppController
             $this->set('question', __('Are you sure you want to Push data as configured in the filters to the TAXII server?'));
             $this->set('actionName', __('Push'));
             $this->layout = 'ajax';
-            $this->render('/genericTemplates/confirm');
+            if($this->theme === "Overmind"){
+                $this->render('ajax/taxiiServerPushConfirmationForm');
+            } else {
+                $this->render('/genericTemplates/confirm');
+            }
         }
     }
 
