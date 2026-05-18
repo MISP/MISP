@@ -28,22 +28,37 @@ class DashboardsController extends AppController
     public function index()
     {
         App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
-        // Persistence path (Phase 0.3 demo of DD-05 on-read fix-ups):
-        //   1. read UserSetting:dashboard for the current user,
-        //   2. apply per-widget read fix-ups (width/height → w/h,
-        //      instance_id mint) so legacy v1 rows render correctly,
-        //   3. fall back to the hardcoded proto layout if no row exists
-        //      so a first-time viewer sees the demo state.
-        // updateSettings writes go through the same fix-up so persisted
+        // Layout priority chain:
+        //   1. If the user has a UserSetting:dashboard row (even with
+        //      an empty array as the value), use that — a user who
+        //      explicitly cleared their dashboard should NOT have a
+        //      default template silently re-imposed on next visit.
+        //   2. Else look up the org/role/permission-restricted default
+        //      template via Dashboard::getDashboardTemplate, json_decode
+        //      its `value` field, and use that.
+        //   3. Else hand the view an empty array — the view renders
+        //      the empty-state element ("No widgets yet").
+        // On-read fix-ups (DD-05) normalise per-widget shape regardless
+        // of source: width/height → w/h, instance_id minted if missing.
+        // updateSettings writes go through the same path so persisted
         // shape is canonical. Top-level stays bare-array (DD-05).
-        $saved = $this->User->UserSetting->getSetting(
-            $this->Auth->user('id'),
-            'dashboard'
-        );
-        if (!empty($saved) && is_array($saved)) {
+        $user = $this->Auth->user();
+        // getValueForUser distinguishes "row exists with empty value"
+        // (returns []) from "no row at all" (returns null). getSetting
+        // collapses both to [] which would silently re-impose the
+        // default template on a user who'd cleared their dashboard.
+        $saved = $this->User->UserSetting->getValueForUser($user['id'], 'dashboard');
+        if (is_array($saved)) {
             $widgets = LayoutFixup::applyReadFixups($saved);
         } else {
-            $widgets = $this->_defaultProtoLayout();
+            $widgets = array();
+            $template = $this->Dashboard->getDashboardTemplate($user);
+            if (!empty($template['Dashboard']['value'])) {
+                $decoded = json_decode($template['Dashboard']['value'], true);
+                if (is_array($decoded)) {
+                    $widgets = LayoutFixup::applyReadFixups($decoded);
+                }
+            }
         }
 
         // REST clients get the layout payload as JSON via the
@@ -112,53 +127,6 @@ class DashboardsController extends AppController
             $this->User->UserSetting->validationErrors,
             $this->response->type()
         );
-    }
-
-    private function _defaultProtoLayout()
-    {
-        $widgets = array(
-            array(
-                'instance_id' => 'w_1',
-                'widget'      => 'MispStatusWidget',
-                'alias'       => null,
-                'config'      => array(),
-                'position'    => array('x' => 0, 'y' => 0, 'w' => 4, 'h' => 3),
-            ),
-            array(
-                'instance_id' => 'w_2',
-                'widget'      => 'TrendingTagsWidget',
-                'alias'       => null,
-                // NB: legacy widget parser expects "7d" (lowercase),
-                // not the ISO-8601 `P7D` the canonical-type catalogue
-                // uses — the canonical → legacy adapter is a Phase 2
-                // task. See progress tracker "Discovered work".
-                // `-1` is the widget's "all time" sentinel so the
-                // prototype renders bars regardless of how recent
-                // event activity is on this instance.
-                'config'      => array('time_window' => '-1', 'threshold' => 10),
-                'position'    => array('x' => 4, 'y' => 0, 'w' => 5, 'h' => 4),
-            ),
-            array(
-                'instance_id' => 'w_3',
-                'widget'      => 'OrganisationMapWidget',
-                'alias'       => null,
-                'config'      => array(),
-                'position'    => array('x' => 9, 'y' => 0, 'w' => 3, 'h' => 4),
-            ),
-            // Second `time_window` declarer so the toolbar's bulk-edit
-            // path (DD-05) has more than one widget to sync — seeded
-            // with a different window from TrendingTags so the chip
-            // shows "(mixed)" on first load and the bulk-pull is
-            // immediately observable. Uses the existing BarChart shim.
-            array(
-                'instance_id' => 'w_4',
-                'widget'      => 'OrgContributionToplistWidget',
-                'alias'       => null,
-                'config'      => array('time_window' => '30d', 'threshold' => 10),
-                'position'    => array('x' => 0, 'y' => 4, 'w' => 12, 'h' => 4),
-            ),
-        );
-        return $widgets;
     }
 
     public function renderWidget($instance_id = null)

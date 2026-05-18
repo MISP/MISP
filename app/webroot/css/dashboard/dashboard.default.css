@@ -480,6 +480,45 @@ body.misp-dashboard-page {
 }
 
 /* ============================================================
+ * Empty state — "No widgets yet"
+ * ============================================================
+ *
+ * Rendered inside .misp-dashboard-main (a CSS grid) when the
+ * resolved layout is empty. Spans every column so it dominates
+ * the otherwise-empty board area, and uses muted typography +
+ * a soft outline glyph so it reads as guidance rather than
+ * an error state.
+ */
+
+.misp-dashboard-emptystate {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--misp-dash-space-5) var(--misp-dash-space-4);
+  min-height: 50vh;
+  color: var(--misp-dash-text-muted);
+}
+.misp-dashboard-emptystate-glyph {
+  color: var(--misp-dash-border-strong);
+  margin-bottom: var(--misp-dash-space-4);
+}
+.misp-dashboard-emptystate-title {
+  margin: 0 0 var(--misp-dash-space-2) 0;
+  font-size: var(--misp-dash-fs-xl);
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
+}
+.misp-dashboard-emptystate-body {
+  margin: 0;
+  font-size: var(--misp-dash-fs-base);
+  max-width: 32em;
+  line-height: 1.6;
+}
+
+/* ============================================================
  * SimpleList renderer
  * ============================================================ */
 .misp-list-row {

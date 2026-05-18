@@ -118,13 +118,19 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
       data-misp-board-save-url="<?= h($baseurl) ?>/dashboards/updateSettings">
 
     <?php
-    // Each widget renders through the wrapper element so themes can
-    // surgically override it (PRD §8.3 Level 3). Cake's Themed resolver
-    // picks app/View/Themed/<active>/Elements/dashboard/widget/
-    // wrapper.ctp when $this->theme is set; otherwise the default
-    // element under app/View/Elements/ wins.
-    foreach ($widgets as $w) {
-        echo $this->element('dashboard/widget/wrapper', array('widget' => $w));
+    if (empty($widgets)) {
+        // Empty layout — first-time user with no default template,
+        // or a user who explicitly cleared their dashboard.
+        echo $this->element('dashboard/empty_state');
+    } else {
+        // Each widget renders through the wrapper element so themes
+        // can surgically override it (PRD §8.3 Level 3). Cake's Themed
+        // resolver picks app/View/Themed/<active>/Elements/dashboard/
+        // widget/wrapper.ctp when $this->theme is set; otherwise the
+        // default element under app/View/Elements/ wins.
+        foreach ($widgets as $w) {
+            echo $this->element('dashboard/widget/wrapper', array('widget' => $w));
+        }
     }
     ?>
 
