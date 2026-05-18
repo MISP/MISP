@@ -32,6 +32,82 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
                 aria-pressed="false">
             <?= __('Edit layout') ?>
         </button>
+
+        <!-- "⋯ More" dropdown (DD-08). Hosts the four template
+             actions; each points at the v1 carryover URL. Phase 4
+             reimplements these as in-page flows. WAI-ARIA Menu
+             Button pattern — see menu-button.module.mjs. -->
+        <div class="misp-dashboard-menubutton" data-misp-menubutton>
+            <button type="button"
+                    class="misp-dashboard-btn misp-dashboard-btn-icon"
+                    aria-haspopup="menu"
+                    aria-expanded="false"
+                    aria-controls="misp-dashboard-more-menu"
+                    aria-label="<?= __('More actions') ?>"
+                    title="<?= __('More actions') ?>"
+                    data-misp-menubutton-trigger>
+                <span class="misp-dashboard-menubutton-glyph" aria-hidden="true">&#x22EF;</span>
+            </button>
+            <div class="misp-dashboard-menu"
+                 id="misp-dashboard-more-menu"
+                 role="menu"
+                 aria-label="<?= __('More actions') ?>"
+                 hidden
+                 data-misp-menubutton-menu>
+                <a role="menuitem"
+                   tabindex="-1"
+                   class="misp-dashboard-menuitem"
+                   href="<?= h($baseurl) ?>/dashboards/import">
+                    <span class="misp-dashboard-menuitem-icon" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 2.5v7" />
+                            <path d="M5 6.5l3 3 3-3" />
+                            <path d="M2.5 11.5v1a1 1 0 001 1h9a1 1 0 001-1v-1" />
+                        </svg>
+                    </span>
+                    <span class="misp-dashboard-menuitem-label"><?= __('Import configuration…') ?></span>
+                </a>
+                <a role="menuitem"
+                   tabindex="-1"
+                   class="misp-dashboard-menuitem"
+                   href="<?= h($baseurl) ?>/dashboards/export">
+                    <span class="misp-dashboard-menuitem-icon" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 9.5v-7" />
+                            <path d="M5 5.5l3-3 3 3" />
+                            <path d="M2.5 11.5v1a1 1 0 001 1h9a1 1 0 001-1v-1" />
+                        </svg>
+                    </span>
+                    <span class="misp-dashboard-menuitem-label"><?= __('Export configuration…') ?></span>
+                </a>
+                <hr class="misp-dashboard-menu-separator" aria-hidden="true">
+                <a role="menuitem"
+                   tabindex="-1"
+                   class="misp-dashboard-menuitem"
+                   href="<?= h($baseurl) ?>/dashboards/saveTemplate">
+                    <span class="misp-dashboard-menuitem-icon" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 2.5h8v11l-4-2.75L4 13.5v-11z" />
+                        </svg>
+                    </span>
+                    <span class="misp-dashboard-menuitem-label"><?= __('Save as template…') ?></span>
+                </a>
+                <a role="menuitem"
+                   tabindex="-1"
+                   class="misp-dashboard-menuitem"
+                   href="<?= h($baseurl) ?>/dashboards/listTemplates">
+                    <span class="misp-dashboard-menuitem-icon" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="5" height="5" rx="1" />
+                            <rect x="9" y="2" width="5" height="5" rx="1" />
+                            <rect x="2" y="9" width="5" height="5" rx="1" />
+                            <rect x="9" y="9" width="5" height="5" rx="1" />
+                        </svg>
+                    </span>
+                    <span class="misp-dashboard-menuitem-label"><?= __('Browse templates') ?></span>
+                </a>
+            </div>
+        </div>
     </div>
 </header>
 

@@ -37,6 +37,7 @@ import { Grid } from './grid/grid.module.mjs';
 import { initChartsIn, disposeChartsIn } from './charts/charts.module.mjs';
 import { openConfigure } from './configure.module.mjs';
 import { initToolbar, refresh as refreshToolbar } from './toolbar.module.mjs';
+import { initMenuButtons } from './menu-button.module.mjs';
 
 const ATTR_BOARD_ROOT       = 'data-misp-board-root';
 const ATTR_BOARD_MODE       = 'data-misp-board-mode';
@@ -316,6 +317,11 @@ function escapeHtml(s) {
 
 // Boot when DOM is ready.
 function boot() {
+  // Hydrate any header menu buttons (DD-08 "⋯ More" dropdown). Run
+  // before the board-root check so the dropdown still works on any
+  // dashboard-layout page that doesn't render a board grid.
+  initMenuButtons();
+
   const root = document.querySelector(`[${ATTR_BOARD_ROOT}]`);
   if (!root) return;
   const board = new Board(root);

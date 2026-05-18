@@ -189,6 +189,110 @@ body.misp-dashboard-page {
   color: var(--misp-dash-text-on-accent);
 }
 
+/* Icon-only button flavour (e.g. the "⋯ More" trigger): square,
+ * larger glyph, same hover/focus posture as the regular dashboard
+ * button. Used in the header next to "Edit layout". */
+.misp-dashboard-btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.misp-dashboard-btn-icon[aria-expanded="true"] {
+  background: var(--misp-dash-surface-sunken);
+  border-color: var(--misp-dash-border-strong);
+}
+.misp-dashboard-menubutton-glyph {
+  font-size: var(--misp-dash-fs-xl);
+  line-height: 0.4;
+  font-weight: var(--misp-dash-fw-bold);
+  letter-spacing: 0.05em;
+}
+
+/* ============================================================
+ * Header menu dropdown ("⋯ More", DD-08)
+ * ============================================================
+ *
+ * WAI-ARIA Menu Button pattern. The trigger is a square icon
+ * button using .misp-dashboard-btn-icon above; the panel below
+ * is positioned absolutely against the menubutton wrapper.
+ */
+
+.misp-dashboard-menubutton {
+  position: relative;
+  display: inline-block;
+}
+
+.misp-dashboard-menu {
+  position: absolute;
+  top: calc(100% + var(--misp-dash-space-2));
+  right: 0;
+  min-width: 240px;
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  box-shadow: var(--misp-dash-shadow-lg);
+  padding: var(--misp-dash-space-1) 0;
+  z-index: 30;
+  /* The header is sticky with z-index 20; the menu must paint above
+   * it, and above the board content below the header. */
+}
+.misp-dashboard-menu[hidden] { display: none !important; }
+
+.misp-dashboard-menuitem {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-3);
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-4);
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text);
+  text-decoration: none;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  transition: background var(--misp-dash-transition-fast),
+              color var(--misp-dash-transition-fast);
+}
+.misp-dashboard-menuitem:hover,
+.misp-dashboard-menuitem:focus {
+  /* unify hover and focus baseline; focus-visible adds the outline */
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text);
+  text-decoration: none;
+  outline: none;
+}
+.misp-dashboard-menuitem:focus-visible {
+  background: var(--misp-dash-accent-muted);
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: -2px;
+}
+
+.misp-dashboard-menuitem-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--misp-dash-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--misp-dash-transition-fast);
+}
+.misp-dashboard-menuitem:hover .misp-dashboard-menuitem-icon,
+.misp-dashboard-menuitem:focus-visible .misp-dashboard-menuitem-icon {
+  color: var(--misp-dash-accent);
+}
+.misp-dashboard-menuitem-label { flex: 1; }
+
+.misp-dashboard-menu-separator {
+  border: 0;
+  border-top: 1px solid var(--misp-dash-border);
+  margin: var(--misp-dash-space-1) 0;
+}
+
 /* ============================================================
  * Board grid + widgets
  * ============================================================ */
