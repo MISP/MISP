@@ -56,7 +56,21 @@ class EventEvolutionLineWidget
     {
         $this->Organisation = ClassRegistry::init('Organisation');
         $this->Event = ClassRegistry::init('Event');
-        $isCumulative = isset($options['cumulative']) && empty($options['cumulative']);
+        // Phase 2 cleanup: the prior `$isCumulative = isset(x) && empty(x)`
+        // misnamed the variable (it was true for falsy values, false for
+        // truthy ones) and the consumption site below was correspondingly
+        // inverted, so end-to-end behavior was correct but unreadable.
+        // Rewritten with the canonical bool semantic per $schema['cumulative']
+        // (default: true) — accepts real booleans (from the configure form),
+        // legacy "true"/"1"/"0"/"false" strings, and ints.
+        $cumulative = filter_var(
+            $options['cumulative'] ?? true,
+            FILTER_VALIDATE_BOOLEAN,
+            ['flags' => FILTER_NULL_ON_FAILURE]
+        );
+        if ($cumulative === null) {
+            $cumulative = true; // unrecognized value → schema default
+        }
         $oparams = [
             'conditions' => [
                 'AND' => ['Organisation.local' => !isset($options['local']) ? 1 : $options['local']]
@@ -127,10 +141,10 @@ class EventEvolutionLineWidget
         $total = 0;
         foreach ($raw_padded as $date => $count) {
             $total += $count;
-            if ($isCumulative) {
-                $raw_padded[$date] = $count;
-            } else {
+            if ($cumulative) {
                 $raw_padded[$date] = $total;
+            } else {
+                $raw_padded[$date] = $count;
             }
         }
         $data = [];

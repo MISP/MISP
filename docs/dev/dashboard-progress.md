@@ -1089,11 +1089,26 @@ else                { /* linear branch */ }
 
 `php -l` clean. Closes the silent fall-through gap where a value like `"yes"` would have hit neither branch and dropped the org from the chart for that month.
 
-### EventEvolutionLineWidget `$isCumulative` condition is inverted (surfaced 2026-05-18)
+### EventEvolutionLineWidget `$isCumulative` condition is inverted (surfaced 2026-05-18) — **not actually a bug; cosmetic rewrite landed 2026-05-18**
 
 **Surfaced during the Phase 2 `$schema` backfill of EventEvolutionLineWidget (commit `afadd0530`).**
 
-`handler()` line 52: `$isCumulative = isset($options['cumulative']) && empty($options['cumulative']);` — this returns `true` when `cumulative` is set to a falsy value (`false`, `0`, `""`, `null`) and `false` when `cumulative` is unset or set to a truthy value. The variable name (`$isCumulative`) and the condition that sets it are inverted relative to each other. The widget's help text says "(default: on)" — meaning the default behavior should be cumulative — but with `cumulative` unset, `$isCumulative` is `false`, so the default is actually non-cumulative. Likewise a user who explicitly toggles cumulative ON (truthy) gets the non-cumulative branch. **Where it lands:** Phase 2 configure form integration — either rename `$isCumulative` to its actual semantic, or fix the condition to match the help text. Not biting users today because the configure form hasn't shipped; the JSON-textarea workflow lets power users pass whatever value matches the current backwards semantics.
+`handler()` line 52: `$isCumulative = isset($options['cumulative']) && empty($options['cumulative']);` — this returns `true` when `cumulative` is set to a falsy value and `false` when `cumulative` is unset or set to a truthy value. The variable name (`$isCumulative`) was inverted relative to the assignment expression.
+
+**Re-trace (2026-05-18, second pass during the bug-fix sweep):** the *consumption site* at lines 130-134 was **correspondingly inverted** — `if ($isCumulative) { $raw_padded[$date] = $count; /* per-interval */ } else { $raw_padded[$date] = $total; /* running total */ }`. The two inversions cancel, so end-to-end behavior was already correct:
+
+| `cumulative` value | `$isCumulative` | Branch taken | Display |
+|---|---|---|---|
+| `true` (bool) | false | else | running total ✓ |
+| `false` (bool) | true | if | per-interval ✓ |
+| `"true"` | false | else | running total ✓ |
+| `"1"` | false | else | running total ✓ |
+| `"0"` | true | if | per-interval ✓ |
+| unset | false | else | running total ✓ (matches schema default `true`) |
+
+So the prior handoff's claim that "a user who explicitly toggles cumulative ON gets the non-cumulative branch" was wrong — the variable name was misleading but the behavior was right.
+
+**Fix (cosmetic):** rewrote with the canonical bool semantic — `$cumulative = filter_var($options['cumulative'] ?? true, FILTER_VALIDATE_BOOLEAN, ['flags' => FILTER_NULL_ON_FAILURE])` with a `null → true` fallback for unrecognized values, plus the if/else branches flipped so `$cumulative === true` enters the running-total branch and `$cumulative === false` enters the per-interval branch. End-to-end behavior unchanged for all legacy shapes (real bool, `"true"`/`"false"`, `"1"`/`"0"`, ints, unset) except one edge case worth noting: a value of the literal string `"no"` was previously treated as cumulative (because `empty("no")` is `false`), and is now treated as per-interval (because `filter_var` recognises `"no"` as boolean-false). Vanishingly unlikely any saved config carries `"no"` — neither the placeholder nor the schema nor the params help text suggest yes/no values — but documenting the diff in case anyone trips on it. `php -l` clean.
 
 ### OrganisationMapWidget `limit` is dead config (surfaced 2026-05-18)
 
