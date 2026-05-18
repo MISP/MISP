@@ -15,6 +15,17 @@ class TrendingAttributesWidget
         'to_ids' => 'A list of to_ids settings accepted for the data displayed ([0], [1], [0,1])',
         'org_filter' => 'List of organisation filters to exclude events by, based on organisation meta-data (Organisation.sector, Organisation.type, Organisation.nationality). Pre-pending a value with a "!" negates it.'
     );
+    public $schema = array(
+        'time_window' => array(
+            'type' => 'time_window',
+            'help' => 'Time window over which to aggregate (last N days/hours, or all time).',
+        ),
+        'threshold' => array(
+            'type' => 'int',
+            'default' => 10,
+            'help' => 'Limits the number of displayed attribute values.',
+        ),
+    );
     private $validOrgFilters = [
         'sector',
         'type',
