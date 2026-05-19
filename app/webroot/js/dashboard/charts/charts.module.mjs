@@ -163,8 +163,76 @@ function buildGeoOption(payload, hostEl) {
   };
 }
 
+// ---- line (multi-series) ----
+
+function buildLineOption(payload, hostEl) {
+  const rows = Array.isArray(payload.data) ? payload.data : [];
+  const colours = payload.colours || {};
+  const yAxisLabel = payload.yAxis || 'Count';
+
+  const dates = rows.map((r) => String(r.date ?? ''));
+  // Collect every non-date key across all rows so a tag that only
+  // appears late still gets a series with leading zeros.
+  const seen = new Set();
+  const lineKeys = [];
+  for (const r of rows) {
+    for (const k of Object.keys(r)) {
+      if (k !== 'date' && !seen.has(k)) {
+        seen.add(k);
+        lineKeys.push(k);
+      }
+    }
+  }
+
+  // Truncate the legend text so long tag names (e.g. taxonomies like
+  // `misp-galaxy:threat-actor="..."`) don't crowd out the chart.
+  const text = tokenOn(hostEl, '--misp-dash-text', '#1d2025');
+  const muted = tokenOn(hostEl, '--misp-dash-text-muted', '#5b6573');
+
+  const series = lineKeys.map((k) => {
+    const data = rows.map((r) => Number(r[k]) || 0);
+    const colour = colours[k];
+    return {
+      name: k,
+      type: 'line',
+      data,
+      // Only show point markers when the series is sparse enough to
+      // read them; dense series read better as continuous lines.
+      showSymbol: data.length <= 20,
+      smooth: false,
+      emphasis: { focus: 'series' },
+      ...(colour ? { itemStyle: { color: colour }, lineStyle: { color: colour } } : {}),
+    };
+  });
+
+  return {
+    grid: { left: 8, right: 16, top: 36, bottom: 24, containLabel: true },
+    tooltip: { trigger: 'axis' },
+    legend: {
+      type: 'scroll',
+      top: 0,
+      textStyle: { color: text },
+      formatter: (name) => (name.length > 28 ? name.slice(0, 27) + '…' : name),
+    },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      boundaryGap: false,
+      axisLabel: { color: muted },
+    },
+    yAxis: {
+      type: 'value',
+      name: yAxisLabel,
+      nameTextStyle: { color: muted },
+      axisLabel: { color: muted },
+    },
+    series,
+  };
+}
+
 const builders = {
   bar: buildBarOption,
+  line: buildLineOption,
   geo: buildGeoOption,
 };
 
