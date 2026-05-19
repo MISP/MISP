@@ -922,6 +922,39 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   color: var(--misp-dash-text-on-accent);
 }
 
+/* distribution_filter picker — toggle button row over MISP's six
+ * event-distribution levels (0..5). Empty selection = no filter. */
+.misp-distribution-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1);
+  margin-top: var(--misp-dash-space-1);
+}
+.misp-distribution-toggle {
+  font-size: var(--misp-dash-fs-xs);
+  padding: 4px var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: transparent;
+  color: var(--misp-dash-text);
+  cursor: pointer;
+  transition: background var(--misp-dash-transition-base),
+              border-color var(--misp-dash-transition-base),
+              color var(--misp-dash-transition-base);
+}
+.misp-distribution-toggle:hover {
+  border-color: var(--misp-dash-accent);
+}
+.misp-distribution-toggle[aria-pressed="true"] {
+  background: var(--misp-dash-accent);
+  border-color: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+}
+.misp-distribution-toggle:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+}
+
 .misp-kv-list {
   list-style: none;
   margin: 0 0 var(--misp-dash-space-2) 0;
