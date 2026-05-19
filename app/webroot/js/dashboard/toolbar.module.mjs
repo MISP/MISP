@@ -31,8 +31,9 @@
 //     compare for scalars).
 //   - canonical.displayLabel(value) renders the chip's compact label.
 
-import * as TimeWindow from './canonical/time_window.mjs';
-import * as TagFilter  from './canonical/tag_filter.mjs';
+import * as TimeWindow    from './canonical/time_window.mjs';
+import * as TagFilter     from './canonical/tag_filter.mjs';
+import * as OrgMetaFilter from './canonical/org_meta_filter.mjs';
 
 const ATTR_TOOLBAR_SLOT  = 'data-misp-board-toolbar';
 const ATTR_WIDGET        = 'data-misp-widget';
@@ -41,7 +42,7 @@ const ATTR_WIDGET_SCHEMA = 'data-widget-schema';
 const ATTR_CANONICAL     = 'data-canonical';
 const ATTR_CHIP_KEY      = 'data-toolbar-key';
 
-const CANONICAL_REGISTRY = [TimeWindow, TagFilter];
+const CANONICAL_REGISTRY = [TimeWindow, TagFilter, OrgMetaFilter];
 
 const MIXED = '__mixed__';
 

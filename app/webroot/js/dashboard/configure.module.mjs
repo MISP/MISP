@@ -12,8 +12,9 @@
 // builders. Phase 3 brings tag_filter / org_filter / etc. into the
 // canonical registry below.
 
-import * as TimeWindow from './canonical/time_window.mjs';
-import * as TagFilter  from './canonical/tag_filter.mjs';
+import * as TimeWindow    from './canonical/time_window.mjs';
+import * as TagFilter     from './canonical/tag_filter.mjs';
+import * as OrgMetaFilter from './canonical/org_meta_filter.mjs';
 import { buildChips, getChipsValue } from './chips.module.mjs';
 import {
   flatten,
@@ -28,8 +29,9 @@ import {
 // `data-schema-key` attribute set by the configure form (so the
 // readback finds it without knowing the builder).
 const CANONICAL_BUILDERS = {
-  [TimeWindow.KEY]: TimeWindow,
-  [TagFilter.KEY]:  TagFilter,
+  [TimeWindow.KEY]:    TimeWindow,
+  [TagFilter.KEY]:     TagFilter,
+  [OrgMetaFilter.KEY]: OrgMetaFilter,
 };
 const SCALAR_TYPES = new Set(['string', 'int', 'bool', 'enum']);
 
