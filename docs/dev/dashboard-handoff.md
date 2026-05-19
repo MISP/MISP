@@ -1,78 +1,79 @@
-# Dashboard v2 — Session handoff (2026-05-19, super-late-night session #2)
+# Dashboard v2 — Session handoff (2026-05-19, super-late-night session #2 continuation)
 
-Second session of the day (after the prior 14-commit Phase 3
-canonical-types push). Authoritative state still lives in:
+Third session of the day, continuing the second super-late-night
+sweep. Authoritative state still lives in:
 
-- `dashboard-prd.md` — spec (§5.7 / §5.8 unchanged this session;
-  §5.5 catalogue unchanged — no new canonical types)
-- `dashboard-progress.md` — task state. Phase 2 widget-gallery line
-  subdivided into 6 sub-tasks this session; 5 of those 6 ticked
-  (browse-only complete + card→form transition)
+- `dashboard-prd.md` — spec (§5.7 amended this session: `$thumbnail`
+  bullet now documents the render-kind glyph fallback + the
+  standing requirement to add a glyph whenever a new `$render`
+  kind lands)
+- `dashboard-progress.md` — task state. Phase 2 closed sub-phase C
+  (placement + live preview); Phase 3 advanced to 5/12 canonical
+  types (distribution_filter landed paired with its first
+  consumer, TrendingTagsWidget)
 - `dashboard-design-decisions.md` — DD-01..DD-08 unchanged
 
-This file is the bridge: ephemeral session-level context that doesn't
-fit the durable docs. Replace it as work progresses.
+This file is the bridge: ephemeral session-level context that
+doesn't fit the durable docs. Replace it as work progresses.
 
 ## TL;DR
 
-**Sub-phase B complete + sub-phase C started.** Six signed commits,
-all `%G? = U`. The widget gallery is now wired end-to-end as a
-browse-only surface; the Add Widget card-click correctly transitions
-the configure side panel from gallery view to draft-form view; the
-draft's Save click fires a `misp-board:add-widget-pending`
-CustomEvent — placement is the next listener that lands.
+**Eight signed commits this session + one DB restore.** Phase 2
+sub-phase C is closed end-to-end (Add Widget gallery → card click
+→ schema form with live preview → Save → placement with auto-place
+and F5.6.4 toolbar inheritance). Phase 3 advanced from 4/12 to
+5/12 canonical types via the paired-with-consumer model — the
+right shape for any future canonical-type sweep, per the
+consumer audit findings.
 
-**Phase 2 — now ~24/26 done.** Up from ~20/22 at session start
-(denominator grew by 4 when the original 2 gallery lines were
-subdivided into 7). Remaining open: Add Widget placement (next
-task), Add Widget live preview pane, Sticky preview pane in
-configure side-panel (Phase 2 polish line that the preview-pane
-sub-task may collapse into).
+**Phase 2 — ~26/26.** Up from ~24/26 at session start. The two
+remaining-then-open lines both closed: "Add Widget — placement"
+(placement orchestrator + new `/dashboards/renderWrapper` endpoint
+with ACL parity) and "Sticky preview pane in configure side-panel"
+(folded with "Add Widget — live preview on right" since they
+described the same surface). Only the `Edit Widget flow`
+verification line stays open — existing per-widget ⚙ path covers
+all the technical work; the tick waits on a browser pass against
+the new preview-pane render surface.
 
-**Five of the seven gallery sub-tasks closed:**
-1. `$category` backfill across 37 in-tree widgets (PRD §5.7
-   buckets: status / events / tags / orgs / system / custom).
-2. `GET /dashboards/widgets` metadata endpoint returning the
-   38-entry list with `schema` / `category` / `thumbnail`.
-3. Dormant gallery templates: `Elements/dashboard/gallery/grid.ctp`
-   + `card.ctp` + gallery CSS in `dashboard.default.css`.
-4. Side-panel open from `+ Add widget` button — `gallery.module.mjs`
-   fetches, groups, search-filters, dispatches.
-5. Card click → draft form: `_startDraftWidget` constructs a
-   detached DOM node, hands off to `openConfigure`.
+**Phase 3 — 5/12 canonical types.** `distribution_filter` landed
+across three commits: server adapter + 10 PHPUnit tests; JS
+toggle-button picker + registries + CSS; TrendingTagsWidget
+consumer with post-filter on `$eventIds`. The user confirmed
+end-to-end browser smoke ("works like a charm").
 
-**Remaining two:**
-6. Placement (Place / Cancel) — listen for `add-widget-pending`,
-   find next free auto-place slot, insert via `Grid.addTile()`,
-   wire to the edit-mode snapshot for Discard support, persist via
-   `_scheduleSave`.
-7. Live preview on right — render the draft widget body in a
-   sticky pane while the user edits the form. May collapse into
-   the standalone "Sticky preview pane in configure side-panel"
-   Phase 2 task that's already on the tracker.
+**Major non-canonical work:** the gallery cards now ship a
+render-kind-shaped fallback glyph in their thumbnail slot
+(commit `d46c56ce1`) — 9 explicit kinds (SimpleList, BarChart,
+MultiLineChart, WorldMap, Index, Button, OrgsPictures, Attack,
+Achievements) + a generic fallback. A standing rule landed in
+CLAUDE.md, the file's docblock, and PRD §5.7: any new `$render`
+value must ship with a matching glyph in `render-thumbs.mjs`.
 
-**The browse-only path is verifiable in a browser now:** Edit mode
-→ click "+ Add widget" → see the 38-widget gallery grouped into 6
-categories → search filters live → ESC / backdrop / ✕ closes. Card
-clicks transition to the draft form (title flips to "Add <Title>",
-schema-driven form renders with seed-from-placeholder rows). The
-draft form's Save fires the placement event (no listener yet).
-Cancel closes the panel entirely (no "back to gallery" affordance —
-the user clicks `+ Add widget` again to re-browse).
+**DB restore:** admin's `user_settings` row 34 was clobbered at
+16:13:04 by a v2.4 instance writing to the same database
+(stringified positions, `width`/`height` keys). The pre-clobber
+state was recovered from `audit_logs` row 5295902 (the audit
+record that captured the v2 → v2.4 transition). Layout fully
+restored to 4 widgets in v2 shape; configs preserved on both
+sides — only the wrapper shape was clobbered. **Risk:** as long
+as a v2.4 instance is connected to this DB, future clobbers may
+recur — see Open thread.
+
+**User-direction carried forward unchanged:** *"modern and
+pleasant"*, *"don't worry too much about compatibility"*, plus
+new direction this session — **for any new endpoint, ACL must
+match the surface it shadows** (specifically the existing
+`renderWidget` checkPermissions gate).
 
 **Next session — pick from** (see Open thread):
 
-1. Add Widget placement (the next obvious step — half-day to full-
-   day).
-2. Add Widget live preview pane (~half-day, can land before or
-   after placement).
-3. Other parked work (canonical-type sweeps, time_window dropdown
-   UX, renderer contrast, the pre-existing PHP 8 Attribute
-   collision).
-
-User direction carries forward unchanged: *"modern and pleasant"*,
-*"don't worry too much about compatibility"* — gallery markup and
-JS take advantage of the additive-only license.
+1. Phase 3 next canonical type (needs consumer audit + pairing).
+2. Build the missing `Index` renderer template (unlocks
+   EventStreamWidget + others; quick win).
+3. Browser-verify Edit Widget against the new preview-pane
+   render path (closes the last open Phase 2 line).
+4. Other parked work (time_window dropdown, luminance check, etc.).
 
 ## Where we are
 
@@ -81,7 +82,7 @@ Phase 0.4 — Sign-off                                              [x]
 
 Phase 1 — Frame (in-place replacement)                            [x]
 
-Phase 2 — Authoring UX                                            [/] ~24/26
+Phase 2 — Authoring UX                                            [/] ~26/26
   [x] $schema property contract + WidgetSchema helper + 26 tests
   [x] 9 widget $schema backfills (Phase 2)
   [x] Two-tier configure form element — schema-driven
@@ -93,18 +94,17 @@ Phase 2 — Authoring UX                                            [/] ~24/26
   [x] Bottom-tier seeding from $placeholder
   [x] Bottom-tier dot-notation flatten/reNest tests
   [x] Side-panel container for configure form
-  [ ] Sticky preview pane in configure side-panel (likely collapses
-      into the Add Widget live preview sub-task below)
-  [x] Widget gallery — $category prereq backfill            (NEW)
-  [x] Widget gallery — metadata endpoint                    (NEW)
-  [x] Widget gallery — views + CSS (dormant templates)      (NEW)
-  [x] Widget gallery — side-panel open from + Add widget    (NEW)
-  [x] Add Widget — card click → draft form                  (NEW)
-  [ ] Add Widget — placement (Place / Cancel)
-  [ ] Add Widget — live preview on right
+  [x] Sticky preview pane in configure side-panel              (NEW)
+  [x] Widget gallery — $category prereq backfill
+  [x] Widget gallery — metadata endpoint
+  [x] Widget gallery — views + CSS (dormant templates)
+  [x] Widget gallery — side-panel open from + Add widget
+  [x] Add Widget — card click → draft form
+  [x] Add Widget — placement                                    (NEW)
+  [x] Add Widget — live preview on right                        (NEW)
   [ ] Edit Widget flow (existing per-widget ⚙ path covers most;
-      task line stays open until the new draft-form path is
-      verified against it interactively)
+      task line stays open until verified against the new
+      preview-pane render path interactively)
   [x] Edit-mode vs. view-mode toggle
   [x] Layout-only atomic save (DD-05)
   [x] Discard (edit mode) with confirm-if-dirty
@@ -113,34 +113,38 @@ Phase 2 — Authoring UX                                            [/] ~24/26
   [x] Save/Discard UI buttons + body-attribute mode mirror
   [x] Console.log cleanup
 
-Phase 3 — Canonical-type toolbar                                  [/] 4/12 types
-  [x] CanonicalTypeAdapter helper + 33 PHPUnit tests
+Phase 3 — Canonical-type toolbar                                  [/] 5/12 types
+  [x] CanonicalTypeAdapter helper + 70 PHPUnit tests (was 60)
   [x] Wire CanonicalTypeAdapter into renderWidget
-  [/] Canonical types: 4/12
+  [/] Canonical types: 5/12
         [x] time_window
         [x] date_range
         [x] tag_filter
         [x] org_meta_filter — PRD §5.5 amendment
-        [ ] org_filter (no consumers today)
-        [ ] sharing_group_filter
-        [ ] galaxy_cluster_filter
-        [ ] distribution_filter
-        [ ] threat_level_filter
-        [ ] analysis_filter
+        [x] distribution_filter — paired with TrendingTagsWidget (NEW)
+        [ ] org_filter (no consumers today — needs pairing)
+        [ ] sharing_group_filter (no real consumers — needs pairing)
+        [ ] galaxy_cluster_filter (no real consumers — needs pairing)
+        [ ] threat_level_filter (no real consumers — needs pairing)
+        [ ] analysis_filter (no real consumers — needs pairing)
         [ ] attribute_type_filter (widget-only)
         [ ] event_id_filter (widget-only)
   [x] Toolbar control logic (schema-driven declarer scan)
   [x] Toolbar bulk-edit write path (readValue dispatch)
-  [/] Toolbar UI: time_window + tag_filter + org_meta_filter shipped
+  [/] Toolbar UI: time_window + tag_filter + org_meta_filter +
+      distribution_filter shipped
   [ ] Per-canonical-type validators
   [ ] New-widget toolbar inheritance + Clear action
-  [ ] Canonical-only $schema sweep across remaining ~10 widgets
+      — F5.6.4 inheritance landed in the placement orchestrator
+        this session; Clear action remains
+  [ ] Canonical-only $schema sweep across remaining ~9 widgets
   [ ] Cache-key sanity check
 ```
 
-Working tree is clean for v2 work; only the usual unrelated noise
-(submodule drift on `app/Lib/cakephp` + `app/files/misp-galaxy`,
-scratch files in repo root, untracked side-projects in subdirs).
+Working tree clean for v2 work after this session's 8 commits.
+Only the usual unrelated noise (submodule drift on
+`app/Lib/cakephp` + `app/files/misp-galaxy`, scratch files in
+repo root, untracked side-projects in subdirs).
 
 ## Live test instance
 
@@ -151,22 +155,21 @@ scratch files in repo root, untracked side-projects in subdirs).
   "Overmind"`).
 - DB creds: `mysql -u misp -pPassword1234 misp`
 
-Saved-layout state at session end: unchanged from prior session.
-Admin still has 4 widgets (MispStatusWidget / TrendingTagsWidget /
-OrganisationMapWidget / OrgContributionToplistWidget). No layout
-changes this session — work was JS / view / CSS additions.
+**Saved-layout state at session end:** admin has the 4-widget
+layout restored from `audit_logs` row 5295902:
+- `w_1` MispStatusWidget at (0,0) 4×4
+- `w_2` TrendingTagsWidget at (4,0) 5×4
+  — config: `time_window=90d, threshold=10, over_time=false,
+    tag_filter={include:[],exclude:[]}`
+- `w_3` OrganisationMapWidget at (9,0) 3×4
+- `w_4` OrgContributionToplistWidget at (0,4) 12×4
+  — config: `time_window=P30D, threshold=15`
 
-Expected gallery state on admin's dashboard after switching to edit
-mode and clicking "+ Add widget":
-- Configure side panel slides in from the right.
-- Title: "Add widget".
-- 38 cards distributed across 6 PRD-catalogue category sections
-  (orgs 11 / system 9 / events 8 / status 4 / custom 4 / tags 1)
-  + 1 uncategorised entry (HelloWorldWidget in Custom/).
-- Search box up top; counter reads "38 widgets" initially.
-- Clicking any card transitions the panel to the draft form for
-  that widget (title flips to "Add <Title>", schema-driven form
-  renders). Cancel closes the panel.
+TrendingTags now has a `distribution` slot in its `$schema` that
+the configure form surfaces as a toggle-button row in the
+typed-fields tier. Setting it (e.g., `[3]`) narrows the source
+event set; the toolbar surfaces a "Distribution" chip across the
+board when at least one declarer is non-mixed.
 
 Force test paths (unchanged from prior session):
 ```bash
@@ -200,231 +203,329 @@ curl -s -b "$CJ" -c "$CJ" -L -o /dev/null \
   http://localhost:5007/users/login
 ```
 
-Gallery endpoint smoke (API-key auth works directly; no session
-needed for this endpoint):
+Wrapper render smoke (Phase 2 placement endpoint, ACL-gated via
+`Dashboard::loadWidget`):
 ```bash
-curl -s -H "Authorization: dHVxEx4WhIwRdS6QDVsBmW9PE6pOkmgIH1FPQWiC" \
-     -H "Accept: application/json" \
-     "http://localhost:5007/dashboards/widgets" | jq '.[0]'
-# → { widget: "APIActivityWidget", title: "API Activity", ...,
-#     category: "system", schema: { ... }, thumbnail: "" }
+curl -s -b "$CJ" -X POST \
+  -H "Accept: text/html" -H "X-Requested-With: XMLHttpRequest" \
+  --data-urlencode "widget=MispStatusWidget" \
+  --data-urlencode "config={}" \
+  --data-urlencode "w=4" --data-urlencode "h=3" \
+  --data-urlencode "x=0" --data-urlencode "y=0" \
+  http://localhost:5007/dashboards/renderWrapper/w_99 | head -5
+# Returns Overmind-themed <div class="card misp-widget--overmind"> ...
 ```
 
 ## What this session committed (in order)
 
 ```
-33ac34641  chg: Phase 2 — Widget gallery prereq: $category backfill
-                across all in-tree widgets
-                Lands `public $category` on 37 widget files
-                (OrgsContributorsGeneric skipped — abstract base
-                with no $title). Distribution: orgs 11 / system 9
-                / events 8 / status 4 / custom 4 / tags 1. Edge
-                calls documented (OrgEvents → events because the
-                data axis is event counts; NewUsers → system per
-                admin context; Attack → events per event-scoped
-                restSearch). Single bundled commit (37 identical
-                one-line additions, "5+ pattern → bundle" lesson).
-                Also subdivided the Phase 2 widget-gallery task
-                line into 7 sub-tasks.
+f9aa3c496  new: Phase 2 — Add Widget placement: free-slot autoplace
+                + F5.6.4 inheritance
+                Five pieces: (1) DashboardsController::renderWrapper
+                — new POST endpoint that renders wrapper.ctp through
+                Cake's themed view resolver. ACL parity with
+                renderWidget — Dashboard::loadWidget gates on
+                checkPermissions, so admin-only widgets cannot be
+                probed via this endpoint. POST-body unlock + CSRF
+                disable via the existing beforeFilter list. (2) New
+                view template `app/View/Dashboards/render_wrapper.
+                ctp` dispatches to the themed wrapper element.
+                (3) `data-misp-board-wrapper-url` on the <main>
+                board root. (4) `currentValues(boardEl)` exported
+                from toolbar.module.mjs. (5) Placement orchestrator
+                `_placeDraftWidget` in board.module.mjs: listens for
+                `misp-board:add-widget-pending`, walks schema for
+                F5.6.4 toolbar inheritance, mints `w_<N>` ID, picks
+                a free slot via `_findFreeSlot`, fetches the wrapper
+                HTML, Grid.addTile, _renderWidget, refreshToolbar,
+                _stageOrSave, debug readout. New custom events
+                `misp-board:add-widget-placed` /
+                `misp-board:add-widget-failed`. Edit-mode Discard
+                handles the newly-added tile naturally via the
+                existing `current-but-not-snapshot → remove` branch.
 
-6a2fd91b2  fix: Restore CRLF line endings on UsageDataWidget.php
-                UsageDataWidget was the only widget pre-backfill
-                with CRLF endings (522 CR lines); the Python script
-                I used for the bundled $category insertion
-                normalised it to LF. The +1 line addition is
-                preserved verbatim; this commit only reverts the
-                EOL normalisation. Net diff vs the pre-backfill
-                commit (HEAD~2) is now +1 line, matching every
-                other widget in the bundle.
+b4dab0bd5  new: Phase 2 — Live preview pane in configure side-panel
+                (Add + Edit)
+                Closes BOTH "Sticky preview pane" AND "Add Widget
+                live preview" tracker lines — one pane serves both
+                flows. Panel widened 420 → min(820px, 100vw).
+                `.misp-configure-content` flex-row wraps form
+                (.misp-configure-body, 360px fixed col) + preview
+                pane (.misp-configure-preview, fills). Preview pane
+                is a sibling of the body, not a child, so gallery
+                mode's body.replaceChildren() leaves it untouched.
+                Gallery mode CSS-hides the preview pane AND restores
+                the body to full width so the 38-card grid isn't
+                squeezed. Responsive collapse below 720px (vertical
+                stack, full-screen panel). configure.module.mjs
+                gains a `previewProxy` state variable + a
+                `buildPreviewProxy(widgetEl)` helper. Proxy is a
+                detached <div data-misp-widget> mirroring openTarget's
+                attributes + an inner [data-misp-widget-content] —
+                no chrome (bare body, not a duplicate wrapper).
+                openConfigure mounts the proxy and kicks off an
+                immediate render. firePreview writes the new config
+                to both openTarget AND previewProxy, dispatches
+                onPreviewCallback(previewProxy). Live tile is never
+                touched during preview — the dashboard behind the
+                panel stays at its saved-config state until commit()
+                fires; the panel is a true sandbox. board.module's
+                Add Widget onPreview switched from no-op stub to
+                `(el) => this._renderWidget(el)` (proxy handler).
+                Edit Widget onPreview unchanged in code (same path;
+                now operates on the proxy).
 
-535db0f5a  new: Phase 2 — Widget gallery metadata endpoint:
-                GET /dashboards/widgets
-                New DashboardsController::widgets() action
-                returning a JSON list of every widget the calling
-                user is eligible for (checkPermissions filter
-                preserved via the existing Dashboard::loadAll
-                Widgets enumeration), enriched with the three v2
-                metadata properties per PRD §5.7 / §5.8: schema
-                (normalised via WidgetSchema::getSchema), category
-                (raw or empty), thumbnail (raw or empty). Legacy
-                Dashboard::loadAllWidgets / __extractMeta kept
-                untouched per the additive-only posture; controller
-                enriches each entry by re-loading the widget via
-                loadWidget(). Double-instantiation cost (~38
-                widget classes constructed twice per gallery open)
-                is acceptable for an on-demand endpoint. Wire
-                shape is JSON-only; the gallery client is the sole
-                consumer.
+0348b1778  fix: Initial preview render uses form readback, not raw
+                draft config
+                Follow-up to b4dab0bd5. The initial preview kick
+                at openConfigure called onPreviewCallback directly
+                against the proxy, which then read the draft's raw
+                data-widget-config='{}'. Most widgets render empty
+                / "No data" for an empty config → gray box. Switch
+                the initial kick to firePreview() which does
+                readBack(panel) → writes form-current-state (kv
+                placeholder seeds + canonical defaults) to proxy →
+                dispatches. Add Widget preview now renders real
+                content from the first tick. Edit Widget unchanged
+                (form was built from saved config; readBack returns
+                roughly the same).
 
-6f5037128  new: Phase 2 — Widget gallery views + CSS (dormant
-                templates)
-                Three pieces: (1) grid.ctp template — outer shell
-                (HTML5 <template>) + per-category subtemplate.
-                Carries the documented §8.5 hook attributes. (2)
-                card.ctp template — single-card subtemplate; card
-                root is <button type="button"> for keyboard reach;
-                holds thumbnail slot + title + description + meta
-                footer (category + size chips). (3) dashboard.
-                default.css — gallery layout rules appended after
-                the density-toggle block. Header is a flex row,
-                body is a flex column with right-edge scroll
-                bleed, per-category sections stack, card grid uses
-                repeat(auto-fill, minmax(220px, 1fr)). No Overmind
-                themed mirror — gallery renders inside `.misp-
-                configure-panel` which is already theme-neutral
-                chrome; visual theming flows through CSS-class
-                overrides, not markup forks. Index.ctp emits both
-                templates after the configure panel block — inert
-                until JS clones them.
+d46c56ce1  new: Phase 2 — Render-kind fallback glyphs for gallery
+                card thumbnails
+                Empty 16:9 thumbnail slot in every gallery card gets
+                a render-kind-shaped SVG glyph when the widget
+                doesn't declare $thumbnail. Three pieces: (1) new
+                `app/webroot/js/dashboard/gallery/render-thumbs.mjs`
+                — exports `getRenderThumb(renderKind)` returning a
+                fresh SVG element per call. 9 explicit kinds:
+                SimpleList (3 rows), BarChart (4 bars),
+                MultiLineChart (sloping polylines), WorldMap (globe),
+                Index (table grid), Button (pill with dots),
+                OrgsPictures (3 circles), Attack (5×3 dot matrix),
+                Achievements (badge + star) + thumbGeneric fallback.
+                Single-color (currentColor) so CSS drives the tint;
+                viewBox 80x45 matches the slot's 16:9. (2) gallery.
+                module.mjs — when widget.thumbnail is absent, mount
+                getRenderThumb(widget.render) into the slot.
+                (3) dashboard.default.css — thumbnail becomes a flex
+                centring container; SVG sized 56% × max-height 78%;
+                muted color by default, accent tint + raised surface
+                on card hover/focus.
 
-c06eb4997  new: Phase 2 — Widget gallery side-panel open from
-                "+ Add widget" (browse-only)
-                New gallery.module.mjs opens the gallery inside
-                the configure side panel as a new "gallery" mode
-                (distinguished from form mode via `data-misp-
-                configure-mode` attribute on the panel root).
-                Fetches /dashboards/widgets, clones the dormant
-                <template> markup, groups cards by $category in
-                PRD catalogue order, wires live search (case-
-                insensitive substring across name / title /
-                description / category) with a counter + empty-
-                state; empty category sections auto-collapse.
-                Search input gets keyboard focus on open. Browse-
-                only — onPick is wired but dispatched as null.
-                Coupling with configure.module.mjs is minimal:
-                piggybacks on the existing panel chrome (open/
-                close transitions, backdrop, ✕, Cancel, ESC). The
-                panel's `hidden` attribute is the canonical close
-                signal — a MutationObserver in gallery.module's
-                init runs the gallery state cleanup whenever the
-                panel hides. ESC needs its own listener in gallery
-                mode because configure.module's ESC handler is
-                gated on its private openTarget. Three additional
-                touches: new "+ Add widget" button in `.misp-
-                dashboard-modecontrols-edit` (edit-mode-only);
-                new `data-misp-board-widgets-url` attribute on
-                <main>; new `case 'add-widget'` in _wireBoard
-                Actions; one-line CSS rule hides the configure
-                footer in gallery mode.
+23f913550  chg: docs — Standing requirement: new widget render kind
+                ⇒ new glyph in render-thumbs.mjs
+                Three durable copies of the rule so future sessions
+                can't miss it: CLAUDE.md "MISP Development" gains a
+                "Dashboard v2 — widget render kinds" section with
+                concrete steps; render-thumbs.mjs's top-of-file
+                docblock gets an explicit "Adding a new render kind"
+                block right next to the REGISTRY that needs
+                extending; dashboard-prd.md §5.7 (Widget contract)
+                appends a note to the $thumbnail bullet pointing at
+                render-thumbs.mjs.
 
-0ee54fcd6  new: Phase 2 — Add Widget flow: card click → schema
-                form for draft tile
-                Three coupled pieces: (1) gallery.module.mjs gets
-                a widgetMetaByName Map populated during
-                renderGallery so the card-click handler can
-                forward the full meta record (schema, placeholder,
-                description) to onPick. (2) board.module.mjs new
-                method _startDraftWidget(meta): flips panel mode
-                from gallery → form (re-exposes the configure
-                footer), constructs a detached <div data-misp-
-                widget> DOM node carrying the picked widget's
-                metadata as the same data-widget-* attributes a
-                real wrapper.ctp carries, hands the draft to
-                openConfigure(draftEl, {onSave, onPreview}).
-                onSave fires a `misp-board:add-widget-pending`
-                CustomEvent carrying the draft node + meta —
-                placement consumes this. After openConfigure
-                returns, overrides the title from "Configure
-                <className>" to "Add <Title>" (additive — keeps
-                openConfigure itself untouched). Companion
-                _mintDraftInstanceId() produces `w_draft_<t36>_
-                <r36>` IDs distinguishable from server-minted
-                `w_<N>`. (3) board.module's case 'add-widget' now
-                passes the real onPick callback.
+d207603bb  new: Phase 3 — distribution_filter canonical adapter
+                + tests
+                5th canonical type. Wire shape is an int array,
+                subset of {0..5} matching MISP's 6 event-distribution
+                levels. Event::fetchEvent already accepts both scalar
+                and array under `distribution` (lines 2703-2707), so
+                canonical → legacy is essentially identity.
+                CanonicalTypeAdapter::translateDistributionFilter
+                normalises to int[]: array passes through; scalar
+                int / numeric-string wraps; mixed array coerces
+                numeric, drops non-numeric; empty array passes
+                through; null / unrecognised → null. Out-of-range
+                values (>5) deliberately preserved (CakePHP's IN
+                coercion matches no rows for unknown levels —
+                louder than silent filtering). 10 PHPUnit tests
+                covering: array passthrough, empty array, null,
+                scalar int wrap, numeric string wrap, mixed coerce
+                + drop, unrecognised shapes, idempotence, type-
+                routed translate, coexistence with time_window.
+                All 70 adapter tests pass (60 prior + 10 new).
+
+fa4ff0bc3  new: Phase 3 — distribution_filter JS picker + registries
+                + CSS
+                New canonical/distribution_filter.mjs exporting
+                KEY/LABEL/LEVELS/buildField/readValue/displayLabel/
+                equal. Picker renders a toggle-button row over the
+                6 levels with human labels (Org only, Community,
+                Connected, All, Sharing grp, Inherit). aria-pressed
+                is the source of truth (no hidden inputs).
+                Order-insensitive equal() so [0,1] vs [1,0] read
+                as equal for the toolbar's mixed-state detection.
+                displayLabel collapses both empty AND full
+                selection to "(all)" — both = "no filter".
+                CANONICAL_BUILDERS (configure) + CANONICAL_REGISTRY
+                (toolbar) grow the entry. New CSS for
+                .misp-distribution-toggles flex row + pill
+                buttons (outlined → accent-filled on pressed).
+                F5.6.4 inheritance wired automatically through the
+                existing placement orchestrator.
+
+821e86e8d  new: Phase 3 — distribution_filter consumer:
+                TrendingTagsWidget post-filter
+                Final of 3 commits for distribution_filter. The
+                consumer-pairing model — every Phase 3 canonical
+                type lands with a real consumer so the toolbar
+                chip is actually usable, per the org_filter
+                "no consumers = dead code" lesson. Three changes
+                on TrendingTagsWidget: $params adds distribution
+                legacy help; $schema adds 'distribution' =>
+                ['type' => 'distribution_filter', 'help' => ...]
+                between tag_filter and threshold; handler()
+                post-filters $eventIds via a find('list') against
+                Event with the already-ACL-filtered eventIds as
+                base + an IN clause on Event.distribution. ACL-safe
+                — distribution can only narrow (never expand) the
+                visible range. Why TrendingTags, not the originally-
+                picked EventStreamWidget: ES declares $render =
+                'Index' but Elements/dashboard/Widgets/Index.ctp
+                doesn't exist (pre-existing renderer gap). End-to-end
+                browser smoke confirmed by the user — "works like a
+                charm".
 ```
 
-6 commits this session, all signed (`%G?` = `U`).
+8 commits this session, all signed (`%G?` = `U`). Plus one direct
+DB write (admin user_settings restore — not committed; see "DB
+restore" lesson below).
 
 ## Lessons from this session
 
-1. **Python scripts that read+write files normalise line endings.**
-   The bundled `$category` backfill used a Python one-liner over
-   37 widget files. One file (UsageDataWidget.php) had CRLF endings
-   pre-backfill — the script silently normalised it to LF. The
-   diff stat showed `1045 +/-` for that one file instead of the
-   expected `+1`. Fix was a follow-up commit that restored CRLF
-   while preserving the one-line addition. **For future mass file
-   edits, snapshot line endings per file before writing and
-   preserve them.** (Or use byte-level read/write in binary mode +
-   regex insertion that tracks the existing line-ending sequence —
-   what the fix-commit did.)
+1. **ACL parity for new endpoints is a hard requirement.** When
+   adding a new endpoint that shadows or extends an existing one,
+   the new endpoint's permission gate must be the same hook the
+   existing endpoint uses — not a custom check, not "this looks
+   safe enough". For `/dashboards/renderWrapper` (placement), the
+   user-direction was explicit: use `Dashboard::loadWidget`'s
+   `checkPermissions` gate (same as `renderWidget`) so admin-only
+   widgets cannot be probed for existence via a different code
+   path. **Probe-resistance is the metric:** a non-admin's 404
+   must be indistinguishable across "unknown widget class" /
+   "widget exists but you can't see it" — both surface as the
+   same NotFoundException with identical wording.
 
-2. **`__extractMeta` re-instantiation cost is acceptable for the
-   gallery.** The widgets() endpoint re-loads each widget via
-   `loadWidget` after `loadAllWidgets` returns — that's 76
-   constructor calls per gallery open. Verified at 39KB / sub-
-   100ms response. Documented in the controller doc-string that
-   the natural cleanup, if perf ever surfaces as a concern, is to
-   fold the v2 enrichment into `__extractMeta` directly. Premature
-   optimisation rejected; the trade-off is the additive-only
-   posture (keep `loadAllWidgets` untouched so legacy callers like
-   `listTemplates::accessible_widgets` are unaffected).
+2. **Configure form's "live preview" needs form readback at
+   panel open, not raw widgetEl config.** For Edit Widget,
+   widgetEl carries the saved (non-empty) config and the form is
+   built from it — initial render produces real content. For
+   Add Widget, the draft starts with config={} and buildForm
+   visually seeds defaults (placeholder kv rows, canonical
+   builder defaults) but those don't write back to config. Result
+   was a gray-box preview for any widget that returns empty on
+   empty config. The fix is one-line: switch the initial-render
+   kick from `onPreviewCallback(previewProxy)` to `firePreview()`
+   — firePreview does `readBack(panel)` first, capturing the
+   form's as-built state. Pattern: **form is the source of
+   truth for the initial preview, not the widgetEl attributes**.
 
-3. **MutationObserver on the panel's `hidden` attribute is a clean
-   "close hook" for piggyback modules.** gallery.module needed to
-   release state when the panel closed but didn't own the close
-   path (configure.module's existing ✕/backdrop/Cancel handlers
-   are the canonical close routes). Observing the `hidden`
-   attribute lets us hook every close path without forking the
-   listener race. Pattern reusable for any future panel-mode
-   piggyback (e.g., a "Recent activity" mode, a "Template
-   import" mode).
+3. **Render-kind glyphs beat category glyphs as gallery
+   thumbnails.** Original design committed to a "category-shaped
+   fallback glyph". User pushed back during implementation —
+   render kind tells you the *output shape* (bars, lines, globe,
+   list), which is what the thumbnail communicates; category
+   tells you the *data domain* (status, events, orgs), which is
+   already surfaced in the category chip. The bar chart is bars
+   whether it's counting events or orgs. **Visual hint should
+   evoke output shape, not data domain.** Companion lesson: when
+   adding a property that drives downstream UI (here, $render),
+   the file with the matching UI surface (render-thumbs.mjs)
+   needs an explicit "adding a new <kind>" docblock so future
+   sessions don't ship blank thumbnails for new render kinds.
 
-4. **Mode-switching panel: chrome stays neutral, body swaps.**
-   The configure side panel is now a 2-mode surface (form, gallery)
-   distinguished by `data-misp-configure-mode`. The CSS layer
-   handles mode-specific rendering differences (hide the footer
-   in gallery mode); the JS layer swaps the body contents via
-   `body.replaceChildren()` — same primitive `openConfigure` uses
-   when re-rendering for a different widget. Future modes plug in
-   the same way.
+4. **Consumer audit before canonical-type work, every time.** The
+   handoff lesson from the org_filter mistake — "no consumers
+   today, work is premature" — applies to every remaining Phase
+   3 type. This session's distribution_filter audit found zero
+   consumers AS FILTERS for distribution/threat_level/analysis/
+   sharing_group_filter in the current widget set. EventStreamWidget
+   *displays* threat_level / analysis as columns but doesn't
+   filter by them; TrendingAttributesWidget uses sharing_group_id
+   in SELECT, not WHERE. The corrected model is to **land the
+   canonical type AND its first consumer widget in the same
+   chunk** — three commits per type: adapter + tests, JS picker
+   + registries, consumer widget. Without a consumer, the
+   toolbar chip stays hidden (no declarers) and the canonical
+   type is dead code on maintenance burden.
 
-5. **Draft widget = detached DOM node carrying the same
-   `data-widget-*` attributes a real widget carries.** The
-   configure module doesn't know or care that the widgetEl it
-   receives isn't in the document — it reads attributes, builds
-   the form, writes back to attributes. The draft node passes
-   through `openConfigure` cleanly; on Save, the new config lives
-   on the detached node and the orchestrator (board.module's
-   `_startDraftWidget`) is responsible for what happens next
-   (placement on Save, GC-release on Cancel). **Clean separation
-   between "what's the form" and "what's the widget" — the form
-   doesn't need to know about the grid.**
+5. **Pre-existing renderer template gap is a separate liability.**
+   5 of 9 declared render kinds (Index, OrgsPictures, Button,
+   Attack, Achievements) have no `Elements/dashboard/Widgets/
+   <Kind>.ctp` template — widgets using those kinds would 500.
+   Surfaced during the distribution_filter consumer pivot
+   (EventStreamWidget declares Index, which doesn't render).
+   Workaround was to pick a working renderer (TrendingTags →
+   BarChart). The renderer gap is parked — see Open thread.
 
-6. **Bundling guidance from prior session held up.** 37 widgets
-   with identical one-line additions ($category backfill) was
-   one bundled commit; the tracker Done note lists all 37 by
-   name. Per-widget commits would have been 37 entries in the
-   commit log saying the same thing.
+6. **Audit logs are a feasible recovery path for clobbered
+   `user_settings` rows.** The `audit_logs` table's `change` blob
+   stores `{"value": [old_value, new_value]}` for every UserSetting
+   edit. When a MISP 2.4 instance writing to the same database
+   clobbered admin's dashboard at 16:13:04, the pre-clobber state
+   was recoverable from row 5295902's `change` blob (the audit
+   that captured the v2 → v2.4 transition at 16:07:00). Recovery
+   procedure: read row, JSON-decode the blob (MySQL escapes
+   backslashes — strip one level), parse `value[0]` as the old
+   state, write back to user_settings with current timestamp.
+   **Caveat:** v2.4's writes don't generate audit_logs entries
+   (the final 16:13:04 clobber had no audit record). So the
+   audit chain has a hole — you can recover *to* the last v2
+   write but not see what happened after it. The hole isn't
+   harmful for restore-from-snapshot but is interesting for
+   diagnosing what v2.4 was doing.
+
+7. **MISP 2.4 connected to the same DB is a risk surface.**
+   v2.4's UserSetting save path writes a different shape (no
+   `instance_id`, `width`/`height` keys, string positions) and
+   appears to bypass `AuditLogBehavior`. As long as a v2.4
+   instance is talking to this DB, dashboard layouts can be
+   clobbered silently. See Open thread for mitigation options.
+
+8. **GPG pinentry timeout hit again.** Same as prior session
+   lesson #8 — first commit attempt of `d207603bb` failed because
+   the pinentry prompt wasn't completed promptly. Retry worked.
 
 The prior session's gotchas still apply:
 
-7. **`git mv` does NOT auto-stage subsequent content edits.**
-   Always `git status --short` and verify every modification you
-   intend to commit shows in the LEFT column.
-
-8. **GPG agent times out the commit signature** if pinentry isn't
-   completed promptly. (Didn't hit it this session, but the rule
-   stands.)
-
-9. **`Themed/<Name>/Layouts/<layout>.ctp` must exist for every new
-   layout you introduce.** No new layouts this session; gallery
-   elements deliberately skip Overmind themed mirrors because
-   their containing chrome (the configure side panel) is already
-   theme-neutral and visual theming flows through CSS-class
-   overrides.
+9. **`git mv` does NOT auto-stage subsequent content edits.**
+10. **`Themed/<Name>/Layouts/<layout>.ctp` must exist for every
+    new layout you introduce.** No new layouts this session.
+11. **Bundled commits for 5+ identical changes.** No bundles this
+    session — distribution_filter consumer was a single widget.
 
 ## Discovered work parked for later
 
-This session added no new parked items. The previously parked items
-all still apply:
+Newly parked this session:
+
+- **Missing renderer templates (5 of 9 declared kinds):** Index,
+  OrgsPictures, Button, Attack, Achievements have no
+  `Elements/dashboard/Widgets/<Kind>.ctp`. Widgets declaring these
+  kinds (EventStreamWidget → Index; OrgsContributor* → OrgsPictures;
+  ButtonWidget → Button; AttackWidget → Attack; AchievementsWidget
+  → Achievements) currently 500 on render. Discovered during the
+  distribution_filter consumer pivot. **Estimated:** 1-2 commits
+  per kind (each renderer is a thin .ctp around a `$data` shape;
+  pattern matches BarChart/SimpleList). Highest value: Index
+  (unlocks EventStreamWidget which is one of the most user-facing
+  widgets and a natural distribution_filter consumer too).
+
+- **MISP 2.4 cross-instance DB write risk:** v2.4 connected to
+  the same DB can clobber `user_settings.dashboard` rows in a
+  shape v2 has to read-fix-up but loses position fidelity.
+  Mitigation options: (a) document the risk in the dev-only
+  README; (b) add a schema migration that v2.4 won't recognise so
+  it refuses the write; (c) version the dashboard blob (add a
+  `__version: 2` top-level key, ignore writes that drop it).
+  None blocking for now — just document the recovery procedure
+  (audit_logs replay).
+
+Previously parked items all still apply:
 
 - time_window toolbar dropdown-menu UX alternative (surfaced
   2026-05-19, prior session).
-- Grid drop-on-occupied cascade (Phase 5 — parked 2026-05-19,
-  prior session).
-- tlp:clear (#ffffff) renders invisible bars (surfaced 2026-05-19,
-  prior session — cosmetic).
+- Grid drop-on-occupied cascade (Phase 5 — parked 2026-05-19).
+- tlp:clear (#ffffff) renders invisible bars (cosmetic).
 - OrgEventsWidget months>13 malformed dates (carries).
 - TrendingAttributesWidget PHP 8.x Attribute model crash
   (carries — MISP core touch).
@@ -437,122 +538,136 @@ all still apply:
 
 In rough priority order:
 
-**Option A: Add Widget placement (the natural next step).**
+**Option A: Build the missing Index renderer template.**
 
-The `misp-board:add-widget-pending` event fires today but has no
-listener. Placement is the half-day-to-full-day piece that:
+Quick win. Pattern is well-established (BarChart.ctp / SimpleList.
+ctp are ~30-50 lines each). Index is a tabular renderer — header
+row with column names from `$widget->fields`, body rows from
+`$data['data']`. Once Index lands, EventStreamWidget renders
+again — and EventStreamWidget is the natural distribution_filter
+consumer #2 (the F5.6.4 inheritance demo gets richer with a
+second declarer). Half-day. After Index, four renderer kinds
+still missing (OrgsPictures, Button, Attack, Achievements) —
+those can land in subsequent sessions per their utility.
 
-1. Listens for the event on the board root.
-2. Auto-places the draft at the next free grid slot. Existing
-   `Grid.serialize()` + an iteration over (x, y) cells looking for
-   a free `meta.width × meta.height` rectangle works; the Phase 5
-   push-down-on-collision task (parked) is a richer follow-up if
-   the simple first-free-slot doesn't feel good.
-3. Inserts the tile via `Grid.addTile(draftEl, {x, y, w, h})`.
-4. Mints a real `w_<N>` ID to replace the `w_draft_*` placeholder
-   (the LayoutFixup-style sequential mint pattern).
-5. Wires to the edit-mode snapshot so Discard removes the tile
-   (the existing `_editSnapshot.positions` check naturally handles
-   "tiles in current-but-not-snapshot were added → remove them").
-6. Calls `_stageOrSave()` so the addition persists on the next
-   edit-mode Save (or immediately in view mode).
-7. Calls `_renderWidget(draftEl)` to populate the new tile body.
+**Option B: Phase 3 next canonical type — needs consumer pairing.**
 
-**Option B: Add Widget live preview pane (~half-day).**
+Per Lesson #4, every remaining type needs a consumer found OR
+added. The best candidates by user value:
+- `sharing_group_filter` (any sharing-group-aware widget would
+  consume; need to add filtering to one). Higher complexity
+  because sharing groups are user-specific.
+- `threat_level_filter` / `analysis_filter` (small enums like
+  distribution_filter; same toggle-button picker pattern; pair
+  with EventStreamWidget once Index renderer lands → option A
+  becomes a prerequisite).
+- `galaxy_cluster_filter` (most complex — galaxy clusters are
+  dynamic, need server-side autocomplete).
 
-Sticky right-pane preview inside the configure panel that re-
-renders the draft widget body via the renderWidget POST against
-the in-memory draft config. Joint-task with the standalone Phase 2
-"Sticky preview pane in configure side-panel" line — they describe
-the same surface from different angles, and one chunk covers both.
-The trade-off (panel already crowded on narrow viewports) is
-unchanged from prior session.
+**Option C: Browser-verify Edit Widget against the new preview-
+pane render path.**
 
-**Option C: time_window toolbar dropdown UX (half-day).**
+Closes the last open Phase 2 line. No code work; tick depends on
+a browser interaction. Should take 15 minutes.
 
-Surfaced prior session. Replace the popover with a dropdown-menu
-(presets immediate, "Custom…" expands inline).
+**Option D: Phase 4 — Template library v2 native UI.**
 
-**Option D: Next canonical type (half-day each).**
+Pure greenfield. Template browse/import currently uses v1
+template-listing flow inside the v2 chrome. Reuses the gallery
+infrastructure (card grid, search filter, side panel) we just
+built. Larger scope — multi-session.
 
-The `*_filter` int-array trio (distribution / threat_level /
-analysis) or `sharing_group_filter`. Need a consumer audit first
-per the org_filter lesson.
+**Option E: Other parked work.**
 
-**Option E: TrendingAttributesWidget PHP 8 Attribute collision.**
+time_window dropdown UX, renderer luminance check (tlp:clear bars
+render invisible), midnight.css drop, TrendingAttributesWidget PHP 8
+crash.
 
-Pre-existing crash; needs a MISP-core touch.
-
-**Option F: Renderer-side colour-contrast safety.**
-
-tlp:clear (#ffffff) discovery. Add luminance check in chart
-builders.
-
-**Recommendation:** A then B closes sub-phase C and the Phase 2
-gallery work. Both ride this session's gallery + draft-form
-infrastructure cleanly.
+**Recommendation:** A then a paired round of B (threat_level_filter
++ EventStreamWidget consumer). A is small but unblocks B's
+richest pairing, and EventStreamWidget is the canonical "let's
+filter events by X" surface.
 
 ## Convention reminders
 
 - Commit per progress-tracker task completion; never `git add -A`;
-  the commit body references the task. **Bundle backfill commits**
-  when the pattern is identical across 5+ widgets (the body lists
-  the widgets by name); separate commits when the pattern diverges
-  per widget. This session's $category backfill (37 widgets, single
-  bundled commit) is the canonical example of the rule.
+  the commit body references the task. Bundle backfill commits
+  when the pattern is identical across 5+ widgets; separate
+  commits when the pattern diverges per widget. **For
+  canonical-type additions: three-commit shape per type — adapter
+  + tests, JS picker + registries, consumer widget. Same as
+  distribution_filter this session.**
 - **For mass file edits via script: preserve per-file line
-  endings.** Reading + rewriting in text mode silently normalises
-  CRLF → LF on files that originally had CRLF. The fix is to read
-  in binary mode, detect the existing line-ending sequence per
-  file, and use the same sequence when serialising the modified
-  content back. (This session hit it once on UsageDataWidget.php
-  and needed a follow-up restore commit.)
+  endings** (read binary, detect existing line-ending sequence,
+  use same on write). Prior session hit it once on
+  UsageDataWidget.php.
 - **Always `git status --short` + explicit `git add` before
-  commit**.
+  commit**. Also watch for stray empty files from grep / find
+  with quote-mangling — clean them out with `git status` before
+  staging.
 - New files land with `iglocska:iglocska` ownership; `chgrp
   www-data` before committing to match repo convention.
-- The proto's wrapper-element + Themed-override pattern is the
-  playbook for any future override surface. **Exception
-  documented this session:** in-panel widgets like the gallery
-  don't need Themed mirrors because their containing chrome (the
-  configure side panel) is already theme-neutral; visual theming
-  flows through CSS-class overrides rather than markup forks.
-  The Themed-override is a wrapper-level concern, not an in-
-  panel concern.
+- The wrapper-element + Themed-override pattern is the playbook
+  for any future override surface. In-panel widgets (gallery
+  cards, configure proxy) don't need Themed mirrors because their
+  containing chrome is theme-neutral. Visual theming flows
+  through CSS-class overrides, not markup forks.
 - User wants rigorous pushback, not yes-machine output — surface
   trade-offs, name alternatives, recommend a path, then go with
-  the user's call.
-- User alternates hitm / afk sessions; tracker docs are the ground
-  truth between sessions. Tick one task at a time; the Done note
-  carries the deciding context. Bundle commits don't tick more
-  than one tracker line per commit — the commit IS the unit.
+  the user's call. **New this session:** the org_filter "no
+  consumers = dead code" lesson applies to every Phase 3 type —
+  audit before committing to the work.
+- User alternates hitm / afk sessions; tracker docs are the
+  ground truth between sessions. Tick one task at a time; the
+  Done note carries the deciding context.
 - Surface context status when past 75% at task boundaries so the
-  user can choose to restart. This session ended at ~70-75% with
-  the user opting to wrap rather than push through placement.
+  user can choose to restart. This session wrapped at ~39% with
+  the user explicitly asking for the handoff.
 - Hard-refresh after CSS/JS edits — the `?v=185` cache-buster from
   `AppController::__queryVersion` doesn't bump per-file.
-- For canonical-type additions (Phase 3 unchanged): ship adapter
-  helper commit first, then JS picker commit, then per-widget
-  backfill commits. The 4-6 commit shape of tag_filter and
-  org_meta_filter from prior session is the template.
-- **A tracker tick requires the user-visible surface to exist AND
-  be reachable from the default UI, not just the JS / handler-
+- **For canonical-type additions (Phase 3):** adapter helper
+  commit first, then JS picker commit, then per-widget consumer
+  backfill commit. Mind the consumer audit — no consumers = park
+  the type, don't ship dead code.
+- **A tracker tick requires the user-visible surface to exist
+  AND be reachable from the default UI, not just the JS / handler-
   level wiring behind it.** (Carries.)
-- **mysql -u misp -pPassword1234 misp` for one-shot SQL.**
+- **`mysql -u misp -pPassword1234 misp` for one-shot SQL.**
 - **The schema-driven model is the canonical answer** for any
   "how does the toolbar / configure form know which widgets to
   act on" question.
-- **Panel-mode-piggyback pattern (NEW this session):** when a new
-  module wants to use the configure side panel for a non-form
-  view, flip `data-misp-configure-mode` to mark the new mode,
-  populate the panel body via `body.replaceChildren()`, and use a
+- **Panel-mode-piggyback pattern:** when a new module wants to
+  use the configure side panel for a non-form view, flip
+  `data-misp-configure-mode` to mark the new mode, populate the
+  panel body via `body.replaceChildren()`, and use a
   MutationObserver on the panel's `hidden` attribute as the
   canonical close hook. CSS can use the mode attribute to hide
   form-only chrome.
-- **Draft widget pattern (NEW this session):** for any "create a
-  new widget" UX, construct a detached `<div data-misp-widget>`
-  DOM node carrying the same `data-widget-*` attributes a
-  wrapper.ctp would carry. Pass it through `openConfigure` like
-  any real widget; orchestrate what happens on Save outside the
-  configure module. **Clean separation:** the form doesn't need
-  to know about the grid or persistence.
+- **Draft widget pattern:** for any "create a new widget" UX,
+  construct a detached `<div data-misp-widget>` DOM node carrying
+  the same `data-widget-*` attributes a wrapper.ctp would carry.
+  Pass it through `openConfigure` like any real widget;
+  orchestrate what happens on Save outside the configure module.
+- **Preview-proxy pattern (NEW this session):** for any "show me
+  what this widget would look like" surface that's NOT the live
+  tile, build a bare proxy `<div data-misp-widget>` with the
+  identifying attributes + a `[data-misp-widget-content]`
+  container. `_renderWidget(proxy)` from the BoardModule does the
+  rest. Decouples the preview render from the live tile so the
+  configure panel can be a true sandbox.
+- **Render-kind glyph requirement (NEW this session, documented
+  in three places — CLAUDE.md, render-thumbs.mjs docblock,
+  PRD §5.7):** any new value for `public $render` on a widget
+  class, or any new template under `app/View/Elements/dashboard/
+  Widgets/`, must ship with a matching glyph in `app/webroot/js/
+  dashboard/gallery/render-thumbs.mjs` in the same commit.
+  Otherwise the gallery card falls through to the generic block
+  for every widget using the new render kind.
+- **DB restore from audit_logs (NEW this session):** when a
+  `user_settings` row is clobbered, the prior state lives in the
+  most recent `audit_logs` row where `model='UserSetting' AND
+  model_id=<row_id>`. The `change` blob is JSON with shape
+  `{"value": [old_json, new_json]}`. MySQL escapes backslashes —
+  strip one level when parsing. `value[0]` is the pre-write
+  state — write back to `user_settings.value`, set `timestamp =
+  UNIX_TIMESTAMP()`.
