@@ -475,15 +475,6 @@ class Board {
           e.preventDefault();
           this._discardEdit();
           break;
-        case 'add-widget':
-        case 'set-scope':
-        case 'pause-refresh':
-          // Stubs — implemented in subsequent Phase 2 / Phase 5 commits.
-          // Logged so a missing handler is visible during prototype
-          // review without crashing.
-          e.preventDefault();
-          console.info(`[misp-dashboard] board action "${action}" not yet implemented`);
-          break;
       }
     });
   }
@@ -553,12 +544,6 @@ class Board {
               this._renderWidget(previewEl);
             },
           });
-          break;
-        case 'export-json':
-        case 'export-csv':
-          // Phase 5 — drill-down + export wiring.
-          e.preventDefault();
-          console.info(`[misp-dashboard] widget action "${action}" not yet implemented in proto`);
           break;
       }
     });
