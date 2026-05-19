@@ -787,4 +787,121 @@ class CanonicalTypeAdapterTest extends TestCase
         $this->assertSame('7d', $out['time_window']);
         $this->assertSame(['sector' => ['Financial']], $out['filter']);
     }
+
+    // -------- translateDistributionFilter() unit tests --------
+
+    public function testDistributionFilterIntArrayPassesThrough(): void
+    {
+        $this->assertSame([0, 1, 2], CanonicalTypeAdapter::translateDistributionFilter([0, 1, 2]));
+        $this->assertSame([3], CanonicalTypeAdapter::translateDistributionFilter([3]));
+        $this->assertSame([0, 1, 2, 3, 4, 5], CanonicalTypeAdapter::translateDistributionFilter([0, 1, 2, 3, 4, 5]));
+    }
+
+    public function testDistributionFilterEmptyArrayPassesThrough(): void
+    {
+        // Empty array = "no filter applied" (fetchEvent's truthiness
+        // guard skips the WHERE clause). Adapter preserves the shape
+        // rather than collapsing to null so the widget can distinguish
+        // "user cleared the filter" from "user never set it".
+        $this->assertSame([], CanonicalTypeAdapter::translateDistributionFilter([]));
+    }
+
+    public function testDistributionFilterNullPassesThrough(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateDistributionFilter(null));
+    }
+
+    public function testDistributionFilterScalarIntWrapsToArray(): void
+    {
+        // Legacy callers (a hand-edited UserSetting blob from before
+        // canonical existed) may have stored `'distribution' => 3`
+        // as a scalar — fetchEvent accepts both shapes but downstream
+        // code is cleaner with a uniform int[]. Wrap.
+        $this->assertSame([0], CanonicalTypeAdapter::translateDistributionFilter(0));
+        $this->assertSame([3], CanonicalTypeAdapter::translateDistributionFilter(3));
+        $this->assertSame([5], CanonicalTypeAdapter::translateDistributionFilter(5));
+    }
+
+    public function testDistributionFilterScalarNumericStringWrapsToArray(): void
+    {
+        // JSON-decoded user input sometimes lands as a string ("3"
+        // rather than 3). Coerce + wrap.
+        $this->assertSame([3], CanonicalTypeAdapter::translateDistributionFilter('3'));
+        $this->assertSame([0], CanonicalTypeAdapter::translateDistributionFilter('0'));
+    }
+
+    public function testDistributionFilterMixedArrayCoercesAndDrops(): void
+    {
+        // Numeric strings / floats coerce to int; non-numeric entries
+        // silently drop. Out-of-range values are PRESERVED — see
+        // translateDistributionFilter's docblock for why (typo
+        // diagnostics > silent filtering).
+        $this->assertSame(
+            [0, 1, 2],
+            CanonicalTypeAdapter::translateDistributionFilter([0, '1', 2.0])
+        );
+        $this->assertSame(
+            [3],
+            CanonicalTypeAdapter::translateDistributionFilter([3, 'bad', null, []])
+        );
+        $this->assertSame(
+            [99],
+            CanonicalTypeAdapter::translateDistributionFilter([99])
+        );
+    }
+
+    public function testDistributionFilterUnrecognisedShapesReturnNull(): void
+    {
+        // Non-array, non-int, non-numeric-string, non-null → null
+        // (defensive fallback — fetchEvent skips on truthiness).
+        $this->assertNull(CanonicalTypeAdapter::translateDistributionFilter('not-a-number'));
+        $this->assertNull(CanonicalTypeAdapter::translateDistributionFilter(true));
+        $this->assertNull(CanonicalTypeAdapter::translateDistributionFilter(false));
+        $this->assertNull(CanonicalTypeAdapter::translateDistributionFilter(new stdClass()));
+    }
+
+    public function testDistributionFilterIsIdempotent(): void
+    {
+        // Running an already-translated value through again is a
+        // no-op — required so the adapter can be called multiple
+        // times without surprises (renderWidget + a hypothetical
+        // future revalidate hook).
+        $once  = CanonicalTypeAdapter::translateDistributionFilter([0, '1', 2]);
+        $twice = CanonicalTypeAdapter::translateDistributionFilter($once);
+        $this->assertSame($once, $twice);
+    }
+
+    public function testTranslateRoutesDistributionFilterByType(): void
+    {
+        // End-to-end: a widget declares distribution_filter under any
+        // schema key; the adapter walks config, finds the matching
+        // type, and writes the translated value back under the same
+        // schema key (matches the org_meta_filter pattern).
+        $widget = new stdClass();
+        $widget->schema = [
+            'distribution' => ['type' => 'distribution_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'distribution' => [0, '1', 2],
+        ]);
+        $this->assertSame([0, 1, 2], $out['distribution']);
+    }
+
+    public function testTranslateDistributionFilterCoexistsWithTimeWindow(): void
+    {
+        // Both canonical types translate independently per the
+        // switch case — EventStreamWidget's expected shape post-
+        // backfill.
+        $widget = new stdClass();
+        $widget->schema = [
+            'time_window'  => ['type' => 'time_window'],
+            'distribution' => ['type' => 'distribution_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'time_window'  => 'P7D',
+            'distribution' => [1, 2, 3],
+        ]);
+        $this->assertSame('7d', $out['time_window']);
+        $this->assertSame([1, 2, 3], $out['distribution']);
+    }
 }

@@ -138,11 +138,24 @@ class CanonicalTypeAdapter
                     // identity) transform.
                     $config[$key] = self::translateOrgMetaFilter($config[$key]);
                     break;
+                case 'distribution_filter':
+                    // Canonical wire shape is an int array (subset of
+                    // {0..5}). `Event::fetchEvent` already accepts
+                    // either a scalar or an array under `distribution`
+                    // (line 2703-2707, CakePHP IN coercion). The
+                    // adapter normalises to int array so downstream
+                    // SQL receives a consistent shape; legacy scalars
+                    // (a user who saved `'distribution' => 3` from a
+                    // hand-edited config) get wrapped into `[3]`. Empty
+                    // arrays / null pass through — the widget's
+                    // empty()-guard skips the WHERE clause.
+                    $config[$key] = self::translateDistributionFilter($config[$key]);
+                    break;
                 // Phase 3 adds: org_filter, sharing_group_filter,
-                // galaxy_cluster_filter, distribution_filter,
-                // threat_level_filter, analysis_filter,
-                // attribute_type_filter, event_id_filter. Each adds
-                // one case + one translate<Type>() method below.
+                // galaxy_cluster_filter, threat_level_filter,
+                // analysis_filter, attribute_type_filter,
+                // event_id_filter. Each adds one case + one
+                // translate<Type>() method below.
             }
         }
         return $config;
@@ -328,5 +341,57 @@ class CanonicalTypeAdapter
     public static function translateOrgMetaFilter($value)
     {
         return $value;
+    }
+
+    /**
+     * Translate a `distribution_filter` value.
+     *
+     * Accepts:
+     *   - int array `[0, 1, 2]` → unchanged (canonical happy path).
+     *   - scalar int `3` (legacy) → wrapped to `[3]`.
+     *   - scalar numeric string `"3"` → wrapped to `[3]`.
+     *   - mixed array `[0, "1", 2.0, "bad"]` → numeric entries
+     *     coerced to int; non-numeric dropped → `[0, 1, 2]`.
+     *   - empty array `[]` → unchanged (no filter).
+     *   - null → null (no filter).
+     *   - other unrecognised shapes → null (defensive — fetchEvent's
+     *     `if ($options['distribution'])` truthiness check treats
+     *     null as "no filter applied").
+     *
+     * Out-of-range distribution levels (anything outside {0..5}) are
+     * preserved on the array path — Event::fetchEvent passes the
+     * array to CakePHP's IN coercion, an unknown level simply
+     * matches no rows. Filtering here would silently mask user typos
+     * which is worse than the empty-result feedback loop.
+     *
+     * @param mixed $value
+     * @return int[]|null
+     */
+    public static function translateDistributionFilter($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (is_int($value)) {
+            return [$value];
+        }
+        if (is_string($value) && is_numeric($value)) {
+            return [(int)$value];
+        }
+        if (!is_array($value)) {
+            return null;
+        }
+        $out = [];
+        foreach ($value as $entry) {
+            if (is_int($entry)) {
+                $out[] = $entry;
+            } elseif (is_string($entry) && is_numeric($entry)) {
+                $out[] = (int)$entry;
+            } elseif (is_float($entry) && is_finite($entry)) {
+                $out[] = (int)$entry;
+            }
+            // Non-numeric / non-finite entries are silently dropped.
+        }
+        return $out;
     }
 }
