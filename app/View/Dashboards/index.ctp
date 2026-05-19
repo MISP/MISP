@@ -150,7 +150,8 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
       data-misp-board-renderwidget-url="<?= h($baseurl) ?>/dashboards/renderWidget"
       data-misp-board-save-url="<?= h($baseurl) ?>/dashboards/updateSettings"
       data-misp-board-widget-save-url="<?= h($baseurl) ?>/dashboards/updateWidgetSettings"
-      data-misp-board-widgets-url="<?= h($baseurl) ?>/dashboards/widgets">
+      data-misp-board-widgets-url="<?= h($baseurl) ?>/dashboards/widgets"
+      data-misp-board-wrapper-url="<?= h($baseurl) ?>/dashboards/renderWrapper">
 
     <?php
     if (empty($widgets)) {

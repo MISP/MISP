@@ -17,7 +17,7 @@ class DashboardsController extends AppController
         parent::beforeFilter();
         // POSTs carry widget data in their body — same CSRF posture
         // as the v1 dashboards endpoints.
-        $bodyPostActions = array('renderWidget', 'updateSettings', 'updateWidgetSettings');
+        $bodyPostActions = array('renderWidget', 'renderWrapper', 'updateSettings', 'updateWidgetSettings');
         foreach ($bodyPostActions as $a) {
             $this->Security->unlockedActions[] = $a;
         }
@@ -406,6 +406,102 @@ class DashboardsController extends AppController
             $out[] = $meta;
         }
         return $this->RestResponse->viewData($out, 'json');
+    }
+
+    /**
+     * Render the widget wrapper element (PRD §8.3) for a new tile
+     * just placed by the Add Widget flow. The wrapper carries every
+     * §8.5 hook attribute (data-misp-widget, data-widget-*, data-
+     * position-*, data-drag-handle, data-misp-widget-content, data-
+     * misp-widget-action, data-resize-handle) and resolves through
+     * Cake's themed view path, so an Overmind dashboard gets the
+     * Overmind-shaped card and a default dashboard gets the default
+     * <article>. The widget body stays a "Loading…" placeholder
+     * until the client kicks off the usual renderWidget POST.
+     *
+     * Wire contract:
+     *   POST /dashboards/renderWrapper/<instance_id>
+     *     widget   class name (validated, regex-gated)
+     *     config   JSON-encoded user config (post-form-save)
+     *     w, h     grid footprint (cell count); x, y placement
+     *
+     * ACL posture (per user direction during the placement design):
+     *   `loadWidget` enforces `checkPermissions($user)` and throws
+     *   `NotFoundException` on failure with the same error shape as
+     *   an unknown widget class, so the endpoint cannot be probed
+     *   for the existence of admin-only widgets. The gate is
+     *   bit-for-bit identical to what `renderWidget` enforces —
+     *   add and render paths share the same permission check.
+     */
+    public function renderWrapper($instance_id = null)
+    {
+        App::uses('WidgetSchema', 'Lib/Dashboard/Tools');
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('POST only.'));
+        }
+        $widgetName = isset($this->request->data['widget']) ? $this->request->data['widget'] : null;
+        if (empty($widgetName) || !preg_match('/^[A-Za-z0-9_]+Widget$/', $widgetName)) {
+            throw new BadRequestException(__('Missing or malformed widget name.'));
+        }
+        if (empty($instance_id) || !preg_match('/^w_[A-Za-z0-9_]+$/', $instance_id)) {
+            throw new BadRequestException(__('Missing or malformed instance id.'));
+        }
+        // Same gate as renderWidget — checkPermissions is the
+        // authoritative ACL hook; a 404 here is indistinguishable
+        // from an unknown widget class, so this endpoint cannot leak
+        // the existence of admin-only widgets to a non-admin probe.
+        $user = $this->Auth->user();
+        $widget = $this->Dashboard->loadWidget($user, $widgetName);
+
+        $rawConfig = isset($this->request->data['config']) ? $this->request->data['config'] : '{}';
+        $config = is_string($rawConfig)
+            ? (json_decode($rawConfig, true) ?: array())
+            : (array)$rawConfig;
+        if (!is_array($config)) {
+            $config = array();
+        }
+        // Position falls back to the widget's declared default size if
+        // the client didn't send one (defensive — placement always
+        // sends, but mis-wired callers shouldn't crash the wrapper).
+        $declaredW = isset($widget->width)  && is_numeric($widget->width)  ? (int)$widget->width  : 4;
+        $declaredH = isset($widget->height) && is_numeric($widget->height) ? (int)$widget->height : 3;
+        $w = isset($this->request->data['w']) ? (int)$this->request->data['w'] : $declaredW;
+        $h = isset($this->request->data['h']) ? (int)$this->request->data['h'] : $declaredH;
+        $x = isset($this->request->data['x']) ? (int)$this->request->data['x'] : 0;
+        $y = isset($this->request->data['y']) ? (int)$this->request->data['y'] : 0;
+
+        // Enrich with $schema + $placeholder so the wrapper emits the
+        // attributes the configure form reads on the next Edit cycle
+        // (mirrors the index() enrichment loop, kept inline rather
+        // than factored so the index() path stays additive-only).
+        $schema = WidgetSchema::getSchema($widget);
+        $placeholder = isset($widget->placeholder) && is_string($widget->placeholder)
+            ? $widget->placeholder
+            : '';
+
+        $widgetData = array(
+            'widget'      => $widgetName,
+            'instance_id' => $instance_id,
+            'config'      => $config,
+            'schema'      => $schema,
+            'placeholder' => $placeholder,
+            'alias'       => null,
+            'position'    => array('x' => $x, 'y' => $y, 'w' => $w, 'h' => $h),
+        );
+
+        // Cake's themed view resolver picks Themed/<Theme>/Elements/
+        // dashboard/widget/wrapper.ctp when a theme is active, falls
+        // back to the default Elements/dashboard/widget/wrapper.ctp
+        // otherwise. AppController::beforeFilter sets $this->theme
+        // off UserSetting:ui_theme for non-REST requests; our XHR is
+        // not REST (sends Accept: text/html, no auth-key) so the
+        // active theme propagates here without extra wiring. The
+        // render_wrapper.ctp view file just dispatches to the
+        // themed-resolved element — mirrors render_widget.ctp's
+        // structure.
+        $this->layout = false;
+        $this->set('widget', $widgetData);
+        $this->render('render_wrapper');
     }
 
     /* ============================================================

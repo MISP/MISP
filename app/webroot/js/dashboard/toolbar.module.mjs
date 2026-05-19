@@ -298,6 +298,30 @@ export function initToolbar(boardEl, opts = {}) {
 }
 
 /**
+ * Snapshot of every canonical type's current toolbar state for which
+ * the board has at least one declarer AND every declarer agrees on
+ * the value (non-mixed). Returns a plain object keyed by canonical
+ * KEY → value. Used by the BoardModule's Add Widget placement path
+ * to implement PRD F5.6.4 (new tile inherits the toolbar's
+ * non-mixed display values), but kept generic so any future
+ * "consume the toolbar's current view" caller can use it too.
+ *
+ * Mixed and absent canonicals are omitted — the caller never has to
+ * special-case the MIXED sentinel or distinguish "no declarers" from
+ * "all declarers default".
+ */
+export function currentValues(boardEl) {
+  const out = {};
+  for (const canonical of CANONICAL_REGISTRY) {
+    const state = computeState(boardEl, canonical);
+    if (state.hidden) continue;
+    if (state.value === MIXED) continue;
+    out[canonical.KEY] = state.value;
+  }
+  return out;
+}
+
+/**
  * Recompute every chip from the current widget configs + schemas.
  * Called on boot, after configure-form saves, and after any other
  * write that may have changed declarer state.

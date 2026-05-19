@@ -16,6 +16,9 @@
 //       data-misp-board-save-url="..."             — whole-blob layout save
 //       data-misp-board-widget-save-url="..."      — per-widget config patch
 //                                                    (DD-05; layout untouched)
+//       data-misp-board-widgets-url="..."          — widget gallery metadata
+//       data-misp-board-wrapper-url="..."          — Add Widget placement
+//                                                    wrapper HTML render
 //
 //     [data-misp-widget]                           — one widget tile.
 //       data-widget-name="..."                     — class name
@@ -35,12 +38,20 @@
 //     misp-board:widget-error      detail: { instanceId, widgetName, error }
 //     misp-board:saved             detail: { layout }
 //     misp-board:scope-changed     detail: { scope }   (Phase 0.3 commit 8)
+//     misp-board:add-widget-pending  detail: { draftEl, meta }   (Phase 2 Add)
+//     misp-board:add-widget-placed   detail: { instanceId, widgetName,
+//                                              x, y, w, h }
+//     misp-board:add-widget-failed   detail: { error }
 
 import { Grid } from './grid/grid.module.mjs';
 import { initChartsIn, disposeChartsIn } from './charts/charts.module.mjs';
 import { openConfigure } from './configure.module.mjs';
 import { openGallery }   from './gallery.module.mjs';
-import { initToolbar, refresh as refreshToolbar } from './toolbar.module.mjs';
+import {
+  initToolbar,
+  refresh as refreshToolbar,
+  currentValues as currentToolbarValues,
+} from './toolbar.module.mjs';
 import { initMenuButtons } from './menu-button.module.mjs';
 
 const ATTR_BOARD_ROOT       = 'data-misp-board-root';
@@ -61,6 +72,7 @@ class Board {
     this.renderUrl = rootEl.getAttribute(ATTR_RENDER_URL);
     this.saveUrl  = rootEl.getAttribute('data-misp-board-save-url');
     this.widgetSaveUrl = rootEl.getAttribute('data-misp-board-widget-save-url');
+    this.wrapperUrl = rootEl.getAttribute('data-misp-board-wrapper-url');
     this.mode = rootEl.getAttribute(ATTR_BOARD_MODE) || 'view';
     this.grid = null;
     this._saveTimer = null;
@@ -290,6 +302,20 @@ class Board {
         // to a single round-trip.
         this._scheduleWidgetSave(widgetEl);
       },
+    });
+
+    // Placement listener for the Add Widget flow. _startDraftWidget
+    // fires `misp-board:add-widget-pending` on the board root when
+    // the user clicks Save in the draft configure form; the listener
+    // here resolves the draft into a real tile (fetch wrapper HTML,
+    // pick a free slot, addTile, render, persist). Kept event-driven
+    // (rather than a direct callback) so theme JS / future
+    // extensions can listen too without forking the board module.
+    this.root.addEventListener('misp-board:add-widget-pending', (e) => {
+      this._placeDraftWidget(e.detail.draftEl, e.detail.meta).catch((err) => {
+        console.warn('[misp-dashboard] add-widget placement failed', err);
+        this._dispatchEvent('add-widget-failed', { error: String(err) });
+      });
     });
   }
 
@@ -645,6 +671,188 @@ class Board {
    */
   _mintDraftInstanceId() {
     return `w_draft_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e6).toString(36)}`;
+  }
+
+  /**
+   * Mint a `w_<N>` instance ID one past the highest currently in
+   * use on this board. Format mirrors LayoutFixup's server-side
+   * mint so the persisted layout looks identical regardless of
+   * which side stamped the ID. Draft IDs (`w_draft_*`) are
+   * deliberately excluded from the max scan so a draft mid-flight
+   * doesn't push the next mint up.
+   */
+  _mintFinalInstanceId() {
+    let maxN = 0;
+    for (const el of this.root.querySelectorAll(`[${ATTR_WIDGET_INSTANCE}]`)) {
+      const id = el.getAttribute(ATTR_WIDGET_INSTANCE) || '';
+      const m = /^w_(\d+)$/.exec(id);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (Number.isFinite(n) && n > maxN) maxN = n;
+      }
+    }
+    return `w_${maxN + 1}`;
+  }
+
+  /**
+   * Find the next free auto-place slot for a `w × h` footprint.
+   * Scans rows top-down, columns left-to-right, returns the first
+   * (x, y) at which a `w × h` rectangle does not overlap any
+   * existing tile. Always succeeds — when no slot fits within the
+   * currently-occupied rows, places below the lowest existing tile
+   * at column 0. The richer push-down-on-collision cascade is
+   * parked as Phase 5 work; first-free-slot is the documented
+   * Phase 2 contract.
+   */
+  _findFreeSlot(w, h) {
+    if (!this.grid) return { x: 0, y: 0 };
+    const cols = this.grid.cols;
+    const footprint = Math.min(Math.max(1, w | 0), cols);
+    const height    = Math.max(1, h | 0);
+    const tiles = this.grid.serialize();
+    const maxY = tiles.reduce((m, t) => Math.max(m, t.y + t.h), 0);
+    for (let y = 0; y <= maxY; y++) {
+      for (let x = 0; x + footprint <= cols; x++) {
+        const overlaps = tiles.some((t) =>
+          x < t.x + t.w && x + footprint > t.x &&
+          y < t.y + t.h && y + height > t.y,
+        );
+        if (!overlaps) return { x, y };
+      }
+    }
+    return { x: 0, y: maxY };
+  }
+
+  /**
+   * Apply PRD F5.6.4 inheritance: for every schema entry on the
+   * draft whose `type` is a canonical type for which the toolbar
+   * currently shows a non-mixed value, write that value into
+   * `config[schemaKey]` — but only if the user hasn't already set
+   * an explicit value through the draft form. Mutates the passed
+   * config object and returns it (for chaining).
+   *
+   * The "user already set" check is conservative: any defined,
+   * non-empty value counts as "user-set" and is left alone. This
+   * matches the intuition that a user who scrolled past the field
+   * has implicitly accepted whatever the form default is, while a
+   * user who actually typed wants their value preserved.
+   */
+  _applyToolbarInheritance(config, schema) {
+    const toolbarValues = currentToolbarValues(this.root);
+    const inheritKeys = Object.keys(toolbarValues);
+    if (inheritKeys.length === 0) return config;
+    for (const [schemaKey, entry] of Object.entries(schema || {})) {
+      if (!entry || typeof entry !== 'object') continue;
+      const canonicalKey = entry.type;
+      if (!Object.prototype.hasOwnProperty.call(toolbarValues, canonicalKey)) continue;
+      const existing = config[schemaKey];
+      if (existing !== undefined && existing !== null && existing !== '') continue;
+      config[schemaKey] = toolbarValues[canonicalKey];
+    }
+    return config;
+  }
+
+  /**
+   * Placement orchestrator. Listens for `misp-board:add-widget-
+   * pending`; resolves a draft node into a real tile placed on the
+   * grid.
+   *
+   * Sequence:
+   *   1. Read draft state (name, config, footprint) and the draft's
+   *      schema for inheritance lookup.
+   *   2. Apply F5.6.4 toolbar inheritance to the config.
+   *   3. Mint a final `w_<N>` instance ID.
+   *   4. Find the next free auto-place slot.
+   *   5. POST `/dashboards/renderWrapper` to get the theme-resolved
+   *      wrapper element (including all §8.5 hooks).
+   *   6. Parse the response, snap inline data-* state back onto the
+   *      parsed element (the server already emits these, but if
+   *      inheritance changed the config after the wrapper was
+   *      composed we want the latest values).
+   *   7. `Grid.addTile()` at the chosen slot.
+   *   8. Kick off `_renderWidget()` to fill the body.
+   *   9. Refresh the toolbar (new declarers may have changed
+   *      chip state — e.g., a previously-empty toolbar with no
+   *      `time_window` declarer now shows one).
+   *  10. `_stageOrSave()` so edit-mode commits / view-mode saves
+   *      pick up the addition. The edit-mode snapshot does not
+   *      contain the new tile, so `_discardEdit` naturally removes
+   *      it on Discard.
+   *  11. Refresh debug readout.
+   */
+  async _placeDraftWidget(draftEl, meta) {
+    if (!this.wrapperUrl) {
+      throw new Error('wrapper-url not configured on board root');
+    }
+    if (!this.grid) {
+      throw new Error('grid not initialised');
+    }
+    const widgetName = draftEl.getAttribute(ATTR_WIDGET_NAME);
+    if (!widgetName) {
+      throw new Error('draft missing widget name');
+    }
+    let config = {};
+    try {
+      config = JSON.parse(draftEl.getAttribute(ATTR_WIDGET_CONFIG) || '{}');
+      if (!config || typeof config !== 'object' || Array.isArray(config)) config = {};
+    } catch (_) {
+      config = {};
+    }
+    let schema = {};
+    try {
+      schema = JSON.parse(draftEl.getAttribute('data-widget-schema') || '{}');
+      if (!schema || typeof schema !== 'object' || Array.isArray(schema)) schema = {};
+    } catch (_) {
+      schema = {};
+    }
+
+    this._applyToolbarInheritance(config, schema);
+
+    const w = parseInt(draftEl.getAttribute('data-position-w'), 10) || meta.width  || 4;
+    const h = parseInt(draftEl.getAttribute('data-position-h'), 10) || meta.height || 3;
+    const instanceId = this._mintFinalInstanceId();
+    const { x, y } = this._findFreeSlot(w, h);
+
+    const body = new URLSearchParams({
+      widget: widgetName,
+      config: JSON.stringify(config),
+      w: String(w), h: String(h), x: String(x), y: String(y),
+    });
+    const resp = await fetch(
+      `${this.wrapperUrl}/${encodeURIComponent(instanceId)}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'text/html',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body,
+        credentials: 'same-origin',
+      },
+    );
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const html = (await resp.text()).trim();
+
+    const parsed = new DOMParser().parseFromString(html, 'text/html');
+    const wrapperEl = parsed.body.firstElementChild;
+    if (!wrapperEl || !wrapperEl.hasAttribute(ATTR_WIDGET)) {
+      throw new Error('wrapper response did not contain a widget element');
+    }
+    // The server emitted the inherited config server-side, but pin
+    // it again here so any future code path that mutates config
+    // between fetch and placement (none today; insurance) reflects
+    // the post-inheritance state on the placed tile.
+    wrapperEl.setAttribute(ATTR_WIDGET_CONFIG, JSON.stringify(config));
+
+    this.grid.addTile({ id: instanceId, x, y, w, h, el: wrapperEl });
+    this._renderWidget(wrapperEl);
+    refreshToolbar(this.root);
+    this._stageOrSave();
+    this._updateDebugReadout();
+    this._dispatchEvent('add-widget-placed', {
+      instanceId, widgetName, x, y, w, h,
+    });
   }
 
   // ---- events ----
