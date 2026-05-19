@@ -888,12 +888,14 @@ computed from those configs (with "(mixed)" indicator on disagreement).
   - [ ] `event_id_filter` — Phase 3 future (widget-only).
 - [ ] Per-canonical-type form field elements for the configure form's typed-fields tier (full set)
 - [ ] Per-canonical-type validators (validate `$config[<canonical_type>]` shapes server-side before save)
-- [ ] **Toolbar control logic** (per DD-05). For each canonical type declared by at least one widget on the dashboard, render a toolbar control. Compute its display state from the current widgets:
+- [x] **Toolbar control logic** (per DD-05). For each canonical type declared by at least one widget on the dashboard, render a toolbar control. Compute its display state from the current widgets:
   - all applicable widgets agree → show value
   - disagree → show "(mixed)" indicator
   - none declare it → control hidden
-- [ ] Toolbar UI: time_window picker, tag picker (taxonomy-aware), org typeahead, galaxy cluster picker, sharing group picker
-- [ ] **Toolbar bulk-edit write path:** pulling a control walks every widget that declares the matching canonical type, writes the new value into each widget's `config[<canonical_type>]`, posts the whole blob to `updateSettings`, re-renders affected widgets (debounced 250ms)
+
+  — **Done 2026-05-19.** Toolbar refactored from config-key-based declarer detection (the prototype shortcut) to PRD §5.5-correct schema-driven detection: `declarersFor(boardEl, canonicalKey)` walks every widget's `data-widget-schema`, finds entries whose `entry.type === canonicalKey`, and returns `{el, schemaKey, value}` tuples. This handles widgets that declare a canonical type under a non-conventional schema key (e.g. RecentSightingsWidget uses `last` for time_window — a widget that's pre-declared in the catalogue but not currently on admin's dashboard). Mixed-state computation pluralised: `computeState` accepts an optional `canonical.equal(a, b)` hook for per-type equality and falls back to a `defaultEqual` that uses `JSON.stringify` for objects + `String()` compare for scalars. Hidden state is correctly suppressed when zero widgets declare the type (vs. the old "no saved configs have the key" — same outcome for most widgets but the schema-driven model is the correct semantic per PRD).
+- [x] Toolbar UI: time_window picker, tag picker (taxonomy-aware), org typeahead, galaxy cluster picker, sharing group picker — **Partially done 2026-05-19.** `time_window` chip + popover (text input + 5 preset buttons + format hint) ships unchanged from the proto. `tag_filter` chip + popover ships this session via the shared `canonical.buildField` dispatch (no separate toolbar-specific renderer — the configure form picker is reused with `compact: true` to drop the canonical-type help tail). The chip renders "Tag filter: (none)" / "(unset)" / "+N −M" / "(mixed)" based on declarer consensus. Remaining items in this tracker line — org typeahead, galaxy cluster picker, sharing group picker — are per-canonical-type work that lands as each canonical ports through Phase 3. **Open UX question worth surfacing:** the current time_window popover is a full text-input-plus-preset-buttons form. A dropdown-menu-style chip (click → list of presets + "Custom..." option) would be faster for the common case. Out of scope this commit; flagging as Discovered work below.
+- [x] **Toolbar bulk-edit write path:** pulling a control walks every widget that declares the matching canonical type, writes the new value into each widget's `config[<canonical_type>]`, posts the whole blob to `updateSettings`, re-renders affected widgets (debounced 250ms) — **Done 2026-05-19.** `commitBulk(boardEl, canonical, newValue)` walks every declarer (schema-driven scan) and writes `cfg[d.schemaKey] = newValue` for each — note **schemaKey**, not the canonical-type name, so a widget declaring time_window under `last` gets `cfg.last` written, not `cfg.time_window`. New-value capture dispatches through `canonical.readValue(fieldRoot)` when defined (structured canonical types like tag_filter), falling back to `fieldRoot.value` for scalar canonical types that haven't ported to `readValue` yet. `time_window.mjs` gained a `readValue(rootEl)` export (~10 lines) that handles both shapes (inner input vs label root) for forward-compat. Per-widget save flows through the existing per-widget `_scheduleWidgetSave` POST path (configured in BoardModule's `initToolbar` callback) so the bulk write atomically updates N widgets via one `POST /dashboards/updateWidgetSettings` round-trip per DD-05. `TagFilter` added to `CANONICAL_REGISTRY` — the tag_filter chip now appears on any board with ≥1 tag_filter declarer.
 - [ ] **New-widget toolbar inheritance** (PRD F5.6.4): when a widget added in edit mode declares a canonical type for which the toolbar shows a non-mixed value, the new widget's `config[<canonical_type>]` initialises to that value
 - [ ] Per-control "Clear" action (PRD F5.6.5): unsets the canonical-typed value on all applicable widgets
 - [ ] Toolbar pulls work in any mode (no edit mode required)
@@ -1056,6 +1058,16 @@ merges to `develop` for inclusion in the next 2.5 release cycle.
 Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
+
+### time_window toolbar UX — dropdown-menu chip alternative (surfaced 2026-05-19)
+
+Current implementation: clicking the time_window chip opens a popover with a text-input + 5 preset shortcut buttons + format hint + Cancel/Apply buttons. Functional but heavy for the common case where the user just wants to switch to one of the 5 standard windows.
+
+Alternative worth exploring: **dropdown-menu chip**. Click chip → small menu listing `[24h, 7d, 30d, 90d, All time, Custom…]`. Selecting a preset writes immediately to all declarers (no Cancel/Apply needed — the user already chose). "Custom…" expands inline to the existing text-input control.
+
+Trade-off: divergent UX between scalar canonical types (dropdown-menu for time_window) and structured ones (full popover for tag_filter). Not necessarily bad — structured types genuinely need a multi-step picker; scalars with a finite preset list are well-served by a dropdown. The toolbar already dispatches per canonical via `buildField`; this would replace it for time_window with a `buildToolbarMenu` hook or similar.
+
+Surfaced when refactoring the toolbar for structured-type dispatch (commit landing 2026-05-19) — the user invited alternative ideas but the unified-popover approach shipped to keep the commit scoped. Worth revisiting once tag_filter sees real user smoke and the toolbar UX gets exercised end-to-end. ~half-day to implement if pursued.
 
 ### Grid drop-on-occupied bounces back instead of auto-placing (surfaced 2026-05-19) — **Phase 5 UX polish**
 

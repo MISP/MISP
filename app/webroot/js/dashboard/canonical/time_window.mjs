@@ -128,3 +128,16 @@ export function buildField(currentValue, opts = {}) {
     }),
   );
 }
+
+/**
+ * Read the current time_window value from a rendered field. The
+ * toolbar's bulk-save and the configure form's readBack both
+ * dispatch through this. Accepts either the inner <input> directly
+ * (the element carrying [data-schema-key]) or its label parent.
+ */
+export function readValue(rootEl) {
+  if (!rootEl) return '';
+  if (rootEl.tagName === 'INPUT') return rootEl.value;
+  const input = rootEl.querySelector('input[type="text"]');
+  return input ? input.value : '';
+}

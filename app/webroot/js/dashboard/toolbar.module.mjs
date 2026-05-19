@@ -1,32 +1,47 @@
 // Dashboard toolbar (DD-05 bulk-edit Model 4).
 //
-// For every canonical type at least one widget on the dashboard
-// declares, render a compact chip in the toolbar slot showing the
-// computed display state:
+// For every canonical type declared by at least one widget on the
+// board (via $schema), render a compact chip showing the consensus
+// value across those declarers:
 //   - all declarers agree on a value → show that value
-//   - declarers disagree → show "(mixed)"
-//   - no declarers              → chip is hidden entirely
+//   - declarers disagree            → show "(mixed)"
+//   - no declarers                  → chip is hidden entirely
 //
-// Clicking a chip opens a popover anchored under it, containing the
-// canonical type's shared field builder (same UX as the configure
-// form). Pulling a value from the popover walks every widget whose
-// current config has that key, writes the new value into each
-// widget's data-widget-config, fires the BoardModule's re-render for
-// each, and refreshes the chip's computed state.
+// Clicking a chip opens a popover anchored beneath it, containing
+// the canonical type's shared field builder (same UX surface as the
+// configure form). Pulling a value walks every declarer, writes the
+// new value into that declarer's `config[schemaKey]`, fires the
+// BoardModule's re-render callback for each, and refreshes the chip.
 //
-// In Phase 0.3 a "declarer" is detected by the widget's saved config
-// having the canonical-type key present. Phase 3 reads `$schema`
-// instead — the toolbar API stays the same.
+// Declarer detection is schema-driven per PRD §5.5. A "declarer" is
+// every (widget, schemaKey) pair where the widget's $schema entry
+// for schemaKey has `type === canonical.KEY`. This handles widgets
+// that declare a canonical type under a non-conventional schema key
+// (e.g. RecentSightingsWidget uses `last` for `time_window`).
+//
+// Per-canonical dispatch:
+//   - canonical.buildField(value, {compact: true}) renders the popover
+//     control. The root carries `data-canonical=<KEY>` so commit can
+//     find it again.
+//   - canonical.readValue(rootEl) reads the current value from the
+//     rendered control. Required for structured types (tag_filter
+//     etc.) whose value isn't a single .value scalar.
+//   - canonical.equal(a, b) determines mixed-state (optional;
+//     defaults to JSON.stringify deep-equal for objects + String()
+//     compare for scalars).
+//   - canonical.displayLabel(value) renders the chip's compact label.
 
 import * as TimeWindow from './canonical/time_window.mjs';
+import * as TagFilter  from './canonical/tag_filter.mjs';
 
 const ATTR_TOOLBAR_SLOT  = 'data-misp-board-toolbar';
 const ATTR_WIDGET        = 'data-misp-widget';
 const ATTR_WIDGET_CONFIG = 'data-widget-config';
+const ATTR_WIDGET_SCHEMA = 'data-widget-schema';
 const ATTR_CANONICAL     = 'data-canonical';
 const ATTR_CHIP_KEY      = 'data-toolbar-key';
 
-const CANONICAL_REGISTRY = [TimeWindow];
+const CANONICAL_REGISTRY = [TimeWindow, TagFilter];
 
 const MIXED = '__mixed__';
 
@@ -62,27 +77,62 @@ function readWidgetConfig(widgetEl) {
   }
 }
 
-/** Collect widgets on the board whose current config has `key`. */
-function declarersFor(boardEl, key) {
+function readWidgetSchema(widgetEl) {
+  try {
+    const s = JSON.parse(widgetEl.getAttribute(ATTR_WIDGET_SCHEMA) || '{}');
+    return (s && typeof s === 'object' && !Array.isArray(s)) ? s : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+/**
+ * Walk the board's widgets and return every (widget, schemaKey, value)
+ * tuple whose $schema declares the canonical type. A widget that
+ * declares the same canonical type under two schema keys contributes
+ * two entries — bulk-edit writes to both naturally.
+ */
+function declarersFor(boardEl, canonicalKey) {
   const out = [];
   for (const w of boardEl.querySelectorAll(`[${ATTR_WIDGET}]`)) {
+    const schema = readWidgetSchema(w);
     const cfg = readWidgetConfig(w);
-    if (Object.prototype.hasOwnProperty.call(cfg, key)) {
-      out.push({ el: w, value: cfg[key] });
+    for (const [schemaKey, entry] of Object.entries(schema)) {
+      if (!entry || typeof entry !== 'object' || entry.type !== canonicalKey) continue;
+      out.push({ el: w, schemaKey, value: cfg[schemaKey] });
     }
   }
   return out;
 }
 
+/**
+ * Default equality for mixed-state detection. Scalars compare via
+ * String() (so '7d' === '7d' but also so legacy mixed types '90d'
+ * vs canonical 'P90D' read as different — which is intentional;
+ * showing them as agreeing would mask the canonical-vs-legacy
+ * inconsistency). Objects/arrays compare via JSON.stringify — fine
+ * for tag_filter's structured value where the two halves emerge
+ * from the same builder so key ordering is stable.
+ */
+function defaultEqual(a, b) {
+  if (a === b) return true;
+  if (a == null || b == null) return a == null && b == null;
+  if (typeof a === 'object' && typeof b === 'object') {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+  return String(a) === String(b);
+}
+
 /** Compute display state for a canonical type. */
-function computeState(boardEl, key) {
-  const decls = declarersFor(boardEl, key);
+function computeState(boardEl, canonical) {
+  const decls = declarersFor(boardEl, canonical.KEY);
   if (decls.length === 0) return { hidden: true, value: undefined, count: 0 };
-  const first = String(decls[0].value);
-  const allSame = decls.every((d) => String(d.value) === first);
+  const eq = canonical.equal || defaultEqual;
+  const first = decls[0].value;
+  const allSame = decls.every((d) => eq(d.value, first));
   return {
     hidden: false,
-    value: allSame ? decls[0].value : MIXED,
+    value: allSame ? first : MIXED,
     count: decls.length,
   };
 }
@@ -125,20 +175,36 @@ function closePopover(boardEl) {
   state.openKey = null;
 }
 
+function readNewValue(canonical, popoverEl) {
+  // The canonical's buildField marks its rootEl with data-canonical.
+  // For structured types (tag_filter) the rootEl is a container <div>;
+  // for scalar types (time_window) it's the inner <input>. Both are
+  // discoverable by the same selector. readValue dispatch handles
+  // the per-type readback shape.
+  const fieldRoot = popoverEl.querySelector(`[${ATTR_CANONICAL}="${canonical.KEY}"]`);
+  if (!fieldRoot) return undefined;
+  if (typeof canonical.readValue === 'function') {
+    return canonical.readValue(fieldRoot);
+  }
+  // Scalar fallback for canonical types that haven't ported to the
+  // readValue contract yet — read .value off the field root.
+  return fieldRoot.value;
+}
+
 function openPopover(boardEl, canonical, anchorChip) {
   const state = boards.get(boardEl);
   if (!state) return;
-  // Toggle: clicking the same chip closes it.
   if (state.openKey === canonical.KEY) {
     closePopover(boardEl);
     return;
   }
   closePopover(boardEl);
 
-  const current = computeState(boardEl, canonical.KEY);
-  // For "(mixed)" state, leave the input empty so any committed value
-  // overwrites every declarer; the user can also Cancel without harm.
-  const seedValue = current.value === MIXED ? '' : current.value;
+  const current = computeState(boardEl, canonical);
+  // For "(mixed)" state, hand the builder an explicit empty value
+  // (null for objects, '' for scalars) so the user can choose any new
+  // value without inheriting one declarer's bias.
+  const seedValue = current.value === MIXED ? null : current.value;
 
   const popover = el('div', {
     class: 'misp-toolbar-popover',
@@ -171,8 +237,6 @@ function openPopover(boardEl, canonical, anchorChip) {
     el('div', { class: 'misp-toolbar-popover-footer' }, cancel, save),
   );
 
-  // Attach to the chip's parent so absolute positioning is relative
-  // to it. The chip wrapper's CSS sets position: relative.
   const wrap = anchorChip.parentElement;
   wrap.appendChild(popover);
 
@@ -186,26 +250,24 @@ function openPopover(boardEl, canonical, anchorChip) {
     e.preventDefault();
     if (action === 'cancel') closePopover(boardEl);
     else if (action === 'save') {
-      const input = popover.querySelector(`[${ATTR_CANONICAL}="${canonical.KEY}"]`);
-      const newValue = input ? input.value : '';
-      commitBulk(boardEl, canonical.KEY, newValue);
+      const newValue = readNewValue(canonical, popover);
+      commitBulk(boardEl, canonical, newValue);
     }
   });
 
-  // Focus the input for keyboard-first users.
   const firstInput = popover.querySelector('input,select,textarea');
   if (firstInput) firstInput.focus();
 }
 
 // ---- bulk write ----
 
-function commitBulk(boardEl, key, newValue) {
+function commitBulk(boardEl, canonical, newValue) {
   const state = boards.get(boardEl);
   if (!state) return;
-  const decls = declarersFor(boardEl, key);
+  const decls = declarersFor(boardEl, canonical.KEY);
   for (const d of decls) {
     const cfg = readWidgetConfig(d.el);
-    cfg[key] = newValue;
+    cfg[d.schemaKey] = newValue;
     d.el.setAttribute(ATTR_WIDGET_CONFIG, JSON.stringify(cfg));
     if (state.onWidgetChange) state.onWidgetChange(d.el);
   }
@@ -224,8 +286,6 @@ export function initToolbar(boardEl, opts = {}) {
     onWidgetChange: opts.onWidgetChange || null,
     openKey: null,
   });
-  // Document-level click closes any open popover when the user clicks
-  // outside the toolbar slot. Bound once per init.
   document.addEventListener('click', (e) => {
     const inSlot = e.target.closest(slotSelector);
     if (!inSlot && boards.get(boardEl)?.openKey) closePopover(boardEl);
@@ -237,21 +297,19 @@ export function initToolbar(boardEl, opts = {}) {
 }
 
 /**
- * Recompute every chip from the current widget configs. Called on
- * boot, after configure-form saves, and after any other write that
- * may have changed declarer state.
+ * Recompute every chip from the current widget configs + schemas.
+ * Called on boot, after configure-form saves, and after any other
+ * write that may have changed declarer state.
  */
 export function refresh(boardEl) {
   const state = boards.get(boardEl);
   if (!state) return;
-  // Preserve the open-popover key across refreshes so a chip refresh
-  // mid-edit doesn't rip the popover out from under the user.
   const wasOpen = state.openKey;
   state.slot.replaceChildren();
   let anyVisible = false;
 
   for (const canonical of CANONICAL_REGISTRY) {
-    const computed = computeState(boardEl, canonical.KEY);
+    const computed = computeState(boardEl, canonical);
     if (computed.hidden) continue;
     anyVisible = true;
     const wrap = el('div', { class: 'misp-toolbar-slot' });
@@ -264,8 +322,6 @@ export function refresh(boardEl) {
     wrap.appendChild(chip);
     state.slot.appendChild(wrap);
 
-    // Re-open the popover if the user was already mid-edit on this
-    // chip; uses the new chip element as anchor.
     if (wasOpen === canonical.KEY) openPopover(boardEl, canonical, chip);
   }
 
