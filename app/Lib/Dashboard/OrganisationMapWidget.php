@@ -13,6 +13,10 @@ class OrganisationMapWidget
         'limit' => 'Limits the number of countries displayed on the map (top-N by organisation count). Leave empty for unlimited.',
     ];
     public $schema = [
+        'filter' => [
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data. This widget consumes sector / type / local only; name / nationality / uuid set via the toolbar are silently dropped by the widget\'s own validFilterKeys loop.',
+        ],
         'limit' => [
             'type' => 'int',
             'help' => 'Top-N countries by organisation count (leave empty for unlimited).',
