@@ -11,9 +11,55 @@
 <?php
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'SharingGroupBlueprint.id',
         'card_section' => 'selector',
+    ],
+    [
+        'name' => __('ID'),
+        'sort' => 'SharingGroupBlueprint.id',
+        'data_path' => 'SharingGroupBlueprint.id',
+        'element' => 'id',
+        'url' => $baseurl . '/SharingGroupBlueprints/view/%id%',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Name'),
+        'sort' => 'SharingGroupBlueprint.name',
+        'data_path' => 'SharingGroupBlueprint.name, ',
+        'element' => 'name_description',
+        'card_section' => 'title',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Owner'),
+        'sort' => 'Organisation.name',
+        'data_path' => 'Organisation',
+        'element' => 'organisation',
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('SharingGroup'),
+        'sort' => 'SharingGroupBlueprint.sharing_group_id',
+        'data_path' => 'SharingGroupBlueprint.sharing_group_id',
+        'element' => 'blueprint_sharing_group',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Rules'),
+        'data_path' => 'SharingGroupBlueprint.rules',
+        'element' => 'json',
+        'card_section' => 'links',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'SharingGroupBlueprint.id',
+        'card_section' => 'extra',
         'actions' => [
             [
                 'type' => 'link',
@@ -56,46 +102,6 @@ $fields = [
                 'requirement' => $me['Role']['perm_sharing_group']
             ]
         ]
-    ],
-    [
-        'name' => __('ID'),
-        'sort' => 'SharingGroupBlueprint.id',
-        'data_path' => 'SharingGroupBlueprint.id',
-        'element' => 'id',
-        'url' => $baseurl . '/SharingGroupBlueprints/view/%id%',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Name'),
-        'sort' => 'SharingGroupBlueprint.name',
-        'data_path' => 'SharingGroupBlueprint.name, ',
-        'element' => 'name_description',
-        'card_section' => 'title',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Owner'),
-        'sort' => 'Organisation.name',
-        'data_path' => 'Organisation',
-        'element' => 'organisation',
-        'card_section' => 'meta',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('SharingGroup'),
-        'sort' => 'SharingGroupBlueprint.sharing_group_id',
-        'data_path' => 'SharingGroupBlueprint.sharing_group_id',
-        'element' => 'blueprint_sharing_group',
-        'card_section' => 'extra',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Rules'),
-        'data_path' => 'SharingGroupBlueprint.rules',
-        'element' => 'json',
-        'card_section' => 'links',
-        'display_in' => ['table', 'card']
     ]
 ];
 
@@ -128,6 +134,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/deleteSelection',
             ],
             'fields' => $fields,
+            'primary_id_path' => 'SharingGroupBlueprint.id',
+            'row_dblclick_url' => $baseurl . '/SharingGroupBlueprints/view/%id%',
         ]
     ],
     'item_url' => '/SharingGroupBlueprints'

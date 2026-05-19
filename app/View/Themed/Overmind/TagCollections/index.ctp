@@ -2,35 +2,10 @@
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'TagCollection.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('Download configuration'),
-                'icon' => 'cloud-arrow-down',
-                'url' => $baseurl . '/tagCollections/view/%id%.json',
-                'download' => true
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/tagCollections/editWithTags/%id%',
-                'requirement' => $me['Role']['perm_tag_editor']
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/tagCollections/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $me['Role']['perm_tag_editor']
-            ]
-        ]
     ],
-
     [
         'name' => __('ID'),
         'sort' => 'TagCollection.id',
@@ -93,6 +68,36 @@ $fields = [
         'element' => 'galaxy',
         'card_section' => 'galaxy',
         'display_in' => ['table','card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'TagCollection.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'link',
+                'label' => __('Download configuration'),
+                'icon' => 'cloud-arrow-down',
+                'url' => $baseurl . '/tagCollections/view/%id%.json',
+                'download' => true
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/tagCollections/editWithTags/%id%',
+                'requirement' => $me['Role']['perm_tag_editor']
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/tagCollections/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $me['Role']['perm_tag_editor']
+            ]
+        ]
     ]
 ];
 

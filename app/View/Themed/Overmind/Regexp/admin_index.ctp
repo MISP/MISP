@@ -31,26 +31,9 @@
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Regexp.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/admin/regexp/edit/%id%',
-                'requirement' => $me['Role']['perm_regexp_access']
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/admin/regexp/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $me['Role']['perm_regexp_access']
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -80,6 +63,29 @@ $fields = [
         'element' => 'type',
         'card_section' => 'attribute',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Regexp.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'ajax',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/admin/regexp/edit/%id%',
+                'requirement' => $me['Role']['perm_regexp_access']
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/admin/regexp/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $me['Role']['perm_regexp_access']
+            ]
+        ]
     ]
 ];
 

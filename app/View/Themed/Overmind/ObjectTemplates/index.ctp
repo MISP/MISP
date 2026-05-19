@@ -1,49 +1,9 @@
 <?php
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'ObjectTemplate.id',
-        'active_path' => 'ObjectTemplate.active',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/objectTemplates/view/%id%'
-            ],
-            [
-                'type' => 'link',
-                'label' => __('Force update'),
-                'icon' => 'sync',
-                'url' => $baseurl . '/objectTemplates/update/%name%/%id%',
-                'url_params_data_paths' => ['name' => 'ObjectTemplate.name'],
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/objectTemplates/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'divider',
-                'url' => '#',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'toggle',
-                'label_on' => __('Deactivate'),
-                'label_off' => __('Activate'),
-                'icon_on' => 'stop text-danger',
-                'icon_off' => 'play text-success',
-                'url' => '/objectTemplates/%action%/%id%',
-                'active_path' => 'ObjectTemplate.active',
-                'requirement' => $isSiteAdmin
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -108,6 +68,52 @@ $fields = [
         'card_section' => 'meta',
         'display_in' => ['card']
     ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'ObjectTemplate.id',
+        'active_path' => 'ObjectTemplate.active',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'link',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/objectTemplates/view/%id%'
+            ],
+            [
+                'type' => 'link',
+                'label' => __('Force update'),
+                'icon' => 'sync',
+                'url' => $baseurl . '/objectTemplates/update/%name%/%id%',
+                'url_params_data_paths' => ['name' => 'ObjectTemplate.name'],
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/objectTemplates/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'divider',
+                'url' => '#',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'toggle',
+                'label_on' => __('Deactivate'),
+                'label_off' => __('Activate'),
+                'icon_on' => 'stop text-danger',
+                'icon_off' => 'play text-success',
+                'url' => '/objectTemplates/%action%/%id%',
+                'active_path' => 'ObjectTemplate.active',
+                'requirement' => $isSiteAdmin
+            ]
+        ]
+    ],
 ];
 
 if ($this->Acl->canAccess('objectTemplates', 'update')) {
@@ -140,6 +146,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'active' => 1,
             ],
             'fields' => $fields,
+            'primary_id_path' => 'ObjectTemplate.id',
+            'row_dblclick_url' => $baseurl . '/objectTemplates/view/%id%',
         ]
     ],
     'item_url' => '/objectTemplates'

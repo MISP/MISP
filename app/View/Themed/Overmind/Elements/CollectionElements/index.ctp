@@ -1,21 +1,10 @@
 <?php
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/collectionElements/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => 'check_edit_rights'
-            ]
-        ]
     ],
-
     [
         'name' => __('ID'),
         'sort' => 'id',
@@ -48,7 +37,23 @@ $fields = [
         'element' => 'collection_element',
         'card_section' => 'title',
         'display_in' => ['table', 'card']
-    ]
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/collectionElements/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => 'check_edit_rights'
+            ]
+        ]
+    ],
 ];
 
 /**

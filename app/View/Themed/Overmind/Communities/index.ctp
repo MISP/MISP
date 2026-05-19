@@ -11,29 +11,9 @@
 <?php
 $fields = [
     [
-        'element' => 'selector',
-        'data_path' => 'TaxiiServer.id',
+        'element' => 'checkbox',
+        'data_path' => 'id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/communities/view/%id%',
-            ],
-            [
-                'type' => 'divider',
-                'url' => '#',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Request access'),
-                'icon' => 'hand-holding-hand',
-                'url' => $baseurl . '/communities/requestAccess/%id%',
-                'requirement' => $isSiteAdmin
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -94,10 +74,38 @@ $fields = [
         'data_path_requirement' => 'self_registration',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
-    ]
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'link',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/communities/view/%id%',
+            ],
+            [
+                'type' => 'divider',
+                'url' => '#',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Request access'),
+                'icon' => 'hand-holding-hand',
+                'url' => $baseurl . '/communities/requestAccess/%id%',
+                'requirement' => $isSiteAdmin
+            ]
+        ]
+    ],
 ];
 
-
+/**
+ * Scaffold
+ */
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
@@ -115,6 +123,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 ]
             ],
             'fields' => $fields,
+            'primary_id_path' => 'id',
+            'row_dblclick_url' => $baseurl . '/communities/view/%id%',
         ]
     ],
     'item_url' => '/communities'

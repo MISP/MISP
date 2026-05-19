@@ -2,34 +2,10 @@
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Collection.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/collections/view/%id%'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/collections/edit/%id%',
-                'requirement' => 'check_edit_rights'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/collections/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => 'check_edit_rights'
-            ]
-        ]
     ],
-
     [
         'name' => __('ID'),
         'sort' => 'Collection.id',
@@ -63,20 +39,20 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
-        'name' => __('Elements'),
-        'sort' => 'Collection.element_count',
-        'data_path' => 'Collection.element_count',
-        'element' => 'count',
-        'card_section' => 'extra',
-        'display_in' => ['table', 'card']
-    ],
-    [
         'name' => __('Distribution'),
         'sort' => 'Collection.distribution',
         'data_path' => 'Collection.distribution',
         'element' => 'distribution',
         'card_section' => 'top',
         'display_in' => ['card']
+    ],
+    [
+        'name' => __('Elements'),
+        'sort' => 'Collection.element_count',
+        'data_path' => 'Collection.element_count',
+        'element' => 'count',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Created'),
@@ -96,6 +72,36 @@ $fields = [
         'card_section' => 'meta',
         'display_in' => ['card']
     ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Collection.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'link',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/collections/view/%id%'
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/collections/edit/%id%',
+                'requirement' => 'check_edit_rights'
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/collections/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => 'check_edit_rights'
+            ]
+        ]
+    ],
+
 ];
 
 /**
@@ -133,6 +139,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/deleteSelection'
             ],
             'fields' => $fields,
+            'primary_id_path' => 'Collection.id',
+            'row_dblclick_url' => $baseurl . '/collections/view/%id%',
         ]
     ],
     'item_url' => '/collections'

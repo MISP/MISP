@@ -31,26 +31,9 @@
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'CorrelationExclusion.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/correlation_exclusions/edit/%id%',
-                'requirement' => 'check_site_admin'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/correlation_exclusions/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => 'check_site_admin'
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -81,6 +64,29 @@ $fields = [
         'element' => 'enabled',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'CorrelationExclusion.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'ajax',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/correlation_exclusions/edit/%id%',
+                'requirement' => 'check_site_admin'
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/correlation_exclusions/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => 'check_site_admin'
+            ]
+        ]
     ]
 ];
 

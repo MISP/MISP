@@ -2,57 +2,9 @@
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'EventTemplate.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/event_templates/view/%id%',
-            ],
-            [
-                'type' => 'link',
-                'label' => __('Create event from template'),
-                'icon' => 'play',
-                'url' => $baseurl . '/event_templates/instantiate/%id%',
-                'requirement' => $this->Acl->canAccess('eventTemplates', 'instantiate'),
-            ],
-            [
-                'type' => 'link',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/event_templates/edit/%id%',
-                'requirement' => $this->Acl->canAccess('eventTemplates', 'edit'),
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Duplicate'),
-                'icon' => 'copy',
-                'url' => $baseurl . '/event_templates/duplicate/%id%',
-                'requirement' => $this->Acl->canAccess('eventTemplates', 'duplicate'),
-            ],
-            [
-                'type' => 'link',
-                'label' => __('Export'),
-                'icon' => 'download',
-                'url' => $baseurl . '/event_templates/export/%id%',
-            ],
-            [
-                'type' => 'divider',
-                'url' => '#',
-                'requirement' => $this->Acl->canAccess('eventTemplates', 'delete'),
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/event_templates/delete/%id%',
-                'class' => 'text-danger',
-                'requirement' => $this->Acl->canAccess('eventTemplates', 'delete'),
-            ],
-        ],
     ],
     [
         'name' => __('ID'),
@@ -144,6 +96,60 @@ $fields = [
         'mode' => 'modified',
         'card_section' => 'meta',
         'display_in' => ['table', 'card'],
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'EventTemplate.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'link',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/event_templates/view/%id%',
+            ],
+            [
+                'type' => 'link',
+                'label' => __('Create event from template'),
+                'icon' => 'play',
+                'url' => $baseurl . '/event_templates/instantiate/%id%',
+                'requirement' => $this->Acl->canAccess('eventTemplates', 'instantiate'),
+            ],
+            [
+                'type' => 'link',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/event_templates/edit/%id%',
+                'requirement' => $this->Acl->canAccess('eventTemplates', 'edit'),
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Duplicate'),
+                'icon' => 'copy',
+                'url' => $baseurl . '/event_templates/duplicate/%id%',
+                'requirement' => $this->Acl->canAccess('eventTemplates', 'duplicate'),
+            ],
+            [
+                'type' => 'link',
+                'label' => __('Export'),
+                'icon' => 'download',
+                'url' => $baseurl . '/event_templates/export/%id%',
+            ],
+            [
+                'type' => 'divider',
+                'url' => '#',
+                'requirement' => $this->Acl->canAccess('eventTemplates', 'delete'),
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/event_templates/delete/%id%',
+                'class' => 'text-danger',
+                'requirement' => $this->Acl->canAccess('eventTemplates', 'delete'),
+            ],
+        ],
     ],
 ];
 
@@ -242,6 +248,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 ],
             ],
             'fields' => $fields,
+            'primary_id_path' => 'EventTemplate.id',
+            'row_dblclick_url' => $baseurl . '/event_templates/view/%id%',
         ],
     ],
     'item_url' => '/event_templates',

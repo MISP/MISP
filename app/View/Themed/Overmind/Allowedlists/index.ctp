@@ -31,9 +31,30 @@
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Allowedlist.id',
         'card_section' => 'selector',
+    ],
+    [
+        'name' => __('ID'),
+        'sort' => 'Allowedlist.id',
+        'data_path' => 'Allowedlist.id',
+        'element' => 'id',
+        'url' => '#',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Name'),
+        'data_path' => 'Allowedlist.name',
+        'card_section' => 'title',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Allowedlist.id',
+        'card_section' => 'extra',
         'actions' => [
             [
                 'type' => 'ajax',
@@ -51,21 +72,6 @@ $fields = [
                 'requirement' => 'check_site_admin'
             ]
         ]
-    ],
-    [
-        'name' => __('ID'),
-        'sort' => 'Allowedlist.id',
-        'data_path' => 'Allowedlist.id',
-        'element' => 'id',
-        'url' => '#',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Name'),
-        'data_path' => 'Allowedlist.name',
-        'card_section' => 'title',
-        'display_in' => ['table', 'card']
     ]
 ];
 

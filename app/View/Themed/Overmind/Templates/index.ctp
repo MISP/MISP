@@ -2,34 +2,10 @@
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Template.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/templates/view/%id%'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/templates/edit/%id%',
-                'requirement' => $me['Role']['perm_template']
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/templates/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $me['Role']['perm_template']
-            ]
-        ]
     ],
-
     [
         'name' => __('ID'),
         'sort' => 'Template.id',
@@ -62,6 +38,35 @@ $fields = [
         'element' => 'organisation',
         'card_section' => 'meta',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Template.id',
+        'card_section' => 'selector',
+        'actions' => [
+            [
+                'type' => 'link',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/templates/view/%id%'
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/templates/edit/%id%',
+                'requirement' => $me['Role']['perm_template']
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/templates/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $me['Role']['perm_template']
+            ]
+        ]
     ]
 ];
 
@@ -93,6 +98,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/deleteSelection'
             ],
             'fields' => $fields,
+            'primary_id_path' => 'Template.id',
+            'row_dblclick_url' => $baseurl . '/templates/view/%id%',
         ]
     ],
     'item_url' => '/templates'

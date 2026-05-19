@@ -1,32 +1,9 @@
 <?php
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'SharingGroup.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/SharingGroups/view/%id%',
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/SharingGroups/edit/%id%',
-                'requirement' => $me['Role']['perm_sharing_group']
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/SharingGroups/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $me['Role']['perm_sharing_group']
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -120,8 +97,37 @@ $fields = [
         'sort' => 'SharingGroup.org_count',
         'data_path' => 'SharingGroup.org_count',
         'element' => 'count',
-        'card_section' => 'extra',
+        'card_section' => 'top',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'SharingGroup.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'link',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/SharingGroups/view/%id%',
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/SharingGroups/edit/%id%',
+                'requirement' => $me['Role']['perm_sharing_group']
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/SharingGroups/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $me['Role']['perm_sharing_group']
+            ]
+        ]
     ]
 
 ];
@@ -155,6 +161,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/deleteSelection',
             ],
             'fields' => $fields,
+            'primary_id_path' => 'SharingGroup.id',
+            'row_dblclick_url' => $baseurl . '/SharingGroups/view/%id%',
         ]
     ],
     'item_url' => '/SharingGroups'

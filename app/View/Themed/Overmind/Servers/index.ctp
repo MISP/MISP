@@ -1,59 +1,9 @@
 <?php
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Server.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('Explore server'),
-                'icon' => 'compass',
-                'url' => $baseurl . '/servers/previewIndex/%id%',
-            ],
-            [
-                'type' => 'link',
-                'label' => __('Pull all'),
-                'icon' => 'arrow-circle-down',
-                'url' => $baseurl . '/servers/pull/%id%/full',
-                'requirement' => function (array $row) {
-                    return !empty($row['Server']['pull']);
-                }
-            ],
-            [
-                'type' => 'link',
-                'label' => __('Push all'),
-                'icon' => 'arrow-circle-up',
-                'url' => $baseurl . '/servers/push/%id%/full',
-                'requirement' => function (array $row) {
-                    return !empty($row['Server']['push']);
-                }
-            ],
-            [
-                'type' => 'link',
-                'label' => __('Cache instance'),
-                'icon' => 'database',
-                'url' => $baseurl . '/servers/cache/%id%',
-                'requirement' => function (array $row) {
-                    return !empty($row['Server']['caching_enabled']);
-                }
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/servers/edit/%id%',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/servers/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $isSiteAdmin
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -182,7 +132,7 @@ $fields = [
         'name' => __('Options'),
         'data_path' => 'Server',
         'element' => 'server_options',
-        'card_section' => 'extra',
+        'card_section' => 'links',
         'display_in' => ['table', 'card']
     ],
     [
@@ -199,6 +149,62 @@ $fields = [
         'card_section' => 'meta',
         'display_in' => ['table', 'card']
     ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Server.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'link',
+                'label' => __('Explore server'),
+                'icon' => 'compass',
+                'url' => $baseurl . '/servers/previewIndex/%id%',
+            ],
+            [
+                'type' => 'link',
+                'label' => __('Pull all'),
+                'icon' => 'arrow-circle-down',
+                'url' => $baseurl . '/servers/pull/%id%/full',
+                'requirement' => function (array $row) {
+                    return !empty($row['Server']['pull']);
+                }
+            ],
+            [
+                'type' => 'link',
+                'label' => __('Push all'),
+                'icon' => 'arrow-circle-up',
+                'url' => $baseurl . '/servers/push/%id%/full',
+                'requirement' => function (array $row) {
+                    return !empty($row['Server']['push']);
+                }
+            ],
+            [
+                'type' => 'link',
+                'label' => __('Cache instance'),
+                'icon' => 'database',
+                'url' => $baseurl . '/servers/cache/%id%',
+                'requirement' => function (array $row) {
+                    return !empty($row['Server']['caching_enabled']);
+                }
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/servers/edit/%id%',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/servers/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $isSiteAdmin
+            ]
+        ]
+    ]
 ];
 
 $this->set('headerActions', [

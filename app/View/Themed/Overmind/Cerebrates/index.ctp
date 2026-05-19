@@ -12,51 +12,9 @@
 <?php
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Cerebrate.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/cerebrates/view/%id%',
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/cerebrates/edit/%id%',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/cerebrates/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'divider',
-                'url' => '#',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Pull all organisations'),
-                'icon' => 'arrow-circle-down text-warning',
-                'url' => $baseurl . '/cerebrates/pull_orgs/%id%',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Pull all sharing groups'),
-                'icon' => 'arrow-circle-down text-object-dark',
-                'url' => $baseurl . '/cerebrates/pull_sgs/%id%',
-                'requirement' => $isSiteAdmin
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -115,6 +73,54 @@ $fields = [
         'element' => 'pull',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Cerebrate.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'link',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/cerebrates/view/%id%',
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/cerebrates/edit/%id%',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/cerebrates/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'divider',
+                'url' => '#',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Pull all organisations'),
+                'icon' => 'arrow-circle-down text-warning',
+                'url' => $baseurl . '/cerebrates/pull_orgs/%id%',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Pull all sharing groups'),
+                'icon' => 'arrow-circle-down text-object-dark',
+                'url' => $baseurl . '/cerebrates/pull_sgs/%id%',
+                'requirement' => $isSiteAdmin
+            ]
+        ]
     ]
 ];
 
@@ -147,6 +153,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/deleteSelection',
             ],
             'fields' => $fields,
+            'primary_id_path' => 'Cerebrate.id',
+            'row_dblclick_url' => $baseurl . '/cerebrates/view/%id%',
         ]
     ],
     'item_url' => '/cerebrates'

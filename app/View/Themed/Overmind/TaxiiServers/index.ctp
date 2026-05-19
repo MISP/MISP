@@ -12,44 +12,9 @@
 <?php
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'TaxiiServer.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/taxiiServers/view/%id%',
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/taxiiServers/edit/%id%',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/taxiiServers/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'divider',
-                'url' => '#',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Push all filtered data to TAXII server'),
-                'icon' => 'arrow-circle-up',
-                'url' => $baseurl . '/taxiiServers/push/%id%',
-                'requirement' => $isSiteAdmin
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -100,6 +65,47 @@ $fields = [
         'element' => 'proxy',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'TaxiiServer.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'link',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/taxiiServers/view/%id%',
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/taxiiServers/edit/%id%',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/taxiiServers/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'divider',
+                'url' => '#',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Push all filtered data to TAXII server'),
+                'icon' => 'arrow-circle-up',
+                'url' => $baseurl . '/taxiiServers/push/%id%',
+                'requirement' => $isSiteAdmin
+            ]
+        ]
     ]
 ];
 
@@ -132,6 +138,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/deleteSelection',
             ],
             'fields' => $fields,
+            'primary_id_path' => 'TaxiiServer.id',
+            'row_dblclick_url' => $baseurl . '/taxiiServers/view/%id%',
         ]
     ],
     'item_url' => '/taxiiServers'

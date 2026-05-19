@@ -1,34 +1,10 @@
 <?php
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Tag.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View graph'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/tags/viewGraph/%id%'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/tags/edit/%id%',
-                'requirement' => 'check_edit_rights'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/tags/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => 'check_edit_rights'
-            ]
-        ]
     ],
-
     [
         'name' => __('ID'),
         'sort' => 'Tag.id',
@@ -83,6 +59,35 @@ $fields = [
         'element' => 'tag_restriction',
         'card_section' => 'meta',
         'display_in' => ['table','card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Tag.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'link',
+                'label' => __('View graph'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/tags/viewGraph/%id%'
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/tags/edit/%id%',
+                'requirement' => 'check_edit_rights'
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/tags/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => 'check_edit_rights'
+            ]
+        ]
     ]
 ];
 
@@ -137,6 +142,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/deleteSelection'
             ],
             'fields' => $fields,
+            'primary_id_path' => 'Tag.id',
+            'row_dblclick_url' => $baseurl . '/tags/viewGraph/%id%',
         ]
     ],
     'item_url' => '/tags'

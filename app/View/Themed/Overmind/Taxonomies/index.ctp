@@ -1,55 +1,9 @@
 <?php
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Taxonomy.id',
-        'enable_path' => 'Taxonomy.enabled',
-        'require_path' => 'Taxonomy.required',
-        'highlight_path' => 'Taxonomy.highlighted',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/taxonomies/view/%id%'
-            ],
-            [
-                'type' => 'divider',
-                'url' => '#',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'toggle',
-                'label_on' => __('Disable'),
-                'label_off' => __('Enable'),
-                'icon_on' => 'stop text-danger',
-                'icon_off' => 'play text-success',
-                'url' => '/taxonomies/%action%/%id%',
-                'enable_path' => 'Taxonomy.enabled',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'toggle',
-                'label_on' => __('Optional'),
-                'label_off' => __('Require'),
-                'icon_on' => 'question text-dark',
-                'icon_off' => 'asterisk text-dark',
-                'url' => '/taxonomies/%action%/%id%',
-                'require_path' => 'Taxonomy.required',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'toggle',
-                'label_on' => __('Remove Highlight'),
-                'label_off' => __('Highlight'),
-                'icon_on' => 'down-long text-primary',
-                'icon_off' => 'highlighter text-primary',
-                'url' => '/taxonomies/%action%/%id%',
-                'highlight_path' => 'Taxonomy.highlighted',
-                'requirement' => $isSiteAdmin
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -103,6 +57,7 @@ $fields = [
         'name' => __('Active Tags'),
         'element' => 'custom',
         'class' => 'shortish',
+        'card_section' => 'top',
         'function' => function (array $item) use ($isSiteAdmin) {
             $content = '<strong>' . h($item['current_count']) . '</strong> / ' . h($item['total_count']);
             if ($item['current_count'] != $item['total_count'] && $isSiteAdmin && $item['Taxonomy']['enabled']) {
@@ -110,7 +65,59 @@ $fields = [
             }
             return $content;
         }
-    ]
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Taxonomy.id',
+        'enable_path' => 'Taxonomy.enabled',
+        'require_path' => 'Taxonomy.required',
+        'highlight_path' => 'Taxonomy.highlighted',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'link',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/taxonomies/view/%id%'
+            ],
+            [
+                'type' => 'divider',
+                'url' => '#',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'toggle',
+                'label_on' => __('Disable'),
+                'label_off' => __('Enable'),
+                'icon_on' => 'stop text-danger',
+                'icon_off' => 'play text-success',
+                'url' => '/taxonomies/%action%/%id%',
+                'enable_path' => 'Taxonomy.enabled',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'toggle',
+                'label_on' => __('Optional'),
+                'label_off' => __('Require'),
+                'icon_on' => 'question text-dark',
+                'icon_off' => 'asterisk text-dark',
+                'url' => '/taxonomies/%action%/%id%',
+                'require_path' => 'Taxonomy.required',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'toggle',
+                'label_on' => __('Remove Highlight'),
+                'label_off' => __('Highlight'),
+                'icon_on' => 'down-long text-primary',
+                'icon_off' => 'highlighter text-primary',
+                'url' => '/taxonomies/%action%/%id%',
+                'highlight_path' => 'Taxonomy.highlighted',
+                'requirement' => $isSiteAdmin
+            ]
+        ]
+    ],
 ];
 
 if ($this->Acl->canAccess('taxonomies', 'update')) {
@@ -145,6 +152,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'highlight' => 1,
             ],
             'fields' => $fields,
+            'primary_id_path' => 'Taxonomy.id',
+            'row_dblclick_url' => $baseurl . '/taxonomies/view/%id%',
         ]
     ],
     'item_url' => '/taxonomies'

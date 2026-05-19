@@ -12,27 +12,9 @@
 <?php
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Sightingdb.id',
-        'active_path' => 'Sightingdb.active',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/sightingdb/edit/%id%',
-                'requirement' => $isSiteAdmin
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/sightingdb/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => $isSiteAdmin
-            ],
-        ]
     ],
     [
         'name' => __('ID'),
@@ -104,9 +86,33 @@ $fields = [
         'data_path' => 'Sightingdb.org_id',
         'element' => 'id',
         'url' => $baseurl . '/organisations/view/%id%',
-        'card_section' => 'extra',
+        'card_section' => 'meta',
         'display_in' => ['table','card']
-    ]
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Sightingdb.id',
+        'active_path' => 'Sightingdb.active',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'ajax',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/sightingdb/edit/%id%',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/sightingdb/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $isSiteAdmin
+            ],
+        ]
+    ],
 ];
 
 if ($this->Acl->canAccess('sightingdb', 'add')) {
