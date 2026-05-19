@@ -261,4 +261,161 @@ class CanonicalTypeAdapterTest extends TestCase
         // but that's an upstream call to make canonical adoption).
         $this->assertSame($config, CanonicalTypeAdapter::translate($widget, $config));
     }
+
+    // -------- translateDateRange() per-type helper --------
+
+    public function testDateRangeFromToBothPresent(): void
+    {
+        $this->assertSame(
+            ['start_date' => '2026-01-01', 'end_date' => '2026-03-31'],
+            CanonicalTypeAdapter::translateDateRange([
+                'from' => '2026-01-01',
+                'to'   => '2026-03-31',
+            ])
+        );
+    }
+
+    public function testDateRangeToNullEmitsOnlyStartDate(): void
+    {
+        // PRD §5.5: `to: null` is the "open-ended" sentinel. Widgets
+        // like EventEvolutionLineWidget that have only start_date in
+        // legacy params engage their own "now" fallback when end_date
+        // is absent.
+        $this->assertSame(
+            ['start_date' => '2025-10-01'],
+            CanonicalTypeAdapter::translateDateRange([
+                'from' => '2025-10-01',
+                'to'   => null,
+            ])
+        );
+    }
+
+    public function testDateRangeFromMissingReturnsNull(): void
+    {
+        // No usable keys → null so caller leaves config untouched.
+        $this->assertNull(CanonicalTypeAdapter::translateDateRange([]));
+        $this->assertNull(CanonicalTypeAdapter::translateDateRange(['to' => null]));
+    }
+
+    public function testDateRangeEmptyStringsAreSkipped(): void
+    {
+        // Empty-string from a UI control means "user cleared the
+        // field" — treat as absent so the handler's own empty()-
+        // fallback engages, not "send a literal empty string as
+        // start_date".
+        $this->assertSame(
+            ['end_date' => '2026-12-31'],
+            CanonicalTypeAdapter::translateDateRange([
+                'from' => '',
+                'to'   => '2026-12-31',
+            ])
+        );
+    }
+
+    public function testDateRangeNonArrayInputReturnsNull(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateDateRange(null));
+        $this->assertNull(CanonicalTypeAdapter::translateDateRange('not a range'));
+        $this->assertNull(CanonicalTypeAdapter::translateDateRange(42));
+    }
+
+    public function testDateRangeNonStringValuesAreSkipped(): void
+    {
+        // Defensive: if the value coming in via canonical isn't a
+        // string (some malformed save?), pass through cleanly without
+        // injecting non-string legacy values.
+        $this->assertNull(CanonicalTypeAdapter::translateDateRange([
+            'from' => 123,
+            'to'   => true,
+        ]));
+    }
+
+    // -------- translate() routing for date_range --------
+
+    public function testTranslateExpandsDateRangeIntoLegacyKeys(): void
+    {
+        $widget = new stdClass();
+        $widget->schema = [
+            'date_range' => ['type' => 'date_range'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'date_range' => ['from' => '2026-01-01', 'to' => '2026-03-31'],
+        ]);
+        $this->assertSame('2026-01-01', $out['start_date']);
+        $this->assertSame('2026-03-31', $out['end_date']);
+        // Canonical key passes through too; harmless — handler ignores
+        // unknown keys.
+        $this->assertSame(
+            ['from' => '2026-01-01', 'to' => '2026-03-31'],
+            $out['date_range']
+        );
+    }
+
+    public function testTranslateDateRangeOpenEndedEmitsStartOnly(): void
+    {
+        $widget = new stdClass();
+        $widget->schema = [
+            'date_range' => ['type' => 'date_range'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'date_range' => ['from' => '2025-10-01', 'to' => null],
+        ]);
+        $this->assertSame('2025-10-01', $out['start_date']);
+        $this->assertArrayNotHasKey('end_date', $out);
+    }
+
+    public function testTranslateDateRangeCanonicalWinsOverLegacy(): void
+    {
+        // When both canonical and legacy keys are present, canonical
+        // wins on translate. The configure form / toolbar are expected
+        // to write canonical going forward; stale legacy values
+        // alongside should be overwritten on translate.
+        $widget = new stdClass();
+        $widget->schema = [
+            'date_range' => ['type' => 'date_range'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'date_range' => ['from' => '2026-01-01', 'to' => '2026-12-31'],
+            'start_date' => '2020-01-01', // stale legacy
+            'end_date'   => '2020-12-31',
+        ]);
+        $this->assertSame('2026-01-01', $out['start_date']);
+        $this->assertSame('2026-12-31', $out['end_date']);
+    }
+
+    public function testTranslateDateRangeLeavesLegacyAloneWhenNoCanonical(): void
+    {
+        // Pure legacy config (no canonical date_range key present) —
+        // adapter leaves start_date / end_date untouched. The schema
+        // declares date_range but the user hasn't migrated yet.
+        $widget = new stdClass();
+        $widget->schema = [
+            'date_range' => ['type' => 'date_range'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'start_date' => '2025-06-01',
+            'end_date'   => '2025-09-30',
+        ]);
+        $this->assertSame('2025-06-01', $out['start_date']);
+        $this->assertSame('2025-09-30', $out['end_date']);
+        $this->assertArrayNotHasKey('date_range', $out);
+    }
+
+    public function testTranslateDateRangeUnderNonConventionalSchemaKey(): void
+    {
+        // Hypothetical widget that declares date_range under a key
+        // other than 'date_range' (e.g. 'window'). The adapter still
+        // routes by *type*, not by key name. The resulting legacy
+        // keys are still start_date / end_date (the convention used
+        // by every existing consumer).
+        $widget = new stdClass();
+        $widget->schema = [
+            'window' => ['type' => 'date_range'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'window' => ['from' => '2026-02-01', 'to' => '2026-02-28'],
+        ]);
+        $this->assertSame('2026-02-01', $out['start_date']);
+        $this->assertSame('2026-02-28', $out['end_date']);
+    }
 }

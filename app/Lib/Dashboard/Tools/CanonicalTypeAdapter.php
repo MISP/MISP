@@ -91,7 +91,24 @@ class CanonicalTypeAdapter
                 case 'time_window':
                     $config[$key] = self::translateTimeWindow($config[$key]);
                     break;
-                // Phase 3 adds: date_range, tag_filter, org_filter,
+                case 'date_range':
+                    // 1-to-N expansion: a canonical date_range slot
+                    // writes legacy start_date and end_date keys
+                    // (matching the convention used by every existing
+                    // start_date/end_date-consuming widget). When the
+                    // legacy keys already exist in config, canonical
+                    // wins — the configure form / toolbar are
+                    // expected to write canonical going forward and
+                    // any stale legacy values alongside should be
+                    // overwritten on translate.
+                    $derived = self::translateDateRange($config[$key]);
+                    if ($derived !== null) {
+                        foreach ($derived as $legacyKey => $legacyValue) {
+                            $config[$legacyKey] = $legacyValue;
+                        }
+                    }
+                    break;
+                // Phase 3 adds: tag_filter, org_filter,
                 // sharing_group_filter, galaxy_cluster_filter,
                 // distribution_filter, threat_level_filter,
                 // analysis_filter, attribute_type_filter,
@@ -152,5 +169,44 @@ class CanonicalTypeAdapter
         // accepts it directly.
         // Numeric strings ("604800") pass through; handler casts.
         return $value;
+    }
+
+    /**
+     * Translate a single `date_range` value into the legacy
+     * `start_date` / `end_date` key pair every existing
+     * start_date/end_date-consuming widget expects.
+     *
+     * Returns an associative array of legacy keys to inject into the
+     * caller's `$config`, or `null` when the value isn't translatable.
+     *
+     * Canonical shape (PRD §5.5): `{ from: "<ISO date>", to: "<ISO date>" | null }`.
+     *   - `from` (when a non-empty string) → `start_date`
+     *   - `to`   (when a non-empty string) → `end_date`
+     *   - `to: null` is the "open-ended" sentinel — `end_date` stays
+     *     unset so the widget's existing "now" fallback (e.g.
+     *     `EventEvolutionLineWidget`) engages.
+     *
+     * Legacy date strings ship verbatim — widgets parse them via
+     * `new DateTime($options['start_date'])` and friends, which
+     * accept the ISO YYYY-MM-DD shape canonical date_range produces.
+     *
+     * @param mixed $value
+     * @return array<string,string>|null
+     */
+    public static function translateDateRange($value)
+    {
+        if (!is_array($value)) {
+            return null;
+        }
+        $result = [];
+        if (isset($value['from']) && is_string($value['from']) && $value['from'] !== '') {
+            $result['start_date'] = $value['from'];
+        }
+        if (isset($value['to']) && is_string($value['to']) && $value['to'] !== '') {
+            $result['end_date'] = $value['to'];
+        }
+        // No usable keys → return null so the caller leaves config
+        // untouched (no spurious empty keys land on the handler).
+        return $result === [] ? null : $result;
     }
 }
