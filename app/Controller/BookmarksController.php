@@ -110,7 +110,7 @@ class BookmarksController extends AppController
 
     public function view($id)
     {
-        if (!$this->Bookmark->mayModify($this->Auth->user(), intval($id))) {
+        if (!$this->Bookmark->mayView($this->Auth->user(), intval($id))) {
             throw new MethodNotAllowedException(__('Invalid Bookmark or insufficient privileges'));
         }
         $canSeeUser = false;
