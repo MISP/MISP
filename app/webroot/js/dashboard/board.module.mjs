@@ -59,6 +59,15 @@ class Board {
     this.mode = rootEl.getAttribute(ATTR_BOARD_MODE) || 'view';
     this.grid = null;
     this._saveTimer = null;
+    // Edit-mode staging state (DD-05 "Layout-only atomic save"):
+    //   _editSnapshot.positions  serialized layout at edit-mode entry
+    //   _editSnapshot.removedTiles  Map<id, el> for tiles removed during
+    //                               this edit session — held in JS so
+    //                               Discard can re-add them
+    //   _layoutDirty  true after any staged drag / resize / remove
+    // When in view mode these are null/false.
+    this._editSnapshot = null;
+    this._layoutDirty = false;
     this._wireBoardActions();
     this._wireWidgetActions();
     this._init();
@@ -78,8 +87,36 @@ class Board {
     this._saveTimer = setTimeout(() => this._saveLayout(), 50);
   }
 
+  /**
+   * DD-05 layout-only atomic save. Drag / resize / remove (and Add
+   * Widget when it lands) call this; configure-form Save and toolbar
+   * bulk-edits stay on the immediate `_scheduleSave()` path because
+   * per DD-05 they're independent of edit-mode layout saves.
+   *
+   * In edit mode the change stays client-side until the user clicks
+   * the Save button (→ _commitEdit) or the Discard button (→
+   * _discardEdit). In view mode (e.g. a configure-form save that
+   * also mutated the widget's tile via the same callback) the change
+   * goes through the same 50ms-debounced save path as before.
+   *
+   * Known limitation (documented for the dedicated task): if the user
+   * triggers a configure-form Save *while* layout edits are staged in
+   * edit mode, the underlying whole-blob _saveLayout commits both the
+   * widget config change AND the staged layout. The DD-05 ideal is a
+   * per-widget POST that leaves the rest of the blob alone — landing
+   * in a separate Phase 2 task ("Configure-form Save: per-widget POST
+   * to /dashboards/updateSettings...").
+   */
+  _stageOrSave() {
+    if (this.mode === 'edit') {
+      this._layoutDirty = true;
+      return;
+    }
+    this._scheduleSave();
+  }
+
   async _saveLayout() {
-    if (!this.grid || !this.saveUrl) return;
+    if (!this.grid || !this.saveUrl) return false;
     const positions = this.grid.serialize();
     const widgets = [];
     for (const p of positions) {
@@ -115,9 +152,11 @@ class Board {
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       this._dispatchEvent('saved', { count: widgets.length });
+      return true;
     } catch (err) {
       console.warn('[misp-dashboard] save failed', err);
       this._dispatchEvent('save-failed', { error: String(err) });
+      return false;
     }
   }
 
@@ -131,10 +170,12 @@ class Board {
       gap: parseInt(getComputedStyle(this.root).getPropertyValue('--misp-dash-grid-gap')) || 8,
       // Persist drag/resize commits. Grid fires this only when at
       // least one tile's x/y/w/h actually changed, so a tile dropped
-      // back at its origin doesn't trigger a network round-trip.
-      // _scheduleSave is already 50ms-debounced so rapid commits
-      // (cascade-affected tiles or multi-drop sequences) coalesce.
-      onCommit: () => this._scheduleSave(),
+      // back at its origin doesn't trigger any side effect. In edit
+      // mode the change is staged via _stageOrSave (Save button
+      // flushes; Discard reverts to the snapshot). In view mode the
+      // change goes through the 50ms-debounced save path so cascade-
+      // affected tiles or multi-drop sequences coalesce.
+      onCommit: () => this._stageOrSave(),
     });
 
     const tiles = [...this.root.querySelectorAll(`[${ATTR_WIDGET}]`)];
@@ -174,12 +215,104 @@ class Board {
   setMode(mode) {
     if (mode !== 'view' && mode !== 'edit') return;
     if (this.mode === mode) return;
+    const prevMode = this.mode;
     this.mode = mode;
     this.root.setAttribute(ATTR_BOARD_MODE, mode);
+    // Edit-mode staging snapshot (DD-05 atomic save):
+    //   - view → edit  capture the current layout + reset dirty flag
+    //                  so Discard / Save have a reference to compare
+    //                  against and rewind to.
+    //   - edit → view  release the snapshot; tile DOM elements we
+    //                  held alive for a possible Discard are gc'd.
+    if (mode === 'edit' && prevMode === 'view') {
+      this._editSnapshot = {
+        positions: this.grid ? this.grid.serialize() : [],
+        removedTiles: new Map(),
+      };
+      this._layoutDirty = false;
+    } else if (mode === 'view' && prevMode === 'edit') {
+      this._editSnapshot = null;
+      this._layoutDirty = false;
+    }
     this._dispatchEvent('mode-changed', { mode });
     // Keep the toggle button's aria-pressed state in sync.
     const btn = document.querySelector(`[${ATTR_BOARD_ACTION}="toggle-mode"]`);
     if (btn) btn.setAttribute('aria-pressed', mode === 'edit' ? 'true' : 'false');
+  }
+
+  /**
+   * Save button (edit mode): flush any pending debounce timer, POST
+   * the current layout, and on success drop back to view mode. On
+   * failure stay in edit mode so the user can retry — the
+   * 'save-failed' event fired by _saveLayout signals the error path
+   * to any theme JS listening.
+   */
+  async _commitEdit() {
+    if (this.mode !== 'edit') return;
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = null;
+    }
+    // Pending removed tiles' chart instances were kept alive (in case
+    // Discard restored them). Save is the commit point — release
+    // ECharts now so its global instance map doesn't leak.
+    if (this._editSnapshot) {
+      for (const el of this._editSnapshot.removedTiles.values()) {
+        disposeChartsIn(el);
+      }
+    }
+    const ok = await this._saveLayout();
+    if (ok) this.setMode('view');
+  }
+
+  /**
+   * Discard button (edit mode): revert the layout to the entry
+   * snapshot. Confirm via window.confirm() if any staged change
+   * (drag / resize / remove) is dirty. Restores positions of tiles
+   * that still exist, re-adds any removed tiles (held in
+   * _editSnapshot.removedTiles), and removes any newly-added tiles
+   * not present in the snapshot (Add Widget flow not yet implemented
+   * but covered for the future). Then drops back to view mode.
+   */
+  _discardEdit() {
+    if (this.mode !== 'edit' || !this._editSnapshot) return;
+    if (this._layoutDirty) {
+      const ok = window.confirm(
+        'Discard pending layout changes? This cannot be undone.',
+      );
+      if (!ok) return;
+    }
+    const { positions, removedTiles } = this._editSnapshot;
+    const snapshotIds = new Set(positions.map(p => p.id));
+    const currentIds = new Set(this.grid.serialize().map(p => p.id));
+
+    // Remove tiles that exist now but were not in the snapshot — they
+    // were added during this edit session. (Add Widget hasn't shipped
+    // yet, but this is the contract.)
+    for (const id of currentIds) {
+      if (!snapshotIds.has(id)) {
+        const wEl = this.root.querySelector(
+          `[${ATTR_WIDGET_INSTANCE}="${CSS.escape(id)}"]`,
+        );
+        if (wEl) disposeChartsIn(wEl);
+        this.grid.removeTile(id);
+      }
+    }
+
+    // Restore positions of tiles that still exist; re-add tiles that
+    // were removed during this edit session.
+    for (const p of positions) {
+      if (currentIds.has(p.id)) {
+        this.grid.updateTile(p.id, { x: p.x, y: p.y, w: p.w, h: p.h });
+      } else if (removedTiles.has(p.id)) {
+        const el = removedTiles.get(p.id);
+        // addTile clears existing inline styles via _applyTileStyle.
+        this.grid.addTile({ id: p.id, x: p.x, y: p.y, w: p.w, h: p.h, el });
+        this._renderWidget(el);
+      }
+    }
+    this._updateDebugReadout();
+    this.setMode('view');
   }
 
   // ---- widget rendering ----
@@ -236,15 +369,21 @@ class Board {
           this.setMode(this.mode === 'view' ? 'edit' : 'view');
           break;
         case 'save':
+          e.preventDefault();
+          this._commitEdit();
+          break;
         case 'discard':
+          e.preventDefault();
+          this._discardEdit();
+          break;
         case 'add-widget':
         case 'set-scope':
         case 'pause-refresh':
-          // Stubs — implemented in subsequent Phase 0.3 commits and
-          // Phase 1. Logged so a missing handler is visible during
-          // prototype review without crashing.
+          // Stubs — implemented in subsequent Phase 2 / Phase 5 commits.
+          // Logged so a missing handler is visible during prototype
+          // review without crashing.
           e.preventDefault();
-          console.info(`[misp-dashboard] board action "${action}" not yet implemented in proto`);
+          console.info(`[misp-dashboard] board action "${action}" not yet implemented`);
           break;
       }
     });
@@ -262,20 +401,35 @@ class Board {
           e.preventDefault();
           this._renderWidget(widgetEl);
           break;
-        case 'remove':
+        case 'remove': {
           e.preventDefault();
           if (this.mode !== 'edit') return;
           const id = widgetEl.getAttribute(ATTR_WIDGET_INSTANCE);
-          // Tear down chart instances inside the tile before the DOM
-          // node goes away so ECharts releases its window listeners.
-          disposeChartsIn(widgetEl);
+          // In edit mode, stash the tile element so Discard can re-add
+          // it. Chart instances stay alive too — the tile is detached
+          // from the DOM via grid.removeTile (which calls .el.remove()
+          // on it). The element is still a valid DOM node, just no
+          // longer in the document; charts inside it remain bound to
+          // their own canvases. If Discard never re-adds it, the GC
+          // collects everything when the snapshot is released on
+          // setMode('view'). If the user clicks Save, the snapshot is
+          // released and the stale references go too.
+          if (this._editSnapshot) {
+            this._editSnapshot.removedTiles.set(id, widgetEl);
+          } else {
+            // Defensive — shouldn't happen because remove is edit-mode-
+            // gated, but if the snapshot is missing, fall back to the
+            // old destructive path so the chart-dispose still runs.
+            disposeChartsIn(widgetEl);
+          }
           this.grid.removeTile(id);
           this._updateDebugReadout();
           // removeTile bypasses Grid._commit (it directly mutates
           // this.tiles), so the onCommit hook used by drag/resize
-          // doesn't fire here — persist explicitly.
-          this._scheduleSave();
+          // doesn't fire here — stage explicitly (or save in view mode).
+          this._stageOrSave();
           break;
+        }
         case 'configure':
           e.preventDefault();
           // Configure form is the DD-06 two-tier side panel.

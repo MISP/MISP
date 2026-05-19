@@ -84,6 +84,23 @@ export class Grid {
     this.tiles.delete(id);
   }
 
+  /**
+   * Reposition / resize a tile in place. Used by the BoardModule's
+   * Discard flow to restore tiles to their pre-edit positions without
+   * going through the drag / resize commit path (which would fire
+   * onCommit and trigger an unwanted save). Silently no-ops for
+   * unknown ids.
+   */
+  updateTile(id, { x, y, w, h }) {
+    const t = this.tiles.get(id);
+    if (!t) return;
+    t.x = x;
+    t.y = y;
+    t.w = w;
+    t.h = h;
+    this._applyTileStyle(t);
+  }
+
   serialize() {
     return [...this.tiles.values()].map(({ id, x, y, w, h }) => ({ id, x, y, w, h }));
   }
@@ -275,6 +292,11 @@ export class Grid {
   }
 
   _onResizeStart(tile, e) {
+    // Edit-mode JS gate (belt-and-suspenders alongside the existing CSS
+    // `display:none` on the resize handle in view mode). If the handle
+    // becomes visible via dev tools / accessibility shortcuts, this
+    // bail prevents the resize from actually firing.
+    if (this.root.getAttribute('data-misp-board-mode') !== 'edit') return;
     e.preventDefault();
     e.stopPropagation();
     const handle = e.currentTarget;
