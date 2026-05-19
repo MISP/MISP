@@ -479,12 +479,11 @@ class Board {
         case 'add-widget':
           e.preventDefault();
           // Open the v2 widget gallery inside the configure side
-          // panel. Browse-only at this commit — onPick is unwired
-          // (the Add Widget flow that consumes it lands as the
-          // next sub-task). The gallery handles its own close
-          // (ESC + the panel's shared backdrop / ✕ / Cancel chain
-          // from configure.module.mjs).
-          openGallery({ onPick: null });
+          // panel. On card pick, hand off to _startDraftWidget,
+          // which constructs a detached draft DOM node and asks
+          // the configure module to render its schema-driven form
+          // in the same panel (mode flips from gallery → form).
+          openGallery({ onPick: (meta) => this._startDraftWidget(meta) });
           break;
       }
     });
@@ -558,6 +557,94 @@ class Board {
           break;
       }
     });
+  }
+
+  // ---- draft widget (Add Widget flow, PRD §5.4 / §5.7) ----
+
+  /**
+   * Construct a detached draft widget DOM node carrying the picked
+   * widget's metadata (name, schema, placeholder, default size,
+   * render kind) and hand it off to the configure module's
+   * existing form-render path. On Save, the new config is committed
+   * to the draft's `data-widget-config` and a `misp-board:add-
+   * widget-pending` event fires with the draft node + meta — the
+   * next sub-task (placement) listens for this event and inserts
+   * the draft into the grid via `Grid.addTile()` at the next free
+   * auto-place slot, then re-renders the widget body. On Cancel,
+   * the panel closes through the configure module's existing close
+   * chain and the draft node is GC-released (no caller retains it).
+   *
+   * The draft node is a plain <div> rather than the full wrapper.ctp
+   * markup — only the data-widget-* attributes the configure form
+   * reads are needed; the wrapper element will be the one cloned
+   * onto the grid by the placement task (or created from scratch by
+   * a server-side renderWidget call, depending on the placement
+   * design). Until then the draft is invisible to the user.
+   */
+  _startDraftWidget(meta) {
+    const panel = document.querySelector('[data-misp-configure-root]');
+    // Flip panel mode from "gallery" back to "form" so the
+    // configure footer (Save / Cancel) is visible again. The
+    // gallery's MutationObserver still owns the close-time cleanup
+    // (gallery state release on panel hide), so flipping the mode
+    // attribute mid-session is safe.
+    if (panel) panel.setAttribute('data-misp-configure-mode', 'form');
+
+    const draft = document.createElement('div');
+    draft.setAttribute(ATTR_WIDGET, '');
+    draft.setAttribute(ATTR_WIDGET_NAME, meta.widget || '');
+    draft.setAttribute(ATTR_WIDGET_INSTANCE, this._mintDraftInstanceId());
+    draft.setAttribute(ATTR_WIDGET_CONFIG, '{}');
+    // openConfigure JSON.parses these on read; serialise even when
+    // empty so the form-render path doesn't fall back to its
+    // defensive empty-object branch.
+    draft.setAttribute('data-widget-schema', JSON.stringify(meta.schema || {}));
+    draft.setAttribute('data-widget-placeholder',
+      typeof meta.placeholder === 'string' ? meta.placeholder : '');
+    draft.setAttribute('data-position-w', String(meta.width || 1));
+    draft.setAttribute('data-position-h', String(meta.height || 1));
+    draft.setAttribute('data-widget-render', meta.render || '');
+
+    openConfigure(draft, {
+      onSave: (savedDraft) => {
+        // Placement is the next sub-task — for now, fire an event
+        // that downstream listeners (or the next-task placement
+        // handler) can hook. Close the panel via the configure
+        // module's own commit() → closeConfigure() path (already
+        // invoked before this callback fires per
+        // configure.module.mjs line 460 — see commit()).
+        this._dispatchEvent('add-widget-pending', {
+          draftEl: savedDraft,
+          meta,
+        });
+      },
+      onPreview: (_previewDraft) => {
+        // Live preview of a not-yet-placed widget is the third
+        // Add Widget sub-task (preview pane on the right). No
+        // rendered tile exists yet, so the in-board preview path
+        // can't render anything — explicit no-op until the
+        // preview pane lands.
+      },
+    });
+
+    // openConfigure sets the title to "Configure <className>". For
+    // a draft, "Add <Title>" reads more naturally; override after
+    // the call so the configure module's existing title-write isn't
+    // touched (additive-only — see PRD §13 binding decisions).
+    const titleEl = document.querySelector('[data-misp-configure-title]');
+    if (titleEl && meta.title) titleEl.textContent = `Add ${meta.title}`;
+  }
+
+  /**
+   * Mint a unique draft-only instance ID. Format distinguishes it
+   * from server-minted `w_<N>` IDs so any code path that branches
+   * on the ID shape (LayoutFixup write-time mint, the placement
+   * task's "is this a draft?" check) can recognise drafts cleanly.
+   * The placement task replaces the draft ID with a final
+   * `w_<N>`-shaped ID before persisting.
+   */
+  _mintDraftInstanceId() {
+    return `w_draft_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e6).toString(36)}`;
   }
 
   // ---- events ----

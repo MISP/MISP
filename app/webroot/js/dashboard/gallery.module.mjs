@@ -67,6 +67,12 @@ const CATEGORY_ORDER = ['status', 'events', 'tags', 'orgs', 'system', 'custom', 
 
 let onPickCallback = null;
 let totalCardCount = 0;
+// Cache the full widget metadata records (incl. `schema` /
+// `placeholder` / `title` / `description`) keyed by class name so
+// the card-click handler can forward the complete record to onPick
+// without re-fetching. Cleared on close along with the rest of the
+// gallery state (see the MutationObserver in init()).
+const widgetMetaByName = new Map();
 
 /**
  * Open the gallery inside the configure side panel. Fetches
@@ -164,9 +170,15 @@ function renderGallery(panel, widgets) {
   const cardTmpl     = document.querySelector(`[${ATTR_GALLERY_CARD_TEMPLATE}]`);
   if (!categoryTmpl || !cardTmpl) return;
 
-  // Bucket by category.
+  // Bucket by category. Stash the full meta into the lookup cache
+  // so the card-click handler can return the full record (schema +
+  // placeholder + description + ...) to onPick without re-fetching.
+  widgetMetaByName.clear();
   const buckets = new Map();
   for (const w of widgets) {
+    if (w && typeof w.widget === 'string' && w.widget) {
+      widgetMetaByName.set(w.widget, w);
+    }
     const cat = (typeof w.category === 'string' && w.category) ? w.category : '';
     if (!buckets.has(cat)) buckets.set(cat, []);
     buckets.get(cat).push(w);
@@ -326,15 +338,25 @@ function init() {
     const card = e.target.closest(`[${ATTR_GALLERY_CARD}]`);
     if (!card || !panel.contains(card)) return;
     e.preventDefault();
-    if (onPickCallback) {
-      onPickCallback({
-        widget:   card.getAttribute('data-widget-name'),
-        category: card.getAttribute('data-widget-category'),
-        width:    parseInt(card.getAttribute('data-widget-default-w'), 10) || 1,
-        height:   parseInt(card.getAttribute('data-widget-default-h'), 10) || 1,
-        render:   card.getAttribute('data-widget-render'),
-      });
-    }
+    if (!onPickCallback) return;
+    const name = card.getAttribute('data-widget-name');
+    // Look up the full meta record (schema + placeholder + …) from
+    // the cache populated at render time. Fall back to a minimal
+    // record sourced from the card's data attributes if the cache
+    // miss (defensive — shouldn't happen because the cache is
+    // populated before any card is rendered).
+    const meta = widgetMetaByName.get(name) || {
+      widget: name,
+      title: card.querySelector(`[${ATTR_GALLERY_CARD_TITLE}]`)?.textContent || name,
+      description: card.querySelector(`[${ATTR_GALLERY_CARD_DESC}]`)?.textContent || '',
+      category: card.getAttribute('data-widget-category') || '',
+      width: parseInt(card.getAttribute('data-widget-default-w'), 10) || 1,
+      height: parseInt(card.getAttribute('data-widget-default-h'), 10) || 1,
+      render: card.getAttribute('data-widget-render') || '',
+      schema: {},
+      placeholder: '',
+    };
+    onPickCallback(meta);
   });
 
   // The panel's `hidden` attribute is the canonical close signal
@@ -348,6 +370,7 @@ function init() {
         panel.removeAttribute(ATTR_PANEL_MODE);
         onPickCallback = null;
         totalCardCount = 0;
+        widgetMetaByName.clear();
         const body = panel.querySelector(`[${ATTR_PANEL_BODY}]`);
         if (body) {
           // Release the cloned card / category nodes so subsequent
