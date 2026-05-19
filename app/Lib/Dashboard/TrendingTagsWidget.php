@@ -89,6 +89,27 @@ class TrendingTagsWidget
                 }
             }
 
+            // Honor $threshold in the over_time path too. Bar path
+            // already slices to top-N; without the same cap here a
+            // multi-line chart surfaces every tag that appears in the
+            // window, which makes the legend unusable and contradicts
+            // the param's help text ("Limits the number of displayed
+            // tags."). Rank tags by total count across the full window
+            // so the per-line series picks the most-frequent overall;
+            // a per-row top-N would give a different tag set per date
+            // and make the line chart meaningless.
+            $totals = array_fill_keys(array_keys($allTags), 0);
+            foreach ($tagOvertime as $date => $tagCount) {
+                foreach ($tagCount as $tagName => $count) {
+                    if (isset($totals[$tagName])) {
+                        $totals[$tagName] += $count;
+                    }
+                }
+            }
+            arsort($totals);
+            $topTagNames = array_slice(array_keys($totals), 0, $threshold);
+            $allTags = array_combine($topTagNames, $topTagNames);
+
             $data['data'] = [];
             foreach($tagOvertime as $date => $tagCount) {
                 $item = [];
@@ -106,6 +127,12 @@ class TrendingTagsWidget
                 return ($a['date'] < $b['date']) ? -1 : 1;
             });
             $data['data'] = array_values($data['data']);
+            // Surface the tag colours so MultiLineChart can use the
+            // widget's own colour metadata; bar path already does this
+            // on line 132. Without it the over_time renderer falls back
+            // to the default ECharts palette which loses the
+            // tag-colour-as-identity that users rely on (e.g. TLP).
+            $data['colours'] = array_intersect_key($tagColours, $allTags);
             return $data;
         } else {
             $tags = [];
