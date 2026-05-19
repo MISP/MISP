@@ -15,6 +15,10 @@ class EventEvolutionLineWidget
         'cumulative' => '(default: on), should the data counted cumulatively over time',
     ];
     public $schema = [
+        'filter' => [
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data (sector, type, nationality, name, uuid). Each entry may have "!" prefix to negate.',
+        ],
         'cumulative' => [
             'type' => 'bool',
             'default' => true,

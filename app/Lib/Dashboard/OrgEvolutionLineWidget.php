@@ -16,6 +16,12 @@ class OrgEvolutionLineWidget
         'local' => 'Should the list only show local organisations? (boolean or list of booleans, defaults to 1. To get both sets, use [0,1])',
         'cumulative' => '(default: on), should the data counted cumulatively over time',
     ];
+    public $schema = [
+        'filter' => [
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data (sector, type, nationality, name, uuid). Each entry may have "!" prefix to negate.',
+        ],
+    ];
     private $validFilterKeys = [
         'nationality',
         'sector',

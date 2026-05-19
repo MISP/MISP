@@ -1060,6 +1060,22 @@ Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
 
+### OrgContributionToplistWidget SQL crashes when `filter` matches zero orgs (surfaced 2026-05-19)
+
+Pre-existing handler bug. `handler()` calls `$this->getOrgList($options)` to resolve the org-meta filter into a list of org IDs, then unconditionally writes `Event.orgc_id IN $resolvedList` into the query conditions. When `getOrgList()` returns an empty array (filter criteria match zero orgs in the DB), the resulting `IN ()` SQL is malformed and crashes with a syntax error near `'NULL'`.
+
+Fix is a one-line guard mirroring the pattern in TrendingAttributesWidget:
+```php
+$orgList = $this->getOrgList($options);
+if (empty($orgList)) {
+    $conditions['Event.orgc_id IN'] = [-1]; // matches nothing cleanly
+} else {
+    $conditions['Event.orgc_id IN'] = $orgList;
+}
+```
+
+Surfaced when smoking the org_meta_filter canonical-type backfill on a test instance with sparse org records (no orgs matching "Financial sector"). Not a regression from the backfill — the widget was always broken under this input shape; the canonical wire just makes it easier to trigger. Worth folding into the next sweep of widget-handler fixes.
+
 ### TrendingAttributesWidget uses `national` instead of `nationality` (surfaced 2026-05-19)
 
 TrendingAttributesWidget's private `$validOrgFilters` array uses `'national'` for the nationality filter key, while every other widget in MISP uses `'nationality'`. The widget's `$params['org_filter']` doc string already says `Organisation.nationality` so the `national` typo is a latent bug — users typing `nationality` (matching the docs) hit no match against the widget's own filter loop.
