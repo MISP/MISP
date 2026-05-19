@@ -422,9 +422,17 @@ export function openConfigure(widgetEl, opts) {
   const previewBody = panel.querySelector(`[${ATTR_PREVIEW_BODY}]`);
   if (previewBody && previewProxy) {
     previewBody.replaceChildren(previewProxy);
-    // Kick off the initial render so the user sees the preview
-    // immediately on panel open rather than after the first edit.
-    if (onPreviewCallback) onPreviewCallback(previewProxy);
+    // Kick off the initial render via firePreview() rather than a
+    // direct onPreviewCallback(previewProxy). firePreview reads the
+    // form's as-built state — which for the Add Widget flow includes
+    // placeholder-seeded kv rows + canonical-builder defaults that
+    // aren't yet in the draft's data-widget-config — and writes that
+    // to the proxy before dispatching. Without this, an Add Widget
+    // draft renders against config={} and most widgets return empty
+    // or "No data" output (gray box). For Edit Widget, the form was
+    // built from openTarget's saved config so readBack returns
+    // roughly the same config — no-op for the live tile.
+    firePreview();
   }
 
   setHidden(backdrop, false);
