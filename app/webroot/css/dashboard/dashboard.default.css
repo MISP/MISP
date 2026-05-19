@@ -634,7 +634,7 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 .misp-configure-panel {
   position: fixed;
   top: 0; right: 0; bottom: 0;
-  width: min(420px, 100vw);
+  width: min(820px, 100vw);
   background: var(--misp-dash-surface-raised);
   border-left: 1px solid var(--misp-dash-border);
   box-shadow: var(--misp-dash-shadow-lg);
@@ -661,10 +661,85 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   font-weight: var(--misp-dash-fw-bold);
 }
 
+/* Two-column layout container — wraps the form body and the
+ * live-preview pane so they sit side by side in form mode. Gallery
+ * mode keeps the body full-width via the rules at the bottom of this
+ * stylesheet. */
+.misp-configure-content {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .misp-configure-body {
+  flex: 0 0 360px;
+  min-width: 0;
+  overflow: auto;
+  padding: var(--misp-dash-space-4);
+  border-right: 1px solid var(--misp-dash-border);
+}
+
+/* Live-preview pane (PRD §5.4 / DD-06). The body container inside
+ * carries [data-misp-widget-content]; the ConfigureModule mounts a
+ * wrapper-shaped proxy whose render target is that container. */
+.misp-configure-preview {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--misp-dash-surface-sunken);
+}
+.misp-configure-preview-header {
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-4);
+  border-bottom: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-raised);
+}
+.misp-configure-preview-title {
+  margin: 0;
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.misp-configure-preview-body {
   flex: 1;
   overflow: auto;
   padding: var(--misp-dash-space-4);
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+/* The proxy <div data-misp-widget> inside the preview body fills
+ * available space so charts + tables can size themselves correctly.
+ * No card chrome — the preview is the bare body, not a duplicate of
+ * the live tile's wrapper. */
+.misp-configure-preview-body > [data-misp-widget] {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.misp-configure-preview-body [data-misp-widget-content] {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Responsive: on narrow viewports collapse the panel to full-width
+ * and stack the form / preview vertically so the form remains usable. */
+@media (max-width: 720px) {
+  .misp-configure-panel { width: 100vw; }
+  .misp-configure-content { flex-direction: column; }
+  .misp-configure-body {
+    flex: 0 0 auto;
+    max-height: 50%;
+    border-right: none;
+    border-bottom: 1px solid var(--misp-dash-border);
+  }
 }
 
 .misp-configure-footer {
@@ -1175,4 +1250,14 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
  * backdrop close chain still apply. */
 .misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-footer {
   display: none;
+}
+/* Gallery mode also hides the live-preview pane (browse-only mode
+ * has no draft to preview) AND restores the body to full-width so
+ * the 38-card gallery isn't squeezed into a 360px column. */
+.misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-preview {
+  display: none;
+}
+.misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-body {
+  flex: 1 1 auto;
+  border-right: none;
 }

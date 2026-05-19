@@ -197,7 +197,23 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
                 title="<?= __('Close') ?>"
                 aria-label="<?= __('Close') ?>">✕</button>
     </header>
-    <div class="misp-configure-body" data-misp-configure-body></div>
+    <div class="misp-configure-content">
+        <div class="misp-configure-body" data-misp-configure-body></div>
+        <aside class="misp-configure-preview"
+               data-misp-configure-preview
+               aria-label="<?= __('Live preview') ?>">
+            <header class="misp-configure-preview-header">
+                <h3 class="misp-configure-preview-title"><?= __('Live preview') ?></h3>
+            </header>
+            <div class="misp-configure-preview-body"
+                 data-misp-configure-preview-body>
+                <!-- ConfigureModule mounts a wrapper-shaped proxy here on
+                     openConfigure. The proxy carries the same data-widget-*
+                     attributes as the openTarget and is the render target
+                     for every preview tick. -->
+            </div>
+        </aside>
+    </div>
     <footer class="misp-configure-footer">
         <button type="button"
                 class="misp-dashboard-btn"

@@ -38,9 +38,13 @@ const SCALAR_TYPES = new Set(['string', 'int', 'bool', 'enum']);
 const ATTR_PANEL              = 'data-misp-configure-root';
 const ATTR_BACKDROP           = 'data-misp-configure-backdrop';
 const ATTR_BODY               = 'data-misp-configure-body';
+const ATTR_PREVIEW_BODY       = 'data-misp-configure-preview-body';
 const ATTR_TITLE              = 'data-misp-configure-title';
 const ATTR_ACTION             = 'data-misp-configure-action';
 const ATTR_KV_ACTION          = 'data-misp-kv-action';
+const ATTR_WIDGET             = 'data-misp-widget';
+const ATTR_WIDGET_CONTENT     = 'data-misp-widget-content';
+const ATTR_WIDGET_INSTANCE    = 'data-widget-instance-id';
 const ATTR_WIDGET_CONFIG      = 'data-widget-config';
 const ATTR_WIDGET_SCHEMA      = 'data-widget-schema';
 const ATTR_WIDGET_PLACEHOLDER = 'data-widget-placeholder';
@@ -49,6 +53,7 @@ const ATTR_SCHEMA_KEY         = 'data-schema-key';
 
 // Pending state for the currently-open panel.
 let openTarget = null;          // the widget element being configured
+let previewProxy = null;        // detached wrapper-shaped element in the preview pane
 let onSaveCallback = null;      // invoked after a successful save
 let onPreviewCallback = null;   // invoked on each debounced form-input change
 let originalConfigJson = null;  // snapshot of data-widget-config at open
@@ -405,12 +410,58 @@ export function openConfigure(widgetEl, opts) {
   const body = panel.querySelector(`[${ATTR_BODY}]`);
   body.replaceChildren(buildForm(config, schema, placeholder));
 
+  // Mount the live-preview proxy into the preview pane. The proxy is
+  // a wrapper-shaped <div data-misp-widget> carrying the same
+  // attributes a real wrapper.ctp tile would carry — enough metadata
+  // for the board's _renderWidget() to POST against
+  // /dashboards/renderWidget and write the response body into the
+  // proxy's [data-misp-widget-content] container. Decoupled from
+  // openTarget (the live tile) on purpose: edits are previewed in
+  // the pane and never touch the live tile until commit().
+  previewProxy = buildPreviewProxy(widgetEl);
+  const previewBody = panel.querySelector(`[${ATTR_PREVIEW_BODY}]`);
+  if (previewBody && previewProxy) {
+    previewBody.replaceChildren(previewProxy);
+    // Kick off the initial render so the user sees the preview
+    // immediately on panel open rather than after the first edit.
+    if (onPreviewCallback) onPreviewCallback(previewProxy);
+  }
+
   setHidden(backdrop, false);
   setHidden(panel, false);
   // Focus the first focusable element so keyboard users can act
   // immediately. ESC handler attached at module init.
-  const first = panel.querySelector('select, input, button');
+  const first = body.querySelector('select, input, button');
   if (first) first.focus();
+}
+
+/**
+ * Build a detached wrapper-shaped DOM node that mirrors the live
+ * widget's identifying attributes — enough that the board's
+ * `_renderWidget()` can POST a renderWidget request against
+ * /dashboards/renderWidget/<id> and write the response into the
+ * proxy's [data-misp-widget-content] container. No titlebar / ⚙ /
+ * ↻ / ✕ chrome: the preview is the bare body, not a duplicate of
+ * the live tile.
+ */
+function buildPreviewProxy(widgetEl) {
+  const proxy = document.createElement('div');
+  proxy.setAttribute(ATTR_WIDGET, '');
+  proxy.setAttribute(ATTR_WIDGET_NAME,
+    widgetEl.getAttribute(ATTR_WIDGET_NAME) || '');
+  proxy.setAttribute(ATTR_WIDGET_INSTANCE,
+    widgetEl.getAttribute(ATTR_WIDGET_INSTANCE) || '');
+  proxy.setAttribute(ATTR_WIDGET_CONFIG,
+    widgetEl.getAttribute(ATTR_WIDGET_CONFIG) || '{}');
+  const content = document.createElement('div');
+  content.setAttribute(ATTR_WIDGET_CONTENT, '');
+  content.className = 'misp-configure-preview-content';
+  const loading = document.createElement('div');
+  loading.className = 'misp-widget-loading';
+  loading.textContent = 'Loading…';
+  content.appendChild(loading);
+  proxy.appendChild(content);
+  return proxy;
 }
 
 export function closeConfigure() {
@@ -423,13 +474,22 @@ export function closeConfigure() {
   }
   // Cancel path: if the user made staged edits via live preview but
   // didn't save (cancel button, ✕, Escape, backdrop click), restore
-  // the original config to data-widget-config and re-render the
-  // widget so the visible state reverts to pre-open. commit() sets
-  // savedThisSession=true so this branch is skipped on Save.
+  // the original config to data-widget-config so the next openConfigure
+  // sees the original saved state. The live tile was never touched
+  // during preview (the proxy was the canonical render surface), so
+  // no re-render is needed here — the live tile is already in its
+  // original-config state. commit() sets savedThisSession=true so
+  // this branch is skipped on Save.
   if (dirty && !savedThisSession && openTarget) {
     openTarget.setAttribute(ATTR_WIDGET_CONFIG, originalConfigJson);
-    if (onPreviewCallback) onPreviewCallback(openTarget);
   }
+  // Release the preview proxy so its chart instances / event listeners
+  // GC. The board's _renderWidget calls disposeChartsIn on the
+  // proxy's content container during preview ticks, so the only
+  // straggler is the proxy DOM node itself.
+  const previewBody = panel.querySelector(`[${ATTR_PREVIEW_BODY}]`);
+  if (previewBody) previewBody.replaceChildren();
+  previewProxy = null;
   setHidden(backdrop, true);
   setHidden(panel, true);
   openTarget = null;
@@ -462,11 +522,15 @@ function commit() {
 }
 
 /**
- * Live-preview tick. Reads current form state, writes it into the
- * widget element's data-widget-config (so a subsequent render picks
- * it up), and invokes the onPreview callback so the board can
- * re-render the widget body. Fired by the debounced input/change
- * listener on the panel body.
+ * Live-preview tick. Reads current form state, writes the new config
+ * to both the openTarget (so commit() / a future open sees the
+ * in-flight config) and the previewProxy (so the render hits the
+ * pane), then dispatches the onPreview callback against the proxy.
+ *
+ * The proxy is the canonical render surface; the live tile is never
+ * touched during a preview tick. This gives the configure panel a
+ * sandbox feel — edits are visible in the pane, the dashboard
+ * behind stays at its saved state until commit().
  */
 function firePreview() {
   previewTimer = null;
@@ -474,8 +538,17 @@ function firePreview() {
   const panel = document.querySelector(`[${ATTR_PANEL}]`);
   if (!panel) return;
   const newConfig = readBack(panel);
-  openTarget.setAttribute(ATTR_WIDGET_CONFIG, JSON.stringify(newConfig));
-  if (onPreviewCallback) onPreviewCallback(openTarget);
+  const newConfigJson = JSON.stringify(newConfig);
+  openTarget.setAttribute(ATTR_WIDGET_CONFIG, newConfigJson);
+  if (previewProxy) {
+    previewProxy.setAttribute(ATTR_WIDGET_CONFIG, newConfigJson);
+    if (onPreviewCallback) onPreviewCallback(previewProxy);
+  } else if (onPreviewCallback) {
+    // Defensive: panel markup missing the preview pane (older
+    // index.ctp). Fall back to the legacy live-tile re-render so
+    // preview still works in a degraded mode.
+    onPreviewCallback(openTarget);
+  }
 }
 
 function schedulePreview() {

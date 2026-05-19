@@ -644,12 +644,15 @@ class Board {
           meta,
         });
       },
-      onPreview: (_previewDraft) => {
-        // Live preview of a not-yet-placed widget is the third
-        // Add Widget sub-task (preview pane on the right). No
-        // rendered tile exists yet, so the in-board preview path
-        // can't render anything — explicit no-op until the
-        // preview pane lands.
+      onPreview: (previewEl) => {
+        // The configure module dispatches the preview tick against
+        // the preview proxy (a detached wrapper-shaped node mounted
+        // in the panel's preview pane), so `previewEl` is the
+        // proxy, not the draft. _renderWidget reads the proxy's
+        // attributes and writes the body HTML into the proxy's
+        // [data-misp-widget-content] — exactly the same path the
+        // Edit Widget flow uses.
+        this._renderWidget(previewEl);
       },
     });
 
