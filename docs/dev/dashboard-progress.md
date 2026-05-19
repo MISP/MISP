@@ -1047,6 +1047,26 @@ Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
 
+### Grid drop-on-occupied bounces back instead of auto-placing (surfaced 2026-05-19) — **Phase 5 UX polish**
+
+**Surfaced during the Overmind-theme browser smoke** (2026-05-19, Round 3 of the per-widget-POST close-out). User attempted to drag MispStatusWidget onto TrendingTagsWidget's slot to test the edit-mode staging path; the drop preview turned red and the tile snapped back to its origin instead of cascading the colliding tile out of the way. Reported as "swapping widgets doesn't seem to work" — the v1 Gridstack experience had auto-displace, so users coming from v1 expect cascading on collision.
+
+**Root cause.** DD-01 chose Pragmatic Drag and Drop + CSS Grid (custom math) over Gridstack v11+ on the grounds that simple grid math was tractable and bundle-size mattered. PDD does not ship cascading-displacement; the `GridModule` (`app/webroot/js/dashboard/grid/grid.module.mjs`) enforces strict no-overlap at drop time, hence the red-preview-on-collision behavior.
+
+**Trade-off when implementing.**
+- *For:* modern UX (Trello / Notion / Gridstack-default all auto-displace); the bounce-back looks broken even though it's intentional; smoke-driven user feedback confirms the friction is real.
+- *Against:* recreates exactly the Gridstack-style complexity DD-01 traded away; cascading drops can produce surprising layouts ("I dragged one tile and three others moved"); touches the Grid module which is otherwise frozen Phase 1 vendored work.
+
+**Minimal implementation outline** (push-down-on-drop, no animated drag preview):
+1. On drop, scan tiles whose rectangle overlaps the drop tile's target region.
+2. For each colliding tile, shift it down by `drop.h` rows (its top sits below the drop tile's bottom).
+3. Iterate: a shifted tile may now overlap another tile in the lower row; shift those too. Stable when no new collisions exist.
+4. Commit as one Grid `_commit` so `onCommit` fires once and `_stageOrSave` / `_scheduleSave` collapse the cascade into a single save.
+
+Estimate: half-day for push-down-only (no preview during drag — preview stays red until drop). A nicer in-drag predictive preview (tiles slide aside as the user drags over them) is 1–2 days.
+
+**Where it lands:** **Phase 5** — pairs naturally with drill-down + refresh scheduler polish, and benefits the Add Widget flow (when added widgets land on top of existing layout, auto-placement makes the UX of "I added it and it fell into the right empty slot" trivial). Alternative: a standalone follow-up before Phase 2's widget gallery if the gallery's Add Widget flow needs it. **Decided 2026-05-19**: park as Phase 5.
+
 ### Phase 3 canonical-type adapter + catalogue gaps (surfaced 2026-05-18) — **task lines added 2026-05-19**
 
 **Surfaced during the Phase 2 9-widget `$schema` backfill (commits `1a426b644` … `afadd0530`).**
