@@ -13,6 +13,9 @@
 //     [data-misp-board-root]                       — required.
 //       data-misp-board-mode="view"|"edit"
 //       data-misp-board-renderwidget-url="..."
+//       data-misp-board-save-url="..."             — whole-blob layout save
+//       data-misp-board-widget-save-url="..."      — per-widget config patch
+//                                                    (DD-05; layout untouched)
 //
 //     [data-misp-widget]                           — one widget tile.
 //       data-widget-name="..."                     — class name
@@ -56,9 +59,17 @@ class Board {
     this.root = rootEl;
     this.renderUrl = rootEl.getAttribute(ATTR_RENDER_URL);
     this.saveUrl  = rootEl.getAttribute('data-misp-board-save-url');
+    this.widgetSaveUrl = rootEl.getAttribute('data-misp-board-widget-save-url');
     this.mode = rootEl.getAttribute(ATTR_BOARD_MODE) || 'view';
     this.grid = null;
     this._saveTimer = null;
+    // Per-widget save batching (DD-05): configure-form Save and toolbar
+    // bulk-edit fire one notification per affected widget; this Map
+    // (instance_id → DOM el) collapses simultaneous notifications into
+    // a single bulk POST so the toolbar's N-declarer commit lands as
+    // one round-trip.
+    this._widgetSaveTimer = null;
+    this._pendingWidgetSaves = new Map();
     // Edit-mode staging state (DD-05 "Layout-only atomic save"):
     //   _editSnapshot.positions  serialized layout at edit-mode entry
     //   _editSnapshot.removedTiles  Map<id, el> for tiles removed during
@@ -90,22 +101,14 @@ class Board {
   /**
    * DD-05 layout-only atomic save. Drag / resize / remove (and Add
    * Widget when it lands) call this; configure-form Save and toolbar
-   * bulk-edits stay on the immediate `_scheduleSave()` path because
-   * per DD-05 they're independent of edit-mode layout saves.
+   * bulk-edits go through `_scheduleWidgetSave()` instead — they
+   * touch a single widget's config and must not commit any staged
+   * layout edits during an open edit-mode transaction.
    *
    * In edit mode the change stays client-side until the user clicks
    * the Save button (→ _commitEdit) or the Discard button (→
-   * _discardEdit). In view mode (e.g. a configure-form save that
-   * also mutated the widget's tile via the same callback) the change
-   * goes through the same 50ms-debounced save path as before.
-   *
-   * Known limitation (documented for the dedicated task): if the user
-   * triggers a configure-form Save *while* layout edits are staged in
-   * edit mode, the underlying whole-blob _saveLayout commits both the
-   * widget config change AND the staged layout. The DD-05 ideal is a
-   * per-widget POST that leaves the rest of the blob alone — landing
-   * in a separate Phase 2 task ("Configure-form Save: per-widget POST
-   * to /dashboards/updateSettings...").
+   * _discardEdit). In view mode the change goes through the same
+   * 50ms-debounced whole-blob save path as before.
    */
   _stageOrSave() {
     if (this.mode === 'edit') {
@@ -113,6 +116,81 @@ class Board {
       return;
     }
     this._scheduleSave();
+  }
+
+  /**
+   * DD-05 per-widget POST. Configure-form Save and toolbar bulk-edit
+   * each fire one notification per affected widget; we collapse
+   * simultaneous notifications into a single bulk POST via a 50ms
+   * debounce so the toolbar's N-declarer commit lands as one
+   * round-trip and so a rapid sequence of configure-form saves
+   * coalesces.
+   *
+   * Only the affected widgets' `config` is patched server-side; the
+   * rest of the saved blob (other widgets' positions and configs) is
+   * left untouched. This is what makes edit-mode staging safe: a
+   * configure-form Save during edit mode no longer commits the staged
+   * drag/resize/remove edits.
+   */
+  _scheduleWidgetSave(widgetEl) {
+    if (!this.widgetSaveUrl) {
+      // Older index.ctp without the per-widget URL — fall back to the
+      // whole-blob path so behaviour stays correct (the leak it
+      // re-introduces is documented as a known limitation in those
+      // legacy templates).
+      this._scheduleSave();
+      return;
+    }
+    const id = widgetEl.getAttribute(ATTR_WIDGET_INSTANCE);
+    if (!id) return;
+    this._pendingWidgetSaves.set(id, widgetEl);
+    if (this._widgetSaveTimer) clearTimeout(this._widgetSaveTimer);
+    this._widgetSaveTimer = setTimeout(() => this._flushWidgetSaves(), 50);
+  }
+
+  async _flushWidgetSaves() {
+    this._widgetSaveTimer = null;
+    if (!this._pendingWidgetSaves.size) return true;
+    const pending = [...this._pendingWidgetSaves.values()];
+    this._pendingWidgetSaves.clear();
+    const patches = [];
+    for (const el of pending) {
+      const instance_id = el.getAttribute(ATTR_WIDGET_INSTANCE);
+      if (!instance_id) continue;
+      let config = {};
+      try {
+        config = JSON.parse(el.getAttribute(ATTR_WIDGET_CONFIG) || '{}');
+      } catch (_) { /* keep empty */ }
+      patches.push({ instance_id, config });
+    }
+    if (!patches.length) return true;
+    try {
+      const body = new URLSearchParams({ patches: JSON.stringify(patches) });
+      const resp = await fetch(this.widgetSaveUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body,
+        credentials: 'same-origin',
+      });
+      if (resp.status === 404) {
+        // No saved blob yet (first-time user) or unknown instance_id
+        // (likely concurrent removal). Fall back to a whole-blob save
+        // so the user's work isn't lost; this is the unusual path,
+        // not the steady-state.
+        return await this._saveLayout();
+      }
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      this._dispatchEvent('saved', { count: patches.length, perWidget: true });
+      return true;
+    } catch (err) {
+      console.warn('[misp-dashboard] per-widget save failed', err);
+      this._dispatchEvent('save-failed', { error: String(err) });
+      return false;
+    }
   }
 
   async _saveLayout() {
@@ -205,7 +283,11 @@ class Board {
     initToolbar(this.root, {
       onWidgetChange: (widgetEl) => {
         this._renderWidget(widgetEl);
-        this._scheduleSave();
+        // Per-widget POST per DD-05 — the bulk-edit changes only the
+        // affected widgets' configs; layout stays untouched. Batched
+        // via _scheduleWidgetSave so an N-declarer commit collapses
+        // to a single round-trip.
+        this._scheduleWidgetSave(widgetEl);
       },
     });
   }
@@ -436,8 +518,11 @@ class Board {
           //   onSave    - the user clicked Save. Re-render with the
           //               new config, refresh the toolbar (the change
           //               may have moved this widget toward / away
-          //               from "(mixed)" with its peers), and POST
-          //               the whole layout to UserSetting:dashboard.
+          //               from "(mixed)" with its peers), and POST a
+          //               per-widget config patch to /dashboards/
+          //               updateWidgetSettings so any staged layout
+          //               edits (edit-mode drag/resize/remove) stay
+          //               staged — DD-05 atomicity.
           //   onPreview - live-preview tick (debounced 250ms per
           //               DD-06). data-widget-config already updated;
           //               re-render the body without persisting.
@@ -445,7 +530,7 @@ class Board {
             onSave: (savedEl) => {
               this._renderWidget(savedEl);
               refreshToolbar(this.root);
-              this._scheduleSave();
+              this._scheduleWidgetSave(savedEl);
             },
             onPreview: (previewEl) => {
               this._renderWidget(previewEl);

@@ -17,10 +17,11 @@ class DashboardsController extends AppController
         parent::beforeFilter();
         // POSTs carry widget data in their body — same CSRF posture
         // as the v1 dashboards endpoints.
-        foreach (array('renderWidget', 'updateSettings') as $a) {
+        $bodyPostActions = array('renderWidget', 'updateSettings', 'updateWidgetSettings');
+        foreach ($bodyPostActions as $a) {
             $this->Security->unlockedActions[] = $a;
         }
-        if (in_array($this->request->action, array('renderWidget', 'updateSettings'), true)) {
+        if (in_array($this->request->action, $bodyPostActions, true)) {
             $this->Security->doNotGenerateToken = true;
         }
     }
@@ -150,6 +151,117 @@ class DashboardsController extends AppController
         return $this->RestResponse->saveFailResponse(
             'Dashboard',
             'updateSettings',
+            false,
+            $this->User->UserSetting->validationErrors,
+            $this->response->type()
+        );
+    }
+
+    /**
+     * Per-widget config patch (DD-05): persist a config change for one
+     * or more widgets without touching the rest of the saved layout.
+     * The configure-form Save and the toolbar's bulk-edit both POST
+     * here so neither path commits staged layout edits sitting in the
+     * client during edit mode.
+     *
+     * Wire shape:
+     *   POST data[patches]=<JSON array of {instance_id, config}>
+     *
+     * Single-widget callers (configure form) send a one-entry array;
+     * bulk callers (toolbar) send N entries — the server applies all
+     * patches in a single setSetting write so partial failures don't
+     * leave the blob in a mixed state.
+     *
+     * 404 on no saved blob (the client falls back to a full
+     * `updateSettings` so first-save users aren't stuck) or on an
+     * unknown instance_id (likely concurrent removal in another tab).
+     */
+    public function updateWidgetSettings()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('POST only.'));
+        }
+        $rawPatches = isset($this->request->data['patches'])
+            ? $this->request->data['patches']
+            : null;
+        if ($rawPatches === null) {
+            throw new BadRequestException(__('No patches provided.'));
+        }
+        $patches = is_string($rawPatches)
+            ? json_decode($rawPatches, true)
+            : $rawPatches;
+        if (!is_array($patches) || empty($patches)) {
+            throw new BadRequestException(__('Malformed or empty patches.'));
+        }
+
+        // Normalise + validate each patch entry up front so a malformed
+        // entry can't half-apply.
+        $normalised = array();
+        foreach ($patches as $patch) {
+            if (!is_array($patch)) {
+                throw new BadRequestException(__('Patch entry must be an object.'));
+            }
+            if (empty($patch['instance_id']) || !is_string($patch['instance_id'])) {
+                throw new BadRequestException(__('Patch entry missing instance_id.'));
+            }
+            if (!array_key_exists('config', $patch)) {
+                throw new BadRequestException(__('Patch entry missing config.'));
+            }
+            $cfg = $patch['config'];
+            if (is_string($cfg)) {
+                $cfg = json_decode($cfg, true);
+            }
+            if (!is_array($cfg)) {
+                $cfg = array();
+            }
+            $normalised[] = array(
+                'instance_id' => $patch['instance_id'],
+                'config'      => $cfg,
+            );
+        }
+
+        $user = $this->Auth->user();
+        $saved = $this->User->UserSetting->getValueForUser($user['id'], 'dashboard');
+        if (!is_array($saved)) {
+            throw new NotFoundException(__('No saved dashboard layout.'));
+        }
+        App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
+        $widgets = LayoutFixup::applyReadFixups($saved);
+
+        // Index widgets by instance_id once; patches touching the same
+        // instance more than once apply in order (last write wins).
+        $index = array();
+        foreach ($widgets as $i => $w) {
+            if (!empty($w['instance_id'])) {
+                $index[$w['instance_id']] = $i;
+            }
+        }
+        foreach ($normalised as $p) {
+            if (!isset($index[$p['instance_id']])) {
+                throw new NotFoundException(__('Widget instance not found in saved layout.'));
+            }
+            $widgets[$index[$p['instance_id']]]['config'] = $p['config'];
+        }
+
+        $data = array(
+            'UserSetting' => array(
+                'setting' => 'dashboard',
+                'value'   => json_encode($widgets, JSON_UNESCAPED_SLASHES),
+            ),
+        );
+        $result = $this->User->UserSetting->setSetting($user, $data);
+        if ($result) {
+            return $this->RestResponse->saveSuccessResponse(
+                'Dashboard',
+                'updateWidgetSettings',
+                false,
+                false,
+                __('Widget settings updated.')
+            );
+        }
+        return $this->RestResponse->saveFailResponse(
+            'Dashboard',
+            'updateWidgetSettings',
             false,
             $this->User->UserSetting->validationErrors,
             $this->response->type()
