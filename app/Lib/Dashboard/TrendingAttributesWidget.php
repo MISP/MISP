@@ -21,6 +21,10 @@ class TrendingAttributesWidget
             'default' => 'P7D',
             'help' => 'Time window over which to aggregate (last N days/hours, or all time).',
         ),
+        'org_filter' => array(
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data (sector, type, nationality, uuid, local). Each entry may have "!" prefix to negate.',
+        ),
         'threshold' => array(
             'type' => 'int',
             'default' => 10,
