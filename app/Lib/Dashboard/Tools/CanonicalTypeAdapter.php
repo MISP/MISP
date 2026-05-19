@@ -108,12 +108,28 @@ class CanonicalTypeAdapter
                         }
                     }
                     break;
-                // Phase 3 adds: tag_filter, org_filter,
-                // sharing_group_filter, galaxy_cluster_filter,
-                // distribution_filter, threat_level_filter,
-                // analysis_filter, attribute_type_filter,
-                // event_id_filter. Each adds one case + one
-                // translate<Type>() method below.
+                case 'tag_filter':
+                    // 1-to-N expansion: canonical tag_filter writes
+                    // the legacy `include` / `exclude` top-level keys
+                    // every existing tag-filtering widget reads
+                    // (TrendingTagsWidget today; future canonical
+                    // adopters can read `config['tag_filter']`
+                    // directly). Empty canonical lists do NOT
+                    // overwrite legacy entries — same pattern as
+                    // date_range — so a user's bottom-tier-set legacy
+                    // include/exclude survives a canonical-unset state.
+                    $derived = self::translateTagFilter($config[$key]);
+                    if ($derived !== null) {
+                        foreach ($derived as $legacyKey => $legacyValue) {
+                            $config[$legacyKey] = $legacyValue;
+                        }
+                    }
+                    break;
+                // Phase 3 adds: org_filter, sharing_group_filter,
+                // galaxy_cluster_filter, distribution_filter,
+                // threat_level_filter, analysis_filter,
+                // attribute_type_filter, event_id_filter. Each adds
+                // one case + one translate<Type>() method below.
             }
         }
         return $config;
@@ -207,6 +223,58 @@ class CanonicalTypeAdapter
         }
         // No usable keys → return null so the caller leaves config
         // untouched (no spurious empty keys land on the handler).
+        return $result === [] ? null : $result;
+    }
+
+    /**
+     * Translate a single `tag_filter` value into the legacy
+     * `include` / `exclude` key pair every existing tag-filtering
+     * widget reads (TrendingTagsWidget today).
+     *
+     * Canonical shape (PRD §5.5):
+     *   { include: string[], exclude: string[],
+     *     taxonomies?: string[],
+     *     match_event_tags?: bool, match_attribute_tags?: bool }
+     *
+     * Translation responsibilities (this Phase 3 landing):
+     *   - `include` (non-empty array) → legacy `include`
+     *   - `exclude` (non-empty array) → legacy `exclude`
+     *   - empty / missing lists → not written (caller's existing
+     *     legacy value, if any, survives)
+     *
+     * Forward-compat fields that this translator deliberately drops
+     * on the floor for now:
+     *   - `taxonomies` — UI hint for the picker only; no legacy
+     *     widget today scopes its tag filter by taxonomy.
+     *   - `match_event_tags` / `match_attribute_tags` — TrendingTags
+     *     today filters tags after the events are fetched; no
+     *     event-vs-attribute scoping at the canonical layer. When
+     *     a future widget adopts the canonical shape directly, it
+     *     can read `config['tag_filter']` (the canonical wire stays
+     *     in config alongside the derived legacy keys, identical to
+     *     date_range's behavior).
+     *
+     * String coercion is defensive — the chip-input picker emits
+     * strings, but JSON round-trips can sneak non-string entries
+     * (numeric tag names → numbers after JSON.parse). Legacy
+     * handlers do `strpos($tag, $include)` which fatals on non-
+     * strings; coerce here.
+     *
+     * @param mixed $value
+     * @return array<string,string[]>|null
+     */
+    public static function translateTagFilter($value)
+    {
+        if (!is_array($value)) {
+            return null;
+        }
+        $result = [];
+        if (isset($value['include']) && is_array($value['include']) && $value['include'] !== []) {
+            $result['include'] = array_values(array_map('strval', $value['include']));
+        }
+        if (isset($value['exclude']) && is_array($value['exclude']) && $value['exclude'] !== []) {
+            $result['exclude'] = array_values(array_map('strval', $value['exclude']));
+        }
         return $result === [] ? null : $result;
     }
 }

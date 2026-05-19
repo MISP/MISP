@@ -418,4 +418,272 @@ class CanonicalTypeAdapterTest extends TestCase
         $this->assertSame('2026-02-01', $out['start_date']);
         $this->assertSame('2026-02-28', $out['end_date']);
     }
+
+    // -------- translateTagFilter() happy paths --------
+
+    public function testTagFilterIncludeOnlyEmitsLegacyInclude(): void
+    {
+        $this->assertSame(
+            ['include' => ['tlp:', 'misp-galaxy:']],
+            CanonicalTypeAdapter::translateTagFilter([
+                'include' => ['tlp:', 'misp-galaxy:'],
+            ])
+        );
+    }
+
+    public function testTagFilterExcludeOnlyEmitsLegacyExclude(): void
+    {
+        $this->assertSame(
+            ['exclude' => ['admiralty-scale:', 'sofacy']],
+            CanonicalTypeAdapter::translateTagFilter([
+                'exclude' => ['admiralty-scale:', 'sofacy'],
+            ])
+        );
+    }
+
+    public function testTagFilterBothIncludeAndExclude(): void
+    {
+        $this->assertSame(
+            ['include' => ['tlp:white'], 'exclude' => ['tlp:red']],
+            CanonicalTypeAdapter::translateTagFilter([
+                'include' => ['tlp:white'],
+                'exclude' => ['tlp:red'],
+            ])
+        );
+    }
+
+    public function testTagFilterCoercesNumericEntriesToStrings(): void
+    {
+        // JSON round-trips can sneak numeric entries (a tag literally
+        // named "123" becomes int 123 after JSON.parse). The adapter
+        // coerces to string so legacy `strpos($tag, $include)` doesn't
+        // fatal on a non-string argument.
+        $result = CanonicalTypeAdapter::translateTagFilter([
+            'include' => [123, 'tlp:', true, false],
+        ]);
+        $this->assertSame(['include' => ['123', 'tlp:', '1', '']], $result);
+    }
+
+    public function testTagFilterIgnoresTaxonomiesField(): void
+    {
+        // taxonomies is a UI-picker hint — no legacy widget consumes
+        // it; the translator drops it on the floor. Forward-compat:
+        // canonical adopters can read it directly from
+        // config['tag_filter']['taxonomies'].
+        $this->assertSame(
+            ['include' => ['tlp:white']],
+            CanonicalTypeAdapter::translateTagFilter([
+                'include'    => ['tlp:white'],
+                'taxonomies' => ['tlp', 'admiralty-scale'],
+            ])
+        );
+    }
+
+    public function testTagFilterIgnoresMatchEventTagsAndMatchAttributeTags(): void
+    {
+        // Same forward-compat treatment as taxonomies — neither is
+        // consumed by today's tag-filtering widgets.
+        $this->assertSame(
+            ['exclude' => ['stale']],
+            CanonicalTypeAdapter::translateTagFilter([
+                'exclude'              => ['stale'],
+                'match_event_tags'     => true,
+                'match_attribute_tags' => false,
+            ])
+        );
+    }
+
+    // -------- translateTagFilter() empty / null paths --------
+
+    public function testTagFilterEmptyArrayReturnsNull(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateTagFilter([]));
+    }
+
+    public function testTagFilterEmptyIncludeAndExcludeReturnsNull(): void
+    {
+        // Both lists explicitly empty → no legacy keys derived → null.
+        // Caller leaves config untouched (legacy include/exclude
+        // survives if it was set via the bottom-tier or a previous
+        // canonical write).
+        $this->assertNull(CanonicalTypeAdapter::translateTagFilter([
+            'include' => [],
+            'exclude' => [],
+        ]));
+    }
+
+    public function testTagFilterIncludeOnlyEmptyDropsThatHalf(): void
+    {
+        // Only exclude has content → result contains exclude only.
+        // include stays out of result so legacy include survives.
+        $this->assertSame(
+            ['exclude' => ['stale']],
+            CanonicalTypeAdapter::translateTagFilter([
+                'include' => [],
+                'exclude' => ['stale'],
+            ])
+        );
+    }
+
+    public function testTagFilterNonArrayInputReturnsNull(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateTagFilter(null));
+        $this->assertNull(CanonicalTypeAdapter::translateTagFilter('tlp:white'));
+        $this->assertNull(CanonicalTypeAdapter::translateTagFilter(42));
+        $this->assertNull(CanonicalTypeAdapter::translateTagFilter(true));
+    }
+
+    public function testTagFilterNonArrayIncludeFieldIsSkipped(): void
+    {
+        // include must be an array — a scalar `include: "tlp:white"` is
+        // treated as not-set, exclude carries the result.
+        $this->assertSame(
+            ['exclude' => ['stale']],
+            CanonicalTypeAdapter::translateTagFilter([
+                'include' => 'tlp:white',
+                'exclude' => ['stale'],
+            ])
+        );
+    }
+
+    // -------- translate() integration with tag_filter --------
+
+    public function testTranslateExpandsTagFilterIntoLegacyKeys(): void
+    {
+        // Widget declares tag_filter on the canonical key 'tag_filter';
+        // adapter sprays the legacy include / exclude keys alongside.
+        // The canonical wire stays in config for forward-compat
+        // (same pattern as date_range).
+        $widget = new stdClass();
+        $widget->schema = [
+            'tag_filter' => ['type' => 'tag_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'tag_filter' => [
+                'include' => ['tlp:white', 'tlp:green'],
+                'exclude' => ['admiralty-scale:'],
+            ],
+        ]);
+        $this->assertSame(['tlp:white', 'tlp:green'], $out['include']);
+        $this->assertSame(['admiralty-scale:'], $out['exclude']);
+        // Canonical wire survives in config — handler() ignores
+        // unknown keys; future canonical adopters can read it.
+        $this->assertSame(
+            ['include' => ['tlp:white', 'tlp:green'], 'exclude' => ['admiralty-scale:']],
+            $out['tag_filter']
+        );
+    }
+
+    public function testTranslateTagFilterCanonicalWinsOverLegacy(): void
+    {
+        // Both canonical tag_filter AND legacy include/exclude set —
+        // canonical wins (DD-05 "toolbar pulls write immediately to
+        // per-widget configs"). The user's stale legacy values are
+        // overwritten by the canonical-derived ones.
+        $widget = new stdClass();
+        $widget->schema = [
+            'tag_filter' => ['type' => 'tag_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'include'    => ['stale_include'],
+            'exclude'    => ['stale_exclude'],
+            'tag_filter' => [
+                'include' => ['fresh_include'],
+                'exclude' => ['fresh_exclude'],
+            ],
+        ]);
+        $this->assertSame(['fresh_include'], $out['include']);
+        $this->assertSame(['fresh_exclude'], $out['exclude']);
+    }
+
+    public function testTranslateTagFilterLeavesLegacyAloneWhenNoCanonical(): void
+    {
+        // Pure legacy config (no canonical tag_filter key present) —
+        // adapter leaves include / exclude untouched. The schema
+        // declares tag_filter but the user hasn't migrated yet.
+        $widget = new stdClass();
+        $widget->schema = [
+            'tag_filter' => ['type' => 'tag_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'include' => ['legacy_include'],
+            'exclude' => ['legacy_exclude'],
+        ]);
+        $this->assertSame(['legacy_include'], $out['include']);
+        $this->assertSame(['legacy_exclude'], $out['exclude']);
+        $this->assertArrayNotHasKey('tag_filter', $out);
+    }
+
+    public function testTranslateTagFilterEmptyLeavesLegacyAlone(): void
+    {
+        // Canonical tag_filter explicitly empty — translator returns
+        // null, caller skips, legacy survives. Symmetric with the
+        // date_range empty behavior.
+        $widget = new stdClass();
+        $widget->schema = [
+            'tag_filter' => ['type' => 'tag_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'include'    => ['legacy_include'],
+            'tag_filter' => ['include' => [], 'exclude' => []],
+        ]);
+        $this->assertSame(['legacy_include'], $out['include']);
+        $this->assertArrayNotHasKey('exclude', $out);
+    }
+
+    public function testTranslateTagFilterPartialOverwriteSemantics(): void
+    {
+        // Canonical sets only include — legacy include is overwritten,
+        // legacy exclude survives because canonical exclude is empty.
+        $widget = new stdClass();
+        $widget->schema = [
+            'tag_filter' => ['type' => 'tag_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'include'    => ['stale_include'],
+            'exclude'    => ['legacy_exclude'],
+            'tag_filter' => ['include' => ['fresh_include']],
+        ]);
+        $this->assertSame(['fresh_include'], $out['include']);
+        $this->assertSame(['legacy_exclude'], $out['exclude']);
+    }
+
+    public function testTranslateTagFilterIdempotent(): void
+    {
+        // Running translate() twice on the same widget+config yields
+        // the same shape — the canonical key persists, and the second
+        // pass overwrites legacy keys with the same values.
+        $widget = new stdClass();
+        $widget->schema = [
+            'tag_filter' => ['type' => 'tag_filter'],
+        ];
+        $config = [
+            'tag_filter' => [
+                'include' => ['tlp:white'],
+                'exclude' => ['admiralty-scale:'],
+            ],
+        ];
+        $once  = CanonicalTypeAdapter::translate($widget, $config);
+        $twice = CanonicalTypeAdapter::translate($widget, $once);
+        $this->assertSame($once, $twice);
+    }
+
+    public function testTranslateTagFilterUnderNonConventionalSchemaKey(): void
+    {
+        // Widget declares tag_filter under a non-conventional key
+        // (e.g. 'event_tag_prefilter'). The adapter routes by type,
+        // so the canonical → legacy expansion still emits the
+        // standard `include` / `exclude` legacy keys. This is the
+        // same behavior date_range has — the legacy key names are
+        // the widget-handler-side convention, not derived from the
+        // schema key.
+        $widget = new stdClass();
+        $widget->schema = [
+            'event_tag_prefilter' => ['type' => 'tag_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'event_tag_prefilter' => ['include' => ['tlp:white']],
+        ]);
+        $this->assertSame(['tlp:white'], $out['include']);
+    }
 }
