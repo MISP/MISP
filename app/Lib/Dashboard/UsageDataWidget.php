@@ -13,7 +13,12 @@ class UsageDataWidget
         'start_date' => 'The ISO 8601 date format for which to show changes',
         'end_date' => 'The ISO 8601 date format for which to show changes. (Leave empty for today)',
     ];
-    public $schema = [];
+    public $schema = [
+        'date_range' => [
+            'type' => 'date_range',
+            'help' => 'Absolute date range. Open-ended (to = null) is allowed; "from" alone bounds the start, "to" alone is rejected by handler() which only acts when start_date is present.',
+        ],
+    ];
     private $User = null;
     private $Event = null;
     private $Correlation = null;
