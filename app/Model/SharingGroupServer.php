@@ -61,7 +61,6 @@ class SharingGroupServer extends AppModel
                     $isChange = true;
                     $SgS['id'] = $found['id'];
                 }
-                $this->save($SgS);
                 if ($this->save($SgS)) {
                     $log->create();
                     if ($isChange) {
