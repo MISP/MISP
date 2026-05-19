@@ -300,6 +300,12 @@ class Board {
     const prevMode = this.mode;
     this.mode = mode;
     this.root.setAttribute(ATTR_BOARD_MODE, mode);
+    // Mirror to <body> so the header (a sibling of the board root,
+    // not an ancestor) can target mode-aware CSS rules like the
+    // Save / Discard button visibility.
+    if (this.root.ownerDocument && this.root.ownerDocument.body) {
+      this.root.ownerDocument.body.setAttribute(ATTR_BOARD_MODE, mode);
+    }
     // Edit-mode staging snapshot (DD-05 atomic save):
     //   - view → edit  capture the current layout + reset dirty flag
     //                  so Discard / Save have a reference to compare
@@ -448,7 +454,18 @@ class Board {
       switch (action) {
         case 'toggle-mode':
           e.preventDefault();
-          this.setMode(this.mode === 'view' ? 'edit' : 'view');
+          // Edit-mode UI hides this toggle (CSS:
+          // .misp-dashboard-modecontrols-view); Save / Discard
+          // buttons are the explicit affordances per DD-05's
+          // edit-mode-is-a-transaction. Defensive branch: if a
+          // keyboard / devtools / a11y path lands here while dirty,
+          // route through Discard (which has its own confirm) so
+          // staged work isn't silently dropped.
+          if (this.mode === 'edit' && this._layoutDirty) {
+            this._discardEdit();
+          } else {
+            this.setMode(this.mode === 'view' ? 'edit' : 'view');
+          }
           break;
         case 'save':
           e.preventDefault();

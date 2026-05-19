@@ -179,6 +179,14 @@ body.misp-dashboard-page {
   gap: var(--misp-dash-space-2);
 }
 
+/* Edit-mode-aware button visibility. BoardModule mirrors the
+ * `data-misp-board-mode` attribute from the board root to <body>
+ * on every mode change so the header (a sibling of the board, not
+ * an ancestor) can react via CSS without JS visibility flips. */
+.misp-dashboard-modecontrols-edit { display: none; }
+body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-edit { display: inline-flex; }
+body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: none; }
+
 .misp-dashboard-btn {
   appearance: none;
   border: 1px solid var(--misp-dash-border);

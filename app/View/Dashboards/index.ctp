@@ -26,11 +26,31 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
          data-misp-board-toolbar
          aria-label="<?= __('Dashboard filters') ?>"></div>
     <div class="misp-dashboard-modecontrols">
+        <!-- Edit-mode toggle (shown in view mode). Toggling to edit
+             takes a snapshot of the current layout; the Save / Discard
+             buttons below are the only ways to leave edit mode without
+             a confirm prompt. -->
         <button type="button"
-                class="misp-dashboard-btn"
+                class="misp-dashboard-btn misp-dashboard-modecontrols-view"
                 data-misp-board-action="toggle-mode"
                 aria-pressed="false">
             <?= __('Edit layout') ?>
+        </button>
+        <!-- Save / Discard (shown in edit mode only — CSS controls
+             visibility via body[data-misp-board-mode]). Save commits
+             the staged layout via a whole-blob POST; Discard reverts
+             via the entry-time snapshot with a confirm-if-dirty
+             prompt. Per DD-05 edit-mode is an atomic transaction —
+             these are the explicit affordances. -->
+        <button type="button"
+                class="misp-dashboard-btn misp-dashboard-btn-primary misp-dashboard-modecontrols-edit"
+                data-misp-board-action="save">
+            <?= __('Save changes') ?>
+        </button>
+        <button type="button"
+                class="misp-dashboard-btn misp-dashboard-modecontrols-edit"
+                data-misp-board-action="discard">
+            <?= __('Discard') ?>
         </button>
 
         <!-- "⋯ More" dropdown (DD-08). Hosts the four template
