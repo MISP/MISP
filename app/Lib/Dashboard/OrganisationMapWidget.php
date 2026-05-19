@@ -17,6 +17,10 @@ class OrganisationMapWidget
             'type' => 'int',
             'help' => 'Top-N countries by organisation count (leave empty for unlimited).',
         ],
+        'date_range' => [
+            'type' => 'date_range',
+            'help' => 'Restrict organisations by their date_created within this range.',
+        ],
     ];
     public $cacheLifetime = null;
     public $autoRefreshDelay = false;
