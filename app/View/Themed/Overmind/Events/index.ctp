@@ -31,10 +31,102 @@
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Event.id',
         'publish_path' => 'Event.published',
         'card_section' => 'selector',
+    ],
+    [
+        'name' => __('ID'),
+        'sort' => 'Event.id',
+        'data_path' => 'Event.id',
+        'element' => 'id',
+        'url' => $baseurl . '/events/view2/%id%',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Distribution'),
+        'data_path' => 'Event.distribution',
+        'element' => 'distribution',
+        'card_section' => 'top',
+        'display_in' => ['card']
+    ],
+    [
+        'name' => __('Info'),
+        'data_path' => 'Event',
+        'element' => 'event_info',
+        'card_section' => 'title',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Published'),
+        'sort' => 'Event.published',
+        'data_path' => 'Event.published',
+        'element' => 'published',
+        'card_section' => 'top',
+        'display_in' => ['card']
+    ],
+    [
+        'name' => __('Creator Org'),
+        'sort' => 'Orgc.name',
+        'data_path' => 'Orgc',
+        'element' => 'organisation',
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Owner Org'),
+        'sort' => 'Org.name',
+        'data_path' => 'Org',
+        'element' => 'organisation',
+        'card_section' => 'meta',
+        'display_in' => ['card']
+    ],
+    [
+        'name' => __('Tags'),
+        'data_path' => 'EventTag',
+        'element' => 'tag_list',
+        'card_section' => 'tag',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Galaxy'),
+        'data_path' => 'GalaxyCluster',
+        'element' => 'galaxy',
+        'card_section' => 'galaxy',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Created'),
+        'data_path' => 'Event.date',
+        'element' => 'timestamp',
+        'mode' => 'created',
+        'card_section' => 'meta',
+        'display_in' => ['card']
+    ],
+    [
+        'name' => __('Last Modified'),
+        'data_path' => 'Event.timestamp',
+        'element' => 'timestamp',
+        'mode' => 'modified',
+        'card_section' => 'meta',
+        'display_in' => ['card']
+    ],
+    [
+        'name' => __('Contents'),
+        'data_path' => 'Event',
+        'element' => 'event_contents',
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Event.id',
+        'publish_path' => 'Event.published',
+        'card_section' => 'extra',
+        'display_in' => ['table','card'],
         'actions' => [
             [
                 'type' => 'link',
@@ -74,90 +166,6 @@ $fields = [
             ]
         ]
     ],
-    [
-        'name' => __('ID'),
-        'sort' => 'Event.id',
-        'data_path' => 'Event.id',
-        'element' => 'id',
-        'url' => $baseurl . '/events/view2/%id%',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Distribution'),
-        'data_path' => 'Event.distribution',
-        'element' => 'distribution',
-        'card_section' => 'top',
-        'display_in' => ['card']
-    ],
-    [
-        'name' => __('Info'),
-        'data_path' => 'Event',
-        'element' => 'info',
-        'card_section' => 'title',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Published'),
-        'sort' => 'Event.published',
-        'data_path' => 'Event.published',
-        'element' => 'published',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Creator Org'),
-        'sort' => 'Orgc.name',
-        'data_path' => 'Orgc',
-        'element' => 'organisation',
-        'card_section' => 'meta',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Owner Org'),
-        'sort' => 'Org.name',
-        'data_path' => 'Org',
-        'element' => 'organisation',
-        'card_section' => 'meta',
-        'display_in' => ['card']
-    ],
-    [
-        'name' => __('Tags'),
-        'data_path' => 'EventTag',
-        'element' => 'tag_list',
-        'card_section' => 'tag',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Galaxy'),
-        'data_path' => 'GalaxyCluster',
-        'element' => 'galaxy',
-        'card_section' => 'galaxy',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Contents'),
-        'data_path' => 'Event',
-        'element' => 'event_contents',
-        'card_section' => 'extra',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Created'),
-        'data_path' => 'Event.date',
-        'element' => 'timestamp',
-        'mode' => 'created',
-        'card_section' => 'meta',
-        'display_in' => ['card']
-    ],
-    [
-        'name' => __('Last Modified'),
-        'data_path' => 'Event.timestamp',
-        'element' => 'timestamp',
-        'mode' => 'modified',
-        'card_section' => 'meta',
-        'display_in' => ['card']
-    ]
 ];
 
 
@@ -285,9 +293,9 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/delete'
             ],
             'fields' => $fields,
+            'primary_id_path' => 'Event.id',
+            'row_dblclick_url' => $baseurl . '/events/view2/%id%',
         ]
     ],
     'item_url' => '/events'
 ]);
-
-?>

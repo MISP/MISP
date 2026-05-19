@@ -337,7 +337,8 @@ body[data-controller="users"][data-action="login"] {
 }
 
 .checkbox-actions-wrapper {
-    border: 1px solid #dee2e6;
+    border: none;
+    margin:0.3rem;
     border-radius: 8px;
     background: #fff;
 }
@@ -349,9 +350,9 @@ body[data-controller="users"][data-action="login"] {
 }
 
 
-.checkbox-actions-wrapper .form-check-input {
+/* .checkbox-actions-wrapper .form-check-input {
     margin: 2px !important;
-}
+} */
 
 
 .checkbox-index input[type="checkbox"] {
@@ -720,4 +721,17 @@ th .sort-icon::before {
 .ajax_popover_form_x_large {
     width: 1500px;
     left: calc(50% - 750px) !important;
+}
+
+
+.galaxy-container {
+    column-gap: 0.75rem;
+}
+
+.galaxy-container .badge {
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 0.75rem;
+    break-inside: avoid;
+    vertical-align: top;
 }

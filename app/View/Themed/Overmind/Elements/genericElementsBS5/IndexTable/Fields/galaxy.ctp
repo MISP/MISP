@@ -5,53 +5,97 @@ if (empty($data)) {
     return;
 }
 
-$maxVisible = 4;
-$totalGalaxies = count($data);
-$hiddenCount = max(0, $totalGalaxies - $maxVisible);
-
-?>
-
-<div class="galaxy-container d-inline-flex flex-wrap align-items-center">
-
-<?php
-foreach ($data as $index => $item) {
+// Group galaxies by name, collecting cluster values and local status
+$groupedGalaxies = [];
+foreach ($data as $item) {
     if (!empty($item['Galaxy'])) {
-        $galaxy = $item['Galaxy'];
-        $cluster = $item;
-    }
-    else if (!empty($item['GalaxyCluster'])) {
-        $galaxy = $item;
-        $cluster = $item['GalaxyCluster'][0];
-    }
-    else {
+        $galaxyName  = $item['Galaxy']['name'];
+        $clusterValue = $item['value'] ?? '';
+        $isLocal     = !empty($item['local']);
+    } elseif (!empty($item['GalaxyCluster'])) {
+        $galaxyName  = $item['name'] ?? 'Unknown';
+        $clusterValue = $item['GalaxyCluster'][0]['value'] ?? '';
+        $isLocal     = !empty($item['GalaxyCluster'][0]['local']);
+    } else {
         continue;
     }
 
-    $name = h($galaxy['name']) . ' : ' . h($cluster['value']);
-    $local = h($cluster['local']);
-    $bgColor = 'background-color: #e7f1ff';
-    $textColor = '#084298';
-    $shadow = 'filter: drop-shadow(-1px 3px 2px rgba(50, 50, 0, 0.5))';
-    $metallicEffect = "background-image: linear-gradient(145deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 40%, rgba(0,0,0,0.05) 100%)";
-    $text = "text-align:left; white-space:normal; word-wrap:break-word";
+    if (!isset($groupedGalaxies[$galaxyName])) {
+        $groupedGalaxies[$galaxyName] = ['clusters' => [], 'local' => false];
+    }
+    $groupedGalaxies[$galaxyName]['clusters'][] = $clusterValue;
+    if ($isLocal) {
+        $groupedGalaxies[$galaxyName]['local'] = true;
+    }
+}
 
-    $style = sprintf('%s; color: %s; %s; %s; %s;  cursor:pointer;', $bgColor, $textColor, $shadow, $metallicEffect, $text);
-    if ($local) {
-        $style .= sprintf(' border:2px dashed %s', $textColor);
+//Determine galaxy badge colors based on galaxy name hash
+$galaxyHue = function (string $name): int {
+    $hash = 0;
+    for ($i = 0, $len = strlen($name); $i < $len; $i++) {
+        $hash = (($hash << 5) - $hash + ord($name[$i])) & 0x7FFFFFFF;
+    }
+    return $hash % 360;
+};
+
+// Show all galaxy badges until cumulative galaxy >= 2 or cumulative clusters >= 5
+$maxGalaxies     = 2;
+$runningGalaxies = 0;
+$maxClusters     = 5;
+$runningClusters = 0;
+$hiddenCount     = 0;
+?>
+
+<div class="galaxy-container">
+
+<?php foreach ($groupedGalaxies as $galaxyName => $galaxyData):
+    $isHidden = (($runningClusters >= $maxClusters) || ($runningGalaxies >= $maxGalaxies));
+    if (!$isHidden) {
+        $runningGalaxies++;
+    }
+    $runningClusters += count($galaxyData['clusters']);
+
+    if ($isHidden) {
+        $hiddenCount++;
     }
 
-    $hiddenClass = ($index >= $maxVisible) ? 'd-none extra-galaxies' : '';
-    ?>
+    $hue         = $galaxyHue($galaxyName);
+    $bgColor     = "hsla({$hue},65%,55%,0.12)";
+    $textColor   = "hsl({$hue},65%,30%)";
+    $borderColor = "hsl({$hue},65%,30%)";
+    $borderStyle = $galaxyData['local'] ? 'dashed' : 'solid';
 
-    <span class="badge me-1 mb-1 <?= $hiddenClass ?>" style="<?= $style ?>">
-        <?php if ($local): ?>
-            <i class="fas fa-user me-1"></i>
-        <?php endif; ?>
-        <?= $name ?>
-    </span>
-<?php
-}
+    $style = "background-color:{$bgColor}; color:{$textColor};"
+           . " border:1px {$borderStyle} {$borderColor};"
+           . " background-image:linear-gradient(145deg,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0.04) 40%,rgba(0,0,0,0.04) 100%);"
+           . " text-align:left; white-space:normal; word-wrap:break-word; cursor:pointer;";
+
+    $clusterList = implode(' &middot; ', array_map('h', $galaxyData['clusters']));
+    $hiddenClass = $isHidden ? 'd-none extra-galaxies' : '';
 ?>
+    <span class="badge me-1 mb-1 <?= $hiddenClass ?>" style="<?= $style ?>">
+        <div class="d-flex flex-column">
+            <div
+                class="fw-bold mb-1 d-flex align-items-center"
+                style="font-size:0.95rem; color:hsl(<?= $hue ?>,75%,22%);"
+            >
+                <?php if ($galaxyData['local']): ?>
+                    <i class="fas fa-user me-1"></i>
+                <?php endif; ?>
+                <span><?= h($galaxyName) ?></span>
+            </div>
+            <div
+                style="
+                    font-size:0.78rem;
+                    color:hsl(<?= $hue ?>,45%,35%);
+                    line-height:1.25;
+                "
+            >
+                <?= implode('<br>', array_map('h', $galaxyData['clusters'])) ?>
+            </div>
+        </div>
+    </span>
+<?php endforeach; ?>
 
 <?php if ($hiddenCount > 0): ?>
     <span
@@ -66,16 +110,12 @@ foreach ($data as $index => $item) {
 </div>
 
 <script>
-function toggleGalaxies(badge) {
+window.toggleGalaxies = window.toggleGalaxies || function(badge) {
     const container = badge.closest('.galaxy-container');
-    const hiddenGalaxies = container.querySelectorAll('.extra-galaxies');
-
-    if (!hiddenGalaxies.length) return;
-
-    const isHidden = hiddenGalaxies[0].classList.contains('d-none');
-
-    hiddenGalaxies.forEach(g => g.classList.toggle('d-none'));
-
-    badge.textContent = isHidden ? '−' : '+' + hiddenGalaxies.length;
-}
+    const hidden = container.querySelectorAll('.extra-galaxies');
+    if (!hidden.length) return;
+    const isHidden = hidden[0].classList.contains('d-none');
+    hidden.forEach(el => el.classList.toggle('d-none'));
+    badge.textContent = isHidden ? '−' : '+' + hidden.length;
+};
 </script>
