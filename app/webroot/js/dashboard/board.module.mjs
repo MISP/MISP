@@ -39,6 +39,7 @@
 import { Grid } from './grid/grid.module.mjs';
 import { initChartsIn, disposeChartsIn } from './charts/charts.module.mjs';
 import { openConfigure } from './configure.module.mjs';
+import { openGallery }   from './gallery.module.mjs';
 import { initToolbar, refresh as refreshToolbar } from './toolbar.module.mjs';
 import { initMenuButtons } from './menu-button.module.mjs';
 
@@ -474,6 +475,16 @@ class Board {
         case 'discard':
           e.preventDefault();
           this._discardEdit();
+          break;
+        case 'add-widget':
+          e.preventDefault();
+          // Open the v2 widget gallery inside the configure side
+          // panel. Browse-only at this commit — onPick is unwired
+          // (the Add Widget flow that consumes it lands as the
+          // next sub-task). The gallery handles its own close
+          // (ESC + the panel's shared backdrop / ✕ / Cancel chain
+          // from configure.module.mjs).
+          openGallery({ onPick: null });
           break;
       }
     });

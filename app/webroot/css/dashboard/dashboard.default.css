@@ -1170,3 +1170,9 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   border: 1px dashed var(--misp-dash-border);
   border-radius: var(--misp-dash-radius-md);
 }
+/* Gallery mode hides the configure footer (Save / Cancel) — those
+ * actions are form-mode-only. The header ✕ button + the ESC /
+ * backdrop close chain still apply. */
+.misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-footer {
+  display: none;
+}

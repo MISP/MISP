@@ -36,6 +36,19 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
                 aria-pressed="false">
             <?= __('Edit layout') ?>
         </button>
+        <!-- Add Widget (edit mode only). Opens the v2 gallery in
+             the configure side panel — fetches /dashboards/widgets,
+             groups by $category, filters by live search, and
+             dispatches the Add Widget flow on card click. Browse-
+             only at this commit; the card-click flow lands as the
+             next sub-task. -->
+        <button type="button"
+                class="misp-dashboard-btn misp-dashboard-modecontrols-edit"
+                data-misp-board-action="add-widget">
+            <span aria-hidden="true">+</span>
+            <?= __('Add widget') ?>
+        </button>
+
         <!-- Save / Discard (shown in edit mode only — CSS controls
              visibility via body[data-misp-board-mode]). Save commits
              the staged layout via a whole-blob POST; Discard reverts
@@ -136,7 +149,8 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
       data-misp-board-mode="view"
       data-misp-board-renderwidget-url="<?= h($baseurl) ?>/dashboards/renderWidget"
       data-misp-board-save-url="<?= h($baseurl) ?>/dashboards/updateSettings"
-      data-misp-board-widget-save-url="<?= h($baseurl) ?>/dashboards/updateWidgetSettings">
+      data-misp-board-widget-save-url="<?= h($baseurl) ?>/dashboards/updateWidgetSettings"
+      data-misp-board-widgets-url="<?= h($baseurl) ?>/dashboards/widgets">
 
     <?php
     if (empty($widgets)) {
