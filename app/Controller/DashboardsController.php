@@ -69,18 +69,27 @@ class DashboardsController extends AppController
             return $this->RestResponse->viewData($widgets, $this->response->type());
         }
 
-        // Enrich each widget with its declared $schema (PRD §5.7) so
-        // the wrapper element can emit data-widget-schema and the
-        // client-side configure form (DD-06) renders the typed-fields
-        // tier from the contract instead of hardcoding. Unknown widget
-        // classes resolve to an empty schema — the configure form then
-        // collapses to the key-value tier (DD-06 custom-widgets path).
+        // Enrich each widget with its declared $schema (PRD §5.7) and
+        // $placeholder (DD-06 bottom-tier seeding) so the wrapper can
+        // emit data-widget-schema + data-widget-placeholder and the
+        // client-side configure form renders the typed-fields tier from
+        // the contract while seeding the bottom-tier kv list from the
+        // widget's example payload. Unknown widget classes resolve to an
+        // empty schema and an empty placeholder — the configure form
+        // then collapses to a single-empty-row kv tier (DD-06 custom-
+        // widgets path). $placeholder ships raw (not server-parsed) so
+        // the client owns the JSON.parse-and-fallback path — some legacy
+        // placeholders carry trailing commas and similar malformations.
         foreach ($widgets as &$w) {
             $w['schema'] = [];
+            $w['placeholder'] = '';
             if (!empty($w['widget']) && is_string($w['widget'])) {
                 $instance = $this->Dashboard->loadWidget($user, $w['widget'], true);
                 if ($instance !== false) {
                     $w['schema'] = WidgetSchema::getSchema($instance);
+                    if (isset($instance->placeholder) && is_string($instance->placeholder)) {
+                        $w['placeholder'] = $instance->placeholder;
+                    }
                 }
             }
         }

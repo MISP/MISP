@@ -28,6 +28,7 @@
      data-widget-instance-id="<?= h($widget['instance_id']) ?>"
      data-widget-config='<?= h(json_encode($widget['config'], JSON_UNESCAPED_SLASHES)) ?>'
      data-widget-schema='<?= h(json_encode(isset($widget['schema']) && is_array($widget['schema']) ? $widget['schema'] : array(), JSON_UNESCAPED_SLASHES)) ?>'
+     data-widget-placeholder="<?= h(isset($widget['placeholder']) && is_string($widget['placeholder']) ? $widget['placeholder'] : '') ?>"
      <?php if (!empty($widget['alias'])): ?>data-widget-alias="<?= h($widget['alias']) ?>"<?php endif; ?>
      data-position-x="<?= h($widget['position']['x']) ?>"
      data-position-y="<?= h($widget['position']['y']) ?>"

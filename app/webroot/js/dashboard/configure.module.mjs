@@ -24,16 +24,17 @@ const CANONICAL_BUILDERS = {
 };
 const SCALAR_TYPES = new Set(['string', 'int', 'bool', 'enum']);
 
-const ATTR_PANEL          = 'data-misp-configure-root';
-const ATTR_BACKDROP       = 'data-misp-configure-backdrop';
-const ATTR_BODY           = 'data-misp-configure-body';
-const ATTR_TITLE          = 'data-misp-configure-title';
-const ATTR_ACTION         = 'data-misp-configure-action';
-const ATTR_KV_ACTION      = 'data-misp-kv-action';
-const ATTR_WIDGET_CONFIG  = 'data-widget-config';
-const ATTR_WIDGET_SCHEMA  = 'data-widget-schema';
-const ATTR_WIDGET_NAME    = 'data-widget-name';
-const ATTR_SCHEMA_KEY     = 'data-schema-key';
+const ATTR_PANEL              = 'data-misp-configure-root';
+const ATTR_BACKDROP           = 'data-misp-configure-backdrop';
+const ATTR_BODY               = 'data-misp-configure-body';
+const ATTR_TITLE              = 'data-misp-configure-title';
+const ATTR_ACTION             = 'data-misp-configure-action';
+const ATTR_KV_ACTION          = 'data-misp-kv-action';
+const ATTR_WIDGET_CONFIG      = 'data-widget-config';
+const ATTR_WIDGET_SCHEMA      = 'data-widget-schema';
+const ATTR_WIDGET_PLACEHOLDER = 'data-widget-placeholder';
+const ATTR_WIDGET_NAME        = 'data-widget-name';
+const ATTR_SCHEMA_KEY         = 'data-schema-key';
 
 // Pending state for the currently-open panel.
 let openTarget = null;          // the widget element being configured
@@ -69,6 +70,33 @@ function flatten(obj, prefix = '', out = {}) {
     flatten(obj[k], path, out);
   }
   return out;
+}
+
+/** Parse a widget's $placeholder string and produce dot-notation
+ * (key, value) pairs suitable for seeding the bottom-tier kv list
+ * (DD-06: "When adding a new widget, parse `$placeholder` JSON and
+ * populate the key-value list with the example keys/values").
+ *
+ * Schema-handled keys are filtered out so the user doesn't see a
+ * duplicate field in two tiers (and so the readback path doesn't
+ * have the bottom-tier kv-row overwrite the top-tier schema control
+ * via the Object.assign at the end of readBack()).
+ *
+ * Robust to legacy malformed placeholders — some MISP widgets ship
+ * trailing-comma JSON which standard JSON.parse rejects. On parse
+ * failure (or empty/non-object input) we return [], and the caller
+ * falls back to a single empty kv row. */
+function seedFromPlaceholder(raw, handledKeys) {
+  if (!raw || typeof raw !== 'string') return [];
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch (_) { return []; }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return [];
+  const filtered = {};
+  for (const [k, v] of Object.entries(parsed)) {
+    if (handledKeys.has(k)) continue;
+    filtered[k] = v;
+  }
+  return Object.entries(flatten(filtered));
 }
 
 /** Re-nest a {dot.path: stringValue} dictionary into a real config
@@ -221,7 +249,7 @@ function buildScalarField(key, entry, currentValue) {
   return el('label', { class: 'misp-field' }, ...children);
 }
 
-function buildForm(widgetConfig, widgetSchema) {
+function buildForm(widgetConfig, widgetSchema, widgetPlaceholder) {
   // Top tier: iterate the widget's $schema entries. For each entry,
   // route by type — canonical types with a registered builder render
   // the type-aware field; scalar types render native controls; entries
@@ -272,11 +300,20 @@ function buildForm(widgetConfig, widgetSchema) {
   }
 
   const kvList = el('ul', { class: 'misp-kv-list', 'data-misp-kv-list': '' });
-  // If the widget had no bottom-tier config yet, seed an empty row
-  // so the user has somewhere to start typing — DD-06's "single
-  // example key" requirement.
+  // If the widget had no bottom-tier config yet, seed from the
+  // widget's $placeholder JSON (DD-06 "example keys/values from the
+  // placeholder"); fall back to a single empty row when the
+  // placeholder is absent, malformed, or contains only schema-handled
+  // keys after filtering.
   if (Object.keys(flatRest).length === 0) {
-    kvList.appendChild(buildKVRow('', ''));
+    const seedRows = seedFromPlaceholder(widgetPlaceholder, handledKeys);
+    if (seedRows.length === 0) {
+      kvList.appendChild(buildKVRow('', ''));
+    } else {
+      for (const [k, v] of seedRows) {
+        kvList.appendChild(buildKVRow(k, v));
+      }
+    }
   } else {
     for (const [k, v] of Object.entries(flatRest)) {
       kvList.appendChild(buildKVRow(k, v));
@@ -399,11 +436,14 @@ export function openConfigure(widgetEl, opts) {
   } catch (_) {
     schema = {};
   }
+  // Raw placeholder string — seedFromPlaceholder() owns the parse +
+  // fallback path so it can tolerate legacy malformed JSON.
+  const placeholder = widgetEl.getAttribute(ATTR_WIDGET_PLACEHOLDER) || '';
 
   const titleEl = panel.querySelector(`[${ATTR_TITLE}]`);
   if (titleEl) titleEl.textContent = `Configure ${widgetName}`;
   const body = panel.querySelector(`[${ATTR_BODY}]`);
-  body.replaceChildren(buildForm(config, schema));
+  body.replaceChildren(buildForm(config, schema, placeholder));
 
   setHidden(backdrop, false);
   setHidden(panel, false);
