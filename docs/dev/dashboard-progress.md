@@ -1066,13 +1066,11 @@ Pre-existing handler bug. The widget resolved the org-meta filter into a `$org_i
 
 Fixed by inserting the same sentinel-list guard TrendingAttributesWidget already uses: `if (empty($orgcIdList)) { $orgcIdList = [-1]; }`. `-1` is not a valid org ID so the SQL matches nothing cleanly. Smoke (renderWidget POST with filter that matches zero orgs) now returns 200 with empty data instead of 500.
 
-### TrendingAttributesWidget uses `national` instead of `nationality` (surfaced 2026-05-19)
+### TrendingAttributesWidget uses `national` instead of `nationality` (surfaced 2026-05-19) — **fixed 2026-05-19**
 
-TrendingAttributesWidget's private `$validOrgFilters` array uses `'national'` for the nationality filter key, while every other widget in MISP uses `'nationality'`. The widget's `$params['org_filter']` doc string already says `Organisation.nationality` so the `national` typo is a latent bug — users typing `nationality` (matching the docs) hit no match against the widget's own filter loop.
+TrendingAttributesWidget's private `$validOrgFilters` array used `'national'` for the nationality filter key, while every other widget in MISP uses `'nationality'` and the widget's own `$params['org_filter']` doc string says `Organisation.nationality`. Users typing `nationality` (matching the docs) hit no match against the widget's own filter loop — silent.
 
-Two-line fix: rename `national` → `nationality` in `$validOrgFilters`. Strictly a bug fix, not a v2 alignment — surfaced during the org_meta_filter canonical-type design because the inconsistency complicated the backfill (TrendingAttributesWidget excluded from the first wave for this reason).
-
-Parked: small enough to fix as part of the eventual TrendingAttributesWidget org_meta_filter backfill commit, or as a standalone bug-fix commit. Estimated 5 minutes.
+Renamed `'national'` → `'nationality'` in `$validOrgFilters`. No other code path in the widget referenced the typo. With this fix, TrendingAttributesWidget's accepted filter keys match the convention used by every other in-tree widget, and the canonical org_meta_filter backfill becomes safe to land.
 
 ### time_window toolbar UX — dropdown-menu chip alternative (surfaced 2026-05-19)
 

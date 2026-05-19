@@ -30,7 +30,7 @@ class TrendingAttributesWidget
     private $validOrgFilters = [
         'sector',
         'type',
-        'national',
+        'nationality',
         'uuid',
         'local'
     ];
