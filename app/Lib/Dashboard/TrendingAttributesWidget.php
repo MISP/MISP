@@ -18,6 +18,7 @@ class TrendingAttributesWidget
     public $schema = array(
         'time_window' => array(
             'type' => 'time_window',
+            'default' => 'P7D',
             'help' => 'Time window over which to aggregate (last N days/hours, or all time).',
         ),
         'threshold' => array(

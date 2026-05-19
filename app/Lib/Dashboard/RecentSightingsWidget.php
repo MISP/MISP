@@ -18,6 +18,7 @@ class RecentSightingsWidget
         ),
         'last' => array(
             'type' => 'time_window',
+            'default' => 'P1D',
             'help' => 'Show only sightings from the last N hours/days.',
         ),
     );

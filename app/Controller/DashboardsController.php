@@ -158,6 +158,7 @@ class DashboardsController extends AppController
 
     public function renderWidget($instance_id = null)
     {
+        App::uses('CanonicalTypeAdapter', 'Lib/Dashboard/Tools');
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException(__('POST only.'));
         }
@@ -171,6 +172,13 @@ class DashboardsController extends AppController
         }
 
         $widget = $this->Dashboard->loadWidget($this->Auth->user(), $widgetName);
+        // PRD §5.5 keystone — translate canonical wire shapes (ISO 8601
+        // durations, etc.) into the legacy shapes each widget's handler()
+        // parses, driven off $widget->$schema. Also injects schema-
+        // declared defaults for missing keys. Legacy values (existing
+        // saved configs) and keys without a schema entry pass through
+        // unchanged.
+        $config = CanonicalTypeAdapter::translate($widget, $config);
         $data = $widget->handler($this->Auth->user(), $config);
         $renderer = method_exists($widget, 'getRenderer')
             ? $widget->getRenderer($config)
