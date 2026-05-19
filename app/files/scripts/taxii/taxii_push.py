@@ -118,12 +118,6 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--baseurl",
-        help="The base URL of the TAII 2.1 server",
-        required=True
-    )
-
-    parser.add_argument(
         "--api_root",
         help="The API root of the TAXII 2.1 server to use",
         required=True
@@ -156,46 +150,6 @@ def parse_args():
 
     return args
 
-
-def api_root_from_collection_url(collection_id):
-    """
-    Strip path components off the end of the path portion of the given TAXII
-    collection URL, to obtain the API root URL.  A TAXII collection URL path
-    ought to have the form:
-
-        <api_root>/collections/<collection_uuid>/
-
-    So we want to strip off the last two components.  Only the very simplest
-    sanity check is done on the given URL path.
-
-    :param collection_url: A TAXII collection URL.
-    :return: The API root URL, or None if it could not be found.
-    """
-    collection_url_parts = urllib.parse.urlparse(collection_url)
-
-    # The "collections/<collection_uuid>/" part ought to have a fixed length,
-    # since all UUID's have a fixed length (36 chars).  And
-    # len("collections") == 11.
-    #
-    # The URL paths are supposed to end with "/", but be robust if they don't.
-    if collection_url_parts.path.endswith("/"):
-        suffix_size = 49
-    else:
-        suffix_size = 48
-
-    if len(collection_url_parts.path) < suffix_size:
-        api_root_url = None
-
-    else:
-        api_root_path = collection_url_parts.path[:-suffix_size]
-
-        api_root_url_parts = collection_url_parts[:2] \
-            + (api_root_path,) + \
-            collection_url_parts[3:]
-
-        api_root_url = urllib.parse.urlunparse(api_root_url_parts)
-
-    return api_root_url
 
 
 def log_status_failures(status):
@@ -397,7 +351,7 @@ def parse_auth(api_key):
     return HTTPBasicAuth(*b64decode(api_key.encode()).split(b':'))
 
 
-def push_content(content_dir, baseurl, api_root, collection_url, api_key):
+def push_content(content_dir, api_root_url, collection, api_key):
     """
     Push MISP content from files in the given directory, to a TAXII 2.1 server.
     This will translate each MISP event to STIX 2.1.
@@ -409,23 +363,17 @@ def push_content(content_dir, baseurl, api_root, collection_url, api_key):
 
     auth = parse_auth(api_key)
 
-    #api_root_url = api_root_from_collection_url(collection_url)
-    api_root_url = baseurl + "/" + api_root
-    if not api_root_url:
-        raise ValueError(
-            "Could not compute API root URL from: " + collection_url
-        )
 
     with taxii2client.ApiRoot(api_root_url, auth=auth) as api_root:
         max_content_length = api_root.max_content_length
 
     log.debug(
         "max content length for API root %s: %d",
-        api_root_url, max_content_length
+        api_root, max_content_length
     )
 
     all_stix_objects = convert_misp_dir(content_dir)
-    collection_url = api_root_url + '/collections/' + collection_url
+    collection_url = api_root_url + '/collections/' + collection
     with taxii2client.Collection(collection_url, auth=auth) as taxii_collection:
 
         for taxii_envelope_bytes in make_taxii_envelopes(
@@ -441,7 +389,7 @@ def main():
     log = logging.getLogger(_LOGGER_NAME)
 
     try:
-        push_content(args.dir, args.baseurl, args.api_root, args.collection, args.key)
+        push_content(args.dir, args.api_root, args.collection, args.key)
 
     except Exception:
         log.fatal(

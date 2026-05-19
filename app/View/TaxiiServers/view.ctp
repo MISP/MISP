@@ -18,13 +18,13 @@ echo $this->element(
                 'path' => 'TaxiiServer.owner'
             ],
             [
-                'key' => __('Base URL'),
-                'path' => 'TaxiiServer.baseurl'
-            ],
-            [
                 'key' => __('Skip Proxy'),
                 'path' => 'TaxiiServer.skip_proxy',
                 'type' => 'json'
+            ],
+            [
+                'key' => __('Discovery URL'),
+                'path' => 'TaxiiServer.discovery_url'
             ],
             [
                 'key' => __('API Root'),

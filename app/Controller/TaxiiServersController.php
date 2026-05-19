@@ -115,7 +115,7 @@ class TaxiiServersController extends AppController
         }
 
         if ($this->request->is('post')) {
-            $result = $this->TaxiiServer->pushRouter($taxii_server['TaxiiServer']['id'],  $this->Auth->user());
+            $result = $this->TaxiiServer->pushRouter($taxii_server['TaxiiServer']['id'], $this->Auth->user());
             $message = __('Taxii push initiated.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('TaxiiServers', 'push', $id, false, $message);
@@ -139,47 +139,81 @@ class TaxiiServersController extends AppController
 
     public function getRoot()
     {
-        if (empty($this->request->data['baseurl'])) {
+        if (empty($this->request->data['discovery_url'])) {
             return $this->RestResponse->saveFailResponse(
-                'TaxiiServers', 'getRoot', null, __('No baseurl set.'), $this->response->type()
+                'TaxiiServers', 'getRoot', null, __('No discovery url set.'), $this->response->type()
             );
         } else {
-            $this->request->data['uri'] = '/taxii2/';
-            $result = $this->TaxiiServer->queryInstance(
-                [
-                    'TaxiiServer' => $this->request->data,
-                    'type' => 'get'
+            App::uses('HttpSocket', 'Network/Http');
+            $HttpSocket = new HttpSocket();
+        $caPath = Configure::read('MISP.ca_path');
+        if (!empty($caPath)) {
+            $HttpSocket->config['ssl_cafile'] = $caPath;
+        }
+            if (!$this->request->data['skip_proxy']) {
+                $proxy = Configure::read('Proxy');
+                if (isset($proxy['host']) && !empty($proxy['host'])) {
+                    $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
+                }
+            }
+            $request = [
+                'header' => [
+                    'Accept' => 'application/taxii+json;version=2.1',
+                    'Content-type' => 'application/taxii+json;version=2.1'
                 ]
-            );
+            ];
+            $caPath = Configure::read('MISP.ca_path');
+            if (!empty($caPath)) {
+                $request['ssl_cafile'] = $caPath;
+            }
+            if (!empty($this->request->data['api_key'])) {
+                $request['header']['Authorization'] = 'Basic ' . $this->request->data['api_key'];
+            }
+            try {
+                $response = $HttpSocket->get($this->request->data['discovery_url'], null, $request);
+            } catch (SocketException $e) {
+                throw new BadRequestException(__('Something went wrong. Error returned: %s', $e->getMessage()));
+            }
+            if ($response->code === 403 || $response->code === 401) {
+                throw new ForbiddenException(__('Authentication failed.'));
+            }
+
+            if (!($response->isOk())) {
+                throw new BadRequestException(__('Something went wrong with the request or the remote side is having issues.'));
+            }
+            $result = json_decode($response->body, true);
             if (is_array($result)) {
                 $results = [];
+                $discovery_host = parse_url($this->request->data['discovery_url'], PHP_URL_HOST);
+                $discovery_port = parse_url($this->request->data['discovery_url'], PHP_URL_PORT);
+                if (empty($discovery_port)) {
+                    $discovery_host = 'https://' . $discovery_host;
+                }else {
+                    $discovery_root = 'https://' . $discovery_host . ':' . $discovery_port;
+                }
                 foreach ($result['api_roots'] as $api_root) {
-                    $api_root = explode('/', trim($api_root, '/'));
-                    $api_root = end($api_root);
-                    $results[$api_root] = $this->request->data['baseurl'] . '/' . $api_root . '/';
+                    if (str_starts_with($api_root, '/')) {
+                        $api_root = $discovery_root . $api_root;
+                    }
+                    $results[$api_root] = $api_root;
                 }
                 return $this->RestResponse->viewData($results, 'json');
             } else {
                 return $this->RestResponse->saveFailResponse(
                     'TaxiiServers', 'getRoot', null, $result, $this->response->type()
-                );  
+                );
             }
         }
     }
 
     public function getCollections()
     {
-        if (empty($this->request->data['baseurl'])) {
-            return $this->RestResponse->saveFailResponse(
-                'TaxiiServers', 'getCollections', null, __('No baseurl set.'), $this->response->type()
-            );
-        }
         if (empty($this->request->data['api_root'])) {
             return $this->RestResponse->saveFailResponse(
                 'TaxiiServers', 'getCollections', null, __('No api_root set.'), $this->response->type()
             );
         }
-        $this->request->data['uri'] = '/' . $this->request->data['api_root'] . '/collections/';
+        $this->request->data['path'] = '/collections/';
         $result = $this->TaxiiServer->queryInstance(
             [
                 'TaxiiServer' => $this->request->data,
@@ -211,7 +245,7 @@ class TaxiiServersController extends AppController
         } else {
             return $this->RestResponse->saveFailResponse(
                 'TaxiiServers', 'getCollections', null, $result, $this->response->type()
-            );  
+            );
         }
     }
 
