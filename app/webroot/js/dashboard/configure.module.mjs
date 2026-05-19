@@ -13,6 +13,7 @@
 // canonical registry below.
 
 import * as TimeWindow from './canonical/time_window.mjs';
+import { buildChips, getChipsValue } from './chips.module.mjs';
 
 // Builder registry keyed by canonical type name. Each builder
 // exports `KEY` (the type), `LABEL`, and `buildField(value, opts)`
@@ -141,7 +142,39 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+/** If `value` is a JSON-encoded array string (the shape flatten()
+ * produces for nested arrays), return the parsed array. Otherwise
+ * return null so the caller falls back to a plain text input.
+ *
+ * Heuristic: cheap startsWith check first, then JSON.parse — avoids
+ * trying to parse every text input as JSON. */
+function asArray(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('[')) return null;
+  try {
+    const parsed = JSON.parse(trimmed);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 function buildKVRow(key, value) {
+  const arr = asArray(value);
+  const valueControl = (arr !== null)
+    ? buildChips(arr, {
+        placeholder: 'Add value, press Enter',
+        ariaLabel: 'Config value (array of chips)',
+        rootClass: 'misp-kv-chips',
+      })
+    : el('input', {
+        class: 'misp-kv-value',
+        type: 'text',
+        value,
+        placeholder: 'value',
+        'aria-label': 'Config value',
+      });
   return el('li', { class: 'misp-kv-row' },
     el('input', {
       class: 'misp-kv-key',
@@ -150,13 +183,7 @@ function buildKVRow(key, value) {
       placeholder: 'key.path',
       'aria-label': 'Config key',
     }),
-    el('input', {
-      class: 'misp-kv-value',
-      type: 'text',
-      value,
-      placeholder: 'value',
-      'aria-label': 'Config value',
-    }),
+    valueControl,
     el('button', {
       type: 'button',
       class: 'misp-widget-iconbtn',
@@ -366,12 +393,20 @@ function readBack(panel) {
     out[k] = v;
   }
   // Bottom tier: dot-notation rows. Empty keys are skipped (lets the
-  // user blank a row to delete it).
+  // user blank a row to delete it). For rows whose value column is a
+  // chip-input (array-typed value), read the chip array and JSON-
+  // stringify back into the flat shape reNest expects.
   const flat = {};
   for (const row of panel.querySelectorAll('.misp-kv-row')) {
     const k = row.querySelector('.misp-kv-key').value.trim();
-    const v = row.querySelector('.misp-kv-value').value;
     if (!k) continue;
+    const chipRoot = row.querySelector('.misp-kv-chips');
+    let v;
+    if (chipRoot) {
+      v = JSON.stringify(getChipsValue(chipRoot));
+    } else {
+      v = row.querySelector('.misp-kv-value').value;
+    }
     flat[k] = v;
   }
   Object.assign(out, reNest(flat));

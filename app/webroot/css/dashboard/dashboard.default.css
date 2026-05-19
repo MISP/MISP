@@ -886,6 +886,94 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 }
 
 /* ============================================================
+ * Chip input — array-typed values in the bottom-tier KV list and
+ * (Phase 3) canonical pickers like tag_filter. Behavior in
+ * chips.module.mjs; this is the visual layer only.
+ * ============================================================ */
+.misp-chips {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  min-height: 30px;
+  padding: 3px var(--misp-dash-space-1);
+  border: 1px solid var(--misp-dash-border);
+  background: var(--misp-dash-surface-raised);
+  border-radius: var(--misp-dash-radius-sm);
+  transition: border-color var(--misp-dash-transition-fast);
+  cursor: text;
+}
+.misp-chips:focus-within {
+  outline: 0;
+  border-color: var(--misp-dash-accent);
+  box-shadow: 0 0 0 2px var(--misp-dash-accent-muted);
+}
+.misp-chips-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: contents;
+}
+.misp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 4px 1px 8px;
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  font-size: var(--misp-dash-fs-sm);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  max-width: 100%;
+}
+.misp-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-chip-remove {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--misp-dash-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-chip-remove:hover,
+.misp-chip-remove:focus {
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  outline: 0;
+}
+.misp-chips-input {
+  flex: 1 1 80px;
+  min-width: 80px;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--misp-dash-text);
+  font: inherit;
+  font-size: var(--misp-dash-fs-sm);
+  padding: 2px var(--misp-dash-space-1);
+  outline: 0;
+}
+.misp-chips-input::placeholder {
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+}
+/* When the chip-input is the bottom-tier KV row's value column, keep
+ * the row's grid column boundaries; `display: contents` on the
+ * inner <ul> lets the wrapping happen naturally inside the flex root. */
+.misp-kv-row .misp-kv-chips {
+  /* Inherit middle-column from the row's grid-template-columns. */
+}
+
+/* ============================================================
  * Density toggle (compact = tighter padding + smaller font scale)
  * ============================================================ */
 [data-density="compact"] .misp-widget-titlebar { padding: 4px 8px; font-size: var(--misp-dash-fs-xs); }
