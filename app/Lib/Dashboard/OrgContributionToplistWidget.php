@@ -120,8 +120,16 @@ class OrgContributionToplistWidget
             'fields' => ['Organisation.id', 'Organisation.name'],
             'conditions' => $params['conditions']
         ]);
+        // When a filter is set but matches zero orgs, array_keys($org_ids)
+        // is empty and `Event.orgc_id IN ()` blows up as malformed SQL.
+        // Sentinel `[-1]` matches nothing cleanly — same pattern
+        // TrendingAttributesWidget uses for the equivalent case.
+        $orgcIdList = array_keys($org_ids);
+        if (empty($orgcIdList)) {
+            $orgcIdList = [-1];
+        }
         $conditions = [];
-        $conditions['AND'][] = ['Event.orgc_id IN' => array_keys($org_ids)];
+        $conditions['AND'][] = ['Event.orgc_id IN' => $orgcIdList];
         $timeConditions = $this->timeConditions($options);
         if ($timeConditions) {
             $conditions['AND'][]['AND'] = $timeConditions;

@@ -1060,21 +1060,11 @@ Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
 
-### OrgContributionToplistWidget SQL crashes when `filter` matches zero orgs (surfaced 2026-05-19)
+### OrgContributionToplistWidget SQL crashes when `filter` matches zero orgs (surfaced 2026-05-19) — **fixed 2026-05-19**
 
-Pre-existing handler bug. `handler()` calls `$this->getOrgList($options)` to resolve the org-meta filter into a list of org IDs, then unconditionally writes `Event.orgc_id IN $resolvedList` into the query conditions. When `getOrgList()` returns an empty array (filter criteria match zero orgs in the DB), the resulting `IN ()` SQL is malformed and crashes with a syntax error near `'NULL'`.
+Pre-existing handler bug. The widget resolved the org-meta filter into a `$org_ids` list via `$this->Org->find('list', ...)`, then wrote `Event.orgc_id IN array_keys($org_ids)` unconditionally. When the filter matched zero orgs, `array_keys([])` was `[]` and the resulting `IN ()` SQL was malformed (manifested as `IN (NULL)` after CakePHP's NULL-coercion).
 
-Fix is a one-line guard mirroring the pattern in TrendingAttributesWidget:
-```php
-$orgList = $this->getOrgList($options);
-if (empty($orgList)) {
-    $conditions['Event.orgc_id IN'] = [-1]; // matches nothing cleanly
-} else {
-    $conditions['Event.orgc_id IN'] = $orgList;
-}
-```
-
-Surfaced when smoking the org_meta_filter canonical-type backfill on a test instance with sparse org records (no orgs matching "Financial sector"). Not a regression from the backfill — the widget was always broken under this input shape; the canonical wire just makes it easier to trigger. Worth folding into the next sweep of widget-handler fixes.
+Fixed by inserting the same sentinel-list guard TrendingAttributesWidget already uses: `if (empty($orgcIdList)) { $orgcIdList = [-1]; }`. `-1` is not a valid org ID so the SQL matches nothing cleanly. Smoke (renderWidget POST with filter that matches zero orgs) now returns 200 with empty data instead of 500.
 
 ### TrendingAttributesWidget uses `national` instead of `nationality` (surfaced 2026-05-19)
 
