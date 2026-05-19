@@ -20,6 +20,10 @@ class TrendingTagsWidget
             'default' => 'P7D',
             'help' => 'Time window over which to aggregate (last N days/hours, or all time).',
         ),
+        'tag_filter' => array(
+            'type' => 'tag_filter',
+            'help' => 'Substring patterns that include/exclude tags from the trending list. "tlp:" matches every TLP tag.',
+        ),
         'threshold' => array(
             'type' => 'int',
             'default' => 10,
