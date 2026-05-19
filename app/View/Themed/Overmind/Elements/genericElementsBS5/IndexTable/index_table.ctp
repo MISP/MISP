@@ -28,9 +28,6 @@ foreach ($data['data'] as $k => $data_row) {
     if (!empty($primary)) {
         $row .= ' data-primary-id="' . h($primary) . '"';
     }
-    if ($dblclickUrl !== null) {
-        $row .= ' style="cursor:pointer;"';
-    }
     $row .= '>';
 
     $row .= $this->element(

@@ -7,26 +7,36 @@ if (empty($data)) {
 
 // Group galaxies by name, collecting cluster values and local status
 $groupedGalaxies = [];
+
 foreach ($data as $item) {
+
     if (!empty($item['Galaxy'])) {
         $galaxyName  = $item['Galaxy']['name'];
         $clusterValue = $item['value'] ?? '';
         $isLocal     = !empty($item['local']);
+        $icon        = $item['Galaxy']['icon'] ?? 'globe';
+
     } elseif (!empty($item['GalaxyCluster'])) {
         $galaxyName  = $item['name'] ?? 'Unknown';
         $clusterValue = $item['GalaxyCluster'][0]['value'] ?? '';
         $isLocal     = !empty($item['GalaxyCluster'][0]['local']);
+        $icon        = $item['icon'] ?? 'globe';
+
     } else {
         continue;
     }
 
     if (!isset($groupedGalaxies[$galaxyName])) {
-        $groupedGalaxies[$galaxyName] = ['clusters' => [], 'local' => false];
+        $groupedGalaxies[$galaxyName] = [
+            'clusters' => [],
+            'icon' => $icon
+        ];
     }
-    $groupedGalaxies[$galaxyName]['clusters'][] = $clusterValue;
-    if ($isLocal) {
-        $groupedGalaxies[$galaxyName]['local'] = true;
-    }
+
+    $groupedGalaxies[$galaxyName]['clusters'][] = [
+        'value' => $clusterValue,
+        'local' => $isLocal
+    ];
 }
 
 //Determine galaxy badge colors based on galaxy name hash
@@ -63,35 +73,57 @@ $hiddenCount     = 0;
     $bgColor     = "hsla({$hue},65%,55%,0.12)";
     $textColor   = "hsl({$hue},65%,30%)";
     $borderColor = "hsl({$hue},65%,30%)";
-    $borderStyle = $galaxyData['local'] ? 'dashed' : 'solid';
+    $borderStyle = 'solid';//$galaxyData['local'] ? 'dashed' : 'solid';
 
     $style = "background-color:{$bgColor}; color:{$textColor};"
            . " border:1px {$borderStyle} {$borderColor};"
            . " background-image:linear-gradient(145deg,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0.04) 40%,rgba(0,0,0,0.04) 100%);"
            . " text-align:left; white-space:normal; word-wrap:break-word; cursor:pointer;";
 
-    $clusterList = implode(' &middot; ', array_map('h', $galaxyData['clusters']));
+    $clusterList = implode(' &middot; ', array_map(function($c) { return h($c['value']); }, $galaxyData['clusters']));
     $hiddenClass = $isHidden ? 'd-none extra-galaxies' : '';
 ?>
+<?php
+$brandIcons = [
+    'github',
+    'gitlab',
+    'docker',
+    'linux',
+    'android',
+    'apple',
+    'google',
+    'microsoft',
+    'facebook',
+    'twitter',
+    'linkedin',
+    'btc',
+    'ethereum'
+];
+
+$iconPrefix = in_array($groupedGalaxies[$galaxyName]['icon'], $brandIcons, true) ? 'fab' : 'fas';
+?>
+
+
     <span class="badge me-1 mb-1 <?= $hiddenClass ?>" style="<?= $style ?>">
         <div class="d-flex flex-column">
             <div
                 class="fw-bold mb-1 d-flex align-items-center"
                 style="font-size:0.95rem; color:hsl(<?= $hue ?>,75%,22%);"
             >
-                <?php if ($galaxyData['local']): ?>
-                    <i class="fas fa-user me-1"></i>
-                <?php endif; ?>
+                <i class="<?= $iconPrefix ?> fa-<?= h($groupedGalaxies[$galaxyName]['icon']) ?> me-1"></i>
                 <span><?= h($galaxyName) ?></span>
             </div>
             <div
-                style="
-                    font-size:0.78rem;
-                    color:hsl(<?= $hue ?>,45%,35%);
-                    line-height:1.25;
-                "
+                style="font-size:0.78rem; color:hsl(<?= $hue ?>,45%,35%); line-height:1.25;"
             >
-                <?= implode('<br>', array_map('h', $galaxyData['clusters'])) ?>
+                <?php foreach ($galaxyData['clusters'] as $cluster): ?>
+                    <div class="d-flex align-items-start">
+                        <?php if ($cluster['local']): ?>
+                            <i class="fas fa-user me-1 mt-1"></i>
+                        <?php endif; ?>
+                        <span><?= h($cluster['value']) ?></span>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </div>
     </span>
