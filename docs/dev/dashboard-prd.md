@@ -513,7 +513,15 @@ New (optional):
 - `$category` — gallery grouping ("status", "events", "tags", "orgs",
   "system", "custom").
 - `$thumbnail` — relative URL to a static preview image used in the
-  gallery.
+  gallery. When absent, the gallery card falls back to a render-kind-
+  shaped SVG glyph from `app/webroot/js/dashboard/gallery/render-
+  thumbs.mjs` (one glyph per `$render` value). **Adding a new
+  `$render` kind (or a new template under
+  `app/View/Elements/dashboard/Widgets/`) requires adding a matching
+  glyph to `render-thumbs.mjs` in the same commit** — the file's
+  top-of-file docblock has the steps. Without the glyph, the new
+  render kind falls through to the generic block in every gallery
+  card that uses it.
 - `$drilldown` — *(legacy/redundant — see DD-03)* — drilldown is a
   per-datum convention now, supplied in `handler()` return values via
   a `drilldown` key. No class-level property required.

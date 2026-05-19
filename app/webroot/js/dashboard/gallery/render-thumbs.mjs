@@ -11,6 +11,32 @@
 // stroke / fill colour from the active theme. The viewBox is 16:9
 // to match the `.misp-gallery-card-thumbnail` slot's aspect ratio.
 // Width / height are unset so CSS controls the rendered size.
+//
+// ──────────────────────────────────────────────────────────────────
+// ADDING A NEW RENDER KIND — required when you add a new value for
+// `public $render` on any widget class under app/Lib/Dashboard/, or
+// when you add a new template under app/View/Elements/dashboard/
+// Widgets/. Without this, the gallery card for any widget that uses
+// the new render kind falls through to `thumbGeneric` and ships a
+// generic block — readable but visually undifferentiated from
+// neighbours of other render kinds.
+//
+//   1. Add a `thumb<Name>()` builder function following the
+//      existing pattern (use `svg(...)` + `shape(tag, attrs)` for
+//      single-color geometry; opacity 0.35-0.7 for layered fills;
+//      keep visible content roughly inside x=18..62, y=10..35 so
+//      the glyph reads at small sizes).
+//   2. Register the builder in the `REGISTRY` object at the bottom
+//      of this file under the exact `$render` string the widget
+//      declares — case-sensitive.
+//   3. Glyph should evoke the widget's output SHAPE, not its data
+//      domain. A bar chart is bars regardless of whether it's
+//      counting events or orgs; the gallery groups by category
+//      separately (it's an orthogonal concern).
+//   4. No tests required; node --check is enough. Open the gallery
+//      to verify visually — the new glyph should land for every
+//      widget using the new render kind.
+// ──────────────────────────────────────────────────────────────────
 
 const VIEWBOX = '0 0 80 45';
 
