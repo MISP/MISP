@@ -873,7 +873,9 @@ all applicable widgets' `time_window` / `tag_filter` / `org_filter` /
 immediately to per-widget configs; toolbar's displayed value is
 computed from those configs (with "(mixed)" indicator on disagreement).
 
-- [ ] Implement remaining canonical types from PRD §5.5: `tag_filter`, `org_filter`, `sharing_group_filter`, `galaxy_cluster_filter`, `distribution_filter`, `threat_level_filter`, `analysis_filter`
+- [ ] **CanonicalTypeAdapter helper** (PRD §5.5 keystone): `app/Lib/Dashboard/Tools/CanonicalTypeAdapter.php` — static helper that reads `$widget->$schema` and translates canonical wire shapes back to the legacy shapes each widget's `handler()` parses. Also injects schema-declared `default` values for missing keys (the deferred-from-Phase-2 piece per lesson #2 of the 2026-05-18 handoff: canonical defaults must wait for the adapter so the translation hop is in place). Phase 3 implementation lands `time_window` translator first per the PRD §5.5 translation table (`P<N>D → <N>d`, `P<N>W → <N*7>d`, `PT<N>H → <N*3600>` seconds, sentinel `-1` and arbitrary integer seconds passthrough). Each subsequent canonical type adds one `translate<Type>()` method + one `switch` case.
+- [ ] **Wire CanonicalTypeAdapter** into `DashboardsController::renderWidget` (call site: before `$widget->handler($user, $config)`) + add canonical `time_window` defaults to the 3 time_window-declaring widgets shipped in Phase 2 (`TrendingTagsWidget` / `TrendingAttributesWidget` / `RecentSightingsWidget`). Defaults land in `$schema['<key>']['default']` as ISO 8601 strings (`'P7D'`, `'P1D'`); the adapter translates them at handler-call time. Smoke each widget against three input shapes — canonical (`P7D`), legacy (`7d`), unset (default-injection path).
+- [ ] Implement remaining canonical types from PRD §5.5: `date_range` (Phase 3 landing per §5.5; gates 3 widgets — UsageDataWidget, OrganisationMapWidget, EventEvolutionLineWidget — currently parked at empty `$schema`), `tag_filter`, `org_filter`, `sharing_group_filter`, `galaxy_cluster_filter`, `distribution_filter`, `threat_level_filter`, `analysis_filter`, `attribute_type_filter`, `event_id_filter`
 - [ ] Per-canonical-type form field elements for the configure form's typed-fields tier (full set)
 - [ ] Per-canonical-type validators (validate `$config[<canonical_type>]` shapes server-side before save)
 - [ ] **Toolbar control logic** (per DD-05). For each canonical type declared by at least one widget on the dashboard, render a toolbar control. Compute its display state from the current widgets:
@@ -1045,7 +1047,7 @@ Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
 
-### Phase 3 canonical-type adapter + catalogue gaps (surfaced 2026-05-18)
+### Phase 3 canonical-type adapter + catalogue gaps (surfaced 2026-05-18) — **task lines added 2026-05-19**
 
 **Surfaced during the Phase 2 9-widget `$schema` backfill (commits `1a426b644` … `afadd0530`).**
 
@@ -1056,6 +1058,8 @@ Phase 3 also omits the **canonical adapter implementation** itself — PRD §5.5
 Open question for Phase 3 planning: **introduce a new canonical type for the org-meta-data filter shape?** Four widgets in the Phase 2 backfill (`TrendingAttributesWidget`, `UsageDataWidget`, `OrganisationMapWidget`, `EventEvolutionLineWidget`) all have a `filter`/`org_filter` param shaped as `{ sector?, type?, nationality?, name?, uuid?, local? }` with `!`-prefix negation — a recurring shape that's neither canonical `org_filter` (identity-based) nor widget-specific. Could be promoted to a new canonical `org_meta_filter` type that the toolbar surfaces as a bulk-edit chip. Alternatively, accept that meta-data filtering stays in `$params` bottom-tier permanently (4-widget consistency isn't enough to justify a catalogue addition).
 
 **Where it lands:** Phase 3 task list amendments — needs the `date_range` line item, an explicit `CanonicalTypeAdapter` implementation task, a `time_window` legacy-to-canonical translation task (PRD §5.5 lists the translation table), and a decision/task on `org_meta_filter`.
+
+**Update 2026-05-19:** Phase 3 task list amended in this commit (Phase 3 first three entries). New lines: (a) **CanonicalTypeAdapter helper** — explicit task for the keystone adapter, spec'd to ship the `time_window` translator first per PRD §5.5; (b) **Wire CanonicalTypeAdapter into renderWidget + canonical defaults on time_window widgets** — covers the integration + the Phase-2-deferred defaults (lesson #2 of the 2026-05-18 handoff); (c) **Expanded canonical-types implementation line** to explicitly include `date_range`, `attribute_type_filter`, and `event_id_filter` alongside the original 7. The `org_meta_filter` open question is still parked here pending an explicit decision (introduce new canonical type or accept permanent `$params` bottom-tier) — flagged for the Phase 3 kickoff conversation; for now the 4 widgets stay legacy-bottom-tier.
 
 ### TrendingTagsWidget handler() pre-existing PHP 8.x crash
 
