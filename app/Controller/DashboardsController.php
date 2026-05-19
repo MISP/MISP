@@ -357,6 +357,57 @@ class DashboardsController extends AppController
         return $header . PHP_EOL . implode(PHP_EOL, array_values($rows)) . PHP_EOL;
     }
 
+    /**
+     * v2 widget metadata endpoint (PRD §5.8). Lists every widget the
+     * calling user is eligible for (per each widget's optional
+     * checkPermissions hook), with the v2-additional metadata that
+     * the Add Widget gallery needs: $schema (typed-fields contract,
+     * PRD §5.7), $category (gallery grouping bucket, status / events
+     * / tags / orgs / system / custom), and $thumbnail (relative URL
+     * to a static preview image, optional).
+     *
+     * Wire shape is JSON-only — the gallery is XHR-driven and the
+     * dashboard's HTML view path has no template for this endpoint.
+     * Returns a flat list ordered by class name (the existing
+     * `ksort` in `Dashboard::loadAllWidgets`); the client groups by
+     * category at render time.
+     *
+     * The legacy `Dashboard::loadAllWidgets` enumeration is kept
+     * untouched (additive-only posture); v2 keys are enriched here
+     * by re-loading each widget via `loadWidget` so we have an
+     * instance to read the new optional properties off. The
+     * double-instantiation cost (~38 widgets) is acceptable for an
+     * on-demand gallery open; if it ever surfaces as a hot path the
+     * natural cleanup is to fold the enrichment into
+     * `Dashboard::__extractMeta` directly.
+     */
+    public function widgets()
+    {
+        App::uses('WidgetSchema', 'Lib/Dashboard/Tools');
+        $user = $this->Auth->user();
+        $widgets = $this->Dashboard->loadAllWidgets($user);
+        $out = [];
+        foreach ($widgets as $className => $meta) {
+            $instance = $this->Dashboard->loadWidget($user, $className, true);
+            if ($instance === false) {
+                // Race: checkPermissions flipped between the
+                // enumeration and the re-load. Skip silently.
+                continue;
+            }
+            $meta['schema'] = WidgetSchema::getSchema($instance);
+            $meta['category'] = isset($instance->category)
+                && is_string($instance->category)
+                ? $instance->category
+                : '';
+            $meta['thumbnail'] = isset($instance->thumbnail)
+                && is_string($instance->thumbnail)
+                ? $instance->thumbnail
+                : '';
+            $out[] = $meta;
+        }
+        return $this->RestResponse->viewData($out, 'json');
+    }
+
     /* ============================================================
      * Phase 1 v1 carryover (per audit Done note in
      * dashboard-progress.md). The five template / import / export
