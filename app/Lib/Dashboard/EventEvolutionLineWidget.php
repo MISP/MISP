@@ -20,6 +20,10 @@ class EventEvolutionLineWidget
             'default' => true,
             'help' => 'Plot data cumulatively over time (running total) instead of per-interval counts.',
         ],
+        'date_range' => [
+            'type' => 'date_range',
+            'help' => 'Start date for the timeline. Open-ended (to = null) is the natural shape — the chart always runs through the current month — so the adapter\'s skip-end_date-when-to-null behavior matches handler()\'s implicit "now" endpoint.',
+        ],
     ];
     private $validFilterKeys = [
         'nationality',
