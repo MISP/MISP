@@ -27,6 +27,8 @@
  * mode needs its own ESC listener (added in init() below).
  */
 
+import { getRenderThumb } from './gallery/render-thumbs.mjs';
+
 const ATTR_PANEL           = 'data-misp-configure-root';
 const ATTR_PANEL_BODY      = 'data-misp-configure-body';
 const ATTR_PANEL_TITLE     = 'data-misp-configure-title';
@@ -254,11 +256,24 @@ function populateCard(cardNode, widget) {
   }
 
   const thumbSlot = card.querySelector(`[${ATTR_GALLERY_CARD_THUMBNAIL}]`);
-  if (thumbSlot && widget.thumbnail) {
-    const img = document.createElement('img');
-    img.src = widget.thumbnail;
-    img.alt = '';
-    thumbSlot.appendChild(img);
+  if (thumbSlot) {
+    if (widget.thumbnail) {
+      // Widget declares its own preview URL — use it. Today no
+      // in-tree widget declares $thumbnail; this path stays wired
+      // for future per-widget custom previews.
+      const img = document.createElement('img');
+      img.src = widget.thumbnail;
+      img.alt = '';
+      thumbSlot.appendChild(img);
+    } else {
+      // No custom thumbnail — fall back to a render-kind-shaped
+      // glyph. Visually evokes the widget's output (3 bars for
+      // BarChart, sloped lines for MultiLineChart, globe for
+      // WorldMap, etc.) so the gallery is scannable even without
+      // per-widget assets. Unknown render kinds get a generic
+      // block glyph.
+      thumbSlot.appendChild(getRenderThumb(widget.render || ''));
+    }
   }
 }
 

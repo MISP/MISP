@@ -1181,19 +1181,37 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   box-shadow: 0 0 0 3px var(--misp-dash-accent-soft);
 }
 .misp-gallery-card-thumbnail {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   aspect-ratio: 16 / 9;
   background: var(--misp-dash-surface-sunken);
   border: 1px solid var(--misp-dash-border-subtle);
   border-radius: var(--misp-dash-radius-md);
   overflow: hidden;
+  color: var(--misp-dash-text-muted);
+  transition: color var(--misp-dash-transition-base),
+              background var(--misp-dash-transition-base);
 }
 .misp-gallery-card-thumbnail img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+/* Render-kind glyph fallback (when no $thumbnail URL is declared).
+ * SVG inherits `currentColor` from the slot, so hover lifts the
+ * accent in concert with the card's lift state. */
+.misp-gallery-card-thumbnail svg {
+  width: 56%;
+  height: auto;
+  max-height: 78%;
+}
+.misp-gallery-card:hover .misp-gallery-card-thumbnail,
+.misp-gallery-card:focus-visible .misp-gallery-card-thumbnail {
+  color: var(--misp-dash-accent);
+  background: var(--misp-dash-surface);
 }
 .misp-gallery-card-body {
   display: flex;
