@@ -3,6 +3,7 @@
 class MispAdminWorkerWidget
 {
     public $title = 'MISP Workers';
+    public $category = 'system';
     public $render = 'SimpleList';
     public $width = 2;
     public $height = 2;

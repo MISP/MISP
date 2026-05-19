@@ -3,6 +3,7 @@
 class CsseCovidWidget
 {
     public $title = 'CSSE Covid-19 data';
+    public $category = 'custom';
     public $render = 'BarChart';
     public $width = 3;
     public $height = 4;

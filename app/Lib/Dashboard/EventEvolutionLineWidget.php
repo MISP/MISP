@@ -3,6 +3,7 @@
 class EventEvolutionLineWidget
 {
     public $title = 'Evolution of published event count (filterable)';
+    public $category = 'events';
     public $render = 'MultiLineChart';
     public $width = 7;
     public $height = 6;

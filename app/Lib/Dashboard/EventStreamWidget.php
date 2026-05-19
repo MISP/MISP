@@ -3,6 +3,7 @@
 class EventStreamWidget
 {
     public $title = 'Event Stream';
+    public $category = 'events';
     public $render = 'Index';
     public $width = 4;
     public $height = 2;

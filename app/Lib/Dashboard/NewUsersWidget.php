@@ -3,6 +3,7 @@
 class NewUsersWidget
 {
     public $title = 'New users';
+    public $category = 'system';
     public $render = 'Index';
     public $width = 7;
     public $height = 6;

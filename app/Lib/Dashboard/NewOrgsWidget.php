@@ -3,6 +3,7 @@
 class NewOrgsWidget
 {
     public $title = 'New organisations';
+    public $category = 'orgs';
     public $render = 'Index';
     public $width = 7;
     public $height = 6;

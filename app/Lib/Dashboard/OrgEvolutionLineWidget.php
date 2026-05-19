@@ -3,6 +3,7 @@
 class OrgEvolutionLineWidget
 {
     public $title = 'Evolution of orgs count (filterable)';
+    public $category = 'orgs';
     public $render = 'MultiLineChart';
     public $width = 7;
     public $height = 6;

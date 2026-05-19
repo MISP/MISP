@@ -2,6 +2,7 @@
 class OrganisationMapWidget
 {
     public $title = 'Organisation world map';
+    public $category = 'orgs';
     public $render = 'WorldMap';
     public $description = 'The countries represented via organisations on the current instance.';
     public $width = 3;

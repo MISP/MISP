@@ -3,6 +3,7 @@
 class AuthenticationFailureWidget
 {
     public $title = 'Authentication Failure Data';
+    public $category = 'status';
     public $render = 'BarChart';
     public $width = 3;
     public $height = 10;

@@ -3,6 +3,7 @@
 class MispAdminResourceWidget
 {
     public $title = 'MISP Resource Usage';
+    public $category = 'system';
     public $render = 'SimpleList';
     public $width = 2;
     public $height = 2;

@@ -3,6 +3,7 @@
 class MispAdminSyncTestWidget
 {
     public $title = 'MISP Sync Test';
+    public $category = 'system';
     public $render = 'SimpleList';
     public $width = 3;
     public $height = 2;

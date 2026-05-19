@@ -6,6 +6,7 @@
 class OrgEventsWidget
 {
     public $title = 'Org Events';
+    public $category = 'events';
     public $render = 'MultiLineChart';
     public $width = 8;
     public $height = 6;

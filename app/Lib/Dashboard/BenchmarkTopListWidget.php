@@ -4,6 +4,7 @@
 class BenchmarkTopListWidget
 {
     public $title = 'Benchmark top list';
+    public $category = 'system';
     public $render = 'MultiLineChart';
     public $width = 3;
     public $height = 3;

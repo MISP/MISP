@@ -2,6 +2,7 @@
 class UsageDataWidget
 {
     public $title = 'Usage data';
+    public $category = 'events';
     public $render = 'SimpleList';
     public $width = 2;
     public $height = 5;

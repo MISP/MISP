@@ -3,6 +3,7 @@
 class CsseCovidTrendsWidget
 {
     public $title = 'CSSE Covid-19 trends';
+    public $category = 'custom';
     public $render = 'MultiLineChart';
     public $width = 4;
     public $height = 5;

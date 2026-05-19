@@ -4,6 +4,7 @@ require_once 'OrgsContributorsGeneric.php';
 class OrgsUsingMitreWidget extends OrgsContributorsGeneric
 {
     public $title = 'Orgs using MITRE ATT&CK';
+    public $category = 'orgs';
     public $description = 'Display the logos of all organisations having shared at least one event using the MITRE ATT&CK tags in the last 100 days';
 
     protected function filter($user, $org, $start_timestamp) {

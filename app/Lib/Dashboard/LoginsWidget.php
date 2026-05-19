@@ -3,6 +3,7 @@
 class LoginsWidget
 {
     public $title = 'Logins';
+    public $category = 'system';
     public $render = 'SimpleList';
     public $width = 2;
     public $height = 2;

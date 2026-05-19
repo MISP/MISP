@@ -2,6 +2,7 @@
 class OrgContributionToplistWidget
 {
     public $title = 'Contributor Top List (Orgs)';
+    public $category = 'orgs';
     public $render = 'BarChart';
     public $description = 'The top contributors (orgs) in a selected time frame.';
     public $width = 3;

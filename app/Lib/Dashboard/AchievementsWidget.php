@@ -4,6 +4,7 @@ class AchievementsWidget
 
     public $render = 'Achievements';
     public $title = 'Achievements of my organization';
+    public $category = 'status';
     public $description = 'Earn badges and improve your usage of MISP.';
     public $width = 4;
     public $height = 10;

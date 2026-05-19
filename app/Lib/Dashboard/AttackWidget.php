@@ -2,6 +2,7 @@
 class AttackWidget
 {
     public $title = 'ATT&CK heatmap';
+    public $category = 'events';
     public $render = 'Attack';
     public $description = 'Retrieve an ATT&CK (or ATT&CK like) heatmap for the current instance.';
     public $width = 3;

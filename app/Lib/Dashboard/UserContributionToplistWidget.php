@@ -2,6 +2,7 @@
 class UserContributionToplistWidget
 {
     public $title = 'Contributor Top List (Users)';
+    public $category = 'orgs';
     public $render = 'BarChart';
     public $description = 'The top contributors (users) in a selected time frame.';
     public $width = 3;

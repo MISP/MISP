@@ -3,6 +3,7 @@
 class CsseCovidMapWidget
 {
     public $title = 'CSSE Covid-19 map';
+    public $category = 'custom';
     public $render = 'WorldMap';
     public $width = 3;
     public $height = 4;

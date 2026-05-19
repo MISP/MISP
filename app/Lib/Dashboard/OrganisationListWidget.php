@@ -2,6 +2,7 @@
 class OrganisationListWidget
 {
     public $title = 'Organisation list';
+    public $category = 'orgs';
     public $render = 'BarChart';
     public $description = 'The countries represented via organisations on the current instance.';
     public $width = 3;

@@ -3,6 +3,7 @@
 class ThresholdSightingsWidget
 {
     public $title = 'Threshold Sightings';
+    public $category = 'events';
     public $render = 'SimpleList';
     public $width = 8;
     public $height = 4;

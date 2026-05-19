@@ -8,6 +8,7 @@
 class SharingGraphWidget
 {
     public $title = 'Sharing Trends';
+    public $category = 'orgs';
     public $render = 'MultiLineChart';
     public $width = 8;
     public $height = 6;

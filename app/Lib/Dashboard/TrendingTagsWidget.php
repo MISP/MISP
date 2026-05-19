@@ -3,6 +3,7 @@
 class TrendingTagsWidget
 {
     public $title = 'Trending Tags';
+    public $category = 'tags';
     public $render = 'BarChart';
     public $width = 3;
     public $height = 4;

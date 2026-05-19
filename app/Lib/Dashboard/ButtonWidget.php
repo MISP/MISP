@@ -3,6 +3,7 @@
 class ButtonWidget
 {
     public $title = 'Button Widget';
+    public $category = 'custom';
     public $render = 'Button';
     public $width = 3;
     public $height = 2;

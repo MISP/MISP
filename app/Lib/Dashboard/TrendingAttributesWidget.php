@@ -3,6 +3,7 @@
 class TrendingAttributesWidget
 {
     public $title = 'Trending Attribute values';
+    public $category = 'events';
     public $render = 'BarChart';
     public $width = 3;
     public $height = 4;

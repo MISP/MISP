@@ -4,6 +4,7 @@
 class UsersEvolutionWidget
 {
     public $title = 'Evolution of user count';
+    public $category = 'system';
     public $render = 'MultiLineChart';
     public $width = 7;
     public $height = 6;

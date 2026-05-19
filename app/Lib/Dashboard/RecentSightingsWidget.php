@@ -3,6 +3,7 @@
 class RecentSightingsWidget
 {
     public $title = 'Recent Sightings';
+    public $category = 'events';
     public $render = 'SimpleList';
     public $width = 8;
     public $height = 6;
