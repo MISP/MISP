@@ -974,6 +974,25 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 }
 
 /* ============================================================
+ * tag_filter canonical picker — include / exclude chip-input pair
+ * laid out as two labeled rows inside the configure form's typed-
+ * fields tier (and, eventually, the bulk-edit toolbar popover).
+ * ============================================================ */
+.misp-tag-filter-row {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: var(--misp-dash-space-2);
+  align-items: start;
+  margin-top: var(--misp-dash-space-1);
+}
+.misp-tag-filter-rowlabel {
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text-muted);
+  padding-top: 6px;
+  font-weight: var(--misp-dash-fw-medium);
+}
+
+/* ============================================================
  * Density toggle (compact = tighter padding + smaller font scale)
  * ============================================================ */
 [data-density="compact"] .misp-widget-titlebar { padding: 4px 8px; font-size: var(--misp-dash-fs-xs); }

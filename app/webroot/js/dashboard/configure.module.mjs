@@ -13,6 +13,7 @@
 // canonical registry below.
 
 import * as TimeWindow from './canonical/time_window.mjs';
+import * as TagFilter  from './canonical/tag_filter.mjs';
 import { buildChips, getChipsValue } from './chips.module.mjs';
 import {
   flatten,
@@ -28,6 +29,7 @@ import {
 // readback finds it without knowing the builder).
 const CANONICAL_BUILDERS = {
   [TimeWindow.KEY]: TimeWindow,
+  [TagFilter.KEY]:  TagFilter,
 };
 const SCALAR_TYPES = new Set(['string', 'int', 'bool', 'enum']);
 
@@ -288,11 +290,16 @@ function readBack(panel) {
   // Top tier: every control tagged with [data-schema-key] writes
   // into the root config under its key. data-type drives coercion
   // (checkboxes → bool, number inputs → int, selects/text → string).
+  // Structured canonical types (tag_filter etc.) export their own
+  // readValue() which is dispatched via the CANONICAL_BUILDERS
+  // registry — they return a structured object rather than a scalar.
   for (const sel of panel.querySelectorAll(`[${ATTR_SCHEMA_KEY}]`)) {
     const k = sel.getAttribute(ATTR_SCHEMA_KEY);
     const t = sel.getAttribute('data-type');
     let v;
-    if (sel.type === 'checkbox') {
+    if (CANONICAL_BUILDERS[t] && typeof CANONICAL_BUILDERS[t].readValue === 'function') {
+      v = CANONICAL_BUILDERS[t].readValue(sel);
+    } else if (sel.type === 'checkbox') {
       v = sel.checked;
     } else if (t === 'int') {
       // Empty string stays empty so the widget's empty-fallback can
