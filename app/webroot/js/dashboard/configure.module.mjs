@@ -14,6 +14,12 @@
 
 import * as TimeWindow from './canonical/time_window.mjs';
 import { buildChips, getChipsValue } from './chips.module.mjs';
+import {
+  flatten,
+  reNest,
+  asArray,
+  seedFromPlaceholder,
+} from './kvshape.module.mjs';
 
 // Builder registry keyed by canonical type name. Each builder
 // exports `KEY` (the type), `LABEL`, and `buildField(value, opts)`
@@ -50,78 +56,6 @@ let savedThisSession = false;   // commit sets true so closeConfigure skips the 
 // the widget on form-input change").
 const PREVIEW_DEBOUNCE_MS = 250;
 
-// ---- shape helpers ----
-
-/** Flatten a nested object/array into dot-notation keys → JSON-encoded
- * scalar values. Arrays are kept as JSON strings so the user can edit
- * them in a single text field; the inverse (`reNest`) parses them back.
- * Round-trip lossless for nested objects, arrays, scalars, booleans. */
-function flatten(obj, prefix = '', out = {}) {
-  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
-    out[prefix] = JSON.stringify(obj);
-    return out;
-  }
-  const keys = Object.keys(obj);
-  if (keys.length === 0 && prefix) {
-    out[prefix] = '{}';
-    return out;
-  }
-  for (const k of keys) {
-    const path = prefix ? `${prefix}.${k}` : k;
-    flatten(obj[k], path, out);
-  }
-  return out;
-}
-
-/** Parse a widget's $placeholder string and produce dot-notation
- * (key, value) pairs suitable for seeding the bottom-tier kv list
- * (DD-06: "When adding a new widget, parse `$placeholder` JSON and
- * populate the key-value list with the example keys/values").
- *
- * Schema-handled keys are filtered out so the user doesn't see a
- * duplicate field in two tiers (and so the readback path doesn't
- * have the bottom-tier kv-row overwrite the top-tier schema control
- * via the Object.assign at the end of readBack()).
- *
- * Robust to legacy malformed placeholders — some MISP widgets ship
- * trailing-comma JSON which standard JSON.parse rejects. On parse
- * failure (or empty/non-object input) we return [], and the caller
- * falls back to a single empty kv row. */
-function seedFromPlaceholder(raw, handledKeys) {
-  if (!raw || typeof raw !== 'string') return [];
-  let parsed;
-  try { parsed = JSON.parse(raw); } catch (_) { return []; }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return [];
-  const filtered = {};
-  for (const [k, v] of Object.entries(parsed)) {
-    if (handledKeys.has(k)) continue;
-    filtered[k] = v;
-  }
-  return Object.entries(flatten(filtered));
-}
-
-/** Re-nest a {dot.path: stringValue} dictionary into a real config
- * object. Each value is JSON-parsed first, falling back to the raw
- * string if it doesn't look like JSON. */
-function reNest(flat) {
-  const out = {};
-  for (const [path, raw] of Object.entries(flat)) {
-    const parts = path.split('.');
-    let parsed;
-    try { parsed = JSON.parse(raw); } catch (_) { parsed = raw; }
-    let cur = out;
-    for (let i = 0; i < parts.length - 1; i++) {
-      if (typeof cur[parts[i]] !== 'object' || cur[parts[i]] === null
-          || Array.isArray(cur[parts[i]])) {
-        cur[parts[i]] = {};
-      }
-      cur = cur[parts[i]];
-    }
-    cur[parts[parts.length - 1]] = parsed;
-  }
-  return out;
-}
-
 // ---- DOM construction ----
 
 function el(tag, attrs = {}, ...children) {
@@ -140,24 +74,6 @@ function el(tag, attrs = {}, ...children) {
     node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
   }
   return node;
-}
-
-/** If `value` is a JSON-encoded array string (the shape flatten()
- * produces for nested arrays), return the parsed array. Otherwise
- * return null so the caller falls back to a plain text input.
- *
- * Heuristic: cheap startsWith check first, then JSON.parse — avoids
- * trying to parse every text input as JSON. */
-function asArray(value) {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  if (!trimmed.startsWith('[')) return null;
-  try {
-    const parsed = JSON.parse(trimmed);
-    return Array.isArray(parsed) ? parsed : null;
-  } catch (_) {
-    return null;
-  }
 }
 
 function buildKVRow(key, value) {
