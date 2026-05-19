@@ -125,6 +125,19 @@ class CanonicalTypeAdapter
                         }
                     }
                     break;
+                case 'org_meta_filter':
+                    // Pass-through: canonical and legacy shapes match
+                    // — every consuming widget today already reads
+                    // `$options[<schemaKey>]` as the {sector, type,
+                    // nationality, name, uuid, local} record the
+                    // canonical defines. The explicit case documents
+                    // intent (vs. falling through silently) and gives
+                    // us a single place to add per-widget shape
+                    // normalisation later if it surfaces. See
+                    // translateOrgMetaFilter() for the (currently
+                    // identity) transform.
+                    $config[$key] = self::translateOrgMetaFilter($config[$key]);
+                    break;
                 // Phase 3 adds: org_filter, sharing_group_filter,
                 // galaxy_cluster_filter, distribution_filter,
                 // threat_level_filter, analysis_filter,
@@ -276,5 +289,44 @@ class CanonicalTypeAdapter
             $result['exclude'] = array_values(array_map('strval', $value['exclude']));
         }
         return $result === [] ? null : $result;
+    }
+
+    /**
+     * Translate a single `org_meta_filter` value (PRD §5.5).
+     *
+     * Canonical shape:
+     *   { sector?: string[], type?: string[], nationality?: string[],
+     *     name?: string[], uuid?: string[],
+     *     local?: (0|1|true|false)[] }
+     * Each string entry may have a `!` prefix to negate.
+     *
+     * This is a **pass-through** transform — canonical and legacy
+     * widget shapes match, so the function's job is normalisation
+     * only:
+     *   - non-array input → returned untouched (the handler's own
+     *     `!empty(... && is_array(...))` defensive check will skip
+     *     malformed values without exception).
+     *   - scalar entries inside a key (legacy widgets coerce single
+     *     values to arrays via `if (!is_array(...)) ... = [$value];`)
+     *     pass through unchanged — the existing widget code handles
+     *     the coercion.
+     *   - empty arrays at any key pass through; the widget's
+     *     `if (!empty(...))` guard skips them.
+     *   - unknown keys are kept; each widget's private
+     *     `$validFilterKeys` array filters down to the subset that
+     *     widget understands (e.g. OrganisationMapWidget only consumes
+     *     sector/type/local). Keeping unknown keys means a future
+     *     widget that adds a new $validFilterKeys entry doesn't need
+     *     a translator update.
+     *
+     * Defensive null handling: passes through unchanged so the
+     * handler's empty()-guard skips the empty case.
+     *
+     * @param mixed $value
+     * @return mixed Same shape as input.
+     */
+    public static function translateOrgMetaFilter($value)
+    {
+        return $value;
     }
 }

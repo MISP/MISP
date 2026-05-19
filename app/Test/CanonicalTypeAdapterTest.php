@@ -686,4 +686,105 @@ class CanonicalTypeAdapterTest extends TestCase
         ]);
         $this->assertSame(['tlp:white'], $out['include']);
     }
+
+    // -------- translateOrgMetaFilter() pass-through paths --------
+
+    public function testOrgMetaFilterPassesArrayThrough(): void
+    {
+        // Canonical and legacy shapes match — translator is identity
+        // for valid input.
+        $value = [
+            'sector' => ['Financial', 'Healthcare'],
+            'type'   => ['CSIRT'],
+            'local'  => [1],
+        ];
+        $this->assertSame($value, CanonicalTypeAdapter::translateOrgMetaFilter($value));
+    }
+
+    public function testOrgMetaFilterNegationPrefixPreserved(): void
+    {
+        // The `!` negation prefix is part of the wire format and the
+        // legacy widget's parsing logic strips it; the translator
+        // must pass it through unmodified.
+        $value = ['nationality' => ['!US', 'DE', 'FR']];
+        $this->assertSame($value, CanonicalTypeAdapter::translateOrgMetaFilter($value));
+    }
+
+    public function testOrgMetaFilterUnknownKeysPreserved(): void
+    {
+        // Unknown / forward-compat keys pass through; each widget's
+        // private $validFilterKeys array filters down to its subset.
+        $value = [
+            'sector' => ['Financial'],
+            'future_key' => ['anything'],
+        ];
+        $this->assertSame($value, CanonicalTypeAdapter::translateOrgMetaFilter($value));
+    }
+
+    public function testOrgMetaFilterEmptyArrayPassesThrough(): void
+    {
+        $this->assertSame([], CanonicalTypeAdapter::translateOrgMetaFilter([]));
+    }
+
+    public function testOrgMetaFilterNullPassesThrough(): void
+    {
+        // The handler's !empty()-guard skips empty values without
+        // exception — translator preserves the null verbatim.
+        $this->assertNull(CanonicalTypeAdapter::translateOrgMetaFilter(null));
+    }
+
+    public function testOrgMetaFilterNonArrayInputPassesThrough(): void
+    {
+        // Defensive: scalar values pass through unchanged. The
+        // legacy widget's `!empty($options['filter']) && is_array(...)`
+        // guard skips them at the handler level.
+        $this->assertSame('garbage', CanonicalTypeAdapter::translateOrgMetaFilter('garbage'));
+        $this->assertSame(42, CanonicalTypeAdapter::translateOrgMetaFilter(42));
+    }
+
+    public function testTranslateOrgMetaFilterUnderConventionalSchemaKey(): void
+    {
+        // Widget declares org_meta_filter under the conventional key
+        // 'filter' (matches the 8 in-tree widgets). The adapter case
+        // is no-op pass-through.
+        $widget = new stdClass();
+        $widget->schema = [
+            'filter' => ['type' => 'org_meta_filter'],
+        ];
+        $value = ['sector' => ['Financial'], 'local' => [0, 1]];
+        $out = CanonicalTypeAdapter::translate($widget, ['filter' => $value]);
+        $this->assertSame($value, $out['filter']);
+    }
+
+    public function testTranslateOrgMetaFilterUnderNonConventionalSchemaKey(): void
+    {
+        // Widget declares org_meta_filter under 'org_filter' (matches
+        // TrendingAttributesWidget's legacy slot name). The adapter
+        // pass-through writes back to the same schema key.
+        $widget = new stdClass();
+        $widget->schema = [
+            'org_filter' => ['type' => 'org_meta_filter'],
+        ];
+        $value = ['type' => ['CIRCL', '!Test']];
+        $out = CanonicalTypeAdapter::translate($widget, ['org_filter' => $value]);
+        $this->assertSame($value, $out['org_filter']);
+    }
+
+    public function testTranslateOrgMetaFilterCoexistsWithTimeWindow(): void
+    {
+        // Widget declares both — time_window translates (P7D → 7d);
+        // org_meta_filter passes through. Both schema entries
+        // independently translate per their case.
+        $widget = new stdClass();
+        $widget->schema = [
+            'time_window' => ['type' => 'time_window'],
+            'filter'      => ['type' => 'org_meta_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'time_window' => 'P7D',
+            'filter'      => ['sector' => ['Financial']],
+        ]);
+        $this->assertSame('7d', $out['time_window']);
+        $this->assertSame(['sector' => ['Financial']], $out['filter']);
+    }
 }
