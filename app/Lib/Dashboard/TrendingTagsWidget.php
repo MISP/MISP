@@ -14,6 +14,7 @@ class TrendingTagsWidget
         'threshold' => 'Limits the number of displayed tags. Default: 10',
         'filter_event_tags' => 'Filters to be applied on event tags',
         'over_time' => 'Toggle the trending to be over time',
+        'distribution' => 'Filter source events by distribution level. Integer array, subset of {0..5} (0=Org only, 1=Community, 2=Connected, 3=All, 4=Sharing group, 5=Inherit). Empty / missing = no filter.',
     );
     public $schema = array(
         'time_window' => array(
@@ -24,6 +25,10 @@ class TrendingTagsWidget
         'tag_filter' => array(
             'type' => 'tag_filter',
             'help' => 'Substring patterns that include/exclude tags from the trending list. "tlp:" matches every TLP tag.',
+        ),
+        'distribution' => array(
+            'type' => 'distribution_filter',
+            'help' => 'Restrict the source events by distribution level. Empty selection = no filter.',
         ),
         'threshold' => array(
             'type' => 'int',
@@ -63,6 +68,31 @@ class TrendingTagsWidget
             $params['event_tags'] = $options['filter_event_tags'];
         }
         $eventIds = $eventModel->filterEventIds($user, $params);
+
+        // Phase 3 canonical distribution_filter — narrow the event-id
+        // list by Event.distribution when the option is non-empty.
+        // filterEventIds doesn't accept `distribution` in its
+        // simple_params dispatch (would be a MISP-core touch), so the
+        // narrowing happens here as a post-step: one `find('list')`
+        // against Event with the already-ACL-filtered eventIds as the
+        // base set, plus an IN clause on Event.distribution. ACL-safe
+        // because the input set was already filtered by
+        // filterEventIds (which honours the user's permissions).
+        if (!empty($options['distribution']) && !empty($eventIds)) {
+            $distribution = is_array($options['distribution'])
+                ? array_values(array_filter($options['distribution'], 'is_numeric'))
+                : (is_numeric($options['distribution']) ? [(int)$options['distribution']] : []);
+            if (!empty($distribution)) {
+                $eventIds = array_keys($eventModel->find('list', [
+                    'recursive' => -1,
+                    'conditions' => [
+                        'Event.id' => $eventIds,
+                        'Event.distribution' => $distribution,
+                    ],
+                    'fields' => ['Event.id', 'Event.id'],
+                ]));
+            }
+        }
 
         $tagColours = [];
         $allTags = [];
