@@ -1000,3 +1000,173 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 [data-density="compact"] .misp-widget-titlebar { padding: 4px 8px; font-size: var(--misp-dash-fs-xs); }
 [data-density="compact"] .misp-widget-body     { padding: var(--misp-dash-space-2); }
 [data-density="compact"] .misp-dashboard-header{ padding: var(--misp-dash-space-2) var(--misp-dash-space-4); }
+
+/* ============================================================
+ * Widget gallery (PRD §5.7 / §5.8)
+ *
+ * Lives inside `.misp-configure-body` when the gallery JS opens
+ * the Add Widget flow. The shell + card prototypes are HTML5
+ * <template> elements emitted by index.ctp; the JS clones them
+ * and populates the data hooks per widget. Search filters cards
+ * by class name / title / description / category match; the
+ * counter reports "visible / total".
+ * ============================================================ */
+.misp-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-3);
+  height: 100%;
+}
+.misp-gallery-header {
+  display: flex;
+  gap: var(--misp-dash-space-3);
+  align-items: center;
+  padding-bottom: var(--misp-dash-space-2);
+  border-bottom: 1px solid var(--misp-dash-border-subtle);
+}
+.misp-gallery-search-label {
+  flex: 1;
+  display: block;
+}
+.misp-gallery-search {
+  width: 100%;
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text);
+  background: var(--misp-dash-surface);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.misp-gallery-search:focus {
+  border-color: var(--misp-dash-accent);
+  box-shadow: 0 0 0 3px var(--misp-dash-accent-soft);
+}
+.misp-gallery-search::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+.misp-gallery-counter {
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.misp-gallery-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-4);
+  overflow-y: auto;
+  /* Counter the configure-body padding so the scrollbar lands on
+     the panel edge rather than mid-panel. */
+  margin-right: calc(var(--misp-dash-space-3) * -1);
+  padding-right: var(--misp-dash-space-3);
+}
+.misp-gallery-category {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-2);
+}
+.misp-gallery-category-heading {
+  margin: 0;
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--misp-dash-text-muted);
+}
+.misp-gallery-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--misp-dash-space-3);
+}
+.misp-gallery-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-3);
+  text-align: left;
+  font: inherit;
+  color: var(--misp-dash-text);
+  background: var(--misp-dash-surface);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-lg);
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+.misp-gallery-card:hover {
+  border-color: var(--misp-dash-accent);
+  box-shadow: 0 4px 12px var(--misp-dash-shadow-soft);
+  transform: translateY(-1px);
+}
+.misp-gallery-card:focus-visible {
+  outline: none;
+  border-color: var(--misp-dash-accent);
+  box-shadow: 0 0 0 3px var(--misp-dash-accent-soft);
+}
+.misp-gallery-card-thumbnail {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border-subtle);
+  border-radius: var(--misp-dash-radius-md);
+  overflow: hidden;
+}
+.misp-gallery-card-thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.misp-gallery-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  min-height: 0;
+}
+.misp-gallery-card-title {
+  font-size: var(--misp-dash-fs-base);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text);
+  line-height: 1.3;
+}
+.misp-gallery-card-description {
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.misp-gallery-card-meta {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: var(--misp-dash-space-2);
+  flex-wrap: wrap;
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  margin-top: var(--misp-dash-space-1);
+}
+.misp-gallery-card-category,
+.misp-gallery-card-size {
+  display: inline-flex;
+  padding: 2px 6px;
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border-subtle);
+  border-radius: var(--misp-dash-radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+.misp-gallery-empty {
+  padding: var(--misp-dash-space-4);
+  text-align: center;
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+  background: var(--misp-dash-surface-sunken);
+  border: 1px dashed var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+}

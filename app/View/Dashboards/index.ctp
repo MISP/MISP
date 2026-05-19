@@ -193,4 +193,14 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
     </footer>
 </aside>
 
+<!-- Widget gallery (PRD §5.7 / §5.8). Inert <template> elements
+     cloned by the gallery JS when the user opens the Add Widget
+     flow. Lives outside the configure panel because the panel body
+     is cleared / repopulated between modes (form vs. gallery);
+     keeping the prototypes here means the JS can re-instantiate
+     the gallery cheaply on every open without round-tripping the
+     server for markup. -->
+<?= $this->element('dashboard/gallery/grid') ?>
+<?= $this->element('dashboard/gallery/card') ?>
+
 <script type="module" src="<?= h($baseurl) ?>/js/dashboard/board.module.mjs"></script>
