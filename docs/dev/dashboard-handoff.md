@@ -1,4 +1,4 @@
-# Dashboard v2 — Session handoff (2026-05-18, evening)
+# Dashboard v2 — Session handoff (2026-05-19)
 
 Brief read-out for a fresh session to pick up cleanly. Authoritative
 state still lives in:
@@ -14,43 +14,50 @@ fit the durable docs. Replace it as work progresses.
 
 ## TL;DR
 
-**Phase 1 fully closed; Phase 2 contract foundation + four headline
-tasks landed.** This session opened with a Phase 1 cleanup (UiBeta
-themed dashboard layout — closes the Themed audit loop) and then
-worked through Phase 2 sequentially: WidgetSchema contract helper +
-26 PHPUnit tests, all 9 widget `$schema` backfills (per Q7 Option C),
-schema-driven two-tier configure form (data-widget-schema delivery +
-client-side typed-tier iteration + scalar field rendering), and live
-preview (250ms-debounced re-render with cancel-revert semantics).
+**Phase 2 nearly complete + Phase 3 keystone live with 2 of 11
+canonical types fully landed.** 16 signed commits this session,
+all `%G? = U`. The dashboard now has a real edit-mode transaction
+(stage drag/resize/remove client-side; Save commits atomically;
+Discard reverts to entry-time snapshot with confirm-if-dirty),
+the bottom-tier of the configure form seeds from each widget's
+`$placeholder`, and the canonical-type adapter (PRD §5.5 keystone)
+translates ISO 8601 `time_window` and 1-to-N-expanding `date_range`
+configs into the legacy shapes widget `handler()`s parse —
+unchanged. 33 PHPUnit tests on the adapter pass in 53ms.
 
-**14 commits this session**, all signed (`%G?` = `U`). Net ~700+ LoC
-of new code; **zero changes to any widget's `handler()` logic** —
-fully consistent with the additive-only posture. The configure form
-is now genuinely useful end-to-end: clicking ⚙ on a schema'd widget
-opens a panel whose typed-fields tier reflects the widget's actual
-contract, typing in any field re-renders the widget body after a
-250ms pause, Cancel reverts the visible state cleanly.
+**Three widget handler bugs surfaced last session were addressed:**
+OrgEventsWidget logarithmic now accepts real PHP booleans + closes
+a silent fall-through gap; EventEvolutionLineWidget got a cosmetic
+rewrite (re-trace showed the variable was misnamed but behavior
+was correct end-to-end — not actually a bug); OrganisationMapWidget
+`limit` is now alive (wired + stable order + smoke-driven PHP-side
+cap after the SQL cap surprised on countries that don't map to
+country codes).
 
-**Phase 1 close-out smoke tests: still 1/4** — the three interactive
-browser tests from the prior handoff carry forward unchanged. They
+**Phase 1 close-out smoke tests: still 1/4** — three interactive
+browser tests from prior handoffs carry forward unchanged. They
 need a real browser pass that the LLM can't drive.
 
-**Next session: pick from** (see Open thread below for details)
+**Discovered this session:** OrgEventsWidget produces malformed
+dates like `2025--1-01` when `months > 13` because the wrap-around
+only adds 12 once instead of looping. Out of scope today; parked
+for follow-up. TrendingAttributesWidget hits the same pre-existing
+PHP 8.x `Attribute` model-name collision as TrendingTagsWidget —
+on every render, not just `over_time=true` — extended the
+Discovered-work entry to cover both.
+
+**Next session: pick from** (see Open thread below)
 1. Phase 1 close-out: 3 interactive smoke tests (user-driven).
-2. Phase 2 tracker hygiene: tick the prototype-already-done tasks
-   (per-canonical-type field elements, key-value list, side-panel
-   container) with brief Done notes.
-3. Phase 2 bottom-tier seeding from `$placeholder`.
-4. Phase 2 edit-mode Save/Discard toolbar actions (currently
-   `console.info` stubs).
-5. Phase 2 widget gallery + Add Widget flow (biggest remaining
-   surface — pairs with the new `GET /dashboards/widgets` endpoint
-   per PRD §5.8).
-6. Phase 3 canonical-type adapter — start `CanonicalTypeAdapter`
-   under `app/Lib/Dashboard/Tools/` per PRD §5.5; many widgets are
-   now ready to use it.
-7. Fix the three latent widget handler bugs surfaced during the
-   backfill (logarithmic / isCumulative / dead `limit`).
+2. Add a third canonical type to the adapter (`tag_filter` is the
+   biggest user-facing one and has 5+ widget candidates).
+3. Configure-form per-widget POST — closes the documented
+   "edit-mode + configure-save leaks layout" limitation.
+4. Widget gallery + Add Widget flow (biggest remaining surface).
+5. Chip input component for arrays in the bottom tier.
+6. Console.log cleanup + bottom-tier flatten/reNest unit tests.
+7. Phase 3 form-field elements for the canonical types just
+   landed (`time_window` already done; date_range needs a date
+   picker pair).
 
 User direction carries forward: *"modern and pleasant"* — generous
 whitespace, soft visual weight, subtle shadows, no animation
@@ -62,38 +69,55 @@ flourish, smooth keyboard navigation.
 Phase 0.4 — Sign-off                                              [x]
 
 Phase 1 — Frame (in-place replacement)                            [x]
-  v1 audit + removal                                              [x]
-  Rename pass                                                     [x] 7/7
-  Additive band                                                   [x] 7/7
-  Themed/ audit loop                                              [x]
-    Themed/Overmind/Layouts/dashboard.ctp (prior session)         [x]
-    Themed/UiBeta/Layouts/dashboard.ctp (this session)            [x]
+  Themed/ audit loop                                              [x] 2/2
   Close-out smoke tests                                           [/] 1/4
-    [x] Grep sanity (prior session)
+    [x] Grep sanity
     [ ] Default theme E2E
     [ ] Overmind theme E2E
     [ ] Legacy v1-shape row migration
 
-Phase 2 — Authoring UX                                            [/] 4 done + N done-by-proto
-  [x] $schema property contract (this session)
-  [x] 9 widget backfills (this session — see Phase 3 carry-forwards)
-  [x] Two-tier configure form element — schema-driven (this session)
-  [x] Live preview, 250ms debounced (this session)
-  [ ] Per-canonical-type form field elements (time_window done; tag_filter/
-      org_filter/etc. are Phase 3) — could tick
-  [ ] Key-value list component (done in proto) — could tick
-  [ ] Chip input component for array values (DD-06)
-  [ ] Bottom-tier seeding from $placeholder
-  [ ] Bottom-tier dot-notation flatten/reNest (done in proto, MISSING tests)
-  [ ] Side-panel container (done in proto) + sticky preview pane
+Phase 2 — Authoring UX                                            [/] ~13/22
+  [x] $schema property contract + WidgetSchema helper + 26 tests
+  [x] 9 widget $schema backfills (Phase 2)
+  [x] Two-tier configure form element — schema-driven
+  [x] Live preview, 250ms debounced
+  [x] Per-canonical-type field elements (time_window only;
+      rest are Phase 3)
+  [x] Key-value list component for the bottom tier
+  [ ] Chip input component for array-typed values
+  [x] Bottom-tier seeding from $placeholder (NEW this session)
+  [ ] Bottom-tier dot-notation flatten/reNest tests (code exists;
+      unit tests missing)
+  [x] Side-panel container for configure form (was split from
+      "container + sticky pane"; sticky pane is its own line now)
+  [ ] Sticky preview pane in configure side-panel (split out)
   [ ] Widget gallery + Add Widget flow + Edit Widget flow
-  [ ] Edit-mode vs view-mode toggle (toggle exists; Save/Discard stubs)
-  [ ] Layout-only atomic save (DD-05)
-  [ ] Discard (edit mode)
-  [ ] Drag/resize/add/remove only fire in edit mode (drag+remove gated;
-      resize CSS-hidden via display:none in view mode)
-  [ ] Configure-form Save (current whole-blob _scheduleSave matches design)
+  [x] Edit-mode vs. view-mode toggle (NEW this session — full
+      wiring, was just attribute-set before)
+  [x] Layout-only atomic save (DD-05) (NEW this session)
+  [x] Discard (edit mode) with confirm-if-dirty (NEW this session)
+  [x] Drag/resize/add/remove only fire in edit mode (NEW this
+      session — resize gained JS belt-and-suspenders)
+  [ ] Configure-form Save: per-widget POST (documented leak from
+      edit-mode commit — pending dedicated task)
   [ ] Console.log cleanup
+
+Phase 3 — Canonical-type toolbar                                  [/] 2/11 types
+  [x] CanonicalTypeAdapter helper + 33 PHPUnit tests
+  [x] Wire CanonicalTypeAdapter into renderWidget + canonical
+      time_window defaults on 3 widgets (TrendingTags, Trending
+      Attributes, RecentSightings)
+  [ ] Implement remaining canonical types (date_range done this
+      session — 3 widgets backfilled; tag_filter / org_filter /
+      sharing_group_filter / galaxy_cluster_filter /
+      distribution_filter / threat_level_filter / analysis_filter /
+      attribute_type_filter / event_id_filter still pending)
+  [ ] Per-canonical-type form field elements (full set; only
+      time_window done so far)
+  [ ] Toolbar control logic + UI + bulk-edit write path
+  [ ] New-widget toolbar inheritance + Clear action
+  [ ] Canonical-only $schema sweep across remaining ~20 widgets
+  [ ] Cache-key sanity check
 ```
 
 Working tree is clean for v2 work; only the usual unrelated noise
@@ -110,10 +134,11 @@ scratch files in repo root, untracked side-projects in subdirs).
 
 Saved-layout state at session end: admin has 4 widgets
 (MispStatusWidget / TrendingTagsWidget / OrganisationMapWidget /
-OrgContributionToplistWidget). `TrendingTagsWidget` is the only one
-in admin's layout with a populated `$schema` — handy as the smoke
-target for the schema-driven configure form (its panel shows three
-typed fields: time_window picker, threshold int, over_time bool).
+OrgContributionToplistWidget). After this session's Phase 3 work,
+TrendingTagsWidget benefits from canonical-time_window default
+injection if any of its time_window values get cleared; the
+OrganisationMapWidget benefits from PHP-side limit and now has
+both `limit` and `date_range` in $schema.
 
 Force test paths:
 ```bash
@@ -133,344 +158,356 @@ mysql -u misp -pPassword1234 misp -e \
    AND setting='ui_theme';"
 ```
 
+Session-login dance for HTML-page curls (REST endpoints use the
+API key header per [[reference-misp-login-dance]]):
+```bash
+CJ=/tmp/cj.txt; rm -f "$CJ"
+curl -s -c "$CJ" http://localhost:5007/users/login -o /tmp/form.html
+TKEY=$(grep -oP 'name="data\[_Token\]\[key\]" value="\K[^"]+' /tmp/form.html)
+TFIELDS=$(grep -oP 'name="data\[_Token\]\[fields\]" value="\K[^"]+' /tmp/form.html)
+TUNLOCKED=$(grep -oP 'name="data\[_Token\]\[unlocked\]" value="\K[^"]*' /tmp/form.html)
+TDEBUG=$(grep -oP 'name="data\[_Token\]\[debug\]" value="\K[^"]+' /tmp/form.html)
+curl -s -b "$CJ" -c "$CJ" -L -o /dev/null \
+  --data-urlencode "_method=POST" \
+  --data-urlencode "data[_Token][key]=$TKEY" \
+  --data-urlencode "data[_Token][fields]=$TFIELDS" \
+  --data-urlencode "data[_Token][unlocked]=$TUNLOCKED" \
+  --data-urlencode "data[_Token][debug]=$TDEBUG" \
+  --data-urlencode "data[User][email]=admin@admin.test" \
+  --data-urlencode "data[User][password]=Password12345" \
+  http://localhost:5007/users/login
+# Cookies in $CJ now carry a valid session.
+```
+
 ## What this session committed (in order)
 
 ```
-396a674e4  new: Phase 1 — Themed/UiBeta/Layouts/dashboard.ctp
-                Closes the Phase 1 Themed audit loop. Mirrors the
-                default dashboard layout with main-beta.css preload
-                + beta-ui-enabled body class so UiBeta users see
-                the 14px typography overlay on the dashboard's
-                global_menu nav bar (was falling back to the
-                default chrome path before this commit).
+32f621e6f  chg: Phase 2 tracker tick — per-canonical-type field elements
+                Hygiene tick — proto already covered Phase 2 scope
+                (time_window only; Phase 3 grows the registry one
+                import + one entry per type).
 
-d5bb0d058  new: Phase 2 — WidgetSchema contract helper (PRD §5.7)
-                Static helper under app/Lib/Dashboard/Tools/.
-                CANONICAL_TYPES (11) / SCALAR_TYPES (4) /
-                TOOLBAR_ELIGIBLE_TYPES (9) constants. getSchema()
-                defensive getter (returns [] for missing/malformed),
-                validate() catalogue-load-time validator,
-                isToolbarEligible() predicate. 26 PHPUnit tests, 64
-                assertions, runs in 70ms.
+d090005e6  chg: Phase 2 tracker tick — key-value list component
+                Hygiene tick — buildKVRow factory + flatten/reNest
+                helpers + delegated add/remove listeners exist from
+                proto commit 96cf753af.
 
-1a426b644  chg: Phase 2 — $schema backfill for MispStatusWidget
-                One-line additive: public $schema = array();
-                Declarative marker (parameterless widget).
+28f1cee55  chg: Phase 2 tracker tick — side-panel container
+                Split the original task line "Side-panel container +
+                sticky preview pane" into two — chrome ticked
+                (96cf753af), sticky preview pane unchecked with
+                a trade-off Done note for whoever picks it up.
 
-9682fee4d  chg: Phase 2 — $schema backfill for TrendingTagsWidget
-                3-entry schema: time_window (canonical, no default),
-                threshold (int, default 10), over_time (bool,
-                default false). Three params (exclude/include/
-                filter_event_tags) stay in $params bottom-tier.
+736c94f2b  fix: OrgEventsWidget logarithmic check accepts booleans
+                Broadened the truthy set to {true, 1, "1", "true"};
+                collapsed the unreachable else-if to a plain else
+                (was a silent fall-through gap for unrecognized
+                values); used ?? to honor schema's `default: true`.
 
-69e949713  chg: Phase 2 — $schema backfill for TrendingAttributesWidget
-                2-entry schema: time_window + threshold. Five params
-                stay in bottom-tier (type+category need Phase 3
-                attribute_type_filter; org_filter is different shape;
-                exclude/to_ids no canonical equivalent).
+3122a4a03  chg: EventEvolutionLineWidget cumulative semantic
+                Re-trace showed the prior handoff overstated the bug
+                — the variable was misnamed but the consumption site
+                was correspondingly inverted, so behavior was correct
+                end-to-end. Cosmetic rewrite to canonical bool
+                semantic. One real edge-case behavior diff: literal
+                "no" was previously cumulative, now per-interval.
 
-2bf81c919  chg: Phase 2 — $schema backfill for UsageDataWidget
-                Empty schema = []. All three params Phase 3-gated
-                (filter org-meta-data; start_date+end_date need
-                date_range adapter).
+cc9ed0bd2  fix: OrganisationMapWidget limit wired + stable order
+                limit was declared in $params but never read; help
+                text referenced "tags" (copy-paste typo from
+                TrendingTagsWidget). Wired into find() with stable
+                ORDER BY frequency DESC + conditional LIMIT;
+                promoted to $schema (now alive).
 
-636e55dcc  chg: Phase 2 — $schema backfill for OrgEventsWidget
-                2-entry schema: months (int, default 6), logarithmic
-                (bool, default true). Discovered latent bug in
-                handler() string-compare against "true"/"1" — see
-                Discovered work in dashboard-progress.md.
+c59830428  fix: OrgMapWidget limit applies after country-code filter
+                Smoke-driven follow-up: SQL-level LIMIT returned 1
+                country for limit=3 because non-mapped nationalities
+                (Krakhozia, International) consumed slots before the
+                country-code filter dropped them. Pivot: drop SQL
+                LIMIT, loop the ORDER-BY-frequency-DESC result-set in
+                PHP, apply country-code filter, break at limit.
 
-af86e08b1  chg: Phase 2 — $schema backfill for AttackWidget
-                Empty schema = []. Single 'filters' param is a
-                free-form restSearch dict — heterogeneous sub-keys,
-                can't decompose without Phase 3 work.
+d9e384af6  new: Phase 2 — bottom-tier seeding from $placeholder (DD-06)
+                Reuses the data-widget-schema delivery pattern.
+                Server enrichment + wrapper attr + client
+                seedFromPlaceholder helper with JSON.parse fallback
+                (some MISP placeholders are malformed JSON).
+                Schema-handled keys filtered out so kv rows don't
+                shadow schema controls.
 
-b7baad278  chg: Phase 2 — $schema backfill for OrganisationMapWidget
-                Empty schema = []. filter org-meta-data + start_date
-                /end_date Phase 3-gated; limit is dead config in v1
-                (declared in $params but never consumed).
+298646e90  chg: Phase 3 tracker — add explicit adapter + date_range lines
+                Phase 3 list previously omitted the CanonicalType
+                Adapter task and date_range; both flagged in
+                Discovered work. New task lines added.
 
-4c7dc6c45  chg: Phase 2 — $schema backfill for RecentSightingsWidget
-                2-entry schema: limit (int, default 10) + last
-                (time_window, no default). **First genuinely
-                full-tier widget** — both params typed, zero
-                bottom-tier fallback.
+8756fa61e  new: Phase 3 — CanonicalTypeAdapter helper (PRD §5.5)
+                Static helper that translates canonical wire shapes
+                into legacy in-handler shapes, driven off
+                $widget->$schema. Default-injection for missing-
+                but-schema'd keys (Phase 2 deferred piece per
+                lesson #2 of 2026-05-18 handoff). time_window
+                translator ships first; 22 PHPUnit tests / 44
+                assertions / 66ms.
 
-afadd0530  chg: Phase 2 — $schema backfill for EventEvolutionLineWidget
-                1-entry schema: cumulative (bool, default true).
-                filter + start_date Phase 3-gated. Discovered
-                inverted $isCumulative condition bug.
+fedf06451  new: Phase 3 — wire CanonicalTypeAdapter + canonical time_window defaults
+                renderWidget calls translate() before handler().
+                Canonical time_window defaults on TrendingTagsWidget,
+                TrendingAttributesWidget, RecentSightingsWidget
+                ('P7D', 'P7D', 'P1D'). 11-shape smoke confirmed
+                P7D→7d, P2W→14d, PT12H→43200, legacy passthrough,
+                sentinel passthrough, empty→defaults injected.
 
-6e76175f5  chg: capture Phase 3 catalogue gaps + widget handler bugs
-                Consolidated Discovered-work entries:
-                  - Phase 3 list omits date_range (PRD §5.5
-                    explicitly Phase 3) AND the CanonicalTypeAdapter
-                    implementation itself (PRD §5.5 keystone)
-                  - org_meta_filter as potential new canonical type
-                    (4-widget recurring shape)
-                  - 3 latent widget handler bugs
+cc6f2c22a  new: Phase 2 — edit-mode Save/Discard + layout-only atomic save (DD-05)
+                Full edit-mode transaction: _editSnapshot captures
+                layout at view→edit; _stageOrSave routes layout
+                commits (edit: stage; view: save); _commitEdit
+                flushes and saves; _discardEdit restores via new
+                Grid.updateTile + re-adds removed tiles held in
+                _editSnapshot.removedTiles. Resize gained JS
+                belt-and-suspenders gate. Closes 4 Phase 2
+                tracker entries. Configure-form-save-during-edit-
+                mode leak documented for the dedicated per-widget-
+                POST task.
 
-bdd8d51d4  chg: Phase 2 — schema-driven two-tier configure form
-                Server: DashboardsController::index enriches $widgets
-                with each widget's $schema. wrapper.ctp + Overmind
-                themed mirror emit data-widget-schema='<json>'.
-                Client: configure.module.mjs's buildForm() iterates
-                schema entries; CANONICAL_BUILDERS registry routes
-                to TimeWindow.buildField for canonical types,
-                buildScalarField for scalar (string/int/bool/enum
-                via native controls). Unbuilt canonical types fall
-                through to bottom tier. readBack uses
-                [data-schema-key] with data-type-driven coercion.
-                "Filters" typed-tier section conditionally rendered.
-                Backwards compat: time_window builder emits BOTH
-                data-canonical (for toolbar) AND data-schema-key.
+9352b3464  new: Phase 3 — CanonicalTypeAdapter date_range translator
+                1-to-N expansion pattern: canonical {from, to|null}
+                writes legacy start_date + end_date (when .to is
+                non-null). 11 new tests / 21 new assertions; total
+                33 tests / 65 assertions / 53ms. Canonical wins
+                over stale legacy when both present.
 
-5ed3287b7  new: Phase 2 — live preview on configure-form edits (DD-06)
-                openConfigure widened to {onSave, onPreview}.
-                schedulePreview/firePreview pair drives 250ms
-                debounce. originalConfigJson snapshot at open +
-                dirty/savedThisSession flags drive cancel-revert in
-                closeConfigure. input/change listeners on panel
-                body via delegation. board.module.mjs passes
-                onPreview = (el) => _renderWidget(el).
+cc559d87d  chg: Phase 3 — $schema date_range backfill for UsageDataWidget
+                Promoted start_date/end_date legacy pair to declared
+                canonical date_range. 5-shape smoke confirmed
+                canonical → legacy expansion, open-ended to-null,
+                pure-legacy passthrough, canonical-wins.
+
+2bdd59d68  chg: Phase 3 — $schema date_range backfill for OrganisationMapWidget
+                date_range alongside the existing `limit` entry.
+                4-shape smoke: wide range → all 10 countries; narrow-
+                future → 0 countries; canonical + limit=3 → 3
+                countries.
+
+12dc2efd2  chg: Phase 3 — $schema date_range backfill for EventEvolutionLineWidget
+                Widget has only start_date legacy slot (no end_date —
+                chart always runs through current month). Canonical
+                `to: null` matches this naturally. Documented quirk:
+                bounded to is dutifully written to end_date but
+                handler() ignores it.
 ```
 
-14 commits this session. All signed (`%G?` = `U` — good signature,
-unknown trust per the local GPG db). One GPG-agent timeout caught
-at commit #13 (recovered by priming the agent per lesson #10 from
-the previous handoff).
+16 commits this session, all signed (`%G?` = `U`).
 
 ## Lessons from this session
 
 These bit me; don't make me bite you twice.
 
-1. **"Full-tier" $schema backfill is aspirational, not literal.**
-   Q7 Option C names 9 widgets for "full-tier" backfill, but only
-   `RecentSightingsWidget` genuinely landed full-tier. The others
-   hit one of three deferral patterns:
-   - **Canonical type doesn't exist yet** (`date_range` is Phase 3
-     landing per PRD §5.5 — gates UsageData / OrganisationMap /
-     EventEvolutionLine).
-   - **Same-name-but-different-shape** vs. canonical (`org_filter`
-     in TrendingAttributes is org-meta-data based; canonical is
-     org-identity-based).
-   - **Key restructuring** (TrendingAttributes' `type` + `category`
-     would canonically unify into one `attribute_type_filter` —
-     migration + adapter dependency).
-   Phase 3 needs an explicit "complete the 9 widget backfills to
-   full-tier" line item alongside the canonical adapter work.
+1. **Re-verify handoff-described bugs before fixing.** The
+   2026-05-18 handoff said EventEvolutionLineWidget's `$isCumulative`
+   condition was inverted and a user toggling cumulative ON would get
+   the non-cumulative branch. On re-trace, the variable was misnamed
+   but the consumption site was correspondingly inverted, so behavior
+   was correct end-to-end. The "fix" became a cosmetic rewrite. Always
+   trace the full path before signing off on a fix, especially when
+   the bug claim mentions "inverted" or "reversed" — two wrongs can
+   make a right, and the fix has to either be cosmetic (rename for
+   clarity) or address an actual behavior diff.
 
-2. **Canonical-type schema defaults must be omitted in Phase 2.**
-   The widget's `handler()` parses legacy formats (`Nd`, raw int
-   seconds for time_window). If `$schema['time_window']['default']
-   = 'P7D'` writes to a fresh saved config, the legacy handler
-   does `(int)'P7D' = 0` → empty render. Phase 3 adds canonical
-   defaults alongside the `CanonicalTypeAdapter` in one coupled
-   commit. Scalar types (int/bool/enum) still get defaults — no
-   adapter dependency.
+2. **Smoke surfaces real UX issues that pure logic review misses.**
+   The OrganisationMapWidget limit fix (cc9ed0bd2) applied LIMIT at
+   the SQL level — looked correct in isolation. Smoke against the
+   live dev instance revealed that the top-2 nationalities by
+   frequency (`Krakhozia`, `International`) don't map to country
+   codes, so `limit=3` returned 1 country on the map. Smoke
+   immediately after every adapter-or-handler-change paid for itself.
 
-3. **Schema delivery to client = enrich `$widgets` server-side +
-   `data-*` attribute on wrapper.** Pattern established for
-   `data-widget-schema`. Reusable for any future per-widget
-   metadata the client needs (e.g. `$placeholder` for bottom-tier
-   seeding, `$category` for the Add Widget gallery grouping,
-   `$thumbnail` for gallery cards).
+3. **The 1-to-N expansion pattern works cleanly for canonical types.**
+   `date_range` canonical writes BOTH `start_date` and `end_date`
+   legacy keys. Implemented as a per-type helper returning an
+   associative array of legacy keys to inject. The switch case
+   in `translate()` is a couple of lines. The pattern generalises
+   to any future canonical type that maps to multiple legacy
+   slots (e.g., `org_filter` with role/orgs subkeys, if those
+   map back to multiple legacy widget params).
 
-4. **Configure form input listener must live on `[data-misp-configure-body]`
-   not on inner controls.** `body.replaceChildren(buildForm(...))`
-   wipes inner-control listeners but the body container survives.
-   Event delegation via input/change bubbling does the rest.
-   Important for any future field-type addition.
+4. **`App::uses()` in a pure-data-shape helper needs stubbing in
+   tests.** CanonicalTypeAdapter uses `App::uses('WidgetSchema',
+   ...)` at file load to pull in the schema helper. PHPUnit tests
+   (per `project_misp_test_convention`, bare app/Test/*.php with
+   no Cake bootstrap) needed a stub `class App` with a no-op
+   `uses()` static method before the `require_once`. Pattern:
+   if-not-class_exists-define-stub at the top of the test file.
 
-5. **Cancel-revert order in closeConfigure matters.** Revert
-   `data-widget-config` from snapshot + fire onPreview re-render
-   BEFORE `setHidden(panel)`. The render is async; the panel hides
-   immediately while the widget body updates ~100ms later. Reversing
-   the order works too but the perceived UX is cleaner with revert
-   first.
+5. **Edit-mode staging requires careful ownership of detached DOM
+   elements.** In edit mode, the Remove handler stashes the tile
+   element in `_editSnapshot.removedTiles` Map(id → el) so Discard
+   can re-add it. ECharts instances inside survive too (they don't
+   auto-dispose when the DOM node leaves the document — they hold
+   their own canvas references in a global registry). On Save
+   commit, we explicitly `disposeChartsIn()` for each pending-
+   removed tile before the snapshot is released, plugging what
+   would otherwise be a slow ECharts global-map leak.
 
-6. **Three latent widget handler bugs surfaced during the backfill,
-   all flagged but NOT fixed** (additive-only scope). They'll bite
-   when the configure form is the user's primary path:
-   - `OrgEventsWidget` line 105-107: `=== "true"` / `=== "1"`
-     string-compares — fails when the configure form writes a
-     real PHP boolean.
-   - `EventEvolutionLineWidget` line 52: `$isCumulative = isset(x)
-     && empty(x)` — semantically inverted (true for falsy, false
-     for truthy).
-   - `OrganisationMapWidget`: `limit` declared in `$params` but
-     never consumed in `handler()`. Stale help text references
-     "tags" (copy-paste from TrendingTagsWidget).
-   All three documented in dashboard-progress.md's Discovered work
-   section. A "fix widget handler latent bugs" task is the natural
-   bridge before the configure form goes mainstream.
+6. **`_saveLayout()` swallowing its own errors broke `_commitEdit`'s
+   try/catch.** Refactored `_saveLayout` to return a success bool
+   so `_commitEdit` can branch on outcome without depending on the
+   swallow-and-dispatch pattern. The 'save-failed' event still
+   fires for theme JS listeners.
 
-7. **The configure form was already substantially built in the
-   Phase 0.3 prototype.** Several Phase 2 tracker tasks are
-   already-done in proto and just need to be ticked: per-canonical-
-   type field elements (time_window done; rest Phase 3), key-value
-   list component, side-panel container (chrome part). Worth a
-   quick tracker-hygiene commit early next session before starting
-   new work.
+7. **Per-widget POST is needed to close the configure-form-in-edit-
+   mode leak cleanly.** The current `_saveLayout` is whole-blob.
+   In edit mode, a configure-form Save would commit both the widget
+   config change AND any staged layout edits. Documented the
+   limitation in the `_stageOrSave` docblock and the Done note;
+   landing the proper per-widget POST is the dedicated tracker
+   task `"Configure-form Save: per-widget POST to /dashboards/
+   updateSettings..."` that closes the loop.
+
+8. **Canonical type defaults must omit the wire-format in widget
+   $schema until the adapter ships.** Held over from lesson #2 of
+   the 2026-05-18 handoff and exercised this session: canonical
+   `time_window` defaults like `'P7D'` only safely landed once the
+   adapter was wired in `renderWidget`. Until then `(int)'P7D' = 0`
+   → empty render. The two-step pattern (adapter first, then
+   defaults) is the right cadence for each new canonical type.
+
+9. **Multi-commit per-widget backfills mirror Phase 2 style.** The
+   date_range backfill across 3 widgets shipped as 3 separate
+   commits (one per widget) — same per-widget convention as the
+   Phase 2 $schema backfill. Easier to review one widget at a
+   time; clearer Done notes; the adapter helper commit (one) +
+   one-per-widget backfill commit pattern is the template.
 
 The prior session's gotchas still apply:
 
-8. **`git mv` does NOT auto-stage subsequent content edits.** Always
-   `git status --short` and verify every modification you intend to
-   commit shows in the LEFT column.
+10. **`git mv` does NOT auto-stage subsequent content edits.** Always
+    `git status --short` and verify every modification you intend to
+    commit shows in the LEFT column.
 
-9. **Functionally-coupled tasks should land together.** Hit this
-   pattern at the schema-driven configure form commit (server
-   enrichment + wrapper attribute + client refactor in one commit
-   — splitting would leave a non-functional intermediate state).
+11. **GPG agent times out the commit signature** if pinentry isn't
+    completed promptly. Symptom: `signing failed: Timeout`. Fix:
+    from the user's terminal, run `echo "test" | gpg --clearsign >
+    /dev/null`, enter the passphrase to prime the agent, then retry.
 
-10. **GPG agent times out the commit signature** if pinentry isn't
-    completed promptly. Symptom: `signing failed: Timeout`. Hit
-    this once this session at commit #13 (schema-driven configure
-    form). Fix: from the user's terminal, run `echo "test" |
-    gpg --clearsign > /dev/null`, enter the passphrase to prime
-    the agent, then retry. The user explicitly wants signed commits
-    — never `--no-gpg-sign` without asking.
-
-11. **`Themed/<Name>/Layouts/<layout>.ctp` must exist for every new
-    layout you introduce.** Carries from prior session. This
-    session closed the loop for UiBeta (Overmind landed last
-    session, UiBeta landed this session). `Themed/EventTest/` has
-    no `Layouts/` directory so the dashboard falls back to the
-    default — confirmed no override needed there.
+12. **`Themed/<Name>/Layouts/<layout>.ctp` must exist for every new
+    layout you introduce.** Carries from prior session; not exercised
+    this session (no new layouts), but the wrapper Overmind override
+    needed the data-widget-placeholder attribute mirror update for
+    the seeding work — same lesson at the element level.
 
 ## Discovered work parked for later (deferred)
 
 Most this-session items are now in `dashboard-progress.md`'s
-Discovered work section (commit `6e76175f5` consolidated them).
-Key ones to know about from a planning perspective:
+Discovered work section. Key ones to know about from a planning
+perspective:
 
-- **Phase 3 catalogue gaps**: `date_range` missing from Phase 3
-  task list; `CanonicalTypeAdapter` implementation has no explicit
-  task line; `org_meta_filter` decision (introduce a new canonical
-  type for the recurring sector/type/nationality/name/uuid/local
-  shape, or leave it permanent bottom-tier?). Three widgets gate
-  on `date_range`, four on the org-meta-data shape — meaningful
-  Phase 3 scope decision.
+- **OrgEventsWidget months>13 malformed dates**: surfaced during
+  the OrgEventsWidget logarithmic smoke. When config has `months
+  > 13`, the wrap-around guard `if ($target_month < 1) { $target_
+  month += 12; }` only adds 12 once instead of looping, producing
+  dates like `2025--1-01`. Quick fix (~15 min): convert to
+  `while ($target_month < 1) { $target_month += 12; $target_year
+  -= 1; }`. Not added to the formal Discovered work section yet —
+  worth a follow-up commit.
 
-- **Phase 2 latent widget handler bugs**: see Lesson #6 above.
+- **TrendingAttributesWidget pre-existing PHP 8.x Attribute model
+  crash**: same root cause as TrendingTagsWidget's pre-existing
+  `over_time=true` crash — `ClassRegistry::init('Attribute')`
+  collides with PHP 8.0+'s built-in `Attribute` class. The
+  existing Discovered-work entry was extended this session to
+  cover both widgets. TrendingAttributesWidget always crashes
+  (unconditional in handler() line 85); TrendingTagsWidget only
+  crashes with over_time=true. MISP core fix needed.
+
+- **Configure-form Save in edit mode leaks staged layout**:
+  per DD-05, configure-form Save should be a per-widget POST.
+  Today it's whole-blob via `_scheduleSave` → `_saveLayout`. In
+  edit mode this means a configure-form Save commits both the
+  widget config AND any staged layout edits. Documented; closes
+  with the dedicated per-widget POST tracker task.
+
+- **EventEvolutionLineWidget ignores end_date**: handler hardcodes
+  `$end = new DateTime(date('Y-m') . '-01')`. Canonical date_range
+  with bounded `to` is dutifully written to end_date by the adapter
+  but ignored by handler(). Documented in the H4 commit. A future
+  handler change could honor end_date but that's outside additive-
+  only posture.
 
 - **Live preview race window**: rapid pause-type-pause-type cycles
-  can race two in-flight `_renderWidget` POSTs. Self-corrects on
-  next pause. Fix is an `AbortController` on `_renderWidget`
-  scoped to the preview path. Deferred — MVP behavior is fine in
-  practice.
+  can race two in-flight `_renderWidget` POSTs (carryover from
+  2026-05-18). Self-corrects on next pause. Fix is an
+  `AbortController` on `_renderWidget` scoped to the preview path.
 
-- **Drop dormant `dashboard.midnight.css` loader** (carryover from
-  prior session). Both default and themed dashboard layouts load
-  it; selector `:root[data-theme="midnight"]` never matches.
+- **Drop dormant `dashboard.midnight.css` loader** (carryover).
+  Both default and themed dashboard layouts load it; selector
+  `:root[data-theme="midnight"]` never matches.
 
-- **UiBeta `Themed/UiBeta/Layouts/default.ctp` & dashboard.ctp**:
-  the docblock on the new dashboard.ctp documents the rationale
-  (main-beta typography overlay only, structurally identical to
-  default chrome unlike Overmind's BS5 swap). EventTest needs no
-  override (verified — only Events-specific view overrides, no
-  Layouts dir).
-
-- **`TrendingAttributesWidget` PHP 8.x crash via `Attribute` model
-  name collision** — pre-existing MISP issue, not v2-specific.
-
-- **`save_template.ctp:4` action-name mismatch** — Phase 4 work.
+- **`save_template.ctp:4` action-name mismatch** — Phase 4 work
+  (carryover).
 
 ## Open thread / next obvious work
 
 Lots of small-ish options + a few bigger pieces. In rough
 priority order:
 
-**Option A: Phase 2 tracker hygiene (~30 min).**
+**Option A: Phase 1 close-out smoke tests (user-driven, ~30 min).**
 
-Tick the tasks that are done-in-proto with brief Done notes pointing
-at the relevant prototype commit. Candidates:
-- "Per-canonical-type form field elements (only `time_window` for
-  now)" — TimeWindow.buildField exists, enhanced in commit
-  `bdd8d51d4` with `data-schema-key` + `data-type`.
-- "Key-value list component for the bottom tier" — `buildKVRow` +
-  add/remove handler exists from proto.
-- "Side-panel container for configure form" — chrome part exists
-  from proto (panel + backdrop + open/close + ESC). "Sticky preview
-  pane" part remains unchecked.
-
-Worth doing first so the tracker accurately reflects state before
-the next substantive work picks up. Single bundled commit.
-
-**Option B: Phase 1 close-out smoke tests (user-driven, ~30 min).**
-
-The three interactive tests from the previous handoff carry forward
+The three interactive tests from prior handoffs carry forward
 unchanged. Needs a real browser pass:
 
 1. **Default theme E2E.** Switch admin's `ui_theme` to `Default`
    (mysql command in Live test instance above), visit `/dashboards`.
    Verify: chrome integration, MispStatusWidget content fetches via
-   AJAX, ⋯ More dropdown WAI-ARIA, Edit-layout toggle, drag + drop +
-   reload persistence.
+   AJAX, ⋯ More dropdown WAI-ARIA, Edit-layout toggle (now also
+   exercises the real edit-mode transaction — drag a tile, click
+   Save vs Discard), drag + drop + reload persistence.
 2. **Overmind theme E2E.** Admin is already on Overmind. Visit
    `/dashboards`. Verify: BS5 navbar, dashboard chrome below, ⚙
-   button opens configure side panel (this session's new typed-fields
-   tier should be visible on TrendingTagsWidget), toolbar bulk-edit
-   chip, no JS console errors.
+   button opens configure side panel (typed-fields tier visible
+   on TrendingTagsWidget; bottom tier seeded from $placeholder
+   for any widget with empty config), edit-mode Save/Discard
+   buttons now do real work, toolbar bulk-edit chip.
 3. **Legacy v1-shape row migration.** Craft `UserSetting:dashboard`
-   with v1 shape (recipe in prior handoff), visit `/dashboards`,
-   verify LayoutFixup normalises on read + save canonicalises the
-   persisted shape.
+   with v1 shape, visit `/dashboards`, verify LayoutFixup
+   normalises on read + save canonicalises the persisted shape.
 
 LLM can prep the SQL/curl recipes; can't drive the browser.
 
-**Option C: Phase 2 widget handler latent bug fixes (~1h).**
+**Option B: OrgEvents months>13 date wrap fix (~15 min).**
 
-The three bugs from Lesson #6 will bite when users start hitting
-the configure form's checkbox/numeric controls. Bundle as a single
-commit ("fix: latent widget handler bugs surfaced during Phase 2
-backfill"). Touches three existing widget files:
+Quick, scoped, fixes a small but real correctness bug. Touches one
+widget file. Pairs well with any larger block as a warm-up.
 
-- `OrgEventsWidget.php` line 105: broaden `=== "true"` to accept
-  booleans + legacy strings.
-- `EventEvolutionLineWidget.php` line 52: fix the inverted
-  `$isCumulative` condition.
-- `OrganisationMapWidget.php`: either wire `limit` into `handler()`
-  or remove from `$params`.
+**Option C: Add a third canonical type to the adapter (~half-day).**
 
-Strictly speaking this exceeds additive-only scope (modifying
-widget handler() logic), but it's a bug-fix in service of Phase 2's
-configure form — frame the commit as bug fixes, not refactor.
+`tag_filter` is the biggest user-facing one (5+ widget candidates;
+the canonical-bulk-edit toolbar exposes it). PRD §5.5 shape:
+`{ include: string[], exclude: string[], taxonomies?: string[],
+match_event_tags?: bool, match_attribute_tags?: bool }`. Existing
+widgets like TrendingTagsWidget have `exclude`/`include`/
+`filter_event_tags` as separate $params — adapter would need a
+key-restructuring translator. Same scope shape as date_range
+(adapter + per-widget backfill multi-commit) but the legacy shape
+diff is bigger.
 
-**Option D: Phase 2 bottom-tier seeding from `$placeholder` (~1h).**
+Alternative: `org_filter` (PRD §5.5 identity-based with role)
+or `sharing_group_filter` (single-shape, simplest). Pick by
+expected user value vs implementation complexity.
 
-DD-06's "seeded keys" requirement. When a widget's saved config is
-empty (or when added fresh via the Add Widget flow once that lands),
-the bottom-tier key-value list should seed from the widget's
-`$placeholder` JSON. Implementation: server emits `data-widget-
-placeholder` (parallel to `data-widget-schema`), client tries to
-`JSON.parse` the placeholder, on success seeds the kv list from
-`flatten()`d entries; on parse failure (some MISP placeholders are
-malformed JSON with trailing commas) falls back to single empty row.
+**Option D: Configure-form per-widget POST (~half-day).**
 
-Useful even without Add Widget flow because admin-imported widgets
-with empty config also benefit.
+Closes the documented edit-mode leak. Two pieces:
+- Server: extend `DashboardsController::updateSettings` (or new
+  endpoint) to accept `{instance_id, config}` and patch only that
+  widget's entry in the saved blob, leaving rest untouched.
+- Client: configure-form Save fires the new per-widget endpoint
+  instead of `_scheduleSave`. Toolbar bulk-edit gets the same
+  treatment for consistency.
 
-**Option E: Phase 2 edit-mode Save/Discard actions (~half-day).**
+Closes the "Configure-form Save: per-widget POST" tracker entry +
+removes the in-edit-mode leak.
 
-Currently `case 'save'` / `case 'discard'` in `board.module.mjs`'s
-`_wireBoardActions` are `console.info` stubs. Wire them up:
-- "Edit layout" toggle puts the board into edit mode.
-- Drag/resize/remove fire only in edit mode (drag and remove
-  already gated; resize is CSS-gated via `display:none` on the
-  handle in view mode — sufficient but a JS belt-and-suspenders
-  check on `_onResizeStart` would be cleaner).
-- Layout changes stage in client memory (don't fire `_scheduleSave`).
-- "Save layout" button commits the staged changes (one POST).
-- "Discard" button reverts the staged changes from server state
-  (re-fetch / re-render from the original layout).
-- Closes "Layout-only atomic save", "Discard", "Drag/resize/add/
-  remove only fire in edit mode" tracker entries together.
-
-Bigger commit; restructures how `_scheduleSave` is invoked.
-
-**Option F: Phase 2 widget gallery + Add Widget flow (~full day+).**
+**Option E: Widget gallery + Add Widget flow (~full day+).**
 
 Biggest remaining Phase 2 surface. Requires:
 - New `GET /dashboards/widgets` endpoint per PRD §5.8 returning
@@ -484,28 +521,43 @@ Biggest remaining Phase 2 surface. Requires:
 - Wire `case 'add-widget'` in board.module.mjs (currently a
   `console.info` stub) to open the gallery.
 
-**Option G: Start Phase 3 — `CanonicalTypeAdapter` (~half-day).**
+Best as its own dedicated session.
 
-PRD §5.5 keystone. Lives at `app/Lib/Dashboard/Tools/
-CanonicalTypeAdapter.php`. Called from `DashboardsController::
-renderWidget` *before* `$widget->handler($user, $config)`. Reads
-`$widget->$schema` to know which slots are canonical; translates
-canonical wire shapes back to the legacy shapes each widget's
-handler currently parses. Start with `time_window` (PRD §5.5
-translation table: `P<N>D → <N>d` etc.) since 4 of the 9 widgets
-declared `time_window` in their backfill. Add canonical defaults
-to those widgets in the same commit (the deferred `default: 'P7D'`
-values).
+**Option F: Chip input component for arrays (~half-day).**
 
-Sets up Phase 3's full canonical-type sweep — once the adapter
-exists, adding new canonical types is small per-type work.
+Replace the JSON-array-in-text-field UX for bottom-tier array
+values with a chip input (type-and-Enter to add, click × to
+remove). Also reusable in canonical pickers like tag_filter and
+org_filter once those land. Detect arrays at flatten() time;
+render with chip-input control; readBack collects chip values
+back into an array.
 
-**Recommendation:** A + C first (~1.5h total) to clean the tracker
-state and fix the bugs the configure form will surface. Then either
-D (small, scoped) or G (sets up a chunk of Phase 3). Option B
-unblocks Phase 1 fully but needs user driving. Options E + F are
-the big remaining UX pieces — pick when there's a multi-hour
-session block.
+**Option G: Console.log cleanup + bottom-tier flatten/reNest tests
+(~half-day).**
+
+Two tracker entries together. Audit all dashboard JS modules for
+stray console.log/info statements that shouldn't ship. Add unit
+tests for the flatten/reNest helpers that round-trip nested
+objects / arrays / scalars / booleans (current implementation
+relies on manual smoke).
+
+**Option H: Per-canonical-type form field elements (~half-day per
+type).**
+
+Time_window already has `canonical/time_window.mjs` (the picker).
+date_range needs `canonical/date_range.mjs` — two-date picker pair
+that emits `{from, to}` JSON. tag_filter needs a chip-input-based
+include/exclude pair with taxonomy autocomplete. Each gets a
+`CANONICAL_BUILDERS` registry entry in configure.module.mjs and a
+parallel toolbar.module.mjs entry. Recommend pairing with C (the
+canonical type itself) so the widget gallery / configure form
+exercises the new type end-to-end on the same commit cycle.
+
+**Recommendation:** A (when the user is in front of a browser) +
+B (warm-up fix) for the next session opener. Then either D (closes
+the documented leak; needed before edit-mode goes mainstream) or
+C+H paired (next canonical type + its picker, end-to-end). Option
+E is best as its own multi-session block.
 
 ## Convention reminders
 
@@ -524,11 +576,14 @@ session block.
   ground truth between sessions. Tick one task at a time; the
   Done note carries the deciding context.
 - Surface context status when past 75% at task boundaries so the
-  user can choose to restart. (This session ended at 35% — well
-  inside the safe band; the user requested the handoff proactively.)
+  user can choose to restart. (This session ended at ~37% — under
+  the user's 40% guardrail.)
 - Hard-refresh after CSS/JS edits — the `?v=185` cache-buster from
   `AppController::__queryVersion` doesn't bump per-file.
-- `MISP login` curl recipe (when the LLM needs to smoke a session-
-  authed page): see the prior handoff's full recipe — the 4-piece
-  `_Token` set must be extracted from the form's GET response and
-  POSTed back with `Password12345`.
+- Stub `class App { public static function uses() {} }` at the top
+  of PHPUnit tests for any helper that uses `App::uses()` at file
+  load — pattern shipped in `CanonicalTypeAdapterTest.php`.
+- For canonical-type additions: ship adapter helper commit first
+  (pure additive), then per-widget backfill commits (one per
+  widget). Avoid bundling adapter+wire+defaults+backfills in a
+  single commit — review-friendly split.
