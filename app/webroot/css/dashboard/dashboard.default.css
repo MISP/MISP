@@ -664,6 +664,67 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 }
 
 /* ============================================================
+ * Button renderer — link-styled tile that fills the widget body.
+ * ButtonWidget is a 3×2 shortcut primitive; the button consumes the
+ * full available space so a one-handed click target is huge. Anchor-
+ * styled-as-button (no nested <button> inside <a>) — semantic + a11y.
+ * Invalid-URL state surfaces as a muted, non-interactive tile so the
+ * misconfiguration is visible in the dashboard.
+ * ============================================================ */
+.misp-button-shell {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+.misp-button {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
+  border-radius: var(--misp-dash-radius-md);
+  background: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+  text-decoration: none;
+  font-size: var(--misp-dash-fs-lg);
+  font-weight: var(--misp-dash-fw-medium);
+  line-height: 1.3;
+  word-break: break-word;
+  cursor: pointer;
+  transition: background var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast),
+              transform var(--misp-dash-transition-fast);
+}
+.misp-button:hover,
+.misp-button:focus-visible {
+  background: var(--misp-dash-accent-hover);
+  color: var(--misp-dash-text-on-accent);
+  text-decoration: none;
+}
+.misp-button:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+.misp-button:active {
+  transform: translateY(1px);
+  box-shadow: var(--misp-dash-shadow-sm);
+}
+.misp-button--invalid {
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+  cursor: not-allowed;
+}
+.misp-button--invalid:hover,
+.misp-button--invalid:focus-visible {
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text-muted);
+}
+
+/* ============================================================
  * Chart container — ECharts mounts inside, fills the widget body.
  * Renderers under Elements/dashboard/Widgets/ emit a static
  * <div class="misp-chart"> + data-misp-chart="<kind>" attribute;
