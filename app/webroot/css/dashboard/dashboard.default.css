@@ -1045,6 +1045,149 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 }
 
 /* ============================================================
+ * galaxy_cluster_filter picker.
+ * Galaxy-type dropdown + search input + suggestion list +
+ * chips for selected clusters. Used in both the configure
+ * form's typed-fields tier and the toolbar chip popover.
+ * ============================================================ */
+.misp-gc-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+}
+.misp-gc-filter-row {
+  display: flex;
+  gap: var(--misp-dash-space-2);
+  align-items: stretch;
+}
+.misp-gc-filter-scope {
+  flex: 0 0 auto;
+  min-width: 180px;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  font-family: inherit;
+}
+.misp-gc-filter-scope:focus,
+.misp-gc-filter-scope:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+  border-color: var(--misp-dash-accent);
+}
+.misp-gc-filter-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  font-family: inherit;
+}
+.misp-gc-filter-search:disabled {
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text-muted);
+  cursor: not-allowed;
+}
+.misp-gc-filter-search:focus,
+.misp-gc-filter-search:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+  border-color: var(--misp-dash-accent);
+}
+.misp-gc-filter-suggestions {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-raised);
+  display: flex;
+  flex-direction: column;
+}
+.misp-gc-filter-suggestions:empty {
+  display: none;
+}
+.misp-gc-filter-suggestion {
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--misp-dash-border);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text);
+  cursor: pointer;
+  font-family: inherit;
+}
+.misp-gc-filter-suggestion:last-child {
+  border-bottom: 0;
+}
+.misp-gc-filter-suggestion:hover,
+.misp-gc-filter-suggestion:focus-visible {
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  outline: none;
+}
+.misp-gc-filter-suggestion--selected {
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  font-weight: var(--misp-dash-fw-medium);
+}
+.misp-gc-filter-suggestions-empty {
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+  font-size: var(--misp-dash-fs-sm);
+  padding: var(--misp-dash-space-2);
+  text-align: center;
+}
+.misp-gc-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1);
+  min-height: 0;
+}
+.misp-gc-filter-chips:empty {
+  display: none;
+}
+.misp-gc-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  padding: 2px var(--misp-dash-space-1) 2px var(--misp-dash-space-2);
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  border-radius: var(--misp-dash-radius-sm);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  max-width: 100%;
+}
+.misp-gc-filter-chip-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+.misp-gc-filter-chip-remove {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-size: var(--misp-dash-fs-base);
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 var(--misp-dash-space-1);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-gc-filter-chip-remove:hover,
+.misp-gc-filter-chip-remove:focus-visible {
+  background: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+  outline: none;
+}
+
+/* ============================================================
  * Chart container — ECharts mounts inside, fills the widget body.
  * Renderers under Elements/dashboard/Widgets/ emit a static
  * <div class="misp-chart"> + data-misp-chart="<kind>" attribute;
