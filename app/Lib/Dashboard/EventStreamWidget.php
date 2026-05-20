@@ -16,6 +16,7 @@ class EventStreamWidget
         'threat_level' => 'A list of threat levels (1=High, 2=Medium, 3=Low, 4=Undefined) to filter events by. Accepts an int array or single int. Empty / unset = no filter.',
         'analysis' => 'A list of analysis stages (0=Initial, 1=Ongoing, 2=Complete) to filter events by. Accepts an int array or single int. Empty / unset = no filter.',
         'sharing_group' => 'A list of SharingGroup.id values to filter events by. Accepts an int array or single int. Empty / unset = no filter; unauthorised IDs match no rows.',
+        'galaxy_cluster' => 'Galaxy cluster filter: { tag_names: ["misp-galaxy:<type>=\\"<value>\\""], galaxy_types?: ["<type>", ...] }. Filters to events tagged with any of the listed cluster tag_names.',
     ];
     public $schema = [
         'threat_level' => [
@@ -29,6 +30,10 @@ class EventStreamWidget
         'sharing_group' => [
             'type' => 'sharing_group_filter',
             'help' => 'Filter events by sharing group. Bulk-edited via the dashboard toolbar when at least one widget on the board declares this canonical.',
+        ],
+        'galaxy_cluster' => [
+            'type' => 'galaxy_cluster_filter',
+            'help' => 'Filter events by galaxy cluster. Pick a galaxy type, then search for clusters; selected clusters appear as removable chips. Bulk-edited via the dashboard toolbar when at least one widget on the board declares this canonical.',
         ],
     ];
     public $description = 'Monitor incoming events based on your own filters.';
@@ -130,7 +135,22 @@ class EventStreamWidget
         $allowedAnalysis = isset($options['analysis']) && $options['analysis'] !== ''
             ? $coerceLevels($options['analysis']) : [];
         $allowedSg       = !empty($options['sharing_group']) ? $coerceLevels($options['sharing_group']) : [];
-        $hasPostFilter   = !empty($allowedThreat) || !empty($allowedAnalysis) || !empty($allowedSg);
+        // galaxy_cluster_filter wire shape:
+        //   { tag_names: string[], galaxy_types?: string[] }
+        // Only tag_names is a query filter (galaxy_types is picker
+        // scope state, preserved on the wire for round-trip but not
+        // applied to the query).
+        $allowedGcTags = [];
+        if (isset($options['galaxy_cluster']) && is_array($options['galaxy_cluster'])
+            && isset($options['galaxy_cluster']['tag_names']) && is_array($options['galaxy_cluster']['tag_names'])) {
+            foreach ($options['galaxy_cluster']['tag_names'] as $tn) {
+                if (is_string($tn) && $tn !== '') {
+                    $allowedGcTags[$tn] = true;   // dedup via assoc-key
+                }
+            }
+            $allowedGcTags = array_keys($allowedGcTags);
+        }
+        $hasPostFilter = !empty($allowedThreat) || !empty($allowedAnalysis) || !empty($allowedSg) || !empty($allowedGcTags);
         if ($hasPostFilter) {
             $params['limit'] = max(200, $rawLimit * 10);
         }
@@ -157,6 +177,26 @@ class EventStreamWidget
             $data = array_values(array_filter($data, function ($evt) use ($allowedSg) {
                 return isset($evt['Event']['sharing_group_id'])
                     && in_array((int)$evt['Event']['sharing_group_id'], $allowedSg, true);
+            }));
+        }
+        if (!empty($allowedGcTags)) {
+            // Event matches if any of its EventTag entries carries
+            // a Tag.name in the allowedGcTags set. Tag.name is an
+            // exact match against the cluster's tag_name (e.g.
+            //   'misp-galaxy:mitre-attack-pattern="Phishing - T1566"').
+            // Galaxy-type-only filtering (no specific clusters
+            // picked) is NOT applied here — galaxy_types is picker
+            // scope state per the canonical's shape.
+            $allowedGcSet = array_flip($allowedGcTags);
+            $data = array_values(array_filter($data, function ($evt) use ($allowedGcSet) {
+                if (empty($evt['EventTag']) || !is_array($evt['EventTag'])) return false;
+                foreach ($evt['EventTag'] as $et) {
+                    $name = isset($et['Tag']['name']) ? (string)$et['Tag']['name'] : '';
+                    if ($name !== '' && isset($allowedGcSet[$name])) {
+                        return true;
+                    }
+                }
+                return false;
             }));
         }
         if ($hasPostFilter) {
