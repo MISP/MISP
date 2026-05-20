@@ -417,11 +417,13 @@ class CanonicalTypeAdapter
      * values are preserved on the array path so a typo surfaces as
      * an empty result (loud feedback) instead of silent filtering.
      *
-     * `Event::fetchEvent` already accepts the int array directly at
-     * `Event.php:3868` (`$conditions['AND']['Event.threat_level_id']`)
-     * — CakePHP's `IN` coercion handles both scalar and array — so
-     * EventStreamWidget's handler just passes `options['threat_level']`
-     * straight through, no post-filter step required.
+     * Unlike distribution_filter, `Event::fetchEvent` does NOT accept
+     * `threat_level_id` as a filter option — that lives only in the
+     * restSearch dispatcher (`set_filter_threat_level_id`). Consumer
+     * widgets therefore apply the filter as a PHP post-filter against
+     * the ACL-filtered fetchEvent result set, matching the pattern
+     * TrendingTagsWidget uses for distribution_filter. Post-filter is
+     * ACL-safe — the filter can only narrow visibility.
      *
      * @param mixed $value
      * @return int[]|null
