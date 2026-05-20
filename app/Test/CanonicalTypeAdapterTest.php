@@ -1547,4 +1547,130 @@ class CanonicalTypeAdapterTest extends TestCase
         $config = ['anything' => 'goes'];
         $this->assertNull(CanonicalTypeAdapter::validate($widget, $config));
     }
+
+    // -------- translateOrgFilter (PRD §5.5 — refined naming) --------
+
+    public function testOrgFilterLegacyCommaStringWrapsToCanonical(): void
+    {
+        $out = CanonicalTypeAdapter::translateOrgFilter('CIRCL,!CERT.LV,Iglocska');
+        $this->assertSame('orgc', $out['match_via']);
+        $this->assertCount(3, $out['orgs']);
+        $this->assertSame(['name' => 'CIRCL'], $out['orgs'][0]);
+        $this->assertSame(['name' => 'CERT.LV', 'negate' => true], $out['orgs'][1]);
+        $this->assertSame(['name' => 'Iglocska'], $out['orgs'][2]);
+    }
+
+    public function testOrgFilterLegacyPlainArrayWrapsToCanonical(): void
+    {
+        $out = CanonicalTypeAdapter::translateOrgFilter(['CIRCL', '!CERT.LV']);
+        $this->assertSame('orgc', $out['match_via']);
+        $this->assertCount(2, $out['orgs']);
+        $this->assertSame(['name' => 'CIRCL'], $out['orgs'][0]);
+        $this->assertSame(['name' => 'CERT.LV', 'negate' => true], $out['orgs'][1]);
+    }
+
+    public function testOrgFilterCanonicalShapeNormalises(): void
+    {
+        $out = CanonicalTypeAdapter::translateOrgFilter([
+            'orgs' => [
+                ['uuid' => '55f6ea5e-2c60-40e5-964f-47a8950d210f'],
+                ['id'   => '42'],
+                ['name' => 'CIRCL', 'negate' => true],
+            ],
+            'match_via' => 'sharing_group',
+        ]);
+        $this->assertSame('sharing_group', $out['match_via']);
+        $this->assertCount(3, $out['orgs']);
+        $this->assertSame(['uuid' => '55f6ea5e-2c60-40e5-964f-47a8950d210f'], $out['orgs'][0]);
+        $this->assertSame(['id' => 42], $out['orgs'][1]);
+        $this->assertSame(['name' => 'CIRCL', 'negate' => true], $out['orgs'][2]);
+    }
+
+    public function testOrgFilterMatchViaInvalidEnumFallsBackToAny(): void
+    {
+        $out = CanonicalTypeAdapter::translateOrgFilter([
+            'orgs' => [['name' => 'CIRCL']],
+            'match_via' => 'creator',
+        ]);
+        $this->assertSame('any', $out['match_via']);
+    }
+
+    public function testOrgFilterMatchViaDefaultsToAnyWhenAbsent(): void
+    {
+        $out = CanonicalTypeAdapter::translateOrgFilter([
+            'orgs' => [['name' => 'CIRCL']],
+        ]);
+        $this->assertSame('any', $out['match_via']);
+    }
+
+    public function testOrgFilterEntryWithoutIdentityIsDropped(): void
+    {
+        $out = CanonicalTypeAdapter::translateOrgFilter([
+            'orgs' => [
+                ['name' => 'CIRCL'],
+                ['negate' => true],  // no identity → drop
+                ['name' => ''],      // empty name → drop
+            ],
+            'match_via' => 'orgc',
+        ]);
+        $this->assertCount(1, $out['orgs']);
+        $this->assertSame(['name' => 'CIRCL'], $out['orgs'][0]);
+    }
+
+    public function testOrgFilterNullStaysNull(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateOrgFilter(null));
+    }
+
+    public function testOrgFilterIsIdempotent(): void
+    {
+        $once = CanonicalTypeAdapter::translateOrgFilter('CIRCL,!CERT.LV');
+        $twice = CanonicalTypeAdapter::translateOrgFilter($once);
+        $this->assertSame($once, $twice);
+    }
+
+    public function testTranslateRoutesOrgFilterByType(): void
+    {
+        $widget = new stdClass();
+        $widget->schema = ['orgs' => ['type' => 'org_filter']];
+        $out = CanonicalTypeAdapter::translate($widget, ['orgs' => 'CIRCL,!CERT.LV']);
+        $this->assertSame('orgc', $out['orgs']['match_via']);
+        $this->assertCount(2, $out['orgs']['orgs']);
+    }
+
+    public function testValidateOrgFilterAcceptsAllSupportedShapes(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::validateOrgFilter(null));
+        $this->assertNull(CanonicalTypeAdapter::validateOrgFilter('CIRCL,!CERT.LV'));
+        $this->assertNull(CanonicalTypeAdapter::validateOrgFilter(['CIRCL', '!CERT.LV']));
+        $this->assertNull(CanonicalTypeAdapter::validateOrgFilter([
+            'orgs' => [['name' => 'CIRCL']],
+            'match_via' => 'orgc',
+        ]));
+        $this->assertNull(CanonicalTypeAdapter::validateOrgFilter([
+            'orgs' => [['uuid' => 'abc'], ['id' => 1], ['name' => 'X']],
+            'match_via' => 'sharing_group',
+        ]));
+    }
+
+    public function testValidateOrgFilterRejectsBadShapes(): void
+    {
+        // entry without identity
+        $this->assertNotNull(CanonicalTypeAdapter::validateOrgFilter([
+            'orgs' => [['negate' => true]],
+        ]));
+        // entry that's a scalar
+        $this->assertNotNull(CanonicalTypeAdapter::validateOrgFilter([
+            'orgs' => ['CIRCL'],
+        ]));
+        // bad match_via
+        $this->assertNotNull(CanonicalTypeAdapter::validateOrgFilter([
+            'orgs' => [['name' => 'CIRCL']],
+            'match_via' => 'creator',
+        ]));
+        // plain array of non-strings
+        $this->assertNotNull(CanonicalTypeAdapter::validateOrgFilter([42, 7]));
+        // scalar non-string
+        $this->assertNotNull(CanonicalTypeAdapter::validateOrgFilter(42));
+    }
 }

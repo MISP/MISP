@@ -189,6 +189,24 @@ class CanonicalTypeAdapter
                     // threat_level / analysis values).
                     $config[$key] = self::translateSharingGroupFilter($config[$key]);
                     break;
+                case 'org_filter':
+                    // Structured object — orgs list + match_via axis.
+                    // Wire shape (deviation from PRD §5.5 documented in
+                    // commit body — `match_via` replaces `role` to avoid
+                    // collision with MISP's User.role_id concept;
+                    // `orgc`/`sharing_group` replace `creator`/
+                    // `distribution` to match MISP DB field naming;
+                    // additive per-entry `negate` extends the canonical
+                    // to preserve legacy `!`-prefix negation):
+                    //   { orgs: [{ uuid?, id?, name?, negate? }],
+                    //     match_via: "orgc"|"sharing_group"|"any" }
+                    // Legacy input (EventStreamWidget's $params['orgs']
+                    // slot): comma-separated string `"Org1,!Org2"` or
+                    // array `["Org1", "!Org2"]` — translated to the
+                    // canonical shape with default `match_via: "orgc"`
+                    // (matches the legacy slot's existing semantic).
+                    $config[$key] = self::translateOrgFilter($config[$key]);
+                    break;
                 case 'galaxy_cluster_filter':
                     // Structured object — galaxy_cluster_filter has
                     // two semantic axes so the bare-array convention
@@ -207,7 +225,7 @@ class CanonicalTypeAdapter
                     // dropped, missing keys default to empty arrays.
                     $config[$key] = self::translateGalaxyClusterFilter($config[$key]);
                     break;
-                // Phase 3 adds: org_filter, attribute_type_filter,
+                // Phase 3 follow-ups: attribute_type_filter,
                 // event_id_filter. Each adds one case + one
                 // translate<Type>() method below.
             }
@@ -496,6 +514,129 @@ class CanonicalTypeAdapter
     }
 
     /**
+     * Translate an `org_filter` value.
+     *
+     * Wire shape (refined from PRD §5.5 — see commit body for rationale):
+     *
+     *   { orgs: [{ uuid?, id?, name?, negate? }],
+     *     match_via: "orgc" | "sharing_group" | "any" }
+     *
+     *   - `orgs` — list of org identity records. Each entry MAY carry
+     *     `uuid` (string), `id` (int), or `name` (string) — at least one
+     *     must be set (defensive drop otherwise). Optional `negate: true`
+     *     inverts the match for that entry (legacy `!`-prefix semantics
+     *     preserved as an additive refinement to PRD §5.5).
+     *   - `match_via` — which Event-Org relationship to filter on:
+     *     `"orgc"` (Event.orgc_id; matches MISP DB field naming), or
+     *     `"sharing_group"` (visibility via Event.sharing_group_id →
+     *     SharingGroup → SharingGroupOrg), or `"any"` (either).
+     *
+     * Legacy inputs accepted (EventStreamWidget's `$params['orgs']`
+     * slot historically holds these shapes):
+     *   - Comma-separated string `"Org1,!Org2,Org3"` → canonical shape
+     *     with `match_via: "orgc"` (the legacy slot's semantic) and
+     *     each token wrapped into `{name: <token>, negate?: true}`.
+     *   - Plain array `["Org1", "!Org2"]` → same translation per entry.
+     *   - null → null.
+     *   - other unrecognised shapes → null.
+     *
+     * Out-of-domain values (unknown org names/UUIDs/IDs) survive the
+     * normaliser; the consumer widget's query path matches them against
+     * an already-ACL-filtered base set — unauthorised or non-existent
+     * identifiers simply match no rows, same loud-feedback semantics
+     * as the other identity canonicals.
+     *
+     * @param mixed $value
+     * @return array|null
+     */
+    public static function translateOrgFilter($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+        // Legacy comma-separated string from EventStreamWidget's
+        // $params['orgs'] historical shape.
+        if (is_string($value)) {
+            $tokens = array_map('trim', explode(',', $value));
+            $tokens = array_filter($tokens, function ($t) { return $t !== ''; });
+            return [
+                'orgs'      => array_values(array_map([self::class, '_orgTokenToEntry'], $tokens)),
+                'match_via' => 'orgc',
+            ];
+        }
+        if (!is_array($value)) {
+            return null;
+        }
+        // Legacy plain array of token strings (no `orgs`/`match_via` keys).
+        $hasShape = array_key_exists('orgs', $value)
+                 || array_key_exists('match_via', $value);
+        if (!$hasShape) {
+            $tokens = array_filter($value, 'is_string');
+            $tokens = array_filter($tokens, function ($t) { return $t !== ''; });
+            return [
+                'orgs'      => array_values(array_map([self::class, '_orgTokenToEntry'], $tokens)),
+                'match_via' => 'orgc',
+            ];
+        }
+        // Canonical shape — normalise both axes.
+        $orgs = [];
+        if (isset($value['orgs']) && is_array($value['orgs'])) {
+            foreach ($value['orgs'] as $entry) {
+                $normalised = self::_normaliseOrgEntry($entry);
+                if ($normalised !== null) {
+                    $orgs[] = $normalised;
+                }
+            }
+        }
+        $matchVia = isset($value['match_via']) && is_string($value['match_via'])
+            ? $value['match_via']
+            : 'any';
+        if (!in_array($matchVia, ['orgc', 'sharing_group', 'any'], true)) {
+            $matchVia = 'any';
+        }
+        return ['orgs' => $orgs, 'match_via' => $matchVia];
+    }
+
+    /**
+     * Token string ("Org1" or "!Org2") to canonical entry.
+     */
+    private static function _orgTokenToEntry($token)
+    {
+        $negate = false;
+        if (strlen($token) > 0 && $token[0] === '!') {
+            $negate = true;
+            $token = substr($token, 1);
+        }
+        $entry = ['name' => $token];
+        if ($negate) $entry['negate'] = true;
+        return $entry;
+    }
+
+    /**
+     * Normalise one canonical org entry. At least one of `uuid` / `id`
+     * / `name` must be present (defensive); `negate` (when present)
+     * coerces to bool. Returns null when no identity key is set —
+     * dropped from the translated list.
+     */
+    private static function _normaliseOrgEntry($entry)
+    {
+        if (!is_array($entry)) return null;
+        $out = [];
+        if (isset($entry['uuid']) && is_string($entry['uuid']) && $entry['uuid'] !== '') {
+            $out['uuid'] = $entry['uuid'];
+        }
+        if (isset($entry['id']) && (is_int($entry['id']) || (is_string($entry['id']) && is_numeric($entry['id'])))) {
+            $out['id'] = (int)$entry['id'];
+        }
+        if (isset($entry['name']) && is_string($entry['name']) && $entry['name'] !== '') {
+            $out['name'] = $entry['name'];
+        }
+        if ($out === []) return null;
+        if (!empty($entry['negate'])) $out['negate'] = true;
+        return $out;
+    }
+
+    /**
      * Translate a `galaxy_cluster_filter` value.
      *
      * Wire shape is a structured object — galaxy_cluster_filter has
@@ -711,7 +852,10 @@ class CanonicalTypeAdapter
                 case 'galaxy_cluster_filter':
                     $error = self::validateGalaxyClusterFilter($value);
                     break;
-                // Phase 3 follow-ups: org_filter, attribute_type_filter,
+                case 'org_filter':
+                    $error = self::validateOrgFilter($value);
+                    break;
+                // Phase 3 follow-ups: attribute_type_filter,
                 // event_id_filter. Each lands with its translate<Type>
                 // and adds a case here.
             }
@@ -806,6 +950,56 @@ class CanonicalTypeAdapter
             if (is_string($entry) && is_numeric($entry)) continue;
             if (is_float($entry) && is_finite($entry)) continue;
             return 'int-array canonical entries must be numeric.';
+        }
+        return null;
+    }
+
+    /**
+     * `{orgs: [...], match_via: ...}` object, or legacy string/array
+     * shapes accepted by the translator.
+     */
+    public static function validateOrgFilter($value): ?string
+    {
+        if ($value === null) return null;
+        // Legacy string ("Org1,!Org2") and plain array of strings are
+        // accepted shapes — translator wraps them.
+        if (is_string($value)) return null;
+        if (!is_array($value)) {
+            return 'org_filter must be an object, a comma-separated string, or an array of names.';
+        }
+        $hasShape = array_key_exists('orgs', $value)
+                 || array_key_exists('match_via', $value);
+        if (!$hasShape) {
+            // Plain array of org name strings → translator handles it.
+            foreach ($value as $entry) {
+                if (!is_string($entry)) {
+                    return 'org_filter array entries must be strings (org names with optional ! prefix).';
+                }
+            }
+            return null;
+        }
+        if (isset($value['orgs'])) {
+            if (!is_array($value['orgs'])) {
+                return 'org_filter.orgs must be an array of org entries.';
+            }
+            foreach ($value['orgs'] as $entry) {
+                if (!is_array($entry)) {
+                    return 'org_filter.orgs entries must be objects with uuid/id/name.';
+                }
+                $hasIdentity = (isset($entry['uuid']) && is_string($entry['uuid']) && $entry['uuid'] !== '')
+                            || (isset($entry['id']) && (is_int($entry['id']) || (is_string($entry['id']) && is_numeric($entry['id']))))
+                            || (isset($entry['name']) && is_string($entry['name']) && $entry['name'] !== '');
+                if (!$hasIdentity) {
+                    return 'org_filter.orgs entries must declare at least one of uuid / id / name.';
+                }
+            }
+        }
+        if (isset($value['match_via'])) {
+            if (!is_string($value['match_via'])
+                || !in_array($value['match_via'], ['orgc', 'sharing_group', 'any'], true)
+            ) {
+                return 'org_filter.match_via must be one of: orgc, sharing_group, any.';
+            }
         }
         return null;
     }
