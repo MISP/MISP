@@ -97,7 +97,7 @@ class AppModel extends Model
 	        129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
 	        135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
 	        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
-	        147 => false, 148 => false
+	        147 => false, 148 => false, 149 => false
 	    );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -2625,6 +2625,9 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `taxii_servers` RENAME COLUMN `baseurl` TO `discovery_url`;";
                 $sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `discovery_url` VARCHAR(512);";
                 $sqlArray[] = "UPDATE `taxii_servers` SET `discovery_url` = CONCAT(TRIM(TRAILING \"/\" FROM discovery_url),\"/taxii2/\");";
+                break;
+            case 149:
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` MODIFY `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
