@@ -600,6 +600,70 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 }
 
 /* ============================================================
+ * Index renderer — tabular records emitted by widgets that declare
+ * `$render = 'Index'`. Body scrolls vertically; sticky header keeps
+ * column names visible. Cell padding stays compact for dense data.
+ * ============================================================ */
+.misp-index {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+.misp-index-description {
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+  margin-bottom: var(--misp-dash-space-2);
+}
+.misp-index-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-index-th {
+  position: sticky;
+  top: 0;
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text-muted);
+  font-weight: var(--misp-dash-fw-medium);
+  text-align: left;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border-bottom: 1px solid var(--misp-dash-border);
+  white-space: nowrap;
+}
+.misp-index-tr + .misp-index-tr .misp-index-td {
+  border-top: 1px solid var(--misp-dash-border-subtle, var(--misp-dash-border));
+}
+.misp-index-td {
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  vertical-align: top;
+  color: var(--misp-dash-text);
+}
+.misp-index-link {
+  color: var(--misp-dash-accent);
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color var(--misp-dash-transition-fast);
+}
+.misp-index-link:hover {
+  border-bottom-color: currentColor;
+}
+.misp-index-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  margin: 1px 2px 1px 0;
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-sunken);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  white-space: nowrap;
+}
+.misp-index-muted {
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+}
+
+/* ============================================================
  * Chart container — ECharts mounts inside, fills the widget body.
  * Renderers under Elements/dashboard/Widgets/ emit a static
  * <div class="misp-chart"> + data-misp-chart="<kind>" attribute;

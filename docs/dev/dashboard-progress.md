@@ -1077,6 +1077,21 @@ TrendingAttributesWidget's private `$validOrgFilters` array used `'national'` fo
 
 Renamed `'national'` → `'nationality'` in `$validOrgFilters`. No other code path in the widget referenced the typo. With this fix, TrendingAttributesWidget's accepted filter keys match the convention used by every other in-tree widget, and the canonical org_meta_filter backfill becomes safe to land.
 
+### Missing renderer templates for declared render kinds (surfaced 2026-05-19)
+
+Five `$render` kinds declared on in-tree widgets had no matching
+`Elements/dashboard/Widgets/<Kind>.ctp` template — widgets using them
+500'd on render. Surfaced during the distribution_filter consumer
+pivot (EventStreamWidget declares `Index`; pivoted to TrendingTagsWidget
+which uses `BarChart` already shipped). Each renderer is a thin .ctp
+around its `$data` shape, modelled after BarChart/SimpleList.
+
+- [x] `Index` — **landed 2026-05-20.** New `app/View/Elements/dashboard/Widgets/Index.ctp` interprets the established `$fields` contract (`name`, `data_path`, optional `element` ∈ {`links`, `org`, `tags`, `array_lookup_field`}, optional `url` / `url_params_data_paths` / `arrayData` / `scope`) and emits a token-driven `<table class="misp-index-table">`. Five element types covered: `links` (id columns; safe-URL check matches SimpleList's `_isSafeDashboardUrl` contract; URL suffix taken from `url_params_data_paths`, rawurlencoded); `org` (renders org name as a link to `/organisations/view/<id|uuid>`; no OrgImg dependency — text-only chip matches v2's compact body idiom); `tags` (static colored pill row; colour sanitised against `#rgb`/`#rrggbb`; contrast text colour chosen via Rec. 601 luminance heuristic); `array_lookup_field` (`arrayData[(int)value]` lookup, used by EventStreamWidget's `analysis` column for Initial/Ongoing/Complete); default scalar (escaped value, `<em class="misp-index-muted">[array]</em>` fallback when a non-scalar lands in a default cell for debuggability). Empty-state path matches SimpleList: `$data['data']` empty → `<div class="misp-list-empty">No data.</div>`. `$data['description']` (optional caption from NewUsers/NewOrgs widgets) renders above the table. Companion CSS block in `dashboard.default.css` (sticky `<thead>`, compact cell padding, `.misp-index-link` matches `.misp-list-link` underline-on-hover convention, `.misp-index-tag` pill with token-driven fallback colours). **Smoke (admin user, session login):** all three Index-consumer widgets render — EventStreamWidget default config (id / org / info columns), exercised config with `fields: [id, tags, threat_level, analysis, date]` (tag chips with correct contrast text, analysis lookup, date column), tag-filter that matches zero events → empty-state path; NewUsersWidget (5-column tabular with caption); NewOrgsWidget (7-column tabular with caption). XSS-safe — confirmed by a real-world org name containing `<img src=x onerror=alert(1)>` rendering as escaped text. `php -l` clean on the renderer; CSS reachable at `/css/dashboard/dashboard.default.css?v=185` with 10 `misp-index*` rules. **Glyph already shipped** from prior session via `render-thumbs.mjs::thumbIndex` — no new entry needed. **Limitation:** the v1 `links.ctp` supports `url_params_data_paths` as an array (composite path → multi-segment URL) and the v1 `tags.ctp` ships tag-modify + tag-collection UIs; v2 covers only the in-tree usage (scalar `url_params_data_paths`, static read-only tag chips). Add the array path when a widget needs it; the modify UI is a Phase 5 affordance.
+- [ ] `OrgsPictures` — used by `OrgsContributorsGeneric` derivatives; needs org-image grid renderer.
+- [ ] `Button` — used by `ButtonWidget`; needs link-button renderer.
+- [ ] `Attack` — used by `AttackWidget`; needs MITRE ATT&CK matrix renderer.
+- [ ] `Achievements` — used by `AchievementsWidget`; needs badge + counter renderer.
+
 ### time_window toolbar UX — dropdown-menu chip alternative (surfaced 2026-05-19)
 
 Current implementation: clicking the time_window chip opens a popover with a text-input + 5 preset shortcut buttons + format hint + Cancel/Apply buttons. Functional but heavy for the common case where the user just wants to switch to one of the 5 standard windows.
