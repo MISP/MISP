@@ -812,6 +812,77 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 }
 
 /* ============================================================
+ * OrgsPictures renderer — grid of org logos / letter chips.
+ * Auto-fill columns at 64px width so the widget body packs in as
+ * many cells as fit. Each cell links to the org view; logo cells
+ * are 48×48 with object-fit contain, letter chips are square with
+ * the org's first character.
+ * ============================================================ */
+.misp-orgs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 64px);
+  gap: var(--misp-dash-space-2);
+  align-content: start;
+}
+.misp-orgs-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  padding: var(--misp-dash-space-1);
+  border-radius: var(--misp-dash-radius-md);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  text-decoration: none;
+  color: var(--misp-dash-text);
+  transition: border-color var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast),
+              transform var(--misp-dash-transition-fast);
+}
+.misp-orgs-cell:hover,
+.misp-orgs-cell:focus-visible {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-sm);
+  text-decoration: none;
+  color: var(--misp-dash-text);
+}
+.misp-orgs-cell:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+.misp-orgs-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  display: block;
+}
+.misp-orgs-chip {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  font-size: var(--misp-dash-fs-xl);
+  font-weight: var(--misp-dash-fw-bold);
+  line-height: 1;
+}
+.misp-orgs-srlabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================
  * Chart container — ECharts mounts inside, fills the widget body.
  * Renderers under Elements/dashboard/Widgets/ emit a static
  * <div class="misp-chart"> + data-misp-chart="<kind>" attribute;
