@@ -19,7 +19,9 @@
  *
  * The styling for these classes ships at
  * `Themed/Overmind/webroot/css/dashboard/overmind.css`, loaded by
- * index.ctp when the Overmind theme is active.
+ * `Themed/Overmind/Layouts/dashboard.ctp` via a manual <link> tag
+ * (this fork's HtmlHelper::assetUrl doesn't resolve Cake's theme
+ * dot-notation, so the asset path is emitted explicitly).
  */
 ?>
 <div class="card misp-widget--overmind"
