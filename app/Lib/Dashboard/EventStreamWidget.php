@@ -9,7 +9,7 @@ class EventStreamWidget
     public $height = 2;
     public $params = [
         'tags' => 'A list of tagnames to filter on. Comma separated list, prepend each tag with an exclamation mark to negate it.',
-        'orgs' => 'A list of organisation names to filter on. Comma separated list, prepend each tag with an exclamation mark to negate it.',
+        'orgs' => 'Organisation filter (canonical org_filter shape). Legacy comma-separated string with !-prefix negation still accepted; the adapter translates it to the canonical { orgs: [{uuid?, id?, name?, negate?}], match_via: orgc|sharing_group|any } shape.',
         'published' => 'Boolean flag to filter on published events only',
         'limit' => 'How many events should be listed? Defaults to 5',
         'fields' => 'A list of fields that should be displayed. Valid fields: id, orgc, info, tags, threat_level, analysis, date. Default field selection ["id", "orgc", "info"]',
@@ -34,6 +34,10 @@ class EventStreamWidget
         'galaxy_cluster' => [
             'type' => 'galaxy_cluster_filter',
             'help' => 'Filter events by galaxy cluster. Pick a galaxy type, then search for clusters; selected clusters appear as removable chips. Bulk-edited via the dashboard toolbar when at least one widget on the board declares this canonical.',
+        ],
+        'orgs' => [
+            'type' => 'org_filter',
+            'help' => 'Filter events by organisation. Pick match style (orgc / sharing_group / any), then add orgs via the typeahead. Click a chip to toggle exclude (!) state. Bulk-edited via the dashboard toolbar when at least one widget on the board declares this canonical.',
         ],
     ];
     public $description = 'Monitor incoming events based on your own filters.';
@@ -97,7 +101,12 @@ class EventStreamWidget
                 $fields[] = $field_options[$field];
             }
         }
-        foreach (['published', 'limit', 'tags', 'orgs'] as $field) {
+        // `orgs` no longer passes through to fetchEvent — the canonical
+        // adapter has translated the legacy shape into the structured
+        // {orgs: [...], match_via: ...} which fetchEvent doesn't accept
+        // natively. Applied as a PHP post-filter alongside the other
+        // canonical-typed filters below.
+        foreach (['published', 'limit', 'tags'] as $field) {
             if (!empty($options[$field])) {
                 $params[$field] = $options[$field];
             }
@@ -150,7 +159,98 @@ class EventStreamWidget
             }
             $allowedGcTags = array_keys($allowedGcTags);
         }
-        $hasPostFilter = !empty($allowedThreat) || !empty($allowedAnalysis) || !empty($allowedSg) || !empty($allowedGcTags);
+        // org_filter canonical (10th canonical, PRD §5.5 — refined
+        // naming). Adapter has translated the legacy comma-string /
+        // array shape into the canonical structured shape:
+        //   { orgs: [{uuid?, id?, name?, negate?}], match_via: ... }
+        // Built as a PHP post-filter (over fetchEvent's existing Orgc
+        // + SharingGroup.SharingGroupOrg associations) rather than
+        // pushed into fetchEvent's `orgs` SQL param because:
+        //   - fetchEvent's `orgs` slot only does orgc-side matching;
+        //     the canonical's match_via axis adds sharing_group + any.
+        //   - canonical entries support uuid / id / name identity, not
+        //     just name; matching by uuid is the future-proof key
+        //     (org rename / SG migration survive).
+        //   - per-entry negate semantics survive cleanly without
+        //     replicating the !-prefix string convention SQL-side.
+        $matchEventOrgs = null;
+        if (isset($options['orgs']) && is_array($options['orgs'])
+            && isset($options['orgs']['orgs']) && is_array($options['orgs']['orgs'])
+            && !empty($options['orgs']['orgs'])) {
+            $orgFilter = $options['orgs'];
+            $buildIdKeys = function ($candidate) {
+                $keys = [];
+                if (!empty($candidate['uuid']) && is_string($candidate['uuid'])) {
+                    $keys[] = 'uuid:' . $candidate['uuid'];
+                }
+                if (isset($candidate['id'])
+                    && (is_int($candidate['id'])
+                        || (is_string($candidate['id']) && is_numeric($candidate['id'])))) {
+                    $keys[] = 'id:' . (int)$candidate['id'];
+                }
+                if (!empty($candidate['name']) && is_string($candidate['name'])) {
+                    $keys[] = 'name:' . $candidate['name'];
+                }
+                return $keys;
+            };
+            $includeKeys = [];
+            $excludeKeys = [];
+            foreach ($orgFilter['orgs'] as $org) {
+                $keys = $buildIdKeys($org);
+                if (empty($keys)) continue;
+                // Each entry contributes ALL its identity keys; an event
+                // matches if any of its event-side keys is in the set.
+                // This is what makes uuid-keyed entries match against
+                // events whose Orgc only joined `name` (and vice-versa).
+                $bucket = !empty($org['negate']) ? '_excl' : '_incl';
+                foreach ($keys as $k) {
+                    if ($bucket === '_incl') $includeKeys[$k] = true;
+                    else $excludeKeys[$k] = true;
+                }
+            }
+            $matchVia = isset($orgFilter['match_via']) && is_string($orgFilter['match_via'])
+                && in_array($orgFilter['match_via'], ['orgc', 'sharing_group', 'any'], true)
+                ? $orgFilter['match_via']
+                : 'any';
+            $matchEventOrgs = function ($evt) use ($includeKeys, $excludeKeys, $matchVia) {
+                $evtKeys = [];
+                if ($matchVia === 'orgc' || $matchVia === 'any') {
+                    $orgc = isset($evt['Orgc']) && is_array($evt['Orgc']) ? $evt['Orgc'] : null;
+                    if ($orgc !== null) {
+                        if (!empty($orgc['uuid'])) $evtKeys['uuid:' . $orgc['uuid']] = true;
+                        if (isset($orgc['id']))    $evtKeys['id:' . (int)$orgc['id']] = true;
+                        if (!empty($orgc['name'])) $evtKeys['name:' . $orgc['name']] = true;
+                    }
+                }
+                if ($matchVia === 'sharing_group' || $matchVia === 'any') {
+                    $sg = isset($evt['SharingGroup']) && is_array($evt['SharingGroup'])
+                        ? $evt['SharingGroup'] : null;
+                    $sgo = $sg !== null && isset($sg['SharingGroupOrg']) && is_array($sg['SharingGroupOrg'])
+                        ? $sg['SharingGroupOrg'] : [];
+                    foreach ($sgo as $entry) {
+                        $org = isset($entry['Organisation']) && is_array($entry['Organisation'])
+                            ? $entry['Organisation'] : null;
+                        if ($org === null) continue;
+                        if (!empty($org['uuid'])) $evtKeys['uuid:' . $org['uuid']] = true;
+                        if (isset($org['id']))    $evtKeys['id:' . (int)$org['id']] = true;
+                        if (!empty($org['name'])) $evtKeys['name:' . $org['name']] = true;
+                    }
+                }
+                // Exclusion wins: any matching exclude key drops the event.
+                foreach ($excludeKeys as $k => $_) {
+                    if (isset($evtKeys[$k])) return false;
+                }
+                // Inclusion: if any include key matches, keep. With no
+                // includes set (only excludes), all non-excluded events
+                // pass — same shape as legacy `!Org1` (exclude-only).
+                if (empty($includeKeys)) return true;
+                foreach ($includeKeys as $k => $_) {
+                    if (isset($evtKeys[$k])) return true;
+                }
+                return false;
+            };
+        }
+        $hasPostFilter = !empty($allowedThreat) || !empty($allowedAnalysis) || !empty($allowedSg) || !empty($allowedGcTags) || $matchEventOrgs !== null;
         if ($hasPostFilter) {
             $params['limit'] = max(200, $rawLimit * 10);
         }
@@ -178,6 +278,9 @@ class EventStreamWidget
                 return isset($evt['Event']['sharing_group_id'])
                     && in_array((int)$evt['Event']['sharing_group_id'], $allowedSg, true);
             }));
+        }
+        if ($matchEventOrgs !== null) {
+            $data = array_values(array_filter($data, $matchEventOrgs));
         }
         if (!empty($allowedGcTags)) {
             // Event matches if any of its EventTag entries carries
