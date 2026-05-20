@@ -15,6 +15,7 @@ class EventStreamWidget
         'fields' => 'A list of fields that should be displayed. Valid fields: id, orgc, info, tags, threat_level, analysis, date. Default field selection ["id", "orgc", "info"]',
         'threat_level' => 'A list of threat levels (1=High, 2=Medium, 3=Low, 4=Undefined) to filter events by. Accepts an int array or single int. Empty / unset = no filter.',
         'analysis' => 'A list of analysis stages (0=Initial, 1=Ongoing, 2=Complete) to filter events by. Accepts an int array or single int. Empty / unset = no filter.',
+        'sharing_group' => 'A list of SharingGroup.id values to filter events by. Accepts an int array or single int. Empty / unset = no filter; unauthorised IDs match no rows.',
     ];
     public $schema = [
         'threat_level' => [
@@ -24,6 +25,10 @@ class EventStreamWidget
         'analysis' => [
             'type' => 'analysis_filter',
             'help' => 'Filter events by analysis stage (Initial / Ongoing / Complete). Bulk-edited via the dashboard toolbar when at least one widget on the board declares this canonical.',
+        ],
+        'sharing_group' => [
+            'type' => 'sharing_group_filter',
+            'help' => 'Filter events by sharing group. Bulk-edited via the dashboard toolbar when at least one widget on the board declares this canonical.',
         ],
     ];
     public $description = 'Monitor incoming events based on your own filters.';
@@ -124,7 +129,9 @@ class EventStreamWidget
         $allowedThreat   = !empty($options['threat_level']) ? $coerceLevels($options['threat_level']) : [];
         $allowedAnalysis = isset($options['analysis']) && $options['analysis'] !== ''
             ? $coerceLevels($options['analysis']) : [];
-        if (!empty($allowedThreat) || !empty($allowedAnalysis)) {
+        $allowedSg       = !empty($options['sharing_group']) ? $coerceLevels($options['sharing_group']) : [];
+        $hasPostFilter   = !empty($allowedThreat) || !empty($allowedAnalysis) || !empty($allowedSg);
+        if ($hasPostFilter) {
             $params['limit'] = max(200, $rawLimit * 10);
         }
         $data = $this->Event->fetchEvent($user, $params);
@@ -140,7 +147,19 @@ class EventStreamWidget
                     && in_array((int)$evt['Event']['analysis'], $allowedAnalysis, true);
             }));
         }
-        if (!empty($allowedThreat) || !empty($allowedAnalysis)) {
+        if (!empty($allowedSg)) {
+            // Event.sharing_group_id is only set when distribution=4
+            // (Sharing Group). Other distribution levels leave it
+            // null / 0. The IN check naturally excludes those rows
+            // — which is the right semantic: filtering "by sharing
+            // group X" should not match events that aren't shared
+            // via a sharing group at all.
+            $data = array_values(array_filter($data, function ($evt) use ($allowedSg) {
+                return isset($evt['Event']['sharing_group_id'])
+                    && in_array((int)$evt['Event']['sharing_group_id'], $allowedSg, true);
+            }));
+        }
+        if ($hasPostFilter) {
             $data = array_slice($data, 0, $rawLimit);
         }
         return [
