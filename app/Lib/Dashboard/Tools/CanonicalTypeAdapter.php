@@ -225,9 +225,29 @@ class CanonicalTypeAdapter
                     // dropped, missing keys default to empty arrays.
                     $config[$key] = self::translateGalaxyClusterFilter($config[$key]);
                     break;
-                // Phase 3 follow-ups: attribute_type_filter,
-                // event_id_filter. Each adds one case + one
-                // translate<Type>() method below.
+                case 'attribute_type_filter':
+                    // Widget-only canonical (no toolbar surface).
+                    // 1-to-N expansion: canonical shape splits back
+                    // into the legacy top-level `type` + `category`
+                    // keys every existing attribute-type-filtering
+                    // widget reads. Empty canonical lists do NOT
+                    // overwrite legacy entries — same pattern as
+                    // date_range / tag_filter.
+                    $derived = self::translateAttributeTypeFilter($config[$key]);
+                    if ($derived !== null) {
+                        foreach ($derived as $legacyKey => $legacyValue) {
+                            $config[$legacyKey] = $legacyValue;
+                        }
+                    }
+                    break;
+                case 'event_id_filter':
+                    // Widget-only canonical. Pass-through normalisation
+                    // only — no widget today consumes the canonical
+                    // shape; the adapter ships the shape-correct
+                    // normalisation so a future widget that wires it
+                    // works without further adapter changes.
+                    $config[$key] = self::translateEventIdFilter($config[$key]);
+                    break;
             }
         }
         return $config;
@@ -781,6 +801,100 @@ class CanonicalTypeAdapter
         return $out;
     }
 
+    /**
+     * Translate an `attribute_type_filter` value to legacy widget keys.
+     *
+     * Canonical shape: `{ types: string[], categories?: string[] }`.
+     * Legacy widget shape (TrendingAttributesWidget): top-level
+     * `type` + `category` lists.
+     *
+     * Translation: writes `type` (from `types`) and `category` (from
+     * `categories`) into the caller's $config, when each list is
+     * non-empty. Empty canonical lists do NOT overwrite legacy entries
+     * — a user with bottom-tier-set `type: [...]` survives a canonical
+     * unset of `attribute_type_filter`. Same idempotency property as
+     * date_range / tag_filter.
+     *
+     * Accepts:
+     *   - canonical structured shape → emits legacy keys
+     *   - null → null (no translation)
+     *   - other → null
+     *
+     * @param mixed $value
+     * @return array|null Associative legacy-key map or null.
+     */
+    public static function translateAttributeTypeFilter($value)
+    {
+        if ($value === null || !is_array($value)) {
+            return null;
+        }
+        $hasShape = array_key_exists('types', $value)
+                 || array_key_exists('categories', $value);
+        if (!$hasShape) {
+            return null;
+        }
+        $out = [];
+        $types = self::_normaliseStringArray($value['types'] ?? []);
+        if (!empty($types)) {
+            $out['type'] = $types;
+        }
+        $categories = self::_normaliseStringArray($value['categories'] ?? []);
+        if (!empty($categories)) {
+            $out['category'] = $categories;
+        }
+        return $out === [] ? null : $out;
+    }
+
+    /**
+     * Translate an `event_id_filter` value.
+     *
+     * Wire shape: `{ event_ids: int[] | "current" }`. The `"current"`
+     * sentinel means "the currently-viewed event in a single-event
+     * context" — only meaningful for widgets that render in an event-
+     * view side panel (not dashboard board widgets, which have no
+     * "current event"). No widget consumes this canonical today; the
+     * adapter ships the normalisation as forward-compat scaffolding.
+     *
+     * Accepts:
+     *   - canonical structured `{ event_ids: int[] }` → normalised
+     *     (entries coerced to int via `_normaliseIntArray`; deduped)
+     *   - `{ event_ids: "current" }` → preserved verbatim
+     *   - null → null
+     *   - other unrecognised → null
+     *
+     * @param mixed $value
+     * @return array|null
+     */
+    public static function translateEventIdFilter($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (!is_array($value)) {
+            return null;
+        }
+        if (!array_key_exists('event_ids', $value)) {
+            return null;
+        }
+        $eventIds = $value['event_ids'];
+        if (is_string($eventIds) && $eventIds === 'current') {
+            return ['event_ids' => 'current'];
+        }
+        $normalised = self::_normaliseIntArray($eventIds);
+        if ($normalised === null) {
+            return null;
+        }
+        // Dedup while preserving first-occurrence order.
+        $seen = [];
+        $out = [];
+        foreach ($normalised as $id) {
+            if (isset($seen[$id])) continue;
+            $seen[$id] = true;
+            $out[] = $id;
+        }
+        return ['event_ids' => $out];
+    }
+
     // ====================================================================
     // Validators (PRD §5.5 — Phase 3 closer)
     // --------------------------------------------------------------------
@@ -855,9 +969,12 @@ class CanonicalTypeAdapter
                 case 'org_filter':
                     $error = self::validateOrgFilter($value);
                     break;
-                // Phase 3 follow-ups: attribute_type_filter,
-                // event_id_filter. Each lands with its translate<Type>
-                // and adds a case here.
+                case 'attribute_type_filter':
+                    $error = self::validateAttributeTypeFilter($value);
+                    break;
+                case 'event_id_filter':
+                    $error = self::validateEventIdFilter($value);
+                    break;
             }
             if ($error !== null) {
                 $errors[$key] = $error;
@@ -1000,6 +1117,60 @@ class CanonicalTypeAdapter
             ) {
                 return 'org_filter.match_via must be one of: orgc, sharing_group, any.';
             }
+        }
+        return null;
+    }
+
+    /** `{types: string[], categories?: string[]}` object. */
+    public static function validateAttributeTypeFilter($value): ?string
+    {
+        if ($value === null) return null;
+        if (!is_array($value)) {
+            return 'attribute_type_filter must be an object with types / categories arrays.';
+        }
+        foreach (['types', 'categories'] as $axis) {
+            if (!array_key_exists($axis, $value)) continue;
+            $v = $value[$axis];
+            if ($v === null) continue;
+            if (is_string($v)) continue; // _normaliseStringArray accepts scalars
+            if (!is_array($v)) {
+                return "attribute_type_filter.$axis must be an array of strings.";
+            }
+            foreach ($v as $entry) {
+                if (!is_string($entry)) {
+                    return "attribute_type_filter.$axis entries must be strings.";
+                }
+            }
+        }
+        return null;
+    }
+
+    /** `{event_ids: int[] | "current"}` object. */
+    public static function validateEventIdFilter($value): ?string
+    {
+        if ($value === null) return null;
+        if (!is_array($value)) {
+            return 'event_id_filter must be an object with an event_ids array.';
+        }
+        if (!array_key_exists('event_ids', $value)) {
+            return 'event_id_filter must declare event_ids.';
+        }
+        $eventIds = $value['event_ids'];
+        if ($eventIds === null) return null;
+        if (is_string($eventIds)) {
+            if ($eventIds !== 'current') {
+                return 'event_id_filter.event_ids string sentinel must be "current".';
+            }
+            return null;
+        }
+        if (is_int($eventIds)) return null;
+        if (!is_array($eventIds)) {
+            return 'event_id_filter.event_ids must be int, int array, or "current" sentinel.';
+        }
+        foreach ($eventIds as $entry) {
+            if (is_int($entry)) continue;
+            if (is_string($entry) && is_numeric($entry)) continue;
+            return 'event_id_filter.event_ids array entries must be numeric.';
         }
         return null;
     }

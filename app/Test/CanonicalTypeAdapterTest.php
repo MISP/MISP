@@ -1673,4 +1673,143 @@ class CanonicalTypeAdapterTest extends TestCase
         // scalar non-string
         $this->assertNotNull(CanonicalTypeAdapter::validateOrgFilter(42));
     }
+
+    // -------- translateAttributeTypeFilter (11th canonical) --------
+
+    public function testAttributeTypeFilterEmitsLegacyTypeKey(): void
+    {
+        $out = CanonicalTypeAdapter::translateAttributeTypeFilter([
+            'types' => ['ip-dst', 'domain'],
+        ]);
+        $this->assertSame(['type' => ['ip-dst', 'domain']], $out);
+    }
+
+    public function testAttributeTypeFilterEmitsBothLegacyKeys(): void
+    {
+        $out = CanonicalTypeAdapter::translateAttributeTypeFilter([
+            'types'      => ['ip-dst', 'domain'],
+            'categories' => ['Network activity'],
+        ]);
+        $this->assertSame([
+            'type'     => ['ip-dst', 'domain'],
+            'category' => ['Network activity'],
+        ], $out);
+    }
+
+    public function testAttributeTypeFilterEmptyArraysReturnNull(): void
+    {
+        $out = CanonicalTypeAdapter::translateAttributeTypeFilter([
+            'types' => [],
+            'categories' => [],
+        ]);
+        $this->assertNull($out);
+    }
+
+    public function testAttributeTypeFilterScalarStringWraps(): void
+    {
+        $out = CanonicalTypeAdapter::translateAttributeTypeFilter([
+            'types' => 'ip-dst',
+        ]);
+        $this->assertSame(['type' => ['ip-dst']], $out);
+    }
+
+    public function testAttributeTypeFilterNullStaysNull(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateAttributeTypeFilter(null));
+    }
+
+    public function testTranslateExpandsAttributeTypeFilterIntoLegacyKeys(): void
+    {
+        $widget = new stdClass();
+        $widget->schema = ['attribute_filter' => ['type' => 'attribute_type_filter']];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'attribute_filter' => [
+                'types' => ['ip-dst'],
+                'categories' => ['Network activity'],
+            ],
+        ]);
+        // 1-to-N expansion: legacy keys appear alongside the canonical wire.
+        $this->assertSame(['ip-dst'], $out['type']);
+        $this->assertSame(['Network activity'], $out['category']);
+    }
+
+    public function testValidateAttributeTypeFilterAcceptsCanonicalShapes(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::validateAttributeTypeFilter(null));
+        $this->assertNull(CanonicalTypeAdapter::validateAttributeTypeFilter([
+            'types' => ['ip-dst'],
+        ]));
+        $this->assertNull(CanonicalTypeAdapter::validateAttributeTypeFilter([
+            'types' => ['ip-dst'],
+            'categories' => ['Network activity'],
+        ]));
+        $this->assertNull(CanonicalTypeAdapter::validateAttributeTypeFilter(['types' => 'ip-dst']));
+    }
+
+    public function testValidateAttributeTypeFilterRejectsBadShapes(): void
+    {
+        $this->assertNotNull(CanonicalTypeAdapter::validateAttributeTypeFilter('not-an-object'));
+        $this->assertNotNull(CanonicalTypeAdapter::validateAttributeTypeFilter([
+            'types' => 42,
+        ]));
+        $this->assertNotNull(CanonicalTypeAdapter::validateAttributeTypeFilter([
+            'categories' => ['ok', 42],
+        ]));
+    }
+
+    // -------- translateEventIdFilter (12th canonical — forward-compat) --------
+
+    public function testEventIdFilterNormalisesIntArray(): void
+    {
+        $out = CanonicalTypeAdapter::translateEventIdFilter([
+            'event_ids' => [1, '2', 3.0, 'garbage', 1],
+        ]);
+        $this->assertSame(['event_ids' => [1, 2, 3]], $out);
+    }
+
+    public function testEventIdFilterPreservesCurrentSentinel(): void
+    {
+        $out = CanonicalTypeAdapter::translateEventIdFilter([
+            'event_ids' => 'current',
+        ]);
+        $this->assertSame(['event_ids' => 'current'], $out);
+    }
+
+    public function testEventIdFilterScalarIntWraps(): void
+    {
+        $out = CanonicalTypeAdapter::translateEventIdFilter([
+            'event_ids' => 42,
+        ]);
+        $this->assertSame(['event_ids' => [42]], $out);
+    }
+
+    public function testEventIdFilterMissingShapeReturnsNull(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateEventIdFilter([]));
+        $this->assertNull(CanonicalTypeAdapter::translateEventIdFilter(['unrelated' => 1]));
+    }
+
+    public function testValidateEventIdFilterAcceptsAllShapes(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::validateEventIdFilter(null));
+        $this->assertNull(CanonicalTypeAdapter::validateEventIdFilter(['event_ids' => 'current']));
+        $this->assertNull(CanonicalTypeAdapter::validateEventIdFilter(['event_ids' => [1, 2, 3]]));
+        $this->assertNull(CanonicalTypeAdapter::validateEventIdFilter(['event_ids' => 42]));
+    }
+
+    public function testValidateEventIdFilterRejectsBadShapes(): void
+    {
+        // missing event_ids
+        $this->assertNotNull(CanonicalTypeAdapter::validateEventIdFilter([]));
+        // bad sentinel
+        $this->assertNotNull(CanonicalTypeAdapter::validateEventIdFilter([
+            'event_ids' => 'previous',
+        ]));
+        // non-numeric array entry
+        $this->assertNotNull(CanonicalTypeAdapter::validateEventIdFilter([
+            'event_ids' => [1, 'garbage', 3],
+        ]));
+        // scalar non-string
+        $this->assertNotNull(CanonicalTypeAdapter::validateEventIdFilter('foo'));
+    }
 }
