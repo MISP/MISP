@@ -4032,13 +4032,13 @@
             },
             {
                 "column_name": "description",
-                "is_nullable": "NO",
+                "is_nullable": "YES",
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
+                "collation_name": "utf8mb4_unicode_ci",
                 "column_type": "text",
-                "column_default": null,
+                "column_default": "NULL",
                 "extra": ""
             },
             {
@@ -9028,24 +9028,24 @@
             },
             {
                 "column_name": "discovery_url",
-                "is_nullable": "NO",
+                "is_nullable": "YES",
                 "data_type": "varchar",
                 "character_maximum_length": "512",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
                 "column_type": "varchar(512)",
-                "column_default": null,
+                "column_default": "NULL",
                 "extra": ""
             },
             {
                 "column_name": "api_root",
-                "is_nullable": "NO",
+                "is_nullable": "YES",
                 "data_type": "varchar",
                 "character_maximum_length": "1024",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
                 "column_type": "varchar(1024)",
-                "column_default": "'0'",
+                "column_default": "NULL",
                 "extra": ""
             },
             {
@@ -11361,6 +11361,7 @@
             "id": true
         },
         "taxii_servers": {
+            "discovery_url": false,
             "id": true,
             "name": false,
             "uuid": false
@@ -11450,5 +11451,5 @@
             "uuid": false
         }
     },
-    "db_version": "148"
+    "db_version": "149"
 }
