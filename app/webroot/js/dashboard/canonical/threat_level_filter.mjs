@@ -26,8 +26,8 @@ const picker = makeEnumPicker({
   levels: LEVELS_DEFINITION,
   valueAttr: 'data-threat-level',
   rootClass: 'misp-threat-level-filter',
-  togglesClass: 'misp-threat-level-toggles',
-  toggleClass: 'misp-threat-level-toggle',
+  togglesClass: 'misp-enum-toggles',
+  toggleClass: 'misp-enum-toggle',
   helpText: 'Filter events by threat level. Empty selection = no filter (any level matches).',
 });
 

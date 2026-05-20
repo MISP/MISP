@@ -30,8 +30,8 @@ const picker = makeEnumPicker({
   levels: LEVELS_DEFINITION,
   valueAttr: 'data-distribution-level',
   rootClass: 'misp-distribution-filter',
-  togglesClass: 'misp-distribution-toggles',
-  toggleClass: 'misp-distribution-toggle',
+  togglesClass: 'misp-enum-toggles',
+  toggleClass: 'misp-enum-toggle',
   helpText: 'Filter events by distribution level. Empty selection = no filter (any level matches).',
 });
 

@@ -986,15 +986,26 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   color: var(--misp-dash-text-on-accent);
 }
 
-/* distribution_filter picker — toggle button row over MISP's six
- * event-distribution levels (0..5). Empty selection = no filter. */
-.misp-distribution-toggles {
+/* Shared int-enum-array canonical picker styling.
+ *
+ * distribution_filter, threat_level_filter, and analysis_filter all
+ * render as a toggle-button row over a small fixed enum. The visual
+ * idiom is identical; only the level vocabulary differs. Class names
+ * were per-canonical until the third copy (analysis_filter) forced
+ * consolidation — same trigger as the JS enum_picker factory and
+ * the PHP _normaliseIntArray helper.
+ *
+ * Picker JS emits these classes via enum_picker.mjs's `togglesClass`
+ * + `toggleClass` factory params. Adding a 4th int-enum canonical
+ * means: one adapter delegate + one picker module shell + nothing
+ * here. */
+.misp-enum-toggles {
   display: flex;
   flex-wrap: wrap;
   gap: var(--misp-dash-space-1);
   margin-top: var(--misp-dash-space-1);
 }
-.misp-distribution-toggle {
+.misp-enum-toggle {
   font-size: var(--misp-dash-fs-xs);
   padding: 4px var(--misp-dash-space-2);
   border: 1px solid var(--misp-dash-border);
@@ -1006,51 +1017,15 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
               border-color var(--misp-dash-transition-base),
               color var(--misp-dash-transition-base);
 }
-.misp-distribution-toggle:hover {
+.misp-enum-toggle:hover {
   border-color: var(--misp-dash-accent);
 }
-.misp-distribution-toggle[aria-pressed="true"] {
+.misp-enum-toggle[aria-pressed="true"] {
   background: var(--misp-dash-accent);
   border-color: var(--misp-dash-accent);
   color: var(--misp-dash-text-on-accent);
 }
-.misp-distribution-toggle:focus-visible {
-  outline: 2px solid var(--misp-dash-accent);
-  outline-offset: 1px;
-}
-
-/* threat_level_filter picker — same visual idiom as distribution_filter
- * over MISP's four `threat_level_id` enum values (1..4). When
- * analysis_filter lands as the third int-enum-array canonical picker,
- * the three rule blocks (distribution, threat-level, analysis) are
- * the right trigger to fold into a shared .misp-enum-toggle base. */
-.misp-threat-level-toggles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--misp-dash-space-1);
-  margin-top: var(--misp-dash-space-1);
-}
-.misp-threat-level-toggle {
-  font-size: var(--misp-dash-fs-xs);
-  padding: 4px var(--misp-dash-space-2);
-  border: 1px solid var(--misp-dash-border);
-  border-radius: var(--misp-dash-radius-sm);
-  background: transparent;
-  color: var(--misp-dash-text);
-  cursor: pointer;
-  transition: background var(--misp-dash-transition-base),
-              border-color var(--misp-dash-transition-base),
-              color var(--misp-dash-transition-base);
-}
-.misp-threat-level-toggle:hover {
-  border-color: var(--misp-dash-accent);
-}
-.misp-threat-level-toggle[aria-pressed="true"] {
-  background: var(--misp-dash-accent);
-  border-color: var(--misp-dash-accent);
-  color: var(--misp-dash-text-on-accent);
-}
-.misp-threat-level-toggle:focus-visible {
+.misp-enum-toggle:focus-visible {
   outline: 2px solid var(--misp-dash-accent);
   outline-offset: 1px;
 }
