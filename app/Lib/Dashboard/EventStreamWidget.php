@@ -14,11 +14,16 @@ class EventStreamWidget
         'limit' => 'How many events should be listed? Defaults to 5',
         'fields' => 'A list of fields that should be displayed. Valid fields: id, orgc, info, tags, threat_level, analysis, date. Default field selection ["id", "orgc", "info"]',
         'threat_level' => 'A list of threat levels (1=High, 2=Medium, 3=Low, 4=Undefined) to filter events by. Accepts an int array or single int. Empty / unset = no filter.',
+        'analysis' => 'A list of analysis stages (0=Initial, 1=Ongoing, 2=Complete) to filter events by. Accepts an int array or single int. Empty / unset = no filter.',
     ];
     public $schema = [
         'threat_level' => [
             'type' => 'threat_level_filter',
             'help' => 'Filter events by threat level. Bulk-edited via the dashboard toolbar when at least one widget on the board declares this canonical.',
+        ],
+        'analysis' => [
+            'type' => 'analysis_filter',
+            'help' => 'Filter events by analysis stage (Initial / Ongoing / Complete). Bulk-edited via the dashboard toolbar when at least one widget on the board declares this canonical.',
         ],
     ];
     public $description = 'Monitor incoming events based on your own filters.';
@@ -87,43 +92,55 @@ class EventStreamWidget
                 $params[$field] = $options[$field];
             }
         }
-        // Phase 3 threat_level_filter — applied as a PHP post-filter
+        // Phase 3 canonical filters — applied as PHP post-filters
         // because fetchEvent doesn't natively accept `threat_level_id`
-        // as a filter input (only as a SELECT column; the
-        // set_filter_threat_level_id helper lives in the restSearch
-        // dispatcher, not fetchEvent). The filter can only narrow
-        // visibility (never expand it) so applying it post-fetch is
-        // ACL-safe.
+        // or `analysis` as filter inputs (only as SELECT columns;
+        // the set_filter_* helpers live in the restSearch dispatcher,
+        // not fetchEvent). Both filters can only narrow visibility
+        // (never expand it) so applying them post-fetch is ACL-safe.
         //
-        // Pre-fetch overshoot: since the post-filter narrows AFTER
+        // Pre-fetch overshoot: since the post-filters narrow AFTER
         // the LIMIT clause has been applied to the SQL, the user's
         // declared limit must be bumped up at fetch time and then
         // truncated client-side, otherwise the result count would
-        // shrink unpredictably depending on which threat levels happen
-        // to be most recent. Heuristic: fetch max(200, limit * 10).
-        // For a uniform-distribution DB this gives ≥80% of declared
-        // limit even in the worst single-level case; users wanting
-        // guaranteed N matches can raise the limit config.
+        // shrink unpredictably depending on which threat levels /
+        // analysis stages happen to be most recent. Heuristic: fetch
+        // max(200, limit * 10) if any canonical post-filter is set.
+        // Users wanting guaranteed N matches for a rare level can
+        // raise the widget's limit config.
         $rawLimit = isset($params['limit']) ? (int)$params['limit'] : 5;
-        $allowedLevels = [];
-        if (!empty($options['threat_level'])) {
-            $raw = is_array($options['threat_level'])
-                ? $options['threat_level']
-                : [$options['threat_level']];
-            $allowedLevels = array_values(array_filter(
-                array_map('intval', $raw),
-                function ($v) { return $v > 0; }
-            ));
-        }
-        if (!empty($allowedLevels)) {
+        $coerceLevels = function ($raw) {
+            $arr = is_array($raw) ? $raw : [$raw];
+            $out = [];
+            foreach ($arr as $v) {
+                if (is_int($v)
+                    || (is_string($v) && is_numeric($v))
+                    || (is_float($v) && is_finite($v))) {
+                    $out[] = (int)$v;
+                }
+            }
+            return $out;
+        };
+        $allowedThreat   = !empty($options['threat_level']) ? $coerceLevels($options['threat_level']) : [];
+        $allowedAnalysis = isset($options['analysis']) && $options['analysis'] !== ''
+            ? $coerceLevels($options['analysis']) : [];
+        if (!empty($allowedThreat) || !empty($allowedAnalysis)) {
             $params['limit'] = max(200, $rawLimit * 10);
         }
         $data = $this->Event->fetchEvent($user, $params);
-        if (!empty($allowedLevels)) {
-            $data = array_values(array_filter($data, function ($evt) use ($allowedLevels) {
+        if (!empty($allowedThreat)) {
+            $data = array_values(array_filter($data, function ($evt) use ($allowedThreat) {
                 return isset($evt['Event']['threat_level_id'])
-                    && in_array((int)$evt['Event']['threat_level_id'], $allowedLevels, true);
+                    && in_array((int)$evt['Event']['threat_level_id'], $allowedThreat, true);
             }));
+        }
+        if (!empty($allowedAnalysis)) {
+            $data = array_values(array_filter($data, function ($evt) use ($allowedAnalysis) {
+                return isset($evt['Event']['analysis'])
+                    && in_array((int)$evt['Event']['analysis'], $allowedAnalysis, true);
+            }));
+        }
+        if (!empty($allowedThreat) || !empty($allowedAnalysis)) {
             $data = array_slice($data, 0, $rawLimit);
         }
         return [
