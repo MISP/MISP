@@ -214,6 +214,7 @@ class GalaxyClusterRelation extends AppModel
             $errors[] = $authorizationCheck['error'];
             return $errors;
         }
+        unset($relation['GalaxyClusterRelation']['id']);
         $relation['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $cluster['uuid'];
 
         $existingRelation = $this->find('first', [
