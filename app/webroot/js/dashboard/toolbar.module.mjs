@@ -232,6 +232,24 @@ function openPopover(boardEl, canonical, anchorChip) {
     'data-popover-action': 'cancel',
     text: 'Cancel',
   });
+  // PRD F5.6.5 — Clear unsets the canonical-typed value on all
+  // declarers that currently HAVE it set. Declarers whose slot is
+  // already absent are skipped (clearing them is a no-op). Hide the
+  // button when no declarer has the slot set so the affordance only
+  // appears when it would actually do something.
+  const decls = declarersFor(boardEl, canonical.KEY);
+  const setCount = decls.filter(
+    (d) => d.value !== undefined && d.value !== null && d.value !== '',
+  ).length;
+  const clear = setCount > 0
+    ? el('button', {
+        type: 'button',
+        class: 'misp-dashboard-btn misp-toolbar-popover-clear',
+        'data-popover-action': 'clear',
+        title: 'Unset this filter on every declarer (restores each widget\'s schema default)',
+        text: `Clear from ${setCount} widget${setCount === 1 ? '' : 's'}`,
+      })
+    : null;
   const save = el('button', {
     type: 'button',
     class: 'misp-dashboard-btn misp-dashboard-btn-primary',
@@ -240,7 +258,7 @@ function openPopover(boardEl, canonical, anchorChip) {
   });
   popover.append(
     fieldHost,
-    el('div', { class: 'misp-toolbar-popover-footer' }, cancel, save),
+    el('div', { class: 'misp-toolbar-popover-footer' }, cancel, clear, save),
   );
 
   const wrap = anchorChip.parentElement;
@@ -255,6 +273,7 @@ function openPopover(boardEl, canonical, anchorChip) {
     const action = trigger.getAttribute('data-popover-action');
     e.preventDefault();
     if (action === 'cancel') closePopover(boardEl);
+    else if (action === 'clear') commitClear(boardEl, canonical);
     else if (action === 'save') {
       const newValue = readNewValue(canonical, popover);
       commitBulk(boardEl, canonical, newValue);
@@ -274,6 +293,26 @@ function commitBulk(boardEl, canonical, newValue) {
   for (const d of decls) {
     const cfg = readWidgetConfig(d.el);
     cfg[d.schemaKey] = newValue;
+    d.el.setAttribute(ATTR_WIDGET_CONFIG, JSON.stringify(cfg));
+    if (state.onWidgetChange) state.onWidgetChange(d.el);
+  }
+  closePopover(boardEl);
+  refresh(boardEl);
+}
+
+// PRD F5.6.5 — Clear: for every declarer whose schema slot is currently
+// set, delete the slot from the config and fire the per-widget save +
+// re-render. Declarers whose slot is already absent are skipped (no DB
+// write, no re-render). After clear the chip falls back to whatever
+// each widget's schema default resolves to via CanonicalTypeAdapter,
+// or to "(unset)"-style display label when no default is declared.
+function commitClear(boardEl, canonical) {
+  const state = boards.get(boardEl);
+  if (!state) return;
+  for (const d of declarersFor(boardEl, canonical.KEY)) {
+    if (d.value === undefined || d.value === null || d.value === '') continue;
+    const cfg = readWidgetConfig(d.el);
+    delete cfg[d.schemaKey];
     d.el.setAttribute(ATTR_WIDGET_CONFIG, JSON.stringify(cfg));
     if (state.onWidgetChange) state.onWidgetChange(d.el);
   }

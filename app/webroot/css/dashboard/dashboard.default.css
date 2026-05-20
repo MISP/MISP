@@ -1494,6 +1494,13 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   background: var(--misp-dash-surface-sunken);
   border-radius: 0 0 var(--misp-dash-radius-md) var(--misp-dash-radius-md);
 }
+.misp-toolbar-popover-clear {
+  color: var(--misp-dash-warning);
+  margin-right: auto;
+}
+.misp-toolbar-popover-clear:hover {
+  border-color: var(--misp-dash-warning);
+}
 
 .misp-time-window-presets {
   display: flex;
