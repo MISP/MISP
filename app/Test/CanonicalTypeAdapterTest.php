@@ -904,4 +904,119 @@ class CanonicalTypeAdapterTest extends TestCase
         $this->assertSame('7d', $out['time_window']);
         $this->assertSame([1, 2, 3], $out['distribution']);
     }
+
+    // -------- translateThreatLevelFilter() unit tests --------
+    //
+    // Identical shape vocabulary to distribution_filter; the cases
+    // below mirror it deliberately so the parity is easy to see in
+    // diff form. When analysis_filter lands as the third int-enum-
+    // array canonical type, these three test blocks are the right
+    // pair to fold into a parametric helper.
+
+    public function testThreatLevelFilterIntArrayPassesThrough(): void
+    {
+        $this->assertSame([1, 2, 3], CanonicalTypeAdapter::translateThreatLevelFilter([1, 2, 3]));
+        $this->assertSame([2], CanonicalTypeAdapter::translateThreatLevelFilter([2]));
+        $this->assertSame([1, 2, 3, 4], CanonicalTypeAdapter::translateThreatLevelFilter([1, 2, 3, 4]));
+    }
+
+    public function testThreatLevelFilterEmptyArrayPassesThrough(): void
+    {
+        // Empty array = "no filter applied" — Event::fetchEvent's
+        // existing `if (isset($params['threat_level_id']))` enters
+        // the branch but Cake's IN coercion on an empty array still
+        // produces `IS NULL` (no rows) — slightly different from
+        // distribution_filter where empty means "no WHERE". The
+        // EventStreamWidget consumer guards this with a defensive
+        // !empty() check before passing through.
+        $this->assertSame([], CanonicalTypeAdapter::translateThreatLevelFilter([]));
+    }
+
+    public function testThreatLevelFilterNullPassesThrough(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateThreatLevelFilter(null));
+    }
+
+    public function testThreatLevelFilterScalarIntWrapsToArray(): void
+    {
+        // Hand-edited UserSetting may carry `'threat_level' => 2`
+        // as a scalar; wrap so downstream SQL has a uniform shape.
+        $this->assertSame([1], CanonicalTypeAdapter::translateThreatLevelFilter(1));
+        $this->assertSame([2], CanonicalTypeAdapter::translateThreatLevelFilter(2));
+        $this->assertSame([4], CanonicalTypeAdapter::translateThreatLevelFilter(4));
+    }
+
+    public function testThreatLevelFilterScalarNumericStringWrapsToArray(): void
+    {
+        $this->assertSame([3], CanonicalTypeAdapter::translateThreatLevelFilter('3'));
+        $this->assertSame([1], CanonicalTypeAdapter::translateThreatLevelFilter('1'));
+    }
+
+    public function testThreatLevelFilterMixedArrayCoercesAndDrops(): void
+    {
+        $this->assertSame(
+            [1, 2, 3],
+            CanonicalTypeAdapter::translateThreatLevelFilter([1, '2', 3.0])
+        );
+        $this->assertSame(
+            [2],
+            CanonicalTypeAdapter::translateThreatLevelFilter([2, 'bad', null, []])
+        );
+        // Out-of-range preserved on the array path (typo diagnostics).
+        $this->assertSame(
+            [99],
+            CanonicalTypeAdapter::translateThreatLevelFilter([99])
+        );
+    }
+
+    public function testThreatLevelFilterUnrecognisedShapesReturnNull(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateThreatLevelFilter('not-a-number'));
+        $this->assertNull(CanonicalTypeAdapter::translateThreatLevelFilter(true));
+        $this->assertNull(CanonicalTypeAdapter::translateThreatLevelFilter(false));
+        $this->assertNull(CanonicalTypeAdapter::translateThreatLevelFilter(new stdClass()));
+    }
+
+    public function testThreatLevelFilterIsIdempotent(): void
+    {
+        $once  = CanonicalTypeAdapter::translateThreatLevelFilter([1, '2', 3]);
+        $twice = CanonicalTypeAdapter::translateThreatLevelFilter($once);
+        $this->assertSame($once, $twice);
+    }
+
+    public function testTranslateRoutesThreatLevelFilterByType(): void
+    {
+        // End-to-end: widget declares threat_level_filter under
+        // any schema key; adapter routes through translate().
+        $widget = new stdClass();
+        $widget->schema = [
+            'threat_level' => ['type' => 'threat_level_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'threat_level' => [1, '2', 3],
+        ]);
+        $this->assertSame([1, 2, 3], $out['threat_level']);
+    }
+
+    public function testTranslateThreatLevelFilterCoexistsWithOtherCanonicals(): void
+    {
+        // EventStreamWidget's expected shape post-backfill: a
+        // widget declares both time_window and threat_level_filter
+        // (and potentially distribution_filter); each translator
+        // runs independently through the switch case.
+        $widget = new stdClass();
+        $widget->schema = [
+            'time_window'  => ['type' => 'time_window'],
+            'distribution' => ['type' => 'distribution_filter'],
+            'threat_level' => ['type' => 'threat_level_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'time_window'  => 'P7D',
+            'distribution' => [0, 3],
+            'threat_level' => [1, 2],
+        ]);
+        $this->assertSame('7d', $out['time_window']);
+        $this->assertSame([0, 3], $out['distribution']);
+        $this->assertSame([1, 2], $out['threat_level']);
+    }
 }

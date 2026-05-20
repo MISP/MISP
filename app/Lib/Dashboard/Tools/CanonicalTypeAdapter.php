@@ -151,11 +151,22 @@ class CanonicalTypeAdapter
                     // empty()-guard skips the WHERE clause.
                     $config[$key] = self::translateDistributionFilter($config[$key]);
                     break;
+                case 'threat_level_filter':
+                    // Same wire shape as distribution_filter: int array
+                    // subset of {1..4} (1=High, 2=Medium, 3=Low,
+                    // 4=Undefined). `Event::fetchEvent` accepts the int
+                    // array directly under `threat_level_id` (Event.php
+                    // line 3868). When `analysis_filter` lands as the
+                    // third int-enum-array canonical type, this and
+                    // `translateDistributionFilter` are the right pair
+                    // to extract a shared `_normaliseIntArray` helper
+                    // from. Two copies isn't yet enough.
+                    $config[$key] = self::translateThreatLevelFilter($config[$key]);
+                    break;
                 // Phase 3 adds: org_filter, sharing_group_filter,
-                // galaxy_cluster_filter, threat_level_filter,
-                // analysis_filter, attribute_type_filter,
-                // event_id_filter. Each adds one case + one
-                // translate<Type>() method below.
+                // galaxy_cluster_filter, analysis_filter,
+                // attribute_type_filter, event_id_filter. Each adds
+                // one case + one translate<Type>() method below.
             }
         }
         return $config;
@@ -368,6 +379,54 @@ class CanonicalTypeAdapter
      * @return int[]|null
      */
     public static function translateDistributionFilter($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (is_int($value)) {
+            return [$value];
+        }
+        if (is_string($value) && is_numeric($value)) {
+            return [(int)$value];
+        }
+        if (!is_array($value)) {
+            return null;
+        }
+        $out = [];
+        foreach ($value as $entry) {
+            if (is_int($entry)) {
+                $out[] = $entry;
+            } elseif (is_string($entry) && is_numeric($entry)) {
+                $out[] = (int)$entry;
+            } elseif (is_float($entry) && is_finite($entry)) {
+                $out[] = (int)$entry;
+            }
+            // Non-numeric / non-finite entries are silently dropped.
+        }
+        return $out;
+    }
+
+    /**
+     * Translate a `threat_level_filter` value.
+     *
+     * Accepts the same shape vocabulary as translateDistributionFilter —
+     * int array (canonical), scalar int / numeric string (legacy or
+     * hand-edited config), mixed numeric / non-numeric array (coerce
+     * + drop), empty array / null (no filter). MISP's threat_level_id
+     * enum is `{1=High, 2=Medium, 3=Low, 4=Undefined}`; out-of-range
+     * values are preserved on the array path so a typo surfaces as
+     * an empty result (loud feedback) instead of silent filtering.
+     *
+     * `Event::fetchEvent` already accepts the int array directly at
+     * `Event.php:3868` (`$conditions['AND']['Event.threat_level_id']`)
+     * — CakePHP's `IN` coercion handles both scalar and array — so
+     * EventStreamWidget's handler just passes `options['threat_level']`
+     * straight through, no post-filter step required.
+     *
+     * @param mixed $value
+     * @return int[]|null
+     */
+    public static function translateThreatLevelFilter($value)
     {
         if ($value === null) {
             return null;
