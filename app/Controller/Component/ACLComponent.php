@@ -181,6 +181,7 @@ class ACLComponent extends Component
             'saveTemplate' => array('*'),
             'listTemplates' => array('*'),
             'deleteTemplate' => array('*'),
+            'listSharingGroups' => array('*'),
         ),
         'decayingModel' => array(
             "update" => array(),

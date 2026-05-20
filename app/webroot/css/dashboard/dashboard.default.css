@@ -971,6 +971,80 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 }
 
 /* ============================================================
+ * sharing_group_filter picker.
+ * Used by both the configure form's typed-fields tier and the
+ * toolbar's per-canonical chip popover. Async-loaded SG list →
+ * loading placeholder swaps to a search input + scrollable
+ * checkbox list once /dashboards/listSharingGroups resolves.
+ * ============================================================ */
+.misp-sg-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+}
+.misp-sg-filter-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-raised);
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  font-family: inherit;
+  transition: border-color var(--misp-dash-transition-fast);
+}
+.misp-sg-filter-search:focus,
+.misp-sg-filter-search:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+  border-color: var(--misp-dash-accent);
+}
+.misp-sg-filter-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-raised);
+  padding: var(--misp-dash-space-1);
+  display: flex;
+  flex-direction: column;
+}
+.misp-sg-filter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-sm);
+  cursor: pointer;
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text);
+}
+.misp-sg-filter-row:hover {
+  background: var(--misp-dash-surface-sunken);
+}
+.misp-sg-filter-row input[type="checkbox"] {
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--misp-dash-accent);
+}
+.misp-sg-filter-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-sg-filter-loading,
+.misp-sg-filter-empty {
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+  font-size: var(--misp-dash-fs-sm);
+  padding: var(--misp-dash-space-2);
+  text-align: center;
+}
+
+/* ============================================================
  * Chart container — ECharts mounts inside, fills the widget body.
  * Renderers under Elements/dashboard/Widgets/ emit a static
  * <div class="misp-chart"> + data-misp-chart="<kind>" attribute;

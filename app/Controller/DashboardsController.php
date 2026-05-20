@@ -409,6 +409,50 @@ class DashboardsController extends AppController
     }
 
     /**
+     * List sharing groups visible to the current user, in a
+     * lightweight `[{id, name}]` shape suitable for the
+     * sharing_group_filter canonical picker.
+     *
+     * The canonical-typed sharing_group_filter slot's JS picker
+     * needs a list of options to render. Unlike the int-enum
+     * canonicals (distribution / threat_level / analysis) whose
+     * valid range is a fixed global enum, sharing groups are
+     * user-specific — admin sees every SG, regular users see
+     * only the SGs they're members of (or whose org is a member).
+     * Embedding a static enum on the client side is impossible.
+     *
+     * Why a dedicated dashboard endpoint vs.
+     * `/sharing_groups/index.json`:
+     *   The standard SG index returns the full
+     *   {SharingGroup, Organisation, SharingGroupOrg, SharingGroup-
+     *   Server, editable, deletable} blob — ~1KB per SG, designed
+     *   for the SG browse page. A picker for 50 SGs would download
+     *   ~50KB of mostly-irrelevant data. This endpoint trims to
+     *   {id, name} per SG (typically <50 bytes), suitable for the
+     *   minimal picker UX. Same ACL semantics as the canonical SG
+     *   index — `SharingGroup::fetchAllAuthorised` with `scope=name`
+     *   delegates the visibility check to the existing model layer.
+     *
+     * Sorted by name ASC (the `fetchAllAuthorised` 'name' scope
+     * returns `[id => name, ...]`; we transform to a list of
+     * `{id: int, name: string}` records to make the JS-side
+     * consumption an array iteration rather than a Map walk).
+     */
+    public function listSharingGroups()
+    {
+        $this->loadModel('SharingGroup');
+        $sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name');
+        $out = [];
+        foreach ($sgs as $id => $name) {
+            $out[] = [
+                'id'   => (int)$id,
+                'name' => (string)$name,
+            ];
+        }
+        return $this->RestResponse->viewData($out, 'json');
+    }
+
+    /**
      * Render the widget wrapper element (PRD §8.3) for a new tile
      * just placed by the Add Widget flow. The wrapper carries every
      * §8.5 hook attribute (data-misp-widget, data-widget-*, data-

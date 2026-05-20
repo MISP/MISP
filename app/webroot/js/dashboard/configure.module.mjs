@@ -18,6 +18,7 @@ import * as OrgMetaFilter     from './canonical/org_meta_filter.mjs';
 import * as DistributionFilter from './canonical/distribution_filter.mjs';
 import * as ThreatLevelFilter from './canonical/threat_level_filter.mjs';
 import * as AnalysisFilter    from './canonical/analysis_filter.mjs';
+import * as SharingGroupFilter from './canonical/sharing_group_filter.mjs';
 import { buildChips, getChipsValue } from './chips.module.mjs';
 import {
   flatten,
@@ -32,12 +33,13 @@ import {
 // `data-schema-key` attribute set by the configure form (so the
 // readback finds it without knowing the builder).
 const CANONICAL_BUILDERS = {
-  [TimeWindow.KEY]:         TimeWindow,
-  [TagFilter.KEY]:          TagFilter,
-  [OrgMetaFilter.KEY]:      OrgMetaFilter,
-  [DistributionFilter.KEY]: DistributionFilter,
-  [ThreatLevelFilter.KEY]:  ThreatLevelFilter,
-  [AnalysisFilter.KEY]:     AnalysisFilter,
+  [TimeWindow.KEY]:          TimeWindow,
+  [TagFilter.KEY]:           TagFilter,
+  [OrgMetaFilter.KEY]:       OrgMetaFilter,
+  [DistributionFilter.KEY]:  DistributionFilter,
+  [ThreatLevelFilter.KEY]:   ThreatLevelFilter,
+  [AnalysisFilter.KEY]:      AnalysisFilter,
+  [SharingGroupFilter.KEY]:  SharingGroupFilter,
 };
 const SCALAR_TYPES = new Set(['string', 'int', 'bool', 'enum']);
 
