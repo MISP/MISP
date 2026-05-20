@@ -12,6 +12,7 @@ class CsseCovidMapWidget
         'type' => 'Type of data used for the widget (confirmed, death, recovered).',
         'logarithmic' => 'Use a log10 scale for the graph (set via 0/1).'
     );
+    public $schema = array();
     public $description = 'Widget mapping the countries showing confirmed cases of COVID-19.';
     public $placeholder =
 '{

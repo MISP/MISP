@@ -13,6 +13,7 @@ class AchievementsWidget
     public $params = array(
             'past_days' => 'The past number of days considered to look for criteria satisfaction (default 180)'
     );
+    public $schema = array();
     public $placeholder =
 '{
     "past_days": "180"

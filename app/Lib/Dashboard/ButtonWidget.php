@@ -13,6 +13,7 @@ class ButtonWidget
         'url' => 'URL (after base url) to redirect to',
         'text' => 'Text to display on the button'
     );
+    public $schema = array();
     public $description = 'Simple button to allow shortcuts';
     public $placeholder =
 '{

@@ -10,6 +10,7 @@ class OrgsContributorsGeneric
         'blocklist_orgs' => 'A list of organisation names to filter out',
         'timeframe' => 'Number of days considered for the query (30 by default)'
     );
+    public $schema = array();
     public $placeholder =
 '{
     "blocklist_orgs": ["Orgs to filter"],

@@ -10,6 +10,7 @@ class ThresholdSightingsWidget
     public $params = array(
         'threshold' => 'Threshold for sightings'
     );
+    public $schema = array();
     public $description = 'Widget showing information on sightings above certain threshold';
     public $cacheLifetime = false;
     public $autoRefreshDelay = 30;

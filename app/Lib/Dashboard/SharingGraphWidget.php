@@ -19,6 +19,7 @@ class SharingGraphWidget
         'blocklist_orgs' => 'A list of organisation names to filter out',
         'months' => 'Number of past months to consider for the graph'
     );
+    public $schema = array();
 
     public $placeholder =
 '{

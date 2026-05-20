@@ -22,6 +22,16 @@ class NewUsersWidget
         'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
         'fields' => 'Which fields should be displayed, by default all are selected. Pass a list with the following options: [id, email, Organisation.name, Role.name, date_created]'
     ];
+    public $schema = [
+        'filter' => [
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data (nationality, sector, type, name, uuid). Each entry may have "!" prefix to negate.',
+        ],
+        'date_range' => [
+            'type' => 'date_range',
+            'help' => 'Date range covering the user-joined window. Canonical 1-to-N expansion writes top-level start_date / end_date keys at translate time — legacy configs with those keys keep working unchanged.',
+        ],
+    ];
     private $validFilterKeys = [
         'id',
         'email',

@@ -14,6 +14,7 @@ class CsseCovidTrendsWidget
         'countries' => 'List of countries to be included (using the names used by the reports, such as Belgium, US, Germany).',
         'timeframe' => 'Timeframe for events taken into account in days (going back from now, using the date field, default 10).'
     );
+    public $schema = array();
     public $description = 'Widget showing line charts for the evolution of the various case types.';
     public $placeholder =
 '{

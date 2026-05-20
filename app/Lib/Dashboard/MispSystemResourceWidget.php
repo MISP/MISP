@@ -10,6 +10,7 @@ class MispSystemResourceWidget
     public $params = array(
         'threshold' => 'Threshold for disk space'
     );
+    public $schema = array();
     public $description = 'Basic widget showing some system server statistics.';
     public $cacheLifetime = false;
     public $autoRefreshDelay = 30;

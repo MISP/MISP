@@ -19,6 +19,7 @@ class BenchmarkTopListWidget
         'field' => 'The individual metric to be queried from the benchmark results. Valid values are: time, sql_time, sql_queries, memory, endpoint',
         'average' => 'If you wish to view the averages per scope/field, set this variable to true. It will divide the result by the number of executions recorded for the scope/field combination for the given day.'
     );
+    public $schema = array();
     public $Benchmark;
     public $User;
 

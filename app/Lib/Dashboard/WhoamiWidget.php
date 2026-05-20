@@ -8,6 +8,7 @@ class WhoamiWidget
     public $width = 2;
     public $height = 2;
     public $params = array();
+    public $schema = array();
     public $description = 'Shows information about the currently logged in user.';
     public $cacheLifetime = false;
     public $autoRefreshDelay = 3;

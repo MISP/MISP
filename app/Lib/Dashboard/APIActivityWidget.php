@@ -17,6 +17,16 @@ class APIActivityWidget
         'start_date' => 'The ISO 8601 date format at which to start',
         'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
     ];
+    public $schema = [
+        'filter' => [
+            'type' => 'org_meta_filter',
+            'help' => 'Filter by organisation meta-data (sector, type, nationality, id, uuid). Each entry may have "!" prefix to negate.',
+        ],
+        'date_range' => [
+            'type' => 'date_range',
+            'help' => 'Date range covering the activity window. Canonical 1-to-N expansion writes top-level start_date / end_date keys at translate time — legacy configs with those keys keep working unchanged.',
+        ],
+    ];
     public $description = 'Basic widget showing some server statistics in regards to MISP.';
     public $cacheLifetime = 10;
     public $autoRefreshDelay = null;

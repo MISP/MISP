@@ -11,6 +11,7 @@ class AuthenticationFailureWidget
         'event_info' => 'Substring included in the info field of relevant Authentication Failure events.',
         'type' => 'Type of data used for the widget (sshd, etc.).'
     );
+    public $schema = array();
     public $description = 'Widget visualising authentication failures collected in d4.';
     public $placeholder =
 '{
