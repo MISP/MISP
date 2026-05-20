@@ -1,79 +1,130 @@
-# Dashboard v2 — Session handoff (2026-05-19, super-late-night session #2 continuation)
+# Dashboard v2 — Session handoff (2026-05-20, morning session #1)
 
-Third session of the day, continuing the second super-late-night
-sweep. Authoritative state still lives in:
+Fourth session of the dashboard rewrite. Authoritative state lives in:
 
-- `dashboard-prd.md` — spec (§5.7 amended this session: `$thumbnail`
-  bullet now documents the render-kind glyph fallback + the
-  standing requirement to add a glyph whenever a new `$render`
-  kind lands)
-- `dashboard-progress.md` — task state. Phase 2 closed sub-phase C
-  (placement + live preview); Phase 3 advanced to 5/12 canonical
-  types (distribution_filter landed paired with its first
-  consumer, TrendingTagsWidget)
-- `dashboard-design-decisions.md` — DD-01..DD-08 unchanged
+- `dashboard-prd.md` — spec.
+- `dashboard-progress.md` — task state. Phase 2 closed (one open
+  line — Edit Widget browser verification); Phase 3 advanced from
+  5/12 → **7/12** canonical types (`threat_level_filter` +
+  `analysis_filter`). Discovered work — "missing renderer
+  templates" — shrunk from 5 → 4 (Index landed).
+- `dashboard-design-decisions.md` — DD-01..DD-08 unchanged.
 
 This file is the bridge: ephemeral session-level context that
 doesn't fit the durable docs. Replace it as work progresses.
 
 ## TL;DR
 
-**Eight signed commits this session + one DB restore.** Phase 2
-sub-phase C is closed end-to-end (Add Widget gallery → card click
-→ schema form with live preview → Save → placement with auto-place
-and F5.6.4 toolbar inheritance). Phase 3 advanced from 4/12 to
-5/12 canonical types via the paired-with-consumer model — the
-right shape for any future canonical-type sweep, per the
-consumer audit findings.
+**12 signed commits this session.** One renderer template, two
+canonical types, and one user-reported visual bug fix. The two
+canonicals landed in 5+5 commits because the third-copy trigger
+fired and forced three long-flagged extractions; the second
+canonical landed as a ~40-line shell over the new infrastructure.
 
-**Phase 2 — ~26/26.** Up from ~24/26 at session start. The two
-remaining-then-open lines both closed: "Add Widget — placement"
-(placement orchestrator + new `/dashboards/renderWrapper` endpoint
-with ACL parity) and "Sticky preview pane in configure side-panel"
-(folded with "Add Widget — live preview on right" since they
-described the same surface). Only the `Edit Widget flow`
-verification line stays open — existing per-widget ⚙ path covers
-all the technical work; the tick waits on a browser pass against
-the new preview-pane render surface.
+**Phase 1 carryover.** `Index.ctp` renderer template — closes
+the "missing renderer templates" gap from 5/9 → 4/9. Three
+widgets that declared `$render = 'Index'` (EventStreamWidget,
+NewUsersWidget, NewOrgsWidget) were 500'ing pre-this-session;
+they all render cleanly now. Token-driven semantic table; covers
+the five `element` types the in-tree consumers use (`links` /
+`org` / `tags` / `array_lookup_field` / scalar default). XSS-safe
+(verified against a real-world org-name payload). The decision
+to build a fresh v2-native renderer rather than restore the v1
+genericElements/IndexTable delegation was deliberate — v1
+pulls in BS-classed markup + a script tail that collides across
+multiple widgets on one page.
 
-**Phase 3 — 5/12 canonical types.** `distribution_filter` landed
-across three commits: server adapter + 10 PHPUnit tests; JS
-toggle-button picker + registries + CSS; TrendingTagsWidget
-consumer with post-filter on `$eventIds`. The user confirmed
-end-to-end browser smoke ("works like a charm").
+**Phase 3 — 6th canonical: `threat_level_filter`.** Three-commit
+shape (adapter + tests, JS picker + registries + CSS, consumer)
+matching the distribution_filter precedent. Crucial discovery
+during smoke: `Event::fetchEvent` does NOT natively accept
+`threat_level_id` as a filter option (the
+`set_filter_threat_level_id` helper at Event.php:3868 is a
+restSearch-dispatcher helper, not a fetchEvent option). The
+prior commit's docblock got that wrong and was corrected in the
+consumer commit. EventStreamWidget applies the filter as a PHP
+post-filter against the ACL-filtered fetchEvent result set —
+ACL-safe by construction, same pattern TrendingTagsWidget uses
+for distribution_filter. Pre-fetch overshoot heuristic
+(`max(200, declaredLimit * 10)`) preserves "filter-then-limit"
+semantics by fetching a larger pool, then array_slicing back to
+the declared limit after the post-filter.
 
-**Major non-canonical work:** the gallery cards now ship a
-render-kind-shaped fallback glyph in their thumbnail slot
-(commit `d46c56ce1`) — 9 explicit kinds (SimpleList, BarChart,
-MultiLineChart, WorldMap, Index, Button, OrgsPictures, Attack,
-Achievements) + a generic fallback. A standing rule landed in
-CLAUDE.md, the file's docblock, and PRD §5.7: any new `$render`
-value must ship with a matching glyph in `render-thumbs.mjs`.
+**Phase 3 — 7th canonical: `analysis_filter`** — and the
+extraction trio. The third copy of the int-enum-array picker
+pattern (distribution + threat_level + analysis) forced three
+long-flagged refactors:
 
-**DB restore:** admin's `user_settings` row 34 was clobbered at
-16:13:04 by a v2.4 instance writing to the same database
-(stringified positions, `width`/`height` keys). The pre-clobber
-state was recovered from `audit_logs` row 5295902 (the audit
-record that captured the v2 → v2.4 transition). Layout fully
-restored to 4 widgets in v2 shape; configs preserved on both
-sides — only the wrapper shape was clobbered. **Risk:** as long
-as a v2.4 instance is connected to this DB, future clobbers may
-recur — see Open thread.
+- **PHP:** `_normaliseIntArray` shared private helper.
+  `translateDistributionFilter` + `translateThreatLevelFilter`
+  now delegate to it; `translateAnalysisFilter` is a one-line
+  forwarder. The 20 prior PHPUnit cases passed against the
+  refactored bodies BEFORE any analysis_filter code landed —
+  confirms the extraction is a pure refactor. 10 new
+  analysis-specific tests; 90/90 total.
+- **JS:** `enum_picker.mjs` factory exports `makeEnumPicker({key,
+  label, levels, valueAttr, rootClass, togglesClass, toggleClass,
+  helpText})` returning the standard `{KEY, LABEL, LEVELS,
+  equal, displayLabel, buildField, readValue}` surface.
+  distribution_filter.mjs + threat_level_filter.mjs are now
+  ~40-line shells; analysis_filter.mjs dropped in as ~40 more.
+- **CSS:** `.misp-enum-toggles` / `.misp-enum-toggle` shared
+  base; the two per-canonical class namespaces (which had
+  byte-identical rule bodies) collapsed.
+
+After the extractions, adding a 4th int-enum canonical would be
+**one adapter delegate (`return self::_normaliseIntArray($value)`)
++ one ~40-line picker module shell + two registry entries**.
+Infrastructure compounds.
+
+**EventStreamWidget is now the most-populated canonical-type
+consumer** — declares BOTH `threat_level_filter` AND
+`analysis_filter`. The toolbar will surface two chips ("Threat
+level" + "Analysis") on any board with EventStreamWidget present.
+
+**User-reported bug fix: Overmind themed CSS never loaded.** Both
+reported issues — invisible resize handle + content overflow
+escaping the widget border — traced to the same root cause:
+`Themed/Overmind/Layouts/dashboard.ctp` never loaded
+`app/View/Themed/Overmind/webroot/css/dashboard/overmind.css`.
+That file defines `.card.misp-widget--overmind { overflow:
+hidden }` (clips overflow), `.misp-widget--overmind__body
+{ overflow: auto }` (body scrolls), and
+`.misp-widget--overmind__resize { position: absolute ... }` (the
+handle). Without the file loaded, every `__resize` span
+collapsed to a 0×0 inline element and content escaped the card
+border. Fixed first via a manual `<link>` (commit `ceedfffb4`)
+with a misleading docblock claiming Cake's `assetUrl` doesn't
+resolve theme dot-notation — then refined (commit `fe0c4bbbe`)
+to the idiomatic Cake 2.x pattern: a plain css-array entry
+`'dashboard/overmind'`. `Helper::webroot()` IS theme-aware (it
+falls back to `App::themePath($theme)/webroot/<path>` and emits
+`/theme/<Theme>/<path>` URLs). The dot-notation
+`'Overmind.dashboard/overmind'` doesn't work because
+`pluginSplit` interprets the prefix as a plugin namespace, not a
+theme namespace, and emits `/css/overmind/dashboard/overmind.css`
+(which 404s). The wrapper.ctp docblock now warns future
+contributors away from the dot-prefix trap.
 
 **User-direction carried forward unchanged:** *"modern and
-pleasant"*, *"don't worry too much about compatibility"*, plus
-new direction this session — **for any new endpoint, ACL must
-match the surface it shadows** (specifically the existing
-`renderWidget` checkPermissions gate).
+pleasant"*, *"don't worry too much about compatibility"*, *"ACL
+must match the surface it shadows"*, *"three similar lines is
+better than premature abstraction; the third copy forces the
+refactor"*.
 
 **Next session — pick from** (see Open thread):
 
-1. Phase 3 next canonical type (needs consumer audit + pairing).
-2. Build the missing `Index` renderer template (unlocks
-   EventStreamWidget + others; quick win).
-3. Browser-verify Edit Widget against the new preview-pane
-   render path (closes the last open Phase 2 line).
-4. Other parked work (time_window dropdown, luminance check, etc.).
+1. Phase 3 next canonical type (pick from `sharing_group_filter`
+   / `galaxy_cluster_filter` — both more complex than the
+   int-enum trio that just landed).
+2. Build the next missing renderer template (Button is smallest;
+   OrgsPictures has the most consumers — three OrgsContributor
+   widgets need it).
+3. Pair an existing canonical with a 2nd consumer to demonstrate
+   F5.6.4 inheritance with multi-declarer setups.
+4. Browser-verify Edit Widget against the preview-pane render
+   path (closes the last open Phase 2 line — ~15 min).
+5. Phase 4 — Template gallery polish (greenfield multi-session).
 
 ## Where we are
 
@@ -83,68 +134,51 @@ Phase 0.4 — Sign-off                                              [x]
 Phase 1 — Frame (in-place replacement)                            [x]
 
 Phase 2 — Authoring UX                                            [/] ~26/26
-  [x] $schema property contract + WidgetSchema helper + 26 tests
-  [x] 9 widget $schema backfills (Phase 2)
-  [x] Two-tier configure form element — schema-driven
-  [x] Live preview, 250ms debounced
-  [x] Per-canonical-type field elements (time_window only;
-      rest are Phase 3)
-  [x] Key-value list component for the bottom tier
-  [x] Chip input component for array-typed values
-  [x] Bottom-tier seeding from $placeholder
-  [x] Bottom-tier dot-notation flatten/reNest tests
-  [x] Side-panel container for configure form
-  [x] Sticky preview pane in configure side-panel              (NEW)
-  [x] Widget gallery — $category prereq backfill
-  [x] Widget gallery — metadata endpoint
-  [x] Widget gallery — views + CSS (dormant templates)
-  [x] Widget gallery — side-panel open from + Add widget
-  [x] Add Widget — card click → draft form
-  [x] Add Widget — placement                                    (NEW)
-  [x] Add Widget — live preview on right                        (NEW)
+  All ticked except:
   [ ] Edit Widget flow (existing per-widget ⚙ path covers most;
       task line stays open until verified against the new
       preview-pane render path interactively)
-  [x] Edit-mode vs. view-mode toggle
-  [x] Layout-only atomic save (DD-05)
-  [x] Discard (edit mode) with confirm-if-dirty
-  [x] Drag/resize/add/remove only fire in edit mode
-  [x] Configure-form Save: per-widget POST
-  [x] Save/Discard UI buttons + body-attribute mode mirror
-  [x] Console.log cleanup
 
-Phase 3 — Canonical-type toolbar                                  [/] 5/12 types
-  [x] CanonicalTypeAdapter helper + 70 PHPUnit tests (was 60)
+Phase 3 — Canonical-type toolbar                                  [/] 7/12 types
+  [x] CanonicalTypeAdapter helper + 90 PHPUnit tests (was 70)
   [x] Wire CanonicalTypeAdapter into renderWidget
-  [/] Canonical types: 5/12
+  [/] Canonical types: 7/12
         [x] time_window
         [x] date_range
         [x] tag_filter
-        [x] org_meta_filter — PRD §5.5 amendment
-        [x] distribution_filter — paired with TrendingTagsWidget (NEW)
+        [x] org_meta_filter
+        [x] distribution_filter
+        [x] threat_level_filter             — NEW
+        [x] analysis_filter                 — NEW
         [ ] org_filter (no consumers today — needs pairing)
-        [ ] sharing_group_filter (no real consumers — needs pairing)
-        [ ] galaxy_cluster_filter (no real consumers — needs pairing)
-        [ ] threat_level_filter (no real consumers — needs pairing)
-        [ ] analysis_filter (no real consumers — needs pairing)
+        [ ] sharing_group_filter (no consumers — needs pairing)
+        [ ] galaxy_cluster_filter (no consumers — needs pairing)
         [ ] attribute_type_filter (widget-only)
         [ ] event_id_filter (widget-only)
   [x] Toolbar control logic (schema-driven declarer scan)
   [x] Toolbar bulk-edit write path (readValue dispatch)
   [/] Toolbar UI: time_window + tag_filter + org_meta_filter +
-      distribution_filter shipped
+      distribution_filter + threat_level_filter +
+      analysis_filter shipped
   [ ] Per-canonical-type validators
   [ ] New-widget toolbar inheritance + Clear action
-      — F5.6.4 inheritance landed in the placement orchestrator
-        this session; Clear action remains
+      — F5.6.4 inheritance landed in placement orchestrator;
+        Clear action remains
   [ ] Canonical-only $schema sweep across remaining ~9 widgets
   [ ] Cache-key sanity check
 ```
 
-Working tree clean for v2 work after this session's 8 commits.
-Only the usual unrelated noise (submodule drift on
-`app/Lib/cakephp` + `app/files/misp-galaxy`, scratch files in
-repo root, untracked side-projects in subdirs).
+**Discovered work — missing renderer templates: 4 of 9 remain.**
+`Index` landed this session. Still missing: `OrgsPictures`
+(three OrgsContributor* widgets), `Button` (ButtonWidget — link
+shortcut primitive), `Attack` (AttackWidget — MITRE ATT&CK
+matrix), `Achievements` (AchievementsWidget — badge + counter).
+Each is a ~1-commit job following the BarChart/SimpleList
+pattern.
+
+Working tree clean for v2 work after this session's 12 commits.
+Only the usual unrelated noise (submodule drift, scratch files
+in repo root, untracked side-projects).
 
 ## Live test instance
 
@@ -152,11 +186,15 @@ repo root, untracked side-projects in subdirs).
 - Admin user id: 1 (`admin@admin.test`), password `Password12345`
 - Admin API key: `dHVxEx4WhIwRdS6QDVsBmW9PE6pOkmgIH1FPQWiC`
 - **Admin user is on Overmind theme** (`UserSetting:ui_theme =
-  "Overmind"`).
+  "Overmind"`). With this session's commit `fe0c4bbbe` landed,
+  the Overmind dashboard CSS overrides now actually apply.
 - DB creds: `mysql -u misp -pPassword1234 misp`
 
-**Saved-layout state at session end:** admin has the 4-widget
-layout restored from `audit_logs` row 5295902:
+**Saved-layout state at session end:** admin still has the
+4-widget layout from the prior session — unchanged (this session
+didn't touch admin's saved dashboard, only adapter / renderer
+infrastructure):
+
 - `w_1` MispStatusWidget at (0,0) 4×4
 - `w_2` TrendingTagsWidget at (4,0) 5×4
   — config: `time_window=90d, threshold=10, over_time=false,
@@ -165,11 +203,12 @@ layout restored from `audit_logs` row 5295902:
 - `w_4` OrgContributionToplistWidget at (0,4) 12×4
   — config: `time_window=P30D, threshold=15`
 
-TrendingTags now has a `distribution` slot in its `$schema` that
-the configure form surfaces as a toggle-button row in the
-typed-fields tier. Setting it (e.g., `[3]`) narrows the source
-event set; the toolbar surfaces a "Distribution" chip across the
-board when at least one declarer is non-mixed.
+To exercise the new canonicals end-to-end via the UI, add an
+EventStreamWidget instance via the Add Widget gallery. Its
+`$schema` declares both `threat_level_filter` and
+`analysis_filter`, so the toolbar will surface two new chips and
+the configure form's typed-fields tier will show two
+toggle-button rows.
 
 Force test paths (unchanged from prior session):
 ```bash
@@ -183,491 +222,538 @@ mysql -u misp -pPassword1234 misp -e \
    AND setting='ui_theme';"
 ```
 
-Session-login dance for HTML-page curls (REST endpoints use the
-API key header per [[reference-misp-login-dance]]):
-```bash
-CJ=/tmp/cj.txt; rm -f "$CJ"
-curl -s -c "$CJ" http://localhost:5007/users/login -o /tmp/form.html
-TKEY=$(grep -oP 'name="data\[_Token\]\[key\]" value="\K[^"]+' /tmp/form.html)
-TFIELDS=$(grep -oP 'name="data\[_Token\]\[fields\]" value="\K[^"]+' /tmp/form.html)
-TUNLOCKED=$(grep -oP 'name="data\[_Token\]\[unlocked\]" value="\K[^"]*' /tmp/form.html)
-TDEBUG=$(grep -oP 'name="data\[_Token\]\[debug\]" value="\K[^"]+' /tmp/form.html)
-curl -s -b "$CJ" -c "$CJ" -L -o /dev/null \
-  --data-urlencode "_method=POST" \
-  --data-urlencode "data[_Token][key]=$TKEY" \
-  --data-urlencode "data[_Token][fields]=$TFIELDS" \
-  --data-urlencode "data[_Token][unlocked]=$TUNLOCKED" \
-  --data-urlencode "data[_Token][debug]=$TDEBUG" \
-  --data-urlencode "data[User][email]=admin@admin.test" \
-  --data-urlencode "data[User][password]=Password12345" \
-  http://localhost:5007/users/login
-```
+Session-login dance + wrapper-render smoke recipes unchanged
+from prior session — see [[reference-misp-login-dance]] and the
+prior handoff's "Wrapper render smoke" block.
 
-Wrapper render smoke (Phase 2 placement endpoint, ACL-gated via
-`Dashboard::loadWidget`):
+Smoke commands for the new canonicals (admin user, session login
+already established at /tmp/cj.txt):
 ```bash
-curl -s -b "$CJ" -X POST \
-  -H "Accept: text/html" -H "X-Requested-With: XMLHttpRequest" \
-  --data-urlencode "widget=MispStatusWidget" \
-  --data-urlencode "config={}" \
-  --data-urlencode "w=4" --data-urlencode "h=3" \
-  --data-urlencode "x=0" --data-urlencode "y=0" \
-  http://localhost:5007/dashboards/renderWrapper/w_99 | head -5
-# Returns Overmind-themed <div class="card misp-widget--overmind"> ...
+# threat_level_filter (High only)
+curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
+  --data-urlencode 'widget=EventStreamWidget' \
+  --data-urlencode 'config={"limit":5,"fields":["id","threat_level"],"threat_level":[1]}' \
+  http://localhost:5007/dashboards/renderWidget/w_test
+
+# analysis_filter (Initial only)
+curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
+  --data-urlencode 'widget=EventStreamWidget' \
+  --data-urlencode 'config={"limit":5,"fields":["id","analysis"],"analysis":[0]}' \
+  http://localhost:5007/dashboards/renderWidget/w_test
+
+# Index renderer (NewUsersWidget) — exercises description + 5 columns
+curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
+  --data-urlencode 'widget=NewUsersWidget' \
+  --data-urlencode 'config={"limit":3}' \
+  http://localhost:5007/dashboards/renderWidget/w_test
 ```
 
 ## What this session committed (in order)
 
 ```
-f9aa3c496  new: Phase 2 — Add Widget placement: free-slot autoplace
-                + F5.6.4 inheritance
-                Five pieces: (1) DashboardsController::renderWrapper
-                — new POST endpoint that renders wrapper.ctp through
-                Cake's themed view resolver. ACL parity with
-                renderWidget — Dashboard::loadWidget gates on
-                checkPermissions, so admin-only widgets cannot be
-                probed via this endpoint. POST-body unlock + CSRF
-                disable via the existing beforeFilter list. (2) New
-                view template `app/View/Dashboards/render_wrapper.
-                ctp` dispatches to the themed wrapper element.
-                (3) `data-misp-board-wrapper-url` on the <main>
-                board root. (4) `currentValues(boardEl)` exported
-                from toolbar.module.mjs. (5) Placement orchestrator
-                `_placeDraftWidget` in board.module.mjs: listens for
-                `misp-board:add-widget-pending`, walks schema for
-                F5.6.4 toolbar inheritance, mints `w_<N>` ID, picks
-                a free slot via `_findFreeSlot`, fetches the wrapper
-                HTML, Grid.addTile, _renderWidget, refreshToolbar,
-                _stageOrSave, debug readout. New custom events
-                `misp-board:add-widget-placed` /
-                `misp-board:add-widget-failed`. Edit-mode Discard
-                handles the newly-added tile naturally via the
-                existing `current-but-not-snapshot → remove` branch.
+934d4146b  new: Phase 1 carryover — Index widget renderer template
+                Closes the Discovered-work "missing renderer templates"
+                item for Index (was 5/9 unrendered kinds; now 4/9).
+                EventStreamWidget + NewUsersWidget + NewOrgsWidget
+                all declared $render = 'Index' and 500'd before this
+                commit. New app/View/Elements/dashboard/Widgets/Index.ctp
+                interprets the established $fields contract (name,
+                data_path dot-notation, optional element ∈ {links,
+                org, tags, array_lookup_field}, plus url/
+                url_params_data_paths/arrayData/scope hints) and emits
+                a token-driven <table class="misp-index-table">.
+                Element coverage: links (id columns, rawurlencoded
+                URL suffix + SimpleList-style safe-URL check); org
+                (name as link to /organisations/view/<id|uuid>; no
+                logo — v2 compact text idiom); tags (static colored
+                pill row with sanitised colours + Rec.601 luminance
+                contrast); array_lookup_field; default scalar. Pattern
+                follows SimpleList.ctp / BarChart.ctp — pure PHP, no
+                Cake helpers besides Hash::get + h() + __() +
+                Configure::read, inline _isSafeDashboardUrl. Companion
+                CSS rules appended to dashboard.default.css under
+                "Index renderer" (sticky <thead>, compact cell
+                padding, .misp-index-link mirrors .misp-list-link
+                hover behaviour, .misp-index-tag pill). Did NOT reuse
+                v1's genericElements/IndexTable infrastructure —
+                pulls in BS-classed markup + a script tag tail that
+                would collide across multiple Index widgets on one
+                page. XSS-safe (verified against `<img src=x
+                onerror=alert(1)>` payload in an org name → escaped
+                to text). Three Index consumers render cleanly;
+                Discovered-work entry in progress.md updated with
+                Index ticked and the 4 remaining kinds listed.
 
-b4dab0bd5  new: Phase 2 — Live preview pane in configure side-panel
-                (Add + Edit)
-                Closes BOTH "Sticky preview pane" AND "Add Widget
-                live preview" tracker lines — one pane serves both
-                flows. Panel widened 420 → min(820px, 100vw).
-                `.misp-configure-content` flex-row wraps form
-                (.misp-configure-body, 360px fixed col) + preview
-                pane (.misp-configure-preview, fills). Preview pane
-                is a sibling of the body, not a child, so gallery
-                mode's body.replaceChildren() leaves it untouched.
-                Gallery mode CSS-hides the preview pane AND restores
-                the body to full width so the 38-card grid isn't
-                squeezed. Responsive collapse below 720px (vertical
-                stack, full-screen panel). configure.module.mjs
-                gains a `previewProxy` state variable + a
-                `buildPreviewProxy(widgetEl)` helper. Proxy is a
-                detached <div data-misp-widget> mirroring openTarget's
-                attributes + an inner [data-misp-widget-content] —
-                no chrome (bare body, not a duplicate wrapper).
-                openConfigure mounts the proxy and kicks off an
-                immediate render. firePreview writes the new config
-                to both openTarget AND previewProxy, dispatches
-                onPreviewCallback(previewProxy). Live tile is never
-                touched during preview — the dashboard behind the
-                panel stays at its saved-config state until commit()
-                fires; the panel is a true sandbox. board.module's
-                Add Widget onPreview switched from no-op stub to
-                `(el) => this._renderWidget(el)` (proxy handler).
-                Edit Widget onPreview unchanged in code (same path;
-                now operates on the proxy).
+555c41c63  new: Phase 3 — threat_level_filter canonical adapter + tests
+                6th canonical type. Wire shape is an int array (subset
+                of {1..4}: 1=High, 2=Medium, 3=Low, 4=Undefined).
+                translateThreatLevelFilter body byte-identical to
+                translateDistributionFilter at this commit; the docblock
+                explicitly flags it as a future-extract trigger when
+                analysis_filter (third copy) lands. 10 PHPUnit tests
+                mirror the distribution_filter block: array passthrough,
+                empty, null, scalar wrap, numeric-string wrap, mixed
+                coerce + drop, out-of-range preserved, non-array →
+                null, idempotence, type-routed translate, coexists with
+                other canonicals. 80/80 pass (70 prior + 10 new).
+                Important: the adapter docblock at this commit claimed
+                fetchEvent accepts threat_level_id directly via
+                Event.php:3868 — that was WRONG (corrected in 783894190
+                below; line 3868 is set_filter_threat_level_id which
+                lives in the restSearch dispatcher, not fetchEvent).
 
-0348b1778  fix: Initial preview render uses form readback, not raw
-                draft config
-                Follow-up to b4dab0bd5. The initial preview kick
-                at openConfigure called onPreviewCallback directly
-                against the proxy, which then read the draft's raw
-                data-widget-config='{}'. Most widgets render empty
-                / "No data" for an empty config → gray box. Switch
-                the initial kick to firePreview() which does
-                readBack(panel) → writes form-current-state (kv
-                placeholder seeds + canonical defaults) to proxy →
-                dispatches. Add Widget preview now renders real
-                content from the first tick. Edit Widget unchanged
-                (form was built from saved config; readBack returns
-                roughly the same).
-
-d46c56ce1  new: Phase 2 — Render-kind fallback glyphs for gallery
-                card thumbnails
-                Empty 16:9 thumbnail slot in every gallery card gets
-                a render-kind-shaped SVG glyph when the widget
-                doesn't declare $thumbnail. Three pieces: (1) new
-                `app/webroot/js/dashboard/gallery/render-thumbs.mjs`
-                — exports `getRenderThumb(renderKind)` returning a
-                fresh SVG element per call. 9 explicit kinds:
-                SimpleList (3 rows), BarChart (4 bars),
-                MultiLineChart (sloping polylines), WorldMap (globe),
-                Index (table grid), Button (pill with dots),
-                OrgsPictures (3 circles), Attack (5×3 dot matrix),
-                Achievements (badge + star) + thumbGeneric fallback.
-                Single-color (currentColor) so CSS drives the tint;
-                viewBox 80x45 matches the slot's 16:9. (2) gallery.
-                module.mjs — when widget.thumbnail is absent, mount
-                getRenderThumb(widget.render) into the slot.
-                (3) dashboard.default.css — thumbnail becomes a flex
-                centring container; SVG sized 56% × max-height 78%;
-                muted color by default, accent tint + raised surface
-                on card hover/focus.
-
-23f913550  chg: docs — Standing requirement: new widget render kind
-                ⇒ new glyph in render-thumbs.mjs
-                Three durable copies of the rule so future sessions
-                can't miss it: CLAUDE.md "MISP Development" gains a
-                "Dashboard v2 — widget render kinds" section with
-                concrete steps; render-thumbs.mjs's top-of-file
-                docblock gets an explicit "Adding a new render kind"
-                block right next to the REGISTRY that needs
-                extending; dashboard-prd.md §5.7 (Widget contract)
-                appends a note to the $thumbnail bullet pointing at
-                render-thumbs.mjs.
-
-d207603bb  new: Phase 3 — distribution_filter canonical adapter
-                + tests
-                5th canonical type. Wire shape is an int array,
-                subset of {0..5} matching MISP's 6 event-distribution
-                levels. Event::fetchEvent already accepts both scalar
-                and array under `distribution` (lines 2703-2707), so
-                canonical → legacy is essentially identity.
-                CanonicalTypeAdapter::translateDistributionFilter
-                normalises to int[]: array passes through; scalar
-                int / numeric-string wraps; mixed array coerces
-                numeric, drops non-numeric; empty array passes
-                through; null / unrecognised → null. Out-of-range
-                values (>5) deliberately preserved (CakePHP's IN
-                coercion matches no rows for unknown levels —
-                louder than silent filtering). 10 PHPUnit tests
-                covering: array passthrough, empty array, null,
-                scalar int wrap, numeric string wrap, mixed coerce
-                + drop, unrecognised shapes, idempotence, type-
-                routed translate, coexistence with time_window.
-                All 70 adapter tests pass (60 prior + 10 new).
-
-fa4ff0bc3  new: Phase 3 — distribution_filter JS picker + registries
+bcde33697  new: Phase 3 — threat_level_filter JS picker + registries
                 + CSS
-                New canonical/distribution_filter.mjs exporting
-                KEY/LABEL/LEVELS/buildField/readValue/displayLabel/
-                equal. Picker renders a toggle-button row over the
-                6 levels with human labels (Org only, Community,
-                Connected, All, Sharing grp, Inherit). aria-pressed
-                is the source of truth (no hidden inputs).
-                Order-insensitive equal() so [0,1] vs [1,0] read
-                as equal for the toolbar's mixed-state detection.
-                displayLabel collapses both empty AND full
-                selection to "(all)" — both = "no filter".
-                CANONICAL_BUILDERS (configure) + CANONICAL_REGISTRY
-                (toolbar) grow the entry. New CSS for
-                .misp-distribution-toggles flex row + pill
-                buttons (outlined → accent-filled on pressed).
-                F5.6.4 inheritance wired automatically through the
-                existing placement orchestrator.
+                Toggle-button row over 4 levels (High/Medium/Low/
+                Undefined) with per-level tooltips. aria-pressed is
+                the source of truth; readValue scans
+                [data-threat-level][aria-pressed="true"]. Order-
+                insensitive equal() for toolbar mixed-state. CSS lived
+                under .misp-threat-level-toggles/-toggle at this
+                commit — distinct namespace from .misp-distribution-
+                toggle, with a "fold into shared base when third
+                copy lands" docblock note. CANONICAL_BUILDERS
+                (configure) + CANONICAL_REGISTRY (toolbar) entries.
 
-821e86e8d  new: Phase 3 — distribution_filter consumer:
-                TrendingTagsWidget post-filter
-                Final of 3 commits for distribution_filter. The
-                consumer-pairing model — every Phase 3 canonical
-                type lands with a real consumer so the toolbar
-                chip is actually usable, per the org_filter
-                "no consumers = dead code" lesson. Three changes
-                on TrendingTagsWidget: $params adds distribution
-                legacy help; $schema adds 'distribution' =>
-                ['type' => 'distribution_filter', 'help' => ...]
-                between tag_filter and threshold; handler()
-                post-filters $eventIds via a find('list') against
-                Event with the already-ACL-filtered eventIds as
-                base + an IN clause on Event.distribution. ACL-safe
-                — distribution can only narrow (never expand) the
-                visible range. Why TrendingTags, not the originally-
-                picked EventStreamWidget: ES declares $render =
-                'Index' but Elements/dashboard/Widgets/Index.ctp
-                doesn't exist (pre-existing renderer gap). End-to-end
-                browser smoke confirmed by the user — "works like a
-                charm".
+783894190  new: Phase 3 — threat_level_filter consumer:
+                EventStreamWidget post-filter
+                Third commit for the canonical. $params['threat_level']
+                legacy help + $schema['threat_level'] => {type:
+                'threat_level_filter', help: ...}. Handler applies the
+                filter as a PHP post-filter on the ACL-filtered
+                fetchEvent result set — fetchEvent does NOT accept
+                threat_level_id natively (only as a SELECT column;
+                the set_filter_* helper lives in restSearch). Pre-fetch
+                overshoot heuristic: max(200, declaredLimit*10) when
+                threat_level set, then array_slice to declaredLimit
+                post-filter — otherwise the result count would shrink
+                unpredictably depending on which threat levels happen
+                to be most recent. Adapter docblock fix (the prior
+                commit's claim that fetchEvent accepts threat_level_id
+                was wrong — corrected here). Smoke: 5 configs verified
+                (baseline, [1], [2,3], [99] out-of-range, scalar legacy).
+
+2331dd370  chg: Phase 3 — tracker tick for threat_level_filter
+                Should have been bundled into the consumer commit per
+                the distribution_filter precedent; landed as a follow-
+                up because amends are off the table. Single-line
+                progress.md tick — closes the Phase 3 task line for
+                threat_level_filter.
+
+2250ce6b8  chg: Phase 3 — analysis_filter adapter; extract shared
+                _normaliseIntArray
+                Third copy of the int-enum-array pattern lands as
+                the trigger for the long-flagged PHP extraction.
+                _normaliseIntArray as a private static; translateDist-
+                ributionFilter + translateThreatLevelFilter delegate to
+                it; translateAnalysisFilter is a one-line forwarder.
+                The 20 prior PHPUnit cases passed against the
+                refactored bodies BEFORE the new code landed —
+                confirms the extraction is a pure refactor. New
+                'analysis_filter' case in translate() switch. 10 new
+                tests; 90/90 total. The per-type translator docblocks
+                now focus on enum-specific semantics + downstream
+                consumption path (native fetchEvent for distribution
+                vs. PHP post-filter for threat_level / analysis).
+
+4d4dab2d6  chg: Phase 3 — extract shared enum_picker.mjs factory
+                JS-side companion. New canonical/enum_picker.mjs
+                exports makeEnumPicker({key, label, levels, valueAttr,
+                rootClass, togglesClass, toggleClass, helpText})
+                returning the standard {KEY, LABEL, LEVELS, equal,
+                displayLabel, buildField, readValue} surface.
+                distribution_filter.mjs + threat_level_filter.mjs
+                migrate to ~40-line shells (down from ~180-200 each).
+                Net JS lines: was ~400 duplicated; now ~290 total
+                (206 factory + ~40 per shell). Configure + toolbar
+                registries unchanged — same KEY/buildField/readValue
+                exports on the same paths.
+
+9dd06ab81  chg: Phase 3 — consolidate enum picker CSS into
+                .misp-enum-toggle base
+                Final extraction in the trio. .misp-distribution-
+                toggles/-toggle + .misp-threat-level-toggles/-toggle
+                (byte-identical bodies) fold into a single
+                .misp-enum-toggles / .misp-enum-toggle block. Both
+                existing modules switch their factory params to use
+                the shared classes. rootClass deliberately stays
+                per-canonical (.misp-distribution-filter /
+                .misp-threat-level-filter) — leaves a hook for
+                variant-specific styling.
+
+71ae3e1a3  new: Phase 3 — analysis_filter JS picker + registries
+                First picker to benefit from the factory + shared
+                CSS. ~40-line shell over makeEnumPicker. Levels:
+                {0=Initial, 1=Ongoing, 2=Complete}. CSS zero —
+                shared base applies via the factory's class params.
+                CANONICAL_BUILDERS + CANONICAL_REGISTRY entries.
+
+bf1f243d9  new: Phase 3 — analysis_filter consumer: EventStreamWidget
+                + tracker tick
+                EventStreamWidget now declares BOTH threat_level_filter
+                AND analysis_filter — the most populated canonical-type
+                schema in the v2 catalogue. Handler factored the
+                post-filter coercion into a $coerceLevels closure
+                (replaces a prior `array_filter(... > 0)` pattern
+                which would have wrongly dropped 0=Initial). Pre-fetch
+                overshoot fires when EITHER filter is set; each
+                filter runs independently in sequence; single
+                array_slice truncates after both. Smoke: 5 configs
+                verified incl. combined threat_level=[1] AND
+                analysis=[0] (returns empty — DB-verified that the
+                top-200 has zero events matching both; behaviour
+                correct, not a bug). Progress tracker ticked.
+
+ceedfffb4  fix: Overmind dashboard CSS overrides never loaded
+                User-reported regressions on the Overmind theme: (1)
+                resize handle invisible in edit mode; (2) widget
+                content overflowed the card border instead of clipping
+                / scrolling. Both bugs traced to one root cause:
+                `Themed/Overmind/Layouts/dashboard.ctp` never loaded
+                `app/View/Themed/Overmind/webroot/css/dashboard/
+                overmind.css`. That file defines `.card.misp-widget--
+                overmind { overflow: hidden }` (clips content),
+                `.misp-widget--overmind__body { overflow: auto }`
+                (body scrolls), `.misp-widget--overmind__resize
+                { position: absolute; right:0; bottom:0; ...
+                gradient ... }` (resize handle). Without the
+                stylesheet, every `__resize` span collapsed to a 0×0
+                inline element. Fix at this commit: emit a manual
+                <link> after the assetLoader. Docblock claimed
+                "this fork's HtmlHelper::assetUrl doesn't resolve
+                Cake's theme dot-notation" — TRUE but irrelevant;
+                see follow-up fe0c4bbbe.
+
+fe0c4bbbe  chg: Overmind themed CSS via plain css-array entry, not
+                manual <link>
+                Follow-up to ceedfffb4. The prior fix worked but used
+                the wrong idiom. Cake's `Helper::webroot()` IS
+                theme-aware: when `$this->theme === 'Overmind'`, it
+                falls back to `App::themePath($theme)/webroot/<path>`
+                and emits `/theme/Overmind/<path>` URLs. So the
+                correct fix is just to add a plain css-array entry
+                `'dashboard/overmind'` — no dot-prefix needed. The
+                dot-notation `'Overmind.dashboard/overmind'` doesn't
+                work because `pluginSplit` treats the prefix as a
+                PLUGIN namespace, not a theme namespace, and emits
+                `/css/overmind/dashboard/overmind.css` (404). Manual
+                <link> replaced with `['dashboard/overmind', ['preload'
+                => true]]` in the natural position. wrapper.ctp
+                docblock corrected with explicit "no dot-prefix"
+                warning so future contributors don't trip the same
+                wire. assetLoader.ctp itself is custom MISP code but
+                it delegates theme-awareness to Cake's
+                Helper::webroot(), so no MISP-side change was needed.
 ```
 
-8 commits this session, all signed (`%G?` = `U`). Plus one direct
-DB write (admin user_settings restore — not committed; see "DB
-restore" lesson below).
+12 commits this session, all signed (`%G?` = `U`). Net stats:
+- 4 new files (Index.ctp, enum_picker.mjs, threat_level_filter.mjs,
+  analysis_filter.mjs)
+- PHPUnit count: 70 → 90 (+20)
+- JS lines net: distribution_filter + threat_level_filter went
+  from ~400 lines duplicated → ~290 lines via factory; analysis_filter
+  added ~40 more for a third picker. Total ~330 lines for three
+  pickers vs ~600 had they all been written in the parallel-
+  duplication style.
+- CSS lines net: enum toggle styling went from ~60 duplicated lines
+  → ~30 lines under one rule block.
 
 ## Lessons from this session
 
-1. **ACL parity for new endpoints is a hard requirement.** When
-   adding a new endpoint that shadows or extends an existing one,
-   the new endpoint's permission gate must be the same hook the
-   existing endpoint uses — not a custom check, not "this looks
-   safe enough". For `/dashboards/renderWrapper` (placement), the
-   user-direction was explicit: use `Dashboard::loadWidget`'s
-   `checkPermissions` gate (same as `renderWidget`) so admin-only
-   widgets cannot be probed for existence via a different code
-   path. **Probe-resistance is the metric:** a non-admin's 404
-   must be indistinguishable across "unknown widget class" /
-   "widget exists but you can't see it" — both surface as the
-   same NotFoundException with identical wording.
+1. **Three copies forces extraction — and the third copy lands
+   together with the extraction, not as a separate refactor pass.**
+   distribution_filter shipped as a parallel-duplicate of
+   nothing (it was first); threat_level_filter shipped as a
+   parallel-duplicate of distribution_filter (two copies — the
+   adapter docblocks explicitly flagged "extract on third copy").
+   analysis_filter was the third copy. Rather than (a) ship a
+   third parallel duplicate or (b) refactor first then add the
+   third in a separate session, the cleanest shape was to **fold
+   the extraction into the addition**: one commit per layer
+   (PHP / JS / CSS) that both extracts the shared infrastructure
+   AND moves the third copy onto it. Verification discipline:
+   each refactor commit re-ran the existing test suite against
+   the new shared code BEFORE adding the third copy's tests, so
+   the "pure refactor, no behaviour change" claim is observable
+   in the commit chain.
 
-2. **Configure form's "live preview" needs form readback at
-   panel open, not raw widgetEl config.** For Edit Widget,
-   widgetEl carries the saved (non-empty) config and the form is
-   built from it — initial render produces real content. For
-   Add Widget, the draft starts with config={} and buildForm
-   visually seeds defaults (placeholder kv rows, canonical
-   builder defaults) but those don't write back to config. Result
-   was a gray-box preview for any widget that returns empty on
-   empty config. The fix is one-line: switch the initial-render
-   kick from `onPreviewCallback(previewProxy)` to `firePreview()`
-   — firePreview does `readBack(panel)` first, capturing the
-   form's as-built state. Pattern: **form is the source of
-   truth for the initial preview, not the widgetEl attributes**.
+2. **Cake 2.x theme dot-notation is for PLUGINS, not THEMES.**
+   `'Overmind.dashboard/overmind'` in a css-array entry runs
+   through `pluginSplit` and produces a plugin-asset path
+   (`/css/overmind/dashboard/overmind.css`), which 404s. Theme
+   support in Cake 2.x is handled exclusively at
+   `Helper::webroot()`'s theme fallback (`App::themePath($theme)
+   . 'webroot/' . $file`), which IS exercised when you pass a
+   plain path (no prefix) and `$this->theme` is set on the
+   helper. **HelperCollection propagates `$theme` from the View
+   automatically** (HelperCollection.php:138). So loading a
+   themed asset is just `['dashboard/overmind']` — no special
+   syntax. Documented in two places (the wrapper.ctp docblock +
+   the layout's inline comment) so future contributors don't
+   trip the same wire.
 
-3. **Render-kind glyphs beat category glyphs as gallery
-   thumbnails.** Original design committed to a "category-shaped
-   fallback glyph". User pushed back during implementation —
-   render kind tells you the *output shape* (bars, lines, globe,
-   list), which is what the thumbnail communicates; category
-   tells you the *data domain* (status, events, orgs), which is
-   already surfaced in the category chip. The bar chart is bars
-   whether it's counting events or orgs. **Visual hint should
-   evoke output shape, not data domain.** Companion lesson: when
-   adding a property that drives downstream UI (here, $render),
-   the file with the matching UI surface (render-thumbs.mjs)
-   needs an explicit "adding a new <kind>" docblock so future
-   sessions don't ship blank thumbnails for new render kinds.
+3. **Initial bug-fix docblocks aren't gospel — when you write a
+   "this doesn't work because X" claim, prove X actively, not
+   passively.** Commit `ceedfffb4` shipped with the claim that
+   "this fork's HtmlHelper::assetUrl doesn't resolve Cake's
+   theme dot-notation" — true (dot-notation goes through
+   pluginSplit which doesn't know about themes), but the
+   conclusion ("so we emit the <link> manually") was the wrong
+   takeaway. The right takeaway is "use the plain path; webroot()
+   handles themes". The user's question — "Isn't the asset
+   loader custom code? Or is it part of cakePHP?" — was the
+   forcing function that prompted the re-investigation.
+   **Trust-but-verify a stated negative claim**: if you find
+   that an idiom doesn't work and conclude the framework
+   doesn't support what you want, check whether you reached for
+   the right idiom.
 
-4. **Consumer audit before canonical-type work, every time.** The
-   handoff lesson from the org_filter mistake — "no consumers
-   today, work is premature" — applies to every remaining Phase
-   3 type. This session's distribution_filter audit found zero
-   consumers AS FILTERS for distribution/threat_level/analysis/
-   sharing_group_filter in the current widget set. EventStreamWidget
-   *displays* threat_level / analysis as columns but doesn't
-   filter by them; TrendingAttributesWidget uses sharing_group_id
-   in SELECT, not WHERE. The corrected model is to **land the
-   canonical type AND its first consumer widget in the same
-   chunk** — three commits per type: adapter + tests, JS picker
-   + registries, consumer widget. Without a consumer, the
-   toolbar chip stays hidden (no declarers) and the canonical
-   type is dead code on maintenance burden.
+4. **`fetchEvent` is not `restSearch`.** They take different
+   options. distribution_filter happens to be a top-level
+   fetchEvent option (line 125 in the fetchEvent body —
+   `Event.distribution` IN coercion); threat_level_id and
+   analysis are NOT. The `set_filter_*` helpers at Event.php:3868
+   and similar are restSearch-dispatcher entries, not fetchEvent
+   inputs. The adapter docblock for threat_level_filter initially
+   claimed the wrong thing (fixed in the consumer commit); same
+   trap caught analysis_filter early. When wiring a canonical-
+   typed slot for a widget that uses `fetchEvent`, scan the
+   fetchEvent BODY for the option's literal use, not the broader
+   Event model for hits on the field name.
 
-5. **Pre-existing renderer template gap is a separate liability.**
-   5 of 9 declared render kinds (Index, OrgsPictures, Button,
-   Attack, Achievements) have no `Elements/dashboard/Widgets/
-   <Kind>.ctp` template — widgets using those kinds would 500.
-   Surfaced during the distribution_filter consumer pivot
-   (EventStreamWidget declares Index, which doesn't render).
-   Workaround was to pick a working renderer (TrendingTags →
-   BarChart). The renderer gap is parked — see Open thread.
+5. **The "infrastructure compounds" property is observable
+   commit-by-commit, not just claimed in handoffs.** The
+   analysis_filter trio of extraction commits each shrunk the
+   per-canonical addition: PHP went from ~30 lines to 1 line,
+   JS went from ~180 lines to ~40, CSS went from ~30 lines to
+   0. A 4th int-enum canonical now costs:
+   - One adapter delegate line (`return self::_normaliseIntArray($value);`).
+   - One ~40-line picker shell + two registry entries.
+   - The CSS already exists.
+   - Plus a consumer-widget declaration (~10 lines) if/when one
+     surfaces. (Without a consumer, the work is dead per
+     Lesson #4 of the prior session.)
 
-6. **Audit logs are a feasible recovery path for clobbered
-   `user_settings` rows.** The `audit_logs` table's `change` blob
-   stores `{"value": [old_value, new_value]}` for every UserSetting
-   edit. When a MISP 2.4 instance writing to the same database
-   clobbered admin's dashboard at 16:13:04, the pre-clobber state
-   was recoverable from row 5295902's `change` blob (the audit
-   that captured the v2 → v2.4 transition at 16:07:00). Recovery
-   procedure: read row, JSON-decode the blob (MySQL escapes
-   backslashes — strip one level), parse `value[0]` as the old
-   state, write back to user_settings with current timestamp.
-   **Caveat:** v2.4's writes don't generate audit_logs entries
-   (the final 16:13:04 clobber had no audit record). So the
-   audit chain has a hole — you can recover *to* the last v2
-   write but not see what happened after it. The hole isn't
-   harmful for restore-from-snapshot but is interesting for
-   diagnosing what v2.4 was doing.
+6. **Index renderer: v1 IndexTable infrastructure is heavyweight
+   for v2's needs.** The deleted v1 Index.ctp delegated to
+   `genericElements/IndexTable/index_table` which brings
+   pagination + BS markup + a script tag tail that REDECLARES
+   `var passedArgsArray` / `var url` on every render. With
+   multiple Index widgets on one page, the script tail would
+   collide. The fresh v2 Index.ctp covers all the in-tree
+   `element` types (links/org/tags/array_lookup_field) in ~150
+   lines, clip-safe, token-driven, no Cake helpers besides
+   Hash::get/h/__/Configure::read. Pattern matches BarChart.ctp /
+   SimpleList.ctp idiom.
 
-7. **MISP 2.4 connected to the same DB is a risk surface.**
-   v2.4's UserSetting save path writes a different shape (no
-   `instance_id`, `width`/`height` keys, string positions) and
-   appears to bypass `AuditLogBehavior`. As long as a v2.4
-   instance is talking to this DB, dashboard layouts can be
-   clobbered silently. See Open thread for mitigation options.
+7. **Pre-fetch overshoot is the standard cure for PHP-post-filter
+   `LIMIT` shrinkage.** When the filter applies AFTER the SQL
+   LIMIT clause, the user's declared limit becomes a "raw fetch"
+   number that the post-filter narrows below. The fix:
+   `max(200, declaredLimit * 10)` at fetch time, then
+   `array_slice($data, 0, $declaredLimit)` after the post-filter.
+   For uniform-distribution DBs this gives ≥80% of the declared
+   limit even in the worst single-level case; users wanting
+   guaranteed N matches can raise the widget's limit config.
+   Both threat_level_filter and analysis_filter use this
+   pattern in EventStreamWidget; a single bump applies when
+   either filter is set (no double-bump).
 
-8. **GPG pinentry timeout hit again.** Same as prior session
-   lesson #8 — first commit attempt of `d207603bb` failed because
-   the pinentry prompt wasn't completed promptly. Retry worked.
+8. **One root cause can produce two visible bugs.** The Overmind
+   user-report had two symptoms (invisible resize handle +
+   content overflow) that initially looked like two distinct
+   CSS issues. Both traced to the same root: one CSS file not
+   loading. **Fix the loader, both symptoms resolve.** Worth
+   pausing on "two distinct symptoms" reports to ask whether
+   they share infrastructure before debugging each separately.
 
 The prior session's gotchas still apply:
 
 9. **`git mv` does NOT auto-stage subsequent content edits.**
-10. **`Themed/<Name>/Layouts/<layout>.ctp` must exist for every
-    new layout you introduce.** No new layouts this session.
-11. **Bundled commits for 5+ identical changes.** No bundles this
-    session — distribution_filter consumer was a single widget.
+10. **Themed/<Name>/Layouts/<layout>.ctp must exist for every
+    new layout.**
+11. **GPG pinentry timeout** — same lesson #8 from the prior
+    session. No incidents this session but worth keeping in
+    mind for late nights.
 
 ## Discovered work parked for later
 
-Newly parked this session:
+Newly parked this session: nothing — the Overmind CSS load bug
+caught here is now closed.
 
-- **Missing renderer templates (5 of 9 declared kinds):** Index,
-  OrgsPictures, Button, Attack, Achievements have no
-  `Elements/dashboard/Widgets/<Kind>.ctp`. Widgets declaring these
-  kinds (EventStreamWidget → Index; OrgsContributor* → OrgsPictures;
-  ButtonWidget → Button; AttackWidget → Attack; AchievementsWidget
-  → Achievements) currently 500 on render. Discovered during the
-  distribution_filter consumer pivot. **Estimated:** 1-2 commits
-  per kind (each renderer is a thin .ctp around a `$data` shape;
-  pattern matches BarChart/SimpleList). Highest value: Index
-  (unlocks EventStreamWidget which is one of the most user-facing
-  widgets and a natural distribution_filter consumer too).
+Previously parked items still active:
+
+- **Missing renderer templates (4 of 9 remain):** OrgsPictures
+  (three OrgsContributor* widgets need it), Button (ButtonWidget),
+  Attack (AttackWidget — MITRE ATT&CK matrix; non-trivial),
+  Achievements (AchievementsWidget — badge + counter; small).
+  Index landed this session. Highest user value among remaining:
+  OrgsPictures (unlocks 3 widgets); Button (smallest, easiest);
+  Attack is the most user-facing if MITRE matrices are a known
+  user need.
 
 - **MISP 2.4 cross-instance DB write risk:** v2.4 connected to
-  the same DB can clobber `user_settings.dashboard` rows in a
-  shape v2 has to read-fix-up but loses position fidelity.
-  Mitigation options: (a) document the risk in the dev-only
-  README; (b) add a schema migration that v2.4 won't recognise so
-  it refuses the write; (c) version the dashboard blob (add a
-  `__version: 2` top-level key, ignore writes that drop it).
-  None blocking for now — just document the recovery procedure
-  (audit_logs replay).
+  the same DB can clobber `user_settings.dashboard` rows. Carries.
 
-Previously parked items all still apply:
-
-- time_window toolbar dropdown-menu UX alternative (surfaced
-  2026-05-19, prior session).
-- Grid drop-on-occupied cascade (Phase 5 — parked 2026-05-19).
-- tlp:clear (#ffffff) renders invisible bars (cosmetic).
-- OrgEventsWidget months>13 malformed dates (carries).
-- TrendingAttributesWidget PHP 8.x Attribute model crash
-  (carries — MISP core touch).
-- EventEvolutionLineWidget ignores end_date (carries).
-- Live preview race window (carries — AbortController fix).
-- Drop dormant `dashboard.midnight.css` loader (carries).
-- `save_template.ctp:4` action-name mismatch (Phase 4 — carries).
+- **time_window toolbar dropdown-menu UX alternative.** Carries.
+- **Grid drop-on-occupied cascade (Phase 5).** Carries.
+- **tlp:clear (#ffffff) renders invisible bars (cosmetic).**
+  Carries.
+- **OrgEventsWidget months>13 malformed dates.** Carries.
+- **TrendingAttributesWidget PHP 8.x Attribute model crash.**
+  Carries — MISP core touch.
+- **EventEvolutionLineWidget ignores end_date.** Carries.
+- **Live preview race window** (carries — AbortController fix).
+- **Drop dormant `dashboard.midnight.css` loader.** Carries.
+- **`save_template.ctp:4` action-name mismatch** (Phase 4 —
+  carries).
 
 ## Open thread / next obvious work
 
 In rough priority order:
 
-**Option A: Build the missing Index renderer template.**
+**Option A: Phase 3 — next canonical type.**
 
-Quick win. Pattern is well-established (BarChart.ctp / SimpleList.
-ctp are ~30-50 lines each). Index is a tabular renderer — header
-row with column names from `$widget->fields`, body rows from
-`$data['data']`. Once Index lands, EventStreamWidget renders
-again — and EventStreamWidget is the natural distribution_filter
-consumer #2 (the F5.6.4 inheritance demo gets richer with a
-second declarer). Half-day. After Index, four renderer kinds
-still missing (OrgsPictures, Button, Attack, Achievements) —
-those can land in subsequent sessions per their utility.
+Per Lesson #4 of session #2, every remaining type needs a
+consumer audit first. Best candidates:
 
-**Option B: Phase 3 next canonical type — needs consumer pairing.**
+- **`sharing_group_filter`** — would consume on any
+  sharing-group-aware widget. Needs careful design because
+  sharing groups are user-specific (filter dropdown can't be a
+  static enum). Likely needs a server-side autocomplete or a
+  picker that fetches the user's sharing groups from a new
+  endpoint. ~5 commits including the endpoint.
+- **`galaxy_cluster_filter`** — most complex of the remaining
+  canonicals. Galaxy clusters are dynamic; needs a typeahead/
+  picker. Could be a single canonical that takes significant
+  effort, or a phased approach starting with a simpler
+  "galaxy-type" enum.
 
-Per Lesson #4, every remaining type needs a consumer found OR
-added. The best candidates by user value:
-- `sharing_group_filter` (any sharing-group-aware widget would
-  consume; need to add filtering to one). Higher complexity
-  because sharing groups are user-specific.
-- `threat_level_filter` / `analysis_filter` (small enums like
-  distribution_filter; same toggle-button picker pattern; pair
-  with EventStreamWidget once Index renderer lands → option A
-  becomes a prerequisite).
-- `galaxy_cluster_filter` (most complex — galaxy clusters are
-  dynamic, need server-side autocomplete).
+Both are heavier than the int-enum trio. Not the natural
+"keep momentum going" choice.
 
-**Option C: Browser-verify Edit Widget against the new preview-
+**Option B: Build another missing renderer template.**
+
+`Button.ctp` is smallest — ButtonWidget is a link-shortcut
+primitive (single button → drilldown URL). One commit.
+`OrgsPictures.ctp` has the most consumers (three OrgsContributor*
+widgets) but needs an org-logo grid renderer + the OrgImg helper
+or an equivalent — medium effort, one commit.
+
+**Option C: Pair an existing canonical with a 2nd consumer for
+multi-declarer F5.6.4 demonstration.**
+
+The toolbar's "mixed state" detection + F5.6.4 inheritance shine
+brightest with ≥2 declarers of the same canonical. Today, every
+new canonical has exactly one consumer (EventStreamWidget for
+threat_level + analysis; TrendingTagsWidget for distribution).
+Candidates for a 2nd consumer:
+
+- **OrgEventsWidget** could declare threat_level_filter +
+  analysis_filter (it's another `Event`-backed widget; the
+  post-filter pattern transfers directly). Quick — ~2 commits
+  total (one per filter).
+- **TrendingTagsWidget** already has distribution_filter; adding
+  threat_level_filter to it would make the existing dashboard
+  layout (admin's saved state has TrendingTags + Org widgets)
+  surface a second toolbar chip without needing to add new
+  widgets.
+
+**Option D: Browser-verify Edit Widget against the new preview-
 pane render path.**
 
 Closes the last open Phase 2 line. No code work; tick depends on
-a browser interaction. Should take 15 minutes.
+a browser interaction. ~15 minutes. The user is now ON Overmind
+with working CSS (this session's bug fix), so the visual
+verification is reliable.
 
-**Option D: Phase 4 — Template library v2 native UI.**
+**Option E: Phase 4 — Template gallery polish.**
 
-Pure greenfield. Template browse/import currently uses v1
-template-listing flow inside the v2 chrome. Reuses the gallery
-infrastructure (card grid, search filter, side panel) we just
-built. Larger scope — multi-session.
+Pure greenfield. Reuses the gallery infrastructure (card grid,
+search filter, side panel) from Phase 2. Larger scope —
+multi-session.
 
-**Option E: Other parked work.**
+**Option F: Other parked work** — time_window dropdown UX,
+renderer luminance check (tlp:clear bars render invisible),
+midnight.css drop, TrendingAttributesWidget PHP 8 crash.
 
-time_window dropdown UX, renderer luminance check (tlp:clear bars
-render invisible), midnight.css drop, TrendingAttributesWidget PHP 8
-crash.
-
-**Recommendation:** A then a paired round of B (threat_level_filter
-+ EventStreamWidget consumer). A is small but unblocks B's
-richest pairing, and EventStreamWidget is the canonical "let's
-filter events by X" surface.
+**Recommendation:** **B (Button renderer) then C (a 2nd consumer
+for threat_level or analysis)**. Button is a quick visible win
+that unlocks another widget; the 2nd-consumer pairing makes the
+F5.6.4 inheritance + mixed-state UX observable. Alternative
+recommendation: **D first** (15-min closeout of the Phase 2 line)
+then onto B/C.
 
 ## Convention reminders
 
 - Commit per progress-tracker task completion; never `git add -A`;
-  the commit body references the task. Bundle backfill commits
-  when the pattern is identical across 5+ widgets; separate
-  commits when the pattern diverges per widget. **For
-  canonical-type additions: three-commit shape per type — adapter
-  + tests, JS picker + registries, consumer widget. Same as
-  distribution_filter this session.**
-- **For mass file edits via script: preserve per-file line
-  endings** (read binary, detect existing line-ending sequence,
-  use same on write). Prior session hit it once on
-  UsageDataWidget.php.
+  the commit body references the task. **For canonical-type
+  additions: three-commit shape per type — adapter + tests, JS
+  picker + registries, consumer widget — same as
+  distribution_filter, threat_level_filter, analysis_filter
+  this session.**
+- **For the next "third copy" trigger of any pattern**: extract
+  + add together (PHP / JS / CSS each in their own commit),
+  rather than refactor-first-then-add. This session was the
+  forcing-function precedent.
 - **Always `git status --short` + explicit `git add` before
-  commit**. Also watch for stray empty files from grep / find
-  with quote-mangling — clean them out with `git status` before
-  staging.
+  commit**. Watch for stray empty files from grep / find with
+  quote-mangling — clean them out before staging.
 - New files land with `iglocska:iglocska` ownership; `chgrp
   www-data` before committing to match repo convention.
 - The wrapper-element + Themed-override pattern is the playbook
-  for any future override surface. In-panel widgets (gallery
-  cards, configure proxy) don't need Themed mirrors because their
-  containing chrome is theme-neutral. Visual theming flows
-  through CSS-class overrides, not markup forks.
+  for any future override surface. The Overmind CSS-load bug
+  this session is a reminder that themed CSS overrides need
+  to be loaded explicitly — Cake's theme-aware `Helper::webroot()`
+  resolves the URL but doesn't auto-include the asset.
+- **Themed CSS in Cake 2.x:** use plain paths (no dot-prefix).
+  `Helper::webroot()` does the theme resolution when
+  `$this->theme` is set on the helper (HelperCollection
+  propagates it from the View). The dot-prefix is for plugins,
+  not themes.
 - User wants rigorous pushback, not yes-machine output — surface
   trade-offs, name alternatives, recommend a path, then go with
-  the user's call. **New this session:** the org_filter "no
-  consumers = dead code" lesson applies to every Phase 3 type —
-  audit before committing to the work.
+  the user's call. **The user's question about whether the
+  assetLoader is custom code was this session's example of the
+  rigorous-pushback discipline working from the user side, not
+  Claude's; pay attention when the user questions a stated
+  premise.**
 - User alternates hitm / afk sessions; tracker docs are the
   ground truth between sessions. Tick one task at a time; the
   Done note carries the deciding context.
 - Surface context status when past 75% at task boundaries so the
-  user can choose to restart. This session wrapped at ~39% with
-  the user explicitly asking for the handoff.
-- Hard-refresh after CSS/JS edits — the `?v=185` cache-buster from
-  `AppController::__queryVersion` doesn't bump per-file.
-- **For canonical-type additions (Phase 3):** adapter helper
-  commit first, then JS picker commit, then per-widget consumer
-  backfill commit. Mind the consumer audit — no consumers = park
-  the type, don't ship dead code.
+  user can choose to restart. This session wrapped at ~36% with
+  the user explicitly asking for the handoff at the natural
+  pause after the Overmind bug fix.
+- Hard-refresh after CSS/JS edits — the `?v=185` cache-buster
+  from `AppController::__queryVersion` doesn't bump per-file.
+- **The schema-driven model is the canonical answer** for any
+  "how does the toolbar / configure form know which widgets to
+  act on" question.
 - **A tracker tick requires the user-visible surface to exist
   AND be reachable from the default UI, not just the JS / handler-
   level wiring behind it.** (Carries.)
 - **`mysql -u misp -pPassword1234 misp` for one-shot SQL.**
-- **The schema-driven model is the canonical answer** for any
-  "how does the toolbar / configure form know which widgets to
-  act on" question.
-- **Panel-mode-piggyback pattern:** when a new module wants to
-  use the configure side panel for a non-form view, flip
-  `data-misp-configure-mode` to mark the new mode, populate the
-  panel body via `body.replaceChildren()`, and use a
-  MutationObserver on the panel's `hidden` attribute as the
-  canonical close hook. CSS can use the mode attribute to hide
-  form-only chrome.
-- **Draft widget pattern:** for any "create a new widget" UX,
-  construct a detached `<div data-misp-widget>` DOM node carrying
-  the same `data-widget-*` attributes a wrapper.ctp would carry.
-  Pass it through `openConfigure` like any real widget;
-  orchestrate what happens on Save outside the configure module.
-- **Preview-proxy pattern (NEW this session):** for any "show me
-  what this widget would look like" surface that's NOT the live
-  tile, build a bare proxy `<div data-misp-widget>` with the
-  identifying attributes + a `[data-misp-widget-content]`
-  container. `_renderWidget(proxy)` from the BoardModule does the
-  rest. Decouples the preview render from the live tile so the
-  configure panel can be a true sandbox.
-- **Render-kind glyph requirement (NEW this session, documented
-  in three places — CLAUDE.md, render-thumbs.mjs docblock,
-  PRD §5.7):** any new value for `public $render` on a widget
-  class, or any new template under `app/View/Elements/dashboard/
-  Widgets/`, must ship with a matching glyph in `app/webroot/js/
-  dashboard/gallery/render-thumbs.mjs` in the same commit.
-  Otherwise the gallery card falls through to the generic block
-  for every widget using the new render kind.
-- **DB restore from audit_logs (NEW this session):** when a
-  `user_settings` row is clobbered, the prior state lives in the
-  most recent `audit_logs` row where `model='UserSetting' AND
-  model_id=<row_id>`. The `change` blob is JSON with shape
-  `{"value": [old_json, new_json]}`. MySQL escapes backslashes —
-  strip one level when parsing. `value[0]` is the pre-write
-  state — write back to `user_settings.value`, set `timestamp =
-  UNIX_TIMESTAMP()`.
+- **Render-kind glyph requirement (carries):** any new value
+  for `public $render` on a widget class, or any new template
+  under `app/View/Elements/dashboard/Widgets/`, must ship with
+  a matching glyph in `render-thumbs.mjs` in the same commit.
+- **DB restore from audit_logs (carries):** documented procedure
+  for clobbered `user_settings.dashboard` rows lives in the
+  prior session's handoff.
+
+## Quick-start cheatsheet for the next session
+
+If you're picking this up cold:
+
+1. Read `dashboard-prd.md` for the spec.
+2. Read `dashboard-progress.md` for what's done / what's next.
+3. Skim this file for ephemeral session-level context.
+4. Verify the live instance still works:
+   `curl -s http://localhost:5007/dashboards -o /dev/null -w "%{http_code}\n"`
+   should return 302 (redirect to login) without a session;
+   with the session-login dance above, /dashboards returns 200.
+5. Pick from the Open thread above. Recommended: B (next
+   renderer template) or D (15-min Edit Widget browser-verify).
+6. Commit one task at a time, signed, with `chgrp www-data` on
+   new files. Don't `git add -A`.
