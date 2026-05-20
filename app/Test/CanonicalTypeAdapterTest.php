@@ -1019,4 +1019,114 @@ class CanonicalTypeAdapterTest extends TestCase
         $this->assertSame([0, 3], $out['distribution']);
         $this->assertSame([1, 2], $out['threat_level']);
     }
+
+    // -------- translateAnalysisFilter() unit tests --------
+    //
+    // Same shape vocabulary as distribution_filter / threat_level_filter
+    // — the three share `_normaliseIntArray` per the third-copy
+    // refactor trigger. The independent tests here exist to lock
+    // the analysis_filter wire contract (so a future change to the
+    // shared helper doesn't silently break analysis-specific
+    // expectations) AND to verify the translate() switch routes
+    // correctly by type.
+
+    public function testAnalysisFilterIntArrayPassesThrough(): void
+    {
+        // MISP's analysis enum is {0=Initial, 1=Ongoing, 2=Complete}.
+        $this->assertSame([0, 1, 2], CanonicalTypeAdapter::translateAnalysisFilter([0, 1, 2]));
+        $this->assertSame([1], CanonicalTypeAdapter::translateAnalysisFilter([1]));
+        $this->assertSame([0], CanonicalTypeAdapter::translateAnalysisFilter([0]));
+    }
+
+    public function testAnalysisFilterEmptyArrayPassesThrough(): void
+    {
+        $this->assertSame([], CanonicalTypeAdapter::translateAnalysisFilter([]));
+    }
+
+    public function testAnalysisFilterNullPassesThrough(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateAnalysisFilter(null));
+    }
+
+    public function testAnalysisFilterScalarIntWrapsToArray(): void
+    {
+        // 0 = Initial. Important edge case — Initial events are the
+        // most common (just-created), and the scalar shape mirrors
+        // how a hand-edited UserSetting may carry `'analysis' => 0`.
+        $this->assertSame([0], CanonicalTypeAdapter::translateAnalysisFilter(0));
+        $this->assertSame([1], CanonicalTypeAdapter::translateAnalysisFilter(1));
+        $this->assertSame([2], CanonicalTypeAdapter::translateAnalysisFilter(2));
+    }
+
+    public function testAnalysisFilterScalarNumericStringWrapsToArray(): void
+    {
+        $this->assertSame([0], CanonicalTypeAdapter::translateAnalysisFilter('0'));
+        $this->assertSame([2], CanonicalTypeAdapter::translateAnalysisFilter('2'));
+    }
+
+    public function testAnalysisFilterMixedArrayCoercesAndDrops(): void
+    {
+        $this->assertSame(
+            [0, 1, 2],
+            CanonicalTypeAdapter::translateAnalysisFilter([0, '1', 2.0])
+        );
+        $this->assertSame(
+            [1],
+            CanonicalTypeAdapter::translateAnalysisFilter([1, 'bad', null, []])
+        );
+        // Out-of-range preserved (3 is not in {0..2} but Cake's IN
+        // coercion / post-filter's in_array matches no rows).
+        $this->assertSame(
+            [3],
+            CanonicalTypeAdapter::translateAnalysisFilter([3])
+        );
+    }
+
+    public function testAnalysisFilterUnrecognisedShapesReturnNull(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateAnalysisFilter('not-a-number'));
+        $this->assertNull(CanonicalTypeAdapter::translateAnalysisFilter(true));
+        $this->assertNull(CanonicalTypeAdapter::translateAnalysisFilter(false));
+        $this->assertNull(CanonicalTypeAdapter::translateAnalysisFilter(new stdClass()));
+    }
+
+    public function testAnalysisFilterIsIdempotent(): void
+    {
+        $once  = CanonicalTypeAdapter::translateAnalysisFilter([0, '1', 2]);
+        $twice = CanonicalTypeAdapter::translateAnalysisFilter($once);
+        $this->assertSame($once, $twice);
+    }
+
+    public function testTranslateRoutesAnalysisFilterByType(): void
+    {
+        $widget = new stdClass();
+        $widget->schema = [
+            'analysis' => ['type' => 'analysis_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'analysis' => [0, '1', 2],
+        ]);
+        $this->assertSame([0, 1, 2], $out['analysis']);
+    }
+
+    public function testTranslateAnalysisFilterCoexistsWithThreatLevelAndTimeWindow(): void
+    {
+        // EventStreamWidget's expected post-backfill shape: declares
+        // analysis_filter alongside the existing threat_level_filter +
+        // time_window. Each translator runs independently.
+        $widget = new stdClass();
+        $widget->schema = [
+            'time_window'  => ['type' => 'time_window'],
+            'threat_level' => ['type' => 'threat_level_filter'],
+            'analysis'     => ['type' => 'analysis_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'time_window'  => 'P14D',
+            'threat_level' => [1],
+            'analysis'     => [0, 1],
+        ]);
+        $this->assertSame('14d', $out['time_window']);
+        $this->assertSame([1], $out['threat_level']);
+        $this->assertSame([0, 1], $out['analysis']);
+    }
 }

@@ -152,21 +152,30 @@ class CanonicalTypeAdapter
                     $config[$key] = self::translateDistributionFilter($config[$key]);
                     break;
                 case 'threat_level_filter':
-                    // Same wire shape as distribution_filter: int array
-                    // subset of {1..4} (1=High, 2=Medium, 3=Low,
-                    // 4=Undefined). `Event::fetchEvent` accepts the int
-                    // array directly under `threat_level_id` (Event.php
-                    // line 3868). When `analysis_filter` lands as the
-                    // third int-enum-array canonical type, this and
-                    // `translateDistributionFilter` are the right pair
-                    // to extract a shared `_normaliseIntArray` helper
-                    // from. Two copies isn't yet enough.
+                    // Same int-enum-array shape as distribution_filter
+                    // (subset of {1..4}: 1=High, 2=Medium, 3=Low,
+                    // 4=Undefined). Consumer widgets apply the filter
+                    // as a PHP post-filter — fetchEvent doesn't
+                    // natively accept `threat_level_id` (that lives in
+                    // the restSearch dispatcher). Translator delegates
+                    // to `_normaliseIntArray`.
                     $config[$key] = self::translateThreatLevelFilter($config[$key]);
                     break;
+                case 'analysis_filter':
+                    // Third int-enum-array canonical (subset of
+                    // {0, 1, 2}: 0=Initial, 1=Ongoing, 2=Complete).
+                    // Like threat_level_filter, applied as a PHP
+                    // post-filter on the fetchEvent result —
+                    // fetchEvent doesn't accept `analysis` as a
+                    // filter option. The third copy of this pattern
+                    // is what triggered the `_normaliseIntArray`
+                    // helper extraction.
+                    $config[$key] = self::translateAnalysisFilter($config[$key]);
+                    break;
                 // Phase 3 adds: org_filter, sharing_group_filter,
-                // galaxy_cluster_filter, analysis_filter,
-                // attribute_type_filter, event_id_filter. Each adds
-                // one case + one translate<Type>() method below.
+                // galaxy_cluster_filter, attribute_type_filter,
+                // event_id_filter. Each adds one case + one
+                // translate<Type>() method below.
             }
         }
         return $config;
@@ -357,65 +366,39 @@ class CanonicalTypeAdapter
     /**
      * Translate a `distribution_filter` value.
      *
-     * Accepts:
-     *   - int array `[0, 1, 2]` → unchanged (canonical happy path).
-     *   - scalar int `3` (legacy) → wrapped to `[3]`.
-     *   - scalar numeric string `"3"` → wrapped to `[3]`.
-     *   - mixed array `[0, "1", 2.0, "bad"]` → numeric entries
-     *     coerced to int; non-numeric dropped → `[0, 1, 2]`.
-     *   - empty array `[]` → unchanged (no filter).
-     *   - null → null (no filter).
-     *   - other unrecognised shapes → null (defensive — fetchEvent's
-     *     `if ($options['distribution'])` truthiness check treats
-     *     null as "no filter applied").
+     * MISP's distribution enum is `{0=Org only, 1=Community,
+     * 2=Connected, 3=All, 4=Sharing group, 5=Inherit}`. Wire shape
+     * is an int array (canonical), scalar int / numeric string
+     * (legacy or hand-edited config), or null (no filter).
      *
-     * Out-of-range distribution levels (anything outside {0..5}) are
-     * preserved on the array path — Event::fetchEvent passes the
-     * array to CakePHP's IN coercion, an unknown level simply
-     * matches no rows. Filtering here would silently mask user typos
-     * which is worse than the empty-result feedback loop.
+     * `Event::fetchEvent` accepts the int array directly under
+     * `distribution` (line 125 of the fetchEvent body) — CakePHP's
+     * IN coercion handles both scalar and array shapes. So
+     * TrendingTagsWidget's consumer can pass straight through (no
+     * post-filter step required), unlike threat_level / analysis
+     * which lack a fetchEvent option and need PHP post-filtering.
+     *
+     * Out-of-range distribution levels are preserved per the
+     * shared `_normaliseIntArray` contract — empty results from an
+     * unknown level are louder feedback than silent filtering.
      *
      * @param mixed $value
      * @return int[]|null
      */
     public static function translateDistributionFilter($value)
     {
-        if ($value === null) {
-            return null;
-        }
-        if (is_int($value)) {
-            return [$value];
-        }
-        if (is_string($value) && is_numeric($value)) {
-            return [(int)$value];
-        }
-        if (!is_array($value)) {
-            return null;
-        }
-        $out = [];
-        foreach ($value as $entry) {
-            if (is_int($entry)) {
-                $out[] = $entry;
-            } elseif (is_string($entry) && is_numeric($entry)) {
-                $out[] = (int)$entry;
-            } elseif (is_float($entry) && is_finite($entry)) {
-                $out[] = (int)$entry;
-            }
-            // Non-numeric / non-finite entries are silently dropped.
-        }
-        return $out;
+        return self::_normaliseIntArray($value);
     }
 
     /**
      * Translate a `threat_level_filter` value.
      *
-     * Accepts the same shape vocabulary as translateDistributionFilter —
-     * int array (canonical), scalar int / numeric string (legacy or
-     * hand-edited config), mixed numeric / non-numeric array (coerce
-     * + drop), empty array / null (no filter). MISP's threat_level_id
-     * enum is `{1=High, 2=Medium, 3=Low, 4=Undefined}`; out-of-range
-     * values are preserved on the array path so a typo surfaces as
-     * an empty result (loud feedback) instead of silent filtering.
+     * MISP's threat_level_id enum is `{1=High, 2=Medium, 3=Low,
+     * 4=Undefined}`. Wire shape is an int array (canonical), scalar
+     * int / numeric string (legacy or hand-edited config), or null
+     * (no filter). Out-of-range values are preserved on the array
+     * path so typos surface as empty results (loud feedback) rather
+     * than silent filtering.
      *
      * Unlike distribution_filter, `Event::fetchEvent` does NOT accept
      * `threat_level_id` as a filter option — that lives only in the
@@ -429,6 +412,58 @@ class CanonicalTypeAdapter
      * @return int[]|null
      */
     public static function translateThreatLevelFilter($value)
+    {
+        return self::_normaliseIntArray($value);
+    }
+
+    /**
+     * Translate an `analysis_filter` value.
+     *
+     * MISP's analysis enum is `{0=Initial, 1=Ongoing, 2=Complete}`.
+     * Wire shape identical to distribution_filter / threat_level_filter
+     * (int array, scalar int / numeric string, null). Like
+     * threat_level_filter, `Event::fetchEvent` doesn't natively
+     * accept `analysis` as a filter input — consumer widgets apply
+     * a PHP post-filter against the ACL-filtered result set.
+     * Post-filter is ACL-safe since it can only narrow visibility.
+     *
+     * @param mixed $value
+     * @return int[]|null
+     */
+    public static function translateAnalysisFilter($value)
+    {
+        return self::_normaliseIntArray($value);
+    }
+
+    /**
+     * Shared normaliser for int-enum-array canonicals. Extracted on
+     * the third copy (distribution_filter + threat_level_filter
+     * landed first with parallel implementations; analysis_filter
+     * forced the extraction).
+     *
+     * Accepts:
+     *   - int array `[0, 1, 2]` → unchanged (canonical happy path).
+     *   - scalar int `3` → wrapped to `[3]`.
+     *   - scalar numeric string `"3"` → wrapped to `[3]`.
+     *   - mixed array `[0, "1", 2.0, "bad"]` → numeric entries
+     *     coerced to int; non-numeric dropped → `[0, 1, 2]`.
+     *   - empty array `[]` → unchanged (no filter).
+     *   - null → null (no filter).
+     *   - other unrecognised shapes → null (defensive — consumer's
+     *     truthiness check treats null as "no filter applied").
+     *
+     * Out-of-range values are preserved on the array path — each
+     * consumer's enum has a different valid set ({0..5} for
+     * distribution, {1..4} for threat_level, {0..2} for analysis)
+     * and CakePHP's IN coercion (or the PHP post-filter's in_array)
+     * matches no rows for unknown values. Filtering here would
+     * silently mask user typos which is worse than the empty-result
+     * feedback loop.
+     *
+     * @param mixed $value
+     * @return int[]|null
+     */
+    private static function _normaliseIntArray($value)
     {
         if ($value === null) {
             return null;
