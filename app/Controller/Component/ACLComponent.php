@@ -174,8 +174,11 @@ class ACLComponent extends Component
         ],
         'dashboards' => array(
             'index' => array('*'),
+            'widgets' => array('*'),
             'updateSettings' => array('*'),
+            'updateWidgetSettings' => array('*'),
             'renderWidget' => array('*'),
+            'renderWrapper' => array('*'),
             'import' => array('*'),
             'export' => array('*'),
             'saveTemplate' => array('*'),
