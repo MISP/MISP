@@ -1239,4 +1239,126 @@ class CanonicalTypeAdapterTest extends TestCase
         $this->assertSame([0], $out['analysis']);
         $this->assertSame([3, 7], $out['sharing_group']);
     }
+
+    // -------- translateGalaxyClusterFilter() unit tests --------
+    //
+    // Galaxy_cluster_filter departs from the int-enum bare-array
+    // convention because it has TWO semantic axes — `tag_names`
+    // (the filter) and `galaxy_types` (a picker scope hint). The
+    // structured form is `{tag_names: string[], galaxy_types?:
+    // string[]}` per PRD §5.5 (modulo the bare-array discrepancy
+    // for single-axis types filed as Discovered work 2026-05-20).
+
+    public function testGalaxyClusterFilterStructuredObjectPassesThrough(): void
+    {
+        $in = [
+            'tag_names'    => ['misp-galaxy:mitre-attack-pattern="Phishing - T1566"'],
+            'galaxy_types' => ['mitre-attack-pattern'],
+        ];
+        $this->assertSame($in, CanonicalTypeAdapter::translateGalaxyClusterFilter($in));
+    }
+
+    public function testGalaxyClusterFilterMissingGalaxyTypesDefaultsToEmpty(): void
+    {
+        $out = CanonicalTypeAdapter::translateGalaxyClusterFilter([
+            'tag_names' => ['misp-galaxy:threat-actor="APT28"'],
+        ]);
+        $this->assertSame(['misp-galaxy:threat-actor="APT28"'], $out['tag_names']);
+        $this->assertSame([], $out['galaxy_types']);
+    }
+
+    public function testGalaxyClusterFilterMissingTagNamesDefaultsToEmpty(): void
+    {
+        // galaxy_types-only is structurally valid (picker scope set
+        // but no specific clusters chosen yet) — adapter shouldn't
+        // reject it. The consumer's truthiness check on tag_names
+        // treats empty as inactive.
+        $out = CanonicalTypeAdapter::translateGalaxyClusterFilter([
+            'galaxy_types' => ['mitre-tool'],
+        ]);
+        $this->assertSame([], $out['tag_names']);
+        $this->assertSame(['mitre-tool'], $out['galaxy_types']);
+    }
+
+    public function testGalaxyClusterFilterNullPassesThrough(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateGalaxyClusterFilter(null));
+    }
+
+    public function testGalaxyClusterFilterUnrecognisedShapesReturnNull(): void
+    {
+        // Bare arrays without the structured keys aren't valid
+        // galaxy_cluster_filter shape — return null so consumer
+        // treats as "no filter".
+        $this->assertNull(CanonicalTypeAdapter::translateGalaxyClusterFilter(['foo', 'bar']));
+        $this->assertNull(CanonicalTypeAdapter::translateGalaxyClusterFilter('not-array'));
+        $this->assertNull(CanonicalTypeAdapter::translateGalaxyClusterFilter(true));
+        $this->assertNull(CanonicalTypeAdapter::translateGalaxyClusterFilter(new stdClass()));
+    }
+
+    public function testGalaxyClusterFilterStringArrayDeduplicatesAndDropsNonStrings(): void
+    {
+        $out = CanonicalTypeAdapter::translateGalaxyClusterFilter([
+            'tag_names' => [
+                'misp-galaxy:threat-actor="APT28"',
+                'misp-galaxy:threat-actor="APT28"',     // dup
+                'misp-galaxy:tool="Mimikatz"',
+                42,                                       // non-string
+                '',                                       // empty string
+                null,                                     // non-string
+            ],
+            'galaxy_types' => ['threat-actor', 'threat-actor', 'tool'],
+        ]);
+        $this->assertSame(
+            ['misp-galaxy:threat-actor="APT28"', 'misp-galaxy:tool="Mimikatz"'],
+            $out['tag_names']
+        );
+        $this->assertSame(['threat-actor', 'tool'], $out['galaxy_types']);
+    }
+
+    public function testGalaxyClusterFilterScalarStringWrapsToArray(): void
+    {
+        // Hand-edited config with a single tag_name as a bare string
+        // rather than a one-element array.
+        $out = CanonicalTypeAdapter::translateGalaxyClusterFilter([
+            'tag_names' => 'misp-galaxy:threat-actor="APT28"',
+        ]);
+        $this->assertSame(['misp-galaxy:threat-actor="APT28"'], $out['tag_names']);
+    }
+
+    public function testGalaxyClusterFilterEmptyArraysPreserved(): void
+    {
+        $out = CanonicalTypeAdapter::translateGalaxyClusterFilter([
+            'tag_names'    => [],
+            'galaxy_types' => [],
+        ]);
+        $this->assertSame([], $out['tag_names']);
+        $this->assertSame([], $out['galaxy_types']);
+    }
+
+    public function testGalaxyClusterFilterIsIdempotent(): void
+    {
+        $once = CanonicalTypeAdapter::translateGalaxyClusterFilter([
+            'tag_names'    => ['misp-galaxy:threat-actor="APT28"', 42, 'misp-galaxy:tool="Mimikatz"'],
+            'galaxy_types' => ['threat-actor', 'tool'],
+        ]);
+        $twice = CanonicalTypeAdapter::translateGalaxyClusterFilter($once);
+        $this->assertSame($once, $twice);
+    }
+
+    public function testTranslateRoutesGalaxyClusterFilterByType(): void
+    {
+        $widget = new stdClass();
+        $widget->schema = [
+            'cluster' => ['type' => 'galaxy_cluster_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'cluster' => [
+                'tag_names'    => ['misp-galaxy:tool="Mimikatz"'],
+                'galaxy_types' => ['tool'],
+            ],
+        ]);
+        $this->assertSame(['misp-galaxy:tool="Mimikatz"'], $out['cluster']['tag_names']);
+        $this->assertSame(['tool'], $out['cluster']['galaxy_types']);
+    }
 }

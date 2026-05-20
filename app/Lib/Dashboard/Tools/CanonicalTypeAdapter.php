@@ -189,9 +189,27 @@ class CanonicalTypeAdapter
                     // threat_level / analysis values).
                     $config[$key] = self::translateSharingGroupFilter($config[$key]);
                     break;
-                // Phase 3 adds: org_filter, galaxy_cluster_filter,
-                // attribute_type_filter, event_id_filter. Each adds
-                // one case + one translate<Type>() method below.
+                case 'galaxy_cluster_filter':
+                    // Structured object — galaxy_cluster_filter has
+                    // two semantic axes so the bare-array convention
+                    // (distribution / threat_level / analysis / SG)
+                    // doesn't fit. Wire shape:
+                    //   { tag_names: string[],
+                    //     galaxy_types?: string[] }
+                    // tag_names is the filter (specific cluster tag
+                    // names like
+                    //   'misp-galaxy:mitre-attack-pattern="Phishing - T1566"');
+                    // galaxy_types is a picker scope hint (e.g.
+                    // ['mitre-attack-pattern']) that constrains
+                    // typeahead suggestions on the client. The
+                    // adapter normalises both — string arrays with
+                    // duplicates removed, non-string entries
+                    // dropped, missing keys default to empty arrays.
+                    $config[$key] = self::translateGalaxyClusterFilter($config[$key]);
+                    break;
+                // Phase 3 adds: org_filter, attribute_type_filter,
+                // event_id_filter. Each adds one case + one
+                // translate<Type>() method below.
             }
         }
         return $config;
@@ -478,6 +496,59 @@ class CanonicalTypeAdapter
     }
 
     /**
+     * Translate a `galaxy_cluster_filter` value.
+     *
+     * Wire shape is a structured object — galaxy_cluster_filter has
+     * two semantic axes so it doesn't fit the bare-array convention:
+     *
+     *   { tag_names:   string[],
+     *     galaxy_types?: string[] }
+     *
+     *   - `tag_names`: the actual filter — array of literal galaxy
+     *     cluster tag names (e.g. `'misp-galaxy:mitre-attack-pattern=
+     *     "Phishing - T1566"'`). Consumer widgets filter events to
+     *     those tagged with any of these.
+     *   - `galaxy_types`: a picker scope hint — array of galaxy type
+     *     keys (e.g. `['mitre-attack-pattern', 'mitre-tool']`) that
+     *     constrains the typeahead suggestions in the picker.
+     *     Optional; absent / empty = unconstrained suggestions.
+     *
+     * Normalises:
+     *   - object with both keys → both normalised to unique-string-array
+     *   - missing keys → defaulted to []
+     *   - non-array inputs → null (no filter)
+     *   - null → null (no filter)
+     *
+     * Duplicate string entries removed, non-string entries dropped.
+     * Empty `tag_names` after normalisation = no filter (the consumer's
+     * truthiness check on `tag_names` treats empty array as inactive).
+     *
+     * @param mixed $value
+     * @return array|null
+     */
+    public static function translateGalaxyClusterFilter($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (!is_array($value)) {
+            return null;
+        }
+        // Structured object check — assoc arrays look like indexed
+        // arrays in PHP. Accept any array that has tag_names or
+        // galaxy_types keys; otherwise return null.
+        $hasShape = array_key_exists('tag_names', $value)
+                 || array_key_exists('galaxy_types', $value);
+        if (!$hasShape) {
+            return null;
+        }
+        return [
+            'tag_names'    => self::_normaliseStringArray($value['tag_names'] ?? []),
+            'galaxy_types' => self::_normaliseStringArray($value['galaxy_types'] ?? []),
+        ];
+    }
+
+    /**
      * Shared normaliser for int-enum-array canonicals. Extracted on
      * the third copy (distribution_filter + threat_level_filter
      * landed first with parallel implementations; analysis_filter
@@ -529,6 +600,42 @@ class CanonicalTypeAdapter
                 $out[] = (int)$entry;
             }
             // Non-numeric / non-finite entries are silently dropped.
+        }
+        return $out;
+    }
+
+    /**
+     * Normalise a value to a unique-string array. Used by
+     * `translateGalaxyClusterFilter` for both the `tag_names` filter
+     * axis and the `galaxy_types` scope hint.
+     *
+     * Accepts:
+     *   - string array → duplicates removed, non-strings dropped.
+     *   - scalar string → wrapped to `[string]`.
+     *   - null / non-array / non-scalar → empty `[]`.
+     *
+     * Returns an indexed array (sequential int keys) so JSON
+     * serialisation of the canonical value produces a JS array,
+     * not a `{0: "x", 2: "y"}` object.
+     *
+     * @param mixed $value
+     * @return string[]
+     */
+    private static function _normaliseStringArray($value)
+    {
+        if (is_string($value)) {
+            return $value === '' ? [] : [$value];
+        }
+        if (!is_array($value)) {
+            return [];
+        }
+        $out = [];
+        $seen = [];
+        foreach ($value as $entry) {
+            if (!is_string($entry) || $entry === '') continue;
+            if (isset($seen[$entry])) continue;
+            $seen[$entry] = true;
+            $out[] = $entry;
         }
         return $out;
     }
