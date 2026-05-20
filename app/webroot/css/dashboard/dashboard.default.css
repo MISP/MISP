@@ -883,6 +883,94 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 }
 
 /* ============================================================
+ * Attack renderer — static MITRE ATT&CK heatmap (default tab only).
+ * Columns = tactics; cells = techniques stacked vertically as thin
+ * coloured bars. Wide matrices overflow horizontally — the widget
+ * is a glanceable density map, not a navigable surface.
+ * ============================================================ */
+.misp-attack {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.misp-attack-scroll {
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+.misp-attack-grid {
+  display: flex;
+  gap: var(--misp-dash-space-1);
+  align-items: flex-start;
+  min-width: 100%;
+}
+.misp-attack-col {
+  flex: 0 0 110px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  padding: var(--misp-dash-space-1);
+}
+.misp-attack-col-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--misp-dash-space-1);
+  padding: 2px var(--misp-dash-space-1);
+  border-bottom: 1px solid var(--misp-dash-border);
+  padding-bottom: var(--misp-dash-space-1);
+}
+.misp-attack-col-name {
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
+  text-transform: none;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.misp-attack-col-count {
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text-on-accent);
+  background: var(--misp-dash-accent);
+  padding: 1px 6px;
+  border-radius: var(--misp-dash-radius-sm);
+  line-height: 1.2;
+  flex: 0 0 auto;
+}
+.misp-attack-col-cells {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.misp-attack-cell {
+  display: block;
+  height: 8px;
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid transparent;
+  cursor: help;
+  transition: transform var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast);
+}
+.misp-attack-cell--hit {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+.misp-attack-cell:hover {
+  transform: scaleX(1.02);
+  box-shadow: var(--misp-dash-shadow-sm);
+}
+
+/* ============================================================
  * Chart container — ECharts mounts inside, fills the widget body.
  * Renderers under Elements/dashboard/Widgets/ emit a static
  * <div class="misp-chart"> + data-misp-chart="<kind>" attribute;
