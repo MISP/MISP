@@ -1065,6 +1065,28 @@ Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
 
+### Canonical wire shapes drift from PRD §5.5 (surfaced 2026-05-20)
+
+PRD §5.5 line 411-413 specifies the int-enum canonicals as wrapped objects:
+
+  - `distribution_filter`: `{ levels: int[] }` (subset of `0..4`)
+  - `threat_level_filter`: `{ levels: int[] }` (subset of `1..4`)
+  - `analysis_filter`:     `{ levels: int[] }` (subset of `0..2`)
+  - `sharing_group_filter`: `{ sharing_group_ids: int[] }`
+
+But the actual implementation across all four canonicals uses BARE int arrays — no wrapper key. Visible in:
+
+  - `CanonicalTypeAdapter::_normaliseIntArray` returns `int[]`, not `{<key>: int[]}`.
+  - JS pickers' `readValue()` returns `int[]`.
+  - PHPUnit tests assert bare-array shapes throughout.
+  - Saved user configs persist bare arrays (the live test instance's UserSetting:dashboard rows reflect this).
+
+The deviation was made silently during the proto-to-canonical implementation pass — the bare-array shape is materially simpler to consume (consumer widgets `array_filter($data, fn($e) => in_array($e['Event']['threat_level_id'], $allowedThreat))` directly; no `$canonical['levels']` unwrap step), and the wrapper key wasn't carrying any forward-compat dimension (an int-enum filter genuinely has one axis: the chosen levels). The PRD was the stale doc; the four-implementation precedent locks the convention.
+
+**Resolution: align PRD with implementation.** The PRD §5.5 table needs amending to show the bare-array shape for the four int-enum canonicals (`int[]` rather than `{ levels: int[] }` / `{ sharing_group_ids: int[] }`). Where the canonical has a single semantic axis, bare-array is the convention. Where it has multiple semantic axes (e.g. `tag_filter`'s include/exclude pair; `galaxy_cluster_filter`'s tag_names/galaxy_types pair) the structured form remains.
+
+Not addressed in any single Phase 3 commit because the implementation is already shipped — this is a doc-aligning task that doesn't touch code. Pick up when a PRD review pass happens. Half a day of careful prose editing.
+
 ### OrgContributionToplistWidget SQL crashes when `filter` matches zero orgs (surfaced 2026-05-19) — **fixed 2026-05-19**
 
 Pre-existing handler bug. The widget resolved the org-meta filter into a `$org_ids` list via `$this->Org->find('list', ...)`, then wrote `Event.orgc_id IN array_keys($org_ids)` unconditionally. When the filter matched zero orgs, `array_keys([])` was `[]` and the resulting `IN ()` SQL was malformed (manifested as `IN (NULL)` after CakePHP's NULL-coercion).
