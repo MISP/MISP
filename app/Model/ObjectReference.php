@@ -177,7 +177,7 @@ class ObjectReference extends AppModel
             } elseif (!empty($data[$side]) && $side == 'referenced') {
                 $referenced_id = $data[$side]['Object']['id'];
                 $referenced_type = 1;
-            } elseif (!empty($data[$side]) && $side = 'object') {
+            } elseif (!empty($data[$side]) && $side == 'object') {
                 $object_id = $data[$side]['Object']['id'];
             } else {
                 return 'Invalid ' . $side . ' uuid';

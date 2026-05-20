@@ -32,6 +32,9 @@ class SightingdbController extends AppController
                         $this->request->data['Sightingdb']['org_id']
                     );
                 }
+                if($this->theme === "Overmind"){
+                    $this->render('/Sightingdb/index');
+                }
             }
         ];
         $this->CRUD->add($params);
@@ -43,6 +46,9 @@ class SightingdbController extends AppController
             'order' => ['LOWER(Organisation.name)'],
             'fields' => ['Organisation.id', 'Organisation.name']
         ]);
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->set('orgs', $orgs);
     }
 
@@ -73,6 +79,9 @@ class SightingdbController extends AppController
             'order' => ['LOWER(Organisation.name)'],
             'fields' => ['Organisation.id', 'Organisation.name']
         ]);
+        if($this->theme === "Overmind"){
+            $this->layout = false;
+        }
         $this->set('id', $id);
         $this->set('orgs', $orgs);
         $this->render('/Sightingdb/add');
@@ -86,6 +95,22 @@ class SightingdbController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'Sightingdb',
+            'restName' => 'Sightingdbs',
+            'itemName' => 'sightingdb',
+            'view' => 'ajax/sightingdbDeleteConfirmationForm',
+            'checkModifyCallback' => function($itemId) {
+                return $this->userRole['perm_site_admin'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s sightingdb deleted.', '%s sightingdbs deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function index()
