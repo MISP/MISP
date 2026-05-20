@@ -1,89 +1,102 @@
-# Dashboard v2 — Session handoff (2026-05-20, afternoon session)
+# Dashboard v2 — Session handoff (2026-05-21)
 
-Fifth session of the dashboard rewrite. Authoritative state lives in:
+Sixth session of the dashboard rewrite. Authoritative state lives in:
 
 - `dashboard-prd.md` — spec.
-- `dashboard-progress.md` — task state. Phase 2 closed (one open
-  line — Edit Widget browser verification); Phase 3 advanced from
-  7/12 → **9/12** canonical types (`sharing_group_filter` +
-  `galaxy_cluster_filter`). Discovered work — "missing renderer
-  templates" — **closed entirely** (5 of 5 landed across the last
-  two sessions; Button + Achievements + OrgsPictures + Attack
-  this session).
+- `dashboard-progress.md` — task state. **Phase 2 fully closed.
+  Phase 3 fully closed (12/12 canonicals + all wrap-up tasks).**
 - `dashboard-design-decisions.md` — DD-01..DD-08 unchanged.
 
-This file is the bridge: ephemeral session-level context that
-doesn't fit the durable docs. Replace it as work progresses.
+This file is the bridge: ephemeral session-level context that doesn't
+fit the durable docs. Replace it as work progresses.
 
 ## TL;DR
 
-**14 signed commits this session.** Two structural milestones:
+**13 signed commits this session**, all `%G?` = `U`. Two structural
+milestones:
 
-1. **All 9 v1 render kinds now have v2 templates.** Phase 1's
-   "missing renderer templates" carryover ate the rest of itself
-   this session — Button (link tile), Achievements (two-section
-   badge list), OrgsPictures (org-logo grid with letter-chip
-   fallback), Attack (static ATT&CK heatmap). The Discovered-work
-   section that tracked this is now marked **closed**. The full
-   v2 renderer set: SimpleList, BarChart, MultiLineChart, WorldMap,
-   Index, Button, Achievements, OrgsPictures, Attack.
+1. **Phase 2 closed.** The last open line (Edit Widget flow against
+   the new preview-pane render path) was browser-verified by the
+   user. Six-step interactive walkthrough confirmed end-to-end:
+   cog → panel opens populated → preview pane renders current chart
+   → form-input edit re-renders preview within 250ms debounce →
+   live tile untouched during preview ticks → Save commits +
+   re-renders live tile + refreshes toolbar → Cancel/ESC restores.
 
-2. **Phase 3 canonical types: 7/12 → 9/12.** Two new canonicals
-   landed end-to-end: **sharing_group_filter** (int array of SG
-   IDs, async-loaded SG list via a new lightweight
-   `/dashboards/listSharingGroups` endpoint) and
-   **galaxy_cluster_filter** (structured `{tag_names: [],
-   galaxy_types?: []}` wire shape with typeahead picker over the
-   55k-cluster catalogue via two new endpoints —
-   `/dashboards/listGalaxyTypes` + `/dashboards/searchGalaxy-
-   Clusters`). EventStreamWidget now declares FOUR canonical
-   filters (threat_level + analysis + sharing_group +
-   galaxy_cluster) — the most-populated canonical-type schema in
-   the v2 catalogue.
+2. **Phase 3 closed at 12/12.** All canonical types from PRD §5.5
+   landed end-to-end. The catalogue:
+   - **Toolbar-eligible (10):** time_window, date_range, tag_filter,
+     org_meta_filter, distribution_filter, threat_level_filter,
+     analysis_filter, sharing_group_filter, galaxy_cluster_filter,
+     **org_filter** (10th, this session).
+   - **Widget-only (2):** **attribute_type_filter** (11th, this
+     session — paired with TrendingAttributesWidget consumer),
+     **event_id_filter** (12th, this session — forward-compat
+     scaffold; no consumer today, picker deferred).
 
-3. **F5.6.4 multi-declarer demo wired.** threat_level + analysis
-   both got 2nd consumers — OrgEventsWidget now declares both
-   filters via native SQL on its `fetchSimpleEventIds` path
-   (cleaner than EventStreamWidget's fetchEvent-bound
-   post-filter pattern; the handoff's "post-filter pattern
-   transfers directly" suggestion was wrong — OrgEventsWidget's
-   query shape admits native filters at SQL level, no overshoot
-   heuristic needed). With both widgets on a board, the toolbar
-   chip computes consensus / "(mixed)" across two declarers.
+   Plus all six Phase 3 wrap-up lines ticked: F5.6.4 new-widget
+   toolbar inheritance, F5.6.5 per-control Clear action,
+   per-canonical-type validators, toolbar mode-independence,
+   canonical-only `$schema` sweep across remaining widgets,
+   cache-key sanity check.
 
-**PHPUnit count: 90 → 110 (+20).** Each new canonical landed with
-10 PHPUnit cases mirroring the int-enum trio's block; both new
-helper functions (`_normaliseStringArray`) get coverage via the
-galaxy_cluster_filter block.
+**Notable design decisions taken this session** (in dialogue with
+the user):
 
-**One new Discovered-work entry filed.** PRD §5.5 specifies the
-int-enum canonicals as wrapped objects (`{levels: int[]}`,
-`{sharing_group_ids: int[]}`) but all four implementations use
-bare int arrays. The implementation precedent locks the
-convention; PRD is the stale doc. Resolution: doc-aligning task,
-not a code change. See Discovered work below.
+- **`org_filter` wire shape refined from PRD §5.5** in three places:
+  - `match_via` replaces PRD's `role` to avoid collision with MISP's
+    `User.role_id` concept.
+  - `orgc` / `sharing_group` replace PRD's `creator` / `distribution`
+    to match MISP DB field naming (`Event.orgc_id`, `Event.sharing_group_id`).
+  - Additive per-entry `negate?: true` preserves the legacy
+    `!`-prefix exclusion primitive used across MISP.
+  Final shape: `{ orgs: [{uuid?, id?, name?, negate?}],
+  match_via: "orgc"|"sharing_group"|"any" }`. Default for the
+  EventStreamWidget migration: `match_via: "orgc"` (preserves the
+  legacy slot's `Event.orgc_id` semantic).
+
+- **`event_id_filter` picker explicitly deferred.** No widget
+  consumes the canonical today; designing UX without a consumer's
+  needs is premature. Adapter + validator + tests ship as
+  forward-compat scaffold; the picker can be designed against an
+  actual consumer's UX requirements when one surfaces (likely in
+  Phase 5 — Drill-down + refresh scheduler).
+
+**PHPUnit count: 110 → 152 (+42).** Validators batch (+17),
+org_filter (+11), attribute_type_filter + event_id_filter (+14).
+All 152 pass in ~100ms.
+
+**One small ACL gap closed in passing** — `widgets`,
+`renderWrapper`, `updateWidgetSettings` actions had no entries in
+`ACL_LIST['dashboards']` (worked for admin via `perm_site_admin`
+bypass, would 403 for non-admin). Backfilled to `array('*')` —
+counter-tested against the existing `findMissingFunctionNames`
+audit (zero missing functions codebase-wide after the edit).
 
 **User-direction carried forward unchanged:** *"modern and
 pleasant"*, *"don't worry too much about compatibility"*, *"ACL
 must match the surface it shadows"*, *"three similar lines is
 better than premature abstraction; the third copy forces the
-refactor"*.
+refactor"*, **"prefer MISP-jargon naming (orgc, sharing_group)
+over PRD-generic terms (creator, distribution) when the
+authoritative DB field naming gives us a clear lead"**.
 
-**Next session — pick from** (see Open thread):
+**Phase 3 fully done. Next session — pick from** (see Open thread):
 
-1. Phase 3 final canonical type — `org_filter` is the only
-   remaining toolbar-eligible canonical, but it has no consumers
-   today (no widget uses the PRD-canonical org-identity shape).
-   `attribute_type_filter` and `event_id_filter` are widget-only
-   (not toolbar-eligible) — lower priority.
-2. Browser-verify Edit Widget against the preview-pane render
-   path (closes the last open Phase 2 line — ~15 min).
-3. Phase 4 — Template gallery polish (greenfield multi-session).
-4. Phase 5 — Drill-down + refresh scheduler.
-5. ACL backfill: file as Discovered work or backfill the missing
-   ACL entries for `widgets` / `renderWrapper` /
-   `updateWidgetSettings` (admin works; non-admin would 403).
-6. PRD §5.5 doc alignment (~half day prose editing).
+1. **Phase 4** — Template gallery polish (greenfield multi-session).
+2. **Phase 5** — Drill-down + refresh scheduler (also greenfield
+   multi-session). A natural consumer for `event_id_filter` may
+   surface here.
+3. **PRD §5.5 doc alignment** — amend the PRD to reflect this
+   session's `org_filter` naming refinements (match_via, orgc,
+   sharing_group, negate) + the bare-array convention for
+   single-axis int-enum canonicals (carried from last session).
+4. **TrendingAttributesWidget PHP 8.x `Attribute` model crash** —
+   pre-existing carryover; blocks end-to-end smoke of the new
+   `attribute_type_filter` consumer. Single-class-rename fix.
+5. **Other parked work** — time_window dropdown UX, midnight.css
+   drop, EventEvolutionLine end_date, save_template action-name
+   mismatch.
 
 ## Where we are
 
@@ -93,53 +106,39 @@ Phase 0.4 — Sign-off                                              [x]
 Phase 1 — Frame (in-place replacement)                            [x]
   All 9 v1 render kinds now have v2 .ctp templates.
 
-Phase 2 — Authoring UX                                            [/] ~26/26
-  All ticked except:
-  [ ] Edit Widget flow (existing per-widget ⚙ path covers most;
-      task line stays open until verified against the new
-      preview-pane render path interactively)
+Phase 2 — Authoring UX                                            [x] CLOSED
+  All 26 lines ticked, including the previously-open Edit Widget
+  flow (browser-verified this session).
 
-Phase 3 — Canonical-type toolbar                                  [/] 9/12 types
-  [x] CanonicalTypeAdapter helper + 110 PHPUnit tests (was 90)
+Phase 3 — Canonical-type toolbar                                  [x] CLOSED
+  [x] CanonicalTypeAdapter helper + 152 PHPUnit tests (was 110)
   [x] Wire CanonicalTypeAdapter into renderWidget
-  [/] Canonical types: 9/12
+  [x] Canonical types: 12/12
         [x] time_window
         [x] date_range
         [x] tag_filter
         [x] org_meta_filter
         [x] distribution_filter
-        [x] threat_level_filter (2 consumers: EventStream + OrgEvents)
-        [x] analysis_filter     (2 consumers: EventStream + OrgEvents)
-        [x] sharing_group_filter (1 consumer: EventStream)        — NEW
-        [x] galaxy_cluster_filter (1 consumer: EventStream)       — NEW
-        [ ] org_filter (no consumers today — needs pairing)
-        [ ] attribute_type_filter (widget-only)
-        [ ] event_id_filter (widget-only)
+        [x] threat_level_filter (2 consumers)
+        [x] analysis_filter     (2 consumers)
+        [x] sharing_group_filter
+        [x] galaxy_cluster_filter
+        [x] org_filter           — NEW (10/12)
+        [x] attribute_type_filter — NEW (11/12, widget-only)
+        [x] event_id_filter       — NEW (12/12, forward-compat scaffold)
   [x] Toolbar control logic (schema-driven declarer scan)
   [x] Toolbar bulk-edit write path (readValue dispatch)
-  [/] Toolbar UI: time_window + tag_filter + org_meta_filter +
-      distribution_filter + threat_level_filter + analysis_filter
-      + sharing_group_filter + galaxy_cluster_filter shipped
-  [ ] Per-canonical-type validators
-  [ ] New-widget toolbar inheritance + Clear action
-      — F5.6.4 inheritance landed in placement orchestrator;
-        Clear action remains
-  [ ] Canonical-only $schema sweep across remaining ~9 widgets
-  [ ] Cache-key sanity check
+  [x] Toolbar UI: 10 toolbar-eligible canonicals shipped
+  [x] Per-canonical-type validators
+  [x] F5.6.4 New-widget toolbar inheritance
+  [x] F5.6.5 Per-control Clear action
+  [x] Toolbar pulls work in any mode (mode-independent)
+  [x] Per-canonical-type form field elements (11/12 with pickers;
+      event_id_filter picker deferred until a consumer surfaces)
+  [x] Canonical-only $schema sweep across remaining widgets
+      (35 of 38 widget classes declare $schema; 3 inherit)
+  [x] Cache-key sanity check (moot — no widget render cache in v2)
 ```
-
-**Discovered work — missing renderer templates: CLOSED.** All 5
-landed (Index in the prior session; Button + Achievements +
-OrgsPictures + Attack this session). The 8 widgets that 500'd
-before the renderer landings now all render cleanly:
-ButtonWidget, AchievementsWidget, three OrgsContributor*
-widgets, AttackWidget, plus the three Index consumers
-(EventStreamWidget, NewUsersWidget, NewOrgsWidget) that landed
-in the prior session.
-
-Working tree clean for v2 work after this session's 14 commits.
-Only the usual unrelated noise (submodule drift, scratch files
-in repo root, untracked side-projects).
 
 ## Live test instance
 
@@ -152,19 +151,13 @@ in repo root, untracked side-projects).
 
 **Catalogue scale** (relevant for picker UX considerations):
 
+- Organisations (test instance): **540 total** (211 local) — typeahead
+  required because production MISPs can carry 1000s of orgs.
 - Sharing groups admin can see: **156**
-- Galaxies enabled: **121** (sigma-rules: 6961 clusters,
-  ukhsa-culture-collections: 6667, references: 6181, firearms:
-  5953, malpedia: 3718, threat-actor: 1840,
-  mitre-attack-pattern: 1296)
-- Galaxy clusters (non-deleted): **55,036**
-- Events: ~6800, of which ~10 carry `sharing_group_id > 0`
-  (distribution=4); the rest are distribution=0/1.
+- Galaxies enabled: **121**; galaxy clusters (non-deleted): **55,036**
+- Events: ~6800
 
-**Saved-layout state at session end:** admin still has the
-4-widget layout unchanged (this session didn't touch admin's
-saved dashboard, only adapter / renderer / picker
-infrastructure):
+**Saved-layout state at session end:** admin has 5 widgets:
 
 - `w_1` MispStatusWidget at (0,0) 4×4
 - `w_2` TrendingTagsWidget at (4,0) 5×4
@@ -173,15 +166,12 @@ infrastructure):
 - `w_3` OrganisationMapWidget at (9,0) 3×4
 - `w_4` OrgContributionToplistWidget at (0,4) 12×4
   — config: `time_window=P30D, threshold=15`
+- `w_5` EventStreamWidget (placed by admin during prior session for
+  canonical testing) — config: `threat_level=[3,4], analysis=[0,1]`
 
-To exercise the new canonicals end-to-end via the UI, add an
-EventStreamWidget instance via the Add Widget gallery — its
-schema declares FOUR canonicals (threat_level + analysis +
-sharing_group + galaxy_cluster), so the toolbar will surface
-four chips and the configure form's typed-fields tier will
-show four pickers (the int-enum toggles for threat_level +
-analysis, the SG checkbox list, the galaxy-type + typeahead
-combination for clusters).
+EventStreamWidget now declares **FIVE canonical filters** (threat_level
++ analysis + sharing_group + galaxy_cluster + orgs) — the most-
+populated canonical-type schema in the v2 catalogue.
 
 Force test paths (unchanged from prior session):
 ```bash
@@ -195,412 +185,357 @@ mysql -u misp -pPassword1234 misp -e \
    AND setting='ui_theme';"
 ```
 
-Session-login dance + wrapper-render smoke recipes unchanged
-from prior sessions — see [[reference-misp-login-dance]] and the
-prior handoff's "Wrapper render smoke" block.
+Session-login dance + wrapper-render smoke recipes unchanged from
+prior sessions — see [[reference-misp-login-dance]] and the prior
+handoff's "Wrapper render smoke" block. Session cookie persisted
+at `/tmp/cj.txt` from prior session is still valid.
 
 Smoke commands for the new canonicals (admin user, session login
 already established at /tmp/cj.txt):
+
 ```bash
-# sharing_group_filter (single SG; bump limit to surface SG events)
+# org_filter — three match_via modes
+# (1) legacy comma string (adapter wraps to canonical with match_via=orgc)
 curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
   --data-urlencode 'widget=EventStreamWidget' \
-  --data-urlencode 'config={"limit":500,"fields":["id"],"sharing_group":[45]}' \
-  http://localhost:5007/dashboards/renderWidget/w_test
+  --data-urlencode 'config={"limit":500,"orgs":"CIRCL"}' \
+  -H "Accept: application/json" \
+  http://localhost:5007/dashboards/renderWidget/w_test/exportjson:1
 
-# galaxy_cluster_filter (filter by cluster tag_name)
+# (2) canonical orgc match
 curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
   --data-urlencode 'widget=EventStreamWidget' \
-  --data-urlencode 'config={"limit":500,"fields":["id"],"galaxy_cluster":{"tag_names":["misp-galaxy:ransomware=\"Locky\""]}}' \
-  http://localhost:5007/dashboards/renderWidget/w_test
+  --data-urlencode 'config={"limit":500,"orgs":{"orgs":[{"name":"CIRCL"}],"match_via":"orgc"}}' \
+  -H "Accept: application/json" \
+  http://localhost:5007/dashboards/renderWidget/w_test/exportjson:1
 
-# New endpoints (raw JSON inspection)
+# (3) canonical with negate
+curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
+  --data-urlencode 'widget=EventStreamWidget' \
+  --data-urlencode 'config={"limit":10,"orgs":{"orgs":[{"name":"CIRCL","negate":true}],"match_via":"orgc"}}' \
+  -H "Accept: application/json" \
+  http://localhost:5007/dashboards/renderWidget/w_test/exportjson:1
+
+# (4) canonical sharing_group match
+curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
+  --data-urlencode 'widget=EventStreamWidget' \
+  --data-urlencode 'config={"limit":500,"orgs":{"orgs":[{"name":"CIRCL"}],"match_via":"sharing_group"}}' \
+  -H "Accept: application/json" \
+  http://localhost:5007/dashboards/renderWidget/w_test/exportjson:1
+
+# attribute_type_filter (canonical adapter expansion — TrendingAttributesWidget
+# render itself crashes on the PHP 8 Attribute model carryover, but the
+# adapter expansion is verifiable via config echo)
+curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
+  --data-urlencode 'widget=APIActivityWidget' \
+  --data-urlencode 'config={"date_range":{"from":"2026-01-01","to":"2026-03-01"},"limit":5}' \
+  -H "Accept: application/json" \
+  http://localhost:5007/dashboards/renderWidget/w_test/exportjson:1
+# → echoes config with date_range AND legacy start_date/end_date.
+
+# org_filter picker endpoint (typeahead)
 curl -s -b /tmp/cj.txt -H "Accept: application/json" \
-  http://localhost:5007/dashboards/listSharingGroups.json
-curl -s -b /tmp/cj.txt -H "Accept: application/json" \
-  http://localhost:5007/dashboards/listGalaxyTypes.json
-curl -s -b /tmp/cj.txt -H "Accept: application/json" \
-  'http://localhost:5007/dashboards/searchGalaxyClusters.json?galaxy_type=mitre-attack-pattern&q=phishing'
+  'http://localhost:5007/dashboards/searchOrganisations.json?q=CIRCL'
 
-# Achievements renderer
+# updateWidgetSettings validator smoke (should 400 with structured error)
 curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
-  --data-urlencode 'widget=AchievementsWidget' \
-  --data-urlencode 'config={"past_days":180}' \
-  http://localhost:5007/dashboards/renderWidget/w_test
-
-# OrgsPictures renderer
-curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
-  --data-urlencode 'widget=OrgsContributorLastMonthWidget' \
-  --data-urlencode 'config={"timeframe":90}' \
-  http://localhost:5007/dashboards/renderWidget/w_test
-
-# Attack heatmap renderer
-curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
-  --data-urlencode 'widget=AttackWidget' \
-  --data-urlencode 'config={"filters":{"attackGalaxy":"mitre-attack-pattern"}}' \
-  http://localhost:5007/dashboards/renderWidget/w_test
-
-# Button renderer (with XSS-safe URL allowlist)
-curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
-  --data-urlencode 'widget=ButtonWidget' \
-  --data-urlencode 'config={"url":"/events/index","text":"Events"}' \
-  http://localhost:5007/dashboards/renderWidget/w_test
+  --data-urlencode 'patches=[{"instance_id":"w_5","config":{"threat_level":"garbage"}}]' \
+  http://localhost:5007/dashboards/updateWidgetSettings
+# → 400 with: Canonical-type validation failed: {"w_5":{"threat_level":
+#   "int-array canonical must be int, numeric string, or array of those."}}
 ```
 
 ## What this session committed (in order)
 
 ```
-91d4a0671  new: Phase 1 carryover — Button widget renderer template
-                Anchor-styled-as-button (no nested <button> inside
-                <a>; v1's pattern was incorrect on both counts).
-                URL safety reuses SimpleList/Index
-                _isSafeDashboardUrl contract — protocol-relative
-                `//host`, `javascript:`, and off-host absolutes
-                degrade to inert misp-button--invalid tile. Empty
-                config → "(Invalid URL)". 10 smoke configs verified.
-                v1's known concatenation bug (`htmlspecialchars(
-                $betterUrl . $url)`) not reproduced. Glyph already
-                shipped from prior session.
+c28935740  fix: ACL backfill for widgets / renderWrapper /
+                updateWidgetSettings
+                Three DashboardsController actions lacked ACL_LIST
+                entries. perm_site_admin bypass made them work for
+                admin; non-admin would 403. Backfilled to '*' alongside
+                their siblings. Counter-tested via the existing
+                findMissingFunctionNames audit — zero missing functions
+                codebase-wide after the edit.
 
-39cbecd01  new: Phase 3 — threat_level_filter 2nd consumer:
-                OrgEventsWidget
-                Deviation from EventStreamWidget's post-filter
-                pattern: OrgEventsWidget uses fetchSimpleEventIds
-                which takes a raw conditions array, so
-                Event.threat_level_id applies as a native SQL IN
-                clause — no PHP post-filter, no pre-fetch overshoot
-                heuristic. Cleaner than the fetchEvent-bound
-                consumer. handler()'s $coerceLevels closure
-                (defensive against REST clients bypassing the
-                adapter) + org_events_count() gains
-                $threatLevels = [] parameter. 6 smoke configs.
+38728bd32  chg: tick Edit Widget flow against new preview-pane
+                render path
+                Phase 2's last open line. Browser-verified by the user
+                end-to-end (cog → panel populated → preview pane
+                refreshes on form edit → Save commits live tile +
+                refreshes toolbar → Cancel restores). No code change —
+                wiring was already in place from the live-preview task.
+                Phase 2 closes.
 
-46b8aa400  new: Phase 3 — analysis_filter 2nd consumer:
-                OrgEventsWidget
-                Same native-SQL integration as threat_level.
-                $coerceLevels closure shared (already extracted
-                in the prior commit). org_events_count() gains
-                $analysisStages = []. handler() uses
-                `isset(...) && !== ''` for the 0=Initial edge
-                case. 6 smoke configs incl. scalar analysis=0
-                that confirms !empty() trap avoided.
+e9576deea  chg: tick PRD F5.6.4 new-widget toolbar inheritance
+                Already implemented in board.module.mjs::
+                _applyToolbarInheritance via the placement orchestrator
+                (commit from prior session). Tracker tick + Done note.
 
-ee3bf1b13  new: Phase 1 carryover — Achievements widget renderer
-                template
-                Two-section badges list (unlocked + locked) — 48×48
-                icon + title + (locked-only) "Read more" external
-                link. Image src + help-link allowlists (http(s) or
-                same-host /path). target="_blank" paired with
-                rel="noopener noreferrer" (v1 oversight not
-                reproduced). Companion CSS block. 3 smoke configs.
+ce33b27b4  chg: tick toolbar mode-independence
+                Audit-only tick. toolbar.module.mjs has zero
+                data-misp-board-mode references; commitBulk routes to
+                _scheduleWidgetSave (per-widget POST) not _stageOrSave
+                (layout-staging). Toolbar pulls commit regardless of
+                view/edit mode — confirmed structurally + by the saved
+                EventStreamWidget config (threat_level / analysis set
+                via toolbar in view mode).
 
-9004f33af  new: Phase 1 carryover — OrgsPictures widget renderer
-                template
-                CSS-grid of 64×64 cells, each linking to
-                /organisations/view/<id>. Logo resolution mirrors
-                OrgImgHelper::findOrgImage (id → name → uuid,
-                .png/.svg in app/files/img/orgs/) but inline
-                file_exists — no helper dependency, no base64
-                inlining (~200KB+ saved per render for ~20 orgs).
-                Cells with a logo: <img src="/organisations/
-                getOrgLogo/<id>">. Cells without: letter-chip
-                fallback (accent-muted square + first UTF-8 char).
-                Visually-hidden screen-reader label.
-                3 consumer widgets unlocked: OrgsContributorLastMonth,
-                OrgsUsingMitre, OrgsUsingObjects.
+297e9d36c  chg: tick cache-key sanity check (moot)
+                No widget render cache exists in v2. The task's premise
+                (existing per-widget Redis cache key includes a config
+                hash) was inherited from v1 expectations that don't
+                hold. Document the no-op rationale; recommend
+                md5(json_encode(CanonicalTypeAdapter::translate(...))) as
+                the key if a render cache lands in a future phase.
 
-01feda2b0  new: Phase 1 carryover — Attack widget renderer
-                template (closes missing-renderers section)
-                Static ATT&CK heatmap — default tab only, columns
-                = MITRE tactics, cells = techniques stacked
-                vertically as 8px-tall coloured bars (precomputed
-                colours[tag_name] background; #rgb/#rrggbb regex-
-                validated for injection-safety). Tactic header:
-                ucwords name + accent-coloured hit-count badge.
-                removeTrailing-stripped names in tooltips
-                (`"Exploit Public-Facing Application - T1190"` →
-                `"Exploit Public-Facing Application"`). Why not
-                delegate to view_galaxy_matrix.ctp: v1's 282-line
-                element brings BS-classed markup + script tail
-                that collides on multi-widget pages; v2 surface
-                trades interactivity for clip-safety + multi-
-                instance compatibility. Discovered-work section
-                "Missing renderer templates" CLOSED.
+cbc922dd7  new: Phase 3 — Clear action on toolbar canonical popovers
+                (F5.6.5)
+                Two files. toolbar.module.mjs gains commitClear +
+                conditional "Clear from N widgets" button in the
+                popover footer. setCount counts declarers with the
+                schema slot currently SET (skips already-absent
+                declarers); button is omitted when zero. commitClear
+                walks declarers, deletes cfg[schemaKey], routes through
+                the existing _scheduleWidgetSave per-widget POST path.
+                CSS: .misp-toolbar-popover-clear styled with the
+                warning token + margin-right: auto (anchors Clear at
+                the left of the footer, visually distinct from
+                Cancel/Apply).
 
-7564fe1c5  new: Phase 3 — sharing_group_filter adapter + tests
-                8th canonical. Wire shape is an int array of
-                SharingGroup.id values — same _normaliseIntArray
-                contract as the int-enum trio. Unlike them, the
-                valid set is NOT a fixed enum (depends on user's
-                role + SG membership). Adapter doesn't validate
-                against the user's accessible set; ACL enforcement
-                lives in the consumer's query path (unauthorised
-                IDs match no rows). 10 PHPUnit tests; 100/100 pass
-                (was 90/90).
+765bf6645  new: Phase 3 — per-canonical-type validators
+                Three files. CanonicalTypeAdapter::validate() walks
+                the schema like translate() but returns null on success
+                or {<schemaKey>: <error message>} on failure. Per-type
+                validators (validateTimeWindow / validateDateRange /
+                validateTagFilter / validateOrgMetaFilter /
+                validateIntArrayCanonical / validateGalaxyClusterFilter)
+                accept BOTH canonical and legacy shapes (so layout-drag
+                re-POSTs of un-edited legacy configs pass), but reject
+                shapes neither supports (object where scalar expected,
+                etc.). Pure shape validation — no per-enum value-range
+                checks (those belong in the picker). Wired into
+                updateWidgetSettings only — updateSettings (whole-blob
+                layout save) deliberately skipped per DD-05 ("layout-
+                only saves don't change canonical-typed values").
+                Two-pass design: validate all patches → apply all
+                patches. 400 BadRequestException with JSON-encoded
+                error map. +17 PHPUnit tests; 127/127 pass.
 
-b10d23fa0  new: Phase 3 — sharing_group_filter picker + endpoint
-                + registries
-                New DashboardsController::listSharingGroups action
-                returns [{id, name}] via
-                SharingGroup::fetchAllAuthorised($user, 'name') —
-                ACL delegated to the model. Lightweight: 20x
-                smaller than /sharing_groups/index.json for the
-                picker's purpose (~50 bytes per entry vs ~1KB).
-                ACL entry 'listSharingGroups' => array('*').
-                New canonical/sharing_group_filter.mjs (~250 lines)
-                — async-fetch promise cache, search input filters
-                a scrollable checkbox list of all accessible SGs,
-                selected entries stay visible regardless of filter.
-                CSS block in dashboard.default.css. Registries
-                grow one entry each (configure + toolbar).
-                Discovered-work noted but not addressed: widgets/
-                renderWrapper/updateWidgetSettings lack ACL entries
-                (work for admin via perm_site_admin bypass; 403
-                for non-admins).
+f6a5986e0  new: Phase 3 — org_filter adapter + validator + tests
+                (10th canonical)
+                Wire shape refines PRD §5.5 with three documented
+                renames + one additive extension:
+                  - match_via (was: role) — avoids User.role_id
+                    collision.
+                  - orgc / sharing_group (was: creator / distribution)
+                    — matches MISP DB field naming.
+                  - per-entry negate?: true — preserves legacy
+                    !-prefix MISP primitive.
+                translateOrgFilter accepts canonical shape +
+                legacy EventStreamWidget comma-string + plain string
+                array (wrapped to match_via="orgc"). Defensive:
+                entries without identity are dropped; invalid
+                match_via clamps to "any". Idempotent. +11 PHPUnit
+                tests; 138/138 pass.
 
-ef5de1641  new: Phase 3 — sharing_group_filter consumer:
-                EventStreamWidget + tracker tick
-                handler() extracts $allowedSg via the existing
-                $coerceLevels closure; $hasPostFilter now ORs
-                three filters; SG post-filter checks
-                Event.sharing_group_id IN (...). The IN check
-                naturally excludes events with distribution !=4
-                (null / 0 sharing_group_id) — right semantic.
-                6 smoke configs verified — incl. limit=500 to
-                cross the overshoot threshold (most recent SG
-                event id=3823, top 200 are id≥6587 distribution=0/1).
-                Same overshoot trade-off as threat_level/analysis.
-                Phase 3 canonical types: 7/12 → 8/12.
-
-fd38b95ad  chg: file Discovered-work for PRD §5.5 vs implementation
-                shape drift
-                PRD §5.5 specifies int-enum canonicals as wrapped
-                objects ({levels: int[]} or {sharing_group_ids:
-                int[]}); all four implementations use bare int
-                arrays. Implementation precedent locks the
-                convention; PRD is the stale doc. Resolution:
-                doc-aligning task. Filed as Discovered work, not
-                a code change.
-
-1d99ebcb9  new: Phase 3 — galaxy_cluster_filter adapter + tests
-                9th canonical. Two-axis structured wire shape —
-                doesn't fit the bare-array convention because
-                galaxy_cluster_filter has two semantic dimensions:
-                  { tag_names: string[],     // actual filter
-                    galaxy_types?: string[] } // picker scope hint
-                New _normaliseStringArray private helper (parallel
-                to _normaliseIntArray). Bare arrays without the
-                structured keys → null (defensive). 10 PHPUnit
-                tests; 110/110 pass.
-
-8c0bd7782  new: Phase 3 — galaxy_cluster_filter server endpoints
-                Two new DashboardsController actions for the
-                typeahead picker:
-                - listGalaxyTypes — [{type, name, description,
-                  cluster_count}] sorted by cluster_count DESC.
-                  119 enabled galaxy types on the test instance.
-                - searchGalaxyClusters — query params:
-                  galaxy_type (required), q (optional substring).
-                  Returns up to 50 matching clusters. q stripped
-                  of LIKE wildcards (%, _) before insertion.
-                ACL entries 'listGalaxyTypes' / 'searchGalaxyClusters'.
-                Why typeahead: 55k clusters across 121 galaxies —
-                returning all clusters for a popular type is
-                ~150-800KB; substring search caps at ~5KB typical.
-
-6319fe309  new: Phase 3 — galaxy_cluster_filter picker + registries
+db98bf810  new: Phase 3 — org_filter picker + endpoint + registries
                 + CSS
-                New canonical/galaxy_cluster_filter.mjs (~330 lines)
-                — galaxy-type dropdown + debounced (250ms) typeahead
-                search input + clickable suggestion list + removable
-                chip list. Chips persist across galaxy-type changes;
-                tag_names is the source of truth (DOM chip list).
-                galaxy_types axis tracks the UNION of every type
-                the user has scoped to during the session. Standard
-                surface (KEY/LABEL/equal/displayLabel/buildField/
-                readValue). Companion CSS — dropdown + search row,
-                suggestion list with hover/selected accent states,
-                chip pills with truncating label + × button.
-                Registries grow one entry each (configure + toolbar).
+                New canonical/org_filter.mjs (~315 lines) — typeahead
+                picker with match_via dropdown, debounced 250ms search,
+                suggestion list, chip list. Chip click toggles negate
+                (accent → danger token); chip × removes; chip identity
+                stored as data-uuid/data-id/data-name for round-trip
+                readback. New DashboardsController::searchOrganisations
+                endpoint (q substring on Organisation.name, limit 50,
+                ORDER BY name ASC; LIKE-wildcard scrub via str_replace).
+                ACL entry 'searchOrganisations' => array('*').
+                Why typeahead vs flat list: 540 orgs on this instance,
+                production scales much higher; flat list would be
+                unusable past a few hundred entries.
 
-b002c0690  new: Phase 3 — galaxy_cluster_filter consumer:
-                EventStreamWidget + tracker tick
-                EventStreamWidget now declares FOUR canonical
-                filters (threat_level + analysis + sharing_group +
-                galaxy_cluster). handler() extracts $allowedGcTags
-                from options['galaxy_cluster']['tag_names']
-                (skips if absent/empty); $hasPostFilter ORs four
-                filters; new array_filter checks each event's
-                EventTag[i].Tag.name against the allowedGcTags
-                set (array_flip'd for O(1) lookup). galaxy_types
-                axis preserved on the wire for round-trip but NOT
-                applied as a query filter — selecting a galaxy
-                type means "narrow my picker", not "match all
-                events of this type". 7 smoke configs incl.
-                limit=500 to surface non-recent events. Phase 3
-                canonical types: 8/12 → 9/12.
+7b38380f6  new: Phase 3 — org_filter consumer: EventStreamWidget +
+                tracker tick (10/12)
+                $schema['orgs'] => {type: 'org_filter'} added.
+                handler() removes orgs from the fetchEvent pass-through
+                (adapter has translated to the structured shape,
+                fetchEvent doesn't accept it natively); applied as a
+                PHP post-filter alongside threat_level / analysis /
+                sharing_group / galaxy_cluster. Closure walks each
+                event's Orgc + SharingGroup.SharingGroupOrg.Organisation
+                identity (uuid/id/name) and applies include/exclude
+                logic based on match_via (orgc / sharing_group / any).
+                Exclusion wins; non-empty includes require at least one
+                match; includes-only matches all non-excluded events
+                (legacy !OrgName-only semantic preserved). EventStream-
+                Widget now declares FIVE canonical filters.
+                Smoke: 5 configs verified across legacy + canonical +
+                negate + each match_via mode.
+
+c29c07835  new: Phase 3 — attribute_type_filter + event_id_filter
+                adapters + validators + tests (11th + 12th canonicals)
+                Both widget-only canonicals from PRD §5.5.
+                attribute_type_filter — { types: string[],
+                categories?: string[] } — 1-to-N expansion to legacy
+                type + category keys (mirrors date_range / tag_filter
+                pattern; legacy configs survive unchanged).
+                event_id_filter — { event_ids: int[] | "current" } —
+                pass-through normalisation only. No consumer today;
+                ships as forward-compat scaffold so a future Phase 5
+                widget can wire it without further adapter changes.
+                +14 PHPUnit tests; 152/152 pass.
+
+634aef398  new: Phase 3 — attribute_type_filter picker +
+                TrendingAttributesWidget consumer + tracker tick
+                (catalogue 12/12 complete)
+                New canonical/attribute_type_filter.mjs (~120 lines) —
+                two chip-input rows (Types + Categories) mirroring
+                tag_filter's pattern. No toolbar registry entry
+                (widget-only). CSS: existing .misp-tag-filter-row /
+                .misp-org-meta-row grid rule extends to
+                .misp-attribute-filter-row. TrendingAttributesWidget
+                gains $schema['attribute_filter'] declaration. The
+                pre-existing PHP 8.x Attribute model crash blocks
+                end-to-end render smoke (carried over from prior
+                sessions); adapter expansion verified in isolation
+                via the schema-routed PHPUnit test. Catalogue 12/12
+                complete — Phase 3's "Implement remaining canonical
+                types" line ticks [x].
+
+516f62d35  new: Phase 3 — canonical-only $schema sweep across
+                remaining 20 widgets (PRD §5.7 / DD-06 Option C)
+                Catalogue-wide closure. 20 widgets touched.
+                - 3 widgets gained canonical-typed declarations
+                  (APIActivityWidget / LoginsWidget / NewUsersWidget,
+                  all carrying the user-stats filter + start_date +
+                  end_date pattern → org_meta_filter + date_range).
+                - 17 widgets got explicit empty $schema = array()
+                  markers ("audited; no canonical-typed parameters
+                  needed" — same pattern as Phase 2's MispStatus /
+                  Attack markers).
+                - 3 children of OrgsContributorsGeneric (Last-month /
+                  UsingMitre / UsingObjects) inherit $schema
+                  transparently via PHP property resolution.
+                Net: 35 of 38 widget classes declare $schema; both
+                DD-06 paths are explicit for every widget. Server smoke
+                on APIActivityWidget confirmed date_range expansion.
+                Phase 3 closes with this commit.
 ```
 
-14 commits this session, all signed (`%G?` = `U`). Net stats:
-- 4 new renderer templates (Button + Achievements + OrgsPictures + Attack)
-- 4 new canonical picker modules
-  (sharing_group + galaxy_cluster — the latter is dynamic-options
-  with two new endpoints)
-- 3 new server endpoints (listSharingGroups, listGalaxyTypes,
-  searchGalaxyClusters)
-- PHPUnit count: 90 → 110 (+20)
-- ACL entries: +3 in `ACL_LIST['dashboards']`
-- CSS lines net: +~390 across the four renderers + two pickers
-- One Discovered-work section CLOSED (missing renderer templates)
-- One new Discovered-work entry filed (PRD §5.5 shape drift)
+**Cosmetic typo in commit `516f62d35`:** the commit message contains
+literal `\$schema` (single-quoted heredoc preserved the backslash
+intended for shell escape avoidance). Substance is correct; not
+amending per the no-amend rule.
+
+Net stats this session:
+- 1 new canonical picker module (org_filter.mjs ~315 lines)
+- 1 new canonical adapter (attribute_type_filter — 1-to-N expansion)
+- 1 forward-compat canonical adapter (event_id_filter)
+- 1 second canonical picker module (attribute_type_filter.mjs ~120 lines)
+- 3 new toolbar/configure validator functions + dispatcher
+- 1 new server endpoint (searchOrganisations)
+- 23 widget files touched ($schema declarations across the sweep)
+- PHPUnit count: 110 → 152 (+42)
+- ACL entries: +4 in `ACL_LIST['dashboards']`
+- 1 new Clear action UI surface on toolbar popovers
+- Working tree clean for v2 work after this session's 13 commits.
 
 ## Lessons from this session
 
-1. **The "post-filter pattern transfers directly" intuition is
-   only true when the underlying fetch method has the same
-   constraint.** The prior handoff suggested OrgEventsWidget
-   could reuse EventStreamWidget's threat_level / analysis
-   post-filter pattern. But OrgEventsWidget queries via
-   `fetchSimpleEventIds` (raw conditions → find('column')),
-   while EventStreamWidget uses `fetchEvent` (hardcoded option
-   set, no threat_level_id input). The native-SQL `IN` clause
-   on the conditions array is materially cleaner — no overshoot
-   heuristic, exact result count, no per-filter narrowing
-   closure. When the consumer's query shape admits native
-   filtering, USE it; reserve post-filtering for cases where
-   the fetch method's option set forces it. The handoff was
-   looking at it from a 30,000-foot view; opening the widget
-   surfaces the better fit.
+1. **PRD ≠ code-of-record once we start naming things.** PRD §5.5
+   chose `role` for the org_filter axis and `creator` / `distribution`
+   for its values. Those names collide with MISP's existing
+   `User.role_id` concept and don't match MISP's DB field naming
+   (`Event.orgc_id` is "creator org" everywhere else in the codebase).
+   Renaming at implementation time was free (no code shipped yet) and
+   the user actively pushed back on the PRD names. Lesson: when
+   naming a new concept, search the codebase for prior conventions
+   before defaulting to whatever the PRD says; if the PRD's name
+   collides, push back with concrete alternatives.
 
-2. **For canonicals with dynamic option sets, an endpoint +
-   async picker is the natural shape.** Three differentiated
-   picker patterns emerged this session:
-   - Int-enum canonicals (distribution / threat_level /
-     analysis): toggle-button rows over a small fixed set,
-     synchronous. Embedded statically via `enum_picker` factory.
-   - `sharing_group_filter`: N=O(SG count) dynamic options,
-     async-loaded from a lightweight endpoint, rendered as a
-     scrollable checkbox list with search filter.
-   - `galaxy_cluster_filter`: catalogue too large for any
-     flat list (55k items), typeahead-driven with two
-     endpoints (catalogue scope + cluster search). Selected
-     items as chips, source of truth in the DOM.
-   The pattern choice maps to the option count: ≤10 → embed
-   static, ≤500 → list with search, >500 → typeahead. Document
-   the decision tree in the next picker addition.
+2. **Additive canonical extensions are sometimes the right move.**
+   PRD §5.5 org_filter had no per-entry negate primitive. Dropping
+   the legacy `!`-prefix in the migration would lose a feature
+   widely used across MISP (every $params['filter'] shape supports
+   it). Extending the canonical shape with `negate?: bool` is
+   additive (no existing canonical shape breaks), preserves user
+   functionality, and documents a general primitive. Lesson:
+   "deviate from PRD" isn't always bad — when the deviation is
+   additive AND preserves a real primitive, the PRD is the stale
+   doc, not the implementation.
 
-3. **Picker UX scales with catalogue size, not just feature
-   complexity.** sharing_group_filter looked at first like
-   "just another int-enum picker with non-fixed values" — but
-   156 SGs is enough that a flat toggle-button row is
-   unusable, and a scrollable checkbox list with name-substring
-   search is the right surface. galaxy_cluster_filter at 55k
-   forces typeahead even for a single galaxy type (1k+ entries).
-   The PRD's canonical wire shape doesn't dictate UX; that's a
-   picker-implementation concern downstream.
+3. **Validators should accept the same shapes the translators
+   accept.** A strict canonical-only validator would block every
+   layout-drag re-POST of un-edited legacy configs from existing
+   users. The right strictness is "reject inputs neither shape
+   supports" (object where scalar expected) rather than "reject
+   anything not canonical-conforming". The adapter is already the
+   canonical/legacy bridge; the validator should be too.
 
-4. **`fetchSimpleEventIds` + raw conditions is the cleanest
-   filter integration when available.** Two of the four
-   filters added this session (threat_level + analysis on
-   OrgEventsWidget, sharing_group + galaxy_cluster on
-   EventStreamWidget) wanted to filter Event rows. The
-   fetchSimpleEventIds route (raw conditions array, native
-   IN clauses) is materially simpler than fetchEvent's
-   post-filter pattern — no overshoot, exact counts, ACL
-   safety via the existing `createEventConditions` overlay.
-   When designing a new Event-backed widget, prefer
-   fetchSimpleEventIds if the data shape supports it.
+4. **"No consumer = dead code" isn't an absolute.** event_id_filter
+   landed as forward-compat scaffold (adapter + validator + tests,
+   no picker, no consumer). The judgment: Phase 5 will likely surface
+   a consumer; designing the picker UX without that consumer's
+   actual needs is premature, but landing the shape correctness now
+   (so a future widget can declare it without further adapter
+   changes) is cheap and high-value. Lesson: when a canonical type
+   IS in the PRD §5.5 catalogue, the shape contract has value even
+   without a current consumer; the UX layer is where "no consumer
+   means defer" applies most.
 
-5. **Validate inline-style colour strings against a strict
-   regex before emitting them.** The Attack renderer's heatmap
-   cells take a precomputed `colours[tag_name]` string from
-   the handler's data and emit it in the cell's `style`
-   attribute. The handler runs `Event::restSearch`, but the
-   colour string ultimately traces back to user-controllable
-   data (galaxy cluster metadata). A `#rgb` / `#rrggbb` regex
-   match before insertion protects against style attribute
-   injection — a `red; background-image: url(javascript:...)`
-   payload would otherwise survive `h()` escaping (since the
-   style attribute is its own escape context).
+5. **Inheritance can replace per-child copy-paste for declarations
+   the parent owns.** Three Orgs* widgets extend OrgsContributors-
+   Generic. Adding `$schema = array()` to Generic alone makes all
+   three children declarative without per-child edits. PHP property
+   resolution + WidgetSchema::getSchema's `$widget->schema` access
+   resolve correctly up the inheritance chain. Saved 3 file edits +
+   3 git diffs.
 
-6. **`target="_blank"` without `rel="noopener noreferrer"` is
-   a tab-jacking surface.** v1's Achievements + OrgsPictures
-   renderers both used `target="_blank"` without `rel`. The
-   v2 surfaces fixed this — Achievements explicitly opts into
-   new-tab navigation for external help links (with `rel`);
-   OrgsPictures dropped `target="_blank"` entirely and uses
-   same-tab navigation matching the rest of the dashboard's
-   idiom. The pattern: external links → new tab with rel,
-   internal links → same tab. Document this as a renderer-
-   author convention.
+6. **The 1-to-N expansion pattern is the right shape for canonicals
+   that consolidate multiple legacy keys.** date_range → start_date +
+   end_date; tag_filter → include + exclude (top-level); now
+   attribute_type_filter → type + category. The adapter writes both
+   the canonical key AND the legacy keys; handlers untouched (still
+   read legacy); empty canonical lists do NOT overwrite legacy
+   entries (so a user with bottom-tier-set legacy values survives a
+   canonical-unset state). This pattern is now applied 3× — the next
+   addition probably warrants a shared helper.
 
-7. **The picker's "source of truth" choice matters.** Three
-   choices emerged this session for the structured-canonical
-   pickers:
-   - tag_filter: a JSON-stringified shadow attribute on the
-     root for forward-compat fields, plus chip-input rows
-     for include/exclude.
-   - sharing_group_filter: checkbox `checked` state on each
-     list item.
-   - galaxy_cluster_filter: chip list `data-tag-name` attrs
-     for the tag_names axis; a JS Set property on the root
-     for the galaxy_types-visited axis (session-scoped).
-   The cluster picker's choice was deliberate — `data-` attrs
-   round-trip through HTML serialisation cleanly; a JS Set is
-   transient (lives only as long as the DOM node), but
-   galaxy_types-visited is genuinely session-state that
-   doesn't need DOM persistence. Picking the right hook avoids
-   stringification bugs (numeric → string drift) and minimises
-   readback complexity.
+7. **Counter-tests prove a code-audit hook actually fires.** When the
+   `findMissingFunctionNames` audit returned `[]` after the ACL
+   backfill, that could have meant "all clean" OR "audit silently
+   broken". Temporary removal of one entry → audit immediately flagged
+   it; restoration → audit returned `[]`. Two cheap curl calls prove
+   the audit is live and the codebase IS clean.
 
-8. **The `mb_substr` + `mb_strtoupper` pair handles non-ASCII
-   org names correctly.** OrgsPictures' letter-chip fallback
-   uses the first character of the org name as a letter. ASCII
-   `substr` + `strtoupper` would mishandle multi-byte UTF-8
-   sequences (chinese / cyrillic / accented chars). Use the
-   `mb_*` family when slicing user-controlled text for display.
+The prior sessions' gotchas still apply:
 
-The prior session's gotchas still apply:
-
-9. **`git mv` does NOT auto-stage subsequent content edits.**
-10. **Themed/<Name>/Layouts/<layout>.ctp must exist for every
-    new layout.**
-11. **Cake 2.x theme dot-notation is for PLUGINS, not THEMES.**
-    Plain paths suffice; `Helper::webroot()` does the theme
-    resolution when `$this->theme` is set on the helper.
-12. **`fetchEvent` is not `restSearch`.** They take different
-    options. distribution is a fetchEvent option; threat_level_id
-    + analysis + sharing_group_id are NOT (only SELECT columns).
-13. **GPG pinentry timeout** on late nights. No incidents this
-    session.
+8. **`git mv` does NOT auto-stage subsequent content edits.**
+9. **Themed/<Name>/Layouts/<layout>.ctp must exist for every new
+   layout.**
+10. **Cake 2.x theme dot-notation is for PLUGINS, not THEMES.**
+11. **`fetchEvent` is not `restSearch`.** Different options.
+12. **GPG pinentry timeout** on late nights.
 
 ## Discovered work parked for later
 
-Newly parked this session:
+Active carryovers:
 
-- **PRD §5.5 vs implementation shape drift** (filed 2026-05-20).
-  PRD specifies wrapped objects for the int-enum canonicals
-  ({levels: int[]}, {sharing_group_ids: int[]}); all four
-  implementations use bare int arrays. Implementation
-  precedent locks the convention. Resolution: doc-aligning
-  task (amend PRD §5.5 to show bare-array shape for single-axis
-  canonicals; structured form remains for multi-axis canonicals
-  like tag_filter and galaxy_cluster_filter). Half a day of
-  prose editing. No code change.
+- **PRD §5.5 doc alignment** — the PRD ships with:
+  - `role` instead of `match_via` for org_filter's axis name
+  - `creator` / `distribution` instead of `orgc` / `sharing_group`
+  - no per-entry `negate` field on org_filter
+  - wrapped objects for int-enum canonicals (`{levels: int[]}`
+    etc.) — all four implementations use bare int arrays
+  All three deviations from PRD §5.5 are documented in the code
+  (commit bodies + Done notes) but the PRD itself is stale. Half a
+  day of prose editing; no code change. Filed in prior sessions and
+  this one.
 
-- **Missing ACL entries on dashboard read endpoints.** Prior
-  session's `widgets`, `renderWrapper`, and `updateWidgetSettings`
-  actions lack `ACL_LIST['dashboards']` entries. They work for
-  admin (perm_site_admin bypass) but 403 for non-admin roles.
-  Pre-existing gap; should be backfilled in a separate cleanup
-  commit. The three actions added this session
-  (listSharingGroups, listGalaxyTypes, searchGalaxyClusters)
-  DO have ACL entries.
-
-Previously parked items still active:
-
-- **Missing renderer templates: CLOSED** (all 5 landed; was the
-  largest carryover item).
+- **TrendingAttributesWidget PHP 8.x `Attribute` model crash.**
+  `ClassRegistry::init('Attribute')` collides with PHP 8.0+'s
+  built-in `Attribute` class — handler() fatals before the renderer
+  runs. Blocks end-to-end smoke of the new `attribute_type_filter`
+  consumer. Single-class-rename fix; carried from earlier sessions.
 
 - **MISP 2.4 cross-instance DB write risk:** v2.4 connected to
   the same DB can clobber `user_settings.dashboard` rows. Carries.
@@ -610,88 +545,62 @@ Previously parked items still active:
 - **tlp:clear (#ffffff) renders invisible bars (cosmetic).**
   Carries.
 - **OrgEventsWidget months>13 malformed dates.** Carries.
-- **TrendingAttributesWidget PHP 8.x Attribute model crash.**
-  Carries — MISP core touch.
 - **EventEvolutionLineWidget ignores end_date.** Carries.
 - **Live preview race window** (carries — AbortController fix).
 - **Drop dormant `dashboard.midnight.css` loader.** Carries.
-- **`save_template.ctp:4` action-name mismatch** (Phase 4 —
-  carries).
+- **`save_template.ctp:4` action-name mismatch** (Phase 4 — carries).
 - **Pre-fetch overshoot trade-off documented for EventStream-
-  Widget's post-filter canonicals** — when filtering for rare
-  attributes (specific SG, specific galaxy cluster on an older
-  event), the default overshoot of 200 won't reach matches.
-  Users must raise `limit` config. Same trade-off applies
-  consistently across all four EventStreamWidget canonical
-  filters; perhaps document in the widget's `$description`.
+  Widget's post-filter canonicals.** Same trade-off applies to the
+  five canonical filters EventStreamWidget now declares; users
+  wanting guaranteed N matches for rare attribute combinations
+  must raise the widget's `limit` config. Perhaps document in the
+  widget's `$description`.
 
 ## Open thread / next obvious work
 
 In rough priority order:
 
-**Option A: Phase 3 — `org_filter` (last toolbar-eligible
-canonical).**
-
-`org_filter` is the only remaining toolbar-eligible canonical.
-PRD §5.5 shape: `{ orgs: { uuid?, id?, name? }[], role:
-"creator"|"distribution"|"any" }`. The challenge — and what
-deferred it before — is that NO in-tree widget currently uses
-the PRD-canonical org-identity shape. The 8 widgets that filter
-by org meta-data (sector / type / nationality) already use
-`org_meta_filter` (different canonical). Adding `org_filter`
-would be dead code without a consumer.
-
-Two paths:
-1. Find a widget that should genuinely filter by org IDENTITY
-   (vs meta-data) and pair with it. EventStreamWidget's `orgs`
-   param accepts org names — could be promoted, but the
-   pattern is comma-separated strings (legacy), not the
-   PRD-canonical structured shape. Migration is a small
-   semantic shift.
-2. Defer until a real consumer surfaces. Document why in the
-   tracker and move on.
-
-**Option B: Browser-verify Edit Widget against the new preview-
-pane render path.**
-
-Closes the last open Phase 2 line. No code work; tick depends on
-a browser interaction. ~15 minutes. The user is now ON Overmind
-with working CSS (the prior session's bug fix), so the visual
-verification is reliable.
-
-**Option C: ACL backfill for missing dashboard entries.**
-
-Backfill `widgets`, `renderWrapper`, `updateWidgetSettings` ACL
-entries. One commit. Closes the pre-existing gap surfaced this
-session. Small but real risk surface for non-admin users.
-
-**Option D: PRD §5.5 doc alignment with implementation.**
-
-Amend PRD §5.5 to reflect the bare-array convention for
-single-axis int-enum canonicals. Half a day of prose editing,
-no code change. Pure doc cleanup.
-
-**Option E: Phase 4 — Template gallery polish.**
+**Option A: Phase 4 — Template gallery polish.**
 
 Pure greenfield. Reuses the gallery infrastructure (card grid,
-search filter, side panel) from Phase 2. Larger scope —
-multi-session.
+search filter, side panel) from Phase 2. Multi-session. Phase 3's
+canonical-type infrastructure (12 canonicals + validators + pickers
++ Clear action) gives Phase 4 a richer starting point — templates
+can now carry canonical-typed config values that round-trip
+through the adapter cleanly.
 
-**Option F: Phase 5 — Drill-down + refresh scheduler.**
+**Option B: Phase 5 — Drill-down + refresh scheduler.**
 
-Cross-cutting feature. Multi-session.
+Cross-cutting feature. Multi-session. A natural consumer for
+`event_id_filter` may surface here (event-view-context widgets
+rendered in a side panel during drill-down would benefit from the
+`"current"` sentinel). Pairing the drill-down work with an
+event_id_filter picker would close out Phase 3's only deferred
+picker.
 
-**Option G: Other parked work** — time_window dropdown UX,
-midnight.css drop, TrendingAttributesWidget PHP 8 crash,
-EventEvolutionLine end_date, save_template action-name mismatch.
+**Option C: PRD §5.5 doc alignment.**
 
-**Recommendation: B then C** for a ~30-minute closeout
-(closes the last Phase 2 line + a small but real security gap),
-then evaluate whether to start Phase 4 fresh or pair a 2nd
-consumer onto sharing_group/galaxy_cluster (for F5.6.4 demo
-parity with threat_level/analysis). Alternative: **A** if there's
-a stakeholder need for org_filter and willingness to migrate
-the legacy `orgs` slot on EventStreamWidget.
+Half a day of prose editing. Amend PRD to reflect:
+- bare-array convention for single-axis int-enum canonicals
+- org_filter renames (match_via / orgc / sharing_group / negate)
+Pure doc cleanup; no code change.
+
+**Option D: TrendingAttributesWidget PHP 8 fix.**
+
+`ClassRegistry::init('Attribute')` → rename the local variable to
+avoid the PHP 8.0+ built-in `Attribute` class collision. Single
+file edit; small but unblocks end-to-end smoke of the new
+attribute_type_filter consumer. Carryover.
+
+**Option E: Other parked work** — time_window dropdown UX,
+midnight.css drop, EventEvolutionLine end_date,
+save_template action-name mismatch.
+
+**Recommendation:** **B** if there's appetite for a multi-session
+greenfield piece (drill-down has obvious UX value, opens up
+event_id_filter's deferred picker as a natural pairing). **A** if
+the user wants to focus on authoring affordances next. **C+D** as
+a ~1-day cleanup batch closing the two open carryovers.
 
 ## Convention reminders
 
@@ -703,45 +612,36 @@ the legacy `orgs` slot on EventStreamWidget.
   rather than being a separate commit, unless the endpoint is
   exceptionally large.
 - **Picker UX scales with catalogue size, not feature complexity.**
-  Decision tree per Lesson #2: ≤10 fixed options → static toggle
-  row; ≤500 → flat list with search; >500 → typeahead with
-  scoped server endpoint.
-- **Always `git status --short` + explicit `git add` before
-  commit**. Watch for stray empty files from grep / find with
-  quote-mangling — clean them out before staging.
+  Decision tree per the prior sessions' Lesson #2: ≤10 fixed options
+  → static toggle row; ≤500 → flat list with search; >500 → typeahead
+  with scoped server endpoint.
+- **Always `git status --short` + explicit `git add` before commit**.
+  Watch for stray empty files from grep / find with quote-mangling.
 - New files land with `iglocska:iglocska` ownership; `chgrp
   www-data` before committing to match repo convention.
+- **MISP-jargon naming over PRD-generic.** When introducing new
+  identifiers (canonical type names, axis labels), prefer terms that
+  match MISP's existing DB field names + user-facing terminology
+  (orgc / sharing_group / etc.) over PRD-generic alternatives
+  (creator / distribution) — even when this means deviating from
+  PRD §5.5. Document the deviation in the commit body so the PRD
+  can be updated downstream.
 - **Inline-style colour strings need a strict regex match** before
-  insertion (`/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/`) — style
-  attribute is its own escape context, `h()` doesn't cover it.
+  insertion (`/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/`).
 - **External links always pair `target="_blank"` with
   `rel="noopener noreferrer"`.** Internal links use same-tab
-  navigation, matching the rest of the dashboard idiom.
+  navigation.
 - **Slicing user-controlled text for display uses `mb_substr` +
-  `mb_strtoupper`** to handle multi-byte UTF-8 cleanly.
+  `mb_strtoupper`** to handle multi-byte UTF-8.
 - **Themed CSS in Cake 2.x:** use plain paths (no dot-prefix).
-  `Helper::webroot()` does the theme resolution when
-  `$this->theme` is set on the helper.
 - User wants rigorous pushback, not yes-machine output — surface
   trade-offs, name alternatives, recommend a path, then go with
-  the user's call. **This session's example: the OrgEventsWidget
-  filter integration deviated from the handoff's "post-filter
-  pattern transfers directly" suggestion** when inspection showed
-  fetchSimpleEventIds admits native SQL filtering. Document the
-  reasoning and proceed; the handoff's 30,000-foot view is a
-  starting point, not gospel.
-- **Pre-fetch overshoot is the standard cure for fetchEvent post-
-  filter narrowing.** All four EventStreamWidget canonicals share
-  the `max(200, declaredLimit * 10)` heuristic; if any filter is
-  set, the overshoot fires. Users wanting guaranteed N matches
-  for rare attribute combinations must raise the widget's `limit`
-  config.
+  the user's call.
 - User alternates hitm / afk sessions; tracker docs are the
   ground truth between sessions. Tick one task at a time; the
   Done note carries the deciding context.
 - Surface context status when past 75% at task boundaries so the
-  user can choose to restart. This session wrapped at ~40% with
-  the user requesting the handoff refresh.
+  user can choose to restart.
 - Hard-refresh after CSS/JS edits — the `?v=185` cache-buster
   from `AppController::__queryVersion` doesn't bump per-file.
 - **The schema-driven model is the canonical answer** for any
@@ -749,29 +649,34 @@ the legacy `orgs` slot on EventStreamWidget.
   act on" question.
 - **A tracker tick requires the user-visible surface to exist
   AND be reachable from the default UI**, not just the JS /
-  handler-level wiring behind it. (Carries.)
+  handler-level wiring behind it.
 - **`mysql -u misp -pPassword1234 misp` for one-shot SQL.**
 - **Render-kind glyph requirement (carries):** any new value
   for `public $render` on a widget class, or any new template
   under `app/View/Elements/dashboard/Widgets/`, must ship with
   a matching glyph in `render-thumbs.mjs` in the same commit.
-  **All 9 v1 render kinds now have both a template AND a glyph.**
-- **DB restore from audit_logs (carries):** documented procedure
-  for clobbered `user_settings.dashboard` rows lives in the
-  prior session's handoff.
+- **Heredoc + dollar signs:** single-quoted heredoc (`<<'EOF'`)
+  preserves `\$` literally. Don't escape dollar signs inside it
+  — write `$schema`, not `\$schema`. (Got bitten this session;
+  commit message has the literal backslash. Cosmetic only.)
 
 ## Quick-start cheatsheet for the next session
 
 If you're picking this up cold:
 
-1. Read `dashboard-prd.md` for the spec.
+1. Read `dashboard-prd.md` for the spec (note: §5.5 is stale on
+   org_filter naming — see Discovered work below).
 2. Read `dashboard-progress.md` for what's done / what's next.
 3. Skim this file for ephemeral session-level context.
 4. Verify the live instance still works:
    `curl -s http://localhost:5007/dashboards -o /dev/null -w "%{http_code}\n"`
    should return 302 (redirect to login) without a session;
-   with the session-login dance above, /dashboards returns 200.
-5. Pick from the Open thread above. Recommended: B then C (~30
-   min closeout of the last Phase 2 line + small ACL gap).
+   with the session-login dance, /dashboards returns 200.
+5. **Phase 2 and Phase 3 are both closed.** Pick from the Open
+   thread above. Recommended: Phase 5 (drill-down) if appetite for
+   greenfield, or Phase 4 (template gallery) for authoring
+   affordances. Carryovers in Option C + D are a ~1-day cleanup
+   batch.
 6. Commit one task at a time, signed, with `chgrp www-data` on
-   new files. Don't `git add -A`.
+   new files. Don't `git add -A`. Don't escape `$` inside single-
+   quoted heredocs.
