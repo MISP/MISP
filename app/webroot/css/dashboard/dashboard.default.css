@@ -1019,6 +1019,42 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   outline-offset: 1px;
 }
 
+/* threat_level_filter picker — same visual idiom as distribution_filter
+ * over MISP's four `threat_level_id` enum values (1..4). When
+ * analysis_filter lands as the third int-enum-array canonical picker,
+ * the three rule blocks (distribution, threat-level, analysis) are
+ * the right trigger to fold into a shared .misp-enum-toggle base. */
+.misp-threat-level-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1);
+  margin-top: var(--misp-dash-space-1);
+}
+.misp-threat-level-toggle {
+  font-size: var(--misp-dash-fs-xs);
+  padding: 4px var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: transparent;
+  color: var(--misp-dash-text);
+  cursor: pointer;
+  transition: background var(--misp-dash-transition-base),
+              border-color var(--misp-dash-transition-base),
+              color var(--misp-dash-transition-base);
+}
+.misp-threat-level-toggle:hover {
+  border-color: var(--misp-dash-accent);
+}
+.misp-threat-level-toggle[aria-pressed="true"] {
+  background: var(--misp-dash-accent);
+  border-color: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+}
+.misp-threat-level-toggle:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+}
+
 .misp-kv-list {
   list-style: none;
   margin: 0 0 var(--misp-dash-space-2) 0;

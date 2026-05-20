@@ -16,6 +16,7 @@ import * as TimeWindow        from './canonical/time_window.mjs';
 import * as TagFilter         from './canonical/tag_filter.mjs';
 import * as OrgMetaFilter     from './canonical/org_meta_filter.mjs';
 import * as DistributionFilter from './canonical/distribution_filter.mjs';
+import * as ThreatLevelFilter from './canonical/threat_level_filter.mjs';
 import { buildChips, getChipsValue } from './chips.module.mjs';
 import {
   flatten,
@@ -34,6 +35,7 @@ const CANONICAL_BUILDERS = {
   [TagFilter.KEY]:          TagFilter,
   [OrgMetaFilter.KEY]:      OrgMetaFilter,
   [DistributionFilter.KEY]: DistributionFilter,
+  [ThreatLevelFilter.KEY]:  ThreatLevelFilter,
 };
 const SCALAR_TYPES = new Set(['string', 'int', 'bool', 'enum']);
 
