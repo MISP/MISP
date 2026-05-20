@@ -1188,6 +1188,143 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 }
 
 /* ============================================================
+ * org_filter picker (10th canonical, PRD §5.5 — refined naming)
+ *
+ * Two-axis canonical: match_via dropdown + typeahead search +
+ * chip list. Each chip toggles include/exclude on click; chip
+ * carries identity (uuid/id/name) as data-* attrs for readback.
+ * ============================================================ */
+.misp-org-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+}
+.misp-org-filter-row {
+  display: flex;
+  gap: var(--misp-dash-space-2);
+  align-items: stretch;
+}
+.misp-org-filter-match-via {
+  flex: 0 0 auto;
+  font-size: var(--misp-dash-fs-sm);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface);
+  color: var(--misp-dash-text);
+}
+.misp-org-filter-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--misp-dash-fs-sm);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface);
+  color: var(--misp-dash-text);
+}
+.misp-org-filter-search:focus,
+.misp-org-filter-search:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+}
+.misp-org-filter-suggestions {
+  display: flex;
+  flex-direction: column;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-surface-sunken);
+}
+.misp-org-filter-suggestions:empty {
+  display: none;
+}
+.misp-org-filter-suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--misp-dash-text);
+}
+.misp-org-filter-suggestion:hover,
+.misp-org-filter-suggestion:focus-visible {
+  background: var(--misp-dash-surface-raised);
+  outline: none;
+}
+.misp-org-filter-suggestion--selected {
+  opacity: 0.55;
+  font-style: italic;
+}
+.misp-org-filter-suggestion-name {
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-org-filter-suggestion-sub {
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  font-family: var(--misp-dash-font-mono, monospace);
+}
+.misp-org-filter-suggestions-empty {
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  font-style: italic;
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-org-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1);
+}
+.misp-org-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+  border-radius: var(--misp-dash-radius-sm);
+  padding: 0 0 0 var(--misp-dash-space-1);
+  font-size: var(--misp-dash-fs-xs);
+}
+.misp-org-filter-chip--negated {
+  background: var(--misp-dash-danger);
+}
+.misp-org-filter-chip-label {
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 2px var(--misp-dash-space-1);
+  font: inherit;
+  cursor: pointer;
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-org-filter-chip-label:focus-visible {
+  outline: 1px solid var(--misp-dash-text-on-accent);
+  outline-offset: -1px;
+}
+.misp-org-filter-chip-remove {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--misp-dash-fs-sm);
+  line-height: 1;
+  padding: 0 var(--misp-dash-space-1);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-org-filter-chip-remove:hover,
+.misp-org-filter-chip-remove:focus-visible {
+  background: rgba(0, 0, 0, 0.20);
+  outline: none;
+}
+
+/* ============================================================
  * Chart container — ECharts mounts inside, fills the widget body.
  * Renderers under Elements/dashboard/Widgets/ emit a static
  * <div class="misp-chart"> + data-misp-chart="<kind>" attribute;

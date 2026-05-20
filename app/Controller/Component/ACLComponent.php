@@ -187,6 +187,7 @@ class ACLComponent extends Component
             'listSharingGroups' => array('*'),
             'listGalaxyTypes' => array('*'),
             'searchGalaxyClusters' => array('*'),
+            'searchOrganisations' => array('*'),
         ),
         'decayingModel' => array(
             "update" => array(),

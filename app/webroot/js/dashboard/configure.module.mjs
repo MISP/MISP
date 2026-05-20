@@ -20,6 +20,7 @@ import * as ThreatLevelFilter from './canonical/threat_level_filter.mjs';
 import * as AnalysisFilter    from './canonical/analysis_filter.mjs';
 import * as SharingGroupFilter from './canonical/sharing_group_filter.mjs';
 import * as GalaxyClusterFilter from './canonical/galaxy_cluster_filter.mjs';
+import * as OrgFilter           from './canonical/org_filter.mjs';
 import { buildChips, getChipsValue } from './chips.module.mjs';
 import {
   flatten,
@@ -42,6 +43,7 @@ const CANONICAL_BUILDERS = {
   [AnalysisFilter.KEY]:      AnalysisFilter,
   [SharingGroupFilter.KEY]:  SharingGroupFilter,
   [GalaxyClusterFilter.KEY]: GalaxyClusterFilter,
+  [OrgFilter.KEY]:           OrgFilter,
 };
 const SCALAR_TYPES = new Set(['string', 'int', 'bool', 'enum']);
 
