@@ -30,12 +30,12 @@ MISP code is divided into many git repositories for the following reasons:
 
 MISP uses several branches:
 
-- Version branch: This is the default branch, and it is named to reflect the latest MISP release. At the time of writing, the default branch is `2.4`
+- Version branch: This is the default branch, and it is named to reflect the latest MISP release. At the time of writing, the default branch is `2.5`
 - Topic branches: We use topic branches, sometimes called `fix-*` and `feature-*`, respectively aimed at fixing a single bug and implementing a single new feature. Once ready, a topic branch is merged into the appropriate branch (generally the default branch). Until it has been merged, a topic branch's history may be rewritten.
 
 When the MISP developers make a code change that resolves an issue, the GitHub issue will typically be closed from the relevant patch message. 
-The main MISP core branch, `2.4` (current stable version), that we consider as stable with frequent updates as hotfixes. 
-Features are developed in separated branches and then regularly merged into the `2.4` stable branch.
+The main MISP core branch, `2.5` (current stable version), that we consider as stable with frequent updates as hotfixes. 
+Features are developed in separated branches and then regularly merged into the `2.5` stable branch.
 
 ## How we use GitHub metadata
 
