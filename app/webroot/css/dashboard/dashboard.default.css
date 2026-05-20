@@ -1830,7 +1830,8 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
  * fields tier (and, eventually, the bulk-edit toolbar popover).
  * ============================================================ */
 .misp-tag-filter-row,
-.misp-org-meta-row {
+.misp-org-meta-row,
+.misp-attribute-filter-row {
   display: grid;
   grid-template-columns: 90px 1fr;
   gap: var(--misp-dash-space-2);
@@ -1838,7 +1839,8 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   margin-top: var(--misp-dash-space-1);
 }
 .misp-tag-filter-rowlabel,
-.misp-org-meta-rowlabel {
+.misp-org-meta-rowlabel,
+.misp-attribute-filter-rowlabel {
   font-size: var(--misp-dash-fs-sm);
   color: var(--misp-dash-text-muted);
   padding-top: 6px;

@@ -21,6 +21,7 @@ import * as AnalysisFilter    from './canonical/analysis_filter.mjs';
 import * as SharingGroupFilter from './canonical/sharing_group_filter.mjs';
 import * as GalaxyClusterFilter from './canonical/galaxy_cluster_filter.mjs';
 import * as OrgFilter           from './canonical/org_filter.mjs';
+import * as AttributeTypeFilter from './canonical/attribute_type_filter.mjs';
 import { buildChips, getChipsValue } from './chips.module.mjs';
 import {
   flatten,
@@ -44,6 +45,7 @@ const CANONICAL_BUILDERS = {
   [SharingGroupFilter.KEY]:  SharingGroupFilter,
   [GalaxyClusterFilter.KEY]: GalaxyClusterFilter,
   [OrgFilter.KEY]:           OrgFilter,
+  [AttributeTypeFilter.KEY]: AttributeTypeFilter,
 };
 const SCALAR_TYPES = new Set(['string', 'int', 'bool', 'enum']);
 

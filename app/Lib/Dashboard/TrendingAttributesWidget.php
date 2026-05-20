@@ -26,6 +26,10 @@ class TrendingAttributesWidget
             'type' => 'org_meta_filter',
             'help' => 'Filter by organisation meta-data (sector, type, nationality, uuid, local). Each entry may have "!" prefix to negate.',
         ),
+        'attribute_filter' => array(
+            'type' => 'attribute_type_filter',
+            'help' => 'Filter by attribute type and/or category. The canonical 1-to-N expansion writes top-level `type` and `category` keys at translate time — legacy configs with those keys keep working unchanged.',
+        ),
         'threshold' => array(
             'type' => 'int',
             'default' => 10,
