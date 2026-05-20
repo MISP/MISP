@@ -47,6 +47,12 @@
             ['fontawesome7.min', ['preload' => true]],
             ['dashboard/dashboard.default', ['preload' => true]],
             ['dashboard/dashboard.midnight'],
+            // Loaded last so its rules win where they overlap with
+            // dashboard.default.css. Cake's Helper::webroot() is
+            // theme-aware and resolves this against
+            // app/View/Themed/Overmind/webroot/css/dashboard/overmind.css
+            // → /theme/Overmind/css/dashboard/overmind.css.
+            ['dashboard/overmind', ['preload' => true]],
             ['print', ['media' => 'print']],
         ];
         if (Configure::read('MISP.custom_css')) {
@@ -65,16 +71,6 @@
             'css' => $css,
             'js' => $js,
         ]);
-        // Overmind dashboard CSS overrides (card chrome, resize handle,
-        // iconbtn styling, body padding). The themed CSS lives under
-        // Themed/Overmind/webroot/css/dashboard/overmind.css and is
-        // served by Cake at /theme/Overmind/css/dashboard/overmind.css;
-        // this fork's HtmlHelper::assetUrl doesn't resolve the theme
-        // dot-notation so we emit the <link> manually here. Loaded
-        // last so its rules win where they overlap with the
-        // dashboard.default.css base.
-        $overmindDashCss = $baseurl . '/theme/Overmind/css/dashboard/overmind.css?v=' . h($queryVersion);
-        echo '<link rel="stylesheet" href="' . $overmindDashCss . '">' . "\n";
     ?>
 </head>
 <body class="misp-dashboard-page"

@@ -19,9 +19,13 @@
  *
  * The styling for these classes ships at
  * `Themed/Overmind/webroot/css/dashboard/overmind.css`, loaded by
- * `Themed/Overmind/Layouts/dashboard.ctp` via a manual <link> tag
- * (this fork's HtmlHelper::assetUrl doesn't resolve Cake's theme
- * dot-notation, so the asset path is emitted explicitly).
+ * `Themed/Overmind/Layouts/dashboard.ctp` via the standard css
+ * array entry `'dashboard/overmind'`. Cake's `Helper::webroot()`
+ * is theme-aware: when `$this->theme === 'Overmind'`, it falls
+ * back to `App::themePath('Overmind')/webroot/<path>` and emits a
+ * `/theme/Overmind/<path>` URL. No dot-prefix needed (the
+ * `Theme.path` dot-notation would be interpreted as a plugin
+ * namespace by `pluginSplit` and produce a 404).
  */
 ?>
 <div class="card misp-widget--overmind"
