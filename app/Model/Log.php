@@ -210,10 +210,16 @@ class Log extends AppModel
         if (empty($this->data['Log']['org'])) {
             $this->data['Log']['org'] = 'SYSTEM';
         }
+        // The `logs` table is utf8mb3, so 4-byte UTF-8 characters (e.g. emoji) and invalid UTF-8 bytes
+        // would cause "Incorrect string value" errors on insert. Sanitize before length checks so the
+        // substituted/stripped bytes are accounted for in truncation.
         $truncate_fields = array('title', 'change', 'description');
         foreach ($truncate_fields as $tf) {
+            if (!empty($this->data['Log'][$tf]) && is_string($this->data['Log'][$tf])) {
+                $this->data['Log'][$tf] = JsonTool::sanitizeForUtf8mb3($this->data['Log'][$tf]);
+            }
             if (strlen($this->data['Log'][$tf]) >= 65535) {
-                $this->data['Log'][$tf] = substr($this->data['Log'][$tf], 0, 65532) . '...';
+                $this->data['Log'][$tf] = mb_strcut($this->data['Log'][$tf], 0, 65532, 'UTF-8') . '...';
             }
         }
         $this->logData($this->data);

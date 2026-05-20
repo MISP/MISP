@@ -72,8 +72,8 @@ class AppModel extends Model
         )
     );
 
-    const DB_CHANGES = array(
-        1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
+	    const DB_CHANGES = array(
+	        1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
@@ -94,11 +94,11 @@ class AppModel extends Model
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
         117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
-        129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
-        135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
-        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
-        147 => false
-    );
+	        129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
+	        135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
+	        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
+	        147 => false, 148 => false, 149 => false
+	    );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
         'seenOnAttributeAndObject' => array(
@@ -2618,6 +2618,16 @@ class AppModel extends Model
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 $indexArray[] = array('event_template_object_dependencies', 'event_template_id');
                 $indexArray[] = array('event_template_object_dependencies', 'object_template_uuid');
+                break;
+            case 148:
+                $sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `api_root` VARCHAR(1024);";
+                $sqlArray[] = "UPDATE `taxii_servers` SET `api_root` = CONCAT(TRIM(TRAILING \"/\" FROM baseurl)),\"/\",api_root);";
+                $sqlArray[] = "ALTER TABLE `taxii_servers` RENAME COLUMN `baseurl` TO `discovery_url`;";
+                $sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `discovery_url` VARCHAR(512);";
+                $sqlArray[] = "UPDATE `taxii_servers` SET `discovery_url` = CONCAT(TRIM(TRAILING \"/\" FROM discovery_url),\"/taxii2/\");";
+                break;
+            case 149:
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` MODIFY `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

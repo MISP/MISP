@@ -6,7 +6,7 @@ $serverId = h($server['id']);
 if ($mode == "pull") {
     $enabled = !empty($server[$mode]);
 } else {
-    $enabled = !empty($server[$mode]) && !empty($row['RuleDescription'][$mode]);
+    $enabled = !empty($server[$mode]);
 }
 
 $rules = $row['RuleDescription'][$mode] ?? null;

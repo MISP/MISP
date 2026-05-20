@@ -563,7 +563,37 @@ th .sort-icon::before {
 }
 
 
-
+/* =======================================================
+   Drag and Drop CSS
+======================================================= */
+.pem-dropzone {
+    border: 1.5px dashed var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    padding: 1.25rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    background: var(--bs-light);
+    transition: background .15s, border-color .15s;
+    position: relative;
+}
+.pem-dropzone:hover,
+.pem-dropzone:focus-visible {
+    background: var(--bs-primary-bg-subtle);
+    border-color: var(--bs-primary);
+    outline: none;
+}
+.pem-dropzone.pem-drag-over {
+    background: var(--bs-primary-bg-subtle);
+    border-color: var(--bs-primary);
+}
+.pem-dropzone.pem-has-file {
+    background: var(--bs-success-bg-subtle);
+    border-color: var(--bs-success);
+}
+.pem-icon { font-size: 1.25rem; color: var(--bs-secondary-color); display: block; margin-bottom: .35rem; }
+.pem-hint { font-size: .8125rem; color: var(--bs-secondary-color); }
+.pem-filename { font-size: .8125rem; font-weight: 600; color: var(--bs-success); margin-top: .35rem; }
+.pem-remove-btn { color: var(--bs-danger); cursor: pointer; background: none; border: none; padding: 0 0 0 4px; vertical-align: middle; }
 
 /* =======================================================
    To be sorted
