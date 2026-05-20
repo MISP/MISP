@@ -18,6 +18,7 @@ class OrgEventsWidget
         'months' => 'Number of past months to consider for the graph',
         'logarithmic' => 'Visualize data on logarithmic scale',
         'threat_level' => 'A list of threat levels (1=High, 2=Medium, 3=Low, 4=Undefined) to filter events by. Accepts an int array or single int. Empty / unset = no filter.',
+        'analysis' => 'A list of analysis stages (0=Initial, 1=Ongoing, 2=Complete) to filter events by. Accepts an int array or single int. Empty / unset = no filter.',
     );
     public $schema = array(
         'months' => array(
@@ -33,6 +34,10 @@ class OrgEventsWidget
         'threat_level' => array(
             'type' => 'threat_level_filter',
             'help' => 'Filter events by threat level. Bulk-edited via the dashboard toolbar when at least one widget on the board declares this canonical.',
+        ),
+        'analysis' => array(
+            'type' => 'analysis_filter',
+            'help' => 'Filter events by analysis stage (Initial / Ongoing / Complete). Bulk-edited via the dashboard toolbar when at least one widget on the board declares this canonical.',
         ),
     );
 
@@ -51,14 +56,14 @@ class OrgEventsWidget
     * Target_month must be from 1 to 12
     * Target year must be 4 digits
     *
-    * Canonical filters ($threatLevels) apply as native Event.* IN
-    * conditions on the fetchSimpleEventIds call — unlike
-    * EventStreamWidget which uses fetchEvent (no native threat_level_id
-    * filter, forcing a PHP post-filter + overshoot), this widget's
-    * Event-conditions path admits the filter at SQL level. Empty
-    * arrays skip the clause entirely.
+    * Canonical filters ($threatLevels, $analysisStages) apply as
+    * native Event.* IN conditions on the fetchSimpleEventIds call —
+    * unlike EventStreamWidget which uses fetchEvent (no native filter
+    * inputs for these columns, forcing a PHP post-filter + overshoot),
+    * this widget's Event-conditions path admits the filters at SQL
+    * level. Empty arrays skip the respective clause entirely.
     */
-    private function org_events_count($user, $org, $target_month, $target_year, $threatLevels = array()) {
+    private function org_events_count($user, $org, $target_month, $target_year, $threatLevels = array(), $analysisStages = array()) {
         $events_count = 0;
 
         $start_date = $target_year.'-'.$target_month.'-01';
@@ -70,6 +75,9 @@ class OrgEventsWidget
         $conditions = array('Event.orgc_id' => $org['Organisation']['id'], 'Event.date >=' => $start_date, 'Event.date <' => $end_date);
         if (!empty($threatLevels)) {
             $conditions['Event.threat_level_id'] = $threatLevels;
+        }
+        if (!empty($analysisStages)) {
+            $conditions['Event.analysis'] = $analysisStages;
         }
 
         //This is required to enforce the ACL (not pull directly from the DB)
@@ -118,6 +126,12 @@ class OrgEventsWidget
         };
         $allowedThreat = !empty($options['threat_level'])
             ? $coerceLevels($options['threat_level']) : array();
+        // analysis uses isset/!== '' not !empty() — 0=Initial is a
+        // valid filter value and !empty(0) is true while !empty([0])
+        // is true too, but a scalar 0 posted by a legacy REST client
+        // would be silently dropped by the !empty() shortcut.
+        $allowedAnalysis = isset($options['analysis']) && $options['analysis'] !== ''
+            ? $coerceLevels($options['analysis']) : array();
         $orgs = $this->Org->find('all', array( 'conditions' => array('Organisation.local' => 1)));
         $current_month = date('n');
         $current_year = date('Y');
@@ -149,7 +163,7 @@ class OrgEventsWidget
             $item = array();
             $item ['date'] = $target_year.'-'.$target_month.'-01';
             foreach($orgs as $org) {
-                    $count = $this->org_events_count($user, $org, $target_month, $target_year, $allowedThreat);
+                    $count = $this->org_events_count($user, $org, $target_month, $target_year, $allowedThreat, $allowedAnalysis);
                     // Phase 2 fix: the prior strict-string check (=== "true" /
                     // === "1") silently dropped the log-scale branch once the
                     // configure form started writing real PHP booleans per
