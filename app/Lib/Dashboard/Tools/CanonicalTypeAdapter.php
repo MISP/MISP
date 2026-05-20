@@ -639,4 +639,207 @@ class CanonicalTypeAdapter
         }
         return $out;
     }
+
+    // ====================================================================
+    // Validators (PRD §5.5 — Phase 3 closer)
+    // --------------------------------------------------------------------
+    // Stricter shape checks than the translate<Type> methods. Each
+    // translator is lenient by design (legacy passthrough, fallback to
+    // null on weird inputs) — but at SAVE time we want to reject
+    // outright-wrong shapes loudly so a buggy client or a malformed
+    // REST payload surfaces immediately rather than silently coercing
+    // to an empty filter the user didn't ask for.
+    //
+    // Validators accept both canonical and legacy shapes (mirrors the
+    // translator's acceptance set), so a layout drag that re-POSTs a
+    // saved legacy config doesn't fail validation. They reject values
+    // that fit neither shape (object where a scalar is expected,
+    // scalar where an object is expected, etc.).
+
+    /**
+     * Walk the widget's $schema; for every canonical-typed slot present
+     * in $config, run the per-type validator. Returns null on success,
+     * or an associative `<schemaKey> => <error message>` array of
+     * failures. Designed for the controller to convert to a 400
+     * response.
+     *
+     * Pure shape validation — does NOT enforce per-enum value ranges
+     * (e.g. threat_level in {1..4}). Out-of-range values are caught at
+     * the consumer's IN clause naturally (no rows match), which gives
+     * the user loud-but-recoverable feedback. Value-range checks belong
+     * in the picker, not the validator.
+     *
+     * @param object $widget Widget instance.
+     * @param array  $config Widget config to validate.
+     * @return array|null Associative error map, or null when valid.
+     */
+    public static function validate($widget, array $config): ?array
+    {
+        $schema = WidgetSchema::getSchema($widget);
+        if ($schema === []) {
+            return null;
+        }
+        $errors = [];
+        foreach ($schema as $key => $entry) {
+            if (!is_array($entry) || !isset($entry['type'])) {
+                continue;
+            }
+            if (!array_key_exists($key, $config)) {
+                continue;
+            }
+            $value = $config[$key];
+            $error = null;
+            switch ($entry['type']) {
+                case 'time_window':
+                    $error = self::validateTimeWindow($value);
+                    break;
+                case 'date_range':
+                    $error = self::validateDateRange($value);
+                    break;
+                case 'tag_filter':
+                    $error = self::validateTagFilter($value);
+                    break;
+                case 'org_meta_filter':
+                    $error = self::validateOrgMetaFilter($value);
+                    break;
+                case 'distribution_filter':
+                case 'threat_level_filter':
+                case 'analysis_filter':
+                case 'sharing_group_filter':
+                    $error = self::validateIntArrayCanonical($value);
+                    break;
+                case 'galaxy_cluster_filter':
+                    $error = self::validateGalaxyClusterFilter($value);
+                    break;
+                // Phase 3 follow-ups: org_filter, attribute_type_filter,
+                // event_id_filter. Each lands with its translate<Type>
+                // and adds a case here.
+            }
+            if ($error !== null) {
+                $errors[$key] = $error;
+            }
+        }
+        return $errors === [] ? null : $errors;
+    }
+
+    /** scalar / null only; PRD §5.5 wire-shape table. */
+    public static function validateTimeWindow($value): ?string
+    {
+        if ($value === null || is_int($value) || is_string($value)) {
+            return null;
+        }
+        return 'time_window must be a scalar (null, int seconds, '
+             . 'or string like "7d" / "P7D" / "PT12H").';
+    }
+
+    /** `{from: <string|null>, to: <string|null>}` object. */
+    public static function validateDateRange($value): ?string
+    {
+        if ($value === null) return null;
+        if (!is_array($value)) {
+            return 'date_range must be an object with from / to keys.';
+        }
+        foreach (['from', 'to'] as $axis) {
+            if (!array_key_exists($axis, $value)) continue;
+            $v = $value[$axis];
+            if ($v !== null && !is_string($v)) {
+                return "date_range.$axis must be a string or null.";
+            }
+        }
+        return null;
+    }
+
+    /** `{include?: string[], exclude?: string[]}` object. */
+    public static function validateTagFilter($value): ?string
+    {
+        if ($value === null) return null;
+        if (!is_array($value)) {
+            return 'tag_filter must be an object with include / exclude arrays.';
+        }
+        foreach (['include', 'exclude'] as $axis) {
+            if (!array_key_exists($axis, $value)) continue;
+            $v = $value[$axis];
+            if ($v === null) continue;
+            if (!is_array($v)) {
+                return "tag_filter.$axis must be an array of strings.";
+            }
+            foreach ($v as $entry) {
+                if (!is_string($entry)) {
+                    return "tag_filter.$axis entries must be strings.";
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Object with optional sector/type/nationality/name/uuid/local keys. */
+    public static function validateOrgMetaFilter($value): ?string
+    {
+        if ($value === null) return null;
+        if (!is_array($value)) {
+            return 'org_meta_filter must be an object.';
+        }
+        return null;
+    }
+
+    /**
+     * Shared validator for the four int-array-canonical types
+     * (distribution / threat_level / analysis / sharing_group). Accepts
+     * the same shapes _normaliseIntArray normalises — int, numeric
+     * string, or array of those — and rejects everything else.
+     */
+    public static function validateIntArrayCanonical($value): ?string
+    {
+        if ($value === null) return null;
+        if (is_int($value)) return null;
+        if (is_string($value)) {
+            return is_numeric($value) ? null
+                : 'int-array canonical must be int, numeric string, '
+                . 'or array of those.';
+        }
+        if (!is_array($value)) {
+            return 'int-array canonical must be int, numeric string, '
+                 . 'or array of those.';
+        }
+        foreach ($value as $entry) {
+            if (is_int($entry)) continue;
+            if (is_string($entry) && is_numeric($entry)) continue;
+            if (is_float($entry) && is_finite($entry)) continue;
+            return 'int-array canonical entries must be numeric.';
+        }
+        return null;
+    }
+
+    /** `{tag_names: string[], galaxy_types?: string[]}` object. */
+    public static function validateGalaxyClusterFilter($value): ?string
+    {
+        if ($value === null) return null;
+        if (!is_array($value)) {
+            return 'galaxy_cluster_filter must be an object with tag_names / galaxy_types.';
+        }
+        $hasShape = array_key_exists('tag_names', $value)
+                 || array_key_exists('galaxy_types', $value);
+        if (!$hasShape) {
+            // Bare arrays (without the structured keys) are how the
+            // translator silently drops malformed input; surface that
+            // shape as an error here so the caller knows the value
+            // won't take effect.
+            return 'galaxy_cluster_filter must declare tag_names and/or galaxy_types.';
+        }
+        foreach (['tag_names', 'galaxy_types'] as $axis) {
+            if (!array_key_exists($axis, $value)) continue;
+            $v = $value[$axis];
+            if ($v === null) continue;
+            if (is_string($v)) continue; // _normaliseStringArray accepts scalars
+            if (!is_array($v)) {
+                return "galaxy_cluster_filter.$axis must be an array of strings.";
+            }
+            foreach ($v as $entry) {
+                if (!is_string($entry)) {
+                    return "galaxy_cluster_filter.$axis entries must be strings.";
+                }
+            }
+        }
+        return null;
+    }
 }

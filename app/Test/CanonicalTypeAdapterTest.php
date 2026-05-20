@@ -1361,4 +1361,190 @@ class CanonicalTypeAdapterTest extends TestCase
         $this->assertSame(['misp-galaxy:tool="Mimikatz"'], $out['cluster']['tag_names']);
         $this->assertSame(['tool'], $out['cluster']['galaxy_types']);
     }
+
+    // -------- validators (PRD §5.5 — Phase 3 closer) --------
+
+    public function testValidateTimeWindowAcceptsNullIntString(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::validateTimeWindow(null));
+        $this->assertNull(CanonicalTypeAdapter::validateTimeWindow(86400));
+        $this->assertNull(CanonicalTypeAdapter::validateTimeWindow('P7D'));
+        $this->assertNull(CanonicalTypeAdapter::validateTimeWindow('7d'));
+        $this->assertNull(CanonicalTypeAdapter::validateTimeWindow('-1'));
+    }
+
+    public function testValidateTimeWindowRejectsArrayAndObject(): void
+    {
+        $this->assertNotNull(CanonicalTypeAdapter::validateTimeWindow([1, 2, 3]));
+        $this->assertNotNull(CanonicalTypeAdapter::validateTimeWindow(['key' => 'val']));
+        $this->assertNotNull(CanonicalTypeAdapter::validateTimeWindow(new stdClass()));
+    }
+
+    public function testValidateDateRangeAcceptsCanonicalShapes(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::validateDateRange(null));
+        $this->assertNull(CanonicalTypeAdapter::validateDateRange([
+            'from' => '2026-01-01',
+            'to'   => '2026-03-01',
+        ]));
+        $this->assertNull(CanonicalTypeAdapter::validateDateRange([
+            'from' => '2026-01-01',
+            'to'   => null,
+        ]));
+        $this->assertNull(CanonicalTypeAdapter::validateDateRange([]));
+    }
+
+    public function testValidateDateRangeRejectsNonStringValues(): void
+    {
+        $this->assertNotNull(CanonicalTypeAdapter::validateDateRange([
+            'from' => 20260101,
+            'to'   => '2026-03-01',
+        ]));
+        $this->assertNotNull(CanonicalTypeAdapter::validateDateRange('garbage'));
+    }
+
+    public function testValidateTagFilterAcceptsCanonicalShape(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::validateTagFilter(null));
+        $this->assertNull(CanonicalTypeAdapter::validateTagFilter([
+            'include' => ['tlp:white', 'tlp:green'],
+            'exclude' => ['tlp:red'],
+        ]));
+        $this->assertNull(CanonicalTypeAdapter::validateTagFilter([
+            'include' => [],
+            'exclude' => [],
+        ]));
+        $this->assertNull(CanonicalTypeAdapter::validateTagFilter(['include' => null]));
+    }
+
+    public function testValidateTagFilterRejectsScalarAndNonStringEntries(): void
+    {
+        $this->assertNotNull(CanonicalTypeAdapter::validateTagFilter('foo'));
+        $this->assertNotNull(CanonicalTypeAdapter::validateTagFilter(42));
+        $this->assertNotNull(CanonicalTypeAdapter::validateTagFilter([
+            'include' => ['tlp:white', 42, 'tlp:green'],
+        ]));
+        $this->assertNotNull(CanonicalTypeAdapter::validateTagFilter([
+            'exclude' => 'not-an-array',
+        ]));
+    }
+
+    public function testValidateOrgMetaFilterAcceptsObject(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::validateOrgMetaFilter(null));
+        $this->assertNull(CanonicalTypeAdapter::validateOrgMetaFilter([]));
+        $this->assertNull(CanonicalTypeAdapter::validateOrgMetaFilter([
+            'sector' => ['finance'],
+            'type'   => ['CSIRT'],
+        ]));
+    }
+
+    public function testValidateOrgMetaFilterRejectsScalar(): void
+    {
+        $this->assertNotNull(CanonicalTypeAdapter::validateOrgMetaFilter('CIRCL'));
+        $this->assertNotNull(CanonicalTypeAdapter::validateOrgMetaFilter(42));
+    }
+
+    public function testValidateIntArrayCanonicalAcceptsAdapterShapes(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::validateIntArrayCanonical(null));
+        $this->assertNull(CanonicalTypeAdapter::validateIntArrayCanonical(3));
+        $this->assertNull(CanonicalTypeAdapter::validateIntArrayCanonical('3'));
+        $this->assertNull(CanonicalTypeAdapter::validateIntArrayCanonical([1, 2, 3]));
+        $this->assertNull(CanonicalTypeAdapter::validateIntArrayCanonical(['1', 2, 3.0]));
+        $this->assertNull(CanonicalTypeAdapter::validateIntArrayCanonical([]));
+    }
+
+    public function testValidateIntArrayCanonicalRejectsGarbage(): void
+    {
+        $this->assertNotNull(CanonicalTypeAdapter::validateIntArrayCanonical('garbage'));
+        $this->assertNotNull(CanonicalTypeAdapter::validateIntArrayCanonical([1, 'garbage', 3]));
+        $this->assertNotNull(CanonicalTypeAdapter::validateIntArrayCanonical(['key' => 'val']));
+    }
+
+    public function testValidateGalaxyClusterFilterAcceptsCanonicalShape(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::validateGalaxyClusterFilter(null));
+        $this->assertNull(CanonicalTypeAdapter::validateGalaxyClusterFilter([
+            'tag_names'    => ['misp-galaxy:tool="Mimikatz"'],
+            'galaxy_types' => ['tool'],
+        ]));
+        $this->assertNull(CanonicalTypeAdapter::validateGalaxyClusterFilter([
+            'tag_names' => [],
+        ]));
+        $this->assertNull(CanonicalTypeAdapter::validateGalaxyClusterFilter([
+            'tag_names' => 'misp-galaxy:tool="Mimikatz"',
+        ]));
+    }
+
+    public function testValidateGalaxyClusterFilterRejectsBareArrayAndNonStringEntries(): void
+    {
+        $this->assertNotNull(CanonicalTypeAdapter::validateGalaxyClusterFilter([]));
+        $this->assertNotNull(CanonicalTypeAdapter::validateGalaxyClusterFilter([1, 2, 3]));
+        $this->assertNotNull(CanonicalTypeAdapter::validateGalaxyClusterFilter([
+            'tag_names' => [42],
+        ]));
+        $this->assertNotNull(CanonicalTypeAdapter::validateGalaxyClusterFilter('garbage'));
+    }
+
+    public function testValidateReturnsNullForValidConfig(): void
+    {
+        $widget = new stdClass();
+        $widget->schema = [
+            'time_window' => ['type' => 'time_window'],
+            'threat_level' => ['type' => 'threat_level_filter'],
+        ];
+        $config = ['time_window' => 'P7D', 'threat_level' => [3, 4]];
+        $this->assertNull(CanonicalTypeAdapter::validate($widget, $config));
+    }
+
+    public function testValidateReturnsErrorMapForInvalidConfig(): void
+    {
+        $widget = new stdClass();
+        $widget->schema = [
+            'time_window' => ['type' => 'time_window'],
+            'threat_level' => ['type' => 'threat_level_filter'],
+            'tag_filter' => ['type' => 'tag_filter'],
+        ];
+        $config = [
+            'time_window'  => ['array', 'not', 'scalar'],  // bad
+            'threat_level' => 'garbage',                     // bad
+            'tag_filter'   => ['include' => ['ok'], 'exclude' => 'not-array'], // bad
+        ];
+        $errors = CanonicalTypeAdapter::validate($widget, $config);
+        $this->assertIsArray($errors);
+        $this->assertArrayHasKey('time_window', $errors);
+        $this->assertArrayHasKey('threat_level', $errors);
+        $this->assertArrayHasKey('tag_filter', $errors);
+    }
+
+    public function testValidateSkipsKeysWithoutSchemaEntry(): void
+    {
+        $widget = new stdClass();
+        $widget->schema = [
+            'time_window' => ['type' => 'time_window'],
+        ];
+        // 'threshold' has no schema entry → validator doesn't care.
+        $config = ['time_window' => 'P7D', 'threshold' => 'not-a-number'];
+        $this->assertNull(CanonicalTypeAdapter::validate($widget, $config));
+    }
+
+    public function testValidateSkipsAbsentKeys(): void
+    {
+        $widget = new stdClass();
+        $widget->schema = [
+            'time_window'  => ['type' => 'time_window'],
+            'threat_level' => ['type' => 'threat_level_filter'],
+        ];
+        // Config is missing both keys — that's fine, validators are
+        // shape-only, not required-field checkers.
+        $this->assertNull(CanonicalTypeAdapter::validate($widget, []));
+    }
+
+    public function testValidateHandlesWidgetWithoutSchemaProperty(): void
+    {
+        $widget = new stdClass();
+        $config = ['anything' => 'goes'];
+        $this->assertNull(CanonicalTypeAdapter::validate($widget, $config));
+    }
 }

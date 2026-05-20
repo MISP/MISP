@@ -226,6 +226,7 @@ class DashboardsController extends AppController
             throw new NotFoundException(__('No saved dashboard layout.'));
         }
         App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
+        App::uses('CanonicalTypeAdapter', 'Lib/Dashboard/Tools');
         $widgets = LayoutFixup::applyReadFixups($saved);
 
         // Index widgets by instance_id once; patches touching the same
@@ -236,10 +237,41 @@ class DashboardsController extends AppController
                 $index[$w['instance_id']] = $i;
             }
         }
+        // PRD §5.5 — validate canonical-typed slots before applying any
+        // patch. Catches malformed shapes (e.g. tag_filter as a scalar,
+        // threat_level as a non-numeric string) loudly at save time
+        // rather than letting them silently coerce to empty filters at
+        // render time. Validators accept both canonical and legacy
+        // shapes; a layout-drag re-POST of an un-edited legacy config
+        // passes through unchanged.
+        $validationErrors = array();
         foreach ($normalised as $p) {
             if (!isset($index[$p['instance_id']])) {
                 throw new NotFoundException(__('Widget instance not found in saved layout.'));
             }
+            $className = $widgets[$index[$p['instance_id']]]['widget'];
+            try {
+                $widget = $this->Dashboard->loadWidget($user, $className);
+            } catch (Exception $e) {
+                // Widget class missing or ACL-blocked — skip validation
+                // for this patch and let the save proceed. The render-
+                // time path will surface the underlying error.
+                $widget = null;
+            }
+            if ($widget !== null) {
+                $errs = CanonicalTypeAdapter::validate($widget, $p['config']);
+                if ($errs !== null) {
+                    $validationErrors[$p['instance_id']] = $errs;
+                }
+            }
+        }
+        if (!empty($validationErrors)) {
+            throw new BadRequestException(__(
+                'Canonical-type validation failed: %s',
+                json_encode($validationErrors, JSON_UNESCAPED_SLASHES)
+            ));
+        }
+        foreach ($normalised as $p) {
             $widgets[$index[$p['instance_id']]]['config'] = $p['config'];
         }
 
