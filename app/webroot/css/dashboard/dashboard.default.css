@@ -725,6 +725,93 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 }
 
 /* ============================================================
+ * Achievements renderer — two-section badges list (unlocked + locked).
+ * Each row is a 48×48 icon + title + (locked-only) "Read more" link.
+ * AchievementsWidget is 4×10 (tall) — the list scrolls when content
+ * exceeds the widget body. No bullets; section headings collapse to
+ * widget-body type scale.
+ * ============================================================ */
+.misp-achievements-section {
+  margin: 0 0 var(--misp-dash-space-4) 0;
+}
+.misp-achievements-section:last-of-type {
+  margin-bottom: 0;
+}
+.misp-achievements-heading {
+  margin: 0 0 var(--misp-dash-space-2) 0;
+  padding: 0;
+  font-size: var(--misp-dash-fs-base);
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
+  letter-spacing: 0.01em;
+}
+.misp-achievements-empty {
+  margin: 0;
+  color: var(--misp-dash-text-muted);
+  font-style: italic;
+  font-size: var(--misp-dash-fs-sm);
+}
+.misp-achievements-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-2);
+}
+.misp-achievements-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--misp-dash-space-3);
+  padding: var(--misp-dash-space-2);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+}
+.misp-achievements-icon {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  display: block;
+}
+.misp-achievements-icon--missing {
+  background: var(--misp-dash-surface-sunken);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-achievements-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+}
+.misp-achievements-title {
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  line-height: 1.4;
+}
+.misp-achievements-help {
+  color: var(--misp-dash-accent);
+  text-decoration: none;
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  align-self: flex-start;
+  border-bottom: 1px dashed transparent;
+  transition: border-color var(--misp-dash-transition-fast);
+}
+.misp-achievements-help:hover,
+.misp-achievements-help:focus-visible {
+  border-bottom-color: currentColor;
+  color: var(--misp-dash-accent-hover);
+}
+.misp-achievements-help:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+  border-radius: var(--misp-dash-radius-sm);
+}
+
+/* ============================================================
  * Chart container — ECharts mounts inside, fills the widget body.
  * Renderers under Elements/dashboard/Widgets/ emit a static
  * <div class="misp-chart"> + data-misp-chart="<kind>" attribute;
