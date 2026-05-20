@@ -453,6 +453,132 @@ class DashboardsController extends AppController
     }
 
     /**
+     * List galaxy types for the galaxy_cluster_filter canonical
+     * picker's scope dropdown. Returns one entry per enabled galaxy:
+     *
+     *   [{ type: string,         // galaxies.type (e.g.
+     *      name: string,         // galaxies.name
+     *      description: string,  // optional
+     *      cluster_count: int }, // # of non-deleted clusters
+     *    ...]
+     *
+     * Sorted by cluster_count DESC so high-volume galaxies (mitre-
+     * attack-pattern, threat-actor, sigma-rules) surface first in the
+     * picker.
+     *
+     * Read-only public endpoint; same '*' ACL policy as the other
+     * dashboard read endpoints. Galaxies are non-sensitive metadata
+     * (the catalogue is shared across the public MISP-galaxy repo)
+     * — no per-user ACL on the type list. Per-cluster visibility is
+     * gated by event ACL on the consumer's query path.
+     */
+    public function listGalaxyTypes()
+    {
+        $this->loadModel('Galaxy');
+        // One row per galaxy.type via the join + GROUP BY on type.
+        // Cake's `find('all')` with joins + group is the standard
+        // tool here; the result is post-processed below into the
+        // picker's flat shape.
+        $rows = $this->Galaxy->find('all', [
+            'recursive' => -1,
+            'fields' => [
+                'Galaxy.type',
+                'Galaxy.name',
+                'Galaxy.description',
+                'COUNT(DISTINCT GalaxyCluster.id) AS cluster_count',
+            ],
+            'joins' => [[
+                'table' => 'galaxy_clusters',
+                'alias' => 'GalaxyCluster',
+                'type'  => 'LEFT',
+                'conditions' => [
+                    'GalaxyCluster.galaxy_id = Galaxy.id',
+                    'GalaxyCluster.deleted = 0',
+                ],
+            ]],
+            'conditions' => ['Galaxy.enabled' => 1],
+            'group' => ['Galaxy.type', 'Galaxy.name', 'Galaxy.description'],
+            'order' => ['cluster_count DESC', 'Galaxy.name ASC'],
+        ]);
+        $out = [];
+        foreach ($rows as $row) {
+            $out[] = [
+                'type'          => (string)$row['Galaxy']['type'],
+                'name'          => (string)$row['Galaxy']['name'],
+                'description'   => (string)$row['Galaxy']['description'],
+                'cluster_count' => (int)$row[0]['cluster_count'],
+            ];
+        }
+        return $this->RestResponse->viewData($out, 'json');
+    }
+
+    /**
+     * Typeahead-style search for galaxy clusters, scoped by galaxy
+     * type. Returns up to 50 matching clusters per query, ordered
+     * alphabetically by value.
+     *
+     * Query parameters:
+     *   - galaxy_type (required): galaxies.type value
+     *     (e.g. 'mitre-attack-pattern')
+     *   - q          (optional):  case-insensitive substring match
+     *     on the cluster's value. Empty / unset = return the first
+     *     50 clusters of the type, unfiltered.
+     *
+     * Response:
+     *   [{ tag_name: string, value: string, uuid: string }, ...]
+     *
+     * Why typeahead vs. exhaustive list: the test instance has
+     * 55,036 clusters across 121 galaxy types. Returning all
+     * clusters for a single popular type (e.g. mitre-attack-pattern
+     * = 1,296 clusters) is still ~150KB of JSON; for sigma-rules
+     * (6,961 clusters) it's ~800KB. Substring search caps the
+     * payload at the 50-result limit (~5KB typical) and matches the
+     * UX pattern users expect from a search-as-you-type input.
+     *
+     * Read-only public endpoint; same '*' ACL policy as the other
+     * dashboard read endpoints.
+     */
+    public function searchGalaxyClusters()
+    {
+        $named = isset($this->request->params['named']) ? $this->request->params['named'] : [];
+        $query = isset($this->request->query) ? $this->request->query : [];
+        $galaxyType = isset($query['galaxy_type']) ? (string)$query['galaxy_type'] : (isset($named['galaxy_type']) ? (string)$named['galaxy_type'] : '');
+        $q          = isset($query['q'])          ? (string)$query['q']          : (isset($named['q'])          ? (string)$named['q']          : '');
+        if ($galaxyType === '' || !preg_match('/^[A-Za-z0-9_\-]+$/', $galaxyType)) {
+            throw new BadRequestException(__('Missing or malformed `galaxy_type` parameter.'));
+        }
+        $this->loadModel('GalaxyCluster');
+        $conditions = [
+            'GalaxyCluster.type'    => $galaxyType,
+            'GalaxyCluster.deleted' => 0,
+        ];
+        if ($q !== '') {
+            // LIKE with %wrapped% substring match. CakePHP escapes
+            // the right-hand value, but `%` and `_` are LIKE wildcards
+            // — strip them from user input so the search behaves as
+            // a plain substring lookup, not a pattern match.
+            $cleanQ = str_replace(['%', '_'], '', $q);
+            $conditions['GalaxyCluster.value LIKE'] = '%' . $cleanQ . '%';
+        }
+        $rows = $this->GalaxyCluster->find('all', [
+            'recursive' => -1,
+            'fields' => ['GalaxyCluster.tag_name', 'GalaxyCluster.value', 'GalaxyCluster.uuid'],
+            'conditions' => $conditions,
+            'order' => 'GalaxyCluster.value ASC',
+            'limit' => 50,
+        ]);
+        $out = [];
+        foreach ($rows as $row) {
+            $out[] = [
+                'tag_name' => (string)$row['GalaxyCluster']['tag_name'],
+                'value'    => (string)$row['GalaxyCluster']['value'],
+                'uuid'     => (string)$row['GalaxyCluster']['uuid'],
+            ];
+        }
+        return $this->RestResponse->viewData($out, 'json');
+    }
+
+    /**
      * Render the widget wrapper element (PRD §8.3) for a new tile
      * just placed by the Add Widget flow. The wrapper carries every
      * §8.5 hook attribute (data-misp-widget, data-widget-*, data-
