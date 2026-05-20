@@ -172,10 +172,26 @@ class CanonicalTypeAdapter
                     // helper extraction.
                     $config[$key] = self::translateAnalysisFilter($config[$key]);
                     break;
-                // Phase 3 adds: org_filter, sharing_group_filter,
-                // galaxy_cluster_filter, attribute_type_filter,
-                // event_id_filter. Each adds one case + one
-                // translate<Type>() method below.
+                case 'sharing_group_filter':
+                    // Int array of SharingGroup.id values. Wire shape
+                    // is the same as the int-enum canonicals
+                    // (distribution / threat_level / analysis) but
+                    // the valid set is NOT a fixed enum — it's the
+                    // set of SGs the current user can see, which is
+                    // user-specific and runtime-determined. The
+                    // adapter doesn't validate against the user's
+                    // accessible set (it has no user context); ACL
+                    // enforcement lives in the consumer widget's
+                    // query path (Event.sharing_group_id IN (...)
+                    // on a base set that's already ACL-filtered, so
+                    // unauthorized IDs simply match no rows — same
+                    // loud-feedback semantics as out-of-range
+                    // threat_level / analysis values).
+                    $config[$key] = self::translateSharingGroupFilter($config[$key]);
+                    break;
+                // Phase 3 adds: org_filter, galaxy_cluster_filter,
+                // attribute_type_filter, event_id_filter. Each adds
+                // one case + one translate<Type>() method below.
             }
         }
         return $config;
@@ -431,6 +447,32 @@ class CanonicalTypeAdapter
      * @return int[]|null
      */
     public static function translateAnalysisFilter($value)
+    {
+        return self::_normaliseIntArray($value);
+    }
+
+    /**
+     * Translate a `sharing_group_filter` value.
+     *
+     * Wire shape is an int array of `SharingGroup.id` values (canonical),
+     * scalar int / numeric string (legacy or hand-edited config), or
+     * null (no filter). Unlike the int-enum canonicals there is no
+     * fixed valid range — accessible SG IDs depend on the user, so
+     * any positive integer is structurally valid here; ACL enforcement
+     * happens in the consumer widget's query path against an already-
+     * ACL-filtered base set.
+     *
+     * Same `_normaliseIntArray` contract as distribution / threat_level
+     * / analysis: array passthrough, scalar/string wrap, mixed coerce
+     * + non-numeric drop, null preservation. Unauthorized IDs that
+     * survive the normaliser simply match no rows in the downstream
+     * `Event.sharing_group_id IN (...)` clause — same loud-feedback
+     * semantics as out-of-range threat_level values.
+     *
+     * @param mixed $value
+     * @return int[]|null
+     */
+    public static function translateSharingGroupFilter($value)
     {
         return self::_normaliseIntArray($value);
     }

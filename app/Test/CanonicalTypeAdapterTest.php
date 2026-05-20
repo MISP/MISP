@@ -1129,4 +1129,114 @@ class CanonicalTypeAdapterTest extends TestCase
         $this->assertSame([1], $out['threat_level']);
         $this->assertSame([0, 1], $out['analysis']);
     }
+
+    // -------- translateSharingGroupFilter() unit tests --------
+    //
+    // Same `_normaliseIntArray` contract as the int-enum trio
+    // (distribution / threat_level / analysis). The independent
+    // tests here lock the sharing_group_filter wire contract — so
+    // a future change to the shared helper doesn't silently break
+    // sharing_group expectations — AND verify the translate()
+    // switch routes correctly by type.
+    //
+    // Unlike the int-enum canonicals there is no fixed valid range
+    // (accessible SG IDs depend on the user). The "out-of-range
+    // preserved" property still applies: unauthorized IDs that
+    // survive the normaliser simply match no rows in the consumer's
+    // downstream SQL, which is the same loud-feedback semantics.
+
+    public function testSharingGroupFilterIntArrayPassesThrough(): void
+    {
+        $this->assertSame([1, 5, 12], CanonicalTypeAdapter::translateSharingGroupFilter([1, 5, 12]));
+        $this->assertSame([42], CanonicalTypeAdapter::translateSharingGroupFilter([42]));
+    }
+
+    public function testSharingGroupFilterEmptyArrayPassesThrough(): void
+    {
+        $this->assertSame([], CanonicalTypeAdapter::translateSharingGroupFilter([]));
+    }
+
+    public function testSharingGroupFilterNullPassesThrough(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateSharingGroupFilter(null));
+    }
+
+    public function testSharingGroupFilterScalarIntWrapsToArray(): void
+    {
+        $this->assertSame([7], CanonicalTypeAdapter::translateSharingGroupFilter(7));
+        $this->assertSame([1], CanonicalTypeAdapter::translateSharingGroupFilter(1));
+    }
+
+    public function testSharingGroupFilterScalarNumericStringWrapsToArray(): void
+    {
+        $this->assertSame([7], CanonicalTypeAdapter::translateSharingGroupFilter('7'));
+        $this->assertSame([42], CanonicalTypeAdapter::translateSharingGroupFilter('42'));
+    }
+
+    public function testSharingGroupFilterMixedArrayCoercesAndDrops(): void
+    {
+        $this->assertSame(
+            [1, 5, 12],
+            CanonicalTypeAdapter::translateSharingGroupFilter([1, '5', 12.0])
+        );
+        $this->assertSame(
+            [3],
+            CanonicalTypeAdapter::translateSharingGroupFilter([3, 'bad', null, []])
+        );
+        // Large IDs (potentially unauthorised) preserved on the array
+        // path — ACL filtering happens in the consumer's query, not
+        // here. The IN clause against an already-ACL-filtered base
+        // matches no rows for unauthorised IDs.
+        $this->assertSame(
+            [9999],
+            CanonicalTypeAdapter::translateSharingGroupFilter([9999])
+        );
+    }
+
+    public function testSharingGroupFilterUnrecognisedShapesReturnNull(): void
+    {
+        $this->assertNull(CanonicalTypeAdapter::translateSharingGroupFilter('not-a-number'));
+        $this->assertNull(CanonicalTypeAdapter::translateSharingGroupFilter(true));
+        $this->assertNull(CanonicalTypeAdapter::translateSharingGroupFilter(false));
+        $this->assertNull(CanonicalTypeAdapter::translateSharingGroupFilter(new stdClass()));
+    }
+
+    public function testSharingGroupFilterIsIdempotent(): void
+    {
+        $once  = CanonicalTypeAdapter::translateSharingGroupFilter([1, '5', 12]);
+        $twice = CanonicalTypeAdapter::translateSharingGroupFilter($once);
+        $this->assertSame($once, $twice);
+    }
+
+    public function testTranslateRoutesSharingGroupFilterByType(): void
+    {
+        $widget = new stdClass();
+        $widget->schema = [
+            'sharing_group' => ['type' => 'sharing_group_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'sharing_group' => [1, '5', 12],
+        ]);
+        $this->assertSame([1, 5, 12], $out['sharing_group']);
+    }
+
+    public function testTranslateSharingGroupFilterCoexistsWithOtherFilters(): void
+    {
+        // EventStreamWidget's expected post-backfill shape: declares
+        // sharing_group_filter alongside the existing canonicals.
+        $widget = new stdClass();
+        $widget->schema = [
+            'threat_level'  => ['type' => 'threat_level_filter'],
+            'analysis'      => ['type' => 'analysis_filter'],
+            'sharing_group' => ['type' => 'sharing_group_filter'],
+        ];
+        $out = CanonicalTypeAdapter::translate($widget, [
+            'threat_level'  => [1, 2],
+            'analysis'      => [0],
+            'sharing_group' => [3, 7],
+        ]);
+        $this->assertSame([1, 2], $out['threat_level']);
+        $this->assertSame([0], $out['analysis']);
+        $this->assertSame([3, 7], $out['sharing_group']);
+    }
 }
