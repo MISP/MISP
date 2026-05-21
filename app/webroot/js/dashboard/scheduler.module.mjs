@@ -37,6 +37,8 @@
 const ATTR_WIDGET           = 'data-misp-widget';
 const ATTR_WIDGET_INSTANCE  = 'data-widget-instance-id';
 const ATTR_WIDGET_DELAY     = 'data-widget-refresh-delay';
+const ATTR_WIDGET_CONFIG    = 'data-widget-config';
+const CONFIG_OVERRIDE_KEY   = 'refresh_delay';
 
 const TICK_MS         = 1000;   // state-check cadence; cheap by design
 const INFLIGHT_CAP    = 4;      // PRD §10 concurrent-render limit per board
@@ -101,22 +103,26 @@ export class Scheduler {
   // ---- tile registry ----
 
   /**
-   * Register (or refresh the registration of) a tile. Re-reading the
-   * delay attribute every call means configure-save can re-enqueue a
-   * tile after a per-instance refresh override changes (PRD F2.5,
-   * future sub-task) without the scheduler caching a stale value.
+   * Register (or refresh the registration of) a tile. Resolution order:
+   *   1. config['refresh_delay'] (per-instance override, PRD F2.5).
+   *      Numeric → that value (0 = explicitly disabled).
+   *   2. data-widget-refresh-delay attribute (class default, server-
+   *      emitted, immutable per page-load).
+   * Re-reading both every call means configure-save can re-enqueue
+   * after an override change and the scheduler picks it up without
+   * any DOM attribute mutation.
    *
-   * A tile with no `data-widget-refresh-delay` attribute, or a non-
-   * positive value, is silently ignored — the absence of the attribute
-   * is the canonical "no auto-refresh" signal.
+   * A tile whose resolved delay is <= 0, or whose tile carries
+   * neither attribute, is dropped from the registry — both the
+   * absence of `data-widget-refresh-delay` and an explicit `0`
+   * override are valid "no auto-refresh" signals.
    */
   enqueueWidget(widgetEl) {
     if (!widgetEl || !widgetEl.getAttribute) return;
     if (!this.boardRoot.contains(widgetEl)) return;
     const id = widgetEl.getAttribute(ATTR_WIDGET_INSTANCE);
     if (!id) return;
-    const raw = widgetEl.getAttribute(ATTR_WIDGET_DELAY);
-    const delaySec = parseInt(raw || '0', 10);
+    const delaySec = this._resolveDelaySec(widgetEl);
     if (!Number.isFinite(delaySec) || delaySec <= 0) {
       // Tile was previously enqueued but now declares no refresh —
       // drop it so the tick loop doesn't keep iterating an inert entry.
@@ -199,5 +205,38 @@ export class Scheduler {
     if (typeof document === 'undefined') return;
     this._docHidden = document.hidden === true;
     // No flush on re-show — the next normal tick handles overdue tiles.
+  }
+
+  /**
+   * Resolve a tile's refresh delay (seconds) from its DOM:
+   *   1. data-widget-config['refresh_delay'] — per-instance override.
+   *      Numeric value wins; 0 means "explicitly disabled".
+   *   2. data-widget-refresh-delay — class default.
+   * Returns the resolved int, or 0 if no auto-refresh applies.
+   * Defensive against malformed JSON in data-widget-config (treats
+   * parse failure as "no override").
+   */
+  _resolveDelaySec(widgetEl) {
+    const rawCfg = widgetEl.getAttribute(ATTR_WIDGET_CONFIG);
+    if (rawCfg) {
+      try {
+        const cfg = JSON.parse(rawCfg);
+        if (cfg && typeof cfg === 'object'
+            && Object.prototype.hasOwnProperty.call(cfg, CONFIG_OVERRIDE_KEY)) {
+          const override = cfg[CONFIG_OVERRIDE_KEY];
+          // Empty string / null / undefined / non-numeric → fall
+          // through to the class default. Numeric (including 0) wins.
+          if (override !== '' && override !== null && override !== undefined
+              && Number.isFinite(Number(override))) {
+            return Math.max(0, Math.trunc(Number(override)));
+          }
+        }
+      } catch (_) {
+        // malformed config JSON — defensive: use class default
+      }
+    }
+    const rawDefault = widgetEl.getAttribute(ATTR_WIDGET_DELAY);
+    const def = parseInt(rawDefault || '0', 10);
+    return Number.isFinite(def) ? def : 0;
   }
 }

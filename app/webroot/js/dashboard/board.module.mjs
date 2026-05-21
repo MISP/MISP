@@ -624,6 +624,11 @@ class Board {
           openConfigure(widgetEl, {
             onSave: (savedEl) => {
               this._renderWidget(savedEl);
+              // Re-resolve the refresh delay (config.refresh_delay
+              // may have changed). enqueueWidget reads both the
+              // class-default attribute and config — no DOM mutation
+              // needed.
+              this.scheduler.enqueueWidget(savedEl);
               refreshToolbar(this.root);
               this._scheduleWidgetSave(savedEl);
             },

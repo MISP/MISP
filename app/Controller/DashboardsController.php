@@ -92,17 +92,39 @@ class DashboardsController extends AppController
                     if (isset($instance->placeholder) && is_string($instance->placeholder)) {
                         $w['placeholder'] = $instance->placeholder;
                     }
-                    // Phase 5 — board-level scheduler reads this per-tile
-                    // delay (seconds) to know how often to enqueue
-                    // re-renders. `empty()` collapses both the legacy
-                    // `false` (no auto-refresh) and an unset property to
-                    // the canonical 0 — the wrapper omits the attribute
-                    // entirely on zero, keeping DOM lean. F2.5 per-
-                    // instance override (separate sub-task) folds the
-                    // user's config['refresh_delay'] on top here.
+                    // Phase 5 scheduler — wrapper.ctp emits this as
+                    // data-widget-refresh-delay (omitted on zero). This
+                    // is the CLASS DEFAULT only; per-instance override
+                    // resolution happens client-side at enqueue time
+                    // (scheduler reads config.refresh_delay first, falls
+                    // back to this attribute). Keeping the attribute
+                    // immutable per page-load means configure-save
+                    // doesn't need to mutate it — just calling
+                    // scheduler.enqueueWidget after the save picks up
+                    // the new config from data-widget-config naturally.
                     if (!empty($instance->autoRefreshDelay)
                             && is_numeric($instance->autoRefreshDelay)) {
                         $w['autoRefreshDelay'] = (int)$instance->autoRefreshDelay;
+                    }
+                    // F2.5 per-instance override picker — only surface
+                    // the configure-form field when the class declares
+                    // auto-refresh, otherwise the field would imply
+                    // behaviour the widget never had. Help text shows
+                    // the class default so the user knows what blank
+                    // means. No `default` on the schema entry — the
+                    // form renders blank for users with no override,
+                    // populated only if they've saved one.
+                    if ($w['autoRefreshDelay'] > 0) {
+                        if (!is_array($w['schema'])) {
+                            $w['schema'] = [];
+                        }
+                        $w['schema']['refresh_delay'] = array(
+                            'type' => 'int',
+                            'help' => sprintf(
+                                __('Override the auto-refresh interval (seconds). Leave blank to use the widget default (%ds). Set to 0 to disable auto-refresh for this tile.'),
+                                $w['autoRefreshDelay']
+                            ),
+                        );
                     }
                 }
             }
@@ -742,14 +764,27 @@ class DashboardsController extends AppController
             ? $widget->placeholder
             : '';
         // Phase 5 scheduler — wrapper.ctp emits data-widget-refresh-delay
-        // from this value (only when > 0). Without this enrichment, an
-        // Add-Widget'd tile lands with no delay attribute and the
-        // scheduler skips it forever (caught during smoke when a fresh
-        // WhoamiWidget — $autoRefreshDelay=3 — failed to start ticking).
+        // from this value (only when > 0). CLASS DEFAULT only; client-
+        // side enqueue handles config.refresh_delay override resolution
+        // (see index() rationale).
         $autoRefreshDelay = 0;
         if (!empty($widget->autoRefreshDelay)
                 && is_numeric($widget->autoRefreshDelay)) {
             $autoRefreshDelay = (int)$widget->autoRefreshDelay;
+        }
+        // F2.5 schema injection — mirrors index(); see commentary
+        // there for the no-`default` rationale.
+        if ($autoRefreshDelay > 0) {
+            if (!is_array($schema)) {
+                $schema = array();
+            }
+            $schema['refresh_delay'] = array(
+                'type' => 'int',
+                'help' => sprintf(
+                    __('Override the auto-refresh interval (seconds). Leave blank to use the widget default (%ds). Set to 0 to disable auto-refresh for this tile.'),
+                    $autoRefreshDelay
+                ),
+            );
         }
 
         $widgetData = array(
