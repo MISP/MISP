@@ -411,7 +411,7 @@ body[data-controller="users"][data-action="login"] {
 
 #flashOverlay {
     position: fixed;
-    top: 50px;
+    top: 60px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 9999;
@@ -734,4 +734,12 @@ th .sort-icon::before {
     margin-bottom: 0.75rem;
     break-inside: avoid;
     vertical-align: top;
+}
+
+.alert{
+    --bs-alert-padding-y: 1.6rem !important;
+}
+
+.alert-dismissible .btn-close {
+    padding: 1.8rem 1.6rem !important;
 }

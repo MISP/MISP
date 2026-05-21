@@ -3,10 +3,8 @@
     echo $this->Session->flash('auth');
 ?>
 
-<div class="container pb-5">
-    <div class="d-flex align-items-center justify-content-center">
-        <div class="row justify-content-center">
-            <div class="col-md-auto">
+<div class="d-flex align-items-center justify-content-center overflow-y-auto" style="position: fixed; inset: 0;">
+    <div class="col-md-auto" style="max-width: 500px; width: 100%;">
                 <div class="card shadow-lg p-4">
                     <!-- Welcome message -->
                     <div class="mb-4 text-center">
@@ -226,8 +224,6 @@
                         <?php endif; ?>
                     <?php endif; ?>
                 </div>
-            </div>
-        </div>
     </div>
 </div>
 
