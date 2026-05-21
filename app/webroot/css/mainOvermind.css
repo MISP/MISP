@@ -466,7 +466,7 @@ body[data-controller="users"][data-action="login"] {
 }
 
 .table-scroll {
-    max-height: 100vh;
+    max-height: 90vh;
     overflow-y: auto;
 }
 
