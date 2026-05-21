@@ -53,6 +53,7 @@ import {
   currentValues as currentToolbarValues,
 } from './toolbar.module.mjs';
 import { initMenuButtons } from './menu-button.module.mjs';
+import { Scheduler } from './scheduler.module.mjs';
 
 const ATTR_BOARD_ROOT       = 'data-misp-board-root';
 const ATTR_BOARD_MODE       = 'data-misp-board-mode';
@@ -92,6 +93,16 @@ class Board {
     // When in view mode these are null/false.
     this._editSnapshot = null;
     this._layoutDirty = false;
+    // Phase 5 — single board-level refresh scheduler. Replaces v1's
+    // setTimeout-per-tile cascade with one ticking loop (PRD §10
+    // concurrent-render cap = 4 per board). Enqueue happens during
+    // the initial tile scan in _init and at every add-widget /
+    // discard re-add site; unenqueue at every remove site. Page
+    // Visibility auto-pause is internal to the Scheduler.
+    this.scheduler = new Scheduler({
+      boardRoot: rootEl,
+      renderFn: (el) => this._renderWidget(el),
+    });
     this._wireBoardActions();
     this._wireWidgetActions();
     this._init();
@@ -284,9 +295,13 @@ class Board {
       el.remove();                              // detach so Grid can re-place
       this.grid.addTile({ id, x, y, w, h, el });
       this._renderWidget(el);                   // kick off AJAX render
+      this.scheduler.enqueueWidget(el);         // register for auto-refresh
     }
 
     this._updateDebugReadout();
+    // Start the scheduler after the initial scan so the first tick
+    // sees every tile already enqueued with its lastRender baseline.
+    this.scheduler.start();
 
     // Mount the bulk-edit toolbar for any canonical types declared
     // on this board. The toolbar walks declarer widgets on commit,
@@ -409,7 +424,10 @@ class Board {
         const wEl = this.root.querySelector(
           `[${ATTR_WIDGET_INSTANCE}="${CSS.escape(id)}"]`,
         );
-        if (wEl) disposeChartsIn(wEl);
+        if (wEl) {
+          this.scheduler.unenqueueWidget(wEl);
+          disposeChartsIn(wEl);
+        }
         this.grid.removeTile(id);
       }
     }
@@ -424,6 +442,7 @@ class Board {
         // addTile clears existing inline styles via _applyTileStyle.
         this.grid.addTile({ id: p.id, x: p.x, y: p.y, w: p.w, h: p.h, el });
         this._renderWidget(el);
+        this.scheduler.enqueueWidget(el);
       }
     }
     this._updateDebugReadout();
@@ -548,6 +567,7 @@ class Board {
             // old destructive path so the chart-dispose still runs.
             disposeChartsIn(widgetEl);
           }
+          this.scheduler.unenqueueWidget(widgetEl);
           this.grid.removeTile(id);
           this._updateDebugReadout();
           // removeTile bypasses Grid._commit (it directly mutates
@@ -850,6 +870,7 @@ class Board {
 
     this.grid.addTile({ id: instanceId, x, y, w, h, el: wrapperEl });
     this._renderWidget(wrapperEl);
+    this.scheduler.enqueueWidget(wrapperEl);
     refreshToolbar(this.root);
     this._stageOrSave();
     this._updateDebugReadout();

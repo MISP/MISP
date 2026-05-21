@@ -84,12 +84,25 @@ class DashboardsController extends AppController
         foreach ($widgets as &$w) {
             $w['schema'] = [];
             $w['placeholder'] = '';
+            $w['autoRefreshDelay'] = 0;
             if (!empty($w['widget']) && is_string($w['widget'])) {
                 $instance = $this->Dashboard->loadWidget($user, $w['widget'], true);
                 if ($instance !== false) {
                     $w['schema'] = WidgetSchema::getSchema($instance);
                     if (isset($instance->placeholder) && is_string($instance->placeholder)) {
                         $w['placeholder'] = $instance->placeholder;
+                    }
+                    // Phase 5 — board-level scheduler reads this per-tile
+                    // delay (seconds) to know how often to enqueue
+                    // re-renders. `empty()` collapses both the legacy
+                    // `false` (no auto-refresh) and an unset property to
+                    // the canonical 0 — the wrapper omits the attribute
+                    // entirely on zero, keeping DOM lean. F2.5 per-
+                    // instance override (separate sub-task) folds the
+                    // user's config['refresh_delay'] on top here.
+                    if (!empty($instance->autoRefreshDelay)
+                            && is_numeric($instance->autoRefreshDelay)) {
+                        $w['autoRefreshDelay'] = (int)$instance->autoRefreshDelay;
                     }
                 }
             }

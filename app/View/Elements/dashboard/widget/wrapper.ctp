@@ -13,6 +13,8 @@
  *   data-widget-schema               — JSON-encoded $schema (PRD §5.7)
  *   data-widget-placeholder          — raw $placeholder string (DD-06 seed)
  *   data-widget-alias                — optional display alias
+ *   data-widget-refresh-delay        — Phase 5 board-level scheduler tick
+ *                                      (seconds; only emitted when > 0)
  *   data-position-{x,y,w,h}          — initial grid placement
  *   data-drag-handle                 — drag-trigger element (titlebar)
  *   data-misp-widget-content         — render target for AJAX HTML
@@ -38,6 +40,7 @@
          data-widget-schema='<?= h(json_encode(isset($widget['schema']) && is_array($widget['schema']) ? $widget['schema'] : array(), JSON_UNESCAPED_SLASHES)) ?>'
          data-widget-placeholder="<?= h(isset($widget['placeholder']) && is_string($widget['placeholder']) ? $widget['placeholder'] : '') ?>"
          <?php if (!empty($widget['alias'])): ?>data-widget-alias="<?= h($widget['alias']) ?>"<?php endif; ?>
+         <?php if (!empty($widget['autoRefreshDelay']) && (int)$widget['autoRefreshDelay'] > 0): ?>data-widget-refresh-delay="<?= (int)$widget['autoRefreshDelay'] ?>"<?php endif; ?>
          data-position-x="<?= h($widget['position']['x']) ?>"
          data-position-y="<?= h($widget['position']['y']) ?>"
          data-position-w="<?= h($widget['position']['w']) ?>"

@@ -947,11 +947,11 @@ gone; pause toggle works; auto-pause on hidden tab works.
 - [ ] Drill-down convention per Q3 resolution (auto-wrap vs. explicit)
 - [ ] Renderer-level wrapping for SimpleList (links on rows where applicable)
 - [ ] ECharts click handlers calling drill-down (bar/line/geo)
-- [ ] Board-level refresh scheduler: single timer, max 4 concurrent renders in flight (PRD §10)
+- [x] Board-level refresh scheduler: single timer, max 4 concurrent renders in flight (PRD §10) — landed 2026-05-21 as `scheduler.module.mjs` (~190 lines). Single 1s `setInterval` walks an instance-id keyed `Map<id, {el, delayMs, lastRenderAt, inFlight}>`, in-flight cap = `INFLIGHT_CAP=4`. Tile registration reads `data-widget-refresh-delay` (new attribute on wrapper.ctp + Overmind override; populated server-side from per-class `$autoRefreshDelay` via `DashboardsController::index`'s enrichment loop). Last-render learnt via the existing `misp-board:widget-rendered` event the board already dispatches — scheduler stays decoupled from the manual-refresh button (which continues to call `_renderWidget` directly and trips the same event). Detached-tile defensive sweep: a tile DOM-removed without `unenqueueWidget` is dropped on the next tick check. Browser-verification pending.
 - [ ] Pause-refresh toggle on board toolbar
 - [ ] Per-instance refresh override in widget config form
-- [ ] Auto-pause when document hidden (Page Visibility API)
-- [ ] Manual refresh on a single widget (button on widget chrome in view mode)
+- [x] Auto-pause when document hidden (Page Visibility API) — landed 2026-05-21 as part of scheduler. `_onVisibility` flips `_docHidden`; `_tick` guards with `if (this._paused || this._docHidden) return;`. No flush on re-show — overdue tiles wait until the next normal tick to avoid the re-show refresh storm proportional to away-duration.
+- [x] Manual refresh on a single widget (button on widget chrome in view mode) — already shipped via the existing ↻ button in `wrapper.ctp` line 48 wired in `board.module.mjs:526-529`. Phase 5 ratification only; no new code. The scheduler implicitly resets the tile's `lastRenderAt` when the manual click trips the `widget-rendered` event.
 - [ ] Refresh indicator chip: "updated 30s ago"; uses relative-time formatting that respects locale
 - [ ] Verify cache key includes board scope hash so scope-aware widgets don't cross-pollute (PRD F3.3)
 
