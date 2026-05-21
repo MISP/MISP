@@ -174,12 +174,15 @@ and per-user / per-template management.**
 - ~~**G12.** Persistence and sharing rework~~ — **dropped.** User
   decision (2026-05-04): reuse the existing persistence and sharing
   surface verbatim — the per-user `UserSetting:dashboard` blob and the
-  `dashboards` template table with its `restrict_to_*` flags. v2 only
-  *extends* the blob shape (additive: `{scope, widgets}` replaces a
-  bare `[widgets]` array, with backward-compat read of the legacy
-  shape) and *improves the gallery presentation* of the existing
-  templates table — no schema changes, no clone/fork/publish
-  lifecycle, no sharing-tier work, no soft-delete.
+  `dashboards` template table with its `restrict_to_*` flags. v2 keeps
+  the top-level **bare widget array** (per DD-05 — the `{scope, widgets}`
+  envelope sketched the same morning was retired the same day); only
+  per-widget housekeeping evolves (rename `width/height → w/h`, mint
+  `instance_id` if missing — see DD-01), with backward-compat read of
+  the legacy shape via `LayoutFixup::applyReadFixups()`. v2 also
+  *improves the gallery presentation* of the existing templates table
+  — no schema changes, no clone/fork/publish lifecycle, no sharing-tier
+  work, no soft-delete.
 - **G13.** **Harmonised widget configuration.** Today every widget
   invents its own config key shape: `time_window: "7d"` (TrendingTags),
   `start_date / end_date` (UsageData), free-form mixed with widget-only
@@ -1016,10 +1019,11 @@ These three gates are checked off in Phase 5.5 (Widget Parity Sweep)
 of the progress tracker.
 
 **On data:** the `dashboards` table and `UserSetting:dashboard` rows
-survive untouched through the merge. The blob-shape evolution
-(`{scope, widgets}` replacing the bare array) is the *only* data
-change, applied on a per-row basis on each row's next save (lazy
-read-promote).
+survive untouched through the merge. The top-level shape stays a
+**bare widget array** (per DD-05); the *only* data change is per-widget
+housekeeping (rename `width/height → w/h`, mint `instance_id` if
+missing — see DD-01), applied on a per-row basis on each row's next
+save (lazy read-promote via `LayoutFixup::applyReadFixups()`).
 
 ## 13. Open questions (need user input before Phase 0)
 
@@ -1142,10 +1146,12 @@ read-promote).
   actions, views, JS, and CSS with v2 equivalents on canonical
   `/dashboards/*` routes. v1 files are deleted as v2 takes over the
   same URL — there is no parallel mounting. Reads/writes the existing
-  `UserSetting:dashboard` row using the new `{scope, widgets}` blob
-  shape with backward-compat read of the legacy bare-array form. No
-  widget migrations yet — legacy widget classes work as-is via the
-  preserved data contract.
+  `UserSetting:dashboard` row using the **bare widget array** shape
+  (per DD-05 — no `{scope, widgets}` envelope); on-read fix-ups
+  (`LayoutFixup::applyReadFixups()`) handle the legacy
+  `width/height` keys + missing `instance_id` per DD-01. No widget
+  migrations yet — legacy widget classes work as-is via the preserved
+  data contract.
 - **Phase 2 — Authoring UX.** Schema-driven configure form (side panel,
   not modal), gallery for Add Widget, edit-mode vs. view-mode toggle,
   atomic save with discard. Backfill `$schema` on the 5 highest-priority

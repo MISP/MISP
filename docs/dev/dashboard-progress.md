@@ -64,7 +64,7 @@ size of step the implementer should take before pausing for review.
 | Date (YYYY-MM-DD) | Mode | Note |
 |---|---|---|
 | 2026-05-04 | hitm | PRD + progress doc bootstrapped; Phase 0 §13 questions still open |
-| 2026-05-04 | hitm | Scope cut: G2 (multi-board) and G12 (persistence rework) dropped; reuse `UserSetting:dashboard` + `dashboards` table verbatim. Blob shape evolves additively to `{scope, widgets}`. Progress tracker pruned accordingly below. |
+| 2026-05-04 | hitm | Scope cut: G2 (multi-board) and G12 (persistence rework) dropped; reuse `UserSetting:dashboard` + `dashboards` table verbatim. Blob shape evolves additively to `{scope, widgets}` *(superseded same day by DD-05 — the `{scope, widgets}` envelope was dropped; blob stays a bare widget array with on-read `w/h` + `instance_id` housekeeping per DD-01)*. Progress tracker pruned accordingly below. |
 
 ---
 
@@ -927,10 +927,10 @@ gate visibility correctly.
 - [ ] Template thumbnails: server-rendered miniatures of the layout (no live data — just the widget tiles + titles), cached on disk under `webroot/img/dashboard/templates/`
 - [ ] Refresh-thumbnail action (manual; runs on save-template by default)
 - [ ] Existing `restrict_to_org_id / role_id / permission_flag` rules preserved on read
-- [ ] "Save as template" form: same fields as today (`name`, `description`, `selectable`, restrict flags); fed by the new blob shape `{scope, widgets}`
+- [ ] "Save as template" form: same fields as today (`name`, `description`, `selectable`, restrict flags); persists the current `UserSetting:dashboard` row verbatim into `dashboards.value` (bare widget array per DD-05; per-widget canonical-form configs ride along untouched per DD-04's preserved half — see PRD §5.4)
 - [ ] "Reset from template" replaces `UserSetting:dashboard` with the chosen template's `value`, with a confirmation prompt if the user has unsaved layout edits. No "Also apply default filters" checkbox — the template's per-widget configs (which may include canonical-typed values) become the user's per-widget configs verbatim (per DD-05 supersedes-DD-04).
 - [ ] Existing `listTemplates`, `saveTemplate`, `deleteTemplate` endpoints unchanged on the wire; only the UI is reworked
-- [ ] Existing `import` / `export` endpoints unchanged on the wire; their output adopts the new blob shape (legacy bare-array form still readable on import)
+- [ ] Existing `import` / `export` endpoints unchanged on the wire; round-trip the v2 bare-array shape (`instance_id` + `w/h` housekeeping per DD-01); legacy v1 inputs (no `instance_id`, `width`/`height` keys) still readable on import via the `LayoutFixup::applyReadFixups()` path that already canonicalises `UserSetting:dashboard` reads
 
 ---
 
