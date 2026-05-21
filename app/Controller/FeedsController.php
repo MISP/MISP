@@ -40,6 +40,7 @@ class FeedsController extends AppController
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'previewIndex';
         $this->Security->unlockedActions[] = 'feedCoverage';
+        $this->Security->unlockedFields[] = 'Feed.settings.stix_custom_mapping';
     }
 
     public function loadDefaultFeeds()
@@ -274,6 +275,13 @@ class FeedsController extends AppController
                 if (isset($feed['Feed']['settings']['delimiter']) && empty($feed['Feed']['settings']['delimiter'])) {
                     $feed['Feed']['settings']['delimiter'] = ',';
                 }
+                // Process STIX custom mapping JSON from form submission
+                if (!empty($feed['Feed']['settings']['stix_custom_mapping']) && is_string($feed['Feed']['settings']['stix_custom_mapping'])) {
+                    $decoded = json_decode($feed['Feed']['settings']['stix_custom_mapping'], true);
+                    if ($decoded !== null) {
+                        $feed['Feed']['settings']['stix_custom_mapping'] = $decoded;
+                    }
+                }
                 if (empty($feed['Feed']['target_event'])) {
                     $feed['Feed']['target_event'] = 0;
                 }
@@ -446,6 +454,13 @@ class FeedsController extends AppController
                 }
                 if (isset($feed['Feed']['settings']['delimiter']) && empty($feed['Feed']['settings']['delimiter'])) {
                     $feed['Feed']['settings']['delimiter'] = ',';
+                }
+                // Process STIX custom mapping JSON from form submission
+                if (!empty($feed['Feed']['settings']['stix_custom_mapping']) && is_string($feed['Feed']['settings']['stix_custom_mapping'])) {
+                    $decoded = json_decode($feed['Feed']['settings']['stix_custom_mapping'], true);
+                    if ($decoded !== null) {
+                        $feed['Feed']['settings']['stix_custom_mapping'] = $decoded;
+                    }
                 }
                 $feed['Feed']['settings'] = json_encode($feed['Feed']['settings']);
 
@@ -721,6 +736,8 @@ class FeedsController extends AppController
             return $this->__previewIndex($feed, $params);
         } elseif (in_array($feed['Feed']['source_format'], ['freetext', 'csv'], true)) {
             return $this->__previewFreetext($feed);
+        } elseif ($feed['Feed']['source_format'] === 'stix') {
+            return $this->__previewStix($feed);
         } else {
             throw new Exception("Invalid feed format `{$feed['Feed']['source_format']}`.");
         }
@@ -862,6 +879,49 @@ class FeedsController extends AppController
         $this->render('freetext_index');
     }
 
+    private function __previewStix(array $feed)
+    {
+        App::uses('SyncTool', 'Tools');
+        $syncTool = new SyncTool();
+        $isLocal = isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local';
+        $HttpSocket = $isLocal ? null : $syncTool->setupHttpSocketFeed();
+
+        try {
+            $events = $this->Feed->downloadStixFeedForPreview($feed, $HttpSocket);
+        } catch (Exception $e) {
+            $this->Flash->error(__('Could not preview STIX feed: %s', $e->getMessage()));
+            $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+            return;
+        }
+
+        // Paginate using CustomPaginationTool, same as __previewIndex
+        App::uses('CustomPaginationTool', 'Tools');
+        $customPagination = new CustomPaginationTool();
+        $params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
+        $this->params->params['paging'] = array($this->modelClass => $params);
+        $events = $customPagination->sortArray($events, $params, true);
+        $customPagination->truncateByPagination($events, $params);
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($events, $this->response->type());
+        }
+
+        $this->loadModel('Event');
+        $this->set('events', $events);
+        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
+        $this->set('eventDescriptions', $this->Event->fieldDescriptions);
+        $this->set('analysisLevels', $this->Event->analysisLevels);
+        $this->set('distributionLevels', $this->Event->distributionLevels);
+        $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => 'Sharing Group');
+        $this->set('shortDist', $shortDist);
+        $this->set('id', $feed['Feed']['id']);
+        $this->set('feed', $feed);
+        $this->set('urlparams', '');
+        $this->set('passedArgs', json_encode(array()));
+        $this->set('passedArgsArray', array());
+        $this->render('preview_index');
+    }
+
     private function __canViewFeed($feed)
     {
         $host_org_id = (int)Configure::read('MISP.host_org_id');
@@ -880,11 +940,26 @@ class FeedsController extends AppController
         if (empty($feed) || !$this->__canViewFeed($feed)) {
             throw new NotFoundException(__('Invalid feed.'));
         }
-        try {
-            $error_message = null;
-            $event = $this->Feed->downloadEventFromFeed($feed, $eventUuid, true, $error_message);
-        } catch (Exception $e) {
-            throw new Exception($e->getMessage(), 0, $e);
+        if ($feed['Feed']['source_format'] === 'stix') {
+            if (!empty($feed['Feed']['settings'])) {
+                $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+            }
+            $isLocal = isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local';
+            App::uses('SyncTool', 'Tools');
+            $syncTool = new SyncTool();
+            $HttpSocket = $isLocal ? null : $syncTool->setupHttpSocketFeed();
+            try {
+                $event = $this->Feed->downloadStixEventForPreview($feed, $eventUuid, $HttpSocket);
+            } catch (Exception $e) {
+                throw new Exception($e->getMessage(), 0, $e);
+            }
+        } else {
+            try {
+                $error_message = null;
+                $event = $this->Feed->downloadEventFromFeed($feed, $eventUuid, true, $error_message);
+            } catch (Exception $e) {
+                throw new Exception($e->getMessage(), 0, $e);
+            }
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($event, $this->response->type());
