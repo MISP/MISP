@@ -371,6 +371,33 @@ class Board {
   }
 
   /**
+   * Auto-refresh pause toggle (PRD F3.2). Flips scheduler._paused and
+   * mirrors the new state into the trigger button's aria-pressed
+   * attribute — the CSS in dashboard.default.css swaps the visible
+   * SVG glyph (pause ↔ play) based on that attribute, so JS owns
+   * state only. Ephemeral by design — a page reload always lands in
+   * the running state; per-widget "I never want this to refresh"
+   * lives elsewhere (PRD F2.5 per-instance override, separate sub-
+   * task).
+   *
+   * Page Visibility soft-pause is orthogonal: hiding the tab while
+   * user-paused leaves the tab-hide a no-op (already paused);
+   * resuming while the tab is hidden leaves _docHidden in control;
+   * un-hiding clears _docHidden and ticking resumes iff _paused is
+   * also false.
+   */
+  _toggleRefresh(triggerBtn) {
+    const wasPaused = triggerBtn.getAttribute('aria-pressed') === 'true';
+    const nextPaused = !wasPaused;
+    if (nextPaused) {
+      this.scheduler.pause();
+    } else {
+      this.scheduler.resume();
+    }
+    triggerBtn.setAttribute('aria-pressed', nextPaused ? 'true' : 'false');
+  }
+
+  /**
    * Save button (edit mode): flush any pending debounce timer, POST
    * the current layout, and on success drop back to view mode. On
    * failure stay in edit mode so the user can retry — the
@@ -512,6 +539,10 @@ class Board {
           } else {
             this.setMode(this.mode === 'view' ? 'edit' : 'view');
           }
+          break;
+        case 'toggle-refresh':
+          e.preventDefault();
+          this._toggleRefresh(trigger);
           break;
         case 'save':
           e.preventDefault();

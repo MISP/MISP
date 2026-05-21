@@ -26,6 +26,37 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
          data-misp-board-toolbar
          aria-label="<?= __('Dashboard filters') ?>"></div>
     <div class="misp-dashboard-modecontrols">
+        <!-- Auto-refresh pause toggle (PRD F3.2). Visible in both view
+             and edit mode — pause is a background-concern toggle,
+             independent of the layout-editing transaction. Two SVG
+             glyphs (pause + play) live inside the button; CSS shows
+             one or the other based on aria-pressed, which mirrors the
+             scheduler's _paused flag so a screen reader announces the
+             state change. The accent inversion on
+             .misp-dashboard-btn[aria-pressed="true"] adds visual
+             reinforcement. Page Visibility soft-pause is orthogonal —
+             toggling this button has no effect on document.hidden
+             handling. Icon style (16×16 viewBox, stroke=currentColor,
+             stroke-width=1.5, round caps/joins) matches the More
+             menu's inline SVGs. -->
+        <button type="button"
+                class="misp-dashboard-btn misp-dashboard-btn-icon misp-dashboard-btn-refresh-toggle"
+                data-misp-board-action="toggle-refresh"
+                aria-pressed="false"
+                aria-label="<?= __('Pause or resume the auto-refresh of widgets on this dashboard') ?>"
+                title="<?= __('Pause or resume the auto-refresh of widgets on this dashboard') ?>">
+            <span class="misp-dashboard-btn-glyph misp-dashboard-btn-glyph-running" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5.5" y1="3" x2="5.5" y2="13" />
+                    <line x1="10.5" y1="3" x2="10.5" y2="13" />
+                </svg>
+            </span>
+            <span class="misp-dashboard-btn-glyph misp-dashboard-btn-glyph-paused" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4.5 3 L12.5 8 L4.5 13 Z" />
+                </svg>
+            </span>
+        </button>
         <!-- Edit-mode toggle (shown in view mode). Toggling to edit
              takes a snapshot of the current layout; the Save / Discard
              buttons below are the only ways to leave edit mode without

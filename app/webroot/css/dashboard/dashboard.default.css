@@ -230,6 +230,28 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   background: var(--misp-dash-surface-sunken);
   border-color: var(--misp-dash-border-strong);
 }
+
+/* Auto-refresh pause toggle (PRD F3.2). Two glyphs live in the
+ * button — one shown when refresh is running (pause icon), the
+ * other when paused (play icon). aria-pressed controls which is
+ * visible. Each glyph is wrapped in a flex-centred span so the
+ * 16×16 SVG sits cleanly in the 32×32 icon button. */
+.misp-dashboard-btn-refresh-toggle .misp-dashboard-btn-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.misp-dashboard-btn-refresh-toggle .misp-dashboard-btn-glyph-paused {
+  display: none;
+}
+.misp-dashboard-btn-refresh-toggle[aria-pressed="true"] .misp-dashboard-btn-glyph-running {
+  display: none;
+}
+.misp-dashboard-btn-refresh-toggle[aria-pressed="true"] .misp-dashboard-btn-glyph-paused {
+  display: inline-flex;
+}
+
 .misp-dashboard-menubutton-glyph {
   font-size: var(--misp-dash-fs-xl);
   line-height: 0.4;
