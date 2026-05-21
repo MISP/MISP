@@ -2098,3 +2098,231 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   flex: 1 1 auto;
   border-right: none;
 }
+
+/* ============================================================
+ * Template gallery page (PRD §5.4, Phase 4 task 1).
+ *
+ * Server-rendered gallery at /dashboards/listTemplates. Reuses the
+ * .misp-gallery-* shell from the widget gallery (CSS scoped to the
+ * configure panel originally; relaxed here for full-page use) and
+ * layers .misp-template-* hooks for template-specific concerns:
+ *   - subtitle line under the header title
+ *   - badges (default, selectable, mine, restrict-to-*)
+ *   - hover-reveal action toolbar (Use / Edit / Delete) per card
+ *   - empty-state message when the user has no eligible templates
+ *
+ * Body data-action="listTemplates" scopes the page-mode overrides
+ * so the configure-panel widget gallery is unaffected.
+ * ============================================================ */
+
+.misp-template-gallery-header {
+  align-items: flex-start;
+}
+.misp-template-gallery-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  flex: 1;
+  min-width: 0;
+}
+.misp-template-gallery-subtitle {
+  margin: 0;
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text-muted);
+  max-width: 640px;
+}
+
+.misp-dashboard-page-main {
+  padding: var(--misp-dash-space-4) var(--misp-dash-space-5);
+}
+
+/* Page-mode gallery: relax the height:100% + inner scroll that the
+ * configure-panel gallery uses. The page itself scrolls; cards flow
+ * naturally and the search input still sticks at the top of the
+ * gallery body. */
+.misp-template-gallery-page .misp-gallery {
+  height: auto;
+}
+.misp-template-gallery-page .misp-gallery-body {
+  overflow: visible;
+  margin-right: 0;
+  padding-right: 0;
+}
+.misp-template-gallery-page .misp-gallery-category-grid {
+  /* Template cards carry more meta than widget cards — wider min
+   * column keeps name + description + badge row legible. */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.misp-template-gallery-empty-state {
+  padding: var(--misp-dash-space-5);
+  text-align: center;
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+  background: var(--misp-dash-surface-sunken);
+  border: 1px dashed var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+}
+
+/* ---- Template card ---- */
+
+.misp-template-card {
+  position: relative;
+  /* Cards are non-interactive containers (the actions inside are
+   * the interactive elements) — drop the pointer cursor that the
+   * widget-gallery's button-cards have. */
+  cursor: default;
+}
+.misp-template-card:hover {
+  /* Inherit the widget-gallery's hover treatment for visual parity. */
+}
+
+.misp-template-card-thumbnail {
+  color: var(--misp-dash-text-muted);
+}
+.misp-template-card:hover .misp-template-card-thumbnail,
+.misp-template-card:focus-within .misp-template-card-thumbnail {
+  color: var(--misp-dash-accent);
+}
+
+.misp-template-card-title {
+  /* Sit above any default browser margin from the surrounding
+   * .misp-gallery-card-title rules. */
+  word-break: break-word;
+}
+.misp-template-card-description {
+  /* Allow up to 3 lines before truncating with an ellipsis so a
+   * card height is bounded and the gallery grid stays uniform. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.misp-template-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  margin-top: var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  align-items: center;
+}
+
+.misp-template-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  border-radius: var(--misp-dash-radius-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border-subtle);
+  color: var(--misp-dash-text);
+}
+.misp-template-badge-default {
+  background: var(--misp-dash-accent);
+  border-color: var(--misp-dash-accent);
+  color: var(--misp-dash-text-on-accent);
+}
+.misp-template-badge-selectable {
+  background: var(--misp-dash-accent-muted);
+  border-color: var(--misp-dash-accent);
+  color: var(--misp-dash-accent);
+}
+.misp-template-badge-mine {
+  background: transparent;
+  border-color: var(--misp-dash-border-strong);
+  color: var(--misp-dash-text-muted);
+}
+.misp-template-badge-restrict {
+  /* Restrict-to badges show a hard scope fact; outline-only treat-
+   * ment avoids the eye-pull of the accent badges. */
+  text-transform: none;
+  letter-spacing: 0;
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--misp-dash-border-strong);
+  color: var(--misp-dash-text-muted);
+}
+
+.misp-template-card-widgetcount,
+.misp-template-card-owner {
+  font-variant-numeric: tabular-nums;
+}
+.misp-template-card-owner {
+  /* Owner label leans to the right on its own row when present. */
+  margin-left: auto;
+}
+
+/* ---- Hover-reveal action toolbar ---- */
+
+.misp-template-card-actions {
+  position: absolute;
+  top: var(--misp-dash-space-2);
+  right: var(--misp-dash-space-2);
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  opacity: 0;
+  transform: translateY(-2px);
+  pointer-events: none;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+.misp-template-card:hover .misp-template-card-actions,
+.misp-template-card:focus-within .misp-template-card-actions {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.misp-template-card-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--misp-dash-radius-sm);
+  background: transparent;
+  color: var(--misp-dash-text-muted);
+  cursor: pointer;
+  text-decoration: none;
+}
+.misp-template-card-action:hover,
+.misp-template-card-action:focus-visible {
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  outline: none;
+}
+.misp-template-card-action:focus-visible {
+  border-color: var(--misp-dash-accent);
+}
+.misp-template-card-action-danger:hover,
+.misp-template-card-action-danger:focus-visible {
+  background: rgba(220, 38, 38, 0.10);
+  color: var(--misp-dash-danger);
+  border-color: var(--misp-dash-danger);
+}
+/* Form->postLink renders an inline form wrapping the anchor; reset
+ * its inline-block margin so the trash button aligns with the other
+ * two icons in the toolbar. */
+.misp-template-card-actions form {
+  display: contents;
+}
+
+/* ---- Section heading customisation ---- */
+
+.misp-template-gallery-section .misp-gallery-category-heading {
+  /* Slightly louder than the widget-gallery's hint-level headings —
+   * these are top-level page sections, not in-panel category hints. */
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text);
+}

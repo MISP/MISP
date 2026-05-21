@@ -1012,7 +1012,55 @@ class DashboardsController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('passedArgs', json_encode($this->passedArgs));
-        $this->set('data', $this->viewVars['data']);
+
+        // ------------------------------------------------------------
+        // Phase 4 — template gallery view (PRD §5.4 / DD-08).
+        // The data-fetching path above stays verbatim so REST output
+        // is unchanged (preserves the "endpoints unchanged on the
+        // wire" tracker promise). HTML rendering switches from the
+        // generic IndexTable view to a server-rendered gallery
+        // grouped by ownership: My / Featured / Shared with me.
+        // ------------------------------------------------------------
+        $rows = $this->viewVars['data'];
+        $mine = [];
+        $featured = [];
+        $shared = [];
+        foreach ($rows as $row) {
+            $dash = $row['Dashboard'];
+            if (!empty($dash['default'])) {
+                $featured[] = $row;
+            } elseif ((int)$dash['user_id'] === (int)$currentUserId) {
+                $mine[] = $row;
+            } else {
+                $shared[] = $row;
+            }
+        }
+
+        // Lookup maps so the view can render restrict_to_* badges
+        // with human-readable labels rather than raw ids.
+        $orgMap = $this->User->Organisation->find('list', array(
+            'fields' => array('Organisation.id', 'Organisation.name'),
+            'conditions' => array('Organisation.local' => 1),
+        ));
+        $roleMap = $this->User->Role->find('list', array(
+            'fields' => array('Role.id', 'Role.name'),
+        ));
+        $permFlagLabels = array();
+        foreach ($this->User->Role->permFlags as $flag => $meta) {
+            $permFlagLabels[$flag] = isset($meta['text']) ? $meta['text'] : $flag;
+        }
+
+        $this->layout = 'dashboard';
+        $this->set('title_for_layout', __('Dashboard templates'));
+        $this->set('data', $rows);
+        $this->set('mineTemplates', $mine);
+        $this->set('featuredTemplates', $featured);
+        $this->set('sharedTemplates', $shared);
+        $this->set('currentUserId', (int)$currentUserId);
+        $this->set('isSiteAdmin', (bool)$this->_isSiteAdmin());
+        $this->set('orgMap', $orgMap);
+        $this->set('roleMap', $roleMap);
+        $this->set('permFlagLabels', $permFlagLabels);
     }
 
     public function deleteTemplate($id)
