@@ -1,10 +1,11 @@
-# Dashboard v2 — Session handoff (2026-05-21)
+# Dashboard v2 — Session handoff (2026-05-21 evening)
 
-Sixth session of the dashboard rewrite. Authoritative state lives in:
+Seventh session of the dashboard rewrite. Authoritative state lives in:
 
 - `dashboard-prd.md` — spec.
-- `dashboard-progress.md` — task state. **Phase 2 fully closed.
-  Phase 3 fully closed (12/12 canonicals + all wrap-up tasks).**
+- `dashboard-progress.md` — task state. **Phase 2 + 3 fully closed.
+  Phase 5: 6 of 11 lines closed this session (5 refresh-related
+  + 1 manual-refresh ratification).** Drill-down half pending.
 - `dashboard-design-decisions.md` — DD-01..DD-08 unchanged.
 
 This file is the bridge: ephemeral session-level context that doesn't
@@ -12,88 +13,103 @@ fit the durable docs. Replace it as work progresses.
 
 ## TL;DR
 
-**13 signed commits this session**, all `%G?` = `U`. Two structural
-milestones:
+**8 signed commits this session**, all `%G?` = `U`. Two structural
+milestones + one cleanup batch:
 
-1. **Phase 2 closed.** The last open line (Edit Widget flow against
-   the new preview-pane render path) was browser-verified by the
-   user. Six-step interactive walkthrough confirmed end-to-end:
-   cog → panel opens populated → preview pane renders current chart
-   → form-input edit re-renders preview within 250ms debounce →
-   live tile untouched during preview ticks → Save commits +
-   re-renders live tile + refreshes toolbar → Cancel/ESC restores.
+1. **Two carryovers closed early in the session** — TrendingAttributes-
+   Widget PHP 8 Attribute model collision (`ClassRegistry::init('Attr-
+   ibute')` → `'MispAttribute'`) plus the two remaining stragglers
+   (SharingGraphWidget + EventTemplateInstantiator). Codebase-wide
+   grep for `ClassRegistry::init('Attribute')` now returns zero hits;
+   45+ call sites use the post-rename name.
 
-2. **Phase 3 closed at 12/12.** All canonical types from PRD §5.5
-   landed end-to-end. The catalogue:
-   - **Toolbar-eligible (10):** time_window, date_range, tag_filter,
-     org_meta_filter, distribution_filter, threat_level_filter,
-     analysis_filter, sharing_group_filter, galaxy_cluster_filter,
-     **org_filter** (10th, this session).
-   - **Widget-only (2):** **attribute_type_filter** (11th, this
-     session — paired with TrendingAttributesWidget consumer),
-     **event_id_filter** (12th, this session — forward-compat
-     scaffold; no consumer today, picker deferred).
+2. **PRD §5.5 alignment** (Option C) — half-day prose-only edit
+   reflecting the three org_filter naming refinements (match_via /
+   orgc / sharing_group / negate) and the bare-int-array convention
+   for the four single-axis int-enum canonicals. Doc-only commit;
+   closes the "Canonical wire shapes drift from PRD §5.5" tracker
+   entry.
 
-   Plus all six Phase 3 wrap-up lines ticked: F5.6.4 new-widget
-   toolbar inheritance, F5.6.5 per-control Clear action,
-   per-canonical-type validators, toolbar mode-independence,
-   canonical-only `$schema` sweep across remaining widgets,
-   cache-key sanity check.
+3. **Phase 5 — refresh half (6 of 11 lines closed).** The board-level
+   refresh scheduler core + Page Visibility auto-pause + manual
+   refresh ratification (commit `467c8c5ef`); a follow-up fix for
+   the renderWrapper enrichment gap caught at browser smoke
+   (`ce6815c31`); the pause-refresh toolbar toggle (`0c26b9a62`); the
+   per-instance refresh override picker in the configure form
+   (`cf0acb1ba`, PRD F2.5); the "updated Ns ago" relative-time chip
+   on each tile titlebar (`02527bd62`). The drill-down half + cache
+   key board-scope hash remain open (5 lines).
 
-**Notable design decisions taken this session** (in dialogue with
-the user):
+**Notable design decisions taken this session:**
 
-- **`org_filter` wire shape refined from PRD §5.5** in three places:
-  - `match_via` replaces PRD's `role` to avoid collision with MISP's
-    `User.role_id` concept.
-  - `orgc` / `sharing_group` replace PRD's `creator` / `distribution`
-    to match MISP DB field naming (`Event.orgc_id`, `Event.sharing_group_id`).
-  - Additive per-entry `negate?: true` preserves the legacy
-    `!`-prefix exclusion primitive used across MISP.
-  Final shape: `{ orgs: [{uuid?, id?, name?, negate?}],
-  match_via: "orgc"|"sharing_group"|"any" }`. Default for the
-  EventStreamWidget migration: `match_via: "orgc"` (preserves the
-  legacy slot's `Event.orgc_id` semantic).
+- **Single-source-of-truth client-side delay resolution.** The
+  initial scheduler sketch had server-side fold-in of class default
+  + config override into a single resolved value emitted as
+  `data-widget-refresh-delay`. Backed out mid-implementation in
+  favour of: server emits CLASS DEFAULT only as
+  `data-widget-refresh-delay`; client-side `resolveDelaySec`
+  reads `data-widget-config['refresh_delay']` first, falls back
+  to the attribute. Keeping the attribute IMMUTABLE per page-load
+  means configure-save just calls `scheduler.enqueueWidget(savedEl)`
+  and the resolution picks up the new config — no DOM mutation, no
+  renderWrapper re-fetch.
 
-- **`event_id_filter` picker explicitly deferred.** No widget
-  consumes the canonical today; designing UX without a consumer's
-  needs is premature. Adapter + validator + tests ship as
-  forward-compat scaffold; the picker can be designed against an
-  actual consumer's UX requirements when one surfaces (likely in
-  Phase 5 — Drill-down + refresh scheduler).
+- **`resolveDelaySec` extracted as a top-level export** of
+  `scheduler.module.mjs` so both `Scheduler` and `RefreshIndicator`
+  share the same priority logic. RefreshIndicator uses it for
+  auto-refresh GATING — chips are hidden on tiles whose resolved
+  delay is 0 (per user feedback at indicator smoke: static tiles
+  shouldn't show "updated 4m ago" because there's no expectation
+  of freshness).
 
-**PHPUnit count: 110 → 152 (+42).** Validators batch (+17),
-org_filter (+11), attribute_type_filter + event_id_filter (+14).
-All 152 pass in ~100ms.
+- **Dashboard chrome icons stay inline SVG, not Font Awesome** —
+  user surfaced the choice during the pause-toggle smoke; rationale
+  recorded in the new `feedback-dashboard-chrome-icons` memory.
+  PRD §G11 / DD-08 chrome theme-independence + intra-chrome
+  consistency (existing More-menu icons all inline SVG) outweigh
+  FA's "already loaded by the layout" argument.
 
-**One small ACL gap closed in passing** — `widgets`,
-`renderWrapper`, `updateWidgetSettings` actions had no entries in
-`ACL_LIST['dashboards']` (worked for admin via `perm_site_admin`
-bypass, would 403 for non-admin). Backfilled to `array('*')` —
-counter-tested against the existing `findMissingFunctionNames`
-audit (zero missing functions codebase-wide after the edit).
+- **Indicator chip semantics on `widget-error`** — timestamp NOT
+  updated. Chip shows "time since last SUCCESSFUL render" so a
+  stuck widget shows an ever-growing chip = diagnostic signal that
+  matches user-facing meaning ("how stale is this?") rather than
+  technical meaning ("when did we last try?").
+
+**Pre-existing perm-drift carryover surfaced (again):** in this
+session, 5 more widget files were caught at local mode `0770 iglocska:
+iglocska` (`AuthenticationFailureWidget`, `CsseCovidMapWidget`,
+`MispAdminResourceWidget`, `MispAdminWorkerWidget`, `ButtonWidget`).
+Same flavour as the 3 files caught last session (SharingGraphWidget
++ 2 others). Git tracks all of them at `0644`. The gallery
+endpoint (`/dashboards/widgets`) enumerates the directory and dies on
+the first unreadable file with a CakePHP HTML warning that breaks the
+JSON serialiser. **Something on the dev box keeps clobbering modes.**
+Filesystem-only fixes today; not propagated to git. Worth investigating
+when there's appetite, but doesn't block feature work.
 
 **User-direction carried forward unchanged:** *"modern and
 pleasant"*, *"don't worry too much about compatibility"*, *"ACL
 must match the surface it shadows"*, *"three similar lines is
-better than premature abstraction; the third copy forces the
-refactor"*, **"prefer MISP-jargon naming (orgc, sharing_group)
-over PRD-generic terms (creator, distribution) when the
-authoritative DB field naming gives us a clear lead"**.
+better than premature abstraction"*, *"prefer MISP-jargon naming
+(orgc, sharing_group) over PRD-generic terms"*, **"dashboard chrome
+icons stay inline SVG, not FA"** (new this session).
 
-**Phase 3 fully done. Next session — pick from** (see Open thread):
+**Phase 5 refresh half done. Drill-down half pending. Next session — pick from** (see Open thread):
 
-1. **Phase 4** — Template gallery polish (greenfield multi-session).
-2. **Phase 5** — Drill-down + refresh scheduler (also greenfield
-   multi-session). A natural consumer for `event_id_filter` may
-   surface here.
-3. **PRD §5.5 doc alignment** — amend the PRD to reflect this
-   session's `org_filter` naming refinements (match_via, orgc,
-   sharing_group, negate) + the bare-array convention for
-   single-axis int-enum canonicals (carried from last session).
-4. **TrendingAttributesWidget PHP 8.x `Attribute` model crash** —
-   pre-existing carryover; blocks end-to-end smoke of the new
-   `attribute_type_filter` consumer. Single-class-rename fix.
+1. **Phase 5 — drill-down workstream** (4 lines: validator + SimpleList
+   wrap + ECharts handlers + `$drilldown` metadata). Pre-locked design
+   from Q3 resolution (PRD §13.3): per-datum drill-down in widget
+   data, DashboardURLValidator helper sanitises every URL. Likely
+   surfaces a natural consumer for the deferred `event_id_filter`
+   picker.
+2. **Phase 5 cache-key board-scope hash (F3.3)** — moot today
+   (no widget render cache in v2); could be closed as "no-op
+   rationale documented" or deferred to whenever a cache is wired.
+3. **Phase 4 — template gallery polish** (greenfield, multi-session;
+   thumbnail miniatures + restrict_to_* preserved).
+4. **File-mode-drift investigation** — figure out what's clobbering
+   widget files from `0644` to `0770 iglocska:iglocska`. Two
+   filesystem-only patches today; will keep recurring otherwise.
 5. **Other parked work** — time_window dropdown UX, midnight.css
    drop, EventEvolutionLine end_date, save_template action-name
    mismatch.
@@ -107,37 +123,30 @@ Phase 1 — Frame (in-place replacement)                            [x]
   All 9 v1 render kinds now have v2 .ctp templates.
 
 Phase 2 — Authoring UX                                            [x] CLOSED
-  All 26 lines ticked, including the previously-open Edit Widget
-  flow (browser-verified this session).
 
 Phase 3 — Canonical-type toolbar                                  [x] CLOSED
-  [x] CanonicalTypeAdapter helper + 152 PHPUnit tests (was 110)
-  [x] Wire CanonicalTypeAdapter into renderWidget
-  [x] Canonical types: 12/12
-        [x] time_window
-        [x] date_range
-        [x] tag_filter
-        [x] org_meta_filter
-        [x] distribution_filter
-        [x] threat_level_filter (2 consumers)
-        [x] analysis_filter     (2 consumers)
-        [x] sharing_group_filter
-        [x] galaxy_cluster_filter
-        [x] org_filter           — NEW (10/12)
-        [x] attribute_type_filter — NEW (11/12, widget-only)
-        [x] event_id_filter       — NEW (12/12, forward-compat scaffold)
-  [x] Toolbar control logic (schema-driven declarer scan)
-  [x] Toolbar bulk-edit write path (readValue dispatch)
-  [x] Toolbar UI: 10 toolbar-eligible canonicals shipped
-  [x] Per-canonical-type validators
-  [x] F5.6.4 New-widget toolbar inheritance
-  [x] F5.6.5 Per-control Clear action
-  [x] Toolbar pulls work in any mode (mode-independent)
-  [x] Per-canonical-type form field elements (11/12 with pickers;
-      event_id_filter picker deferred until a consumer surfaces)
-  [x] Canonical-only $schema sweep across remaining widgets
-      (35 of 38 widget classes declare $schema; 3 inherit)
-  [x] Cache-key sanity check (moot — no widget render cache in v2)
+  12/12 canonicals + all wrap-up lines.
+  PRD §5.5 doc alignment landed 2026-05-21 (this session, Option C).
+
+Phase 5 — Drill-down + refresh scheduler                          [.]
+  Refresh half (6/7 lines):
+    [x] Board-level refresh scheduler: single timer, max 4 concurrent
+        renders in flight (PRD §10)
+    [x] Pause-refresh toggle on board toolbar
+    [x] Per-instance refresh override in widget config form (F2.5)
+    [x] Auto-pause when document hidden (Page Visibility API)
+    [x] Manual refresh on a single widget (ratification — existing ↻)
+    [x] Refresh indicator chip: "updated 30s ago"; uses relative-
+        time formatting that respects locale
+    [ ] Verify cache key includes board scope hash (PRD F3.3)
+        — moot today (no widget render cache in v2)
+  Drill-down half (0/4 lines):
+    [ ] $drilldown schema property documented and exposed
+    [ ] Drill-down convention per Q3 resolution
+    [ ] Renderer-level wrapping for SimpleList
+    [ ] ECharts click handlers calling drill-down
+
+Phase 4 — Template gallery polish                                 [ ]
 ```
 
 ## Live test instance
@@ -149,483 +158,349 @@ Phase 3 — Canonical-type toolbar                                  [x] CLOSED
   "Overmind"`).
 - DB creds: `mysql -u misp -pPassword1234 misp`
 
-**Catalogue scale** (relevant for picker UX considerations):
-
-- Organisations (test instance): **540 total** (211 local) — typeahead
-  required because production MISPs can carry 1000s of orgs.
-- Sharing groups admin can see: **156**
-- Galaxies enabled: **121**; galaxy clusters (non-deleted): **55,036**
-- Events: ~6800
-
-**Saved-layout state at session end:** admin has 5 widgets:
-
-- `w_1` MispStatusWidget at (0,0) 4×4
-- `w_2` TrendingTagsWidget at (4,0) 5×4
-  — config: `time_window=90d, threshold=10, over_time=false,
-    tag_filter={include:[],exclude:[]}`
-- `w_3` OrganisationMapWidget at (9,0) 3×4
-- `w_4` OrgContributionToplistWidget at (0,4) 12×4
-  — config: `time_window=P30D, threshold=15`
-- `w_5` EventStreamWidget (placed by admin during prior session for
-  canonical testing) — config: `threat_level=[3,4], analysis=[0,1]`
-
-EventStreamWidget now declares **FIVE canonical filters** (threat_level
-+ analysis + sharing_group + galaxy_cluster + orgs) — the most-
-populated canonical-type schema in the v2 catalogue.
-
-Force test paths (unchanged from prior session):
-```bash
-# Force empty-state path:
-mysql -u misp -pPassword1234 misp -e \
-  "DELETE FROM user_settings WHERE user_id=1 AND setting='dashboard';"
-
-# Theme flip (revert after testing):
-mysql -u misp -pPassword1234 misp -e \
-  "UPDATE user_settings SET value='\"Default\"' WHERE user_id=1 \
-   AND setting='ui_theme';"
-```
+**Saved-layout state at session end:** admin has 5 widgets, same as
+the start of this session — `w_1` MispStatusWidget, `w_2` TrendingTags-
+Widget, `w_3` OrganisationMapWidget, `w_4` OrgContributionToplist-
+Widget, `w_5` EventStreamWidget. EventStreamWidget keeps its
+`threat_level=[3,4], analysis=[0,1]` config from prior session;
+nothing added or removed this session via the dashboard chrome
+(WhoamiWidget was added + removed during smoke testing).
 
 Session-login dance + wrapper-render smoke recipes unchanged from
-prior sessions — see [[reference-misp-login-dance]] and the prior
-handoff's "Wrapper render smoke" block. Session cookie persisted
-at `/tmp/cj.txt` from prior session is still valid.
+prior sessions — see `reference-misp-login-dance` memory. Session
+cookie at `/tmp/cj.txt` may need refreshing; the login dance is
+~30 seconds.
 
-Smoke commands for the new canonicals (admin user, session login
-already established at /tmp/cj.txt):
+Smoke commands for Phase 5 surfaces:
 
 ```bash
-# org_filter — three match_via modes
-# (1) legacy comma string (adapter wraps to canonical with match_via=orgc)
-curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
-  --data-urlencode 'widget=EventStreamWidget' \
-  --data-urlencode 'config={"limit":500,"orgs":"CIRCL"}' \
-  -H "Accept: application/json" \
-  http://localhost:5007/dashboards/renderWidget/w_test/exportjson:1
+# Confirm refresh-delay attribute emitted on auto-refresh widgets only
+curl -s -b /tmp/cj.txt http://localhost:5007/dashboards | \
+  grep -oE 'data-widget-refresh-delay="[^"]*"'
+# → data-widget-refresh-delay="5"  (just EventStreamWidget)
 
-# (2) canonical orgc match
-curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
-  --data-urlencode 'widget=EventStreamWidget' \
-  --data-urlencode 'config={"limit":500,"orgs":{"orgs":[{"name":"CIRCL"}],"match_via":"orgc"}}' \
-  -H "Accept: application/json" \
-  http://localhost:5007/dashboards/renderWidget/w_test/exportjson:1
+# Confirm refresh_delay schema entry injected on widgets with auto-refresh
+curl -s -b /tmp/cj.txt http://localhost:5007/dashboards | python3 -c "
+import sys, re, html, json
+m = re.search(r'data-widget-name=\"EventStreamWidget\".*?data-widget-schema=\'([^\']*)\'',
+              sys.stdin.read(), re.DOTALL)
+schema = json.loads(html.unescape(m.group(1)))
+print('refresh_delay in schema:', 'refresh_delay' in schema)
+print(schema.get('refresh_delay'))"
 
-# (3) canonical with negate
-curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
-  --data-urlencode 'widget=EventStreamWidget' \
-  --data-urlencode 'config={"limit":10,"orgs":{"orgs":[{"name":"CIRCL","negate":true}],"match_via":"orgc"}}' \
-  -H "Accept: application/json" \
-  http://localhost:5007/dashboards/renderWidget/w_test/exportjson:1
+# Confirm indicator span emitted on every tile (5 in current layout)
+curl -s -b /tmp/cj.txt http://localhost:5007/dashboards | \
+  grep -oE 'data-misp-widget-refresh-indicator' | wc -l
+# → 5
 
-# (4) canonical sharing_group match
-curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
-  --data-urlencode 'widget=EventStreamWidget' \
-  --data-urlencode 'config={"limit":500,"orgs":{"orgs":[{"name":"CIRCL"}],"match_via":"sharing_group"}}' \
-  -H "Accept: application/json" \
-  http://localhost:5007/dashboards/renderWidget/w_test/exportjson:1
-
-# attribute_type_filter (canonical adapter expansion — TrendingAttributesWidget
-# render itself crashes on the PHP 8 Attribute model carryover, but the
-# adapter expansion is verifiable via config echo)
-curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
-  --data-urlencode 'widget=APIActivityWidget' \
-  --data-urlencode 'config={"date_range":{"from":"2026-01-01","to":"2026-03-01"},"limit":5}' \
-  -H "Accept: application/json" \
-  http://localhost:5007/dashboards/renderWidget/w_test/exportjson:1
-# → echoes config with date_range AND legacy start_date/end_date.
-
-# org_filter picker endpoint (typeahead)
-curl -s -b /tmp/cj.txt -H "Accept: application/json" \
-  'http://localhost:5007/dashboards/searchOrganisations.json?q=CIRCL'
-
-# updateWidgetSettings validator smoke (should 400 with structured error)
-curl -s -b /tmp/cj.txt -X POST -H "X-Requested-With: XMLHttpRequest" \
-  --data-urlencode 'patches=[{"instance_id":"w_5","config":{"threat_level":"garbage"}}]' \
-  http://localhost:5007/dashboards/updateWidgetSettings
-# → 400 with: Canonical-type validation failed: {"w_5":{"threat_level":
-#   "int-array canonical must be int, numeric string, or array of those."}}
+# Confirm scheduler module + indicator module served HTTP 200
+for m in scheduler refresh-indicator; do
+  curl -s -b /tmp/cj.txt "http://localhost:5007/js/dashboard/$m.module.mjs" \
+    -o /dev/null -w "$m: %{http_code} %{size_download}b\n"
+done
 ```
 
 ## What this session committed (in order)
 
 ```
-c28935740  fix: ACL backfill for widgets / renderWrapper /
-                updateWidgetSettings
-                Three DashboardsController actions lacked ACL_LIST
-                entries. perm_site_admin bypass made them work for
-                admin; non-admin would 403. Backfilled to '*' alongside
-                their siblings. Counter-tested via the existing
-                findMissingFunctionNames audit — zero missing functions
-                codebase-wide after the edit.
+4fa6bb496  fix: TrendingAttributesWidget PHP 8 Attribute collision
+                Single call site rename: ClassRegistry::init('Attribute')
+                → 'MispAttribute' (Attribute model was renamed to
+                MispAttribute long ago, 45+ call sites already use it;
+                3 stragglers remained). Stale @var Event docblock also
+                fixed. End-to-end smoke for all 3 config shapes:
+                bare, legacy `type:[...]`, canonical `attribute_filter:
+                {types:[...]}` — adapter expansion verified.
 
-38728bd32  chg: tick Edit Widget flow against new preview-pane
-                render path
-                Phase 2's last open line. Browser-verified by the user
-                end-to-end (cog → panel populated → preview pane
-                refreshes on form edit → Save commits live tile +
-                refreshes toolbar → Cancel restores). No code change —
-                wiring was already in place from the live-preview task.
-                Phase 2 closes.
+0cb5288e4  fix: remaining 2 ClassRegistry::init('Attribute') stragglers
+                SharingGraphWidget.php:108 + EventTemplateInstantiator.
+                php:466. Codebase-wide grep for the old call now returns
+                zero. SharingGraphWidget smoke verified; ETI not
+                smoke-tested (server-side helper, no widget render entry
+                point). Side observation surfaced: SharingGraphWidget
+                was at mode 0770 owned by iglocska:iglocska on disk;
+                git tracks 0644; normalised filesystem mode.
 
-e9576deea  chg: tick PRD F5.6.4 new-widget toolbar inheritance
-                Already implemented in board.module.mjs::
-                _applyToolbarInheritance via the placement orchestrator
-                (commit from prior session). Tracker tick + Done note.
+49158debd  chg: PRD §5.5 alignment with shipped canonical shapes
+                Option C. Three edits in dashboard-prd.md §5.5:
+                  1. org_filter row — `role` → `match_via`; `"creator"|
+                     "distribution"|"any"` → `"orgc"|"sharing_group"|
+                     "any"`; added per-entry `negate?: bool`; note
+                     expanded with EventStreamWidget consumer reference
+                     + legacy comma-string acceptance.
+                  2. Four single-axis int-enum rows — wrapping objects
+                     replaced with bare int[].
+                  3. New "Single-axis int-enum canonical convention"
+                     paragraph + "Additive `negate?: bool` primitive"
+                     paragraph after the table.
+                Tracker entry marked **fixed 2026-05-21**.
 
-ce33b27b4  chg: tick toolbar mode-independence
-                Audit-only tick. toolbar.module.mjs has zero
-                data-misp-board-mode references; commitBulk routes to
-                _scheduleWidgetSave (per-widget POST) not _stageOrSave
-                (layout-staging). Toolbar pulls commit regardless of
-                view/edit mode — confirmed structurally + by the saved
-                EventStreamWidget config (threat_level / analysis set
-                via toolbar in view mode).
+467c8c5ef  new: Phase 5 — board-level refresh scheduler core
+                Closes 3 of 11 Phase 5 tracker lines. New module
+                scheduler.module.mjs (~190 lines). Single 1s setInterval
+                walks an instance-id keyed Map; in-flight cap = 4 (PRD
+                §10). Tile delay reads `data-widget-refresh-delay`,
+                populated server-side by DashboardsController::index
+                from per-class $autoRefreshDelay. Last-render learnt
+                via the existing widget-rendered event the board
+                already dispatches. Page Visibility soft-pause; no
+                flush on re-show. Wrapper template gains the new
+                data-widget-refresh-delay attribute (default + Overmind
+                override); §8.5 contract docblock updated. Browser-
+                verified.
 
-297e9d36c  chg: tick cache-key sanity check (moot)
-                No widget render cache exists in v2. The task's premise
-                (existing per-widget Redis cache key includes a config
-                hash) was inherited from v1 expectations that don't
-                hold. Document the no-op rationale; recommend
-                md5(json_encode(CanonicalTypeAdapter::translate(...))) as
-                the key if a render cache lands in a future phase.
+ce6815c31  fix: Phase 5 — renderWrapper enrichment gap
+                Caught at user-driven browser smoke (test #4 — Add
+                Widget WhoamiWidget didn't start ticking). The Add-
+                Widget placement path fetches the new tile's wrapper
+                HTML from POST /dashboards/renderWrapper, which builds
+                its own $widgetData array separate from index()'s
+                enrichment loop. Missed autoRefreshDelay in renderWrapper
+                in the previous commit. One-line mirror fix.
 
-cbc922dd7  new: Phase 3 — Clear action on toolbar canonical popovers
-                (F5.6.5)
-                Two files. toolbar.module.mjs gains commitClear +
-                conditional "Clear from N widgets" button in the
-                popover footer. setCount counts declarers with the
-                schema slot currently SET (skips already-absent
-                declarers); button is omitted when zero. commitClear
-                walks declarers, deletes cfg[schemaKey], routes through
-                the existing _scheduleWidgetSave per-widget POST path.
-                CSS: .misp-toolbar-popover-clear styled with the
-                warning token + margin-right: auto (anchors Clear at
-                the left of the footer, visually distinct from
-                Cancel/Apply).
+0c26b9a62  new: Phase 5 — pause-refresh toggle on board toolbar
+                Closes 1 Phase 5 line. Compact 32×32 icon button to
+                the left of "Edit layout" in modecontrols. Two inline
+                SVG glyphs (pause bars + play triangle); CSS swap on
+                aria-pressed (no JS text/icon swap logic). Ephemeral
+                by design (page reload → running). Page Visibility
+                soft-pause orthogonal to user-pause. Icon style choice
+                (SVG, not FA) recorded in the new feedback-dashboard-
+                chrome-icons memory after the user questioned it
+                during smoke and accepted SVG with the rationale.
 
-765bf6645  new: Phase 3 — per-canonical-type validators
-                Three files. CanonicalTypeAdapter::validate() walks
-                the schema like translate() but returns null on success
-                or {<schemaKey>: <error message>} on failure. Per-type
-                validators (validateTimeWindow / validateDateRange /
-                validateTagFilter / validateOrgMetaFilter /
-                validateIntArrayCanonical / validateGalaxyClusterFilter)
-                accept BOTH canonical and legacy shapes (so layout-drag
-                re-POSTs of un-edited legacy configs pass), but reject
-                shapes neither supports (object where scalar expected,
-                etc.). Pure shape validation — no per-enum value-range
-                checks (those belong in the picker). Wired into
-                updateWidgetSettings only — updateSettings (whole-blob
-                layout save) deliberately skipped per DD-05 ("layout-
-                only saves don't change canonical-typed values").
-                Two-pass design: validate all patches → apply all
-                patches. 400 BadRequestException with JSON-encoded
-                error map. +17 PHPUnit tests; 127/127 pass.
+cf0acb1ba  new: Phase 5 — per-instance refresh override (PRD F2.5)
+                Closes 1 Phase 5 line. Schema-driven path:
+                DashboardsController::index + renderWrapper inject a
+                refresh_delay int schema entry on widgets with
+                $autoRefreshDelay > 0; configure form renders it via
+                the existing int builder. Architecture revised mid-
+                implementation: server emits CLASS DEFAULT only as
+                data-widget-refresh-delay (immutable); client-side
+                resolveDelaySec reads config.refresh_delay first.
+                Configure-save flow gains one line —
+                scheduler.enqueueWidget(savedEl) — re-resolution
+                happens automatically. Browser-verified: 5s default
+                → override=10 → 10s; clear → reverts; 0 → stops.
 
-f6a5986e0  new: Phase 3 — org_filter adapter + validator + tests
-                (10th canonical)
-                Wire shape refines PRD §5.5 with three documented
-                renames + one additive extension:
-                  - match_via (was: role) — avoids User.role_id
-                    collision.
-                  - orgc / sharing_group (was: creator / distribution)
-                    — matches MISP DB field naming.
-                  - per-entry negate?: true — preserves legacy
-                    !-prefix MISP primitive.
-                translateOrgFilter accepts canonical shape +
-                legacy EventStreamWidget comma-string + plain string
-                array (wrapped to match_via="orgc"). Defensive:
-                entries without identity are dropped; invalid
-                match_via clamps to "any". Idempotent. +11 PHPUnit
-                tests; 138/138 pass.
-
-db98bf810  new: Phase 3 — org_filter picker + endpoint + registries
-                + CSS
-                New canonical/org_filter.mjs (~315 lines) — typeahead
-                picker with match_via dropdown, debounced 250ms search,
-                suggestion list, chip list. Chip click toggles negate
-                (accent → danger token); chip × removes; chip identity
-                stored as data-uuid/data-id/data-name for round-trip
-                readback. New DashboardsController::searchOrganisations
-                endpoint (q substring on Organisation.name, limit 50,
-                ORDER BY name ASC; LIKE-wildcard scrub via str_replace).
-                ACL entry 'searchOrganisations' => array('*').
-                Why typeahead vs flat list: 540 orgs on this instance,
-                production scales much higher; flat list would be
-                unusable past a few hundred entries.
-
-7b38380f6  new: Phase 3 — org_filter consumer: EventStreamWidget +
-                tracker tick (10/12)
-                $schema['orgs'] => {type: 'org_filter'} added.
-                handler() removes orgs from the fetchEvent pass-through
-                (adapter has translated to the structured shape,
-                fetchEvent doesn't accept it natively); applied as a
-                PHP post-filter alongside threat_level / analysis /
-                sharing_group / galaxy_cluster. Closure walks each
-                event's Orgc + SharingGroup.SharingGroupOrg.Organisation
-                identity (uuid/id/name) and applies include/exclude
-                logic based on match_via (orgc / sharing_group / any).
-                Exclusion wins; non-empty includes require at least one
-                match; includes-only matches all non-excluded events
-                (legacy !OrgName-only semantic preserved). EventStream-
-                Widget now declares FIVE canonical filters.
-                Smoke: 5 configs verified across legacy + canonical +
-                negate + each match_via mode.
-
-c29c07835  new: Phase 3 — attribute_type_filter + event_id_filter
-                adapters + validators + tests (11th + 12th canonicals)
-                Both widget-only canonicals from PRD §5.5.
-                attribute_type_filter — { types: string[],
-                categories?: string[] } — 1-to-N expansion to legacy
-                type + category keys (mirrors date_range / tag_filter
-                pattern; legacy configs survive unchanged).
-                event_id_filter — { event_ids: int[] | "current" } —
-                pass-through normalisation only. No consumer today;
-                ships as forward-compat scaffold so a future Phase 5
-                widget can wire it without further adapter changes.
-                +14 PHPUnit tests; 152/152 pass.
-
-634aef398  new: Phase 3 — attribute_type_filter picker +
-                TrendingAttributesWidget consumer + tracker tick
-                (catalogue 12/12 complete)
-                New canonical/attribute_type_filter.mjs (~120 lines) —
-                two chip-input rows (Types + Categories) mirroring
-                tag_filter's pattern. No toolbar registry entry
-                (widget-only). CSS: existing .misp-tag-filter-row /
-                .misp-org-meta-row grid rule extends to
-                .misp-attribute-filter-row. TrendingAttributesWidget
-                gains $schema['attribute_filter'] declaration. The
-                pre-existing PHP 8.x Attribute model crash blocks
-                end-to-end render smoke (carried over from prior
-                sessions); adapter expansion verified in isolation
-                via the schema-routed PHPUnit test. Catalogue 12/12
-                complete — Phase 3's "Implement remaining canonical
-                types" line ticks [x].
-
-516f62d35  new: Phase 3 — canonical-only $schema sweep across
-                remaining 20 widgets (PRD §5.7 / DD-06 Option C)
-                Catalogue-wide closure. 20 widgets touched.
-                - 3 widgets gained canonical-typed declarations
-                  (APIActivityWidget / LoginsWidget / NewUsersWidget,
-                  all carrying the user-stats filter + start_date +
-                  end_date pattern → org_meta_filter + date_range).
-                - 17 widgets got explicit empty $schema = array()
-                  markers ("audited; no canonical-typed parameters
-                  needed" — same pattern as Phase 2's MispStatus /
-                  Attack markers).
-                - 3 children of OrgsContributorsGeneric (Last-month /
-                  UsingMitre / UsingObjects) inherit $schema
-                  transparently via PHP property resolution.
-                Net: 35 of 38 widget classes declare $schema; both
-                DD-06 paths are explicit for every widget. Server smoke
-                on APIActivityWidget confirmed date_range expansion.
-                Phase 3 closes with this commit.
+02527bd62  new: Phase 5 — "updated Ns ago" refresh indicator chip
+                Closes 1 Phase 5 line. New module refresh-indicator.
+                module.mjs (~135 lines). Hooks widget-rendered event
+                → per-instance timestamps; 1s setInterval reformats
+                every chip via Intl.RelativeTimeFormat(navigator.
+                language, {numeric:'auto', style:'narrow'}). Bucket
+                cutoffs: <60s seconds, <3600s minutes, <86400s hours,
+                else days. Auto-refresh gating per user feedback at
+                smoke: chip hidden on tiles whose resolveDelaySec
+                returns 0. Resolution helper extracted from Scheduler
+                into a top-level export (single source of truth).
+                widget-error events deliberately do NOT update the
+                timestamp — chip shows "since last successful render",
+                diagnostic signal for stuck widgets. Both wrapper
+                templates + Overmind override gain the new
+                data-misp-widget-refresh-indicator span (aria-live
+                polite, aria-atomic true). CSS uses tabular-nums for
+                steady chip width during ticks; :empty {display:none}
+                hides the slot before first render and on
+                auto-refresh-disabled tiles.
 ```
 
-**Cosmetic typo in commit `516f62d35`:** the commit message contains
-literal `\$schema` (single-quoted heredoc preserved the backslash
-intended for shell escape avoidance). Substance is correct; not
-amending per the no-amend rule.
-
 Net stats this session:
-- 1 new canonical picker module (org_filter.mjs ~315 lines)
-- 1 new canonical adapter (attribute_type_filter — 1-to-N expansion)
-- 1 forward-compat canonical adapter (event_id_filter)
-- 1 second canonical picker module (attribute_type_filter.mjs ~120 lines)
-- 3 new toolbar/configure validator functions + dispatcher
-- 1 new server endpoint (searchOrganisations)
-- 23 widget files touched ($schema declarations across the sweep)
-- PHPUnit count: 110 → 152 (+42)
-- ACL entries: +4 in `ACL_LIST['dashboards']`
-- 1 new Clear action UI surface on toolbar popovers
-- Working tree clean for v2 work after this session's 13 commits.
+- 8 signed commits (all %G? = U)
+- 2 new client-side modules (scheduler.module.mjs ~190 lines + refresh-
+  indicator.module.mjs ~135 lines)
+- 1 new server endpoint enrichment (autoRefreshDelay folded into
+  index + renderWrapper)
+- 2 new wrapper attributes (data-widget-refresh-delay,
+  data-misp-widget-refresh-indicator) — added to BOTH default and
+  Overmind wrapper templates
+- 1 new chrome button (pause toggle, modecontrols block)
+- 1 new schema-driven configure form field (refresh_delay int
+  picker, only surfaces on auto-refresh widgets)
+- 1 new memory entry (feedback-dashboard-chrome-icons)
+- 0 PHPUnit tests added (none of the touched paths have test
+  coverage today; the existing 152-test suite still passes)
+- Working tree clean for v2 work after these 8 commits.
 
 ## Lessons from this session
 
-1. **PRD ≠ code-of-record once we start naming things.** PRD §5.5
-   chose `role` for the org_filter axis and `creator` / `distribution`
-   for its values. Those names collide with MISP's existing
-   `User.role_id` concept and don't match MISP's DB field naming
-   (`Event.orgc_id` is "creator org" everywhere else in the codebase).
-   Renaming at implementation time was free (no code shipped yet) and
-   the user actively pushed back on the PRD names. Lesson: when
-   naming a new concept, search the codebase for prior conventions
-   before defaulting to whatever the PRD says; if the PRD's name
-   collides, push back with concrete alternatives.
+1. **Server-side resolution is a foot-gun when client state can
+   change.** The first cut of the scheduler had `DashboardsController::
+   index` fold the class default + config override into a single
+   resolved value emitted as `data-widget-refresh-delay`. F2.5 (per-
+   instance override picker) immediately exposed the problem: after
+   a configure save, the wrapper attribute was stale until page
+   reload. Either the save flow had to mutate the attribute (or
+   trigger a renderWrapper re-fetch) — both add round-trip
+   complexity. Backing out the server-side fold-in and doing the
+   resolution client-side in `resolveDelaySec` means configure-save
+   just re-calls `scheduler.enqueueWidget` and the resolution picks
+   up the new config without any DOM attribute mutation. Lesson:
+   keep server-emitted attributes IMMUTABLE per page-load; do the
+   client-state-dependent resolution at consumption time.
 
-2. **Additive canonical extensions are sometimes the right move.**
-   PRD §5.5 org_filter had no per-entry negate primitive. Dropping
-   the legacy `!`-prefix in the migration would lose a feature
-   widely used across MISP (every $params['filter'] shape supports
-   it). Extending the canonical shape with `negate?: bool` is
-   additive (no existing canonical shape breaks), preserves user
-   functionality, and documents a general primitive. Lesson:
-   "deviate from PRD" isn't always bad — when the deviation is
-   additive AND preserves a real primitive, the PRD is the stale
-   doc, not the implementation.
+2. **User feedback on the "looks good but…" pattern is precious.**
+   Two design refinements landed via that pattern this session:
+   (a) FA-vs-SVG on the pause toggle ("looks good, but wouldn't
+   FA be more prudent?" → my SVG choice held after surfacing the
+   rationale); (b) refresh indicator gating ("works as expected,
+   but if a widget has no refresh configured, it shouldn't show
+   when it was refreshed" → originally I designed the chip to show
+   on every tile because data staleness is useful even for static
+   tiles; the user's instinct that "no expectation of freshness →
+   no chip" is the right call). Pattern: surface the design call
+   plainly, let the user override. Don't pre-empt with the safest
+   choice — the user might want the bold choice.
 
-3. **Validators should accept the same shapes the translators
-   accept.** A strict canonical-only validator would block every
-   layout-drag re-POST of un-edited legacy configs from existing
-   users. The right strictness is "reject inputs neither shape
-   supports" (object where scalar expected) rather than "reject
-   anything not canonical-conforming". The adapter is already the
-   canonical/legacy bridge; the validator should be too.
+3. **Themed wrapper parity is the single most-forgotten rule.**
+   Two times this session I shipped a `wrapper.ctp` change and
+   forgot the Overmind override (`data-widget-refresh-delay` first
+   commit, `data-misp-widget-refresh-indicator` here). Both were
+   caught at server smoke — admin's on Overmind theme, so the
+   default wrapper edits literally don't reach the rendered DOM.
+   The `project-misp-themed-resolver` memory is already filed; this
+   session's adds reinforce that any new `data-*` attribute or
+   chrome span needs the parallel Overmind edit in the SAME commit.
 
-4. **"No consumer = dead code" isn't an absolute.** event_id_filter
-   landed as forward-compat scaffold (adapter + validator + tests,
-   no picker, no consumer). The judgment: Phase 5 will likely surface
-   a consumer; designing the picker UX without that consumer's
-   actual needs is premature, but landing the shape correctness now
-   (so a future widget can declare it without further adapter
-   changes) is cheap and high-value. Lesson: when a canonical type
-   IS in the PRD §5.5 catalogue, the shape contract has value even
-   without a current consumer; the UX layer is where "no consumer
-   means defer" applies most.
+4. **Filesystem mode drift is real and recurring.** 3 widget files
+   drifted last session, 5 more this session. Both batches were
+   `0770 iglocska:iglocska` despite git tracking `0644`. Something
+   on the dev box is touching modes outside git's view. Filesystem-
+   only patches keep working but the carryover keeps growing — at
+   some point this needs root-causing.
 
-5. **Inheritance can replace per-child copy-paste for declarations
-   the parent owns.** Three Orgs* widgets extend OrgsContributors-
-   Generic. Adding `$schema = array()` to Generic alone makes all
-   three children declarative without per-child edits. PHP property
-   resolution + WidgetSchema::getSchema's `$widget->schema` access
-   resolve correctly up the inheritance chain. Saved 3 file edits +
-   3 git diffs.
+5. **The schema-driven configure form makes new typed-field
+   additions trivial.** F2.5 (per-instance refresh override picker)
+   shipped with ZERO new client-side picker code — server-side
+   schema injection + the existing `int` builder did the whole UI.
+   The 4-line server-side block in `index()` is the entire feature.
+   Lesson: when the form-generation infrastructure is right, new
+   typed UI lands almost for free.
 
-6. **The 1-to-N expansion pattern is the right shape for canonicals
-   that consolidate multiple legacy keys.** date_range → start_date +
-   end_date; tag_filter → include + exclude (top-level); now
-   attribute_type_filter → type + category. The adapter writes both
-   the canonical key AND the legacy keys; handlers untouched (still
-   read legacy); empty canonical lists do NOT overwrite legacy
-   entries (so a user with bottom-tier-set legacy values survives a
-   canonical-unset state). This pattern is now applied 3× — the next
-   addition probably warrants a shared helper.
+6. **Single-source-of-truth helpers earn their keep on the second
+   consumer.** `_resolveDelaySec` was a private method on Scheduler
+   until RefreshIndicator needed the same priority logic to gate
+   the chip. Extracted as a top-level export of `scheduler.module.
+   mjs`; both modules import it. The extraction was free at this
+   point (single call site → public export), would have been
+   harder mid-implementation. Lesson: extract on the second
+   consumer, not earlier; but DO extract.
 
-7. **Counter-tests prove a code-audit hook actually fires.** When the
-   `findMissingFunctionNames` audit returned `[]` after the ACL
-   backfill, that could have meant "all clean" OR "audit silently
-   broken". Temporary removal of one entry → audit immediately flagged
-   it; restoration → audit returned `[]`. Two cheap curl calls prove
-   the audit is live and the codebase IS clean.
-
-The prior sessions' gotchas still apply:
-
-8. **`git mv` does NOT auto-stage subsequent content edits.**
-9. **Themed/<Name>/Layouts/<layout>.ctp must exist for every new
-   layout.**
-10. **Cake 2.x theme dot-notation is for PLUGINS, not THEMES.**
-11. **`fetchEvent` is not `restSearch`.** Different options.
-12. **GPG pinentry timeout** on late nights.
+The prior sessions' gotchas still apply (themed resolver silent
+fallback, `git mv` doesn't auto-stage, fetchEvent ≠ restSearch,
+heredoc + dollar signs, GPG pinentry timeout, mode-drift carryover
+above).
 
 ## Discovered work parked for later
 
 Active carryovers:
 
-- **PRD §5.5 doc alignment** — the PRD ships with:
-  - `role` instead of `match_via` for org_filter's axis name
-  - `creator` / `distribution` instead of `orgc` / `sharing_group`
-  - no per-entry `negate` field on org_filter
-  - wrapped objects for int-enum canonicals (`{levels: int[]}`
-    etc.) — all four implementations use bare int arrays
-  All three deviations from PRD §5.5 are documented in the code
-  (commit bodies + Done notes) but the PRD itself is stale. Half a
-  day of prose editing; no code change. Filed in prior sessions and
-  this one.
+- **Phase 5 drill-down half (4 lines).** Pre-locked design from Q3
+  resolution. Likely surfaces a natural consumer for the deferred
+  `event_id_filter` picker. Multi-session.
 
-- **TrendingAttributesWidget PHP 8.x `Attribute` model crash.**
-  `ClassRegistry::init('Attribute')` collides with PHP 8.0+'s
-  built-in `Attribute` class — handler() fatals before the renderer
-  runs. Blocks end-to-end smoke of the new `attribute_type_filter`
-  consumer. Single-class-rename fix; carried from earlier sessions.
+- **Phase 5 cache-key board-scope hash (F3.3).** Moot today — no
+  widget render cache in v2. Either close as "no-op rationale
+  documented" or defer until a cache lands. Recommendation: close
+  with a one-paragraph rationale paragraph in the tracker entry,
+  same shape as Phase 3's cache-key-sanity-check closure.
+
+- **File-mode-drift root cause.** 8 widget files patched across
+  this session + last. Something is clobbering modes. Worth a
+  short investigation: check editor save behaviour, any deploy
+  scripts that chmod recursively, umask of the user's primary
+  shell, any rsync/scp paths.
+
+- **PRD §5.5 doc alignment** — landed 2026-05-21 (Option C). The
+  active carryover from prior session is now CLOSED.
 
 - **MISP 2.4 cross-instance DB write risk:** v2.4 connected to
   the same DB can clobber `user_settings.dashboard` rows. Carries.
 
 - **time_window toolbar dropdown-menu UX alternative.** Carries.
 - **Grid drop-on-occupied cascade (Phase 5).** Carries.
-- **tlp:clear (#ffffff) renders invisible bars (cosmetic).**
-  Carries.
+- **tlp:clear (#ffffff) renders invisible bars (cosmetic).** Carries.
 - **OrgEventsWidget months>13 malformed dates.** Carries.
 - **EventEvolutionLineWidget ignores end_date.** Carries.
 - **Live preview race window** (carries — AbortController fix).
 - **Drop dormant `dashboard.midnight.css` loader.** Carries.
 - **`save_template.ctp:4` action-name mismatch** (Phase 4 — carries).
 - **Pre-fetch overshoot trade-off documented for EventStream-
-  Widget's post-filter canonicals.** Same trade-off applies to the
-  five canonical filters EventStreamWidget now declares; users
-  wanting guaranteed N matches for rare attribute combinations
-  must raise the widget's `limit` config. Perhaps document in the
-  widget's `$description`.
+  Widget's post-filter canonicals.** Carries.
 
 ## Open thread / next obvious work
 
 In rough priority order:
 
-**Option A: Phase 4 — Template gallery polish.**
+**Option A: Phase 5 drill-down half (4 lines).**
 
-Pure greenfield. Reuses the gallery infrastructure (card grid,
-search filter, side panel) from Phase 2. Multi-session. Phase 3's
-canonical-type infrastructure (12 canonicals + validators + pickers
-+ Clear action) gives Phase 4 a richer starting point — templates
-can now carry canonical-typed config values that round-trip
-through the adapter cleanly.
+Greenfield, multi-session. Q3 resolution already locks the design
+(per-datum drilldown in widget data, `DashboardURLValidator` helper
+under `app/Lib/Dashboard/Tools/`, per-renderer wrapping in SimpleList /
+BarChart / MultiLineChart / WorldMap). Modest scope per renderer
+once the validator is built. A natural consumer for the deferred
+`event_id_filter` picker may surface (event-view side-panel widgets
+with `"current"` sentinel).
 
-**Option B: Phase 5 — Drill-down + refresh scheduler.**
+**Option B: Close out Phase 5 (cache-key F3.3 + drill-down).**
 
-Cross-cutting feature. Multi-session. A natural consumer for
-`event_id_filter` may surface here (event-view-context widgets
-rendered in a side panel during drill-down would benefit from the
-`"current"` sentinel). Pairing the drill-down work with an
-event_id_filter picker would close out Phase 3's only deferred
-picker.
+If the appetite is to fully ship Phase 5 in one push, the cache-key
+line closes as a documented no-op + the drill-down workstream closes
+the remaining 4 lines. Roughly 1 cleanup commit + 3-4 drill-down
+commits.
 
-**Option C: PRD §5.5 doc alignment.**
+**Option C: Phase 4 — template gallery polish.**
 
-Half a day of prose editing. Amend PRD to reflect:
-- bare-array convention for single-axis int-enum canonicals
-- org_filter renames (match_via / orgc / sharing_group / negate)
-Pure doc cleanup; no code change.
+Greenfield, multi-session. Pure presentation-layer change plus a
+thumbnail generator. Lower architectural risk than drill-down's
+cross-cutting renderer touches.
 
-**Option D: TrendingAttributesWidget PHP 8 fix.**
+**Option D: File-mode-drift investigation.**
 
-`ClassRegistry::init('Attribute')` → rename the local variable to
-avoid the PHP 8.0+ built-in `Attribute` class collision. Single
-file edit; small but unblocks end-to-end smoke of the new
-attribute_type_filter consumer. Carryover.
+Short detour. 60-minute scope at most. Closes a recurring carryover.
 
 **Option E: Other parked work** — time_window dropdown UX,
-midnight.css drop, EventEvolutionLine end_date,
-save_template action-name mismatch.
+midnight.css drop, EventEvolutionLine end_date, save_template
+action-name mismatch.
 
-**Recommendation:** **B** if there's appetite for a multi-session
-greenfield piece (drill-down has obvious UX value, opens up
-event_id_filter's deferred picker as a natural pairing). **A** if
-the user wants to focus on authoring affordances next. **C+D** as
-a ~1-day cleanup batch closing the two open carryovers.
+**Recommendation:** **A** if continuing Phase 5 momentum makes
+sense — drill-down is the natural pair to the refresh half (both
+PRD-Phase-5 work, both client-cutting). **C** if pivoting to a
+fresh phase feels right — Phase 4 is the only remaining greenfield
+phase before merge-gate prep.
 
 ## Convention reminders
 
 - Commit per progress-tracker task completion; never `git add -A`;
-  the commit body references the task. **For canonical-type
-  additions: three-commit shape per type — adapter + tests, JS
-  picker + registries, consumer widget.** Endpoints (when needed
-  for dynamic-options canonicals) fold into the picker commit
-  rather than being a separate commit, unless the endpoint is
-  exceptionally large.
-- **Picker UX scales with catalogue size, not feature complexity.**
-  Decision tree per the prior sessions' Lesson #2: ≤10 fixed options
-  → static toggle row; ≤500 → flat list with search; >500 → typeahead
-  with scoped server endpoint.
+  the commit body references the task. **Phase 5 commits follow a
+  one-commit-per-tracker-line shape** — see the 6 Phase 5 commits
+  this session.
 - **Always `git status --short` + explicit `git add` before commit**.
   Watch for stray empty files from grep / find with quote-mangling.
 - New files land with `iglocska:iglocska` ownership; `chgrp
-  www-data` before committing to match repo convention.
+  www-data` before committing to match repo convention. **The new
+  refresh-indicator.module.mjs was chgrp'd this session; preserve
+  the pattern.**
+- **Themed wrapper parity:** any new `data-*` attribute or chrome
+  span on `app/View/Elements/dashboard/widget/wrapper.ctp` MUST
+  be mirrored in `app/View/Themed/Overmind/Elements/dashboard/
+  widget/wrapper.ctp` in the SAME commit. Default wrapper edits
+  literally don't reach the rendered DOM for an Overmind user
+  (which the dev admin is). The themed-resolver memory has filed
+  this; check for any third-party theme overrides too via
+  `find app/View/Themed -path '*Elements/dashboard/widget*'`.
+- **Dashboard chrome icons are inline SVG, not Font Awesome** —
+  see `feedback-dashboard-chrome-icons` memory. The chrome was
+  designed as a Bootstrap/FA-independent island per PRD §G11; FA
+  belongs on surfaces outside the chrome.
+- **Single-source-of-truth helpers earn their keep on the second
+  consumer.** When two modules need the same logic, extract as a
+  top-level export rather than duplicate (e.g. `resolveDelaySec` in
+  scheduler.module.mjs).
 - **MISP-jargon naming over PRD-generic.** When introducing new
-  identifiers (canonical type names, axis labels), prefer terms that
-  match MISP's existing DB field names + user-facing terminology
-  (orgc / sharing_group / etc.) over PRD-generic alternatives
-  (creator / distribution) — even when this means deviating from
-  PRD §5.5. Document the deviation in the commit body so the PRD
-  can be updated downstream.
+  identifiers (canonical type names, axis labels, config keys),
+  prefer terms that match MISP's existing DB field names + user-
+  facing terminology over PRD-generic alternatives.
 - **Inline-style colour strings need a strict regex match** before
   insertion (`/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/`).
 - **External links always pair `target="_blank"` with
@@ -636,7 +511,8 @@ a ~1-day cleanup batch closing the two open carryovers.
 - **Themed CSS in Cake 2.x:** use plain paths (no dot-prefix).
 - User wants rigorous pushback, not yes-machine output — surface
   trade-offs, name alternatives, recommend a path, then go with
-  the user's call.
+  the user's call. The "looks good, but…" pattern is the signal
+  to surface refinements explicitly rather than assume.
 - User alternates hitm / afk sessions; tracker docs are the
   ground truth between sessions. Tick one task at a time; the
   Done note carries the deciding context.
@@ -646,37 +522,37 @@ a ~1-day cleanup batch closing the two open carryovers.
   from `AppController::__queryVersion` doesn't bump per-file.
 - **The schema-driven model is the canonical answer** for any
   "how does the toolbar / configure form know which widgets to
-  act on" question.
+  act on" question. F2.5 picker shipped with zero new client-
+  side code because schema-injection drove the form generator.
 - **A tracker tick requires the user-visible surface to exist
   AND be reachable from the default UI**, not just the JS /
-  handler-level wiring behind it.
+  handler-level wiring behind it. Browser-verify every Phase 5
+  line before ticking — both refresh half and drill-down half
+  need real-browser smoke (the headless harness is not the
+  source of truth per the visibility-quirk caveat).
 - **`mysql -u misp -pPassword1234 misp` for one-shot SQL.**
 - **Render-kind glyph requirement (carries):** any new value
   for `public $render` on a widget class, or any new template
   under `app/View/Elements/dashboard/Widgets/`, must ship with
   a matching glyph in `render-thumbs.mjs` in the same commit.
 - **Heredoc + dollar signs:** single-quoted heredoc (`<<'EOF'`)
-  preserves `\$` literally. Don't escape dollar signs inside it
-  — write `$schema`, not `\$schema`. (Got bitten this session;
-  commit message has the literal backslash. Cosmetic only.)
+  preserves `\$` literally. Don't escape dollar signs inside it.
 
 ## Quick-start cheatsheet for the next session
 
 If you're picking this up cold:
 
-1. Read `dashboard-prd.md` for the spec (note: §5.5 is stale on
-   org_filter naming — see Discovered work below).
+1. Read `dashboard-prd.md` for the spec.
 2. Read `dashboard-progress.md` for what's done / what's next.
 3. Skim this file for ephemeral session-level context.
 4. Verify the live instance still works:
    `curl -s http://localhost:5007/dashboards -o /dev/null -w "%{http_code}\n"`
    should return 302 (redirect to login) without a session;
    with the session-login dance, /dashboards returns 200.
-5. **Phase 2 and Phase 3 are both closed.** Pick from the Open
-   thread above. Recommended: Phase 5 (drill-down) if appetite for
-   greenfield, or Phase 4 (template gallery) for authoring
-   affordances. Carryovers in Option C + D are a ~1-day cleanup
-   batch.
+5. **Phase 5 refresh half closed (6/7 lines). Drill-down half open
+   (4 lines).** Pick from the Open thread above. Recommended: Option A
+   (continue Phase 5 with drill-down) or Option C (pivot to Phase 4
+   template gallery).
 6. Commit one task at a time, signed, with `chgrp www-data` on
    new files. Don't `git add -A`. Don't escape `$` inside single-
-   quoted heredocs.
+   quoted heredocs. Themed wrapper parity check on every chrome edit.
