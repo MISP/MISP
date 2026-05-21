@@ -97,7 +97,7 @@ class AppModel extends Model
 	        129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
 	        135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
 	        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
-	        147 => false, 148 => false, 149 => false
+	        147 => false, 148 => false, 149 => false, 150 => false
 	    );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -301,6 +301,9 @@ class AppModel extends Model
                 break;
             case 139:
                 $dbUpdateSuccess = $this->fixUpdatedGalaxyID();
+                break;
+            case 150:
+                $dbUpdateSuccess = $this->fixDatabaseEncoding();
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -4885,6 +4888,81 @@ class AppModel extends Model
         foreach (array_chunk($toUpdate, 1000) as $chunk) {
             $this->GalaxyCluster->saveMany($chunk, $options);
         }
+        return true;
+    }
+
+    /**
+     * Update 150 — migrate the database connection encoding to utf8mb4 so that 4-byte UTF-8
+     * characters (emoji, supplementary-plane characters) stop being rejected at the wire.
+     *
+     * Also pins the connection collation to utf8mb4_unicode_ci so that mixing utf8mb4 literals
+     * with the still-utf8mb3 columns does not trigger "Illegal mix of collations" errors on
+     * MySQL 8.0 (where the default utf8mb4 collation is utf8mb4_0900_ai_ci and has no implicit
+     * conversion path to utf8mb3_*_ci). The collation is appended to the encoding value because
+     * CakePHP simply concatenates it into 'SET NAMES <value>' on connect, and MySQL's SET NAMES
+     * accepts the 'charset COLLATE collation' form.
+     */
+    private function fixDatabaseEncoding()
+    {
+        $path = APP . 'Config/database.php';
+
+        $original = file_get_contents($path);
+        if ($original === false) {
+            $this->logException(
+                'Update 150: could not read database.php — leaving config untouched.',
+                new Exception("file_get_contents failed for $path")
+            );
+            return false;
+        }
+
+        // Match the encoding directive when its value is exactly 'utf8', 'utf8mb3', or 'utf8mb4'
+        // (no trailing COLLATE clause) — the closing quote backreference enforces that the value
+        // ends right there, so operator-customised values like 'utf8mb4 COLLATE utf8mb4_bin' are
+        // left untouched.
+        $updated = preg_replace(
+            "/(['\"])encoding\\1\\s*=>\\s*(['\"])utf8(?:mb3|mb4)?\\2/",
+            "'encoding' => 'utf8mb4 COLLATE utf8mb4_unicode_ci'",
+            $original
+        );
+
+        if ($updated === null || $updated === $original) {
+            // Nothing to change (already migrated, customised, or pattern didn't match).
+            return true;
+        }
+
+        // Keep a .bak alongside the file so an operator can recover if something is off.
+        @copy($path, $path . '.bak-update-150');
+
+        // Atomic write: write to a temp file in the same directory, then rename into place.
+        $tmp = $path . '.tmp-update-150';
+        $bytes = file_put_contents($tmp, $updated, LOCK_EX);
+        if ($bytes === false) {
+            @unlink($tmp);
+            $this->logException(
+                'Update 150: could not write temporary database.php — leaving config untouched.',
+                new Exception("file_put_contents failed for $tmp")
+            );
+            return false;
+        }
+        if (!@rename($tmp, $path)) {
+            @unlink($tmp);
+            $this->logException(
+                'Update 150: could not rename temporary database.php into place — leaving config untouched.',
+                new Exception("rename failed: $tmp -> $path")
+            );
+            return false;
+        }
+
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->createLogEntry(
+            'SYSTEM',
+            'update_database',
+            'Server',
+            0,
+            'Update 150: database connection encoding migrated to utf8mb4 (with utf8mb4_unicode_ci collation pin).',
+            'Original database.php backed up at ' . $path . '.bak-update-150'
+        );
+
         return true;
     }
 
