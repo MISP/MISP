@@ -62,6 +62,9 @@ class Feed extends AppModel
         ),
         'csv' => array(
             'name' => 'Simple CSV Parsed Feed'
+        ),
+        'stix' => array(
+            'name' => 'STIX Feed'
         )
     );
 
@@ -138,6 +141,10 @@ class Feed extends AppModel
             if ($this->data['Feed']['source_format'] == 'misp') {
                 if (!is_dir($path)) {
                     return 'For MISP type local feeds, please specify the containing directory.';
+                }
+            } elseif ($this->data['Feed']['source_format'] == 'stix') {
+                if (!file_exists($path)) {
+                    return 'Invalid path or file/directory not found. For STIX feeds you can specify either a file or a directory containing STIX files.';
                 }
             } else {
                 if (!file_exists($path)) {
@@ -615,7 +622,7 @@ class Feed extends AppModel
         if ($scope == 'Server' && !$user['Role']['perm_site_admin'] && $user['org_id'] != Configure::read('MISP.host_org_id')) {
             // Filter fields that shouldn't be visible to everyone
             $allowedFieldsForAllUsers = array_flip(['id', 'name',]);
-            $sources = array_map(function($source) use($scope, $allowedFieldsForAllUsers) {
+            $sources = array_map(function ($source) use ($scope, $allowedFieldsForAllUsers) {
                 return [$scope => array_intersect_key($source[$scope], $allowedFieldsForAllUsers)];
             }, $sources);
         }
@@ -1208,7 +1215,7 @@ class Feed extends AppModel
      */
     private function __updateEventFromFeed(HttpSocket $HttpSocket = null, $feed, $uuid, $user, $filterRules)
     {
-         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
+        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         $event = $this->__prepareEvent($event, $feed, $filterRules);
         if (is_array($event)) {
             return $this->Event->_edit($event, $user, $uuid, $jobId = null);
@@ -1281,6 +1288,15 @@ class Feed extends AppModel
             $this->jobProgress($jobId, __("Fetching %s events.", $total));
             $result = $this->downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId);
             $this->__cleanupFile($feed, '/manifest.json');
+        } elseif ($feed['Feed']['source_format'] === 'stix') {
+            $this->jobProgress($jobId, 'Fetching STIX data.');
+            try {
+                $result = $this->downloadStixFeed($feed, $HttpSocket, $user, $jobId);
+            } catch (Exception $e) {
+                $this->logException("Could not process STIX feed $feedId", $e);
+                $this->jobProgress($jobId, 'Could not fetch STIX feed. See error log for more details.');
+                return false;
+            }
         } else {
             $this->jobProgress($jobId, 'Fetching data.');
             try {
@@ -1318,6 +1334,660 @@ class Feed extends AppModel
             $this->__cleanupFile($feed, '');
         }
         return $result;
+    }
+
+    /**
+     * Download and convert a STIX feed for preview only (no import/save).
+     * Returns events shaped as a UUID-keyed array matching the manifest format
+     * expected by preview_index.ctp.
+     *
+     * @param array $feed
+     * @param HttpSocket|null $HttpSocket
+     * @return array UUID-keyed array of event data
+     * @throws Exception
+     */
+    public function downloadStixFeedForPreview(array $feed, HttpSocket $HttpSocket = null)
+    {
+        $rawEvents = $this->__convertStixToRawEvents($feed, $HttpSocket);
+
+        // Reshape into UUID-keyed manifest format for preview_index.ctp
+        $events = [];
+        foreach ($rawEvents as $item) {
+            $e = $item['Event'] ?? [];
+            $uuid = !empty($e['uuid']) ? $e['uuid'] : RandomTool::random_str(false, 36);
+
+            $orgc = ['name' => 'Unknown'];
+            if (!empty($e['Orgc']['name'])) {
+                $orgc = $e['Orgc'];
+            } elseif (!empty($e['orgc']['name'])) {
+                $orgc = $e['orgc'];
+            } elseif (!empty($feed['Feed']['provider'])) {
+                $orgc = ['name' => $feed['Feed']['provider']];
+            }
+
+            $events[$uuid] = [
+                'uuid'           => $uuid,
+                'info'           => !empty($e['info']) ? $e['info'] : $feed['Feed']['name'],
+                'date'           => !empty($e['date']) ? $e['date'] : date('Y-m-d'),
+                'timestamp'      => !empty($e['timestamp']) ? $e['timestamp'] : time(),
+                'threat_level_id'=> isset($e['threat_level_id']) ? $e['threat_level_id'] : 4,
+                'analysis'       => isset($e['analysis']) ? $e['analysis'] : 0,
+                'distribution'   => isset($e['distribution']) ? $e['distribution'] : $feed['Feed']['distribution'],
+                'Orgc'           => $orgc,
+                'Tag'            => !empty($e['Tag']) ? $e['Tag'] : [],
+            ];
+        }
+
+        return $events;
+    }
+
+    /**
+     * Download and convert a STIX feed, returning the full MISP event matching
+     * the given UUID. Used by previewEvent for STIX feeds.
+     *
+     * @param array $feed
+     * @param string $uuid
+     * @param HttpSocket|null $HttpSocket
+     * @return array Full MISP event structure (['Event' => [...]])
+     * @throws Exception|NotFoundException
+     */
+    public function downloadStixEventForPreview(array $feed, $uuid, HttpSocket $HttpSocket = null)
+    {
+        $rawEvents = $this->__convertStixToRawEvents($feed, $HttpSocket);
+
+        foreach ($rawEvents as $item) {
+            if (!empty($item['Event']['uuid']) && $item['Event']['uuid'] === $uuid) {
+                return $item;
+            }
+        }
+
+        throw new NotFoundException(__('Event with UUID %s not found in STIX feed.', $uuid));
+    }
+
+    /**
+     * Download a STIX feed and convert it to an array of full MISP event
+     * structures (['Event' => [...]]), shared by the preview methods.
+     *
+     * @param array $feed
+     * @param HttpSocket|null $HttpSocket
+     * @return array
+     * @throws Exception
+     */
+    private function __convertStixToRawEvents(array $feed, HttpSocket $HttpSocket = null)
+    {
+        $stixVersion = '2';
+        if (!empty($feed['Feed']['settings']['stix_version'])) {
+            $stixVersion = $feed['Feed']['settings']['stix_version'];
+        }
+
+        $feedUrl = $this->__resolveStixFeedPath($feed);
+        $data = $this->feedGetUri($feed, $feedUrl, $HttpSocket);
+
+        if (empty($data)) {
+            throw new Exception(__('Feed %s: STIX data is empty.', $feed['Feed']['id']));
+        }
+
+        $tmpFile = FileAccessTool::createTempFile();
+        FileAccessTool::writeToFile($tmpFile, $data);
+        unset($data);
+
+        $this->Event = ClassRegistry::init('Event');
+
+        try {
+            $decoded = $this->Event->convertStixToMisp(
+                $stixVersion,
+                $tmpFile,
+                $feed['Feed']['distribution'],
+                $feed['Feed']['sharing_group_id'],
+                false,
+                true,
+                0,
+                null,
+                Configure::read('MISP.uuid') ?: 'no-uuid',
+                false
+            );
+        } catch (Exception $e) {
+            FileAccessTool::deleteFileIfExists($tmpFile);
+            throw new Exception("STIX conversion failed for preview: " . $e->getMessage(), 0, $e);
+        }
+
+        FileAccessTool::deleteFileIfExists($tmpFile);
+
+        if (empty($decoded['success'])) {
+            $errorMsg = !empty($decoded['error']) ? $decoded['error'] : 'Unknown error during STIX conversion';
+            throw new Exception("STIX conversion failed for preview: $errorMsg");
+        }
+
+        $convertedData = JsonTool::decodeArray($decoded['converted']);
+
+        $rawEvents = [];
+        if (isset($convertedData['Event'])) {
+            $rawEvents[] = $convertedData;
+        } elseif (isset($convertedData[0])) {
+            foreach ($convertedData as $item) {
+                $rawEvents[] = isset($item['Event']) ? $item : ['Event' => $item];
+            }
+        } else {
+            $rawEvents[] = ['Event' => $convertedData];
+        }
+
+        return $rawEvents;
+    }
+
+    /**
+     * Resolve a STIX feed URL/path to the actual file to process.
+     * If the path points to a local directory, scan for STIX files and return
+     * the path to the most recently modified one.
+     *
+     * @param array $feed Feed data array
+     * @return string The resolved feed URL or file path
+     * @throws Exception If directory contains no STIX files
+     */
+    private function __resolveStixFeedPath(array $feed)
+    {
+        $feedUrl = $feed['Feed']['url'];
+
+        // Only apply directory scanning for local feeds
+        if (!$this->isFeedLocal($feed)) {
+            return $feedUrl;
+        }
+
+        // Normalize the path (remove protocol prefix like feedGetUri does)
+        $localPath = mb_ereg_replace("/\:\/\//", '', $feedUrl);
+
+        // If it's a file, use it directly
+        if (is_file($localPath)) {
+            return $feedUrl;
+        }
+
+        // If it's a directory, find the most recent STIX file
+        if (is_dir($localPath)) {
+            $stixExtensions = ['json', 'xml', 'stix', 'stix2', 'stix1'];
+            $newestFile = null;
+            $newestMtime = 0;
+
+            $dirIterator = new DirectoryIterator($localPath);
+            foreach ($dirIterator as $fileInfo) {
+                if ($fileInfo->isDot() || !$fileInfo->isFile()) {
+                    continue;
+                }
+                $ext = strtolower($fileInfo->getExtension());
+                if (!in_array($ext, $stixExtensions, true)) {
+                    continue;
+                }
+                $mtime = $fileInfo->getMTime();
+                if ($mtime > $newestMtime) {
+                    $newestMtime = $mtime;
+                    $newestFile = $fileInfo->getPathname();
+                }
+            }
+
+            if ($newestFile === null) {
+                throw new Exception("STIX feed directory '$localPath' contains no STIX files (expected extensions: " . implode(', ', $stixExtensions) . ")");
+            }
+
+            $this->log("STIX feed: resolved directory '$localPath' to most recent file '$newestFile'", LOG_INFO);
+            return $newestFile;
+        }
+
+        // Not a file and not a directory — let feedGetUri handle the error
+        return $feedUrl;
+    }
+
+    /**
+     * Apply user-defined custom STIX-to-MISP field mappings to converted events.
+     *
+     * For event-level mappings: searches all STIX objects and uses the first match.
+     * For attribute-level mappings: builds a per-value lookup by tracing each STIX SCO
+     * back to its parent observed-data/indicator via object_refs, so each MISP attribute
+     * gets the correct field value from its own IOC group (1-to-1 mapping).
+     *
+     * @param array $events Array of converted MISP events (by reference)
+     * @param string $rawStixData The original raw STIX JSON/XML data
+     * @param array $customMapping The custom mapping config with 'event' and 'attribute' keys
+     * @return void
+     */
+    private function __applyStixCustomMapping(array &$events, $rawStixData, array $customMapping)
+    {
+        if (empty($customMapping)) {
+            return;
+        }
+
+        // Try to parse raw STIX data as JSON for key extraction
+        $stixParsed = json_decode($rawStixData, true);
+        if ($stixParsed === null) {
+            $this->log("Custom STIX mapping: could not parse raw STIX data as JSON, skipping custom mapping.", LOG_NOTICE);
+            return;
+        }
+
+        // Collect all STIX objects into a flat list for lookup, indexed by ID
+        $stixObjects = [];
+        $stixObjectsById = [];
+        if (isset($stixParsed['objects']) && is_array($stixParsed['objects'])) {
+            $stixObjects = $stixParsed['objects'];
+            foreach ($stixObjects as $obj) {
+                if (isset($obj['id'])) {
+                    $stixObjectsById[$obj['id']] = $obj;
+                }
+            }
+        } elseif (isset($stixParsed['type'])) {
+            $stixObjects = [$stixParsed];
+            if (isset($stixParsed['id'])) {
+                $stixObjectsById[$stixParsed['id']] = $stixParsed;
+            }
+        }
+
+        // Helper: resolve a dot-notation key path from an associative array
+        $resolveKey = function ($obj, $keyPath) use (&$resolveKey) {
+            $parts = explode('.', $keyPath, 2);
+            $key = $parts[0];
+            if (!isset($obj[$key])) {
+                return null;
+            }
+            if (count($parts) === 1) {
+                return is_scalar($obj[$key]) ? (string)$obj[$key] : json_encode($obj[$key]);
+            }
+            if (is_array($obj[$key])) {
+                return $resolveKey($obj[$key], $parts[1]);
+            }
+            return null;
+        };
+
+        // Apply event-level mappings (first-match is correct here — one value per event)
+        if (!empty($customMapping['event'])) {
+            foreach ($events as &$event) {
+                foreach ($customMapping['event'] as $stixKey => $mispField) {
+                    foreach ($stixObjects as $stixObj) {
+                        $value = $resolveKey($stixObj, $stixKey);
+                        if ($value !== null) {
+                            $event['Event'][$mispField] = $value;
+                            break;
+                        }
+                    }
+                }
+            }
+            unset($event);
+        }
+
+        // Apply attribute-level mappings with per-IOC resolution
+        if (!empty($customMapping['attribute'])) {
+            // Build a lookup: normalised IOC value → array of {stixKey => resolved value}
+            // by tracing SCO values through parent observed-data/indicator object_refs
+            $valueLookup = $this->__buildStixValueLookup($stixObjects, $stixObjectsById, $customMapping['attribute'], $resolveKey);
+
+            foreach ($events as &$event) {
+                if (!empty($event['Event']['Attribute'])) {
+                    foreach ($event['Event']['Attribute'] as &$attribute) {
+                        $this->__applyAttributeLevelMapping($attribute, $valueLookup, $customMapping['attribute'], $stixObjects, $resolveKey);
+                    }
+                    unset($attribute);
+                }
+                if (!empty($event['Event']['Object'])) {
+                    foreach ($event['Event']['Object'] as &$object) {
+                        if (!empty($object['Attribute'])) {
+                            foreach ($object['Attribute'] as &$objAttr) {
+                                $this->__applyAttributeLevelMapping($objAttr, $valueLookup, $customMapping['attribute'], $stixObjects, $resolveKey);
+                            }
+                            unset($objAttr);
+                        }
+                    }
+                    unset($object);
+                }
+            }
+            unset($event);
+        }
+    }
+
+    /**
+     * Build a lookup table mapping normalised IOC values to their parent STIX object's
+     * custom field values. This allows 1-to-1 attribute-level mapping by tracing each
+     * SCO back to its observed-data or indicator parent via object_refs.
+     *
+     * @param array $stixObjects All STIX objects from the bundle
+     * @param array $stixObjectsById STIX objects indexed by their STIX ID
+     * @param array $attributeMapping The attribute-level custom mapping (stixKey => mispField)
+     * @param callable $resolveKey Helper to resolve dot-notation key paths
+     * @return array Normalised value => [stixKey => resolved value, ...]
+     */
+    private function __buildStixValueLookup(array $stixObjects, array $stixObjectsById, array $attributeMapping, callable $resolveKey)
+    {
+        $valueLookup = [];
+
+        // Find all parent objects that have object_refs (observed-data, indicators, etc.)
+        foreach ($stixObjects as $parentObj) {
+            // Check if this parent object has any of the mapped keys
+            $parentValues = [];
+            $hasAnyKey = false;
+            foreach ($attributeMapping as $stixKey => $mispField) {
+                $resolved = $resolveKey($parentObj, $stixKey);
+                if ($resolved !== null) {
+                    $parentValues[$stixKey] = $resolved;
+                    $hasAnyKey = true;
+                }
+            }
+            if (!$hasAnyKey) {
+                continue;
+            }
+
+            // Extract IOC values from referenced SCOs via object_refs
+            if (!empty($parentObj['object_refs']) && is_array($parentObj['object_refs'])) {
+                foreach ($parentObj['object_refs'] as $refId) {
+                    if (!isset($stixObjectsById[$refId])) {
+                        continue;
+                    }
+                    $sco = $stixObjectsById[$refId];
+                    $scoValues = $this->__extractScoValues($sco);
+                    foreach ($scoValues as $val) {
+                        $normVal = $this->__normaliseValueForLookup($val);
+                        if ($normVal !== '') {
+                            // Merge parent values; later parents don't overwrite earlier for same value
+                            if (!isset($valueLookup[$normVal])) {
+                                $valueLookup[$normVal] = $parentValues;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Also extract IOC values from indicator patterns
+            if (!empty($parentObj['pattern']) && isset($parentObj['type']) && $parentObj['type'] === 'indicator') {
+                $patternValues = $this->__extractValuesFromStixPattern($parentObj['pattern']);
+                foreach ($patternValues as $val) {
+                    $normVal = $this->__normaliseValueForLookup($val);
+                    if ($normVal !== '' && !isset($valueLookup[$normVal])) {
+                        $valueLookup[$normVal] = $parentValues;
+                    }
+                }
+            }
+        }
+
+        return $valueLookup;
+    }
+
+    /**
+     * Extract all meaningful values from a STIX SCO (observable) object.
+     * Handles domain-name, ipv4-addr, ipv6-addr, url, file (name + hashes), x-uri, etc.
+     *
+     * @param array $sco The STIX SCO object
+     * @return array List of string values
+     */
+    private function __extractScoValues(array $sco)
+    {
+        $values = [];
+
+        // Direct value field (domain-name, ipv4-addr, ipv6-addr, url, x-uri, etc.)
+        if (isset($sco['value']) && is_string($sco['value'])) {
+            $values[] = $sco['value'];
+        }
+
+        // File name
+        if (isset($sco['name']) && is_string($sco['name'])) {
+            $values[] = $sco['name'];
+        }
+
+        // File hashes (MD5, SHA-1, SHA-256, SHA-512, etc.)
+        if (isset($sco['hashes']) && is_array($sco['hashes'])) {
+            foreach ($sco['hashes'] as $hashValue) {
+                if (is_string($hashValue)) {
+                    $values[] = $hashValue;
+                }
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * Extract IOC values from a STIX indicator pattern string.
+     * Parses patterns like: [domain-name:value = 'example.com'] OR [file:hashes.MD5 = 'abc123']
+     *
+     * @param string $pattern STIX pattern string
+     * @return array List of extracted values
+     */
+    private function __extractValuesFromStixPattern($pattern)
+    {
+        $values = [];
+        // Match all single-quoted values in comparison expressions
+        if (preg_match_all("/=\s*'([^']+)'/", $pattern, $matches)) {
+            $values = $matches[1];
+        }
+        return $values;
+    }
+
+    /**
+     * Normalise a value for lookup comparison (case-insensitive, trimmed).
+     *
+     * @param string $value
+     * @return string
+     */
+    private function __normaliseValueForLookup($value)
+    {
+        return strtolower(trim($value));
+    }
+
+    /**
+     * Apply attribute-level custom mapping to a single MISP attribute.
+     * First tries the per-value lookup for 1-to-1 resolution; falls back to
+     * first-match across all STIX objects if no lookup match is found.
+     *
+     * @param array $attribute MISP attribute (by reference)
+     * @param array $valueLookup Per-value lookup table
+     * @param array $attributeMapping stixKey => mispField mapping
+     * @param array $stixObjects All STIX objects (for fallback)
+     * @param callable $resolveKey Key resolver function
+     */
+    private function __applyAttributeLevelMapping(array &$attribute, array $valueLookup, array $attributeMapping, array $stixObjects, callable $resolveKey)
+    {
+        if (empty($attribute['value'])) {
+            return;
+        }
+
+        $normVal = $this->__normaliseValueForLookup($attribute['value']);
+
+        // Try lookup by exact normalised value
+        if (isset($valueLookup[$normVal])) {
+            foreach ($attributeMapping as $stixKey => $mispField) {
+                if (isset($valueLookup[$normVal][$stixKey])) {
+                    $attribute[$mispField] = $valueLookup[$normVal][$stixKey];
+                }
+            }
+            return;
+        }
+
+        // For composite values (e.g. "filename|hash"), try each part
+        if (strpos($attribute['value'], '|') !== false) {
+            $parts = explode('|', $attribute['value']);
+            foreach ($parts as $part) {
+                $normPart = $this->__normaliseValueForLookup($part);
+                if (isset($valueLookup[$normPart])) {
+                    foreach ($attributeMapping as $stixKey => $mispField) {
+                        if (isset($valueLookup[$normPart][$stixKey])) {
+                            $attribute[$mispField] = $valueLookup[$normPart][$stixKey];
+                        }
+                    }
+                    return;
+                }
+            }
+        }
+
+        // Fallback: search all STIX objects for first match (preserves old behaviour for edge cases)
+        foreach ($attributeMapping as $stixKey => $mispField) {
+            foreach ($stixObjects as $stixObj) {
+                $value = $resolveKey($stixObj, $stixKey);
+                if ($value !== null) {
+                    $attribute[$mispField] = $value;
+                    break;
+                }
+            }
+        }
+    }
+
+    private function downloadStixFeed(array $feed, HttpSocket $HttpSocket = null, array $user, $jobId = false)
+    {
+        $feedId = $feed['Feed']['id'];
+
+        // Determine STIX version from feed settings
+        $stixVersion = '2';
+        if (!empty($feed['Feed']['settings']['stix_version'])) {
+            $stixVersion = $feed['Feed']['settings']['stix_version'];
+        }
+
+        // Resolve the feed URL (handles directory → most recent file)
+        $feedUrl = $this->__resolveStixFeedPath($feed);
+        $data = $this->feedGetUri($feed, $feedUrl, $HttpSocket);
+
+        if (empty($data)) {
+            $this->jobProgress($jobId, __('Feed %s: STIX data is empty.', $feedId));
+            return true;
+        }
+
+        // Keep a copy of raw STIX data for custom mapping (before we unset it)
+        $rawStixData = $data;
+
+        $this->jobProgress($jobId, __('Feed %s: Converting STIX data to MISP format.', $feedId), 20);
+
+        // Write STIX content to a temporary file for the converter
+        $tmpFile = FileAccessTool::createTempFile();
+        FileAccessTool::writeToFile($tmpFile, $data);
+        unset($data);
+
+        // Determine distribution settings
+        $distribution = $feed['Feed']['distribution'];
+        $sharingGroupId = $feed['Feed']['sharing_group_id'];
+
+        $this->Event = ClassRegistry::init('Event');
+
+        try {
+            $decoded = $this->Event->convertStixToMisp(
+                $stixVersion,
+                $tmpFile,
+                $distribution,
+                $sharingGroupId,
+                false, // forceContextualData
+                true, // galaxiesAsTags
+                0, // clusterDistribution
+                null, // clusterSharingGroupId
+                $user['Organisation']['uuid'],
+                false // debug
+            );
+        } catch (Exception $e) {
+            FileAccessTool::deleteFileIfExists($tmpFile);
+            throw new Exception("STIX conversion failed for feed $feedId: " . $e->getMessage(), 0, $e);
+        }
+
+        FileAccessTool::deleteFileIfExists($tmpFile);
+
+        if (empty($decoded['success'])) {
+            $errorMsg = !empty($decoded['error']) ? $decoded['error'] : 'Unknown error during STIX conversion';
+            throw new Exception("STIX conversion failed for feed $feedId: $errorMsg");
+        }
+
+        $this->jobProgress($jobId, __('Feed %s: Importing converted MISP data.', $feedId), 50);
+
+        $convertedData = JsonTool::decodeArray($decoded['converted']);
+
+        // Handle both single event and multiple events
+        $events = [];
+        if (isset($convertedData['Event'])) {
+            $events[] = $convertedData;
+        } elseif (isset($convertedData[0])) {
+            foreach ($convertedData as $item) {
+                if (isset($item['Event'])) {
+                    $events[] = $item;
+                } else {
+                    $events[] = ['Event' => $item];
+                }
+            }
+        } else {
+            $events[] = ['Event' => $convertedData];
+        }
+
+        // Apply custom STIX field mappings if configured
+        if (!empty($feed['Feed']['settings']['stix_custom_mapping'])) {
+            $this->__applyStixCustomMapping($events, $rawStixData, $feed['Feed']['settings']['stix_custom_mapping']);
+        }
+        unset($rawStixData);
+
+        $total = count($events);
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($events as $k => $event) {
+            // Apply feed distribution settings
+            if (5 != $feed['Feed']['distribution']) {
+                $event['Event']['distribution'] = $feed['Feed']['distribution'];
+                $event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
+                if (!empty($event['Event']['Attribute'])) {
+                    foreach ($event['Event']['Attribute'] as $attrKey => $attribute) {
+                        $event['Event']['Attribute'][$attrKey]['distribution'] = 5;
+                    }
+                }
+                if (!empty($event['Event']['Object'])) {
+                    foreach ($event['Event']['Object'] as $objKey => $object) {
+                        $event['Event']['Object'][$objKey]['distribution'] = 5;
+                        if (!empty($object['Attribute'])) {
+                            foreach ($object['Attribute'] as $oaKey => $oa) {
+                                $event['Event']['Object'][$objKey]['Attribute'][$oaKey]['distribution'] = 5;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Apply feed tags
+            if ($feed['Feed']['tag_id']) {
+                if (!isset($event['Event']['Tag'])) {
+                    $event['Event']['Tag'] = [];
+                }
+                $feedTag = $this->Tag->find('first', [
+                    'conditions' => ['Tag.id' => $feed['Feed']['tag_id']],
+                    'recursive' => -1,
+                    'fields' => ['Tag.name', 'Tag.colour', 'Tag.exportable']
+                ]);
+                if (!empty($feedTag)) {
+                    $event['Event']['Tag'][] = $feedTag['Tag'];
+                }
+            }
+
+            // Check if event already exists
+            $existingEvent = null;
+            if (!empty($event['Event']['uuid'])) {
+                $existingEvent = $this->Event->find('first', [
+                    'conditions' => ['Event.uuid' => $event['Event']['uuid']],
+                    'recursive' => -1,
+                    'fields' => ['Event.uuid', 'Event.id', 'Event.timestamp']
+                ]);
+            }
+
+            try {
+                if (!empty($existingEvent)) {
+                    if ($existingEvent['Event']['timestamp'] < ($event['Event']['timestamp'] ?? time())) {
+                        $result = $this->Event->_edit($event, $user, $existingEvent['Event']['id']);
+                    } else {
+                        $result = true; // No change needed
+                    }
+                } else {
+                    $result = $this->Event->_add($event, true, $user);
+                }
+                if ($result === true) {
+                    $successCount++;
+                } else {
+                    $failCount++;
+                    $this->log("Failed to save STIX-converted event from feed $feedId: " . json_encode($result), LOG_WARNING);
+                }
+            } catch (Exception $e) {
+                $failCount++;
+                $this->logException("Failed to save STIX-converted event from feed $feedId", $e);
+            }
+
+            if ($jobId && $k % 5 === 0) {
+                $this->jobProgress($jobId, __('Feed %s: %s/%s events processed.', $feedId, $k + 1, $total), 50 + (($k + 1) / $total * 50));
+            }
+        }
+
+        $this->jobProgress($jobId, __('Feed %s: %s events added/updated, %s failed.', $feedId, $successCount, $failCount));
+
+        return true;
     }
 
     private function __cleanupFile($feed, $file)
@@ -1501,6 +2171,8 @@ class Feed extends AppModel
                 $params['conditions']['id'] = $scope;
             } elseif ($scope == 'freetext' || $scope == 'csv') {
                 $params['conditions']['source_format'] = array('csv', 'freetext');
+            } elseif ($scope == 'stix') {
+                $params['conditions']['source_format'] = 'stix';
             } elseif ($scope == 'misp') {
                 $redis->del($redis->keys('misp:feed_cache:event_uuid_lookup:*'));
                 $params['conditions']['source_format'] = 'misp';
@@ -1565,6 +2237,8 @@ class Feed extends AppModel
             if (!$this->__cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId)) {
                 $result = $this->__cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId);
             }
+        } elseif ($feed['Feed']['source_format'] === 'stix') {
+            $result = $this->__cacheStixFeed($feed, $redis, $HttpSocket, $jobId);
         } else {
             $result = $this->__cacheFreetextFeed($feed, $redis, $HttpSocket, $jobId);
         }
@@ -1614,6 +2288,150 @@ class Feed extends AppModel
             $pipe->exec();
             $this->jobProgress($jobId, __('Feed %s: %s/%s values cached.', $feedId, $k * 5000, count($md5Values)));
         }
+        return true;
+    }
+
+    /**
+     * Cache a STIX feed by converting it and extracting attribute values.
+     *
+     * @param array $feed
+     * @param Redis $redis
+     * @param HttpSocket|null $HttpSocket
+     * @param int|false $jobId
+     * @return bool
+     */
+    private function __cacheStixFeed(array $feed, $redis, HttpSocket $HttpSocket = null, $jobId = false)
+    {
+        $feedId = $feed['Feed']['id'];
+
+        $this->jobProgress($jobId, __('Feed %s: Fetching STIX data for caching.', $feedId));
+
+        try {
+            $feedUrl = $this->__resolveStixFeedPath($feed);
+            $data = $this->feedGetUri($feed, $feedUrl, $HttpSocket);
+        } catch (Exception $e) {
+            $this->logException("Could not get STIX feed $feedId for caching", $e);
+            return false;
+        }
+
+        if (empty($data)) {
+            return false;
+        }
+
+        $stixVersion = '2';
+        if (!empty($feed['Feed']['settings']['stix_version'])) {
+            $stixVersion = $feed['Feed']['settings']['stix_version'];
+        }
+
+        $tmpFile = FileAccessTool::createTempFile();
+        FileAccessTool::writeToFile($tmpFile, $data);
+        unset($data);
+
+        $this->Event = ClassRegistry::init('Event');
+        $this->Attribute = ClassRegistry::init('MispAttribute');
+
+        try {
+            $decoded = $this->Event->convertStixToMisp(
+                $stixVersion,
+                $tmpFile,
+                0, // distribution (doesn't matter for caching)
+                0, // sharingGroupId
+                false, // forceContextualData
+                true, // galaxiesAsTags
+                0, // clusterDistribution
+                null, // clusterSharingGroupId
+                Configure::read('MISP.uuid') ?: 'no-uuid',
+                false // debug
+            );
+        } catch (Exception $e) {
+            FileAccessTool::deleteFileIfExists($tmpFile);
+            $this->logException("STIX conversion failed for caching feed $feedId", $e);
+            return false;
+        }
+
+        FileAccessTool::deleteFileIfExists($tmpFile);
+
+        if (empty($decoded['success'])) {
+            $this->log("STIX conversion failed for caching feed $feedId: " . ($decoded['error'] ?? 'Unknown error'), LOG_WARNING);
+            return false;
+        }
+
+        $convertedData = JsonTool::decodeArray($decoded['converted']);
+
+        // Collect events from conversion result
+        $events = [];
+        if (isset($convertedData['Event'])) {
+            $events[] = $convertedData;
+        } elseif (isset($convertedData[0])) {
+            foreach ($convertedData as $item) {
+                $events[] = isset($item['Event']) ? $item : ['Event' => $item];
+            }
+        } else {
+            $events[] = ['Event' => $convertedData];
+        }
+
+        $redis->del('misp:feed_cache:' . $feedId);
+        $compositeTypes = $this->Attribute->getCompositeTypes();
+
+        foreach ($events as $event) {
+            $eventData = $event['Event'] ?? $event;
+            $eventUuid = $eventData['uuid'] ?? '';
+
+            $attributeValues = [];
+            if (!empty($eventData['Attribute'])) {
+                foreach ($eventData['Attribute'] as $attribute) {
+                    if (!in_array($attribute['type'], MispAttribute::NON_CORRELATING_TYPES, true)) {
+                        if (in_array($attribute['type'], $compositeTypes, true)) {
+                            $parts = explode('|', $attribute['value']);
+                            if (in_array($attribute['type'], MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
+                                unset($parts[1]);
+                            }
+                        } else {
+                            $parts = [$attribute['value']];
+                        }
+                        foreach ($parts as $v) {
+                            $attributeValues[] = $v;
+                        }
+                    }
+                }
+            }
+            if (!empty($eventData['Object'])) {
+                foreach ($eventData['Object'] as $object) {
+                    if (!empty($object['Attribute'])) {
+                        foreach ($object['Attribute'] as $attribute) {
+                            if (!in_array($attribute['type'], MispAttribute::NON_CORRELATING_TYPES, true)) {
+                                if (in_array($attribute['type'], $compositeTypes, true)) {
+                                    $parts = explode('|', $attribute['value']);
+                                    if (in_array($attribute['type'], MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
+                                        unset($parts[1]);
+                                    }
+                                } else {
+                                    $parts = [$attribute['value']];
+                                }
+                                foreach ($parts as $v) {
+                                    $attributeValues[] = $v;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!empty($attributeValues)) {
+                $pipe = $redis->pipeline();
+                foreach ($attributeValues as $v) {
+                    $md5 = md5($v);
+                    $redis->sAdd('misp:feed_cache:' . $feedId, $md5);
+                    $redis->sAdd('misp:feed_cache:combined', $md5);
+                    if (!empty($eventUuid)) {
+                        $redis->sAdd('misp:feed_cache:event_uuid_lookup:' . $md5, $feedId . '/' . $eventUuid);
+                    }
+                }
+                $pipe->exec();
+            }
+        }
+
+        $this->jobProgress($jobId, __('Feed %s: STIX feed cached.', $feedId));
         return true;
     }
 

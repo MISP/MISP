@@ -132,5 +132,4 @@ vagrant/*.log
 !/app/View/Emails/html/Custom/empty
 /app/View/Emails/text/Custom/*
 !/app/View/Emails/text/Custom/empty
-
 .vscode/launch.json
