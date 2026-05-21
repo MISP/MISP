@@ -1081,4 +1081,88 @@ class DashboardsController extends AppController
             return $this->restResponsePayload;
         }
     }
+
+    /**
+     * Reset the current user's dashboard from a template (PRD F1.5,
+     * Phase 4 task 6). POST-only — the template body overwrites the
+     * user's `UserSetting:dashboard` row. The gallery view's "Use
+     * this template" card action calls this via a postLink with a
+     * confirmation prompt (CSRF-protected).
+     *
+     * Access control: `Dashboard::getDashboardTemplate($user, $uuid)`
+     * already enforces ownership OR (selectable + restrict_to_*
+     * gates) for non-site-admins. An empty return = the user can't
+     * see this template; surface as 404 to mirror the gallery's
+     * "doesn't exist for you" stance.
+     *
+     * Per DD-05 (supersedes DD-04 in part): the template's
+     * per-widget configs become the user's configs verbatim — no
+     * "Also apply default filters" checkbox, no separate scope
+     * envelope. `LayoutFixup::applyReadFixups()` canonicalises legacy
+     * template payloads (no `instance_id`, v1 `width/height` keys)
+     * into v2 shape on the way in so the user's first read of the
+     * fresh dashboard sees DD-01 shape.
+     */
+    public function resetFromTemplate($uuid = null)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('POST required.'));
+        }
+        if (empty($uuid)) {
+            throw new BadRequestException(__('Missing template UUID.'));
+        }
+        $user = $this->Auth->user();
+        $template = $this->Dashboard->getDashboardTemplate($user, $uuid);
+        if (empty($template)) {
+            throw new NotFoundException(__('Template not found.'));
+        }
+        $decoded = json_decode($template['Dashboard']['value'], true);
+        if (!is_array($decoded)) {
+            $decoded = array();
+        }
+        App::uses('LayoutFixup', 'Lib/Dashboard/Tools');
+        $widgets = LayoutFixup::applyReadFixups($decoded);
+        // JSON-encode before handing to setSetting — the model's
+        // validate_json runs *before* beforeValidate's array→string
+        // coercion, and JsonTool::isValid (PHP 8.3 simdjson /
+        // json_validate) chokes on PHP arrays. Mirrors the encode
+        // step at updateSettings (line ~170).
+        $data = array(
+            'UserSetting' => array(
+                'user_id' => $user['id'],
+                'setting' => 'dashboard',
+                'value' => json_encode($widgets, JSON_UNESCAPED_SLASHES),
+            ),
+        );
+        $result = $this->User->UserSetting->setSetting($user, $data);
+        $templateName = $template['Dashboard']['name'];
+        if ($this->_isRest()) {
+            if ($result) {
+                return $this->RestResponse->saveSuccessResponse(
+                    'Dashboard',
+                    'resetFromTemplate',
+                    false,
+                    false,
+                    __('Dashboard reset from template "%s".', $templateName)
+                );
+            }
+            return $this->RestResponse->saveFailResponse(
+                'Dashboard',
+                'resetFromTemplate',
+                false,
+                __('Could not reset dashboard from template.'),
+                $this->response->type()
+            );
+        }
+        if ($result) {
+            $this->Flash->success(
+                __('Dashboard reset from template "%s".', $templateName)
+            );
+        } else {
+            $this->Flash->error(
+                __('Could not reset dashboard from template "%s".', $templateName)
+            );
+        }
+        $this->redirect($this->baseurl . '/dashboards');
+    }
 }

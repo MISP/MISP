@@ -148,22 +148,29 @@ $renderCard = function (
         </span>
     </span>
     <span class="misp-template-card-actions" data-misp-template-card-actions>
-        <?php /* "Use this template" placeholder — links to the same URL
-              the v1 carryover view used. The Reset-from-template flow
-              (Phase 4 task 6) replaces this with a proper handler +
-              confirmation prompt; the index() action ignores the UUID
-              arg today (v2 quirk carried from Phase 1). */ ?>
-        <a href="<?= h($baseurl) ?>/dashboards/index/<?= h($uuid) ?>"
-           class="misp-template-card-action"
-           data-misp-template-action="use"
-           title="<?= __('Load this template as your dashboard') ?>"
-           aria-label="<?= __('Load this template as your dashboard') ?>">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
-                 stroke="currentColor" stroke-width="1.5"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M4 3 L12 8 L4 13 Z" />
-            </svg>
-        </a>
+        <?php
+            // "Use this template" — POST to resetFromTemplate with a
+            // confirmation prompt (PRD F1.5 / Phase 4 task 6). The
+            // template's value overwrites the user's UserSetting:
+            // dashboard verbatim; per DD-05 no scope envelope or
+            // "Also apply default filters" branch.
+            $useSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" '
+                . 'stroke="currentColor" stroke-width="1.5" '
+                . 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                . '<path d="M4 3 L12 8 L4 13 Z" />'
+                . '</svg>';
+            echo $this->Form->postLink($useSvg, array(
+                'controller' => 'dashboards',
+                'action' => 'resetFromTemplate',
+                $uuid,
+            ), array(
+                'class' => 'misp-template-card-action',
+                'data-misp-template-action' => 'use',
+                'title' => __('Replace your current dashboard with this template'),
+                'aria-label' => __('Replace your current dashboard with this template'),
+                'escape' => false,
+            ), __('Replace your current dashboard with the template "%s"? Your current widgets and layout will be discarded.', $name));
+        ?>
         <?php if ($canEdit): ?>
             <a href="<?= h($baseurl) ?>/dashboards/saveTemplate/<?= h($uuid) ?>"
                class="misp-template-card-action"
