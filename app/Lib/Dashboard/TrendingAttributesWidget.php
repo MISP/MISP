@@ -90,8 +90,8 @@ class TrendingAttributesWidget
 
 	public function handler($user, $options = array())
 	{
-	    /** @var Event $eventModel */
-        $attributeModel = ClassRegistry::init('Attribute');
+	    /** @var MispAttribute $attributeModel */
+        $attributeModel = ClassRegistry::init('MispAttribute');
         $threshold = empty($options['threshold']) ? 10 : $options['threshold'];
         if (is_string($options['time_window']) && substr($options['time_window'], -1) === 'd') {
             $time_window = ((int)substr($options['time_window'], 0, -1)) * 24 * 60 * 60;
