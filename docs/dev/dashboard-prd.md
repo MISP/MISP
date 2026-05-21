@@ -404,16 +404,61 @@ schema-driven configure form (§5.2 F2.2) work.
 | `time_window` | ISO 8601 duration string (`P7D`, `PT1H`, `P30D`, …) plus the sentinel `-1` for "all time" | yes | Relative / rolling only. Replaces today's mix of `time_window: "7d"`, raw integer seconds, etc. Legacy widgets parse a different in-house format (`Nd`, `(int)$value` seconds); the per-widget configs persist canonical ISO 8601 and the adapter described below translates on the way to `handler()`. |
 | `date_range` | `{ from: "<ISO date>", to: "<ISO date>" \| null }` | yes | Absolute date range. Separate from `time_window` because the two consumption patterns don't overlap cleanly in existing widgets: relative-only widgets reject absolute-shaped values, and forcing a tagged-union `time_window` would require every legacy widget to grow a `kind` discriminator. Widgets that today carry hardcoded `start_date` / `end_date` `$params` (`OrganisationMapWidget`, etc.) migrate those slots to declare `date_range` in `$schema`. Phase 3 landing. |
 | `tag_filter` | `{ include: string[], exclude: string[], taxonomies?: string[], match_event_tags?: bool, match_attribute_tags?: bool }` | yes | Strings are tag-name expressions (full match) or substrings (`tlp:` prefix). Taxonomy restriction lets the picker suggest only relevant tags. |
-| `org_filter` | `{ orgs: { uuid?: string, id?: int, name?: string }[], role: "creator"|"distribution"|"any" }` | yes | `role` lets a widget say *which* org relationship it filters on — TrendingTags filters by orgc, OrgsContributorLastMonth filters by anyone touching the event. No widget today consumes this shape — added for forward-compat with org-identity-based filtering. |
+| `org_filter` | `{ orgs: { uuid?: string, id?: int, name?: string, negate?: bool }[], match_via: "orgc"|"sharing_group"|"any" }` | yes | `match_via` lets a widget say *which* Event-Org relationship it filters on — `"orgc"` matches `Event.orgc_id` (the creator org), `"sharing_group"` matches visibility via `Event.sharing_group_id → SharingGroup → SharingGroupOrg`, `"any"` matches either. The optional per-entry `negate: true` inverts the match for that org (preserves the legacy `!`-prefix exclusion semantic widely used across MISP). EventStreamWidget consumes this shape today (declares `orgs` against `org_filter`); the adapter additionally accepts the legacy comma-separated `"Org1,!Org2"` string under that slot and wraps it into the canonical shape with `match_via: "orgc"`. **Naming deviation from earlier drafts:** `match_via` replaces the original `role` (avoids collision with MISP's `User.role_id` concept); `orgc` / `sharing_group` replace `creator` / `distribution` (match MISP DB field naming — `Event.orgc_id`, `Event.sharing_group_id`). The original draft also had no per-entry negate. |
 | `org_meta_filter` | `{ sector?: string[], type?: string[], nationality?: string[], name?: string[], uuid?: string[], local?: (0|1\|true\|false)[] }` | yes | Filter events / orgs by **organisation meta-data** (vs. `org_filter` which filters by org *identity*). Each string entry may be `!`-prefix-negated. 8 in-tree widgets (`OrgContributionToplistWidget`, `UsageDataWidget`, `EventEvolutionLineWidget`, `UserContributionToplistWidget`, `OrgEvolutionLineWidget`, `NewOrgsWidget`, `OrganisationMapWidget`, `OrganisationListWidget`) consume this shape today under the legacy slot name `filter`. Translation is **pass-through** — canonical and legacy shapes match, so the schema declaration alone is sufficient to wire the toolbar and the configure form's typed-tier picker. Each widget's existing `$validFilterKeys` private array determines which subset of the canonical keys it consumes; unsupported keys are silently dropped per the widget's existing defensive loop, so e.g. OrganisationMapWidget (sector / type / local only) ignores any canonical `name` / `nationality` / `uuid` written by the toolbar. |
-| `sharing_group_filter` | `{ sharing_group_ids: int[] }` | yes | Single shape across all widgets. |
+| `sharing_group_filter` | `int[]` (bare array of `SharingGroup.id` values) | yes | Single-axis int-enum canonical (see convention note below). |
 | `galaxy_cluster_filter` | `{ clusters: { uuid?: string, tag_name?: string }[], galaxy_types?: string[] }` | yes | Cluster picker scopable by galaxy type (e.g. only `mitre-attack-pattern`). |
-| `distribution_filter` | `{ levels: int[] }` (subset of `0..4`) | yes | |
-| `threat_level_filter` | `{ levels: int[] }` (subset of `1..4`) | yes | |
-| `analysis_filter` | `{ levels: int[] }` (subset of `0..2`) | yes | |
+| `distribution_filter` | `int[]` (subset of `0..4`) | yes | Single-axis int-enum canonical (see convention note below). |
+| `threat_level_filter` | `int[]` (subset of `1..4`) | yes | Single-axis int-enum canonical (see convention note below). |
+| `analysis_filter` | `int[]` (subset of `0..2`) | yes | Single-axis int-enum canonical (see convention note below). |
 | `attribute_type_filter` | `{ types: string[], categories?: string[] }` | no | Widget-only; doesn't make sense at board level. |
 | `event_id_filter` | `{ event_ids: int[]|"current" }` | no | Widget-only. |
 | `string`, `int`, `bool`, `enum` | scalar | no | Free-form widget knobs (`threshold`, `over_time`, etc.). |
+
+**Single-axis int-enum canonical convention (bare int arrays).** The
+four canonicals whose only data axis is a list of integers from a
+fixed enum — `sharing_group_filter`, `distribution_filter`,
+`threat_level_filter`, `analysis_filter` — use a **bare `int[]` wire
+shape**, not a wrapping object (`{ levels: int[] }` / `{ sharing_group_ids:
+int[] }`). The wrapping object was the original draft of this catalogue;
+the bare-array shape was adopted across all four during Phase 3
+implementation. Reasons (recorded for traceability):
+
+- **CakePHP `IN` coercion.** All four canonicals flow into clauses
+  shaped like `Event.<field> IN (...)`. CakePHP's `find()` accepts the
+  bare int array directly under those slots; a wrapping object would
+  require every adapter and consumer to strip the wrapper before the
+  query, with no extension value (these are single-axis filters by
+  definition — there is no second sub-key to ever add).
+- **Legacy compatibility.** Existing widget configs already store the
+  bare-array shape under the legacy slot names (`distribution`,
+  `threat_level_id`, `analysis`, `sharing_group_id`). Adopting the
+  bare array as canonical means the adapter's `_normaliseIntArray`
+  contract (array pass-through, scalar / numeric-string wrap, mixed
+  coerce + non-numeric drop, null preserved) absorbs every shape we
+  see in the wild — legacy configs, hand-edited JSON with single int
+  values, and canonical writes from the toolbar all collapse to the
+  same `int[]|null` output without a wrapper-aware branch.
+- **Picker UI is unaffected.** The toolbar's typed-tier checkbox-row
+  picker for these canonicals binds against the bare array directly;
+  the same picker JS handles all four with one shape contract.
+
+`org_filter`, `tag_filter`, `org_meta_filter`, `galaxy_cluster_filter`,
+`date_range`, `attribute_type_filter`, and `event_id_filter` remain
+**wrapping-object canonicals** because they each carry a second axis
+(match_via, include/exclude, sector/type/…, clusters/galaxy_types,
+from/to, types/categories, event_ids+sentinel) that the wrapper
+disambiguates.
+
+**Additive `negate?: bool` primitive on org_filter entries.** Each
+entry in `org_filter.orgs` may carry an optional `negate: true` field
+that inverts the match for that entry. This preserves the legacy
+`!`-prefix exclusion semantic widely used across MISP's `$params`
+shapes (`["Org1", "!Org2"]` → `[{name:"Org1"}, {name:"Org2", negate:true}]`
+in canonical form). The flag is additive — entries without `negate`
+behave as include — so no canonical shape is broken by its absence.
+The flag is org_filter-specific today; it is documented here as a
+general primitive any future identity-based canonical may opt into.
 
 **Toolbar reachability (G4 bulk-edit toolbar).** Per DD-05, the
 toolbar's relationship with widgets is binary:

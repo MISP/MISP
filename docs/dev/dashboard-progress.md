@@ -1065,7 +1065,7 @@ Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
 
-### Canonical wire shapes drift from PRD §5.5 (surfaced 2026-05-20)
+### Canonical wire shapes drift from PRD §5.5 (surfaced 2026-05-20) — **fixed 2026-05-21**
 
 PRD §5.5 line 411-413 specifies the int-enum canonicals as wrapped objects:
 
@@ -1086,6 +1086,14 @@ The deviation was made silently during the proto-to-canonical implementation pas
 **Resolution: align PRD with implementation.** The PRD §5.5 table needs amending to show the bare-array shape for the four int-enum canonicals (`int[]` rather than `{ levels: int[] }` / `{ sharing_group_ids: int[] }`). Where the canonical has a single semantic axis, bare-array is the convention. Where it has multiple semantic axes (e.g. `tag_filter`'s include/exclude pair; `galaxy_cluster_filter`'s tag_names/galaxy_types pair) the structured form remains.
 
 Not addressed in any single Phase 3 commit because the implementation is already shipped — this is a doc-aligning task that doesn't touch code. Pick up when a PRD review pass happens. Half a day of careful prose editing.
+
+**Fix (2026-05-21):** PRD §5.5 amended in three places.
+
+1. **`org_filter` row** (line 407): rewrote the wire shape — `role` → `match_via`; `"creator"|"distribution"|"any"` → `"orgc"|"sharing_group"|"any"`; added the optional per-entry `negate?: bool` field. Note expanded with the EventStreamWidget consumer reference + the legacy comma-string acceptance via the adapter. A trailing "naming deviation" sentence records the three renames + the negate addition for traceability.
+2. **Four single-axis int-enum rows** (lines 409, 411–413): `{ sharing_group_ids: int[] }` → `int[]`; `{ levels: int[] }` → `int[]` (×3). Note column tagged with "Single-axis int-enum canonical (see convention note below)".
+3. **New paragraph after the table** explaining the bare-int-array convention: CakePHP `IN` coercion accepts bare arrays directly; legacy configs already store the bare shape; `_normaliseIntArray` absorbs scalar / numeric-string / array variants without a wrapper-aware branch; picker UI unaffected. Explicitly lists which canonicals stay wrapping-object (`tag_filter`, `org_meta_filter`, `galaxy_cluster_filter`, `date_range`, `attribute_type_filter`, `event_id_filter`, `org_filter`) because they each carry a second axis. A second paragraph documents the additive `negate?: bool` primitive on `org_filter.orgs` entries as a general extensibility hook for future identity-based canonicals.
+
+No code change. Doc-only commit; closes the half-day doc-alignment task.
 
 ### OrgContributionToplistWidget SQL crashes when `filter` matches zero orgs (surfaced 2026-05-19) — **fixed 2026-05-19**
 
