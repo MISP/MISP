@@ -4360,7 +4360,7 @@ class Server extends AppModel
 
     public function databaseEncodingDiagnostics(&$diagnostic_errors)
     {
-        if (!isset($this->getDataSource()->config['encoding']) || strtolower($this->getDataSource()->config['encoding']) != 'utf8') {
+        if (!isset($this->getDataSource()->config['encoding']) || strtolower($this->getDataSource()->config['encoding']) != 'utf8mb4 collate utf8mb4_unicode_ci') {
             $diagnostic_errors++;
             return false;
         }
