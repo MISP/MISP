@@ -741,15 +741,26 @@ class DashboardsController extends AppController
         $placeholder = isset($widget->placeholder) && is_string($widget->placeholder)
             ? $widget->placeholder
             : '';
+        // Phase 5 scheduler — wrapper.ctp emits data-widget-refresh-delay
+        // from this value (only when > 0). Without this enrichment, an
+        // Add-Widget'd tile lands with no delay attribute and the
+        // scheduler skips it forever (caught during smoke when a fresh
+        // WhoamiWidget — $autoRefreshDelay=3 — failed to start ticking).
+        $autoRefreshDelay = 0;
+        if (!empty($widget->autoRefreshDelay)
+                && is_numeric($widget->autoRefreshDelay)) {
+            $autoRefreshDelay = (int)$widget->autoRefreshDelay;
+        }
 
         $widgetData = array(
-            'widget'      => $widgetName,
-            'instance_id' => $instance_id,
-            'config'      => $config,
-            'schema'      => $schema,
-            'placeholder' => $placeholder,
-            'alias'       => null,
-            'position'    => array('x' => $x, 'y' => $y, 'w' => $w, 'h' => $h),
+            'widget'           => $widgetName,
+            'instance_id'      => $instance_id,
+            'config'           => $config,
+            'schema'           => $schema,
+            'placeholder'      => $placeholder,
+            'autoRefreshDelay' => $autoRefreshDelay,
+            'alias'            => null,
+            'position'         => array('x' => $x, 'y' => $y, 'w' => $w, 'h' => $h),
         );
 
         // Cake's themed view resolver picks Themed/<Theme>/Elements/
