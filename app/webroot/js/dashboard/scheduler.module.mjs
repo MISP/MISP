@@ -43,6 +43,46 @@ const CONFIG_OVERRIDE_KEY   = 'refresh_delay';
 const TICK_MS         = 1000;   // state-check cadence; cheap by design
 const INFLIGHT_CAP    = 4;      // PRD §10 concurrent-render limit per board
 
+/**
+ * Resolve a tile's refresh delay (seconds) from its DOM. Exported so
+ * other modules (e.g. RefreshIndicator) can share the single source
+ * of truth without re-implementing the priority order.
+ *
+ * Resolution:
+ *   1. data-widget-config['refresh_delay'] — per-instance override
+ *      (PRD F2.5). Numeric (including 0) wins; clamped to >= 0.
+ *      Empty / null / undefined / non-numeric falls through.
+ *   2. data-widget-refresh-delay attribute — class default
+ *      (immutable per page-load).
+ * Returns the resolved int, or 0 if no auto-refresh applies (no
+ * override, no class default, or malformed config).
+ *
+ * Defensive against malformed config JSON — JSON.parse failure
+ * treats the override as absent and falls through.
+ */
+export function resolveDelaySec(widgetEl) {
+  if (!widgetEl || !widgetEl.getAttribute) return 0;
+  const rawCfg = widgetEl.getAttribute(ATTR_WIDGET_CONFIG);
+  if (rawCfg) {
+    try {
+      const cfg = JSON.parse(rawCfg);
+      if (cfg && typeof cfg === 'object'
+          && Object.prototype.hasOwnProperty.call(cfg, CONFIG_OVERRIDE_KEY)) {
+        const override = cfg[CONFIG_OVERRIDE_KEY];
+        if (override !== '' && override !== null && override !== undefined
+            && Number.isFinite(Number(override))) {
+          return Math.max(0, Math.trunc(Number(override)));
+        }
+      }
+    } catch (_) {
+      // malformed config JSON — defensive: use class default
+    }
+  }
+  const rawDefault = widgetEl.getAttribute(ATTR_WIDGET_DELAY);
+  const def = parseInt(rawDefault || '0', 10);
+  return Number.isFinite(def) ? def : 0;
+}
+
 export class Scheduler {
   /**
    * @param {Object}   opts
@@ -122,7 +162,7 @@ export class Scheduler {
     if (!this.boardRoot.contains(widgetEl)) return;
     const id = widgetEl.getAttribute(ATTR_WIDGET_INSTANCE);
     if (!id) return;
-    const delaySec = this._resolveDelaySec(widgetEl);
+    const delaySec = resolveDelaySec(widgetEl);
     if (!Number.isFinite(delaySec) || delaySec <= 0) {
       // Tile was previously enqueued but now declares no refresh —
       // drop it so the tick loop doesn't keep iterating an inert entry.
@@ -205,38 +245,5 @@ export class Scheduler {
     if (typeof document === 'undefined') return;
     this._docHidden = document.hidden === true;
     // No flush on re-show — the next normal tick handles overdue tiles.
-  }
-
-  /**
-   * Resolve a tile's refresh delay (seconds) from its DOM:
-   *   1. data-widget-config['refresh_delay'] — per-instance override.
-   *      Numeric value wins; 0 means "explicitly disabled".
-   *   2. data-widget-refresh-delay — class default.
-   * Returns the resolved int, or 0 if no auto-refresh applies.
-   * Defensive against malformed JSON in data-widget-config (treats
-   * parse failure as "no override").
-   */
-  _resolveDelaySec(widgetEl) {
-    const rawCfg = widgetEl.getAttribute(ATTR_WIDGET_CONFIG);
-    if (rawCfg) {
-      try {
-        const cfg = JSON.parse(rawCfg);
-        if (cfg && typeof cfg === 'object'
-            && Object.prototype.hasOwnProperty.call(cfg, CONFIG_OVERRIDE_KEY)) {
-          const override = cfg[CONFIG_OVERRIDE_KEY];
-          // Empty string / null / undefined / non-numeric → fall
-          // through to the class default. Numeric (including 0) wins.
-          if (override !== '' && override !== null && override !== undefined
-              && Number.isFinite(Number(override))) {
-            return Math.max(0, Math.trunc(Number(override)));
-          }
-        }
-      } catch (_) {
-        // malformed config JSON — defensive: use class default
-      }
-    }
-    const rawDefault = widgetEl.getAttribute(ATTR_WIDGET_DELAY);
-    const def = parseInt(rawDefault || '0', 10);
-    return Number.isFinite(def) ? def : 0;
   }
 }

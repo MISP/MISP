@@ -54,6 +54,7 @@ import {
 } from './toolbar.module.mjs';
 import { initMenuButtons } from './menu-button.module.mjs';
 import { Scheduler } from './scheduler.module.mjs';
+import { RefreshIndicator } from './refresh-indicator.module.mjs';
 
 const ATTR_BOARD_ROOT       = 'data-misp-board-root';
 const ATTR_BOARD_MODE       = 'data-misp-board-mode';
@@ -103,6 +104,13 @@ class Board {
       boardRoot: rootEl,
       renderFn: (el) => this._renderWidget(el),
     });
+    // Phase 5 — "updated Ns ago" chip on every tile titlebar. Hooks
+    // the same misp-board:widget-rendered event the scheduler listens
+    // for, but tracks ALL tiles (not just auto-refresh ones) because
+    // the chip's data-staleness signal is useful even for static
+    // widgets. DOM presence drives lifecycle — no register/unregister
+    // hooks needed in this class.
+    this.refreshIndicator = new RefreshIndicator({ boardRoot: rootEl });
     this._wireBoardActions();
     this._wireWidgetActions();
     this._init();
@@ -302,6 +310,7 @@ class Board {
     // Start the scheduler after the initial scan so the first tick
     // sees every tile already enqueued with its lastRender baseline.
     this.scheduler.start();
+    this.refreshIndicator.start();
 
     // Mount the bulk-edit toolbar for any canonical types declared
     // on this board. The toolbar walks declarer widgets on commit,

@@ -412,6 +412,25 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   gap: var(--misp-dash-space-1);
 }
 
+/* "Updated Ns ago" chip — sits between the title and the action
+ * buttons in the titlebar. Small + muted so it informs without
+ * competing with the title. `font-variant-numeric: tabular-nums`
+ * keeps the chip width steady while the digit ticks (e.g. "9s"
+ * → "10s" doesn't shake the layout). Hidden via :empty when the
+ * tile hasn't rendered yet — RefreshIndicator writes textContent
+ * only after the first widget-rendered event. */
+.misp-widget-refresh-indicator {
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-regular, 400);
+  color: var(--misp-dash-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.misp-widget-refresh-indicator:empty {
+  display: none;
+}
+
 .misp-widget-iconbtn {
   appearance: none;
   border: 0;

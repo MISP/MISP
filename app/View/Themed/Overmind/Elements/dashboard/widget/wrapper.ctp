@@ -46,6 +46,10 @@
             <?= h($widget['alias'] ?? $widget['widget']) ?>
             <span class="badge bg-primary misp-widget--overmind__badge" aria-label="<?= __('Overmind theme override active') ?>">Overmind</span>
         </span>
+        <span class="misp-widget-refresh-indicator misp-widget--overmind__refresh-indicator text-muted small me-2"
+              data-misp-widget-refresh-indicator
+              aria-live="polite"
+              aria-atomic="true"></span>
         <div class="btn-group btn-group-sm ms-2" role="group" aria-label="<?= __('Widget actions') ?>">
             <button type="button" class="btn btn-link btn-sm misp-widget--overmind__iconbtn"
                     data-misp-widget-action="refresh"

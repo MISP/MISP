@@ -19,6 +19,8 @@
  *   data-drag-handle                 — drag-trigger element (titlebar)
  *   data-misp-widget-content         — render target for AJAX HTML
  *   data-misp-widget-action="..."    — clickable controls
+ *   data-misp-widget-refresh-indicator — Phase 5 "updated Ns ago" chip
+ *                                        slot; RefreshIndicator writes text
  *   data-resize-handle               — pointer-down target for resize
  *
  * Themes may override THIS file (`Themed/<Name>/Elements/dashboard/
@@ -47,6 +49,10 @@
          data-position-h="<?= h($widget['position']['h']) ?>">
     <header class="misp-widget-titlebar" data-drag-handle>
         <span class="misp-widget-title"><?= h($widget['alias'] ?? $widget['widget']) ?></span>
+        <span class="misp-widget-refresh-indicator"
+              data-misp-widget-refresh-indicator
+              aria-live="polite"
+              aria-atomic="true"></span>
         <span class="misp-widget-actions">
             <button type="button" class="misp-widget-iconbtn" data-misp-widget-action="refresh"   title="<?= __('Refresh') ?>"   aria-label="<?= __('Refresh') ?>">↻</button>
             <button type="button" class="misp-widget-iconbtn" data-misp-widget-action="configure" title="<?= __('Configure') ?>" aria-label="<?= __('Configure') ?>">⚙</button>
