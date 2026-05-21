@@ -1,4 +1,18 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 // Temporary fix to avoid errors as these variables are defined in AttributesController
 $categoryOptions = isset($categoryOptions) ? $categoryOptions : null;
 $typeOptions = isset($typeOptions) ? $typeOptions : null;
@@ -169,14 +183,14 @@ $fields = array_merge($fields, [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/attributes/edit/%id%',
                 'requirement' => 'check_edit_rights'
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Soft Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/attributes/delete/%id%',
@@ -184,7 +198,7 @@ $fields = array_merge($fields, [
                 'requirement' => 'check_edit_rights'
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/attributes/delete/%id%/true',

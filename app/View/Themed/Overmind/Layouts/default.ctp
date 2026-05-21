@@ -25,6 +25,7 @@
             ['controller' => 'collections', 'action' => 'add'],
             ['controller' => 'collections', 'action' => 'edit'],
             ['controller' => 'CollectionElements', 'action' => 'add'],
+            ['controller' => 'CollectionElements', 'action' => 'index'],
 
             ['controller' => 'tags', 'action' => 'index'],
             ['controller' => 'tags', 'action' => 'add'],
@@ -297,6 +298,9 @@
                         'currentController' => $currentController,
                         'currentAction' => $currentAction,
                         'headerActions' => $headerActions ?? [],
+                        'headerTitle' => $headerTitle ?? null,
+                        'headerDescription' => $headerDescription ?? null,
+                        'headerStats' => $headerStats ?? [],
                     ]);
                 }
                 ?>

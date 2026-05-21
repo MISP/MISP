@@ -1,4 +1,45 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('eventTemplates', 'add')) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('Add Event Template'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/event_templates/add',
+    ];
+}
+if ($this->Acl->canAccess('eventTemplates', 'import')) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('Import'),
+        'icon' => 'upload',
+        'url' => $baseurl . '/event_templates/import',
+    ];
+}
+if ($this->Acl->canAccess('eventTemplates', 'update')) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('Update from library'),
+        'icon' => 'sync',
+        // headerSection.ctp's onClick wiring fires
+        // `event.preventDefault(); FUNC();` so the href is never followed —
+        // the popover loads via getPopup into #popover_form. The url is
+        // kept as a no-script fallback / right-click target.
+        'url' => $baseurl . '/event_templates/update',
+        'onClick' => 'openEventTemplateLibraryUpdatePopup',
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
 
 $fields = [
     [
@@ -104,34 +145,34 @@ $fields = [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
                 'url' => $baseurl . '/event_templates/view/%id%',
             ],
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('Create event from template'),
                 'icon' => 'play',
                 'url' => $baseurl . '/event_templates/instantiate/%id%',
                 'requirement' => $this->Acl->canAccess('eventTemplates', 'instantiate'),
             ],
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/event_templates/edit/%id%',
                 'requirement' => $this->Acl->canAccess('eventTemplates', 'edit'),
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Duplicate'),
                 'icon' => 'copy',
                 'url' => $baseurl . '/event_templates/duplicate/%id%',
                 'requirement' => $this->Acl->canAccess('eventTemplates', 'duplicate'),
             ],
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('Export'),
                 'icon' => 'download',
                 'url' => $baseurl . '/event_templates/export/%id%',
@@ -142,7 +183,7 @@ $fields = [
                 'requirement' => $this->Acl->canAccess('eventTemplates', 'delete'),
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/event_templates/delete/%id%',
@@ -153,37 +194,6 @@ $fields = [
     ],
 ];
 
-$headerActions = [];
-if ($this->Acl->canAccess('eventTemplates', 'add')) {
-    $headerActions[] = [
-        'type' => 'link',
-        'label' => __('Add Event Template'),
-        'icon' => 'plus',
-        'url' => $baseurl . '/event_templates/add',
-    ];
-}
-if ($this->Acl->canAccess('eventTemplates', 'import')) {
-    $headerActions[] = [
-        'type' => 'link',
-        'label' => __('Import'),
-        'icon' => 'upload',
-        'url' => $baseurl . '/event_templates/import',
-    ];
-}
-if ($this->Acl->canAccess('eventTemplates', 'update')) {
-    $headerActions[] = [
-        'type' => 'link',
-        'label' => __('Update from library'),
-        'icon' => 'sync',
-        // headerSection.ctp's onClick wiring fires
-        // `event.preventDefault(); FUNC();` so the href is never followed —
-        // the popover loads via getPopup into #popover_form. The url is
-        // kept as a no-script fallback / right-click target.
-        'url' => $baseurl . '/event_templates/update',
-        'onClick' => 'openEventTemplateLibraryUpdatePopup',
-    ];
-}
-$this->set('headerActions', $headerActions);
 
 // Genuine empty state vs filtered-with-no-hits. See default-theme index for
 // the rationale — let IndexTable's standard "no matching records" handle the

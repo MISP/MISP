@@ -1,4 +1,26 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('objectTemplates', 'update')) {
+    $headerActions[] = [
+        'type' => 'action',
+        'label' => __('Update Object'),
+        'icon' => 'sync',
+        'url' => $baseurl . '/objectTemplates/update'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -76,13 +98,13 @@ $fields = [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
                 'url' => $baseurl . '/objectTemplates/view/%id%'
             ],
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('Force update'),
                 'icon' => 'sync',
                 'url' => $baseurl . '/objectTemplates/update/%name%/%id%',
@@ -90,7 +112,7 @@ $fields = [
                 'requirement' => $isSiteAdmin
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/objectTemplates/deleteSelection/%id%',
@@ -115,17 +137,6 @@ $fields = [
         ]
     ],
 ];
-
-if ($this->Acl->canAccess('objectTemplates', 'update')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'post',
-            'label' => __('Update Object'),
-            'icon' => 'sync',
-            'url' => $baseurl . '/objectTemplates/update'
-        ]
-    ]);
-}
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [

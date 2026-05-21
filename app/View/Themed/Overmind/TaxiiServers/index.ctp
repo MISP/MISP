@@ -1,15 +1,27 @@
-<div class="row mb-4 mt-2">
-    <div class="col-12">
-        <div class="d-flex flex-column p-4">
-            <h5 class="mb-1 fw-bold text-primary-emphasis"><?= __('Linked TAXII Servers') ?></h5>
-            <p class="mb-0 text-secondary-emphasis">
-                <?= __('You can connect your MISP to one or several TAXII servers to push data to using a set of filters.') ?>
-            </p>
-        </div>
-    </div>
-</div>
-
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('Linked TAXII Servers');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('You can connect your MISP to one or several TAXII servers to push data to using a set of filters.');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('taxiiServers', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add TaxiiServers'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/taxiiServers/add'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -73,20 +85,20 @@ $fields = [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
                 'url' => $baseurl . '/taxiiServers/view/%id%',
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/taxiiServers/edit/%id%',
                 'requirement' => $isSiteAdmin
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/taxiiServers/deleteSelection/%id%',
@@ -99,7 +111,7 @@ $fields = [
                 'requirement' => $isSiteAdmin
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Push all filtered data to TAXII server'),
                 'icon' => 'arrow-circle-up',
                 'url' => $baseurl . '/taxiiServers/push/%id%',
@@ -108,17 +120,6 @@ $fields = [
         ]
     ]
 ];
-
-if ($this->Acl->canAccess('taxiiServers', 'add')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'ajax',
-            'label' => __('Add TaxiiServers'),
-            'icon' => 'plus',
-            'url' => $baseurl . '/taxiiServers/add'
-        ]
-    ]);
-}
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [

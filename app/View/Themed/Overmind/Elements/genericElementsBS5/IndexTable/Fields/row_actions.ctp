@@ -7,23 +7,30 @@ $actions  = $field['actions'] ?? [];
 $seed     = mt_rand();
 $tempboxId = 'TempBox-' . $seed;
 
-$mayModify  = false;
-$canPublish = false;
 
 if ($field['data_path'] === 'Event.id') {
     $mayModify  = $this->Acl->canModifyEvent($row);
     $canPublish = $this->Acl->canPublishEvent($row);
 } elseif ($field['data_path'] === 'Attribute.id') {
-    $mayModify = $this->Acl->canModifyEvent($row);
+    if (!isset($mayModify)){
+        $mayModify = $this->Acl->canModifyEvent($row);
+    }
 } elseif ($field['data_path'] === 'Collection.id' || !empty($data['Collection'])) {
-    $mayModify = $this->Acl->canModifyCollection($row);
+    if (!isset($mayModify)){
+        $mayModify = $this->Acl->canModifyCollection($row);
+    }
 } elseif ($field['data_path'] === 'TagCollection.id') {
-    $mayModify = $this->Acl->canModifyTagCollection($row);
+    if (!isset($mayModify)){
+        $mayModify = $this->Acl->canModifyTagCollection($row);
+    }
 } elseif ($field['data_path'] === 'SharingGroup.id') {
-    $mayModify = $row['editable'] ?? false;
+    if (!isset($mayModify)){
+        $mayModify = $row['editable'] ?? false;
+    }
 } else {
-    $mayModify = $isSiteAdmin ?? false;
-}
+    if (!isset($mayModify)){
+        $mayModify = $isSiteAdmin ?? false;
+}   }
 ?>
 
 <div class="d-inline-flex align-items-center checkbox-actions-wrapper checkbox-index">

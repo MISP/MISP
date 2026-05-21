@@ -1,4 +1,26 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('tags', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add Tag'),
+        'url' => $baseurl . '/tags/add',
+        'icon' => 'plus'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -67,20 +89,20 @@ $fields = [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('View graph'),
                 'icon' => 'eye',
                 'url' => $baseurl . '/tags/viewGraph/%id%'
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/tags/edit/%id%',
                 'requirement' => 'check_edit_rights'
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/tags/deleteSelection/%id%',
@@ -91,23 +113,6 @@ $fields = [
     ]
 ];
 
-/**
- * Header actions (optionnel)
- */
-if ($this->Acl->canAccess('tags', 'add')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'ajax',
-            'label' => __('Add Tag'),
-            'url' => $baseurl . '/tags/add',
-            'icon' => 'plus'
-        ]
-    ]);
-}
-
-/**
- * Scaffold
- */
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [

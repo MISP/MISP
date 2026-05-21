@@ -1,4 +1,24 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('templates', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add Template'),
+        'url' => $baseurl . '/templates/add',
+        'icon' => 'plus'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
 
 $fields = [
     [
@@ -46,20 +66,20 @@ $fields = [
         'card_section' => 'selector',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
                 'url' => $baseurl . '/templates/view/%id%'
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/templates/edit/%id%',
                 'requirement' => $me['Role']['perm_template']
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/templates/deleteSelection/%id%',
@@ -70,23 +90,6 @@ $fields = [
     ]
 ];
 
-/**
- * Header actions (optionnel)
- */
-if ($this->Acl->canAccess('templates', 'add')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'ajax',
-            'label' => __('Add Template'),
-            'url' => $baseurl . '/templates/add',
-            'icon' => 'plus'
-        ]
-    ]);
-}
-
-/**
- * Scaffold
- */
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [

@@ -1,4 +1,26 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('SharingGroups', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add SharingGroups'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/SharingGroups/add'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -107,20 +129,20 @@ $fields = [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
                 'url' => $baseurl . '/SharingGroups/view/%id%',
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/SharingGroups/edit/%id%',
                 'requirement' => $me['Role']['perm_sharing_group']
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/SharingGroups/deleteSelection/%id%',
@@ -131,17 +153,6 @@ $fields = [
     ]
 
 ];
-
-if ($this->Acl->canAccess('SharingGroups', 'add')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'ajax',
-            'label' => __('Add SharingGroups'),
-            'icon' => 'plus',
-            'url' => $baseurl . '/SharingGroups/add'
-        ]
-    ]);
-}
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [

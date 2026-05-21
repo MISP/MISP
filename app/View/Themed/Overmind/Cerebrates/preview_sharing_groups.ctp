@@ -19,7 +19,7 @@ $fields = [
         'card_section' => 'selector',
         'actions' => [
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Fetch sharing group'),
                 'icon' => 'download',
                 'url' => $baseurl . '/cerebrates/download_sg/' . h($cerebrate['Cerebrate']['id']) . '/%id%',

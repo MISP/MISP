@@ -1,4 +1,25 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('collections', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add Collection'),
+        'url' => $baseurl . '/collections/add',
+        'icon' => 'plus'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
 
 $fields = [
     [
@@ -85,7 +106,7 @@ $fields = [
                 'url' => $baseurl . '/collections/view/%id%'
             ],
             [
-                'type' => 'ajax',
+                'type' => 'link',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/collections/edit/%id%',
@@ -103,20 +124,6 @@ $fields = [
     ],
 
 ];
-
-/**
- * Header actions (optionnel)
- */
-if ($this->Acl->canAccess('collections', 'add')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'ajax',
-            'label' => __('Add Collection'),
-            'url' => $baseurl . '/collections/add',
-            'icon' => 'plus'
-        ]
-    ]);
-}
 
 /**
  * Scaffold

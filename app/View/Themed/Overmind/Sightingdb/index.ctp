@@ -1,15 +1,26 @@
-<div class="row mb-4 mt-2">
-    <div class="col-12">
-        <div class="d-flex flex-column p-4">
-            <h5 class="mb-1 fw-bold text-primary-emphasis"><?= __('SightingDB Configuration') ?></h5>
-            <p class="mb-0 text-secondary-emphasis">
-                <?= __('SightingDB is an alternate database that MISP interconnects with to track indicator sightings. Manage your remote connections and synchronization settings below.') ?>
-            </p>
-        </div>
-    </div>
-</div>
-
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('SightingDB Configuration');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('SightingDB is an alternate database that MISP interconnects with to track indicator sightings. Manage your remote connections and synchronization settings below.');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('sightingdb', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add SightingDB'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/sightingdb/add'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -97,14 +108,14 @@ $fields = [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/sightingdb/edit/%id%',
                 'requirement' => $isSiteAdmin
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/sightingdb/deleteSelection/%id%',
@@ -114,17 +125,6 @@ $fields = [
         ]
     ],
 ];
-
-if ($this->Acl->canAccess('sightingdb', 'add')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'ajax',
-            'label' => __('Add SightingDB'),
-            'icon' => 'plus',
-            'url' => $baseurl . '/sightingdb/add'
-        ]
-    ]);
-}
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [

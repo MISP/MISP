@@ -1,4 +1,26 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('noticelists', 'update')) {
+    $headerActions[] = [
+        'type' => 'action',
+        'label' => __('Update Noticelists'),
+        'icon' => 'sync',
+        'url' => $baseurl . '/noticelists/update'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -74,7 +96,7 @@ $fields = [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
                 'url' => $baseurl . '/noticelists/view/%id%'
@@ -93,16 +115,6 @@ $fields = [
     ]
 ];
 
-if ($this->Acl->canAccess('noticelists', 'update')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'post',
-            'label' => __('Update Noticelists'),
-            'icon' => 'sync',
-            'url' => $baseurl . '/noticelists/update'
-        ]
-    ]);
-}
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [

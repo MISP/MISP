@@ -1,9 +1,4 @@
-<div class="container-fluid mt-3">
-    <h2 class="mb-3">
-        <?php if (!empty($title)): ?>
-            <?= h($title) ?>
-        <?php endif; ?>
-    </h2>
+<div class="container-fluid">
     <ul class="nav nav-tabs mb-3 fs-5" role="tablist">
         <?php foreach ($tabs as $i => $tab): ?>
             <li class="nav-item"  role="presentation">

@@ -1,4 +1,48 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+$headerActions = [];
+// "Add Event → From Template" entry point — Overmind toolbar parity
+// with the default theme (PRD §5.2 F2.1). Renders the searchable
+// picker modal once on the page and adds a header action that opens
+// it via headerSection's link.onClick callbacSk.
+$canPickTemplate = (
+    $this->Acl->canAccess('eventTemplates', 'index')
+    && $this->Acl->canAccess('eventTemplates', 'instantiate')
+);
+if ($canPickTemplate) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'id' => 'event-template-picker-button',
+        'label' => __('From template'),
+        'icon' => 'clone',
+        'url' => '#',
+        'onClick' => 'openEventTemplatePicker'
+    ];
+    echo $this->element('eventTemplates/templatePickerModal');
+}
+if ($this->Acl->canAccess('events', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add Event'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/events/add'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
+
+
+
+
 /**
  * ==============================================================
  * Definition of fields displayed in the scaffold
@@ -167,38 +211,6 @@ $fields = [
         ]
     ],
 ];
-
-
-$headerActions = [];
-if ($this->Acl->canAccess('events', 'add')) {
-    $headerActions[] = [
-        'type' => 'link',
-        'label' => __('Add Event'),
-        'icon' => 'plus',
-        'url' => $baseurl . '/events/add'
-    ];
-}
-
-// "Add Event → From Template" entry point — Overmind toolbar parity
-// with the default theme (PRD §5.2 F2.1). Renders the searchable
-// picker modal once on the page and adds a header action that opens
-// it via headerSection's link.onClick callback.
-$canPickTemplate = (
-    $this->Acl->canAccess('eventTemplates', 'index')
-    && $this->Acl->canAccess('eventTemplates', 'instantiate')
-);
-if ($canPickTemplate) {
-    $headerActions[] = [
-        'type' => 'link',
-        'id' => 'event-template-picker-button',
-        'label' => __('From template'),
-        'icon' => 'clone',
-        'url' => '#',
-        'onClick' => 'openEventTemplatePicker'
-    ];
-    echo $this->element('eventTemplates/templatePickerModal');
-}
-$this->set('headerActions', $headerActions);
 
 /**
  * ==============================================================

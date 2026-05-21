@@ -1,15 +1,25 @@
-<div class="row mb-4 mt-2">
-    <div class="col-12">
-        <div class="d-flex flex-column p-4">
-            <h5 class="mb-1 fw-bold text-primary-emphasis"><?= __('Linked Cerebrates') ?></h5>
-            <p class="mb-0 text-secondary-emphasis">
-                <?= __('You can connect your MISP to one or several Cerebrate instances to act as lookup directories for organisation and sharing group information.') ?>
-            </p>
-        </div>
-    </div>
-</div>
-
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('Linked Cerebrates');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('You can connect your MISP to one or several Cerebrate instances to act as lookup directories for organisation and sharing group information.');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('cerebrates', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add Cerebrates'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/cerebrates/add'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -87,7 +97,7 @@ $fields = [
                 'url' => $baseurl . '/cerebrates/view/%id%',
             ],
             [
-                'type' => 'ajax',
+                'type' => 'link',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/cerebrates/edit/%id%',
@@ -124,16 +134,6 @@ $fields = [
     ]
 ];
 
-if ($this->Acl->canAccess('cerebrates', 'add')) {
-    $this->set('headerActions', [
-        [
-            'type' => 'ajax',
-            'label' => __('Add Cerebrates'),
-            'icon' => 'plus',
-            'url' => $baseurl . '/cerebrates/add'
-        ]
-    ]);
-}
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [

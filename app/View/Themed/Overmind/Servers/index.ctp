@@ -1,4 +1,45 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('cerebrates', 'index')) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('List Cerebrates'),
+        'icon' => 'globe',
+        'url' => $baseurl . '/cerebrates/index'
+    ];
+}
+
+if ($this->Acl->canAccess('communities', 'index')) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('List Communities'),
+        'icon' => 'users',
+        'url' => $baseurl . '/communities/index'
+    ];
+}
+
+if ($this->Acl->canAccess('servers', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add Server'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/servers/add'
+    ];
+}
+
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -156,13 +197,13 @@ $fields = [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('Explore server'),
                 'icon' => 'compass',
                 'url' => $baseurl . '/servers/previewIndex/%id%',
             ],
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('Pull all'),
                 'icon' => 'arrow-circle-down',
                 'url' => $baseurl . '/servers/pull/%id%/full',
@@ -171,7 +212,7 @@ $fields = [
                 }
             ],
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('Push all'),
                 'icon' => 'arrow-circle-up',
                 'url' => $baseurl . '/servers/push/%id%/full',
@@ -180,7 +221,7 @@ $fields = [
                 }
             ],
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('Cache instance'),
                 'icon' => 'database',
                 'url' => $baseurl . '/servers/cache/%id%',
@@ -189,14 +230,14 @@ $fields = [
                 }
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/servers/edit/%id%',
                 'requirement' => $isSiteAdmin
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/servers/deleteSelection/%id%',
@@ -207,26 +248,6 @@ $fields = [
     ]
 ];
 
-$this->set('headerActions', [
-    [
-        'type' => 'link',
-        'label' => __('List Cerebrates'),
-        'icon' => 'globe',
-        'url' => $baseurl . '/cerebrates'
-    ],
-    [
-        'type' => 'link',
-        'label' => __('List Communities'),
-        'icon' => 'users',
-        'url' => $baseurl . '/communities'
-    ],
-    [
-        'type' => 'ajax',
-        'label' => __('Add Server'),
-        'icon' => 'plus',
-        'url' => $baseurl . '/servers/add'
-    ],
-]);
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
