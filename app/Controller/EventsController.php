@@ -871,10 +871,20 @@ class EventsController extends AppController
         if ($skipProtected) {
             $rules['conditions']['Event.protected'] = 0;
         }
-        $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
+        $paginationRules = array('page', 'limit', 'sort', 'direction');
         foreach ($paginationRules as $paginationRule) {
             if (isset($passedArgs[$paginationRule])) {
                 $rules[$paginationRule] = $passedArgs[$paginationRule];
+            }
+        }
+        if (isset($passedArgs['order'])) {
+            $validatedOrder = $this->Event->findOrder(
+                $passedArgs['order'],
+                'Event',
+                array_keys($fieldNames)
+            );
+            if ($validatedOrder !== null) {
+                $rules['order'] = $validatedOrder;
             }
         }
 
@@ -6678,11 +6688,20 @@ class EventsController extends AppController
         if ($this->request->is('Post')) {
             $workflow_ids = [];
             foreach ($this->request->data['Event'] as $workflow_id => $enabled) {
+                if ($workflow_id === 'environment_variables') {
+                    continue;
+                }
                 if ($enabled) {
                     $workflow_ids[] = $workflow_id;
                 }
             }
-            $results = $this->Event->runWorkflow($id, $workflow_ids);
+            $env_vars = $this->request->data['Event']['environment_variables'];
+            try {
+                $env_vars = JsonTool::decode($env_vars);
+            } catch (Exception $e) {
+                $env_vars = [];
+            }
+            $results = $this->Event->runWorkflow($id, $workflow_ids, $env_vars);
             $succesMessage = __('Successfully ran %s Workflows on Event %s', count($workflow_ids), h($id));
             $errorMessage = __('Error(s) while running Workflow(s): ') . implode(', ', $results['error_messages']);
             if ($this->_isRest() || $this->request->is('ajax')) {

@@ -21,8 +21,8 @@
         }
         if (!empty($org['Organisation']['restricted_to_domain'])) {
             $domains = $org['Organisation']['restricted_to_domain'];
-            $domains = implode("<br>", array_map('h', $domains));
-            $table_data[] = array('key' => __('Domain restrictions'), 'html' => $domains);
+            $domains = implode("\n", $domains);
+            $table_data[] = array('key' => __('Domain restrictions'), 'value' => $domains);
         }
         if ($isSiteAdmin) {
             $table_data[] = array('key' => __('Created by'), 'value' => isset($org['Organisation']['created_by_email']) ? $org['Organisation']['created_by_email'] : __("Unknown"));

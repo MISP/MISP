@@ -96,6 +96,7 @@ class IOCExportTool
                 'user-agent' => array('Network', 'Network/UserAgent', 'string'),
                 'regkey' => array('Network', 'RegistryItem/KeyPath', 'string'),
                 'snort' => array('Snort', 'Snort/Snort', 'string'),
+                'suricata' => array('Suricata', 'Suricata/Suricata', 'string'),
                 'attachment' => array('FileItem', 'FileItem/FileName', 'string'),
                 'link' => array('URL', 'UrlHistoryItem/URL', 'md5')
         )

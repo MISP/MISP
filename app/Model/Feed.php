@@ -898,7 +898,7 @@ class Feed extends AppModel
                 unset($events[$k]);
                 continue;
             }
-            if (isset($filterRules['orgs']['NO']) && !empty($filterRules['orgs']['NOT']) && in_array($event['Orgc']['name'], $filterRules['orgs']['OR'])) {
+            if (isset($filterRules['orgs']['NOT']) && !empty($filterRules['orgs']['NOT']) && in_array($event['Orgc']['name'], $filterRules['orgs']['NOT'])) {
                 unset($events[$k]);
                 continue;
             }

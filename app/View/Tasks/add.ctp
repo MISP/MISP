@@ -46,7 +46,8 @@ echo $this->element('genericElements/Form/genericForm', [
                 'label' => __('Technique'),
                 'options' => [
                     'full' => 'Full',
-                    'update' => 'Update'
+                    'update' => 'Update',
+                    'incremental' => 'Incremental'
                 ],
                 'type' => 'dropdown',
                 'class' => 'span6',

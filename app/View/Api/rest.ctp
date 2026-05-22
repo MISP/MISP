@@ -7,7 +7,7 @@
             foreach ($allAccessibleApis as $scope => $actions) {
               $options .= sprintf('<optgroup label="%s">', $scope);
               foreach ($actions as $action => $url) {
-                  $options .= sprintf('<option value="%s">%s</option>', $url, $action);
+                  $options .= sprintf('<option value="%s">%s</option>', $url[0], $action);
               }
             }
             echo sprintf('<select id="TemplateSelect">%s</select>', $options);

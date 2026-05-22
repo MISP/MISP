@@ -14,6 +14,8 @@
             ['controller' => 'events', 'action' => 'delete'],
             ['controller' => 'events', 'action' => 'view2'],
             ['controller' => 'events', 'action' => 'importChoice'],
+            ['controller' => 'events', 'action' => 'automation'],
+            ['controller' => 'events', 'action' => 'export'],
 
             ['controller' => 'attributes', 'action' => 'index'],
             ['controller' => 'attributes', 'action' => 'delete'],
@@ -23,6 +25,40 @@
             ['controller' => 'collections', 'action' => 'add'],
             ['controller' => 'collections', 'action' => 'edit'],
             ['controller' => 'CollectionElements', 'action' => 'add'],
+
+            ['controller' => 'tags', 'action' => 'index'],
+            ['controller' => 'tags', 'action' => 'add'],
+            ['controller' => 'tags', 'action' => 'edit'],
+            ['controller' => 'tags', 'action' => 'viewGraph'],
+
+            ['controller' => 'tagCollections', 'action' => 'index'],
+            ['controller' => 'tagCollections', 'action' => 'addWithTags'],
+            ['controller' => 'tagCollections', 'action' => 'editWithTags'],
+
+            ['controller' => 'taxonomies', 'action' => 'index'],
+            ['controller' => 'taxonomies', 'action' => 'delete'],
+            ['controller' => 'taxonomies', 'action' => 'view'],
+            ['controller' => 'taxonomies', 'action' => 'addTag'],
+            ['controller' => 'taxonomies', 'action' => 'disableTag'],
+
+            ['controller' => 'templates', 'action' => 'index'],
+            ['controller' => 'templates', 'action' => 'delete'],
+            ['controller' => 'templates', 'action' => 'add'],
+            ['controller' => 'templates', 'action' => 'view'],
+
+            ['controller' => 'templateElements', 'action' => 'delete'],
+            ['controller' => 'templateElements', 'action' => 'addV2'],
+            ['controller' => 'templateElements', 'action' => 'editV2'],
+
+            ['controller' => 'objectTemplates', 'action' => 'index'],
+            ['controller' => 'objectTemplates', 'action' => 'delete'],
+            ['controller' => 'objectTemplates', 'action' => 'add'],
+            ['controller' => 'objectTemplates', 'action' => 'view'],
+
+            ['controller' => 'object_relationships', 'action' => 'index'],
+            ['controller' => 'object_relationships', 'action' => 'delete'],
+            ['controller' => 'object_relationships', 'action' => 'add'],
+            ['controller' => 'object_relationships', 'action' => 'edit'],
 
             ['controller' => 'warninglists', 'action' => 'index'],
             ['controller' => 'warninglists', 'action' => 'view'],
@@ -42,6 +78,69 @@
 
             ['controller' => 'correlation_exclusions', 'action' => 'index'],
             ['controller' => 'correlation_exclusions', 'action' => 'add'],
+
+            ['controller' => 'servers', 'action' => 'index'],
+            ['controller' => 'servers', 'action' => 'add'],
+            ['controller' => 'servers', 'action' => 'edit'],
+            ['controller' => 'servers', 'action' => 'delete'],
+            // ['controller' => 'servers', 'action' => 'cache'],
+            // ['controller' => 'servers', 'action' => 'pull'],
+            // ['controller' => 'servers', 'action' => 'push'],
+            // ['controller' => 'servers', 'action' => 'testConnection'],
+            // ['controller' => 'servers', 'action' => 'getRemoteSyncUser'],
+
+            ['controller' => 'sightingdb', 'action' => 'index'],
+            ['controller' => 'sightingdb', 'action' => 'add'],
+            ['controller' => 'sightingdb', 'action' => 'edit'],
+            ['controller' => 'sightingdb', 'action' => 'delete'],
+
+            ['controller' => 'taxiiServers', 'action' => 'index'],
+            ['controller' => 'taxiiServers', 'action' => 'add'],
+            ['controller' => 'taxiiServers', 'action' => 'edit'],
+            ['controller' => 'taxiiServers', 'action' => 'delete'],
+            ['controller' => 'taxiiServers', 'action' => 'view'],
+
+            ['controller' => 'cerebrates', 'action' => 'index'],
+            ['controller' => 'cerebrates', 'action' => 'add'],
+            ['controller' => 'cerebrates', 'action' => 'edit'],
+            ['controller' => 'cerebrates', 'action' => 'delete'],
+            ['controller' => 'cerebrates', 'action' => 'view'],
+            ['controller' => 'cerebrates', 'action' => 'pull_sgs'],
+            ['controller' => 'cerebrates', 'action' => 'pull_orgs'],
+
+            ['controller' => 'communities', 'action' => 'index'],
+            ['controller' => 'communities', 'action' => 'view'],
+            ['controller' => 'communities', 'action' => 'requestAccess'],
+
+            ['controller' => 'SharingGroups', 'action' => 'index'],
+            ['controller' => 'SharingGroups', 'action' => 'add'],
+            ['controller' => 'SharingGroups', 'action' => 'edit'],
+            ['controller' => 'SharingGroups', 'action' => 'delete'],
+            ['controller' => 'SharingGroups', 'action' => 'view'],
+
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'index'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'add'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'edit'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'delete'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'view'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'detach'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'execute'],
+            ['controller' => 'SharingGroupBlueprints', 'action' => 'encodeSyncRule'],
+
+            ['controller' => 'servers', 'action' => 'idTranslator'],
+            ['controller' => 'event_templates', 'action' => 'index'],
+            ['controller' => 'event_templates', 'action' => 'view'],
+            ['controller' => 'event_templates', 'action' => 'import'],
+            ['controller' => 'event_templates', 'action' => 'instantiate'],
+            ['controller' => 'event_templates', 'action' => 'add'],
+            ['controller' => 'event_templates', 'action' => 'edit'],
+            ['controller' => 'event_templates', 'action' => 'preview'],
+            ['controller' => 'event_templates', 'action' => 'update'],
+            ['controller' => 'event_templates', 'action' => 'library_status'],
+
+
+            ['controller' => 'api', 'action' => 'openapi'],
+            ['controller' => 'api', 'action' => 'rest'],
         ];
 
         $currentController = $this->params['controller'];
@@ -241,6 +340,7 @@
     </div>
     <div id="mainToastContainer" class="main-toast-container"></div>
     <div id="mainModalContainer"></div>
+    <div id="api-tooltip" class="api-tooltip"></div>
 
 
     <!-- Ajax Results -->
@@ -421,6 +521,17 @@
         // The active tab loads immediately on startup
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.tab-pane.active .ajax-tab-content').forEach(loadAjaxContainer);
+        });
+
+        const tooltip = document.getElementById('api-tooltip');
+        tooltip.addEventListener('mouseenter', () => {
+            isHoveringTooltip = true;
+            clearTimeout(hoverTimeout);
+        });
+
+        tooltip.addEventListener('mouseleave', () => {
+            isHoveringTooltip = false;
+            scheduleHideTooltip();
         });
     </script>
 </body>

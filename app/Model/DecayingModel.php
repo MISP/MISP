@@ -572,7 +572,7 @@ class DecayingModel extends AppModel
             // fetch closest sighting to the current time
             $sighting_index = $this->getClosestSighting($sightings, $t, $sighting_index);
             $last_sighting = $sightings[$sighting_index]['Sighting']['rounded_timestamp'];
-            $elapsed_time = $t - $last_sighting;
+            $elapsed_time = max(0, $t - $last_sighting);
             if ($this->Computation::REQUIRES_SIGHTINGS) {
                 $all_sighting_index = $this->getClosestSighting($all_sightings, $t, $all_sighting_index);
                 $attribute['Attribute']['Sighting'] = array_slice($all_sightings, 0, $all_sighting_index);

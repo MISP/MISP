@@ -1,0 +1,295 @@
+# Event Template Library — Implementation Progress
+
+**Companion to:** [`event-template-library-prd.md`](event-template-library-prd.md).
+**Purpose:** live checklist of implementation tasks for the
+`misp-event-templates` library project. The PRD is the *spec*; this
+file is the *tracker*. Check items off as they land on branch
+`templating` (or a fresh `template-library` branch once Phase 0 closes).
+
+## Legend
+
+- `- [ ]` — not started
+- `- [~]` — in progress (replace the space with `~` manually)
+- `- [x]` — complete
+- `⛔` — blocked (append reason inline)
+
+Each task is sized to be a single PR or a small cluster of commits.
+**Tasks and phases run strictly sequentially** — one item at a time,
+top to bottom within a phase, and one phase at a time. Implementation
+is driven by a ralph loop; no parallel code work. (Research and
+information lookups during a task may still be parallelised; the
+constraint applies to writing code.)
+
+---
+
+## Commit protocol
+
+This workflow runs inside a ralph loop and produces many commits.
+**This protocol is the user's pre-authorisation to commit during the
+event-template-library workflow** — no per-task approval is required,
+provided every rule here is honoured. Same shape as the event-templating
+workflow's protocol.
+
+### 1. One task, one commit (usually)
+
+- Default unit of work: **one checkbox in this file → one commit**.
+- Adjacent tightly-coupled checkboxes (migration + model that depends
+  on it; controller action + its route wiring) may be combined.
+- Never batch unrelated tasks. Never batch across phases.
+
+### 2. What goes into the commit
+
+1. The code/config/view/migration changes for the task.
+2. The checkbox flipped from `- [ ]` (or `- [~]`) to `- [x]`.
+3. Phase capstone: update the phase's `Status:` line.
+4. Tests introduced/updated for the task.
+5. Nothing else.
+
+### 3. Commit message format
+
+```
+new: [event-template-library] Short subject
+
+Longer body explaining *why* and what it enables. Reference the PRD
+section and the progress-tracker checkbox.
+
+PRD: docs/dev/event-template-library-prd.md §<N>.<N>
+Task: docs/dev/event-template-library-progress.md — Phase <N> / <task title>
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+```
+
+- **Prefix:** `new:` for new functionality, `fix:` for bug fixes,
+  `chg:` for refactors / spec edits / tracker advances.
+- **Category tag:** `[event-template-library]` on every commit. Sub-scope
+  in parentheses is fine when useful (e.g.
+  `[event-template-library(loader)]`, `[event-template-library(catalogue)]`).
+- **Co-Authored-By:** mandatory.
+
+Two repos are in play during this workflow:
+
+- **MISP core** (this repo) — `[event-template-library]` prefix, branch
+  `templating` or fresh `template-library` branch.
+- **`misp-event-templates`** (the standalone library repo) — same
+  prefix, branch `main`. Tracker checkboxes that produce commits in
+  the library repo are explicitly noted; the SHA references in this
+  tracker should disambiguate when necessary.
+
+### 4. Pre-commit checks
+
+- Lint (MISP core): `./app/Vendor/bin/parallel-lint --exclude
+  app/Lib/cakephp/ --exclude app/Vendor/ -e php,ctp app/`.
+- Validate (library repo): `./validate_all.sh` exits zero.
+- Migrations run cleanly on a fresh schema.
+- No secrets, .env, large binaries, app/tmp/ artefacts.
+- Staging is explicit: `git add <paths>`.
+
+If any check fails, **do not commit**. Fix root cause, re-stage, new
+commit. Never `--amend` / `--no-verify` / `--no-gpg-sign`.
+
+### 5. What not to do
+
+- No push to remote unless explicitly asked.
+- No PR unless explicitly asked.
+- No history rewrites.
+- No working out-of-order.
+
+---
+
+## Phase 0 — Spec finalisation
+
+**Status:** complete
+**Exit criteria:** PRD approved; four open questions in PRD §15
+closed with explicit decisions; library schema mirror plan locked;
+target branch decided.
+
+- [x] Draft PRD v0.1 (see `event-template-library-prd.md`)
+- [x] Close open question §15.1 — default `active = 0` for library imports
+- [x] Close open question §15.2 — default `distribution = 1` for library imports
+- [x] Close open question §15.3 — explicit `default` flag replaces hash-based edit detection (§5.3)
+- [x] Close open question §15.4 — seven starter templates
+- [x] Close open question §15.5 — stay on `templating`
+- [x] Close open question §15.6 — public repo URL `https://github.com/MISP/misp-event-templates` (operator-created, empty)
+- [x] User sign-off on PRD v0.1
+
+- [x] **Phase 0 complete**
+
+---
+
+## Phase 1 — Standalone repo skeleton
+
+**Status:** not started
+**Depends on:** Phase 0 complete.
+**Exit criteria:** `MISP/misp-event-templates` exists publicly with
+README/CONTRIBUTE/LICENSE/schema/validate_all.sh, two reference
+templates committed and validating, CI green on the repo.
+
+### 1.1 Repo standup
+
+- [ ] Local-stage the repo skeleton in a sibling directory (NOT yet
+      submoduled into MISP core)
+- [ ] `README.md` — what's here, who it's for, how to use it
+- [ ] `CONTRIBUTE.md` — how to author and submit a template
+- [ ] `LICENSE.md` — CC0 (matches misp-galaxy / misp-objects)
+- [ ] `schema_event_template.json` — mirror of MISP core's
+      `app/files/schemas/event-template-v1.schema.json`, plus the
+      `library_metadata` extension defined in PRD §7
+
+### 1.2 Tooling
+
+- [ ] `validate_all.sh` — walk `templates/*/definition.json`, validate
+      each against `schema_event_template.json`, check uuid + name
+      uniqueness, exit non-zero on any failure
+- [ ] `jq_all_the_things.sh` — canonical JSON formatting hook
+- [ ] GitHub Actions workflow at `.github/workflows/validate.yml`
+      that runs `validate_all.sh` on every PR
+
+### 1.3 Reference templates
+
+- [ ] First reference template: `templates/spearphishing-email/definition.json`
+      — peer-reviewed, validates, includes `library_metadata`
+- [ ] Second reference template: `templates/ransomware-incident/definition.json`
+
+### 1.4 Public push
+
+- [ ] Push the repo to `MISP/misp-event-templates` on GitHub (operator
+      action — Claude cannot push to a repo it doesn't own; surfaces a
+      clear handoff)
+- [ ] Confirm CI green on `main`
+
+- [ ] **Phase 1 complete**
+
+---
+
+## Phase 2 — MISP core loader
+
+**Status:** not started
+**Depends on:** Phase 1 complete (the submodule must point at a real
+publicly-fetchable repo).
+**Exit criteria:** Loader walks the submodule, validates, upserts
+correctly, hash-based edit detection works, integration tests green
+against a real DB.
+
+### 2.1 Migration
+
+- [x] Migration: add `event_templates.default` column (TINYINT(1) NOT NULL DEFAULT 0, PRD §6). Backticked in SQL because `default` is a MySQL reserved word. Added as DB_CHANGES case 150 in `app/Model/AppModel.php`.
+- [x] Migration tested on the live DB at localhost:5007 — column applied, db_version bumped 149 → 150, model schema cache regenerated to include the column. Existing 463 rows untouched (the column carries its DEFAULT 0 retroactively).
+
+### 2.2 Submodule registration
+
+- [x] Add `app/files/misp-event-templates/` entry to `.gitmodules` pointing at `https://github.com/MISP/misp-event-templates#main` — HTTPS URL (matching every other content submodule's convention) so users without a GitHub account can fetch.
+- [x] Add un-ignore entries to `.gitignore` so the submodule path is tracked.
+- [x] Initial submodule checkout pinned to Phase-1 head SHA `99f97d57af8836f5660ea7c429bf9964f4d80e53`.
+
+### 2.3 Loader
+
+- [x] `EventTemplate::updateFromLibrary($user)` — walks the submodule path, validates each `definition.json` via the existing `EventTemplateValidator`, routes each row to install / updated / skipped_current / skipped_forked / failed (PRD §5.3). Library imports get `misp_default = 1`, `active = 0`, `distribution = 1`, importing user/org as owner. Updates preserve id + ownership + active flag. Content-equal rows are reported as `skipped_current` to keep the summary truthful. `default = 0` rows are reported as `skipped_forked` and never touched.
+- [x] Importer + exporter round-trip the `default` flag — `EventTemplateImporter` checks `template.default` (envelope) then `template.definition.default` (bare JSON, library shape) and persists either to the row; `EventTemplateExporter` includes `default` in the envelope so a re-import preserves it. Builder properties-panel toggle deferred to Phase 3 (UI).
+- [x] Core schema extended (`app/files/schemas/event-template-v1.schema.json`) with optional `default` and `library_metadata` top-level keys so library JSONs validate without stripping. Both fields are optional — pre-existing v1 templates still validate (verified live against template id=463).
+
+### 2.4 Controller / REST
+
+- [x] `EventTemplatesController::update()` — site-admin gated, POST-only, calls the loader and renders / returns the summary. Live-verified end-to-end against the live instance: install / skipped_current (idempotent re-run) / skipped_forked (operator-flipped row) / updated (drift overwrite preserving id+ownership) all surfaced correctly in the JSON envelope.
+- [x] `EventTemplatesController::library_status()` — dry-run snapshot of on-disk library vs local DB rows (no writes, GET). Returns slug + uuid + name per template plus the local row's id/active/default if installed.
+- [x] ACL list entries in `ACLComponent::$aclList['eventTemplates']` for `update` and `library_status` (empty array — site-admin only). Touch on the shared ACL component is established acceptable per the existing protocol.
+- [x] REST envelope: when `IndexFilter::isRest()` true, `RestResponse::viewData()` JSON-encodes the summary directly. HTML branch renders the placeholder views below.
+- [x] Placeholder HTML views shipped on both themes (default + Overmind): `EventTemplates/update.ctp` and `EventTemplates/library_status.ctp`. Phase 3 replaces these with proper styled summaries.
+- [x] Overmind BS5 layout whitelist (`Themed/Overmind/Layouts/default.ctp`) updated to include `update` and `library_status` so they render under the BS5 stack.
+
+### 2.5 First-touch auto-update hook
+
+- [x] `EventTemplate::populateIfEmpty($user)` — mirrors `ObjectTemplate::populateIfEmpty()` exactly. Calls `updateFromLibrary` only if `hasAny()` returns false. Returns the loader summary or null.
+- [x] Hooked into `EventTemplatesController::index()` — auto-trigger gated on `perm_site_admin` (library updates affect every org on the instance, so non-admins shouldn't trigger silent installs). Smoke-tested that the hook is silent on a non-empty table (live instance has ~7 templates, index renders normally with no flash).
+- [x] Flash message surfaces what was installed ("Loaded N event template(s) from the bundled library. They are inactive by default…") so the operator knows the table just gained content.
+
+### 2.6 Tests
+
+- [x] Integration tests in `tests/testlive_event_templates.py` — new `EventTemplatesLibraryUpdateTests` class, three tests:
+      * `test_install_then_idempotent` — empty DB → run update → every library template lands in `installed` with `default=1` / `active=0` / `distribution=1`; second run lands all in `skipped_current`.
+      * `test_skipped_forked_after_default_flip` — install everything; export one template, flip `default=false` in the envelope, re-import in overwrite mode (operator-fork via REST round-trip); next update routes that uuid to `skipped_forked`.
+      * `test_library_status_shape` — confirms the dry-run endpoint surfaces slug + uuid + name + local-state per template.
+- [x] Full live suite passes: 24 tests in `tests/testlive_event_templates.py` (21 pre-existing + 3 new), 23 PHPUnit unit tests in `app/Test/EventTemplate*Test.php` (no regressions).
+- [x] ~~Defensive `default`-column backfill in `EventTemplate::afterFind`~~ — replaced. Root cause turned out to be Cake's persistent method-cache (`app/tmp/cache/persistent/myapp_cake_core_method_cache`) memoising the SELECT column list per model. On a setup where the column was added after the method cache populated, the cached SELECT omitted the column even though writes worked fine. Renaming `default` → `misp_default` (Phase 2.1+ migration case 151) removed the original suspicion of a reserved-word issue and the cache invalidation removed the actual bug; the afterFind hack is gone, and the view + loader paths surface the column with no special handling.
+
+- [x] **Phase 2 complete**
+
+---
+
+## Phase 3 — UI integration (both themes)
+
+**Status:** not started
+**Depends on:** Phase 2 complete.
+**Exit criteria:** site admins can drive the full flow — update,
+view summary, see library badges — from the UI on both themes.
+
+### 3.1 Default theme (BS2)
+
+- [x] "Update from library" button on the event-templates index toolbar, gated on the new `eventTemplates/update` ACL entry, sits next to Import. Wired in `app/View/EventTemplates/index.ctp` `top_bar.children` array.
+- [x] Update flow restructured to GET (confirm page) + POST (execute) so the toolbar button can be a normal `<a href>` link — GET shows what would change, the form on the page POSTs back to the same URL to apply. REST clients still POST directly; GET in REST returns 405. New private helper `__buildLibraryStatusSummary()` shared between `update()` GET-confirm and `library_status()`.
+- [x] Update result page rendering installed / updated / skipped_current / skipped_forked / failed sections with copy explaining the `misp_default` flag mechanic. `app/View/EventTemplates/update.ctp` (replaces the placeholder), plus new `update_confirm.ctp` for the dry-run preview.
+- [x] Default-template badge column on the index for rows with `misp_default = 1` — new "Source" column on the events-templates index. Library-managed rows get a blue "Library" pill with a fa-cube icon and a tooltip explaining the auto-update behaviour; locally-authored / forked rows get a soft-grey "local" label. New shared field renderer at `app/View/Elements/genericElements/IndexTable/Fields/library_managed.ctp` (additive — new file, no edits to existing field elements).
+- [x] Builder banner near the save bar warning that edits to a `misp_default = 1` row will be overwritten on the next library update unless the operator flips the flag (PRD §10.4) — amber alert above the envelope on `Elements/eventTemplates/builder/shell.ctp` when `$envelope['misp_default']` is set, with copy that explains the consequence and points at the toggle below.
+- [x] Properties-panel toggle exposing the `misp_default` flag to the builder — checkbox added to the envelope row alongside Active. Round-trips through the JS state (`builder.js` `state.envelope.misp_default`), the save body POST/PUT shape, and the controller's `edit` action (which now coerces the field to int the same way it does `active`/`distribution`). Live-verified: install → flip via PUT /event_templates/edit/{id} body `{misp_default: 0}` → next update routes the row to `skipped_forked`.
+
+### 3.2 Overmind theme (BS5)
+
+- [x] "Update from library" entry in `headerActions` on the event-templates index, gated on `eventTemplates/update` ACL. Wired in `Themed/Overmind/EventTemplates/index.ctp` next to Add / Import.
+- [x] BS5 update result view (`Themed/Overmind/EventTemplates/update.ctp`): cards-grid layout with one card per outcome category (installed / updated / already-current / skipped-forked / failed), each carrying a badge with the count and the same explanatory copy as the default-theme view. Plus the matching confirm view (`update_confirm.ctp`) with three pre-run buckets and an Apply button.
+- [x] Default-template badge in the IndexTable card / table fields — new `Themed/Overmind/Elements/genericElementsBS5/IndexTable/Fields/library_managed.ctp` field renderer mirroring the default-theme one with BS5 badge styling. Wired into the index `$fields` array as a "Source" column shown in both table and card layouts.
+- [x] Builder warning + properties-panel toggle (parity with the default theme) — Alpine `x-show="envelope.misp_default"` warning banner above the envelope card with copy explaining the auto-update consequence, plus a "Library-managed" checkbox alongside Active in the envelope row (`x-model="envelope.misp_default"`). `builder-overmind.js` defaults the field to 0 in `envelope` and includes it in the save body.
+
+### 3.3 First-touch auto-update flash
+
+- [x] Already wired during Phase 2.5 — the populate hook lives in the shared `EventTemplatesController::index()`, which runs for both themes. `Flash->info()` is theme-agnostic; the Overmind theme's BS5 Flash partials at `Themed/Overmind/Elements/Flash/info.ctp` render the message with `alert alert-info` markup.
+
+- [x] **Phase 3 complete**
+
+---
+
+## Phase 4 — Starter catalogue
+
+**Status:** complete
+**Depends on:** Phase 3 complete (so each template can be smoke-tested
+through the full flow).
+**Exit criteria:** seven peer-reviewed templates merged into the
+library repo, all rendering correctly through the user form on both
+themes.
+
+- [x] Template: `spearphishing-email` — reviewed; the Phase 1.3 version is catalogue-quality (extensive labels and per-relation help on the email + file objects). Kept as-is.
+- [x] Template: `ransomware-incident` — same; Phase 1.3 shape is solid.
+- [x] Template: `credential-exposure` — paste-site dumps / breach data marketplace listings / OSINT tips. Library commit `a26cb89`.
+- [x] Template: `suspicious-domain-triage` — first-pass triage on a flagged domain with WHOIS + DNS resolution objects. Library commit `987e35c`.
+- [x] Template: `malware-sample-submission` — analyst-with-the-binary submission with full hash set + AV labels + sandbox C2 indicators. Library commit `4ef9b91`.
+- [x] Template: `vulnerability-disclosure` — CVE tracking with the misp-objects vulnerability object + exploit-status / PoC URL fields. Library commit `f24e291`.
+- [x] Template: `supply-chain-compromise` — backdoored-package incident with affected-versions / distribution-channel / behaviour-notes structure. Library commit `58b2b70`.
+- [x] Each template smoke-tested: full library update against the live MISP installs all 7 with `misp_default = 1`; minimal-mandatory instantiation through `/event_templates/instantiate/{id}` produces an event with the expected info-field substitution, attribute set, default threat-level/distribution/analysis, and tlp tag. Cleanup-after on each.
+
+- [x] **Phase 4 complete (v1 shipping target reached)**
+
+---
+
+## Phase 5 — Docs and release polish
+
+**Status:** complete
+**Concurrent with:** Phase 4 (these tasks don't touch the same files).
+**Exit criteria:** operators and library authors can find their
+way through the workflow without asking us.
+
+- [x] Library `README.md` final pass — adds a "Templates included" table at the top describing each of the seven starter templates with a one-line use-case. Also flips the stale `default` references to `misp_default` after the rename. Library commit `014736c`.
+- [x] Library `CONTRIBUTE.md` — same `default` → `misp_default` rename in the JSON authoring conventions block, with a short note explaining why the field is prefixed. (PR review checklist + validation script usage already shipped in Phase 1.1.)
+- [x] MISP-side admin doc at `docs/event-template-library-admin.md` — full operator guide: what the library is, the `git submodule update` + UI/REST update flow, the loader's routing table, the `misp_default` flag and operator-fork mechanic, troubleshooting (including the persistent-method-cache invalidation step from the Phase 2.6 follow-up), how to contribute back upstream.
+- [x] Release notes entry — handled automatically by MISP's gitchangelog flow. Every commit on this branch follows the `new:` / `chg: [event-template-library(<sub>)]` convention so the next release cut picks them up without a manual changelog edit.
+- [x] Cross-link from `docs/event-templates-creator-guide.md` to the library — new "The shared library" section at the end of the creator guide pointing at the upstream repo and the new admin doc, with an invitation to contribute templates back.
+
+- [x] **Phase 5 complete**
+
+---
+
+*Phase 6 — and any continuous-sync, marketplace, or in-MISP
+catalogue-browser work — is out of scope for this project per PRD §14.*
+
+---
+
+## Change log for this tracker
+
+- 2026-04-25 — initial plan drafted.

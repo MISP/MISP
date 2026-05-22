@@ -23,7 +23,9 @@
         "guzzlehttp/guzzle": "^7.4.5",
         "lstrojny/fxmlrpc": "*",
         "php-http/message": "*",
-        "php-http/message-factory": "*"
+        "php-http/message-factory": "*",
+        "league/commonmark": "^2.8",
+        "justinrainbow/json-schema": "^6.8"
     },
     "_comments": [
         "Browscap-php v6 and v7 are NOT backwards compatible, so needs to test.",
@@ -60,7 +62,8 @@
         "vendor-dir": "Vendor",
         "optimize-autoloader": true,
         "allow-plugins": {
-            "composer/installers": true
+            "composer/installers": true,
+            "php-http/discovery": true
         }
     }
 }

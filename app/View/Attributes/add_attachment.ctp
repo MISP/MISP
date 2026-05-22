@@ -71,6 +71,43 @@
         ?>
             <div class="input clear"></div>
         <?php
+            $maliciousOptions = array();
+            foreach ($attachmentObjectTemplates['malicious'] as $tpl) {
+                $maliciousOptions[$tpl['uuid']] = $tpl['label'];
+            }
+            $maliciousDefault = array_key_first($maliciousOptions);
+
+            $nonMaliciousOptions = array();
+            foreach ($attachmentObjectTemplates['non_malicious'] as $tpl) {
+                $key = $tpl['uuid'] === null ? '' : $tpl['uuid'];
+                $nonMaliciousOptions[$key] = $tpl['label'];
+            }
+            $nonMaliciousDefault = array_key_first($nonMaliciousOptions);
+        ?>
+        <div id="MaliciousObjectTemplateContainer" class="input clear">
+            <?php
+                echo $this->Form->input('object_template_malicious', array(
+                    'type' => 'select',
+                    'options' => $maliciousOptions,
+                    'empty' => false,
+                    'selected' => $maliciousDefault,
+                    'label' => __('Object template'),
+                ));
+            ?>
+        </div>
+        <div id="NonMaliciousObjectTemplateContainer" class="input clear" style="display:none;">
+            <?php
+                echo $this->Form->input('object_template_non_malicious', array(
+                    'type' => 'select',
+                    'options' => $nonMaliciousOptions,
+                    'empty' => false,
+                    'selected' => $nonMaliciousDefault,
+                    'label' => __('Object template'),
+                ));
+            ?>
+        </div>
+        <div class="input clear"></div>
+        <?php
             echo $this->Form->input('advanced', array(
                     'type' => 'checkbox',
                     'checked' => false,
@@ -89,8 +126,19 @@ echo $this->Form->end();
 <?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttachment', 'event' => $event)); ?>
 <script>
 var formZipTypeValues = <?= json_encode($isMalwareSampleCategory) ?>;
+var fileTemplateUuid = <?= json_encode($maliciousDefault) ?>;
 
 $(function() {
+    function updateAdvancedVisibility() {
+        var malwareChecked = $("#AttributeMalware").is(':checked');
+        var isFileTemplate = $('#AttributeObjectTemplateMalicious').val() === fileTemplateUuid;
+        if (malwareChecked && isFileTemplate) {
+            $('#advanced_input').show();
+        } else {
+            $('#advanced_input').hide();
+        }
+    }
+
     $('#AttributeCategory').change(function() {
         malwareCheckboxSetter("Attribute");
         $("#AttributeMalware").change();
@@ -106,10 +154,15 @@ $(function() {
 
     $("#AttributeMalware").change(function () {
         if (this.checked) {
-            $('#advanced_input').show();
+            $('#MaliciousObjectTemplateContainer').show();
+            $('#NonMaliciousObjectTemplateContainer').hide();
         } else {
-            $('#advanced_input').hide();
+            $('#MaliciousObjectTemplateContainer').hide();
+            $('#NonMaliciousObjectTemplateContainer').show();
         }
+        updateAdvancedVisibility();
     }).change();
+
+    $('#AttributeObjectTemplateMalicious').change(updateAdvancedVisibility);
 });
 </script>

@@ -44,9 +44,9 @@
                         'data_path' => 'TaxiiServer.name'
                     ],
                     [
-                        'name' => __('Baseurl'),
-                        'sort' => 'TaxiiServer.baseurl',
-                        'data_path' => 'TaxiiServer.baseurl'
+                        'name' => __('Discovery URL'),
+                        'sort' => 'TaxiiServer.discovery_url',
+                        'data_path' => 'TaxiiServer.discovery_url'
                     ],
                     [
                         'name' => __('Skip Proxy'),

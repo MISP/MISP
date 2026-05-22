@@ -378,7 +378,7 @@ class WarninglistsController extends AppController
         }
         $this->Warninglist->saveField('enabled', $enable);
         $this->Warninglist->regenerateWarninglistCaches($id);
-        if ($enable === 0) {
+        if ($enable === 0 || $enable === '0') {
             $this->Flash->success(__('Warninglist disabled'));
         }
         else {

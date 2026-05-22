@@ -180,7 +180,7 @@
             'actions' => array(
                 array(
                     'title' => __('Restore Cluster'),
-                    'url' => '/galaxy_clusters/restore',
+                    'url' => $baseurl . '/galaxy_clusters/restore',
                     'url_params_data_paths' => array(
                         'GalaxyCluster.id'
                     ),
@@ -202,7 +202,7 @@
                 ),
                 array(
                     'title' => __('Publish Cluster'),
-                    'url' => '/galaxy_clusters/publish',
+                    'url' => $baseurl . '/galaxy_clusters/publish',
                     'url_params_data_paths' => array(
                         'GalaxyCluster.id'
                     ),
@@ -228,7 +228,7 @@
                 ),
                 array(
                     'title' => __('View correlation graph'),
-                    'url' => '/galaxies/viewGraph',
+                    'url' => $baseurl . '/galaxies/viewGraph',
                     'url_params_data_paths' => array(
                         'GalaxyCluster.id'
                     ),
@@ -236,7 +236,7 @@
                 ),
                 array(
                     'title' => __('Fork'),
-                    'url' => '/galaxy_clusters/add',
+                    'url' => $baseurl . '/galaxy_clusters/add',
                     'url_params_data_paths' => array(
                         'GalaxyCluster.galaxy_id'
                     ),
@@ -259,7 +259,7 @@
                 ),
                 array(
                     'title' => __('Contribute to misp-galaxy'),
-                    'url' => '/galaxy_clusters/export_for_misp_galaxy',
+                    'url' => $baseurl . '/galaxy_clusters/export_for_misp_galaxy',
                     'url_params_data_paths' => array(
                         'GalaxyCluster.id'
                     ),
@@ -272,7 +272,7 @@
                 ),
                 array(
                     'title' => __('Edit'),
-                    'url' => '/galaxy_clusters/edit',
+                    'url' => $baseurl . '/galaxy_clusters/edit',
                     'url_params_data_paths' => array(
                         'GalaxyCluster.id'
                     ),
@@ -314,7 +314,7 @@
                 ),
                 array(
                     'title' => __('View'),
-                    'url' => '/galaxy_clusters/view',
+                    'url' => $baseurl . '/galaxy_clusters/view',
                     'url_params_data_paths' => array(
                         'GalaxyCluster.id'
                     ),

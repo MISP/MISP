@@ -40,7 +40,7 @@ $fields = [
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/admin/regexp/edit/%id%',
-                'requirement' => 'check_site_admin'
+                'requirement' => $me['Role']['perm_regexp_access']
             ],
             [
                 'type' => 'ajax',
@@ -48,7 +48,7 @@ $fields = [
                 'icon' => 'trash',
                 'url' => $baseurl . '/admin/regexp/deleteSelection/%id%',
                 'class' => 'text-danger',
-                'requirement' => 'check_site_admin'
+                'requirement' => $me['Role']['perm_regexp_access']
             ]
         ]
     ],

@@ -72,8 +72,8 @@ class AppModel extends Model
         )
     );
 
-    const DB_CHANGES = array(
-        1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
+	    const DB_CHANGES = array(
+	        1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
@@ -94,10 +94,11 @@ class AppModel extends Model
         111 => false, 112 => false, 113 => true, 114 => false, 115 => false, 116 => false,
         117 => false, 118 => false, 119 => false, 120 => false, 121 => false, 122 => false,
         123 => false, 124 => false, 125 => false, 126 => false, 127 => false, 128 => false,
-        129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
-        135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
-        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false
-    );
+	        129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
+	        135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
+	        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
+	        147 => false, 148 => false, 149 => false, 150 => false
+	    );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
         'seenOnAttributeAndObject' => array(
@@ -300,6 +301,9 @@ class AppModel extends Model
                 break;
             case 139:
                 $dbUpdateSuccess = $this->fixUpdatedGalaxyID();
+                break;
+            case 150:
+                $dbUpdateSuccess = $this->fixDatabaseEncoding();
                 break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
@@ -2575,6 +2579,59 @@ class AppModel extends Model
             case 146:
                 $sqlArray[] = "ALTER TABLE `bookmarks` MODIFY `url` TEXT NOT NULL;";
                 break;
+            case 147:
+                // Event-template feature scaffolding — both tables created
+                // in their final shape. distribution is tinyint(4) (matches
+                // events.distribution / attributes.distribution and stays
+                // an integer end-to-end through Cake's MySQL driver, which
+                // would otherwise bool-coerce a tinyint(1) column on read).
+                // misp_default is the library-managed flag — named with
+                // the misp_ prefix to avoid colliding with MySQL's
+                // reserved `default` keyword. minimum_version on the
+                // dependencies table reflects the field's semantics — the
+                // running MISP instance is free to use a newer
+                // object-template version if installed (PRD §13).
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_templates` (
+                    `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `description` text COLLATE utf8mb4_unicode_ci NULL,
+                    `org_id` int(11) UNSIGNED NOT NULL,
+                    `creator_user_id` int(11) UNSIGNED NOT NULL,
+                    `distribution` tinyint(4) NOT NULL DEFAULT 0,
+                    `active` tinyint(1) NOT NULL DEFAULT 1,
+                    `misp_default` tinyint(1) NOT NULL DEFAULT 0,
+                    `version` int(11) UNSIGNED NOT NULL DEFAULT 1,
+                    `definition` mediumtext COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `created` datetime NOT NULL,
+                    `modified` datetime NOT NULL,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `uuid` (`uuid`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                $indexArray[] = array('event_templates', 'org_id');
+                $indexArray[] = array('event_templates', 'name');
+                $indexArray[] = array('event_templates', 'active');
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_template_object_dependencies` (
+                    `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `event_template_id` int(11) UNSIGNED NOT NULL,
+                    `object_template_uuid` varchar(40) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `object_template_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `minimum_version` int(11) UNSIGNED NOT NULL,
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                $indexArray[] = array('event_template_object_dependencies', 'event_template_id');
+                $indexArray[] = array('event_template_object_dependencies', 'object_template_uuid');
+                break;
+            case 148:
+                $sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `api_root` VARCHAR(1024);";
+                $sqlArray[] = "UPDATE `taxii_servers` SET `api_root` = CONCAT(TRIM(TRAILING \"/\" FROM baseurl)),\"/\",api_root);";
+                $sqlArray[] = "ALTER TABLE `taxii_servers` RENAME COLUMN `baseurl` TO `discovery_url`;";
+                $sqlArray[] = "ALTER TABLE `taxii_servers` MODIFY `discovery_url` VARCHAR(512);";
+                $sqlArray[] = "UPDATE `taxii_servers` SET `discovery_url` = CONCAT(TRIM(TRAILING \"/\" FROM discovery_url),\"/taxii2/\");";
+                break;
+            case 149:
+                $sqlArray[] = "ALTER TABLE `galaxy_clusters` MODIFY `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -4831,6 +4888,81 @@ class AppModel extends Model
         foreach (array_chunk($toUpdate, 1000) as $chunk) {
             $this->GalaxyCluster->saveMany($chunk, $options);
         }
+        return true;
+    }
+
+    /**
+     * Update 150 — migrate the database connection encoding to utf8mb4 so that 4-byte UTF-8
+     * characters (emoji, supplementary-plane characters) stop being rejected at the wire.
+     *
+     * Also pins the connection collation to utf8mb4_unicode_ci so that mixing utf8mb4 literals
+     * with the still-utf8mb3 columns does not trigger "Illegal mix of collations" errors on
+     * MySQL 8.0 (where the default utf8mb4 collation is utf8mb4_0900_ai_ci and has no implicit
+     * conversion path to utf8mb3_*_ci). The collation is appended to the encoding value because
+     * CakePHP simply concatenates it into 'SET NAMES <value>' on connect, and MySQL's SET NAMES
+     * accepts the 'charset COLLATE collation' form.
+     */
+    private function fixDatabaseEncoding()
+    {
+        $path = APP . 'Config/database.php';
+
+        $original = file_get_contents($path);
+        if ($original === false) {
+            $this->logException(
+                'Update 150: could not read database.php — leaving config untouched.',
+                new Exception("file_get_contents failed for $path")
+            );
+            return false;
+        }
+
+        // Match the encoding directive when its value is exactly 'utf8', 'utf8mb3', or 'utf8mb4'
+        // (no trailing COLLATE clause) — the closing quote backreference enforces that the value
+        // ends right there, so operator-customised values like 'utf8mb4 COLLATE utf8mb4_bin' are
+        // left untouched.
+        $updated = preg_replace(
+            "/(['\"])encoding\\1\\s*=>\\s*(['\"])utf8(?:mb3|mb4)?\\2/",
+            "'encoding' => 'utf8mb4 COLLATE utf8mb4_unicode_ci'",
+            $original
+        );
+
+        if ($updated === null || $updated === $original) {
+            // Nothing to change (already migrated, customised, or pattern didn't match).
+            return true;
+        }
+
+        // Keep a .bak alongside the file so an operator can recover if something is off.
+        @copy($path, $path . '.bak-update-150');
+
+        // Atomic write: write to a temp file in the same directory, then rename into place.
+        $tmp = $path . '.tmp-update-150';
+        $bytes = file_put_contents($tmp, $updated, LOCK_EX);
+        if ($bytes === false) {
+            @unlink($tmp);
+            $this->logException(
+                'Update 150: could not write temporary database.php — leaving config untouched.',
+                new Exception("file_put_contents failed for $tmp")
+            );
+            return false;
+        }
+        if (!@rename($tmp, $path)) {
+            @unlink($tmp);
+            $this->logException(
+                'Update 150: could not rename temporary database.php into place — leaving config untouched.',
+                new Exception("rename failed: $tmp -> $path")
+            );
+            return false;
+        }
+
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->createLogEntry(
+            'SYSTEM',
+            'update_database',
+            'Server',
+            0,
+            'Update 150: database connection encoding migrated to utf8mb4 (with utf8mb4_unicode_ci collation pin).',
+            'Original database.php backed up at ' . $path . '.bak-update-150'
+        );
+
         return true;
     }
 

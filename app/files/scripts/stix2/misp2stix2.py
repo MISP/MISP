@@ -22,11 +22,11 @@ import json
 import sys
 import traceback
 from pathlib import Path
+from stix2.base import STIXJSONEncoder
 from typing import Union
 
 import importlib
 MODULE_TO_DIRECTORY = {
-    "stix2": "cti-python-stix2",
     "stix": "python-stix",
     "cybox": "python-cybox",
     "mixbox": "mixbox",
@@ -41,7 +41,6 @@ for module_name, dir_path in MODULE_TO_DIRECTORY.items():
     except ImportError:
         sys.path.insert(_CURRENT_PATH_IDX, str(_CURRENT_PATH / dir_path))
         _CURRENT_PATH_IDX += 1
-from stix2.base import STIXJSONEncoder
 from misp_stix_converter import MISPtoSTIX20Parser, MISPtoSTIX21Parser
 
 

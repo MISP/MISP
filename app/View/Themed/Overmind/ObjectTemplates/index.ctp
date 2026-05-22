@@ -1,0 +1,147 @@
+<?php
+//xdebug_break();
+$fields = [
+    [
+        'element' => 'selector',
+        'data_path' => 'ObjectTemplate.id',
+        'active_path' => 'ObjectTemplate.active',
+        'card_section' => 'selector',
+        'actions' => [
+            [
+                'type' => 'link',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/objectTemplates/view/%id%'
+            ],
+            [
+                'type' => 'link',
+                'label' => __('Force update'),
+                'icon' => 'sync',
+                'url' => $baseurl . '/objectTemplates/update/%name%/%id%',
+                'url_params_data_paths' => ['name' => 'ObjectTemplate.name'],
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'ajax',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/objectTemplates/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'divider',
+                'url' => '#',
+                'requirement' => $isSiteAdmin
+            ],
+            [
+                'type' => 'toggle',
+                'label_on' => __('Deactivate'),
+                'label_off' => __('Activate'),
+                'icon_on' => 'stop text-danger',
+                'icon_off' => 'play text-success',
+                'url' => '/objectTemplates/%action%/%id%',
+                'active_path' => 'ObjectTemplate.active',
+                'requirement' => $isSiteAdmin
+            ]
+        ]
+    ],
+    [
+        'name' => __('ID'),
+        'sort' => 'ObjectTemplate.id',
+        'data_path' => 'ObjectTemplate.id',
+        'element' => 'id',
+        'url' => $baseurl . '/objectTemplates/view/%id%',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('UUID'),
+        'sort' => 'ObjectTemplate.uuid',
+        'data_path' => 'ObjectTemplate.uuid',
+        'element' => 'uuid',
+        'url' => $baseurl . '/objectTemplates/view/%id%',
+        'card_section' => 'top',
+        'display_in' => ['card']
+    ],
+    [
+        'name' => __('Name'),
+        'sort' => 'ObjectTemplate.name',
+        'data_path' => 'ObjectTemplate.name, ObjectTemplate.description',
+        'element' => 'name_description',
+        'card_section' => 'title',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Meta-category'),
+        'sort' => 'ObjectTemplate.meta-category',
+        'data_path' => 'ObjectTemplate.meta-category',
+        'element' => 'category',
+        'card_section' => 'category',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Version'),
+        'data_path' => 'ObjectTemplate.version',
+        'element' => 'version',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Active'),
+        'sort' => 'ObjectTemplate.active',
+        'data_path' => 'ObjectTemplate.active',
+        'element' => 'enabled',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Requirements'),
+        'data_path' => 'ObjectTemplate.requirements',
+        'element' => 'object_template_requirements',
+        'card_section' => 'extra',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Owner Org'),
+        'data_path' => 'Organisation',
+        'element' => 'organisation',
+        'card_section' => 'meta',
+        'display_in' => ['card']
+    ],
+];
+
+if ($this->Acl->canAccess('objectTemplates', 'update')) {
+    $this->set('headerActions', [
+        [
+            'type' => 'post',
+            'label' => __('Update Object'),
+            'icon' => 'sync',
+            'url' => $baseurl . '/objectTemplates/update'
+        ]
+    ]);
+}
+
+echo $this->element('genericElementsBS5/IndexTable/scaffold', [
+    'scaffold_data' => [
+        'data' => [
+            'data' => $data,
+            'filter_bar' => [
+                'pull' => 'right',
+                'children' => [
+                    [
+                        'type' => 'search',
+                        'button' => 'Search',
+                        'placeholder' => 'Search in all fields',
+                        'name'        => 'searchall',
+                        'mode'        => 'legacy',
+                    ],
+                ],
+                'delete' => '/deleteSelection',
+                'active' => 1,
+            ],
+            'fields' => $fields,
+        ]
+    ],
+    'item_url' => '/objectTemplates'
+]);
