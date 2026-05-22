@@ -146,7 +146,12 @@ class Dashboard extends AppModel
             'UserSetting' => array(
                 'user_id' => $targetUser['id'],
                 'setting' => 'dashboard',
-                'value' => $settingsToSave
+                // json_encode here because UserSetting's validate_json
+                // validator runs before beforeValidate's array→string
+                // coercion and JsonTool::isValid chokes on PHP arrays.
+                // Mirrors the encode step at DashboardsController::
+                // updateSettings and resetFromTemplate.
+                'value' => json_encode($settingsToSave, JSON_UNESCAPED_SLASHES)
             )
         );
         return $this->User->UserSetting->setSetting($user, $data);
