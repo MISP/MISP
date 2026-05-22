@@ -37,7 +37,7 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
 $renderCard = function (
     array $row,
     string $ownership
-) use ($currentUserId, $isSiteAdmin, $orgMap, $roleMap, $permFlagLabels, $baseurl) {
+) use ($currentUserId, $isSiteAdmin, $orgMap, $roleMap, $permFlagLabels, $baseurl, $widgetTitleMap) {
     $dash = $row['Dashboard'];
     $user = isset($row['User']) ? $row['User'] : array();
     $uuid = $dash['uuid'];
@@ -91,21 +91,15 @@ $renderCard = function (
          data-template-search-text="<?= h($searchText) ?>">
     <span class="misp-gallery-card-thumbnail misp-template-card-thumbnail"
           aria-hidden="true">
-        <!-- Thumbnail miniature: pending Phase 4 task 2 (server-
-             rendered preview of the template's layout, cached on
-             disk). Today shows a generic placeholder glyph so the
-             card has visual weight; the actual miniature lands in a
-             subsequent commit. -->
-        <svg viewBox="0 0 80 45" preserveAspectRatio="xMidYMid meet"
-             width="100%" height="100%" fill="none"
-             stroke="currentColor" stroke-width="1.5"
-             stroke-linecap="round" stroke-linejoin="round">
-            <rect x="6"  y="6"  width="30" height="14" rx="2" />
-            <rect x="40" y="6"  width="34" height="14" rx="2" />
-            <rect x="6"  y="24" width="20" height="15" rx="2" />
-            <rect x="30" y="24" width="20" height="15" rx="2" />
-            <rect x="54" y="24" width="20" height="15" rx="2" />
-        </svg>
+        <?php
+            // Phase 4 task 2 — server-side SVG miniature of the saved
+            // layout. Rendered on-demand from the bare widget array
+            // (DD-01 shape); no disk cache, no headless browser. Task 3
+            // (refresh-thumbnail) is closed as a no-op alongside this
+            // file because a cache-less renderer has nothing to refresh.
+            $widgetsForPreview = is_array($dash['value']) ? $dash['value'] : array();
+            echo TemplatePreview::render($widgetsForPreview, $widgetTitleMap);
+        ?>
     </span>
     <span class="misp-gallery-card-body misp-template-card-body">
         <span class="misp-gallery-card-title misp-template-card-title"

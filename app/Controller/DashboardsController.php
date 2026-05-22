@@ -948,8 +948,17 @@ class DashboardsController extends AppController
 
     public function listTemplates()
     {
+        App::uses('TemplatePreview', 'Lib/Dashboard/Tools');
         $conditions = [];
-        $accessible_widgets = array_keys($this->Dashboard->loadAllWidgets($this->Auth->user()));
+        $allWidgets = $this->Dashboard->loadAllWidgets($this->Auth->user());
+        $accessible_widgets = array_keys($allWidgets);
+        // Title map for the SVG miniature renderer — each rect's
+        // label comes from the widget class's $title (set at the
+        // class level; the v2 fallback transforms the class name).
+        $widgetTitleMap = array();
+        foreach ($allWidgets as $cls => $meta) {
+            $widgetTitleMap[$cls] = isset($meta['title']) ? $meta['title'] : $cls;
+        }
 
         if (!$this->_isSiteAdmin()) {
             $permission_flags = [];
@@ -1070,6 +1079,7 @@ class DashboardsController extends AppController
         $this->set('orgMap', $orgMap);
         $this->set('roleMap', $roleMap);
         $this->set('permFlagLabels', $permFlagLabels);
+        $this->set('widgetTitleMap', $widgetTitleMap);
     }
 
     public function deleteTemplate($id)
