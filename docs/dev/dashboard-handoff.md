@@ -14,12 +14,18 @@ fit the durable docs. Replace it as work progresses.
 
 ## TL;DR
 
-**6 signed commits this session**, all `%G?` = `U`. Picked up the
-morning handoff's recommended A → B → C order, blew through it,
-then continued with the B → A close-out plan from the mid-session
+**6 signed commits this session + 1 handoff refresh + 1 post-
+review handoff polish**, all `%G?` = `U`. Picked up the morning
+handoff's recommended A → B → C order, blew through it, then
+continued with the B → A close-out plan from the mid-session
 handoff. Net: closed Phase 4 in its entirety, closed Phase 5
 refresh-half (one previously-parked line), and surfaced/fixed two
-v1-carryover bugs along the way.
+v1-carryover bugs along the way. **User reviewed the final state
+("Just had a look. It's excellent, thanks!") — the on-demand
+SVG thumbnails + the Phase 4 closure are user-validated; that
+sign-off is captured in a new
+[[feedback-thumbnail-on-demand-svg]] memory so future thumbnail/
+preview design calls remember what landed cleanly.**
 
 1. **Phase 4 task 4 — restrict_to_* ratification** (`cac3ae0b9`) —
    doc-only closure. Verified the gating at three layers
@@ -82,6 +88,9 @@ v1-carryover bugs along the way.
   same reason. Forward-compat: if a disk cache is later added,
   `template.timestamp` invalidation makes the refresh action a
   real action with the original task wording intact.
+  **User-validated post-merge.** Captured in
+  [[feedback-thumbnail-on-demand-svg]] so the design call doesn't
+  get re-litigated without a concrete reason.
 
 - **Per-rect label text from `$title`, not class name.** Widget
   classes already declare `$title` with human-readable labels
@@ -313,6 +322,18 @@ c945a04f7  new: Phase 4 — template thumbnails subsystem (PRD §5.4 F4.2)
                 documented no-op alongside. Smoke: 6/6 cards render
                 unique miniatures, XSS-fixture HTML-escaped.
                 PHASE 4 IS NOW FULLY CLOSED.
+
+f3f28baf6  chg: Handoff doc refreshed for end of 2026-05-22 long session
+                Supersedes 137d6bba7. Captures all 6 feature/fix
+                commits + the F3.3 closure. The recommended-next
+                section flipped from "B then A" (mid-session) to
+                just "drill-down half" (Phase 5 last structural gap).
+
+(post-session) User validation: "Just had a look. It's excellent,
+                thanks!" Tracker is durable; new feedback memory
+                [[feedback-thumbnail-on-demand-svg]] captures the
+                design call so the on-demand-SVG vs disk-cache
+                question doesn't re-open without a concrete reason.
 ```
 
 Net stats this session:
