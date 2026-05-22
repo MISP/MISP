@@ -900,8 +900,6 @@ class DashboardsController extends AppController
                 }
                 $this->redirect($this->baseurl . '/dashboards/listTemplates');
             }
-        } else {
-            $this->layout = false;
         }
         $permFlags = array(0 => __('Unrestricted'));
         foreach ($this->User->Role->permFlags as $perm_flag => $perm_data) {
@@ -934,7 +932,18 @@ class DashboardsController extends AppController
         if (!empty($update)) {
             $this->request->data = $existingDashboard;
         }
+        // Phase 4 task 5: in-page form under the dashboard layout
+        // (DD-08; no side menu rail). The action's wire shape (URL,
+        // POST body field names, REST response shape) is unchanged;
+        // only the GET render path is reworked.
+        $this->layout = 'dashboard';
+        $this->set('title_for_layout', empty($update)
+            ? __('Save dashboard template')
+            : __('Edit dashboard template'));
         $this->set('options', $options);
+        $this->set('isSiteAdmin', (bool)$this->_isSiteAdmin());
+        $this->set('isUpdate', !empty($update));
+        $this->set('updateRef', $update);
     }
 
     public function listTemplates()
@@ -1065,9 +1074,27 @@ class DashboardsController extends AppController
 
     public function deleteTemplate($id)
     {
+        // The gallery's per-card Delete button posts the template's
+        // UUID. CRUDComponent::delete typehints int and ANDs in
+        // Dashboard.id = $id under the hood, so a UUID would never
+        // resolve. Translate UUID → int id up front; preserve the
+        // non-site-admin user_id scope on the lookup so a user can't
+        // delete a peer's template by guessing its UUID.
         $conditions = [];
         if (Validation::uuid($id)) {
-            $conditions['Dashboard.uuid'] = $id;
+            $lookupConditions = ['Dashboard.uuid' => $id];
+            if (!$this->_isSiteAdmin()) {
+                $lookupConditions['Dashboard.user_id'] = $this->Auth->user('id');
+            }
+            $row = $this->Dashboard->find('first', [
+                'recursive' => -1,
+                'conditions' => $lookupConditions,
+                'fields' => ['Dashboard.id'],
+            ]);
+            if (empty($row)) {
+                throw new NotFoundException(__('Invalid dashboard template.'));
+            }
+            $id = (int)$row['Dashboard']['id'];
         }
         if (!$this->_isSiteAdmin()) {
             $conditions['Dashboard.user_id'] = $this->Auth->user('id');

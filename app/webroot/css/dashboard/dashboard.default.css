@@ -2326,3 +2326,132 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   font-size: var(--misp-dash-fs-sm);
   color: var(--misp-dash-text);
 }
+
+/* ============================================================
+ * Save / edit dashboard template form (Phase 4 task 5)
+ *
+ * In-page form under the dashboard layout. Shares the page-mode
+ * header chrome with list_templates.ctp; the body is a single
+ * surface-raised card containing a 2-column responsive grid that
+ * collapses to one column under ~720px.
+ *
+ * Field styling reuses the existing .misp-field-* tokens (already
+ * defined for the schema-driven configure form), so the form looks
+ * identical to the configure panel inputs.
+ * ============================================================ */
+
+.misp-template-form-page {
+  /* Constrain the form width — a full-bleed surface here would
+   * make scanning the labels awkward. */
+  max-width: 880px;
+}
+
+.misp-template-form-card {
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  padding: var(--misp-dash-space-4) var(--misp-dash-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-4);
+}
+
+.misp-template-form {
+  display: contents;
+}
+
+.misp-template-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--misp-dash-space-3) var(--misp-dash-space-4);
+}
+
+.misp-template-form-grid .misp-field {
+  margin-bottom: 0;
+}
+
+.misp-field--span-2 {
+  grid-column: 1 / -1;
+}
+
+.misp-field-required {
+  color: var(--misp-dash-danger, #b91c1c);
+  margin-left: 2px;
+}
+
+.misp-template-form-textarea {
+  resize: vertical;
+  min-height: 72px;
+  font-family: inherit;
+}
+
+.misp-template-form-toggles {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-2);
+}
+
+.misp-template-form-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--misp-dash-space-2);
+  cursor: pointer;
+}
+
+.misp-template-form-checkbox {
+  /* Pull the checkbox down a hair so the click target aligns with
+   * the first line of the label text, not the help text below. */
+  margin-top: 4px;
+  flex: 0 0 auto;
+}
+
+.misp-template-form-toggle-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.misp-template-form-toggle-label .misp-field-label {
+  margin-bottom: 0;
+}
+
+.misp-template-form-restrict {
+  border: 1px dashed var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-3);
+  background: var(--misp-dash-surface-sunken);
+}
+
+.misp-template-form-restrict-legend {
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--misp-dash-text-muted);
+  padding: 0 var(--misp-dash-space-2);
+  border: 0;
+}
+
+.misp-template-form-restrict-blurb {
+  margin: 0;
+}
+
+.misp-template-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--misp-dash-space-2);
+  padding-top: var(--misp-dash-space-3);
+  border-top: 1px solid var(--misp-dash-border);
+}
+
+@media (max-width: 720px) {
+  .misp-template-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
