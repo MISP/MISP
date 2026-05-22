@@ -94,7 +94,7 @@ $fields = array_merge($fields, [
     [
         'name' => __('Value'),
         'data_path' => $path(''),
-        'element' => 'value',
+        'element' => 'attribute_value',
         'card_section' => 'title',
         'display_in' => ['table', 'card']
     ],

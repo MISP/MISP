@@ -79,14 +79,14 @@ $fields = [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/admin/allowedlists/edit/%id%',
                 'requirement' => 'check_site_admin'
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/admin/allowedlists/deleteSelection/%id%',

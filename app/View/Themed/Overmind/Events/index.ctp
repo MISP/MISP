@@ -173,20 +173,20 @@ $fields = [
         'display_in' => ['table','card'],
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
                 'url' => $baseurl . '/events/view2/%id%'
             ],
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/events/edit/%id%',
                 'requirement' => 'check_edit_rights'
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/events/delete/%id%',

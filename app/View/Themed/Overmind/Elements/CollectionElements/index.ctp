@@ -59,7 +59,7 @@ $fields = [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/collectionElements/deleteSelection/%id%',

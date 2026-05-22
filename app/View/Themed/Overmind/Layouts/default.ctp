@@ -199,8 +199,9 @@
             'js' => $js,
         ]);
     ?>
+    <script>(function(){if(localStorage.getItem('darkMode')==='true'){document.documentElement.setAttribute('data-bs-theme','dark');}})()</script>
 </head>
-<body data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
+<body class="bg-light" data-controller="<?= h($this->params['controller']) ?>" data-action="<?= h($this->params['action']) ?>">
     <div class="main-wrapper">
         <!-- Navbar -->
         <header>

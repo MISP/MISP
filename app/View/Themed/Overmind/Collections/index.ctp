@@ -39,8 +39,8 @@ $fields = [
     [
         'name' => __('Name'),
         'sort' => 'Collection.name',
-        'data_path' => 'Collection',
-        'element' => 'collection_name',
+        'data_path' => 'Collection.name, Collection.description',
+        'element' => 'name_description',
         'card_section' => 'title',
         'display_in' => ['table', 'card']
     ],
@@ -100,20 +100,20 @@ $fields = [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
                 'url' => $baseurl . '/collections/view/%id%'
             ],
             [
-                'type' => 'link',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/collections/edit/%id%',
                 'requirement' => 'check_edit_rights'
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/collections/deleteSelection/%id%',

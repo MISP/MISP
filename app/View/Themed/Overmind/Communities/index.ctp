@@ -85,7 +85,7 @@ $fields = [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
                 'url' => $baseurl . '/communities/view/%id%',
@@ -96,7 +96,7 @@ $fields = [
                 'requirement' => $isSiteAdmin
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Request access'),
                 'icon' => 'hand-holding-hand',
                 'url' => $baseurl . '/communities/requestAccess/%id%',

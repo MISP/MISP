@@ -31,7 +31,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
 
     <!-- Show if it contains a comment -->
     <?php if (!empty($attribute['comment'])): ?>
-        <div class="card card-link-item" style="background-color: #f8f9fa;">
+        <div class="card card-link-item bg-light">
             <div class="card-body p-1">
                 <i class="fa fa-comment"></i> 
                 <span><?= h($attribute['comment']) ?></span>

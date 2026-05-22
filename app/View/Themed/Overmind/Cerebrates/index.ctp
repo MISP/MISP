@@ -91,20 +91,20 @@ $fields = [
         'card_section' => 'extra',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
                 'url' => $baseurl . '/cerebrates/view/%id%',
             ],
             [
-                'type' => 'link',
+                'type' => 'modal',
                 'label' => __('Edit'),
                 'icon' => 'pen-to-square',
                 'url' => $baseurl . '/cerebrates/edit/%id%',
                 'requirement' => $isSiteAdmin
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/cerebrates/deleteSelection/%id%',
@@ -117,14 +117,14 @@ $fields = [
                 'requirement' => $isSiteAdmin
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Pull all organisations'),
                 'icon' => 'arrow-circle-down text-warning',
                 'url' => $baseurl . '/cerebrates/pull_orgs/%id%',
                 'requirement' => $isSiteAdmin
             ],
             [
-                'type' => 'ajax',
+                'type' => 'modal',
                 'label' => __('Pull all sharing groups'),
                 'icon' => 'arrow-circle-down text-object-dark',
                 'url' => $baseurl . '/cerebrates/pull_sgs/%id%',

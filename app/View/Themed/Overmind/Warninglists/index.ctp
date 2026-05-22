@@ -78,8 +78,9 @@ $fields = [
     ],
     [
         'name' => __('Name'),
-        'data_path' => 'Warninglist',
-        'element' => 'warninglist_name',
+        'sort' => 'Warninglist.name',
+        'data_path' => 'Warninglist.name, Warninglist.description',
+        'element' => 'name_description',
         'card_section' => 'title',
         'display_in' => ['table', 'card']
     ],

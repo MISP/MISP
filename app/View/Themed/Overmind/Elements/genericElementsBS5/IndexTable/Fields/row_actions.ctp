@@ -81,7 +81,7 @@ if ($field['data_path'] === 'Event.id') {
 
                 <li>
 
-                    <?php if ($action['type'] === 'link'): ?>
+                    <?php if ($action['type'] === 'navigate'): ?>
                         <?php if (!empty($action['download'])): ?>
                             <a class="dropdown-item" href="<?= h($url) ?>" download="<?= h($title_for_layout) . h($id) . '.json' ?>">
                                 <div>
@@ -152,7 +152,7 @@ if ($field['data_path'] === 'Event.id') {
                             ) ?>
                         <?php endif; ?>
 
-                    <?php elseif ($action['type'] === 'ajax'): ?>
+                    <?php elseif ($action['type'] === 'modal'): ?>
                         <?php
                         $classes = 'dropdown-item ' . ($action['class'] ?? '');
                         if ($action['label'] === __('Delete')){

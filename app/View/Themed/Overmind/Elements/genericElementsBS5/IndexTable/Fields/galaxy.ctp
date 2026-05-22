@@ -70,7 +70,7 @@ $hiddenCount     = 0;
     }
 
     $hue         = $galaxyHue($galaxyName);
-    $bgColor     = "hsla({$hue},65%,55%,0.12)";
+    $bgColor     = "hsla({$hue},65%,55%,var(--galaxy-alpha,0.12))";
     $textColor   = "hsl({$hue},65%,30%)";
     $borderColor = "hsl({$hue},65%,30%)";
     $borderStyle = 'solid';//$galaxyData['local'] ? 'dashed' : 'solid';
