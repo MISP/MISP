@@ -365,10 +365,15 @@ canonical form back. **No `{scope, widgets}` envelope, no separate
 - **F2.5** Per-instance refresh interval override, on top of the widget's
   `$autoRefreshDelay` default. UI in the configure form.
 - **F2.6** Drill-down: the renderer wraps clickable elements with a link
-  derived from `$drilldown` (when defined on the widget class) or from a
-  per-renderer convention (e.g. BarChart auto-links bar labels through a
-  user-supplied URL template). Clicks open the linked page; modifier-clicks
-  open in a new tab.
+  whenever the corresponding datum in the widget's `handler()` return value
+  carries a `drilldown` URL key (per-datum carrier, DD-03). No class-level
+  `$drilldown` property; no auto-wrap by convention. Each renderer's data
+  shape declares where a `drilldown` may appear (e.g. `SimpleList` rows
+  may carry it alongside `title`/`value`; `BarChart`/`MultiLineChart`/
+  `WorldMap` accept an optional `data['drilldown']` map keyed by series or
+  category). The `DashboardURLValidator` helper (`app/Lib/Dashboard/Tools/`)
+  sanity-checks every URL before emission. Clicks open the linked page;
+  modifier-clicks open in a new tab.
 
 ### 5.3 Refresh and caching
 
