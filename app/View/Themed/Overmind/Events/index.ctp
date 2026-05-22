@@ -1,4 +1,48 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+$headerActions = [];
+// "Add Event → From Template" entry point — Overmind toolbar parity
+// with the default theme (PRD §5.2 F2.1). Renders the searchable
+// picker modal once on the page and adds a header action that opens
+// it via headerSection's link.onClick callbacSk.
+$canPickTemplate = (
+    $this->Acl->canAccess('eventTemplates', 'index')
+    && $this->Acl->canAccess('eventTemplates', 'instantiate')
+);
+if ($canPickTemplate) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'id' => 'event-template-picker-button',
+        'label' => __('From template'),
+        'icon' => 'clone',
+        'url' => '#',
+        'onClick' => 'openEventTemplatePicker'
+    ];
+    echo $this->element('eventTemplates/templatePickerModal');
+}
+if ($this->Acl->canAccess('events', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add Event'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/events/add'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
+
+
+
+
 /**
  * ==============================================================
  * Definition of fields displayed in the scaffold
@@ -31,48 +75,10 @@
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Event.id',
         'publish_path' => 'Event.published',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'link',
-                'label' => __('View'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/events/view2/%id%'
-            ],
-            [
-                'type' => 'link',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/events/edit/%id%',
-                'requirement' => 'check_edit_rights'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/events/delete/%id%',
-                'class' => 'text-danger',
-                'requirement' => 'check_edit_rights'
-            ],
-            [
-                'type' => 'divider',
-                'url' => '#',
-                'requirement' => 'check_publish_rights'
-            ],
-            [
-                'type' => 'toggle',
-                'label_on' => __('Unpublish'),
-                'label_off' => __('Publish'),
-                'icon_on' => 'download',
-                'icon_off' => 'upload',
-                'url' => $baseurl . '/events/%action%/%id%',
-                'publish_path' => 'Event.published',
-                'requirement' => 'check_publish_rights'
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -93,7 +99,7 @@ $fields = [
     [
         'name' => __('Info'),
         'data_path' => 'Event',
-        'element' => 'info',
+        'element' => 'event_info',
         'card_section' => 'title',
         'display_in' => ['table', 'card']
     ],
@@ -103,7 +109,7 @@ $fields = [
         'data_path' => 'Event.published',
         'element' => 'published',
         'card_section' => 'top',
-        'display_in' => ['table', 'card']
+        'display_in' => ['card']
     ],
     [
         'name' => __('Creator Org'),
@@ -136,13 +142,6 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
-        'name' => __('Contents'),
-        'data_path' => 'Event',
-        'element' => 'event_contents',
-        'card_section' => 'extra',
-        'display_in' => ['table', 'card']
-    ],
-    [
         'name' => __('Created'),
         'data_path' => 'Event.date',
         'element' => 'timestamp',
@@ -157,40 +156,61 @@ $fields = [
         'mode' => 'modified',
         'card_section' => 'meta',
         'display_in' => ['card']
-    ]
+    ],
+    [
+        'name' => __('Contents'),
+        'data_path' => 'Event',
+        'element' => 'event_contents',
+        'card_section' => 'meta',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Event.id',
+        'publish_path' => 'Event.published',
+        'card_section' => 'extra',
+        'display_in' => ['table','card'],
+        'actions' => [
+            [
+                'type' => 'navigate',
+                'label' => __('View'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/events/view2/%id%'
+            ],
+            [
+                'type' => 'navigate',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/events/edit/%id%',
+                'requirement' => 'check_edit_rights'
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/events/delete/%id%',
+                'class' => 'text-danger',
+                'requirement' => 'check_edit_rights'
+            ],
+            [
+                'type' => 'divider',
+                'url' => '#',
+                'requirement' => 'check_publish_rights'
+            ],
+            [
+                'type' => 'toggle',
+                'label_on' => __('Unpublish'),
+                'label_off' => __('Publish'),
+                'icon_on' => 'download',
+                'icon_off' => 'upload',
+                'url' => $baseurl . '/events/%action%/%id%',
+                'publish_path' => 'Event.published',
+                'requirement' => 'check_publish_rights'
+            ]
+        ]
+    ],
 ];
-
-
-$headerActions = [];
-if ($this->Acl->canAccess('events', 'add')) {
-    $headerActions[] = [
-        'type' => 'link',
-        'label' => __('Add Event'),
-        'icon' => 'plus',
-        'url' => $baseurl . '/events/add'
-    ];
-}
-
-// "Add Event → From Template" entry point — Overmind toolbar parity
-// with the default theme (PRD §5.2 F2.1). Renders the searchable
-// picker modal once on the page and adds a header action that opens
-// it via headerSection's link.onClick callback.
-$canPickTemplate = (
-    $this->Acl->canAccess('eventTemplates', 'index')
-    && $this->Acl->canAccess('eventTemplates', 'instantiate')
-);
-if ($canPickTemplate) {
-    $headerActions[] = [
-        'type' => 'link',
-        'id' => 'event-template-picker-button',
-        'label' => __('From template'),
-        'icon' => 'clone',
-        'url' => '#',
-        'onClick' => 'openEventTemplatePicker'
-    ];
-    echo $this->element('eventTemplates/templatePickerModal');
-}
-$this->set('headerActions', $headerActions);
 
 /**
  * ==============================================================
@@ -285,9 +305,9 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/delete'
             ],
             'fields' => $fields,
+            'primary_id_path' => 'Event.id',
+            'row_dblclick_url' => $baseurl . '/events/view2/%id%',
         ]
     ],
     'item_url' => '/events'
 ]);
-
-?>

@@ -17,7 +17,7 @@ $fields = [
         'card_section' => 'selector',
         'actions' => [
             [
-                'type' => 'link',
+                'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
                 'url' => $baseurl . '/organisation/view/%id%',

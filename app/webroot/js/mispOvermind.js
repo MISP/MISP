@@ -1,3 +1,50 @@
+/*******************************
+ * Dark mode
+ *******************************/
+function toggleDarkMode() {
+    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    const next = !isDark;
+    document.documentElement.setAttribute('data-bs-theme', next ? 'dark' : 'light');
+    localStorage.setItem('darkMode', next);
+    updateDarkModeUI(next);
+}
+
+function updateDarkModeUI(isDark) {
+    document.querySelectorAll('.dark-mode-icon').forEach(function(icon) {
+        icon.className = 'fa-fw dark-mode-icon fas ' + (isDark ? 'fa-sun' : 'fa-moon');
+    });
+    document.querySelectorAll('.dark-mode-badge').forEach(function(badge) {
+        badge.textContent = isDark ? 'ON' : 'OFF';
+        badge.className = 'badge ms-2 dark-mode-badge ' + (isDark ? 'bg-success' : 'bg-secondary');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateDarkModeUI(localStorage.getItem('darkMode') === 'true');
+});
+
+/*******************************
+ * Toast notifications
+ *******************************/
+function showToast(message, variant = 'success') {
+    const container = document.getElementById('mainToastContainer');
+    if (!container) return;
+
+    const id = 'toast-' + Date.now();
+    container.insertAdjacentHTML('beforeend', `
+        <div id="${id}" class="toast align-items-center text-bg-${variant} border-0" role="alert" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `);
+    const el = document.getElementById(id);
+    const toast = new bootstrap.Toast(el, { delay: 3000 });
+    toast.show();
+    el.addEventListener('hidden.bs.toast', () => el.remove());
+}
+
 // Initializing Bootstrap 5 tooltips
 document.addEventListener('DOMContentLoaded', function() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))

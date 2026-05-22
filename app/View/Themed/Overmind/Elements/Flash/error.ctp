@@ -1,4 +1,4 @@
-<div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+<div class="alert alert-danger alert-dismissible fade show m-2" role="alert">
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     <?php
         $message = h($message);

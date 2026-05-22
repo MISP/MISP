@@ -1,15 +1,24 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('REST Client');
 
-if ($this->Acl->canAccess('events', 'add')) {
-    $this->set('headerActions', [
-        [
-            'url' => $baseurl . '/api/openapi',
-            'label' => __('Open API'),
-            'type' => 'link',
-            'icon' => 'book-open'
-        ]
-    ]);
-}
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [
+    [
+        'url' => $baseurl . '/api/openapi',
+        'label' => __('Open API'),
+        'type' => 'navigate',
+        'icon' => 'book-open'
+    ]
+];
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
 
 echo $this->element('genericElements/assetLoader', array(
     'js' => array(
@@ -19,7 +28,7 @@ echo $this->element('genericElements/assetLoader', array(
 ?>
 
 
-<div class="container-fluid mt-4 mb-4">
+<div class="container-fluid">
     <div class="row">
         <!-- LEFT COLUMN  -->
         <div class="col-lg-8 d-flex flex-column gap-3" id="rest-client-container">
