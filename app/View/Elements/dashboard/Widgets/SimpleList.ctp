@@ -11,13 +11,22 @@
  *      'change' => int (optional), 'type' => 'gap' (optional, blank row),
  *      'html_title' => 'raw html' (optional, replaces title),
  *      'html'  => 'raw html appended to value' (legacy MispStatusWidget pattern,
- *                 retained until Phase 2 $schema backfill migrates to drilldown)],
+ *                 retained until widget-by-widget migration to drilldown)],
  *     ...
  *   ];
+ *
+ * URL safety for the `drilldown` key is gated by DashboardURLValidator
+ * (DD-03, app/Lib/Dashboard/Tools/) — `javascript:` / `data:` / off-host
+ * URLs are silently dropped, falling back to plain text. MISP filter
+ * syntax (`tag:tlp:red`, `events/index/tag:tlp:red`) is allowed; the
+ * validator gates "absolute" on the presence of `://` not parse_url's
+ * verdict on colon-containing relative paths.
  *
  * No inline styles, no hardcoded colour classes — visuals come from
  * dashboard.default.css's token-driven .misp-list-* rules below.
  */
+App::uses('DashboardURLValidator', 'Lib/Dashboard/Tools');
+
 if (empty($data)) {
     echo '<div class="misp-list-empty">' . __('No data.') . '</div>';
     return;
@@ -33,16 +42,18 @@ foreach ($data as $row) {
         ? $row['html_title']                  // creator-supplied HTML (rare)
         : h($row['title'] ?? '');
 
-    // Wrap title in a link when DD-03 drilldown URL is present.
-    // Validation belongs in DashboardURLValidator (Phase 1); for the
-    // proto we limit href to relative or same-origin, falling back
-    // to plain text otherwise.
-    if (!empty($row['drilldown']) && _isSafeDashboardUrl($row['drilldown'])) {
-        $title = sprintf(
-            '<a class="misp-list-link" href="%s">%s</a>',
-            h($row['drilldown']),
-            $title
-        );
+    // Wrap title in a link when DD-03 drilldown URL is present and
+    // passes the validator's safety check. Unsafe / missing URL →
+    // plain text title.
+    if (!empty($row['drilldown'])) {
+        $safeUrl = DashboardURLValidator::validate($row['drilldown']);
+        if ($safeUrl !== null) {
+            $title = sprintf(
+                '<a class="misp-list-link" href="%s">%s</a>',
+                h($safeUrl),
+                $title
+            );
+        }
     }
 
     // Value: scalar, array (joined), or absent.
@@ -85,18 +96,3 @@ foreach ($data as $row) {
     );
 }
 
-/**
- * Inline placeholder for the proper Phase 1 DashboardURLValidator helper.
- * Accepts: relative URLs starting with `/`, or absolute URLs that share
- * the host of MISP.baseurl. Rejects everything else (including
- * javascript:, data:, off-host).
- */
-function _isSafeDashboardUrl($url) {
-    if (!is_string($url) || $url === '') return false;
-    if ($url[0] === '/' && (!isset($url[1]) || $url[1] !== '/')) return true;
-    $base = (string)Configure::read('MISP.baseurl');
-    if ($base === '') return false;
-    $baseHost = parse_url($base, PHP_URL_HOST);
-    $host = parse_url($url, PHP_URL_HOST);
-    return $baseHost && $host && strcasecmp($baseHost, $host) === 0;
-}
