@@ -1,12 +1,11 @@
-# Dashboard v2 — Session handoff (2026-05-22 afternoon — long session)
+# Dashboard v2 — Session handoff (2026-05-24 — Phase 5 closure session)
 
-Ninth session of the dashboard rewrite. Authoritative state lives in:
+Tenth session of the dashboard rewrite. Authoritative state lives in:
 
 - `dashboard-prd.md` — spec.
-- `dashboard-progress.md` — task state. **Phase 4 fully closed
-  (8/8 lines). Phase 5 refresh-half now 7/7 closed.** Remaining
-  merge-gate work: Phase 5 drill-down half (0/4 lines, pre-locked
-  design from Q3 resolution) + Phase 5.5 widget parity sweep.
+- `dashboard-progress.md` — task state. **Phase 5 fully closed
+  (11/11 lines).** Remaining merge-gate work: Phase 5.5 widget
+  parity sweep + Phase 6 merge.
 - `dashboard-design-decisions.md` — DD-01..DD-08 unchanged.
 
 This file is the bridge: ephemeral session-level context that doesn't
@@ -14,112 +13,115 @@ fit the durable docs. Replace it as work progresses.
 
 ## TL;DR
 
-**6 signed commits this session + 1 handoff refresh + 1 post-
-review handoff polish**, all `%G?` = `U`. Picked up the morning
-handoff's recommended A → B → C order, blew through it, then
-continued with the B → A close-out plan from the mid-session
-handoff. Net: closed Phase 4 in its entirety, closed Phase 5
-refresh-half (one previously-parked line), and surfaced/fixed two
-v1-carryover bugs along the way. **User reviewed the final state
-("Just had a look. It's excellent, thanks!") — the on-demand
-SVG thumbnails + the Phase 4 closure are user-validated; that
-sign-off is captured in a new
-[[feedback-thumbnail-on-demand-svg]] memory so future thumbnail/
-preview design calls remember what landed cleanly.**
+**4 signed commits this session**, all `%G?` = `U`. Picked up the
+prior handoff's recommended Option A (Phase 5 drill-down half, 4
+tracker lines) and closed every one in tracker order. Two doc-only
+closures (tasks 1 + 2 — both pre-settled by DD-03 from 2026-05-04
+but tracker lines were never reworded). Two code commits (task 3 —
+SimpleList switch to DashboardURLValidator; task 4 — ECharts click
+handlers for bar/line/geo). Phase 5 is now fully closed; the
+`dashboards` branch's last remaining structural feature gap is
+shut.
 
-1. **Phase 4 task 4 — restrict_to_* ratification** (`cac3ae0b9`) —
-   doc-only closure. Verified the gating at three layers
-   (controller SQL OR clause, model getDashboardTemplate gate, view
-   restrict-badge rendering). Smoke: promoted template id=4 to
-   non-zero restrict_to_* and observed all three badges in the
-   gallery HTML; reverted DB after smoke.
+1. **Phase 5 task 1 — `$drilldown` metadata exposure** (`ee72087e3`) —
+   doc-only closure-by-DD-03. Tracker line's premise (a class-level
+   `$drilldown` property) was already rejected by DD-03 (2026-05-04)
+   in favour of a per-datum carrier in handler return values.
+   Verified no class-level property exists across 37 widget classes.
+   Light PRD cleanup bundled: F2.6 (line ~367) reworded to drop
+   the stale "derived from `$drilldown` (when defined on the widget
+   class)" framing — now describes DD-03's per-datum carrier + the
+   `DashboardURLValidator` emission gate. Same shape as 2026-05-21
+   §5.5 canonical-bare-array PRD alignment commit + 2026-05-22 F3.3
+   close.
 
-2. **Phase 4 task 8 — Dashboard::import json_encode + wire
-   ratification** (`41ffaea45`) — single-line fix + doc-only
-   closure. Same gotcha as last session's resetFromTemplate
-   (UserSetting's validate_json runs before beforeValidate's
-   array→string coercion, JsonTool::isValid chokes on arrays).
-   REST smoke matrix — bare-array import, full-wrapper round-trip,
-   legacy v1 shape; all 200 OK. HTML form-paste path's deeper
-   string-foreach quirk parked as separate v1 carryover.
+2. **Phase 5 task 2 — convention ratification** (`b65b3c930`) —
+   doc-only ratification of DD-03's "explicit per-datum" decision.
+   Cross-references the two alternatives DD-03 rejected
+   (auto-wrap by convention; class-level URL template) + the
+   `DashboardURLValidator` security gate. Pure tracker tick, no
+   code/PRD changes (task 1 already aligned the PRD).
 
-3. **Phase 4 task 5 + task 7 — Save-as-template form + wire
-   ratification + bonus deleteTemplate-by-uuid fix**
-   (`2962ddafc`) — full rewrite of save_template.ctp (~210 lines)
-   to in-page form under the dashboard layout. ~115 lines of new
-   .misp-template-form-* CSS. Form->create gets CSRF for free.
-   The gallery's per-card Delete button surfaced as broken
-   (CRUDComponent::delete(int) ANDs Dashboard.id = $id which
-   matches nothing for a UUID); fixed inline with a uuid→int
-   lookup scoped by the same site-admin/user_id gate.
+3. **Phase 5 task 3 — SimpleList renderer wrapping**
+   (`d144bb8c7`) — swapped `SimpleList.ctp`'s inline
+   `_isSafeDashboardUrl()` placeholder for the proper
+   `DashboardURLValidator::validate()` (shipped Phase 1
+   2026-05-16). Net behaviour change: MISP filter syntax
+   (`tag:tlp:red`, `events/index/tag:tlp:red`) newly accepted —
+   the old inline helper rejected paths without a leading `/`;
+   the validator's "absolute" gate is `://` presence, so
+   colon-containing relative paths flow through as relative URLs.
+   Also gains port + scheme strictness on absolute URLs and
+   control-char rejection. Header docblock rewritten; local helper
+   deleted (-9 lines). Smokes: 19-case synthetic-data PHP CLI run
+   (5 wrap / 6 reject / 8 structural variants) + live curl smoke
+   via temporary custom widget + live no-regression smoke on the
+   three actual board consumers (APIActivity, Logins, UsageData)
+   all 200 byte-identical.
 
-4. **Handoff doc refresh** (`137d6bba7`) — mid-session handoff
-   refresh; the user then directed continuation since context was
-   at 20%, so this refresh got overwritten by the next two
-   commits + this current refresh.
-
-5. **Phase 5 F3.3 cache-key close-as-no-op** (`8f2575285`) —
-   doc-only closure. Same shape as Phase 3's cache-key sanity-
-   check closure: the premise ("today's $cacheLifetime mechanism
-   is preserved") is wrong in v1 and v2 — widget classes declare
-   $cacheLifetime but no reader exists. Forward-compat guarantee
-   carried verbatim from Phase 3 closure. Phase 5 refresh-half
-   now 7/7 closed.
-
-6. **Phase 4 tasks 2 + 3 — template thumbnails subsystem**
-   (`c945a04f7`) — new helper class
-   `app/Lib/Dashboard/Tools/TemplatePreview.php` (~190 lines).
-   On-demand server-side SVG miniature renderer. User signed off
-   on Option 1 of a 4-option scoping question (on-demand SVG
-   over disk-cached SVG, headless browser PNG, or richer-
-   placeholder-no-subsystem). Refresh-thumbnail action (task 3)
-   closed as a documented no-op alongside because on-demand
-   rendering has no cache to invalidate. **Phase 4 now fully
-   closed.**
+4. **Phase 5 task 4 — ECharts click handlers** (`68f94a2c8`) — the
+   substantive code commit of the session. Three .ctp renderers
+   (BarChart, MultiLineChart, WorldMap) + `charts.module.mjs`
+   updated. **Server side:** each renderer validates `drilldown`
+   URLs per-key via `DashboardURLValidator` before serialising
+   the payload; unsafe URLs (javascript:, data:, off-host, control
+   chars) are silently dropped. WorldMap additionally translates
+   drilldown keys ISO → English country name in lockstep with the
+   data translation. **Client side:** builders mark items with
+   `cursor: 'pointer'` when drilldown is present; centralised
+   click wiring in `initChart()` does kind-aware lookup via
+   `pickDrilldownKey()` and navigates via `window.location.href`
+   (plain click) or `window.open(url, '_blank', 'noopener,noreferrer')`
+   (ctrl/cmd/shift/middle-click per PRD F2.6). Smokes: three
+   per-renderer curl smokes via temporary custom widgets +
+   all-unsafe edge case (drilldown serialises empty `[]`, JS skips
+   wiring) + live no-regression on real chart widgets + 7-assertion
+   Node unit test on `pickDrilldownKey`. `php -l` + `node --check`
+   clean; KVShape (55/55) re-run still all-pass.
 
 **Notable design decisions taken this session:**
 
-- **On-demand SVG over disk cache for template thumbnails.** Three
-  reasons: (a) the SVG output is ~1.5KB per card and renders in
-  ~1ms — a cache adds invalidation complexity without measurable
-  benefit; (b) freshness for free — the thumbnail always reflects
-  the saved layout because rendering happens at gallery-view time;
-  (c) closes task 3 (refresh-thumbnail action) as a no-op for the
-  same reason. Forward-compat: if a disk cache is later added,
-  `template.timestamp` invalidation makes the refresh action a
-  real action with the original task wording intact.
-  **User-validated post-merge.** Captured in
-  [[feedback-thumbnail-on-demand-svg]] so the design call doesn't
-  get re-litigated without a concrete reason.
+- **URL validation runs server-side; client trusts the payload.**
+  Single source of truth — same pattern as SimpleList. The
+  alternative (validate again client-side) duplicates the logic
+  and creates a fork risk if the rules diverge. Server is where
+  the trust boundary already lives. Client gets a pre-filtered
+  drilldown map and treats it as ground truth.
 
-- **Per-rect label text from `$title`, not class name.** Widget
-  classes already declare `$title` with human-readable labels
-  (verified — 37/37 widgets have a `$title` set). The renderer
-  prefers `$title` and falls back to a CamelCase-spaced class
-  name only when the title map is missing the entry (widget
-  class no longer exists, custom widget loaded under a different
-  path). The class-name fallback uses an acronym-preserving regex
-  (`APIActivity` → `API Activity`, not `A P I Activity`).
+- **Modifier-click for new tab.** PRD F2.6 explicitly calls for
+  this. Implementation matches platform convention: ctrl/cmd/shift
+  or middle-click → `window.open(url, '_blank', 'noopener,noreferrer')`;
+  plain click → `window.location.href`. `noopener,noreferrer` is
+  the same prophylaxis we use elsewhere when emitting target=_blank
+  links (see Achievements renderer for the precedent).
 
-- **Bundling the deleteTemplate-by-uuid fix into the Task 5
-  commit.** Same scope-creep rule as last session: bundle when
-  the fix is in the scope of the tracker line you're closing
-  (Task 7's "endpoints unchanged on the wire AND working").
-  Parking would have meant ratifying a known-broken endpoint.
-  The import form-paste quirk got parked instead because it's
-  less prominent and REST is the documented wire surface.
+- **WorldMap drilldown is ISO-keyed at the widget layer; translated
+  server-side.** Widget authors think in ISO codes (the natural
+  data key); the GeoJSON keys by English country name. Translating
+  drilldown server-side keeps widget code clean and makes the
+  client a pure ECharts shim. The translation step shares the
+  same `$nameByCode` table as the data translation — entries
+  drop together when the toolkit doesn't recognise an ISO code.
 
-- **F3.3 closure mirrors Phase 3 closure shape.** Both are
-  "premise wrong" closures — the spec assumed a widget render
-  cache; no such cache exists. Forward-compat note in the
-  tracker entry carries the recommended cache-key shape for
-  when the cache lands later (canonical-translated config hash
-  + board scope hash).
+- **Doc-only closures as the right shape for tracker lines that
+  DD-03 pre-settled.** Tasks 1 + 2 looked redundant on first read
+  (DD-03 was authoritative since 2026-05-04 — what was there to
+  "close"?). But the tracker line wordings predated DD-03 and
+  carried stale premises ("class-level property", "auto-wrap vs
+  explicit?"). Walking through each, recording the closure
+  rationale, and aligning the PRD where it had drifted is the
+  right shape — it's how the durable tracker stays honest to the
+  decisions doc without leaving "0/4 lines" overhead for the next
+  session to investigate from scratch. Same shape as F3.3
+  cache-key closure (2026-05-22) + PRD §5.5 canonical-bare-array
+  alignment (2026-05-21).
 
 **Pre-existing perm-drift carryover from prior sessions:** not
-re-encountered this session. The two new files
-(`save_template.ctp` rewrite and `TemplatePreview.php`) were both
-`chgrp www-data` before committing, matching the repo convention.
+re-encountered this session. The three temporary smoke widgets
+(`DrilldownSmoke{Bar,Line,Map}Widget.php`) under
+`app/Lib/Dashboard/Custom/` were created, used, and deleted —
+their ownership didn't matter because they never landed in a
+commit.
 
 **User-direction carried forward unchanged:** *"modern and
 pleasant"*, *"don't worry too much about compatibility"*, *"ACL
@@ -127,19 +129,27 @@ must match the surface it shadows"*, *"three similar lines is
 better than premature abstraction"*, *"prefer MISP-jargon naming
 (orgc, sharing_group) over PRD-generic terms"*, **"dashboard
 chrome icons stay inline SVG, not FA"**, **JSON-encode dashboard-
-value payloads before UserSetting::setSetting** (now three call
-sites follow this: `updateSettings`, `resetFromTemplate`,
-`Dashboard::import`).
+value payloads before UserSetting::setSetting**, **URL validation
+runs server-side; client trusts the payload**.
 
-**Phase 4 has 0 lines remaining (out of 8). Next session — pick
+**Phase 5 has 0 lines remaining (out of 11). Next session — pick
 from** (see Open thread):
 
-1. **Phase 5 drill-down half (4 lines)** — pre-locked design
-   from Q3 resolution. Multi-session.
-2. **Phase 5.5 widget parity sweep** — 37 widget rows + 5 data-
-   parity rows + 10 surface-parity rows + 7 pre-merge-cleanup
-   rows. The merge-gate target for the dashboards branch. Many
-   tick fast (browser-load smoke per widget).
+1. **Phase 5.5 widget parity sweep (merge gate)** — 37 widget
+   rows + 5 data-parity rows + 10 surface-parity rows + 7
+   pre-merge-cleanup rows. Many tick fast (browser-load smoke
+   per widget). The merge-gate target for the `dashboards`
+   branch.
+2. **Carryover: real widgets emit drilldown maps.** The Phase 5
+   renderer contract is in place; nothing in-tree consumes it
+   yet. Migrating widgets to emit drilldown (e.g. TrendingTagsWidget
+   bars → `/events/index/tag:<name>`; OrganisationMapWidget
+   regions → `/organisations/index?country=<iso>`; MispStatusWidget
+   rows → drilldown instead of legacy `html`) is a natural fit
+   for Phase 5.5 since each migration is a per-widget concern.
+3. **Other carryover bugs.** import-form-paste quirk,
+   file-mode-drift root cause, `OrgEventsWidget months>13` date
+   bug.
 
 ## Where we are
 
@@ -153,33 +163,14 @@ Phase 2 — Authoring UX                                            [x] CLOSED
 Phase 3 — Canonical-type toolbar                                  [x] CLOSED
 
 Phase 4 — Template gallery polish                                 [x] CLOSED
-    [x] Template gallery view (ownership-grouped, hover-reveal)
-    [x] Template thumbnails (server-side SVG, on-demand)
-    [x] Refresh-thumbnail action (no-op; on-demand renderer is
-        always current)
-    [x] restrict_to_* rules preserved on read (RATIFIED)
-    [x] "Save as template" form (in-page reimplementation)
-    [x] "Reset from template" + confirmation prompt
-    [x] listTemplates/saveTemplate/deleteTemplate wire ratification
-        + deleteTemplate-by-uuid bug fix
-    [x] import/export wire ratification + Dashboard::import
-        json_encode fix
 
-Phase 5 — Drill-down + refresh scheduler                          [.]
-  Refresh half (7/7 lines — CLOSED):
-    [x] Board-level refresh scheduler
-    [x] Pause-refresh toggle on board toolbar
-    [x] Per-instance refresh override in widget config form (F2.5)
-    [x] Auto-pause when document hidden (Page Visibility API)
-    [x] Manual refresh on a single widget (ratification)
-    [x] Refresh indicator chip: "updated 30s ago"
-    [x] Verify cache key includes board scope hash (PRD F3.3)
-        — closed as documented no-op
-  Drill-down half (0/4 lines):
-    [ ] $drilldown schema property documented and exposed
-    [ ] Drill-down convention per Q3 resolution
-    [ ] Renderer-level wrapping for SimpleList
-    [ ] ECharts click handlers calling drill-down
+Phase 5 — Drill-down + refresh scheduler                          [x] CLOSED
+  Refresh half (7/7 — CLOSED, prior session)
+  Drill-down half (4/4 — CLOSED this session):
+    [x] $drilldown schema property documented (DD-03 closure)
+    [x] Drill-down convention per Q3 resolution (DD-03 ratified)
+    [x] Renderer-level wrapping for SimpleList
+    [x] ECharts click handlers (bar/line/geo)
 
 Phase 5.5 — Widget Parity Sweep (merge gate)
     37 widget rows pending; 5 data-parity rows; 10 surface-parity
@@ -198,227 +189,171 @@ Phase 6 — Merge to `develop` (post-Phase-5.5)
   "Overmind"`).
 - DB creds: `mysql -u misp -pPassword1234 misp`
 
-**Saved-layout state at session end:** admin has 13 widgets, same
-as the start of this session — w_1 NewOrgsWidget / w_2
-NewUsersWidget / w_3-5 UsageDataWidget / w_6 TrendingTagsWidget /
-w_7-8 TrendingAttributesWidget / w_9 OrgContributionToplistWidget /
+**Saved-layout state at session end:** admin still has 13 widgets,
+same as last session — w_1 NewOrgsWidget / w_2 NewUsersWidget /
+w_3-5 UsageDataWidget / w_6 TrendingTagsWidget / w_7-8
+TrendingAttributesWidget / w_9 OrgContributionToplistWidget /
 w_10 UserContributionToplistWidget / w_11 OrganisationMapWidget /
-w_12 APIActivityWidget / w_13 LoginsWidget. **Templates table
-state:** 6 templates, all owned by user_id=1 (admin). IDs 4 + 5
-are `selectable=1`; none have `default=1` at session end. ID 4
-was briefly promoted to non-zero restrict_to_* during the task 4
-smoke and reverted; smoke rows from the task 5 + 8 work were
-deleted at session-end.
+w_12 APIActivityWidget / w_13 LoginsWidget. **None of admin's
+13 widgets emit `drilldown` keys today**, so the drill-down
+machinery is dormant on the live board — it's wired and tested
+via temporary custom widgets but no real widget consumes it yet
+(that's a Phase 5.5 / migration follow-up). **Templates table
+state:** unchanged from last session (6 templates, IDs 4 + 5
+selectable=1, none default=1, all owned by admin).
 
 Session-login dance + wrapper-render smoke recipes unchanged from
 prior sessions — see `reference-misp-login-dance` memory. Session
 cookie at `/tmp/cj.txt` needed a refresh at the start of this
-session; the login dance is ~30 seconds if it needs refreshing.
+session.
 
-Smoke commands for the Phase 4 surfaces landed this session:
+Smoke commands for the Phase 5 drill-down surfaces landed this
+session — drop in temporary custom widgets and curl-render them:
 
 ```bash
-# Save form — new mode and update mode (CSRF-protected on POST).
-curl -s -b /tmp/cj.txt -o /tmp/save_new.html -w "%{http_code}\n" \
-  http://localhost:5007/dashboards/saveTemplate
-curl -s -b /tmp/cj.txt -o /tmp/save_edit.html -w "%{http_code}\n" \
-  http://localhost:5007/dashboards/saveTemplate/4
+# 1. SimpleList drilldown smoke widget (place under
+#    app/Lib/Dashboard/Custom/ then render via curl):
+cat > /tmp/sl.php <<'EOF'
+<?php
+class SlSmokeWidget {
+    public $title = 'SlSmoke'; public $render = 'SimpleList';
+    public $width = 4; public $height = 4;
+    public function handler($u, $o = []) {
+        return [
+            ['title' => 'Relative',  'value' => 1, 'drilldown' => '/events/index'],
+            ['title' => 'MISP filt', 'value' => 2, 'drilldown' => 'tag:tlp:red'],
+            ['title' => 'XSS',       'value' => 3, 'drilldown' => 'javascript:alert(1)'],
+        ];
+    }
+}
+EOF
+cp /tmp/sl.php app/Lib/Dashboard/Custom/SlSmokeWidget.php
+curl -s -X POST -b /tmp/cj.txt -H "Accept: text/html" \
+  --data-urlencode "widget=SlSmokeWidget" --data-urlencode "value={}" \
+  http://localhost:5007/dashboards/renderWidget
+rm app/Lib/Dashboard/Custom/SlSmokeWidget.php
 
-# CSRF: extract ALL FOUR _Token fields (debug required in debug mode)
-T1KEY=$(grep -oP 'name="data\[_Token\]\[key\]" value="\K[^"]+' /tmp/save_new.html)
-T1FIELDS=$(grep -oP 'name="data\[_Token\]\[fields\]" value="\K[^"]+' /tmp/save_new.html)
-T1UNLOCKED=$(grep -oP 'name="data\[_Token\]\[unlocked\]" value="\K[^"]*' /tmp/save_new.html)
-T1DEBUG=$(grep -oP 'name="data\[_Token\]\[debug\]" value="\K[^"]+' /tmp/save_new.html)
+# 2. Chart drilldown payload inspection (BarChart):
+#    Look at data-misp-chart-payload — drilldown map is filtered
+#    by DashboardURLValidator before serialisation. Unsafe entries
+#    are absent; empty drilldown map serialises as []
+#    (PHP empty-array quirk); JS guard handles this.
 
-# REST is simpler — API key + JSON body, no CSRF dance.
-curl -s -X POST \
-  -H "Authorization: dHVxEx4WhIwRdS6QDVsBmW9PE6pOkmgIH1FPQWiC" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -d '{"Dashboard":{"name":"rest-smoke","description":"","selectable":1}}' \
-  -w "code=%{http_code}\n" \
-  http://localhost:5007/dashboards/saveTemplate
-
-# deleteTemplate now works with UUIDs (was 500 before the fix).
-curl -s -X POST \
-  -H "Authorization: dHVxEx4WhIwRdS6QDVsBmW9PE6pOkmgIH1FPQWiC" \
-  -H "Accept: application/json" \
-  -w "code=%{http_code}\n" \
-  http://localhost:5007/dashboards/deleteTemplate/<uuid>
-
-# Import: bare array works; full UserSetting wrapper also works.
-curl -s -X POST \
-  -H "Authorization: dHVxEx4WhIwRdS6QDVsBmW9PE6pOkmgIH1FPQWiC" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -d '[{"instance_id":"w_1","widget":"WhoamiWidget","position":{"x":0,"y":0,"w":4,"h":4}}]' \
-  -w "code=%{http_code}\n" \
-  http://localhost:5007/dashboards/import
-
-# Gallery thumbnails — inline SVG per card, no static assets.
-curl -s -b /tmp/cj.txt -o /tmp/lt.html http://localhost:5007/dashboards/listTemplates
-python3 -c "
-import re
-with open('/tmp/lt.html') as f: html = f.read()
-cards = re.findall(r'<span class=\"misp-gallery-card-thumbnail[^>]*>(.*?)</span>', html, re.S)
-for i, c in enumerate(cards):
-    n_rects = len(re.findall(r'<rect', c))
-    labels = re.findall(r'<text[^>]*>([^<]+)</text>', c)
-    print(f'card {i+1}: {n_rects} rects, labels={labels[:3]}')
-"
-
-# Restore admin's dashboard from a backup file (same recipe as prior session):
-mysql -u misp -pPassword1234 misp -N -B \
-  -e "SELECT value FROM user_settings WHERE user_id=1 AND setting='dashboard'" \
-  > /tmp/dash_backup_value.txt
-
-# Verify widget count post-restore:
-mysql -u misp -pPassword1234 misp -N -B \
-  -e "SELECT JSON_LENGTH(value) FROM user_settings WHERE user_id=1 AND setting='dashboard'"
+# 3. Unit smoke on pickDrilldownKey (Node built-in test runner):
+node --test app/Test/js/KVShape.test.mjs  # 55/55 baseline check
 ```
 
 ## What this session committed (in order)
 
 ```
-cac3ae0b9  chg: Phase 4 task 4 — restrict_to_* ratification (PRD §5.4)
-                Doc-only closure. Three-layer gate (controller SQL,
-                model getDashboardTemplate, view restrict-badge
-                rendering). Smoke: promoted template id=4 to non-zero
-                restrict_to_*; reverted after smoke.
+ee72087e3  chg: Phase 5 drill-down task 1 — $drilldown metadata
+                exposure closed (PRD §5.7)
+                Doc-only closure-by-DD-03. Tracker line's premise
+                (class-level $drilldown property) was already
+                rejected by DD-03 2026-05-04. PRD F2.6 (line ~367)
+                reworded to drop stale framing. No code.
 
-41ffaea45  fix: Phase 4 task 8 — Dashboard::import json_encode + wire ratification
-                Single-line json_encode in Dashboard::import L149 +
-                5-line inline comment. Mirrors updateSettings L170 +
-                resetFromTemplate. REST smoke matrix (bare array,
-                full wrapper, legacy v1) all 200 OK. HTML form-paste
-                quirk parked as separate v1 carryover.
+b65b3c930  chg: Phase 5 drill-down task 2 — convention ratification
+                (DD-03, PRD §13 Q3)
+                Doc-only ratification of DD-03's "explicit per-datum"
+                resolution. Pure tracker tick, cross-refs DD-03 +
+                the two alternatives it rejected.
 
-2962ddafc  new: Phase 4 — save-as-template form + wire ratification (PRD §5.4)
-                Closes 2 tracker lines (task 5 + task 7) + inline
-                deleteTemplate-by-uuid fix. Full rewrite of
-                save_template.ctp (~210 lines) to in-page form under
-                dashboard layout. ~115 lines of new CSS. Smoke:
-                HTML GET (3 modes), HTML POST (create + update),
-                REST POST create/delete/listTemplates wire preserved.
+d144bb8c7  fix: Phase 5 drill-down task 3 — SimpleList renderer
+                wrapping via DashboardURLValidator
+                Swap SimpleList.ctp's inline _isSafeDashboardUrl()
+                placeholder for DashboardURLValidator::validate().
+                Net: MISP filter syntax newly accepted (tag:tlp:red,
+                events/index/tag:tlp:red); port+scheme strictness;
+                control-char rejection. Local helper deleted (-9
+                lines). 19-case synthetic-data smoke + live wrap
+                smoke + live no-regression smoke all pass.
 
-137d6bba7  chg: Handoff doc refreshed for end of 2026-05-22 afternoon session
-                Mid-session refresh; user directed continuation since
-                context at 20%, so this got overwritten by subsequent
-                commits + this current refresh.
-
-8f2575285  chg: Phase 5 F3.3 cache-key — close as documented no-op (PRD §5.3)
-                Doc-only closure. Same shape as Phase 3's cache-key
-                sanity-check: premise (widget render cache) doesn't
-                exist in v1 or v2. Forward-compat note carries the
-                recommended cache-key shape for when the cache lands.
-
-c945a04f7  new: Phase 4 — template thumbnails subsystem (PRD §5.4 F4.2)
-                Closes 2 tracker lines (task 2 + task 3). New helper
-                app/Lib/Dashboard/Tools/TemplatePreview.php (~190
-                lines, static render() method). On-demand server-side
-                SVG miniature, no disk cache. User signed off on
-                Option 1 (on-demand SVG) from a 4-option scoping
-                question. Refresh action (task 3) closed as
-                documented no-op alongside. Smoke: 6/6 cards render
-                unique miniatures, XSS-fixture HTML-escaped.
-                PHASE 4 IS NOW FULLY CLOSED.
-
-f3f28baf6  chg: Handoff doc refreshed for end of 2026-05-22 long session
-                Supersedes 137d6bba7. Captures all 6 feature/fix
-                commits + the F3.3 closure. The recommended-next
-                section flipped from "B then A" (mid-session) to
-                just "drill-down half" (Phase 5 last structural gap).
-
-(post-session) User validation: "Just had a look. It's excellent,
-                thanks!" Tracker is durable; new feedback memory
-                [[feedback-thumbnail-on-demand-svg]] captures the
-                design call so the on-demand-SVG vs disk-cache
-                question doesn't re-open without a concrete reason.
+68f94a2c8  new: Phase 5 drill-down task 4 — ECharts click handlers
+                for bar/line/geo (PRD F2.6)
+                Three .ctp renderers + charts.module.mjs. Server-
+                side per-key URL validation; client-side cursor
+                hints + kind-aware click handlers; modifier-click
+                opens in new tab. WorldMap translates drilldown
+                keys ISO → English country name in lockstep with
+                data. Three per-renderer smokes + all-unsafe edge
+                case + live no-regression smoke + 7-assertion Node
+                unit test on pickDrilldownKey all pass.
+                PHASE 5 IS NOW FULLY CLOSED.
 ```
 
 Net stats this session:
-- 6 signed commits (all %G? = U; one pinentry retry needed at the
-  6th commit, same shape as the 3rd commit's retry — known gotcha)
-- 1 new server view rewrite (`save_template.ctp` ~210 lines from
-  the 73-line v1 carryover)
-- 1 new server library class
-  (`Lib/Dashboard/Tools/TemplatePreview.php` ~190 lines)
-- 2 inline server-side bug fixes (`Dashboard::import` 7 lines;
-  `deleteTemplate` ~15 lines for the uuid-to-int resolution)
-- 1 controller action edit (`saveTemplate` ~12 lines for the
-  layout switch + view-var injection)
-- 1 controller action edit (`listTemplates` ~12 lines for the
-  widget-title map + App::uses for TemplatePreview)
-- 1 view edit (`list_templates.ctp` ~10 lines: closure-capture
-  $widgetTitleMap + thumbnail-placeholder → renderer call)
-- ~115 lines of new CSS in dashboard.default.css
-- 6 doc edits in dashboard-progress.md across the six commits
-- 2 handoff doc refreshes (mid-session + this end-of-session
-  refresh)
-- 0 PHPUnit tests added (Phase 5.5 widget parity sweep tackles
-  coverage gaps when it lands)
-- 0 themed override changes — Overmind picks up the new CSS via
-  the `--misp-dash-*` token cascade; no Overmind override of the
-  new save_template view or the renderer
-- Working tree clean for v2 work after these 6 commits
+- 4 signed commits (all %G? = U; no pinentry retries needed)
+- 1 PHP renderer modified (SimpleList.ctp; net -4 lines after
+  helper-deletion offset by header rewrite)
+- 3 PHP chart renderers modified (BarChart.ctp +14, MultiLineChart.ctp
+  +16, WorldMap.ctp +28)
+- 1 JS module modified (charts.module.mjs +37 across three
+  builders + new click-wiring + two helpers)
+- 1 PRD section reworded (F2.6 alignment with DD-03)
+- 4 progress-tracker lines closed (one entry each)
+- 0 new files (the temporary smoke widgets were created + used +
+  deleted — never landed)
+- 0 PHPUnit tests added (chart renderers don't have a PHP
+  test infrastructure today; the curl-smoke pattern is the
+  established check for renderer output)
+- 0 themed override changes — `cursor: 'pointer'` is a runtime
+  ECharts attribute (no CSS); Overmind theme cascades into the
+  bar/line/geo charts via the existing token vars unchanged
+- Working tree clean for v2 work after these 4 commits
 
 ## Lessons from this session
 
-1. **SecurityComponent debug-mode requires all four _Token fields.**
-   Caught at the first save-template form POST smoke
-   (`'_Token.debug' was not found in request data.`). The form
-   emits `data[_Token][debug]` carrying a URL-encoded JSON sketch
-   of the field list; the field MUST round-trip back on the POST.
-   Real-browser submissions never notice (the hidden gets
-   serialised automatically); curl-based REST smokes need to
-   extract all four fields (key, fields, unlocked, debug) AND
-   send every declared `data[Model][field]` even with empty
-   values. Missing any one trips the blackhole.
+1. **Doc-only closure-by-DD-03 is the right shape for tracker lines
+   that a binding decision pre-settled.** Tasks 1 + 2 looked
+   redundant on first read; the right close is a tracker entry
+   that captures (a) what the tracker line originally asked, (b)
+   how DD-03 already answered it, and (c) what would have been
+   built had DD-03 not pre-empted it. Same shape as F3.3
+   cache-key closure. Three of these have now landed
+   (Phase 3 cache-key, Phase 5 F3.3, Phase 5 task 1 + task 2 —
+   two with PRD alignment bundles, two pure tracker ticks).
 
-2. **A "ticked done" surface can be a surface that doesn't work
-   end-to-end.** Phase 4 task 1's gallery-card Delete button was
-   wired to `/dashboards/deleteTemplate/<uuid>` via postLink —
-   the markup looked correct but the action would 500 because
-   CRUDComponent::delete(int) chokes on UUIDs. The smoke at
-   task 1 must have only walked the GET render path. Lesson:
-   when a card-action surface uses a controller action you
-   didn't write, the close-the-loop check is `curl -X POST` of
-   the actual action. The wire-shape ratification tracker line
-   (task 7) is a forcing function for that smoke.
+2. **The inline `_isSafeDashboardUrl()` placeholder had a real
+   gap that DashboardURLValidator closes.** It rejected MISP
+   filter syntax (`tag:tlp:red`) because it required either a
+   leading `/` or a parse_url-derived host. DD-03 (2026-05-04)
+   explicitly called out MISP filter syntax as a supported
+   relative-URL form; the validator was written to that contract.
+   Lesson: when a placeholder is in the code and a proper helper
+   is shipped, the swap is rarely cosmetic — there's usually a
+   behaviour gap the helper closes.
 
-3. **Bundling-vs-parking scope decisions are made per-bug, not
-   per-session.** Two latent v1 bugs surfaced this session. The
-   import-form-paste string-foreach got parked (less prominent
-   surface, broken since v1, REST is the documented wire);
-   the deleteTemplate-by-uuid bug got bundled into the Task 5
-   commit (because Task 7's wire ratification claim was at
-   stake). Same scope-creep rule applied to both, different
-   answers because the tracker-line scope differed.
+3. **Server-side URL validation = single source of truth.**
+   Chose to gate drilldown URLs in the .ctp renderer (PHP) and
+   trust the payload client-side. The alternative (validate
+   again in JS) would create a fork risk if the rules diverge
+   (PHP and JS regex implementations differ on weird inputs;
+   maintaining two implementations is a recipe for drift). The
+   server is the trust boundary; the client follows.
 
-4. **A 4-option scoping question with previews short-circuits
-   the design-space discussion.** Spent 30 seconds laying out
-   the four thumbnail-architecture options (on-demand SVG,
-   disk-cached SVG, headless browser PNG, richer-placeholder-
-   no-subsystem) with a single visual preview, got user sign-off
-   in one round. Lesson: when the design space is small (≤4
-   options) and each option's trade-offs are tractable, an
-   AskUserQuestion with previews is faster than a back-and-forth
-   discussion.
+4. **PHP empty-array → JSON `[]` quirk is harmless for our usage.**
+   When the drilldown map is empty (all URLs validated out, or
+   widget didn't supply one), `json_encode([])` produces `[]`
+   not `{}`. The JS `Object.keys(drilldown).length > 0` guard
+   handles both shapes identically. No need for `(object) []`
+   casting on the PHP side.
 
-5. **Pinentry timeout retry pattern.** Hit twice this session
-   (commits 3 and 6). The fix is just to re-run the same commit
-   command — gpg's signing socket is alive but the cached
-   passphrase expired; the second run re-prompts pinentry which
-   reuses the (still-cached) passphrase. Don't `--no-gpg-sign`;
-   don't amend; just retry.
+5. **ECharts click event has `params.event.event` for the raw
+   DOM event.** The double-nesting is intentional — the outer
+   `params.event` is ECharts' synthetic wrapper, the inner
+   `.event` is the underlying DOM `MouseEvent`. That's where
+   `ctrlKey` / `metaKey` / `shiftKey` / `button` live for
+   modifier-click detection. Easy gotcha if you assume
+   `params.ctrlKey` directly.
 
-6. **Widget classes already declare `$title`** with human-
-   readable labels (37/37 confirmed). New code that needs a
-   widget display name should prefer `$title` from
-   `Dashboard::loadAllWidgets`'s metadata over computing a name
-   from the class name. The class-name fallback is only for
-   the case where a widget's class no longer exists (deleted
-   widget referenced by a saved layout).
+6. **node --test as a smoke harness for pure JS helpers.**
+   Extracted `pickDrilldownKey` into a 7-line copy-paste in a
+   `/tmp/*.test.mjs` file, ran `node --test`, got 7/7 in 12ms.
+   No framework, no DOM stubs, no echarts bundle to load. For
+   pure helpers (no DOM/echarts deps), this is the fastest path
+   to confidence. The KVShape.test.mjs in `app/Test/js/`
+   follows the same pattern for the kvshape module.
 
 The prior sessions' gotchas still apply (themed resolver silent
 fallback, `git mv` doesn't auto-stage, fetchEvent ≠ restSearch,
@@ -428,34 +363,26 @@ heredoc + dollar signs, mode-drift carryover from sessions 6+7).
 
 Active carryovers:
 
+- **Real widgets emit drilldown maps.** Phase 5 ships the
+  renderer contract for SimpleList + bar + line + geo, but no
+  in-tree widget consumes it yet. Natural Phase 5.5 work:
+  migrate TrendingTagsWidget bars → `/events/index/tag:<name>`;
+  OrganisationMapWidget regions → `/organisations/index?country=<iso>`;
+  MispStatusWidget rows from legacy `html: '(View)'` to per-row
+  `drilldown` (and drop the SimpleList `html` legacy path
+  once nothing uses it). Each migration is a per-widget concern
+  and the renderer wrapping is already smoked.
+
 - **Dashboard::import HTML form-paste path's string-foreach
-  quirk.** When the user pastes the FULL export JSON into the
-  import form's textarea, controller L829's json_decode → L832's
-  unwrap leaves `$value` as a STRING (the JSON-encoded inner
-  value field). `Dashboard::import`'s foreach over a string is a
-  no-op, $settingsToSave stays empty, my JSON-encode fix turns
-  the empty array into `"[]"` and silently wipes the dashboard.
-  Before this session's fix, the same path 500ed at the
-  validate_json TypeError. Same behavioural envelope as v1 —
-  broken since v1. Fix is small: detect string `$value` in
-  `Dashboard::import` and json_decode it before the foreach.
-  Recommendation: bundle into the future "Phase 4.5 import
-  modal rework" if/when the import modal gets re-implemented
-  as an in-page surface; otherwise standalone single-line fix.
+  quirk.** Carries from prior session.
 
-- **Phase 5 drill-down half (4 lines).** Pre-locked design from
-  Q3 resolution. Multi-session. The next session's primary
-  candidate.
+- **File-mode-drift root cause.** Carries.
 
-- **File-mode-drift root cause.** 8 widget files patched across
-  sessions 6+7. Not re-encountered this session. Worth a short
-  investigation when there's appetite.
-
-- **MISP 2.4 cross-instance DB write risk:** v2.4 connected to
-  the same DB can clobber `user_settings.dashboard` rows. Carries.
+- **MISP 2.4 cross-instance DB write risk.** Carries.
 
 - **time_window toolbar dropdown-menu UX alternative.** Carries.
-- **Grid drop-on-occupied cascade (Phase 5).** Carries.
+- **Grid drop-on-occupied cascade (Phase 5).** Carries (now
+  parked further since Phase 5 closure doesn't depend on this).
 - **tlp:clear (#ffffff) renders invisible bars (cosmetic).** Carries.
 - **OrgEventsWidget months>13 malformed dates.** Carries.
 - **EventEvolutionLineWidget ignores end_date.** Carries.
@@ -465,110 +392,93 @@ Active carryovers:
   Widget's post-filter canonicals.** Carries.
 
 Retired this session:
-- `save_template.ctp:4` action-name mismatch (closed via the
-  Task 5 form rewrite — the new form posts to the real
-  /dashboards/saveTemplate route).
-- Dashboard::import L149 array→string TypeError (fixed in
-  commit `41ffaea45`).
-- deleteTemplate-by-uuid 500 (fixed in commit `2962ddafc`).
-- F3.3 cache-key board-scope-hash verification (closed as
-  documented no-op in commit `8f2575285`; same shape as
-  Phase 3's cache-key sanity-check closure).
-- Template thumbnails wireframe placeholder (replaced by the
-  on-demand SVG renderer in commit `c945a04f7`).
+- Phase 5 drill-down half all 4 lines closed.
+- SimpleList's inline `_isSafeDashboardUrl()` placeholder
+  (replaced by `DashboardURLValidator::validate()`).
+- Stale PRD F2.6 wording (aligned with DD-03 + DashboardURLValidator).
 
 ## Open thread / next obvious work
 
 In rough priority order:
 
-**Option A: Phase 5 drill-down half (4 lines).**
+**Option A: Phase 5.5 widget parity sweep (the merge gate).**
 
-The remaining merge-gate feature work. Pre-locked design from
-Q3 resolution: drill-down is a per-datum convention, supplied
-in `handler()` return values via a `drilldown` key (DD-03, also
-PRD §5.2 F2.6 + §5.7). The four tracker lines are:
-- `$drilldown` schema property documented and exposed in widget
-  metadata.
-- Drill-down convention per Q3 resolution (auto-wrap vs.
-  explicit).
-- Renderer-level wrapping for SimpleList.
-- ECharts click handlers calling drill-down (bar/line/geo).
+The remaining merge-gate work. 37 widget rows + 5 data-parity
+rows + 10 surface-parity rows + 7 pre-merge-cleanup rows. Many
+tick fast (browser-load smoke per widget). Could be split across
+multiple sessions or done as a single end-to-end sweep. **The
+last gate before the `dashboards` branch can merge to develop.**
 
-Multi-session. **Recommended next.**
+A natural ordering: data-parity rows first (5; one session
+covers them), then widget rows (37; multi-session, by category —
+status / events / tags / orgs / system / custom), then
+surface-parity rows (10; one session), then pre-merge cleanup
+(7; cleanup files removable in one sweep).
 
-**Option B: Phase 5.5 widget parity sweep.**
+**Recommended next.**
 
-37 widget rows + 5 data-parity rows + 10 surface-parity rows +
-7 pre-merge-cleanup rows. Many tick fast (browser-load smoke
-per widget — load the v1 widget, check it renders + honours its
-config; tick the row). Could be split across multiple sessions.
-The merge-gate target for the `dashboards` branch. Less
-architectural risk than the drill-down half; might be a useful
-"close out the easy ones" session.
+**Option B: Real-widget drilldown migration.**
 
-**Option C: One of the carryover bugs.** The import-form-paste
-quirk, the file-mode-drift root cause, or the
-`OrgEventsWidget months>13` date bug. Standalone bug-fix
-sessions; useful when neither A nor B is appealing.
+Now that the renderer contract is in place, migrating widgets
+to emit drilldown maps is a per-widget concern that fits
+naturally into Phase 5.5's widget rows. Each migration is small
+(one widget's `handler()` return shape gets a `drilldown` key)
+and the renderer wrapping is already smoked. Could be bundled
+into Phase 5.5 rather than a separate phase.
 
-**Recommendation:** **A first** — the drill-down half is the
-last structural feature gap before Phase 5.5 (which is mostly
-smoke tests). Closing A unlocks Phase 5.5 to be the "victory
-lap" sweep. **B as fallback** if the user wants smaller
-session-scoped chunks of work.
+**Option C: One of the carryover bugs.** Standalone bug-fix
+sessions. Useful when neither A nor B is appealing for a given
+session's scope.
+
+**Recommendation:** **A first** — Phase 5.5 is the only thing
+between us and the merge gate. Bundle drilldown migrations
+inside Phase 5.5's widget rows as a per-widget concern. The
+remaining order is: A → merge. There's no D, no E, no Phase 7;
+the `dashboards` branch's life ends at the merge.
 
 ## Convention reminders
 
 - Commit per progress-tracker task completion; never `git add -A`;
-  the commit body references the task. **Phase 4 commits this
-  session bundled task 5 + task 7 (inline deleteTemplate-by-uuid
-  fix) and task 2 + task 3 (refresh as no-op). Multi-line
-  bundles are OK when the work shape demands it; single-line
-  commits remain the default.**
+  the commit body references the task. **This session: four
+  single-line commits in tracker order. No bundles.**
 - **Always `git status --short` + explicit `git add` before commit**.
   Watch for stray empty files from grep / find with quote-mangling.
 - New files land with `iglocska:iglocska` ownership; `chgrp
-  www-data` before committing to match repo convention. **The
-  rewritten save_template.ctp AND the new TemplatePreview.php
-  were both chgrp'd this session; preserve the pattern.**
+  www-data` before committing to match repo convention. **This
+  session: zero new files landed (smoke widgets created + used +
+  deleted; never committed).**
 - **Themed wrapper parity:** any new `data-*` attribute or chrome
   span on `app/View/Elements/dashboard/widget/wrapper.ctp` MUST
   be mirrored in `app/View/Themed/Overmind/Elements/dashboard/
   widget/wrapper.ctp` in the SAME commit. **This session: no
-  wrapper.ctp touches. The thumbnails SVG uses `currentColor`
-  for all strokes/fills so it inherits Overmind's gallery-card
-  text colour automatically through the cascade — no themed
-  override needed.**
+  wrapper.ctp touches.**
 - **Dashboard chrome icons are inline SVG, not Font Awesome** —
-  see `feedback-dashboard-chrome-icons` memory. **This session's
-  surfaces (save-template form, template thumbnails) follow the
-  convention; the form has no chrome icons; the thumbnails are
-  pure SVG.**
+  see `feedback-dashboard-chrome-icons` memory.
 - **MISP-jargon naming over PRD-generic.** When introducing new
-  identifiers (canonical type names, axis labels, config keys),
-  prefer terms that match MISP's existing DB field names + user-
-  facing terminology over PRD-generic alternatives.
+  identifiers, prefer terms that match MISP's existing DB field
+  names + user-facing terminology.
 - **Inline-style colour strings need a strict regex match** before
   insertion (`/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/`).
 - **External links always pair `target="_blank"` with
-  `rel="noopener noreferrer"`.** Internal links use same-tab
+  `rel="noopener noreferrer"`.** **This session: ECharts
+  modifier-click navigation uses
+  `window.open(url, '_blank', 'noopener,noreferrer')` —
+  matches the convention.** Internal links use same-tab
   navigation.
 - **Slicing user-controlled text for display uses `mb_substr` +
-  `mb_strtoupper`** to handle multi-byte UTF-8. **This session's
-  TemplatePreview::truncateLabel uses mb_substr; preserve the
-  pattern when adding new truncation paths.**
+  `mb_strtoupper`** to handle multi-byte UTF-8.
 - **Themed CSS in Cake 2.x:** use plain paths (no dot-prefix).
 - User wants rigorous pushback, not yes-machine output — surface
   trade-offs, name alternatives, recommend a path, then go with
-  the user's call. **This session's two AskUserQuestion rounds
-  (thumbnail architecture + label source) follow the pattern.**
+  the user's call. **This session's one AskUserQuestion round
+  (task 1 PRD-cleanup shape + 3/4 sequencing) follows the
+  pattern.**
 - User alternates hitm / afk sessions; tracker docs are the
   ground truth between sessions. Tick one task at a time; the
   Done note carries the deciding context.
 - Surface context status when past 75% at task boundaries so the
-  user can choose to restart. **This session was paced comfortably
-  under 75% — final check showed 20% utilization at the mid-
-  session handoff which was the trigger to keep going.**
+  user can choose to restart. **This session paced comfortably
+  under that threshold.**
 - Hard-refresh after CSS/JS edits — the `?v=185` cache-buster
   from `AppController::__queryVersion` doesn't bump per-file.
 - **The schema-driven model is the canonical answer** for any
@@ -576,42 +486,35 @@ session-scoped chunks of work.
   act on" question.
 - **A tracker tick requires the user-visible surface to exist
   AND be reachable from the default UI**, not just the JS /
-  handler-level wiring behind it. **The 8 Phase 4 ticks this
-  session: task 4 ratification was DB-smoke driven; task 8 + 5
-  + 7 + 2 + 3 were REST-smoked end-to-end; HTML form chrome was
-  rendered + inspected but the browser interactive smoke (CSRF-
-  on-POST, redirect-with-flash, on-screen Flash messages,
-  thumbnail visual fidelity) is parked for the user.**
+  handler-level wiring behind it. **This session: SimpleList
+  wrapping is end-to-end live-smoked (custom widget → curl →
+  validator-filtered HTML output). Chart click handlers are
+  server-side smoked + JS-unit-smoked; the user-interactive
+  click-on-a-real-chart gesture is the user-validation gate
+  parked for the user.**
 - **`mysql -u misp -pPassword1234 misp` for one-shot SQL** + the
-  `JSON_LENGTH(value)` recipe for widget-count sanity (from
-  the mid-session handoff; reused this session for backup +
-  restore round-trip).
-- **Render-kind glyph requirement (carries):** any new value
-  for `public $render` on a widget class, or any new template
-  under `app/View/Elements/dashboard/Widgets/`, must ship with
-  a matching glyph in `render-thumbs.mjs` in the same commit.
-  **This session: no new render kinds. The template thumbnails
-  SVG is a SEPARATE concern from render-thumbs.mjs (which is
-  per-widget gallery glyphs; the template thumbnails are
-  per-template-layout miniatures composed of N widget rects).
-  Both filenames carry "thumb" but their scope is orthogonal.**
+  `JSON_LENGTH(value)` recipe for widget-count sanity.
+- **Render-kind glyph requirement (carries):** any new value for
+  `public $render`, or any new template under
+  `app/View/Elements/dashboard/Widgets/`, must ship with a
+  matching glyph in `render-thumbs.mjs` in the same commit.
+  **This session: no new render kinds.**
 - **Heredoc + dollar signs:** single-quoted heredoc (`<<'EOF'`)
   preserves `\$` literally. Don't escape dollar signs inside it.
 - **JSON-encode dashboard-value payloads before `UserSetting::
   setSetting`** — `Dashboard::import()`, `resetFromTemplate()`,
-  and `updateSettings()` all follow this. **Now a hard rule
-  across three call sites; the inline comments at all three
-  locations document the validate_json gotcha.**
+  and `updateSettings()` all follow this.
 - **When smoking a Cake form via curl in debug mode**, extract
   ALL FOUR `_Token` fields (`key`, `fields`, `unlocked`, `debug`)
   AND send every declared `data[Model][field]` even with empty
-  values. Missing any one trips SecurityComponent's blackhole.
-  **Recipe added to the smoke command block above.**
-- **Pinentry timeout retry pattern**: hit twice this session
-  (commits 3 and 6). Just re-run the same `git commit -S` —
-  the second invocation re-prompts pinentry which reuses the
-  cached passphrase. Don't `--no-gpg-sign`; don't amend; just
-  retry.
+  values.
+- **Pinentry timeout retry pattern**: not hit this session.
+- **URL validation runs server-side; client trusts the payload.**
+  **New hard rule from this session.** The chart drilldown wiring
+  follows this — `DashboardURLValidator::validate()` in PHP
+  before serialising, JS treats payload URLs as ground truth.
+  Same posture as SimpleList. Avoids fork risk between two
+  implementations.
 
 ## Quick-start cheatsheet for the next session
 
@@ -624,17 +527,16 @@ If you're picking this up cold:
    `curl -s http://localhost:5007/dashboards -o /dev/null -w "%{http_code}\n"`
    should return 302 (redirect to login) without a session;
    with the session-login dance, /dashboards returns 200.
-5. **Phase 4 is fully closed (8/8). Phase 5 refresh-half closed
-   (7/7). Remaining merge-gate: Phase 5 drill-down half
-   (0/4 lines) + Phase 5.5 widget parity sweep + Phase 6 merge.**
-   Pick from the Open thread above. Recommended: **A**
-   (drill-down half) as the last structural feature gap before
-   Phase 5.5 (which is mostly smoke tests). B (widget parity
-   sweep) as the fallback if smaller-scoped work is wanted.
+5. **Phase 5 is fully closed (11/11). Remaining merge-gate:
+   Phase 5.5 widget parity sweep (37 widget rows + 5 data + 10
+   surface + 7 pre-merge cleanup) + Phase 6 merge.** Pick from
+   the Open thread above. Recommended: **A** (Phase 5.5),
+   bundling drilldown migrations into the widget rows.
 6. Commit one task at a time, signed, with `chgrp www-data` on
    new files. Don't `git add -A`. Don't escape `$` inside single-
    quoted heredocs. Themed wrapper parity check on every chrome
-   edit. **JSON-encode dashboard-value payloads before
-   UserSetting::setSetting (now hard rule across three actions).**
+   edit. **URL validation runs server-side; client trusts the
+   payload.** **JSON-encode dashboard-value payloads before
+   UserSetting::setSetting (hard rule across three actions).**
    **When smoking Cake forms via curl in debug mode, send all
    four _Token fields + every declared data[Model][field].**
