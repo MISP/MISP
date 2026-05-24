@@ -13,13 +13,24 @@
  * Expected $data shape (from `OrganisationMapWidget::handler()`, and
  * the v1 WorldMap contract more generally):
  *   [
- *     'data'  => ['XX' => count, ...],   // 2-letter ISO alpha-2
- *     'scope' => 'Organisations',         // tooltip prefix
+ *     'data'      => ['XX' => count, ...],  // 2-letter ISO alpha-2
+ *     'scope'     => 'Organisations',        // tooltip prefix
+ *     'drilldown' => ['XX' => '/url', ...],  // optional DD-03, ISO-keyed
  *   ]
+ *
+ * `drilldown` (DD-03 per-datum carrier) maps an ISO alpha-2 country
+ * code to a URL. The renderer translates both the data and the
+ * drilldown keys from ISO → English country name in lockstep so the
+ * client looks up URLs by the same `params.name` it gets from
+ * ECharts' click event. Each URL is gated by `DashboardURLValidator`;
+ * unsafe entries are silently dropped. ISO codes the toolkit doesn't
+ * know about are dropped from both data and drilldown (same posture
+ * as v1).
  *
  * Empty `data` → "No data." placeholder, mirroring BarChart.
  */
 App::uses('WidgetToolkit', 'Lib/Dashboard/Tools');
+App::uses('DashboardURLValidator', 'Lib/Dashboard/Tools');
 $rows = isset($data['data']) ? $data['data'] : array();
 if (empty($rows)) {
     echo '<div class="misp-list-empty">' . __('No data.') . '</div>';
@@ -44,9 +55,26 @@ if (empty($translated)) {
     return;
 }
 
+// Translate drilldown keys ISO → English name in lockstep with $data,
+// validating each URL. Codes the toolkit doesn't know about, or URLs
+// the validator rejects, are silently dropped.
+$drilldown = array();
+if (isset($data['drilldown']) && is_array($data['drilldown'])) {
+    foreach ($data['drilldown'] as $code => $url) {
+        if (!isset($nameByCode[$code])) {
+            continue;
+        }
+        $safe = DashboardURLValidator::validate($url);
+        if ($safe !== null) {
+            $drilldown[$nameByCode[$code]] = $safe;
+        }
+    }
+}
+
 $payload = array(
-    'data'  => $translated,
-    'scope' => isset($data['scope']) ? $data['scope'] : '',
+    'data'      => $translated,
+    'scope'     => isset($data['scope']) ? $data['scope'] : '',
+    'drilldown' => $drilldown,
 );
 ?>
 <div class="misp-chart"

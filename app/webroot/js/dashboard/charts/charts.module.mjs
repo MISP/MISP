@@ -26,6 +26,7 @@ const liveCharts = new WeakMap();
 function buildBarOption(payload) {
   const data = payload.data || {};
   const colours = payload.colours || {};
+  const drilldown = payload.drilldown || {};
   const labels = Object.keys(data);
   const values = labels.map((k) => Number(data[k]) || 0);
 
@@ -39,8 +40,16 @@ function buildBarOption(payload) {
   const series = [{
     type: 'bar',
     data: orderedValues.map((v, i) => {
-      const color = colours[orderedLabels[i]];
-      return color ? { value: v, itemStyle: { color } } : v;
+      const label = orderedLabels[i];
+      const color = colours[label];
+      const drillable = !!drilldown[label];
+      if (!color && !drillable) return v;
+      const item = { value: v };
+      if (color) item.itemStyle = { color };
+      // Cursor hint communicates clickability to the user; the actual
+      // click is wired centrally in initChart() below.
+      if (drillable) item.cursor = 'pointer';
+      return item;
     }),
     label: { show: true, position: 'right' },
   }];
@@ -96,10 +105,12 @@ function tokenOn(el, name, fallback) {
 function buildGeoOption(payload, hostEl) {
   const data = payload.data || {};
   const scope = payload.scope || '';
-  const seriesData = Object.entries(data).map(([name, value]) => ({
-    name,
-    value: Number(value) || 0,
-  }));
+  const drilldown = payload.drilldown || {};
+  const seriesData = Object.entries(data).map(([name, value]) => {
+    const item = { name, value: Number(value) || 0 };
+    if (drilldown[name]) item.cursor = 'pointer';
+    return item;
+  });
   const values = seriesData.map((d) => d.value);
   const maxV = values.length ? Math.max(...values) : 1;
 
@@ -168,6 +179,7 @@ function buildGeoOption(payload, hostEl) {
 function buildLineOption(payload, hostEl) {
   const rows = Array.isArray(payload.data) ? payload.data : [];
   const colours = payload.colours || {};
+  const drilldown = payload.drilldown || {};
   const yAxisLabel = payload.yAxis || 'Count';
 
   const dates = rows.map((r) => String(r.date ?? ''));
@@ -192,6 +204,7 @@ function buildLineOption(payload, hostEl) {
   const series = lineKeys.map((k) => {
     const data = rows.map((r) => Number(r[k]) || 0);
     const colour = colours[k];
+    const drillable = !!drilldown[k];
     return {
       name: k,
       type: 'line',
@@ -202,6 +215,7 @@ function buildLineOption(payload, hostEl) {
       smooth: false,
       emphasis: { focus: 'series' },
       ...(colour ? { itemStyle: { color: colour }, lineStyle: { color: colour } } : {}),
+      ...(drillable ? { cursor: 'pointer' } : {}),
     };
   });
 
@@ -238,6 +252,34 @@ const builders = {
 
 // ---- public API ----
 
+// Pick the drilldown lookup key from an ECharts click params object,
+// based on chart kind. Bar/geo key on the category/region name;
+// line keys on the series name (clicking any point of a line resolves
+// to the series). Returns null when the click isn't on a data datum
+// the drilldown convention covers.
+function pickDrilldownKey(kind, params) {
+  if (!params) return null;
+  switch (kind) {
+    case 'bar':  return params.name || null;
+    case 'line': return params.seriesName || null;
+    case 'geo':  return params.name || null;
+    default:     return null;
+  }
+}
+
+// Navigate to a DD-03 drilldown URL. Modifier-click (ctrl/cmd/shift)
+// and middle-click open in a new tab per PRD F2.6; plain click
+// navigates the current window.
+function followDrilldown(url, params) {
+  const ev = params && params.event && params.event.event;
+  const newTab = ev && (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button === 1);
+  if (newTab) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } else {
+    window.location.href = url;
+  }
+}
+
 /**
  * Initialise a single chart container. Async so geo charts can wait
  * for the world-map registration; bar charts resolve synchronously.
@@ -262,6 +304,20 @@ async function initChart(el) {
   }
   const chart = echarts.init(el, MISP_THEME_NAME, { renderer: 'canvas' });
   chart.setOption(builder(payload, el));
+
+  // DD-03 per-datum drilldown: when the payload carries a `drilldown`
+  // map, wire a click listener that looks up the URL by the clicked
+  // datum's lookup key. URL safety was gated server-side by
+  // DashboardURLValidator before serialisation, so the client trusts
+  // every URL it sees here.
+  const drilldown = (payload && payload.drilldown) || {};
+  if (Object.keys(drilldown).length > 0) {
+    chart.on('click', (params) => {
+      const key = pickDrilldownKey(kind, params);
+      const url = key ? drilldown[key] : null;
+      if (url) followDrilldown(url, params);
+    });
+  }
 
   const observer = new ResizeObserver(() => chart.resize());
   observer.observe(el);

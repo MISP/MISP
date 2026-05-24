@@ -17,25 +17,37 @@
  *       ['date' => 'YYYY-MM-DD', 'lineA' => 1, 'lineB' => 5, ...],
  *       ...
  *     ],
- *     'colours' => ['lineA' => '#hex', ...],   // optional override
- *     'formula' => 'optional headline string', // optional
- *     'y-axis'  => 'Count',                    // optional, default 'Count'
+ *     'colours'   => ['lineA' => '#hex', ...], // optional override
+ *     'formula'   => 'optional headline',      // optional
+ *     'y-axis'    => 'Count',                  // optional, default 'Count'
+ *     'drilldown' => ['lineA' => '/url', ...], // optional DD-03
  *   ]
  *
- * Per-line drilldown (DD-03) is intentionally not wired here yet —
- * Phase 5 task "ECharts click handlers calling drill-down" will route
- * `data['drilldown']` through `DashboardURLValidator`. Until then the
- * payload reaches the client untouched and the chart is non-clickable.
+ * `drilldown` (DD-03 per-datum carrier) maps a series name to a URL.
+ * Each URL is gated by `DashboardURLValidator`; unsafe entries are
+ * silently dropped. Series without a `drilldown` entry stay
+ * non-clickable.
  */
+App::uses('DashboardURLValidator', 'Lib/Dashboard/Tools');
 $rows = isset($data['data']) ? $data['data'] : array();
 if (empty($rows)) {
     echo '<div class="misp-list-empty">' . __('No data.') . '</div>';
     return;
 }
+$drilldown = array();
+if (isset($data['drilldown']) && is_array($data['drilldown'])) {
+    foreach ($data['drilldown'] as $series => $url) {
+        $safe = DashboardURLValidator::validate($url);
+        if ($safe !== null) {
+            $drilldown[(string)$series] = $safe;
+        }
+    }
+}
 $payload = array(
-    'data'    => $rows,
-    'colours' => isset($data['colours']) ? $data['colours'] : array(),
-    'yAxis'   => isset($data['y-axis']) ? $data['y-axis'] : 'Count',
+    'data'      => $rows,
+    'colours'   => isset($data['colours']) ? $data['colours'] : array(),
+    'yAxis'     => isset($data['y-axis']) ? $data['y-axis'] : 'Count',
+    'drilldown' => $drilldown,
 );
 if (!empty($data['formula'])) {
     echo sprintf(

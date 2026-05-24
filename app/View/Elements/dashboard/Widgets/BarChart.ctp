@@ -10,23 +10,35 @@
  * Expected $data shape (TrendingTagsWidget non-overtime path, and the
  * v1 BarChart contract more generally):
  *   [
- *     'data'    => ['label' => count, ...],   // sorted by widget
- *     'colours' => ['label' => '#hex', ...],  // optional override
+ *     'data'      => ['label' => count, ...],   // sorted by widget
+ *     'colours'   => ['label' => '#hex', ...],  // optional override
+ *     'drilldown' => ['label' => '/url', ...],  // optional DD-03
  *   ]
  *
- * Per-datum drilldown (DD-03) is intentionally not wired here yet —
- * Phase 5 task "ECharts click handlers calling drill-down" will route
- * `data['drilldown']` through `DashboardURLValidator`. Until then the
- * payload reaches the client untouched and the chart is non-clickable.
+ * `drilldown` (DD-03 per-datum carrier) maps a bar's category label to
+ * a URL. Each URL is gated by `DashboardURLValidator`; unsafe entries
+ * are silently dropped. Categories without a `drilldown` entry stay
+ * non-clickable.
  */
+App::uses('DashboardURLValidator', 'Lib/Dashboard/Tools');
 $rows = isset($data['data']) ? $data['data'] : array();
 if (empty($rows)) {
     echo '<div class="misp-list-empty">' . __('No data.') . '</div>';
     return;
 }
+$drilldown = array();
+if (isset($data['drilldown']) && is_array($data['drilldown'])) {
+    foreach ($data['drilldown'] as $label => $url) {
+        $safe = DashboardURLValidator::validate($url);
+        if ($safe !== null) {
+            $drilldown[(string)$label] = $safe;
+        }
+    }
+}
 $payload = array(
-    'data'    => $rows,
-    'colours' => isset($data['colours']) ? $data['colours'] : array(),
+    'data'      => $rows,
+    'colours'   => isset($data['colours']) ? $data['colours'] : array(),
+    'drilldown' => $drilldown,
 );
 ?>
 <div class="misp-chart"
