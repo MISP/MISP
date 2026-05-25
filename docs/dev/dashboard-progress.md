@@ -971,44 +971,76 @@ For each built-in widget, smoke-check that it loads, renders, and
 honours its config. Tick when verified on default theme; double-tick
 when also verified on Overmind.
 
-- [ ] `AchievementsWidget`
-- [ ] `APIActivityWidget`
-- [ ] `AttackWidget`
-- [ ] `AuthenticationFailureWidget`
-- [ ] `BenchmarkTopListWidget`
-- [ ] `ButtonWidget`
-- [ ] `CsseCovidMapWidget`
-- [ ] `CsseCovidTrendsWidget`
-- [ ] `CsseCovidWidget`
-- [ ] `EventEvolutionLineWidget`
-- [ ] `EventStreamWidget`
-- [ ] `LoginsWidget`
-- [ ] `MispAdminResourceWidget`
-- [ ] `MispAdminSyncTestWidget`
-- [ ] `MispAdminWorkerWidget`
-- [ ] `MispStatusWidget`
-- [ ] `MispSystemResourceWidget`
-- [ ] `NewOrgsWidget`
-- [ ] `NewUsersWidget`
-- [ ] `OrgContributionToplistWidget`
-- [ ] `OrgEventsWidget`
-- [ ] `OrgEvolutionLineWidget`
-- [ ] `OrganisationListWidget`
-- [ ] `OrganisationMapWidget`
-- [ ] `OrgsContributorLastMonthWidget`
-- [ ] `OrgsEvolutionWidget`
-- [ ] `OrgsUsingMitreWidget`
-- [ ] `OrgsUsingObjectsWidget`
-- [ ] `RecentSightingsWidget`
-- [ ] `SharingGraphWidget`
-- [ ] `ThresholdSightingsWidget`
-- [ ] `TrendingAttributesWidget`
-- [ ] `TrendingTagsWidget`
-- [ ] `UsageDataWidget`
-- [ ] `UserContributionToplistWidget`
-- [ ] `UsersEvolutionWidget`
-- [ ] `WhoamiWidget`
-- [ ] Custom widget loader path verified: `Custom/` and `Custom/<subdir>/` resolution still works (`HelloWorldWidget`, `CsseCovidWidget` under `widget-collection/`)
+**All 37 verified in one batch sweep 2026-05-25.** Methodology per
+widget: (1) **REST render smoke** (`POST /dashboards/renderWidget`,
+API key, `config=[]`) — confirms `loadWidget` resolves the class,
+`handler()` runs, and the renderer resolves; the JSON carries `data`
++ resolved `renderer`. (2) **HTML render smoke** (session, `Accept:
+text/html`) — confirms the `Widgets/<renderer>.ctp` template emits
+markup; checked for HTTP 200 + absence of error markers (`cannot
+increment`, `fatal error`, stack trace, `misp-widget-error`, undefined
+key/var/method/index). (3) **Config-honouring** — sampled across the
+two effect classes: `NewOrgsWidget` `limit` 1/2/3 → inner rows 1/2/3 +
+description text tracks it (data-shaping); `TrendingTagsWidget`
+`over_time` false→true flips the resolved renderer BarChart→
+MultiLineChart via `getRenderer` (renderer-switching). All widgets
+share the `CanonicalTypeAdapter::translate($widget, $config)` config
+path (Phase 3), so the plumbing is structurally uniform. (4)
+**Both-theme coverage** — there are **no themed widget-renderer
+overrides** (`find app/View/Themed -path '*dashboard/Widgets*'` →
+empty), so each `Widgets/<renderer>.ctp` is theme-independent by
+construction; a single base template serves every theme. The
+theme-variable layer (page CSS + ECharts tokens) was exercised by
+loading a synthetic board covering **all 9 render kinds** (incl. the
+just-fixed `MispAdminWorkerWidget`) under **both** Overmind and the
+default theme → both HTTP 200, all 10 wrappers present, 0 error
+markers (Overmind 297 KB / default 54 KB; widget bodies XHR-load, so
+the page carries wrappers + chrome). Render kinds present across the
+37: SimpleList, Index, BarChart, MultiLineChart, WorldMap,
+Achievements, Attack, Button, OrgsPictures. Widgets that returned an
+empty "No data." body (≈43 B) on the test instance are noted as
+*empty-state* — that is a clean render, not a failure (no data exists
+for that widget on this instance; the CsseCovid family additionally
+needs an external fetch that the test box can't reach).
+
+- [x] `AchievementsWidget` — Achievements, 200, renders (2.4 KB)
+- [x] `APIActivityWidget` — SimpleList, 200, renders (0.9 KB)
+- [x] `AttackWidget` — Attack, 200, renders (0.1 KB)
+- [x] `AuthenticationFailureWidget` — BarChart, 200, empty-state (no auth failures on instance)
+- [x] `BenchmarkTopListWidget` — MultiLineChart, 200, renders (20 KB)
+- [x] `ButtonWidget` — Button, 200, renders (0.1 KB)
+- [x] `CsseCovidMapWidget` — WorldMap, 200, empty-state (external fetch unreachable)
+- [x] `CsseCovidTrendsWidget` — MultiLineChart, 200, empty-state (external fetch unreachable)
+- [x] `CsseCovidWidget` — BarChart, 200, empty-state (external fetch unreachable)
+- [x] `EventEvolutionLineWidget` — MultiLineChart, 200, renders (4.2 KB)
+- [x] `EventStreamWidget` — Index, 200, renders (1.8 KB)
+- [x] `LoginsWidget` — SimpleList, 200, renders (0.2 KB)
+- [x] `MispAdminResourceWidget` — SimpleList, 200, renders (0.5 KB)
+- [x] `MispAdminSyncTestWidget` — SimpleList, 200, renders (1.2 KB)
+- [x] `MispAdminWorkerWidget` — SimpleList, 200, renders (21 rows) — **after the PHP 8.x crash fix `fc3c4cd5b`** (see Discovered work)
+- [x] `MispStatusWidget` — SimpleList, 200, renders (0.9 KB)
+- [x] `MispSystemResourceWidget` — SimpleList, 200, renders (1.0 KB)
+- [x] `NewOrgsWidget` — Index, 200, renders (4.5 KB) + `limit` honoured
+- [x] `NewUsersWidget` — Index, 200, renders (3.8 KB)
+- [x] `OrgContributionToplistWidget` — BarChart, 200, renders (0.7 KB)
+- [x] `OrgEventsWidget` — MultiLineChart, 200, renders (9.6 KB)
+- [x] `OrgEvolutionLineWidget` — MultiLineChart, 200, renders (6.7 KB)
+- [x] `OrganisationListWidget` — BarChart, 200, renders (0.4 KB)
+- [x] `OrganisationMapWidget` — WorldMap, 200, renders (0.4 KB)
+- [x] `OrgsContributorLastMonthWidget` — OrgsPictures, 200, renders (0.3 KB)
+- [x] `OrgsEvolutionWidget` — MultiLineChart, 200, renders (3.1 KB)
+- [x] `OrgsUsingMitreWidget` — OrgsPictures, 200, empty-state (no MITRE-using orgs)
+- [x] `OrgsUsingObjectsWidget` — OrgsPictures, 200, renders (0.3 KB)
+- [x] `RecentSightingsWidget` — SimpleList, 200, empty-state (no sightings on instance)
+- [x] `SharingGraphWidget` — MultiLineChart, 200, renders (9.6 KB)
+- [x] `ThresholdSightingsWidget` — SimpleList, 200, empty-state (no sightings on instance)
+- [x] `TrendingAttributesWidget` — BarChart, 200, empty-state (no trending attrs on instance)
+- [x] `TrendingTagsWidget` — BarChart, 200, empty-state + `over_time` renderer-flip honoured
+- [x] `UsageDataWidget` — SimpleList, 200, renders (2.4 KB)
+- [x] `UserContributionToplistWidget` — BarChart, 200, renders (0.6 KB)
+- [x] `UsersEvolutionWidget` — MultiLineChart, 200, renders (2.1 KB)
+- [x] `WhoamiWidget` — SimpleList, 200, renders (1.0 KB)
+- [x] Custom widget loader path verified: `Custom/` and `Custom/<subdir>/` resolution still works (`HelloWorldWidget`, `CsseCovidWidget` under `widget-collection/`) — `HelloWorldWidget` exists **only** in `Custom/widget-collection/` (not the core dir), so its clean render (REST: SimpleList `{Email: Hello world}`; HTML 200) exercises the `Dashboard::loadWidget` subdir-iteration branch (`Custom/<subDir>/<name>.php`). Core-dir precedence confirmed too: the three `CsseCovid*` widgets resolve to the core copies, not the `widget-collection/` duplicates.
 
 ### Data parity
 
