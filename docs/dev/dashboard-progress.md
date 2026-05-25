@@ -1052,16 +1052,20 @@ needs an external fetch that the test box can't reach).
 
 ### Surface parity
 
-- [ ] `/dashboards` (View Dashboard) — works
-- [ ] `/dashboards/getForm/add` (Add Widget modal) — replaced by v2 gallery, but the URL still resolves to *something usable*
-- [ ] `/dashboards/import` — works with both blob shapes
-- [ ] `/dashboards/export` — works
-- [ ] `/dashboards/listTemplates` — works (in v2 gallery form per Phase 4)
-- [ ] `/dashboards/saveTemplate` — works
-- [ ] `/dashboards/saveTemplate/<id>` — update path works
-- [ ] `/dashboards/deleteTemplate/<id>` — works
-- [ ] `/dashboards/renderWidget/<id>` — works (request payload unchanged from v1; per DD-05 there is no `scope` payload)
-- [ ] `/dashboards/updateSettings` — works; new blob shape persisted
+All 10 verified 2026-05-25 (6 incidentally exercised during the
+data-parity + widget sweeps; the 4 template-mutating ones via a
+self-cleaning create→update→delete chain, net-zero rows).
+
+- [x] `/dashboards` (View Dashboard) — works. GET 200 (session), ~309 KB under Overmind / ~54 KB default, 0 error markers; widget wrappers + fixed-up `data-position` reach the DOM (data-parity row 1).
+- [x] `/dashboards/getForm/add` (Add Widget modal) — **obsolete in v2; 404 is acceptable.** v1 had `getForm`/`getEmptyWidget` actions (confirmed on the `2.5` branch); v2 removed both and the **Add Widget gallery** (`widgets()` + client gallery, reached from the dashboard header) replaces the modal. A `git grep` finds **zero** references to `getForm` in any v2 dashboard view/JS/route, so nothing surfaces this URL. Per user direction 2026-05-25 ("obsolete v1 URLs 404ing is fine — we're building a useful replacement, not a 1:1 v1 replica"), no compatibility shim/redirect is added. The original row wording ("still resolves to something usable") was over-conservative; closed as deliberate obsolescence. See [[feedback_parity_vs_improvement]].
+- [x] `/dashboards/import` — works with both blob shapes. GET form 200 (`data[Dashboard][value]` field + 4 `_Token`s); POST verified for v2 round-trip (data-parity row 3) AND legacy v1 import (data-parity row 4), via both REST and the HTML form gesture.
+- [x] `/dashboards/export` — works. GET 200 (REST returns the full `UserSetting` row with `value` as a decoded array; HTML modal renders `json_encode($data)`); round-tripped in data-parity row 3.
+- [x] `/dashboards/listTemplates` — works (v2 gallery form). GET 200, ~301 KB, 24 `TemplatePreview` SVGs decoded from the legacy-shape rows, 0 errors (data-parity row 2).
+- [x] `/dashboards/saveTemplate` — works. REST POST `data[Dashboard][name]` created a template from the current dashboard (id=10, value bytes=2066 matching the live board) → "Dashboard template updated."
+- [x] `/dashboards/saveTemplate/<id>` — update path works. REST POST renamed id=10 → "SP-smoke-RENAMED" (verified in DB), template-vs-create branch hit via the `$update` arg.
+- [x] `/dashboards/deleteTemplate/<id>` — works. REST POST on the template's **UUID** deleted it ("Dashboard deleted."; row gone) — also exercises the UUID→int-id translation + non-site-admin ownership scope in the action. Templates table net-zero (6 → 7 → 6).
+- [x] `/dashboards/renderWidget/<id>` — works (request payload unchanged from v1; per DD-05 there is no `scope` payload). Exercised 37× in the widget-parity sweep on both REST (`{data, renderer, config}`) and HTML render paths.
+- [x] `/dashboards/updateSettings` — works; new blob shape persisted. POSTing a legacy shape persisted the canonical v2 shape (`applyReadFixups` on save, data-parity row 4); the v2 board round-trip also exercises it.
 
 ### Pre-merge cleanup
 
