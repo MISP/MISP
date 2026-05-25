@@ -37,6 +37,14 @@
 .card.misp-widget--overmind:hover {
   box-shadow: var(--misp-dash-shadow-md);
 }
+/* Mirror of the default theme's export-menu clip lift: a 1-row-tall
+ * card would clip the export dropdown against this card's
+ * `overflow: hidden` (the rounded-corner clip). Lift it only while the
+ * menu is open so the panel escapes, then re-clip on close. The menu
+ * class (`.misp-widget-menu`) is shared across both wrappers. */
+.card.misp-widget--overmind:has(.misp-widget-menu.is-open) {
+  overflow: visible;
+}
 
 .misp-widget--overmind .card-header {
   display: flex;

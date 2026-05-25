@@ -507,6 +507,16 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 .misp-widget-menu.is-open {
   display: flex;
 }
+/* The export menu drops below the titlebar; on a 1-row-tall widget
+ * (80px) it would extend past the widget's bottom edge and be clipped
+ * by `.misp-widget { overflow: hidden }` (which exists only to clip the
+ * 6px rounded corners). Lift that clip transiently, and only while the
+ * menu is open, so the panel can escape; the corners re-clip the moment
+ * it closes. The body keeps its own `overflow: auto`, so its scrolling
+ * content stays clipped regardless of the widget-level overflow. */
+.misp-widget:has(.misp-widget-menu.is-open) {
+  overflow: visible;
+}
 .misp-widget-menuitem {
   appearance: none;
   border: 0;

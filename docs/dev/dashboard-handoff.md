@@ -75,6 +75,7 @@ Post-5.5 pre-merge polish (untracked phase — user-driven, in progress):
   [x] DD-09 calm chrome
   [x] Overmind prototype pill removed
   [x] Per-widget raw-data export restored (+ underline + download fixes)
+  [x] Export menu clip on 1-row widgets fixed (CSS :has() transient lift)
   [ ] More UX tweaks — user will enumerate
   [ ] New widget types / functionality — not started
 ```
@@ -157,12 +158,17 @@ curl -s -X POST -H "Authorization: $KEY" -H "Accept: application/json" \
   unreachable from real UI flows (migrate-then-add traced safe via
   `_mintFinalInstanceId` = max+1). Only a hand-edited import blob
   triggers it. Cheap fix logged in the progress doc if ever wanted.
-- **Export menu clipping on very short widgets** — the download menu
-  drops down inside `.misp-widget` which is `overflow:hidden` (rounded
-  corners). For widgets ≥2 rows the 2-item menu fits; a 1-row widget
-  could clip the bottom. Not confirmed in-browser. If it bites, scope
-  the overflow to the body instead of the whole widget. **Ask the user
-  to eyeball this** alongside the export download.
+- ~~**Export menu clipping on very short widgets**~~ — **FIXED 2026-05-25.**
+  Confirmed real on 1-row (80px) widgets via a headless before/after
+  harness (menu bottom item clipped against `.misp-widget`'s rounded-
+  corner `overflow:hidden`). Fix did NOT move the overflow to the body
+  (handoff's earlier idea — that risks a 6px scrollbar/corner poke on
+  scrolling widgets); instead lifts the clip *transiently and only while
+  the export menu is open* via `.misp-widget:has(.misp-widget-menu.is-open)
+  { overflow: visible }` (mirrored on `.card.misp-widget--overmind`).
+  Corners re-clip on close; body keeps its own `overflow:auto`; z-index:20
+  correctly paints the escaping menu above the widget below. CSS-only,
+  both themes; lightweight cleanup, no DD.
 - **Real widgets emit drilldown maps** — Phase 5 renderer contract is
   wired + smoked; nothing in-tree consumes it. Natural fit for the "new
   functionality" phase.
