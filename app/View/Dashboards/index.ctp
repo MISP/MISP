@@ -209,10 +209,6 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
 
 </main>
 
-<footer class="misp-dashboard-footer">
-    <code data-misp-debug-readout>{}</code>
-</footer>
-
 <!-- Configure side panel (schema-driven two-tier form per DD-06).
      Hidden by default; shown by the ConfigureModule when the user clicks a
      widget's ⚙ button. Single panel per board; opening for a different widget

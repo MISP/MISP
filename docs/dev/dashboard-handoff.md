@@ -77,6 +77,7 @@ Post-5.5 pre-merge polish (untracked phase — user-driven, in progress):
   [x] Per-widget raw-data export restored (+ underline + download fixes)
   [x] Export menu clip on 1-row widgets fixed (CSS :has() transient lift)
   [x] Import/Export config → board-owned side panel (theme-independent; DD-10)
+  [x] Removed Phase 0.3 debug-readout footer (layout-JSON dump) — prototype cruft
   [ ] More UX tweaks — user will enumerate
   [ ] New widget types / functionality — not started
 ```

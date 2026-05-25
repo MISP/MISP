@@ -67,7 +67,6 @@ const ATTR_WIDGET_CONFIG    = 'data-widget-config';
 const ATTR_WIDGET_CONTENT   = 'data-misp-widget-content';
 const ATTR_WIDGET_ACTION    = 'data-misp-widget-action';
 const ATTR_BOARD_ACTION     = 'data-misp-board-action';
-const ATTR_DEBUG_READOUT    = 'data-misp-debug-readout';
 
 class Board {
   constructor(rootEl) {
@@ -307,7 +306,6 @@ class Board {
       this.scheduler.enqueueWidget(el);         // register for auto-refresh
     }
 
-    this._updateDebugReadout();
     // Start the scheduler after the initial scan so the first tick
     // sees every tile already enqueued with its lastRender baseline.
     this.scheduler.start();
@@ -482,7 +480,6 @@ class Board {
         this.scheduler.enqueueWidget(el);
       }
     }
-    this._updateDebugReadout();
     this.setMode('view');
   }
 
@@ -705,7 +702,6 @@ class Board {
           }
           this.scheduler.unenqueueWidget(widgetEl);
           this.grid.removeTile(id);
-          this._updateDebugReadout();
           // removeTile bypasses Grid._commit (it directly mutates
           // this.tiles), so the onCommit hook used by drag/resize
           // doesn't fire here — stage explicitly (or save in view mode).
@@ -1017,7 +1013,6 @@ class Board {
     this.scheduler.enqueueWidget(wrapperEl);
     refreshToolbar(this.root);
     this._stageOrSave();
-    this._updateDebugReadout();
     this._dispatchEvent('add-widget-placed', {
       instanceId, widgetName, x, y, w, h,
     });
@@ -1031,13 +1026,6 @@ class Board {
     }));
   }
 
-  // ---- debug readout (Phase 0.3 prototype only) ----
-
-  _updateDebugReadout() {
-    const readout = document.querySelector(`[${ATTR_DEBUG_READOUT}]`);
-    if (!readout || !this.grid) return;
-    readout.textContent = JSON.stringify(this.grid.serialize());
-  }
 }
 
 function escapeHtml(s) {
@@ -1056,9 +1044,6 @@ function boot() {
   const root = document.querySelector(`[${ATTR_BOARD_ROOT}]`);
   if (!root) return;
   const board = new Board(root);
-  // Refresh debug readout on grid commits so users can see layout changes.
-  new MutationObserver(() => board._updateDebugReadout())
-    .observe(root, { attributes: true, subtree: true, attributeFilter: ['style'] });
   // Expose for ad-hoc poking from devtools.
   window.MISPBoard = board;
 }

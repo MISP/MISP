@@ -100,7 +100,7 @@ body.misp-dashboard-page {
   background: var(--misp-dash-surface);
   /* Typography is scoped to the dashboard's own content surfaces
    * below (.misp-dashboard-header / .misp-dashboard-main /
-   * .misp-dashboard-footer / .misp-configure-panel), NOT applied
+   * .misp-configure-panel), NOT applied
    * here on body. The proto ran standalone so a body-wide rule
    * was fine; once Layouts/dashboard.ctp wraps the dashboard in
    * MISP's chrome (global_menu + footer), any body-level font-size
@@ -117,7 +117,6 @@ body.misp-dashboard-page {
  * host theme's choice flows through. */
 .misp-dashboard-header,
 .misp-dashboard-main,
-.misp-dashboard-footer,
 .misp-configure-panel {
   color:       var(--misp-dash-text);
   font-size:   var(--misp-dash-fs-base);
@@ -603,23 +602,6 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 .dgrid-ghost.dgrid-ghost-invalid {
   border-color: var(--misp-dash-danger);
   background: rgba(220, 38, 38, 0.10);
-}
-
-/* ============================================================
- * Footer (debug readout)
- * ============================================================ */
-.misp-dashboard-footer {
-  padding: var(--misp-dash-space-3) var(--misp-dash-space-5);
-  border-top: 1px solid var(--misp-dash-border);
-  background: var(--misp-dash-surface-raised);
-}
-.misp-dashboard-footer code {
-  display: block;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: var(--misp-dash-fs-xs);
-  color: var(--misp-dash-text-muted);
-  white-space: pre-wrap;
-  word-break: break-all;
 }
 
 /* ============================================================
