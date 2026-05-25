@@ -77,11 +77,23 @@
   align-items: center;
   justify-content: center;
   font-size: 14px;
+  /* These are .btn.btn-link buttons (BS5 link-styled), which ship
+   * text-decoration: underline — kill it so the icon glyphs don't
+   * read as underlined links. The :hover/:focus overrides below match
+   * BS's .btn-link:hover specificity and win on source order. */
+  text-decoration: none;
   transition: background var(--misp-dash-transition-fast);
 }
 .misp-widget--overmind__iconbtn:hover {
   background: var(--misp-dash-surface-sunken);
   color: var(--misp-dash-text);
+  text-decoration: none;
+}
+/* Match BS5's .btn-link:hover/:focus specificity so the underline
+ * stays off in every interaction state (source order wins the tie). */
+.misp-widget--overmind__iconbtn:focus,
+.misp-widget--overmind__iconbtn:focus-visible {
+  text-decoration: none;
 }
 
 [data-misp-board-mode="edit"] .misp-widget--overmind .card-header[data-drag-handle] {
