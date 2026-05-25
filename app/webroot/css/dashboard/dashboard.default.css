@@ -2159,21 +2159,89 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   border: 1px dashed var(--misp-dash-border);
   border-radius: var(--misp-dash-radius-md);
 }
-/* Gallery mode hides the configure footer (Save / Cancel) — those
- * actions are form-mode-only. The header ✕ button + the ESC /
- * backdrop close chain still apply. */
-.misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-footer {
+/* The non-form panel modes (gallery + the config import/export modes)
+ * hide the configure footer (Save / Cancel) — those actions are
+ * form-mode-only; each mode carries its own buttons in the body. The
+ * header ✕ button + the ESC / backdrop close chain still apply. They
+ * also hide the live-preview pane (no draft to preview) AND restore
+ * the body to full-width so the content isn't squeezed into a 360px
+ * column. Shared across both themes via this sheet. */
+.misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-footer,
+.misp-configure-panel[data-misp-configure-mode="export"] .misp-configure-footer,
+.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-footer {
   display: none;
 }
-/* Gallery mode also hides the live-preview pane (browse-only mode
- * has no draft to preview) AND restores the body to full-width so
- * the 38-card gallery isn't squeezed into a 360px column. */
-.misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-preview {
+.misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-preview,
+.misp-configure-panel[data-misp-configure-mode="export"] .misp-configure-preview,
+.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-preview {
   display: none;
 }
-.misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-body {
+.misp-configure-panel[data-misp-configure-mode="gallery"] .misp-configure-body,
+.misp-configure-panel[data-misp-configure-mode="export"] .misp-configure-body,
+.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-body {
   flex: 1 1 auto;
   border-right: none;
+}
+
+/* Config import / export panel body (config-io.module.mjs). The body
+ * is a vertical stack: help text, a monospace JSON textarea that grows
+ * to fill, an optional status/error line, and a right-aligned action
+ * row. Tokens keep it in step with both themes. */
+.misp-configure-panel[data-misp-configure-mode="export"] .misp-configure-body,
+.misp-configure-panel[data-misp-configure-mode="import"] .misp-configure-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-3);
+  padding: var(--misp-dash-space-4);
+  overflow: auto;
+}
+.misp-configio-help {
+  margin: 0;
+  color: var(--misp-dash-text-muted);
+  font-size: var(--misp-dash-fs-sm);
+  line-height: 1.5;
+}
+.misp-configio-textarea {
+  flex: 1 1 auto;
+  min-height: 220px;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: var(--misp-dash-space-3);
+  font-family: var(--misp-dash-font-mono, ui-monospace, SFMono-Regular,
+               Menlo, Consolas, monospace);
+  font-size: var(--misp-dash-fs-sm);
+  line-height: 1.5;
+  color: var(--misp-dash-text);
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-configio-textarea:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 1px;
+}
+.misp-configio-textarea[readonly] {
+  color: var(--misp-dash-text-muted);
+}
+.misp-configio-status {
+  margin: 0;
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text-muted);
+}
+.misp-configio-status:empty {
+  display: none;
+}
+.misp-configio-error {
+  margin: 0;
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-danger, #c0392b);
+}
+.misp-configio-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--misp-dash-space-2);
+  flex: 0 0 auto;
 }
 
 /* ============================================================

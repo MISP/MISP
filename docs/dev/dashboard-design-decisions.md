@@ -608,3 +608,91 @@ two stylesheets. No template or JS dependency.
   override should follow the same calm-in-view / exposed-in-edit
   chrome (transparent header, hover+focus-reveal controls, always-on
   in edit mode) for cross-theme consistency.
+
+## DD-10 — Config Import / Export live in the dashboard's own side panel, not the theme global modal
+
+**Date.** 2026-05-25
+**Phase context.** Post-Phase-5.5 UX pass. Supersedes the "v1-carryover
+modal" stopgap that DD-08 left on the "⋯ More" Import / Export items.
+
+**Decision.** The "⋯ More" → **Import configuration** and **Export
+configuration** actions open the dashboard's **own configure side panel**
+(the surface Configure and Add Widget already use), in two new panel
+modes `data-misp-configure-mode="import"` / `"export"`. They no longer
+delegate to either theme's global modal. A new vanilla-ESM module
+`app/webroot/js/dashboard/config-io.module.mjs` owns the panel content,
+mirroring how `gallery.module.mjs` borrows the same panel (set mode,
+fill body, show backdrop+panel, MutationObserver-on-`hidden` cleanup,
+own ESC). The menu items become `data-misp-board-action="import-config"`
+/ `"export-config"` (dispatched in `board.module`'s `_wireBoardActions`,
+which closes the menu on pick) and **keep their `href` as a no-JS
+fallback** to the legacy pages.
+
+- **Export** fetches the saved config from `/dashboards/export` (REST),
+  unwraps it to the bare widget array (DD-05 shape), and shows it
+  pretty-printed in a read-only textarea with Copy.
+- **Import** parses + normalises the pasted blob to a widget array
+  (tolerating the v1 envelopes `{UserSetting:{value}}`,
+  `{Dashboard:{value}}`, `{widgets:[]}`, and a bare array), then POSTs
+  it to `/dashboards/updateSettings` — the board's own save endpoint,
+  which applies `LayoutFixup` and is CSRF-exempt on the
+  `Accept: application/json` path (identical wire shape to the layout
+  save) — and reloads. This deliberately bypasses the legacy
+  `DashboardsController::import()` action and its envelope-unwrap
+  string-`foreach` quirk; the round-trip with Export is lossless.
+
+**Rationale.** The carryover modal only ever worked on the **default**
+theme: it relied on `misp.js`'s `a.modal-open` → `openGenericModal`
+(jQuery). The **Overmind** dashboard layout loads a different, leaner
+stack (BS5 + `mispOvermind.js`, no jQuery, no `misp.js`) with **no
+`modal-open` handler** and a different modal helper (`openModal`) whose
+fragment contract (`#mainModalBody` injection) is incompatible with the
+old `#genericModal` markup the controller renders. So no single
+`modal-open` wiring can work on both themes. The dashboard already owns
+theme-independent overlay surfaces (Configure, Add Widget) in vanilla
+ESM loaded on both themes (the shared `index.ctp` + `board.module`), so
+hosting config I/O there is the only presentation that is correct on
+both themes — and it matches DD-08 ("dashboard owns its chrome"). The
+user chose the side panel over a centered dialog / in-page page
+(2026-05-25).
+
+**Alternatives considered.**
+- **Add `modal-open` to the anchors** (the obvious 2-line fix).
+  Rejected: inert under Overmind (no handler) — the admin's own theme,
+  where the bug was reported.
+- **Theme-aware dispatch** (`openGenericModal` on default, `openModal`
+  on Overmind). Rejected: couples the dashboard to *both* theme globals
+  and their differing fragment contracts; the `#genericModal` vs
+  `#mainModalBody` markup mismatch makes it brittle.
+- **Native `<dialog>` board-owned popup.** Viable and theme-independent;
+  rejected in favour of reusing the existing panel (less new surface,
+  consistent with Configure / Add Widget). The user picked the panel.
+- **In-page styled pages** (like `saveTemplate`, Phase 4's documented
+  direction). Viable and lowest-risk, but the user wanted a popup-style
+  overlay, not a navigation.
+
+**Reversibility.** Additive and self-contained: delete
+`config-io.module.mjs`, drop the two `import-config` / `export-config`
+cases + `_closeContainingMenu` in `board.module`, the two
+`data-misp-board-action` attributes + the `data-misp-board-export-url`
+hook in `index.ctp`, and the `[data-misp-configure-mode="import"|
+"export"]` CSS. The anchors' `href` fallback already points at the
+legacy pages, so removing the JS degrades to the old behaviour rather
+than breaking. No controller, model, or data-shape change.
+
+**Convention for future themes / config surfaces.** Dashboard-level
+actions that need an overlay (config I/O, and anything similar later)
+should be **board-owned** — rendered into the dashboard's own panel /
+`board.module` vocabulary, theme-independent — rather than delegated to
+a theme's global modal, which is not guaranteed present across themes.
+
+**Implementation hooks.**
+- New: `app/webroot/js/dashboard/config-io.module.mjs`.
+- `board.module.mjs`: import + `export-config` / `import-config` cases +
+  `_closeContainingMenu`.
+- `app/View/Dashboards/index.ctp`: `data-misp-board-export-url` on the
+  board root; `data-misp-board-action` on the two menu anchors (href
+  retained); updated "⋯ More" comment.
+- `app/webroot/css/dashboard/dashboard.default.css`: the two new panel
+  modes folded into the gallery-mode selectors + `.misp-configio-*`
+  body styling. Shared sheet → applies on both themes.

@@ -76,6 +76,7 @@ Post-5.5 pre-merge polish (untracked phase — user-driven, in progress):
   [x] Overmind prototype pill removed
   [x] Per-widget raw-data export restored (+ underline + download fixes)
   [x] Export menu clip on 1-row widgets fixed (CSS :has() transient lift)
+  [x] Import/Export config → board-owned side panel (theme-independent; DD-10)
   [ ] More UX tweaks — user will enumerate
   [ ] New widget types / functionality — not started
 ```
@@ -174,7 +175,10 @@ curl -s -X POST -H "Authorization: $KEY" -H "Accept: application/json" \
   functionality" phase.
 - Carryovers (unchanged): `blocklist_orgs` rich picker (needs handler
   rewrite); Chart.min.js / D3 migration (non-dashboard consumers);
-  import HTML form-paste string-foreach quirk; file-mode-drift root
+  import HTML form-paste string-foreach quirk (now *bypassed* by the
+  DD-10 panel, which POSTs to updateSettings; the quirk only remains on
+  the legacy `/dashboards/import` action reachable via the no-JS href
+  fallback); file-mode-drift root
   cause; time_window dropdown UX; grid drop-on-occupied cascade;
   tlp:clear invisible bars; OrgEventsWidget months>13 dates;
   EventEvolutionLineWidget end_date; live-preview race; dormant

@@ -30,7 +30,7 @@
 //
 //     [data-misp-widget-action="refresh|configure|remove|export-json|export-csv"]
 //
-//     [data-misp-board-action="toggle-mode|save|discard|add-widget|set-scope|pause-refresh"]
+//     [data-misp-board-action="toggle-mode|save|discard|add-widget|set-scope|pause-refresh|import-config|export-config"]
 //
 //   Custom events on the board root
 //     misp-board:mode-changed      detail: { mode }
@@ -47,6 +47,7 @@ import { Grid } from './grid/grid.module.mjs';
 import { initChartsIn, disposeChartsIn } from './charts/charts.module.mjs';
 import { openConfigure } from './configure.module.mjs';
 import { openGallery }   from './gallery.module.mjs';
+import { openExportConfig, openImportConfig } from './config-io.module.mjs';
 import {
   initToolbar,
   refresh as refreshToolbar,
@@ -633,8 +634,32 @@ class Board {
           // in the same panel (mode flips from gallery → form).
           openGallery({ onPick: (meta) => this._startDraftWidget(meta) });
           break;
+        case 'export-config':
+          // "⋯ More" → Export. Theme-independent: opens the dashboard's
+          // own side panel (config-io.module) rather than either theme's
+          // global modal. Close the menu so it doesn't linger open.
+          e.preventDefault();
+          this._closeContainingMenu(trigger);
+          openExportConfig();
+          break;
+        case 'import-config':
+          e.preventDefault();
+          this._closeContainingMenu(trigger);
+          openImportConfig();
+          break;
       }
     });
+  }
+
+  // Close the WAI-ARIA menu-button that contains `trigger`, if any.
+  // The "⋯ More" menu's items don't navigate away (we preventDefault to
+  // open a panel instead), and the menu-button doesn't self-close on an
+  // in-root click — so close it explicitly, mirroring _exportWidget.
+  _closeContainingMenu(trigger) {
+    const mb = trigger && trigger.closest('[data-misp-menubutton]');
+    if (mb && mb.__mispMenuButton) {
+      mb.__mispMenuButton.close({ restoreFocus: false });
+    }
   }
 
   _wireWidgetActions() {

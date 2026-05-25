@@ -97,10 +97,13 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
             <?= __('Discard') ?>
         </button>
 
-        <!-- "⋯ More" dropdown (DD-08). Hosts the four template
-             actions; each points at the v1 carryover URL. Phase 4
-             reimplements these as in-page flows. WAI-ARIA Menu
-             Button pattern — see menu-button.module.mjs. -->
+        <!-- "⋯ More" dropdown (DD-08). Hosts the four template actions.
+             Import / Export open the dashboard's own side panel
+             (board-action → config-io.module) so they work identically
+             on both themes — neither theme's global modal is present on
+             the other. The href stays as a no-JS fallback to the legacy
+             page. Save / Browse are still full in-page navigations.
+             WAI-ARIA Menu Button pattern — see menu-button.module.mjs. -->
         <div class="misp-dashboard-menubutton" data-misp-menubutton>
             <button type="button"
                     class="misp-dashboard-btn misp-dashboard-btn-icon"
@@ -121,6 +124,7 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
                 <a role="menuitem"
                    tabindex="-1"
                    class="misp-dashboard-menuitem"
+                   data-misp-board-action="import-config"
                    href="<?= h($baseurl) ?>/dashboards/import">
                     <span class="misp-dashboard-menuitem-icon" aria-hidden="true">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -134,6 +138,7 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
                 <a role="menuitem"
                    tabindex="-1"
                    class="misp-dashboard-menuitem"
+                   data-misp-board-action="export-config"
                    href="<?= h($baseurl) ?>/dashboards/export">
                     <span class="misp-dashboard-menuitem-icon" aria-hidden="true">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -182,7 +187,8 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
       data-misp-board-save-url="<?= h($baseurl) ?>/dashboards/updateSettings"
       data-misp-board-widget-save-url="<?= h($baseurl) ?>/dashboards/updateWidgetSettings"
       data-misp-board-widgets-url="<?= h($baseurl) ?>/dashboards/widgets"
-      data-misp-board-wrapper-url="<?= h($baseurl) ?>/dashboards/renderWrapper">
+      data-misp-board-wrapper-url="<?= h($baseurl) ?>/dashboards/renderWrapper"
+      data-misp-board-export-url="<?= h($baseurl) ?>/dashboards/export">
 
     <?php
     if (empty($widgets)) {
