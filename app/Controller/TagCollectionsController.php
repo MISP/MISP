@@ -55,6 +55,35 @@ class TagCollectionsController extends AppController
         $this->set('action', 'add');
     }
 
+    public function addWithTags()
+    {
+        if ($this->request->is('post')) {
+            $data = $this->request->data;
+            $data['TagCollection']['org_id'] = $this->Auth->user('org_id');
+            $data['TagCollection']['user_id'] = $this->Auth->user('id');
+
+            if (!empty($data['TagCollection']['tags'])) {
+                foreach ($data['TagCollection']['tags'] as $tagId) {
+                    $data['TagCollectionTag'][] = ['tag_id' => $tagId];
+                }
+            }
+
+            $this->TagCollection->create();
+            if ($this->TagCollection->saveAssociated($data)) {
+                $this->Flash->success(__('Collection sauvegardée.'));
+                return $this->redirect(['action' => 'index']);
+            }
+        }
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+        $this->layout=false;
+        $this->loadModel('Tag');
+        $allTags = $this->Tag->getAllTagsForSelect($this->Auth->user());
+        $this->set('allTags', $allTags);
+        $this->set('action', 'add');
+    }
+
     public function import()
     {
         if ($this->request->is('post')) {
@@ -150,6 +179,67 @@ class TagCollectionsController extends AppController
         $this->render('add');
     }
 
+    public function editWithTags($id)
+    {
+        $conditions = $this->TagCollection->createConditions($this->Auth->user());
+        $conditions['TagCollection.id'] = $id;
+        $tagCollection = $this->TagCollection->find('first', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'contain' => ['TagCollectionTag']
+        ]);
+
+        if (empty($tagCollection)) {
+            throw new NotFoundException(__('Invalid Tag Collection'));
+        }
+        if (!$this->ACL->canModifyTagCollection($this->Auth->user(), $tagCollection)) {
+            throw new MethodNotAllowedException(__('You don\'t have editing rights on this Tag Collection.'));
+        }
+
+        if ($this->request->is(['post', 'put'])) {
+            $data = $this->request->data;
+
+            $data['TagCollection']['id'] = $id;
+            $data['TagCollection']['uuid'] = $tagCollection['TagCollection']['uuid'];
+
+            if (isset($data['TagCollection']['tags'])) {
+                $data['TagCollectionTag'] = [];
+                if (!empty($data['TagCollection']['tags'])) {
+                    foreach ($data['TagCollection']['tags'] as $tagId) {
+                        $data['TagCollectionTag'][] = ['tag_id' => $tagId];
+                    }
+                }
+
+                $this->TagCollection->TagCollectionTag->deleteAll(['tag_collection_id' => $id]);
+            }
+
+            if ($this->TagCollection->saveAssociated($data)) {
+                $this->Flash->success(__('Collection mise à jour.'));
+                if ($this->IndexFilter->isRest()) {
+                    return $this->restResponsePayload;
+                }
+                return $this->redirect(['action' => 'index']);
+            }
+        } else {
+            $this->request->data = $tagCollection;
+
+            if (!empty($tagCollection['TagCollectionTag'])) {
+                $this->request->data['TagCollection']['tags'] = Hash::extract(
+                    $tagCollection['TagCollectionTag'],
+                    '{n}.tag_id'
+                );
+            }
+        }
+
+        $this->layout = false;
+        $this->loadModel('Tag');
+        $allTags = $this->Tag->getAllTagsForSelect($this->Auth->user());
+
+        $this->set('allTags', $allTags);
+        $this->set('action', 'editWithTags');
+        $this->render('addWithTags');
+    }
+
     public function delete($id)
     {
         $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), ['conditions' => ['TagCollection.id' => $id]]);
@@ -165,6 +255,22 @@ class TagCollectionsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'TagCollection',
+            'restName' => 'TagCollections',
+            'itemName' => 'tagCollection',
+            'view' => 'ajax/tagCollectionDeleteConfirmationForm',
+            'checkModifyCallback' => function() {
+                return $this->userRole['perm_site_admin'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s collection deleted.', '%s collections deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function addTag($id = false, $tag_id = false)

@@ -274,7 +274,7 @@ var baseNoteTemplate = doT.template('\
     </div> \
 ')
 var analystTemplate = doT.template('\
-    <div style="max-width: 40vw; margin-top: 0.5rem; font-size:"> \
+    <div style="max-width: 40vw; margin-top: 0.5rem;white-space: pre-line;"> \
         {{!it.note}} \
     </div> \
 ')

@@ -59,9 +59,13 @@ class WorkflowBaseModule
             $indexedParams[$id]['value'] = $param['value'] ?? ($param['default'] ?? '');
             if (!empty($param['jinja_supported']) && strlen($param['value']) > 0) {
                 $rDataWithEnv = $rData;
-                $rDataWithEnv['_env'] = [
-                    'baseurl' => Configure::read('MISP.baseurl'),
-                ];
+                if (empty($rDataWithEnv['_env'])) {
+                    $rDataWithEnv['_env'] = [
+                        'baseurl' => Configure::read('MISP.baseurl'),
+                    ];
+                } else {
+                    $rDataWithEnv['_env']['baseurl'] = Configure::read('MISP.baseurl');
+                }
                 $indexedParams[$id]['value'] = $this->render_jinja_template($param['value'], $rDataWithEnv);
             }
         }

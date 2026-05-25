@@ -10,7 +10,7 @@ $fields = [
         'class' => 'span6'
     ],
     [
-        'field' => 'baseurl',
+        'field' => 'discovery_url',
         'class' => 'span6'
     ],
     [
@@ -33,7 +33,7 @@ $fields = [
         'populateAction' => json_encode([
             'uri' => '/taxii_servers/getRoot',
             'body' => [
-                'baseurl' => '{{#TaxiiServerBaseurl}}',
+                'discovery_url' => '{{#TaxiiServerDiscoveryUrl}}',
                 'api_key' => '{{#TaxiiServerApiKey}}'
             ],
             'type' => 'POST'
@@ -47,7 +47,6 @@ $fields = [
         'populateAction' => json_encode([
             'uri' => '/taxii_servers/getCollections',
             'body' => [
-                'baseurl' => '{{#TaxiiServerBaseurl}}',
                 'api_key' => '{{#TaxiiServerApiKey}}',
                 'api_root' => '{{#TaxiiServerApiRoot}}'
             ],

@@ -315,13 +315,13 @@
                 </td>
                 <td class="short" data-search="request_method" data-search-value="<?= h($item['AccessLog']['request_method']) ?>">
                     <span title="<?= __("User agent: %s\nRequest ID: %s", h($item['AccessLog']['user_agent']), h($item['AccessLog']['request_id'])) ?>"><?= h($item['AccessLog']['request_method']) ?></span>
-                    <?= in_array($item['AccessLog']['request_method'], ['POST', 'PUT']) ? ' <a href="#" class="far fa-file request" title="' . __('Show HTTP request') . '" data-log-id="' . h($item['AccessLog']['id']) . '"></i>' : '' ?>
+                    <?= in_array($item['AccessLog']['request_method'], ['POST', 'PUT']) ? ' <a href="#" class="far fa-file request" title="' . __('Show HTTP request') . '" aria-label="' . __('Show HTTP request') . '" data-log-id="' . h($item['AccessLog']['id']) . '"></a>' : '' ?>
                 </td>
                 <td class="short" data-search="controller:action" data-search-value="<?= h($item['AccessLog']['controller']) . ':' . h($item['AccessLog']['action']) ?>" title="<?= __('Controller: %s, action: %s', h($item['AccessLog']['controller']), h($item['AccessLog']['action'])) ?>"><?= h($item['AccessLog']['url']) ?></td>
                 <td class="short" data-search="response_code" data-search-value="<?= h($item['AccessLog']['response_code']) ?>"><?= h($item['AccessLog']['response_code']) ?></td>
                 <td class="short"><?= CakeNumber::toReadableSize($item['AccessLog']['memory_usage']) ?></td>
                 <td class="short"><?= $item['AccessLog']['duration'] ?> ms</td>
-                <td class="short"><?= $item['AccessLog']['query_count'] . ($item['AccessLog']['has_query_log'] ? ' <a href="#" class="fas fa-database query-log" title="' . __('Show SQL queries') . '" data-log-id="' . h($item['AccessLog']['id']) . '"></i>' : '') ?>
+                <td class="short"><?= $item['AccessLog']['query_count'] . ($item['AccessLog']['has_query_log'] ? ' <a href="#" class="fas fa-database query-log" title="' . __('Show SQL queries') . '" aria-label="' . __('Show SQL queries') . '" data-log-id="' . h($item['AccessLog']['id']) . '"></a>' : '') ?>
                 </td>
             </tr>
         <?php endforeach; ?>
@@ -380,4 +380,3 @@
     });
 </script>
 <?= $this->element('/genericElements/SideMenu/side_menu', ['menuList' => 'logs', 'menuItem' => 'listAccessLogs']);
-

@@ -206,14 +206,6 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-tags',
                 'children' => [
                     [
-                        'label' => __('Add Tag'),
-                        'url' => $baseurl . '/tags/add',
-                        'controller' => 'tags',
-                        'action' => 'add',
-                        'requirement' => $this->Acl->canAccess('tags', 'add'),
-                        'icon' => 'fas fa-plus'
-                    ],
-                    [
                         'label' => __('List Tags'),
                         'url' => $baseurl . '/tags/index',
                         'controller' => 'tags',
@@ -286,18 +278,34 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-file-code',
                 'children' => [
                     [
-                        'label' => __('List Templates'),
-                        'url' => $baseurl . '/templates/index',
-                        'controller' => 'templates',
-                        'action' => 'index',
-                        'icon' => 'fas fa-file-code'
-                    ],
-                    [
                         'label' => __('List Object Templates'),
                         'url' => $baseurl . '/objectTemplates/index',
                         'controller' => 'objectTemplates',
-                        'action' => 'templex',
+                        'action' => 'index',
                         'icon' => 'fas fa-cubes'
+                    ],
+                    [
+                        'label' => __('List Object Relationships'),
+                        'url' => $baseurl . '/object_relationships/index',
+                        'controller' => 'object_relationships',
+                        'action' => 'index',
+                        'icon' => 'fas fa-object-ungroup'
+                    ],
+                    [
+                        'label' => __('Event Templates'),
+                        'url' => $baseurl . '/event_templates/index',
+                        'controller' => 'event_templates',
+                        'action' => 'index',
+                        'requirement' => $this->Acl->canAccess('eventTemplates', 'index'),
+                        'icon' => 'fas fa-file-invoice'
+                    ],
+                    [
+                        'label' => __('Add Event Template'),
+                        'url' => $baseurl . '/event_templates/add',
+                        'controller' => 'event_templates',
+                        'action' => 'add',
+                        'requirement' => $this->Acl->canAccess('eventTemplates', 'add'),
+                        'icon' => 'fas fa-plus'
                     ]
                 ]
             ],

@@ -64,6 +64,9 @@ class SharingGroupBlueprintsController extends AppController
         if ($this->restResponsePayload) {
             return $this->restResponsePayload;
         }
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+        }
         $this->set('menuData', array('menuList' => 'globalActions', 'menuItem' => 'addMG'));
     }
 
@@ -83,6 +86,9 @@ class SharingGroupBlueprintsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -96,6 +102,22 @@ class SharingGroupBlueprintsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'SharingGroupBlueprint',
+            'restName' => 'SharingGroupBlueprints',
+            'itemName' => 'SharingGroupBlueprint',
+            'view' => 'ajax/sharingGroupBlueprintDeleteConfirmationForm',
+            'checkModifyCallback' => function($itemId) {
+                return $this->userRole['perm_site_admin'];
+            },
+            'multiSuccessMessageCallback' => function($count) {
+                return __n('%s SharingGroupBlueprint deleted.', '%s SharingGroupBlueprints deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function view($id)
@@ -240,7 +262,11 @@ class SharingGroupBlueprintsController extends AppController
             $this->set('question', __('Are you sure you want to detach the associated sharing group from this Sharing Group Blueprint? This action is irreversible.'));
             $this->set('actionName', __('Detach'));
             $this->layout = false;
-            $this->render('/genericTemplates/confirm');
+            if($this->theme === "Overmind"){
+                $this->render('ajax/sharingGroupBlueprintDetachConfirmationForm');
+            } else {
+                $this->render('/genericTemplates/confirm');
+            }
         }
     }
 
@@ -327,6 +353,9 @@ class SharingGroupBlueprintsController extends AppController
         $server_data = [];
         foreach ($servers as $s) {
             $server_data[$s['Server']['id']] = $s['Server']['name'];
+        }
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
         }
         $this->set('servers', $server_data);
     }

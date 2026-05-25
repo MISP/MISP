@@ -166,6 +166,25 @@ class AdminShell extends AppShell
         $parser->addSubcommand('schemaDiagnostics', [
             'help' => __('Check differences between current and expected database schema')
         ]);
+        $parser->addSubcommand('migrateOldTemplates', [
+            'help' => __('Convert legacy-style templates (templates / template_elements*) into modern event_templates rows. Org name is resolved by lookup with the first site-admin user\'s org as fallback; legacy MISP-shipped templates are skipped; rows whose name collides with an existing event_template are skipped. Original templates are left untouched.'),
+            'parser' => [
+                'options' => [
+                    'id' => [
+                        'help' => __('Migrate only the legacy template with this id. Default: all eligible templates.'),
+                    ],
+                    'dry-run' => [
+                        'short' => 'd',
+                        'help' => __('Print the derived event_template definitions to stdout instead of inserting them.'),
+                        'default' => false,
+                        'boolean' => true,
+                    ],
+                    'export-dir' => [
+                        'help' => __('Optional directory to write each derived definition.json into (created if it does not exist).'),
+                    ],
+                ],
+            ],
+        ]);
         return $parser;
     }
 
@@ -1483,5 +1502,492 @@ class AdminShell extends AppShell
     {
         $this->Server->getPubSubTool()->createConfigFile();
         $this->err("Config file created in " . PubSubTool::SCRIPTS_TMP);
+    }
+
+    /**
+     * Convert legacy-style templates (templates / template_elements +
+     * template_element_attributes / template_element_files /
+     * template_element_texts) into modern event_templates rows.
+     *
+     * Mapping summary:
+     *   templates.share=0 → event_templates.distribution=0 (your org)
+     *   templates.share=1 → event_templates.distribution=1 (community)
+     *   templates.org → event_templates.org_id (resolved by name; falls
+     *     back to the first site-admin user's org_id when the name does
+     *     not match any organisation row)
+     *   text element → section element (label = old name, help = old text)
+     *   attribute element (non-complex) → attribute_field (batch flag
+     *     becomes repeatable; mandatory + category + type carry over;
+     *     to_ids → to_ids_default)
+     *   attribute element (complex File) → object_field referencing the
+     *     misp-objects `file` template, relations: filename / md5 / sha1
+     *     / sha256, repeatable (one instance per indicator). Legacy
+     *     filename|<hash> composites collapse onto instances where the
+     *     operator fills filename + hash on the same row.
+     *   attribute element (complex CnC) → object_field referencing the
+     *     misp-objects `domain-ip` template, relations: domain /
+     *     hostname / ip, repeatable. Legacy `url` subtype is dropped
+     *     (domain-ip has no url relation; reachable as a separate
+     *     attribute_field if operators want it back).
+     *   Both fall back to expanding into N attribute_fields with an
+     *     inline text_block header when the named object template is
+     *     not installed locally.
+     *   file element → file_field (malware=1 → as: malware-sample,
+     *     otherwise as: attachment)
+     *   template_tags → event_defaults.tags (resolved to tag names).
+     *
+     * Legacy MISP-shipped templates (templates.org = "MISP" — the
+     * Phishing E-mail / Malware Report seed set) are skipped because
+     * the modern misp-event-templates library ships their successors.
+     */
+    public function migrateOldTemplates()
+    {
+        $idFilter = isset($this->params['id']) ? (int)$this->params['id'] : null;
+        $dryRun = !empty($this->params['dry-run']);
+        $exportDir = isset($this->params['export-dir']) && $this->params['export-dir'] !== ''
+            ? rtrim((string)$this->params['export-dir'], '/')
+            : null;
+
+        $adminUser = $this->User->find('first', [
+            'recursive' => -1,
+            'contain' => ['Role'],
+            'conditions' => ['Role.perm_site_admin' => 1, 'User.disabled' => 0],
+            'order' => ['User.id' => 'ASC'],
+        ]);
+        if (empty($adminUser)) {
+            $this->err('No active site-admin user found — cannot attribute the migration.');
+            $this->_stop(1);
+        }
+        $userId = (int)$adminUser['User']['id'];
+        $defaultOrgId = (int)$adminUser['User']['org_id'];
+
+        $template = ClassRegistry::init('Template');
+        $conditions = [];
+        if ($idFilter !== null) {
+            $conditions['Template.id'] = $idFilter;
+        }
+        $rows = $template->find('all', [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'order' => ['Template.id' => 'ASC'],
+        ]);
+        if (empty($rows)) {
+            $this->out('No legacy templates to migrate.');
+            return;
+        }
+
+        if ($exportDir !== null && !is_dir($exportDir)) {
+            if (!@mkdir($exportDir, 0755, true) && !is_dir($exportDir)) {
+                $this->err('Could not create export directory: ' . $exportDir);
+                $this->_stop(1);
+            }
+        }
+
+        $eventTemplate = ClassRegistry::init('EventTemplate');
+        $migrated = 0;
+        $skipped = 0;
+        $errors = 0;
+
+        foreach ($rows as $row) {
+            $tpl = $row['Template'];
+            $name = (string)$tpl['name'];
+            $oldOrg = trim((string)$tpl['org']);
+
+            if (strtolower($oldOrg) === 'misp') {
+                $this->out(sprintf('SKIP id=%d "%s" — legacy MISP-shipped template.', (int)$tpl['id'], $name));
+                $skipped++;
+                continue;
+            }
+
+            $existing = $eventTemplate->find('first', [
+                'recursive' => -1,
+                'conditions' => ['EventTemplate.name' => $name],
+                'fields' => ['EventTemplate.id'],
+            ]);
+            if (!empty($existing)) {
+                $this->out(sprintf(
+                    'SKIP id=%d "%s" — event_template with same name already exists (id=%d).',
+                    (int)$tpl['id'], $name, (int)$existing['EventTemplate']['id']
+                ));
+                $skipped++;
+                continue;
+            }
+
+            $definition = $this->__buildEventTemplateDefinitionFromOld($tpl);
+            $orgId = $this->__resolveOrgIdForOldTemplate($oldOrg, $defaultOrgId);
+
+            $envelope = ['EventTemplate' => [
+                'name' => $name,
+                'description' => (string)$tpl['description'],
+                'distribution' => ((int)$tpl['share'] === 1) ? 1 : 0,
+                'active' => 1,
+                'misp_default' => 0,
+                'org_id' => $orgId,
+                'creator_user_id' => $userId,
+                'definition' => $definition,
+            ]];
+
+            if ($dryRun) {
+                $this->out(sprintf('-- id=%d "%s" (would migrate) --', (int)$tpl['id'], $name));
+                $this->out(json_encode($definition, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+                $migrated++;
+            } else {
+                $eventTemplate->create();
+                $saved = $eventTemplate->save($envelope);
+                if ($saved === false) {
+                    $this->err(sprintf(
+                        'FAIL id=%d "%s" — save returned validation errors: %s',
+                        (int)$tpl['id'], $name,
+                        json_encode($eventTemplate->validationErrors)
+                    ));
+                    $errors++;
+                    continue;
+                }
+                $this->out(sprintf(
+                    'OK   id=%d "%s" -> event_template id=%d',
+                    (int)$tpl['id'], $name, (int)$eventTemplate->id
+                ));
+                $migrated++;
+            }
+
+            if ($exportDir !== null) {
+                $slug = preg_replace('/[^a-z0-9]+/', '-', strtolower($name));
+                $slug = trim((string)$slug, '-');
+                if ($slug === '') {
+                    $slug = 'template-' . (int)$tpl['id'];
+                }
+                $path = $exportDir . DS . $slug . '.json';
+                file_put_contents(
+                    $path,
+                    json_encode($definition, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+                );
+                $this->out('     exported to ' . $path);
+            }
+        }
+
+        $this->out(sprintf(
+            'Done. %s=%d skipped=%d errors=%d',
+            $dryRun ? 'would-migrate' : 'migrated',
+            $migrated, $skipped, $errors
+        ));
+    }
+
+    /** @internal Build the new-style definition array from a legacy templates row. */
+    private function __buildEventTemplateDefinitionFromOld(array $tpl)
+    {
+        App::uses('CakeText', 'Utility');
+        $teModel = ClassRegistry::init('TemplateElement');
+        $elements = $teModel->find('all', [
+            'recursive' => -1,
+            'conditions' => ['template_id' => (int)$tpl['id']],
+            'order' => ['position' => 'ASC'],
+        ]);
+
+        $structure = [];
+        $currentSection = null;
+        $counters = ['sec' => 0, 'note' => 0, 'attr' => 0, 'file' => 0, 'obj' => 0];
+
+        foreach ($elements as $entry) {
+            $te = $entry['TemplateElement'];
+            $type = strtolower((string)$te['element_definition']);
+            $teId = (int)$te['id'];
+
+            if ($type === 'text') {
+                $row = $this->__loadTemplateElementChild('TemplateElementText', $teId);
+                if ($row === null) {
+                    continue;
+                }
+                $counters['sec']++;
+                $secId = 'sec_' . $counters['sec'];
+                $section = [
+                    'type' => 'section',
+                    'id' => $secId,
+                    'label' => (string)($row['name'] ?? ''),
+                ];
+                $help = trim((string)($row['text'] ?? ''));
+                if ($help !== '') {
+                    $section['help'] = $help;
+                }
+                if ($section['label'] === '') {
+                    // Schema requires a non-empty label — fall back so save doesn't fail.
+                    $section['label'] = sprintf('Section %d', $counters['sec']);
+                }
+                $structure[] = $section;
+                $currentSection = $secId;
+                continue;
+            }
+
+            if ($type === 'attribute') {
+                $row = $this->__loadTemplateElementChild('TemplateElementAttribute', $teId);
+                if ($row === null) {
+                    continue;
+                }
+                if (!empty($row['complex'])) {
+                    // Complex File / CnC — emit a single object_field
+                    // referencing the canonical misp-objects template
+                    // for the group (file / domain-ip), repeatable so
+                    // the operator can add one instance per indicator.
+                    // Falls back to expanding into N attribute_fields if
+                    // the object template is not installed locally.
+                    $objSpec = $this->__resolveObjectTemplateForComplex((string)$row['type']);
+                    if ($objSpec !== null) {
+                        $counters['obj']++;
+                        $field = [
+                            'type' => 'object_field',
+                            'id' => 'obj_' . $counters['obj'],
+                            'label' => (string)$row['name'],
+                            'mandatory' => !empty($row['mandatory']),
+                            'repeatable' => true,
+                            'object_template' => [
+                                'uuid' => $objSpec['uuid'],
+                                'name' => $objSpec['name'],
+                                'minimum_version' => $objSpec['version'],
+                            ],
+                            'relations' => array_map(function ($rel) {
+                                return ['object_relation' => $rel];
+                            }, $objSpec['relations']),
+                        ];
+                        if ($currentSection !== null) {
+                            $field['parent'] = $currentSection;
+                        }
+                        if (!empty($row['description'])) {
+                            $field['help'] = (string)$row['description'];
+                        }
+                        $structure[] = $field;
+                        continue;
+                    }
+
+                    // Fallback path — emit an inline note + one
+                    // attribute_field per subtype, all under the current
+                    // section (no new section so a subsequent non-complex
+                    // attribute stays grouped with the original).
+                    $counters['note']++;
+                    $noteContent = sprintf(
+                        '**%s** — capture any combination of the matching subtypes below.',
+                        (string)$row['name']
+                    );
+                    if (!empty($row['description'])) {
+                        $noteContent .= "\n\n" . (string)$row['description'];
+                    }
+                    $structure[] = [
+                        'type' => 'text_block',
+                        'id' => 'note_' . $counters['note'],
+                        'content' => $noteContent,
+                    ];
+                    foreach ($this->__expandComplexAttributeType((string)$row['type']) as $sub) {
+                        $counters['attr']++;
+                        $field = [
+                            'type' => 'attribute_field',
+                            'id' => 'attr_' . $counters['attr'],
+                            'label' => (string)$row['name'] . ' — ' . $sub['label'],
+                            'mandatory' => false,
+                            'repeatable' => true,
+                            'misp' => [
+                                'category' => (string)$row['category'],
+                                'type' => $sub['type'],
+                                'to_ids_default' => !empty($row['to_ids']),
+                            ],
+                        ];
+                        if ($currentSection !== null) {
+                            $field['parent'] = $currentSection;
+                        }
+                        $structure[] = $field;
+                    }
+                    continue;
+                }
+
+                // Regular attribute → single attribute_field.
+                $counters['attr']++;
+                $repeatable = !empty($row['batch']);
+                $field = [
+                    'type' => 'attribute_field',
+                    'id' => 'attr_' . $counters['attr'],
+                    'label' => (string)$row['name'],
+                    'mandatory' => !empty($row['mandatory']),
+                    'repeatable' => $repeatable,
+                    'misp' => [
+                        'category' => (string)$row['category'],
+                        'type' => (string)$row['type'],
+                        'to_ids_default' => !empty($row['to_ids']),
+                    ],
+                ];
+                if ($currentSection !== null) {
+                    $field['parent'] = $currentSection;
+                }
+                if (!empty($row['description'])) {
+                    $field['help'] = (string)$row['description'];
+                }
+                if ($field['label'] === '') {
+                    $field['label'] = sprintf('Attribute %d', $counters['attr']);
+                }
+                $structure[] = $field;
+                continue;
+            }
+
+            if ($type === 'file') {
+                $row = $this->__loadTemplateElementChild('TemplateElementFile', $teId);
+                if ($row === null) {
+                    continue;
+                }
+                $counters['file']++;
+                $field = [
+                    'type' => 'file_field',
+                    'id' => 'file_' . $counters['file'],
+                    'label' => (string)$row['name'],
+                    'mandatory' => !empty($row['mandatory']),
+                    'repeatable' => !empty($row['batch']),
+                    'as' => !empty($row['malware']) ? 'malware-sample' : 'attachment',
+                ];
+                if ($currentSection !== null) {
+                    $field['parent'] = $currentSection;
+                }
+                if (!empty($row['description'])) {
+                    $field['help'] = (string)$row['description'];
+                }
+                if ($field['label'] === '') {
+                    $field['label'] = sprintf('File %d', $counters['file']);
+                }
+                $structure[] = $field;
+            }
+        }
+
+        // Resolve template_tags to event_defaults.tags (by tag name).
+        $eventDefaults = ['distribution' => ((int)$tpl['share'] === 1) ? 1 : 0];
+        $templateTagModel = ClassRegistry::init('TemplateTag');
+        $tagModel = ClassRegistry::init('Tag');
+        $links = $templateTagModel->find('all', [
+            'recursive' => -1,
+            'conditions' => ['template_id' => (int)$tpl['id']],
+        ]);
+        $tagEntries = [];
+        foreach ($links as $link) {
+            $tagId = (int)$link['TemplateTag']['tag_id'];
+            $tagRow = $tagModel->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Tag.id' => $tagId],
+                'fields' => ['Tag.name'],
+            ]);
+            if (!empty($tagRow['Tag']['name'])) {
+                $tagEntries[] = ['name' => (string)$tagRow['Tag']['name'], 'locked' => false];
+            }
+        }
+        if (!empty($tagEntries)) {
+            $eventDefaults['tags'] = $tagEntries;
+        }
+
+        return [
+            'schema_version' => 1,
+            'uuid' => CakeText::uuid(),
+            'name' => (string)$tpl['name'],
+            'description' => (string)$tpl['description'],
+            'event_defaults' => $eventDefaults,
+            'structure' => $structure,
+        ];
+    }
+
+    private function __loadTemplateElementChild($modelName, $teId)
+    {
+        $model = ClassRegistry::init($modelName);
+        $row = $model->find('first', [
+            'recursive' => -1,
+            'conditions' => ['template_element_id' => (int)$teId],
+        ]);
+        return isset($row[$modelName]) ? $row[$modelName] : null;
+    }
+
+    /**
+     * @internal
+     * Resolve a legacy complex attribute group (File / CnC) to a misp-objects
+     * template + the relations we want exposed in the new template's
+     * object_field. Returns null if the template is not installed locally,
+     * which the caller treats as a signal to fall back to multi
+     * attribute_field expansion.
+     *
+     *   File → file object (filename, md5, sha1, sha256). The legacy
+     *     filename|md5 / |sha1 / |sha256 composites collapse onto an
+     *     instance where the operator fills both filename and the
+     *     hash, since object relations are atomic.
+     *   CnC  → domain-ip object (domain, hostname, ip). The legacy
+     *     `url` subtype is dropped — domain-ip has no url relation,
+     *     and operators wanting url indicators can add an
+     *     attribute_field manually.
+     */
+    private function __resolveObjectTemplateForComplex($type)
+    {
+        $key = strtolower(trim((string)$type));
+        $map = [
+            'file' => [
+                'uuid' => '688c46fb-5edb-40a3-8273-1af7923e2215',
+                'name' => 'file',
+                'relations' => ['filename', 'md5', 'sha1', 'sha256'],
+            ],
+            'cnc' => [
+                'uuid' => '43b3b146-77eb-4931-b4cc-b66c60f28734',
+                'name' => 'domain-ip',
+                'relations' => ['domain', 'hostname', 'ip'],
+            ],
+        ];
+        if (!isset($map[$key])) {
+            return null;
+        }
+        $spec = $map[$key];
+        $row = $this->ObjectTemplate->find('first', [
+            'recursive' => -1,
+            'conditions' => array(
+                'ObjectTemplate.uuid' => $spec['uuid'],
+                'ObjectTemplate.active' => true,
+            ),
+            'fields' => ['ObjectTemplate.version'],
+            'order' => ['ObjectTemplate.version' => 'DESC'],
+        ]);
+        if (empty($row)) {
+            return null;
+        }
+        $spec['version'] = (int)$row['ObjectTemplate']['version'];
+        return $spec;
+    }
+
+    /** @internal Expand a legacy complex attribute (File / CnC) into its concrete subtypes. */
+    private function __expandComplexAttributeType($type)
+    {
+        $key = strtolower(trim((string)$type));
+        if ($key === 'file') {
+            return [
+                ['label' => 'Filename', 'type' => 'filename'],
+                ['label' => 'MD5', 'type' => 'md5'],
+                ['label' => 'SHA1', 'type' => 'sha1'],
+                ['label' => 'SHA256', 'type' => 'sha256'],
+                ['label' => 'Filename | MD5', 'type' => 'filename|md5'],
+                ['label' => 'Filename | SHA1', 'type' => 'filename|sha1'],
+                ['label' => 'Filename | SHA256', 'type' => 'filename|sha256'],
+            ];
+        }
+        if ($key === 'cnc') {
+            return [
+                ['label' => 'URL', 'type' => 'url'],
+                ['label' => 'Domain', 'type' => 'domain'],
+                ['label' => 'Hostname', 'type' => 'hostname'],
+                ['label' => 'IP destination', 'type' => 'ip-dst'],
+            ];
+        }
+        // Unknown complex type — fall back to a single attribute_field so the
+        // operator can still see the row and adjust manually.
+        return [['label' => (string)$type, 'type' => 'text']];
+    }
+
+    private function __resolveOrgIdForOldTemplate($name, $fallbackOrgId)
+    {
+        if ($name === '') {
+            return (int)$fallbackOrgId;
+        }
+        $row = $this->Organisation->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Organisation.name' => $name],
+            'fields' => ['Organisation.id'],
+        ]);
+        if (!empty($row['Organisation']['id'])) {
+            return (int)$row['Organisation']['id'];
+        }
+        return (int)$fallbackOrgId;
     }
 }

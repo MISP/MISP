@@ -61,7 +61,8 @@ $collection = $data['Collection'] ?? $data;
                     <!-- COPY BUTTON -->
                     <button
                         class="text-muted border-0 bg-white"
-                        onclick="copyToClipboard('<?= h($collection['uuid'] ?? '') ?>')"
+                        onclick="copyToClipboard(this, '<?= h(h($collection['uuid'] ?? '')) ?>')"
+                        data-bs-toggle="tooltip"
                         title="<?= __('Copy UUID') ?>"
                         aria-label="<?= __('Copy UUID') ?>">
                         <i class="fas fa-copy"></i>
@@ -137,23 +138,3 @@ $collection = $data['Collection'] ?? $data;
     </div>
 
 </div>
-
-
-<!-- COPY SCRIPT -->
-<script>
-function copyToClipboard(text) {
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text);
-    } else {
-        // fallback
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        textarea.style.position = "fixed";
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-    }
-}
-</script>

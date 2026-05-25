@@ -8,7 +8,7 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
 <div style="border:1px solid #dddddd; margin-top:1px; width:95%; padding:10px">
     <?php if (!$dbEncodingStatus):?>
     <div style="font-size:12pt;padding-left:3px;width:100%;background-color:red;color:white;font-weight:bold;">
-        <?= __('Incorrect database encoding setting: Your database connection is currently NOT set to UTF-8. Please make sure to uncomment the \'encoding\' => \'utf8\' line in ') . APP; ?>Config/database.php
+        <?= __('Incorrect database encoding setting: Your database connection is currently NOT set to "utf8mb4 COLLATE utf8mb4_unicode_ci". Please make sure the \'encoding\' => \'utf8mb4 COLLATE utf8mb4_unicode_ci\' is set in ') . APP; ?>Config/database.php
     </div>
     <?php endif; ?>
     <h3><?= __('MISP version');?></h3>

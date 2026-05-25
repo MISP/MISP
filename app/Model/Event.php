@@ -9445,7 +9445,7 @@ class Event extends AppModel
         }
     }
 
-    public function runWorkflow($event_id, $workflow_ids)
+    public function runWorkflow($event_id, $workflow_ids, $env_vars)
     {
         $this->Workflow = ClassRegistry::init('Workflow');
         $payload = [
@@ -9460,7 +9460,8 @@ class Event extends AppModel
             if (!$this->Workflow->isAdHocWorkflow($workflow_id)) {
                 throw new MethodNotAllowedException("Can only run a Ad-Hoc Workflow");
             }
-            $result = $this->Workflow->executeWorkflow($workflow_id, $payload);
+            $errors = [];
+            $result = $this->Workflow->executeWorkflow($workflow_id, $payload, $errors, $env_vars);
             if (!empty($result['success'])) {
                 $all_results['success_count'] += 1;
             } else {

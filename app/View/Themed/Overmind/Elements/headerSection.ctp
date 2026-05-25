@@ -1,4 +1,4 @@
-<div class="bg-primary text-white py-5 shadow-sm mb-4">
+<div class="bg-primary text-white py-5 shadow-sm">
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center">
 
@@ -26,6 +26,12 @@
                     <?php foreach ($headerActions as $action): ?>
                         <?php if ($action['type'] === 'link'): ?>
                             <a href="<?= h($action['url']) ?>"
+                            <?php if (!empty($action['onClick'])): ?>
+                                onclick="event.preventDefault(); <?= h($action['onClick']) ?>();"
+                            <?php endif; ?>
+                            <?php if (!empty($action['id'])): ?>
+                                id="<?= h($action['id']) ?>"
+                            <?php endif; ?>
                             class="btn bg-white text-primary border-0 shadow-sm fw-semibold d-flex align-items-center gap-2">
                                 <i class="fas fa-<?= h($action['icon']) ?>"></i>
                                 <?= h($action['label']) ?>

@@ -29,40 +29,53 @@ class RestResponseComponent extends Component
         'Attribute' => array(
             'add' => array(
                 'description' => "POST a MISP Attribute JSON to this API to create an Attribute.",
+                'operationId' => 'addAttribute',
+                'method' => 'POST',
                 'mandatory' => array('value', 'type'),
                 'optional' => array('category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment', 'data', 'encrypt', 'first_seen', 'last_seen'),
                 'params' => array('event_id')
             ),
             'edit' => array(
                 'description' => "POST a MISP Attribute JSON to this API to update an Attribute. If the timestamp is set, it has to be newer than the existing Attribute.",
+                'operationId' => 'editAttribute',
+                'method' => 'PUT',
                 'mandatory' => array(),
                 'optional' => array('value', 'type', 'category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment', 'date', 'encrypt', 'first_seen', 'last_seen'),
                 'params' => array('attribute_id')
             ),
             'deleteSelected' => array(
                 'description' => "POST a list of attribute IDs in JSON format to this API to delete the given attributes. This API also expects an event ID passed via the URL or via the event_id key. The id key also takes 'all' as a parameter for a wildcard search to mass delete attributes. If you want the function to also hard-delete already soft-deleted attributes, pass the allow_hard_delete key.",
+                'operationId' => 'deleteAttribute',
+                'method' => 'DELETE',
                 'mandatory' => array('id'),
                 'optional' => array('event_id', 'allow_hard_delete'),
                 'params' => array('event_id')
             ),
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
+                'operationId' => 'restSearchAttributes',
+                'method' => 'POST',
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'sharinggroup', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'),
                 'params' => array()
             ),
             'addTag' => array(
                 'description' => "Add a tag or a tag collection to an attribute.",
+                'operationId' => 'tagAttribute',
+                'method' => 'POST',
                 'mandatory' => array('attribute', 'tag')
             ),
             'removeTag' => array(
                 'description' => "Remove a tag from an attribute.",
+                'operationId' => 'untagAttribute',
+                'method' => 'POST',
                 'mandatory' => array('attribute', 'tag')
             ),
         ),
         'Community' => array(
             'requestAccess' => array(
                 'description' => "POST a request object describing yourself and your organisation to request access to the desired community.",
+                'method' => 'POST',
                 'mandatory' => array(),
                 'optional' => array('org_name', 'org_uuid', 'sync', 'org_description', 'email', 'message', 'anonymise', 'gpgkey', 'mock'),
                 'params' => array('uuid')
@@ -71,38 +84,51 @@ class RestResponseComponent extends Component
         'Event' => array(
             'add' => array(
                 'description' => "POST a MISP Event JSON to this API to create an Event. Contained objects can also be included (such as attributes, objects, tags, etc).",
+                'operationId' => 'addEvent',
+                'method' => 'POST',
                 'mandatory' => array('info'),
                 'optional' => array('threat_level_id', 'analysis', 'distribution', 'sharing_group_id', 'uuid', 'published', 'timestamp', 'date', 'Attribute', 'Object', 'Shadow_Attribute', 'EventTag', 'is_extension', 'is_extended',),
                 'params' => array()
             ),
             'edit' => array(
                 'description' => "POST a MISP Event JSON to this API to update an Event. Contained objects can also be included (such as attributes, objects, tags, etc). If the timestamp is set, it has to be newer than the existing Attribute.",
+                'operationId' => 'editEvent',
+                'method' => 'PUT',
                 'mandatory' => array(),
                 'optional' => array('info', 'threat_level_id', 'analysis', 'distribution', 'sharing_group_id', 'uuid', 'published', 'timestamp', 'date', 'Attribute', 'Object', 'Shadow_Attribute', 'EventTag'),
                 'params' => array('event_id')
             ),
             'index' => array(
                 'description' => 'POST a JSON filter object to this API to get the meta-data about matching events.',
+                'operationId' => 'searchEvents',
+                'method' => 'GET',
                 'optional' => array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'is_extension', 'is_extended')
             ),
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. The search is available on an event and an attribute level, just select the scope via the URL (/events/restSearch vs /attributes/restSearch). Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export). This API allows pagination via the page and limit parameters.",
+                'operationId' => 'restSearchEvents',
+                'method' => 'POST',
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'event_tags', 'searchall', 'date', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo', 'sharinggroup', 'excludeLocalTags', 'threat_level_id', 'attackGalaxy',),
                 'params' => array()
             ),
             'addTag' => array(
                 'description' => "Add a tag or a tag collection to an event.",
+                'operationId' => 'tagEvent',
+                'method' => 'POST',
                 'mandatory' => array('event', 'tag')
             ),
             'removeTag' => array(
                 'description' => "Remove a tag from an event.",
+                'operationId' => 'untagEvent',
+                'method' => 'POST',
                 'mandatory' => array('event', 'tag')
             ),
         ),
         'EventGraph' => array(
             'add' => array(
                 'description' => "POST a network in JSON format to this API to to keep a history of it",
+                'method' => 'POST',
                 'mandatory' => array('event_id', 'network_json'),
                 'optional' => array('network_name')
             )
@@ -110,11 +136,15 @@ class RestResponseComponent extends Component
         'EventReport' => array(
             'add' => array(
                 'description' => "POST a report in JSON format to create a report for the provided event",
+                'operationId' => 'addEventReport',
+                'method' => 'POST',
                 'mandatory' => array('name'),
                 'optional' => array('distribution', 'content')
             ),
             'edit' => array(
                 'description' => "POST a report in JSON format to update the report",
+                'operationId' => 'editEventReport',
+                'method' => 'PUT',
                 'mandatory' => array(),
                 'optional' => array('name', 'distribution', 'content')
             )
@@ -122,18 +152,24 @@ class RestResponseComponent extends Component
         'Feed' => array(
             'add' => array(
                 'description' => "POST a MISP Feed descriptor JSON to this API to add a Feed.",
+                'operationId' => 'addFeed',
+                'method' => 'POST',
                 'mandatory' => array('source_format', 'url', 'name', 'input_source', 'provider'),
                 'optional' => array('enabled', 'caching_enabled', 'lookup_visible', 'delete_local_file', 'headers', 'fixed_event', 'target_event', 'settings', 'publish', 'override_ids', 'delta_merge', 'distribution', 'sharing_group_id', 'tag_id', 'pull_rules', 'rules', 'event_id'),
                 'params' => array()
             ),
             'edit' => array(
                 'description' => "POST a MISP Feed descriptor JSON to this API to edit a Feed.",
+                'operationId' => 'editFeed',
+                'method' => 'PUT',
                 'mandatory' => array(),
                 'optional' => array('source_format', 'url', 'name', 'enabled', 'caching_enabled', 'lookup_visible', 'provider', 'input_source', 'delete_local_file', 'headers', 'fixed_event', 'target_event', 'settings', 'publish', 'override_ids', 'delta_merge', 'distribution', 'sharing_group_id', 'tag_id', 'pull_rules', 'rules', 'event_id'),
                 'params' => array('feed_id')
             ),
             'previewIndex' => array(
                 'description' => 'Sending a GET request to this endpoint will show the parsed feed in JSON format.',
+                'operationId' => 'getFeeds',
+                'method' => 'GET',
                 'mandatory' => array(),
                 'optional' => array(),
                 'params' => array('feed_id'),
@@ -143,18 +179,24 @@ class RestResponseComponent extends Component
         'GalaxyCluster' => array(
             'add' => array(
                 'description' => "POST a MISP GalaxyCluster JSON to this API to create a GalaxyCluster. Contained objects can also be included (such as relations, elements, tags, etc).",
+                'operationId' => 'addGalaxyCluster',
+                'method' => 'POST',
                 'mandatory' => array('value', 'description'),
                 'optional' => array('distribution', 'sharing_group_id', 'uuid', 'version', 'extends_uuid', 'extends_version', 'elements', 'GalaxyClusterRelation'),
                 'params' => array('galaxy_id')
             ),
             'edit' => array(
                 'description' => "POST a MISP GalaxyCluster JSON to this API to edit a GalaxyCluster",
+                'operationId' => 'editGalaxyCluster',
+                'method' => 'PUT',
                 'mandatory' => array('value', 'description'),
                 'optional' => array('distribution', 'sharing_group_id', 'uuid', 'version', 'extends_uuid', 'extends_version', 'elements'),
                 'params' => array('cluster_id')
             ),
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the selected format. This API allows pagination via the page and limit parameters.",
+                'operationId' => 'searchGalaxyClusters',
+                'method' => 'POST',
                 'optional' => array('page', 'limit', 'id', 'uuid', 'galaxy_id', 'galaxy_uuid', 'version', 'distribution', 'org_id', 'orgc_id', 'tag_name', 'custom', 'minimal', 'published', 'value', 'elements', 'extends_uuid'),
                 'params' => array()
             ),
@@ -162,12 +204,14 @@ class RestResponseComponent extends Component
         'GalaxyClusterRelation' => array(
             'add' => array(
                 'description' => "POST a MISP GalaxyClusterRelation JSON to this API to create a GalaxyCluster relation. Contained objects can also be included (such as tags).",
+                'method' => 'POST',
                 'mandatory' => array('galaxy_cluster_uuid', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type'),
                 'optional' => array('distribution', 'sharing_group_id', 'tags'),
                 'params' => array()
             ),
             'edit' => array(
                 'description' => "POST a MISP GalaxyClusterRelation JSON to this API to edit a GalaxyCluster relation. Contained objects can also be included (such as tags).",
+                'method' => 'POST',
                 'mandatory' => array('galaxy_cluster_uuid', 'referenced_galaxy_cluster_uuid', 'referenced_galaxy_cluster_type'),
                 'optional' => array('distribution', 'sharing_group_id', 'tags'),
                 'params' => array('relation_id')
@@ -176,20 +220,27 @@ class RestResponseComponent extends Component
         'Log' => array(
             'admin_index' => array(
                 'description' => "POST a filter object to receive a JSON with the log entries matching the query. A simple get request will return the entire DB. You can use the filter parameters as url parameters with a GET request such as: https://path.to.my.misp/admin/logs/page:1/limit:200 - to run substring queries simply append/prepend/encapsulate the search term with %. All restSearch rules apply.",
+                'operationId' => 'getLogs',
+                'method' => 'POST',
                 "optional" => array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip')
             ),
             'event_index' => array(
-                'description' => "Simply run a get request on this endpoint to get the relevant log entries for a given event. This functionality is open to any user having access to a given event."
+                'description' => "Simply run a get request on this endpoint to get the relevant log entries for a given event. This functionality is open to any user having access to a given event.",
+                'method' => 'GET',
             )
         ),
         'Organisation' => array(
             'admin_add' => array(
                 'description' => "POST an Organisation object in JSON format to this API to create a new organisation.",
+                'operationId' => 'addOrganisation',
+                'method' => 'POST',
                 'mandatory' => array('name'),
                 'optional' => array('description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
             ),
             'admin_edit' => array(
                 'description' => "POST an Organisation object in JSON format to this API to create a new organisation.",
+                'operationId' => 'editOrganisation',
+                'method' => 'PUT',
                 'mandatory' => array('name'),
                 'optional' => array('description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
             )
@@ -197,6 +248,7 @@ class RestResponseComponent extends Component
         'Role' => array(
             'admin_add' => array(
                 'description' => "POST a Role object in JSON format to this API to create a new role. 'permission' sets the data access permission (0 => read only, 1 => add/edit own, 2 => add/edit org, 3 => publish)",
+                'method' => 'POST',
                 'mandatory' => array('name'),
                 'optional' => array(
                     'perm_delegate',
@@ -219,6 +271,7 @@ class RestResponseComponent extends Component
             ),
             'admin_edit' => array(
                 'description' => "POST a Role object in JSON format to this API to edit a role. 'permission' sets the data access permission (0 => read only, 1 => add/edit own, 2 => add/edit org, 3 => publish)",
+                'method' => 'PUT',
                 'mandatory' => array('name'),
                 'optional' => array(
                     'perm_delegate',
@@ -243,25 +296,34 @@ class RestResponseComponent extends Component
         'Server' => array(
             'add' => array(
                 'description' => "POST an Server object in JSON format to this API to add a server.",
+                'operationId' => 'addServer',
+                'method' => 'POST',
                 'mandatory' => array('url', 'name', 'remote_org_id', 'authkey'),
                 'optional' => array('push', 'pull', 'push_sightings', 'push_rules', 'pull_rules', 'submitted_cert', 'submitted_client_cert', 'json')
             ),
             'edit' => array(
                 'description' => "POST an Server object in JSON format to this API to edit a server.",
+                'operationId' => 'editServer',
+                'method' => 'PUT',
                 'optional' => array('url', 'name', 'authkey', 'json', 'push', 'pull', 'push_sightings', 'push_rules', 'pull_rules', 'submitted_cert', 'submitted_client_cert', 'remote_org_id')
             ),
             'serverSettings' => array(
-                'description' => "Send a GET request to this endpoint to get a full diagnostic along with all currently set settings of the current instance. This will also include the worker status"
+                'description' => "Send a GET request to this endpoint to get a full diagnostic along with all currently set settings of the current instance. This will also include the worker status",
+                'operationId' => 'getServerSettings',
+                'method' => 'GET',
             )
         ),
         'Sighting' => array(
             'add' => array(
                 'description' => "POST a simplified sighting object in JSON format to this API to add it or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.",
+                'operationId' => 'addSightingByValue',
+                'method' => 'POST',
                 'mandatory' => array('OR' => array('values', 'id')),
                 'optional' => array('type', 'source', 'timestamp', 'date', 'time', 'filters')
             ),
             'restSearch' => array(
                 'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format. The search is available on an event, attribute or instance level, just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/). id or uuid MUST be provided if context is set.",
+                'method' => 'POST',
                 'mandatory' => array('returnFormat'),
                 'optional' => array('id', 'uuid', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent', 'includeUuid'),
                 'params' => array('context')
@@ -270,11 +332,15 @@ class RestResponseComponent extends Component
         'SharingGroup' => array(
             'add' => array(
                 'description' => "POST a Sharing Group object in JSON format to this API to add a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
+                'operationId' => 'addSharingGroup',
+                'method' => 'POST',
                 'mandatory' => array('name', 'releasability'),
                 'optional' => array('description', 'uuid', 'organisation_uuid', 'active', 'created', 'modified', 'roaming', 'Server' => array('url', 'name', 'all_orgs'), 'Organisation' => array('uuid', 'name', 'extend'))
             ),
             'edit' => array(
                 'description' => "POST a Sharing Group object in JSON format to this API to edit a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
+                'operationId' => 'editSharingGroup',
+                'method' => 'POST',
                 'mandatory' => array(),
                 'optional' => array('name', 'releasability', 'description', 'uuid', 'organisation_uuid', 'active', 'created', 'modified', 'roaming', 'SharingGroupServer' => array('url', 'name', 'all_orgs'), 'SharingGroupOrg' => array('uuid', 'name', 'extend'))
             )
@@ -282,52 +348,69 @@ class RestResponseComponent extends Component
         'Tag' => array(
             'add' => array(
                 'description' => "POST a Tag object in JSON format to this API to create a new tag.",
+                'operationId' => 'addTag',
+                'method' => 'POST',
                 'mandatory' => array('name'),
                 'optional' => array('colour', 'exportable', 'hide_tag', 'org_id', 'user_id')
             ),
             'edit' => array(
                 'description' => "POST or PUT a Tag object in JSON format to this API to create and edit an existing tag.",
+                'operationId' => 'editTag',
+                'method' => 'PUT',
                 'optional' => array('name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'),
                 'params' => array('tag_id')
             ),
             'removeTagFromObject' => array(
                 'description' => "Untag an event or attribute. Tag can be the id or the name.",
+                'method' => 'POST',
                 'mandatory' => array('uuid', 'tag')
             ),
             'attachTagToObject' => array(
                 'description' => "Attach a Tag to an object, refenced by an UUID. Tag can either be a tag id or a tag name.",
+                'method' => 'POST',
                 'mandatory' => array('uuid', 'tag'),
             ),
             'search' => array(
                 'description' => "GET or POST the tags to search for as a raw string or as a list. The strict_tag_name_only parameter only returns tags matching exactly the tag name (thus, skipping synonyms and cluster's value)",
+                'operationId' => 'searchTag',
+                'method' => 'GET',
                 'params' => array('tag_name', 'strict_tag_name_only')
             )
         ),
         'User' => array(
             'admin_add' => array(
                 'description' => "POST a User object in JSON format to this API to create a new user.",
+                'operationId' => 'addUser',
+                'method' => 'POST',
                 'mandatory' => array('email', 'org_id', 'role_id'),
                 'optional' => array('password', 'external_auth_required', 'external_auth_key', 'enable_password', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'change_pw', 'termsaccepted', 'newsread')
             ),
             'admin_edit' => array(
                 'description' => "POST a User object in JSON format to this API to edit a user.",
+                'operationId' => 'editUser',
+                'method' => 'PUT',
                 'optional' => array('email', 'org_id', 'role_id', 'password', 'external_auth_required', 'external_auth_key', 'enable_password', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'change_pw', 'termsaccepted', 'newsread')
             ),
             'admin_quickEmail' => array(
                 'description' => "POST a body and a subject in a JSON to send an e-mail through MISP to the user ID given in the URL",
+                'method' => 'POST',
                 'mandatory' => array('subject', 'body')
             ),
             'change_pw' => array(
                 'description' => "POST a password via a JSON object containing the password key to reset the given user\'s password.",
+                'method' => 'POST',
                 'mandatory' => array('password')
             ),
             'statistics' => array(
                 'description' => 'Simply GET the url endpoint to view the API output of the statistics API. Additional statistics are available via the following tab-options similar to the UI: data, orgs, users, tags, attributehistogram, sightings, attackMatrix',
+                'method' => 'GET',
                 'params' => array('tab'),
                 'http_method' => 'GET'
             ),
             'totp_delete' => array(
                 'description' => 'Simply do a DELETE or POST request to the url',
+                'operationId' => 'deleteUserTotp',
+                'method' => 'DELETE',
                 'params' => array('user_id'),
                 'http_method' => 'DELETE'
             )
@@ -335,21 +418,27 @@ class RestResponseComponent extends Component
         'UserSetting' => array(
             'setSetting' => array(
                 'description' => "POST a User setting object in JSON format to this API to create a new setting or update the equivalent existing setting. Admins/site admins can specify a user ID besides their own.",
+                'method' => 'POST',
                 'mandatory' => array('setting', 'value'),
                 'optional' => array('user_id')
             ),
             'delete' => array(
                 'description' => "POST or DELETE to this API to delete an existing setting.",
+                'method' => 'DELETE',
                 'params' => array('id')
             )
         ),
         'Warninglist' => array(
             'checkValue' => array(
                 'description' => "POST a JSON list with value(s) to check against the warninglists to get a JSON dictionary as a response with any hits, if there are any (with the key being the passed value triggering a warning).",
-                'mandatory' => array('[]')
+                'operationId' => 'checkValueWarninglistsMatches',
+                'method' => 'POST',
+                'mandatory' => array('[]'),
             ),
             'toggleEnable' => array(
                 'description' => "POST a json object with a single or a list of warninglist IDsIDs, or alternatively a (list of) substring(s) that match the names of warninglist(s) to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",'mandatory' => array('id'),
+                'operationId' => 'toggleEnableWarninglist',
+                'method' => 'POST',
                 'optional' => array('id', 'name', 'enabled')
             )
         )
@@ -394,7 +483,8 @@ class RestResponseComponent extends Component
             foreach ($actions as $action => $data) {
                 if ($this->ACL->canUserAccess($user, $controller, $action)) {
                     $url = $this->generateUrl($controller, $action);
-                    $output[$controller][$action] = $url;
+                    $output[$controller][$action][0] = $url;
+                    $output[$controller][$action][1] = $data['method'];
                 }
             }
         }

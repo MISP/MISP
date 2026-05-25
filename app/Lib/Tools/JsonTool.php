@@ -146,6 +146,22 @@ class JsonTool
     }
 
     /**
+     * Make string safe to store in a MySQL utf8mb3 (a.k.a. utf8) column by replacing invalid UTF-8 bytes
+     * and stripping 4-byte UTF-8 characters (Supplementary Multilingual Plane and above, U+10000..U+10FFFF)
+     * with the Unicode Replacement Character U+FFFD.
+     * @param string $string
+     * @return string
+     */
+    public static function sanitizeForUtf8mb3($string)
+    {
+        if (!is_string($string) || $string === '') {
+            return $string;
+        }
+        $string = self::escapeNonUnicode($string);
+        return preg_replace('/[\x{10000}-\x{10FFFF}]/u', "\xEF\xBF\xBD", $string);
+    }
+
+    /**
      * Convert all integers in array or object to strings. Useful for php7.4 to php8 migration
      * @param mixed $data
      */

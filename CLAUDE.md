@@ -122,8 +122,8 @@ Example: `fix: [api] Correct attribute validation (#3120)`
 
 ## Git Workflow
 
-- **Main branch**: `2.5` (current stable), `2.4` (legacy stable until April 2025)
-- **Development**: `develop` (main dev), `2.4-develop` (legacy dev)
+- **Main branch**: `2.5` (current stable)
+- **Development**: `develop`
 - **Feature branches**: Branch from `2.5`, prefix with `fix-*` or `feature-*`
 
 ## Requirements

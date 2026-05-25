@@ -1,7 +1,7 @@
 <?php
     echo $this->Form->create('Attribute', array(
       'id' => 'Attribute' . '_' . $object['id'] . '_first_seen_form',
-      'url' => '/attributes/editField/' . $object['id']
+      'url' => $baseurl . '/attributes/editField/' . $object['id']
     ));
 ?>
 <?php

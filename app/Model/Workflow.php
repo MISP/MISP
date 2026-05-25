@@ -492,7 +492,7 @@ class Workflow extends AppModel
      * @param array $blockingErrors
      * @return array
      */
-    public function executeWorkflow($workflow_id, array $data, array &$blockingErrors=[]): array
+    public function executeWorkflow($workflow_id, array $data, array &$blockingErrors=[], array $env_vars=[]): array
     {
         $this->loadAllWorkflowModules();
 
@@ -520,13 +520,13 @@ class Workflow extends AppModel
             ];
         }
         if (!empty($triggerModule->is_adhoc)) {
-            return $this->__runAdHocWorkflow($workflow, $trigger_id, $triggerModule, $startNodeID, $blockingErrors, $data);
+            return $this->__runAdHocWorkflow($workflow, $trigger_id, $triggerModule, $startNodeID, $blockingErrors, $data, $env_vars);
         }
-        $result = $this->__runWorkflow($workflow, $triggerModule, $data, $startNodeID, $blockingErrors);
+        $result = $this->__runWorkflow($workflow, $triggerModule, $data, $startNodeID, $blockingErrors, $env_vars);
         return $result;
     }
 
-    private function __runAdHocWorkflow($workflow, $trigger_id, $triggerModule, $startNodeID, array &$blockingErrors, array $passedData = []): array
+    private function __runAdHocWorkflow($workflow, $trigger_id, $triggerModule, $startNodeID, array &$blockingErrors, array $passedData = [], array $env_vars=[]): array
     {
         $userForWorkflow = $this->getUserForWorkflow();
         $graphData = !empty($workflow['Workflow']) ? $workflow['Workflow']['data'] : $workflow['data'];
@@ -534,7 +534,7 @@ class Workflow extends AppModel
         $data = $triggerModule->collectData($userForWorkflow, $indexed_params, $passedData);
         $lastResult = ['success' => false, 'outcomeText' => __('No data collected.'), 'walkResult' => []];
         foreach ($data as $dataPiece) {
-            $lastResult = $this->executeWorkflowForTrigger($trigger_id, $dataPiece, $blockingErrors, true); // FIXME: reuse passed user
+            $lastResult = $this->executeWorkflowForTrigger($trigger_id, $dataPiece, $blockingErrors, true, $env_vars); // FIXME: reuse passed user
         }
         return $lastResult;
     }
@@ -601,7 +601,7 @@ class Workflow extends AppModel
      * @return boolean True if the execution for the blocking path was a success
      * @throws TriggerNotFoundException
      */
-    public function executeWorkflowForTrigger($trigger_id, array $data, array &$blockingErrors=[], $returnFullResult = false)
+    public function executeWorkflowForTrigger($trigger_id, array $data, array &$blockingErrors=[], $returnFullResult = false, $env_vars=[])
     {
         $this->loadAllWorkflowModules();
 
@@ -621,7 +621,7 @@ class Workflow extends AppModel
             return false;
         }
         // Take care for Ad-Hoc Workflows
-        $result = $this->__runWorkflow($workflow, $triggerModule, $data, $startNodeID, $blockingErrors);
+        $result = $this->__runWorkflow($workflow, $triggerModule, $data, $startNodeID, $blockingErrors, $env_vars);
         return !empty($returnFullResult) ? $result : $result['success'];
     }
 
@@ -634,7 +634,7 @@ class Workflow extends AppModel
      * @param int $startNodeID
      * @return array
      */
-    private function __runWorkflow(array $workflow, $triggerModule, array $data, $startNodeID, &$blockingErrors=[]): array
+    private function __runWorkflow(array $workflow, $triggerModule, array $data, $startNodeID, &$blockingErrors=[], $env_vars=[]): array
     {
         $this->Log = ClassRegistry::init('Log');
         $message =  __('Started executing workflow for trigger `%s` (%s)', $triggerModule->id, $workflow['Workflow']['id']);
@@ -653,6 +653,15 @@ class Workflow extends AppModel
         if ($data === false) {
             $conversionFailure = true;
             $message = __('Error while normalizing data for trigger. Invalid input.');
+        }
+        if (!empty($env_vars)) {
+            if (empty($data['_env'])) {
+                $data['_env'] = $env_vars;
+            } else {
+                foreach ($env_vars as $k => $v) {
+                    $data['_env'][$k] = $v;
+                }
+            }
         }
         if ($conversionFailure) {
             $this->logExecutionIfDebug($workflow, $message);
