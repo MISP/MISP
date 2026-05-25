@@ -62,19 +62,6 @@
   text-overflow: ellipsis;
 }
 
-.misp-widget--overmind__badge {
-  display: inline-block;
-  margin-left: var(--misp-dash-space-2);
-  padding: 1px var(--misp-dash-space-2);
-  font-size: var(--misp-dash-fs-xs);
-  font-weight: var(--misp-dash-fw-medium);
-  color: var(--misp-dash-text-on-accent);
-  background: var(--misp-dash-accent);
-  border-radius: var(--misp-dash-radius-sm);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
 .misp-widget--overmind__iconbtn {
   appearance: none;
   background: transparent;

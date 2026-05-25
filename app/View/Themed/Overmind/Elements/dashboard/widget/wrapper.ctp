@@ -14,8 +14,6 @@
  *   - Outer element is a BS5-style `<div class="card">` (not <article>)
  *   - Title bar uses `.card-header` + flex utilities
  *   - Body uses `.card-body`
- *   - A small "Overmind" pill in the title bar makes the override
- *     obvious during prototype verification
  *
  * The styling for these classes ships at
  * `Themed/Overmind/webroot/css/dashboard/overmind.css`, loaded by
@@ -44,7 +42,6 @@
     <div class="card-header d-flex align-items-center" data-drag-handle>
         <span class="card-title flex-grow-1 fw-medium mb-0">
             <?= h($widget['alias'] ?? $widget['widget']) ?>
-            <span class="badge bg-primary misp-widget--overmind__badge" aria-label="<?= __('Overmind theme override active') ?>">Overmind</span>
         </span>
         <span class="misp-widget-refresh-indicator misp-widget--overmind__refresh-indicator text-muted small me-2"
               data-misp-widget-refresh-indicator
