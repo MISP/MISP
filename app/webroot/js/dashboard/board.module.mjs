@@ -564,8 +564,20 @@ class Board {
       const a = window.document.createElement('a');
       a.href = url;
       a.download = `${name}_${id}_export.${type}`;
+      a.rel = 'noopener';
+      a.style.display = 'none';
+      // The anchor MUST be in the document for the `download` attribute
+      // to be honoured in Firefox/Safari — a detached click otherwise
+      // navigates to the blob: URL and renders the data in-page instead
+      // of saving it. And revoke on a later tick: an immediate revoke
+      // races the browser's read of the blob and produces a broken/empty
+      // result.
+      window.document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
+      window.setTimeout(() => {
+        window.document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 0);
     } catch (err) {
       this._dispatchEvent('widget-error', {
         instanceId: id, widgetName: name, error: `export failed: ${String(err)}`,
