@@ -10,7 +10,22 @@ class OrgsContributorsGeneric
         'blocklist_orgs' => 'A list of organisation names to filter out',
         'timeframe' => 'Number of days considered for the query (30 by default)'
     );
-    public $schema = array();
+    // Partial $schema (the in-tree norm — e.g. NewOrgsWidget schemas
+    // only `filter` of its ~12 params): `timeframe` gets a typed int
+    // field so the three OrgsContributors* subclasses no longer fall
+    // wholly to the kv-tier. `blocklist_orgs` stays on the kv-tier
+    // (chip input for arrays, DD-06): it's a flat list of org-name
+    // strings consumed verbatim by handler()'s in_array() check, and
+    // the `org_filter` canonical translates to a structured
+    // {orgs:[...], match_via} shape that the handler doesn't read —
+    // wiring it would mean rewriting the shared handler.
+    public $schema = array(
+        'timeframe' => array(
+            'type' => 'int',
+            'default' => 30,
+            'help' => 'Number of days back to consider for the query.',
+        ),
+    );
     public $placeholder =
 '{
     "blocklist_orgs": ["Orgs to filter"],
