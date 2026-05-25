@@ -1075,6 +1075,14 @@ Surfaced by the Phase 5.5 data-parity row 5 unit-shape smoke. `LayoutFixup::appl
 
 **Fix shape (if promoted):** make the mint collision-free against ids already present in the blob — collect the set of explicit ids in a first pass, then mint the next free `w_N` that isn't taken (or switch to a content/position hash). Small, contained change to `LayoutFixup` + an assertion in the row-5 harness. Left parked pending sign-off — it touches the shipped Phase 1 fix-up helper and is out of the data-parity scope that surfaced it.
 
+### MispAdminWorkerWidget handler() pre-existing PHP 8.x crash — **fixed 2026-05-25**
+
+Surfaced during the Phase 5.5 widget-parity render sweep. `MispAdminWorkerWidget::handler()` rendered a 500 ("Cannot increment array") on both REST and HTML render paths. Root cause: the handler initialised `$workerIssueCount = array()` and passed it by reference into `Server::workerDiagnostics(&$workerIssueCount)`, which does `$workerIssueCount++` internally (`Server.php:3933`). Incrementing an array is a silent no-op on PHP 7 but throws on PHP 8.x. Same bug class as the TrendingAttributesWidget PHP 8 crash fixed 2026-05-21.
+
+**Root cause is pre-existing, not a v2 regression.** `git log -L` dates the `= array()` line to commit `44ff66445` (2020-03-02, "new: [dashboard] Resource widget added") — the original v1 widget. The `dashboards` branch only touched this file for the Phase 2 `$category` backfill and the Phase 3 `$schema` sweep, never the handler logic. Every other caller of `workerDiagnostics` initialises the counter as an int (`ServersController` sets `$workerIssueCount = 0`; `AdminShell`/`JobsController` leave it undeclared → null, which increments cleanly).
+
+**Fix:** one line — `$workerIssueCount = array();` → `$workerIssueCount = 0;` (+ an explaining comment). Matches every other caller. **Smoke:** `php -l` clean; REST render now returns 21 SimpleList rows (`cache workers alive [5/5]` etc.); HTML render 200 with clean `misp-list-row` markup, no error markers. Fixed under the additive-only posture as parity-gate-required work (a crashing widget can't meet PRD §12 widget parity), with direct precedent in the 2026-05-21 TrendingAttributesWidget fix.
+
 ### Canonical wire shapes drift from PRD §5.5 (surfaced 2026-05-20) — **fixed 2026-05-21**
 
 PRD §5.5 line 411-413 specifies the int-enum canonicals as wrapped objects:

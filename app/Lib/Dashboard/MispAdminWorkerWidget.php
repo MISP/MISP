@@ -17,7 +17,12 @@ class MispAdminWorkerWidget
 	public function handler($user, $options = array())
 	{
         $this->Server = ClassRegistry::init('Server');
-        $workerIssueCount = array();
+        // workerDiagnostics() takes the issue counter by reference and
+        // does $workerIssueCount++ internally. It must be an int — the
+        // array() init (the original 2020 v1 value) is a silent no-op
+        // under PHP 7 but throws "Cannot increment array" on PHP 8.x.
+        // Every other caller (AdminShell, ServersController) passes 0.
+        $workerIssueCount = 0;
         $results = $this->Server->workerDiagnostics($workerIssueCount);
         $data = array();
         foreach ($results as $queueName => $queue) {
