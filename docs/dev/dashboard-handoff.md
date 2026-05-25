@@ -1,290 +1,234 @@
-# Dashboard v2 — Session handoff (2026-05-25 — Phase 5.5 CLOSED)
+# Dashboard v2 — Session handoff (2026-05-25 — Phase 5.5 closed + pre-merge polish)
 
-Eleventh session of the dashboard rewrite. Authoritative state lives in:
+Eleventh session. Authoritative state lives in:
 
-- `dashboard-prd.md` — spec.
-- `dashboard-progress.md` — task state. **Phase 5 closed (11/11).
-  Phase 5.5 now FULLY CLOSED** — widget parity 38/38, data parity 5/5,
-  surface parity 10/10, pre-merge cleanup 7/7. **The only remaining
-  merge-gate work is Phase 6 (the merge to `develop`).**
-- `dashboard-design-decisions.md` — DD-01..DD-08 unchanged.
+- `dashboard-prd.md` — spec (binding decisions table §15, now incl. DD-09).
+- `dashboard-progress.md` — task state. **Phase 5 + Phase 5.5 fully
+  closed.** Phase 6 (merge) is the only remaining tracked phase.
+- `dashboard-design-decisions.md` — DD-01..DD-09 (DD-09 new this session).
 
-This file is the bridge: ephemeral session-level context that doesn't
-fit the durable docs. Replace it as work progresses.
+This file is the bridge: ephemeral session-level context. Replace it
+as work progresses.
 
-## TL;DR
+## ⚠️ Forward plan — READ THIS FIRST (user direction, 2026-05-25)
 
-**11 signed commits this session** (all `%G?` = `U`). Picked up
-Option A (Phase 5.5) and closed the **entire phase** — all four
-parity groups plus a mid-session handoff refresh. Two real code
-changes landed (both surfaced by the sweep, both verified); the rest
-were verification-only tracker closes.
+The merge gate is green, but the user is **NOT merging yet**. Explicit
+sequence the user gave:
 
-Order of work:
-1. **Data parity (5/5)** — `3746ae3b2`..`190ed7eca`. Legacy
-   bare-array + legacy templates load into v2; export/import
-   round-trip preserves layout; legacy-import → on-read fix-up →
-   first-save-persists-canonical proven end-to-end; 15-assertion
-   `LayoutFixup` no-data-loss smoke. Parked a mixed-id mint-collision
-   edge (can't arise from real data).
-2. **Handoff refresh** — `e7056b0e3` (mid-session, after data parity).
-3. **MispAdminWorkerWidget PHP 8.x crash fix** — `fc3c4cd5b`. Surfaced
-   by the widget render sweep (500 "Cannot increment array");
-   pre-existing 2020 bug (`$workerIssueCount = array()` → `++` on PHP
-   8). One-line fix to `0`, matching every other caller.
-4. **Widget parity (38/38)** — `6bafe4041`. All 37 built-in widgets
-   render (REST handler+renderer smoke + HTML render smoke, no error
-   markers); config-honouring sampled (NewOrgs `limit`; TrendingTags
-   `over_time` renderer-flip); both themes (no themed renderer
-   overrides → theme-independent; synthetic all-9-render-kinds board
-   loaded clean under Overmind + default); custom subdir loader
-   (`HelloWorldWidget`) verified.
-5. **Surface parity (10/10)** — `0ddeb4a75`. 6 endpoints already
-   exercised by the data/widget sweeps; the 3 template-mutating ones
-   via a self-cleaning create→rename→delete chain. `getForm/add`
-   closed as deliberate obsolescence (404 fine — gallery replaces it;
-   per user direction "build a useful replacement, not a 1:1 v1
-   replica").
-6. **timeframe schema for OrgsContributors\*** — `da819c16d`. The 3
-   subclasses inherited an empty `$schema` despite real params; added
-   `timeframe → int` to the base (matching the partial-schema norm —
-   NewOrgsWidget schemas only 1 of ~12 params). `blocklist_orgs` left
-   on the kv-tier (its `org_filter` canonical shape ≠ the handler's
-   flat-name `in_array`). Surfaced by the user's question on the
-   cleanup fallback row.
-7. **Pre-merge cleanup (7/7)** — `62349cfb0`. Only one deletion: the
-   dead jvectormap pair (zero live consumers; v2 WorldMap is ECharts).
-   gridstack already gone; D3 (10+ consumers) + Chart.min.js
-   (event pages) retained; JSON-textarea fallback row resolved (kv-tier
-   stays per DD-06 custom-widget path); v1-ref audit clean.
+1. **A round of design-decision / UX tweaks** ("mostly some UX tweaks")
+   before the feature is considered done. Several already landed this
+   session (see Arc B); **expect more — the user drives them one at a
+   time.** Treat each as a small design decision: surface trade-offs,
+   recommend, record meaningful ones as DD-NN.
+2. **Then add new *types* of widgets / new functionality.** (Not yet
+   started — this is the bigger next chunk.)
+3. **The user does the merge themselves** — do NOT open the PR or merge.
+4. **After merge, the user will ask for help documenting the feature.**
 
-**Notable findings (durable, now in the progress doc):**
+So the next session is almost certainly **more UX tweaks and/or new
+widget types**, not Phase 6. Don't push toward the merge.
 
-- **`Dashboard::import()` stores blobs verbatim — fix-ups are on-read
-  only.** A v1 blob imports unchanged, renders correctly via the
-  read fix-up, and only the next *save* persists canonical. PRD §7.1's
-  lazy-migration story, proven by DB-raw inspection at each step.
-- **No themed widget-renderer overrides exist** → every
-  `Widgets/<renderer>.ctp` is theme-independent by construction; the
-  theme-variable layer is page CSS + ECharts tokens only.
-- **The kv-tier (configure-form bottom tier) is load-bearing for
-  third-party custom widgets** (DD-06) and is NOT removable just
-  because in-tree widgets are schema'd — removal is an explicit
-  future-PR call. The Q7 "remove fallback" cleanup row's gate was the
-  wrong lever; the JSON-textarea it named was already superseded by
-  the two-tier form.
-- **Partial `$schema` is the in-tree norm** — widgets schema only the
-  params that benefit from a rich picker; the rest ride the kv-tier
-  (NewOrgsWidget: 1 schema'd of ~12 params).
+## TL;DR — this session (18 signed commits, all `%G?` = U)
 
-**User-direction carried forward:** *"modern and pleasant"*,
-*"don't worry too much about compatibility"*, *"build a useful
-replacement, not a 1:1 v1 replica — obsolete v1 URLs may 404"* (new
-2026-05-25), *"ACL must match the surface it shadows"*, *"three
-similar lines beats premature abstraction"*, *"prefer MISP-jargon
-naming"*, **"dashboard chrome icons stay inline SVG"**, **JSON-encode
-dashboard-value payloads before UserSetting::setSetting**, **URL
-validation server-side; client trusts the payload**, **v2 parity =
-information access, not feature-flag fidelity**.
+Two arcs. **Arc A: closed all of Phase 5.5** (the merge gate). **Arc B:
+a pre-merge UX/feature polish round** per the user's "more changes
+first" direction.
+
+**Arc A — Phase 5.5 (merge gate), fully closed** (detail in the prior
+handoff revision + git `3746ae3b2..62349cfb0`):
+- Data parity 5/5, widget parity 38/38 (37 widgets + custom-loader),
+  surface parity 10/10, pre-merge cleanup 7/7.
+- Two code changes surfaced by the sweeps: `fc3c4cd5b` fixed
+  MispAdminWorkerWidget's pre-existing PHP 8.x crash; `da819c16d` gave
+  the 3 `OrgsContributors*` widgets a typed `timeframe` schema.
+- `getForm/add` closed as deliberate obsolescence (gallery replaces it).
+- jvectormap removed (dead); D3 + Chart.min.js retained (live consumers).
+
+**Arc B — pre-merge polish:**
+- `ebfefea5e` — **doc**: recorded that the parked `LayoutFixup` mixed-id
+  mint collision is **provably unreachable from migrate-then-add** (the
+  user pressed on this; tracing `_mintFinalInstanceId` confirmed it).
+  Still parked; only a hand-edited import blob could trigger it.
+- `99fbaf230` — **removed the prototype "Overmind" pill** that each
+  widget title bar carried (a Phase-0/1 theme-override-visible marker).
+- `35592360b` — **DD-09 calm widget chrome**: titlebar made transparent
+  (no fill/divider, both themes); action icons hidden in view mode and
+  revealed on widget `:hover`/`:focus-within`; always-visible in edit
+  mode. Title + refresh chip always visible. CSS-only.
+- `f5fa90285` — **restored per-widget raw-data export** (lost-in-rework
+  v1 feature). A ⬇ download menu-button on each widget toolbar → JSON /
+  CSV. Backend `exportjson` now returns the bare handler output (v1
+  parity); `exportcsv` = flattened CSV; plain REST render stays wrapped.
+- `d7f173206` — **fix**: removed the underline BS5 `.btn-link` put on
+  the Overmind toolbar icons.
+- `544abf83e` — **fix**: the export download was a detached-anchor +
+  sync-revoke anti-pattern → FF/Safari rendered the JSON in-page instead
+  of saving. Now appends the anchor + defers revoke.
 
 ## Where we are
 
 ```
-Phase 0.4 — Sign-off                                              [x]
-Phase 1 — Frame (in-place replacement)                            [x]
-Phase 2 — Authoring UX                                            [x] CLOSED
-Phase 3 — Canonical-type toolbar                                  [x] CLOSED
-Phase 4 — Template gallery polish                                 [x] CLOSED
-Phase 5 — Drill-down + refresh scheduler                          [x] CLOSED
+Phase 0.4 / 1 / 2 / 3 / 4 / 5 / 5.5                               [x] CLOSED
+Phase 6 — Merge to develop                                       [ ] (USER does this; not us)
 
-Phase 5.5 — Widget Parity Sweep (merge gate)                      [x] CLOSED
-  Widget parity   (38/38) — [x]   Data parity    (5/5)  — [x]
-  Surface parity  (10/10) — [x]   Pre-merge clean (7/7) — [x]
-
-Phase 6 — Merge to `develop`                                      [ ] ← NEXT
-  [ ] User-facing changelog entry (visual rework, canonical toolbar,
-      no-action-needed migration story)
-  [ ] Operator-facing release note (emphasise NO migration)
-  [ ] PR opened against `develop` (link PRD + progress doc)
-  [ ] Review feedback addressed
-  [ ] Merge
-  [ ] Branch `dashboards` deleted
+Post-5.5 pre-merge polish (untracked phase — user-driven, in progress):
+  [x] DD-09 calm chrome
+  [x] Overmind prototype pill removed
+  [x] Per-widget raw-data export restored (+ underline + download fixes)
+  [ ] More UX tweaks — user will enumerate
+  [ ] New widget types / functionality — not started
 ```
 
 ## Live test instance
 
 - URL: `http://localhost:5007/dashboards`
-- Admin user id: 1 (`admin@admin.test`), password `Password12345`
-- Admin API key: `dHVxEx4WhIwRdS6QDVsBmW9PE6pOkmgIH1FPQWiC`
-- **Admin user is on Overmind theme** (`UserSetting:ui_theme = "Overmind"`).
-- DB creds: `mysql -u misp -pPassword1234 misp`
+- Admin user id 1 (`admin@admin.test`), password `Password12345`.
+- Admin API key: `dHVxEx4WhIwRdS6QDVsBmW9PE6pOkmgIH1FPQWiC`.
+- **Admin is on the Overmind theme** (`UserSetting:ui_theme="Overmind"`).
+  Most of this session's UX work is most visible there. To check the
+  default theme, temporarily set `ui_theme` to `"default"` and restore.
+- DB: `mysql -u misp -pPassword1234 misp`.
 
-**State at session end (all restored byte-exact):** admin has the
-same 13 widgets, `UserSetting:dashboard` = 2066 bytes; `ui_theme` =
-`"Overmind"`; `dashboards` table = 6 rows (all legacy-shape). Every
-DB-mutating smoke this session backed up + restored to baseline; a
-backup remains at `/tmp/dash_backup.json`. None of the 13 widgets emit
-`drilldown` keys (drill-down machinery still dormant on the live board
-— a migration follow-up, not a merge blocker).
+**State at session end (all restored byte-exact):** admin's 13-widget
+board, `UserSetting:dashboard` = 2066 bytes; `ui_theme="Overmind"`;
+`dashboards` table = 6 rows (all legacy-shape). Backup kept at
+`/tmp/dash_backup.json`. v2 working tree clean (the dirty paths in
+`git status` are unrelated submodules / untracked tooling, never ours).
 
-Session-login dance + REST recipes unchanged — see
-`reference-misp-login-dance`. The session cookie at `/tmp/cj.txt`
-expires within a session; re-run the dance if `/dashboards` 302s.
+**Hard-refresh after any CSS/JS edit** — the `?v=185` cache-buster in
+`AppController` does NOT bump per-file. Several "is it broken?" reports
+this session were just stale cached assets.
 
 ### Reusable smoke recipes
 
 ```bash
 KEY=dHVxEx4WhIwRdS6QDVsBmW9PE6pOkmgIH1FPQWiC
-# Render any widget (REST: handler+renderer; HTML: the .ctp markup):
+# Render a widget (REST: {data,renderer,config}; HTML: the .ctp body):
 curl -s -X POST -H "Authorization: $KEY" -H "Accept: application/json" \
   --data-urlencode "widget=<Name>Widget" --data-urlencode "config={}" \
   http://localhost:5007/dashboards/renderWidget
+# Raw-data export (v1-parity): bare JSON / flattened CSV
+curl -s -X POST -H "Authorization: $KEY" -H "Accept: application/json" \
+  --data-urlencode "widget=UsageDataWidget" --data-urlencode "config=[]" \
+  "http://localhost:5007/dashboards/renderWidget/w_x/exportjson:1"
 # Widget metadata (schema/category/render) for the gallery:
 curl -s -X POST -H "Authorization: $KEY" -H "Accept: application/json" \
   http://localhost:5007/dashboards/widgets
-# ALWAYS back up + byte-exact restore admin's dashboard around DB writes.
+# Session-login dance for HTML pages: see reference-misp-login-dance memory.
+# ALWAYS back up + byte-exact restore UserSetting:dashboard around DB writes.
 ```
 
-## What this session committed (in order)
+## Key architecture facts confirmed this session (reuse these)
 
-```
-3746ae3b2  data-parity row 1 (legacy UserSetting:dashboard)
-37f15a035  data-parity row 2 (legacy templates)
-77ee6fd52  data-parity row 3 (v2 export/import round-trip)
-137c5428d  data-parity row 4 (legacy import + on-read/on-save fix-ups)
-190ed7eca  data-parity row 5 (no data loss; +mixed-id collision parked)
-e7056b0e3  handoff refresh (mid-session)
-fc3c4cd5b  FIX: MispAdminWorkerWidget PHP 8.x 'Cannot increment array'
-6bafe4041  widget parity (37 widgets + custom-loader)
-0ddeb4a75  surface parity (10 URLs)
-da819c16d  NEW: typed timeframe schema for OrgsContributors* widgets
-62349cfb0  pre-merge cleanup (jvectormap removed; rest reviewed)
-```
+- **Widget toolbar chrome (DD-09):** titlebar transparent; action icons
+  in `.misp-widget-actions` (default) / `.card-header .btn-group`
+  (Overmind) are `opacity:0` in `[data-misp-board-mode="view"]`,
+  revealed on `.misp-widget:hover` / `:focus-within`, always-on in edit.
+- **No themed widget-renderer overrides exist** → every
+  `Widgets/<renderer>.ctp` is theme-independent; theme = page CSS +
+  ECharts tokens only.
+- **Both dashboard layouts load `dashboard.default.css`** then the theme
+  overlay, so shared widget classes styled in the default sheet retone
+  automatically under Overmind via `--misp-dash-*` tokens. (That's why
+  the export menu needed no overmind.css change.)
+- **Per-widget actions dispatch** through one delegated listener
+  (`board.module.mjs _wireWidgetActions`) on `data-misp-widget-action`
+  — works for dynamically-added tiles with no per-tile wiring. Vocabulary:
+  `refresh | configure | remove | export-json | export-csv`.
+- **Reusable WAI-ARIA menu** = `menu-button.module.mjs` (`initMenuButtons`);
+  markup contract `[data-misp-menubutton]` > `[-trigger]` + `[-menu]`
+  (`role=menu`) > `[role=menuitem]`. It does NOT self-close on item
+  click (the click is inside its root) — close it explicitly. Server-
+  rendered instances are hydrated by `boot()`'s document-wide call;
+  dynamically-added tiles call `initMenuButtons(wrapperEl)`.
+- **`renderWidget` export contract:** `exportjson` → bare `$data`;
+  `exportcsv` → `_dataToCsv($data)`; plain `_isRest()` (no export param)
+  → wrapped `{instance_id,widget,config,renderer,data}`. Don't re-merge
+  these branches.
+- **Robust blob download:** anchor MUST be in the document + revoke on a
+  deferred tick, or FF/Safari render the blob in-page.
+- **`Dashboard::import()` stores verbatim; fix-ups are on-read only**
+  (`LayoutFixup`). The kv-tier configure fallback (DD-06) is load-bearing
+  for custom widgets — don't remove it.
 
-Net stats:
-- 11 signed commits (all `%G?` = U)
-- 2 code changes: 1 fix (MispAdminWorkerWidget, −/+ comment + `array()`→`0`),
-  1 improvement (`OrgsContributorsGeneric` `$schema` + comment)
-- 2 files deleted (the dead jvectormap pair)
-- Phase 5.5: 60 tracker lines closed (38 widget + 5 data + 10 surface
-  + 7 cleanup)
-- 2 Discovered-work entries (MispAdminWorkerWidget fix; mixed-id mint
-  collision, parked)
-- Working tree clean for v2 work
+## Discovered work / parked
 
-## Lessons from this session
+- **`LayoutFixup` mixed-id mint collision** — parked; provably
+  unreachable from real UI flows (migrate-then-add traced safe via
+  `_mintFinalInstanceId` = max+1). Only a hand-edited import blob
+  triggers it. Cheap fix logged in the progress doc if ever wanted.
+- **Export menu clipping on very short widgets** — the download menu
+  drops down inside `.misp-widget` which is `overflow:hidden` (rounded
+  corners). For widgets ≥2 rows the 2-item menu fits; a 1-row widget
+  could clip the bottom. Not confirmed in-browser. If it bites, scope
+  the overflow to the body instead of the whole widget. **Ask the user
+  to eyeball this** alongside the export download.
+- **Real widgets emit drilldown maps** — Phase 5 renderer contract is
+  wired + smoked; nothing in-tree consumes it. Natural fit for the "new
+  functionality" phase.
+- Carryovers (unchanged): `blocklist_orgs` rich picker (needs handler
+  rewrite); Chart.min.js / D3 migration (non-dashboard consumers);
+  import HTML form-paste string-foreach quirk; file-mode-drift root
+  cause; time_window dropdown UX; grid drop-on-occupied cascade;
+  tlp:clear invisible bars; OrgEventsWidget months>13 dates;
+  EventEvolutionLineWidget end_date; live-preview race; dormant
+  `dashboard.midnight.css` loader; EventStreamWidget pre-fetch overshoot.
 
-1. **The REST render path proves the handler runs; only the HTML path
-   proves the renderer template exists.** The MispAdminWorkerWidget
-   500 showed on both, but a missing `.ctp` would only show on HTML —
-   always smoke both for widget parity.
-2. **DB-raw inspection at each round-trip step is what distinguishes
-   on-read vs on-import fix-up.** REST read alone hides it.
-3. **Check the base class before concluding a widget "lacks `$schema`".**
-   The file-level grep missed the empty inherited `$schema`; the real
-   gap was an *empty* schema despite real params.
-4. **A canonical type isn't a free drop-in.** Declaring a param as a
-   canonical wires the client picker AND the server translation; the
-   handler must consume the translated shape. `org_filter` →
-   `{orgs,match_via}` would have broken `blocklist_orgs`' flat-name
-   `in_array`. Match the type to what the handler reads.
-5. **`git log -L` to date a line before fixing.** Confirmed the
-   MispAdminWorkerWidget bug was a pre-existing 2020 line, not a v2
-   regression — clarified the fix as parity work, not regression
-   cleanup.
+## Lessons this session
 
-Prior gotchas still apply (themed resolver silent fallback, `git mv`
-doesn't auto-stage, heredoc + dollar signs, `?v=185` cache-buster not
-per-file, session cookie expiry).
-
-## Discovered work parked for later
-
-- **`LayoutFixup` mixed-id mint collision** (progress doc; can't arise
-  from real data; fix shape logged; needs sign-off — touches Phase 1).
-- **Real widgets emit drilldown maps** (Phase 5 renderer contract is
-  wired + smoked; nothing in-tree consumes it — a per-widget migration,
-  not a merge blocker).
-- **`blocklist_orgs` rich picker** — would need a handler rewrite to
-  consume the `org_filter` canonical shape; left on the kv-tier.
-- **Chart.min.js / D3 v3 migration** — non-dashboard pages still
-  consume both; out of scope, follow-up only.
-- Carryovers: import HTML form-paste string-foreach quirk; file-mode-
-  drift root cause; MISP 2.4 cross-instance DB write risk; time_window
-  dropdown UX; grid drop-on-occupied cascade; tlp:clear invisible bars;
-  OrgEventsWidget months>13 dates; EventEvolutionLineWidget end_date;
-  live-preview race (AbortController); dormant `dashboard.midnight.css`
-  loader; EventStreamWidget pre-fetch overshoot.
-
-## Open thread / next obvious work
-
-**Phase 6 — merge to `develop` is the ONLY remaining merge-gate work.**
-The three-parity gate (§12) is green. Next session:
-
-1. **Draft the user-facing changelog entry** — visual rework, the
-   canonical-type toolbar, and the no-action-needed migration story
-   (existing layouts keep working; per-widget on-read fix-ups apply
-   transparently on first save).
-2. **Operator-facing release note** — emphasise **no migration**.
-3. **Open the PR against `develop`** linking the PRD + progress doc.
-4. Address review; merge; delete the `dashboards` branch.
-
-There is no Phase 7. The branch's life ends at the merge. Before
-opening the PR, consider a final `git log 2.5..dashboards` review and
-a `parallel-lint` pass over `app/` (per CLAUDE.md) so the PR lands
-clean.
-
-**Optional pre-merge:** promote the parked `LayoutFixup` mixed-id
-collision fix (small, contained) if the user wants zero known latent
-issues in the merge — but it's not gating.
+1. **Hard-refresh first when the user reports a UI bug.** The `?v=185`
+   cache-buster doesn't bump per-file; stale assets masqueraded as bugs.
+2. **Re-verify a premise the moment the user questions it** (the
+   migrate-then-add collision question forced a trace that *strengthened*
+   the safe conclusion — and corrected my parked-note wording).
+3. **`preventDefault()` ≠ stop other handlers** — but check whether a
+   competing handler actually matches before blaming it (the export
+   "popover" was my own blob anti-pattern, not a MISP global handler).
+4. **A canonical type isn't a free drop-in** — declaring a param as one
+   wires the client picker AND the server translation; the handler must
+   read the translated shape (`blocklist_orgs`→`org_filter` would break
+   the handler, so it stayed on the kv-tier; only `timeframe`→`int`).
+5. **Build to v1 parity for restored features** — check the old format
+   on the `2.5` branch (`git show 2.5:...`) and replicate it (bare JSON
+   + flattened CSV + `<widget>_<id>_export.<type>` filename).
 
 ## Convention reminders
 
-- Commit per progress-tracker task completion; never `git add -A`;
-  body references the task. **This session: per-row for data parity;
-  per-group for widget/surface/cleanup (the doc lists widgets
-  alphabetically, not by category, and each group was one batch
-  sweep — one coherent commit per group reads more honestly than
-  scattered per-line commits).**
-- **Always `git status --short` + explicit `git add` before commit.**
-- New files land `iglocska:iglocska`; `chgrp www-data` before commit.
-  **This session: no new files (smoke harnesses lived in `/tmp/`).**
-- **Themed wrapper parity** on any `wrapper.ctp` chrome edit (mirror in
-  Overmind). **No wrapper touches this session.**
-- **Dashboard chrome icons inline SVG, not FA.**
-- **MISP-jargon naming over PRD-generic.**
+- Commit per logical task; never `git add -A`; explicit `git add` +
+  `git status --short` first; body references the task. Sign commits
+  (`%G?`=U). **Per-row for granular tracker work; per-feature/per-group
+  for batches.**
+- New files: `chgrp www-data` before commit (none landed this session —
+  all edits to existing files; temp smoke harnesses lived in `/tmp/`).
+- **Themed wrapper parity:** any chrome/`data-*` change on the base
+  `widget/wrapper.ctp` must be mirrored in the Overmind wrapper in the
+  SAME commit (the export menu-button was added to both).
+- **Dashboard chrome icons are inline glyphs/SVG, not Font Awesome.**
 - **External links pair `target=_blank` + `rel=noopener noreferrer`.**
-- **Themed CSS in Cake 2.x: plain paths (no dot-prefix).**
-- User wants rigorous pushback, not yes-machine. **This session: two
-  AskUserQuestion rounds (session scope; jvectormap removal) + surfaced
-  the mixed-id collision and the cleanup-row reasoning correction
-  rather than papering over them; the user's getForm + schema pushes
-  both improved the outcome.**
-- Tracker docs are ground truth between hitm/afk sessions. Tick one
-  task at a time; the Done note carries the deciding context.
-- Surface context status past 75% at task boundaries. **Comfortably
-  under this session.**
-- Hard-refresh after CSS/JS edits (`?v=185` doesn't bump per-file).
-- **Schema-driven model is the canonical answer** for "how does the
-  toolbar / configure form know which widgets to act on".
-- **A tracker tick needs the user-visible surface to exist AND be
-  reachable from the default UI**, not just handler-level wiring.
-- **`Dashboard::import()` stores verbatim — fix-ups are on-read only.**
-- **The kv-tier is load-bearing for custom widgets (DD-06); don't
-  remove it.**
-- **Back up + byte-exact restore `UserSetting:dashboard` around every
-  DB-mutating smoke.**
-- **Render-kind glyph requirement:** any new `$render` value or new
-  `Widgets/` template ships a matching glyph in `render-thumbs.mjs`.
-  **No new render kinds this session.**
+- **Record meaningful design decisions as DD-NN** in
+  `dashboard-design-decisions.md` + a PRD §15 binding row (DD-09 set the
+  pattern this session). Lightweight cleanups don't need a DD.
+- User wants **rigorous pushback**, not a yes-machine — surface
+  trade-offs, name alternatives, recommend, then go with the user's call.
+  Use AskUserQuestion for genuine forks (this session: session scope,
+  jvectormap removal, edit-mode chrome, scope, export UI shape).
+- **Render-kind glyph requirement:** any new `$render` value / new
+  `Widgets/` template ships a matching glyph in `render-thumbs.mjs` in
+  the same commit. (Relevant for the upcoming "new widget types" work.)
+- Tracker/decision docs are ground truth between hitm/afk sessions.
+- Surface context status past 75% at task boundaries. (This session was
+  paced to ~47% at handoff.)
 
 ## Quick-start cheatsheet for the next session
 
-1. Read `dashboard-prd.md` (spec) + `dashboard-progress.md` (state).
-2. Skim this file for ephemeral context.
-3. Verify the instance: `curl -s http://localhost:5007/dashboards
+1. Read `dashboard-prd.md` (spec) + `dashboard-progress.md` (state) +
+   this file.
+2. Verify the instance: `curl -s http://localhost:5007/dashboards
    -o /dev/null -w "%{http_code}\n"` → 302 without a session.
-4. **Phase 5.5 is fully closed. The only remaining merge-gate work is
-   Phase 6 (merge to `develop`).** Start with the changelog + release
-   note, then open the PR. Consider promoting the parked `LayoutFixup`
-   collision fix first if a clean merge is wanted.
-5. Commit one task at a time, signed. Don't `git add -A`.
+3. **Phase 5 + 5.5 are CLOSED. The user is doing more pre-merge UX
+   tweaks, then new widget types, then merging themselves.** Wait for
+   the user's next tweak/feature; do NOT start the merge.
+4. When building UI: respect DD-09 calm chrome, the menu-button pattern,
+   themed-wrapper parity, and hard-refresh to see CSS/JS changes.
+5. Commit one task at a time, signed; back up + restore admin's
+   dashboard around DB-mutating smokes.
