@@ -4866,20 +4866,16 @@ class Server extends AppModel
         }
 
         $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-        $fastCaching = $serverSync->isSupported(ServerSyncTool::FEATURE_FAST_CACHING);
+        $fastCachingSupported = $serverSync->isSupported(ServerSyncTool::FEATURE_FAST_CACHING);
         $nextLastId = null;
         $count = 0;
         // delete the previous iterations, but skip the event uuid one as the uuid might exist on other instances too (should have thought about this when designing the cache, but alas, past me was a monkey too)
         $redis->del('misp:server_cache:' . $serverId);
         while (true) {
-            if ($fastCaching) {
-                if (!isset($lastId)) {
-                    $lastId = 0;
-                }
+            if ($fastCachingSupported) {
                 $return = $serverSync->getFastCache($nextLastId);
                 $nextLastId = (int)$return->headers['x-misp-last-id'] ?? null;
                 $data = $return->body();
-                $nextLastId;
             } else {
                 $i++;
                 $rules = [
@@ -4901,7 +4897,7 @@ class Server extends AppModel
                 break;
             }
             $data = explode(PHP_EOL, $data);
-            if ($fastCaching) {
+            if ($fastCachingSupported) {
                 $count += count($data);
             }
             $pipe = $redis->pipeline();
@@ -4915,7 +4911,7 @@ class Server extends AppModel
             }
             $pipe->exec();
             if ($jobId) {
-                if ($fastCaching) {
+                if ($fastCachingSupported) {
                     $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . $count . ' attributes cached.');
                 } else {
                     $job->saveProgress($jobId, 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');

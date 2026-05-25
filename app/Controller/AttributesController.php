@@ -3168,7 +3168,6 @@ class AttributesController extends AppController
 
     public function getInstanceCache($lastId = null)
     {
-
         $conditions = ['Attribute.deleted' => 0];
         if ($lastId) {
             $conditions['Attribute.id >'] = (int)$lastId;
@@ -3194,16 +3193,15 @@ class AttributesController extends AppController
 
         unset($this->MispAttribute->virtualFields['md5_value1'], $this->MispAttribute->virtualFields['md5_value2']);
 
-        $fh = fopen('php://temp', 'w+');
-
+        $tempFile = new TmpFileTool();
         $lastProcessedId = $lastId ? (int)$lastId : null;
 
         foreach ($rows as $row) {
             $lastProcessedId = (int)$row['Attribute']['id'];
+            $tempFile->write($row['Attribute']['md5_value1'] . ',' . $row['Event']['uuid'] . "\n");
 
-            fwrite($fh, $row['Attribute']['md5_value1'] . ',' . $row['Event']['uuid'] . "\n");
             if ($row['Attribute']['md5_value2'] !== null) {
-                fwrite($fh, $row['Attribute']['md5_value2'] . ',' . $row['Event']['uuid'] . "\n");
+                $tempFile->write($row['Attribute']['md5_value2'] . ',' . $row['Event']['uuid'] . "\n");
             }
         }
         $headers = [];
@@ -3211,10 +3209,7 @@ class AttributesController extends AppController
             $headers['X-MISP-Last-ID'] = (string)$lastProcessedId;
         }
 
-        rewind($fh);
-        $out = stream_get_contents($fh);
-        fclose($fh);
-        return $this->RestResponse->viewData($out, 'text', false, true, false, $headers);
+        return $this->RestResponse->viewData($tempFile, 'text', false, true, false, $headers);
     }
 
     /**
