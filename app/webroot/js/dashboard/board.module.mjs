@@ -522,6 +522,57 @@ class Board {
     }
   }
 
+  // Per-widget raw-data download (restores the v1 export feature).
+  // POSTs the widget name + config to renderWidget's export<type>:1
+  // named-param endpoint and saves the response as a file. The server
+  // is the single source of the bytes: exportjson returns the bare
+  // handler output, exportcsv the flattened CSV (DashboardsController
+  // ::renderWidget). Filename mirrors v1: <widget>_<instance_id>_export.<type>.
+  async _exportWidget(widgetEl, type, trigger) {
+    const id     = widgetEl.getAttribute(ATTR_WIDGET_INSTANCE);
+    const name   = widgetEl.getAttribute(ATTR_WIDGET_NAME);
+    const config = widgetEl.getAttribute(ATTR_WIDGET_CONFIG) || '{}';
+    // The menu-button doesn't self-close on item activation (the click
+    // lands inside its own root), so close it explicitly after a pick.
+    const mb = trigger && trigger.closest('[data-misp-menubutton]');
+    if (mb && mb.__mispMenuButton) mb.__mispMenuButton.close({ restoreFocus: false });
+    try {
+      const body = new URLSearchParams({ widget: name, config });
+      const resp = await fetch(
+        `${this.renderUrl}/${encodeURIComponent(id)}/export${type}:1`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': type === 'json' ? 'application/json' : 'text/csv',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body,
+          credentials: 'same-origin',
+        },
+      );
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      let blob;
+      if (type === 'json') {
+        // Pretty-print the bare data (matches v1's JSON.stringify(…, 2)).
+        const data = await resp.json();
+        blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      } else {
+        blob = new Blob([await resp.text()], { type: 'text/csv' });
+      }
+      const url = window.URL.createObjectURL(blob);
+      const a = window.document.createElement('a');
+      a.href = url;
+      a.download = `${name}_${id}_export.${type}`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      this._dispatchEvent('widget-error', {
+        instanceId: id, widgetName: name, error: `export failed: ${String(err)}`,
+      });
+    }
+  }
+
   _findWidgetEl(target) {
     return target.closest(`[${ATTR_WIDGET}]`);
   }
@@ -585,6 +636,14 @@ class Board {
         case 'refresh':
           e.preventDefault();
           this._renderWidget(widgetEl);
+          break;
+        case 'export-json':
+          e.preventDefault();
+          this._exportWidget(widgetEl, 'json', trigger);
+          break;
+        case 'export-csv':
+          e.preventDefault();
+          this._exportWidget(widgetEl, 'csv', trigger);
           break;
         case 'remove': {
           e.preventDefault();
@@ -914,6 +973,9 @@ class Board {
     wrapperEl.setAttribute(ATTR_WIDGET_CONFIG, JSON.stringify(config));
 
     this.grid.addTile({ id: instanceId, x, y, w, h, el: wrapperEl });
+    // Hydrate the new tile's download menu-button (idempotent). Server-
+    // rendered tiles are caught by boot()'s document-wide initMenuButtons.
+    initMenuButtons(wrapperEl);
     this._renderWidget(wrapperEl);
     this.scheduler.enqueueWidget(wrapperEl);
     refreshToolbar(this.root);

@@ -363,18 +363,21 @@ class DashboardsController extends AppController
             ? $widget->getRenderer($config)
             : $widget->render;
 
-        // Mirrors the v1 dashboards renderWidget pattern: explicit
-        // exportjson / exportcsv named params force REST output even
-        // from a browser session; otherwise _isRest() drives the choice.
+        // Per-widget raw-data export (the toolbar download button) +
+        // the REST render payload. Mirrors the v1 dashboards renderWidget
+        // named-param contract:
+        //   exportjson → the BARE handler output ($data) — same bytes
+        //                v1 emitted, so saved files + REST clients match.
+        //   exportcsv  → the flattened CSV (see _dataToCsv).
+        //   plain _isRest() (no export param) → the v2 wrapped render
+        //                payload (instance_id/widget/config/renderer/data)
+        //                that programmatic render clients consume.
+        // exportjson must stay SEPARATE from the wrapped branch: the
+        // download is "give me the data", not "give me the render
+        // envelope".
         $named = isset($this->request->params['named']) ? $this->request->params['named'] : array();
-        if (!empty($named['exportjson']) || ($this->_isRest() && empty($named['exportcsv']))) {
-            return $this->RestResponse->viewData(array(
-                'instance_id' => $instance_id,
-                'widget'      => $widgetName,
-                'config'      => $config,
-                'renderer'    => $renderer,
-                'data'        => $data,
-            ), $this->response->type());
+        if (!empty($named['exportjson'])) {
+            return $this->RestResponse->viewData($data, $this->response->type());
         }
         if (!empty($named['exportcsv'])) {
             return $this->RestResponse->viewData(
@@ -383,6 +386,15 @@ class DashboardsController extends AppController
                 false,
                 true
             );
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(array(
+                'instance_id' => $instance_id,
+                'widget'      => $widgetName,
+                'config'      => $config,
+                'renderer'    => $renderer,
+                'data'        => $data,
+            ), $this->response->type());
         }
 
         // Web UI: render the widget body HTML via the renderer dispatcher.

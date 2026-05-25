@@ -54,6 +54,15 @@
             <button type="button" class="btn btn-link btn-sm misp-widget--overmind__iconbtn"
                     data-misp-widget-action="configure"
                     title="<?= __('Configure') ?>" aria-label="<?= __('Configure') ?>">⚙</button>
+            <span class="misp-widget-export misp-widget--overmind__export" data-misp-menubutton>
+                <button type="button" class="btn btn-link btn-sm misp-widget--overmind__iconbtn"
+                        data-misp-menubutton-trigger aria-haspopup="menu" aria-expanded="false"
+                        title="<?= __('Export raw data') ?>" aria-label="<?= __('Export raw data') ?>">⬇</button>
+                <span class="misp-widget-menu misp-widget--overmind__menu" role="menu" data-misp-menubutton-menu hidden>
+                    <button type="button" class="misp-widget-menuitem misp-widget--overmind__menuitem" role="menuitem" data-misp-widget-action="export-json"><?= __('Export as JSON') ?></button>
+                    <button type="button" class="misp-widget-menuitem misp-widget--overmind__menuitem" role="menuitem" data-misp-widget-action="export-csv"><?= __('Export as CSV') ?></button>
+                </span>
+            </span>
             <button type="button" class="btn btn-link btn-sm misp-widget--overmind__iconbtn misp-widget-iconbtn-edit-only"
                     data-misp-widget-action="remove"
                     title="<?= __('Remove') ?>" aria-label="<?= __('Remove') ?>">✕</button>

@@ -478,6 +478,56 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   display: none;
 }
 
+/* Export (download) menu — the action-row trigger is a normal
+ * .misp-widget-iconbtn (inherits sizing + hover-reveal from its
+ * siblings); only the popup panel needs styling here. menu-button.
+ * module.mjs toggles `hidden` + `.is-open`; visibility keys off
+ * `.is-open` so the base `display:none` always wins over the UA
+ * `[hidden]` rule regardless of source order. Styled with the shared
+ * tokens so the Overmind overlay retones it automatically. Shared
+ * across both themes (both load dashboard.default.css). */
+.misp-widget-export {
+  position: relative;
+  display: inline-flex;
+}
+.misp-widget-menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  z-index: 20;
+  display: none;
+  flex-direction: column;
+  min-width: 132px;
+  padding: var(--misp-dash-space-1);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  box-shadow: var(--misp-dash-shadow-md);
+}
+.misp-widget-menu.is-open {
+  display: flex;
+}
+.misp-widget-menuitem {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--misp-dash-text);
+  font-size: var(--misp-dash-fs-sm);
+  text-align: left;
+  white-space: nowrap;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-sm);
+  cursor: pointer;
+}
+.misp-widget-menuitem:hover {
+  background: var(--misp-dash-surface-sunken);
+}
+.misp-widget-menuitem:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: -2px;
+  background: var(--misp-dash-surface-sunken);
+}
+
 .misp-widget-body {
   flex: 1;
   padding: var(--misp-dash-space-3);

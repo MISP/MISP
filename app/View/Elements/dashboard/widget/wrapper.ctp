@@ -18,7 +18,12 @@
  *   data-position-{x,y,w,h}          — initial grid placement
  *   data-drag-handle                 — drag-trigger element (titlebar)
  *   data-misp-widget-content         — render target for AJAX HTML
- *   data-misp-widget-action="..."    — clickable controls
+ *   data-misp-widget-action="..."    — clickable controls (refresh,
+ *                                      configure, remove, export-json,
+ *                                      export-csv)
+ *   data-misp-menubutton(+ -trigger / -menu) — WAI-ARIA menu-button for
+ *                                      the export (download) control;
+ *                                      hydrated by menu-button.module.mjs
  *   data-misp-widget-refresh-indicator — Phase 5 "updated Ns ago" chip
  *                                        slot; RefreshIndicator writes text
  *   data-resize-handle               — pointer-down target for resize
@@ -56,6 +61,13 @@
         <span class="misp-widget-actions">
             <button type="button" class="misp-widget-iconbtn" data-misp-widget-action="refresh"   title="<?= __('Refresh') ?>"   aria-label="<?= __('Refresh') ?>">↻</button>
             <button type="button" class="misp-widget-iconbtn" data-misp-widget-action="configure" title="<?= __('Configure') ?>" aria-label="<?= __('Configure') ?>">⚙</button>
+            <span class="misp-widget-export" data-misp-menubutton>
+                <button type="button" class="misp-widget-iconbtn" data-misp-menubutton-trigger aria-haspopup="menu" aria-expanded="false" title="<?= __('Export raw data') ?>" aria-label="<?= __('Export raw data') ?>">⬇</button>
+                <span class="misp-widget-menu" role="menu" data-misp-menubutton-menu hidden>
+                    <button type="button" class="misp-widget-menuitem" role="menuitem" data-misp-widget-action="export-json"><?= __('Export as JSON') ?></button>
+                    <button type="button" class="misp-widget-menuitem" role="menuitem" data-misp-widget-action="export-csv"><?= __('Export as CSV') ?></button>
+                </span>
+            </span>
             <button type="button" class="misp-widget-iconbtn misp-widget-iconbtn-edit-only" data-misp-widget-action="remove" title="<?= __('Remove') ?>" aria-label="<?= __('Remove') ?>">✕</button>
         </span>
     </header>
