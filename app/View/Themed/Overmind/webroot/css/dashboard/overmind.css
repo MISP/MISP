@@ -43,8 +43,11 @@
   align-items: center;
   gap: var(--misp-dash-space-2);
   padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
-  background: var(--misp-dash-surface-sunken);
-  border-bottom: 1px solid var(--misp-dash-border);
+  /* Calm chrome: blend the header into the card surface — no fill, no
+   * divider (mirrors the default theme's .misp-widget-titlebar). The
+   * action icons reveal on hover/focus in view mode, stay in edit. */
+  background: transparent;
+  border-bottom: 0;
   font-size: var(--misp-dash-fs-sm);
   font-weight: var(--misp-dash-fw-medium);
   /* Without `user-select: none` a mousedown on the title text starts
@@ -86,6 +89,19 @@
 }
 [data-misp-board-mode="view"] .misp-widget--overmind .misp-widget-iconbtn-edit-only {
   display: none;
+}
+
+/* View mode: the action button group reveals on hover / keyboard
+ * focus; always shown in edit mode. Mirrors the default theme's
+ * calm-chrome rule (opacity, not display, so the header doesn't
+ * reflow; :focus-within keeps the controls keyboard-reachable). */
+[data-misp-board-mode="view"] .misp-widget--overmind .card-header .btn-group {
+  opacity: 0;
+  transition: opacity var(--misp-dash-transition-fast);
+}
+[data-misp-board-mode="view"] .card.misp-widget--overmind:hover .card-header .btn-group,
+[data-misp-board-mode="view"] .card.misp-widget--overmind:focus-within .card-header .btn-group {
+  opacity: 1;
 }
 
 .misp-widget--overmind__body {

@@ -380,10 +380,12 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   align-items: center;
   gap: var(--misp-dash-space-2);
   padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
-  border-bottom: 1px solid var(--misp-dash-border);
-  background: linear-gradient(to bottom,
-    var(--misp-dash-surface-raised),
-    var(--misp-dash-surface-sunken));
+  /* Calm chrome: the titlebar blends into the widget surface — no
+   * fill, no divider. The title still reads; the action icons reveal
+   * on hover/focus in view mode (see .misp-widget-actions below) and
+   * stay shown in edit mode. */
+  background: transparent;
+  border-bottom: 0;
   font-size: var(--misp-dash-fs-sm);
   font-weight: var(--misp-dash-fw-medium);
   user-select: none;
@@ -410,6 +412,21 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 .misp-widget-actions {
   display: flex;
   gap: var(--misp-dash-space-1);
+}
+
+/* View mode: action buttons stay hidden until the user hovers the
+ * widget or moves keyboard focus into it. `:focus-within` keeps them
+ * reachable for keyboard + screen-reader users (hover alone would
+ * strand them); opacity (not `display`) preserves the titlebar layout
+ * so nothing reflows when they appear. In edit mode they're always
+ * visible — this rule only matches `[data-misp-board-mode="view"]`. */
+[data-misp-board-mode="view"] .misp-widget-actions {
+  opacity: 0;
+  transition: opacity var(--misp-dash-transition-fast);
+}
+[data-misp-board-mode="view"] .misp-widget:hover .misp-widget-actions,
+[data-misp-board-mode="view"] .misp-widget:focus-within .misp-widget-actions {
+  opacity: 1;
 }
 
 /* "Updated Ns ago" chip — sits between the title and the action

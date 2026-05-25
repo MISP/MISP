@@ -548,3 +548,63 @@ data-shape or contract change.
   surfaced by the dashboard's in-page controls". Also drops the
   stale `{scope, widgets}` envelope reference (DD-05 retired it).
 - §15 picks up DD-08 as a binding row.
+
+## DD-09 — Calm widget chrome: transparent titlebar, hover/focus-reveal action icons
+
+**Date.** 2026-05-25
+**Phase context.** Post-Phase-5.5 UX pass (the "resolve design decisions
+before adding new widget types" round). Affects the widget wrapper
+chrome in both themes; no markup, JS, contract, or data-shape change —
+CSS only.
+
+**Decision.** The widget titlebar is visually quiet by default. The
+header **background fill and bottom divider are removed** in both
+themes (default `.misp-widget-titlebar`; Overmind
+`.misp-widget--overmind .card-header`) so the bar blends into the
+widget surface. The per-widget **action icons** (refresh / configure /
+remove) are **hidden in view mode and revealed on hover or keyboard
+focus** of the widget; in **edit mode they are always visible**. The
+**title text and the "updated Ns ago" refresh indicator stay visible
+at all times** — they identify the widget and report status, they are
+not controls.
+
+**Rationale.** The board is a reading surface most of the time; a grid
+of heavy, boxed title bars with always-on button rows competes with
+the data. Quieting the chrome to "title on a clean surface" lets the
+widget content carry the page, while the controls are one hover/focus
+away when wanted. Edit mode is the exception: when the user is actively
+arranging widgets the titlebar *is* the drag handle (it shows the ⠿
+grip) and every control should be in reach, so chrome is fully exposed
+there. Matches the user's standing "modern and pleasant" direction and
+the common dashboard pattern of calm-in-view / exposed-in-edit.
+
+**Accessibility.** Hover-only reveal would strand keyboard and
+screen-reader users, so the reveal trigger is `:hover` **OR**
+`:focus-within` — tabbing into any control (or any focusable element
+in the widget body, e.g. a drilldown link) brings the action group up.
+The icons are hidden with `opacity` + a fade transition, **not**
+`display: none`, so they remain in the DOM and the tab order and the
+titlebar never reflows when they appear/disappear. The board renders
+`data-misp-board-mode="view"` server-side on first paint, so the
+view-mode rule matches immediately — no flash of visible icons before
+JS runs. Edit-only buttons (Remove) keep their existing
+`[data-misp-board-mode="view"] … -edit-only { display:none }` gate, so
+in view mode only Refresh + Configure can ever reveal.
+
+**Reversibility.** Pure CSS, fully additive to revert: restore the
+titlebar `background`/`border-bottom` and delete the
+`[data-misp-board-mode="view"] … { opacity: 0 }` reveal rules in the
+two stylesheets. No template or JS dependency.
+
+**Implementation hooks.**
+- `app/webroot/css/dashboard/dashboard.default.css` —
+  `.misp-widget-titlebar` (transparent + no border) and a view-mode
+  `opacity` reveal on `.misp-widget-actions` keyed off
+  `.misp-widget:hover` / `:focus-within`.
+- `app/View/Themed/Overmind/webroot/css/dashboard/overmind.css` —
+  same treatment on `.misp-widget--overmind .card-header` and its
+  `.btn-group`.
+- **Convention for future widgets/themes:** any new theme's wrapper
+  override should follow the same calm-in-view / exposed-in-edit
+  chrome (transparent header, hover+focus-reveal controls, always-on
+  in edit mode) for cross-theme consistency.
