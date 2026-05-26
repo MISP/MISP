@@ -4866,7 +4866,7 @@ class Server extends AppModel
         }
 
         $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-        $fastCaching = $serverSync->isSupported(ServerSyncTool::FEATURE_FAST_CACHING);
+        $fastCaching = $serverSync->isSupported(ServerSyncTool::FEATURE_FAST_CACHING) && empty($period);
         $nextLastId = null;
         $count = 0;
         // delete the previous iterations, but skip the event uuid one as the uuid might exist on other instances too (should have thought about this when designing the cache, but alas, past me was a monkey too)

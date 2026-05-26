@@ -31,6 +31,24 @@ $fields = [
             ],
             [
                 'type' => 'link',
+                'label' => __('Cache instance (last 30 days)'),
+                'icon' => 'calendar-day',
+                'url' => $baseurl . '/servers/cache/%id%/30d',
+                'requirement' => function (array $row) {
+                    return !empty($row['Server']['caching_enabled']);
+                }
+            ],
+            [
+                'type' => 'link',
+                'label' => __('Cache instance (last 90 days)'),
+                'icon' => 'calendar-week',
+                'url' => $baseurl . '/servers/cache/%id%/90d',
+                'requirement' => function (array $row) {
+                    return !empty($row['Server']['caching_enabled']);
+                }
+            ],
+            [
+                'type' => 'link',
                 'label' => __('Cache instance (last year)'),
                 'icon' => 'calendar-days',
                 'url' => $baseurl . '/servers/cache/%id%/1y',

@@ -284,6 +284,34 @@
                     'url' => $baseurl . '/servers/cache',
                     'url_params_data_paths' => [
                         'Server.id',
+                        '30d'
+                    ],
+                    'icon' => 'calendar-day',
+                    'title' => __('Cache instance (last 30 days)'),
+                    'complex_requirement' => [
+                        'function' => function ($row) {
+                            return !empty($row['Server']['caching_enabled']);
+                        }
+                    ]
+                ],
+                [
+                    'url' => $baseurl . '/servers/cache',
+                    'url_params_data_paths' => [
+                        'Server.id',
+                        '90d'
+                    ],
+                    'icon' => 'calendar-week',
+                    'title' => __('Cache instance (last 90 days)'),
+                    'complex_requirement' => [
+                        'function' => function ($row) {
+                            return !empty($row['Server']['caching_enabled']);
+                        }
+                    ]
+                ],
+                [
+                    'url' => $baseurl . '/servers/cache',
+                    'url_params_data_paths' => [
+                        'Server.id',
                         '1y'
                     ],
                     'icon' => 'calendar',
