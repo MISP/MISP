@@ -2141,6 +2141,18 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   border: 1px dashed var(--misp-dash-border);
   border-radius: var(--misp-dash-radius-md);
 }
+/* The search filter sets `el.hidden = true` on non-matching cards and
+   on emptied category sections, but the explicit `display:flex` on
+   `.misp-gallery-card` / `.misp-gallery-category` above (an author
+   rule) outranks the UA `[hidden]{display:none}`, so the elements stay
+   visible — the counter updates ("1 of 39") while the list never culls.
+   These class+attribute selectors (specificity 0,0,2,0) beat the base
+   class rules without `!important`. `.misp-gallery-empty` needs no such
+   rule: it declares no `display`, so the UA `[hidden]` already hides it. */
+.misp-gallery-card[hidden],
+.misp-gallery-category[hidden] {
+  display: none;
+}
 /* The non-form panel modes (gallery + the config import/export modes)
  * hide the configure footer (Save / Cancel) — those actions are
  * form-mode-only; each mode carries its own buttons in the body. The
