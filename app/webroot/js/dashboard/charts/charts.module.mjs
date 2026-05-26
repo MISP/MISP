@@ -143,12 +143,13 @@ function buildGeoOption(payload, hostEl) {
   const countryFill   = tokenOn(hostEl, '--misp-dash-border',        '#d8dde4');
   const countryStroke = tokenOn(hostEl, '--misp-dash-border-strong', '#b6bdc7');
 
-  // Map projection. Default 'mercator' (the conventional web-map look)
+  // Map projection. Default 'naturalEarth' (rounded, area-faithful-ish,
+  // less polar distortion — DD-17, superseding DD-14's mercator default)
   // when payload.projection is unset; 'equirectangular' omits the
   // projection so ECharts plots raw lon/lat (its native flat grid).
   // Mercator + equirectangular are dependency-free (DD-14); 'naturalEarth',
   // 'robinson' and 'peters' are vendored d3-geo projections (DD-15, DD-16).
-  // Unknown names fall back to mercator.
+  // Unknown names fall back to the default (naturalEarth).
   const wrapD3 = (p) => ({ project: (pt) => p(pt), unproject: (pt) => p.invert(pt) });
   const PROJECTIONS = {
     mercator: {
@@ -180,10 +181,10 @@ function buildGeoOption(payload, hostEl) {
     robinson: wrapD3(geoRobinson()),
     peters: wrapD3(geoCylindricalEqualArea().parallel(45)),
   };
-  const projName = payload.projection || 'mercator';
+  const projName = payload.projection || 'naturalEarth';
   // 'equirectangular' (or any name without a function) => no projection,
   // i.e. ECharts' native flat lon/lat rendering.
-  const projection = PROJECTIONS[projName] || (projName === 'equirectangular' ? null : PROJECTIONS.mercator);
+  const projection = PROJECTIONS[projName] || (projName === 'equirectangular' ? null : PROJECTIONS.naturalEarth);
 
   return {
     tooltip: {

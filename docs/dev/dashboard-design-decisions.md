@@ -1218,3 +1218,71 @@ north-up confirmed, aspect = π/2).
   honours `projection=peters` (default still mercator); gallery enum
   lists all five; session HTML render emits the `data-misp-chart="geo"`
   payload with `"projection":"peters"` + ISO→GeoJSON-name translation.
+
+## DD-17 — WorldMap default projection: Natural Earth (supersedes DD-14's Mercator default)
+
+**Date.** 2026-05-26
+**Phase context.** Overturns the *default* set by DD-14 (Mercator).
+DD-14 and DD-15 both flagged this as a deliberately-deferred, one-line
+call left to the user ("Default to Robinson/Natural Earth? Not done —
+DD-14 set mercator… One-line change if a different default is wanted").
+The user made that call (2026-05-26): **Natural Earth becomes the
+default**.
+
+**Decision.** The default WorldMap projection is now **`naturalEarth`**
+(d3-geo core `geoNaturalEarth1`, already vendored since DD-15), at
+*both* layers that DD-14 established:
+
+1. **Renderer-level default** in `charts.module.mjs` `buildGeoOption` —
+   `payload.projection || 'naturalEarth'`, and the unknown-name fallback
+   `PROJECTIONS.naturalEarth` (was `PROJECTIONS.mercator`). This governs
+   every WorldMap widget that does **not** declare a projection — i.e.
+   `OrganisationMapWidget` and `CsseCovidMapWidget`, which now render
+   Natural Earth instead of Mercator (the same blast radius DD-14
+   itself had when it made Mercator the renderer default).
+2. **Widget-level `$schema` default** on the two threat maps
+   (`AttributeGeoMapWidget`, `ThreatActorCountryMapWidget`) — the
+   `projection` enum `default` and the `handler()` emit fallback both
+   move from `'mercator'` to `'naturalEarth'`.
+
+Mercator, equirectangular, Robinson and Peters all **remain selectable**
+in the enum — only the *default* changes. Saved configs that explicitly
+pin a projection are untouched (verified: explicit `mercator` still
+honoured).
+
+**Rationale.** For a glanceable global threat-data overview, Natural
+Earth's rounded, low-distortion world view reads better than Mercator's
+severe high-latitude area inflation (which visually over-weights Russia,
+Canada, Greenland on a choropleth). Natural Earth is a compromise
+projection designed precisely for general-purpose world maps. The user
+preferred it as the out-of-the-box look. It is already vendored and
+imported (DD-15), so this is a pure default flip — no bundle rebuild,
+no new dependency.
+
+**Why change the renderer-level default too (not just the threat
+widgets).** Leaving the renderer default at Mercator while flipping
+only the threat widgets' schema default would make org/COVID maps
+Mercator and threat maps Natural Earth — two different "defaults" on
+one board. "Natural Earth is the default" is only coherent if the
+renderer-level fallback (the true default for non-declaring widgets)
+moves too. Both layers changed together.
+
+**Reversibility.** Trivially revert: restore `'mercator'` at the three
+default sites (the renderer `|| 'mercator'` + unknown-name fallback, and
+each widget's `$schema` default + handler fallback). No data-shape
+change; saved explicit-projection configs are unaffected either way.
+
+**Note on the trail.** DD-14 and DD-16 still read "Mercator is the
+default" / "default still mercator" — those entries record what was
+true when they landed and are deliberately **not** edited (per this
+log's discipline). DD-17 is the superseding entry.
+
+**Implementation hooks.**
+- `charts/charts.module.mjs`: `payload.projection || 'naturalEarth'`;
+  unknown-name fallback `PROJECTIONS.naturalEarth`; comment updated.
+- `AttributeGeoMapWidget` + `ThreatActorCountryMapWidget`: `projection`
+  `$schema` `default` → `naturalEarth`; `handler()` emit fallback →
+  `naturalEarth`; params doc + schema help "(default)" label moved.
+- Verified: `node --check` + `php -l` clean; REST default now
+  `naturalEarth` on both threat widgets; explicit `mercator` still
+  honoured; enum still lists all five.

@@ -36,7 +36,7 @@ class ThreatActorCountryMapWidget
     public $params = [
         'limit' => 'Limit to the top-N countries by threat-actor count. Leave empty for all.',
         'palette' => 'Colour scale for the map: accent (blue) / danger (red) / success (green) / warning (amber) / info (cyan). Defaults to danger (threat data).',
-        'projection' => 'Map projection: mercator (default) / equirectangular (flat lon/lat grid) / naturalEarth / robinson (rounded, less polar-distorted world views) / peters (Gall-Peters equal-area).',
+        'projection' => 'Map projection: mercator / equirectangular (flat lon/lat grid) / naturalEarth (default) / robinson (rounded, less polar-distorted world views) / peters (Gall-Peters equal-area).',
     ];
     public $schema = [
         'limit' => [
@@ -52,8 +52,8 @@ class ThreatActorCountryMapWidget
         'projection' => [
             'type' => 'enum',
             'enum' => ['mercator', 'equirectangular', 'naturalEarth', 'robinson', 'peters'],
-            'default' => 'mercator',
-            'help' => 'Map projection. Mercator (web-map look) / equirectangular (flat grid) / Natural Earth / Robinson (rounded, less polar distortion) / Gall-Peters (equal-area).',
+            'default' => 'naturalEarth',
+            'help' => 'Map projection. Mercator (web-map look) / equirectangular (flat grid) / Natural Earth (default) / Robinson (rounded, less polar distortion) / Gall-Peters (equal-area).',
         ],
     ];
     public $cacheLifetime = false;
@@ -105,8 +105,8 @@ class ThreatActorCountryMapWidget
             // Named palette (DD-13); default red — this is threat data.
             // Overridable per widget instance via the configure form.
             'palette' => !empty($options['palette']) ? $options['palette'] : 'danger',
-            // Map projection (DD-14); default mercator, overridable.
-            'projection' => !empty($options['projection']) ? $options['projection'] : 'mercator',
+            // Map projection (DD-14); default naturalEarth (DD-17), overridable.
+            'projection' => !empty($options['projection']) ? $options['projection'] : 'naturalEarth',
         ];
     }
 }
