@@ -31,6 +31,15 @@ $fields = [
             ],
             [
                 'type' => 'link',
+                'label' => __('Cache instance (last year)'),
+                'icon' => 'calendar-days',
+                'url' => $baseurl . '/servers/cache/%id%/1y',
+                'requirement' => function (array $row) {
+                    return !empty($row['Server']['caching_enabled']);
+                }
+            ],
+            [
+                'type' => 'link',
                 'label' => __('Cache instance'),
                 'icon' => 'database',
                 'url' => $baseurl . '/servers/cache/%id%',

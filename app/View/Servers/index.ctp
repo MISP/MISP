@@ -283,6 +283,20 @@
                 [
                     'url' => $baseurl . '/servers/cache',
                     'url_params_data_paths' => [
+                        'Server.id',
+                        '1y'
+                    ],
+                    'icon' => 'calendar',
+                    'title' => __('Cache instance (last year)'),
+                    'complex_requirement' => [
+                        'function' => function ($row) {
+                            return !empty($row['Server']['caching_enabled']);
+                        }
+                    ]
+                ],
+                [
+                    'url' => $baseurl . '/servers/cache',
+                    'url_params_data_paths' => [
                         'Server.id'
                     ],
                     'icon' => 'memory',

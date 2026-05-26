@@ -442,6 +442,7 @@ class ServerShell extends AppShell
         $userId = $this->args[0];
         $user = $this->getUser($userId);
         $scope = $this->args[1];
+        $period = !empty($this->args[3]) ? $this->args[3] : null;
         if (!empty($this->args[2])) {
             $jobId = $this->args[2];
         } else {
@@ -458,7 +459,7 @@ class ServerShell extends AppShell
             $this->Job->save($data);
             $jobId = $this->Job->id;
         }
-        $result = $this->Server->cacheServerInitiator($user, $scope, $jobId);
+        $result = $this->Server->cacheServerInitiator($user, $scope, $jobId, $period);
         if ($result !== true) {
             $message = 'Job Failed. Reason: ' . $result;
             $this->Job->saveStatus($jobId, false, $message);

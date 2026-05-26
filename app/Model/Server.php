@@ -4814,7 +4814,7 @@ class Server extends AppModel
         return true;
     }
 
-    public function cacheServerInitiator($user, $id = 'all', $jobId = false)
+    public function cacheServerInitiator($user, $id = 'all', $jobId = false, $period = null)
     {
         $redis = $this->setupRedis();
         if ($redis === false) {
@@ -4839,7 +4839,7 @@ class Server extends AppModel
             }
         }
         foreach ($servers as $k => $server) {
-            $this->__cacheInstance($server, $redis, $jobId);
+            $this->__cacheInstance($server, $redis, $jobId, $period);
             if ($jobId) {
                 $job->saveField('progress', 100 * $k / count($servers));
                 $job->saveField('message', 'Server ' . $server['Server']['id'] . ' cached.');
@@ -4855,7 +4855,7 @@ class Server extends AppModel
      * @return bool
      * @throws JsonException
      */
-    private function __cacheInstance($server, $redis, $jobId = false)
+    private function __cacheInstance($server, $redis, $jobId = false, $period = null)
     {
         $serverId = $server['Server']['id'];
         $i = 0;
@@ -4888,6 +4888,9 @@ class Server extends AppModel
                     'page' => $i,
                     'limit' => $chunk_size,
                 ];
+                if (!empty($period)) {
+                    $rules['timestamp'] = $period;
+                }
                 try {
                     $data = $serverSync->attributeSearch($rules)->body();
                 } catch (Exception $e) {

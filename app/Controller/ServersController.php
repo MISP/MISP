@@ -2128,8 +2128,11 @@ class ServersController extends AppController
         return $this->RestResponse->viewData(array('uuid' => Configure::read('MISP.uuid')), $this->response->type());
     }
 
-    public function cache($id = 'all')
+    public function cache($id = 'all', $period = null)
     {
+        if ($period === null) {
+            $period = $this->request->query('period');
+        }
         if (Configure::read('MISP.background_jobs')) {
 
             $this->loadModel('Job');
@@ -2148,7 +2151,8 @@ class ServersController extends AppController
                     'cacheServer',
                     $this->Auth->user('id'),
                     $id,
-                    $jobId
+                    $jobId,
+                    $period
                 ],
                 false,
                 $jobId
@@ -2156,7 +2160,7 @@ class ServersController extends AppController
 
             $message = 'Server caching job initiated.';
         } else {
-            $result = $this->Server->cacheServerInitiator($this->Auth->user(), $id);
+            $result = $this->Server->cacheServerInitiator($this->Auth->user(), $id, false, $period);
             if (!$result) {
                 $this->Flash->error(__('Caching the servers has failed.'));
                 $this->redirect(array('action' => 'index'));
