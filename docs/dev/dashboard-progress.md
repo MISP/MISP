@@ -1102,6 +1102,47 @@ polish work.
 
 ---
 
+## Post-5.5 — New features (user-driven, untracked phase)
+
+Feature work (not just new widget types) the user enumerated 2026-05-26
+to be implemented **one at a time, sequentially**. Recorded here as a
+backlog; each gets planning + fork-surfacing before code, a DD if a
+meaningful decision is made, and a per-task signed commit. Not a merge
+gate (the user still does the merge).
+
+- [x] **Widget aliasing (per-instance display name) — landed 2026-05-26 (DD-18).**
+  Titlebar label precedence `config.alias` → class `$title` → class
+  name. Alias is a `string` schema field injected server-side into
+  every widget's `$schema` (`index()` + `renderWrapper()`), edited via
+  the existing schema-driven configure form (user chose the form field
+  over inline rename), persisted by the per-widget config-patch save —
+  no new plumbing, mirrors the `refresh_delay` override. **Fork
+  surfaced + chosen:** `config.alias` over the dormant proto top-level
+  `alias` slot (the config-patch path carries config only; top-level
+  would need new plumbing / break DD-05 staging). **Latent bug fixed:**
+  un-aliased titlebars used to show the class name, not `$title` (the
+  enrichment never surfaced `$title`). Live titlebar update via
+  `board.module._applyTitle` (onSave/onPreview) → new `data-widget-title`
+  attr + `data-misp-widget-title` hook (theme-independent). Multiple
+  same-widget instances already worked (keyed by `instance_id`).
+  Vestigial top-level scaffolding removed; configure "Filters" tier →
+  "Settings". Verified: php -l + node --check clean; `renderWrapper`
+  default label = `$title`, `config.alias` override honoured; live
+  `index()` render of the 15-widget admin board (incl. 3 UsageData + 2
+  TrendingAttributes instances with pre-authored aliases) shows real
+  titles/aliases; alias schema on all wrappers. Signed commit.
+- [ ] **Three default dashboard layouts shipped with the app.** Named
+  starter layouts: **analyst**, **admin**, **community**. Ship as
+  selectable/seedable templates.
+- [ ] **Caching for `AttributeGeoMapWidget`.** Redis-backed, key
+  `misp:attribute_geo_map_cache`, **1h expiration**. Cache **only the
+  default-settings render**; any custom config (custom `time_window`,
+  non-default `sources`, etc.) runs the query **live** (uncached). Note:
+  this revisits the DD-11 finding that `cacheLifetime` is inert in v2 —
+  this is a widget-owned Redis cache, not the dead `cacheLifetime` knob.
+
+---
+
 ## Phase 6 — Merge to `develop`
 
 **Goal:** with the parity sweep green, the `dashboards` branch

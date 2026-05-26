@@ -85,10 +85,34 @@ class DashboardsController extends AppController
             $w['schema'] = [];
             $w['placeholder'] = '';
             $w['autoRefreshDelay'] = 0;
+            // Human-readable title surfaced to the wrapper so an
+            // un-aliased widget shows its real name, not the class name
+            // (DD-18); overridden with the loaded class title below.
+            $w['title'] = isset($w['widget']) ? $w['widget'] : '';
             if (!empty($w['widget']) && is_string($w['widget'])) {
                 $instance = $this->Dashboard->loadWidget($user, $w['widget'], true);
                 if ($instance !== false) {
                     $w['schema'] = WidgetSchema::getSchema($instance);
+                    // Per-instance display name (alias, DD-18). Surface
+                    // the class title so the wrapper can default the
+                    // label to the widget's real name; the alias itself
+                    // rides config.alias, edited via the string schema
+                    // field prepended here (so it leads the configure
+                    // form). No `default` — blank means "use the
+                    // widget's name", resolved at render time.
+                    if (isset($instance->title) && is_string($instance->title)) {
+                        $w['title'] = $instance->title;
+                    }
+                    if (!is_array($w['schema'])) {
+                        $w['schema'] = [];
+                    }
+                    $w['schema'] = array('alias' => array(
+                        'type' => 'string',
+                        'help' => sprintf(
+                            __('Display name for this widget. Leave blank to use the widget\'s name (%s).'),
+                            $w['title']
+                        ),
+                    )) + $w['schema'];
                     if (isset($instance->placeholder) && is_string($instance->placeholder)) {
                         $w['placeholder'] = $instance->placeholder;
                     }
@@ -772,6 +796,23 @@ class DashboardsController extends AppController
         // (mirrors the index() enrichment loop, kept inline rather
         // than factored so the index() path stays additive-only).
         $schema = WidgetSchema::getSchema($widget);
+        if (!is_array($schema)) {
+            $schema = array();
+        }
+        // Per-instance display name (alias, DD-18) — mirrors index().
+        // Surface the class title for the wrapper's default label and
+        // prepend a string schema field so the configure form offers
+        // the alias on the next Edit. No `default` (blank = use name).
+        $title = (isset($widget->title) && is_string($widget->title))
+            ? $widget->title
+            : $widgetName;
+        $schema = array('alias' => array(
+            'type' => 'string',
+            'help' => sprintf(
+                __('Display name for this widget. Leave blank to use the widget\'s name (%s).'),
+                $title
+            ),
+        )) + $schema;
         $placeholder = isset($widget->placeholder) && is_string($widget->placeholder)
             ? $widget->placeholder
             : '';
@@ -806,7 +847,7 @@ class DashboardsController extends AppController
             'schema'           => $schema,
             'placeholder'      => $placeholder,
             'autoRefreshDelay' => $autoRefreshDelay,
-            'alias'            => null,
+            'title'            => $title,
             'position'         => array('x' => $x, 'y' => $y, 'w' => $w, 'h' => $h),
         );
 

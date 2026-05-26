@@ -260,7 +260,7 @@ function buildForm(widgetConfig, widgetSchema, widgetPlaceholder) {
   const formNodes = [];
   if (typedFields.length > 0) {
     formNodes.push(el('section', { class: 'misp-configure-tier' },
-      el('h3', { class: 'misp-configure-tier-title', text: 'Filters' }),
+      el('h3', { class: 'misp-configure-tier-title', text: 'Settings' }),
       ...typedFields,
     ));
   }

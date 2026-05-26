@@ -1286,3 +1286,97 @@ log's discipline). DD-17 is the superseding entry.
 - Verified: `node --check` + `php -l` clean; REST default now
   `naturalEarth` on both threat widgets; explicit `mercator` still
   honoured; enum still lists all five.
+
+## DD-18 — Widget aliasing: per-instance display name via `config.alias`, defaulting to the class `$title`
+
+**Date.** 2026-05-26
+**Phase context.** First of the post-5.5 "new features" round (the user
+enumerated widget aliasing, default layouts, and geo caching as the next
+batch). Lets a user run several instances of the same widget with
+different configs and label each one distinctly.
+
+**Decision.** A widget instance's titlebar label is, in precedence
+order: **`config.alias`** (per-instance, user-set) → the class **`$title`**
+(the human-readable widget name) → the class name (last-ditch). The
+alias is a **config field** (`config.alias`), edited via a `string`
+schema field **injected server-side** into every widget's `$schema`
+(prepended so it leads the configure form), exactly mirroring the
+existing `config.refresh_delay` override mechanism. No `$schema`
+`default` — a blank alias means "use the widget's name", resolved at
+render. The configure form's typed-tier heading was renamed
+**"Filters" → "Settings"** (it now also carries the alias + the
+refresh-delay override, neither of which is a filter).
+
+**The fork that was surfaced (and the call made).** A dormant top-level
+`alias` slot has existed since the Phase 1 proto (2026-05-13): the
+wrapper rendered `alias ?? widget-class-name`, `board.module._saveLayout`
+serialised `data-widget-alias`, but **nothing ever set it**
+(`renderWrapper` hardcoded `null`, no editing UI), the fallback was the
+**class name** not `$title`, and `index()` never even surfaced `$title`
+— so every un-aliased titlebar showed its class name (a latent bug this
+fixes). Two ways to finish it were put to the user:
+- **`config.alias` (chosen).** Rides *all* existing infrastructure: the
+  schema-driven configure form auto-renders the field, the per-widget
+  config-patch save (`updateWidgetSettings`) persists it, no new save
+  plumbing, no DD-05 staging-atomicity conflict. Consistent precedent
+  (`refresh_delay` is also a non-handler presentation key in `config`).
+- **Top-level `alias` (rejected).** Reuses the proto slot, but the
+  config-patch save path carries `{instance_id, config}` only — a
+  top-level alias could only be persisted by a full-blob `_saveLayout`,
+  which the configure form deliberately avoids during edit-mode staging
+  (DD-05). Would have needed new patch plumbing or a separate edit
+  affordance. More code, worse fit.
+
+The user picked the configure-form field over inline titlebar rename
+(2026-05-26). The proto's vestigial top-level scaffolding was removed so
+there is **one** notion of alias (`config.alias`), not two.
+
+**Live titlebar update.** The configure-form Save re-renders only the
+widget *body* (`_renderWidget`), leaving the titlebar untouched. So the
+client mirrors the server's label precedence in `board.module._applyTitle`
+(called on `onSave` + `onPreview`): it reads `config.alias` from
+`data-widget-config`, falling back to a new **`data-widget-title`**
+attribute (= the class `$title`) then `data-widget-name`. The label span
+carries a stable **`data-misp-widget-title`** hook (theme-independent —
+the default theme's title span is `.misp-widget-title`, Overmind's is
+`.card-title`; only the hook is stable per §8.5).
+
+**Multiple instances already worked.** Instances are addressed by
+`instance_id` throughout (mint in `LayoutFixup` + client
+`_mintFinalInstanceId`; patch indexing in `updateWidgetSettings`), never
+by widget name — so N instances of one widget class have always been
+supported. Aliasing only adds the per-instance *label*. (Confirmed live:
+the admin board already runs 3 `UsageDataWidget` + 2
+`TrendingAttributesWidget` instances, several with hand-authored
+`config.alias` values — invisible under the old top-level-only wrapper,
+correctly surfaced now.)
+
+**Reversibility.** Additive within the dashboard's own code. Revert:
+drop the `alias` schema injection in `index()`/`renderWrapper()`, restore
+the wrapper label to `$widget['widget']`, remove `data-widget-title` /
+`data-misp-widget-title` / `_applyTitle`, rename the section back. No
+data-shape break — `config.alias` is just an ignored config key to the
+handler (like `refresh_delay`), and saved configs without it fall back
+to `$title`.
+
+**Implementation hooks.**
+- `DashboardsController::index()` — per-widget enrichment: set
+  `$w['title']` (class `$title`, default class name); prepend an `alias`
+  `string` schema field with help text naming the title.
+- `DashboardsController::renderWrapper()` — mirror (Add Widget path):
+  `$title` + prepended alias schema; `$widgetData` gains `'title'`,
+  drops `'alias' => null`.
+- `Elements/dashboard/widget/wrapper.ctp` + Overmind mirror — label
+  precedence `config.alias → title → class-name`; emit
+  `data-widget-title`; `data-misp-widget-title` hook on the label span;
+  vestigial `data-widget-alias` removed; docblock updated.
+- `board.module.mjs` — `_applyTitle()` helper + calls in
+  `onSave`/`onPreview`; vestigial top-level `alias` read removed from
+  `_saveLayout`.
+- `configure.module.mjs` — typed-tier heading "Filters" → "Settings".
+- Verified: `php -l` + `node --check` clean; `renderWrapper` default
+  label = the `$title` ("Recent data geolocation map", not the class
+  name), `config.alias` override honoured ("My Custom Map"),
+  `data-widget-title` + alias schema present; live `index()` render of
+  the 15-widget admin board shows real titles/aliases, alias schema on
+  all wrappers.

@@ -33,15 +33,23 @@
      data-widget-config='<?= h(json_encode($widget['config'], JSON_UNESCAPED_SLASHES)) ?>'
      data-widget-schema='<?= h(json_encode(isset($widget['schema']) && is_array($widget['schema']) ? $widget['schema'] : array(), JSON_UNESCAPED_SLASHES)) ?>'
      data-widget-placeholder="<?= h(isset($widget['placeholder']) && is_string($widget['placeholder']) ? $widget['placeholder'] : '') ?>"
-     <?php if (!empty($widget['alias'])): ?>data-widget-alias="<?= h($widget['alias']) ?>"<?php endif; ?>
+     data-widget-title="<?= h(!empty($widget['title']) ? $widget['title'] : $widget['widget']) ?>"
      <?php if (!empty($widget['autoRefreshDelay']) && (int)$widget['autoRefreshDelay'] > 0): ?>data-widget-refresh-delay="<?= (int)$widget['autoRefreshDelay'] ?>"<?php endif; ?>
      data-position-x="<?= h($widget['position']['x']) ?>"
      data-position-y="<?= h($widget['position']['y']) ?>"
      data-position-w="<?= h($widget['position']['w']) ?>"
      data-position-h="<?= h($widget['position']['h']) ?>">
     <div class="card-header d-flex align-items-center" data-drag-handle>
-        <span class="card-title flex-grow-1 fw-medium mb-0">
-            <?= h($widget['alias'] ?? $widget['widget']) ?>
+<?php
+    // Label precedence (DD-18): config.alias → class $title → class name.
+    $__alias = isset($widget['config']['alias']) && is_string($widget['config']['alias'])
+        ? trim($widget['config']['alias']) : '';
+    $__label = $__alias !== ''
+        ? $__alias
+        : (!empty($widget['title']) ? $widget['title'] : $widget['widget']);
+?>
+        <span class="card-title flex-grow-1 fw-medium mb-0" data-misp-widget-title>
+            <?= h($__label) ?>
         </span>
         <span class="misp-widget-refresh-indicator misp-widget--overmind__refresh-indicator text-muted small me-2"
               data-misp-widget-refresh-indicator

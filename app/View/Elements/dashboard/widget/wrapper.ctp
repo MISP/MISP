@@ -12,12 +12,16 @@
  *   data-widget-config               — JSON-encoded config
  *   data-widget-schema               — JSON-encoded $schema (PRD §5.7)
  *   data-widget-placeholder          — raw $placeholder string (DD-06 seed)
- *   data-widget-alias                — optional display alias
+ *   data-widget-title                — widget's human-readable name
+ *                                      ($title); client title fallback
+ *                                      when config.alias is blank (DD-18)
  *   data-widget-refresh-delay        — Phase 5 board-level scheduler tick
  *                                      (seconds; only emitted when > 0)
  *   data-position-{x,y,w,h}          — initial grid placement
  *   data-drag-handle                 — drag-trigger element (titlebar)
  *   data-misp-widget-content         — render target for AJAX HTML
+ *   data-misp-widget-title           — titlebar label span; client
+ *                                      rewrites it on alias change (DD-18)
  *   data-misp-widget-action="..."    — clickable controls (refresh,
  *                                      configure, remove, export-json,
  *                                      export-csv)
@@ -35,8 +39,11 @@
  *
  * Inputs:
  *   $widget — array shape {
- *     instance_id, widget, alias, config, position: {x, y, w, h}
+ *     instance_id, widget, title, config (may carry an `alias`),
+ *     schema, placeholder, position: {x, y, w, h}
  *   }
+ *   The displayed label is config.alias (if non-empty) else `title`
+ *   (the class $title) else the widget class name (DD-18).
  */
 ?>
 <article class="misp-widget"
@@ -46,14 +53,24 @@
          data-widget-config='<?= h(json_encode($widget['config'], JSON_UNESCAPED_SLASHES)) ?>'
          data-widget-schema='<?= h(json_encode(isset($widget['schema']) && is_array($widget['schema']) ? $widget['schema'] : array(), JSON_UNESCAPED_SLASHES)) ?>'
          data-widget-placeholder="<?= h(isset($widget['placeholder']) && is_string($widget['placeholder']) ? $widget['placeholder'] : '') ?>"
-         <?php if (!empty($widget['alias'])): ?>data-widget-alias="<?= h($widget['alias']) ?>"<?php endif; ?>
+         data-widget-title="<?= h(!empty($widget['title']) ? $widget['title'] : $widget['widget']) ?>"
          <?php if (!empty($widget['autoRefreshDelay']) && (int)$widget['autoRefreshDelay'] > 0): ?>data-widget-refresh-delay="<?= (int)$widget['autoRefreshDelay'] ?>"<?php endif; ?>
          data-position-x="<?= h($widget['position']['x']) ?>"
          data-position-y="<?= h($widget['position']['y']) ?>"
          data-position-w="<?= h($widget['position']['w']) ?>"
          data-position-h="<?= h($widget['position']['h']) ?>">
     <header class="misp-widget-titlebar" data-drag-handle>
-        <span class="misp-widget-title"><?= h($widget['alias'] ?? $widget['widget']) ?></span>
+<?php
+    // Label precedence (DD-18): per-instance alias (config.alias) →
+    // class $title → class name. The client mirrors this in
+    // board.module's _applyTitle() when the alias changes live.
+    $__alias = isset($widget['config']['alias']) && is_string($widget['config']['alias'])
+        ? trim($widget['config']['alias']) : '';
+    $__label = $__alias !== ''
+        ? $__alias
+        : (!empty($widget['title']) ? $widget['title'] : $widget['widget']);
+?>
+        <span class="misp-widget-title" data-misp-widget-title><?= h($__label) ?></span>
         <span class="misp-widget-refresh-indicator"
               data-misp-widget-refresh-indicator
               aria-live="polite"

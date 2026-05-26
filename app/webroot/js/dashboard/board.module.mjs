@@ -225,6 +225,32 @@ class Board {
     }
   }
 
+  /**
+   * Mirror the server-side titlebar label precedence (DD-18) on the
+   * client after a live config change: per-instance alias
+   * (config.alias) → the widget's name (data-widget-title, = class
+   * $title) → the class name. Keeps the titlebar in sync when the
+   * user edits the alias in the configure form, without a reload or a
+   * wrapper re-render — the body-only _renderWidget leaves the
+   * titlebar untouched. Theme-independent: selects the label span via
+   * its data-misp-widget-title hook (default uses .misp-widget-title,
+   * Overmind uses .card-title — only the hook is stable).
+   */
+  _applyTitle(widgetEl) {
+    if (!widgetEl) return;
+    const titleEl = widgetEl.querySelector('[data-misp-widget-title]');
+    if (!titleEl) return;
+    let alias = '';
+    try {
+      const cfg = JSON.parse(widgetEl.getAttribute(ATTR_WIDGET_CONFIG) || '{}');
+      if (cfg && typeof cfg.alias === 'string') alias = cfg.alias.trim();
+    } catch (_) { /* keep empty */ }
+    titleEl.textContent = alias
+      || widgetEl.getAttribute('data-widget-title')
+      || widgetEl.getAttribute(ATTR_WIDGET_NAME)
+      || '';
+  }
+
   async _saveLayout() {
     if (!this.grid || !this.saveUrl) return false;
     const positions = this.grid.serialize();
@@ -241,7 +267,6 @@ class Board {
       widgets.push({
         instance_id: p.id,
         widget: wEl.getAttribute(ATTR_WIDGET_NAME),
-        alias:  wEl.getAttribute('data-widget-alias') || null,
         config,
         position: { x: p.x, y: p.y, w: p.w, h: p.h },
       });
@@ -725,6 +750,9 @@ class Board {
           openConfigure(widgetEl, {
             onSave: (savedEl) => {
               this._renderWidget(savedEl);
+              // Reflect a changed alias (config.alias) in the titlebar
+              // live — _renderWidget only swaps the body (DD-18).
+              this._applyTitle(savedEl);
               // Re-resolve the refresh delay (config.refresh_delay
               // may have changed). enqueueWidget reads both the
               // class-default attribute and config — no DOM mutation
@@ -735,6 +763,7 @@ class Board {
             },
             onPreview: (previewEl) => {
               this._renderWidget(previewEl);
+              this._applyTitle(previewEl);
             },
           });
           break;
