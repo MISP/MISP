@@ -1571,3 +1571,100 @@ properties from any widget. No data-shape change, no new dependency
   changes hit the **same** key; a `time_window` change makes a new key;
   a widget without the properties (`LoginsWidget`) renders live with no
   key created.
+
+## DD-21 — `WidgetCache` per-user key scope: `cache_scope = 'user'` (extends DD-20)
+
+**Date.** 2026-05-26
+**Phase context.** The user asked to wire 1h caching into most widgets on
+their admin board. Auditing each `handler()` against DD-20's documented
+**config-only-key precondition** ("the same config must yield the same
+payload for every viewer") split the board's widgets in two: most are
+ACL-free aggregates (safe to cache config-only), but **three produce
+per-user output** and so could **not** reuse DD-20 unchanged:
+
+- **`TrendingAttributesWidget`** — branches on `$user['Role']['perm_site_admin']`
+  / `$user['org_id']`: a regular user sees only their own org's
+  attributes; a site-admin sees the whole instance.
+- **`TrendingTagsWidget`** — `Event::filterEventIds($user, …)` ACL-scopes
+  which events feed the tag tally.
+- **`NewUsersWidget`** — redacts the `email` field unless the viewer is a
+  site-admin (or `Security.disclose_user_emails` is set).
+
+DD-20's docblock had explicitly anticipated this: "a future ACL-enforced
+widget that wants caching must add a user/ACL-scope dimension to the key
+and must not reuse this helper unchanged." This is that follow-up — the
+dimension is added **to the helper as an opt-in**, rather than forking it.
+The user's instruction: *"for anything that has per-user ACL include the
+user in the key path."*
+
+**Decision.** A third optional public property:
+
+```php
+public $cache_scope = 'user';   // optional; default 'global' (DD-20 config-only)
+```
+
+- **Default `'global'`** — unchanged DD-20 behaviour, key
+  `<path>:<sha256(config)>`. All previously-cacheable widgets (the geo
+  widget, the safe board aggregates) are untouched.
+- **`'user'`** — the key gains a `u<id>:` segment:
+  `<path>:u<id>:<sha256(config)>`. The user id is the **safe superset**
+  of the actual ACL dimension (org_id + role for TrendingAttributes; the
+  full event-ACL for TrendingTags; role for NewUsers) — two users who
+  would compute identical payloads still get separate entries (a lower
+  hit-rate, never a leak). The user id is the dimension the user named.
+- **Fail-safe.** A `'user'`-scoped widget rendered **without** a usable
+  user id is **not cached** — `remember()` returns a live compute before
+  touching Redis. Skipping the cache can never leak; defaulting to a
+  shared key could.
+
+`remember()` and `key()` gain an optional trailing `$user` parameter
+(back-compatible — existing 2/3-arg callers and the unit suite keep
+working); `renderWidget()` already had `$user` in scope and now passes it
+through.
+
+**Why user id, not the precise ACL tuple.** Keying by the exact ACL
+inputs (org_id+role, or a hash of the resolved event-id ACL) would raise
+the hit-rate but is widget-specific, fragile (the ACL surface differs per
+widget and can change), and easy to get subtly wrong — a single missed
+dimension is a silent cross-user leak. User id is coarse, uniform, and
+provably correct for every per-user widget. Hit-rate loss is bounded by
+the 1h TTL and the per-user dashboard model (each user renders their own
+board).
+
+**Rationale.** One optional property + one optional argument keeps the
+DD-20 contract intact for every existing caller while making per-user
+caching a conscious, one-line opt-in. The safe/unsafe split is encoded
+**at the widget** (`cache_scope`), where the author who knows the
+handler's ACL posture declares it — not buried in the helper.
+
+**Alternatives considered.**
+- **Skip the three ACL widgets entirely** (cache only the safe
+  aggregates). Offered; the user chose to cache them per-user instead —
+  the two trending widgets are the most expensive on the board (full
+  event/attribute sweeps), exactly what's worth caching.
+- **Auto-detect ACL-dependence** (e.g. sniff whether `handler()` uses
+  `$user`). Rejected — undecidable in general, and a wrong guess in
+  either direction is bad (a missed leak, or needless cache fragmentation).
+  Explicit opt-in matches DD-20's declarative philosophy.
+- **Key by the resolved ACL tuple** rather than user id. Rejected as
+  above (fragile, widget-specific); user id is the safe, uniform choice.
+
+**Reversibility.** Additive: drop `cache_scope` from the three widgets to
+fall back to live (uncached) renders, or remove the `scope()` helper +
+the `$user` params to return to DD-20 exactly. No data-shape change, no
+new dependency.
+
+**Implementation hooks.**
+- `WidgetCache`: new private `scope()`; `remember()` gains `$user` + the
+  no-user fail-safe; `key()` gains `$user` + the `u<id>:` segment; docblock
+  updated (property list + the Scope paragraph supersedes the old
+  "No-ACL assumption" paragraph).
+- `DashboardsController::renderWidget`: passes `$user` as `remember()`'s
+  4th argument.
+- `WidgetCacheTest`: +5 cases (user segment in key, different users →
+  different keys, same user/config → same key, global scope ignores a
+  passed user, user-scoped-without-user runs live) → 14/14.
+- The three ACL widgets declare `$cache_duration = 3600` + `$cache_scope
+  = 'user'`; the five safe aggregates declare `$cache_duration = 3600`
+  only (DD-20 global key). See the progress tracker for the per-widget
+  list + live verification.

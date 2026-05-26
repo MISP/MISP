@@ -70,6 +70,14 @@ class WcGarbageWidget
     public $cache_duration = 'soon';
 }
 
+// User-scoped (DD-21): output depends on the requesting user's ACL, so
+// the key must carry a per-user segment.
+class WcUserScopedWidget
+{
+    public $cache_duration = 3600;
+    public $cache_scope = 'user';
+}
+
 use PHPUnit\Framework\TestCase;
 
 class WidgetCacheTest extends TestCase
@@ -151,5 +159,56 @@ class WidgetCacheTest extends TestCase
         });
         $this->assertSame(['data' => 'live'], $out);
         $this->assertSame(1, $called, 'compute must run exactly once for an uncacheable widget');
+    }
+
+    // --- DD-21: per-user scope --------------------------------------------
+
+    public function testUserScopeAddsUserSegmentToKey()
+    {
+        $w = new WcUserScopedWidget();
+        $key = WidgetCache::key($w, ['time_window' => '30d'], ['id' => 7]);
+        // misp:wc_user_scoped_cache:u7:<sha256>
+        $this->assertStringStartsWith('misp:wc_user_scoped_cache:u7:', $key);
+        $hash = substr($key, strlen('misp:wc_user_scoped_cache:u7:'));
+        $this->assertRegExp('/^[0-9a-f]{64}$/', $hash);
+    }
+
+    public function testUserScopeDifferentUsersGetDifferentKeys()
+    {
+        $w = new WcUserScopedWidget();
+        $a = WidgetCache::key($w, ['time_window' => '30d'], ['id' => 7]);
+        $b = WidgetCache::key($w, ['time_window' => '30d'], ['id' => 8]);
+        $this->assertNotSame($a, $b, 'same config, different user must not share a cache entry');
+    }
+
+    public function testUserScopeSameUserSameConfigSameKey()
+    {
+        $w = new WcUserScopedWidget();
+        $a = WidgetCache::key($w, ['time_window' => '30d'], ['id' => 7]);
+        $b = WidgetCache::key($w, ['time_window' => '30d'], ['id' => 7]);
+        $this->assertSame($a, $b);
+    }
+
+    public function testGlobalScopeIgnoresUser()
+    {
+        // A global (default-scope) widget's key must not change when a
+        // user is passed — config-only keying is preserved.
+        $w = new WcExplicitWidget();
+        $withUser = WidgetCache::key($w, ['time_window' => '30d'], ['id' => 7]);
+        $withoutUser = WidgetCache::key($w, ['time_window' => '30d']);
+        $this->assertSame($withoutUser, $withUser);
+    }
+
+    public function testRememberUserScopedWithoutUserRunsLive()
+    {
+        // No usable user id for a user-scoped widget -> fail safe: skip the
+        // cache and compute live (never share an ACL-scoped payload).
+        $called = 0;
+        $out = WidgetCache::remember(new WcUserScopedWidget(), ['x' => 1], function () use (&$called) {
+            $called++;
+            return ['data' => 'live'];
+        }, null);
+        $this->assertSame(['data' => 'live'], $out);
+        $this->assertSame(1, $called, 'compute must run live when a user-scoped widget lacks a user id');
     }
 }

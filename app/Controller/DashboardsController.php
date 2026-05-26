@@ -387,11 +387,13 @@ class DashboardsController extends AppController
         // $cache_duration (and optionally $cache_path) have their whole
         // handler() payload cached in Redis, keyed by config. Widgets
         // without those properties run live — remember() is a transparent
-        // pass-through then.
+        // pass-through then. A widget that declares cache_scope = 'user'
+        // (DD-21) additionally keys by the requesting user, so $user is
+        // passed through for the per-user key segment.
         $user = $this->Auth->user();
         $data = WidgetCache::remember($widget, $config, function () use ($widget, $user, $config) {
             return $widget->handler($user, $config);
-        });
+        }, $user);
         $renderer = method_exists($widget, 'getRenderer')
             ? $widget->getRenderer($config)
             : $widget->render;

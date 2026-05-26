@@ -1172,6 +1172,41 @@ gate (the user still does the merge).
   refresh_delay changes hit the same key; time_window change → new key;
   a non-opted-in widget (LoginsWidget) renders live with no key. Signed
   commit.
+- **Cache the admin board's widgets at 1h (user-driven 2026-05-26).** The
+  user asked to wire 1h `WidgetCache` into the widgets on their admin
+  board, **except** the event stream (not actually on the board), "latest
+  new members" (`NewOrgsWidget`), API activity (`APIActivityWidget`), and
+  logins-this-month (`LoginsWidget`). Auditing each `handler()` against
+  DD-20's config-only-key precondition split the rest into safe aggregates
+  vs per-user (ACL-dependent) widgets; the user chose to cache the latter
+  per-user ("include the user in the key path"). Three sub-tasks:
+  - [x] **`WidgetCache` per-user key scope (DD-21) — landed 2026-05-26.**
+    Opt-in `public $cache_scope = 'user'` adds a `u<id>:` segment to the
+    key (`<path>:u<id>:<sha256(config)>`); default `'global'` keeps DD-20's
+    config-only key, so every existing cacheable widget (geo widget, the
+    safe aggregates) is untouched. User id is the safe superset of the real
+    ACL dimension. **Fail-safe:** a user-scoped widget without a usable
+    user id is not cached (live compute before any Redis touch).
+    `remember()`/`key()` gain an optional trailing `$user` (back-compatible);
+    `renderWidget` passes it through. Verified: `php -l` clean ×3;
+    `WidgetCacheTest` 14/14 (+5 cases); live regression-check — the
+    already-opted-in `AttributeGeoMapWidget` still keys config-only (no
+    `u` segment), confirming default-`'global'` is non-regressive. Signed
+    commit.
+  - [ ] **Cache the 5 user-independent board widgets at 1h (global key).**
+    `UsageDataWidget`, `OrgContributionToplistWidget`,
+    `UserContributionToplistWidget`, `OrganisationMapWidget`,
+    `ThreatActorCountryMapWidget` — all aggregate `handler()`s with no
+    `$user` data-scoping (UserContributionToplist's `checkPermissions()`
+    gates *visibility* in `loadWidget`, enforced before the cache; content
+    is identical for all permitted viewers). Each declares
+    `$cache_duration = 3600` only. (`AttributeGeoMapWidget` already cached
+    via DD-19/20.)
+  - [ ] **Cache the 3 ACL-scoped board widgets at 1h (per-user key).**
+    `TrendingAttributesWidget` (branches on perm_site_admin/org_id),
+    `TrendingTagsWidget` (`filterEventIds($user)`), `NewUsersWidget` (email
+    redaction by role) — each declares `$cache_duration = 3600` +
+    `$cache_scope = 'user'` (DD-21).
 
 ---
 

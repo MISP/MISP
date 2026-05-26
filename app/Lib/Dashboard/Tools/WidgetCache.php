@@ -7,11 +7,12 @@ App::uses('Inflector', 'Utility');
  * Generic per-widget Redis cache for dashboard v2 (DD-20, generalised
  * from the AttributeGeoMapWidget-specific cache of DD-19).
  *
- * A widget opts in purely declaratively, with two optional public
+ * A widget opts in purely declaratively, with optional public
  * properties — no caching code in its handler():
  *
  *   public $cache_duration = 3600;                  // TTL seconds; > 0 enables
  *   public $cache_path = 'misp:attribute_geo_map_cache'; // optional key prefix
+ *   public $cache_scope = 'user';                   // optional; per-user key
  *
  * When `cache_duration` is a positive int, DashboardsController::
  * renderWidget() wraps the handler() call in WidgetCache::remember():
@@ -32,12 +33,17 @@ App::uses('Inflector', 'Utility');
  * several differently-aliased instances of one widget share a cache
  * entry instead of each recomputing.
  *
- * No-ACL assumption. The key is config-only, NOT per-user. A widget
- * that opts into this cache is therefore expected to be an ACL-free
- * aggregate (the AttributeGeoMapWidget posture, DD-11): the same config
- * must yield the same payload for every viewer. A future ACL-enforced
- * widget that wants caching would need a user/ACL-scope dimension in
- * the key and must not reuse this helper as-is.
+ * Scope (DD-21). By default the key is config-only, NOT per-user — so a
+ * widget that opts in with just `cache_duration` is expected to be an
+ * ACL-free aggregate (the AttributeGeoMapWidget posture, DD-11): the same
+ * config must yield the same payload for every viewer. A widget whose
+ * handler() output instead depends on the requesting user's role/ACL
+ * (e.g. TrendingAttributesWidget branches on perm_site_admin / org_id)
+ * MUST declare `public $cache_scope = 'user'`; the key then carries a
+ * `u<id>:` segment so one viewer's payload is never served to another.
+ * A user-scoped widget rendered without a usable user id is NOT cached
+ * (remember() falls back to a live compute) — failing safe rather than
+ * risking a cross-user leak.
  *
  * NB: within the TTL even a manual refresh serves the cached payload
  * (renderWidget can't distinguish a refresh from a page load) — the
@@ -60,19 +66,27 @@ class WidgetCache
      * @param object   $widget  the loaded widget instance
      * @param array    $config  the (already canonical-translated) config
      * @param callable $compute () => mixed — the live render (handler call)
+     * @param array    $user    the requesting user (only needed when the
+     *                          widget declares cache_scope = 'user')
      * @return mixed
      */
-    public static function remember($widget, array $config, callable $compute)
+    public static function remember($widget, array $config, callable $compute, $user = null)
     {
         $ttl = self::duration($widget);
         if ($ttl <= 0) {
+            return $compute();
+        }
+        // A user-scoped widget must key by user (DD-21). Without a usable
+        // user id we can't isolate viewers, so skip caching rather than
+        // share an ACL-scoped payload across users.
+        if (self::scope($widget) === 'user' && empty($user['id'])) {
             return $compute();
         }
         $redis = self::redis();
         if ($redis === null) {
             return $compute();
         }
-        $key = self::key($widget, $config);
+        $key = self::key($widget, $config, $user);
         try {
             $cached = RedisTool::deserialize($redis->get($key));
             if (is_array($cached)) {
@@ -99,17 +113,22 @@ class WidgetCache
     }
 
     /**
-     * The full Redis key: "<path>:<sha256 of the data-affecting config>".
+     * The full Redis key: "<path>:<sha256 of the data-affecting config>",
+     * or "<path>:u<id>:<sha256...>" for a user-scoped widget (DD-21).
      * NON_DATA_KEYS are stripped and the remaining keys ksort-ed before
      * hashing, so neither presentation keys nor key order affect it.
      */
-    public static function key($widget, array $config)
+    public static function key($widget, array $config, $user = null)
     {
         foreach (self::NON_DATA_KEYS as $k) {
             unset($config[$k]);
         }
         ksort($config);
-        return self::path($widget) . ':' . hash('sha256', (string)json_encode($config));
+        $prefix = self::path($widget) . ':';
+        if (self::scope($widget) === 'user' && !empty($user['id'])) {
+            $prefix .= 'u' . (int)$user['id'] . ':';
+        }
+        return $prefix . hash('sha256', (string)json_encode($config));
     }
 
     /**
@@ -133,6 +152,18 @@ class WidgetCache
         return (isset($widget->cache_duration) && is_numeric($widget->cache_duration))
             ? (int)$widget->cache_duration
             : 0;
+    }
+
+    /**
+     * The cache scope: 'user' (key carries a per-user segment) when the
+     * widget declares cache_scope = 'user', otherwise 'global' (the
+     * default config-only key).
+     */
+    private static function scope($widget)
+    {
+        return (isset($widget->cache_scope) && $widget->cache_scope === 'user')
+            ? 'user'
+            : 'global';
     }
 
     /**
