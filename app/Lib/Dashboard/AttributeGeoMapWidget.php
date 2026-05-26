@@ -63,6 +63,17 @@
  * The GeoIp2 Reader is opened once and reused across the whole IP
  * sweep (UserLoginProfile::countryByIp opens a fresh Reader per call —
  * wasteful for thousands of IPs).
+ *
+ * Caching (DD-19). Each distinct config is cached in Redis for 1h under
+ * `misp:attribute_geo_map_cache:<sha256>`, where the hash is taken over
+ * the result-determining params (recency window, row cap, source set,
+ * palette, projection). A hit returns the cached payload verbatim; a
+ * miss runs the sweep and stores it. The aggregate map is identical for
+ * every user (no ACL), so the key is config-only, not per-user. A
+ * missing/broken Redis degrades silently to a live sweep. NB: within
+ * the TTL even a manual refresh serves the cached payload (the widget
+ * can't distinguish refresh from load server-side) — acceptable given
+ * the explicit "simple, 1h" brief.
  */
 class AttributeGeoMapWidget
 {
@@ -123,15 +134,59 @@ class AttributeGeoMapWidget
     // GeoOpen-Country-ASN.mmdb by generate_asn_country_map.py.
     const ASN_COUNTRY_MAP_FILE = APP . 'files' . DS . 'geo-open' . DS . 'asn-country.json';
 
+    // Redis cache (DD-19): one entry per distinct config, keyed
+    // CACHE_KEY_PREFIX:<sha256 of the result-determining params>, 1h TTL.
+    // The map is identical for every user (no ACL, DD-11), so the key is
+    // config-only (not per-user); each unique setup caches for an hour.
+    const CACHE_KEY_PREFIX = 'misp:attribute_geo_map_cache';
+    const CACHE_TTL = 3600;
+    // Fallback defaults (mirror the time_window / limit schema defaults).
+    const DEFAULT_WINDOW_SECONDS = 30 * 24 * 60 * 60;
+    const DEFAULT_LIMIT = 10000;
+
     private $allSources = ['ip', 'domain_tld', 'asn', 'country_galaxy', 'threat_actor'];
     private $asnMapCache = null;
 
     public function handler($user, $options = array())
     {
-        $since = $this->resolveSince($options);
-        $cap = (!empty($options['limit']) && (int)$options['limit'] > 0) ? (int)$options['limit'] : 10000;
+        $windowSeconds = $this->resolveWindowSeconds($options);
+        $cap = (!empty($options['limit']) && (int)$options['limit'] > 0) ? (int)$options['limit'] : self::DEFAULT_LIMIT;
         $sources = $this->resolveSources($options);
+        $palette = !empty($options['palette']) ? $options['palette'] : 'danger';
+        $projection = !empty($options['projection']) ? $options['projection'] : 'naturalEarth';
 
+        // Redis cache (DD-19): one entry per distinct config, 1h TTL,
+        // keyed by the sha256 of the result-determining params. The
+        // aggregate map is identical for every user (no ACL, DD-11), so
+        // the key is config-only — not per-user. The hash covers exactly
+        // what shapes the cached payload: the recency window, row cap and
+        // (canonically-ordered) source set drive the data; palette and
+        // projection ride in the payload returned verbatim, so they must
+        // be in the key too. Presentation-only config that never reaches
+        // this handler's output (alias, refresh_delay) is excluded so it
+        // doesn't fragment the cache. Hit → hand the cached payload
+        // straight back; miss → run the sweep and store it. A
+        // missing/broken Redis degrades silently to a live sweep.
+        $cacheKey = self::CACHE_KEY_PREFIX . ':' . hash('sha256', (string)json_encode([
+            'window' => $windowSeconds,
+            'cap' => $cap,
+            'sources' => $sources,
+            'palette' => $palette,
+            'projection' => $projection,
+        ]));
+        $redis = $this->cacheRedis();
+        if ($redis !== null) {
+            try {
+                $cached = RedisTool::deserialize($redis->get($cacheKey));
+                if (is_array($cached)) {
+                    return $cached;
+                }
+            } catch (Exception $e) {
+                // unreadable cache — fall through to a live sweep
+            }
+        }
+
+        $since = ($windowSeconds === -1) ? null : time() - $windowSeconds;
         $data = [];
         if (in_array('ip', $sources, true)) {
             $this->mergeCounts($data, $this->ipCounts($since, $cap));
@@ -149,24 +204,51 @@ class AttributeGeoMapWidget
             $this->mergeCounts($data, $this->eventGalaxyCounts('threat-actor', 'country', $since, $cap));
         }
 
-        return [
+        $result = [
             'data' => $data,
             'scope' => 'Recent MISP data by country',
-            // Named palette (DD-13); default red — this is threat data.
-            // Overridable per widget instance via the configure form.
-            'palette' => !empty($options['palette']) ? $options['palette'] : 'danger',
-            // Map projection (DD-14); default naturalEarth (DD-17), overridable.
-            'projection' => !empty($options['projection']) ? $options['projection'] : 'naturalEarth',
+            // Named palette (DD-13, default red — threat data) + map
+            // projection (DD-14, default naturalEarth per DD-17). Both
+            // overridable per instance via the configure form.
+            'palette' => $palette,
+            'projection' => $projection,
         ];
+        if ($redis !== null) {
+            try {
+                $redis->setex($cacheKey, self::CACHE_TTL, RedisTool::serialize($result));
+            } catch (Exception $e) {
+                // best-effort: a cache write failure must not break the render
+            }
+        }
+        return $result;
     }
 
     /**
-     * Resolve the recency lower bound (unix ts), or null for all-time.
+     * Best-effort Redis handle for the default-settings cache (DD-19).
+     * Returns null — "compute live, don't cache" — if Redis is
+     * unavailable, so a missing/broken Redis never breaks the widget.
+     * RedisTool::init gives a prefix-free connection, so the cache key
+     * is exactly CACHE_KEY_PREFIX:<hash> with no extra namespacing.
+     */
+    private function cacheRedis()
+    {
+        App::uses('RedisTool', 'Tools');
+        try {
+            return RedisTool::init();
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Resolve the recency window in seconds, or -1 for all-time.
      * Mirrors TrendingAttributesWidget's parsing; the CanonicalTypeAdapter
      * translates the P30D schema default / toolbar value into the "30d"
-     * day form before we get here.
+     * day form before we get here. Returning the window (not the derived
+     * timestamp) lets handler() compare it against the default to decide
+     * cache eligibility (DD-19) before deriving the lower-bound timestamp.
      */
-    private function resolveSince($options)
+    private function resolveWindowSeconds($options)
     {
         $raw = isset($options['time_window']) && $options['time_window'] !== '' ? $options['time_window'] : '30d';
         if (is_string($raw) && substr($raw, -1) === 'd') {
@@ -175,12 +257,12 @@ class AttributeGeoMapWidget
             $window = (int)$raw;
         }
         if ($window === -1) {
-            return null;
+            return -1;
         }
         if ($window <= 0) {
-            $window = 30 * 24 * 60 * 60;
+            $window = self::DEFAULT_WINDOW_SECONDS;
         }
-        return time() - $window;
+        return $window;
     }
 
     private function resolveSources($options)

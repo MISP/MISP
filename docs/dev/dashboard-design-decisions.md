@@ -1380,3 +1380,91 @@ to `$title`.
   `data-widget-title` + alias schema present; live `index()` render of
   the 15-widget admin board shows real titles/aliases, alias schema on
   all wrappers.
+
+## DD-19 — AttributeGeoMapWidget Redis cache: per-config hash key, 1h TTL, whole-payload read-through
+
+**Date.** 2026-05-26
+**Phase context.** Post-5.5 "new features" round (third item). The geo
+sweep (5 sources, mmdb lookups + galaxy SQL joins) is the heaviest
+dashboard render; the user asked to cache it in Redis. This is the
+**first widget-owned cache** in dashboard v2 — it revisits DD-11's
+finding that `cacheLifetime` is inert (nothing reads it); a widget that
+wants caching owns it explicitly, as here.
+
+**Decision.** Each distinct config is cached in Redis under
+**`misp:attribute_geo_map_cache:<sha256>`** with a **1h TTL**. On render:
+hash the result-determining params → if the key is present, return the
+**deserialised payload verbatim**; else run the sweep, store the whole
+payload (`setex`, 3600s), and return it. A missing/broken Redis
+(`RedisTool::init` throws) degrades silently to a live sweep — caching
+never breaks the widget.
+
+- **What's hashed:** `sha256(json_encode([window, cap, sources, palette,
+  projection]))` — exactly the inputs that shape the cached payload. The
+  window/cap/sources drive the data; palette/projection are carried in
+  the payload and returned verbatim, so they must be in the key (else a
+  custom-palette config could be served another config's colour). The
+  *effective* (resolved) values are hashed, not the raw config, so
+  equivalent configs share an entry — e.g. `{}` and
+  `{time_window:"30d"}` hash identically (both resolve to the 30-day
+  default). Presentation-only keys that never reach this handler's
+  output (`alias`, `refresh_delay` — DD-18 / Phase 5) are deliberately
+  excluded so they don't fragment the cache.
+- **Key is config-only, not per-user.** Correct *because* the widget is
+  no-ACL (DD-11): the same config yields the same aggregate map for
+  every viewer. (A future ACL-enforced path — DD-11's logged follow-up —
+  would have to key by user / ACL-scope instead.)
+- **Connection:** `RedisTool::init()` (DB 13, **prefix-free**, so the
+  key is exactly the literal above) + `RedisTool::serialize` /
+  `deserialize` (honours the instance's `redis_serializer`). One small
+  `cacheRedis()` helper returns null on failure; the get/setex are
+  inlined in `handler()`.
+
+**Design evolution (recorded — the user iterated twice).** The original
+brief was "cache **only** default settings; custom configs run live."
+First cut implemented that by splitting the data map from the
+presentation and re-wrapping on read. The user pushed back twice: (1)
+that split was over-engineered — cache the **whole payload** and hand it
+back as-is; then (2) better still, **don't special-case the default** —
+key every config by a hash of its config so each unique setup caches for
+an hour. The final design (this entry) is strictly simpler *and* more
+useful than the brief: no `isDefault` apparatus, and custom configs
+(common on a SOC board with several tuned instances) are cached too.
+
+**Rationale.** Per-config hashing is the simplest correct generalisation:
+no "is this default?" comparison, every setup benefits, equivalent
+configs coalesce, and 1h TTL bounds both staleness and key sprawl (keys
+self-expire; the number of live distinct configs is small in practice).
+
+**Alternatives considered.**
+- **Default-only single key** (the brief / first two cuts). Simpler key,
+  but only the out-of-box config benefits and it needs an `isDefault`
+  check. Superseded by the user.
+- **Hash the raw `$options`.** Trivial, but fragments the cache on
+  irrelevant keys (`alias`, `refresh_delay`, key ordering) and doesn't
+  coalesce equivalent configs. Rejected for hashing the effective
+  result-determining params instead.
+- **Rely on `cacheLifetime`.** Inert in v2 (DD-11) — does nothing.
+
+**Trade-off (flagged).** Within the TTL even a **manual refresh** serves
+the cached payload — the widget can't distinguish refresh from page load
+server-side. Accepted under the explicit "simple, 1h" brief; a
+refresh-bypasses-cache affordance would need a new render param and is a
+possible follow-up.
+
+**Reversibility.** Additive and self-contained: delete the `cacheRedis()`
+helper, the cache constants, and the get/setex blocks in `handler()`;
+the sweep then always runs live. No data-shape change, no new dependency
+(RedisTool is core), no schema change.
+
+**Implementation hooks.**
+- `AttributeGeoMapWidget`: `CACHE_KEY_PREFIX` + `CACHE_TTL` constants;
+  `handler()` hashes the effective params, reads/returns on hit, sweeps
+  + `setex` on miss; `cacheRedis()` helper (graceful null);
+  `resolveSince` → `resolveWindowSeconds` (returns the window so it can
+  feed the hash before deriving the lower-bound timestamp); docblock
+  caching note.
+- Verified: `php -l` clean; distinct configs → distinct sha256 keys;
+  `{}` ≡ `{time_window:"30d"}` (same key); cache hit doesn't reset TTL;
+  read-through returns the stored payload verbatim (sentinel); 1h TTL;
+  Redis-down path falls back to a live sweep.

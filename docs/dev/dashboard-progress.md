@@ -1134,12 +1134,25 @@ gate (the user still does the merge).
 - [ ] **Three default dashboard layouts shipped with the app.** Named
   starter layouts: **analyst**, **admin**, **community**. Ship as
   selectable/seedable templates.
-- [ ] **Caching for `AttributeGeoMapWidget`.** Redis-backed, key
-  `misp:attribute_geo_map_cache`, **1h expiration**. Cache **only the
-  default-settings render**; any custom config (custom `time_window`,
-  non-default `sources`, etc.) runs the query **live** (uncached). Note:
-  this revisits the DD-11 finding that `cacheLifetime` is inert in v2 —
-  this is a widget-owned Redis cache, not the dead `cacheLifetime` knob.
+- [x] **Caching for `AttributeGeoMapWidget` — landed 2026-05-26 (DD-19).**
+  Redis-backed, **1h TTL**. **Design iterated twice with the user:** the
+  brief was "cache only default settings, custom runs live"; first cut
+  split data from presentation + re-wrapped (over-engineered); user then
+  asked to cache the **whole payload** and return it as-is; then to key
+  **every** config by a hash so each unique setup caches for an hour.
+  Final: key `misp:attribute_geo_map_cache:<sha256>` where the hash is
+  over the *effective* result-determining params (window, cap, sources,
+  palette, projection) — equivalent configs coalesce (`{}` ≡
+  `time_window:30d`), presentation-only non-output keys (`alias`,
+  `refresh_delay`) excluded. Hit → return payload verbatim; miss → sweep
+  + `setex`. Config-only key (not per-user) — correct because no-ACL
+  (DD-11). `RedisTool::init` (prefix-free) + serialize/deserialize;
+  Redis-down → live sweep. First widget-owned cache (DD-11's
+  `cacheLifetime` is inert). NB manual refresh serves cache within TTL
+  (flagged). Verified: php -l clean; distinct configs → distinct keys;
+  `{}` ≡ `{time_window:30d}` same key; hit doesn't reset TTL;
+  read-through returns stored payload verbatim; 1h TTL; Redis-down
+  fallback. Signed commit.
 
 ---
 
