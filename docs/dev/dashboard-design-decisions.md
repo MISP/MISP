@@ -910,3 +910,77 @@ sources are unaffected.
   (top CN/US/RU); combined five-source render valid; session HTML
   render emits the `data-misp-chart="geo"` payload with the ASN-derived
   countries translated to GeoJSON names.
+
+## DD-13 — WorldMap colour palette: named semantic palettes, widget-declared default + per-instance override
+
+**Date.** 2026-05-26
+**Phase context.** Post-5.5 new-widget round. Supersedes the
+CSS-widget-name-scoped red override that first shipped on the threat
+widgets (a stopgap, now retired).
+
+**Decision.** A WorldMap widget selects its choropleth colour scale by a
+**named palette**, returned as `'palette' => '<name>'` from `handler()`.
+Five named palettes map to existing semantic theme tokens:
+
+| palette | low stop | high stop |
+|---|---|---|
+| `accent` (default) | `--misp-dash-accent-muted` | `--misp-dash-accent-hover` |
+| `danger` | `--misp-dash-danger-muted` | `--misp-dash-danger` |
+| `success` | `--misp-dash-success-muted` | `--misp-dash-success` |
+| `warning` | `--misp-dash-warning-muted` | `--misp-dash-warning` |
+| `info` | `--misp-dash-info-muted` | `--misp-dash-info` |
+
+(The `-muted` low-ends are new tokens added alongside the existing
+`--misp-dash-accent-muted`.) `buildGeoOption` resolves the chosen
+palette's token pair via `getComputedStyle`, so a retoned / dark theme
+still recolours the map. Unknown names fall back to `accent`.
+
+- **Default encoded in the widget:** the `palette` `$schema` entry's
+  `default` (e.g. `'danger'` on the two threat widgets) — the
+  CanonicalTypeAdapter injects it, and the handler also falls back to it.
+- **Per-instance override:** `palette` is an `enum` `$schema` field, so
+  it surfaces as a dropdown in the configure form; a user can recolour
+  any one widget instance without touching others.
+- **Renderer-generic:** `WorldMap.ctp` passes `palette` straight through
+  to the chart payload (whitelisted client-side). Any WorldMap widget
+  can opt in by emitting `palette`; `OrganisationMapWidget` /
+  `CsseCovidMapWidget` don't, so they keep the default blue.
+
+**Rationale.** The user wanted per-widget colour control with defaults
+encoded in the widget. The first cut scoped red via a CSS rule keyed on
+`[data-widget-name="..."]` overriding the accent tokens — it worked but
+hardcoded widget names in the stylesheet and offered no per-instance
+override. Named palettes anchored on semantic tokens give theme-
+consistent, discoverable, per-instance-configurable colour with the
+default living in the widget class, and keep the "ramp driven by CSS
+tokens" property (PRD §8.1 retoning) intact.
+
+**Alternatives considered.**
+- **CSS widget-name override (the stopgap).** Retired — not per-instance
+  configurable, hardcodes names in CSS, repurposes the accent token.
+- **Arbitrary low/high colour pickers.** Maximum flexibility, but a
+  fixed hex bypasses the theme tokens (won't adapt to a dark/retoned
+  theme) and is a fiddlier config UI. Rejected; named palettes can be
+  extended to arbitrary later if wanted (additive).
+
+**Reversibility.** Additive: drop the `palette` payload key + the
+`PALETTES` map in `buildGeoOption` + the `-muted` tokens; widgets fall
+back to the accent ramp. No data-shape break (older saved configs
+without `palette` just use the default).
+
+**Convention for future WorldMap widgets.** Declare a `palette` `enum`
+in `$schema` with the desired `default`, and return
+`'palette' => !empty($options['palette']) ? $options['palette'] : '<default>'`
+from `handler()`. Don't add per-widget colour rules to the stylesheet.
+
+**Implementation hooks.**
+- `dashboard.default.css`: 4 new `--misp-dash-*-muted` tokens; the
+  `[data-widget-name]` red hack removed.
+- `charts/charts.module.mjs`: `PALETTES` map in `buildGeoOption`,
+  resolved from `payload.palette`.
+- `WorldMap.ctp`: `palette` passthrough into the chart payload.
+- `AttributeGeoMapWidget` + `ThreatActorCountryMapWidget`: `palette`
+  `enum` schema (default `danger`), params doc, handler emit.
+- Verified: lint + `node --check` clean; threat widgets default
+  `danger`, override to `success` honoured; `OrganisationMapWidget`
+  payload carries no palette → blue.

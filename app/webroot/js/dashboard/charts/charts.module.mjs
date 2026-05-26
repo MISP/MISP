@@ -116,10 +116,21 @@ function buildGeoOption(payload, hostEl) {
 
   // Drive the colour ramp from CSS tokens so a Level 1 theme (PRD §8.1)
   // retones the map without writing JS. The v1 jvectormap renderer
-  // hard-coded a 12-stop palette; we ship a simpler 2-stop gradient
-  // anchored on the accent token, which themes already redefine.
-  const rampLow      = tokenOn(hostEl, '--misp-dash-accent-muted', 'rgba(37,99,235,0.10)');
-  const rampHigh     = tokenOn(hostEl, '--misp-dash-accent-hover', '#1d4ed8');
+  // hard-coded a 12-stop palette; we ship a simpler 2-stop gradient.
+  // A widget picks a named palette via payload.palette (DD-13) — each
+  // maps to a semantic token pair [low, high] so a retoned/dark theme
+  // still recolours it; unknown names fall back to 'accent'. The 3rd/4th
+  // entries are the hard fallbacks if the token is undefined.
+  const PALETTES = {
+    accent:  ['--misp-dash-accent-muted',  '--misp-dash-accent-hover', 'rgba(37,99,235,0.10)', '#1d4ed8'],
+    danger:  ['--misp-dash-danger-muted',  '--misp-dash-danger',       'rgba(220,38,38,0.12)', '#dc2626'],
+    success: ['--misp-dash-success-muted', '--misp-dash-success',      'rgba(22,163,74,0.12)', '#16a34a'],
+    warning: ['--misp-dash-warning-muted', '--misp-dash-warning',      'rgba(217,119,6,0.12)', '#d97706'],
+    info:    ['--misp-dash-info-muted',    '--misp-dash-info',         'rgba(8,145,178,0.12)', '#0891b2'],
+  };
+  const pal = PALETTES[payload.palette] || PALETTES.accent;
+  const rampLow      = tokenOn(hostEl, pal[0], pal[2]);
+  const rampHigh     = tokenOn(hostEl, pal[1], pal[3]);
   const text         = tokenOn(hostEl, '--misp-dash-text',         '#1d2025');
   // Country fill: `border` is mid-gray in light + slightly lighter
   // than surface-raised in dark, giving consistent visibility in both

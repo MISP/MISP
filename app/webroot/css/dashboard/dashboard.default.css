@@ -46,6 +46,13 @@
   --misp-dash-danger:         #dc2626;
   --misp-dash-warning:        #d97706;
   --misp-dash-info:           #0891b2;
+  /* Translucent low-ends for the semantic colours, mirroring
+     --misp-dash-accent-muted. Used as the low stop of the WorldMap
+     choropleth ramp when a widget selects a named palette (DD-13). */
+  --misp-dash-success-muted:  rgba(22, 163, 74, 0.12);
+  --misp-dash-danger-muted:   rgba(220, 38, 38, 0.12);
+  --misp-dash-warning-muted:  rgba(217, 119, 6, 0.12);
+  --misp-dash-info-muted:     rgba(8, 145, 178, 0.12);
 
   /* ---- Spacing scale ---- */
   --misp-dash-space-1: 4px;
@@ -1438,22 +1445,6 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   min-height: 180px;
 }
 
-/* The threat-relevant WorldMap widgets (IP / ASN / actor geolocation,
-   and the threat-actor library distribution) read on a red scale instead
-   of the default blue. The geo renderer (`buildGeoOption`) drives its
-   choropleth ramp + hover emphasis off the accent tokens read via
-   getComputedStyle on the chart host, so overriding those tokens on just
-   these widgets' subtrees retones only their maps — the org / COVID
-   WorldMap widgets keep inheriting the :root blue. CSS-only, no
-   JS/renderer change, both themes. High end anchors on the themeable
-   --misp-dash-danger token; the low end is its rgb at low alpha (rgba
-   literal to match how --misp-dash-accent-muted is defined — color-mix
-   isn't used elsewhere in this sheet). */
-[data-widget-name="AttributeGeoMapWidget"],
-[data-widget-name="ThreatActorCountryMapWidget"] {
-  --misp-dash-accent-muted: rgba(220, 38, 38, 0.12);
-  --misp-dash-accent-hover: var(--misp-dash-danger);
-}
 
 /* ============================================================
  * Configure side panel (DD-06 two-tier form)

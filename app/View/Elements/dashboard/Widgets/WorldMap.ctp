@@ -96,6 +96,9 @@ $payload = array(
     'data'      => $translated,
     'scope'     => isset($data['scope']) ? $data['scope'] : '',
     'drilldown' => $drilldown,
+    // Named colour palette (DD-13); the client whitelists it and falls
+    // back to 'accent' for anything it doesn't recognise.
+    'palette'   => (isset($data['palette']) && is_string($data['palette'])) ? $data['palette'] : null,
 );
 ?>
 <div class="misp-chart"

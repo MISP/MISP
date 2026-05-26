@@ -76,6 +76,7 @@ class AttributeGeoMapWidget
         'time_window' => 'The time window, going back in seconds, that should be included (also accepts "30d" day form, or -1 for all historic data).',
         'sources' => 'Which geolocation sources to include, any of: "ip", "domain_tld", "asn", "country_galaxy", "threat_actor". Defaults to all five.',
         'limit' => 'Per-source cap on the most-recent rows scanned, to avoid timeouts on large instances. Default 10000.',
+        'palette' => 'Colour scale for the map: accent (blue) / danger (red) / success (green) / warning (amber) / info (cyan). Defaults to danger (threat data).',
     ];
     public $schema = [
         'time_window' => [
@@ -87,6 +88,12 @@ class AttributeGeoMapWidget
             'type' => 'int',
             'default' => 10000,
             'help' => 'Per-source cap on the most-recent rows scanned (default 10000).',
+        ],
+        'palette' => [
+            'type' => 'enum',
+            'enum' => ['accent', 'danger', 'success', 'warning', 'info'],
+            'default' => 'danger',
+            'help' => 'Colour scale for the map. Defaults to red — this widget carries threat data.',
         ],
     ];
     // cacheLifetime is inert in dashboard v2 (renderWidget does not cache
@@ -138,6 +145,9 @@ class AttributeGeoMapWidget
         return [
             'data' => $data,
             'scope' => 'Recent MISP data by country',
+            // Named palette (DD-13); default red — this is threat data.
+            // Overridable per widget instance via the configure form.
+            'palette' => !empty($options['palette']) ? $options['palette'] : 'danger',
         ];
     }
 

@@ -35,11 +35,18 @@ class ThreatActorCountryMapWidget
     public $height = 4;
     public $params = [
         'limit' => 'Limit to the top-N countries by threat-actor count. Leave empty for all.',
+        'palette' => 'Colour scale for the map: accent (blue) / danger (red) / success (green) / warning (amber) / info (cyan). Defaults to danger (threat data).',
     ];
     public $schema = [
         'limit' => [
             'type' => 'int',
             'help' => 'Top-N countries by threat-actor count (leave empty for all).',
+        ],
+        'palette' => [
+            'type' => 'enum',
+            'enum' => ['accent', 'danger', 'success', 'warning', 'info'],
+            'default' => 'danger',
+            'help' => 'Colour scale for the map. Defaults to red — this widget carries threat data.',
         ],
     ];
     public $cacheLifetime = false;
@@ -88,6 +95,9 @@ class ThreatActorCountryMapWidget
         return [
             'data' => $data,
             'scope' => 'Threat actors',
+            // Named palette (DD-13); default red — this is threat data.
+            // Overridable per widget instance via the configure form.
+            'palette' => !empty($options['palette']) ? $options['palette'] : 'danger',
         ];
     }
 }
