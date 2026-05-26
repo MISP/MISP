@@ -1159,10 +1159,27 @@ gate (the user still does the merge).
     via the unchanged `resetFromTemplate` (shape parity verified; the
     destructive apply against the admin board was intentionally not run).
     Signed commit.
-  - [ ] **Author the three named starter layouts: analyst / admin /
-    community.** Write the three `template.json` manifests (admin one
-    likely `restrict_to_permission_flag='perm_site_admin'`); decide
-    whether to keep or replace the "Overview (starter)" sample.
+  - [x] **Author the three named starter layouts: analyst / admin /
+    community — landed 2026-05-26.** Three `template.json` manifests with
+    the user-approved compositions: **Analyst** (TrendingAttributes,
+    TrendingTags, AttributeGeoMap, ThreatActorCountryMap,
+    RecentSightings; open), **Administrator** (UsageData, NewUsers,
+    AuthenticationFailure, MispStatus, Logins, APIActivity;
+    `restrict_to_permission_flag='perm_site_admin'`), **Community**
+    (OrganisationMap, UsageData, Org/UserContributionToplist,
+    OrgsEvolution, SharingGraph; open). Each widget carries a
+    `config.alias` and a `{x,y,w,h}` position on the 12-col grid. **The
+    "Overview (starter)" sample was removed** (dir + DB row #11) per the
+    user — shipping only the three named layouts. Verified: valid JSON ×3;
+    re-ingest → rows #12 Administrator / #13 Analyst / #14 Community
+    (all `user_id=0`, `selectable=1`, `default=0`; Administrator carries
+    the `perm_site_admin` flag); overview row gone; session HTML gallery
+    renders all three in the Starter bucket, Administrator showing the
+    "Permission: Site Admin" badge. Non-admin hiding of the Administrator
+    template relies on the existing `listTemplates`/`getDashboardTemplate`
+    `restrict_to_permission_flag` ACL (unchanged code); a live non-admin
+    check is deferred (no non-admin API key — advanced_authkeys on). Signed
+    commit. **Default-templates feature complete.**
 - [x] **Caching for `AttributeGeoMapWidget` — landed 2026-05-26 (DD-19).**
   Redis-backed, **1h TTL**. **Design iterated twice with the user:** the
   brief was "cache only default settings, custom runs live"; first cut

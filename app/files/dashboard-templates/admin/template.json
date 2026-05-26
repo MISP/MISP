@@ -1,0 +1,47 @@
+{
+    "uuid": "1bf983ac-539d-4e7a-828b-aa5585cfbe2c",
+    "name": "Administrator",
+    "description": "A site-administrator overview: instance usage statistics, system status, recent logins and API activity, the latest users to join, and authentication failures. Visible to site admins only.",
+    "selectable": true,
+    "restrict_to_org_id": 0,
+    "restrict_to_role_id": 0,
+    "restrict_to_permission_flag": "perm_site_admin",
+    "value": [
+        {
+            "instance_id": "w_1",
+            "widget": "UsageDataWidget",
+            "config": { "alias": "Usage" },
+            "position": { "x": 0, "y": 0, "w": 3, "h": 6 }
+        },
+        {
+            "instance_id": "w_2",
+            "widget": "NewUsersWidget",
+            "config": { "alias": "Latest users", "fields": ["id", "date_created", "Organisation.name", "email"] },
+            "position": { "x": 3, "y": 0, "w": 6, "h": 6 }
+        },
+        {
+            "instance_id": "w_3",
+            "widget": "AuthenticationFailureWidget",
+            "config": { "alias": "Authentication failures" },
+            "position": { "x": 9, "y": 0, "w": 3, "h": 10 }
+        },
+        {
+            "instance_id": "w_4",
+            "widget": "MispStatusWidget",
+            "config": { "alias": "System status" },
+            "position": { "x": 0, "y": 6, "w": 3, "h": 2 }
+        },
+        {
+            "instance_id": "w_5",
+            "widget": "LoginsWidget",
+            "config": { "alias": "Logins this month" },
+            "position": { "x": 3, "y": 6, "w": 3, "h": 2 }
+        },
+        {
+            "instance_id": "w_6",
+            "widget": "APIActivityWidget",
+            "config": { "alias": "API activity" },
+            "position": { "x": 6, "y": 6, "w": 3, "h": 2 }
+        }
+    ]
+}
