@@ -696,3 +696,127 @@ a theme's global modal, which is not guaranteed present across themes.
 - `app/webroot/css/dashboard/dashboard.default.css`: the two new panel
   modes folded into the gallery-mode selectors + `.misp-configio-*`
   body styling. Shared sheet → applies on both themes.
+
+## DD-11 — Geo world-map widget: multi-source, ACL-free aggregate, capped
+
+**Date.** 2026-05-26
+**Phase context.** First of the post-5.5 "new widget types" round (the
+phase the user flagged after the UX-polish work). Introduces
+`app/Lib/Dashboard/AttributeGeoMapWidget.php` — a pure addition (one
+class, no controller/model/renderer change), reusing the existing
+`WorldMap` render kind (⇒ no new glyph per the CLAUDE.md rule).
+
+**Decision.** A single widget geolocates recent MISP data to ISO
+alpha-2 country counts for the `WorldMap` renderer, blending up to
+**four individually-selectable sources** (config `sources`, default all
+on; their counts are summed):
+
+| `sources` value | What | Resolution to ISO |
+|---|---|---|
+| `ip` | `ip-src` / `ip-dst` / `ip-src\|port` / `ip-dst\|port` (value1) + `domain\|ip` (value2) | MISP-managed `GeoOpen-Country.mmdb`, one `GeoIp2\Database\Reader` opened once and reused across the sweep |
+| `domain_tld` | ccTLD of `domain` / `domain\|ip` (value1) | the `country` galaxy's own `tld`→`ISO` elements (SQL self-join), exact 2-letter ccTLDs only |
+| `country_galaxy` | events tagged `misp-galaxy:country="…"` | the cluster's `ISO` galaxy element (SQL join) |
+| `threat_actor` | events tagged `misp-galaxy:threat-actor="…"` | the cluster's `country` galaxy element — already stored as ISO alpha-2 (SQL join) |
+
+The map deliberately **mixes indicator-location** (`ip`, `domain_tld`)
+**with attribution/relevance** (`country_galaxy`, `threat_actor`); the
+per-source toggle lets a user isolate either reading. A single
+attribute may contribute more than one signal (e.g. `domain|ip` counts
+once for its IP and once for its ccTLD) — treated as two independent
+signals, not double counting of one fact. The user chose toggleable,
+default-all (2026-05-25/26).
+
+**ACL: deliberately not enforced (the consequential call).** The
+per-source queries are bare `find('column')` / join fetches over the
+timeframe — **no per-user ACL**. So the aggregate per-country counts can
+reflect data the viewing user could not normally see. This is an
+accepted aggregate-inference exposure, bounded by: counts only (no
+values, **no drilldown**, no attribution to a reporting org). The user
+accepted this for v1 ("we're lenient with AGGREGATE information; without
+drilldown a user only learns *that* data for a country exists, not who
+reported it or in what context"), explicitly citing the precedent that
+**global Statistics also avoids ACL**. Available to all users for v1.
+The user would *prefer* ACL where it's affordable and wants **both an
+ACL-enforced and a non-ACL path eventually, switchable on the
+performance trade-off** — logged as a follow-up; v1 ships the non-ACL
+path only.
+
+**Performance guard ≠ `cacheLifetime`.** Investigated and confirmed:
+`cacheLifetime` is **inert in dashboard v2** — `DashboardsController::
+renderWidget()` does no server-side caching and `Dashboard::
+__extractMeta()` does not surface it (only `autoRefreshDelay` reaches
+the client). So the handoff's "set `cacheLifetime`" suggestion buys
+nothing. The real guards are: (1) a **per-source cap** on the most-
+recent rows scanned (`limit`, default **10000**, ordered by timestamp
+DESC), (2) the **recency window** (`time_window` canonical, default
+**P30D**, toolbar-reachable per DD-05; `-1` = all-time), and (3)
+`autoRefreshDelay = false` so the sweep never re-runs on a timer — only
+on page load / manual refresh. The mmdb Reader is opened **once** (vs
+`UserLoginProfile::countryByIp`, which opens a fresh Reader per call).
+
+**Bypassing `fetchAttributes` is intentional** beyond the ACL point:
+`MispAttribute::fetchAttributes()` injects `Attribute.object_id = 0`
+unless `flatten => 1`, so it would silently miss the many IP/domain
+attributes that live inside objects. A bare `find('column')` has no
+such implicit filter, so object attributes are included.
+
+**Galaxy ISO via `galaxy_elements`, not JSON.** The country galaxy
+carries both `ISO` and `tld` as galaxy elements, and the threat-actor
+galaxy carries `country` as an ISO alpha-2 element. Both galaxy sources
+(and the ccTLD map) resolve country **server-side via SQL joins through
+`galaxy_elements`** — no per-render parsing of the galaxy JSON files.
+
+**ISO hygiene.** Every source funnels through a `^[A-Z]{2}$` guard.
+This drops the GeoOpen mmdb's literal **`"None"` placeholder** for
+unallocated ranges (observed as the single largest "country" before the
+guard) and any other non-ISO value. The `WorldMap` renderer then
+further drops ISO codes its Natural-Earth name set doesn't know
+(Singapore, Hong Kong, Monaco, …) — an inherited renderer limitation,
+shared with `OrganisationMapWidget`; not fixed here (additive-only).
+
+**ASN deferred (infeasible as first specified).** The user asked to
+geolocate via ASN using `GeoOpen-Country-ASN.mmdb`. That file is **not
+on the box**, and more fundamentally **mmdb is IP-network-keyed**: the
+`geoip2` `Asn` model returns ASN *for an IP*, never country *for an
+ASN*. A bare `AS` attribute therefore cannot be mapped to a country via
+any mmdb. The widget's source list is built to accept a 5th source
+cleanly; ASN→country awaits a concrete dataset from the user (a new
+managed-data dependency) — logged, not built in v1.
+
+**ccTLD is a deliberately weak signal.** Repurposed ccTLDs (`.io`, `.tv`,
+`.co`, `.gg`, `.me`, `.ai`) geolocate to their registry country, not
+the operator's location (live data: `.gg`→Guernsey topped the ccTLD
+source). Honest-where-it-works; only exact 2-letter ccTLDs present in
+the galaxy are honoured, the rest dropped. Users who don't want this
+noise turn the `domain_tld` source off.
+
+**Identity.** `title` "Recent data geolocation map", `category`
+`events`, `render` `WorldMap`, default `width 3 height 4` (matches
+`OrganisationMapWidget`). Auto-discovered from `app/Lib/Dashboard/*.php`.
+
+**Alternatives considered.**
+- **ACL-enforced fetch** (`fetchAttributes($user, …)` / `Event::
+  restSearch`, the handoff's recommendation). Correct but heavy on a
+  large instance; the user chose the non-ACL aggregate path for v1, with
+  the ACL path kept as a future switchable option.
+- **Site-admin-gating** the widget so the ACL bypass is moot (admins see
+  all). Recommended by me; the user preferred broad availability with
+  the accepted aggregate exposure instead.
+- **Per-datum drilldown (DD-03).** Rejected by the user: the IP→country
+  mapping is transient (recomputed per render, never persisted), so
+  there is nothing stable to link a region to.
+- **Parsing the galaxy JSON files** for the value→ISO / tld→ISO maps.
+  Rejected for the `galaxy_elements` SQL join — no per-render file I/O,
+  reflects the actually-imported galaxy.
+
+**Reversibility.** Fully additive and self-contained: delete the one
+class. No shared surface touched. Adding the ACL-enforced path later is
+additive (a `sources`-style mode or an auto-switch on result-size);
+adding ASN is additive (a 5th `sources` value + its dataset).
+
+**Implementation hooks.**
+- New: `app/Lib/Dashboard/AttributeGeoMapWidget.php` (chgrp www-data).
+- No controller/model/renderer/glyph/CSS change.
+- Verified: lint clean; REST render valid per-source and combined;
+  `"None"` eliminated; gallery metadata correct; session HTML render
+  emits the `data-misp-chart="geo"` payload with ISO→name translation.

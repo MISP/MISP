@@ -1081,6 +1081,19 @@ All 7 reviewed 2026-05-25. Only one actual deletion (the dead jvectormap pair); 
 
 ---
 
+## Post-5.5 — New widget types (user-driven, untracked phase)
+
+The "new functionality" round the user opened after the pre-merge UX
+polish. User-driven, one widget at a time. Not a merge gate (the user
+still does the merge); lands on the `dashboards` branch alongside the
+polish work.
+
+- [x] **Geo world-map widget** (`AttributeGeoMapWidget`) — **landed 2026-05-26 (DD-11).** Geolocates recent MISP data to ISO alpha-2 country counts for the existing `WorldMap` renderer (no new render kind ⇒ no new glyph). Pure addition: one class under `app/Lib/Dashboard/`, no controller/model/renderer/CSS change. **Four individually-selectable, summed sources** (config `sources`, default all): `ip` (`ip-src`/`ip-dst`/`ip-src|port`/`ip-dst|port` value1 + `domain|ip` value2 → `GeoOpen-Country.mmdb`, one Reader reused across the sweep), `domain_tld` (ccTLD of `domain`/`domain|ip` value1 → the country galaxy's `tld`→`ISO` elements via SQL self-join), `country_galaxy` (events tagged `misp-galaxy:country="…"` → cluster `ISO` element), `threat_actor` (events tagged `misp-galaxy:threat-actor="…"` → cluster `country` element, already ISO). **Design (DD-11):** deliberately **no per-user ACL** — bare `find('column')`/joins; aggregate counts only, no values, **no drilldown** (mapping is transient) — user-accepted citing the Statistics-endpoint precedent; available to all users for v1; an ACL-enforced switchable path is a logged follow-up. Guards: per-source cap (`limit`=10000, ordered timestamp DESC), recency window (`time_window`=P30D canonical, toolbar-reachable; `-1`=all-time), `autoRefreshDelay=false`. **Findings folded in:** `cacheLifetime` is **inert in v2** (no reader in `renderWidget`/`__extractMeta`) — caps+window are the real guard; bypassing `fetchAttributes` is intentional (its implicit `object_id=0` would miss object-nested IP/domain attrs); a `^[A-Z]{2}$` ISO guard drops the mmdb's literal `"None"` placeholder for unallocated ranges; galaxy ISO comes from `galaxy_elements` SQL joins, no JSON parse. ccTLD is a knowingly weak signal (`.gg`→Guernsey topped the live ccTLD source). **Verified:** lint clean; REST render valid per-source + combined; gallery metadata correct; session HTML render emits the `data-misp-chart="geo"` payload with ISO→GeoJSON-name translation, unmapped codes dropped. `chgrp www-data`; signed commit.
+- [ ] **ASN source for the geo widget** — deferred. The user has an ASN→country dataset to wire (mmdb can't: it's IP-keyed, `geoip2`'s `Asn` model returns ASN-for-an-IP, never country-for-an-ASN; `GeoOpen-Country-ASN.mmdb` is also absent on the box). Awaiting the concrete dataset/format from the user; the widget's `sources` list is built to accept a 5th value cleanly.
+- [ ] More new widget types — user may enumerate.
+
+---
+
 ## Phase 6 — Merge to `develop`
 
 **Goal:** with the parity sweep green, the `dashboards` branch
