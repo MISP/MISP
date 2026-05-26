@@ -53,6 +53,13 @@ class TrendingAttributesWidget
 }';
     public $description = 'Widget showing the trending attributes over the past x seconds, along with the possibility to include/exclude attributes.';
     public $cacheLifetime = 3;
+    // Generic widget cache opt-in (DD-20) at 1h, PER-USER (DD-21):
+    // handler() branches on $user['Role']['perm_site_admin'] / org_id — a
+    // regular user sees only their own org's attributes, a site-admin the
+    // whole instance. cache_scope='user' keys by user id so one viewer's
+    // ACL-scoped payload is never served to another.
+    public $cache_duration = 3600;
+    public $cache_scope = 'user';
 
     private function getOrgList($options)
     {

@@ -1208,11 +1208,23 @@ gate (the user still does the merge).
     `…user_contribution_toplist…`, `…organisation_map…`,
     `…threat_actor_country_map…`) with **no `u` segment**; TTL ≈3600s; a
     second render is a hit (TTL ticks down, not reset).
-  - [ ] **Cache the 3 ACL-scoped board widgets at 1h (per-user key).**
-    `TrendingAttributesWidget` (branches on perm_site_admin/org_id),
-    `TrendingTagsWidget` (`filterEventIds($user)`), `NewUsersWidget` (email
-    redaction by role) — each declares `$cache_duration = 3600` +
-    `$cache_scope = 'user'` (DD-21).
+  - [x] **Cache the 3 ACL-scoped board widgets at 1h (per-user key) —
+    landed 2026-05-26.** `TrendingAttributesWidget` (branches on
+    perm_site_admin/org_id), `TrendingTagsWidget` (`filterEventIds($user)`),
+    `NewUsersWidget` (email redaction by role) — each declares
+    `$cache_duration = 3600` + `$cache_scope = 'user'` (DD-21). Verified:
+    `php -l` clean ×3; live REST render as admin (user id 1) → HTTP 200,
+    each creates a per-user key `misp:<path>:u1:<sha256>`
+    (`trending_attributes_cache`, `trending_tags_cache`, `new_users_cache`).
+    No-leak isolation proven by the composition of (a) `WidgetCacheTest`
+    `testUserScopeDifferentUsersGetDifferentKeys` (distinct user id →
+    distinct key on the live `key()` code) and (b) the live render showing
+    the controller threads the authenticated user id into the key verbatim
+    (`u1:`) — so a user id ≠ 1 necessarily lands on a different `u<id>:`
+    entry and cannot read user 1's. A browser two-user render is the
+    gold-standard demo, deferred to the user (advanced_authkeys is on, so
+    minting a second API key would mean replicating the hash scheme +
+    mutating instance state; the proof chain is already complete).
 
 ---
 

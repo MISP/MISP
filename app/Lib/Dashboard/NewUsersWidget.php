@@ -11,6 +11,14 @@ class NewUsersWidget
     private $tableDescription = null;
     public $cacheLifetime = null;
     public $autoRefreshDelay = false;
+    // Generic widget cache opt-in (DD-20) at 1h, PER-USER (DD-21):
+    // handler() redacts the email field unless the viewer is a site-admin
+    // (or Security.disclose_user_emails is set), so the payload depends on
+    // the viewer's role. cache_scope='user' keys by user id so a payload
+    // built for one viewer (with/without emails) is never served to
+    // another.
+    public $cache_duration = 3600;
+    public $cache_scope = 'user';
     public $params = [
         'limit' => 'Maximum number of joining users shown. (integer, defaults to 10 if not set)',
         'filter' => 'A list of filters for the organisations (nationality, sector, type, name, uuid) to include. (dictionary, prepending values with ! uses them as a negation)',

@@ -51,6 +51,13 @@ class TrendingTagsWidget
 }';
     public $description = 'Widget showing the trending tags over the past x seconds, along with the possibility to include/exclude tags.';
     public $cacheLifetime = 3;
+    // Generic widget cache opt-in (DD-20) at 1h, PER-USER (DD-21):
+    // handler() ACL-scopes the source events via filterEventIds($user),
+    // so the tag tally depends on which events the viewer may see.
+    // cache_scope='user' keys by user id so one viewer's payload is never
+    // served to another.
+    public $cache_duration = 3600;
+    public $cache_scope = 'user';
 
 	public function handler($user, $options = array())
 	{
