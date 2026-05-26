@@ -1005,17 +1005,27 @@ with no change to those widgets. `equirectangular` omits the projection
 
 **Mercator is hand-rolled, not d3-geo.** The forward/inverse are the
 standard spherical Mercator (~6 lines):
-`project([λ,φ]) = [λ·π/180, ln(tan(π/4 + φ·π/360))]`,
-`unproject([x,y]) = [x·180/π, 2·atan(eˣ)·180/π − 90]`. Latitude is
+`project([λ,φ]) = [λ·π/180, −ln(tan(π/4 + φ·π/360))]`,
+`unproject([x,y]) = [x·180/π, 2·atan(e^−y)·180/π − 90]`. Latitude is
 clamped to ±85.0511° (the Web-Mercator limit) so Antarctica's −90°
-vertices don't send `y → ∞`. **No sign flip** — ECharts orients the
-screen itself (same as for native lat plotting). The pair is exact
-inverses, **verified by a node round-trip test** (Paris/DC/Beijing/
-Moscow/Buenos Aires, equator, pole-clamp) — important because a wrong
-inverse silently breaks roam/zoom hit-testing, not just the static
-image. (A first cut used `−ln(...)` for "north up"; the round-trip test
-caught that it mirrored latitude. Lesson: unit-test projection inverses,
-don't trust a remembered docs snippet.)
+vertices don't send `y → ∞`. **The y term is negated in both** because
+a custom projection's output is consumed as raw canvas coordinates
+(y increases *downward*) — unlike ECharts' native lon/lat path it is
+NOT auto-flipped, so without the negation north renders at the bottom.
+The pair is exact inverses (verified by a node round-trip test:
+Paris/DC/Beijing/Moscow/Buenos Aires, equator, pole-clamp) — a wrong
+inverse silently breaks roam/zoom hit-testing, not just the image.
+
+**Correction (2026-05-26, same day).** This shipped twice wrong before
+settling: first `−ln` forward + `e^y` inverse (mismatched pair → roam
+hit-test mirrored), then "fixed" to `+ln` forward + `e^y` inverse
+(round-trip now exact, but the map rendered **upside down** — caught
+visually by the user, not by the test). The correct pair is `−ln`
+forward + `e^−y` inverse: exact inverse **and** north-up. **Lesson: a
+round-trip test only proves the inverse is self-consistent; it says
+nothing about orientation. The *sign* of the forward decides which way
+is up, so a round-trip-correct projection can still be upside down —
+assert north-maps-above-south (or eyeball it), don't stop at round-trip.**
 
 - **Default encoded / per-instance override:** like DD-13, `projection`
   is an `enum` `$schema` field (default `mercator`) on the two threat

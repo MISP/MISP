@@ -151,16 +151,21 @@ function buildGeoOption(payload, hostEl) {
   // the y axis to infinity. Unknown names fall back to mercator.
   const PROJECTIONS = {
     mercator: {
-      // Standard spherical Mercator. project/unproject are exact
-      // inverses (verified by round-trip); ECharts handles screen
-      // orientation, same as it does for native lon/lat plotting, so no
-      // sign flip here. Latitude is clamped to the Web-Mercator limit.
+      // Standard spherical Mercator. Unlike ECharts' native lon/lat
+      // path (which it auto-flips for screen), a CUSTOM projection's
+      // output is used as raw canvas coordinates — y increases DOWNWARD.
+      // So `project` negates the y term to put north at the top, and
+      // `unproject` inverts that with exp(-y) to stay an exact inverse
+      // (round-trip verified). Both signs must match: a positive-log
+      // forward round-trips fine but renders the map upside down.
+      // Latitude is clamped to the Web-Mercator limit so Antarctica's
+      // -90° vertices don't send y to infinity.
       project: function (pt) {
         var lat = Math.max(-85.0511, Math.min(85.0511, pt[1]));
-        return [pt[0] / 180 * Math.PI, Math.log(Math.tan((Math.PI / 2 + lat / 180 * Math.PI) / 2))];
+        return [pt[0] / 180 * Math.PI, -Math.log(Math.tan((Math.PI / 2 + lat / 180 * Math.PI) / 2))];
       },
       unproject: function (c) {
-        return [c[0] * 180 / Math.PI, 2 * 180 / Math.PI * Math.atan(Math.exp(c[1])) - 90];
+        return [c[0] * 180 / Math.PI, 2 * 180 / Math.PI * Math.atan(Math.exp(-c[1])) - 90];
       },
     },
   };
