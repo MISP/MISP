@@ -99,6 +99,9 @@ $payload = array(
     // Named colour palette (DD-13); the client whitelists it and falls
     // back to 'accent' for anything it doesn't recognise.
     'palette'   => (isset($data['palette']) && is_string($data['palette'])) ? $data['palette'] : null,
+    // Map projection (DD-14); client falls back to 'mercator' (the
+    // default) for null/unrecognised, 'equirectangular' = native grid.
+    'projection' => (isset($data['projection']) && is_string($data['projection'])) ? $data['projection'] : null,
 );
 ?>
 <div class="misp-chart"

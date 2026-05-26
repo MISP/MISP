@@ -142,6 +142,33 @@ function buildGeoOption(payload, hostEl) {
   const countryFill   = tokenOn(hostEl, '--misp-dash-border',        '#d8dde4');
   const countryStroke = tokenOn(hostEl, '--misp-dash-border-strong', '#b6bdc7');
 
+  // Map projection (DD-14). Default 'mercator' (the conventional web-map
+  // look) when payload.projection is unset; 'equirectangular' omits the
+  // projection so ECharts plots raw lon/lat (its native flat grid, the
+  // pre-DD-14 behaviour). Mercator is hand-rolled (the standard ECharts
+  // docs forward/inverse) — no d3-geo dependency — with latitude clamped
+  // to the Web-Mercator limit so Antarctica's -90° vertices don't blow
+  // the y axis to infinity. Unknown names fall back to mercator.
+  const PROJECTIONS = {
+    mercator: {
+      // Standard spherical Mercator. project/unproject are exact
+      // inverses (verified by round-trip); ECharts handles screen
+      // orientation, same as it does for native lon/lat plotting, so no
+      // sign flip here. Latitude is clamped to the Web-Mercator limit.
+      project: function (pt) {
+        var lat = Math.max(-85.0511, Math.min(85.0511, pt[1]));
+        return [pt[0] / 180 * Math.PI, Math.log(Math.tan((Math.PI / 2 + lat / 180 * Math.PI) / 2))];
+      },
+      unproject: function (c) {
+        return [c[0] * 180 / Math.PI, 2 * 180 / Math.PI * Math.atan(Math.exp(c[1])) - 90];
+      },
+    },
+  };
+  const projName = payload.projection || 'mercator';
+  // 'equirectangular' (or any name without a function) => no projection,
+  // i.e. ECharts' native flat lon/lat rendering.
+  const projection = PROJECTIONS[projName] || (projName === 'equirectangular' ? null : PROJECTIONS.mercator);
+
   return {
     tooltip: {
       trigger: 'item',
@@ -170,6 +197,7 @@ function buildGeoOption(payload, hostEl) {
       type: 'map',
       map: 'world',
       roam: true,
+      ...(projection ? { projection } : {}),
       itemStyle: {
         areaColor: countryFill,
         borderColor: countryStroke,

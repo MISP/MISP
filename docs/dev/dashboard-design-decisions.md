@@ -984,3 +984,71 @@ from `handler()`. Don't add per-widget colour rules to the stylesheet.
 - Verified: lint + `node --check` clean; threat widgets default
   `danger`, override to `success` honoured; `OrganisationMapWidget`
   payload carries no palette → blue.
+
+## DD-14 — WorldMap projection: configurable, Mercator default, hand-rolled (no d3-geo)
+
+**Date.** 2026-05-26
+**Phase context.** Post-5.5 new-widget round, immediately after DD-13.
+The WorldMap had no projection set, so ECharts plotted raw lon/lat
+(equirectangular / plate carrée). The user asked to make projection an
+option and default it to Mercator.
+
+**Decision.** WorldMap supports a `projection` option (currently
+`mercator` | `equirectangular`), resolved client-side in
+`buildGeoOption` and applied via ECharts 6's `series.projection`
+(`project`/`unproject` pair). **Mercator is the default** — and it's a
+*renderer-level* default: `buildGeoOption` uses `payload.projection ||
+'mercator'`, so **every** WorldMap widget (incl. `OrganisationMapWidget`
+/ `CsseCovidMapWidget`, which don't declare it) renders Mercator now,
+with no change to those widgets. `equirectangular` omits the projection
+(ECharts' native flat lon/lat grid, the pre-DD-14 look).
+
+**Mercator is hand-rolled, not d3-geo.** The forward/inverse are the
+standard spherical Mercator (~6 lines):
+`project([λ,φ]) = [λ·π/180, ln(tan(π/4 + φ·π/360))]`,
+`unproject([x,y]) = [x·180/π, 2·atan(eˣ)·180/π − 90]`. Latitude is
+clamped to ±85.0511° (the Web-Mercator limit) so Antarctica's −90°
+vertices don't send `y → ∞`. **No sign flip** — ECharts orients the
+screen itself (same as for native lat plotting). The pair is exact
+inverses, **verified by a node round-trip test** (Paris/DC/Beijing/
+Moscow/Buenos Aires, equator, pole-clamp) — important because a wrong
+inverse silently breaks roam/zoom hit-testing, not just the static
+image. (A first cut used `−ln(...)` for "north up"; the round-trip test
+caught that it mirrored latitude. Lesson: unit-test projection inverses,
+don't trust a remembered docs snippet.)
+
+- **Default encoded / per-instance override:** like DD-13, `projection`
+  is an `enum` `$schema` field (default `mercator`) on the two threat
+  widgets → a configure-form dropdown; the handler emits it. Org/COVID
+  widgets get Mercator via the renderer default without a per-widget
+  toggle (one-line opt-in if ever wanted).
+
+**Alternatives considered.**
+- **d3-geo** (Mercator/Robinson/Winkel-Tripel/…). The "proper" library,
+  but a new vendored dep (and licence/bundle cost per DD-07) for what is
+  ~6 lines for Mercator. Rejected for now; revisit if richer projections
+  (Robinson, Natural Earth) are wanted — those need polynomial tables or
+  iteration and are the real reason to pull in d3-geo.
+- **Equirectangular as an explicit projection fn.** Unnecessary — the
+  ECharts native rendering already *is* equirectangular, so the
+  `equirectangular` choice just omits `series.projection`.
+
+**Reversibility.** Additive: drop the `PROJECTIONS` map + the
+`series.projection` spread + the `projection` payload key and widgets
+fall back to ECharts' native equirectangular. No data-shape break (old
+configs without `projection` use the mercator default).
+
+**Convention for future WorldMap widgets.** Same as DD-13's palette:
+declare a `projection` `enum` in `$schema` if per-widget choice is
+wanted; the renderer defaults to mercator regardless.
+
+**Implementation hooks.**
+- `charts/charts.module.mjs`: `PROJECTIONS.mercator` (project/unproject)
+  in `buildGeoOption`; `...(projection ? { projection } : {})` on the
+  map series; `payload.projection || 'mercator'` default.
+- `WorldMap.ctp`: `projection` passthrough into the payload.
+- `AttributeGeoMapWidget` + `ThreatActorCountryMapWidget`: `projection`
+  `enum` schema (default `mercator`), params doc, handler emit.
+- Verified: lint + `node --check` clean; Mercator round-trip exact;
+  threat widgets default `mercator`, override `equirectangular` honoured;
+  org map inherits the mercator default (no payload projection key).

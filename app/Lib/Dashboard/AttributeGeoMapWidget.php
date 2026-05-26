@@ -77,6 +77,7 @@ class AttributeGeoMapWidget
         'sources' => 'Which geolocation sources to include, any of: "ip", "domain_tld", "asn", "country_galaxy", "threat_actor". Defaults to all five.',
         'limit' => 'Per-source cap on the most-recent rows scanned, to avoid timeouts on large instances. Default 10000.',
         'palette' => 'Colour scale for the map: accent (blue) / danger (red) / success (green) / warning (amber) / info (cyan). Defaults to danger (threat data).',
+        'projection' => 'Map projection: mercator (conventional web-map look, default) or equirectangular (flat lon/lat grid).',
     ];
     public $schema = [
         'time_window' => [
@@ -94,6 +95,12 @@ class AttributeGeoMapWidget
             'enum' => ['accent', 'danger', 'success', 'warning', 'info'],
             'default' => 'danger',
             'help' => 'Colour scale for the map. Defaults to red — this widget carries threat data.',
+        ],
+        'projection' => [
+            'type' => 'enum',
+            'enum' => ['mercator', 'equirectangular'],
+            'default' => 'mercator',
+            'help' => 'Map projection. Mercator is the conventional web-map look; equirectangular is the flat lon/lat grid.',
         ],
     ];
     // cacheLifetime is inert in dashboard v2 (renderWidget does not cache
@@ -148,6 +155,8 @@ class AttributeGeoMapWidget
             // Named palette (DD-13); default red — this is threat data.
             // Overridable per widget instance via the configure form.
             'palette' => !empty($options['palette']) ? $options['palette'] : 'danger',
+            // Map projection (DD-14); default mercator, overridable.
+            'projection' => !empty($options['projection']) ? $options['projection'] : 'mercator',
         ];
     }
 

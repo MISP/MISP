@@ -36,6 +36,7 @@ class ThreatActorCountryMapWidget
     public $params = [
         'limit' => 'Limit to the top-N countries by threat-actor count. Leave empty for all.',
         'palette' => 'Colour scale for the map: accent (blue) / danger (red) / success (green) / warning (amber) / info (cyan). Defaults to danger (threat data).',
+        'projection' => 'Map projection: mercator (conventional web-map look, default) or equirectangular (flat lon/lat grid).',
     ];
     public $schema = [
         'limit' => [
@@ -47,6 +48,12 @@ class ThreatActorCountryMapWidget
             'enum' => ['accent', 'danger', 'success', 'warning', 'info'],
             'default' => 'danger',
             'help' => 'Colour scale for the map. Defaults to red — this widget carries threat data.',
+        ],
+        'projection' => [
+            'type' => 'enum',
+            'enum' => ['mercator', 'equirectangular'],
+            'default' => 'mercator',
+            'help' => 'Map projection. Mercator is the conventional web-map look; equirectangular is the flat lon/lat grid.',
         ],
     ];
     public $cacheLifetime = false;
@@ -98,6 +105,8 @@ class ThreatActorCountryMapWidget
             // Named palette (DD-13); default red — this is threat data.
             // Overridable per widget instance via the configure form.
             'palette' => !empty($options['palette']) ? $options['palette'] : 'danger',
+            // Map projection (DD-14); default mercator, overridable.
+            'projection' => !empty($options['projection']) ? $options['projection'] : 'mercator',
         ];
     }
 }
