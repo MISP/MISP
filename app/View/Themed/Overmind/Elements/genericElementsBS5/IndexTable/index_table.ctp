@@ -6,6 +6,11 @@ if (!empty($data['paginatorOptions'])) {
     $Paginator->options($data['paginatorOptions']);
 }
 
+$dblclickUrl = (!empty($data['row_dblclick_url']) && !empty($data['primary_id_path']))
+    ? $data['row_dblclick_url']
+    : null;
+$tableId = 'tbl-' . dechex(mt_rand());
+
 $rows = '';
 
 $tableFields = array_filter($data['fields'], function($field) {
@@ -44,7 +49,8 @@ foreach ($data['data'] as $k => $data_row) {
 ?>
 
 <div class="table-responsive table-scroll">
-    <table class="table table-hover align-middle mb-0">
+    <table id="<?= h($tableId) ?>" class="table table-hover align-middle mb-0"
+        <?= $dblclickUrl !== null ? 'data-dblclick-url="' . h($dblclickUrl) . '"' : '' ?>>
 
         <?= $this->element(
             'genericElementsBS5/IndexTable/headers',
@@ -61,3 +67,19 @@ foreach ($data['data'] as $k => $data_row) {
 
     </table>
 </div>
+
+<?php if ($dblclickUrl !== null): ?>
+<script>
+(function () {
+    var table = document.getElementById(<?= json_encode($tableId) ?>);
+    if (!table) return;
+    var urlPattern = table.dataset.dblclickUrl;
+    table.addEventListener('dblclick', function (e) {
+        if (e.target.closest('a, button, input, label, .dropdown, td:first-child')) return;
+        var tr = e.target.closest('tr[data-primary-id]');
+        if (!tr) return;
+        window.location.href = urlPattern.replace('%id%', tr.dataset.primaryId);
+    });
+}());
+</script>
+<?php endif; ?>

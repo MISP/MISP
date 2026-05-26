@@ -5,7 +5,23 @@ if (empty($org)) {
     return;
 }
 
-$id = !empty($org['id']) ? $org['id'] : null;
+if (!empty($org['id'])){
+    $id = $org['id'];
+}
+elseif (!empty($org['uuid'])){
+    $id = $org['uuid'];
+}
+else {
+    $id = null;
+}
+
+if (empty($id)) {
+    if (!empty($org[0])) {
+        $name = $org[0];
+    } else {
+        $name = null;
+    }
+}
 $isCreator = $data_path === 'Orgc';
 $isCard = isset($viewMode) && $viewMode === 'card';
 
@@ -31,7 +47,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
             </a>
         <?php else: ?>
             <p class="text-decoration-none fw-semibold text-primary mb-0">
-                <?= h($org[0]) ?>
+                <?= h($name) ?>
             </p>
         <?php endif; ?>
     </div>

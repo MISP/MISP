@@ -1482,7 +1482,7 @@ $divider = '<li class="divider"></li>';
                         'url' => $baseurl . '/galaxy_cluster_relations/index',
                         'text' => __('List Relationships')
                     ));
-                    if ($this->Acl->canAccess('galaxy_cluster_blocklists', 'index')) {
+                    if ($this->Acl->canAccess('galaxies', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'galaxy_add',
                             'url' => $baseurl . '/galaxies/add',

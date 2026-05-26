@@ -1,4 +1,26 @@
 <?php
+// Title of the index displayed in the header section, leaving it empty will fallback to controller name
+$headerTitle = __('');
+
+// Description displayed under the title in the header section, leave empty if not needed
+$headerDescription = __('');
+
+// Actions displayed as buttons in the header section, leave empty if not needed
+$headerActions = [];
+if ($this->Acl->canAccess('allowedlists', 'admin_add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add Allowedlist'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/admin/allowedlists/add'
+    ];
+}
+
+$this->set('headerTitle', $headerTitle);
+$this->set('headerDescription', $headerDescription);
+$this->set('headerActions', $headerActions);
+
+
 /**
  * ==============================================================
  * Definition of fields displayed in the scaffold
@@ -31,26 +53,9 @@
 
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'Allowedlist.id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'ajax',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/admin/allowedlists/edit/%id%',
-                'requirement' => 'check_site_admin'
-            ],
-            [
-                'type' => 'ajax',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/admin/allowedlists/deleteSelection/%id%',
-                'class' => 'text-danger',
-                'requirement' => 'check_site_admin'
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -66,20 +71,32 @@ $fields = [
         'data_path' => 'Allowedlist.name',
         'card_section' => 'title',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'Allowedlist.id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'modal',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/admin/allowedlists/edit/%id%',
+                'requirement' => 'check_site_admin'
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/admin/allowedlists/deleteSelection/%id%',
+                'class' => 'text-danger',
+                'requirement' => 'check_site_admin'
+            ]
+        ]
     ]
 ];
 
-
-
-if ($this->Acl->canAccess('allowedlists', 'admin_add')) {
-    $headerActions[] = [
-        'type' => 'ajax',
-        'label' => __('Add Allowedlist'),
-        'icon' => 'plus',
-        'url' => $baseurl . '/admin/allowedlists/add'
-    ];
-}
-$this->set('headerActions', $headerActions);
 
 /**
  * ==============================================================

@@ -101,7 +101,8 @@
                     'name' => __('Pull'),
                     'sort' => 'Server.pull',
                     'element' => 'server_push_pull',
-                    'mode' => 'pull',           ],
+                    'mode' => 'pull',
+                ],
                 [
                     'name' => __('Push Sightings'),
                     'sort' => 'Server.push_sightings',

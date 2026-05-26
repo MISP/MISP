@@ -131,7 +131,6 @@ class TaxiiServer extends AppModel
             ProcessTool::pythonBin(),
             $scriptFile,
             '--dir', $temporaryFolder['dir']->path,
-            '--baseurl',  $taxii_server['TaxiiServer']['baseurl'],
             '--api_root', $taxii_server['TaxiiServer']['api_root'],
             '--key', $taxii_server['TaxiiServer']['api_key'],
             '--collection', $taxii_server['TaxiiServer']['collection']
@@ -163,9 +162,14 @@ class TaxiiServer extends AppModel
 
     public function queryInstance($options)
     {
-        $url = $options['TaxiiServer']['baseurl'] . $options['TaxiiServer']['uri'];
+        $url = $options['TaxiiServer']['api_root'] . $options['TaxiiServer']['path'];
+        error_log($url);
         App::uses('HttpSocket', 'Network/Http');
         $HttpSocket = new HttpSocket();
+        $caPath = Configure::read('MISP.ca_path');
+        if (!empty($caPath)) {
+            $HttpSocket->config['ssl_cafile'] = $caPath;
+        }
         if (!$options['TaxiiServer']['skip_proxy']) {
             $proxy = Configure::read('Proxy');
             if (isset($proxy['host']) && !empty($proxy['host'])) {
@@ -178,6 +182,7 @@ class TaxiiServer extends AppModel
                 'Content-type' => 'application/taxii+json;version=2.1'
             ]
         ];
+        error_log($options['TaxiiServer']['api_key']);
         if (!empty($options['TaxiiServer']['api_key'])) {
             $request['header']['Authorization'] = 'Basic ' . $options['TaxiiServer']['api_key'];
         }
@@ -212,7 +217,7 @@ class TaxiiServer extends AppModel
             'recursive' => -1,
             'conditions' => ['TaxiiServer.id' => $id]
         ]);
-        $taxii_server['TaxiiServer']['uri'] = '/' . $taxii_server['TaxiiServer']['api_root'] . '/collections/';
+        $taxii_server['TaxiiServer']['path'] = '/collections/';
         $response = $this->queryInstance([
             'TaxiiServer' => $taxii_server['TaxiiServer'],
             'type' => 'get'
@@ -232,7 +237,7 @@ class TaxiiServer extends AppModel
         if (empty($collection_id)) {
             $collection_id = $taxii_server['TaxiiServer']['collection'];
         }
-        $taxii_server['TaxiiServer']['uri'] = '/' . $taxii_server['TaxiiServer']['api_root'] . '/collections/' . $collection_id . '/objects/';
+        $taxii_server['TaxiiServer']['path'] = '/collections/' . $collection_id . '/objects/';
         $response = $this->queryInstance([
             'TaxiiServer' => $taxii_server['TaxiiServer'],
             'type' => 'get',
