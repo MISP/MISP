@@ -1,129 +1,120 @@
-# Dashboard v2 — Session handoff (2026-05-26 — geo/threat map widgets round complete)
+# Dashboard v2 — Session handoff (2026-05-26 — aliasing + generic widget cache + Peters/Natural-Earth)
 
-Thirteenth session. Authoritative state lives in:
+Fourteenth session. Authoritative state lives in:
 
-- `dashboard-prd.md` — spec (binding decisions table §15, now incl. DD-15).
+- `dashboard-prd.md` — spec (binding decisions table §15, now incl.
+  DD-16..DD-20).
 - `dashboard-progress.md` — task state. **Phase 5 + 5.5 closed; Phase 6
-  (merge) is the only tracked phase left.** The post-5.5 "new widget
-  types" section now has the geo work logged (+ open follow-ups).
-- `dashboard-design-decisions.md` — DD-01..DD-15 (DD-11..15 new this
+  (merge) is the only tracked phase left.** The two post-5.5 sections
+  now read: "New widget types" (geo/threat maps + projections) and
+  "**New features**" (aliasing ✅, default layouts ⬜, geo caching ✅ +
+  generic cache ✅).
+- `dashboard-design-decisions.md` — DD-01..DD-20 (DD-16..20 new this
   session).
 
 This file is the bridge: ephemeral session context. Replace as work
 progresses.
 
-## TL;DR — this session (10 signed commits, all `%G?`=U, none merged)
+## TL;DR — this session (5 signed commits, all `%G?`=U, none merged)
 
-The user merged `develop` into `dashboards` (`795bda17c`, bringing the
-new `GeoOpen-Country-ASN.mmdb`), then we built out the geo/threat map
-widgets one feature at a time, with two real bugs caught along the way:
+Continued the user-driven post-5.5 work, one item at a time:
 
 ```
-7248f08a0 new geo world-map widget — 4 sources (DD-11)
-5915601cd new ASN source — offline-derived ASN->country map (DD-12)
-603ad9c34 fix Add Widget gallery search now culls (CSS [hidden] override)
-d7a3add6d chg geo threat red scale  [SUPERSEDED by DD-13]
-78800c78a new threat actor origins map (galaxy-library distribution)
-bed832998 fix WorldMap renders CN/RU/US — ISO->name reconcile to geojson
-552d2a457 new per-widget WorldMap colour palette (DD-13)
-64e4db184 new WorldMap projection option, Mercator default (DD-14)
-3d8360640 fix Mercator was upside down — negate y in both project+unproject
-c6b72e66d new Robinson + Natural Earth projections via vendored d3-geo (DD-15)
+781afe7df new Peters (Gall-Peters) projection — vendored d3-geo geoCylindricalEqualArea (DD-16)
+c017653e7 chg default WorldMap projection Mercator -> Natural Earth, all maps (DD-17)
+68908c735 new widget aliasing — per-instance display name (DD-18)
+34e67c470 new Redis cache for AttributeGeoMapWidget — per-config hash, 1h TTL (DD-19)
+f477ed4ad chg extract widget caching into a generic WidgetCache helper (DD-20)
 ```
 
-**User still does the merge — do NOT open the PR or merge.**
+**The USER does the merge — do NOT open the PR or merge.**
 
-## Two new widgets (both reuse `WorldMap` → no new render kind / glyph)
+## What landed (reuse these facts)
 
-1. **`AttributeGeoMapWidget`** (DD-11, DD-12) — geolocates *recent event
-   data* to country counts. Config `sources` (default all 5):
-   - `ip` — `ip-src`/`ip-dst`/`ip-src|port`/`ip-dst|port` (value1) +
-     `domain|ip` (value2) → `GeoOpen-Country.mmdb` (one Reader, reused).
-   - `domain_tld` — ccTLD of `domain`/`domain|ip` (value1) → the country
-     galaxy's `tld`→`ISO` elements.
-   - `asn` — `AS` attrs → `app/files/geo-open/asn-country.json` (derived).
-   - `country_galaxy` — events tagged `misp-galaxy:country=…` →
-     cluster `ISO` element.
-   - `threat_actor` — events tagged `misp-galaxy:threat-actor=…` →
-     cluster `country` element (already ISO).
-   Per-source cap `limit` (10000), `time_window` (P30D, toolbar-reachable).
-2. **`ThreatActorCountryMapWidget`** — geographic distribution of *all
-   known threat actors in the galaxy library* (independent of event
-   data). `COUNT(DISTINCT GalaxyCluster.uuid)` over `galaxy_elements`
-   key=`country`, galaxy type=`threat-actor`. Optional top-N `limit`.
+### Projections (DD-16, DD-17) — `charts/charts.module.mjs` + the two threat widgets
+- **`peters`** = Gall-Peters cylindrical equal-area, `wrapD3(geoCylindricalEqualArea().parallel(45))`.
+  The vendored `charts/vendor/d3-geo.bundle.mjs` was rebuilt to add the
+  `geoCylindricalEqualArea` export (no new dep — `d3-geo-projection@4`
+  already in DD-07; recipe in `vendor/VENDORING.md`). WorldMap enum is
+  now `mercator | equirectangular | naturalEarth | robinson | peters`.
+- **Default projection is now `naturalEarth`** (was mercator), at BOTH
+  layers: the renderer-level fallback in `buildGeoOption`
+  (`payload.projection || 'naturalEarth'` + unknown-name fallback) AND
+  the two threat widgets' `$schema` default + handler fallback. So
+  org/COVID maps (which don't declare projection) render Natural Earth
+  too. Mercator/Robinson/Peters stay selectable. User confirmed they
+  want one uniform default, no per-widget-type defaults.
+- Projection lesson still applies: hand-rolled custom projections render
+  y-DOWN (negate y + assert north-up; round-trip alone is insufficient —
+  DD-14). d3-backed ones (naturalEarth/robinson/peters) bake north-up in.
 
-Both default `palette: danger` (red) + `projection: mercator`, both
-configurable per instance.
+### Widget aliasing (DD-18) — per-instance display name
+- **Label precedence: `config.alias` → class `$title` → class name.**
+  Edited via a "Display name" field at the top of the configure form (a
+  `string` schema field **injected server-side** into every widget's
+  `$schema` in `DashboardsController::index()` AND `renderWrapper()` —
+  exactly like the `refresh_delay` injection). Blank = use `$title`.
+- Fixed a latent bug: the enrichment never surfaced `$title`, so
+  un-aliased titlebars used to show the **class name**. Now they show
+  the real name.
+- New wrapper hooks (both default + Overmind `wrapper.ctp`):
+  `data-widget-title` (= `$title`, the client fallback) and
+  `data-misp-widget-title` (the label span — theme-independent because
+  default uses `.misp-widget-title`, Overmind uses `.card-title`).
+- Live update: `board.module._applyTitle(el)` (called in configure
+  `onSave`/`onPreview`) rewrites the label from `config.alias` →
+  `data-widget-title` → `data-widget-name`, since `_renderWidget` only
+  swaps the body.
+- The Phase-1 proto's dormant **top-level** `alias` scaffolding was
+  removed (one notion of alias = `config.alias`). Configure typed-tier
+  heading renamed "Filters" → "Settings".
+- Multiple instances of one widget already worked (keyed by
+  `instance_id`); aliasing just labels them. The admin board already had
+  hand-authored `config.alias` values (e.g. "Usage - Financial") that
+  were invisible under the old wrapper and now render.
 
-## Key architecture facts confirmed this session (REUSE THESE)
-
-- **WorldMap ISO→name must match the vendored geojson** (`bed832998`).
-  `WorldMap.ctp` translates ISO→English name; the vendored
-  `world-110m.geojson` uses Natural-Earth names that differ from
-  `WidgetToolkit` for 11 countries (CN→`China`, RU→`Russia`,
-  US→`United States of America`, CZ→`Czechia`, KP→`North Korea`,
-  KR→`South Korea`, LA→`Laos`, MZ→`Mozambique`, SZ→`eSwatini`,
-  IE→`Ireland`; **Malta has no 110m feature**). An explicit override map
-  after `array_flip` fixes the reverse map; the toolkit's forward
-  (name→ISO, used by `Organisation*` widgets) is untouched. **Any new
-  map widget emits ISO alpha-2; codes the geojson doesn't know are
-  silently dropped.**
-- **No-ACL posture for the geo widgets** (DD-11). They bypass per-user
-  ACL (bare `find('column')` / joins) for scalability — aggregate
-  per-country counts only, **no values, no drilldown**, available to all
-  users. User-accepted, citing the global Statistics endpoint precedent.
-  (`ThreatActorCountryMapWidget` isn't even an "exception" — the galaxy
-  library is instance-wide reference data.) **User wants an
-  ACL-enforced switchable path eventually** — logged follow-up.
-- **`cacheLifetime` is INERT in v2** — nothing reads it. Perf guard =
-  bounded query (per-source cap + recency window) + `autoRefreshDelay
-  = false`. Don't rely on `cacheLifetime`.
-- **`fetchAttributes` injects `object_id = 0` unless `flatten => 1`** —
-  it would silently miss object-nested IPs/domains. The geo widget uses
-  bare `find('column')`, which has no such implicit filter (and no ACL).
-- **Galaxy country/ISO via `galaxy_elements` SQL joins**, not JSON
-  parsing: country galaxy has `ISO` + `tld` elements; threat-actor
-  galaxy has `country` (ISO alpha-2). `galaxy_clusters` carries multiple
-  version-rows per actor (same uuid) → **dedup by `uuid`** for counts.
-- **Palette mechanism (DD-13).** Widget returns `palette` from
-  `handler()`; named palettes (`accent` default / `danger` / `success` /
-  `warning` / `info`) → semantic token pairs (`--misp-dash-<sem>-muted`
-  low + `--misp-dash-<sem>` high), resolved in `buildGeoOption`.
-  Per-widget override via a `palette` `enum` `$schema` (default `danger`
-  on threat widgets). Renderer-generic; org/COVID omit it → stay blue.
-  The old CSS-`[data-widget-name]` hack is **retired**.
-- **Projection mechanism (DD-14, DD-15).** Widget returns `projection`;
-  `buildGeoOption` defaults to `mercator` (`payload.projection ||
-  'mercator'`) so **all** WorldMap widgets are Mercator now (incl.
-  org/COVID, untouched). `equirectangular` = ECharts native flat grid.
-  `mercator` hand-rolled — **negate y in BOTH project & unproject**
-  (custom projections render in canvas y-down, NOT auto-flipped like the
-  native path). `naturalEarth`/`robinson` via vendored
-  `vendor/d3-geo.bundle.mjs` (d3 bakes north-up in, no sign handling;
-  `wrapD3` adapter). **LESSON (cost me two wrong cuts): a round-trip
-  test proves the inverse is consistent, NOT the orientation — also
-  assert north-maps-above-south, or the map ships upside down.**
-- **mmdb facts.** `GeoOpen-Country.mmdb` (IP→country, 11 MB) and
-  `GeoOpen-Country-ASN.mmdb` (81 MB) are both **IP-prefix-keyed** — you
-  *cannot* map a bare ASN→country from them, and the PHP `MaxMind\Db\
-  Reader` can't enumerate. So `AS` attrs are mapped via
-  `asn-country.json`, derived offline by
-  `app/files/scripts/generate_asn_country_map.py` (Python `maxminddb`
-  enumerates → dominant-announced-IPv4-space country; 77,846 entries).
-  **Regenerate that JSON when the mmdb updates** — logged follow-up.
+### Generic widget cache (DD-19 → DD-20) — `app/Lib/Dashboard/Tools/WidgetCache.php`
+- **Opt in declaratively** with two optional public props, NO cache code
+  in `handler()`:
+  ```php
+  public $cache_duration = 3600;        // TTL seconds; > 0 enables
+  public $cache_path = 'misp:...';      // optional; auto-derived if omitted
+  ```
+- `DashboardsController::renderWidget()` wraps the single `handler()`
+  call (line ~388) in `WidgetCache::remember($widget, $config, fn)`.
+  Widgets that declare nothing run live (transparent). Redis down →
+  silent live render.
+- **Key** = `<path>:<sha256(config)>`. Path = `$cache_path` or
+  auto-derived `misp:<Inflector::underscore(class − "Widget")>_cache`
+  (AttributeGeoMapWidget → `misp:attribute_geo_map_cache`). The whole
+  `handler()` payload is cached + returned verbatim on a hit.
+- **Hash input** = the post-`CanonicalTypeAdapter` config, `ksort`-ed,
+  with `WidgetCache::NON_DATA_KEYS` (`alias`, `refresh_delay`) **stripped**
+  — so differently-aliased instances of one widget SHARE a cache entry
+  (this protects DD-18; it's a deliberate refinement of "hash all the
+  config", flagged to + accepted by the user).
+- **Key is config-only, not per-user** — correct ONLY for ACL-free
+  aggregate widgets (DD-11). Documented as a precondition in the helper:
+  a future ACL-enforced cached widget must add a user/scope dimension.
+- `AttributeGeoMapWidget` opts in (`misp:attribute_geo_map_cache`, 1h)
+  and is otherwise back to its pure sweep.
+- Unit test: `app/Test/WidgetCacheTest.php` (9 cases). Note: PHPUnit
+  **8.5** here — use `assertRegExp`, not `assertMatchesRegularExpression`.
 
 ## Open follow-ups (in the progress tracker; none blocking)
 
-- **Regenerate `asn-country.json` on mmdb update** — wire
-  `generate_asn_country_map.py` into MISP's geo-open mmdb update job.
-- **ACL-enforced switchable path** for the geo widget (user wants both
-  the fast no-ACL path and an ACL-correct one, chosen on perf).
-- **org/COVID maps palette + projection opt-in** — one handler line each
-  if those maps should also be configurable (currently inherit
-  mercator + blue).
-- **Default threat maps to Robinson/Natural Earth?** Mercator is the
-  default (DD-14); switching is a one-line `$schema` `default` change —
-  the user's call.
+- **#2 default dashboard layouts (analyst / admin / community)** — the
+  remaining user-enumerated feature; NOT started. Needs planning: how
+  layouts are authored/shipped, how a user picks+applies one, and how it
+  interacts with the existing template system (Save/Import/Export, DD-10)
+  + `LayoutFixup`.
+- **Wire caching into `ThreatActorCountryMapWidget`** — offered (it's a
+  no-ACL galaxy-library aggregate, a clean fit). Two-line opt-in; user
+  hasn't said yes. Don't add unprompted.
+- **Regenerate `asn-country.json` on mmdb update** (DD-12 follow-up).
+- **ACL-enforced switchable path** for the geo widget (DD-11 follow-up).
+- **org/COVID maps palette opt-in** (projection already covered by
+  DD-17's renderer default).
 - More new widget types — user may enumerate.
 - **Phase 6 merge — the USER does this, not us.**
 
@@ -131,65 +122,62 @@ configurable per instance.
 
 - URL `http://localhost:5007/dashboards` (302 without a session).
 - Admin user id 1 (`admin@admin.test`), pw `Password12345`,
-  **on the Overmind theme** (no jQuery / `misp.js` — board-owned ESM
-  surfaces only; see DD-10).
+  **on the Overmind theme** (no jQuery / `misp.js`; board-owned ESM
+  surfaces only — DD-10). Its saved board has 15 widgets incl. 3
+  `UsageDataWidget` + 2 `TrendingAttributesWidget` instances with aliases.
 - Admin API key `dHVxEx4WhIwRdS6QDVsBmW9PE6pOkmgIH1FPQWiC`.
-- DB: `mysql -u misp -pPassword1234 misp`.
+- DB: `mysql -u misp -pPassword1234 misp`. Redis: `redis-cli -n 13`.
 
 ### Reusable verification recipes
-
 ```bash
 KEY=dHVxEx4WhIwRdS6QDVsBmW9PE6pOkmgIH1FPQWiC
-# REST render — returns the BARE handler data (ISO-keyed, pre-translation):
+# REST render — BARE handler data (top-level data/scope/palette/projection):
 curl -s -X POST -H "Authorization: $KEY" -H "Accept: application/json" \
   --data-urlencode "widget=<Name>Widget" --data-urlencode "config={}" \
   http://localhost:5007/dashboards/renderWidget
-# HTML render — the TRANSLATED WorldMap payload (ISO->geojson name +
-#   palette + projection). Needs a session cookie: see the
-#   reference-misp-login-dance memory; then curl -b "$CJ" (no Accept).
-# Projection math: node round-trip test + assert north-above-south
-#   (NOT round-trip alone — see DD-14/15 lesson).
+# renderWrapper (Add Widget path) needs instance_id in the URL:
+#   .../dashboards/renderWrapper/w_test  (POST widget=, config=)
+# HTML index / wrapper render → session cookie (reference-misp-login-dance
+#   memory): the titlebar label + data-widget-title live in wrapper.ctp.
+# Cache keys: redis-cli -n 13 KEYS 'misp:attribute_geo_map_cache*'
+#   (use KEYS for sync reads in scripts; --scan races background jobs).
+# Projection math: node round-trip test + assert north-above-south.
 ```
 
 ## Convention reminders
 
 - **Commit per logical task; never `git add -A`; explicit `git add` +
-  `git status --short` first; sign (`%G?`=U).** **GPG gotcha this
-  session:** `git commit -S` run non-interactively times out on the
-  pinentry once the agent's passphrase cache expires. Workarounds: have
-  the user warm the cache (`! echo x | gpg --clearsign >/dev/null`) then
-  retry, OR write the message to `/tmp/msg` and have the user run
-  `! git -C /var/www/MISP7 commit -S -F /tmp/msg`. A successful commit
-  warms the cache for subsequent ones.
-- **New files: `chgrp www-data` before commit** (widget classes, the
-  vendored bundle + LICENSE files all got this).
-- **Hard-refresh after CSS/JS edits** (`?v=185` asset buster doesn't
-  bump per-file). **PHP renderer/handler changes need only a reload**
-  (server-side, no static-asset cache).
-- **Additive-only posture:** these widgets are pure additions; the
-  shared-renderer touches (`WorldMap.ctp` ISO fix, `charts.module.mjs`
-  palette/projection) were bug-fixes / requested features within the
-  dashboard's own code — fine, but mind the blast radius (they affect
-  org/COVID maps too).
-- **Record meaningful decisions as DD-NN** + a PRD §15 row. Vendoring a
-  dep also updates the DD-07 licence table + `vendor/VENDORING.md`.
+  `git status --short` first; sign (`%G?`=U).** GPG: `git commit -S -F
+  /tmp/msg` worked non-interactively all session (cache stayed warm); if
+  it ever times out on pinentry, have the user warm it or run the commit.
+- **New web-served files: `chgrp www-data`** (widget/helper classes,
+  vendored bundles). **Test files stay `iglocska:iglocska`** (CLI-run,
+  not web-served — matches `CanonicalTypeAdapterTest`).
+- **Hard-refresh after CSS/JS edits** (`?v=185` buster doesn't bump
+  per-file). PHP renderer/handler changes need only a reload.
+- **Record meaningful decisions as DD-NN + a PRD §15 row.** Overturned
+  decisions get a follow-up DD, never an in-place edit (DD-17 supersedes
+  DD-14's default; DD-20 generalises DD-19 — both left intact).
 - **Render-kind glyph rule** (CLAUDE.md): only new `$render` values need
-  a glyph — both new widgets reuse `WorldMap`, so none needed.
-- User wants **rigorous pushback** and genuine forks surfaced via
-  AskUserQuestion (this session: ASN feasibility, ACL posture, palette
-  model, projection scope).
+  a glyph. Nothing this session added a render kind.
+- User wants **rigorous pushback + genuine forks via AskUserQuestion**
+  (this session: Peters hand-roll vs vendor; alias editing surface) and
+  is fine **iterating a design mid-build** (the cache went default-only →
+  whole-payload → per-config-hash → generic helper across three turns).
+  When the user questions a premise, re-verify rather than defend.
 
 ## Quick-start for the next session
 
-1. Read `dashboard-prd.md` (§15 table) + `dashboard-design-decisions.md`
-   (DD-11..15 are the geo/map work) + this file. Skim
-   `dashboard-progress.md` Post-5.5 section for task-level detail.
+1. Read `dashboard-prd.md` §15 + `dashboard-design-decisions.md`
+   DD-16..20 + this file. Skim `dashboard-progress.md` post-5.5 sections.
 2. Verify instance: `curl -s http://localhost:5007/dashboards -o /dev/null
    -w "%{http_code}\n"` → 302.
-3. **No specific task is mandated** — the geo/threat-map round is
-   complete and committed. The user will direct (likely another new
-   widget, a tweak, one of the open follow-ups, or the merge). If
-   touching the WorldMap renderer or a map widget, re-read the "Key
-   architecture facts" above first — the ISO-name, palette, projection,
-   and no-ACL conventions are easy to trip over.
-4. Do NOT start the merge — the user does that.
+3. **No task is mandated.** The likely next item is **#2 default
+   dashboard layouts** (needs a planning/fork round first — don't just
+   build). The user may instead pick the threat-map cache opt-in, another
+   widget, a follow-up, or the merge.
+4. If touching the WorldMap renderer, the wrapper/aliasing, or the cache,
+   re-read the matching "What landed" section above — the projection
+   north-up rule, the alias label-precedence + hooks, and the
+   NON_DATA_KEYS exclusion are each easy to trip over.
+5. Do NOT start the merge — the user does that.
