@@ -77,7 +77,7 @@ class AttributeGeoMapWidget
         'sources' => 'Which geolocation sources to include, any of: "ip", "domain_tld", "asn", "country_galaxy", "threat_actor". Defaults to all five.',
         'limit' => 'Per-source cap on the most-recent rows scanned, to avoid timeouts on large instances. Default 10000.',
         'palette' => 'Colour scale for the map: accent (blue) / danger (red) / success (green) / warning (amber) / info (cyan). Defaults to danger (threat data).',
-        'projection' => 'Map projection: mercator (conventional web-map look, default) or equirectangular (flat lon/lat grid).',
+        'projection' => 'Map projection: mercator (default) / equirectangular (flat lon/lat grid) / naturalEarth / robinson (rounded, less polar-distorted world views).',
     ];
     public $schema = [
         'time_window' => [
@@ -98,9 +98,9 @@ class AttributeGeoMapWidget
         ],
         'projection' => [
             'type' => 'enum',
-            'enum' => ['mercator', 'equirectangular'],
+            'enum' => ['mercator', 'equirectangular', 'naturalEarth', 'robinson'],
             'default' => 'mercator',
-            'help' => 'Map projection. Mercator is the conventional web-map look; equirectangular is the flat lon/lat grid.',
+            'help' => 'Map projection. Mercator (web-map look) / equirectangular (flat grid) / Natural Earth / Robinson (rounded, less polar distortion).',
         ],
     ];
     // cacheLifetime is inert in dashboard v2 (renderWidget does not cache

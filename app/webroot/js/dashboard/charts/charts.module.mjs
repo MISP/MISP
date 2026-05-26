@@ -12,6 +12,7 @@
 // markup + a post-render scan is the simplest pattern that works.
 
 import echarts from './vendor/echarts.bundle.mjs';
+import { geoNaturalEarth1, geoRobinson } from './vendor/d3-geo.bundle.mjs';
 import { registerMispTheme, MISP_THEME_NAME } from './echarts-theme.mjs';
 
 const ATTR_CHART         = 'data-misp-chart';
@@ -142,13 +143,13 @@ function buildGeoOption(payload, hostEl) {
   const countryFill   = tokenOn(hostEl, '--misp-dash-border',        '#d8dde4');
   const countryStroke = tokenOn(hostEl, '--misp-dash-border-strong', '#b6bdc7');
 
-  // Map projection (DD-14). Default 'mercator' (the conventional web-map
-  // look) when payload.projection is unset; 'equirectangular' omits the
-  // projection so ECharts plots raw lon/lat (its native flat grid, the
-  // pre-DD-14 behaviour). Mercator is hand-rolled (the standard ECharts
-  // docs forward/inverse) — no d3-geo dependency — with latitude clamped
-  // to the Web-Mercator limit so Antarctica's -90° vertices don't blow
-  // the y axis to infinity. Unknown names fall back to mercator.
+  // Map projection. Default 'mercator' (the conventional web-map look)
+  // when payload.projection is unset; 'equirectangular' omits the
+  // projection so ECharts plots raw lon/lat (its native flat grid).
+  // Mercator + equirectangular are dependency-free (DD-14); 'naturalEarth'
+  // and 'robinson' are vendored d3-geo projections (DD-15). Unknown names
+  // fall back to mercator.
+  const wrapD3 = (p) => ({ project: (pt) => p(pt), unproject: (pt) => p.invert(pt) });
   const PROJECTIONS = {
     mercator: {
       // Standard spherical Mercator. Unlike ECharts' native lon/lat
@@ -168,6 +169,13 @@ function buildGeoOption(payload, hostEl) {
         return [c[0] * 180 / Math.PI, 2 * 180 / Math.PI * Math.atan(Math.exp(-c[1])) - 90];
       },
     },
+    // Robinson + Natural Earth (DD-15) via vendored d3-geo. d3 bakes
+    // north-up into its y-down output, so — unlike the hand-rolled
+    // mercator above — no sign handling is needed; project/unproject map
+    // straight onto the d3 projection + its .invert (both round-trip
+    // exact). Instances are stateless for project/invert.
+    naturalEarth: wrapD3(geoNaturalEarth1()),
+    robinson: wrapD3(geoRobinson()),
   };
   const projName = payload.projection || 'mercator';
   // 'equirectangular' (or any name without a function) => no projection,

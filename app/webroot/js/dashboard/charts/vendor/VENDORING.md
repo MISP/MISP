@@ -14,6 +14,8 @@ GeoJSON for the OrganisationMap widget and similar geo-typed widgets.
 | `LICENSE.echarts` | The ECharts package's upstream `LICENSE` file (Apache 2.0, with NOTICE-style attributions to upstream contributors). Required by the licence. | 12 KB / — |
 | `world-110m.geojson` | World countries GeoJSON at 1:110,000,000 resolution (177 country features), converted from TopoJSON in `world-atlas@2.0.2` via `topojson-client.feature()`, then **antimeridian-split** so polygons spanning the date line (Russia, Fiji, Antarctica…) render correctly under ECharts. | 437 KB / 146 KB |
 | `LICENSE.world-atlas` | The world-atlas package's upstream LICENSE file (ISC, by Mike Bostock + Natural Earth public-domain data). | 1 KB / — |
+| `d3-geo.bundle.mjs` | Built locally with esbuild from `d3-geo@3.1.1` + `d3-geo-projection@4.0.0`. Exports `geoNaturalEarth1` (d3-geo core) and `geoRobinson` (d3-geo-projection) for the WorldMap projection option (DD-15). ESM, minified. | 17 KB / 7.2 KB |
+| `LICENSE.d3-geo`, `LICENSE.d3-geo-projection` | Upstream LICENSE files (ISC, Mike Bostock). The esbuild `--legal-comments=external` sidecar was empty (no inline notices survive minification), so these LICENSE files are the attribution. | 2 KB / — |
 | `VENDORING.md` | This file. | — |
 
 **Combined wire weight for a dashboard with a geo widget:**
@@ -154,6 +156,45 @@ cp node_modules/world-atlas/LICENSE.md \
 Adam Krebs's implementation) — GPL-compatible per FSF, AGPL-compatible
 in the same direction as DD-07's other deps. It's a build-time
 dependency only; nothing from the package lands in `webroot/`.
+
+## Reproducing the d3-geo projection bundle (DD-15)
+
+Provides `geoNaturalEarth1` + `geoRobinson` for the WorldMap
+`projection` option. d3-geo core has Natural Earth; Robinson lives in
+d3-geo-projection. Both ISC (Mike Bostock).
+
+```bash
+mkdir -p /tmp/d3geo-bundle && cd /tmp/d3geo-bundle
+npm init -y > /dev/null
+npm install --silent --no-audit --no-fund \
+  d3-geo@3 d3-geo-projection@4 esbuild@0.24.0
+
+cat > entry.mjs <<'EOF'
+export { geoNaturalEarth1 } from 'd3-geo';
+export { geoRobinson } from 'd3-geo-projection';
+EOF
+
+./node_modules/.bin/esbuild entry.mjs \
+  --bundle --format=esm --target=es2022 --minify \
+  --legal-comments=external \
+  --outfile=d3-geo.bundle.mjs
+
+cp d3-geo.bundle.mjs \
+   /var/www/MISP7/app/webroot/js/dashboard/charts/vendor/
+cp node_modules/d3-geo/LICENSE \
+   /var/www/MISP7/app/webroot/js/dashboard/charts/vendor/LICENSE.d3-geo
+cp node_modules/d3-geo-projection/LICENSE \
+   /var/www/MISP7/app/webroot/js/dashboard/charts/vendor/LICENSE.d3-geo-projection
+# The .LEGAL.txt sidecar is empty (no inline notices survive minify) —
+# the two LICENSE files above are the required attribution.
+```
+
+ECharts integration (in `charts.module.mjs`): a d3 projection object is
+`p([lng,lat]) → [x,y]` with `p.invert`; wrap as
+`{ project: p, unproject: p.invert }` for `series.projection`. d3 emits
+north-up in y-down space, so no sign handling is needed (contrast the
+hand-rolled Mercator). Always re-check round-trip **and** north-up when
+adding a projection — the inverse is iterative for these two.
 
 ## Usage from dashboard v2
 

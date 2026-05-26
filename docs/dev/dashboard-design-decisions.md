@@ -327,6 +327,7 @@ do — see the per-vendor `LICENSE.*` files in
 | `tslib` *(transitive, bundled inside echarts.bundle.mjs)* | **0BSD** (Microsoft) | TypeScript runtime helpers | ✅ — notice preserved in `echarts.bundle.LEGAL.txt` |
 | `zrender` *(transitive, bundled inside echarts.bundle.mjs)* | **BSD-3-Clause** (Baidu Inc.) | ECharts' rendering library | ✅ — notice preserved in `echarts.bundle.LEGAL.txt` |
 | `world-110m.geojson` | **ISC** (Mike Bostock; data from Natural Earth, public domain) | world-atlas npm package | ✅ |
+| `d3-geo.bundle.mjs` *(d3-geo 3.1.1 + d3-geo-projection 4.0.0)* | **ISC** (Mike Bostock) | d3-geo / d3-geo-projection npm packages | ✅ — added DD-15; both LICENSE files shipped |
 
 **Authoritative basis.**
 
@@ -1062,3 +1063,72 @@ wanted; the renderer defaults to mercator regardless.
 - Verified: lint + `node --check` clean; Mercator round-trip exact;
   threat widgets default `mercator`, override `equirectangular` honoured;
   org map inherits the mercator default (no payload projection key).
+
+## DD-15 — Robinson + Natural Earth projections via vendored d3-geo
+
+**Date.** 2026-05-26
+**Phase context.** Extends DD-14. DD-14 deferred richer projections
+("d3-geo becomes worth it for Robinson / Natural Earth, which need
+polynomial tables not worth hand-rolling"); the user asked to add them.
+
+**Decision.** Add two more `projection` options — **`naturalEarth`**
+(d3-geo core `geoNaturalEarth1`) and **`robinson`** (d3-geo-projection
+`geoRobinson`) — backed by a newly **vendored d3-geo bundle**. Mercator
+stays the default; these are opt-in rounded, less polar-distorted world
+views. `mercator` + `equirectangular` remain dependency-free (DD-14).
+
+**Why the dependency now (vs DD-14's hand-roll).** Mercator/equirect
+are ~6 lines. Natural Earth is a closed-form *polynomial* with an
+*iterative* inverse; Robinson is an *interpolation table* (Robinson's
+published 5°-interval values) with an iterative inverse. Hand-rolling
+those (esp. correct, accurate inverses for roam hit-testing — see
+DD-14's orientation/inverse saga) is exactly the error-prone work a
+battle-tested lib should own. d3-geo provides both forward + exact
+`.invert` (round-trip verified ~1e-11).
+
+**Integration.** ECharts 6 `series.projection` takes `project` /
+`unproject`; d3 projection objects are `p([lng,lat])→[x,y]` with
+`p.invert`. A `wrapD3(p)` adapter maps straight onto them. Crucially,
+**d3 bakes north-up into its y-down output**, so — unlike the
+hand-rolled mercator, which needed an explicit `−ln` to avoid rendering
+upside down (DD-14 Correction) — the d3 projections need no sign
+handling. d3's default scale/translate is irrelevant: ECharts fits the
+projected bounding box to the viewport.
+
+**Licence / weight.** d3-geo 3.1.1 and d3-geo-projection 4.0.0 are both
+**ISC** (Mike Bostock) — GPL/AGPL-compatible, same direction as DD-07's
+other deps; added to the DD-07 table, both upstream `LICENSE` files
+shipped in `vendor/`. The esbuild `--legal-comments=external` sidecar
+came out **empty** (no inline notices survive minification), so it's
+omitted — the `LICENSE.*` files are the attribution. Tree-shaken bundle
+is **17 KB raw / 7.2 KB gzipped** — marginal next to the ~360 KB-gz
+ECharts+geo stack (DD-02).
+
+**Alternatives considered.**
+- **Hand-roll Natural Earth only** (its forward is closed-form, no
+  table) and skip Robinson. Avoids the dep, but the iterative inverse is
+  still fiddly and Robinson (the more recognisable projection) genuinely
+  needs the table — so for one dep we get both, cleanly. Rejected.
+- **Default to Robinson/Natural Earth.** Not done — DD-14 set mercator
+  as the default deliberately ("conventional web-map look"); these are
+  offered as options. One-line change if a different default is wanted.
+
+**Reversibility.** Additive: remove the `import`, the two `PROJECTIONS`
+entries + `wrapD3`, the two `enum` values, and the three `vendor/`
+files; `mercator`/`equirectangular` are unaffected (no d3 dependency).
+
+**Convention.** More projections from the same source = extend the
+bundle's `entry.mjs`, rebuild per `vendor/VENDORING.md`, add a
+`PROJECTIONS` entry + enum value. Robinson/Natural Earth invert
+iteratively — always keep the round-trip **and** north-up checks.
+
+**Implementation hooks.**
+- New vendored: `vendor/d3-geo.bundle.mjs` (+ `LICENSE.d3-geo`,
+  `LICENSE.d3-geo-projection`); build recipe in `vendor/VENDORING.md`.
+- `charts/charts.module.mjs`: import `geoNaturalEarth1` / `geoRobinson`;
+  `wrapD3` adapter; `naturalEarth` + `robinson` `PROJECTIONS` entries.
+- `AttributeGeoMapWidget` + `ThreatActorCountryMapWidget`: the two new
+  values in the `projection` `enum` + params doc.
+- DD-07 licence table: d3-geo row added.
+- Verified: `node --check` clean; vendored-bundle round-trip OK for both;
+  REST honours `robinson`/`naturalEarth`; gallery enum lists all four.

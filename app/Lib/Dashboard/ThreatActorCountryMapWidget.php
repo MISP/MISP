@@ -36,7 +36,7 @@ class ThreatActorCountryMapWidget
     public $params = [
         'limit' => 'Limit to the top-N countries by threat-actor count. Leave empty for all.',
         'palette' => 'Colour scale for the map: accent (blue) / danger (red) / success (green) / warning (amber) / info (cyan). Defaults to danger (threat data).',
-        'projection' => 'Map projection: mercator (conventional web-map look, default) or equirectangular (flat lon/lat grid).',
+        'projection' => 'Map projection: mercator (default) / equirectangular (flat lon/lat grid) / naturalEarth / robinson (rounded, less polar-distorted world views).',
     ];
     public $schema = [
         'limit' => [
@@ -51,9 +51,9 @@ class ThreatActorCountryMapWidget
         ],
         'projection' => [
             'type' => 'enum',
-            'enum' => ['mercator', 'equirectangular'],
+            'enum' => ['mercator', 'equirectangular', 'naturalEarth', 'robinson'],
             'default' => 'mercator',
-            'help' => 'Map projection. Mercator is the conventional web-map look; equirectangular is the flat lon/lat grid.',
+            'help' => 'Map projection. Mercator (web-map look) / equirectangular (flat grid) / Natural Earth / Robinson (rounded, less polar distortion).',
         ],
     ];
     public $cacheLifetime = false;
