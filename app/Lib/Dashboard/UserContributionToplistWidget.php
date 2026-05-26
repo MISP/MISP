@@ -25,6 +25,12 @@ class UserContributionToplistWidget
     ];
     public $cacheLifetime = null;
     public $autoRefreshDelay = false;
+    // Generic widget cache opt-in (DD-20): cache the payload for 1h.
+    // User-independent aggregate — handler() never scopes by $user; the
+    // checkPermissions() below gates *visibility* (enforced in loadWidget
+    // before the cache), and the content is the same global toplist for
+    // every permitted viewer. Config-only key is therefore safe.
+    public $cache_duration = 3600;
     private $validFilterKeys = [
         'nationality',
         'sector',

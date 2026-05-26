@@ -29,6 +29,10 @@ class OrganisationMapWidget
     ];
     public $cacheLifetime = null;
     public $autoRefreshDelay = false;
+    // Generic widget cache opt-in (DD-20): cache the payload for 1h.
+    // User-independent aggregate — handler() counts org nationalities,
+    // scoped only by the config `filter`, never by $user. Config-only safe.
+    public $cache_duration = 3600;
     private $validFilterKeys = [
         'sector',
         'type',

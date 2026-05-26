@@ -58,6 +58,10 @@ class ThreatActorCountryMapWidget
     ];
     public $cacheLifetime = false;
     public $autoRefreshDelay = false;
+    // Generic widget cache opt-in (DD-20): cache the payload for 1h.
+    // User-independent aggregate — galaxy-library reference data, handler()
+    // never touches $user (no DD-11 per-user concern). Config-only key safe.
+    public $cache_duration = 3600;
     public $placeholder =
 '{
     "limit": 20

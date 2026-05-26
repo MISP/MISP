@@ -9,6 +9,10 @@ class UsageDataWidget
     public $description = 'Shows usage data / statistics.';
     public $cacheLifetime = false;
     public $autoRefreshDelay = false;
+    // Generic widget cache opt-in (DD-20): cache the payload for 1h.
+    // User-independent aggregate — handler() scopes only by the config
+    // `filter` (org meta), never by $user — so the config-only key is safe.
+    public $cache_duration = 3600;
     public $params = [
         'filter' => 'A list of filters by organisation meta information (nationality, sector, type, name, uuid) to include. (dictionary, prepending values with ! uses them as a negation)',
         'start_date' => 'The ISO 8601 date format for which to show changes',

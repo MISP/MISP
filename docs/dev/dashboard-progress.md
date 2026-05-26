@@ -1193,15 +1193,21 @@ gate (the user still does the merge).
     already-opted-in `AttributeGeoMapWidget` still keys config-only (no
     `u` segment), confirming default-`'global'` is non-regressive. Signed
     commit.
-  - [ ] **Cache the 5 user-independent board widgets at 1h (global key).**
-    `UsageDataWidget`, `OrgContributionToplistWidget`,
+  - [x] **Cache the 5 user-independent board widgets at 1h (global key) —
+    landed 2026-05-26.** `UsageDataWidget`, `OrgContributionToplistWidget`,
     `UserContributionToplistWidget`, `OrganisationMapWidget`,
     `ThreatActorCountryMapWidget` — all aggregate `handler()`s with no
     `$user` data-scoping (UserContributionToplist's `checkPermissions()`
     gates *visibility* in `loadWidget`, enforced before the cache; content
     is identical for all permitted viewers). Each declares
-    `$cache_duration = 3600` only. (`AttributeGeoMapWidget` already cached
-    via DD-19/20.)
+    `$cache_duration = 3600` only (auto-derived path; default `'global'`
+    scope). (`AttributeGeoMapWidget` already cached via DD-19/20.) Verified:
+    `php -l` clean ×5; live REST render of all five → HTTP 200, each
+    creates a **config-only** key under its own auto-derived path
+    (`misp:usage_data_cache`, `…org_contribution_toplist…`,
+    `…user_contribution_toplist…`, `…organisation_map…`,
+    `…threat_actor_country_map…`) with **no `u` segment**; TTL ≈3600s; a
+    second render is a hit (TTL ticks down, not reset).
   - [ ] **Cache the 3 ACL-scoped board widgets at 1h (per-user key).**
     `TrendingAttributesWidget` (branches on perm_site_admin/org_id),
     `TrendingTagsWidget` (`filterEventIds($user)`), `NewUsersWidget` (email

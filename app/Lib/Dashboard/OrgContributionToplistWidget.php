@@ -27,6 +27,10 @@ class OrgContributionToplistWidget
     ];
     public $cacheLifetime = null;
     public $autoRefreshDelay = false;
+    // Generic widget cache opt-in (DD-20): cache the payload for 1h.
+    // User-independent aggregate — handler() never touches $user; counts
+    // events grouped by orgc_id across the instance. Config-only key safe.
+    public $cache_duration = 3600;
     private $validFilterKeys = [
         'nationality',
         'sector',
