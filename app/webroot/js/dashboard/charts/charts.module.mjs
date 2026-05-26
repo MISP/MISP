@@ -12,7 +12,7 @@
 // markup + a post-render scan is the simplest pattern that works.
 
 import echarts from './vendor/echarts.bundle.mjs';
-import { geoNaturalEarth1, geoRobinson } from './vendor/d3-geo.bundle.mjs';
+import { geoNaturalEarth1, geoRobinson, geoCylindricalEqualArea } from './vendor/d3-geo.bundle.mjs';
 import { registerMispTheme, MISP_THEME_NAME } from './echarts-theme.mjs';
 
 const ATTR_CHART         = 'data-misp-chart';
@@ -146,9 +146,9 @@ function buildGeoOption(payload, hostEl) {
   // Map projection. Default 'mercator' (the conventional web-map look)
   // when payload.projection is unset; 'equirectangular' omits the
   // projection so ECharts plots raw lon/lat (its native flat grid).
-  // Mercator + equirectangular are dependency-free (DD-14); 'naturalEarth'
-  // and 'robinson' are vendored d3-geo projections (DD-15). Unknown names
-  // fall back to mercator.
+  // Mercator + equirectangular are dependency-free (DD-14); 'naturalEarth',
+  // 'robinson' and 'peters' are vendored d3-geo projections (DD-15, DD-16).
+  // Unknown names fall back to mercator.
   const wrapD3 = (p) => ({ project: (pt) => p(pt), unproject: (pt) => p.invert(pt) });
   const PROJECTIONS = {
     mercator: {
@@ -169,13 +169,16 @@ function buildGeoOption(payload, hostEl) {
         return [c[0] * 180 / Math.PI, 2 * 180 / Math.PI * Math.atan(Math.exp(-c[1])) - 90];
       },
     },
-    // Robinson + Natural Earth (DD-15) via vendored d3-geo. d3 bakes
-    // north-up into its y-down output, so — unlike the hand-rolled
-    // mercator above — no sign handling is needed; project/unproject map
-    // straight onto the d3 projection + its .invert (both round-trip
-    // exact). Instances are stateless for project/invert.
+    // Robinson + Natural Earth (DD-15) and Gall-Peters (DD-16) via
+    // vendored d3-geo. d3 bakes north-up into its y-down output, so —
+    // unlike the hand-rolled mercator above — no sign handling is needed;
+    // project/unproject map straight onto the d3 projection + its .invert
+    // (both round-trip exact). Instances are stateless for project/invert.
+    // 'peters' is the Gall-Peters cylindrical equal-area projection with
+    // standard parallels at +/-45 deg (geoCylindricalEqualArea.parallel(45)).
     naturalEarth: wrapD3(geoNaturalEarth1()),
     robinson: wrapD3(geoRobinson()),
+    peters: wrapD3(geoCylindricalEqualArea().parallel(45)),
   };
   const projName = payload.projection || 'mercator';
   // 'equirectangular' (or any name without a function) => no projection,

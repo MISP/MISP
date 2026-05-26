@@ -1132,3 +1132,89 @@ iteratively — always keep the round-trip **and** north-up checks.
 - DD-07 licence table: d3-geo row added.
 - Verified: `node --check` clean; vendored-bundle round-trip OK for both;
   REST honours `robinson`/`naturalEarth`; gallery enum lists all four.
+
+## DD-16 — Gall-Peters projection vendored via d3-geo (extends DD-15)
+
+**Date.** 2026-05-26
+**Phase context.** Extends DD-14/DD-15. The user reviewed the four
+shipped projections and asked to add **Peters** (Gall-Peters) as a
+fifth WorldMap `projection` option.
+
+**Decision.** Add a `peters` projection — the **Gall-Peters
+cylindrical equal-area** projection (standard parallels at ±45°) —
+backed by the **already-vendored** `d3-geo.bundle.mjs`, which gains
+one export: `geoCylindricalEqualArea` (d3-geo-projection). The widget
+wires it as `wrapD3(geoCylindricalEqualArea().parallel(45))`. Mercator
+stays the default; `peters` is opt-in like Robinson / Natural Earth.
+
+**The fork that was surfaced (and the call made).** Gall-Peters is
+mathematically *trivial* — closed-form forward **and** closed-form
+(non-iterative) inverse, simpler than the hand-rolled Mercator (no
+log/exp, no latitude clamp; equal-area projections are finite at the
+poles). By DD-14's *complexity criterion* (closed-form & simple →
+hand-roll), it belongs in the hand-roll camp alongside Mercator —
+`~6` lines, zero new bytes. By DD-15's *same-source convention* (more
+d3 projections → extend the bundle), it belongs in the vendored camp.
+Those two principles disagreed here, so it was put to the user as an
+explicit fork. **The user chose to vendor it** (2026-05-26), trading a
+bundle rebuild + a few hundred bytes for d3's battle-tested north-up
+handling — sidestepping the DD-14 orientation gotcha entirely (a
+hand-rolled custom projection's output is raw canvas coords, y-down,
+NOT auto-flipped, so it would have needed an explicit `y` negation +
+the north-above-south assertion that cost two wrong cuts on Mercator).
+The wiring is then identical to Robinson / Natural Earth.
+
+**Why `geoCylindricalEqualArea().parallel(45)` is Gall-Peters.** The
+Peters projection *is* the cylindrical equal-area projection with
+standard parallels at ±45°. d3's `geoCylindricalEqualArea` defaults to
+parallel 38.58° (Trystan Edwards); `.parallel(45)` selects the
+Gall-Peters aspect. Verified by the projection's signature aspect
+ratio: width/height = π·cos²(45°) = **π/2 ≈ 1.5708** (asserted in the
+build test, came out exact).
+
+**Licence / weight.** No new dependency — `d3-geo-projection@4.0.0`
+(ISC, Mike Bostock) is already in the DD-07 table and its LICENSE file
+already shipped (DD-15). The rebuilt bundle is **17.4 KB raw / 7.4 KB
+gzipped** (was 17 KB / 7.2 KB — the cylindrical-equal-area machinery is
+largely shared with the other projections, so the growth is marginal).
+The `--legal-comments=external` sidecar is still empty (omitted, as
+DD-15). No DD-07 table change needed (same dep).
+
+**Alternatives considered.**
+- **Hand-roll it** (the DD-14 path — Gall-Peters is closed-form both
+  ways). Cheapest (no rebuild, no bytes) and matches DD-14's stated
+  criterion most precisely. Rejected by the user in favour of d3's
+  north-up handling, which removes the orientation-bug risk class.
+- **Default to an equal-area projection.** Not done — Mercator stays
+  the default per DD-14 ("conventional web-map look"); Peters is an
+  opt-in for users who want an area-faithful view (no high-latitude
+  area inflation). One-line `$schema` `default` change if ever wanted.
+
+**Reversibility.** Additive: remove the `geoCylindricalEqualArea`
+import + the `peters` `PROJECTIONS` entry + the two `enum` values, and
+rebuild the bundle without the export (or leave it — it's inert if
+unreferenced). `mercator`/`equirectangular`/`naturalEarth`/`robinson`
+unaffected. No data-shape break (old configs without `projection` use
+the mercator default; a saved `peters` on a reverted build falls back
+to mercator via the unknown-name guard).
+
+**Convention.** Unchanged from DD-15: more projections from the same
+source = extend `entry.mjs`, rebuild per `vendor/VENDORING.md`, add a
+`PROJECTIONS` entry + enum value. d3 projections invert iteratively or
+closed-form depending on the family — always keep the round-trip
+**and** north-up checks (Gall-Peters passed both: round-trip ~2e-13,
+north-up confirmed, aspect = π/2).
+
+**Implementation hooks.**
+- `vendor/d3-geo.bundle.mjs` rebuilt with `geoCylindricalEqualArea`
+  added to `entry.mjs` (recipe + bundle row updated in `VENDORING.md`).
+- `charts/charts.module.mjs`: import `geoCylindricalEqualArea`;
+  `peters: wrapD3(geoCylindricalEqualArea().parallel(45))` in
+  `PROJECTIONS`; comment updated.
+- `AttributeGeoMapWidget` + `ThreatActorCountryMapWidget`: `peters`
+  added to the `projection` `enum` + params doc + schema help text.
+- Verified: `node --check` clean; vendored-bundle round-trip ~2e-13 +
+  north-up + aspect π/2; `php -l` clean on both widgets; REST render
+  honours `projection=peters` (default still mercator); gallery enum
+  lists all five; session HTML render emits the `data-misp-chart="geo"`
+  payload with `"projection":"peters"` + ISO→GeoJSON-name translation.

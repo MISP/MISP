@@ -14,7 +14,7 @@ GeoJSON for the OrganisationMap widget and similar geo-typed widgets.
 | `LICENSE.echarts` | The ECharts package's upstream `LICENSE` file (Apache 2.0, with NOTICE-style attributions to upstream contributors). Required by the licence. | 12 KB / — |
 | `world-110m.geojson` | World countries GeoJSON at 1:110,000,000 resolution (177 country features), converted from TopoJSON in `world-atlas@2.0.2` via `topojson-client.feature()`, then **antimeridian-split** so polygons spanning the date line (Russia, Fiji, Antarctica…) render correctly under ECharts. | 437 KB / 146 KB |
 | `LICENSE.world-atlas` | The world-atlas package's upstream LICENSE file (ISC, by Mike Bostock + Natural Earth public-domain data). | 1 KB / — |
-| `d3-geo.bundle.mjs` | Built locally with esbuild from `d3-geo@3.1.1` + `d3-geo-projection@4.0.0`. Exports `geoNaturalEarth1` (d3-geo core) and `geoRobinson` (d3-geo-projection) for the WorldMap projection option (DD-15). ESM, minified. | 17 KB / 7.2 KB |
+| `d3-geo.bundle.mjs` | Built locally with esbuild from `d3-geo@3.1.1` + `d3-geo-projection@4.0.0`. Exports `geoNaturalEarth1` (d3-geo core), `geoRobinson` and `geoCylindricalEqualArea` (d3-geo-projection) for the WorldMap projection option (DD-15, DD-16). ESM, minified. | 17.4 KB / 7.4 KB |
 | `LICENSE.d3-geo`, `LICENSE.d3-geo-projection` | Upstream LICENSE files (ISC, Mike Bostock). The esbuild `--legal-comments=external` sidecar was empty (no inline notices survive minification), so these LICENSE files are the attribution. | 2 KB / — |
 | `VENDORING.md` | This file. | — |
 
@@ -157,11 +157,13 @@ Adam Krebs's implementation) — GPL-compatible per FSF, AGPL-compatible
 in the same direction as DD-07's other deps. It's a build-time
 dependency only; nothing from the package lands in `webroot/`.
 
-## Reproducing the d3-geo projection bundle (DD-15)
+## Reproducing the d3-geo projection bundle (DD-15, DD-16)
 
-Provides `geoNaturalEarth1` + `geoRobinson` for the WorldMap
-`projection` option. d3-geo core has Natural Earth; Robinson lives in
-d3-geo-projection. Both ISC (Mike Bostock).
+Provides `geoNaturalEarth1` + `geoRobinson` + `geoCylindricalEqualArea`
+for the WorldMap `projection` option. d3-geo core has Natural Earth;
+Robinson and the cylindrical-equal-area family live in
+d3-geo-projection. `geoCylindricalEqualArea().parallel(45)` is the
+Gall-Peters projection (DD-16). All ISC (Mike Bostock).
 
 ```bash
 mkdir -p /tmp/d3geo-bundle && cd /tmp/d3geo-bundle
@@ -171,7 +173,7 @@ npm install --silent --no-audit --no-fund \
 
 cat > entry.mjs <<'EOF'
 export { geoNaturalEarth1 } from 'd3-geo';
-export { geoRobinson } from 'd3-geo-projection';
+export { geoRobinson, geoCylindricalEqualArea } from 'd3-geo-projection';
 EOF
 
 ./node_modules/.bin/esbuild entry.mjs \
