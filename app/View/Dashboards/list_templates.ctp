@@ -224,6 +224,18 @@ $renderCard = function (
            title="<?= __('Save the current dashboard as a new template') ?>">
             <?= __('Save current dashboard as template') ?>
         </a>
+        <?php if ($isSiteAdmin): ?>
+            <?= $this->Form->postLink(
+                __('Import starter templates'),
+                array('controller' => 'dashboards', 'action' => 'importDefaultTemplates'),
+                array(
+                    'class' => 'misp-dashboard-btn',
+                    'data-misp-template-gallery-action' => 'import-starters',
+                    'title' => __('Import the built-in dashboard templates shipped with MISP'),
+                ),
+                __('Import the built-in dashboard templates shipped with MISP? Existing built-in templates will be refreshed from the shipped files.')
+            ) ?>
+        <?php endif; ?>
     </div>
 </header>
 
@@ -246,6 +258,16 @@ $renderCard = function (
         </header>
 
         <div class="misp-gallery-body" data-misp-template-gallery-body>
+            <?php if (!empty($starterTemplates)): ?>
+                <section class="misp-gallery-category misp-template-gallery-section"
+                         data-misp-template-gallery-section="starter">
+                    <h2 class="misp-gallery-category-heading"><?= __('Starter templates') ?></h2>
+                    <div class="misp-gallery-category-grid">
+                        <?php foreach ($starterTemplates as $row) $renderCard($row, 'starter'); ?>
+                    </div>
+                </section>
+            <?php endif; ?>
+
             <?php if (!empty($mineTemplates)): ?>
                 <section class="misp-gallery-category misp-template-gallery-section"
                          data-misp-template-gallery-section="mine">
@@ -276,7 +298,7 @@ $renderCard = function (
                 </section>
             <?php endif; ?>
 
-            <?php if (empty($mineTemplates) && empty($featuredTemplates) && empty($sharedTemplates)): ?>
+            <?php if (empty($starterTemplates) && empty($mineTemplates) && empty($featuredTemplates) && empty($sharedTemplates)): ?>
                 <p class="misp-template-gallery-empty-state">
                     <?= __('No dashboard templates are available yet. Save your current dashboard as a template to get started.') ?>
                 </p>

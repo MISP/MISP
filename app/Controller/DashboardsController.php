@@ -1107,9 +1107,15 @@ class DashboardsController extends AppController
         $mine = [];
         $featured = [];
         $shared = [];
+        $starter = [];
         foreach ($rows as $row) {
             $dash = $row['Dashboard'];
-            if (!empty($dash['default'])) {
+            // Built-in starter templates ship with MISP (DD-22): owned by
+            // the system (user_id 0), they get their own gallery bucket
+            // rather than landing in "Shared with me".
+            if ((int)$dash['user_id'] === 0) {
+                $starter[] = $row;
+            } elseif (!empty($dash['default'])) {
                 $featured[] = $row;
             } elseif ((int)$dash['user_id'] === (int)$currentUserId) {
                 $mine[] = $row;
@@ -1138,12 +1144,75 @@ class DashboardsController extends AppController
         $this->set('mineTemplates', $mine);
         $this->set('featuredTemplates', $featured);
         $this->set('sharedTemplates', $shared);
+        $this->set('starterTemplates', $starter);
         $this->set('currentUserId', (int)$currentUserId);
         $this->set('isSiteAdmin', (bool)$this->_isSiteAdmin());
         $this->set('orgMap', $orgMap);
         $this->set('roleMap', $roleMap);
         $this->set('permFlagLabels', $permFlagLabels);
         $this->set('widgetTitleMap', $widgetTitleMap);
+    }
+
+    /**
+     * Import the built-in dashboard templates shipped under
+     * app/files/dashboard-templates/ into the gallery (DD-22). Mirrors
+     * the warninglist/taxonomy "update from files" admin action:
+     * site-admin only (ACL), POST only, idempotent re-ingest. Each
+     * imported template appears in the gallery's "Starter templates"
+     * bucket for every permitted user.
+     */
+    public function importDefaultTemplates()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This action is only accessible via POST requests.'));
+        }
+        $result = $this->Dashboard->importTemplatesFromDirectory();
+        $successes = count($result['success']);
+        $fails = count($result['fails']);
+        $this->Log = ClassRegistry::init('Log');
+        $orgName = $this->Auth->user('Organisation')['name'];
+        foreach ($result['success'] as $id => $success) {
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org' => $orgName,
+                'model' => 'Dashboard',
+                'model_id' => $id,
+                'email' => $this->Auth->user('email'),
+                'action' => 'update',
+                'user_id' => $this->Auth->user('id'),
+                'title' => __('Built-in dashboard template imported'),
+                'change' => __('Imported starter template "%s".', $success['name']),
+            ));
+        }
+        foreach ($result['fails'] as $slug => $message) {
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org' => $orgName,
+                'model' => 'Dashboard',
+                'model_id' => 0,
+                'email' => $this->Auth->user('email'),
+                'action' => 'update',
+                'user_id' => $this->Auth->user('id'),
+                'title' => __('Built-in dashboard template import failed'),
+                'change' => __('Template "%s" failed: %s', $slug, $message),
+            ));
+        }
+        $message = __('%s built-in dashboard template(s) imported, %s failed.', $successes, $fails);
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse(
+                'Dashboard',
+                'importDefaultTemplates',
+                false,
+                false,
+                $message
+            );
+        }
+        if ($fails > 0) {
+            $this->Flash->error($message);
+        } else {
+            $this->Flash->success($message);
+        }
+        $this->redirect($this->baseurl . '/dashboards/listTemplates');
     }
 
     public function deleteTemplate($id)

@@ -185,6 +185,7 @@ class ACLComponent extends Component
             'saveTemplate' => array('*'),
             'listTemplates' => array('*'),
             'deleteTemplate' => array('*'),
+            'importDefaultTemplates' => array(),
             'listSharingGroups' => array('*'),
             'listGalaxyTypes' => array('*'),
             'searchGalaxyClusters' => array('*'),

@@ -1131,9 +1131,38 @@ gate (the user still does the merge).
   `index()` render of the 15-widget admin board (incl. 3 UsageData + 2
   TrendingAttributes instances with pre-authored aliases) shows real
   titles/aliases; alias schema on all wrappers. Signed commit.
-- [ ] **Three default dashboard layouts shipped with the app.** Named
-  starter layouts: **analyst**, **admin**, **community**. Ship as
-  selectable/seedable templates.
+- **Default (built-in) dashboard templates shipped with the app
+  (user-driven 2026-05-26, DD-22).** Mechanism: file-based manifests in
+  `app/files/dashboard-templates/<slug>/template.json`, ingested on
+  demand (warninglist-style) into the existing `dashboards` template
+  table as system-owned (`user_id=0`) selectable starters, surfaced in a
+  new "Starter templates" gallery bucket. Three forks all resolved to the
+  recommended option (overwrite-by-uuid no-schema-change; new Starter
+  bucket; mechanism-first sequencing). Two sub-tasks:
+  - [x] **Ingest mechanism + one sample template — landed 2026-05-26
+    (DD-22).** `Dashboard::importTemplatesFromDirectory()` +
+    `__importTemplate()` (upsert on fixed uuid, no version gate,
+    idempotent); site-admin POST action
+    `DashboardsController::importDefaultTemplates` (ACL `array()`) + a
+    gallery "Import starter templates" button (admins) + a new
+    `DashboardShell` CLI command (`cake Dashboard importDefaultTemplates`);
+    `listTemplates` gains a `$starter` bucket (`user_id===0`) + the view
+    renders a "Starter templates" section. Sample shipped: `overview-
+    starter/template.json` (UsageData + OrganisationMap + NewOrgs). No
+    ACL/schema change (the existing template ACL already supports
+    instance-wide selectable templates; `restrict_to_permission_flag`
+    scopes a starter to admins). Verified: `php -l` clean ×5 + valid JSON;
+    CLI ingest → row #11 (`user_id=0`, `selectable=1`, `default=0`);
+    re-run idempotent (same id, count 1); REST `listTemplates` returns the
+    starter; session HTML gallery renders the Starter section + card +
+    admin import button (no fatal; preview SVG parsed the layout). Apply
+    via the unchanged `resetFromTemplate` (shape parity verified; the
+    destructive apply against the admin board was intentionally not run).
+    Signed commit.
+  - [ ] **Author the three named starter layouts: analyst / admin /
+    community.** Write the three `template.json` manifests (admin one
+    likely `restrict_to_permission_flag='perm_site_admin'`); decide
+    whether to keep or replace the "Overview (starter)" sample.
 - [x] **Caching for `AttributeGeoMapWidget` — landed 2026-05-26 (DD-19).**
   Redis-backed, **1h TTL**. **Design iterated twice with the user:** the
   brief was "cache only default settings, custom runs live"; first cut

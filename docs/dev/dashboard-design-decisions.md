@@ -1668,3 +1668,134 @@ new dependency.
   = 'user'`; the five safe aggregates declare `$cache_duration = 3600`
   only (DD-20 global key). See the progress tracker for the per-widget
   list + live verification.
+
+## DD-22 — Default (built-in) dashboard templates: file-shipped, on-demand ingest into the gallery
+
+**Date.** 2026-05-26
+**Phase context.** The remaining user-enumerated post-5.5 feature ("three
+default dashboard layouts — analyst / admin / community"). The user
+specified the mechanism: mirror MISP's file-based reference-data pattern
+(warninglists / taxonomies / object-templates / galaxies) — ship a
+subdirectory of templates, ingest them on demand, and have them surface
+in the existing dashboard template gallery.
+
+**Findings that shaped the design.**
+- The `dashboards` table **is** the template store (`uuid`, `name`,
+  `description`, `value` = layout JSON, `default` = the single global
+  default board, `selectable` = visible to others, `user_id` = owner,
+  `restrict_to_org_id` / `restrict_to_role_id` /
+  `restrict_to_permission_flag` = per-template ACL).
+- The gallery (`listTemplates`) already enforces ACL in its query and
+  the apply path (`getDashboardTemplate`) already supports an
+  **instance-wide selectable template**: a row with `selectable=1` and
+  empty `restrict_to_*` is visible + applicable to everyone, and
+  `restrict_to_permission_flag='perm_site_admin'` scopes to admins. So
+  **no ACL work was needed** — content authors target via those columns.
+- `resetFromTemplate` runs `LayoutFixup::applyReadFixups` on apply, so
+  shipped layouts use the canonical `{x,y,w,h}` position shape and stay
+  forward-compatible.
+
+**Decisions (all three forks surfaced to the user; the user picked each
+recommended option).**
+
+1. **Re-ingest strategy: overwrite by uuid, no version, no schema
+   change.** The `dashboards` table has **no `version` column**. Rather
+   than add one (a core-table migration via `runUpdates` — beyond the
+   additive posture), each manifest carries a fixed `uuid` and the row is
+   upserted on it (overwrite). This is sound here precisely because
+   shipped templates are **read-only reference data**: a user never edits
+   the built-in row (they *apply* it to their board — a separate
+   `UserSetting` — or clone it into their own `dashboards` row), so an
+   overwrite on re-ingest loses nothing user-authored. Re-ingest is
+   idempotent (verified: re-run kept the same row id, count stayed 1).
+   *Diverges from the warninglist version-gated idiom* — a deliberate,
+   user-accepted simplification given the read-only nature + the desire
+   to stay schema-additive. (Alternatives offered: add a `version`
+   column; store version inside the `value` blob. Both declined.)
+
+2. **Gallery placement: a new "Starter templates" bucket.** Built-ins
+   are owned by a **system `user_id = 0`** — that is the built-in marker.
+   `listTemplates` routes `user_id === 0` rows into a new `$starter`
+   bucket (checked *before* the default/mine/shared branches) and the
+   view renders a dedicated "Starter templates" section at the top of the
+   gallery. Without this they would land in "Shared with me" (functional
+   but mislabeled — shared by nobody). (Alternatives offered: reuse
+   "Featured"; no UI change. Both declined.)
+
+3. **Sequencing: mechanism first, then author the layouts.** This DD +
+   commit land the plumbing + **one** sample template ("Overview
+   (starter)"); the analyst / admin / community layouts are authored as a
+   separate follow-up task.
+
+**The ingest itself.** `Dashboard::importTemplatesFromDirectory($dir =
+null)` globs `app/files/dashboard-templates/*/template.json`, reads each
+via `FileAccessTool::readJsonFromFile`, and upserts through the private
+`__importTemplate()` (validates `uuid`/`name`/`value`, forces
+`user_id=0`, `selectable` default 1, `default=0`, copies `restrict_to_*`,
+`json_encode`s `value`). Returns the warninglist-style
+`['success' => [id => ['name'=>…]], 'fails' => [slug => msg]]`.
+
+**Triggers.** Two, mirroring warninglists:
+- Site-admin-only controller action `DashboardsController::
+  importDefaultTemplates()` (POST; ACL `array()` = site-admin), surfaced
+  as an "Import starter templates" button in the gallery header (admins
+  only). Logs per-template success/fail; flashes a summary; redirects to
+  the gallery.
+- A new (additive) `DashboardShell::importDefaultTemplates` CLI command
+  (`app/Console/cake Dashboard importDefaultTemplates`).
+
+**Template manifest shape** (`app/files/dashboard-templates/<slug>/
+template.json`): `uuid` (fixed), `name`, `description`, `selectable`,
+optional `restrict_to_*`, and `value` (the array of widget instances:
+`instance_id`, `widget`, `config` incl. `config.alias` per DD-18,
+`position {x,y,w,h}`).
+
+**Rationale.** Reuses the entire existing template stack (store, gallery,
+ACL, apply, preview) — the only genuinely new surface is the ingest
+method + one admin action + a CLI command + a gallery bucket + the files
+dir. Mirrors the most idiomatic MISP ingest (warninglists), minus the
+version gate (justified above).
+
+**Alternatives considered.**
+- **Virtual file-backed gallery entries** (read the files at gallery-
+  render time, never touch the DB). More additive still, but diverges
+  from the user's stated "ingest on demand" model and would need a
+  parallel non-DB apply path. Rejected.
+- **A dedicated `dashboard_templates` table.** Redundant — the
+  `dashboards` table already is the template store and the gallery reads
+  it. Rejected.
+- **Add a `version` column** (full warninglist parity). Rejected for the
+  schema-additive overwrite-by-uuid (fork 1).
+
+**Reversibility.** Additive: delete `app/files/dashboard-templates/`, the
+`importTemplatesFromDirectory`/`__importTemplate` methods, the
+`importDefaultTemplates` action + ACL line, the `DashboardShell`, and the
+gallery `$starter` bucket; `DELETE FROM dashboards WHERE user_id = 0`. No
+schema change, no new dependency, no change to any existing template's
+behaviour.
+
+**Implementation hooks.**
+- New: `app/files/dashboard-templates/overview-starter/template.json`
+  (the sample). chgrp www-data (inherited). Required a `.gitignore`
+  exception pair (`!/app/files/dashboard-templates` + `/*`) — `app/files/*`
+  is ignore-all and `dashboard-templates` is a plain in-repo dir, not a
+  submodule like warninglists, so its files must be explicitly un-ignored
+  to ship.
+- New: `app/Console/Command/DashboardShell.php`. chgrp www-data.
+- `app/Model/Dashboard.php`: `importTemplatesFromDirectory()` +
+  `__importTemplate()`.
+- `app/Controller/DashboardsController.php`: `importDefaultTemplates()`
+  action; `listTemplates` adds the `$starter` bucket + `starterTemplates`
+  view var.
+- `app/Controller/Component/ACLComponent.php`: `'importDefaultTemplates'
+  => array()` (site-admin).
+- `app/View/Dashboards/list_templates.ctp`: "Starter templates" section +
+  admin "Import starter templates" header button + empty-state guard.
+- Verified: `php -l` clean ×5 + manifest valid JSON; CLI ingest creates
+  row #11 (`user_id=0`, `selectable=1`, `default=0`); re-run idempotent
+  (same id, count 1); REST `listTemplates` returns the starter; session
+  HTML gallery renders the "Starter templates" section + card + admin
+  import button (no fatal — the preview SVG parsed the layout). Apply
+  (`resetFromTemplate`) relies on the existing, unchanged path + verified
+  shape parity with a live board; a destructive apply against the admin's
+  15-widget board was intentionally not run.

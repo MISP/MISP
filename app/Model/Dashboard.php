@@ -291,4 +291,96 @@ class Dashboard extends AppModel
         }
         return true;
     }
+
+    /**
+     * Import the dashboard templates that ship with MISP from
+     * app/files/dashboard-templates/<slug>/template.json into the
+     * `dashboards` table as built-in starter templates (DD-22). Mirrors
+     * the warninglist/taxonomy/object-template on-demand ingest: glob the
+     * shipped directory, read each manifest, upsert a row.
+     *
+     * Built-ins are owned by the system (user_id = 0) — the gallery's
+     * "starter" marker — and are always `selectable` so they surface for
+     * every permitted user; they are never the global `default` board.
+     *
+     * Re-ingest is idempotent and version-free: each manifest carries a
+     * fixed `uuid` and the row is upserted on that uuid (overwrite, no
+     * version gate). Shipped templates are read-only reference data, so
+     * an overwrite loses nothing a user authored — a user's own board
+     * (a UserSetting) and any template they cloned are separate rows.
+     *
+     * @param string|null $dir source directory (defaults to the shipped
+     *                          one; overridable for tests)
+     * @return array ['success' => [id => ['name' => …]], 'fails' => [slug => msg]]
+     */
+    public function importTemplatesFromDirectory($dir = null)
+    {
+        App::uses('FileAccessTool', 'Tools');
+        if ($dir === null) {
+            $dir = APP . 'files' . DS . 'dashboard-templates';
+        }
+        $result = array('success' => array(), 'fails' => array());
+        if (!is_dir($dir)) {
+            return $result;
+        }
+        $manifests = glob($dir . DS . '*' . DS . 'template.json');
+        foreach ($manifests as $path) {
+            $slug = basename(dirname($path));
+            try {
+                $template = FileAccessTool::readJsonFromFile($path, true);
+                $id = $this->__importTemplate($template);
+                $result['success'][$id] = array('name' => $template['name']);
+            } catch (Exception $e) {
+                $result['fails'][$slug] = $e->getMessage();
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Upsert a single shipped template (keyed on its fixed uuid) into the
+     * `dashboards` table. Throws on a malformed manifest or a DB error so
+     * importTemplatesFromDirectory() can record the per-template failure.
+     */
+    private function __importTemplate(array $template)
+    {
+        foreach (array('uuid', 'name', 'value') as $required) {
+            if (empty($template[$required])) {
+                throw new Exception(__('Missing required key "%s".', $required));
+            }
+        }
+        if (!Validation::uuid($template['uuid'])) {
+            throw new Exception(__('Invalid uuid.'));
+        }
+        if (!is_array($template['value'])) {
+            throw new Exception(__('"value" must be an array of widget instances.'));
+        }
+        $existing = $this->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Dashboard.uuid' => $template['uuid']),
+            'fields' => array('Dashboard.id'),
+        ));
+        $data = array(
+            'uuid' => $template['uuid'],
+            'name' => $template['name'],
+            'description' => isset($template['description']) ? $template['description'] : '',
+            'user_id' => 0,
+            'selectable' => isset($template['selectable']) ? (int)(bool)$template['selectable'] : 1,
+            'default' => 0,
+            'restrict_to_org_id' => isset($template['restrict_to_org_id']) ? (int)$template['restrict_to_org_id'] : 0,
+            'restrict_to_role_id' => isset($template['restrict_to_role_id']) ? (int)$template['restrict_to_role_id'] : 0,
+            'restrict_to_permission_flag' => isset($template['restrict_to_permission_flag']) ? (string)$template['restrict_to_permission_flag'] : '',
+            'value' => json_encode($template['value']),
+            'timestamp' => time(),
+        );
+        if (!empty($existing)) {
+            $data['id'] = $existing['Dashboard']['id'];
+        } else {
+            $this->create();
+        }
+        if (!$this->save(array('Dashboard' => $data))) {
+            throw new Exception(__('Database error: %s', json_encode($this->validationErrors)));
+        }
+        return (int)$this->id;
+    }
 }

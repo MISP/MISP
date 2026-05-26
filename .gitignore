@@ -62,6 +62,8 @@ app/Lib/EventWarning/Custom/*
 !/app/files/misp-workflow-blueprints/*
 !/app/files/schemas
 !/app/files/schemas/*
+!/app/files/dashboard-templates
+!/app/files/dashboard-templates/*
 /app/files/scripts/*.pyc
 /app/files/scripts/*.py~
 /app/files/scripts/__pycache__
