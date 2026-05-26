@@ -34,6 +34,15 @@
  *   - 'threat_actor'   events tagged with a `misp-galaxy:threat-actor=...`
  *                      cluster, resolved via the cluster's `country`
  *                      galaxy element (already stored as ISO alpha-2).
+ *   - 'asn'            `AS` attributes mapped to a country via an
+ *                      offline-derived ASN→dominant-country lookup
+ *                      (`asn-country.json`, built by
+ *                      `app/files/scripts/generate_asn_country_map.py`
+ *                      from GeoOpen-Country-ASN.mmdb — DD-12). The mmdb
+ *                      is IP-keyed and cannot map a bare ASN directly,
+ *                      so the lookup approximates each ASN as the
+ *                      country in which it announces the most IPv4
+ *                      space. Regenerate the JSON when the mmdb updates.
  *
  * Note the map intentionally mixes *indicator location* (ip / tld)
  * with *attribution / relevance* (country_galaxy / threat_actor); the
@@ -60,12 +69,12 @@ class AttributeGeoMapWidget
     public $title = 'Recent data geolocation map';
     public $category = 'events';
     public $render = 'WorldMap';
-    public $description = 'Geolocates recent MISP data onto a world map: IP indicators (GeoIP), domain ccTLDs, and country / threat-actor galaxy clusters attached to events. Each source is individually selectable.';
+    public $description = 'Geolocates recent MISP data onto a world map: IP indicators (GeoIP), domain ccTLDs, AS numbers, and country / threat-actor galaxy clusters attached to events. Each source is individually selectable.';
     public $width = 3;
     public $height = 4;
     public $params = [
         'time_window' => 'The time window, going back in seconds, that should be included (also accepts "30d" day form, or -1 for all historic data).',
-        'sources' => 'Which geolocation sources to include, any of: "ip", "domain_tld", "country_galaxy", "threat_actor". Defaults to all four.',
+        'sources' => 'Which geolocation sources to include, any of: "ip", "domain_tld", "asn", "country_galaxy", "threat_actor". Defaults to all five.',
         'limit' => 'Per-source cap on the most-recent rows scanned, to avoid timeouts on large instances. Default 10000.',
     ];
     public $schema = [
@@ -89,15 +98,19 @@ class AttributeGeoMapWidget
     public $placeholder =
 '{
     "time_window": "30d",
-    "sources": ["ip", "domain_tld", "country_galaxy", "threat_actor"],
+    "sources": ["ip", "domain_tld", "asn", "country_galaxy", "threat_actor"],
     "limit": 10000
 }';
 
     // Mirrors UserLoginProfile::GEOIP_DB_FILE — the MISP-managed
     // GeoOpen-Country database (https://data.public.lu/...).
     const GEOIP_DB_FILE = APP . 'files' . DS . 'geo-open' . DS . 'GeoOpen-Country.mmdb';
+    // Offline-derived ASN→dominant-country lookup (DD-12), built from
+    // GeoOpen-Country-ASN.mmdb by generate_asn_country_map.py.
+    const ASN_COUNTRY_MAP_FILE = APP . 'files' . DS . 'geo-open' . DS . 'asn-country.json';
 
-    private $allSources = ['ip', 'domain_tld', 'country_galaxy', 'threat_actor'];
+    private $allSources = ['ip', 'domain_tld', 'asn', 'country_galaxy', 'threat_actor'];
+    private $asnMapCache = null;
 
     public function handler($user, $options = array())
     {
@@ -111,6 +124,9 @@ class AttributeGeoMapWidget
         }
         if (in_array('domain_tld', $sources, true)) {
             $this->mergeCounts($data, $this->domainTldCounts($since, $cap));
+        }
+        if (in_array('asn', $sources, true)) {
+            $this->mergeCounts($data, $this->asnCounts($since, $cap));
         }
         if (in_array('country_galaxy', $sources, true)) {
             $this->mergeCounts($data, $this->eventGalaxyCounts('country', 'ISO', $since, $cap));
@@ -200,6 +216,58 @@ class AttributeGeoMapWidget
             }
         }
         return $counts;
+    }
+
+    /**
+     * Source 'asn': map recent `AS` attributes to a country via the
+     * offline-derived ASN→dominant-country lookup (DD-12). Graceful
+     * empty if the lookup file is absent (e.g. not yet generated).
+     */
+    private function asnCounts($since, $cap)
+    {
+        $map = $this->asnCountryMap();
+        if (empty($map)) {
+            return [];
+        }
+        $attribute = ClassRegistry::init('MispAttribute');
+        $asns = $this->fetchAttributeValues($attribute, ['AS'], 'value1', $since, $cap);
+        $counts = [];
+        foreach ($asns as $asn) {
+            if (!is_string($asn)) {
+                continue;
+            }
+            // MISP stores AS values as bare numbers; tolerate a leading
+            // "AS" and any leading zeros so they match the map keys
+            // (canonical digit strings from the mmdb).
+            $digits = ltrim(preg_replace('/[^0-9]/', '', $asn), '0');
+            if ($digits === '' || !isset($map[$digits])) {
+                continue;
+            }
+            $iso = $map[$digits];
+            if (preg_match('/^[A-Z]{2}$/', $iso)) {
+                $counts[$iso] = (isset($counts[$iso]) ? $counts[$iso] : 0) + 1;
+            }
+        }
+        return $counts;
+    }
+
+    /**
+     * Load + memoise the offline-derived ASN→ISO lookup (DD-12).
+     * Returns [] if the file is missing or unparseable.
+     */
+    private function asnCountryMap()
+    {
+        if ($this->asnMapCache !== null) {
+            return $this->asnMapCache;
+        }
+        $this->asnMapCache = [];
+        if (file_exists(self::ASN_COUNTRY_MAP_FILE)) {
+            $decoded = json_decode((string)file_get_contents(self::ASN_COUNTRY_MAP_FILE), true);
+            if (is_array($decoded)) {
+                $this->asnMapCache = $decoded;
+            }
+        }
+        return $this->asnMapCache;
     }
 
     /**

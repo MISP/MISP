@@ -820,3 +820,93 @@ adding ASN is additive (a 5th `sources` value + its dataset).
 - Verified: lint clean; REST render valid per-source and combined;
   `"None"` eliminated; gallery metadata correct; session HTML render
   emits the `data-misp-chart="geo"` payload with ISO→name translation.
+
+## DD-12 — ASN geolocation via an offline-derived ASN→country map (the geo widget's 5th source)
+
+**Date.** 2026-05-26
+**Phase context.** Follow-up to DD-11 (the geo widget deferred ASN
+"pending a dataset"). The user merged `develop` in, adding the MISP-
+managed `app/files/geo-open/GeoOpen-Country-ASN.mmdb`, and chose to
+derive an ASN→country map from it.
+
+**The constraint that forced this shape (verified, not assumed).**
+`GeoOpen-Country-ASN.mmdb` is **IP-prefix-keyed**, not ASN-keyed:
+`get("8.8.8.8")` → `{country: {iso_code: "US",
+AutonomousSystemNumber: "15169", AutonomousSystemOrganization:
+"GOOGLE"}}`. There is **no `get("AS15169") → country`** path — and the
+question is ill-posed against this data anyway, because the country is
+recorded *per IP prefix* and a single ASN announces prefixes in many
+countries. The PHP `MaxMind\Db\Reader` also exposes **no network
+enumeration** (`get` / `getWithPrefixLen` / `metadata` / `close` only),
+so the map cannot be built in PHP at render time. (My original DD-11
+pushback — "mmdb can't map a bare ASN to a country" — held; the file
+confirms it.)
+
+**Decision.** A bare `AS` attribute is mapped to the country in which
+its ASN announces the **most IPv4 address space** ("dominant announced
+space"), via an **offline-derived lookup** committed to the repo:
+
+- **Builder:** `app/files/scripts/generate_asn_country_map.py` — uses
+  Python `maxminddb` (which *can* enumerate the trie; the PHP reader
+  can't), walks every IPv4 prefix, sums `network.num_addresses` per
+  `(ASN, ISO)`, and writes `asn → argmax-country` as JSON.
+- **Artifact:** `app/files/geo-open/asn-country.json` — a flat
+  `{"<asn>": "<ISO>"}` map (77,846 entries / ~1 MB on the current
+  mmdb). The `geo-open` dir is git-tracked (the mmdbs themselves are
+  committed there via a `.gitignore` force-include), so the derived
+  map is **committed too** — the widget works out-of-the-box, no
+  operator build step required for the shipped state.
+- **Widget:** `AttributeGeoMapWidget` gains a 5th `sources` value
+  `asn`. It loads + memoises the JSON (graceful empty if absent),
+  fetches recent `AS` attributes (capped, recency-bounded, no ACL —
+  same posture as the other sources, DD-11), normalises each value
+  (strips a leading `AS`/zeros — MISP stores bare numbers like
+  `48031`), looks it up, and tallies behind the same `^[A-Z]{2}$`
+  guard.
+
+**Why dominant-IPv4-space (not registration country).** For threat
+infrastructure, "where does this AS actually operate address space" is
+the operationally-relevant signal — a RU actor announcing mostly RU
+space reads as RU even if the AS is registered in a flag-of-convenience
+jurisdiction. Live spot-checks confirm sensible output: AS16276→FR
+(OVH), AS6849→UA (Ukrtelecom), AS202425→SC (a known bulletproof-hosting
+AS), AS15169/AS13335→US (Google/Cloudflare, where most of their space
+sits). **IPv6 prefixes are excluded from the vote** — their address
+counts (2^(128−len)) would swamp IPv4; an IPv6-only ASN is therefore
+absent from the map (rare).
+
+**Alternatives considered.**
+- **RIR delegated-extended stats** (authoritative ASN→*registration*
+  country). More "correct" by registration, but a *different* new data
+  source to fetch+manage, and registration country is often *less*
+  operationally meaningful than announced space for threat infra. The
+  user chose to use the mmdb they provided.
+- **Drop ASN** (DD-11's deferral). Cleanest, but the user wanted AS
+  attributes on the map.
+- **Build the map in PHP at render time.** Impossible — the PHP reader
+  can't enumerate the trie.
+- **Build per-render only for ASNs present on the instance.** Still
+  needs enumeration; same blocker.
+
+**Cost / maintenance (the honest downside).** This is no longer a
+"pure one-class addition": it adds a Python build script + a committed
+derived data file. The map is a **point-in-time snapshot** of the mmdb
+and **must be regenerated when the mmdb updates** (re-run the script;
+the widget picks up the new JSON with no code change). Wiring the
+regeneration into MISP's existing mmdb-update mechanism is a logged
+follow-up, not done here. The approximation is also coarse for global
+multi-homed ASNs (large clouds skew to the US); users who don't want
+that turn the `asn` source off (DD-11's per-source toggle).
+
+**Reversibility.** Additive: delete the `asn` case + `asnCounts` /
+`asnCountryMap` from the widget, and the script + JSON. The other four
+sources are unaffected.
+
+**Implementation hooks.**
+- New: `app/files/scripts/generate_asn_country_map.py` (chgrp www-data).
+- New (committed, derived): `app/files/geo-open/asn-country.json`.
+- Changed: `AttributeGeoMapWidget` — `asn` source, map loader, docblock.
+- Verified: lint clean; `asn`-only render 559/587 AS attrs mapped
+  (top CN/US/RU); combined five-source render valid; session HTML
+  render emits the `data-misp-chart="geo"` payload with the ASN-derived
+  countries translated to GeoJSON names.
