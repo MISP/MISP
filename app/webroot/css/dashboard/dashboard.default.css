@@ -1438,6 +1438,21 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   min-height: 180px;
 }
 
+/* AttributeGeoMapWidget carries threat-relevant data (IP / ASN / actor
+   geolocation), so its world map reads on a red scale instead of the
+   default blue. The geo renderer (`buildGeoOption`) drives its choropleth
+   ramp + hover emphasis off the accent tokens read via getComputedStyle
+   on the chart host, so overriding those tokens on just this widget's
+   subtree retones only this map — the org / COVID WorldMap widgets keep
+   inheriting the :root blue. CSS-only, no JS/renderer change, both themes.
+   High end anchors on the themeable --misp-dash-danger token; the low end
+   is its rgb at low alpha (rgba literal to match how --misp-dash-accent-
+   muted is defined — color-mix isn't used elsewhere in this sheet). */
+[data-widget-name="AttributeGeoMapWidget"] {
+  --misp-dash-accent-muted: rgba(220, 38, 38, 0.12);
+  --misp-dash-accent-hover: var(--misp-dash-danger);
+}
+
 /* ============================================================
  * Configure side panel (DD-06 two-tier form)
  *
