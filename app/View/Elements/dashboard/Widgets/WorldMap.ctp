@@ -42,6 +42,27 @@ if (empty($rows)) {
 // know about are silently dropped (same posture as v1).
 $toolkit = new WidgetToolkit();
 $nameByCode = array_flip($toolkit->getCountryCodeMapping());
+// The vendored world-110m.geojson (Natural Earth) names a number of
+// countries differently than the toolkit's English names, and
+// array_flip's last-wins pick can land on a non-matching alias (e.g.
+// 'Mainland China', 'Russian Federation'). Either way the region's
+// name never matches a geojson feature, so it is silently dropped from
+// EVERY WorldMap widget — most visibly the US, China, Russia and the
+// Koreas. Override the ISO->name entries to the exact geojson feature
+// names so they render. (Malta has no feature in the 110m geojson, so
+// it cannot be shown regardless and is intentionally not listed.)
+$nameByCode = array_merge($nameByCode, array(
+    'CN' => 'China',
+    'RU' => 'Russia',
+    'IE' => 'Ireland',
+    'CZ' => 'Czechia',
+    'KP' => 'North Korea',
+    'KR' => 'South Korea',
+    'LA' => 'Laos',
+    'MZ' => 'Mozambique',
+    'SZ' => 'eSwatini',
+    'US' => 'United States of America',
+));
 
 $translated = array();
 foreach ($rows as $code => $count) {
