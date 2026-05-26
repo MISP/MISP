@@ -362,6 +362,7 @@ class DashboardsController extends AppController
     public function renderWidget($instance_id = null)
     {
         App::uses('CanonicalTypeAdapter', 'Lib/Dashboard/Tools');
+        App::uses('WidgetCache', 'Lib/Dashboard/Tools');
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException(__('POST only.'));
         }
@@ -382,7 +383,15 @@ class DashboardsController extends AppController
         // saved configs) and keys without a schema entry pass through
         // unchanged.
         $config = CanonicalTypeAdapter::translate($widget, $config);
-        $data = $widget->handler($this->Auth->user(), $config);
+        // Generic per-widget cache (DD-20): widgets that declare
+        // $cache_duration (and optionally $cache_path) have their whole
+        // handler() payload cached in Redis, keyed by config. Widgets
+        // without those properties run live — remember() is a transparent
+        // pass-through then.
+        $user = $this->Auth->user();
+        $data = WidgetCache::remember($widget, $config, function () use ($widget, $user, $config) {
+            return $widget->handler($user, $config);
+        });
         $renderer = method_exists($widget, 'getRenderer')
             ? $widget->getRenderer($config)
             : $widget->render;

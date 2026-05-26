@@ -1153,6 +1153,25 @@ gate (the user still does the merge).
   `{}` ≡ `{time_window:30d}` same key; hit doesn't reset TTL;
   read-through returns stored payload verbatim; 1h TTL; Redis-down
   fallback. Signed commit.
+- [x] **Generic widget cache — `WidgetCache` helper (DD-20) — landed 2026-05-26.**
+  Extracted DD-19's geo-specific cache into a reusable opt-in mechanism.
+  A widget declares `public $cache_duration` (TTL secs, >0 enables) +
+  optional `public $cache_path` (auto-derived `misp:<snake(class−Widget)>_cache`
+  if omitted); `renderWidget` wraps the `handler()` call in
+  `WidgetCache::remember()` — cache the whole payload under
+  `<path>:<sha256(config)>`, return verbatim on hit, live+store on miss,
+  transparent pass-through (and silent live fallback if Redis down) for
+  widgets that don't opt in. Hash excludes the framework-managed
+  `NON_DATA_KEYS` (`alias`, `refresh_delay`) + ksorts — so differently
+  aliased instances share one entry (protects DD-18); flagged as a
+  deliberate refinement of the user's "hash all config". Config-only key
+  (no per-user dim) — sound only for ACL-free aggregates (DD-11),
+  documented as a precondition. `AttributeGeoMapWidget` reverted to the
+  pure sweep + the two declarative props. New `WidgetCacheTest` (9/9).
+  Verified live: geo widget caches under the generic key; alias/
+  refresh_delay changes hit the same key; time_window change → new key;
+  a non-opted-in widget (LoginsWidget) renders live with no key. Signed
+  commit.
 
 ---
 

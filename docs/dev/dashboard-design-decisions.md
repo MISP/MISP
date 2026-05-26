@@ -1468,3 +1468,106 @@ the sweep then always runs live. No data-shape change, no new dependency
   `{}` ≡ `{time_window:"30d"}` (same key); cache hit doesn't reset TTL;
   read-through returns the stored payload verbatim (sentinel); 1h TTL;
   Redis-down path falls back to a live sweep.
+
+## DD-20 — Generic widget cache: `WidgetCache` helper, `cache_duration` / `cache_path` opt-in
+
+**Date.** 2026-05-26
+**Phase context.** Immediately generalises DD-19. The geo widget's
+Redis cache proved out the approach; the user asked to extract it into a
+reusable mechanism so any widget can opt in. DD-19's bespoke,
+inside-`handler()` cache is retired in favour of this.
+
+**Decision.** A widget opts into caching **declaratively**, with two
+optional public properties and **no caching code in `handler()`**:
+
+```php
+public $cache_duration = 3600;                       // TTL seconds; > 0 enables
+public $cache_path = 'misp:attribute_geo_map_cache'; // optional key prefix
+```
+
+A new `app/Lib/Dashboard/Tools/WidgetCache.php` owns the logic;
+`DashboardsController::renderWidget()` wraps the single `handler()` call
+in `WidgetCache::remember($widget, $config, fn)`:
+
+- **Opt-in / pass-through.** `remember()` caches only when
+  `cache_duration > 0`; otherwise (and on any Redis failure) it just
+  runs the closure live. So widgets that declare nothing are completely
+  unaffected — the wrap is transparent.
+- **Key** = `<path>:<sha256(config)>`. **Path** = `cache_path` if
+  declared, else auto-derived `misp:<Inflector::underscore(class without
+  "Widget")>_cache` (AttributeGeoMapWidget → `misp:attribute_geo_map_cache`
+  — the auto-derivation reproduces DD-19's exact key, so the geo widget
+  could even omit `cache_path`; it sets it explicitly to document the
+  example). The whole `handler()` payload is cached and returned
+  verbatim on a hit; a miss runs the closure and `setex`-stores it.
+- **Hash input.** The config passed to `handler()` (post
+  `CanonicalTypeAdapter`, so defaults are already injected and canonical
+  shapes normalised — equivalent configs coalesce), with keys `ksort`-ed
+  (order-independent) and the framework-managed **`NON_DATA_KEYS`
+  (`alias`, `refresh_delay`) stripped**.
+
+**Why strip `alias` / `refresh_delay` (the one deviation from "hash all
+the config").** Those keys live in `config` (DD-18 put `alias` there;
+`refresh_delay` is the Phase 5 per-instance scheduler override) but never
+reach a widget's `handler()` output. Hashing them would give each
+differently-aliased instance of a cached widget its **own** cache entry —
+directly defeating DD-18's multi-instance purpose (three aliased copies
+of one map with identical data filters would each recompute the
+expensive sweep instead of sharing one entry). Excluding them keeps the
+cache shared across aliased instances. This was surfaced to the user as
+a deliberate refinement of their "sha256 of all the config" instruction.
+
+**Config-only key — and its precondition.** The key has **no per-user /
+ACL dimension**: the same config returns the same payload to everyone.
+That is correct **only** for ACL-free aggregate widgets (the
+AttributeGeoMapWidget posture, DD-11). The `WidgetCache` docblock states
+this precondition explicitly: a future ACL-enforced widget that wants
+caching must add a user/ACL-scope dimension to the key and must not
+reuse this helper unchanged.
+
+**Connection / degradation.** `RedisTool::init()` (DB 13, prefix-free so
+the key is exactly the literal) + `RedisTool::serialize`/`deserialize`.
+Every Redis touch is wrapped so a missing/broken Redis (or unreadable
+entry) degrades silently to a live render — caching never breaks a
+widget.
+
+**Rationale.** Two declarative properties + one transparent wrap at the
+single render call site is the least-surface way to make caching
+available to every widget. It keeps `handler()` implementations pure
+(no cache plumbing), and the contract (path derivation, exclusion,
+opt-in) is locked by a unit test for the widgets that will depend on it.
+
+**Alternatives considered.**
+- **Leave the cache inside each widget's `handler()`** (DD-19 style).
+  Rejected — every cached widget would re-implement the get/hash/setex
+  dance; the user explicitly asked to extract it.
+- **A base `Widget` class widgets extend.** Heavier; the in-tree widgets
+  are plain classes with no common base, and a render-site wrap needs no
+  inheritance. Rejected for the property-driven helper.
+- **Hash the raw config / hash literally everything.** Fragments the
+  cache on `alias`/`refresh_delay` and on key order; rejected for the
+  effective-config hash with framework-key exclusion + ksort.
+
+**Reversibility.** Additive: delete `WidgetCache.php` + its test, revert
+the `renderWidget` wrap to the direct `handler()` call, and drop the two
+properties from any widget. No data-shape change, no new dependency
+(RedisTool is core).
+
+**Implementation hooks.**
+- New: `app/Lib/Dashboard/Tools/WidgetCache.php` (`remember`,
+  `isCacheable`, `key`, `path`; `NON_DATA_KEYS`); chgrp www-data.
+- New: `app/Test/WidgetCacheTest.php` (9 tests — opt-in gating, explicit
+  vs derived path, key format, framework-key exclusion, order-
+  independence, data-change sensitivity, cross-widget non-collision,
+  uncacheable pass-through). chgrp www-data.
+- `DashboardsController::renderWidget`: `App::uses('WidgetCache', …)` +
+  wrap the `handler()` call in `WidgetCache::remember(...)`.
+- `AttributeGeoMapWidget`: reverted to the pure sweep (DD-19's inline
+  cache + `cacheRedis()` + `resolveWindowSeconds` removed; `resolveSince`
+  restored); declares `$cache_path` + `$cache_duration`; docblock points
+  at WidgetCache.
+- Verified: `php -l` clean ×4; `WidgetCacheTest` 9/9; live — geo widget
+  caches under the generic key (1h TTL); `alias` / `refresh_delay`
+  changes hit the **same** key; a `time_window` change makes a new key;
+  a widget without the properties (`LoginsWidget`) renders live with no
+  key created.
