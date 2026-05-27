@@ -10,8 +10,6 @@ class Dashboard extends AppModel
 
     public $validate = array(
         'user_id' => 'numeric',
-        'org_id' => 'numeric',
-        'role_id' => 'numeric',
         'uuid' => array(
             'uuid' => array(
                 'rule' => 'uuid',
@@ -20,13 +18,13 @@ class Dashboard extends AppModel
         )
     );
 
+    // Only User is a real association (foreignKey user_id). Org and role are
+    // *restrictions* (restrict_to_org_id / restrict_to_role_id), not ownership,
+    // and were never read via an association — so no belongsTo Organisation/Role.
+    // A previous declaration pointed them at phantom columns (org_id / role_id),
+    // which made Mysql's auto-joined updateAll()/deleteAll() crash.
     public $belongsTo = array(
         'User',
-        'Role',
-        'Organisation' => array(
-            'className' => 'Organisation',
-            'foreignKey' => 'org_id'
-        )
     );
 
     /**
@@ -282,23 +280,13 @@ class Dashboard extends AppModel
         // Demote *every* row currently flagged default, not just the first.
         // The single-default invariant is not enforced by the schema (no
         // index/constraint on `default`), so reconcile any stray duplicates
-        // here rather than assuming at most one exists. Iterate + saveField
-        // by id: updateAll() would crash on the model's phantom belongsTo
-        // Organisation join (org_id — no such column; see Discovered work).
-        // $this->id is saved/restored so this never contaminates the
-        // create-vs-update state of the save() the caller runs next.
-        $currentDefaults = $this->find('all', array(
-            'recursive' => -1,
-            'conditions' => array('Dashboard.default' => 1),
-            'fields' => array('Dashboard.id'),
-        ));
-        $savedId = $this->id;
-        foreach ($currentDefaults as $row) {
-            $this->id = $row['Dashboard']['id'];
-            $this->saveField('default', 0);
-        }
-        $this->id = $savedId;
-        return true;
+        // here rather than assuming at most one exists. updateAll() does this
+        // in one statement without touching $this->id (so it can't contaminate
+        // the create-vs-update state of the save() the caller runs next).
+        return $this->updateAll(
+            array('Dashboard.default' => 0),
+            array('Dashboard.default' => 1)
+        );
     }
 
     /**
@@ -376,10 +364,8 @@ class Dashboard extends AppModel
         // wipe every built-in); only user_id=0 (built-ins — saveDashboard-
         // Template always uses a real user_id, so user boards are never 0)
         // and default=0 (never delete the active global default, even if an
-        // admin promoted a built-in to it). Delete by id one-by-one because
-        // Dashboard's belongsTo Organisation foreign key (org_id) is phantom
-        // — deleteAll()/updateAll()'s auto-join references a non-existent
-        // column and crashes.
+        // admin promoted a built-in to it). The find collects id=>name so the
+        // pruned set can be reported, then each row is deleted by that id.
         if ($prune && !empty($shippedUuids)) {
             $orphans = $this->find('list', array(
                 'recursive' => -1,
@@ -405,8 +391,8 @@ class Dashboard extends AppModel
         // only fills an empty slot — an admin's existing default (built-in
         // or otherwise) is preserved by the COUNT guard and by
         // __importTemplate's default-preservation. Single-default invariant
-        // holds: we only set one, and only when none exists. saveField (not
-        // updateAll) avoids the phantom org_id join.
+        // holds: we only set one, and only when none exists. saveField on the
+        // single candidate by id.
         if (!empty($fallbackUuids)) {
             $hasDefault = $this->find('count', array(
                 'recursive' => -1,

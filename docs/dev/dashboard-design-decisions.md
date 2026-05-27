@@ -2128,3 +2128,67 @@ each promotion regardless of prior state.
 → 1, only the new one); and the create-with-`default=1` path inserted a
 **new** row (row count +1) that became the sole default — proving the
 `$this->id` preservation. `php -l` clean. Additive/reversible.
+
+## DD-28 — Drop the `Dashboard` model's phantom `belongsTo Organisation`/`Role` (fixes the `updateAll`/`deleteAll` crash; supersedes DD-27's implementation)
+
+**Date.** 2026-05-27
+**Phase context.** The discovered-work bug DD-25/DD-26/DD-27 all worked
+around: `Dashboard.php` declared `belongsTo Organisation` with
+`'foreignKey' => 'org_id'` **and** `belongsTo Role` (default
+`'foreignKey' => 'role_id'`), but the `dashboards` table has **neither**
+column — it uses `restrict_to_org_id` / `restrict_to_role_id`. The user
+chose to fix it properly this session.
+
+**Root cause (traced, not assumed).** `Mysql::update()`/`delete()` (the
+engine behind `updateAll`/`deleteAll`) call `_getJoins($model)`, which builds
+a `LEFT JOIN` for **every** `belongsTo`/`hasOne` association
+*unconditionally*; `getConstraint` writes each `ON` clause from the
+association's `foreignKey`. So both phantom keys produced
+`... ON Dashboard.org_id = …` / `Dashboard.role_id = …` →
+`Unknown column 'Dashboard.org_id' in 'ON'`. `find` is immune because the
+model is `recursive = -1` everywhere (no auto-join), and single-id
+`save`/`delete($id)` don't join — which is why DD-22's ingest worked and the
+bug stayed latent.
+
+**Decision — drop, not repoint** (user's fork choice; alternatives were
+repoint-FK and repoint+rename). A repo-wide check confirmed the two
+associations are **completely unread**: every Dashboard `find` is
+`recursive = -1`; the only consumed association is `User` (the `contain`
+at `DashboardsController.php:1064`, FK `user_id` — valid); the
+`$user['Role']['perm_site_admin']` reads in the model are the *authenticated
+user's* role, not a Dashboard association; and `Organisation::
+ORGANISATION_ASSOCIATIONS` (which maps `dashboards → restrict_to_org_id`) is
+a plain cascade/merge data structure, not the CakePHP belongsTo. Ownership
+is `user_id`; org/role/permission are *restrictions* enforced inline in
+`getDashboardTemplate()`. So the honest minimal fix is to remove both dead
+associations rather than invent a misleading `Organisation` alias meaning
+"the restriction org."
+
+**Changes.**
+- `belongsTo` → just `User` (with a comment recording why org/role are not
+  associations, to deter a future re-add of a phantom FK).
+- Dropped the dead `validate` rules for `org_id` / `role_id` (also phantom
+  columns — those rules never fired).
+- **Supersedes DD-27's *implementation*** (behavior unchanged):
+  `__unsetPreviousDefault()` reverts from the find-loop-`saveField` +
+  `$this->id` save/restore dance to a single
+  `updateAll(['Dashboard.default' => 0], ['Dashboard.default' => 1])`. The
+  loop + `$this->id` dance existed **only** because `updateAll` was unsafe;
+  with the phantom join gone, `updateAll` demotes *all* defaults in one
+  statement and never touches `$this->id`, so the create-vs-update
+  contamination DD-27 guarded against cannot arise. DD-27's *goal*
+  (demote-all) stands; only the mechanism is simplified.
+- DD-25 prune + DD-26 fallback comments truthed-up (their phantom-join
+  justification removed); their **code is unchanged** — the prune `find`
+  is still needed to report the pruned id=>name set, and the fallback
+  `saveField`-by-id is the natural single-row path.
+
+**Files touched.** `app/Model/Dashboard.php` only.
+
+**Verified live.** Joined `updateAll`/`deleteAll` with no-match conditions
+no longer crash (return true; row count unchanged); the dumped SQL joins
+**only** `users` (`LEFT JOIN users AS User ON Dashboard.user_id = User.id`) —
+no phantom column anywhere. The new `__unsetPreviousDefault` `updateAll` path
+was exercised self-restoringly: defaults `{13:Analyst}` → demote-all → `0`
+→ restored to `{13:Analyst}` (dev box left exactly as DD-26 set it).
+`php -l` clean. Pre-existing bug; not introduced by the dashboard rework.
