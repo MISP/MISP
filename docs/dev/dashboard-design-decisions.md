@@ -2618,3 +2618,89 @@ message state centres. `php -l` + `node --check` clean. Additive; reverse by
 flipping `$render` back to `SimpleList` (the SimpleList handler shape is a
 strict subset, so the revert needs the handler reshaped back too — or keep both
 shapes; chose the clean flip since the widget is unmerged).
+
+## DD-36 — Invalidate-user-sessions action: the dashboard's first *mutating* widget action
+
+**Date.** 2026-05-27
+**Phase context.** User on LoggedInUsersWidget: "a way to invalidate all
+sessions for a chosen user", plus "a small filter/search bar on top (one live
+instance has ~10k users)". Until now every dashboard widget was read-only
+(display + GET drilldowns); this is the **first widget-triggered mutation**.
+
+**Mechanism — immediate purge, NOT `force_logout` (user-confirmed).** MISP's
+native deauth is the `force_logout` user flag (AppController:668 logs the user
+out on their *next* request, then clears it). It's lazy: it never clears the
+Redis keys until the user comes back, and **never fires for abandoned/fossil
+sessions** (see `project_loggedinusers_session_fossils`) — so the widget count
+wouldn't drop. The user explicitly wanted an *instant* purge. So a new endpoint
+**directly `DEL`s the user's Redis session keys** — the exact inverse of the
+widget's read path.
+
+**Shared logic — `SessionStore` tool (DD-36 prep).** The connect/parse/SCAN/
+regex logic was lifted out of `LoggedInUsersWidget` into
+`app/Lib/Dashboard/Tools/SessionStore` (`isSupported / connect / tally /
+keysForUser / destroy`). The read (tally) and the purge (keysForUser→destroy)
+now share one definition of "which keys are user X's sessions", so the count
+shown and the count purged agree by construction. Engine scope unchanged
+(PHP→Redis only).
+
+**CSRF — GET-form/POST-same-endpoint, kept NON-REST (load-bearing).** Per the
+user's house pattern: `DashboardsController::invalidateUserSessions($id)` GET
+returns a confirm-form fragment whose `Form->create()` mints a fresh
+BetterSecurity `_Token`; the form POSTs back to the same action, validated
+before the purge — so a stale page-load token is never the failure mode. **The
+subtle part:** MISP's `isRest()` is true when `isJson()` is (Accept:
+application/json **or** RequestHandler prefers json), and AppController disables
+`csrfCheck` for REST. So the action is deliberately **kept out of
+`Security->unlockedActions` AND the GET/POST are issued with `Accept: text/html`**
+(not json) — otherwise the request would be classed REST and the very token this
+pattern relies on would be skipped. The POST returns JSON explicitly
+(`$this->response->type('json')`) regardless of the Accept header. Verified:
+token-less POST → HTTP 400 blackhole (no purge); valid-token POST → 200
+`{saved,killed}`. (Dev-only gotcha caught in testing: in debug mode
+SecurityComponent additionally requires the `_Token[debug]` field — present in
+the rendered form, so the real `FormData(form)` submit includes it; only a
+hand-rolled curl that omits it trips.)
+
+**Confirm UI — the dashboard's OWN side panel, not a theme modal (user-floated).**
+Reuses the gallery/settings panel (DD-10), so it stays theme-independent
+(Overmind has no jQuery/`genericPopover`). New `user-list.module.mjs` opens the
+panel in a new `confirm` mode, GET-loads the form, and on submit POSTs
+`FormData(form)` via fetch. New panel mode brings its own ESC handler + a
+`hidden`-attribute MutationObserver for cleanup; the shared ✕/backdrop close
+chain is reused (not re-wired). On `{saved:true}` it closes the panel and fires
+**`misp-board:render-widget`** (a new board event, sibling to
+`add-widget-pending`) so the widget repaints from authoritative server data —
+no optimistic DOM surgery, no hand-maintained header count.
+
+**UserList affordances (opt-in; the render kind stays generic).** Header
+`'search' => true` → a client-side filter box; user-row `'action' => {url,label}`
+→ a per-row icon button (inline-SVG logout glyph, not FA). **Each row was
+restructured** from a single `<a>` into a `<div>` holding an inner
+`.misp-user-main` drilldown link + the action `<button>` as a SIBLING — a
+`<button>` can't nest in an `<a>`, and its click must not trigger the row
+drilldown. The action URL is DD-03 validated in the renderer. `LoggedInUsersWidget`
+emits both, including an action on **removed-account rows** (a deleted user
+still holding live sessions is exactly what you'd want to purge).
+
+**Search — client-side (user-chosen fork).** Offered (AskUserQuestion):
+client-side DOM filter vs server-side (cap+query) vs both. User picked
+**client-side** — instant, no round-trips; the term is kept per widget instance
+and re-applied after the 60s auto-refresh (which wipes the input). Ceiling
+noted: it only filters rendered rows; revisit if concurrently-online sets get
+huge. (The widget already renders the full tallied set.)
+
+**Security.** Site-admin only (`_isSiteAdmin()` + ACL `array()` in ACLComponent's
+`dashboards` block — ACL is an allowed touch per the additive posture); default
+routing serves it. Only the `(int)` user id flows in; the SCAN matches
+`Auth.User.id` exactly; no token/payload read or returned. The purge is
+audit-logged (`logout` action, who→whom + count).
+
+**Verified.** Backend via curl on the live instance: GET form (fresh token +
+session count); token-less POST → 400 blackhole (sessions untouched); valid POST
+→ 200 `{saved:true,killed:5}`, the 5 keys gone, audit row written, widget
+dropped 5/215 → 4 users/210. Frontend via a hermetic headless-Chrome harness
+(stubbed fetch) — 7/7 green: search hide/show, panel opens in `confirm` mode,
+GET form injected, submit fires `render-widget(t1)`, panel closes, mode cleared.
+`php -l` + `node --check` clean. Additive; the widget keeps working with the JS
+absent (the action markup is inert, the search box does nothing).

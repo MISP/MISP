@@ -1450,6 +1450,23 @@ gate (the user still does the merge).
     truncation, dim muted/removed rows, centred message). `php -l` +
     `node --check`; `chgrp`; signed commit. Additive (flip `$render` back to
     revert).
+  - [x] **Invalidate-sessions action + search bar — `UserList` interactive
+    (DD-36), 2026-05-27.** The dashboard's first *mutating* widget action.
+    Per-user **immediate Redis session purge** (not lazy `force_logout`) +
+    a **client-side search box** (user-chosen fork; ~10k-user instance).
+    5 signed commits: (1) `SessionStore` tool extracted from the widget
+    (read+purge share one definition; pure refactor, render parity); (2)
+    site-admin `DashboardsController::invalidateUserSessions` — GET confirm
+    form (fresh `_Token`) / POST purge + audit-log, CSRF enforced by keeping
+    it non-REST + out of `unlockedActions`; ACL entry + board-root URL; (3)
+    `UserList` search + per-row action affordances (row restructured: inner
+    `.misp-user-main` link + sibling action `<button>`) + CSS, widget emits
+    them; (4) `user-list.module.mjs` (search filter surviving refresh +
+    action→side-panel `confirm` mode→POST→`misp-board:render-widget`
+    repaint) + board wiring. Verified: curl (token-less POST→400 blackhole,
+    valid→200 killed:5, audit + count drop) + hermetic headless-Chrome JS
+    harness (7/7 green). `php -l`/`node --check`; `chgrp`; signed. Additive
+    (widget still works with JS absent).
 
 ---
 

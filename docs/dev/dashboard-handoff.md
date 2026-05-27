@@ -1,31 +1,80 @@
-# Dashboard v2 — Session handoff (2026-05-27 — UserList render kind: LoggedInUsersWidget prettified into an avatar people-list)
+# Dashboard v2 — Session handoff (2026-05-27 — LoggedInUsersWidget: invalidate-sessions action + client-side search bar; DD-36)
 
-Nineteenth session. Authoritative state lives in:
+Twentieth session. Authoritative state lives in:
 
 - `dashboard-prd.md` — spec (binding decisions table §15, now incl.
-  DD-16..DD-35).
+  DD-16..DD-36).
 - `dashboard-progress.md` — task state. **Phase 5 + 5.5 closed; Phase 6
-  (merge) is the only tracked phase left.** This session's work is a nested
-  follow-up under the `LoggedInUsersWidget` bullet in the "Post-5.5 — New
-  features" section.
-- `dashboard-design-decisions.md` — DD-01..DD-35 (DD-35 new this session).
+  (merge) is the only tracked phase left.** This session's work is two nested
+  follow-ups (DD-35 prettify, DD-36 invalidate+search) under the
+  `LoggedInUsersWidget` bullet in the "Post-5.5 — New features" section.
+- `dashboard-design-decisions.md` — DD-01..DD-36 (DD-35 + DD-36 this session).
 
 This file is the bridge: ephemeral session context. Replace as work
 progresses.
 
-## TL;DR — this session (1 signed commit, `%G?`=U, not merged)
+## TL;DR — this session (6 signed commits, all `%G?`=U, not merged)
 
 ```
-cb640e9b7 new UserList render kind — avatar people-list; LoggedInUsersWidget
-          flips off SimpleList (DD-35)
+8a07e3e01 new user-list.module.mjs — search filter + invalidate panel flow (DD-36)
+751d4cccc new UserList search box + per-row action affordances (DD-36)
+7b2d95426 new invalidateUserSessions endpoint — per-user session purge (DD-36)
+0d6937384 chg extract SessionStore tool from LoggedInUsersWidget (DD-36 prep)
+471c3c302 chg handoff refreshed — UserList / LoggedInUsersWidget prettified (DD-35)
+cb640e9b7 new UserList render kind — avatar people-list (DD-35)
 ```
 
-A focused, self-contained "prettify the logged-in-users widget" task (the
-user picked it from the open follow-up list). Prior session's six commits
-(DD-31..34, StatGrid + network diagram + logged-in users) are already in the
-branch history. **The USER does the merge — do NOT open the PR or merge.**
+Two user-driven follow-ups on the logged-in-users widget: first prettify it
+(DD-35, avatar people-list), then make it **interactive** — invalidate a
+chosen user's sessions + a search bar (DD-36, the dashboard's FIRST mutating
+widget action). **The USER does the merge — do NOT open the PR or merge.**
 
 ## What landed (reuse these facts)
+
+### DD-36 — invalidate-user-sessions action + client-side search (this session's main work)
+- **First MUTATING dashboard widget action.** Per-user **immediate Redis
+  session purge** (`DEL` the user's keys) — NOT MISP's lazy `force_logout`
+  (which only fires on the user's next request + never clears abandoned
+  sessions). User-confirmed.
+- **`SessionStore` tool** (`app/Lib/Dashboard/Tools/`) — lifted the
+  connect/parse/SCAN/regex out of `LoggedInUsersWidget`
+  (`isSupported/connect/tally/keysForUser/destroy`); read + purge share one
+  definition of "user X's session keys". Engine scope still PHP→Redis only.
+- **Endpoint:** `DashboardsController::invalidateUserSessions($id)`, site-admin
+  (`_isSiteAdmin()` + ACLComponent `dashboards` entry `array()`). GET → confirm
+  form fragment (`Form->create()` mints a fresh `_Token`); POST same endpoint →
+  validate token → purge → `logout` audit log → JSON `{saved,killed,message}`.
+- **CSRF — the load-bearing bit:** the action is **NOT** in
+  `Security->unlockedActions`, AND the GET/POST are issued with `Accept:
+  text/html` (NOT `application/json`). MISP's `isRest()` is true when
+  `isJson()` is, and AppController disables `csrfCheck` for REST — so a json
+  request would *bypass* the token. Keeping it non-REST makes BetterSecurity
+  enforce the token. POST returns JSON explicitly (`response->type('json')`).
+  (Dev gotcha: debug mode also requires the `_Token[debug]` field — present in
+  the form, so the real `FormData(form)` submit includes it; only hand-rolled
+  curl trips.)
+- **Confirm UI = the dashboard's OWN side panel** (DD-10), new `confirm` mode —
+  NOT a theme modal (Overmind has no jQuery/genericPopover). `user-list.module
+  .mjs` opens it, GET-loads the form, POSTs `FormData(form)` via fetch; on
+  `{saved:true}` closes the panel + fires **`misp-board:render-widget`** (a new
+  board event, sibling to `add-widget-pending`) so the widget repaints from
+  server truth (no optimistic DOM surgery / no hand-maintained header count).
+- **UserList affordances (opt-in, render kind stays generic):** header
+  `'search'=>true` → client-side filter box; user-row `'action'=>{url,label}` →
+  per-row icon button (inline-SVG logout glyph). **Row restructured:** each user
+  row is now a `<div>` with an inner `.misp-user-main` drilldown link + the
+  action `<button>` as a SIBLING (a `<button>` can't nest in the `<a>`, and its
+  click must not trigger the drilldown). Action URL DD-03 validated.
+  `LoggedInUsersWidget` emits both — incl. an action on removed-account rows.
+- **Search = client-side** (user picked it over server-side via a fork): filters
+  rendered rows, term kept per instance + re-applied across the 60s auto-refresh
+  (which wipes the input). Ceiling: only filters rendered rows.
+- **Verified:** curl (token-less POST→400 blackhole + no purge; valid→200
+  `killed:5`; audit row; widget 5/215→4/210) + a **hermetic headless-Chrome JS
+  harness** (stubbed fetch) 7/7 green (search hide/show, panel confirm mode, GET
+  form injected, submit→`render-widget`, panel close, mode cleanup).
+
+### DD-35 — `UserList` render kind (avatar people-list)
 
 ### DD-35 — `UserList` render kind (avatar people-list)
 - New `View/Elements/dashboard/Widgets/UserList.ctp` + `.misp-user-*` CSS
@@ -146,14 +195,18 @@ branch history. **The USER does the merge — do NOT open the PR or merge.**
   initials chips, badge pills, ellipsis truncation, dim disabled/removed rows.
   All rendered green via headless Chrome, but a live board pass is the gold
   standard.
-- **DONE this session: `LoggedInUsersWidget` prettified** → `UserList` render
-  kind (DD-35). `UserList` is now **reusable for any future user-listing
-  widget** (e.g. a "recently active users" widget — DD-34 noted
-  `users.current_login`/`last_api_access` as the engine-agnostic "recently
-  active" alternative; that would pair naturally with `UserList`).
+- **DONE this session: `LoggedInUsersWidget` prettified (DD-35) + made
+  interactive (DD-36, invalidate-sessions + search).** `UserList` is now
+  **reusable for any future user-listing widget** (e.g. a "recently active
+  users" widget — DD-34 noted `users.current_login`/`last_api_access` as the
+  engine-agnostic "recently active" alternative; that would pair naturally with
+  `UserList`, and could reuse the `action`/`search` affordances + the
+  `misp-board:render-widget` board event from DD-36).
 - **UserList polish ideas** (not committed): per-user/org avatar-chip hue
   variety (currently a single accent token — kept token-only for theme safety);
-  real user avatars if MISP ever grows them (orgs have logos, users don't).
+  real user avatars if MISP ever grows them (orgs have logos, users don't);
+  server-side search if concurrently-online sets ever get huge (DD-36 chose
+  client-side); a bulk "log out ALL users" action (only per-user was asked).
 - **Roll StatGrid out to the other key/value admin widgets** (`MispStatusWidget`
   — note its legacy `html` `(View)` link is already handled by StatGrid; the
   resource widgets). Glyphs per metric as needed.
@@ -238,8 +291,8 @@ redis-cli -n 0 --scan --pattern 'PHPREDIS_SESSION:*' | head
 
 ## Quick-start for the next session
 
-1. Read `dashboard-prd.md` §15 (DD-31..35) + `dashboard-design-decisions.md`
-   DD-35 (+ DD-31/32/33/34 for the prior session's render kinds) + this file.
+1. Read `dashboard-prd.md` §15 (DD-31..36) + `dashboard-design-decisions.md`
+   DD-36 + DD-35 (+ DD-31..34 for the prior session's render kinds) + this file.
 2. Verify instance: `curl -s http://localhost:5007/dashboards -o /dev/null -w
    "%{http_code}\n"` → 302 (or 200 with the cookie jar).
 3. **No task is mandated.** If you have browser access, do the deferred
