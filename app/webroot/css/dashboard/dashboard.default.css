@@ -1173,6 +1173,12 @@ a.misp-stat-card:hover .misp-stat-glyph {
   text-decoration: none;
   color: var(--misp-dash-text);
 }
+/* The client-side search filter hides non-matching rows via the `hidden`
+ * attribute. `.misp-user-row { display:flex }` would otherwise win over
+ * the UA `[hidden]{display:none}` rule, so make the hide explicit. */
+.misp-user-row[hidden] {
+  display: none;
+}
 .misp-user-row:hover {
   border-color: var(--misp-dash-accent);
   box-shadow: var(--misp-dash-shadow-sm);
