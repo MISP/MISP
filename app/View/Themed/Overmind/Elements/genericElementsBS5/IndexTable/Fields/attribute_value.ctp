@@ -25,8 +25,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
         ?>
         <p class="mb-0">
             <?= h($attribute['value']); ?>
-    </p>
-
+        </p>
     </div>
 
     <!-- Show if it contains a comment -->

@@ -257,6 +257,7 @@ class ACLComponent extends Component
             'viewSummary' => array('*'),
             'edit' => array('perm_add'),
             'delete' => array('perm_add'),
+            'deleteSelection' => array('AND' => ['theming_enabled', 'perm_add']),
             'reportFromEvent' => array('perm_add'),
             'restore' => array('perm_add'),
             'index' => array('*'),
@@ -282,6 +283,7 @@ class ACLComponent extends Component
             'view' => ['*'],
             'edit' => [],
             'delete' => [],
+            'deleteSelection' => ['AND'=> ['perm_site_admin', 'theming_enabled']],
             'index' => ['*'],
         ),
         'eventTemplates' => array(

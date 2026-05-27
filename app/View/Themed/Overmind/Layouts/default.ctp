@@ -27,6 +27,16 @@
             ['controller' => 'CollectionElements', 'action' => 'add'],
             ['controller' => 'CollectionElements', 'action' => 'index'],
 
+            ['controller' => 'event_reports', 'action' => 'index'],
+            ['controller' => 'event_reports', 'action' => 'view'],
+            ['controller' => 'event_reports', 'action' => 'add'],
+            ['controller' => 'event_reports', 'action' => 'edit'],
+
+
+            ['controller' => 'EventReportTemplateVariables', 'action' => 'index'],
+            ['controller' => 'EventReportTemplateVariables', 'action' => 'add'],
+            ['controller' => 'EventReportTemplateVariables', 'action' => 'edit'],
+
             ['controller' => 'tags', 'action' => 'index'],
             ['controller' => 'tags', 'action' => 'add'],
             ['controller' => 'tags', 'action' => 'edit'],
