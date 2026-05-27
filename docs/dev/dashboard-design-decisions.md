@@ -2509,3 +2509,56 @@ colours → 4 symbols, reused). `itemStyle` node fill dropped (the image owns it
 colours); `symbolKeepAspect:true`; hub 44px / leaves 32px. Verified via the
 same headless-Chrome render: blue hub + green/red server icons, edges + labels
 intact.
+
+## DD-34 — `LoggedInUsersWidget`: active sessions, PHP→Redis engine only
+
+**Date.** 2026-05-27
+**Phase context.** User: new from-scratch widget showing the currently
+logged-in users "based on the sessions".
+
+**The constraint (verified from source, not assumed).** There is **no
+engine-agnostic way to enumerate active sessions** in PHP or CakePHP. The
+`CakeSessionHandlerInterface` every engine implements is only `open / close /
+read($id) / write($id,$data) / destroy($id) / gc()` — all per-id, no `list()`;
+`CakeSession`'s public API only touches the current session; PHP's own
+`SessionHandlerInterface` is the same shape. And some backends (memcached,
+apcu) physically can't enumerate keys. So enumeration is intrinsically
+backend-specific. (MISP's engine-agnostic alternative is its own login
+bookkeeping — `users.current_login` / `last_api_access`, `user_login_profiles`
+— but that's "recently active", not "has a live session", which the user
+explicitly wanted.)
+
+**Decision (scope, user-confirmed).** Support **only the PHP → Redis** session
+engine (`session.save_handler === 'redis'`, the phpredis native handler — what
+this MISP uses). Any other engine → a single "unsupported session engine" row
+naming the current handler, rather than half-supporting fragile cases (file
+scans, memcached/apcu non-enumerable, Cake database/cache handlers). User
+explicitly chose not to over-build the multi-engine path.
+
+**Mechanism.** Parse `session.save_path` (`tcp://host:port`, optional
+`?database=` / `?prefix=` / `?auth=`; first server of a failover list),
+connect with the phpredis extension (direct `new Redis()` — NOT MISP's
+`RedisTool`, which targets MISP's own DB-13, whereas sessions are in the php
+save_path's redis/db), `SCAN <prefix>*` (default prefix `PHPREDIS_SESSION:`,
+`SCAN_RETRY`, cap 20k keys), `GET` each, and extract the authenticated user id
+from the PHP-serialised blob (CakePHP stores it at `Auth.User.id`, id first:
+`Auth|a:1:{s:4:"User";a:N:{s:2:"id";…`, matched by a focused regex). Only the
+id is read out — no token/payload exposed. Tally sessions per user, load those
+users (`contain Organisation.name, Role.name`), render via **SimpleList**
+(reused, no new render kind): a summary line + one drilldown row per user
+(most sessions first → `/admin/users/view/<id>`). **Site-admin gated**
+(reveals who's logged in). `autoRefreshDelay=60` (a SCAN+GET sweep per render
+is cheap but not free). Pure addition — auto-discovered, no registry/core edit.
+
+**Escaping bug caught by the test data (security-relevant).** A dev-DB org
+name is literally `FOO"><img src=x onerror=alert(document.domain)>` (an XSS
+probe). First cut called `h()` in the widget while the SimpleList renderer
+*also* `h()`s the value → double-escaped (`&amp;quot;…`): inert but garbled.
+Fix: widgets pass **raw** values, SimpleList escapes once — the payload renders
+as inert literal text. Convention confirmed: dashboard widget `handler()`s emit
+raw strings; the renderer owns escaping.
+
+**Verified.** Live render (admin session) → HTTP 200, "Online now: 5 users ·
+215 sessions", users sorted by session count (admin 143, anon 44, foo 15, …),
+each linking to its admin view; the malicious org name single-escaped → inert.
+`php -l` clean. Reversible (delete the file).

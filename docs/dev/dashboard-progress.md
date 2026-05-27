@@ -1417,6 +1417,22 @@ gate (the user still does the merge).
     rejected (single-colour fill, no white detail). Re-verified via
     headless screenshot. `chgrp`; signed commit.
 
+- [x] **`LoggedInUsersWidget` (new, from scratch) — landed 2026-05-27
+  (DD-34).** Lists users with a live session + per-user session count.
+  **Verified there's no engine-agnostic session enumeration** (Cake/PHP
+  session contracts are per-id; memcached/apcu can't list) → scope is
+  **user-confirmed PHP→Redis only**; other engines show a clear
+  "unsupported engine" row. Parses `session.save_path`, direct
+  `new Redis()` (not RedisTool/DB-13), `SCAN PHPREDIS_SESSION:*` (cap
+  20k), pulls `Auth.User.id` from each blob (id only), tallies per user,
+  loads Org/Role, renders SimpleList (summary + drilldown per user →
+  `/admin/users/view/<id>`). Site-admin gated; `autoRefreshDelay=60`.
+  **Escaping bug caught by a dev-DB XSS-probe org name** — widget pre-`h()`d
+  while SimpleList also escapes (double-escape); fixed by emitting raw
+  (renderer owns escaping). Verified live: 5 users / 215 sessions, sorted
+  by count, malicious org name inert. `php -l`; `chgrp`; signed commit.
+  Pure addition (auto-discovered).
+
 ---
 
 ## Phase 6 — Merge to `develop`
