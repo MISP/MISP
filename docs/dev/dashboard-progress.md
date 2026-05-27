@@ -1409,6 +1409,13 @@ gate (the user still does the merge).
   `3×2→4×5`. Verified: live `{nodes,links}` (self + 6 leaves, 1 green /
   rest red) + **headless-Chrome render over HTTP** → graph draws with the
   rebuilt bundle, all nodes/edges/labels fit. `chgrp`; signed commit.
+  - [x] **Node styling → coloured server icons — 2026-05-27.** User: make
+    the nodes more pleasing. Nodes are now server-rack glyphs (white LEDs +
+    vent bars) filled in the status colour, as ECharts `image://` SVG
+    data-URI symbols (`serverSymbol()`), built from the resolved theme
+    token at render time (theme-aware; 4 symbols reused). `path://`
+    rejected (single-colour fill, no white detail). Re-verified via
+    headless screenshot. `chgrp`; signed commit.
 
 ---
 

@@ -2495,3 +2495,17 @@ bundle, colours + edges + labels correct, all 7 nodes fit after the margin
 bump. `php -l` (`.ctp` + widget) + `node --check` (`charts.module.mjs` +
 bundle + `render-thumbs.mjs`) clean. Additive; reverse by flipping `$render`
 back to `SimpleList` (the bundle keeps `GraphChart`, harmless).
+
+**Node styling (follow-up, same session).** The first cut drew nodes as plain
+status-coloured ellipses; user asked for something more pleasing — "coloured
+server icons". Nodes are now **server-rack glyphs** (a 2-unit rack with white
+LEDs + vent bars) filled in the status colour, set as ECharts `image://` SVG
+data-URI symbols (`serverSymbol(colour)`, base64-encoded). Chosen over a
+`path://` symbol because `path://` fills a single shape one colour (no white
+LED/vent detail without even-odd hole trickery); an `image://` data-URI carries
+the full two-tone SVG. Theme-awareness is preserved because the symbol is built
+at render time from the resolved `--misp-dash-*` token value (only 4 distinct
+colours → 4 symbols, reused). `itemStyle` node fill dropped (the image owns its
+colours); `symbolKeepAspect:true`; hub 44px / leaves 32px. Verified via the
+same headless-Chrome render: blue hub + green/red server icons, edges + labels
+intact.

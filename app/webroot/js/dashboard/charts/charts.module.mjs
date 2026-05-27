@@ -395,19 +395,40 @@ function buildPieOption(payload, hostEl) {
  * The tooltip shows each node's name, URL and test outcome — where an
  * admin reads the reason for an outage.
  */
+// A server/rack glyph filled in `colour`, as an ECharts `image://` symbol
+// (a 2-unit rack with white LEDs + vent bars). Built from the resolved
+// theme-token colour at render time, so node colours stay theme-aware.
+function serverSymbol(colour) {
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+    `<rect x="3.5" y="3.5" width="17" height="7" rx="1.8" fill="${colour}"/>` +
+    `<rect x="3.5" y="13.5" width="17" height="7" rx="1.8" fill="${colour}"/>` +
+    '<circle cx="7" cy="7" r="1.15" fill="#fff"/>' +
+    '<circle cx="7" cy="17" r="1.15" fill="#fff"/>' +
+    '<rect x="10.5" y="6.2" width="7" height="1.6" rx="0.8" fill="#fff" opacity="0.9"/>' +
+    '<rect x="10.5" y="16.2" width="7" height="1.6" rx="0.8" fill="#fff" opacity="0.9"/>' +
+    '</svg>';
+  return 'image://data:image/svg+xml;base64,' + btoa(svg);
+}
+
 function buildNetworkOption(payload, hostEl) {
   const nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
   const links = Array.isArray(payload.links) ? payload.links : [];
 
   const text   = tokenOn(hostEl, '--misp-dash-text',         '#1d2025');
-  const muted  = tokenOn(hostEl, '--misp-dash-text-muted',   '#5b6573');
   const border = tokenOn(hostEl, '--misp-dash-border',       '#d8dde4');
-  const surface = tokenOn(hostEl, '--misp-dash-surface-raised', '#ffffff');
   const statusColour = {
     self:  tokenOn(hostEl, '--misp-dash-accent',  '#2563eb'),
     ok:    tokenOn(hostEl, '--misp-dash-success', '#16a34a'),
     warn:  tokenOn(hostEl, '--misp-dash-warning', '#d97706'),
     error: tokenOn(hostEl, '--misp-dash-danger',  '#dc2626'),
+  };
+  // One symbol per status (only 4 distinct colours), reused across nodes.
+  const symbolFor = {
+    self:  serverSymbol(statusColour.self),
+    ok:    serverSymbol(statusColour.ok),
+    warn:  serverSymbol(statusColour.warn),
+    error: serverSymbol(statusColour.error),
   };
 
   // Hub = the 'self' node (fallback: first node). Spokes ring around it.
@@ -424,14 +445,14 @@ function buildNetworkOption(payload, hostEl) {
 
   const data = nodes.map((n, i) => {
     const isHub = i === hubIdx;
-    const colour = statusColour[n.status] || statusColour.error;
     const [x, y] = pos.get(n.id) || [0, 0];
     return {
       id: String(n.id),
       name: n.name || String(n.id),
       x, y,
-      symbolSize: isHub ? 46 : 34,
-      itemStyle: { color: colour, borderColor: surface, borderWidth: 2 },
+      symbol: symbolFor[n.status] || symbolFor.error,
+      symbolSize: isHub ? 44 : 32,
+      symbolKeepAspect: true,
       label: { fontWeight: isHub ? 'bold' : 'normal' },
       // custom fields for the tooltip
       _url: n.url || '',
