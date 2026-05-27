@@ -2090,3 +2090,41 @@ as default → re-ingest **preserved** Community (no re-promotion, count
 stayed 1) — proving both `__importTemplate`'s default-preservation and the
 COUNT guard. Re-run with a default present is a no-op. `php -l` clean ×4 +
 manifest valid JSON. Additive/reversible.
+
+## DD-27 — Harden `__unsetPreviousDefault()` to demote *all* defaults (closes DD-26's soft-invariant gap)
+
+**Date.** 2026-05-27
+**Phase context.** DD-26 documented that the single-default invariant is
+**soft** — no schema constraint on `dashboards.default`, and
+`__unsetPreviousDefault()` (called by `saveDashboardTemplate` when a new
+default is saved) demoted only the **first** `default=1` row it found. So if
+duplicates ever arose (direct DB edit, a past bug), selecting a new default
+would leave the stragglers, and `getDashboardTemplate()`'s `find('first')`
+would then pick ambiguously. The user asked to harden it.
+
+**Decision.** `__unsetPreviousDefault()` now demotes **every** `default=1`
+row before the caller saves the new one, so the invariant is reconciled on
+each promotion regardless of prior state.
+
+**Two non-obvious implementation points.**
+- **Loop + `saveField` by id, not `updateAll`.** `updateAll`/`deleteAll`
+  crash on the model's phantom `belongsTo Organisation` foreign key
+  (`org_id`, no such column — the discovered-work bug DD-25 also worked
+  around). A `recursive = -1` find collects the ids; each is demoted by id.
+- **`$this->id` is saved and restored around the loop.** `saveField`
+  mutates `$this->id`, and `saveDashboardTemplate` runs `$this->save(...)`
+  immediately after — in the **create** path that final save relies on
+  `$this->id` being false (set by the earlier `create()`) to INSERT. Without
+  the restore, the demotion would leave `$this->id` pointing at a demoted
+  row and the new template would overwrite it instead of inserting.
+  Restoring `$this->id` keeps the create-vs-update decision the caller's,
+  uncontaminated. (`$this->data` is irrelevant — the final save passes its
+  data explicitly.)
+
+**Files touched.** `app/Model/Dashboard.php` (`__unsetPreviousDefault` only).
+
+**Verified live** (via the public `saveDashboardTemplate`): seeding two
+`default=1` rows then promoting a third demoted **both** stragglers (count
+→ 1, only the new one); and the create-with-`default=1` path inserted a
+**new** row (row count +1) that became the sole default — proving the
+`$this->id` preservation. `php -l` clean. Additive/reversible.

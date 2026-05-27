@@ -1244,6 +1244,17 @@ gate (the user still does the merge).
     promoted (`COUNT=1`); admin-set Community default preserved across
     re-ingest (no re-promotion); re-run with a default present is a no-op.
     `php -l` clean ×4 + valid JSON. Signed commit.
+  - [x] **Follow-up: harden `__unsetPreviousDefault()` to demote all
+    defaults — landed 2026-05-27 (DD-27).** Closes the soft-invariant gap
+    DD-26 flagged: the helper demoted only the *first* `default=1` row when
+    a new default was saved. Now demotes **every** one (loop + `saveField`
+    by id — not `updateAll`, phantom `org_id` join; `$this->id`
+    saved/restored so it doesn't contaminate the caller's next `save()`,
+    which in the create path needs `$this->id` false to INSERT). Files:
+    `Dashboard.php`. Verified live via `saveDashboardTemplate`: two seeded
+    defaults both demoted on promoting a third (count→1); create-with-
+    default inserts a new row that becomes the sole default. `php -l` clean.
+    Signed commit.
 - [x] **Caching for `AttributeGeoMapWidget` — landed 2026-05-26 (DD-19).**
   Redis-backed, **1h TTL**. **Design iterated twice with the user:** the
   brief was "cache only default settings, custom runs live"; first cut

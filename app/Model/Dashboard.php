@@ -279,16 +279,25 @@ class Dashboard extends AppModel
 
     private function __unsetPreviousDefault()
     {
-        $currentDefault = $this->find('first', array(
+        // Demote *every* row currently flagged default, not just the first.
+        // The single-default invariant is not enforced by the schema (no
+        // index/constraint on `default`), so reconcile any stray duplicates
+        // here rather than assuming at most one exists. Iterate + saveField
+        // by id: updateAll() would crash on the model's phantom belongsTo
+        // Organisation join (org_id — no such column; see Discovered work).
+        // $this->id is saved/restored so this never contaminates the
+        // create-vs-update state of the save() the caller runs next.
+        $currentDefaults = $this->find('all', array(
             'recursive' => -1,
-            'conditions' => array(
-                'Dashboard.default' => 1
-            )
+            'conditions' => array('Dashboard.default' => 1),
+            'fields' => array('Dashboard.id'),
         ));
-        if (!empty($currentDefault)) {
-            $currentDefault['Dashboard']['default'] = 0;
-            $this->save($currentDefault);
+        $savedId = $this->id;
+        foreach ($currentDefaults as $row) {
+            $this->id = $row['Dashboard']['id'];
+            $this->saveField('default', 0);
         }
+        $this->id = $savedId;
         return true;
     }
 
