@@ -682,6 +682,7 @@ class AdminShell extends AppShell
     public function runUpdates()
     {
         $whoami = ProcessTool::whoami();
+        $this->AdminSetting->resetUpdateFailNumber();
         if (in_array($whoami, ['httpd', 'www-data', 'apache', 'wwwrun', 'travis', 'www'], true) || $whoami === Configure::read('MISP.osuser')) {
             $this->out('Executing all updates to bring the database up to date with the current version.');
             $lock = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'update_locked')));
