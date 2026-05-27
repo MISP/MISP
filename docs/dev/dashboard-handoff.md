@@ -1,34 +1,66 @@
-# Dashboard v2 — Session handoff (2026-05-27 — widget glow-up: StatGrid KPI cards, sync-test network diagram, logged-in-users widget)
+# Dashboard v2 — Session handoff (2026-05-27 — UserList render kind: LoggedInUsersWidget prettified into an avatar people-list)
 
-Eighteenth session. Authoritative state lives in:
+Nineteenth session. Authoritative state lives in:
 
 - `dashboard-prd.md` — spec (binding decisions table §15, now incl.
-  DD-16..DD-34).
+  DD-16..DD-35).
 - `dashboard-progress.md` — task state. **Phase 5 + 5.5 closed; Phase 6
-  (merge) is the only tracked phase left.** This session's work is under the
-  "Post-5.5 — New features" section (StatGrid, network diagram, logged-in
-  users), each a top-level bullet.
-- `dashboard-design-decisions.md` — DD-01..DD-34 (DD-31/32/33/34 new this
-  session).
+  (merge) is the only tracked phase left.** This session's work is a nested
+  follow-up under the `LoggedInUsersWidget` bullet in the "Post-5.5 — New
+  features" section.
+- `dashboard-design-decisions.md` — DD-01..DD-35 (DD-35 new this session).
 
 This file is the bridge: ephemeral session context. Replace as work
 progresses.
 
-## TL;DR — this session (6 signed commits, all `%G?`=U, none merged)
+## TL;DR — this session (1 signed commit, `%G?`=U, not merged)
 
 ```
-92dfa2349 new LoggedInUsersWidget — active sessions (PHP→Redis engine) (DD-34)
-bc407888b chg NetworkGraph nodes as coloured server icons (DD-33 follow-up)
-2370c9a03 new sync-test widget as a hub-and-spoke network diagram (DD-33)
-8a8f84087 fix StatGrid double + overflowing scrollbar; body owns scrolling
-d10dc2756 chg StatGrid cards: per-metric glyph + title tooltip (DD-32)
-34da32445 new StatGrid render kind (KPI metric cards) + Usage widget flip (DD-31)
+cb640e9b7 new UserList render kind — avatar people-list; LoggedInUsersWidget
+          flips off SimpleList (DD-35)
 ```
 
-All user-driven "make the admin widgets nicer / add a widget" work, post-5.5.
-**The USER does the merge — do NOT open the PR or merge.**
+A focused, self-contained "prettify the logged-in-users widget" task (the
+user picked it from the open follow-up list). Prior session's six commits
+(DD-31..34, StatGrid + network diagram + logged-in users) are already in the
+branch history. **The USER does the merge — do NOT open the PR or merge.**
 
 ## What landed (reuse these facts)
+
+### DD-35 — `UserList` render kind (avatar people-list)
+- New `View/Elements/dashboard/Widgets/UserList.ctp` + `.misp-user-*` CSS
+  block in `dashboard.default.css` + `thumbUserList` glyph. A **new render
+  kind** (not a SimpleList drop-in — it has its own data contract). Each user
+  is a row: **avatar** (the user's org logo when one exists on disk → an
+  initials chip) + email **name** + muted **meta** (`org · role`, plus
+  `· disabled` for a disabled account holding a live session) + a right-aligned
+  **badge** pill (session count); whole row drills to `/admin/users/view/<id>`.
+- **Typed-row contract** (`type` key): `header` (online-dot summary line) /
+  `user` (the above) / `message` (full-width centred — for the empty /
+  unsupported-engine / unreachable states DD-34 returned as bare rows). A row
+  with no `type` but a `name` defaults to `user`.
+- **Avatar logo resolution mirrors `OrgsPictures` / `OrgImgHelper`** exactly:
+  `file_exists` on `app/files/img/orgs/<id|name|uuid>.<png|svg>`, served via
+  `/organisations/getOrgLogo/<id>` (browser-cached, no per-row data-URL). So
+  `LoggedInUsersWidget`'s find() now **contains `Organisation.id/uuid`**, not
+  just `.name`. **Initials are derived in the renderer** (up to 2 leading
+  letters of the email local part) — never trusted from the widget.
+- **Conventions upheld:** token-only `.misp-user-*` CSS (retones for free);
+  **renderer owns escaping** (DD-34 — re-confirmed inert vs the dev-DB XSS-probe
+  org name, single-escaped); **not its own scroll container** (DD-31 rule —
+  `.misp-widget-body` owns overflow; name/meta `text-overflow:ellipsis` +
+  `min-width:0` so a narrow widget truncates instead of H-scrolling). New
+  render kind → `thumbUserList` glyph registered (CLAUDE.md rule). **No ECharts
+  series added → NO bundle rebuild** (UserList is pure HTML/CSS, not a chart).
+- `LoggedInUsersWidget::$render` flipped `SimpleList → UserList`; `handler()`
+  reshaped to the new contract. Size kept `3×4`.
+- **Verified:** live render (admin session) = HTTP 200, header "5 users online
+  · 215 sessions", org logos for Iglocska/CIRCL + initials chips (`AN`/`FO`) +
+  badges; headless-Chrome screenshot over HTTP confirmed alignment, ellipsis
+  truncation (long email + long org name), dim muted/removed rows, centred
+  message state. `php -l` + `node --check` clean.
+
+## Prior-session facts (still true — reuse)
 
 ### DD-31 — `StatGrid` render kind (KPI metric cards)
 - New `View/Elements/dashboard/Widgets/StatGrid.ctp` + `.misp-stat-*` CSS block
@@ -110,10 +142,18 @@ All user-driven "make the admin widgets nicer / add a widget" work, post-5.5.
   the cached old bundle/JS):** confirm on a real board — StatGrid Usage cards
   (glyphs + tooltips, no scrollbars); the sync-test **network diagram** (server
   icons, hover tooltip shows url+reason, drag/zoom); the **logged-in-users**
-  list. All three rendered green via headless Chrome this session, but a live
-  board pass is the gold standard.
-- **Prettify `LoggedInUsersWidget`?** It's a plain SimpleList; could become a
-  StatGrid-style or avatar treatment if wanted (user deferred).
+  widget — now the **UserList** avatar people-list (DD-35): org logos vs
+  initials chips, badge pills, ellipsis truncation, dim disabled/removed rows.
+  All rendered green via headless Chrome, but a live board pass is the gold
+  standard.
+- **DONE this session: `LoggedInUsersWidget` prettified** → `UserList` render
+  kind (DD-35). `UserList` is now **reusable for any future user-listing
+  widget** (e.g. a "recently active users" widget — DD-34 noted
+  `users.current_login`/`last_api_access` as the engine-agnostic "recently
+  active" alternative; that would pair naturally with `UserList`).
+- **UserList polish ideas** (not committed): per-user/org avatar-chip hue
+  variety (currently a single accent token — kept token-only for theme safety);
+  real user avatars if MISP ever grows them (orgs have logos, users don't).
 - **Roll StatGrid out to the other key/value admin widgets** (`MispStatusWidget`
   — note its legacy `html` `(View)` link is already handled by StatGrid; the
   resource widgets). Glyphs per metric as needed.
@@ -198,8 +238,8 @@ redis-cli -n 0 --scan --pattern 'PHPREDIS_SESSION:*' | head
 
 ## Quick-start for the next session
 
-1. Read `dashboard-prd.md` §15 (DD-31..34) + `dashboard-design-decisions.md`
-   DD-31/32/33/34 + this file.
+1. Read `dashboard-prd.md` §15 (DD-31..35) + `dashboard-design-decisions.md`
+   DD-35 (+ DD-31/32/33/34 for the prior session's render kinds) + this file.
 2. Verify instance: `curl -s http://localhost:5007/dashboards -o /dev/null -w
    "%{http_code}\n"` → 302 (or 200 with the cookie jar).
 3. **No task is mandated.** If you have browser access, do the deferred
