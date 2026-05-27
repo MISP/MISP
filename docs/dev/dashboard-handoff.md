@@ -13,9 +13,11 @@ Twentieth session. Authoritative state lives in:
 This file is the bridge: ephemeral session context. Replace as work
 progresses.
 
-## TL;DR — this session (6 signed commits, all `%G?`=U, not merged)
+## TL;DR — this session (8 signed commits, all `%G?`=U, not merged)
 
 ```
+6bdcb41bb fix filter box overflowed right — Bootstrap forced content-box (DD-36)
+cc3dde1b8 fix filter didn't hide rows — [hidden] overridden by display:flex (DD-36)
 8a07e3e01 new user-list.module.mjs — search filter + invalidate panel flow (DD-36)
 751d4cccc new UserList search box + per-row action affordances (DD-36)
 7b2d95426 new invalidateUserSessions endpoint — per-user session purge (DD-36)
@@ -27,7 +29,9 @@ cb640e9b7 new UserList render kind — avatar people-list (DD-35)
 Two user-driven follow-ups on the logged-in-users widget: first prettify it
 (DD-35, avatar people-list), then make it **interactive** — invalidate a
 chosen user's sessions + a search bar (DD-36, the dashboard's FIRST mutating
-widget action). **The USER does the merge — do NOT open the PR or merge.**
+widget action). The last two commits are post-ship fixes for the search filter,
+both surfaced by the user's **live in-browser** test (see the fixes note under
+DD-36). **The USER does the merge — do NOT open the PR or merge.**
 
 ## What landed (reuse these facts)
 
@@ -73,8 +77,20 @@ widget action). **The USER does the merge — do NOT open the PR or merge.**
   `killed:5`; audit row; widget 5/215→4/210) + a **hermetic headless-Chrome JS
   harness** (stubbed fetch) 7/7 green (search hide/show, panel confirm mode, GET
   form injected, submit→`render-widget`, panel close, mode cleanup).
-
-### DD-35 — `UserList` render kind (avatar people-list)
+- **Post-ship fixes (both surfaced by the user's LIVE in-browser test, both
+  CSS-cascade traps my headless checks missed):** (1) `cc3dde1b8` — the filter
+  set `row.hidden=true` but `.misp-user-row{display:flex}` overrode the UA
+  `[hidden]{display:none}` rule → rows never hid ("filter doesn't fire"); fix =
+  explicit `.misp-user-row[hidden]{display:none}`. (2) `6bdcb41bb` — the filter
+  box rendered off-centre (overflowed ~14px right) because `bootstrap.css`
+  `input[type="search"]{box-sizing:content-box}` (0,1,1) beat `.misp-user-search`
+  (0,1,0); fix = scope it `.misp-user-searchbar .misp-user-search` (0,2,0).
+  **Lesson (→ memory `feedback_verify_visible_outcome_not_property`):** assert
+  the *computed/visible* outcome (not the property you set), and verify against
+  the **full CSS stack** (`bootstrap.css` + theme + `dashboard.default.css`),
+  not the dashboard stylesheet alone — both misses came from a harness that
+  loaded only the dashboard CSS and asserted `.hidden` rather than computed
+  `display`.
 
 ### DD-35 — `UserList` render kind (avatar people-list)
 - New `View/Elements/dashboard/Widgets/UserList.ctp` + `.misp-user-*` CSS
@@ -228,8 +244,11 @@ widget action). **The USER does the merge — do NOT open the PR or merge.**
 - DB: `mysql -u misp -pPassword1234 misp`. MISP Redis: `redis-cli -n 13`.
   **SESSIONS are in Redis db0** (`PHPREDIS_SESSION:*`, php redis save_handler,
   `session.save_path=tcp://localhost:6379`) — NOT db13, NOT the `cake_sessions`
-  table (empty; `Session.defaults='php'`). ~276 session keys, 5 logged-in users
-  during testing.
+  table (empty; `Session.defaults='php'`). ~272 session keys, 4 logged-in users
+  after DD-36 testing purged user #191's 5 fossil sessions (was 5/215). NB most
+  are months-old fossils from obscene dev session lifetimes — memory
+  `project_loggedinusers_session_fossils` (operational instances don't have
+  this; not a widget bug).
 - State: `db_version=151`; branch `dashboards`. Build dir `/tmp/echarts-bundle`
   reusable for bundle rebuilds.
 
@@ -305,6 +324,12 @@ redis-cli -n 0 --scan --pattern 'PHPREDIS_SESSION:*' | head
    emit raw strings — the renderer escapes; (e) a body-filling render kind must
    let `.misp-widget-body` own scrolling (don't set width/height/overflow on the
    inner container); (f) Edit tool flips file group — `chgrp www-data` after
-   edits.
+   edits; (g) **CSS verification must load the FULL stack** (`bootstrap.css` +
+   theme + `dashboard.default.css`) — Bootstrap's `input[type="search"]`
+   (0,1,1) etc. silently beat single-class dashboard rules; and **assert the
+   computed/visible outcome, not the attribute/property you set** (both DD-36
+   filter bugs hid behind a harness that loaded only the dashboard CSS +
+   checked `.hidden`); (h) toggling an element via `[hidden]` needs an explicit
+   `[hidden]{display:none}` when the element has an author `display:`.
 5. Do NOT start the merge — the user does that. Watch context; refresh this
    handoff before wrapping.
