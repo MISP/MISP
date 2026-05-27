@@ -97,7 +97,7 @@ class AppModel extends Model
 	        129 => false, 130 => false, 131 => false, 132 => false, 133 => false, 134 => true,
 	        135 => false, 136 => true, 137 => false, 138 => false, 139 => false, 140 => false,
 	        141 => false, 142 => false, 143 => false, 144 => false, 145 => false, 146 => false,
-	        147 => false, 148 => false, 149 => false, 150 => false
+	        147 => false, 148 => false, 149 => false, 150 => false, 151 => false
 	    );
 
     const ADVANCED_UPDATES_DESCRIPTION = array(
@@ -305,6 +305,9 @@ class AppModel extends Model
             case 150:
                 $dbUpdateSuccess = $this->fixDatabaseEncoding();
                 break;
+            case 151:
+                $dbUpdateSuccess = $this->__importDefaultDashboardTemplates();
+                break;
             default:
                 $dbUpdateSuccess = $this->updateDatabase($command);
                 break;
@@ -345,6 +348,49 @@ class AppModel extends Model
             $entry['change'] = 'Tried adding new feeds but something went wrong.';
         }
         $this->Log->saveOrFailSilently($entry);
+    }
+
+    // Ingest the built-in dashboard starter templates shipped under
+    // app/files/dashboard-templates/ into the `dashboards` table (DD-22).
+    // Idempotent overwrite-by-uuid, so replaying this update is safe. Per-
+    // template failures are logged but never fail the update chain (a
+    // missing/partial templates dir must not block the DB migration).
+    private function __importDefaultDashboardTemplates()
+    {
+        $this->Dashboard = ClassRegistry::init('Dashboard');
+        $this->Log = ClassRegistry::init('Log');
+        $result = $this->Dashboard->importTemplatesFromDirectory();
+        $names = array();
+        foreach ($result['success'] as $entry) {
+            $names[] = $entry['name'];
+        }
+        $this->Log->create();
+        $this->Log->saveOrFailSilently(array(
+            'org' => 'SYSTEM',
+            'model' => 'Server',
+            'model_id' => 0,
+            'email' => 'SYSTEM',
+            'action' => 'update_database',
+            'user_id' => 0,
+            'title' => __('Imported default dashboard templates.'),
+            'change' => empty($names) ?
+                __('No default dashboard templates were imported.') :
+                __('Default dashboard templates imported: %s', implode(', ', $names)),
+        ));
+        if (!empty($result['fails'])) {
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org' => 'SYSTEM',
+                'model' => 'Server',
+                'model_id' => 0,
+                'email' => 'SYSTEM',
+                'action' => 'update_database',
+                'user_id' => 0,
+                'title' => __('Some default dashboard templates failed to import.'),
+                'change' => json_encode($result['fails']),
+            ));
+        }
+        return true;
     }
 
     // SQL scripts for updates

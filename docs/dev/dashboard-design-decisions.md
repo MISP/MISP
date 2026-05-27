@@ -1895,3 +1895,66 @@ sane (OVH 16276→FR, Cloudflare 13335→US); fail-safe path proven live (venv
 **without** `maxminddb` → caught, two-line stderr warning, json untouched).
 `maxminddb 3.1.1` (latest, pulled by the bare requirement) works with the
 script's `open_database` + iteration API. Additive/reversible.
+
+## DD-24 — Default dashboard templates: auto-ingest on update/install (extends DD-22)
+
+**Date.** 2026-05-27
+**Phase context.** DD-22 shipped the built-in starter templates with an
+**on-demand** ingest only (the site-admin gallery button + the
+`cake Dashboard importDefaultTemplates` CLI), and logged "auto-ingest on
+update/install" as a follow-up. The user picked that follow-up.
+
+**Finding surfaced first (rigorous-pushback).** MISP **does not**
+auto-ingest reference-data *content* on update. The `updateMISP()` /
+`updateDatabase()` migration chain creates the galaxy/warninglist/object
+*tables*, but the actual content ingest of those corpora stays an
+on-demand admin action (button / CLI). So auto-ingesting dashboard
+templates on update is a deliberate **divergence** from that posture.
+
+**Decision (user's call: unconditional).** The forks surfaced were
+(1) unconditional auto-ingest, (2) gate behind an opt-out server setting,
+(3) keep on-demand only (respect the norm). The user chose **unconditional**
+— defensible because the starters are three tiny rows that are
+`selectable`, deletable, and never the global `default` board (≠ a curated
+galaxy/warninglist corpus), and out-of-the-box starters are a UX win.
+
+**Mechanism (idiomatic, minimal).** Mirrors `case 150: fixDatabaseEncoding()`:
+- `AppModel::DB_CHANGES` gains `151 => false` (no logout required).
+- `AppModel::updateMISP()` gains `case 151:` →
+  `$this->__importDefaultDashboardTemplates()`.
+- New private `__importDefaultDashboardTemplates()` inits the `Dashboard`
+  model, calls the existing DD-22 `importTemplatesFromDirectory()`, and
+  logs a SYSTEM `update_database` entry naming the imported templates (and
+  a second entry if any failed). It **returns `true` unconditionally** — a
+  missing or partial `app/files/dashboard-templates/` dir must never fail
+  the DB migration chain (the ingest already records per-template failures
+  internally; DD-22's method returns an empty result, not a throw, on a
+  missing dir).
+
+**Covers both "update" and "install".** Existing instances run `case 151`
+when they cross update 151. Fresh installs are covered by the *same* step:
+`INSTALL/MYSQL.sql` baselines `db_version = 126` and `runUpdates` replays
+the delta (127→151) via `findUpgrades`, so a new install also hits 151. No
+separate install-seeding path needed.
+
+**One-shot + replay-safe.** The step runs once per instance (when it
+crosses 151). DD-22's ingest is idempotent (overwrite-by-uuid), so MISP's
+"all updates are re-playable" guarantee holds. Consequence of one-shot: an
+admin who manually deletes a built-in sees it return **once** on crossing
+151 — accepted (with DD-25's pruning the shipped set is authoritative
+anyway). A *later* release that changes the shipped templates would add its
+own new `DB_CHANGES` entry to re-trigger ingest (standard MISP migration
+cadence) — the committed `db_schema.json` `db_version` is not hand-bumped
+here; it syncs at `preRelease` (DD-23).
+
+**Files touched.** `app/Model/AppModel.php` only (the `DB_CHANGES` entry,
+the `case 151:`, and the private method). No schema change.
+
+**Verified — end-to-end by the live system itself.** After the code
+landed, MISP's **own** background update mechanism autonomously detected
+and ran update 151 through the real `runUpdates` path (no manual
+invocation): `db_version` advanced to 151, all three built-in rows present
+and correctly named, and a `logs` row recorded "Default dashboard templates
+imported: Administrator, Analyst, Community". `php -l` clean. The
+divergence-from-norm finding was surfaced to the user before coding.
+Additive/reversible.

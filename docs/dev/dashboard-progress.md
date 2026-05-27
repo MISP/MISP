@@ -1180,6 +1180,30 @@ gate (the user still does the merge).
     `restrict_to_permission_flag` ACL (unchanged code); a live non-admin
     check is deferred (no non-admin API key — advanced_authkeys on). Signed
     commit. **Default-templates feature complete.**
+  - [x] **Follow-up: auto-ingest on update/install — landed 2026-05-27
+    (DD-24).** DD-22 left the ingest on-demand only (admin button / CLI).
+    Wired into MISP's update job: new `DB_CHANGES` entry `151 => false`
+    + `case 151:` in `AppModel::updateMISP()` → new private
+    `__importDefaultDashboardTemplates()` (inits the Dashboard model, calls
+    the existing `importTemplatesFromDirectory()`, logs a SYSTEM
+    `update_database` entry; returns true so a missing/partial templates
+    dir never fails the migration chain). Covers **both** update (existing
+    instances cross 151) **and** fresh install (`INSTALL/MYSQL.sql`
+    baselines `db_version=126`, so `runUpdates` replays the delta through
+    151). Idempotent (DD-22's overwrite-by-uuid) so the one-shot migration
+    is replay-safe. **User chose unconditional** (over an opt-out setting /
+    keeping it on-demand) after the finding was surfaced that MISP keeps
+    reference-data *content* ingest on-demand — accepted because starter
+    templates are 3 tiny selectable/deletable rows, never the default
+    board. **Verified end-to-end by the live system itself:** after the
+    code landed, MISP's own background update mechanism autonomously ran
+    update 151 via the real `runUpdates` path — `db_version`→151, all three
+    rows present, and a `logs` entry "Default dashboard templates imported:
+    Administrator, Analyst, Community". `php -l` clean. Signed commit.
+  - [ ] **Follow-up: prune orphaned built-ins on re-ingest.** Re-ingest
+    overwrites by uuid but never deletes `user_id=0` rows whose manifest
+    was removed (the "Overview" removal was a manual `DELETE`). Make the
+    shipped set authoritative.
 - [x] **Caching for `AttributeGeoMapWidget` — landed 2026-05-26 (DD-19).**
   Redis-backed, **1h TTL**. **Design iterated twice with the user:** the
   brief was "cache only default settings, custom runs live"; first cut
