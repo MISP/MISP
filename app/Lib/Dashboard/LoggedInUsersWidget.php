@@ -119,6 +119,8 @@ class LoggedInUsersWidget
         $totalSessions = array_sum($counts);
         $rows = array(array(
             'type' => 'header',
+            // search → the UserList renderer shows a client-side filter box.
+            'search' => true,
             'value' => sprintf(
                 __('%d user%s online · %d session%s'),
                 count($counts),
@@ -129,6 +131,14 @@ class LoggedInUsersWidget
         ));
 
         foreach ($counts as $id => $count) {
+            // Per-row "invalidate all sessions for this user" action (DD-36):
+            // a GET-form/POST purge endpoint, site-admin gated. Offered even
+            // for removed accounts — a deleted user that still holds live
+            // sessions is exactly what an admin wants to be able to purge.
+            $action = array(
+                'url' => '/dashboards/invalidateUserSessions/' . (int)$id,
+                'label' => __('Invalidate all sessions for this user'),
+            );
             if (!isset($byId[$id])) {
                 // A session for a user that no longer exists (e.g. deleted).
                 $rows[] = array(
@@ -137,6 +147,7 @@ class LoggedInUsersWidget
                     'meta' => __('account removed'),
                     'badge' => $count,
                     'muted' => true,
+                    'action' => $action,
                 );
                 continue;
             }
@@ -163,6 +174,7 @@ class LoggedInUsersWidget
                     'uuid' => isset($u['Organisation']['uuid']) ? $u['Organisation']['uuid'] : '',
                 ),
                 'drilldown' => '/admin/users/view/' . (int)$id,
+                'action' => $action,
             );
         }
         return $rows;

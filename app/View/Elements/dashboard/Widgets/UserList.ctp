@@ -14,7 +14,8 @@
  *
  *   $data = [
  *     // Optional summary header (at most one, normally first):
- *     ['type' => 'header', 'value' => '3 users online · 7 sessions'],
+ *     ['type' => 'header', 'value' => '3 users online · 7 sessions',
+ *      'search' => true],                       // optional → client filter box
  *
  *     // A user row:
  *     ['type' => 'user',
@@ -24,12 +25,21 @@
  *      'muted' => false,                       // optional → dimmed row
  *      'org'   => ['id' => 5, 'name' => 'ACME Corp', 'uuid' => '…'],
  *                                              // optional → avatar logo
- *      'drilldown' => '/admin/users/view/5'],  // optional (DD-03 gated)
+ *      'drilldown' => '/admin/users/view/5',   // optional (DD-03 gated)
+ *      'action' => ['url' => '/dashboards/…',  // optional → per-row button
+ *                   'label' => 'Invalidate sessions']],  //   (DD-03 gated)
  *
  *     // A full-width message (empty / error / unsupported states):
  *     ['type' => 'message', 'title' => 'Unsupported session engine',
  *      'value' => '…'],
  *   ];
+ *
+ * `search` (header) renders a filter input; user-list.module.mjs does the
+ * client-side row filtering + re-applies the term across auto-refresh.
+ * `action` (user) renders a sibling button carrying the URL — a <button>
+ * can't nest in the row's drilldown <a>, so the avatar/name/badge area is
+ * an inner link and the action button is its sibling. The module GET-loads
+ * the URL as a confirm form in the side panel and POSTs it (DD-36).
  *
  * A row with no `type` but a `name` is treated as a user; otherwise as a
  * message. Drilldown URL safety is gated by DashboardURLValidator (DD-03):
@@ -95,7 +105,20 @@ $initials = function ($name) {
     return '?';
 };
 
-echo '<div class="misp-user-list">';
+// Per-row action glyph — a "log out" icon (door + exit arrow). Inline
+// SVG, NOT FontAwesome: the dashboard layouts load different FA majors
+// per theme, so FA classes are unreliable (cf. StatGlyph / DD-32).
+$actionGlyph = '<svg class="misp-user-action-icon" viewBox="0 0 24 24" width="15" height="15"'
+    . ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"'
+    . ' stroke-linejoin="round" aria-hidden="true" focusable="false">'
+    . '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>'
+    . '<polyline points="16 17 21 12 16 7"/>'
+    . '<line x1="21" y1="12" x2="9" y2="12"/>'
+    . '</svg>';
+
+$instanceId = isset($instance_id) ? (string)$instance_id : '';
+echo '<div class="misp-user-list" data-misp-user-list data-misp-instance="'
+    . h($instanceId) . '">';
 foreach ($data as $row) {
     $type = isset($row['type']) ? $row['type']
         : (isset($row['name']) ? 'user' : 'message');
@@ -105,6 +128,15 @@ foreach ($data as $row) {
             . '<span class="misp-user-dot" aria-hidden="true"></span>'
             . '<span class="misp-user-headtext">' . h($row['value'] ?? '') . '</span>'
             . '</div>';
+        if (!empty($row['search'])) {
+            // Client-side filter input; user-list.module.mjs wires it and
+            // re-applies the term across the widget's auto-refresh.
+            echo '<div class="misp-user-searchbar">'
+                . '<input type="search" class="misp-user-search" data-misp-user-search'
+                . ' placeholder="' . h(__('Filter users…')) . '"'
+                . ' aria-label="' . h(__('Filter logged-in users')) . '" autocomplete="off">'
+                . '</div>';
+        }
         continue;
     }
 
@@ -141,7 +173,7 @@ foreach ($data as $row) {
         $badge = '<span class="misp-user-badge">' . h($row['badge']) . '</span>';
     }
 
-    $inner = sprintf(
+    $main = sprintf(
         '<span class="misp-user-avatar">%s</span>'
         . '<span class="misp-user-body">'
         . '<span class="misp-user-name">%s</span>'
@@ -153,16 +185,33 @@ foreach ($data as $row) {
         $badge
     );
 
-    $cls = 'misp-user-row' . (!empty($row['muted']) ? ' misp-user-muted' : '');
-
+    // The avatar/name/badge area is the drilldown link (or an inert div);
+    // a per-row action button (invalidate sessions, DD-36) is its SIBLING
+    // — a <button> can't live inside the <a>, and its click must not
+    // trigger the row drilldown.
     $href = null;
     if (!empty($row['drilldown'])) {
         $href = DashboardURLValidator::validate($row['drilldown']);
     }
-    if ($href !== null) {
-        echo sprintf('<a class="%s" href="%s">%s</a>', $cls, h($href), $inner);
-    } else {
-        echo sprintf('<div class="%s">%s</div>', $cls, $inner);
+    $mainEl = ($href !== null)
+        ? sprintf('<a class="misp-user-main" href="%s">%s</a>', h($href), $main)
+        : sprintf('<div class="misp-user-main">%s</div>', $main);
+
+    $action = '';
+    if (!empty($row['action']['url'])) {
+        $actionUrl = DashboardURLValidator::validate($row['action']['url']);
+        if ($actionUrl !== null) {
+            $label = !empty($row['action']['label'])
+                ? $row['action']['label']
+                : __('Invalidate sessions');
+            $action = '<button type="button" class="misp-user-action"'
+                . ' data-misp-user-action-url="' . h($actionUrl) . '"'
+                . ' title="' . h($label) . '" aria-label="' . h($label) . '">'
+                . $actionGlyph . '</button>';
+        }
     }
+
+    $cls = 'misp-user-row' . (!empty($row['muted']) ? ' misp-user-muted' : '');
+    echo sprintf('<div class="%s">%s%s</div>', $cls, $mainEl, $action);
 }
 echo '</div>';

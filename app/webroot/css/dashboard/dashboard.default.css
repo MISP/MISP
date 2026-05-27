@@ -1150,30 +1150,41 @@ a.misp-stat-card:hover .misp-stat-glyph {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The row is the card; .misp-user-main is the (flex) drilldown link that
+ * fills it, with an optional action button as a sibling on the right. */
 .misp-user-row {
   display: flex;
   align-items: center;
-  gap: var(--misp-dash-space-3);
+  gap: var(--misp-dash-space-2);
   padding: var(--misp-dash-space-2);
   border-radius: var(--misp-dash-radius-md);
   background: var(--misp-dash-surface-raised);
   border: 1px solid var(--misp-dash-border);
-  text-decoration: none;
-  color: var(--misp-dash-text);
   transition: border-color var(--misp-dash-transition-fast),
               box-shadow var(--misp-dash-transition-fast),
               transform var(--misp-dash-transition-fast);
 }
-a.misp-user-row:hover,
-a.misp-user-row:focus-visible {
-  border-color: var(--misp-dash-accent);
-  box-shadow: var(--misp-dash-shadow-sm);
+.misp-user-main {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-3);
+  flex: 1 1 auto;
+  min-width: 0;
   text-decoration: none;
   color: var(--misp-dash-text);
 }
-a.misp-user-row:focus-visible {
+.misp-user-row:hover {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-sm);
+}
+.misp-user-main:hover {
+  text-decoration: none;
+  color: var(--misp-dash-text);
+}
+.misp-user-main:focus-visible {
   outline: 2px solid var(--misp-dash-accent);
   outline-offset: 2px;
+  border-radius: var(--misp-dash-radius-sm);
 }
 .misp-user-row.misp-user-muted {
   opacity: 0.55;
@@ -1257,6 +1268,101 @@ a.misp-user-row:focus-visible {
 }
 .misp-user-message-text {
   font-size: var(--misp-dash-fs-sm);
+}
+/* Client-side filter box (DD-36); wired by user-list.module.mjs. */
+.misp-user-searchbar {
+  padding: 0 var(--misp-dash-space-1) var(--misp-dash-space-1);
+}
+.misp-user-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text);
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-user-search:focus {
+  outline: none;
+  border-color: var(--misp-dash-accent);
+  box-shadow: 0 0 0 2px var(--misp-dash-accent-muted);
+}
+/* Per-row destructive action button (invalidate sessions, DD-36).
+ * Muted by default, danger-tinted on hover/focus. */
+.misp-user-action {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  cursor: pointer;
+  color: var(--misp-dash-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--misp-dash-radius-sm);
+  transition: color var(--misp-dash-transition-fast),
+              background var(--misp-dash-transition-fast),
+              border-color var(--misp-dash-transition-fast);
+}
+.misp-user-action:hover,
+.misp-user-action:focus-visible {
+  color: var(--misp-dash-danger);
+  background: var(--misp-dash-danger-muted);
+  border-color: var(--misp-dash-danger);
+  outline: none;
+}
+.misp-user-action-icon {
+  display: block;
+}
+/* Confirm form fragment (invalidate_user_sessions.ctp) shown in the
+ * dashboard side panel. */
+.misp-user-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-3);
+}
+.misp-user-confirm-text {
+  margin: 0;
+  font-size: var(--misp-dash-fs-base);
+  color: var(--misp-dash-text);
+}
+.misp-user-confirm-sub {
+  margin: 0;
+  font-size: var(--misp-dash-fs-sm);
+  color: var(--misp-dash-text-muted);
+}
+.misp-user-confirm-form {
+  margin: 0;
+}
+.misp-user-confirm-actions {
+  display: flex;
+  gap: var(--misp-dash-space-2);
+  margin-top: var(--misp-dash-space-2);
+}
+.misp-user-confirm-btn {
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-4);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  cursor: pointer;
+}
+.misp-user-confirm-btn:hover {
+  border-color: var(--misp-dash-border-strong);
+}
+.misp-user-confirm-btn--danger {
+  color: var(--misp-dash-text-on-accent);
+  background: var(--misp-dash-danger);
+  border-color: var(--misp-dash-danger);
+}
+.misp-user-confirm-btn--danger:hover {
+  filter: brightness(0.94);
+  border-color: var(--misp-dash-danger);
 }
 
 /* ============================================================
