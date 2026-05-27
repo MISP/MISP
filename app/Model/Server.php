@@ -4873,13 +4873,17 @@ class Server extends AppModel
         $redis->del('misp:server_cache:' . $serverId);
         while (true) {
             if ($fastCaching) {
-                if (!isset($lastId)) {
-                    $lastId = 0;
+                try {
+                    $return = $serverSync->getFastCache($nextLastId);
+                } catch (Exception $e) {
+                    $this->logException("Could not fetch fast cache from server {$serverSync->serverId()}.", $e);
+                    break;
                 }
-                $return = $serverSync->getFastCache($nextLastId);
-                $nextLastId = (int)$return->headers['x-misp-last-id'] ?? null;
+                // Case-insensitive lookup: CakePHP preserves header field casing as received,
+                // and the server sends 'X-MISP-Last-ID'. Direct array access with a lowercase
+                // key silently returns null → (int) 0 → cursor never advances → infinite loop.
+                $nextLastId = (int)$return->getHeader('X-MISP-Last-ID');
                 $data = $return->body();
-                $nextLastId;
             } else {
                 $i++;
                 $rules = [
