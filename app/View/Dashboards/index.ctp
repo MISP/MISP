@@ -188,7 +188,8 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
       data-misp-board-widget-save-url="<?= h($baseurl) ?>/dashboards/updateWidgetSettings"
       data-misp-board-widgets-url="<?= h($baseurl) ?>/dashboards/widgets"
       data-misp-board-wrapper-url="<?= h($baseurl) ?>/dashboards/renderWrapper"
-      data-misp-board-export-url="<?= h($baseurl) ?>/dashboards/export">
+      data-misp-board-export-url="<?= h($baseurl) ?>/dashboards/export"
+      data-misp-board-session-action-url="<?= h($baseurl) ?>/dashboards/invalidateUserSessions">
 
     <?php
     if (empty($widgets)) {

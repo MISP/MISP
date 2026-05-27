@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('SessionStore', 'Lib/Dashboard/Tools');
 
 /**
  * Dashboard controller (v2). Mounted at /dashboards/* via CakePHP's
@@ -214,6 +215,114 @@ class DashboardsController extends AppController
             $this->User->UserSetting->validationErrors,
             $this->response->type()
         );
+    }
+
+    /**
+     * Invalidate (immediately purge) all active sessions for one user —
+     * the destructive companion to LoggedInUsersWidget (DD-36).
+     *
+     * Site-admin only. Follows MISP's modal-form CSRF pattern: a GET
+     * returns a confirm form carrying a freshly-minted Security token,
+     * and the form POSTs back to THIS same action, which BetterSecurity
+     * validates before the purge — so a stale page-load token can't be
+     * the failure mode.
+     *
+     * Deliberately NOT a JSON/REST request (no `application/json` Accept,
+     * no `.json` URL): an isJson()→isRest() request would make
+     * AppController disable csrfCheck, bypassing the very token this
+     * pattern depends on. The POST therefore stays a normal request (so
+     * the token is enforced) and returns JSON explicitly.
+     *
+     * Immediate purge of the Redis session keys, NOT MISP's lazy
+     * `force_logout` flag (which only fires on the user's next request
+     * and never clears abandoned sessions). Engine scope is the
+     * SessionStore tool's: PHP→Redis only. Only the user id flows in;
+     * no session token/payload is read.
+     */
+    public function invalidateUserSessions($userId = null)
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
+        }
+        $userId = (int)$userId;
+        if ($userId < 1) {
+            throw new NotFoundException(__('Invalid user.'));
+        }
+
+        // Resolve the target for the confirm copy + audit log (may be a
+        // removed account that still holds fossil sessions).
+        $target = $this->User->find('first', array(
+            'recursive' => -1,
+            'fields' => array('User.id', 'User.email'),
+            'conditions' => array('User.id' => $userId),
+        ));
+        $email = !empty($target['User']['email'])
+            ? $target['User']['email']
+            : sprintf(__('User #%d'), $userId);
+        $supported = SessionStore::isSupported();
+
+        if (!$this->request->is('post')) {
+            // GET → confirm form fragment. Form->create() mints the
+            // CSRF token; show how many sessions the purge will end.
+            $count = 0;
+            if ($supported) {
+                $store = new SessionStore();
+                if ($store->connect()) {
+                    $count = count($store->keysForUser($userId));
+                }
+            }
+            $this->layout = false;
+            $this->set(compact('userId', 'email', 'count', 'supported'));
+            $this->render('invalidate_user_sessions');
+            return;
+        }
+
+        // POST → BetterSecurity has already validated the token. Purge.
+        $this->autoRender = false;
+        $this->response->type('json');
+        if (!$supported) {
+            $this->response->statusCode(409);
+            $this->response->body(json_encode(array(
+                'saved' => false,
+                'errors' => __('Unsupported session engine (PHP → Redis only).'),
+            )));
+            return $this->response;
+        }
+        $store = new SessionStore();
+        if (!$store->connect()) {
+            $this->response->statusCode(502);
+            $this->response->body(json_encode(array(
+                'saved' => false,
+                'errors' => __('Could not connect to the session store.'),
+            )));
+            return $this->response;
+        }
+        $killed = $store->destroy($store->keysForUser($userId));
+
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->create();
+        $this->Log->saveOrFailSilently(array(
+            'org' => $this->Auth->user('Organisation')['name'],
+            'model' => 'User',
+            'model_id' => $userId,
+            'email' => $this->Auth->user('email'),
+            'action' => 'logout',
+            'user_id' => $this->Auth->user('id'),
+            'title' => sprintf(__('Invalidated %d active session(s) for user %s (#%d)'), $killed, $email, $userId),
+            'change' => __('Sessions purged from the dashboard logged-in-users widget.'),
+        ));
+
+        $this->response->body(json_encode(array(
+            'saved' => true,
+            'killed' => $killed,
+            'message' => sprintf(
+                __('Ended %d session%s for %s.'),
+                $killed,
+                $killed === 1 ? '' : 's',
+                $email
+            ),
+        )));
+        return $this->response;
     }
 
     /**
