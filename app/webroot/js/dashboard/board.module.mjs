@@ -48,6 +48,7 @@ import { initChartsIn, disposeChartsIn } from './charts/charts.module.mjs';
 import { openConfigure } from './configure.module.mjs';
 import { openGallery }   from './gallery.module.mjs';
 import { openExportConfig, openImportConfig } from './config-io.module.mjs';
+import { initUserList } from './user-list.module.mjs';
 import {
   initToolbar,
   refresh as refreshToolbar,
@@ -364,6 +365,20 @@ class Board {
         console.warn('[misp-dashboard] add-widget placement failed', err);
         this._dispatchEvent('add-widget-failed', { error: String(err) });
       });
+    });
+
+    // A widget's own injected JS can ask the board to re-render that
+    // widget by instance id — e.g. UserList after its invalidate-
+    // sessions purge (DD-36) repaints from authoritative server data
+    // instead of doing optimistic DOM surgery. Event-driven for the
+    // same reason as add-widget-pending above (no module forking).
+    this.root.addEventListener('misp-board:render-widget', (e) => {
+      const id = e.detail && e.detail.instanceId;
+      if (!id) return;
+      const el = this.root.querySelector(
+        `[${ATTR_WIDGET_INSTANCE}="${CSS.escape(String(id))}"]`
+      );
+      if (el) this._renderWidget(el);
     });
   }
 
@@ -1073,6 +1088,10 @@ function boot() {
   const root = document.querySelector(`[${ATTR_BOARD_ROOT}]`);
   if (!root) return;
   const board = new Board(root);
+  // Wire the UserList render kind's interactive bits (search filter +
+  // per-row session-invalidate action, DD-36). Self-contained; keys off
+  // the board's misp-board:widget-rendered event + the shared side panel.
+  initUserList();
   // Expose for ad-hoc poking from devtools.
   window.MISPBoard = board;
 }
