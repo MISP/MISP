@@ -3,9 +3,9 @@ class UsageDataWidget
 {
     public $title = 'Usage data';
     public $category = 'events';
-    public $render = 'SimpleList';
-    public $width = 2;
-    public $height = 5;
+    public $render = 'StatGrid';
+    public $width = 4;
+    public $height = 6;
     public $description = 'Shows usage data / statistics.';
     public $cacheLifetime = false;
     public $autoRefreshDelay = false;

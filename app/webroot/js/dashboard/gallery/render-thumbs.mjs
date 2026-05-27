@@ -172,6 +172,21 @@ function thumbPieChart() {
   ]);
 }
 
+function thumbStatGrid() {
+  // 2x2 grid of KPI cards, each with a short "value" bar inside —
+  // evokes the metric-card layout regardless of the data domain.
+  const card = (x, y) => [
+    shape('rect', { x, y, width: 16, height: 13, rx: 2, opacity: 0.55 }),
+    shape('rect', { x: x + 3, y: y + 4, width: 9, height: 4, rx: 1, fill: 'currentColor', stroke: 'none' }),
+  ];
+  return svg([
+    ...card(24, 11),
+    ...card(44, 11),
+    ...card(24, 27),
+    ...card(44, 27),
+  ]);
+}
+
 function thumbGeneric() {
   return svg([
     shape('rect', { x: 22, y: 14, width: 36, height: 17, rx: 2 }),
@@ -192,6 +207,7 @@ const REGISTRY = {
   Achievements:   thumbAchievements,
   PieChart:       thumbPieChart,
   MonitorLineChart: thumbMonitorLineChart,
+  StatGrid:       thumbStatGrid,
 };
 
 /**

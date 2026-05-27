@@ -1353,6 +1353,24 @@ gate (the user still does the merge).
     minting a second API key would mean replicating the hash scheme +
     mutating instance state; the proof chain is already complete).
 
+- [x] **Prettier key/value admin widgets — `StatGrid` render kind, Usage
+  widget first — landed 2026-05-27 (DD-31).** New `Widgets/StatGrid.ctp`
+  render kind: KPI **metric cards** (uppercase label, large value, `▲/▼`
+  delta badge) in a responsive `auto-fill / minmax(120px,1fr)` grid that
+  wraps to the widget width. **Same `{title,value,change,drilldown,
+  html_title,type:gap,html}` contract as `SimpleList`** → a drop-in
+  render-flip with no `handler()` change, reusable by the other key/value
+  admin widgets next. Adds value formatting (thousands grouping, 1-decimal
+  non-integers, string pass-through for `"96 (68 %)"`/`"N/A"`). Token-driven
+  `.misp-stat-*` CSS (midnight retones free); glyph `thumbStatGrid`
+  registered (CLAUDE.md rule). **Treatment fork surfaced via previews —
+  user picked the card grid over compact rows.** `UsageDataWidget`
+  `$render` flipped `SimpleList→StatGrid`, default size `2×5→4×6` (2-up).
+  Verified: live cookie-session render → HTTP 200, 14 cards; format/delta
+  branches unit-checked standalone; `php -l` + `node --check` clean.
+  `chgrp www-data`; signed commit. **First of the key/value-widget
+  refresh; the rest reuse `StatGrid` as-is.**
+
 ---
 
 ## Phase 6 — Merge to `develop`

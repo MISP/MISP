@@ -2334,3 +2334,62 @@ hiccup blocked the curl/HTTP path mid-session; it does not affect the
 session-cookie browser path the board actually uses, and the widget code runs
 only after auth.) Additive; reversible. Supersedes DD-29's client-only-buffer
 aspect (DD-29's in-place rendering + exportjson poll stand).
+
+## DD-31 — `StatGrid` render kind: KPI metric cards for key/value admin widgets
+
+**Date.** 2026-05-27
+**Phase context.** Post-5.5 "rework the key/value admin widgets into something
+more visually pleasing." The user nominated the **Usage data** widget
+(`UsageDataWidget`, `$render='SimpleList'`) as the first to convert, with the
+intent to reuse the result across the other key/value admin widgets
+(`MispStatusWidget`, the resource widgets, …).
+
+**Decision.** A **new render kind `StatGrid`** rather than restyling
+`SimpleList` in place — `SimpleList` is used by ~12 widgets, so a global
+restyle would be a wide blast radius for a request scoped to a few admin
+widgets. `StatGrid` lays each datum out as a **metric card**: small uppercase
+muted label, large prominent value, optional coloured delta badge (`▲` success
+/ `▼` danger). Cards sit in a responsive
+`grid-template-columns: repeat(auto-fill, minmax(120px, 1fr))` — one column
+when the widget is narrow, more as it widens, so it scales with v2's resize.
+
+**Treatment fork (surfaced via `AskUserQuestion` previews).** Two directions
+were offered: **(A) KPI card grid** (raised bordered cards, airy, scales to
+width) and **(B) compact stat rows** (denser single column, big right-aligned
+number, better at the narrow default slot). **User picked A.**
+
+**Same data contract as `SimpleList`** — by design, so any key/value widget can
+switch render kinds with no `handler()` change. `StatGrid.ctp` honours
+`title` / `value` / `change` / `drilldown` (whole card becomes a
+`DashboardURLValidator`-gated link, DD-03) / `html_title` (raw label) /
+`type:gap` (→ full-width section break, its `title` labels it) / legacy `html`
+(→ muted footer line). Value formatting added on top of SimpleList's raw echo:
+integers grouped (`48901 → 48,901`), non-integer numerics keep one decimal
+(`4.5`), integer-valued floats drop it (`38.0 → 38`), and pre-formatted strings
+(`"96 (68 %)"`, `"N/A"`) pass through untouched (`is_numeric` gate). `change`
+is rendered `number_format`-ed with an arrow whose colour/direction follows its
+sign (the Usage widget's `change` is a this-month/range growth count, so always
+the success `▲` in practice — the `▼` path is there for reuse).
+
+**Styling.** Token-driven `.misp-stat-*` block in `dashboard.default.css`
+only — no hardcoded colours, no inline styles — so the midnight theme (which
+overrides `--misp-dash-*` tokens and nothing else; 0 component selectors)
+retones it for free, same posture as every other renderer.
+
+**Glyph (CLAUDE.md render-kind rule).** `thumbStatGrid()` added to
+`render-thumbs.mjs` (a 2×2 grid of cards, each with a short "value" bar) and
+registered under `StatGrid`, so gallery cards for `StatGrid` widgets get a
+shape-evoking thumbnail rather than `thumbGeneric`.
+
+**Widget flip + footprint.** `UsageDataWidget::$render` `SimpleList → StatGrid`;
+default size widened `2×5 → 4×6` so the cards lay out ~2-up at the default
+placement (matching the approved preview). No `handler()` / data change.
+
+**Verified.** Live session render (cookie auth, the path the board uses):
+`POST /dashboards/renderWidget/teststat1` (`widget=UsageDataWidget`) → HTTP 200,
+all 14 cards, well-formed markup, `"0 (0 %)"` string value preserved (the dev
+instance is quiet → mostly zeros, no deltas live). The format + delta branches
+(thousands grouping, 1-decimal, string pass-through, `▲37`/`▼3`/`▲1,500`, no
+badge on `0`) were unit-checked standalone in PHP. `php -l` (`.ctp` +
+`UsageDataWidget`) and `node --check` (`render-thumbs.mjs`) clean. Pure
+addition; reverse by flipping `$render` (+ size) back — `SimpleList` untouched.

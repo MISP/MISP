@@ -707,6 +707,109 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 }
 
 /* ============================================================
+ * StatGrid renderer — KPI metric cards (DD-31). Same {title, value,
+ * change} data shape as SimpleList, laid out as a responsive grid of
+ * cards that wrap to the widget's width: one column when narrow, more
+ * as it widens (auto-fill / minmax). Token-driven, so the midnight
+ * theme retones it via the --misp-dash-* overrides alone.
+ * ============================================================ */
+.misp-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--misp-dash-space-2);
+  align-content: start;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 2px;
+}
+.misp-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  padding: var(--misp-dash-space-3);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-md);
+  box-shadow: var(--misp-dash-shadow-sm);
+}
+/* Card-as-drilldown-link (DD-03): inherit text colour, lift on hover. */
+a.misp-stat-card {
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast);
+}
+a.misp-stat-card:hover {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-md);
+}
+.misp-stat-label {
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--misp-dash-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.misp-stat-valuerow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--misp-dash-space-2);
+}
+.misp-stat-value {
+  font-size: var(--misp-dash-fs-xl);
+  font-weight: var(--misp-dash-fw-bold);
+  line-height: 1.1;
+  color: var(--misp-dash-text);
+  overflow-wrap: anywhere;
+}
+.misp-stat-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px var(--misp-dash-space-1);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-stat-delta-up {
+  color: var(--misp-dash-success);
+  background: var(--misp-dash-success-muted);
+}
+.misp-stat-delta-down {
+  color: var(--misp-dash-danger);
+  background: var(--misp-dash-danger-muted);
+}
+.misp-stat-arrow {
+  font-size: 9px;
+  line-height: 1;
+}
+.misp-stat-html {
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+}
+/* gap row → full-width section break across all grid columns. */
+.misp-stat-section {
+  grid-column: 1 / -1;
+  padding-bottom: var(--misp-dash-space-1);
+  margin-top: var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--misp-dash-text-muted);
+  border-bottom: 1px solid var(--misp-dash-border);
+}
+.misp-stat-section-blank {
+  border-bottom: 0;
+  margin-top: 0;
+}
+
+/* ============================================================
  * Index renderer — tabular records emitted by widgets that declare
  * `$render = 'Index'`. Body scrolls vertically; sticky header keeps
  * column names visible. Cell padding stays compact for dense data.
