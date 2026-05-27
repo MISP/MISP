@@ -10,26 +10,27 @@
  * autoRefreshDelay=false so the board scheduler never re-renders (and
  * resets) the tile — the chart's own poll loop is the sole driver.
  *
- * Expected $data shape (one current sample):
+ * Expected $data shape (DD-30 — server-persisted history):
  *   [
- *     'value' => float,        // current reading; seeds the first point
- *     'label' => 'CPU',        // series name (tooltip)
- *     'unit'  => '%',          // axis/tooltip suffix
- *     'yMax'  => 100 | null,   // axis-ceiling FLOOR (expands above it if a
- *                              //   sample exceeds; null = fully auto-scaled)
+ *     'history' => [[ts, value], ...],  // Redis-retained series (oldest
+ *                                       //   first); seeds + repaints the chart
+ *     'label'   => 'CPU',               // series name (tooltip)
+ *     'unit'    => '%',                 // axis/tooltip suffix
+ *     'yMax'    => 100 | null,          // axis-ceiling FLOOR (expands above it
+ *                                       //   if a sample exceeds; null = auto)
  *   ]
  *
- * window_sec / interval_sec come from $config (schema defaults injected by
- * CanonicalTypeAdapter; user-overridable in the configure form). The poll
+ * interval_sec comes from $config (schema default injected by
+ * CanonicalTypeAdapter; user-overridable in the configure form) and drives
+ * the client's poll cadence (the window is enforced server-side). The poll
  * base URL is read client-side from the board root, so it is not emitted
  * here.
  */
 $payload = array(
-    'value'        => isset($data['value']) ? $data['value'] : null,
+    'history'      => (isset($data['history']) && is_array($data['history'])) ? $data['history'] : array(),
     'label'        => isset($data['label']) ? $data['label'] : __('value'),
     'unit'         => isset($data['unit']) ? $data['unit'] : '',
     'yMax'         => array_key_exists('yMax', $data) ? $data['yMax'] : null,
-    'window_sec'   => isset($config['window']) ? (int)$config['window'] : 180,
     'interval_sec' => isset($config['interval']) ? (int)$config['interval'] : 10,
 );
 ?>

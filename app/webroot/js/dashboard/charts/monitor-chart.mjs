@@ -113,29 +113,29 @@ export function initMonitorChart(el, payload) {
   const renderUrl = rootEl ? rootEl.getAttribute(ATTR_RENDER_URL) : null;
 
   const intervalSec = Math.max(MIN_INTERVAL_SEC, Number(payload.interval_sec) || 10);
-  const windowSec   = Math.max(intervalSec, Number(payload.window_sec) || 180);
-  const maxPoints   = Math.max(2, Math.ceil(windowSec / intervalSec));
   const pollUrl     = (renderUrl && instance)
     ? `${renderUrl}/${encodeURIComponent(instance)}/exportjson:1`
     : null;
 
-  // Rolling buffers — client-side, this closure only.
-  const times = [];
-  const values = [];
-
-  function push(value) {
-    times.push(hhmmss(new Date()));
-    values.push(Number(value));
-    while (times.length > maxPoints) { times.shift(); values.shift(); }
-    chart.setOption({
-      xAxis: { data: times.slice() },
-      series: [{ data: values.slice() }],
-    });
+  // Draw a server-persisted series (DD-30): [[ts, value], ...], oldest
+  // first. The buffer + windowing live server-side (Redis), so the client
+  // just repaints whatever history the handler returns — in place (no
+  // flicker), and consistent across reload / refresh / multiple viewers.
+  // Timestamps are the server's, so labels are stable across reloads.
+  function render(history) {
+    const times = [];
+    const values = [];
+    for (const row of (Array.isArray(history) ? history : [])) {
+      if (!Array.isArray(row) || row.length < 2) continue;
+      times.push(hhmmss(new Date(Number(row[0]) * 1000)));
+      values.push(Number(row[1]));
+    }
+    chart.setOption({ xAxis: { data: times }, series: [{ data: values }] });
   }
 
-  // Seed with the sample the server render already computed, so the
-  // chart shows a point immediately rather than waiting one interval.
-  if (isFiniteNum(payload.value)) push(Number(payload.value));
+  // Seed from the history the server render already returned, so the chart
+  // shows the accumulated series immediately (not just one fresh point).
+  render(payload.history);
 
   let stopped = false;
   async function poll() {
@@ -158,7 +158,7 @@ export function initMonitorChart(el, payload) {
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
-      if (data && isFiniteNum(data.value)) push(Number(data.value));
+      if (data && Array.isArray(data.history)) render(data.history);
     } catch (err) {
       // Non-fatal: skip this tick, keep the accumulated series.
       console.warn('[misp-dashboard:monitor] poll failed', err);

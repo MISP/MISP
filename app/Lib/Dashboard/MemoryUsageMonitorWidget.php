@@ -1,15 +1,18 @@
 <?php
 
+App::uses('MonitorSeriesStore', 'Lib/Dashboard/Tools');
+
 /**
  * Live memory-usage monitor widget (dashboard v2). Site-admin-only,
  * streaming alternative to MispSystemResourceWidget's static memory line:
  * it plots memory used-% as a rolling line.
  *
  * Reuses the MonitorLineChart render kind (DD-29): each handler() call
- * returns ONE current sample, and the renderer accumulates a rolling time
- * series client-side by polling this handler every `interval` seconds
- * (autoRefreshDelay=false keeps the board scheduler from re-rendering the
- * tile). Not cached (no $cache_duration) → every poll reads live.
+ * records the current sample into a Redis ring buffer and returns the
+ * retained `window`s of history (DD-30); the renderer draws that series
+ * and re-polls every `interval`s to extend it (autoRefreshDelay=false
+ * keeps the board scheduler from re-rendering the tile). Not cached
+ * (no $cache_duration) → every poll reads live.
  */
 class MemoryUsageMonitorWidget
 {
@@ -41,11 +44,13 @@ class MemoryUsageMonitorWidget
 
     public function handler(array $user, $options = array())
     {
+        $window = isset($options['window']) ? (int)$options['window'] : 180;
+        $interval = isset($options['interval']) ? (int)$options['interval'] : 10;
         return array(
-            'value' => $this->__usedPercent(),
-            'label' => __('Memory'),
-            'unit'  => '%',
-            'yMax'  => 100,
+            'history' => MonitorSeriesStore::record('memory', $this->__usedPercent(), $window, $interval),
+            'label'   => __('Memory'),
+            'unit'    => '%',
+            'yMax'    => 100,
         );
     }
 

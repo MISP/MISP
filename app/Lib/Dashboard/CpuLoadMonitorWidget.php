@@ -1,5 +1,7 @@
 <?php
 
+App::uses('MonitorSeriesStore', 'Lib/Dashboard/Tools');
+
 /**
  * Live CPU-load monitor widget (dashboard v2). A site-admin-only,
  * streaming alternative to MispSystemResourceWidget's static load line:
@@ -7,11 +9,13 @@
  * (sys_getloadavg()[0] / cores * 100) — a 0–100%+ "saturation" reading
  * that can exceed 100 on an overloaded host.
  *
- * Each handler() call returns ONE current sample. The MonitorLineChart
- * renderer accumulates a rolling time series client-side by polling this
- * handler every `interval` seconds (autoRefreshDelay=false keeps the board
- * scheduler from re-rendering the tile). Not cached (no $cache_duration),
- * so every poll reads live.
+ * Each handler() call records the current sample into a Redis ring buffer
+ * and returns the retained `window`s of history (DD-30). The
+ * MonitorLineChart renderer draws that series and re-polls this handler
+ * every `interval`s to extend it in place (autoRefreshDelay=false keeps
+ * the board scheduler from re-rendering the tile). Persisting server-side
+ * means a reload/refresh repaints the accumulated history rather than
+ * starting empty. Not cached (no $cache_duration) → every poll reads live.
  */
 class CpuLoadMonitorWidget
 {
@@ -46,11 +50,14 @@ class CpuLoadMonitorWidget
         $cores = $this->__cpuCount();
         $load = function_exists('sys_getloadavg') ? sys_getloadavg() : false;
         $oneMin = (is_array($load) && isset($load[0])) ? (float)$load[0] : 0.0;
+        $value = round($oneMin / $cores * 100, 2);
+        $window = isset($options['window']) ? (int)$options['window'] : 180;
+        $interval = isset($options['interval']) ? (int)$options['interval'] : 10;
         return array(
-            'value' => round($oneMin / $cores * 100, 2),
-            'label' => __('CPU'),
-            'unit'  => '%',
-            'yMax'  => 100,
+            'history' => MonitorSeriesStore::record('cpu', $value, $window, $interval),
+            'label'   => __('CPU'),
+            'unit'    => '%',
+            'yMax'    => 100,
         );
     }
 

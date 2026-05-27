@@ -2278,3 +2278,59 @@ states). The in-browser accumulation / pause-on-hidden behaviour is the
 user's to eyeball (no headless browser on the box; prior sessions deferred
 gold-standard browser checks likewise). Additive; reversible. Implemented one
 widget at a time (disk → CPU → memory), commit per task.
+
+## DD-30 — Server-side Redis history for the monitor line widgets (refines DD-29's client-only buffer)
+
+**Date.** 2026-05-27
+**Phase context.** DD-29 accumulated the CPU/memory series **client-side only**
+(in the chart's JS closure), so a page reload or a manual refresh started the
+graph empty. The user asked to persist samples and "pre-populate the graph with
+each call to the widget backend code with whatever is in Redis".
+
+**Decision.** Move the rolling buffer **server-side into Redis**; the client
+stops owning a buffer and simply renders whatever series the handler returns.
+The in-place streaming (DD-29) is kept — no flicker — but it now repaints a
+persisted series, so reload / manual refresh / a second viewing admin all show
+the **same accumulated history**. (Considered + rejected the simpler "switch to
+the standard scheduler redraw" alternative: it would delete `monitor-chart.mjs`
+but re-init the chart every 10s, a visible flicker. User picked the in-place +
+Redis option.)
+
+**Mechanism.** New `app/Lib/Dashboard/Tools/MonitorSeriesStore::record($metric,
+$value, $window, $interval)`:
+- One **sorted set per metric** (`misp:dashboard_monitor:<metric>`), score =
+  unix ts, member = `"<ts>:<value>"`. `zAdd` the current sample,
+  `zRemRangeByScore` everything older than the window, `expire` the key at
+  `window + interval` (idle metrics self-clean — no sampling happens while no
+  dashboard polls), `zRangeByScore … WITHSCORES` to return the ordered series
+  as `[[ts, value], …]`.
+- **Cross-viewer dedup**: skip the `zAdd` when the newest sample is younger than
+  `floor(interval/2)`s, so several admins polling the same global metric don't
+  over-densify the series.
+- **Redis-down**: returns a single-point series (the current sample) so the
+  widget still renders. Reuses `RedisTool::init()` (DB 13) like `WidgetCache`.
+
+**Data-contract change.** `CpuLoadMonitorWidget`/`MemoryUsageMonitorWidget`
+`handler()` now `record()` the sample and return **`history`** (the full series)
+instead of a single `value`. `MonitorLineChart.ctp` carries `history` in the
+payload (+ `interval_sec` for the poll cadence; the window is enforced
+server-side now). `monitor-chart.mjs` drops its client buffer/trim logic for a
+`render(history)` that maps `[[ts,value],…]` → labels (formatted from the
+**server** ts, so labels are stable across reloads) + values, and `setOption`s
+in place; it seeds from `payload.history` and repaints from `data.history` on
+each poll. The disk pie is unaffected (a snapshot — no history).
+
+**Scope note.** The key is **global per metric**, not per-user: CPU/memory are
+host-wide facts, identical for every admin, so a shared series is correct (and
+these widgets are site-admin-gated anyway).
+
+**Verified (shell, bypassing HTTP/auth — authoritative for the store).** 4 CPU
+polls ~2s apart grew `history` `1→2→3→4` with live-drifting values; memory a
+separate key (`83.83%`, matching a direct `/proc/meminfo` cross-check); two
+immediate re-polls within the dedup gap left the length unchanged (5→5); the
+Redis sorted set held ordered `ts:value` members with `TTL=62`s (window 60 +
+interval 2). `php -l` + `node --check` clean. (An unrelated dev-box API-key auth
+hiccup blocked the curl/HTTP path mid-session; it does not affect the
+session-cookie browser path the board actually uses, and the widget code runs
+only after auth.) Additive; reversible. Supersedes DD-29's client-only-buffer
+aspect (DD-29's in-place rendering + exportjson poll stand).
