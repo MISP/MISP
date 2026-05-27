@@ -187,6 +187,20 @@ function thumbStatGrid() {
   ]);
 }
 
+function thumbNetworkGraph() {
+  // Hub-and-spoke: a centre node with three edges out to ringed nodes.
+  return svg([
+    // edges first so the nodes sit on top
+    shape('line', { x1: 40, y1: 22.5, x2: 24, y2: 13, opacity: 0.6 }),
+    shape('line', { x1: 40, y1: 22.5, x2: 56, y2: 13, opacity: 0.6 }),
+    shape('line', { x1: 40, y1: 22.5, x2: 40, y2: 37, opacity: 0.6 }),
+    shape('circle', { cx: 40, cy: 22.5, r: 5, fill: 'currentColor', stroke: 'none' }),
+    shape('circle', { cx: 24, cy: 13, r: 3.2, fill: 'currentColor', stroke: 'none', opacity: 0.65 }),
+    shape('circle', { cx: 56, cy: 13, r: 3.2, fill: 'currentColor', stroke: 'none', opacity: 0.65 }),
+    shape('circle', { cx: 40, cy: 37, r: 3.2, fill: 'currentColor', stroke: 'none', opacity: 0.65 }),
+  ]);
+}
+
 function thumbGeneric() {
   return svg([
     shape('rect', { x: 22, y: 14, width: 36, height: 17, rx: 2 }),
@@ -208,6 +222,7 @@ const REGISTRY = {
   PieChart:       thumbPieChart,
   MonitorLineChart: thumbMonitorLineChart,
   StatGrid:       thumbStatGrid,
+  NetworkGraph:   thumbNetworkGraph,
 };
 
 /**

@@ -4,62 +4,83 @@ class MispAdminSyncTestWidget
 {
     public $title = 'MISP Sync Test';
     public $category = 'system';
-    public $render = 'SimpleList';
-    public $width = 3;
-    public $height = 2;
+    public $render = 'NetworkGraph';
+    public $width = 4;
+    public $height = 5;
     public $params = array();
     public $schema = array();
-    public $description = 'Basic widget showing some server statistics in regards to MISP.';
+    public $description = 'Network diagram of the sync servers this instance connects to, each node coloured by its live connection-test outcome (hover a node for the URL + reason).';
     public $cacheLifetime = 1;
+    // Connection tests hit every sync server over the network on each
+    // render, so do NOT let the board scheduler re-run them on a timer —
+    // the admin refreshes manually when they want a fresh probe.
+    public $autoRefreshDelay = false;
 
-
-	public function handler($user, $options = array())
-	{
+    public function handler($user, $options = array())
+    {
         $this->Server = ClassRegistry::init('Server');
         $servers = $this->Server->find('all', array(
             'fields' => array('id', 'url', 'name', 'pull', 'push', 'caching_enabled', 'authkey', 'cert_file', 'client_cert_file', 'self_signed'),
             'conditions' => array('OR' => array('pull' => 1, 'push' => 1, 'caching_enabled' => 1)),
             'recursive' => -1
         ));
-        $data = array();
         if (empty($servers)) {
-            return array();
+            return array('error' => __('No sync servers configured.'));
         }
+
+        // The current instance is the hub node.
+        $baseurl = Configure::read('MISP.baseurl');
+        $selfName = Configure::read('MISP.org');
+        $nodes = array(array(
+            'id' => 'self',
+            'name' => !empty($selfName) ? $selfName : __('This instance'),
+            'url' => !empty($baseurl) ? $baseurl : '',
+            'status' => 'self',
+            'message' => __('Current instance (sync root).'),
+        ));
+        $links = array();
+
         $syncTestErrorCodes = $this->Server->syncTestErrorCodes;
         foreach ($servers as $server) {
             $result = $this->Server->runConnectionTest($server, false);
             if ($result['status'] === 1) {
+                // Connected — green unless an access permission is missing,
+                // in which case amber with the specific gap spelled out.
+                $status = 'ok';
                 $message = __('Connected.');
-                $colour = 'green';
                 if (empty($result['info']['perm_sync'])) {
-                    $colour = 'orange';
+                    $status = 'warn';
                     $message .= ' ' . __('No sync access.');
                 }
                 if (empty($result['info']['perm_sighting'])) {
-                    $colour = 'orange';
+                    $status = 'warn';
                     $message .= ' ' . __('No sighting access.');
                 }
                 if (empty($result['info']['perm_analyst_data'])) {
-                    $colour = 'orange';
+                    $status = 'warn';
                     $message .= ' ' . __('No analyst data sync access.');
                 }
             } else {
-                $colour = 'red';
+                $status = 'error';
                 $message = $syncTestErrorCodes[$result['status']];
             }
-            $data[] = array(
-                'title' => sprintf(
-                    'Server #%s (%s - %s)',
-                    h($server['Server']['id']),
-                    h($server['Server']['name']),
-                    h($server['Server']['url'])
+            $id = 'srv-' . $server['Server']['id'];
+            $nodes[] = array(
+                'id' => $id,
+                'name' => sprintf(
+                    '#%s %s',
+                    $server['Server']['id'],
+                    $server['Server']['name']
                 ),
-                'value' => h($message),
-                'class' => $colour
+                'url' => $server['Server']['url'],
+                'status' => $status,
+                'message' => $message,
             );
+            $links[] = array('source' => 'self', 'target' => $id);
         }
-        return $data;
-	}
+
+        return array('nodes' => $nodes, 'links' => $links);
+    }
 
     public function checkPermissions($user)
     {

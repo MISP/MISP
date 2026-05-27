@@ -1392,6 +1392,24 @@ gate (the user still does the merge).
     can't force a horizontal scroll. Confirmed by the user + a headless
     screenshot. `chgrp`; signed commit.
 
+- [x] **Sync-test widget → network diagram — `NetworkGraph` render kind —
+  landed 2026-05-27 (DD-33).** `MispAdminSyncTestWidget` flips
+  `SimpleList → NetworkGraph` (ECharts `graph` series): `self` hub (current
+  instance) + one node per sync server, links `self→server`; same
+  `runConnectionTest()` loop reshaped to `{nodes, links}`. **3 node states
+  kept** (fork: user said green/red, but `warn`=reachable-but-missing-perm
+  is real signal) — ok green / warn amber / error red / self accent, via
+  semantic tokens. Fixed hub-and-spoke `layout:'none'` (deterministic, no
+  refresh reshuffle); links by index (dup names safe); generous margins so
+  bottom labels don't clip; `roam:true`; tooltip = name/url/message (outage
+  reason). **Bundle rebuilt — `GraphChart` added to `use([...])`**
+  (666→702 KB) or `type:'graph'` renders nothing (sibling tree-shaking
+  rule, cf. PieChart); VENDORING.md + `thumbNetworkGraph` glyph done.
+  `autoRefreshDelay=false` (tests hit the network per render); size
+  `3×2→4×5`. Verified: live `{nodes,links}` (self + 6 leaves, 1 green /
+  rest red) + **headless-Chrome render over HTTP** → graph draws with the
+  rebuilt bundle, all nodes/edges/labels fit. `chgrp`; signed commit.
+
 ---
 
 ## Phase 6 — Merge to `develop`

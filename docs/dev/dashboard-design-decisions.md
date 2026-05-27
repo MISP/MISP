@@ -2434,3 +2434,64 @@ metrics). All 14 glyphs **rasterised to a montage PNG and eye-checked** —
 recognisable, consistent stroke. `php -l` clean (`StatGlyph` + `.ctp` +
 `UsageDataWidget`). Additive; reverse by dropping the `icon` keys (labels
 return). Refines DD-31's label rendering; the rest of DD-31 stands.
+
+## DD-33 — `NetworkGraph` render kind: sync-test widget as a hub-and-spoke diagram
+
+**Date.** 2026-05-27
+**Phase context.** User: rework `MispAdminSyncTestWidget` (a flat
+colour-coded `SimpleList`) into a **network diagram** — current instance as
+the root, each connected sync server a node coloured by its live
+connection-test outcome, hover a node for its URL + the test result (where an
+admin reads the reason for an outage).
+
+**Decision.** New **`NetworkGraph`** render kind backed by ECharts' `graph`
+series. `MispAdminSyncTestWidget::$render` flips to it and its `handler()`
+reshapes the same `runConnectionTest()` loop into `{nodes, links}`: a `self`
+hub node (current instance, from `MISP.baseurl`/`MISP.org`) plus one node per
+sync server, each carrying `status`, `url`, `message`; links are `self →
+server`. The renderer is generic (any `{nodes, links}` graph), reused by the
+sync widget first.
+
+**Node states — kept the existing THREE, not two (fork surfaced).** The user
+phrased it "green or red", but the old widget already distinguished a third
+state, and that signal is worth keeping: `ok` green (connected, full access),
+`warn` amber (reachable but missing sync/sighting/analyst-data permission —
+the message spells out which), `error` red (unreachable/failed,
+`syncTestErrorCodes[status]`); the hub is `self` (accent). User chose to keep
+all three. Colours come from semantic theme tokens (`--misp-dash-success` /
+`-warning` / `-danger` / `-accent`) so themes retone the graph.
+
+**Layout — fixed hub-and-spoke, not force-directed.** `layout:'none'` with the
+hub at centre and spokes placed on a ring (computed in `buildNetworkOption`),
+so positions are deterministic and don't reshuffle between renders. Links use
+node **indices** (not names) so duplicate/empty server names can't break edge
+matching. ECharts fits the node-centre bbox nearly to the series rect, so the
+`left/right/top/bottom` margins are deliberately generous (20/20/16/22%) to
+leave room for the symbol radius + the `bottom`-positioned labels (a tighter
+margin clipped the bottom node's label — caught in a headless screenshot).
+`roam:true` lets an admin pan/zoom for dense topologies. Tooltip formatter
+emits `name / url / message` per node.
+
+**Bundle rebuild (the tree-shaking sibling rule).** `graph` is a new ECharts
+series type → **`GraphChart` added to the vendored bundle's `use([...])` and
+rebuilt** (echarts@6.0.0 + esbuild@0.24.0, the reusable `/tmp/echarts-bundle`;
+666→702 KB raw / 221→239 KB gz), else a `type:'graph'` series renders nothing
+(memory `project_misp_echarts_bundle_treeshaken`; same gotcha as PieChart in
+DD-29). VENDORING.md table + recipe updated. New `NetworkGraph` glyph
+(`thumbNetworkGraph`, a hub + 3 spokes) registered per the CLAUDE.md render-kind
+rule.
+
+**Cost note.** `runConnectionTest()` hits every sync server over the network on
+each render, so **`autoRefreshDelay=false`** — the board scheduler must not
+re-probe on a timer; the admin refreshes manually. Default size `3×2 → 4×5`
+(roughly square so a full ring + labels fit).
+
+**Verified.** Live session render → HTTP 200, `{nodes, links}` payload with the
+`self` hub + 6 sync-server leaves (1 green `ok`, the rest red `error` —
+"Authentication failed" on the dev box's test servers; no `warn` present in
+this data). **Rendered client-side via headless Chrome over HTTP** (ESM modules
+don't load over `file://`) → the hub-and-spoke graph draws with the rebuilt
+bundle, colours + edges + labels correct, all 7 nodes fit after the margin
+bump. `php -l` (`.ctp` + widget) + `node --check` (`charts.module.mjs` +
+bundle + `render-thumbs.mjs`) clean. Additive; reverse by flipping `$render`
+back to `SimpleList` (the bundle keeps `GraphChart`, harmless).

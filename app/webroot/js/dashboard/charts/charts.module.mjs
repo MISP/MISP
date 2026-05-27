@@ -375,11 +375,110 @@ function buildPieOption(payload, hostEl) {
   };
 }
 
+/**
+ * Network/hub-and-spoke graph (kind "network", render kind NetworkGraph).
+ *
+ * Payload:
+ *   {
+ *     nodes: [
+ *       { id, name, url, status: 'self'|'ok'|'warn'|'error', message },
+ *       ...                       // the 'self' node (or nodes[0]) is the hub
+ *     ],
+ *     links: [ { source: <id>, target: <id> }, ... ],
+ *     error: 'message'            // optional empty-state (handled in the .ctp)
+ *   }
+ *
+ * Layout is fixed (layout:'none'): the hub sits at the centre and the
+ * remaining nodes are placed on a ring around it, so node positions are
+ * deterministic and don't reshuffle on each auto-refresh (unlike a force
+ * layout). Status maps to semantic theme tokens, so themes retone it.
+ * The tooltip shows each node's name, URL and test outcome — where an
+ * admin reads the reason for an outage.
+ */
+function buildNetworkOption(payload, hostEl) {
+  const nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
+  const links = Array.isArray(payload.links) ? payload.links : [];
+
+  const text   = tokenOn(hostEl, '--misp-dash-text',         '#1d2025');
+  const muted  = tokenOn(hostEl, '--misp-dash-text-muted',   '#5b6573');
+  const border = tokenOn(hostEl, '--misp-dash-border',       '#d8dde4');
+  const surface = tokenOn(hostEl, '--misp-dash-surface-raised', '#ffffff');
+  const statusColour = {
+    self:  tokenOn(hostEl, '--misp-dash-accent',  '#2563eb'),
+    ok:    tokenOn(hostEl, '--misp-dash-success', '#16a34a'),
+    warn:  tokenOn(hostEl, '--misp-dash-warning', '#d97706'),
+    error: tokenOn(hostEl, '--misp-dash-danger',  '#dc2626'),
+  };
+
+  // Hub = the 'self' node (fallback: first node). Spokes ring around it.
+  const hubIdx = Math.max(0, nodes.findIndex((n) => n.status === 'self'));
+  const spokes = nodes.filter((_, i) => i !== hubIdx);
+  const R = 100;            // ring radius in the layout's own units
+  const pos = new Map();    // node id -> [x, y]
+  pos.set(nodes[hubIdx] ? nodes[hubIdx].id : '__hub', [0, 0]);
+  spokes.forEach((n, i) => {
+    // Start at the top (-90°) and go clockwise; single spoke sits above.
+    const a = (-Math.PI / 2) + (2 * Math.PI * i) / Math.max(1, spokes.length);
+    pos.set(n.id, [Math.cos(a) * R, Math.sin(a) * R]);
+  });
+
+  const data = nodes.map((n, i) => {
+    const isHub = i === hubIdx;
+    const colour = statusColour[n.status] || statusColour.error;
+    const [x, y] = pos.get(n.id) || [0, 0];
+    return {
+      id: String(n.id),
+      name: n.name || String(n.id),
+      x, y,
+      symbolSize: isHub ? 46 : 34,
+      itemStyle: { color: colour, borderColor: surface, borderWidth: 2 },
+      label: { fontWeight: isHub ? 'bold' : 'normal' },
+      // custom fields for the tooltip
+      _url: n.url || '',
+      _message: n.message || '',
+    };
+  });
+
+  const idIndex = new Map(nodes.map((n, i) => [String(n.id), i]));
+  const edges = links
+    .map((l) => ({ source: idIndex.get(String(l.source)), target: idIndex.get(String(l.target)) }))
+    .filter((e) => e.source != null && e.target != null);
+
+  return {
+    tooltip: {
+      trigger: 'item',
+      formatter: (p) => {
+        if (p.dataType !== 'node') return '';
+        const d = p.data || {};
+        const url = d._url ? `<div>${d._url}</div>` : '';
+        const msg = d._message ? `<div>${d._message}</div>` : '';
+        return `<b>${p.name}</b>${url}${msg}`;
+      },
+    },
+    series: [{
+      type: 'graph',
+      layout: 'none',
+      roam: true,
+      // ECharts fits the node-centre bbox nearly to this rect, so the
+      // margins must leave room for the symbol radius + the 'bottom'-
+      // positioned labels (roomier bottom + sides) or they clip.
+      left: '20%', right: '20%', top: '16%', bottom: '22%',
+      label: { show: true, position: 'bottom', color: text, fontSize: 11 },
+      edgeLabel: { show: false },
+      lineStyle: { color: border, width: 1.5 },
+      emphasis: { focus: 'adjacency', lineStyle: { width: 2.5 } },
+      data,
+      links: edges,
+    }],
+  };
+}
+
 const builders = {
   bar: buildBarOption,
   line: buildLineOption,
   geo: buildGeoOption,
   pie: buildPieOption,
+  network: buildNetworkOption,
 };
 
 // ---- public API ----

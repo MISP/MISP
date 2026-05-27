@@ -9,7 +9,7 @@ GeoJSON for the OrganisationMap widget and similar geo-typed widgets.
 
 | File | Origin | Size (raw / gzipped) |
 |---|---|---|
-| `echarts.bundle.mjs` | Built locally with esbuild from `echarts@6.0.0`. ESM, minified. Includes BarChart, LineChart, MapChart, PieChart + supporting components + Canvas renderer. (PieChart added for the DiskUsageMonitorWidget donut, DD-29 — a `type:'pie'` series renders nothing if PieChart isn't `use()`'d, even though some generic component code references the `pie` subtype.) | 666 KB / 221 KB |
+| `echarts.bundle.mjs` | Built locally with esbuild from `echarts@6.0.0`. ESM, minified. Includes BarChart, LineChart, MapChart, PieChart, GraphChart + supporting components + Canvas renderer. (PieChart added for the DiskUsageMonitorWidget donut, DD-29; GraphChart added for the MispAdminSyncTestWidget network diagram, DD-33 — a `type:'graph'` series renders nothing if GraphChart isn't `use()`'d. Same tree-shaking gotcha as PieChart.) | 702 KB / 239 KB |
 | `echarts.bundle.LEGAL.txt` | esbuild-extracted attribution comments from ECharts source. Required to ship alongside. | 1 KB / — |
 | `LICENSE.echarts` | The ECharts package's upstream `LICENSE` file (Apache 2.0, with NOTICE-style attributions to upstream contributors). Required by the licence. | 12 KB / — |
 | `world-110m.geojson` | World countries GeoJSON at 1:110,000,000 resolution (177 country features), converted from TopoJSON in `world-atlas@2.0.2` via `topojson-client.feature()`, then **antimeridian-split** so polygons spanning the date line (Russia, Fiji, Antarctica…) render correctly under ECharts. | 437 KB / 146 KB |
@@ -32,14 +32,14 @@ npm install --silent --no-audit --no-fund echarts@6.0.0 esbuild@0.24.0
 
 cat > entry.mjs <<'EOF'
 import * as echarts from 'echarts/core';
-import { BarChart, LineChart, MapChart, PieChart } from 'echarts/charts';
+import { BarChart, LineChart, MapChart, PieChart, GraphChart } from 'echarts/charts';
 import {
   GridComponent, TooltipComponent, LegendComponent, TitleComponent,
   DataZoomComponent, GeoComponent, VisualMapComponent, DatasetComponent,
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 echarts.use([
-  BarChart, LineChart, MapChart, PieChart,
+  BarChart, LineChart, MapChart, PieChart, GraphChart,
   GridComponent, TooltipComponent, LegendComponent, TitleComponent,
   DataZoomComponent, GeoComponent, VisualMapComponent, DatasetComponent,
   CanvasRenderer,
