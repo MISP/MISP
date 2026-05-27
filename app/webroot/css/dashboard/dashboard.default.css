@@ -1279,7 +1279,11 @@ a.misp-stat-card:hover .misp-stat-glyph {
 .misp-user-searchbar {
   padding: 0 var(--misp-dash-space-1) var(--misp-dash-space-1);
 }
-.misp-user-search {
+/* Selectors scoped under .misp-user-searchbar (specificity 0,2,0) so the
+ * box-sizing beats Bootstrap's `input[type="search"] { box-sizing:
+ * content-box }` (0,1,1) — otherwise width:100% + our padding/border
+ * overflow the input ~14px to the right (off-centre filter box). */
+.misp-user-searchbar .misp-user-search {
   width: 100%;
   box-sizing: border-box;
   padding: var(--misp-dash-space-1) var(--misp-dash-space-2);
@@ -1289,7 +1293,7 @@ a.misp-stat-card:hover .misp-stat-glyph {
   border: 1px solid var(--misp-dash-border);
   border-radius: var(--misp-dash-radius-sm);
 }
-.misp-user-search:focus {
+.misp-user-searchbar .misp-user-search:focus {
   outline: none;
   border-color: var(--misp-dash-accent);
   box-shadow: 0 0 0 2px var(--misp-dash-accent-muted);
