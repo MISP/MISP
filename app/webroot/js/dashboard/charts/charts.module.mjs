@@ -300,10 +300,85 @@ function buildLineOption(payload, hostEl) {
   };
 }
 
+// ---- pie (used/free donut) ----
+
+// Human-readable byte size for pie tooltips. Binary units (KiB-style
+// powers of 1024) since this serves disk/memory monitors.
+function formatBytes(n) {
+  const v = Number(n) || 0;
+  if (v < 1024) return `${v} B`;
+  const units = ['KB', 'MB', 'GB', 'TB', 'PB'];
+  let size = v / 1024;
+  let i = 0;
+  while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+  return `${size.toFixed(1)} ${units[i]}`;
+}
+
+function buildPieOption(payload, hostEl) {
+  const slices = payload.slices || {};
+  const colours = payload.colours || {};
+  const labels = Object.keys(slices);
+
+  const text  = tokenOn(hostEl, '--misp-dash-text',        '#1d2025');
+  const muted = tokenOn(hostEl, '--misp-dash-text-muted',  '#5b6573');
+  const accent = tokenOn(hostEl, '--misp-dash-accent',     '#1d4ed8');
+  const danger = tokenOn(hostEl, '--misp-dash-danger',     '#dc2626');
+  const border = tokenOn(hostEl, '--misp-dash-border',     '#d8dde4');
+
+  // Threshold styling: when used_pct exceeds threshold, the conventional
+  // "Used" slice turns red. Drives off the same data the SimpleList
+  // system widget thresholds on, but expressed via theme tokens.
+  const overThreshold =
+    payload.threshold != null && payload.used_pct != null &&
+    Number(payload.used_pct) > Number(payload.threshold);
+  const sliceColour = (label) => {
+    if (colours[label]) return colours[label];
+    if (label === 'Used') return overThreshold ? danger : accent;
+    if (label === 'Free') return border;
+    return undefined;
+  };
+
+  const data = labels.map((label) => {
+    const item = { name: label, value: Number(slices[label]) || 0 };
+    const c = sliceColour(label);
+    if (c) item.itemStyle = { color: c };
+    return item;
+  });
+
+  return {
+    // Centre read-out of the headline percentage (when supplied).
+    ...(payload.used_pct != null ? {
+      title: {
+        text: `${payload.used_pct}%`,
+        subtext: 'used',
+        left: 'center',
+        top: '34%',
+        textStyle: { color: overThreshold ? danger : text, fontSize: 20 },
+        subtextStyle: { color: muted, fontSize: 11 },
+      },
+    } : {}),
+    tooltip: {
+      trigger: 'item',
+      formatter: (p) => `${p.name}: ${formatBytes(p.value)} (${p.percent}%)`,
+    },
+    legend: { bottom: 0, textStyle: { color: text } },
+    series: [{
+      type: 'pie',
+      radius: ['48%', '72%'],
+      center: ['50%', '44%'],
+      avoidLabelOverlap: true,
+      label: { show: false },
+      labelLine: { show: false },
+      data,
+    }],
+  };
+}
+
 const builders = {
   bar: buildBarOption,
   line: buildLineOption,
   geo: buildGeoOption,
+  pie: buildPieOption,
 };
 
 // ---- public API ----

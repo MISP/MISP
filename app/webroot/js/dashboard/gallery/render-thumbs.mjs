@@ -153,6 +153,14 @@ function thumbAchievements() {
   ]);
 }
 
+function thumbPieChart() {
+  // Pie circle + one filled ~120° wedge (12 o'clock clockwise to ~2 o'clock).
+  return svg([
+    shape('circle', { cx: 40, cy: 22.5, r: 12, opacity: 0.45 }),
+    shape('path', { d: 'M40,22.5 L40,10.5 A12,12 0 0,1 50.4,28.5 Z', fill: 'currentColor', stroke: 'none' }),
+  ]);
+}
+
 function thumbGeneric() {
   return svg([
     shape('rect', { x: 22, y: 14, width: 36, height: 17, rx: 2 }),
@@ -171,6 +179,7 @@ const REGISTRY = {
   OrgsPictures:   thumbOrgsPictures,
   Attack:         thumbAttack,
   Achievements:   thumbAchievements,
+  PieChart:       thumbPieChart,
 };
 
 /**
