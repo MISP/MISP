@@ -390,6 +390,19 @@ class AppModel extends Model
                 'change' => json_encode($result['fails']),
             ));
         }
+        if (!empty($result['promoted_default'])) {
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org' => 'SYSTEM',
+                'model' => 'Server',
+                'model_id' => 0,
+                'email' => 'SYSTEM',
+                'action' => 'update_database',
+                'user_id' => 0,
+                'title' => __('Fallback dashboard default promoted.'),
+                'change' => __('Instance had no default dashboard; promoted: %s', implode(', ', $result['promoted_default'])),
+            ));
+        }
         return true;
     }
 

@@ -314,11 +314,17 @@ class Dashboard extends AppModel
      * silent auto-ingest on update (DD-24) leaves it false, so an update
      * never deletes a dashboard. See the prune block for its guards.
      *
+     * If a manifest declares `default_fallback` and the instance has no
+     * template flagged as the global default, that candidate is promoted to
+     * default so fresh users get a sensible board (DD-26). This fills an
+     * empty slot only — an admin's existing default is never overridden.
+     *
      * @param string|null $dir source directory (defaults to the shipped
      *                          one; overridable for tests)
      * @param bool $prune delete built-ins whose manifest no longer ships
-     * @return array ['success' => [id => ['name' => …]], 'fails' => [slug => msg],
-     *               and 'pruned' => [id => name] when $prune removed rows]
+     * @return array ['success' => [id => ['name' => …]], 'fails' => [slug => msg];
+     *               'pruned' => [id => name] when $prune removed rows;
+     *               'promoted_default' => [id => name] when a fallback was set]
      */
     public function importTemplatesFromDirectory($dir = null, $prune = false)
     {
@@ -331,6 +337,7 @@ class Dashboard extends AppModel
             return $result;
         }
         $shippedUuids = array();
+        $fallbackUuids = array();
         $manifests = glob($dir . DS . '*' . DS . 'template.json');
         foreach ($manifests as $path) {
             $slug = basename(dirname($path));
@@ -341,6 +348,12 @@ class Dashboard extends AppModel
                 // never mistaken for an orphan and pruned.
                 if (!empty($template['uuid'])) {
                     $shippedUuids[] = $template['uuid'];
+                    // A manifest may declare itself the fallback default
+                    // (DD-26): promoted to the global default below, but
+                    // only when the instance has no default set.
+                    if (!empty($template['default_fallback'])) {
+                        $fallbackUuids[] = $template['uuid'];
+                    }
                 }
                 $id = $this->__importTemplate($template);
                 $result['success'][$id] = array('name' => $template['name']);
@@ -375,6 +388,37 @@ class Dashboard extends AppModel
                 $result['pruned'] = $orphans;
             }
         }
+        // Fallback default (DD-26): if a shipped manifest declares
+        // default_fallback and the instance has NO template flagged default,
+        // promote that candidate to the global default so a fresh
+        // user lands on a sensible board instead of the empty state. Fires
+        // on every ingest (explicit + the silent auto-ingest on update) but
+        // only fills an empty slot — an admin's existing default (built-in
+        // or otherwise) is preserved by the COUNT guard and by
+        // __importTemplate's default-preservation. Single-default invariant
+        // holds: we only set one, and only when none exists. saveField (not
+        // updateAll) avoids the phantom org_id join.
+        if (!empty($fallbackUuids)) {
+            $hasDefault = $this->find('count', array(
+                'recursive' => -1,
+                'conditions' => array('Dashboard.default' => 1),
+            ));
+            if (empty($hasDefault)) {
+                $candidate = $this->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('Dashboard.uuid' => $fallbackUuids),
+                    'order' => array('Dashboard.id' => 'ASC'),
+                    'fields' => array('Dashboard.id', 'Dashboard.name'),
+                ));
+                if (!empty($candidate)) {
+                    $this->id = $candidate['Dashboard']['id'];
+                    $this->saveField('default', 1);
+                    $result['promoted_default'] = array(
+                        $candidate['Dashboard']['id'] => $candidate['Dashboard']['name'],
+                    );
+                }
+            }
+        }
         return $result;
     }
 
@@ -399,7 +443,7 @@ class Dashboard extends AppModel
         $existing = $this->find('first', array(
             'recursive' => -1,
             'conditions' => array('Dashboard.uuid' => $template['uuid']),
-            'fields' => array('Dashboard.id'),
+            'fields' => array('Dashboard.id', 'Dashboard.default'),
         ));
         $data = array(
             'uuid' => $template['uuid'],
@@ -407,7 +451,6 @@ class Dashboard extends AppModel
             'description' => isset($template['description']) ? $template['description'] : '',
             'user_id' => 0,
             'selectable' => isset($template['selectable']) ? (int)(bool)$template['selectable'] : 1,
-            'default' => 0,
             'restrict_to_org_id' => isset($template['restrict_to_org_id']) ? (int)$template['restrict_to_org_id'] : 0,
             'restrict_to_role_id' => isset($template['restrict_to_role_id']) ? (int)$template['restrict_to_role_id'] : 0,
             'restrict_to_permission_flag' => isset($template['restrict_to_permission_flag']) ? (string)$template['restrict_to_permission_flag'] : '',
@@ -416,8 +459,16 @@ class Dashboard extends AppModel
         );
         if (!empty($existing)) {
             $data['id'] = $existing['Dashboard']['id'];
+            // Preserve the existing default flag: an admin may have promoted
+            // this built-in to the global default, and a re-ingest must not
+            // silently demote it. (DD-26 refines DD-22's blanket default=0.)
+            $data['default'] = (int)$existing['Dashboard']['default'];
         } else {
             $this->create();
+            // A newly-shipped built-in never seizes the default slot on
+            // insert; the fallback-default promotion (below, conditional on
+            // no default existing) is the only path that sets default=1.
+            $data['default'] = 0;
         }
         if (!$this->save(array('Dashboard' => $data))) {
             throw new Exception(__('Database error: %s', json_encode($this->validationErrors)));

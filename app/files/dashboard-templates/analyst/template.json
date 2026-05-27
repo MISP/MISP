@@ -3,6 +3,7 @@
     "name": "Analyst",
     "description": "A threat-analyst starting point: trending attribute values and tags, the geographic spread of recent indicators and of known threat actors, and the latest sightings.",
     "selectable": true,
+    "default_fallback": true,
     "restrict_to_org_id": 0,
     "restrict_to_role_id": 0,
     "restrict_to_permission_flag": "",

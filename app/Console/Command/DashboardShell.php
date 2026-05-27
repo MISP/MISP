@@ -42,6 +42,11 @@ class DashboardShell extends AppShell
         foreach ($pruned as $id => $name) {
             $this->out(sprintf('  [PRUNE] %s (#%d) — no longer shipped', $name, $id));
         }
+        if (!empty($result['promoted_default'])) {
+            foreach ($result['promoted_default'] as $id => $name) {
+                $this->out(sprintf('  [DEFAULT] %s (#%d) — promoted (instance had no default)', $name, $id));
+            }
+        }
         $this->out(sprintf(
             '%d built-in dashboard template(s) imported, %d failed, %d orphaned pruned.',
             count($result['success']),

@@ -2021,3 +2021,72 @@ orphan while re-importing the three real built-ins (`1 orphaned pruned`); a
 seeded `default = 1` orphan survived (`0 orphaned pruned`); and the bare
 no-prune call (the exact DD-24 migration path) left a seeded orphan intact
 with no `pruned` key. `php -l` clean ×3. Additive/reversible.
+
+## DD-26 — Default dashboard templates: a manifest-declared fallback default, promoted when the instance has none (extends DD-22)
+
+**Date.** 2026-05-27
+**Phase context.** With starter templates now shipped (DD-22) and
+auto-ingested (DD-24), a fresh user still lands on the empty board unless an
+admin promotes a template to the global default — because the shipped
+starters are `default=0` (`getDashboardTemplate(default=1)` finds nothing,
+so `index()` renders the empty state). The user asked: make **Analyst** the
+default *if, at ingest time, no template is set as the default*.
+
+**Is `default` guarded against multiple flagged rows? (asked + answered.)**
+**No hard guard.** The `dashboards` table has **no index/constraint on
+`default`** at all. The single-default invariant is maintained only by
+`saveDashboardTemplate()` → `__unsetPreviousDefault()`, which `find('first',
+default=1)`s and demotes **exactly one** row before setting a new default —
+so it assumes the invariant already holds (duplicates would not be fully
+reconciled), and `getDashboardTemplate()` just `find('first')`s on the read
+side. This shaped the design: the promotion below only ever fires when
+`COUNT(default=1) === 0`, so it cannot create a second default.
+
+**Decision.**
+1. **Declarative fallback marker.** A manifest may carry
+   `"default_fallback": true`. `importTemplatesFromDirectory()` collects the
+   uuids of such manifests; after import (and prune), if **no** row holds
+   `default=1`, it promotes the first fallback candidate (by id) to
+   `default=1` via `saveField` (not `updateAll` — phantom `org_id` join,
+   DD-25). Result gains `'promoted_default' => [id => name]`. Only **Analyst**
+   carries the flag. Chosen over hardcoding Analyst's uuid in the model
+   (declarative, future-proof, no magic constant).
+2. **Fires on every ingest — explicit *and* the silent auto-ingest on
+   update/install (user's call: "Both").** The promotion lives in
+   `importTemplatesFromDirectory()` itself, so both the admin gallery/CLI
+   ingest and DD-24's bare auto-ingest run it. Rationale: production
+   instances cross update 151 *for the first time with this code in place*
+   (151 has shipped nowhere yet), so the auto path establishes the default
+   for them on update with no admin action. **It only ever fills an empty
+   slot** — an admin's existing default is never overridden (the COUNT
+   guard). Acknowledged consequence the user accepted: an admin who
+   deliberately clears the default sees Analyst re-imposed on the next
+   ingest that re-triggers (a *non-destructive* silent state change, unlike
+   the prune which the user kept explicit-only).
+3. **Refines DD-22's blanket `default=0`.** `__importTemplate` previously
+   forced `default=0` on every upsert, which would silently demote a
+   built-in an admin had promoted to default on each re-ingest (and, with
+   promotion active, flip the instance to Analyst). It now **preserves the
+   existing row's `default` on upsert** (fetches it in the `$existing`
+   find), forcing `0` only on **insert** of a genuinely new row — so a
+   newly-shipped built-in still never seizes the slot, but an admin's
+   promotion survives re-ingest. (Trail discipline: DD-26 supersedes that
+   one aspect of DD-22; DD-22 left unedited.)
+
+**Surfacing.** CLI prints a `[DEFAULT]` line; the controller logs an
+`update` audit entry + appends ' Set "X" as the default.' to its flash; the
+DD-24 auto-ingest logs a SYSTEM `update_database` entry. All keyed off the
+new `promoted_default` result element (absent when nothing was promoted).
+
+**Files touched.** `app/files/dashboard-templates/analyst/template.json`
+(`default_fallback: true`); `app/Model/Dashboard.php`
+(`__importTemplate` default-preservation + the fallback-collect/promote
+block); `app/Model/AppModel.php`, `app/Controller/DashboardsController.php`,
+`app/Console/Command/DashboardShell.php` (reporting).
+
+**Verified live.** (A) forced no default → ingest promoted Analyst
+(`[DEFAULT] Analyst (#13)`), `COUNT(default=1)=1`. (B) admin sets Community
+as default → re-ingest **preserved** Community (no re-promotion, count
+stayed 1) — proving both `__importTemplate`'s default-preservation and the
+COUNT guard. Re-run with a default present is a no-op. `php -l` clean ×4 +
+manifest valid JSON. Additive/reversible.

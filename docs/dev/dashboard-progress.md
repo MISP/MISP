@@ -1222,6 +1222,28 @@ gate (the user still does the merge).
     `default=1` orphan survived (`0 pruned`); the bare no-prune path (the
     DD-24 migration call) left a seeded orphan intact, no `pruned` key.
     `php -l` clean ×3. Signed commit.
+  - [x] **Follow-up: Analyst as fallback default when the instance has none
+    — landed 2026-05-27 (DD-26).** A manifest may declare
+    `"default_fallback": true` (only Analyst does); after ingest, if
+    `COUNT(default=1)==0`, that candidate is promoted to the global default
+    (via `saveField`, no phantom join) so a fresh user gets a sensible board
+    instead of the empty state. **Fires on every ingest — explicit + the
+    silent auto-ingest on update/install** (user's "Both" call; production
+    instances cross update 151 first-time with this code, so the auto path
+    establishes it). Only fills an empty slot — never overrides an admin's
+    default (COUNT guard). **Refines DD-22's blanket `default=0`:**
+    `__importTemplate` now preserves an existing row's `default` on upsert
+    (forces 0 only on insert), so an admin's promotion of a built-in
+    survives re-ingest. (Guard finding: no DB constraint on `default`;
+    single-default is soft, via `__unsetPreviousDefault` demoting one — the
+    promotion stays within the invariant by firing only when none exists.)
+    `promoted_default` surfaced via CLI `[DEFAULT]` line + controller
+    log/flash + SYSTEM update log. Files: `analyst/template.json`,
+    `Dashboard.php`, `AppModel.php`, `DashboardsController.php`,
+    `DashboardShell.php`. Verified live: forced-no-default → Analyst
+    promoted (`COUNT=1`); admin-set Community default preserved across
+    re-ingest (no re-promotion); re-run with a default present is a no-op.
+    `php -l` clean ×4 + valid JSON. Signed commit.
 - [x] **Caching for `AttributeGeoMapWidget` — landed 2026-05-26 (DD-19).**
   Redis-backed, **1h TTL**. **Design iterated twice with the user:** the
   brief was "cache only default settings, custom runs live"; first cut

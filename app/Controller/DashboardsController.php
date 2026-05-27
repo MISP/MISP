@@ -1211,9 +1211,27 @@ class DashboardsController extends AppController
                 'change' => __('Pruned starter template "%s" (no longer shipped).', $name),
             ));
         }
-        $message = empty($pruned) ?
-            __('%s built-in dashboard template(s) imported, %s failed.', $successes, $fails) :
-            __('%s built-in dashboard template(s) imported, %s failed, %s orphaned pruned.', $successes, $fails, count($pruned));
+        $promoted = isset($result['promoted_default']) ? $result['promoted_default'] : array();
+        foreach ($promoted as $id => $name) {
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org' => $orgName,
+                'model' => 'Dashboard',
+                'model_id' => $id,
+                'email' => $this->Auth->user('email'),
+                'action' => 'update',
+                'user_id' => $this->Auth->user('id'),
+                'title' => __('Fallback dashboard default promoted'),
+                'change' => __('Promoted starter template "%s" to the global default (instance had none).', $name),
+            ));
+        }
+        $message = __('%s built-in dashboard template(s) imported, %s failed.', $successes, $fails);
+        if (!empty($pruned)) {
+            $message .= ' ' . __('%s orphaned pruned.', count($pruned));
+        }
+        if (!empty($promoted)) {
+            $message .= ' ' . __('Set "%s" as the default.', implode(', ', $promoted));
+        }
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse(
                 'Dashboard',
