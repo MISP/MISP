@@ -1381,6 +1381,16 @@ gate (the user still does the merge).
     metric. Verified: purged cached payload, live re-render = 14 cards /
     14 glyphs / per-card title + live deltas; glyphs rasterised +
     eye-checked. `chgrp`; signed commit.
+  - [x] **Scroll fix — 2026-05-27.** In-browser feedback: the grid showed
+    an outer h+v scroll *and* a redundant inner v scroll. Cause:
+    `.misp-stat-grid` declared `width/height:100% + padding:2px +
+    overflow-y:auto`, but `.misp-widget-body` already owns padding +
+    the single `overflow:auto` (no global `box-sizing:border-box`, so the
+    100%+padding overflowed by 4px each way). Fix: strip the grid to pure
+    layout (no width/height/overflow/padding) so the body is the sole
+    scroll container; `minmax(min(120px,100%),1fr)` so a narrow resize
+    can't force a horizontal scroll. Confirmed by the user + a headless
+    screenshot. `chgrp`; signed commit.
 
 ---
 

@@ -715,14 +715,18 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
  * ============================================================ */
 .misp-stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  /* min(120px, 100%) lets a single column shrink below 120px when the
+     widget is resized very narrow, so the grid never forces a
+     horizontal scrollbar. */
+  grid-template-columns: repeat(auto-fill, minmax(min(120px, 100%), 1fr));
   gap: var(--misp-dash-space-2);
   align-content: start;
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  padding: 2px;
 }
+/* The grid is NOT its own scroll/size container: .misp-widget-body
+   already owns padding + the single overflow:auto, so the grid stays a
+   plain block that flows to its content height. Declaring width/height
+   100% + padding here re-introduced an outer (body) h+v scroll plus a
+   redundant inner scrollbar. */
 .misp-stat-card {
   display: flex;
   flex-direction: column;
