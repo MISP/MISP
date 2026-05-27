@@ -690,7 +690,7 @@ class AdminShell extends AppShell
                 $this->AdminSetting->delete($lock['AdminSetting']['id']);
             }
             $processId = empty($this->args[0]) ? false : $this->args[0];
-            $this->Server->runUpdates(true, false, $processId);
+            $this->Server->runUpdates(true, false, $processId, true);
             $this->Server->cleanCacheFiles();
             $this->out('All updates completed.');
         } else {
