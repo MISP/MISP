@@ -1370,6 +1370,17 @@ gate (the user still does the merge).
   branches unit-checked standalone; `php -l` + `node --check` clean.
   `chgrp www-data`; signed commit. **First of the key/value-widget
   refresh; the rest reuse `StatGrid` as-is.**
+  - [x] **Card labels → per-metric glyphs + tooltip — 2026-05-27 (DD-32).**
+    In-browser feedback: the text label truncates in narrow cards.
+    StatGrid `icon` contract key (named glyph) → card shows an inline-SVG
+    glyph and the full field name moves to the card `title=` tooltip;
+    no-icon rows keep the text label. **Inline SVG not FA** — the layouts
+    load different FA majors per theme (Overmind = FA7, base/UiBeta =
+    FA5/6), so FA classes are unreliable; new `StatGlyph::get()` returns
+    `currentColor` SVG (14 glyphs). `UsageDataWidget` names a glyph per
+    metric. Verified: purged cached payload, live re-render = 14 cards /
+    14 glyphs / per-card title + live deltas; glyphs rasterised +
+    eye-checked. `chgrp`; signed commit.
 
 ---
 

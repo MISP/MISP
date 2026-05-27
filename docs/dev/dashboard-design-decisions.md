@@ -2393,3 +2393,44 @@ instance is quiet → mostly zeros, no deltas live). The format + delta branches
 badge on `0`) were unit-checked standalone in PHP. `php -l` (`.ctp` +
 `UsageDataWidget`) and `node --check` (`render-thumbs.mjs`) clean. Pure
 addition; reverse by flipping `$render` (+ size) back — `SimpleList` untouched.
+
+## DD-32 — StatGrid card labels become per-metric glyphs + a title tooltip (refines DD-31)
+
+**Date.** 2026-05-27
+**Phase context.** First in-browser feedback on DD-31: in the narrow default
+card the text label (e.g. "Attributes / event") truncates with an ellipsis, so
+you can't tell what a card is. User asked to **replace the text label with a
+per-card glyph and move the field name into a hover tooltip**.
+
+**Decision.** StatGrid's contract gains an optional `icon` key (a *named*
+glyph). When it resolves, the card renders that glyph in place of the text
+label and the full `title` text moves to the card's `title=` attribute (native
+hover tooltip + accessible name). A row without a resolvable `icon` keeps the
+text label — StatGrid stays a drop-in for icon-less widgets. `UsageDataWidget`
+names a glyph per metric (calendar=Events, tag=Attributes, layers=Attributes/
+event, link=Correlations, pencil=Proposals, user=Users, key=PGP, building=Orgs,
+home=Local orgs, sitemap=Creator orgs, users=Avg users/org, chat=Threads,
+chat-lines=Posts, shield=Authkeys).
+
+**Icon format — inline SVG, NOT FontAwesome (the load-bearing finding).** The
+dashboard layouts load **different FA majors per theme**: the base and UiBeta
+layouts pull `font-awesome` (FA5/6), but **Overmind** (the live instance's
+theme) pulls `fontawesome7.min`. FA class-name conventions differ across those
+majors, so an `<i class="fa …">` would render the wrong icon — or nothing —
+depending on the active theme. Inline SVG with `currentColor` is theme-
+independent (it inherits the token-driven colour), matching the dashboard
+chrome and `empty_state.ctp`. So the glyphs live in a new
+`app/Lib/Dashboard/Tools/StatGlyph::get($name)` returning a wrapped inline SVG
+(0 0 24 24 viewBox, `currentColor`, `aria-hidden`) or `''` for an unknown name
+(→ label fallback). New `.misp-stat-glyph` CSS: muted by default, accent on
+card hover. (FontAwesome was the obvious first instinct — rejected once the
+per-theme version skew surfaced; recorded so the next icon need doesn't
+re-discover it.)
+
+**Verified.** Purged the 1h `WidgetCache` key (the icon-less payload was cached
+from DD-31's render), re-rendered live: 14 cards, 14 glyph SVGs, each card
+carries `title="<field name>"`; deltas now render live (`▲3` on the discussion
+metrics). All 14 glyphs **rasterised to a montage PNG and eye-checked** —
+recognisable, consistent stroke. `php -l` clean (`StatGlyph` + `.ctp` +
+`UsageDataWidget`). Additive; reverse by dropping the `icon` keys (labels
+return). Refines DD-31's label rendering; the rest of DD-31 stands.

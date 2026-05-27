@@ -754,6 +754,23 @@ a.misp-stat-card:hover {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Per-metric glyph that replaces the text label (DD-32); the full
+   field name lives on the card's title= tooltip. Inline SVG inherits
+   colour via currentColor. */
+.misp-stat-glyph {
+  display: inline-flex;
+  color: var(--misp-dash-text-muted);
+  transition: color var(--misp-dash-transition-fast);
+}
+.misp-stat-glyph-svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+.misp-stat-card:hover .misp-stat-glyph,
+a.misp-stat-card:hover .misp-stat-glyph {
+  color: var(--misp-dash-accent);
+}
 .misp-stat-valuerow {
   display: flex;
   align-items: baseline;

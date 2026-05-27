@@ -26,11 +26,18 @@
  * URL safety for `drilldown` is gated by DashboardURLValidator (DD-03) —
  * unsafe URLs are dropped and the card renders as plain (non-link) markup.
  *
+ * Label vs glyph (DD-32): when a row carries an `icon` name that resolves
+ * via StatGlyph, the card shows that inline-SVG glyph instead of the text
+ * label (which truncates in narrow cards) and the full field name moves to
+ * the card's `title` hover tooltip. A row without a (resolvable) icon keeps
+ * the text label, so StatGrid stays a drop-in for icon-less widgets.
+ *
  * No inline styles / hardcoded colours: visuals come from the token-driven
  * .misp-stat-* rules in dashboard.default.css, so themes (midnight) that
  * only redefine the --misp-dash-* tokens retone this for free.
  */
 App::uses('DashboardURLValidator', 'Lib/Dashboard/Tools');
+App::uses('StatGlyph', 'Lib/Dashboard/Tools');
 
 if (empty($data)) {
     echo '<div class="misp-list-empty">' . __('No data.') . '</div>';
@@ -70,9 +77,19 @@ foreach ($data as $row) {
         continue;
     }
 
-    $label = isset($row['html_title'])
-        ? $row['html_title']                       // creator-supplied HTML (rare)
-        : h($row['title'] ?? '');
+    // Plain-text field name for the hover tooltip / accessible name.
+    $titleText = isset($row['html_title'])
+        ? trim(strip_tags($row['html_title']))
+        : (string)($row['title'] ?? '');
+
+    // Glyph replaces the text label when a resolvable icon is given;
+    // otherwise fall back to the (possibly creator-HTML) text label.
+    $glyph = StatGlyph::get($row['icon'] ?? null);
+    $header = $glyph !== ''
+        ? '<span class="misp-stat-glyph">' . $glyph . '</span>'
+        : '<span class="misp-stat-label">'
+            . (isset($row['html_title']) ? $row['html_title'] : h($titleText))
+            . '</span>';
 
     $value = isset($row['value']) ? $formatValue($row['value']) : '';
 
@@ -97,13 +114,16 @@ foreach ($data as $row) {
         : '';
 
     $inner = sprintf(
-        '<span class="misp-stat-label">%s</span>'
-        . '<span class="misp-stat-valuerow"><span class="misp-stat-value">%s</span>%s</span>%s',
-        $label,
+        '%s<span class="misp-stat-valuerow"><span class="misp-stat-value">%s</span>%s</span>%s',
+        $header,
         $value,
         $delta,
         $legacyHtml
     );
+
+    // Full field name on the card so it surfaces as a hover tooltip
+    // (and an accessible name) now that the visible label is a glyph.
+    $titleAttr = $titleText !== '' ? ' title="' . h($titleText) . '"' : '';
 
     // Whole card is a link when a safe drilldown URL is present (DD-03).
     $href = null;
@@ -111,9 +131,9 @@ foreach ($data as $row) {
         $href = DashboardURLValidator::validate($row['drilldown']);
     }
     if ($href !== null) {
-        echo sprintf('<a class="misp-stat-card" href="%s">%s</a>', h($href), $inner);
+        echo sprintf('<a class="misp-stat-card" href="%s"%s>%s</a>', h($href), $titleAttr, $inner);
     } else {
-        echo sprintf('<div class="misp-stat-card">%s</div>', $inner);
+        echo sprintf('<div class="misp-stat-card"%s>%s</div>', $titleAttr, $inner);
     }
 }
 echo '</div>';
