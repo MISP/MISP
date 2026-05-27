@@ -309,11 +309,18 @@ class Dashboard extends AppModel
      * an overwrite loses nothing a user authored — a user's own board
      * (a UserSetting) and any template they cloned are separate rows.
      *
+     * Pruning of orphaned built-ins (rows whose manifest no longer ships)
+     * is opt-in via $prune — the explicit admin/CLI ingest passes true; the
+     * silent auto-ingest on update (DD-24) leaves it false, so an update
+     * never deletes a dashboard. See the prune block for its guards.
+     *
      * @param string|null $dir source directory (defaults to the shipped
      *                          one; overridable for tests)
-     * @return array ['success' => [id => ['name' => …]], 'fails' => [slug => msg]]
+     * @param bool $prune delete built-ins whose manifest no longer ships
+     * @return array ['success' => [id => ['name' => …]], 'fails' => [slug => msg],
+     *               and 'pruned' => [id => name] when $prune removed rows]
      */
-    public function importTemplatesFromDirectory($dir = null)
+    public function importTemplatesFromDirectory($dir = null, $prune = false)
     {
         App::uses('FileAccessTool', 'Tools');
         if ($dir === null) {
@@ -323,15 +330,49 @@ class Dashboard extends AppModel
         if (!is_dir($dir)) {
             return $result;
         }
+        $shippedUuids = array();
         $manifests = glob($dir . DS . '*' . DS . 'template.json');
         foreach ($manifests as $path) {
             $slug = basename(dirname($path));
             try {
                 $template = FileAccessTool::readJsonFromFile($path, true);
+                // Collect the uuid even if the import below fails (e.g. a
+                // transient save error) so a still-shipped template is
+                // never mistaken for an orphan and pruned.
+                if (!empty($template['uuid'])) {
+                    $shippedUuids[] = $template['uuid'];
+                }
                 $id = $this->__importTemplate($template);
                 $result['success'][$id] = array('name' => $template['name']);
             } catch (Exception $e) {
                 $result['fails'][$slug] = $e->getMessage();
+            }
+        }
+        // Prune orphaned built-ins, making the shipped set authoritative.
+        // Guards: only when $prune is set (the explicit admin/CLI ingest);
+        // never when no manifest was found (an empty/unreadable dir must not
+        // wipe every built-in); only user_id=0 (built-ins — saveDashboard-
+        // Template always uses a real user_id, so user boards are never 0)
+        // and default=0 (never delete the active global default, even if an
+        // admin promoted a built-in to it). Delete by id one-by-one because
+        // Dashboard's belongsTo Organisation foreign key (org_id) is phantom
+        // — deleteAll()/updateAll()'s auto-join references a non-existent
+        // column and crashes.
+        if ($prune && !empty($shippedUuids)) {
+            $orphans = $this->find('list', array(
+                'recursive' => -1,
+                'conditions' => array(
+                    'Dashboard.user_id' => 0,
+                    'Dashboard.default' => 0,
+                    'NOT' => array('Dashboard.uuid' => $shippedUuids),
+                ),
+                'fields' => array('Dashboard.id', 'Dashboard.name'),
+            ));
+            foreach (array_keys($orphans) as $orphanId) {
+                $this->delete($orphanId, false);
+            }
+            if (!empty($orphans)) {
+                $result['pruned'] = $orphans;
             }
         }
         return $result;

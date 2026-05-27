@@ -1200,10 +1200,28 @@ gate (the user still does the merge).
     update 151 via the real `runUpdates` path — `db_version`→151, all three
     rows present, and a `logs` entry "Default dashboard templates imported:
     Administrator, Analyst, Community". `php -l` clean. Signed commit.
-  - [ ] **Follow-up: prune orphaned built-ins on re-ingest.** Re-ingest
-    overwrites by uuid but never deletes `user_id=0` rows whose manifest
-    was removed (the "Overview" removal was a manual `DELETE`). Make the
-    shipped set authoritative.
+  - [x] **Follow-up: prune orphaned built-ins on re-ingest — landed
+    2026-05-27 (DD-25).** New `$prune` param (default false) on
+    `importTemplatesFromDirectory()`. **Opt-in to the explicit ingest only**
+    (user's call): the gallery admin action + `cake Dashboard
+    importDefaultTemplates` CLI pass `true`; the silent auto-ingest on
+    update (DD-24) calls it bare, so an update **never deletes a
+    dashboard**. Safe because `user_id=0` is exclusively built-ins
+    (`saveDashboardTemplate` always uses a real user_id; the global default
+    is a user-owned `default=1` row). Guards: `default=0` (never delete the
+    active default, even a promoted built-in), non-empty shipped set (no
+    wipe-all on a missing dir), uuid collected per parseable manifest (a
+    still-shipped template whose save fails isn't pruned). Deletes by id
+    one-by-one — `deleteAll`/`updateAll` crash on the model's phantom
+    `belongsTo Organisation` foreignKey (`org_id`, no such column; see
+    Discovered work). Result gains `'pruned'=>[id=>name]`; controller logs a
+    `delete` per row + flash count, CLI prints `[PRUNE]` lines. Files:
+    `Dashboard.php`, `DashboardsController.php`, `DashboardShell.php`.
+    Verified live: explicit CLI prune removed a seeded `default=0` orphan
+    while re-importing the 3 real built-ins (`1 orphaned pruned`); a
+    `default=1` orphan survived (`0 pruned`); the bare no-prune path (the
+    DD-24 migration call) left a seeded orphan intact, no `pruned` key.
+    `php -l` clean ×3. Signed commit.
 - [x] **Caching for `AttributeGeoMapWidget` — landed 2026-05-26 (DD-19).**
   Redis-backed, **1h TTL**. **Design iterated twice with the user:** the
   brief was "cache only default settings, custom runs live"; first cut
@@ -1319,6 +1337,12 @@ merges to `develop` for inclusion in the next 2.5 release cycle.
 Items found during implementation that didn't fit a planned task. Add
 them here with a short note describing what surfaced them and where
 they should land. Promote into a phase when one is resolved.
+
+### `Dashboard` model `belongsTo Organisation` foreign key is phantom — `deleteAll`/`updateAll` crash (surfaced 2026-05-27)
+
+Surfaced while implementing DD-25 (prune orphaned built-ins). `Dashboard.php` declares `belongsTo` `Organisation` with `'foreignKey' => 'org_id'`, but the `dashboards` table has **no `org_id` column** (it uses `restrict_to_org_id`). CakePHP's `deleteAll()`/`updateAll()` auto-join belongsTo associations, so they emit `... ON Dashboard.org_id = Organisation.id` and fail with `Unknown column 'Dashboard.org_id' in 'ON'`. `find` (with the model's default `recursive=-1`) and `save`/`delete($id)` are unaffected (no join), which is why DD-22's ingest worked.
+
+**Workaround in place:** DD-25's prune deletes by id one-by-one (`$this->delete($id, false)`), never `deleteAll`. **Proper fix (unscoped):** correct the association to `'foreignKey' => 'restrict_to_org_id'` (or drop the unused belongsTo). Pre-existing; not introduced by the dashboard rework. Low reachability — little code calls `deleteAll`/`updateAll` on `Dashboard`.
 
 ### `LayoutFixup` instance_id mint can collide on a mixed-id blob (surfaced 2026-05-25)
 

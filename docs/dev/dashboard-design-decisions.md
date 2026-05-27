@@ -1958,3 +1958,66 @@ and correctly named, and a `logs` row recorded "Default dashboard templates
 imported: Administrator, Analyst, Community". `php -l` clean. The
 divergence-from-norm finding was surfaced to the user before coding.
 Additive/reversible.
+
+## DD-25 — Default dashboard templates: prune orphaned built-ins, opt-in to the explicit ingest (extends DD-22)
+
+**Date.** 2026-05-27
+**Phase context.** DD-22's `importTemplatesFromDirectory()` upserts by uuid
+but never deletes; a built-in whose manifest was removed lingered as an
+orphan (the "Overview" removal was a manual `DELETE`). The follow-up: make
+the shipped set authoritative by pruning orphaned built-ins.
+
+**Decision (user's call: opt-in, explicit ingest only).** Pruning is gated
+by a new `$prune` parameter (default `false`). The **explicit** operator
+ingests pass `true` — the gallery "Import starter templates" action
+(`DashboardsController::importDefaultTemplates`) and the
+`cake Dashboard importDefaultTemplates` CLI. The **silent** auto-ingest on
+update (DD-24, `AppModel::__importDefaultDashboardTemplates`) calls the
+method bare, so an update **never deletes a dashboard**. The fork
+(prune-on-every-canonical-ingest vs. explicit-only) was surfaced; the user
+chose explicit-only — automatic row deletion during a silent update is
+higher-stakes than ingesting, so deletion stays an operator-initiated act.
+
+**Why pruning `user_id = 0` is safe.** `saveDashboardTemplate()` always
+writes the acting user's real id (and the global *default* board is just a
+`default = 1` row owned by whoever set it) — so **`user_id = 0` is
+exclusively the shipped built-ins**. Pruning them touches no user-authored
+board or clone.
+
+**Guards (each protects against a concrete failure).**
+- **`default = 0` in the prune conditions.** An admin *can* promote a
+  built-in to the global default via `saveDashboardTemplate` (it keeps
+  `user_id = 0` and sets `default = 1`). Excluding `default = 1` means a
+  promoted-then-orphaned built-in is never deleted out from under the
+  instance. (Verified live: a `default = 1` orphan survived a prune.)
+- **Non-empty shipped set.** Prune runs only when at least one manifest
+  yielded a uuid. A missing/unreadable `app/files/dashboard-templates/`
+  must not turn `NOT IN ()` into "delete every built-in".
+- **uuid collected per parseable manifest, before its import is attempted.**
+  A still-shipped template whose *save* transiently fails is still counted
+  as shipped, so it is never mistaken for an orphan and pruned.
+
+**Deletion mechanism: by id, one at a time — not `deleteAll`.** Discovered
+latent bug: the `Dashboard` model declares `belongsTo Organisation` with
+`foreignKey => 'org_id'`, but the `dashboards` table has **no `org_id`
+column** (it uses `restrict_to_org_id`). `deleteAll()`/`updateAll()`
+auto-join the belongsTo on the phantom column and crash
+(`Unknown column 'Dashboard.org_id' in 'ON'`). So prune collects orphan ids
+via a `recursive = -1` find (Dashboard-only conditions, no join) and calls
+`$this->delete($id, false)` per row. (Logged as discovered work.)
+
+**Surfacing.** The result array gains `'pruned' => [id => name]`. The
+controller logs a `delete` audit entry per pruned row and appends an
+"N orphaned pruned" count to its flash; the CLI prints `[PRUNE]` lines plus
+the count. The auto-ingest's `pruned` key is always absent (bare call).
+
+**Files touched.** `app/Model/Dashboard.php` (the `$prune` param + guarded
+prune block), `app/Controller/DashboardsController.php` (pass `true`, log +
+report), `app/Console/Command/DashboardShell.php` (pass `true`, report).
+AppModel/DD-24 unchanged — it already calls the method bare.
+
+**Verified live.** Explicit CLI ingest pruned a seeded `default = 0`
+orphan while re-importing the three real built-ins (`1 orphaned pruned`); a
+seeded `default = 1` orphan survived (`0 orphaned pruned`); and the bare
+no-prune call (the exact DD-24 migration path) left a seeded orphan intact
+with no `pruned` key. `php -l` clean ×3. Additive/reversible.

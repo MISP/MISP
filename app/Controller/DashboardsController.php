@@ -1166,9 +1166,10 @@ class DashboardsController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException(__('This action is only accessible via POST requests.'));
         }
-        $result = $this->Dashboard->importTemplatesFromDirectory();
+        $result = $this->Dashboard->importTemplatesFromDirectory(null, true);
         $successes = count($result['success']);
         $fails = count($result['fails']);
+        $pruned = isset($result['pruned']) ? $result['pruned'] : array();
         $this->Log = ClassRegistry::init('Log');
         $orgName = $this->Auth->user('Organisation')['name'];
         foreach ($result['success'] as $id => $success) {
@@ -1197,7 +1198,22 @@ class DashboardsController extends AppController
                 'change' => __('Template "%s" failed: %s', $slug, $message),
             ));
         }
-        $message = __('%s built-in dashboard template(s) imported, %s failed.', $successes, $fails);
+        foreach ($pruned as $id => $name) {
+            $this->Log->create();
+            $this->Log->saveOrFailSilently(array(
+                'org' => $orgName,
+                'model' => 'Dashboard',
+                'model_id' => $id,
+                'email' => $this->Auth->user('email'),
+                'action' => 'delete',
+                'user_id' => $this->Auth->user('id'),
+                'title' => __('Orphaned built-in dashboard template pruned'),
+                'change' => __('Pruned starter template "%s" (no longer shipped).', $name),
+            ));
+        }
+        $message = empty($pruned) ?
+            __('%s built-in dashboard template(s) imported, %s failed.', $successes, $fails) :
+            __('%s built-in dashboard template(s) imported, %s failed, %s orphaned pruned.', $successes, $fails, count($pruned));
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse(
                 'Dashboard',
