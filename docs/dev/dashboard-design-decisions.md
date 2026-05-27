@@ -2562,3 +2562,59 @@ raw strings; the renderer owns escaping.
 215 sessions", users sorted by session count (admin 143, anon 44, foo 15, …),
 each linking to its admin view; the malicious org name single-escaped → inert.
 `php -l` clean. Reversible (delete the file).
+
+## DD-35 — `UserList` render kind: a "people list" (LoggedInUsersWidget flips off SimpleList)
+
+**Date.** 2026-05-27
+**Phase context.** User: prettify `LoggedInUsersWidget` (DD-34 shipped it as a
+plain SimpleList). DD-34 itself logged this as a deferred follow-up — "could
+become a StatGrid-style or avatar treatment if wanted".
+
+**Fork surfaced (two genuinely different treatments, via AskUserQuestion with
+ASCII previews).** (a) **Reuse StatGrid** — a render-flip, zero new code, but a
+*poor* fit: long emails truncate in the KPI cards and the glyph slot has nothing
+meaningful per-user. I flagged it as the cheap-but-worse option. (b) **A new
+`UserList` render kind** — an avatar people-list. **User chose (b).**
+
+**Decision.** New `UserList` render kind (`View/Elements/dashboard/Widgets/
+UserList.ctp` + `.misp-user-*` CSS block + `thumbUserList` glyph). Each user is
+a row: an **avatar** (the user's org logo when one exists on disk → an initials
+chip otherwise), an email **name** line, a muted **meta** line (`org · role`,
+plus `· disabled` for a disabled account holding a live session), and an
+optional right-aligned **badge** pill (the session count). The whole row links
+to the per-user drilldown. A typed-row contract: `header` (summary line with a
+live "online" dot), `user` (the above), `message` (full-width centred — for the
+empty / unsupported-engine / unreachable states DD-34 emitted as bare rows).
+`LoggedInUsersWidget::$render` flips `SimpleList → UserList`; its `handler()`
+reshapes to the new shape (and its find() now contains `Organisation.id/uuid`,
+not just `.name`, to feed the avatar logo lookup).
+
+**Avatar logo resolution** mirrors `OrgsPictures` / `OrgImgHelper::findOrgImage`
+exactly: `file_exists` on `app/files/img/orgs/<id|name|uuid>.<png|svg>`, then
+serve via `/organisations/getOrgLogo/<id>` (browser-cached across renders, no
+per-row data-URL bloat). Initials are derived **in the renderer** from the raw
+name (up to two leading letters of the email local part, upper-cased) — never
+trusted from the widget.
+
+**Conventions upheld.** Token-driven `.misp-user-*` CSS only (no inline style /
+hardcoded colour) → retoned/dark themes recolour for free. **Renderer owns
+escaping** (DD-34): the widget emits raw strings, the `.ctp` `h()`s every value
+once — re-confirmed against the same dev-DB XSS-probe org name (rendered
+`FOO&quot;&gt;&lt;img…`, inert, single-escaped). **Not its own scroll/size
+container** — `.misp-widget-body` owns padding + overflow (the StatGrid scroll-
+fix rule from DD-31); names/meta `text-overflow:ellipsis` with `min-width:0` on
+the flex body so a narrow widget truncates instead of forcing a horizontal
+scroll. New render kind → **`thumbUserList` glyph registered** in
+`render-thumbs.mjs` (CLAUDE.md rule): two rows of avatar-circle + name/meta bars.
+No ECharts series added → no bundle rebuild.
+
+**Verified.** Live render (admin session) → HTTP 200: header "5 users online ·
+215 sessions", org logos resolve for Iglocska/CIRCL, initials chips for orgs
+without a logo (`AN`/`FO`), badges 143/44/15/8/5, XSS-probe org name single-
+escaped. **Headless-Chrome screenshot over HTTP** (representative test page,
+deleted after — it's publicly served): rows align, long email + long org name
+both ellipsis-truncate, badge pills sit right, disabled/removed rows dim, the
+message state centres. `php -l` + `node --check` clean. Additive; reverse by
+flipping `$render` back to `SimpleList` (the SimpleList handler shape is a
+strict subset, so the revert needs the handler reshaped back too — or keep both
+shapes; chose the clean flip since the widget is unmerged).

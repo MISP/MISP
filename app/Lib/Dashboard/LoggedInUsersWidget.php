@@ -31,7 +31,9 @@ class LoggedInUsersWidget
 {
     public $title = 'Logged-in users';
     public $category = 'users';
-    public $render = 'SimpleList';
+    // UserList render kind (DD-35): a people list — avatar (org logo →
+    // initials chip) + email + org·role meta + a session-count badge.
+    public $render = 'UserList';
     public $width = 3;
     public $height = 4;
     public $params = array();
@@ -52,10 +54,11 @@ class LoggedInUsersWidget
     {
         $handler = strtolower((string)ini_get('session.save_handler'));
         if ($handler !== 'redis' || !class_exists('Redis')) {
+            // Message rows render full-width + centred in the UserList
+            // kind. Raw values only — the renderer escapes once.
             return array(array(
+                'type' => 'message',
                 'title' => __('Unsupported session engine'),
-                // Raw values only — the SimpleList renderer escapes
-                // title/value once; pre-escaping here double-escapes.
                 'value' => sprintf(
                     __('this widget requires the PHP → Redis session engine (current: %s)'),
                     $handler !== '' ? $handler : __('unknown')
@@ -67,6 +70,7 @@ class LoggedInUsersWidget
         $redis = $this->connect($conn);
         if ($redis === null) {
             return array(array(
+                'type' => 'message',
                 'title' => __('Session store unreachable'),
                 'value' => __('could not connect to the Redis session store'),
             ));
@@ -75,8 +79,9 @@ class LoggedInUsersWidget
         $counts = $this->tallySessions($redis, $conn['prefix']);
         if (empty($counts)) {
             return array(array(
-                'title' => __('Logged-in users'),
-                'value' => __('none — no active sessions'),
+                'type' => 'message',
+                'title' => __('No active sessions'),
+                'value' => __('no users are currently logged in'),
             ));
         }
 
@@ -176,17 +181,23 @@ class LoggedInUsersWidget
     }
 
     /**
-     * Turn the per-user session tally into SimpleList rows: a summary
-     * line, then one row per user (most sessions first), each linking to
-     * the user's admin view.
+     * Turn the per-user session tally into UserList rows: a summary
+     * header, then one row per user (most sessions first), each an avatar
+     * (org logo → initials chip) + email + org·role meta + a session-count
+     * badge, linking to the user's admin view.
      */
     private function buildRows(array $counts)
     {
         $this->User = ClassRegistry::init('User');
         $users = $this->User->find('all', array(
             'recursive' => -1,
-            'contain' => array('Organisation.name', 'Role.name'),
-            'fields' => array('User.id', 'User.email', 'User.disabled'),
+            // id + uuid feed the renderer's org-logo avatar lookup; name
+            // feeds the meta line + initials-chip fallback.
+            'contain' => array(
+                'Organisation' => array('fields' => array('id', 'name', 'uuid')),
+                'Role.name',
+            ),
+            'fields' => array('User.id', 'User.email', 'User.disabled', 'User.org_id'),
             'conditions' => array('User.id' => array_keys($counts)),
         ));
         $byId = array();
@@ -203,42 +214,50 @@ class LoggedInUsersWidget
         });
 
         $totalSessions = array_sum($counts);
-        $rows = array(
-            array(
-                'title' => __('Online now'),
-                'value' => sprintf(
-                    __('%d user%s · %d session%s'),
-                    count($counts),
-                    count($counts) === 1 ? '' : 's',
-                    $totalSessions,
-                    $totalSessions === 1 ? '' : 's'
-                ),
+        $rows = array(array(
+            'type' => 'header',
+            'value' => sprintf(
+                __('%d user%s online · %d session%s'),
+                count($counts),
+                count($counts) === 1 ? '' : 's',
+                $totalSessions,
+                $totalSessions === 1 ? '' : 's'
             ),
-            array('type' => 'gap'),
-        );
+        ));
 
         foreach ($counts as $id => $count) {
             if (!isset($byId[$id])) {
                 // A session for a user that no longer exists (e.g. deleted).
                 $rows[] = array(
-                    'title' => sprintf(__('User #%s (removed)'), $id),
-                    'value' => sprintf('%d session%s', $count, $count === 1 ? '' : 's'),
+                    'type' => 'user',
+                    'name' => sprintf(__('User #%s'), $id),
+                    'meta' => __('account removed'),
+                    'badge' => $count,
+                    'muted' => true,
                 );
                 continue;
             }
             $u = $byId[$id];
-            $org = !empty($u['Organisation']['name']) ? $u['Organisation']['name'] : '—';
+            $orgName = !empty($u['Organisation']['name']) ? $u['Organisation']['name'] : '—';
             $role = !empty($u['Role']['name']) ? $u['Role']['name'] : '—';
-            // Raw values only — SimpleList escapes title/value once (a
+            $meta = $orgName . ' · ' . $role;
+            // A disabled account holding a live session is notable (a
+            // possibly-stale session) — flag it and dim the row.
+            if (!empty($u['User']['disabled'])) {
+                $meta .= ' · ' . __('disabled');
+            }
+            // Raw values only — the UserList renderer escapes once (a
             // malicious org/role name is rendered as inert text there).
             $rows[] = array(
-                'title' => $u['User']['email'],
-                'value' => sprintf(
-                    '%s · %s · %d session%s',
-                    $org,
-                    $role,
-                    $count,
-                    $count === 1 ? '' : 's'
+                'type' => 'user',
+                'name' => $u['User']['email'],
+                'meta' => $meta,
+                'badge' => $count,
+                'muted' => !empty($u['User']['disabled']),
+                'org' => array(
+                    'id'   => isset($u['Organisation']['id']) ? $u['Organisation']['id'] : null,
+                    'name' => isset($u['Organisation']['name']) ? $u['Organisation']['name'] : '',
+                    'uuid' => isset($u['Organisation']['uuid']) ? $u['Organisation']['uuid'] : '',
                 ),
                 'drilldown' => '/admin/users/view/' . (int)$id,
             );

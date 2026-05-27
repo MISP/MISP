@@ -1114,6 +1114,152 @@ a.misp-stat-card:hover .misp-stat-glyph {
 }
 
 /* ============================================================
+ * UserList renderer — a "people list": avatar + name + meta + an
+ * optional badge pill, one row per user (LoggedInUsersWidget first).
+ * The avatar is the user's org logo, else an initials chip. NOT its
+ * own scroll container — .misp-widget-body owns padding + overflow.
+ * ============================================================ */
+.misp-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  align-content: start;
+}
+/* Summary header line: a live "online" dot + a muted count string. */
+.misp-user-header {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2)
+           var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text-muted);
+}
+.misp-user-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--misp-dash-success);
+  box-shadow: 0 0 0 3px var(--misp-dash-success-muted);
+}
+.misp-user-headtext {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-user-row {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-3);
+  padding: var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-md);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  text-decoration: none;
+  color: var(--misp-dash-text);
+  transition: border-color var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast),
+              transform var(--misp-dash-transition-fast);
+}
+a.misp-user-row:hover,
+a.misp-user-row:focus-visible {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-sm);
+  text-decoration: none;
+  color: var(--misp-dash-text);
+}
+a.misp-user-row:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+.misp-user-row.misp-user-muted {
+  opacity: 0.55;
+}
+.misp-user-avatar {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+}
+.misp-user-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: var(--misp-dash-radius-sm);
+  display: block;
+}
+.misp-user-chip {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--misp-dash-radius-sm);
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-bold);
+  line-height: 1;
+}
+/* min-width:0 lets the name/meta truncate instead of stretching the row. */
+.misp-user-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.misp-user-name {
+  font-size: var(--misp-dash-fs-base);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-user-meta {
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-user-badge {
+  flex: 0 0 auto;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 var(--misp-dash-space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--misp-dash-accent-muted);
+  color: var(--misp-dash-accent);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-bold);
+  line-height: 1;
+}
+.misp-user-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--misp-dash-space-1);
+  padding: var(--misp-dash-space-4);
+  text-align: center;
+  color: var(--misp-dash-text-muted);
+}
+.misp-user-message-title {
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
+}
+.misp-user-message-text {
+  font-size: var(--misp-dash-fs-sm);
+}
+
+/* ============================================================
  * Attack renderer — static MITRE ATT&CK heatmap (default tab only).
  * Columns = tactics; cells = techniques stacked vertically as thin
  * coloured bars. Wide matrices overflow horizontally — the widget

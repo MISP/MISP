@@ -1432,6 +1432,24 @@ gate (the user still does the merge).
   (renderer owns escaping). Verified live: 5 users / 215 sessions, sorted
   by count, malicious org name inert. `php -l`; `chgrp`; signed commit.
   Pure addition (auto-discovered).
+  - [x] **Prettified — `UserList` render kind (DD-35), 2026-05-27.** User
+    picked the avatar people-list over reusing StatGrid (fork surfaced via
+    AskUserQuestion + ASCII previews; StatGrid flagged worse — emails
+    truncate, no avatar). New `Widgets/UserList.ctp` + `.misp-user-*` CSS +
+    `thumbUserList` glyph: per-user row = avatar (org logo → initials chip)
+    + email + muted `org·role` meta (`· disabled` flag) + session-count
+    badge pill, whole row drilling to `/admin/users/view/<id>`; typed-row
+    contract `header`/`user`/`message`. `LoggedInUsersWidget::$render`
+    flipped `SimpleList→UserList`, `handler()` reshaped (find() now contains
+    `Organisation.id/uuid` for the logo lookup). Logo resolution mirrors
+    OrgsPictures (`getOrgLogo`, browser-cached); initials derived in the
+    renderer; token-only CSS; renderer owns escaping (re-confirmed vs XSS
+    probe); not its own scroll container (DD-31 rule). No ECharts series →
+    no bundle rebuild. Verified: live render (5 users / 215 sessions, logos
+    + chips + badges) + headless-Chrome screenshot (alignment, ellipsis
+    truncation, dim muted/removed rows, centred message). `php -l` +
+    `node --check`; `chgrp`; signed commit. Additive (flip `$render` back to
+    revert).
 
 ---
 

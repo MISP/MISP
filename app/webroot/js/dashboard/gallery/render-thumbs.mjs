@@ -201,6 +201,21 @@ function thumbNetworkGraph() {
   ]);
 }
 
+function thumbUserList() {
+  // A "people list": two rows, each an avatar circle on the left with a
+  // long name bar + shorter meta bar to its right, plus a small badge dot.
+  const row = (y) => [
+    shape('circle', { cx: 24, cy: y + 3, r: 4 }),
+    shape('rect', { x: 33, y: y, width: 22, height: 3.5, rx: 1.5, fill: 'currentColor', stroke: 'none' }),
+    shape('rect', { x: 33, y: y + 5.5, width: 14, height: 3, rx: 1.5, fill: 'currentColor', stroke: 'none', opacity: 0.45 }),
+    shape('circle', { cx: 60, cy: y + 3, r: 2, fill: 'currentColor', stroke: 'none', opacity: 0.7 }),
+  ];
+  return svg([
+    ...row(12),
+    ...row(27),
+  ]);
+}
+
 function thumbGeneric() {
   return svg([
     shape('rect', { x: 22, y: 14, width: 36, height: 17, rx: 2 }),
@@ -223,6 +238,7 @@ const REGISTRY = {
   MonitorLineChart: thumbMonitorLineChart,
   StatGrid:       thumbStatGrid,
   NetworkGraph:   thumbNetworkGraph,
+  UserList:       thumbUserList,
 };
 
 /**
