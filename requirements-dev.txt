@@ -3,3 +3,7 @@ coveralls
 nose
 requests-mock
 pytest
+# Used by app/files/scripts/generate_asn_country_map.py, invoked at
+# release time via `cake Admin preRelease` / `cake Admin updateAsnCountryMap`
+# to regenerate app/files/geo-open/asn-country.json from the GeoOpen mmdb.
+maxminddb

@@ -1799,3 +1799,99 @@ behaviour.
   (`resetFromTemplate`) relies on the existing, unchanged path + verified
   shape parity with a live board; a destructive apply against the admin's
   15-widget board was intentionally not run.
+
+## DD-23 — `asn-country.json` regeneration wired into `cake Admin preRelease` (DD-12 follow-up)
+
+**Date.** 2026-05-27
+**Phase context.** DD-12 shipped the geo widget's `asn` source backed by a
+derived `app/files/geo-open/asn-country.json`, built offline by
+`app/files/scripts/generate_asn_country_map.py` from the
+`GeoOpen-Country-ASN.mmdb`. DD-12 logged a follow-up: "regenerate the JSON
+when the mmdb updates." This DD closes it. The user picked this task.
+
+**Premise correction (the finding that reshaped the task).** DD-12's
+follow-up assumed *"MISP's existing geo-open mmdb-update mechanism"* to
+hook into. **There is no such automated job.** The `geo-open` dir is a
+plain git-tracked dir in the MISP repo (not a submodule, no downloader, no
+cron, no `Admin` job); the mmdb files **and** `asn-country.json` are
+committed artifacts. They update when a **maintainer hand-commits a fresh
+file** — e.g. `8d9897be8 chg: [GeoOpen] GeoOpen-Country updated -
+GeoOpen-Country-ASN added`, `f0f6d3254 chg: [GeoOpen] updated to the latest
+version`. Instances receive new files via a plain `git pull` of MISP. (The
+`UserLoginProfile.php` comment "GeoIP file managed by MISP" refers to this
+manual maintainer cadence, not an automated fetch. The `misp-opendata`
+scripts that mention public.lu *publish* MISP data outward; they do not
+fetch the geo DB.) So the real question is **where the regen trigger
+lives**, given the file only ever changes via a human commit.
+
+**Decision.** Wire the regen into **`AdminShell::preRelease()`** — the
+maintainer's pre-release CLI task that already refreshes committed JSON
+artifacts (`db_schema.json`, `describeTypes.json`) before each release.
+This is the precise point at which the maintainer regenerates + commits
+derived artifacts, so `asn-country.json` joins them. (The user identified
+`preRelease` as the right home after three trigger-location forks were
+surfaced — maintainer-side / runtime self-healing background job /
+staleness-guard-only.)
+
+- New `AdminShell::updateAsnCountryMap()` runs the script via
+  `ProcessTool::execute([ProcessTool::pythonBin(), <script>])` — the same
+  managed-venv interpreter every other MISP python invocation uses
+  (`MISP.python_bin`, default `python3`). The script writes to its default
+  path (`app/files/geo-open/asn-country.json`), the tracked location, so
+  the regenerated file lands exactly where the maintainer commits it —
+  mirroring `dumpCurrentDatabaseSchema` writing `db_schema.json`.
+- `preRelease()` calls it after the two existing dumps.
+- It is **also** registered as a standalone subcommand
+  (`cake Admin updateAsnCountryMap`, mirroring `dumpCurrentDatabaseSchema`'s
+  registration) so a maintainer can regenerate after a **mid-cycle mmdb
+  bump** without a full release.
+
+**Fail-safe (visible but non-blocking).** `ProcessTool::execute` throws on
+a non-zero exit (e.g. `maxminddb` not installed, or the mmdb absent). The
+method catches it and emits a clear two-line `$this->err()` warning (stderr,
+**non-fatal** — does not abort the release dump) naming the likely cause and
+warning that the shipped json may be stale. On failure the script never
+writes, so a stale `asn-country.json` is **left intact, never zeroed or
+corrupted**. Rationale: an optional dev dep missing on a maintainer's box
+shouldn't block the schema/describeTypes dumps, but a skipped regen must be
+impossible to miss — hence loud-on-stderr rather than silent or fatal.
+
+**`maxminddb` dependency → `requirements-dev.txt` (user's call).** The
+package was declared in **no** MISP requirements file, so on a stock venv
+the regen warned-and-skipped. It is now in `requirements-dev.txt`, not
+`requirements.txt`: `preRelease`'s own help says "(for developers)", the
+canonical flow is maintainer-regenerates-and-commits, and **production
+instances consume the committed json and never regen**. Keeping it out of
+prod avoids every install pulling a package almost none of them run.
+(Trade-off accepted: an admin running the standalone subcommand in
+production gets the warn-and-skip until they install `maxminddb` by hand —
+guided by the warning.)
+
+**Determinism (no spurious churn).** The script sorts keys + uses fixed
+separators, so regenerating against an **unchanged** mmdb is byte-identical
+— verified by a zero-line `git diff` after a live regen. The maintainer
+therefore only sees (and commits) a diff when the mmdb actually changed.
+
+**Why not a runtime / scheduler job.** Self-healing regen on each instance
+(the "most automatic" fork) was declined implicitly by the choice of
+`preRelease`: the file is a committed artifact, so regen belongs where the
+maintainer commits the mmdb, not at request/worker time — which would
+require `maxminddb` on every worker host and would dirty the git-tracked
+`geo-open` dir on instances (a `git pull` would conflict). Adding a
+scheduler task type would also touch existing scheduler code (beyond the
+additive posture).
+
+**Files touched.**
+- `app/Console/Command/AdminShell.php`: new `updateAsnCountryMap()` method;
+  one call added to `preRelease()`; `addSubcommand('updateAsnCountryMap')`
+  registration. (Existing file — additive within it; the user directed the
+  `preRelease` hook explicitly.)
+- `requirements-dev.txt`: `maxminddb` (+ a comment noting its consumer).
+
+**Verified.** `php -l` clean; the standalone subcommand regenerates through
+the configured venv python (`> Wrote 77846 ASN->country entries to …`);
+regen byte-identical to the committed json (empty `git diff`); spot-checks
+sane (OVH 16276→FR, Cloudflare 13335→US); fail-safe path proven live (venv
+**without** `maxminddb` → caught, two-line stderr warning, json untouched).
+`maxminddb 3.1.1` (latest, pulled by the bare requirement) works with the
+script's `open_database` + iteration API. Additive/reversible.
