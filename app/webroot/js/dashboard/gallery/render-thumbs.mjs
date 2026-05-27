@@ -153,6 +153,17 @@ function thumbAchievements() {
   ]);
 }
 
+function thumbMonitorLineChart() {
+  // Single streaming line with a soft area fill — a live-monitor sparkline.
+  return svg([
+    shape('polyline', { points: '18,30 26,24 32,27 40,15 48,20 56,12 62,17' }),
+    shape('path', {
+      d: 'M18,30 26,24 32,27 40,15 48,20 56,12 62,17 62,36 18,36 Z',
+      fill: 'currentColor', stroke: 'none', opacity: 0.18,
+    }),
+  ]);
+}
+
 function thumbPieChart() {
   // Pie circle + one filled ~120° wedge (12 o'clock clockwise to ~2 o'clock).
   return svg([
@@ -180,6 +191,7 @@ const REGISTRY = {
   Attack:         thumbAttack,
   Achievements:   thumbAchievements,
   PieChart:       thumbPieChart,
+  MonitorLineChart: thumbMonitorLineChart,
 };
 
 /**

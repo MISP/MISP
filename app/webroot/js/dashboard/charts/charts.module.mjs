@@ -14,6 +14,7 @@
 import echarts from './vendor/echarts.bundle.mjs';
 import { geoNaturalEarth1, geoRobinson, geoCylindricalEqualArea } from './vendor/d3-geo.bundle.mjs';
 import { registerMispTheme, MISP_THEME_NAME } from './echarts-theme.mjs';
+import { initMonitorChart } from './monitor-chart.mjs';
 
 const ATTR_CHART         = 'data-misp-chart';
 const ATTR_CHART_PAYLOAD = 'data-misp-chart-payload';
@@ -419,16 +420,25 @@ function followDrilldown(url, params) {
 async function initChart(el) {
   if (liveCharts.has(el)) disposeChart(el);
   const kind = el.getAttribute(ATTR_CHART);
-  const builder = builders[kind];
-  if (!builder) {
-    console.warn(`[misp-dashboard] unknown chart kind "${kind}"`);
-    return;
-  }
   let payload = {};
   try {
     payload = JSON.parse(el.getAttribute(ATTR_CHART_PAYLOAD) || '{}');
   } catch (err) {
     console.warn(`[misp-dashboard] malformed chart payload`, err);
+  }
+
+  // Streaming monitor charts (CPU/memory) manage their own polling and
+  // lifecycle — they have no static builder. initMonitorChart returns a
+  // handle whose teardown() disposeChart() calls (clears the interval).
+  if (kind === 'monitor') {
+    liveCharts.set(el, initMonitorChart(el, payload));
+    return;
+  }
+
+  const builder = builders[kind];
+  if (!builder) {
+    console.warn(`[misp-dashboard] unknown chart kind "${kind}"`);
+    return;
   }
   if (kind === 'geo') {
     await ensureWorldMap();
@@ -471,8 +481,15 @@ export function initChartsIn(containerEl) {
 export function disposeChart(el) {
   const live = liveCharts.get(el);
   if (!live) return;
-  live.observer.disconnect();
-  live.chart.dispose();
+  // Monitor charts carry a teardown() that also clears their poll
+  // interval + visibility wiring; static charts just need disconnect +
+  // dispose.
+  if (typeof live.teardown === 'function') {
+    live.teardown();
+  } else {
+    live.observer.disconnect();
+    live.chart.dispose();
+  }
   liveCharts.delete(el);
 }
 

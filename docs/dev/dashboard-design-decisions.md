@@ -2192,3 +2192,89 @@ no phantom column anywhere. The new `__unsetPreviousDefault` `updateAll` path
 was exercised self-restoringly: defaults `{13:Analyst}` → demote-all → `0`
 → restored to `{13:Analyst}` (dev box left exactly as DD-26 set it).
 `php -l` clean. Pre-existing bug; not introduced by the dashboard rework.
+
+## DD-29 — Live system-monitor widgets (CPU / memory / disk) with client-side streaming
+
+**Date.** 2026-05-27
+**Phase context.** While refining the admin dashboard the user wanted a
+livelier alternative to `MispSystemResourceWidget` (a `SimpleList` of one-shot
+disk/load/mem strings): three site-admin-only widgets that sample every 10s as
+charts — **CPU** + **memory** as rolling line graphs, **disk** as a pie. The
+line graphs must accumulate a **rolling 180s window client-side while the
+dashboard is open** (resetting on reload).
+
+**Core problem.** The board's normal refresh (`Board._renderWidget`) replaces
+the widget body `innerHTML` and re-inits its chart from scratch — that wipes a
+client-accumulated buffer every tick. So the line charts cannot ride the
+standard scheduler refresh.
+
+**Decisions.**
+
+1. **Client-side rolling buffer, not server-side.** The buffer lives in the
+   chart's JS closure; reload / manual refresh starts fresh. Matches the
+   user's "while the dashboard is open", needs no storage, and has no
+   cross-user/cross-tab contention a shared server buffer would. The disk pie
+   is a *snapshot* (no history needed), so it keeps the standard scheduler
+   refresh (`autoRefreshDelay = 10`); only CPU/memory stream.
+
+2. **Poll via the existing `renderWidget` `exportjson` contract — no new
+   endpoint/route/ACL.** A streaming widget's `handler()` returns ONE current
+   sample; the chart polls `POST {renderUrl}/{id}/exportjson:1` (the exact
+   call `Board._exportWidget` makes) to fetch it as bare JSON. That path runs
+   **live** for any widget without `$cache_duration` (the `WidgetCache::remember`
+   wrapper is a pass-through), so the monitors are uncached by simply not
+   opting in. The streaming widgets set **`autoRefreshDelay = false`** → no
+   `data-widget-refresh-delay` → the board scheduler drops the tile (its own
+   poll loop is the sole driver; no HTML-replacing re-render to wipe the
+   buffer).
+
+3. **Two new render kinds, minimal core-JS touch.** `PieChart` (`pie`) and
+   `MonitorLineChart` (`monitor`), each a new `Widgets/<Kind>.ctp` + a glyph
+   in `render-thumbs.mjs` (CLAUDE.md rule). The *only* core-file edit
+   (`charts.module.mjs`) is: a `pie` builder added to the `builders` registry;
+   a `kind === 'monitor'` branch in `initChart()` delegating to a **new**
+   `monitor-chart.mjs` (all streaming logic lives there); and a `teardown()`
+   branch in `disposeChart()`. There is no way to bootstrap JS after an AJAX
+   `innerHTML` render without hooking the post-render path
+   (`initChartsIn`/`initChart`), which lives in core JS — `charts.module.mjs`
+   (whose whole job is "payloads → live charts") is the least-invasive hook
+   and already owns the dispose-on-remove lifecycle. **User signed off on this
+   core touch via plan approval** (additive-posture exception).
+
+4. **CPU metric = 1-min load average normalized to % of cores**
+   (`sys_getloadavg()[0] / cores * 100`, cores from `/proc/cpuinfo`). User's
+   fork choice over true `/proc/stat`-delta CPU% (which costs a ~200ms blocking
+   sample per poll) and over raw load average. Caveat carried: a 1-min average
+   is smoothed, so the line moves slowly within a 180s window. The axis `yMax`
+   is a **floor** (≥100 but expands if a sample exceeds it — normalized load
+   can pass 100% on an overloaded host). **Memory = used %** via
+   `MemTotal - MemAvailable` (a truer "used" than the existing widget's
+   `MemFree`, which counts cache/buffers as used; falls back to `MemFree` on
+   pre-`MemAvailable` kernels).
+
+**Lifecycle / robustness.** `monitor-chart.mjs` returns
+`{ chart, observer, teardown }`; `teardown()` clears the poll interval +
+ResizeObserver + disposes the chart, so widget-remove and manual-refresh leave
+no orphaned timers. The poll soft-pauses while `document.hidden` (matches the
+scheduler's Page-Visibility behaviour) and treats a failed poll as a skipped
+tick (keeps the accumulated series). The renderWidget base URL is read from the
+board root's `data-misp-board-renderwidget-url` (the same attribute `Board`
+uses) — single source of truth, no `$baseurl` in the template.
+
+**Files.** New: `app/Lib/Dashboard/{DiskUsageMonitorWidget,CpuLoadMonitorWidget,
+MemoryUsageMonitorWidget}.php`, `app/View/Elements/dashboard/Widgets/{PieChart,
+MonitorLineChart}.ctp`, `app/webroot/js/dashboard/charts/monitor-chart.mjs`.
+Edited (core, signed off): `charts.module.mjs` (pie builder + monitor
+dispatch/teardown), `render-thumbs.mjs` (two glyphs). Auto-discovered
+(`loadAllWidgets` scans `app/Lib/Dashboard/`); `checkPermissions` hides them
+from non-admin galleries — no registry/ACL change.
+
+**Verified.** `php -l` + `node --check` clean across the set; REST `exportjson`
+returns live samples (disk: two polls show different free-bytes ⇒ uncached;
+CPU normalized %; memory used %); wrapped envelopes dispatch
+`renderer=PieChart`/`MonitorLineChart`; standalone `.ctp` renders emit the
+right `data-misp-chart` payloads (incl. `yMax:null` auto-scale + empty/error
+states). The in-browser accumulation / pause-on-hidden behaviour is the
+user's to eyeball (no headless browser on the box; prior sessions deferred
+gold-standard browser checks likewise). Additive; reversible. Implemented one
+widget at a time (disk → CPU → memory), commit per task.
