@@ -19,6 +19,8 @@ class AuthenticationFailureWidget
     "type": "sshd",
     "absciss": "username"
 }';
+    public $cacheLifetime = false;
+    public $autoRefreshDelay = 30;
 
     public function handler($user, $options = array())
     {

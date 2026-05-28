@@ -17,7 +17,7 @@ class NewUsersWidget
     // the viewer's role. cache_scope='user' keys by user id so a payload
     // built for one viewer (with/without emails) is never served to
     // another.
-    public $cache_duration = 3600;
+    public $cache_duration = false;
     public $cache_scope = 'user';
     public $params = [
         'limit' => 'Maximum number of joining users shown. (integer, defaults to 10 if not set)',

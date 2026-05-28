@@ -28,8 +28,8 @@ class APIActivityWidget
         ],
     ];
     public $description = 'Basic widget showing some server statistics in regards to MISP.';
-    public $cacheLifetime = 10;
-    public $autoRefreshDelay = null;
+    public $cacheLifetime = false;
+    public $autoRefreshDelay = 30;
     private $User = null;
     private $AuthKey = null;
 

@@ -43,7 +43,7 @@ class LoggedInUsersWidget
     public $description = 'Users that currently hold an active session, with their session count. Requires the PHP → Redis session engine.';
     // Live view; let the board re-scan once a minute (a SCAN + GET per
     // session is cheap, but not free — don't hammer it).
-    public $autoRefreshDelay = 60;
+    public $autoRefreshDelay = 30;
 
     private $User = null;
 
