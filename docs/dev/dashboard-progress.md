@@ -1527,6 +1527,53 @@ gate (the user still does the merge).
   post-screenshot. `chgrp`; signed commit. Pure addition; reverse by
   flipping `$render` back to SimpleList + restoring the old handler.
 
+- [ ] **`MispAdminHealthWidget` + `HealthList` render kind — generic
+  MISP health rollup, issue-only — opened 2026-05-28 (DD-39).** The
+  "system" widget category was densely populated with physical-resource
+  surfaces (Resource / SystemResource / Workers / Monitor trio) but had
+  no application-layer health rollup — schema version, security posture,
+  library health, configuration correctness. User asked for that gap,
+  narrow scope, **issue-only display**: the widget filters its 8 fixed
+  checks to non-green only and renders that set; healthy MISP shows
+  only the "All checks passing" header row. **8 checks (user-specified
+  shortlist), pure consumer of existing `Server::*Diagnostics()` methods**
+  — no diagnostic logic re-implemented: (1) MISP version
+  `getCurrentGitStatus()` (older=warn); (2) PHP/MySQL provisioning
+  `getIniSetting()` + `dbConfiguration()` each-under-recommended=warn;
+  (3) filesystem perms `writeable{Dirs,Files}Diagnostics()` +
+  `readableFilesDiagnostics()` (value 2=fail, 1=warn, rolled-up);
+  (4) `moduleDiagnostics()` per type (2=warn, error=fail, disabled=skip
+  — user-intentional); (5) `gpgDiagnostics()` status 2-4=fail (1=skip,
+  could be intentional); (6) `stixDiagnostics()` operational!=0=fail,
+  invalid_version=warn; (7) `sessionDiagnostics()` error_code!=0=warn;
+  (8) `dbSchemaDiagnostic()` version mismatch/locked=warn,
+  fail_number_reached=fail. **New render kind chosen via fork** —
+  QueueList's two-chip row over-weights for single-status check rows;
+  StatGrid centres value, bad for one-line rows. New `Widgets/HealthList.ctp`
+  + `.misp-health-*` CSS (token-only, matches QueueList's chip pattern)
+  + `thumbHealthList` registered (CLAUDE.md rule). **Severity glyph
+  set is two-glyph (warn-triangle, danger-circle), not per-check
+  distinct** — chip+glyph already carries the colour signal, per-check
+  icons would compete; inline SVG `currentColor` (DD-32 theme
+  independence). Typed-row contract: `header` (always renders — "All
+  checks passing" or "N issues") / `check`
+  `{check, name, severity, severity_class, detail, drilldown}` /
+  `message`. Severity allow-list = `warning`, `danger` only (info
+  filtered at widget level — never reaches renderer). Renderer h()s
+  every scalar; drilldown URLs DD-03-validated →
+  `/servers/serverSettings/diagnostics`. `$cache_duration = 300` (5min,
+  DD-20) — `stixDiagnostics()` spawns Python subprocess,
+  `moduleDiagnostics()` HTTP-pings ×3 module types, `dbConfiguration()`
+  SHOW VARIABLES — real work. `$autoRefreshDelay = 60`; site-admin
+  gated; default size `3×4`. To verify: `php -l` clean (widget +
+  renderer); `node --check` clean (render-thumbs.mjs); live REST render
+  (HTTP 200); threshold unit checks across the 8 checks' severity
+  mapping; **headless-Chrome screenshot** against the full CSS stack
+  (bootstrap5 + mainOvermind + fontawesome7 + dashboard.default +
+  midnight + overmind theme override) exercising warn + danger chips
+  and glyphs. Pure addition; reverse = delete widget + renderer + CSS
+  block + thumb entry.
+
 ---
 
 ## Phase 6 — Merge to `develop`

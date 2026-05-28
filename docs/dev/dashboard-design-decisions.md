@@ -2857,3 +2857,139 @@ accidentally render as a "queue".
 restoring the 3-rows-per-queue handler. Render kind sticks around as a
 reusable pattern for any future queue-health surface (e.g. per-server-link
 sync queues).
+
+## DD-39 — `HealthList` render kind + `MispAdminHealthWidget`: application-layer health rollup, issue-only
+
+**Date.** 2026-05-28
+**Phase context.** Post-5.5 / DD-31 family. The "system" widget category is
+already populated by physical-resource surfaces — `MispAdminResourceWidget`
+(Redis info, PHP memory), `MispSystemResourceWidget` (disk threshold, system
+stats), `MispAdminWorkerWidget` (DD-38, workers), the live monitor trio
+(`CpuLoadMonitorWidget` / `MemoryUsageMonitorWidget` / `DiskUsageMonitorWidget`,
+DD-29/30). What none of them surface is the **application-layer health
+rollup**: schema version, security posture, library health, configuration
+correctness. User asked for that gap to be filled — narrow scope, **issue
+surfacer not full rollup**.
+
+**Scope (user-narrowed via AskUserQuestion fork).** Admin-only (site-admin),
+**issue-only display** — the widget filters its 8 checks to only the
+non-green ones and renders that set. A healthy MISP shows an empty body
+with a single "All checks passing" header row, which is itself the signal.
+User explicit on "not nearly as verbose" — the broader "DB connection /
+Redis db0/db13 / pending updates / error_log count / security posture
+itemised" proposal was rejected in favour of a fixed 8-check shortlist.
+
+**The 8 checks (user-specified shortlist).** Each maps 1:1 to an existing
+`Server::*Diagnostics()` method — pure consumer, no diagnostic logic
+re-implemented:
+
+1. **MISP version outdated** — `Server::getCurrentGitStatus()`. `upToDate`
+   value: `same`=OK, `older`=warn, `newer|error|disabled`=skip (the user
+   asked for "outdated", not "couldn't check").
+2. **PHP/MySQL setting under-provisioned** — PHP via `Server::getIniSetting()`
+   (`memory_limit ≥ 2048M`, `max_execution_time ≥ 300`, `upload_max_filesize
+   ≥ 50M`, `post_max_size ≥ 50M`); MySQL via `Server::dbConfiguration()`
+   (`innodb_buffer_pool_size ≥ MYSQL_RECOMMENDED_SETTINGS`). Each
+   under-recommended setting = one warn row.
+3. **Read/write permission issues** — `Server::writeableDirsDiagnostics()`
+   + `writeableFilesDiagnostics()` + `readableFilesDiagnostics()`. Value
+   2 (not writable/readable) = fail, value 1 (not found) = warn. One
+   roll-up row "N paths not writable / M not found" rather than one row
+   per path (issue widget, not the diagnostics page).
+4. **Module system not reachable** — `Server::moduleDiagnostics($type)`
+   for Enrichment / Import / Export. 1 (disabled) = skip (user-intentional);
+   2 (no modules) = warn; error string = fail.
+5. **GnuPG not configured correctly** — `Server::gpgDiagnostics()`.
+   `status` 0=OK, 1=not configured (skip — could be intentional on a
+   read-only consumer), 2-4=fail.
+6. **STIX library status failure** — `Server::stixDiagnostics()`.
+   `operational !== 0` = fail; `invalid_version === true` = warn.
+7. **Session handler not `php_redis`** — `Server::sessionDiagnostics()`.
+   `error_code !== 0` = warn.
+8. **DB updates not up-to-date / locked** — `Server::dbSchemaDiagnostic()`.
+   `actual_db_version !== expected_db_version` = warn; `update_locked` =
+   warn; `update_fail_number_reached` = fail.
+
+**Decision — new render kind, not QueueList reuse.** Fork surfaced
+(AskUserQuestion). QueueList's row contract (label + two coloured chips)
+overweights for this — a check row is `[severity glyph] check_name
+[detail] [severity chip]`, single-status, one detail string. Cramming
+into QueueList would either leave one chip empty per row or repurpose
+the second chip as a "detail" slot it isn't shaped for. StatGrid was
+rejected too (cards centre value; bad for one-line check rows). User
+chose `HealthList`. Mirrors DD-31/35/38's precedent: typed-row contract,
+widget owns colour decisions, renderer is dumb / token-driven.
+
+**Data contract (typed rows).** `header` (one-line summary, "All checks
+passing" or "N issues found"), `check` (the shape this widget is about),
+`message` (full-width centred — diagnostic-unreachable / cache-stale
+states). Check row carries `{check, name, severity, severity_class,
+detail, drilldown}`. Severity is `warning` or `danger` only — info-tier
+rows never reach the renderer because they're filtered out at the widget.
+
+**Severity glyph — two only, severity-not-per-check.** Sub-decision
+resolved without a separate fork (user already asked for narrow scope):
+a per-check glyph set (8 distinct icons, à la QueueList's queue
+glyphs) would visually compete with the severity chip for the same
+"what's the urgency" attention. Two glyphs total — a warn-triangle
+and a danger-circle — keep the row's load-bearing visual on the
+chip + glyph pair (both echo the colour), with the check name reading
+as plain text. Inline SVG, `currentColor`, DD-32 theme-independence.
+Glyphs live inline in `HealthList.ctp` (only two — no separate
+`HealthGlyph::get($severity)` tool needed; if the set grows past
+three, extract).
+
+**Empty state is part of the contract.** A widget that hides its
+useful content when there's nothing to show would look broken to a
+non-expert; the **header row always renders** — "All checks
+passing" (green dot) when the issue-list is empty, "N issue(s) found"
+(amber/red dot) when populated. This is the widget's "I'm alive and
+healthy" signal; the absence of detail rows is the good news.
+
+**Caching.** 5min `WidgetCache` (DD-20). `Server::*Diagnostics()`
+methods do real work — `stixDiagnostics()` spawns a Python subprocess,
+`moduleDiagnostics()` ping the module HTTP endpoints (×3 module types),
+`dbConfiguration()` queries `SHOW VARIABLES` — caching the rollup at
+5min keeps the widget cheap to render without hiding a fresh incident
+for more than the next refresh cycle.
+
+**Conventions upheld.**
+* `.misp-health-*` CSS is token-only (`--misp-dash-{warning,danger}` +
+  matching `-muted` background; matches QueueList's chip pattern).
+* Renderer **owns escaping** (DD-34): widget emits raw strings, renderer
+  `h()`s each interpolated scalar exactly once; `severity_class` filtered
+  through a 2-entry allow-list (`warning`, `danger`) so the widget can't
+  inject arbitrary CSS classes.
+* Drilldown URL safety via `DashboardURLValidator` (DD-03) — same-host or
+  relative only. Each check row drills to `/servers/serverSettings/diagnostics`
+  (the canonical full diagnostic page).
+* Not its own scroll container (DD-31): `.misp-widget-body` owns padding +
+  overflow.
+* New render kind → `thumbHealthList` glyph registered in
+  `render-thumbs.mjs` (CLAUDE.md rule).
+* No ECharts series → **no bundle rebuild** (HealthList is pure HTML/CSS).
+* Pure consumer of `Server::*Diagnostics()` — additive only, no
+  modifications to any existing diagnostic method (per
+  `feedback_additive_only_posture`).
+
+**Widget shape.** `MispAdminHealthWidget`:
+* `$render = 'HealthList'`.
+* Default size `3×4`.
+* `$autoRefreshDelay = 60` (slow-moving signal; the 5min cache is the
+  authoritative refresh cadence, but the client polls in case the cache
+  has been purged or the underlying state shifts).
+* `$cache_duration = 300` (5min, per DD-20).
+* Site-admin gate (`Site Admin` role — mirrors MispAdminWorkerWidget).
+
+**Verification (deferred until §4 of this session's task list).**
+`php -l` clean ×2 (widget, renderer); `node --check` clean
+(render-thumbs.mjs); live REST render (HTTP 200); threshold unit
+checks for the severity mapping across all 8 checks; headless-Chrome
+screenshot against the full CSS stack
+(`bootstrap5-custom + mainOvermind + fontawesome7 +
+dashboard.default + dashboard.midnight + overmind theme override`) —
+both `warning` and `danger` chips/glyphs visually distinct.
+
+**Pure addition, fully reversible.** No existing widget / model /
+controller touched. Reverse = delete the widget + the renderer + the
+CSS block + the thumb registry entry.
