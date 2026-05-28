@@ -2988,3 +2988,137 @@ a.misp-stat-card:hover .misp-stat-glyph {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------------------------------------------------------------- */
+/* QueueList renderer (DD-38) — one row per background-queue.       */
+/* Shape: [glyph] name … [workers chip] [jobs chip]. The two chips  */
+/* are independently coloured; the muted-background pill style      */
+/* mirrors .misp-stat-delta (DD-31/DD-32). Token-driven so themes   */
+/* that only redefine --misp-dash-* tokens retone for free.         */
+/* ---------------------------------------------------------------- */
+.misp-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  align-content: start;
+}
+.misp-queue-header {
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2)
+           var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text-muted);
+}
+.misp-queue-headtext {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-queue-row {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-md);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  color: var(--misp-dash-text);
+  text-decoration: none;
+  transition: border-color var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast);
+}
+a.misp-queue-row:hover,
+a.misp-queue-row:focus-visible {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-sm);
+  text-decoration: none;
+  color: var(--misp-dash-text);
+}
+a.misp-queue-row:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+.misp-queue-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.misp-queue-glyph {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--misp-dash-text-muted);
+}
+.misp-queue-glyph-svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+.misp-queue-row:hover .misp-queue-glyph,
+a.misp-queue-row:focus-visible .misp-queue-glyph {
+  color: var(--misp-dash-accent);
+}
+.misp-queue-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+}
+.misp-queue-chips {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+}
+.misp-queue-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5em;
+  padding: 1px var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-sm);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.misp-queue-chip-info {
+  color: var(--misp-dash-info);
+  background: var(--misp-dash-info-muted);
+}
+.misp-queue-chip-success {
+  color: var(--misp-dash-success);
+  background: var(--misp-dash-success-muted);
+}
+.misp-queue-chip-warning {
+  color: var(--misp-dash-warning);
+  background: var(--misp-dash-warning-muted);
+}
+.misp-queue-chip-danger {
+  color: var(--misp-dash-danger);
+  background: var(--misp-dash-danger-muted);
+}
+.misp-queue-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-2);
+  text-align: center;
+  color: var(--misp-dash-text-muted);
+}
+.misp-queue-message-title {
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
+}
+.misp-queue-message-text {
+  font-size: var(--misp-dash-fs-xs);
+}

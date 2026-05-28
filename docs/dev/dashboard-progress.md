@@ -1486,6 +1486,47 @@ gate (the user still does the merge).
     harness (7/7 green). `php -l`/`node --check`; `chgrp`; signed. Additive
     (widget still works with JS absent).
 
+- [x] **`MispAdminWorkerWidget` rework — `QueueList` render kind, one row
+  per background-queue with two coloured chips — landed 2026-05-28 (DD-38).**
+  Old widget rendered three SimpleList entries per queue (workers/jobs/gap)
+  — bulky; piling-up queue looked the same as a healthy one. User-driven
+  rework: each queue is now a single row `[glyph] queue_name [alive/total]
+  [pending_jobs]`, with the two chips **independently coloured** so
+  "workers alive but stuck" is the visual signal. **New render kind chosen
+  via fork** (SimpleList drop-in needs raw HTML in `value` → defeats
+  renderer-owns-escaping; StatGrid cards can't carry two coloured chips per
+  row). New `Widgets/QueueList.ctp` + `.misp-queue-*` token-only CSS
+  (muted-pill chips matching StatGrid's `▲`/`▼` deltas) + new
+  `Tools/QueueGlyph.php` (six inline-SVG glyphs keyed by
+  `BackgroundJobsTool::VALID_QUEUES`: `default` boxes, `email` envelope,
+  `cache` lightning, `prio` flame, `update` sync-arrows, `scheduler` clock;
+  FA rejected per DD-32) + `thumbQueueList` registered (CLAUDE.md rule).
+  **Colour thresholds (user-spec):** workers `0/0`→warning (precedence over
+  `x==y`), `x<y`→danger, `x==y`→info; jobs `<50`→info, `50..99`→warning,
+  `≥100`→danger. Scheduler has no jobCount → row **omits the jobs chip**
+  (zero would falsely read as "0 pending"). **Bug fix folded in:**
+  `workerDiagnostics()` mixes per-queue arrays with top-level scalar/bool
+  summary keys (`controls`, `proc_accessible`, `supervisord_status`) — old
+  widget skipped two by name + would crash on the third in the new
+  `array_key_exists` check; new widget constrains iteration to
+  `VALID_QUEUES` so any future top-level summary key the diagnostics
+  function adds can't accidentally render as a "queue". Renderer h()s
+  every scalar; class-name allow-listed; drilldown URLs DD-03 validated →
+  `/servers/serverSettings/workers`. Default size `2×2 → 3×4`;
+  `autoRefreshDelay=5` kept; no cache (diagnostics is cheap). No ECharts
+  series → no bundle rebuild. Verified: `php -l` clean ×3, `node --check`
+  clean; live REST render (HTTP 200, 6 queues + header "6 queues · 21
+  workers alive"); HTML render class-histogram (10 info + 1 warning chip);
+  **10/10 threshold unit checks pass** (incl. all 4 chip states +
+  precedence of `0/0` over `x==y`); **headless-Chrome screenshot** against
+  the full CSS stack (bootstrap5 + mainOvermind + fontawesome7 +
+  dashboard.default + midnight + overmind theme override) exercising all
+  4 chip states and all 6 glyphs — chips render with the expected hues,
+  glyphs visually distinct (prio iterated once: initial teardrop-shape was
+  re-sculpted into a curling flame). Temp webroot eye-check file deleted
+  post-screenshot. `chgrp`; signed commit. Pure addition; reverse by
+  flipping `$render` back to SimpleList + restoring the old handler.
+
 ---
 
 ## Phase 6 — Merge to `develop`

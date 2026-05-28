@@ -2750,3 +2750,110 @@ substrings in the response. Reverse by reverting the commit.
 **Posture.** This is a small *scope cut* on a widget the v2 rework already
 ships in a new render kind (DD-31). Not parity with v1 (which displayed both
 cards); a deliberate trim. Additive elsewhere — no shared utility moved.
+
+---
+
+## DD-38 — `QueueList` render kind: per-queue worker-health rows with two coloured chips
+
+**Date.** 2026-05-28
+**Phase context.** Post-5.5 / DD-31 family. `MispAdminWorkerWidget` rendered
+on `SimpleList` with three entries per queue (alive/total row, jobs row, gap)
+— bulky and hard to scan: a piling-up queue looked the same as a healthy one
+unless you read the numeric. User asked to convert each queue into a single
+row, glyph-prefixed for at-a-glance identification, with the workers state
+and the backlog state as **two independently-coloured chips** so "workers are
+alive but stuck" is the load-bearing visual signal.
+
+**Decision — new render kind, not a SimpleList drop-in.** Two right-aligned
+chips with **different colour classes per row** can't ride on SimpleList's
+single `class` field cleanly (would require raw HTML in `value`, which
+defeats DD-34's "renderer owns escaping"). Reuse of StatGrid was rejected via
+fork (the spec is row-shaped: `[glyph] name [chip] [chip]`; StatGrid cards
+centre the value and can't carry two coloured chips per row). So a new
+`QueueList` render kind, mirroring DD-31/DD-35's precedent.
+
+**Data contract (typed rows).** `header` (one-line summary), `queue` (the
+shape this widget is about), `message` (full-width centred — workers-
+unreachable / supervisor-down states). Queue row carries
+`{queue, name, glyph, alive, total, workers_class, jobs, jobs_class,
+drilldown}`. **Colour decisions live in the widget** (it knows the
+thresholds + the worker_array shape); the renderer only maps the named
+class to the matching `.misp-queue-chip-<sem>` token pair. Adding a new
+colour stop = adding one CSS rule, no logic in the renderer changes.
+
+**Colour thresholds (user-specified).**
+* **Workers chip** — `0/0` → `warning` (no workers configured); `x < y` →
+  `danger` (some down); `x == y` → `info` (healthy). The `0/0` rule takes
+  precedence over `x == y` so an unstarted queue shows amber, not info.
+* **Jobs chip** — `< 50` → `info`; `50..99` → `warning`; `≥ 100` → `danger`.
+  The `scheduler` queue is dispatch-only — `workerDiagnostics()` doesn't
+  surface a `jobCount` for it, so the row renders **without a jobs chip**
+  (the renderer omits the chip when `jobs` is absent rather than rendering
+  a zero, so the missing data isn't mistaken for "0 pending").
+
+**Per-queue glyph — inline-SVG, not FontAwesome (DD-32 lesson).** A new
+`QueueGlyph::get($name)` tool mirrors `StatGlyph`: six 24×24 `currentColor`
+SVG glyphs keyed by the `BackgroundJobsTool::VALID_QUEUES` names — `default`
+(stacked boxes), `email` (envelope), `cache` (lightning bolt), `prio`
+(flame), `update` (circular sync arrows), `scheduler` (clock). FA classes
+remain unreliable here because the dashboard layouts load different FA
+majors per theme (DD-32) — inline SVG with `currentColor` is theme-
+independent.
+
+**Top-level summary keys are not queues.** `workerDiagnostics()` mixes
+per-queue arrays with top-level scalar/bool summary keys (`controls`,
+`proc_accessible`, `supervisord_status`) at the same dict level. The
+previous SimpleList widget skipped two of them by name and crashed on
+`supervisord_status` once it reached the new `array_key_exists('jobCount',
+$queue)` call. Fixed by **constraining iteration to
+`BackgroundJobsTool::VALID_QUEUES`** rather than skipping by name — any
+future top-level summary key the diagnostics function adds can't
+accidentally render as a "queue".
+
+**Conventions upheld.**
+* `.misp-queue-*` CSS is token-only (muted-pill chips =
+  `--misp-dash-<sem>-muted` background + `--misp-dash-<sem>` foreground;
+  matches StatGrid's `▲`/`▼` deltas).
+* Renderer **owns escaping** (DD-34): widget emits raw strings, renderer
+  `h()`s each interpolated scalar exactly once; class-name is filtered
+  through an allow-list so the widget can't inject arbitrary CSS classes.
+* Drilldown URL safety via `DashboardURLValidator` (DD-03) — same-host or
+  relative only. Each queue row drills to `/servers/serverSettings/workers`
+  for inline management.
+* Not its own scroll container (DD-31): `.misp-widget-body` owns padding +
+  overflow.
+* New render kind → `thumbQueueList` glyph registered in
+  `render-thumbs.mjs` (CLAUDE.md rule).
+* No ECharts series → **no bundle rebuild** (QueueList is pure HTML/CSS).
+
+**Widget changes.** `MispAdminWorkerWidget`:
+* `$render` flipped `SimpleList → QueueList`.
+* Default size `2×2 → 3×4` (six queue rows + header don't fit a 2×2).
+* `$autoRefreshDelay` kept at 5s (worker freshness is the value here);
+  cache stays off (`workerDiagnostics()` is cheap — a supervisor poll +
+  5 Redis `LLEN`s).
+* Site-admin gate unchanged.
+
+**Verified.**
+* `php -l` clean ×3 (widget, glyph tool, renderer); `node --check` clean
+  on `render-thumbs.mjs`.
+* Live REST render → HTTP 200, 6 queue rows shaped correctly, header
+  "6 queues · 21 workers alive"; HTML render path also 200, class-name
+  histogram = 10 info chips + 1 warning chip (the dev box's empty
+  `scheduler` queue), 6 row containers, 6 glyphs.
+* **10/10 threshold unit checks pass** (`0/0→warning`, `1/2→danger`,
+  `5/5→info`, `2/2→info`, `jobs=0,49→info`, `jobs=50,99→warning`,
+  `jobs=100,999→danger`).
+* **Headless-Chrome screenshot** of a temp page exercising all 4 chip
+  states and all 6 glyphs, loaded against the **full CSS stack**
+  (`bootstrap5-custom + mainOvermind + fontawesome7 +
+  dashboard.default + dashboard.midnight + overmind theme override` —
+  `feedback_verify_visible_outcome_not_property`): chips render with
+  their expected hues, glyphs are visually distinct, layout aligns. Temp
+  webroot file deleted post-screenshot per the recipe.
+
+**Pure addition, fully reversible.** The widget is the only consumer of
+`QueueList` today; revert by flipping `$render` back to SimpleList +
+restoring the 3-rows-per-queue handler. Render kind sticks around as a
+reusable pattern for any future queue-health surface (e.g. per-server-link
+sync queues).

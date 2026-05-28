@@ -216,6 +216,23 @@ function thumbUserList() {
   ]);
 }
 
+function thumbQueueList() {
+  // A "queue list": three stacked rows, each = small square glyph on the
+  // left + a name bar + two short pill chips on the right (the workers
+  // and jobs chips that QueueList renders per queue).
+  const row = (y) => [
+    shape('rect', { x: 16, y: y, width: 6, height: 6, rx: 1 }),
+    shape('rect', { x: 26, y: y + 1, width: 16, height: 4, rx: 1.5, fill: 'currentColor', stroke: 'none', opacity: 0.55 }),
+    shape('rect', { x: 46, y: y, width: 7, height: 6, rx: 2, fill: 'currentColor', stroke: 'none', opacity: 0.7 }),
+    shape('rect', { x: 55, y: y, width: 7, height: 6, rx: 2, fill: 'currentColor', stroke: 'none', opacity: 0.35 }),
+  ];
+  return svg([
+    ...row(9),
+    ...row(20),
+    ...row(31),
+  ]);
+}
+
 function thumbGeneric() {
   return svg([
     shape('rect', { x: 22, y: 14, width: 36, height: 17, rx: 2 }),
@@ -239,6 +256,7 @@ const REGISTRY = {
   StatGrid:       thumbStatGrid,
   NetworkGraph:   thumbNetworkGraph,
   UserList:       thumbUserList,
+  QueueList:      thumbQueueList,
 };
 
 /**
