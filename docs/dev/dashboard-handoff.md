@@ -1,234 +1,165 @@
-# Dashboard v2 — Session handoff (2026-05-28 — DD-41 mail-log + search filter + DD-42 widget rework landed; next: TBD)
+# Dashboard v2 — Session handoff (2026-05-28 — DD-43 rotated-file + DD-44 admin-template snapshot landed; next: TBD)
 
-Twenty-third session, continued. Authoritative state lives in:
+Twenty-fourth session. Authoritative state lives in:
 
 - `dashboard-prd.md` — spec (binding decisions table §15, now incl.
-  DD-16..DD-42).
+  DD-16..DD-44).
 - `dashboard-progress.md` — task state. **Phase 5 + 5.5 closed; Phase 6
   (merge) is the only tracked phase left.** Two new entries this
-  session in "Post-5.5 — New features": the `MispMailLogWidget +
-  UserList glyph/recipe` bullet (DD-41) and the
-  `LoginsWidget + APIActivityWidget UserList rework + AuthFailures
-  description` bullet (DD-42).
-- `dashboard-design-decisions.md` — DD-01..DD-42 (DD-41 + DD-42 this
+  session in "Post-5.5 — New features": the `MailLogTool rotated-file
+  traversal (DD-43)` bullet and the `Shipped admin dashboard template
+  — full snapshot replace (DD-44)` bullet.
+- `dashboard-design-decisions.md` — DD-01..DD-44 (DD-43 + DD-44 this
   session).
 
 This file is the bridge: ephemeral session context. Replace as work
 progresses.
 
-## TL;DR — this session (12 signed commits, `%G?`=U, not merged)
+## TL;DR — this session (3 signed commits, `%G?`=U, not merged)
 
 ```
-68780b6f0 new DD-41 — server-side search filter on MispMailLogWidget
-32e507cfa chg handoff refreshed — DD-41 + DD-42 landed (intra-session)
-26cd6c832 chg AuthenticationFailureWidget — clarify D4 provenance (DD-42)
-11674fd73 chg APIActivityWidget — flip SimpleList -> UserList (DD-42)
-cdfeaa70f chg LoginsWidget — flip SimpleList -> UserList (DD-42)
-bf70129ba chg open DD-42 — Logins + APIActivity to UserList; AuthFailures description
-8f25d87a4 chg DD-41 — recipe: note the pre-existing-file gotcha
-3281e8f99 chg DD-41 — slim recipe to verbatim shell snippet
-2d4def330 chg DD-41 — narrow setup recipe to one rsyslog strategy
-9cdfc5957 chg handoff refreshed — DD-41 landed; next-session task TBD
-bc8873ca3 new MispMailLogWidget — outgoing-mail status tail (DD-41)
-6192eabde new UserList — optional `recipe` slot on message rows
-18f1cea2e new MailLogTool — postfix mail-log tail reader (DD-41)
-bcc0ced03 new UserList — optional `glyph` slot (token allow-list)
-722df1cf2 chg open DD-41 — MispMailLogWidget + UserList glyph slot
+47f3ccb41 chg DD-44 — shipped admin dashboard template: v2 snapshot
+721b69163 new DD-43 — MailLogTool rotated-file traversal
+<handoff refresh commit>
 ```
 
-Three pieces of work, all surfaced and resolved live:
+Plus the in-tree settings.local.json fix from the `/doctor` prompt
+at the start of the session (replaced a broken `:*` mid-pattern
+permission rule with a prefix-matching `--scan:*` form) — that was
+the harness's local-config; not a dashboard-v2 change.
 
-1. **DD-41 — `MispMailLogWidget`** (postfix mail-log tail) + **UserList
-   glyph / recipe slot extensions**. Site-admin widget rendering the
-   last N postfix delivery records with status-tinted glyphs (sent →
-   green check, deferred → amber warn, bounced/expired/undeliverable →
-   red danger). Operator setup recipe narrowed to a single verbatim
-   shell snippet (scoped `$FileCreateMode 0644` in rsyslog +
-   `chmod 644 /var/log/mail.log` for the pre-existing-file case).
+Two pieces of work, both landed and verified:
 
-2. **DD-41 sub-note — server-side search filter on the mail-log
-   widget.** Case-insensitive substring filter via a `search` config
-   param (Tier 2 per the AskUserQuestion fork — server-side, no new
-   protocol plumbing). Filters recipient + relay + queue_id + message
-   *before* the limit cap so `$limit` reflects matching rows. When
-   `search` is set, default lookback bumps 64 KB → 1 MB so the filter
-   has range. Bounded-scan caveat documented: doesn't open rotated
-   files (`mail.log.1`, `.gz` companions).
+1. **DD-43 — `MailLogTool` rotated-file traversal.** Closes the
+   explicit bounded-scan caveat carried in the DD-41 search-filter
+   sub-note ("rotated files aren't opened; search-deep-history isn't
+   promised — deferred follow-up"). When `$search !== ''` and the
+   live-tail returns fewer than `$limit` matching rows, MailLogTool
+   fills remaining slots from rotated companions (`<path>.1` plain
+   + `<path>.N.gz`) in age order. Without `$search`, byte-identical
+   to DD-41 — the search-gated trigger IS the opt-in.
 
-3. **DD-42 — front-end rework of three "legacy" widgets**.
-   `LoginsWidget` + `APIActivityWidget` flipped from SimpleList to
-   UserList — same data sources, just the row contract modernised
-   (avatar + name + meta + badge + drilldown, DD-34 escaping
-   restored). `AuthenticationFailureWidget` got a description-only
-   fix to clarify it's the D4 project widget (sshd events ingested
-   from a D4 collector as MISP events), NOT MISP login failures.
-
-Fully verified (REST + headless-Chrome screenshots against the full
-CSS stack). Pure additions for DD-41; user-explicit sign-off for DD-
-42's touch of existing widgets. **The USER does the merge — do NOT
-open the PR or merge.**
+2. **DD-44 — Shipped admin dashboard template snapshot.** The v1-era
+   6-widget Administrator template (UsageData / NewUsers /
+   AuthenticationFailure / MispStatus / Logins / APIActivity)
+   replaced with a 14-widget snapshot of the dev-box admin's hand-
+   curated v2 layout. Fresh uuid (user picked "full snapshot
+   replace" scope); description refreshed to enumerate the v2
+   surface; the full DD-31..DD-43 widget family is now represented
+   in the default admin board. **AuthenticationFailureWidget +
+   MispStatusWidget intentionally dropped** — mirrors the admin's
+   personal curation (D4 surface is niche, resource trio +
+   MispAdminHealth cover MispStatus's slot).
 
 ## What landed (reuse these facts)
 
-### DD-41 sub-note — server-side search filter on MispMailLogWidget (latest)
+### DD-43 — `MailLogTool` rotated-file traversal
 
-- **Tier chosen via fork** — Tier 1 (client-side row filter via DD-
-  36's `search:true` slot) too narrow (only filters the displayed 20
-  rows); Tier 3 (inline search box + transient-search-param protocol
-  extension) larger blast radius; **Tier 2** (server-side filter via
-  config param, no protocol plumbing) the sweet spot.
-- **`MailLogTool::tail(...)` signature** gains optional 4th arg
-  `$search=''`. Non-empty → each parsed row filtered by
-  `stripos($recipient . ' ' . $relay . ' ' . $queue_id . ' ' . $message, $search)`
-  BEFORE the limit cap, so `$limit` reflects matching rows (not all
-  rows in the window). **Substring, not regex** — good enough for
-  "find all entries for alice@…", avoids the false-positive surface
-  of regex over user input.
-- **Widget config gains `search`.** When set, **default lookback
-  bumps 64 KB → 1 MB** so the filter has actual range to scan
-  (operator can still override `lookback_bytes` either way; the 4 MB
-  hard-cap is preserved).
-- **Header text adapts.** Filter active + matches:
-  `'N match(es) for "<search>" · <per-status tally>'`. Filter
-  active + no matches: `'No matches for "<search>" in the last
-  <bytes> of log'`. Filter empty: original per-status tally.
-- **Caching alignment.** `WidgetCache` keys on widget path +
-  `sha256(config)` (DD-20). `search` is in config, so each distinct
-  term naturally gets its own cache entry — `$cache_duration=30`
-  still works without invalidation plumbing.
-- **Bounded-scan caveat** (carried in DD-41 sub-note + the
-  "Open follow-ups" list below): even at 4 MB hard-cap, the filter
-  doesn't open rotated files (`mail.log.1`, `.gz` companions).
-  Search-deep-history isn't promised — that's deferred follow-up
-  work (gzip decompression + rotated-file traversal).
-- **Verified.** Synthetic-fixture matrix: unfiltered, substring
-  recipient match, substring message match, no-match, case-
-  insensitive, limit-clamped-to-newest-match. Live REST renders
-  against `/var/log/mail.log` confirm bumped lookback (visible in
-  empty-state: `"in the last 1.0 MB of log"`) and the filter-active
-  header text.
+- **Scope-tight refactor of `MailLogTool` only** — widget API is
+  unchanged (no new config knobs, no render-kind change). The
+  `tail($path, $lookbackBytes, $limit, $search)` signature is the
+  same as DD-41; behaviour for an empty `$search` is byte-identical.
+- **Three new private methods**:
+  - `_tailPlainFseek()` — DD-41 fseek body factored out; reused by
+    the live file AND uncompressed rotated `.1` companions (same
+    bounded-tail path).
+  - `_scanForward($path, $isGzip, $limit, $search)` — streaming
+    `gzopen`+`gzgets` (or `fopen`+`fgets`) chronological scan; per-
+    file `array_reverse` to newest-first; memory bound = matches ×
+    ~200B/row + 10M-line hard iteration cap.
+  - `_findRotated()` — `glob('<path>.*')` filtered to
+    `[ctype_digit][.gz]?` suffixes only; sorted by rank ASC. Bogus
+    siblings like `mail.log.foo` / `.bak` never enter the candidate
+    list at all.
+- **Per-file safety bundle `_isReadableAllowedFile()`** — re-runs the
+  full DD-41 three-layer check (allow-list regex + `is_file` +
+  `realpath` re-validation against allow-list + `is_readable`) on
+  every rotated companion. A `<path>.99 -> /etc/passwd` symlink IS
+  discovered by `_findRotated()` (the symlink itself sits in
+  `/tmp/` or `/var/log/` so passes the regex) but rejected before
+  any content is opened.
+- **Age-ordered concatenation preserves global newest-first**: each
+  file's rows are reversed within-file, files are visited newest-
+  rotation-first, so the natural concat order IS newest-first
+  across files. No final sort needed; the `array_slice` to `$limit`
+  at the end catches per-file overshoot.
+- **Empty-state header adapts**: when zero matches AND rotated
+  companions exist, `"No matches for '<term>' across N log files"`
+  replaces the DD-41 phrasing `"in the last X of log"` (which
+  would understate the actual scan). Requires new public helper
+  `MailLogTool::countLogFiles($path)` — cheap, stats only.
+- **PHPUnit coverage backfilled** — new `app/Test/MailLogToolTest.
+  php` (24 tests, 54 assertions): path safety, DD-41 baseline,
+  DD-43 rotated traversal (incl. symlink rejection + bogus suffix
+  filter), `countLogFiles()` helper. No PHPUnit existed for
+  `MailLogTool` before this DD — DD-41 verified by REST + headless-
+  Chrome only; the refactor's blast radius warranted the backfill.
+- **Verified.** php -l clean ×2; PHPUnit 24/24; live REST renders
+  against synthetic live+`.1`+`.2.gz` fixture across 8 scenarios
+  (no-search, search-fills-live-only, search-spills-rotated,
+  search-only-in-gz, zero-matches with new across-N-files empty-
+  state, etc.); reflection-driven safety check confirms `.99` and
+  `.98` symlinks pointing at `/etc/passwd` are discovered as
+  candidates but rejected by `_isReadableAllowedFile()`. Backward-
+  compat: omit `$search` → byte-identical to DD-41.
+- **Open follow-up (deferred).** The `.gz` reader currently
+  decompresses each rotated file linearly. For a giant
+  `mail.log.2.gz` on a chatty mail relay (rare on MISP boxes —
+  they typically only send their own outgoing mail), that's a few
+  hundred ms per render when the search filter is active.
+  Acceptable in v1 (cache_duration=30, autoRefreshDelay=60). If
+  this surfaces as a real complaint, the fix is a bounded-
+  decompress-from-end approach using `gzseek()` with a backwards-
+  binary-search for the last `$lookbackBytes` of decompressed
+  content. Not v1.
 
-### DD-42 — Legacy-widget UserList rework + AuthFailures description
+### DD-44 — Shipped admin dashboard template snapshot
 
-- **Scope is the front end only.** Data sources / query shapes /
-  config schemas / autoRefreshDelay are all left intact. The rework
-  is the row contract + render kind, nothing else. User-explicit
-  sign-off to touch existing widgets (per
-  `feedback_additive_only_posture`).
-- **`LoginsWidget`** — was SimpleList, now `$render='UserList'`.
-  Same `Log.action='login'` aggregation (`COUNT GROUP BY user_id`);
-  added a second `User->find` with Organisation + Role contained for
-  the renderer's avatar + meta. Row =
-  `{name:email, meta:'<org> · <role>', badge:count, org:{id,name,uuid},
-    drilldown:'/admin/users/view/<id>'}`. Header
-  `'N user(s) · M login(s)'`. Deleted-user → muted row with
-  `'user #<id> (deleted)'`. Restored the legacy `virtualFields['count']`
-  declaration that Cake needs for the `Log__count` alias to land in
-  `$log['Log']['count']` — removing it caused an "Undefined array
-  key 'count'" warning that I caught in the first render.
-- **`APIActivityWidget`** — was SimpleList, now `$render='UserList'`.
-  Same Redis zrange-per-day + AuthKey lookup; AuthKey → User →
-  Organisation + Role contained. Known row =
-  `{name:email, meta:'key <prefix> · <org> · <role>', badge:count,
-    org:{...}, drilldown:'/auth_keys/view/<id>'}` — drilldown targets
-  the KEY so the admin can revoke / inspect; owner identity is the
-  primary line. Unknown row uses DD-41's glyph slot =
-  `{glyph:'warn', name:key_prefix, meta:'Unknown key — …',
-    badge:count, muted:true}` — replaces the legacy
-  `<span class="red">` + native-title-tooltip pattern.
-- **Header pluralisation gotcha.** Both widget headers carry two
-  numbers ("N users · M logins" / "N keys · M requests · K unknown").
-  A combined `__n('N user · M login', 'N users · M logins', count)`
-  only switches plural on the **first** count — `__n` is per-string,
-  not per-placeholder. Cleanest fix: two separate `__n` calls
-  composed via string concat:
-  ```php
-  $usersLabel  = sprintf(__n('%d user',  '%d users',  $userCount), $userCount);
-  $loginsLabel = sprintf(__n('%d login', '%d logins', $total),     $total);
-  $value = $usersLabel . ' · ' . $loginsLabel;
-  ```
-  Apply this pattern to any future UserList header that carries more
-  than one count.
-- **`AuthenticationFailureWidget` — description-only fix.** Old
-  `$title='Authentication Failure Data'` + description "Widget
-  visualising authentication failures collected in d4." easily
-  misread on a MISP dashboard as *MISP* login failures (someone
-  trying to log in to MISP and failing). New `$title='D4
-  Authentication Failures'` + description clarifies it's sshd /
-  similar events ingested from a D4 collector as MISP events, with
-  an explicit pointer to LoginsWidget for the MISP login surface.
-  No code / render / schema change.
-- **DD-34 escaping invariant restored in passing.** Both list
-  widgets previously emitted raw HTML in `html_title` / `html` /
-  `value` (the SimpleList legacy plumbing echoed those verbatim).
-  UserList's typed rows + per-scalar `h()` close that gap.
-- **Drilldown patterns differ by widget intent.** LoginsWidget
-  drills to the USER (the actor who logged in); APIActivityWidget
-  drills to the KEY (so the admin can revoke / inspect the active
-  credential). Both are MISP-internal paths, DD-03 validated at
-  render time.
-- **Sizes bumped 2×2 → 3×4** on both widgets — UserList row chrome
-  (avatar + name + meta + badge) doesn't fit a 2×2 tile.
-- **Backward-compat held.** `LoggedInUsersWidget` (DD-35 / DD-41
-  consumer) renders byte-identically — class histogram unchanged,
-  no `glyph` / `recipe` fields emitted there. Mirrors DD-40's
-  canary-check approach.
-- **Verified.** `php -l` clean ×3; live REST renders for both list
-  widgets return correct UserList row shapes; headless-Chrome
-  screenshot against the full CSS stack shows both rendering as
-  proper siblings to `LoggedInUsersWidget`.
-
-### DD-41 — `MispMailLogWidget` + UserList glyph/recipe slots (earlier in session)
-
-- **Data source — OS mail log, NOT MISP-internal.** Only source
-  that captures **remote bounces**: MISP's audit log
-  (`logs.action='email'`) records local sends but never sees the
-  upstream MTA verdict; adding a failure-logging path to
-  `User::sendEmail()` was rejected for the same reason (SMTP `250
-  OK` from local MTA ≠ delivery).
-- **Access constraint — operator opt-in.** `/var/log/mail.log` is
-  `640 syslog:adm` on Debian/Ubuntu (`600 root:root` on RHEL);
-  `www-data` is not in `adm` by default; adding it would grant read
-  on **most of `/var/log/*`** (user-rejected privilege expansion).
-- **Recipe narrowed to a single verbatim shell snippet** (follow-up
-  consult after I over-built it into a three-option menu). The
-  snippet drops `/etc/rsyslog.d/30-mail-world-readable.conf` with a
-  scoped `$FileCreateMode 0644 ... mail.* ... $FileCreateMode 0640`
-  bracketing form (**the reset is load-bearing** — without it, 0644
-  leaks to every subsequent rsyslog-created file), restarts rsyslog,
-  then `chmod 644 /var/log/mail.log` for the pre-existing-file case
-  (rsyslog's `FileCreateMode` only fires on file CREATION — restart
-  doesn't re-create). Threat-model framing: MISP usually runs in a
-  dedicated VM / container, so "world-readable" collapses to
-  "www-data-readable".
-- **Path-allow-list (three layers).** Reject `..` / NUL upfront →
-  regex match `~^/(var/log|tmp)/[A-Za-z0-9._/-]+$~` → post-existence
-  `realpath()` re-check against the allow-list (catches a symlink
-  under `/tmp/` pointing at `/etc/shadow`).
-- **`MailLogTool`** — bounded tail-read via `fseek`, parses both
-  RFC3339 and legacy-syslog postfix formats, scoped to
-  `smtp|lmtp|local|virtual|error|bounce` processes with `status=`.
-- **UserList extension #1 — `glyph` token slot.** Optional `glyph`
-  field on user rows, value from a 4-entry allow-list
-  `{check, warn, danger, info}`. Renderer has 4 inline-SVG defs +
-  CSS class `.misp-user-glyph-{token}` pulling the matching
-  `--misp-dash-{success|warning|danger|info}` token pair. **Token,
-  NOT raw SVG** — DD-34 escaping invariant holds. Avatar precedence:
-  `glyph` → `org`-logo → initials chip.
-- **UserList extension #2 — `recipe` slot on `message` rows.**
-  Optional `recipe` array. Multi-line strings → `<pre>` code block;
-  single-line strings → `<p>` prose. Both `h()`'d. Lets a message
-  row carry a copy-pasteable shell snippet inside an inline
-  `<details>` block (zero JS, accessible).
-- **Status → glyph + chip mapping (widget-side).** `sent`→`check`/
-  Sent, `deferred`→`warn`/Deferred, `bounced`/`expired`/
-  `undeliverable`→`danger`/<label>. Per-row meta: status label +
-  humanised age + relay + truncated MTA message. Humanisation lifted
-  from DD-40 / `IndexTable/Fields/caching.ctp` (two-largest-units
-  form — consistent "ago" across the operational widget family).
-- **Backward-compat held.** `LoggedInUsersWidget` (DD-35) emits no
-  `glyph` / `recipe`, falls through to legacy avatar + message
-  paths; HTML class histogram unchanged.
+- **`app/files/dashboard-templates/admin/template.json` regenerated
+  from admin user 1's `user_settings.dashboard`** by a one-off
+  Python snippet (run from `/tmp/`, deleted after — no committed
+  build script; this is a one-time data refresh, not a recurring
+  pipeline).
+- **uuid**: `1bf983ac-539d-4e7a-828b-aa5585cfbe2c` →
+  `5000487b-3e75-46e4-8c43-96da9dc2268b`. Fresh uuid signals the
+  materially-different layout cleanly; the explicit `cake
+  Dashboard importDefaultTemplates` ingest prunes the old uuid as
+  orphaned.
+- **name** unchanged (`Administrator`). **description** refreshed to
+  enumerate the v2 surface ("live resource monitors (CPU, memory,
+  disk), instance usage statistics, system health rollup, sync
+  test and cache freshness, worker queues, mail log, recent
+  logins, API activity, and the latest users to join").
+- **`value`** = 14-widget verbatim copy of admin user 1's live
+  layout. Was 6 widgets (UsageData / NewUsers /
+  AuthenticationFailure / MispStatus / Logins / APIActivity). Now
+  14, covering the full DD-31..DD-43 family.
+- **`instance_id` gaps preserved** — admin's live config has
+  `w_1, w_2, w_5..w_8, w_10..w_17` (history of add/remove);
+  sequential renumber rejected as cosmetic + risky for any state
+  cross-referencing the IDs.
+- **Other metadata preserved**: `selectable=true`,
+  `restrict_to_org_id=0`, `restrict_to_role_id=0`,
+  `restrict_to_permission_flag='perm_site_admin'`.
+- **AuthenticationFailureWidget + MispStatusWidget intentionally
+  dropped from the new layout** — the admin's curated config
+  removed both. D4 surface is niche; resource trio +
+  MispAdminHealth cover the MispStatus slot.
+- **Backward-compat (user-acknowledged for the new-uuid scope):**
+  `importDefaultTemplates --prune` removes the old uuid on next
+  explicit operator ingest; silent auto-ingest on update (DD-24)
+  leaves it alone so installations don't experience a "template
+  disappeared" moment.  `user_settings.dashboard` holds the
+  resolved widget array (not a template-uuid reference), so no
+  existing user layout is touched — only the gallery's selectable-
+  templates surface is affected.
+- **Verified.** `python3 -m json.tool` parses; `cake Dashboard
+  importDefaultTemplates` reports `[OK] Administrator (#19)` +
+  `[PRUNE] Administrator (#12) — no longer shipped` + `3 imported,
+  0 failed, 1 orphaned pruned`; DB row at new uuid contains 14
+  widgets, byte-identical JSON to user_settings.dashboard;
+  `/dashboards/listTemplates.json` returns the new template with
+  `user_id=0`, `selectable=true`, `restrict_to_permission_flag='perm_site_admin'`.
 
 ## Prior-session facts (still true — condensed; reuse)
 
@@ -247,7 +178,8 @@ Achievements, PieChart, MonitorLineChart:
   optional `glyph` token slot + optional `recipe` array on message
   rows. Used by `LoggedInUsersWidget` (no extensions), `LoginsWidget`
   (DD-42), `APIActivityWidget` (DD-42 — uses `glyph`),
-  `MispMailLogWidget` (DD-41 — uses both `glyph` and `recipe`).
+  `MispMailLogWidget` (DD-41 + DD-43 — uses both `glyph` and
+  `recipe`; DD-43 extends `MailLogTool` to scan rotated companions).
 - **QueueList** (DD-38) — queue-health rows with two independently-
   coloured chips. Used by `MispAdminWorkerWidget`.
 - **HealthList** (DD-39) — issue-only health rollup rows
@@ -255,8 +187,9 @@ Achievements, PieChart, MonitorLineChart:
   `MispAdminHealthWidget`.
 
 Every new render kind needs (CLAUDE.md): a glyph in
-`app/webroot/js/dashboard/gallery/render-thumbs.mjs`. Neither DD-41
-nor DD-42 added a new render kind, so neither triggered the glyph rule.
+`app/webroot/js/dashboard/gallery/render-thumbs.mjs`. Neither DD-43
+nor DD-44 added a new render kind, so neither triggered the glyph
+rule.
 
 ### Mail log access on production instances (DD-41)
 - `/var/log/mail.log` on Debian/Ubuntu is `640 syslog:adm`;
@@ -268,6 +201,21 @@ nor DD-42 added a new render kind, so neither triggered the glyph rule.
   `chmod 644 /var/log/mail.log` for the pre-existing file. RHEL /
   CentOS additionally needs `create 0644 syslog adm` in
   `/etc/logrotate.d/rsyslog`.
+
+### MailLogTool::tail rotated-file traversal contract (DD-43)
+- Trigger: `$search !== ''` AND live-tail returned < `$limit`
+  matching rows. Without a search filter, only the live file is
+  scanned (no value in plowing through rotated history just for
+  "latest N events").
+- File order: live → `.1` (plain) → `.2.gz` → `.3.gz` → ...
+- Per-file safety bundle re-runs the DD-41 allow-list + realpath
+  check on every rotated companion — symlinks to outside `/var/log`
+  or `/tmp` are dropped silently.
+- Plain rotated `.1` uses the same fseek tail as live; `.N.gz` uses
+  streaming forward scan via `gzopen`+`gzgets`.
+- Empty-state text: `"No matches for '<term>' across N log files"`
+  when rotated companions exist; the DD-41 `"in the last X of log"`
+  phrasing kept only when no rotations are found.
 
 ### `__n` plural agreement only switches the FIRST number (DD-42)
 When a header carries two counts ("N users · M logins"), compose from
@@ -313,30 +261,48 @@ declaration and crashed with "Undefined array key 'count'" on first
 render — caught immediately, restored verbatim. Same pattern applies
 to any other aliased aggregate.
 
+### Dashboard template import flow (DD-22 / DD-24 / DD-44)
+- `app/Console/cake Dashboard importDefaultTemplates` runs the
+  explicit ingest with `$prune=true`: pruning orphans + upserting
+  shipped uuids. Used after editing any
+  `app/files/dashboard-templates/*/template.json`.
+- The silent auto-ingest on update (DD-24) runs without `--prune`,
+  so changing a uuid leaves the old row in place until an admin
+  re-runs the CLI import.
+- `Dashboard::__importTemplate()` validates required keys
+  `{uuid, name, value}` + `Validation::uuid($uuid)` + `is_array
+  ($value)` — anything malformed throws and is reported in the
+  shell's `[FAIL]` summary.
+
 ## Open follow-ups (none blocking)
 
-- **In-browser verification of DD-42 (deferred to user — hard-refresh
-  Ctrl-Shift-R):** Logins widget + API Activity widget render as
-  UserList tiles in the "system" category, looking like siblings to
-  LoggedInUsersWidget. AuthenticationFailureWidget title shows "D4
-  Authentication Failures" with the clearer description.
+- **In-browser verification of DD-43 + DD-44 (deferred to user —
+  hard-refresh Ctrl-Shift-R):**
+  * MispMailLogWidget with `search` config set hits rotated `.1` /
+    `.gz` companions when the live tail is too short (test against
+    `/tmp/test-mail-rotated.log` fixture or live `/var/log/mail.log`
+    with rotations present).
+  * Template gallery (`/dashboards/listTemplates`) shows the new
+    Administrator template (14 widgets); "Use this" loads the
+    full v2 layout.
 - **NEXT SESSION'S TASK: TBD — user-flagged.** Natural extensions
   worth surfacing (offer the user a quick fork via AskUserQuestion
   if none is pre-flagged):
-    * **`MispMailLogWidget` polish** — (a) **rotated-file
-      traversal** (open `mail.log.1` + `.gz` companions so the
-      `search` param can reach beyond the bounded 4 MB tail — the
-      sub-note's documented caveat); (b) inline search-box UX
-      (Tier 3 from this session's fork — transient-search-param
-      protocol extension so admins type into a header box instead
-      of opening widget config); (c) slide-in side panel for the
-      setup help (current `<details>` is the v1 cut); (d) per-row
-      drilldown to the full log entry or queue id; (e) filter chip
-      in the header (Sent / Deferred / Bounced / Expired) to
-      pre-narrow the row list; (f) failure-only mode (suppress
-      `sent` rows); (g) ship a `/etc/rsyslog.d/misp-mail.conf`
-      recipe as a packaged INSTALL helper so operators don't
-      copy-paste from the widget.
+    * **`MispMailLogWidget` polish (carried)** — the remaining
+      sub-options from this session's mail-widget fork: (b) inline
+      header search-box (Tier 3 from the DD-41 fork — transient
+      search-param protocol extension); (c) slide-in side panel for
+      the setup help (current `<details>` is the v1 cut); (d) per-
+      row drilldown (no clean MISP-internal target — would need a
+      postqueue-output bridge); (e) filter chips (Sent / Deferred /
+      Bounced / Expired) in the header to pre-narrow the row list;
+      (g) ship `/etc/rsyslog.d/misp-mail.conf` as a packaged
+      INSTALL helper.
+    * **Other shipped dashboard templates** — DD-44 only refreshed
+      `admin/template.json`. `analyst/template.json` and
+      `community/template.json` may also be due for a v2-era
+      refresh (check whether either references v2 render kinds; if
+      not, ship a similar snapshot from a curated reference layout).
     * **`HealthList` polish** (carried) — per-row anchor drilldown
       into the diagnostics page tab.
     * **`MispCacheStatusWidget` polish** (carried) — per-node click
@@ -347,9 +313,13 @@ to any other aliased aggregate.
     * **Roll StatGrid out** to the remaining key/value admin widgets.
     * **Audit other legacy widgets** for SimpleList → typed-row-
       contract rework (DD-42 hit two; there may be more on the
-      gallery that would benefit from the same treatment — e.g. the
-      MispAdminResourceWidget, MispSystemResourceWidget if they
-      still emit raw HTML).
+      gallery — `MispAdminResourceWidget`, `MispSystemResourceWidget`
+      if they still emit raw HTML).
+    * **`MailLogTool` gz-tail optimisation** (DD-43 deferred) — if a
+      chatty mail relay surfaces a render-cost complaint, replace
+      the full-file gz forward scan with a bounded `gzseek`+
+      backwards-binary-search for the last `$lookbackBytes` of
+      decompressed content.
 - Pre-existing (carried): **DD-11 ACL-enforced switchable geo widget
   path**; **org/COVID maps palette opt-in**; default-templates **live
   non-admin ACL check**.
@@ -359,16 +329,16 @@ to any other aliased aggregate.
 
 - URL `http://localhost:5007/dashboards` (302 without a session; 200 with).
   Admin user 1 (`admin@admin.test`, pw `Password12345`), Overmind theme.
-  Cookie jar `/tmp/cj_stat.txt` is the session-21 jar, still valid.
+  Cookie jar `/tmp/cj_stat.txt` is the session-21 jar, still valid into
+  this session (no re-mint needed).
 - DB: `mysql -u misp -pPassword1234 misp`. MISP Redis: `redis-cli -n 13`.
   **SESSIONS are in Redis db0** (`PHPREDIS_SESSION:*`).
-- **Postfix** installed (locally only — sudo apt install postfix this
-  session). `/var/log/mail.log` is now `644 syslog:adm` after the
-  user's `chmod 644 /var/log/mail.log` — MispMailLogWidget renders
-  live mail entries on this dev box.
-- **Synthetic mail-log fixture** at `/tmp/test-mail.log` exercises
-  all 5 status branches across both timestamp formats — may have
-  been wiped between sessions; re-create from the DD-41 spec lines.
+- **Postfix** installed locally; `/var/log/mail.log` is `644 syslog:adm`
+  via the DD-41 rsyslog recipe — MispMailLogWidget renders live mail
+  entries on this dev box (no rotated companions present on the
+  dev box yet — DD-43 rotated traversal verified against synthetic
+  `/tmp/test-mail-rotated.log{,.1,.2.gz}` fixture and then cleaned
+  up).
 - **Login activity on the dev box** (DD-42 anchor): 51 logins this
   month by user #1 (admin@admin.test).
 - **API activity on the dev box** (DD-42 anchor): 3 keys / 1008
@@ -377,6 +347,8 @@ to any other aliased aggregate.
 - **Cache state** (DD-40 anchor): 3 cache-enabled servers + 2
   feeds.
 - **Workers state** (DD-38 anchor): 6 queues / 21 workers alive.
+- **Admin user 1's saved dashboard**: 14 widgets covering the
+  full v2 family (the source of the DD-44 template snapshot).
 - State: `db_version=151`; branch `dashboards`. Build dir
   `/tmp/echarts-bundle` reusable for bundle rebuilds.
 
@@ -411,9 +383,14 @@ google-chrome --headless=new --no-sandbox --hide-scrollbars \
   --virtual-time-budget=4000 http://localhost:5007/_xx_test.html
 # Read the PNG. DELETE the temp webroot file after (publicly served).
 
-# DD-41 mail-log specific:
-ls -la /var/log/mail.log    # should be 644 syslog:adm on this dev box
-redis-cli -n 13 --scan --pattern 'misp:authkey_log:*'   # DD-42 API activity source
+# DD-43 mail-log rotated-traversal verification — drop synthetic
+# live/.1/.2.gz fixture under /tmp/, exercise via REST, clean up.
+# See app/Test/MailLogToolTest.php for the per-file fixtures (helper
+# methods liveFixture/plainRotatedFixture/gzRotatedFixture).
+
+# DD-44 admin-template verification:
+app/Console/cake Dashboard importDefaultTemplates
+mysql -u misp -pPassword1234 misp -e "SELECT uuid, name, LENGTH(value) AS bytes FROM dashboards WHERE user_id=0;"
 
 # Rebuild the echarts bundle (add a series type): edit
 # /tmp/echarts-bundle/entry.mjs use([...]), esbuild per VENDORING.md.
@@ -426,8 +403,7 @@ supervisorctl -c /etc/supervisor/supervisord.conf start misp-workers:misp-worker
 ## Convention reminders
 
 - **Context budget:** keep within the first ~20% normally; user OK'd
-  up to 40% for UI work. THIS SESSION ended around 28% — slightly
-  over. Carry forward.
+  up to 40% for UI work. Carry forward.
 - **Commit per progress-tracker task; never `git add -A`; explicit
   `git add` + `git status --short`; sign (`%G?`=U).**
 - **Edit/Write flips a file's group to `iglocska:iglocska`** —
@@ -437,7 +413,7 @@ supervisorctl -c /etc/supervisor/supervisord.conf start misp-workers:misp-worker
   Refinements get a NEW DD; small in-session polish stays as a
   sub-note inside the parent DD.
 - **Render-kind glyph rule** (CLAUDE.md): new `$render` → glyph in
-  `render-thumbs.mjs`. DD-41 / DD-42 didn't trigger this.
+  `render-thumbs.mjs`. DD-43 / DD-44 didn't trigger this.
 - **Widget `handler()`s emit RAW strings; the renderer owns
   escaping** (DD-34). Watch SimpleList legacy widgets that emit
   `html_title` / `html` — those bypass `h()` and should be migrated
@@ -447,24 +423,31 @@ supervisorctl -c /etc/supervisor/supervisord.conf start misp-workers:misp-worker
 - **Token-driven slot extensions** (DD-41 glyph + recipe; DD-39
   severity_class): widgets pass a TOKEN, the renderer holds the
   inline-SVG / HTML.
-- **Mail-log path safety** (DD-41): three-layer check — reject
-  `..` / NUL, regex allow-list `/(var/log|tmp)/...`, post-existence
-  realpath re-check. Operator opt-in by config; never silently
-  expand www-data privileges.
+- **Mail-log path safety** (DD-41 + DD-43): three-layer check —
+  reject `..` / NUL, regex allow-list `/(var/log|tmp)/...`, post-
+  existence realpath re-check.  DD-43 extends this to every
+  rotated companion before opening.  Operator opt-in by config;
+  never silently expand www-data privileges.
 - **Multi-count `__n` plurals** (DD-42): compose from separate
   `__n` calls per number; a combined key only switches plural on
   the first.
 - **Cake `virtualFields` for aliased aggregates** (DD-42): a
   `COUNT(...) AS Model__field` alias needs
   `$this->Model->virtualFields['field'] = 0;` declared first.
+- **Dashboard template import** (DD-22 / DD-24 / DD-44): explicit
+  CLI ingest uses `$prune=true`; silent auto-ingest does not.
+  Changing a uuid means the old row sits until the next explicit
+  re-ingest.  `user_settings.dashboard` holds the resolved widget
+  array (not a uuid reference), so user dashboards aren't affected
+  by template changes.
 - User wants **rigorous pushback + genuine forks via AskUserQuestion**,
   and to **re-verify rather than defend** when a premise is
   questioned.
 
 ## Quick-start for the next session
 
-1. Read `dashboard-prd.md` §15 (DD-31..42) +
-   `dashboard-design-decisions.md` DD-41 + DD-42 (+ DD-31..40 for
+1. Read `dashboard-prd.md` §15 (DD-31..44) +
+   `dashboard-design-decisions.md` DD-43 + DD-44 (+ DD-31..42 for
    prior sessions' render kinds + the mutation/action pattern from
    DD-36) + this file.
 2. Verify instance: `curl -s http://localhost:5007/dashboards
@@ -511,7 +494,15 @@ supervisorctl -c /etc/supervisor/supervisord.conf start misp-workers:misp-worker
    (q) **DD-41 search filter** — `MailLogTool::tail(..., $search='')`
    filters BEFORE the limit cap (so `$limit` = matching rows, not
    all rows). Widget's `search` config triggers a 64 KB → 1 MB
-   lookback bump. Bounded by the 4 MB hard-cap; rotated files
-   not yet opened (deferred polish).
+   lookback bump;
+   (r) **DD-43 rotated traversal** — only fires when `$search !=
+   ''` AND live-tail < `$limit`; each rotated companion goes
+   through the same allow-list + realpath safety bundle; empty-
+   state header adapts to "across N log files" when companions
+   exist;
+   (s) **DD-44 admin template uuid changed** — old
+   `1bf983ac-...` pruned, new `5000487b-...` is the shipped
+   default; `user_settings.dashboard` is unaffected (resolved
+   widget array, not a template reference).
 5. Do NOT start the merge — the user does that. Watch context;
    refresh this handoff before wrapping.
