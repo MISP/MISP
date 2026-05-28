@@ -1607,6 +1607,68 @@ gate (the user still does the merge).
   payload pre/post must render identically. Pure addition for the
   widget; surgical reversible extension for the renderer.
 
+- [x] **`MispMailLogWidget` + UserList glyph/recipe slots — outgoing-
+  mail status tail from the OS mail log — landed 2026-05-28 (DD-41).**
+  Last load-bearing operational surface the dashboard didn't expose:
+  the **bounce / deferral / send verdict** of recent outgoing mail.
+  **Data source = `/var/log/mail.log` (postfix-format)** — the only
+  source that captures *remote bounces*: MISP's audit log
+  (`logs.action='email'`) records local sends but never sees the
+  upstream MTA verdict; adding a failure-logging path to
+  `User::sendEmail()` was rejected for the same reason (SMTP `250 OK`
+  from the local MTA ≠ delivery). **Access constraint surfaced and
+  chosen via user fork:** `mail.log` is `640 syslog:adm` on
+  Debian/Ubuntu; `www-data` is not in `adm` by default; adding it
+  grants read on most of `/var/log/*` (production-fleet privilege
+  expansion, user-rejected). Chosen path: **configurable
+  `MISP.mail_log_path` (default `/var/log/mail.log`) + clear empty-
+  state with inline `<details>` setup-help** when the path is
+  unreadable / missing — operator picks adm membership, dedicated
+  rsyslog tee, or POSIX ACL; widget surfaces what setup is needed.
+  Path constrained to `^/(var/log|tmp)/[A-Za-z0-9._/-]+$` allow-list
+  + `..` reject + post-existence `realpath()` re-check so a symlink
+  under `/tmp/` pointing at `/etc/shadow` can't slip through.
+  **New `MailLogTool`** (`app/Lib/Tools/MailLogTool.php`): bounded
+  tail-read via `fseek` (default 64 KB lookback), parses both RFC3339
+  and legacy-syslog postfix line formats, normalises to
+  `{ts, recipient, status, message, relay, queue_id}` (status ∈
+  `{sent, deferred, bounced, expired, undeliverable}`). Robust to
+  log rotation (missing/empty file → empty array, graceful).
+  **UserList extended with two optional slots** (user-explicit sign-
+  off via fork — HealthList rejected as issue-only, row-tint-class
+  rejected as less legible): (a) **`glyph`** token allow-list
+  `{check, warn, danger, info}` → 4 inline-SVG defs + CSS
+  `.misp-user-glyph-{token}` pulling `--misp-dash-{success,warning,
+  danger,info}` token pairs; (b) **`recipe`** (array of strings)
+  on message rows → inline `<details><summary>How to enable this
+  widget</summary><ul>…</ul></details>`, each line h()'d
+  individually (DD-34). Token-driven (not raw SVG/HTML) so DD-34
+  escaping invariant holds. **Status → glyph + chip mapping (widget-
+  side, renderer-is-dumb):** sent→`check`/Sent, deferred→`warn`/
+  Deferred, bounced+expired+undeliverable→`danger`/{Bounced|Expired|
+  Undeliverable}. Header row carries a per-status tally
+  ("N events · 1 Sent · 1 Deferred · …"). Per-row meta: status
+  label + humanised age + relay + truncated MTA message
+  ("Sent · 2m ago · relay=smtp.gmail.com[…]:25 · 250 OK").
+  Humanisation shape lifted from DD-40 / `IndexTable/Fields/
+  caching.ctp` — single "ago" shape across the operational family.
+  **`LoggedInUsersWidget` (DD-35 consumer) renders byte-identically**
+  — emits no `glyph` / `recipe`, falls through to legacy avatar +
+  message paths; HTML class histogram unchanged (mirrors DD-40's
+  backward-compat verification on `MispAdminSyncTestWidget`).
+  **Widget shape:** `$render='UserList'`, `$category='system'`,
+  site-admin gated, default size 4×5, `$autoRefreshDelay=60`,
+  `$cache_duration=30`. Verified: `php -l` clean ×2; live REST render
+  against `/tmp` synthetic fixture exercising all 5 status branches
+  + both timestamp formats + a malformed line + queue-lifecycle
+  records that should NOT match → 5 expected rows newest-first with
+  correct glyph tokens; live REST render against `/var/log/mail.log`
+  (unreadable for www-data on this dev box) → message-row with
+  title + path + 5-line recipe; headless-Chrome screenshot against
+  the full CSS stack shows distinct green/amber/red glyphs and the
+  recipe `<details>` properly expanded. Pure addition for the
+  widget + tool; surgical reversible extensions for UserList.
+
 ---
 
 ## Phase 6 — Merge to `develop`
