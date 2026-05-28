@@ -2704,3 +2704,49 @@ dropped 5/215 → 4 users/210. Frontend via a hermetic headless-Chrome harness
 GET form injected, submit fires `render-widget(t1)`, panel closes, mode cleared.
 `php -l` + `node --check` clean. Additive; the widget keeps working with the JS
 absent (the action markup is inert, the search box does nothing).
+
+---
+
+## DD-37 — Drop the Discussion (Thread/Post) cards from `UsageDataWidget`
+
+**Date.** 2026-05-28
+**Phase context.** Post-5.5 / DD-31. The `UsageDataWidget` is the first key/value
+widget on `StatGrid` (DD-31, DD-32). Two of its long-standing cards counted
+MISP's per-event discussion threads and posts.
+
+**Decision.** Remove the two cards entirely — both the `$validFields` entries and
+their `$statistics` definitions — **plus the supporting code that's no longer
+referenced**: the `$Thread` property, the `ClassRegistry::init('Thread')` in
+`handler()`, the four `$threadCount{,Month}` / `$postCount{,Month}` count
+queries that ran at the top of every uncached render, the six helper methods
+(`getThreadsCount{,Month,DateRange}`, `getPostsCount{,Month,DateRange}`), and
+the stale `//Monthly data is not added to the widget at the moment` comment
+that referred specifically to those locals. The Thread + Post models stay
+intact in the core — only this widget's coupling to them is gone. Net change
+525 → 432 lines.
+
+**Why a hard removal and not "just hide the cards".** A partial removal (only
+the card entries) leaves the four count queries running every uncached render
+and the six helpers as dead code; future readers can't tell the helpers from
+deliberately-paused features. The Thread/Post counts have no other consumer in
+this widget — once the cards are gone, the entire surface is dead. Cleaner +
+provably no perf cost than the partial state.
+
+**Cache interaction.** DD-20's `WidgetCache` keys on `<path>:sha256(config)`
+— the *payload* shape doesn't affect the key, so existing cache entries don't
+become wrong, only obsolete. The post-deploy `redis-cli -n 13 --scan --pattern
+'misp:usage_data_cache*'` sweep happens to be empty on the dev box, so no key
+bust was needed; on a hot instance the next ingest replaces stale entries
+within DD-20's 1h TTL anyway. No schema/`$schema` change (the dropped names
+were never in `$schema`).
+
+**Verified.** `php -l` clean; live REST render via the cookie-session path on
+`/dashboards/renderWidget/test1?widget=UsageDataWidget&config={}` → HTTP 200,
+12 cards (Events, Attributes, Attributes/event, Correlations, Active proposals,
+Users, Users with PGP keys, Organisations, Local organisations, Event creator
+orgs, Average users / org, Advanced authkeys), zero `thread|post|discussion`
+substrings in the response. Reverse by reverting the commit.
+
+**Posture.** This is a small *scope cut* on a widget the v2 rework already
+ships in a new render kind (DD-31). Not parity with v1 (which displayed both
+cards); a deliberate trim. Additive elsewhere — no shared utility moved.

@@ -1391,6 +1391,24 @@ gate (the user still does the merge).
     scroll container; `minmax(min(120px,100%),1fr)` so a narrow resize
     can't force a horizontal scroll. Confirmed by the user + a headless
     screenshot. `chgrp`; signed commit.
+  - [x] **Drop the Discussion (Thread/Post) cards — 2026-05-28 (DD-37).**
+    User-driven scope trim. Removed both `$validFields` entries and the
+    matching `$statistics` definitions, **plus all the now-dead supporting
+    code**: the `$Thread` property, the `ClassRegistry::init('Thread')` in
+    `handler()`, the four `$threadCount{,Month}`/`$postCount{,Month}`
+    queries that ran at the top of every uncached render, the six helper
+    methods (`getThreadsCount{,Month,DateRange}` + `getPostsCount{,Month,
+    DateRange}`), and the stale `//Monthly data is not added` comment
+    that referred specifically to those four locals. Hard removal over
+    "hide the cards" because the partial state leaves four queries
+    running every uncached render and six helpers as dead code; no other
+    consumer in this widget. Thread + Post core models untouched. DD-20
+    cache key isn't affected (keys on `sha256(config)`, payload-shape
+    independent — stale entries expire within 1h; dev-box scan was already
+    empty). No `$schema` change. Net change 525→432 lines. Verified:
+    `php -l` clean; live REST render → HTTP 200, **12 cards** (11 base +
+    Advanced authkeys), zero `thread|post|discussion` substrings in the
+    response. `chgrp`; signed commit. Reverse by reverting the commit.
 
 - [x] **Sync-test widget → network diagram — `NetworkGraph` render kind —
   landed 2026-05-27 (DD-33).** `MispAdminSyncTestWidget` flips

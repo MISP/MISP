@@ -31,7 +31,6 @@ class UsageDataWidget
     private $User = null;
     private $Event = null;
     private $Correlation = null;
-    private $Thread = null;
     private $AuthKey = null;
     private $redis = null;
     
@@ -54,9 +53,7 @@ class UsageDataWidget
         'Organisations',
         'Local organisations',
         'Event creator orgs',
-        'Average users / org',
-        'Discussion threads',
-        'Discussion posts'
+        'Average users / org'
     ];
 
     public function handler($user, $options = array()) {
@@ -66,7 +63,6 @@ class UsageDataWidget
             throw new NotFoundException(__('No redis connection found.'));
         }
         $this->Event = ClassRegistry::init('Event');
-        $this->Thread = ClassRegistry::init('Thread');
         $this->Correlation = ClassRegistry::init('Correlation');
         $thisMonth = strtotime('first day of this month');
         $hasDateRange = !empty($options['start_date']);
@@ -102,15 +98,6 @@ class UsageDataWidget
         $usersCount = $this->getUsersCount($orgConditions, $orgIdList, $thisMonth);
         $usersCountPgp = $this->getUsersCountPgp($orgConditions, $orgIdList, $thisMonth);
         $localOrgsCount = $this->getLocalOrgsCount($orgConditions, $orgIdList, $thisMonth);
-
-
-        $threadCount = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0), 'recursive' => -1));
-        $threadCountMonth = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s", $thisMonth), 'Thread.post_count >' => 0), 'recursive' => -1));
-
-        $postCount = $this->Thread->Post->find('count', array('recursive' => -1));
-        $postCountMonth = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s", $thisMonth)), 'recursive' => -1));
-
-        //Monthly data is not added to the widget at the moment, could optionally add these later and give user choice?
 
         $statistics = [
             'Events' => [
@@ -172,18 +159,6 @@ class UsageDataWidget
             ],
             'Average users / org' => [
                 'title' => 'Average users / org', 'icon' => 'users', 'value' => (!empty($localOrgsCount) ? round($usersCount / $localOrgsCount, 1) : 'N/A')
-            ],
-            'Discussion threads' => [
-                'title' => 'Discussions threads',
-                'icon' => 'chat',
-                'value' => $this->getThreadsCount($orgConditions, $orgIdList, $thisMonth),
-                'change' => $hasDateRange ? $this->getThreadsCountDateRange($orgConditions, $orgIdList, $options) : $this->getThreadsCountMonth($orgConditions, $orgIdList, $thisMonth)
-            ],
-            'Discussion posts' => [
-                'title' => 'Discussion posts',
-                'icon' => 'chat-lines',
-                'value' => $this->getPostsCount($orgConditions, $orgIdList, $thisMonth),
-                'change' => $hasDateRange ? $this->getPostsCountDateRange($orgConditions, $orgIdList, $options) : $this->getPostsCountMonth($orgConditions, $orgIdList, $thisMonth)
             ]
         ];
         if(!empty(Configure::read('Security.advanced_authkeys'))){
@@ -444,88 +419,7 @@ class UsageDataWidget
         ]);
     }
 
-    private function getThreadsCount($orgConditions, $orgIdList, $thisMonth)
-    {
-        $conditions = ['Thread.post_count >' => 0];
-        if ($orgConditions) {
-            $conditions['AND'][] = ['Thread.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
-        }
-        return $this->Thread->find('count', [
-            'conditions' => $conditions,
-            'recursive' => -1
-        ]);
-    }
 
-    private function getThreadsCountMonth($orgConditions, $orgIdList, $thisMonth)
-    {
-        $conditions = [
-            'Thread.post_count >' => 0,
-            'Thread.date_created >=' => $thisMonth
-        ];
-        if ($orgConditions) {
-            $conditions['AND'][] = ['Thread.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
-        }
-        return $this->Thread->find('count', [
-            'conditions' => $conditions,
-            'recursive' => -1
-        ]);
-    }
-
-    private function getThreadsCountDateRange($orgConditions, $orgIdList, $options)
-    {
-        $conditions = $this->prepareDateRangeConditions($options, 'Thread.date_created');
-        $conditions['Thread.post_count >'] = 0;
-        if ($orgConditions) {
-            $conditions['AND'][] = ['Thread.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
-        }
-        return $this->Thread->find('count', [
-            'conditions' => $conditions,
-            'recursive' => -1
-        ]);
-    }
-
-    private function getPostsCount($orgConditions, $orgIdList, $thisMonth)
-    {
-        $conditions = [];
-        if ($orgConditions) {
-            $conditions['AND'][] = ['User.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
-        }
-        return $this->Thread->Post->find('count', [
-            'conditions' => $conditions,
-            'contain' => ['User.org_id'],
-            'recursive' => -1
-        ]);
-    }
-
-    private function getPostsCountMonth($orgConditions, $orgIdList, $thisMonth)
-    {
-        $conditions = [
-            'Post.date_created >=' => $thisMonth
-        ];
-        if ($orgConditions) {
-            $conditions['AND'][] = ['User.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
-        }
-        return $this->Thread->Post->find('count', [
-            'conditions' => $conditions,
-            'contain' => ['User.org_id'],
-            'recursive' => -1
-        ]);
-    }
-
-    private function getPostsCountDateRange($orgConditions, $orgIdList, $options)
-    {
-        $conditions = $this->prepareDateRangeConditions($options, 'Post.date_created');
-        if ($orgConditions) {
-            $conditions['AND'][] = ['User.org_id IN' => (!empty($orgIdList) ? $orgIdList : [-1])];
-        }
-        return $this->Thread->Post->find('count', [
-            'conditions' => $conditions,
-            'contain' => ['User.org_id'],
-            'recursive' => -1
-        ]);
-    }
-
-    
 /* There is nothing sensitive in here.
     public function checkPermissions($user)
     {
