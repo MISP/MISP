@@ -1669,6 +1669,47 @@ gate (the user still does the merge).
   recipe `<details>` properly expanded. Pure addition for the
   widget + tool; surgical reversible extensions for UserList.
 
+- [x] **`LoginsWidget` + `APIActivityWidget` reworked to UserList;
+  `AuthenticationFailureWidget` description clarified — landed 2026-
+  05-28 (DD-42).** User-flagged front-end rework of three "legacy"
+  widgets. **LoginsWidget**: SimpleList → UserList. Same
+  `Log.action='login'` aggregation; second `User->find` with
+  Organisation + Role contained populates avatar + meta. Row =
+  `{name:email, meta:'<org> · <role>', badge:count, org:{...},
+  drilldown:'/admin/users/view/<id>'}`. Header
+  `'N user(s) · M login(s)'` (each number pluralised independently
+  via separate `__n` calls — a combined key would only switch the
+  first number's plural). Deleted-user case shows as muted row with
+  `'user #<id> (deleted)'` name so the total still reconciles.
+  **APIActivityWidget**: SimpleList → UserList. Same Redis zrange +
+  AuthKey lookup; AuthKey → User → Organisation + Role contained.
+  Known row = `{name:email, meta:'key <prefix> · <org> · <role>',
+  badge:count, org:{...}, drilldown:'/auth_keys/view/<id>'}` —
+  drilldown targets the KEY (so admin can revoke / inspect), owner
+  is in the primary line. Unknown row = DD-41 glyph slot
+  `{glyph:'warn', name:key_prefix, meta:'Unknown key — left over…',
+  badge:count, muted:true}` — replaces the legacy
+  `<span class="red">` + native-title-tooltip pattern. Header
+  `'N key(s) · M request(s)'` with `· K unknown` tail when there are
+  unknowns. **AuthenticationFailureWidget**: description-only fix.
+  Old title `'Authentication Failure Data'` + description "Widget
+  visualising authentication failures collected in d4" easily misread
+  on a MISP dashboard as MISP-side login failures; new title
+  `'D4 Authentication Failures'` + description clarifies it's sshd /
+  similar events ingested from a D4 collector, points to
+  LoginsWidget for MISP login activity. No code / render-kind /
+  schema change. Both list widgets drop their raw-HTML
+  `html_title`/`html`/`value` strings → DD-34 escaping invariant
+  restored in passing. `$render` flipped to `'UserList'`; size 2×2 →
+  3×4 on both (UserList chrome doesn't fit 2×2). Config schemas,
+  site-admin gates, autoRefreshDelay (Logins:600, API:30) all
+  preserved. Verified: `php -l` clean ×3; live REST renders return
+  correct UserList row shapes; headless-Chrome screenshot against
+  the full CSS stack shows both rendering as siblings to
+  LoggedInUsersWidget (DD-35 / DD-41 consumer renders identically —
+  backward-compat canary). Reverse = revert the three widget files;
+  no shared utility / model binding / render-kind touched.
+
 ---
 
 ## Phase 6 — Merge to `develop`
