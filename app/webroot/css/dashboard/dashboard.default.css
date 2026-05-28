@@ -1220,6 +1220,26 @@ a.misp-stat-card:hover .misp-stat-glyph {
   font-weight: var(--misp-dash-fw-bold);
   line-height: 1;
 }
+/* DD-41 — status-tinted glyph variant of the avatar.  Same square
+ * footprint as .misp-user-chip / .misp-user-logo so the row layout
+ * doesn't shift.  Token-driven (.misp-user-glyph-{check|warn|danger|
+ * info}); each pulls the corresponding --misp-dash-{success|warning|
+ * danger|info} pair so themes that only retone the tokens get correct
+ * status colours for free. */
+.misp-user-glyph {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-user-glyph svg { width: 22px; height: 22px; display: block; }
+.misp-user-glyph-check  { background: var(--misp-dash-success-muted); color: var(--misp-dash-success); }
+.misp-user-glyph-warn   { background: var(--misp-dash-warning-muted); color: var(--misp-dash-warning); }
+.misp-user-glyph-danger { background: var(--misp-dash-danger-muted);  color: var(--misp-dash-danger);  }
+.misp-user-glyph-info   { background: var(--misp-dash-info-muted);    color: var(--misp-dash-info);    }
 /* min-width:0 lets the name/meta truncate instead of stretching the row. */
 .misp-user-body {
   flex: 1 1 auto;
