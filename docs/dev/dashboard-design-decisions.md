@@ -3103,3 +3103,184 @@ The renderer change is bounded and backward-compat-safe:
 the widget by deleting the file. Reverse the renderer extension by
 removing `feedSymbol()` + the `info` map entry + collapsing
 `symbolFor` back to a single layer.
+
+## DD-41 — `MispMailLogWidget` + UserList glyph slot: outgoing-mail status tail from the OS mail log
+
+**Date.** 2026-05-28
+**Phase context.** Post-5.5 admin operational family (DD-38 workers, DD-39
+health, DD-40 cache status). User asked for a widget that **monitors the
+mail log of the server for the status of recent outgoing mails** — the
+last load-bearing operational surface the dashboard didn't expose. The
+signal admins care about most is **bounces** (delivery never reached the
+recipient), then **deferrals** (transient failure, will retry), then
+plain successful sends as the baseline.
+
+**Decision — read the OS mail log (`/var/log/mail.log`), not MISP-internal
+sources.** This is the only data source that captures **remote bounces**.
+The forks considered before settling here:
+* `logs.action='email'` (MISP audit log) — only records *successful*
+  sends. `User::sendEmail()` throws `SendEmailException` on failure but
+  never persists. Bouncing back to the MTA after the local send succeeds
+  is invisible to MISP entirely.
+* Adding a failure-logging path to `User::sendEmail()` — touches existing
+  code (additive-only red flag), and **still wouldn't see remote
+  bounces**: SMTP `250 OK` from the local MTA is reported as success by
+  CakeEmail even when the message later bounces upstream.
+* BackgroundJobs `email` queue outcomes — same blind spot, the job
+  finishes on local-MTA accept, not on final delivery.
+* `postqueue -p` — shows the *current* deferred queue but no history of
+  recent sends, so it can't surface "5 successes in the last hour" or
+  "2 bounces yesterday".
+
+The OS mail log is the only source that records `status=sent/deferred/
+bounced/expired` per-recipient with the upstream MTA's verdict, which
+is what the user is actually asking about.
+
+**Access constraint — opt-in by operator.** `/var/log/mail.log` on
+Debian/Ubuntu is `640 syslog:adm`; on RHEL `/var/log/maillog` is `600
+root:root`. **`www-data` is not in `adm` on any standard distro.**
+Adding `www-data` to `adm` would grant read on *most* of `/var/log/*`
+(auth.log, syslog, kern.log, …) — a meaningful production-fleet
+privilege expansion. Forks considered:
+* Document the `adm` membership requirement — rejected by user
+  (privilege expansion across the whole production fleet, real cost).
+* Ship a dedicated `/etc/rsyslog.d/misp-mail.conf` tee writing to
+  `/var/log/misp/mail.log` owned `syslog:www-data` — cleaner scope, but
+  still requires operator setup; we'd still need a graceful empty-state
+  for instances that haven't installed the rsyslog snippet.
+* Drop OS log, use MISP-internal only — rejected; loses bounces (the
+  primary signal).
+* **Configurable path + clear empty-state with inline setup help
+  (chosen).** Widget reads `Configure::read('MISP.mail_log_path')` (default
+  `/var/log/mail.log`); if the file is unreadable / missing, renders a
+  **message row with a `<details>` setup-help block** listing the
+  operator's options (adm membership, rsyslog tee snippet, POSIX ACL).
+  Operator picks their preferred access strategy; widget surfaces what
+  setup is needed. No silent privilege expansion.
+
+**Path-allow-list.** The configured path must match
+`^/(var/log|tmp)/[A-Za-z0-9._/-]+$`. Site-admin would already have
+substantial write access elsewhere (server settings, plugins), but
+restricting reads to known-safe log directories keeps the surface tight
+and prevents a configuration mistake from turning the widget into a
+generic file viewer. `/tmp/...` is in the allow-list because the
+verification-recipe path uses synthetic log fixtures (see §verification
+below); production never reads from `/tmp/`.
+
+**Decision — extend UserList with a typed glyph slot.** User-explicit:
+"Reuse UserList". But UserList's avatar slot is org-logo-or-initials
+only — neither carries a sent/deferred/bounced signal. Forks surfaced:
+HealthList (rejected; designed issue-only, hides successful rows),
+row-class-only tint (rejected; left-border colour is less legible than a
+glyph), new MailLog render kind (rejected; UserList extension is
+smaller). Chosen: **add an optional `glyph` slot** to UserList's row
+contract, value from a token allow-list `{check, warn, danger, info}`,
+renderer has 4 inline SVG defs + CSS class `.misp-user-glyph-{token}`
+pulling `--misp-dash-{success,warning,danger,info}` tokens. Pattern
+mirrors DD-39's `severity_class` allow-list — token, not raw SVG, so
+the widget cannot inject arbitrary HTML through the renderer (DD-34).
+
+**Backward-compat for UserList held.** Rows without `glyph` fall through
+to the existing org-logo / initials-chip path. `LoggedInUsersWidget`
+(DD-35) emits no `glyph` field — renders byte-identically after the
+extension.
+
+**Postfix log parser (`MailLogTool`).** New `app/Lib/Tools/MailLogTool.php`,
+pure consumer:
+* **Bounded tail-read** via `fopen + fseek -N` from end of file (default
+  `lookback_bytes = 65536`). Avoids loading large rotated logs into
+  memory.
+* **Robust to log rotation** — file-not-found / empty-file / smaller-
+  than-lookback all degrade gracefully (return empty array; widget
+  surfaces a "log is empty / not yet rotated" message-row).
+* **Two postfix line formats supported** — RFC3339 (rsyslog default,
+  `2026-05-28T15:40:47.383455+02:00 …`) and legacy syslog
+  (`Feb 28 14:30:45 …`). Both seen on Debian/Ubuntu depending on
+  rsyslog config version.
+* Lines parsed: `postfix/smtp[…]` / `postfix/lmtp[…]` / `postfix/local[…]`
+  / `postfix/error[…]` carrying `status=…`. Other postfix lines
+  (`postfix-script`, `master`, `qmgr`, `pickup`, `cleanup`) skipped.
+* **Per-line normalised row:**
+  `{ts, recipient, status, message, relay, queue_id}`. `status` ∈
+  `{sent, deferred, bounced, expired, undeliverable}`; anything else
+  bucketed as `unknown` and dropped.
+* Returns last `$limit` rows in reverse-chronological order
+  (newest-first). Iteration cap so the parser can't loop on an
+  unbounded file even if `lookback_bytes` reads include a malformed
+  middle.
+
+**Status → glyph + chip mapping (in the widget, per the renderer-is-dumb
+rule).**
+* `sent` → `check` glyph, `success` chip token, "Sent" label
+* `deferred` → `warn` glyph, `warning` chip token, "Deferred" label
+* `bounced` → `danger` glyph, `danger` chip token, "Bounced" label
+* `expired` → `danger` glyph, `danger` chip token, "Expired" label
+* `undeliverable` → `danger` glyph, `danger` chip token, "Undeliverable"
+
+**Widget shape — `MispMailLogWidget`.**
+* `$render = 'UserList'`. Default size `4×5` (matches DD-39/40).
+* `$category = 'system'`. Site-admin gated (mirrors DD-38/39/40).
+* `$autoRefreshDelay = 60` (mail volume is bursty; 1-minute polling
+  catches the just-bounced row quickly).
+* `$cache_duration = 30` (tail-read is cheap; cache is anti-thundering-
+  herd only).
+* `$config` exposes `log_path` (default `/var/log/mail.log`),
+  `lookback_bytes` (default 65536), `limit` (default 20).
+
+**Row mapping (widget → UserList contract).**
+* `header` row — "N events · last 24h" / "Log unreadable" /
+  "No recent mail events".
+* `user` rows (one per parsed log entry):
+  - `glyph` = the token from the status map above
+  - `name` = recipient address
+  - `meta` = status label + (humanised time) + relay + truncated MTA
+    message ("Sent · 2m ago · relay=smtp.gmail.com (250 OK)")
+  - `badge` = status label (chip-tinted via the glyph CSS class —
+    UserList badge can stay token-neutral)
+  - No `drilldown` — mail log isn't a navigable corpus inside MISP.
+* `message` row — when log is unreadable, carries the setup-help
+  `<details>` block (`title = 'Log not accessible'`, value = path +
+  operator-actions). Inline `<details>` chosen over a slide-in side
+  panel for v1 — pure HTML, zero JS, accessible. Slide-in drawer is a
+  deferred polish (see "Open follow-ups" in the handoff).
+
+**Humanisation.** Same shape as DD-40's two-largest-units form
+(`5h 30m`, `2d 4h`, `45m 12s`) lifted from
+`IndexTable/Fields/caching.ctp` — consistency with the Server / Feed
+list views and with the cache-status widget.
+
+**Conventions upheld.**
+* Renderer **owns escaping** (DD-34): widget emits raw strings, UserList
+  `h()`s every interpolated scalar; `glyph` filtered through a 4-entry
+  token allow-list so the widget can't inject arbitrary SVG / CSS.
+* Colour decisions live in the widget; UserList just maps the token to
+  a CSS class.
+* No drilldown (DD-03 N/A this widget).
+* Not its own scroll container (DD-31): `.misp-widget-body` owns
+  padding + overflow.
+* No new render kind → **no `thumbMailLog` glyph required**; UserList
+  is already registered in `render-thumbs.mjs`.
+* No ECharts series-type change → **no bundle rebuild**.
+
+**Verification (deferred until §5 of this session's task list).**
+* `php -l` clean ×2 (widget, MailLogTool).
+* Synthetic log fixture under `/tmp/test-mail.log` exercising all 5
+  parser status branches (`sent`, `deferred`, `bounced`, `expired`,
+  `undeliverable`) + a malformed line, against both RFC3339 and
+  legacy-syslog date formats.
+* Live REST render: configurable `log_path=/tmp/test-mail.log` → HTTP
+  200, expected rows.
+* Live REST render: default path (unreadable on this dev box) → HTTP
+  200, message-row with setup `<details>` block.
+* Headless-Chrome screenshot against the full CSS stack (per
+  `feedback_verify_visible_outcome_not_property`) exercising both
+  states — glyph colours visually distinct (green / amber / red).
+* `LoggedInUsersWidget` (DD-35 consumer) re-rendered post-extension —
+  identical to pre-change (backward-compat check, mirrors DD-40's
+  approach with `MispAdminSyncTestWidget`).
+
+**Pure addition for the widget + tool; surgical extension for UserList.**
+Reverse widget = delete `MispMailLogWidget.php`. Reverse tool = delete
+`MailLogTool.php`. Reverse UserList extension = remove the `glyph` slot
++ CSS block (4 SVG defs + 4 class rules); existing widgets keep
+rendering identically because none currently pass `glyph`.
