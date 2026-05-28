@@ -370,15 +370,22 @@ class Event extends AppModel
         if (Configure::read('MISP.enableEventBlocklisting') !== false && empty($this->skipBlocklist)) {
             $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
             $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $this->data['Event']['orgc_id']), 'recursive' => -1, 'fields' => array('Orgc.name')));
+            
+            // FIX: Scrub 4-byte UTF-8 characters (like emojis) to prevent PDOExceptions 
+            // on database tables using legacy 3-byte utf8 encoding.
+            $eventInfo = $this->data['Event']['info'];
+            if (!empty($eventInfo)) {
+                $eventInfo = preg_replace('/[\x{10000}-\x{10FFFF}]/u', '', $eventInfo);
+            }
+
             $this->EventBlocklist->create();
             $this->EventBlocklist->save(array(
                 'event_uuid' => $this->data['Event']['uuid'],
-                'event_info' => $this->data['Event']['info'],
+                'event_info' => $eventInfo,
                 'event_orgc' => $orgc['Orgc']['name'],
                 'comment' => __('Automatically blocked by deleting event'),
             ));
         }
-
         if (!empty($this->data['Event']['id'])) {
             if ($this->pubToZmq('event')) {
                 $pubSubTool = $this->getPubSubTool();
