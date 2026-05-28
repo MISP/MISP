@@ -17,12 +17,22 @@
  *   [
  *     'nodes' => [
  *       ['id' => 'self', 'name' => '...', 'url' => '...',
- *        'status' => 'self'|'ok'|'warn'|'error', 'message' => '...'],
+ *        'status' => 'self'|'ok'|'warn'|'error'|'info',
+ *        'kind'   => 'server'|'feed',  // optional, default 'server'
+ *        'message' => '...'],
  *       ...
  *     ],
  *     'links' => [ ['source' => <id>, 'target' => <id>], ... ],
  *     'error' => 'message',   // optional empty-state
  *   ]
+ *
+ * `kind` (DD-40) selects the node glyph: `server` is the default
+ * server-rack from DD-33; `feed` is an RSS-waves glyph for feed
+ * sources. The hub node always renders as `server` regardless of
+ * the `kind` field — the diagram centre is a MISP instance.
+ *
+ * `status` `info` (DD-40) is a fifth tier mapped to
+ * `--misp-dash-info` (cyan), used by cache-freshness rollups.
  *
  * Requires GraphChart in the vendored ECharts bundle (a `type:'graph'`
  * series renders nothing otherwise — see vendor/VENDORING.md, DD-33).

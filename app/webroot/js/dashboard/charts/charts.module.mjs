@@ -411,6 +411,21 @@ function serverSymbol(colour) {
   return 'image://data:image/svg+xml;base64,' + btoa(svg);
 }
 
+// A feed/RSS glyph in `colour` (DD-40): two concentric arcs opening to the
+// upper-right + a filled dot in the lower-left. Universally-recognised
+// "feed" iconography; distinct from serverSymbol() at a glance.
+function feedSymbol(colour) {
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+    `<circle cx="6.5" cy="17.5" r="2.2" fill="${colour}"/>` +
+    '<path d="M5 13 A6 6 0 0 1 11 19" fill="none" ' +
+    `stroke="${colour}" stroke-width="2.4" stroke-linecap="round"/>` +
+    '<path d="M5 7.5 A11.5 11.5 0 0 1 16.5 19" fill="none" ' +
+    `stroke="${colour}" stroke-width="2.4" stroke-linecap="round"/>` +
+    '</svg>';
+  return 'image://data:image/svg+xml;base64,' + btoa(svg);
+}
+
 function buildNetworkOption(payload, hostEl) {
   const nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
   const links = Array.isArray(payload.links) ? payload.links : [];
@@ -422,13 +437,26 @@ function buildNetworkOption(payload, hostEl) {
     ok:    tokenOn(hostEl, '--misp-dash-success', '#16a34a'),
     warn:  tokenOn(hostEl, '--misp-dash-warning', '#d97706'),
     error: tokenOn(hostEl, '--misp-dash-danger',  '#dc2626'),
+    info:  tokenOn(hostEl, '--misp-dash-info',    '#0891b2'),
   };
-  // One symbol per status (only 4 distinct colours), reused across nodes.
+  // 2 kinds × 5 statuses = 10 cached symbols (DD-40). Hub is always
+  // a server-rack — the hub *is* a MISP instance, regardless of
+  // whether the spokes around it are servers or feeds.
   const symbolFor = {
-    self:  serverSymbol(statusColour.self),
-    ok:    serverSymbol(statusColour.ok),
-    warn:  serverSymbol(statusColour.warn),
-    error: serverSymbol(statusColour.error),
+    server: {
+      self:  serverSymbol(statusColour.self),
+      ok:    serverSymbol(statusColour.ok),
+      warn:  serverSymbol(statusColour.warn),
+      error: serverSymbol(statusColour.error),
+      info:  serverSymbol(statusColour.info),
+    },
+    feed: {
+      self:  feedSymbol(statusColour.self),
+      ok:    feedSymbol(statusColour.ok),
+      warn:  feedSymbol(statusColour.warn),
+      error: feedSymbol(statusColour.error),
+      info:  feedSymbol(statusColour.info),
+    },
   };
 
   // Hub = the 'self' node (fallback: first node). Spokes ring around it.
@@ -446,11 +474,16 @@ function buildNetworkOption(payload, hostEl) {
   const data = nodes.map((n, i) => {
     const isHub = i === hubIdx;
     const [x, y] = pos.get(n.id) || [0, 0];
+    // Default kind is 'server' — preserves DD-33's MispAdminSyncTestWidget
+    // byte-identically (it emits no kind field). Hub overrides to 'server'
+    // unconditionally; the diagram centre is always a MISP instance.
+    const kind = isHub ? 'server' : (symbolFor[n.kind] ? n.kind : 'server');
+    const kindMap = symbolFor[kind];
     return {
       id: String(n.id),
       name: n.name || String(n.id),
       x, y,
-      symbol: symbolFor[n.status] || symbolFor.error,
+      symbol: kindMap[n.status] || kindMap.error,
       symbolSize: isHub ? 44 : 32,
       symbolKeepAspect: true,
       label: { fontWeight: isHub ? 'bold' : 'normal' },
