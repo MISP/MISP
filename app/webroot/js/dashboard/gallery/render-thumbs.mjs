@@ -233,6 +233,31 @@ function thumbQueueList() {
   ]);
 }
 
+function thumbHealthList() {
+  // A "health-check list": stacked rows, each prefixed by a small severity
+  // shape (triangle / circle alternating to evoke warn + fail), with a
+  // name bar in the middle and a short pill chip on the right. Mirrors
+  // the HealthList renderer's row shape.
+  const triangleAt = (cx, cy) => shape('polygon', {
+    points: `${cx},${cy - 3.2} ${cx + 3},${cy + 2.2} ${cx - 3},${cy + 2.2}`,
+    fill: 'currentColor', stroke: 'none',
+  });
+  const circleAt = (cx, cy) => shape('circle', {
+    cx, cy, r: 3, fill: 'currentColor', stroke: 'none',
+  });
+  const row = (y, mark) => [
+    mark(20, y + 3),
+    shape('rect', { x: 27, y, width: 22, height: 3.5, rx: 1.5, fill: 'currentColor', stroke: 'none', opacity: 0.55 }),
+    shape('rect', { x: 27, y: y + 5, width: 12, height: 2.5, rx: 1, fill: 'currentColor', stroke: 'none', opacity: 0.3 }),
+    shape('rect', { x: 52, y: y + 1, width: 10, height: 6, rx: 2, fill: 'currentColor', stroke: 'none', opacity: 0.7 }),
+  ];
+  return svg([
+    ...row(9, triangleAt),
+    ...row(20, circleAt),
+    ...row(31, triangleAt),
+  ]);
+}
+
 function thumbGeneric() {
   return svg([
     shape('rect', { x: 22, y: 14, width: 36, height: 17, rx: 2 }),
@@ -257,6 +282,7 @@ const REGISTRY = {
   NetworkGraph:   thumbNetworkGraph,
   UserList:       thumbUserList,
   QueueList:      thumbQueueList,
+  HealthList:     thumbHealthList,
 };
 
 /**

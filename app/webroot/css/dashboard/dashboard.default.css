@@ -3122,3 +3122,178 @@ a.misp-queue-row:focus-visible .misp-queue-glyph {
 .misp-queue-message-text {
   font-size: var(--misp-dash-fs-xs);
 }
+
+/* ---------------------------------------------------------------- */
+/*  HealthList renderer (DD-39).                                    */
+/*  An issue-only health rollup. Each row: [severity glyph] name    */
+/*  [detail] [severity chip]. Only non-OK rows ever reach the       */
+/*  renderer — the widget filters info-tier results out. Two-glyph  */
+/*  severity set (warn + danger); chip + glyph carry the colour     */
+/*  signal together. Token-driven so themes that only redefine the  */
+/*  --misp-dash-* tokens retone for free.                           */
+/* ---------------------------------------------------------------- */
+.misp-health-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  align-content: start;
+}
+.misp-health-header {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-1) var(--misp-dash-space-2)
+           var(--misp-dash-space-2);
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+  color: var(--misp-dash-text-muted);
+}
+.misp-health-header-success {
+  color: var(--misp-dash-success);
+}
+.misp-health-header-warning {
+  color: var(--misp-dash-warning);
+}
+.misp-health-header-danger {
+  color: var(--misp-dash-danger);
+}
+.misp-health-headtext {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.misp-health-row {
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-md);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  border-left-width: 3px;
+  color: var(--misp-dash-text);
+  text-decoration: none;
+  transition: border-color var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast);
+}
+.misp-health-row-warning {
+  border-left-color: var(--misp-dash-warning);
+}
+.misp-health-row-danger {
+  border-left-color: var(--misp-dash-danger);
+}
+a.misp-health-row:hover,
+a.misp-health-row:focus-visible {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-sm);
+  text-decoration: none;
+  color: var(--misp-dash-text);
+}
+a.misp-health-row-warning:hover,
+a.misp-health-row-warning:focus-visible {
+  border-left-color: var(--misp-dash-warning);
+}
+a.misp-health-row-danger:hover,
+a.misp-health-row-danger:focus-visible {
+  border-left-color: var(--misp-dash-danger);
+}
+a.misp-health-row:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+.misp-health-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.misp-health-glyph {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.misp-health-row-warning .misp-health-glyph,
+.misp-health-header-warning .misp-health-glyph {
+  color: var(--misp-dash-warning);
+}
+.misp-health-row-danger .misp-health-glyph,
+.misp-health-header-danger .misp-health-glyph {
+  color: var(--misp-dash-danger);
+}
+.misp-health-header-success .misp-health-glyph {
+  color: var(--misp-dash-success);
+}
+.misp-health-glyph-svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+.misp-health-body {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+.misp-health-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+}
+.misp-health-detail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--misp-dash-fs-xs);
+  color: var(--misp-dash-text-muted);
+}
+.misp-health-chips {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+}
+.misp-health-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px var(--misp-dash-space-2);
+  border-radius: var(--misp-dash-radius-sm);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-bold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.misp-health-chip-warning {
+  color: var(--misp-dash-warning);
+  background: var(--misp-dash-warning-muted);
+}
+.misp-health-chip-danger {
+  color: var(--misp-dash-danger);
+  background: var(--misp-dash-danger-muted);
+}
+.misp-health-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--misp-dash-space-1);
+  padding: var(--misp-dash-space-3) var(--misp-dash-space-2);
+  text-align: center;
+  color: var(--misp-dash-text-muted);
+}
+.misp-health-message-title {
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-bold);
+  color: var(--misp-dash-text);
+}
+.misp-health-message-text {
+  font-size: var(--misp-dash-fs-xs);
+}
