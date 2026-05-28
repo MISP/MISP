@@ -418,15 +418,4 @@ class UsageDataWidget
             'conditions' => $conditions
         ]);
     }
-
-
-/* There is nothing sensitive in here.
-    public function checkPermissions($user)
-    {
-        if (empty($user['Role']['perm_site_admin'])) {
-            return false;
-        }
-        return true;
-    }
-*/
 }
