@@ -1,4 +1,4 @@
-# Dashboard v2 — Session handoff (2026-05-28 — DD-41 mail-log + DD-42 widget rework landed; next: TBD)
+# Dashboard v2 — Session handoff (2026-05-28 — DD-41 mail-log + search filter + DD-42 widget rework landed; next: TBD)
 
 Twenty-third session, continued. Authoritative state lives in:
 
@@ -16,9 +16,11 @@ Twenty-third session, continued. Authoritative state lives in:
 This file is the bridge: ephemeral session context. Replace as work
 progresses.
 
-## TL;DR — this session (11 signed commits, `%G?`=U, not merged)
+## TL;DR — this session (12 signed commits, `%G?`=U, not merged)
 
 ```
+68780b6f0 new DD-41 — server-side search filter on MispMailLogWidget
+32e507cfa chg handoff refreshed — DD-41 + DD-42 landed (intra-session)
 26cd6c832 chg AuthenticationFailureWidget — clarify D4 provenance (DD-42)
 11674fd73 chg APIActivityWidget — flip SimpleList -> UserList (DD-42)
 cdfeaa70f chg LoginsWidget — flip SimpleList -> UserList (DD-42)
@@ -34,7 +36,7 @@ bcc0ced03 new UserList — optional `glyph` slot (token allow-list)
 722df1cf2 chg open DD-41 — MispMailLogWidget + UserList glyph slot
 ```
 
-Two pieces of work, both surfaced and resolved live:
+Three pieces of work, all surfaced and resolved live:
 
 1. **DD-41 — `MispMailLogWidget`** (postfix mail-log tail) + **UserList
    glyph / recipe slot extensions**. Site-admin widget rendering the
@@ -44,7 +46,16 @@ Two pieces of work, both surfaced and resolved live:
    shell snippet (scoped `$FileCreateMode 0644` in rsyslog +
    `chmod 644 /var/log/mail.log` for the pre-existing-file case).
 
-2. **DD-42 — front-end rework of three "legacy" widgets**.
+2. **DD-41 sub-note — server-side search filter on the mail-log
+   widget.** Case-insensitive substring filter via a `search` config
+   param (Tier 2 per the AskUserQuestion fork — server-side, no new
+   protocol plumbing). Filters recipient + relay + queue_id + message
+   *before* the limit cap so `$limit` reflects matching rows. When
+   `search` is set, default lookback bumps 64 KB → 1 MB so the filter
+   has range. Bounded-scan caveat documented: doesn't open rotated
+   files (`mail.log.1`, `.gz` companions).
+
+3. **DD-42 — front-end rework of three "legacy" widgets**.
    `LoginsWidget` + `APIActivityWidget` flipped from SimpleList to
    UserList — same data sources, just the row contract modernised
    (avatar + name + meta + badge + drilldown, DD-34 escaping
@@ -59,7 +70,45 @@ open the PR or merge.**
 
 ## What landed (reuse these facts)
 
-### DD-42 — Legacy-widget UserList rework + AuthFailures description (latest)
+### DD-41 sub-note — server-side search filter on MispMailLogWidget (latest)
+
+- **Tier chosen via fork** — Tier 1 (client-side row filter via DD-
+  36's `search:true` slot) too narrow (only filters the displayed 20
+  rows); Tier 3 (inline search box + transient-search-param protocol
+  extension) larger blast radius; **Tier 2** (server-side filter via
+  config param, no protocol plumbing) the sweet spot.
+- **`MailLogTool::tail(...)` signature** gains optional 4th arg
+  `$search=''`. Non-empty → each parsed row filtered by
+  `stripos($recipient . ' ' . $relay . ' ' . $queue_id . ' ' . $message, $search)`
+  BEFORE the limit cap, so `$limit` reflects matching rows (not all
+  rows in the window). **Substring, not regex** — good enough for
+  "find all entries for alice@…", avoids the false-positive surface
+  of regex over user input.
+- **Widget config gains `search`.** When set, **default lookback
+  bumps 64 KB → 1 MB** so the filter has actual range to scan
+  (operator can still override `lookback_bytes` either way; the 4 MB
+  hard-cap is preserved).
+- **Header text adapts.** Filter active + matches:
+  `'N match(es) for "<search>" · <per-status tally>'`. Filter
+  active + no matches: `'No matches for "<search>" in the last
+  <bytes> of log'`. Filter empty: original per-status tally.
+- **Caching alignment.** `WidgetCache` keys on widget path +
+  `sha256(config)` (DD-20). `search` is in config, so each distinct
+  term naturally gets its own cache entry — `$cache_duration=30`
+  still works without invalidation plumbing.
+- **Bounded-scan caveat** (carried in DD-41 sub-note + the
+  "Open follow-ups" list below): even at 4 MB hard-cap, the filter
+  doesn't open rotated files (`mail.log.1`, `.gz` companions).
+  Search-deep-history isn't promised — that's deferred follow-up
+  work (gzip decompression + rotated-file traversal).
+- **Verified.** Synthetic-fixture matrix: unfiltered, substring
+  recipient match, substring message match, no-match, case-
+  insensitive, limit-clamped-to-newest-match. Live REST renders
+  against `/var/log/mail.log` confirm bumped lookback (visible in
+  empty-state: `"in the last 1.0 MB of log"`) and the filter-active
+  header text.
+
+### DD-42 — Legacy-widget UserList rework + AuthFailures description
 
 - **Scope is the front end only.** Data sources / query shapes /
   config schemas / autoRefreshDelay are all left intact. The rework
@@ -274,14 +323,20 @@ to any other aliased aggregate.
 - **NEXT SESSION'S TASK: TBD — user-flagged.** Natural extensions
   worth surfacing (offer the user a quick fork via AskUserQuestion
   if none is pre-flagged):
-    * **`MispMailLogWidget` polish** — (a) slide-in side panel for
-      the setup help (current `<details>` is the v1 cut); (b)
-      per-row drilldown to the full log entry or queue id;
-      (c) filter chip in the header (Sent / Deferred / Bounced /
-      Expired) to pre-narrow the row list; (d) failure-only mode
-      (suppress `sent` rows for noise reduction); (e) ship a
-      `/etc/rsyslog.d/misp-mail.conf` recipe as a packaged INSTALL
-      helper so operators don't copy-paste from the widget.
+    * **`MispMailLogWidget` polish** — (a) **rotated-file
+      traversal** (open `mail.log.1` + `.gz` companions so the
+      `search` param can reach beyond the bounded 4 MB tail — the
+      sub-note's documented caveat); (b) inline search-box UX
+      (Tier 3 from this session's fork — transient-search-param
+      protocol extension so admins type into a header box instead
+      of opening widget config); (c) slide-in side panel for the
+      setup help (current `<details>` is the v1 cut); (d) per-row
+      drilldown to the full log entry or queue id; (e) filter chip
+      in the header (Sent / Deferred / Bounced / Expired) to
+      pre-narrow the row list; (f) failure-only mode (suppress
+      `sent` rows); (g) ship a `/etc/rsyslog.d/misp-mail.conf`
+      recipe as a packaged INSTALL helper so operators don't
+      copy-paste from the widget.
     * **`HealthList` polish** (carried) — per-row anchor drilldown
       into the diagnostics page tab.
     * **`MispCacheStatusWidget` polish** (carried) — per-node click
@@ -452,6 +507,11 @@ supervisorctl -c /etc/supervisor/supervisord.conf start misp-workers:misp-worker
    plural on the first;
    (p) **Cake aliased aggregates** — `Model__count` alias needs a
    `virtualFields` declaration on the model first or it returns
-   undefined.
+   undefined;
+   (q) **DD-41 search filter** — `MailLogTool::tail(..., $search='')`
+   filters BEFORE the limit cap (so `$limit` = matching rows, not
+   all rows). Widget's `search` config triggers a 64 KB → 1 MB
+   lookback bump. Bounded by the 4 MB hard-cap; rotated files
+   not yet opened (deferred polish).
 5. Do NOT start the merge — the user does that. Watch context;
    refresh this handoff before wrapping.
