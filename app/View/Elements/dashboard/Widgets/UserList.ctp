@@ -36,7 +36,10 @@
  *
  *     // A full-width message (empty / error / unsupported states):
  *     ['type' => 'message', 'title' => 'Unsupported session engine',
- *      'value' => '…'],
+ *      'value' => '…',
+ *      'recipe' => ['line one of setup help',  // DD-41 → inline
+ *                   'line two', …]],           //   <details><ul> block
+ *                                              //   for operator help
  *   ];
  *
  * `search` (header) renders a filter input; user-list.module.mjs does the
@@ -185,7 +188,22 @@ foreach ($data as $row) {
         $text = isset($row['value'])
             ? '<span class="misp-user-message-text">' . h($row['value']) . '</span>'
             : '';
-        echo '<div class="misp-user-message">' . $title . $text . '</div>';
+        // DD-41 — optional `recipe` list renders as an inline disclosure
+        // (`<details><summary>`) so an empty-state can carry setup help
+        // without committing to a heavier slide-in panel. Each recipe
+        // line is a separate <li>, h()'d individually — the widget
+        // emits raw strings, the renderer escapes (DD-34).
+        $help = '';
+        if (!empty($row['recipe']) && is_array($row['recipe'])) {
+            $help = '<details class="misp-user-help"><summary>'
+                . h(__('How to enable this widget'))
+                . '</summary><ul>';
+            foreach ($row['recipe'] as $line) {
+                $help .= '<li>' . h((string)$line) . '</li>';
+            }
+            $help .= '</ul></details>';
+        }
+        echo '<div class="misp-user-message">' . $title . $text . $help . '</div>';
         continue;
     }
 
