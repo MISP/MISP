@@ -3321,3 +3321,118 @@ Reverse widget = delete `MispMailLogWidget.php`. Reverse tool = delete
 `MailLogTool.php`. Reverse UserList extension = remove the `glyph` slot
 + CSS block (4 SVG defs + 4 class rules); existing widgets keep
 rendering identically because none currently pass `glyph`.
+
+## DD-42 — `LoginsWidget` + `APIActivityWidget` rework to UserList; `AuthenticationFailureWidget` description clarified
+
+**Date.** 2026-05-28
+**Phase context.** Post-5.5 modernisation. User asked for a front-end
+rework of three "legacy" widgets that still rendered through SimpleList
+(LoginsWidget, APIActivityWidget) or carried a stale description
+(AuthenticationFailureWidget). All three are pre-existing — **user-
+explicit sign-off** to touch them (`feedback_additive_only_posture`).
+**Scope is the front end only** — the handlers' data sources, query
+shapes, and config schemas are left intact; the rework is the row
+contract + render kind, nothing else.
+
+**Decision — both list widgets flip `$render` to UserList (DD-35).**
+The two share the same essential shape: "ranked list of actors with a
+count badge". UserList's row contract (avatar + name + meta + badge +
+drilldown) is the cleanest fit; both previously emitted raw HTML
+`<a>` tags in `html_title`/`html` which violated DD-34's renderer-
+owns-escaping invariant (the widget shipped raw HTML and SimpleList
+echoed it verbatim — a small unfixed legacy gap). UserList's typed
+rows + per-scalar `h()` close the gap in passing.
+
+### LoginsWidget → UserList
+* **Title.** Kept `'Logins'`. Description: tightened to "Top users by
+  login count in the configured date range. Site-admin only."
+* **Category.** Stays `'system'` (a status surface, not a user-mgmt
+  surface like LoggedInUsersWidget which uses `'users'`).
+* **Row mapping.** Each row =
+  `{name: email, meta: '<org> · <role>', badge: count,
+    org: {id, name, uuid}, drilldown: '/admin/users/view/<id>'}`.
+  Avatar resolves to org-logo when present on disk
+  (DD-35 lookup order: id → name → uuid, png then svg), else
+  initials chip from the email's local part.
+* **Header row.** `'N user(s) · M login(s) total'` summary. No
+  `search:true` — the result set is typically small (< 100
+  even on busy instances), unlike LoggedInUsersWidget which can
+  surface 10k users.
+* **Handler change.** Same `Log.action='login'` aggregation as today;
+  adds a second `User->find('all')` with `contain` Organisation + Role
+  to populate the meta line + org-logo avatar. No new model bindings
+  beyond what UserListWidget already does.
+* **Config params untouched** — `filter`, `days`, `month`,
+  `previous_month`, `year`, `start_date`, `end_date` (and their
+  canonical `date_range` expansion) carry through unchanged.
+
+### APIActivityWidget → UserList
+* **Title.** Kept `'API Activity'`. Description: tightened to
+  "Top API keys by request count in the configured date range, with
+  owner. Site-admin only."
+* **Row mapping (known key).** `{name: email, meta: 'key <prefix> · <role>',
+   badge: count, org: {id, name, uuid},
+   drilldown: '/auth_keys/view/<id>'}`. **Drilldown targets the key,
+   not the user** — the operational signal here is "which keys are
+   active" (so the admin can revoke/inspect). Owner identity is in
+   the row primary line; the key prefix is in the meta.
+* **Row mapping (unknown key).** Per DD-41's glyph slot:
+  `{glyph: 'warn', name: '<key prefix>', meta: 'Unknown key',
+    badge: count, muted: true}`. The DD-41 token-driven glyph carries
+  the "this is anomalous" signal; the existing `<span class="red">`
+  + native-tooltip pattern is dropped (legacy v1 styling). `muted:true`
+  dims the row — visually consistent with the "you can't do anything
+  with this row" semantics.
+* **Header row.** `'N key(s) · M request(s) total'`; `K unknown` tail
+  when there are unknowns ("12 keys · 4321 requests · 2 unknown").
+* **Handler change.** Same Redis zrange + AuthKey lookup as today.
+  Adds Organisation + Role contains on the AuthKey's User to populate
+  the meta line + org-logo avatar.
+* **Config params untouched** — same set as LoginsWidget.
+
+### AuthenticationFailureWidget — description-only fix
+* **Surfaced via user follow-up.** The widget's title was
+  "Authentication Failure Data" and description "Widget visualising
+  authentication failures collected in d4." — easily misread on a
+  MISP dashboard as "*MISP* authentication failures" (someone trying
+  to log in to this MISP and failing). It is in fact a **D4-project
+  data-source widget** that visualises sshd / similar brute-force
+  events ingested as MISP events with a configured info-field
+  substring.
+* **Change.** Update `$title` to `'D4 Authentication Failures'` and
+  `$description` to clarify the data source (`'sshd / similar
+  authentication-failure events ingested from a D4 collector as MISP
+  events. NOT MISP login failures — see LoginsWidget for MISP login
+  activity.'`). No code / render-kind / schema change.
+
+**Conventions upheld.**
+* DD-34: widget emits raw strings, renderer escapes (UserList
+  contract). Drops two legacy raw-HTML strings (`html_title`, `html`)
+  per widget — net escaping improvement.
+* DD-03: drilldown URLs are MISP-internal paths, validated by
+  `DashboardURLValidator::validate` at render time.
+* DD-32 / DD-41: status conveyed via the typed `glyph` token, not
+  inline colour classes.
+* Site-admin gate kept on both list widgets
+  (`checkPermissions($user)` reads `perm_site_admin`).
+* `autoRefreshDelay` carries through (Logins: 600, API: 30) — these
+  cadences are tuned to the underlying signal velocity and not part
+  of the rework.
+
+**Verification recipe.**
+* `php -l` clean ×3.
+* Live REST render LoginsWidget → HTTP 200, UserList renderer,
+  row shape `{name, meta, badge, org, drilldown}`; rows ordered by
+  badge desc.
+* Live REST render APIActivityWidget → HTTP 200, UserList,
+  mixed known/unknown rows; unknown rows carry `glyph:'warn'` +
+  `muted:true`.
+* Headless-Chrome screenshot against the full CSS stack — confirm
+  the avatar / badge / drilldown styling reads as a sibling to
+  LoggedInUsersWidget.
+* `LoggedInUsersWidget` continues to render identically (it was
+  the canary for the DD-41 glyph slot; same check applies here).
+
+**Scope-tight reversibility.** Reverse = revert the three widget
+files. No shared utility, model binding, or render-kind change is
+introduced by this DD.
