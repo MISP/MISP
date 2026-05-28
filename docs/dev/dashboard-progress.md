@@ -1773,6 +1773,57 @@ gate (the user still does the merge).
   PHPUnit file; behaviour falls back to DD-41 / DD-41 sub-note
   exactly. No view template / CSS / JS / model / controller touched.
 
+- [x] **Shipped admin dashboard template — full snapshot replace
+  from the dev-box admin's live layout — landed 2026-05-28 (DD-44).**
+  The shipped `app/files/dashboard-templates/admin/template.json`
+  was a v1-era 6-widget layout (UsageData, NewUsers,
+  AuthenticationFailure, MispStatus, Logins, APIActivity) — stale
+  next to the v2 widget family that landed across DD-31..DD-43.
+  User picked **full snapshot replace** (over "swap value only" or
+  "swap value + refresh metadata"): mint a fresh uuid, refresh the
+  description to match the broader widget set, copy the live
+  configured-by-admin layout into the `value` field verbatim.
+  **New uuid `5000487b-3e75-46e4-8c43-96da9dc2268b`** (was
+  `1bf983ac-539d-4e7a-828b-aa5585cfbe2c`); the operator-triggered
+  `app/Console/cake Dashboard importDefaultTemplates` prunes the
+  old uuid as orphaned and inserts the new one (idempotent — re-
+  running refreshes from the file).  **Description refreshed**
+  from the original "instance usage statistics, system status,
+  recent logins and API activity, the latest users to join, and
+  authentication failures" to the broader v2 surface: "live
+  resource monitors (CPU, memory, disk), instance usage statistics,
+  system health rollup, sync test and cache freshness, worker
+  queues, mail log, recent logins, API activity, and the latest
+  users to join."  **`value`** now carries 14 widgets (was 6):
+  UsageData, NewUsers, Logins, APIActivity, BenchmarkTopList,
+  MispAdminSyncTest, MispAdminWorker, CpuLoadMonitor,
+  MemoryUsageMonitor, DiskUsageMonitor, LoggedInUsers,
+  MispAdminHealth, MispCacheStatus, MispMailLog — i.e. the full
+  DD-31..DD-43 family is represented.  **Other metadata
+  preserved**: `selectable=true`, `restrict_to_org_id=0`,
+  `restrict_to_role_id=0`,
+  `restrict_to_permission_flag='perm_site_admin'` — site admins
+  only.  **Backward-compat impact (the user-acknowledged tradeoff
+  for the new-uuid scope):** the old uuid gets pruned by the next
+  `importDefaultTemplates --prune` run (the explicit operator
+  ingest); any user_settings.dashboard already saved by a real user
+  keeps its literal value snapshot intact (user_settings holds the
+  resolved widget array, not a template reference), so no live user
+  dashboard is touched.  Only the gallery's "selectable templates"
+  surface is affected — the new template appears in its place.
+  Verified: `python3 -m json.tool` parses the new file cleanly;
+  `Dashboard importDefaultTemplates` reports `[OK] Administrator
+  (#19)` + `[PRUNE] Administrator (#12) — no longer shipped` +
+  `3 built-in dashboard template(s) imported, 0 failed, 1
+  orphaned pruned`; DB row at the new uuid contains 14 widgets
+  with byte-identical JSON to admin user 1's `user_settings.
+  dashboard`; `/dashboards/listTemplates.json` returns the new
+  template with `user_id=0`, `selectable=true`,
+  `restrict_to_permission_flag='perm_site_admin'`.  Pure shipped-
+  artifact replacement — no code touched.  Reverse = `git checkout
+  HEAD~ -- app/files/dashboard-templates/admin/template.json` +
+  re-run `importDefaultTemplates`.
+
 ---
 
 ## Phase 6 — Merge to `develop`

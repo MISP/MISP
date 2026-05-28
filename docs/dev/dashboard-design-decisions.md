@@ -3641,3 +3641,133 @@ worth of decompressed content.  Not v1.
 MispMailLogWidget.php` + delete `app/Test/MailLogToolTest.php`.
 Behaviour falls back to DD-41 / DD-41 search-filter sub-note
 exactly. No view template / CSS / JS / model / controller touched.
+
+## DD-44 — Shipped admin dashboard template snapshot: capture the v2 surface as the new default
+
+**Date.** 2026-05-28
+
+**Status.** Landed. Replaces the v1-era 6-widget Administrator
+template with a 14-widget snapshot of the dev-box admin's
+configured-by-hand v2 layout.
+
+**Problem.** The shipped `app/files/dashboard-templates/admin/
+template.json` was authored before DD-31..DD-43 introduced the v2
+render-kind family (StatGrid, NetworkGraph, UserList, QueueList,
+HealthList) and the widgets that consume them (MispAdminHealth,
+MispCacheStatus, MispAdminWorker rework, MispMailLog, etc.).  A
+fresh site admin picking the "Administrator" template from the
+gallery lands on a layout that's narrower than what the v2 work
+actually delivered — the new render kinds aren't visible until the
+admin discovers and adds the widgets manually.
+
+**Forks considered.**
+
+* **Swap `value` field only vs. swap `value` + refresh metadata
+  vs. full snapshot replace (new uuid).**  Picked **full snapshot
+  replace**.
+
+  The "swap value only" option keeps the existing uuid and name —
+  smallest blast radius, but the original description ("instance
+  usage statistics, system status, recent logins and API activity,
+  the latest users to join, and authentication failures") would
+  then describe a *different* widget set, which is misleading on
+  the gallery card.
+
+  The "swap value + refresh metadata" option fixes the description
+  but keeps the uuid — the safest middle option.  Rejected because
+  the snapshot represents a *materially different* template (more
+  than 2× the widget count, complete render-kind coverage), and
+  pinning that to the original uuid would surprise any external
+  references that resolved the old uuid to the old layout (e.g. a
+  documented "click 'Administrator' template" workflow).  A fresh
+  uuid signals the change cleanly.
+
+  The "full snapshot replace" option mints a new uuid, refreshes
+  the description, and copies the live admin's 14-widget layout
+  verbatim into `value`.  The old uuid gets pruned by the next
+  explicit `importDefaultTemplates --prune` operator run (the
+  shell's default ingest call sets `$prune=true`); the silent
+  auto-ingest on update leaves it alone, so installations don't
+  experience a "template disappeared" moment until an admin
+  explicitly re-ingests.
+
+* **Sequential vs. preserved `instance_id`s in the snapshot.**
+  Picked **preserved**.  The live config carries `w_1, w_2, w_5..
+  w_8, w_10..w_17` (gaps from the admin's add/remove history); a
+  fresh-sequential renumber would be cosmetic only, and any saved
+  state that cross-references those IDs (e.g. session-scoped
+  widget-instance caches) would silently break.  Templates are
+  starter layouts; cosmetic ID gaps are harmless.
+
+* **Backward-compat scope: should existing user dashboards
+  reset?**  No — out of scope.  `user_settings.dashboard` holds the
+  resolved widget array (not a template-uuid reference), so each
+  user's saved layout is unaffected by template changes.  The new
+  template only matters for the **gallery's selectable-templates
+  surface**: fresh admins (or admins choosing "load template")
+  land on the new layout; existing curated layouts stay as-is.
+
+**Implementation.**
+
+* `app/files/dashboard-templates/admin/template.json` regenerated
+  from admin user 1's `user_settings.dashboard` by a one-off
+  `python3` snippet (run from `/tmp/`, deleted after — no
+  committed build script).
+* Fields:
+  * `uuid` — fresh `5000487b-3e75-46e4-8c43-96da9dc2268b` (was
+    `1bf983ac-539d-4e7a-828b-aa5585cfbe2c`).
+  * `name` — `Administrator` (unchanged).
+  * `description` — refreshed to enumerate the v2 surface.
+  * `selectable: true` — unchanged.
+  * `restrict_to_org_id: 0`, `restrict_to_role_id: 0`,
+    `restrict_to_permission_flag: 'perm_site_admin'` —
+    unchanged.
+  * `value` — verbatim copy of the live admin layout (14
+    widgets).
+* No code touched — pure shipped-artifact replacement.  The
+  upserter `Dashboard::__importTemplate()` already handles the
+  uuid-keyed upsert; the explicit-CLI ingest path
+  `importTemplatesFromDirectory(null, true)` already prunes
+  orphans (DD-22 / DD-24 path).
+
+**Widget inventory in the new `value`.**
+
+* **Live resource monitors** — `CpuLoadMonitorWidget`,
+  `MemoryUsageMonitorWidget`, `DiskUsageMonitorWidget` (top-left
+  column, the live-sparkline-trio added pre-DD-31).
+* **System health + cache** — `MispAdminHealthWidget` (DD-39),
+  `MispAdminSyncTestWidget` (DD-33), `MispCacheStatusWidget`
+  (DD-40).
+* **Workers / mail / login activity** — `MispAdminWorkerWidget`
+  (DD-38 QueueList rework), `MispMailLogWidget` (DD-41 + DD-43
+  rotated traversal), `LoginsWidget` + `APIActivityWidget` (DD-42
+  UserList rework), `LoggedInUsersWidget` (DD-35 baseline).
+* **Instance + benchmarks** — `UsageDataWidget` (StatGrid via
+  DD-31), `NewUsersWidget`, `BenchmarkTopListWidget`.
+
+Notably *absent* (intentional, mirrors the admin's curated layout):
+the original template's `AuthenticationFailureWidget` and
+`MispStatusWidget` — the admin chose to drop both in their personal
+config (the D4 surface is niche and the resource trio + health
+widget cover MispStatus's slot).
+
+**Verification.**
+
+* `python3 -m json.tool < template.json` parses cleanly.
+* `app/Console/cake Dashboard importDefaultTemplates` reports
+  `[OK] Administrator (#19)` + `[PRUNE] Administrator (#12) — no
+  longer shipped` + `3 imported, 0 failed, 1 orphaned pruned`.
+* DB row at the new uuid `5000487b-...` has 14 widgets, byte-
+  identical JSON to admin user 1's `user_settings.dashboard`.
+* `/dashboards/listTemplates.json` returns the new template with
+  `user_id=0`, `selectable=true`,
+  `restrict_to_permission_flag='perm_site_admin'`.
+
+**Reversibility.**
+
+`git checkout HEAD~ -- app/files/dashboard-templates/admin/
+template.json` + re-run `importDefaultTemplates`.  The reverted
+file restores the old uuid + the old description + the old 6-
+widget value; the explicit ingest re-inserts the old uuid as a
+fresh row (id changes; the row is functionally equivalent) and
+prunes the new one as orphaned.
