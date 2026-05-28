@@ -190,18 +190,24 @@ foreach ($data as $row) {
             : '';
         // DD-41 — optional `recipe` list renders as an inline disclosure
         // (`<details><summary>`) so an empty-state can carry setup help
-        // without committing to a heavier slide-in panel. Each recipe
-        // line is a separate <li>, h()'d individually — the widget
-        // emits raw strings, the renderer escapes (DD-34).
+        // without committing to a heavier slide-in panel. Each entry
+        // h()'d individually — the widget emits raw strings, the
+        // renderer escapes (DD-34). Multi-line entries (with \n) get a
+        // <pre> code block; single-line entries get a prose <p>.
         $help = '';
         if (!empty($row['recipe']) && is_array($row['recipe'])) {
             $help = '<details class="misp-user-help"><summary>'
                 . h(__('How to enable this widget'))
-                . '</summary><ul>';
+                . '</summary>';
             foreach ($row['recipe'] as $line) {
-                $help .= '<li>' . h((string)$line) . '</li>';
+                $s = (string)$line;
+                if (strpos($s, "\n") !== false) {
+                    $help .= '<pre class="misp-user-help-code">' . h($s) . '</pre>';
+                } else {
+                    $help .= '<p class="misp-user-help-step">' . h($s) . '</p>';
+                }
             }
-            $help .= '</ul></details>';
+            $help .= '</details>';
         }
         echo '<div class="misp-user-message">' . $title . $text . $help . '</div>';
         continue;

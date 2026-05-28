@@ -1296,9 +1296,11 @@ a.misp-stat-card:hover .misp-stat-glyph {
   font-size: var(--misp-dash-fs-sm);
 }
 /* DD-41 — inline disclosure for an empty-state's setup recipe.  Pure
- * HTML <details>; click on the summary expands the <ul> below.  Left-
- * aligned inside the centred .misp-user-message column so the bullets
- * read as a recipe, not as a paragraph. */
+ * HTML <details>; click on the summary expands the recipe below.
+ * Left-aligned inside the centred .misp-user-message column.  Recipe
+ * entries are either prose <p> steps or verbatim <pre> snippets
+ * (multi-line strings); both styled to read as operator-facing setup
+ * material. */
 .misp-user-help {
   width: 100%;
   margin-top: var(--misp-dash-space-2);
@@ -1313,13 +1315,21 @@ a.misp-stat-card:hover .misp-stat-glyph {
   list-style: revert;
 }
 .misp-user-help summary:hover { color: var(--misp-dash-accent); }
-.misp-user-help ul {
-  margin: var(--misp-dash-space-1) 0 0;
-  padding-left: var(--misp-dash-space-4);
-}
-.misp-user-help li {
-  margin: var(--misp-dash-space-1) 0;
+.misp-user-help-step {
+  margin: var(--misp-dash-space-2) 0;
   color: var(--misp-dash-text-muted);
+  word-break: break-word;
+}
+.misp-user-help-code {
+  margin: var(--misp-dash-space-2) 0;
+  padding: var(--misp-dash-space-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  color: var(--misp-dash-text);
+  background: var(--misp-dash-surface-sunken);
+  border: 1px solid var(--misp-dash-border);
+  border-radius: var(--misp-dash-radius-sm);
+  white-space: pre-wrap;
   word-break: break-word;
 }
 /* Client-side filter box (DD-36); wired by user-list.module.mjs. */
