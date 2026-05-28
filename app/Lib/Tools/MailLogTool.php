@@ -70,11 +70,19 @@ class MailLogTool
 
     /**
      * Tail-read + parse $path; return up to $limit rows, newest first.
+     *
+     * When $search is a non-empty string, each parsed row is filtered
+     * by case-insensitive substring match against recipient, relay,
+     * queue_id, and the MTA message — non-matching rows are skipped
+     * BEFORE the limit cap, so $limit reflects matching rows, not
+     * all rows in the window.  Caller can bump $lookbackBytes when
+     * the filter is active to give the search range to work with.
      */
     public static function tail(
         string $path,
         int $lookbackBytes = self::DEFAULT_LOOKBACK,
-        int $limit = self::DEFAULT_LIMIT
+        int $limit = self::DEFAULT_LIMIT,
+        string $search = ''
     ): array {
         if (!self::isAllowedPath($path)) {
             throw new InvalidArgumentException(
@@ -121,14 +129,30 @@ class MailLogTool
             // Hard iteration cap so a malformed read can't loop unbounded.
             $maxIter = max(2048, intdiv($lookback, 64));
             $iter = 0;
+            $needle = ($search !== '') ? $search : null;
             while (($line = fgets($fp)) !== false) {
                 if (++$iter > $maxIter) {
                     break;
                 }
                 $row = self::parseLine(rtrim($line, "\r\n"));
-                if ($row !== null) {
-                    $rows[] = $row;
+                if ($row === null) {
+                    continue;
                 }
+                if ($needle !== null) {
+                    // Search across the four content fields of the
+                    // normalised row.  Case-insensitive substring —
+                    // good enough for "find all entries for alice@…"
+                    // and avoids the false-positive surface of a
+                    // regex over user-controlled input.
+                    $haystack = $row['recipient'] . ' '
+                        . $row['relay'] . ' '
+                        . $row['queue_id'] . ' '
+                        . $row['message'];
+                    if (stripos($haystack, $needle) === false) {
+                        continue;
+                    }
+                }
+                $rows[] = $row;
             }
         } finally {
             fclose($fp);

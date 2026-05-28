@@ -3322,6 +3322,53 @@ Reverse widget = delete `MispMailLogWidget.php`. Reverse tool = delete
 + CSS block (4 SVG defs + 4 class rules); existing widgets keep
 rendering identically because none currently pass `glyph`.
 
+**Search filter — sub-note (2026-05-28, follow-up).** User asked how
+realistic a search filter on the widget would be. Forks surfaced
+across three tiers (client-side row filter via DD-36's existing
+`search:true` slot; server-side filter via a config param;
+inline-search-box + transient-search-param protocol extension). User
+picked **Tier 2 (server-side via config param)** for the cost/value
+sweet spot — no new protocol plumbing, reuses the existing widget-
+config-edit UI, real server-side filter within the bounded scan.
+
+Implementation: `MailLogTool::tail($path, $lookbackBytes, $limit,
+$search='')` gains an optional fourth arg; non-empty `$search`
+filters each parsed row by **case-insensitive substring match
+against `recipient + relay + queue_id + message`** *before* the
+limit cap, so `$limit` reflects matching rows rather than all rows
+in the window. Substring not regex — good enough for "find all
+entries for alice@…" and avoids the false-positive surface of a
+regex over user-controlled input. Widget exposes `search` as a
+config param; when set, **the default lookback bumps from 64 KB to
+1 MB** so the filter has actual range (the operator can still
+override `lookback_bytes` either way; the 4 MB hard-cap is
+preserved). Header text adapts: `'N match(es) for "<search>" ·
+<per-status tally>'` when filter is active; the empty-state
+message becomes `'No matches for "<search>" in the last <bytes>
+of log'`.
+
+**Bounded-scan caveat — surfaced honestly.** Even at 4 MB, the
+filter only scans within the lookback window; rotated files
+(`mail.log.1`, `.gz` companions) aren't opened. So "find ALL
+entries for alice@… over 3 months" hits a wall — that's a deferred
+follow-up (open rotated files + gzip decompression), not v1 scope.
+The bounded behaviour is the documented contract: search-deep-
+history isn't promised.
+
+**Caching alignment.** WidgetCache keys by widget path + sha256
+(config) per DD-20, and `search` is in config, so each distinct
+search term gets its own cache entry — the `$cache_duration=30`
+anti-thundering-herd cache still works without invalidation
+plumbing.
+
+**Verified.** Synthetic-fixture matrix: unfiltered, substring
+recipient match, substring message match, no-match, case-
+insensitive, limit-clamped-to-newest-match. Live REST renders
+against `/var/log/mail.log` confirm the bumped lookback (visible
+in the empty-state message: `'in the last 1.0 MB of log'`) and the
+filter-active header text. Backward-compat: omit `search` (or pass
+empty string) → identical behaviour to pre-sub-note.
+
 ## DD-42 — `LoginsWidget` + `APIActivityWidget` rework to UserList; `AuthenticationFailureWidget` description clarified
 
 **Date.** 2026-05-28

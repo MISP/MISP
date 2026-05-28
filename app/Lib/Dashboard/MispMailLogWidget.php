@@ -42,17 +42,20 @@ class MispMailLogWidget
     public $params = array(
         'log_path' => 'OS mail log path (default /var/log/mail.log).',
         'limit' => 'Maximum rows to display (default 20).',
-        'lookback_bytes' => 'Tail-read window in bytes (default 65536).',
+        'lookback_bytes' => 'Tail-read window in bytes (default 65536, larger 1MB default when "search" is set).',
+        'search' => 'Case-insensitive substring filter applied to recipient, relay, queue ID, and the MTA message. Empty = no filter (default).',
     );
     public $schema = array(
         'log_path' => array('type' => 'string'),
         'limit' => array('type' => 'integer'),
         'lookback_bytes' => array('type' => 'integer'),
+        'search' => array('type' => 'string'),
     );
     public $placeholder = '{
   "log_path": "/var/log/mail.log",
   "limit": 20,
-  "lookback_bytes": 65536
+  "lookback_bytes": 65536,
+  "search": ""
 }';
     public $description = 'Recent outgoing mail with the upstream MTA verdict (sent / deferred / bounced / expired). Reads the OS mail log; operator must grant www-data read access.';
     // Bursty signal — polling every 60s catches a just-bounced row
@@ -75,16 +78,27 @@ class MispMailLogWidget
         if ($limit > 200) {
             $limit = 200;
         }
-        $lookback = isset($config['lookback_bytes']) ? (int)$config['lookback_bytes'] : MailLogTool::DEFAULT_LOOKBACK;
+        $search = isset($config['search']) && is_string($config['search'])
+            ? trim($config['search'])
+            : '';
+        // When a search filter is active, default lookback bumps to
+        // 1 MB so the filter has actual range to scan (the default
+        // 64 KB tail is too small to find anything older than a few
+        // hours on a busy box).  Operator can override either way
+        // via the explicit `lookback_bytes` config.
+        $defaultLookback = $search !== ''
+            ? 1024 * 1024
+            : MailLogTool::DEFAULT_LOOKBACK;
+        $lookback = isset($config['lookback_bytes']) ? (int)$config['lookback_bytes'] : $defaultLookback;
         if ($lookback < 1024) {
-            $lookback = MailLogTool::DEFAULT_LOOKBACK;
+            $lookback = $defaultLookback;
         }
         if ($lookback > 4 * 1024 * 1024) {
             $lookback = 4 * 1024 * 1024;
         }
 
         try {
-            $rows = MailLogTool::tail($path, $lookback, $limit);
+            $rows = MailLogTool::tail($path, $lookback, $limit, $search);
         } catch (InvalidArgumentException $e) {
             return $this->_errorRow(
                 __('Log path not in allow-list'),
@@ -107,16 +121,23 @@ class MispMailLogWidget
         }
 
         if (empty($rows)) {
-            return array(array(
-                'type' => 'header',
-                'value' => sprintf(
+            $emptyMsg = $search !== ''
+                ? sprintf(
+                    __('No matches for "%s" in the last %s of log'),
+                    $search,
+                    $this->_humanizeBytes($lookback)
+                )
+                : sprintf(
                     __('No recent mail events in the last %s'),
                     $this->_humanizeBytes($lookback)
-                ),
+                );
+            return array(array(
+                'type' => 'header',
+                'value' => $emptyMsg,
             ));
         }
 
-        return $this->_buildRows($rows, $path);
+        return $this->_buildRows($rows, $path, $search);
     }
 
     public function checkPermissions($user)
@@ -131,7 +152,7 @@ class MispMailLogWidget
      * carries a per-status tally; each row is a glyph + recipient +
      * status·age·relay·message meta line + chip-style status badge.
      */
-    private function _buildRows(array $rows, $path)
+    private function _buildRows(array $rows, $path, $search = '')
     {
         $tally = array(
             'sent' => 0, 'deferred' => 0, 'bounced' => 0,
@@ -148,11 +169,25 @@ class MispMailLogWidget
                 $headerParts[] = sprintf('%d %s', $count, $this->_statusLabel($status));
             }
         }
-        $headerValue = sprintf(
-            __n('%d event · %s', '%d events · %s', count($rows)),
-            count($rows),
-            $headerParts ? implode(' · ', $headerParts) : ''
-        );
+        // When the filter is active, the header announces it as a
+        // "N matches for '<term>' · <per-status tally>" so the operator
+        // doesn't mistake a filtered tail for a global one.
+        if ($search !== '') {
+            $headerValue = sprintf(
+                __n('%d match for "%s"', '%d matches for "%s"', count($rows)),
+                count($rows),
+                $search
+            );
+            if (!empty($headerParts)) {
+                $headerValue .= ' · ' . implode(' · ', $headerParts);
+            }
+        } else {
+            $headerValue = sprintf(
+                __n('%d event · %s', '%d events · %s', count($rows)),
+                count($rows),
+                $headerParts ? implode(' · ', $headerParts) : ''
+            );
+        }
 
         $now = time();
         $out = array(array(
