@@ -197,15 +197,30 @@ either** — DD-41 is pure HTML/CSS.
 - `/var/log/mail.log` on Debian/Ubuntu is `640 syslog:adm`;
   `/var/log/maillog` on RHEL is `600 root:root`. `www-data` is **not**
   in `adm` on any standard distro by default.
-- Operator setup options (surfaced in the empty-state recipe; pick one):
-    1. `sudo usermod -aG adm www-data && systemctl restart apache2` —
-       cheapest, but `adm` reads most `/var/log/*` (privilege expansion).
-    2. Dedicated rsyslog tee at `/etc/rsyslog.d/misp-mail.conf`:
-       `mail.* -/var/log/misp/mail.log` owned `syslog:www-data` mode
-       640 — cleanest scope, www-data sees only MISP mail.
-    3. POSIX ACL: `sudo setfacl -m u:www-data:r /var/log/mail.log` —
-       per-file, no group change, but lost on log rotation unless
-       reapplied via logrotate `postrotate`.
+- **Recipe narrowed to one recommended strategy** (follow-up consult,
+  see DD-41 sub-note): scoped rsyslog `$FileCreateMode 0644` at
+  `/etc/rsyslog.d/30-mail-world-readable.conf`:
+  ```
+  $FileCreateMode 0644
+  mail.*    -/var/log/mail.log
+  $FileCreateMode 0640
+  ```
+  then `sudo systemctl restart rsyslog`. **The 0640 reset line is
+  load-bearing** — without it, the 0644 mode leaks to every subsequent
+  rsyslog-created file. Threat-model framing: MISP usually runs in a
+  dedicated VM/container, so the only meaningful read scope is
+  `www-data`. Local-user PII concern is nil there.
+- **Logrotate.** Debian/Ubuntu's default `/etc/logrotate.d/rsyslog`
+  has no `create` line (verified on the dev box) → logrotate inherits
+  rsyslog's `FileCreateMode` automatically across rotations. RHEL /
+  CentOS does use `create`; operator must add
+  `create 0644 syslog adm` to the rsyslog logrotate stanza.
+- Rejected alternatives (DD-41 sub-note preserves the audit trail):
+  `adm` group membership (privilege expansion across all `/var/log/*`);
+  dedicated `/var/log/misp/mail.log` tee (creates a second log file
+  the operator must remember to rotate / monitor); POSIX ACL
+  (equivalent privacy scope but lost on rotation without a
+  `postrotate` hook).
 
 ### `Server::*Diagnostics()` cross-call gotchas (carried — DD-39)
 - All take `&$diagnostic_errors` by reference and `$diagnostic_errors++`

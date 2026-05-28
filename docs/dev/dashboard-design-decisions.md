@@ -3153,10 +3153,47 @@ privilege expansion. Forks considered:
 * **Configurable path + clear empty-state with inline setup help
   (chosen).** Widget reads `Configure::read('MISP.mail_log_path')` (default
   `/var/log/mail.log`); if the file is unreadable / missing, renders a
-  **message row with a `<details>` setup-help block** listing the
-  operator's options (adm membership, rsyslog tee snippet, POSIX ACL).
-  Operator picks their preferred access strategy; widget surfaces what
-  setup is needed. No silent privilege expansion.
+  **message row with a `<details>` setup-help block** with the
+  recommended access-strategy recipe. No silent privilege expansion.
+
+**Empty-state recipe — sub-note (2026-05-28, follow-up consult).**
+The v1 recipe surfaced three strategies as a menu: (a) `adm` group
+membership, (b) dedicated rsyslog tee under `/var/log/misp/`, (c) a
+POSIX ACL on `/var/log/mail.log`. The user followed up with a fourth
+candidate — a scoped rsyslog `$FileCreateMode 0644` snippet — and a
+sharpened threat model: **MISP usually runs in a dedicated VM /
+container, so the only meaningful read scope is `www-data`; local-
+user PII exposure is not a concern there.** Under that threat model,
+the "world-readable" cost of `0644` collapses to a `www-data`-readable
+cost (same as the ACL option), but with the operational advantages of
+surviving log rotation on Debian/Ubuntu without further intervention
+and not creating a second log file. **Decision: narrow the recipe to
+this single recommended strategy** (drop the three-option menu — a
+menu invites operators to pick the wrong-for-their-context option).
+The recipe now reads:
+1. Drop `/etc/rsyslog.d/30-mail-world-readable.conf` containing
+   `$FileCreateMode 0644` / `mail.*    -/var/log/mail.log` /
+   `$FileCreateMode 0640`. **The reset line is load-bearing** — without
+   it, the 0644 mode leaks to every subsequent rsyslog-created file
+   downstream of the mail rule (auth.log, kern.log, …). The user's
+   originally-suggested two-line snippet hit this; the recipe carries
+   the bracketing form.
+2. `sudo systemctl restart rsyslog`.
+3. Logrotate: Debian / Ubuntu's `/etc/logrotate.d/rsyslog` has no
+   `create` line — verified on the dev box — so logrotate inherits
+   the rsyslog `$FileCreateMode` automatically. RHEL / CentOS does
+   use `create`; on those distros the operator must add `create 0644
+   syslog adm` to the rsyslog logrotate stanza.
+4. Point the widget at `/var/log/mail.log` (the default).
+
+Rejected alternatives (preserved for the audit trail):
+* `adm` membership — privilege expansion across all of `/var/log/*`.
+* Dedicated `/var/log/misp/mail.log` tee — cleanest scope for non-VM/
+  -container deployments, but creates a second log file the operator
+  must remember to rotate / monitor.
+* POSIX ACL — equivalent privacy scope (www-data only), but lost on
+  rotation unless reapplied via a logrotate `postrotate` hook; more
+  per-file plumbing than the rsyslog approach.
 
 **Path-allow-list.** The configured path must match
 `^/(var/log|tmp)/[A-Za-z0-9._/-]+$`. Site-admin would already have

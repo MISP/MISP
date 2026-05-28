@@ -221,17 +221,27 @@ class MispMailLogWidget
     }
 
     /**
-     * Operator setup recipe — the three access strategies surfaced in
-     * DD-41.  Inline `<details>` block on the empty-state row.
+     * Operator setup recipe — the single recommended strategy for
+     * granting www-data read access to /var/log/mail.log (DD-41,
+     * narrowed from a three-option fork after a follow-up consult
+     * with the user).  Inline `<details>` block on the empty-state
+     * row.
+     *
+     * Rationale: MISP usually runs in a dedicated VM / container, so
+     * the only meaningful read scope is www-data — local-user PII
+     * concerns are nil.  The `0644` mode is scoped to the mail.*
+     * action only (NOT a global $FileCreateMode line, which would
+     * widen every subsequent rsyslog-created file) by bracketing the
+     * action with `$FileCreateMode 0644` / `$FileCreateMode 0640`.
      */
     private function _setupRecipe()
     {
         return array(
-            __('Grant www-data read access to the log. Three strategies, pick one:'),
-            __('1) Distro group: sudo usermod -aG adm www-data && systemctl restart apache2. Note: adm reads most /var/log/* — a privilege expansion.'),
-            __('2) Dedicated rsyslog tee: drop /etc/rsyslog.d/misp-mail.conf with `mail.* -/var/log/misp/mail.log`, owned syslog:www-data mode 640. Scope www-data to MISP mail only.'),
-            __('3) POSIX ACL: sudo setfacl -m u:www-data:r /var/log/mail.log. Per-file, no group change. Lost on log rotation unless you re-apply via logrotate postrotate.'),
-            __('Then point this widget at the resulting path (default /var/log/mail.log).'),
+            __('Grant www-data read access to /var/log/mail.log via a scoped rsyslog file mode (recommended for dedicated MISP VMs / containers, where local-user PII exposure is not a concern):'),
+            __('1) Drop /etc/rsyslog.d/30-mail-world-readable.conf with: `$FileCreateMode 0644` then `mail.*    -/var/log/mail.log` then `$FileCreateMode 0640`. The reset line is load-bearing — it stops the 0644 mode leaking into every subsequent rsyslog-created file.'),
+            __('2) sudo systemctl restart rsyslog'),
+            __('3) Logrotate: on Debian / Ubuntu the default /etc/logrotate.d/rsyslog has no `create` line, so logrotate inherits the rsyslog FileCreateMode automatically — done. On RHEL / CentOS, add `create 0644 syslog adm` to the rsyslog logrotate stanza so rotation preserves the mode.'),
+            __('4) Confirm this widget loads against /var/log/mail.log (the default).'),
         );
     }
 
