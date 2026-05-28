@@ -1,19 +1,44 @@
 <?php
 
+/**
+ * API Activity widget (dashboard v2).
+ *
+ * Top API keys by request count in the configured date range, with
+ * their owner.  Site-admin surface for "which keys are hot, and is
+ * anything unrecognised hitting the API."
+ *
+ * Reworked from SimpleList to UserList in DD-42.  Data source is
+ * unchanged: a Redis pipeline reads `misp:authkey_log:<YYYYMMDD>`
+ * zranges per day, sums the counts, then looks up each key's owner
+ * via the AuthKey model.  Per-row contract:
+ *   - Known key  : avatar = owner org logo / initials chip; name =
+ *                  owner email; meta = "key <prefix> · <role>"; badge
+ *                  = count; drilldown = /auth_keys/view/<id>
+ *                  (drilldown points at the KEY so admin can revoke
+ *                  / inspect; owner identity is in the primary line).
+ *   - Unknown key: DD-41 glyph slot, token = 'warn'; name = key
+ *                  prefix; meta = "Unknown key"; badge = count;
+ *                  muted = true.  An unknown key can be left over
+ *                  from a permanently-deleted entry or a legacy-auth
+ *                  mis-identification on instances using legacy
+ *                  API-key authentication.
+ *
+ * Site-admin only.
+ */
 class APIActivityWidget
 {
     public $title = 'API Activity';
     public $category = 'system';
-    public $render = 'SimpleList';
-    public $width = 2;
-    public $height = 2;
+    public $render = 'UserList';
+    public $width = 3;
+    public $height = 4;
     public $params = [
         'filter' => 'A list of filters by organisation meta information (sector, type, nationality, id, uuid) to include. (dictionary, prepending values with ! uses them as a negation)',
         'limit' => 'Limits the number of displayed APIkeys. (-1 will list all) Default: -1',
-        'days' => 'How many days back should the list go - for example, setting 7 will only show contributions in the past 7 days. (integer)',
-        'month' => 'Who contributed most this month? (boolean)',
-        'previous_month' => 'Who contributed most the previous, finished month? (boolean)',
-        'year' => 'Which contributed most this year? (boolean)',
+        'days' => 'How many days back should the list go - for example, setting 7 will only show API activity in the past 7 days. (integer)',
+        'month' => 'Which keys were busiest this month? (boolean)',
+        'previous_month' => 'Which keys were busiest the previous, finished month? (boolean)',
+        'year' => 'Which keys were busiest this year? (boolean)',
         'start_date' => 'The ISO 8601 date format at which to start',
         'end_date' => 'The ISO 8601 date format at which to end. (Leave empty for today)',
     ];
@@ -27,12 +52,14 @@ class APIActivityWidget
             'help' => 'Date range covering the activity window. Canonical 1-to-N expansion writes top-level start_date / end_date keys at translate time — legacy configs with those keys keep working unchanged.',
         ],
     ];
-    public $description = 'Basic widget showing some server statistics in regards to MISP.';
+    public $description = 'Top API keys by request count in the configured date range, with their owner. Site-admin only.';
     public $cacheLifetime = false;
     public $autoRefreshDelay = 30;
-    private $User = null;
-    private $AuthKey = null;
 
+    /** @var User */
+    private $User = null;
+    /** @var AuthKey */
+    private $AuthKey = null;
 
     private function getDates($options)
     {
@@ -51,7 +78,7 @@ class APIActivityWidget
                 $end = new DateTime($options['end_date']);
             }
         } else {
-            $begin = new DateTime(date('Y-m-d', strtotime('-7 days', time())));;
+            $begin = new DateTime(date('Y-m-d', strtotime('-7 days', time())));
         }
 
         $end = isset($end) ? $end : new DateTime();
@@ -67,8 +94,8 @@ class APIActivityWidget
         return $results;
     }
 
-	public function handler($user, $options = array())
-	{
+    public function handler($user, $options = array())
+    {
         $this->User = ClassRegistry::init('User');
         $this->AuthKey = ClassRegistry::init('AuthKey');
         $redis = $this->User->setupRedis();
@@ -76,17 +103,14 @@ class APIActivityWidget
             throw new NotFoundException(__('No redis connection found.'));
         }
 
-        $params = ['conditions' => []];
         $dates = $this->getDates($options);
         $pipe = $redis->pipeline();
         foreach ($dates as $date) {
             $pipe->zrange('misp:authkey_log:' . $date, 0, -1, true);
         }
         $temp = $pipe->exec();
-        $raw_results = [];
         $counts = [];
         foreach ($dates as $k => $date) {
-            $raw_results[$date] = $temp[$k];
             if (!empty($temp[$k])) {
                 foreach ($temp[$k] as $key => $count) {
                     if (isset($counts[$key])) {
@@ -98,61 +122,107 @@ class APIActivityWidget
             }
         }
         arsort($counts);
+
+        if (empty($counts)) {
+            return [[
+                'type' => 'header',
+                'value' => __('No API activity in this period.'),
+            ]];
+        }
+
+        // Look up each key in AuthKey.  authkey_start is the first 4
+        // chars of the live key, authkey_end the last 4 — both stored
+        // for legacy-auth bookkeeping.
         $this->AuthKey->Behaviors->load('Containable');
-        $temp_apikeys = array_flip(array_keys($counts));
-        foreach ($temp_apikeys as $apikey => $value) {
-            $temp_apikeys[$apikey] = $this->AuthKey->find('first', [
+        $resolved = [];
+        foreach (array_keys($counts) as $apikey) {
+            $resolved[$apikey] = $this->AuthKey->find('first', [
+                'recursive' => -1,
                 'conditions' => [
                     'AuthKey.authkey_start' => substr($apikey, 0, 4),
-                    'AuthKey.authkey_end' => substr($apikey, 4)
+                    'AuthKey.authkey_end' => substr($apikey, 4),
                 ],
-                'fields' => ['AuthKey.authkey_start', 'AuthKey.authkey_end', 'AuthKey.id', 'User.id', 'User.email'],
-                'recursive' => 1
+                'fields' => [
+                    'AuthKey.id', 'AuthKey.authkey_start', 'AuthKey.authkey_end',
+                    'AuthKey.user_id',
+                ],
+                'contain' => [
+                    'User' => [
+                        'fields' => ['User.id', 'User.email'],
+                        'Organisation' => ['fields' => ['id', 'name', 'uuid']],
+                        'Role' => ['fields' => ['name']],
+                    ],
+                ],
             ]);
         }
-        $results = [];
-        $baseurl = empty(Configure::read('MISP.external_baseurl')) ? h(Configure::read('MISP.baseurl')) : h(Configure::read('MISP.external_baseurl'));
-        if (!empty($baseurl) && !preg_match('/^http(s)?:\/\//i', $baseurl)) {
-            $baseurl = '';
-        }
-        foreach ($counts as $key => $junk) {
-            $data = $temp_apikeys[$key];
-            if (!empty($data)) {
-                $results[] = [
-                    'html_title' => sprintf(
-                        '<a href="%s/auth_keys/view/%s">%s</a>',
-                        h($baseurl),
-                        h($data['AuthKey']['id']),
-                        $key
-                    ),
-                    'html' => sprintf(
-                        '%s (<a href="%s/admin/users/view/%s">%s</a>)',
-                        h($counts[$key]),
-                        h($baseurl),
-                        h($data['User']['id']),
-                        h($data['User']['email'])
-                    )
-                ];
-            } else {
-                $results[] = [
-                    'title' => $key,
-                    'html' => sprintf(
-                        '%s (<span class="red" title="%s">%s</span>)',
-                        h($counts[$key]),
-                        __('An unknown key can be caused by the given key having been permanently deleted or falsely mis-identified (for the purposes of this widget) on instances using legacy API key authentication.'),
-                        __('Unknown key')
-                    )
-                ];
+
+        $unknownCount = 0;
+        foreach ($resolved as $apikey => $data) {
+            if (empty($data)) {
+                $unknownCount++;
             }
         }
-        return $results;
-	}
+        $total = array_sum($counts);
+        $keyCount = count($counts);
+        // Compose the header from separate __n calls so each number
+        // gets its own plural agreement (combined __n only plurals
+        // the first number).
+        $keysLabel = sprintf(__n('%d key', '%d keys', $keyCount), $keyCount);
+        $reqLabel  = sprintf(__n('%d request', '%d requests', $total), $total);
+        $header = $keysLabel . ' · ' . $reqLabel;
+        if ($unknownCount > 0) {
+            $header .= ' · ' . sprintf(__n('%d unknown', '%d unknown', $unknownCount), $unknownCount);
+        }
+
+        $rows = [[
+            'type' => 'header',
+            'value' => $header,
+        ]];
+
+        foreach ($counts as $apikey => $count) {
+            $data = isset($resolved[$apikey]) ? $resolved[$apikey] : null;
+            if (empty($data)) {
+                // Unknown — DD-41 glyph slot carries the "this is
+                // anomalous" signal; legacy <span class="red"> +
+                // native-title-tooltip pattern is dropped.
+                $rows[] = [
+                    'type' => 'user',
+                    'glyph' => 'warn',
+                    'name' => (string)$apikey,
+                    'meta' => __('Unknown key — left over from a deleted entry, or legacy-auth mis-identification'),
+                    'badge' => $count,
+                    'muted' => true,
+                ];
+                continue;
+            }
+            $owner = isset($data['User']) ? $data['User'] : [];
+            $email = isset($owner['email']) ? (string)$owner['email'] : '';
+            $orgName = isset($owner['Organisation']['name']) ? (string)$owner['Organisation']['name'] : '';
+            $roleName = isset($owner['Role']['name']) ? (string)$owner['Role']['name'] : '';
+            $keyPrefix = isset($data['AuthKey']['authkey_start']) ? (string)$data['AuthKey']['authkey_start'] : substr($apikey, 0, 4);
+            $metaParts = array_values(array_filter([
+                'key ' . $keyPrefix,
+                $orgName,
+                $roleName,
+            ], 'strlen'));
+            $rows[] = [
+                'type' => 'user',
+                'name' => $email !== '' ? $email : (__('user #%d', isset($owner['id']) ? (int)$owner['id'] : 0)),
+                'meta' => implode(' · ', $metaParts),
+                'badge' => $count,
+                'org' => [
+                    'id' => isset($owner['Organisation']['id']) ? (int)$owner['Organisation']['id'] : null,
+                    'name' => $orgName,
+                    'uuid' => isset($owner['Organisation']['uuid']) ? (string)$owner['Organisation']['uuid'] : '',
+                ],
+                'drilldown' => '/auth_keys/view/' . (int)$data['AuthKey']['id'],
+            ];
+        }
+        return $rows;
+    }
 
     public function checkPermissions($user)
     {
-        if (empty($user['Role']['perm_site_admin'])) {
-            return false;
-        }
-        return true;
+        return !empty($user['Role']['perm_site_admin']);
     }
 }
