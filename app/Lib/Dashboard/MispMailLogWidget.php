@@ -244,6 +244,10 @@ mail.*    -/var/log/mail.log
 $FileCreateMode 0640
 EOF
 systemctl restart rsyslog
+# rsyslog's FileCreateMode only applies when the file is CREATED.
+# If /var/log/mail.log already existed, set its mode now (one-time;
+# the next log rotation will re-create it with the FileCreateMode).
+chmod 644 /var/log/mail.log
 EOT
         );
     }
