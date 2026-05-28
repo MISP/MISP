@@ -121,16 +121,32 @@ class MispMailLogWidget
         }
 
         if (empty($rows)) {
-            $emptyMsg = $search !== ''
-                ? sprintf(
-                    __('No matches for "%s" in the last %s of log'),
-                    $search,
-                    $this->_humanizeBytes($lookback)
-                )
-                : sprintf(
+            if ($search !== '') {
+                // DD-43 — when rotated companions exist, the search
+                // traversed live + rotated logs; the "last X bytes of
+                // log" phrasing would understate the scan.
+                $fileCount = MailLogTool::countLogFiles($path);
+                $emptyMsg = $fileCount > 1
+                    ? sprintf(
+                        __n(
+                            'No matches for "%s" across %d log file',
+                            'No matches for "%s" across %d log files',
+                            $fileCount
+                        ),
+                        $search,
+                        $fileCount
+                    )
+                    : sprintf(
+                        __('No matches for "%s" in the last %s of log'),
+                        $search,
+                        $this->_humanizeBytes($lookback)
+                    );
+            } else {
+                $emptyMsg = sprintf(
                     __('No recent mail events in the last %s'),
                     $this->_humanizeBytes($lookback)
                 );
+            }
             return array(array(
                 'type' => 'header',
                 'value' => $emptyMsg,

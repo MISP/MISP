@@ -1710,6 +1710,69 @@ gate (the user still does the merge).
   backward-compat canary). Reverse = revert the three widget files;
   no shared utility / model binding / render-kind touched.
 
+- [x] **`MispMailLogWidget` rotated-file traversal — search filter
+  reaches beyond the bounded live-tail into `mail.log.1` + `.gz`
+  companions — landed 2026-05-28 (DD-43).** Closes the explicit
+  bounded-scan caveat the DD-41 search-filter sub-note carried: "even
+  at 4 MB hard-cap, the filter doesn't open rotated files; search-
+  deep-history isn't promised — that's deferred follow-up work
+  (gzip decompression + rotated-file traversal)." This DD IS that
+  deferred work. **Scope is `MailLogTool` only — the widget surface
+  is unchanged** apart from one empty-state phrasing tweak; no new
+  config knobs, no new params, no render-kind change. When `$search`
+  is non-empty AND the live-tail returns fewer than `$limit`
+  matching rows, the remaining slots are filled by scanning rotated
+  companions in age order: rank 1 (`mail.log.1`, typically
+  uncompressed under logrotate's `delaycompress`) first, then
+  `mail.log.N.gz` for N >= 2.  **Without a search filter, behaviour
+  is byte-identical to DD-41** — only the live file is read, even
+  if rotations exist (the operator just wants "the latest N events";
+  there's no value in plowing through rotated history).  **Three
+  new private methods** on `MailLogTool`: (a) `_tailPlainFseek()`
+  factored from the existing fseek-tail body so both the live file
+  and uncompressed rotated `.1` companions share the same bounded-
+  tail path; (b) `_scanForward()` — streaming `gzopen`+`gzgets`
+  (or `fopen`+`fgets` if `$isGzip=false`) chronological scan with
+  per-file array_reverse to newest-first, memory bound = matches
+  per file × ~200B/row, plus a 10M-line hard iteration cap;
+  (c) `_findRotated()` — `glob('<path>.*')` filtered to numeric
+  (or numeric+`.gz`) suffix, sorted by rank ASC.  Per-file safety
+  bundle `_isReadableAllowedFile()` re-runs the full DD-41 allow-
+  list + realpath check on every rotated companion — symlinks
+  resolving outside `/var/log` or `/tmp` are rejected before any
+  content is opened (verified: `.99 -> /etc/passwd` symlink
+  discovered as candidate, then dropped silently).  **Age-ordered
+  concatenation preserves global newest-first ordering** across
+  files (each file's rows are already reversed within file, and
+  files are visited newest-rotation-first), so no final sort is
+  needed; cap to `$limit` at the very end catches the at-most-one
+  overshoot per file.  **New public helper `countLogFiles()`**
+  used by the widget to adapt the empty-state header — when no
+  matches and rotated companions exist, the message reads `"No
+  matches for '<term>' across N log files"` instead of the
+  misleading `"in the last X of log"` (which only describes the
+  live-file lookback window).  **PHPUnit coverage** — new
+  `app/Test/MailLogToolTest.php` (24 tests, 54 assertions): path
+  safety (5), DD-41 live-tail baseline (6), DD-43 rotated traversal
+  (7 including symlink rejection + bogus `.foo`/`.bak` companions),
+  `countLogFiles()` helper (4), with a `setUp()`/`tearDown()`
+  temp-dir convention so the suite doesn't litter `/tmp/`.  No
+  PHPUnit existed for `MailLogTool` before this DD — DD-41 verified
+  by REST + headless-Chrome only; the refactor's blast radius
+  warranted the coverage backfill.  Verified: `php -l` clean ×2;
+  PHPUnit 24/24 pass; live REST renders against synthetic
+  live+`.1`+`.2.gz` fixture exercising 8 scenarios (no-search,
+  search-fills-live-only, search-spills-into-.1, search-only-in-gz,
+  search-zero-matches with new across-N-files empty-state, etc.);
+  reflection-driven safety check confirms `.98`/`.99` symlinks
+  pointing at `/etc/passwd` are discovered as candidates but
+  rejected by the per-file safety bundle (rank-98/99 candidates
+  appear in `_findRotated()` output but `_isReadableAllowedFile()`
+  returns false on both).  **Pure addition.** Reverse = revert
+  `MailLogTool.php` + `MispMailLogWidget.php` + delete the new
+  PHPUnit file; behaviour falls back to DD-41 / DD-41 sub-note
+  exactly. No view template / CSS / JS / model / controller touched.
+
 ---
 
 ## Phase 6 — Merge to `develop`

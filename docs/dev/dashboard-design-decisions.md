@@ -3483,3 +3483,161 @@ rows + per-scalar `h()` close the gap in passing.
 **Scope-tight reversibility.** Reverse = revert the three widget
 files. No shared utility, model binding, or render-kind change is
 introduced by this DD.
+
+## DD-43 — `MailLogTool` rotated-file traversal: gz + plain companions fill the search-filter result
+
+**Date.** 2026-05-28
+
+**Status.** Landed. Closes the explicit bounded-scan caveat surfaced
+in the DD-41 search-filter sub-note ("rotated files aren't opened;
+search-deep-history isn't promised — that's deferred follow-up
+work").
+
+**Problem.** DD-41's search filter is bounded by the live-file
+lookback window (default 64 KB, default-bumps to 1 MB when search is
+active, 4 MB hard cap).  On a quiet box that's plenty of history; on
+a chatty one (or for a long-tail look-up like "all bounces to
+alice@example.com over the last week") it cuts off well before the
+operator's natural mental window.  And the operator can't recover
+the missing context — `mail.log.1` and the `.gz` companions sit
+right next to the file we're already reading, and we just don't open
+them.
+
+**Forks considered.**
+
+* **Per-file lookback bump for rotated companions vs. full
+  forward-scan.**  Picked **full forward-scan** for rotated files.
+  Per-file fseek would force us to teach the gz path how to seek to
+  the end of the decompressed stream (slow; partial-block boundary
+  problem on `.gz`), and rotated files are typically already older
+  than the live-tail anyway — the natural read direction is "from
+  start to end, keep the matches, cap to limit."  Memory bound is
+  matches per file × ~200B/row, not file size.
+
+* **Single per-call byte budget across all files vs. per-file
+  budget.**  Picked **per-file budget**.  A global budget creates a
+  finicky carry-over computation (live used X bytes, .1 gets the
+  rest, but on a busy box .1 might be 50× bigger than 4 MB and
+  budgeted-out before the operator's `alice@` match).  Per-file
+  keeps the read cost predictable per rotated file and lets each
+  file contribute its newest matching rows.
+
+* **Always-on rotated traversal vs. search-gated.**  Picked
+  **search-gated**.  Without a filter, the operator wants "the
+  latest N events," which the live-file tail satisfies in 100% of
+  cases (rotated files contain only older events).  Always-on
+  rotated traversal would burn CPU on every render for zero new
+  information.
+
+* **Public-API knob for opt-out vs. no knob.**  Picked **no knob**.
+  The search-gated trigger IS the opt-in: if the operator sets a
+  `search` value, they've expressed intent to find specific
+  entries, and DD-43 makes that search complete by default.  Adding
+  a `traverse_rotated:true` config knob would surface the
+  implementation detail without giving the operator a useful
+  decision to make.
+
+* **Adapting the empty-state text vs. leaving it.**  Picked
+  **adapt it**.  The DD-41 phrasing "No matches for '<term>' in the
+  last 1.0 MB of log" understates the actual scan once rotated
+  files exist — operators reading it would assume only the live
+  tail was checked and might bump `lookback_bytes` to "search
+  further," not realising rotated files were already scanned.  New
+  phrasing: `"No matches for '<term>' across N log file(s)"` when
+  rotated companions are present, original phrasing preserved when
+  only the live file exists.  Requires a new public helper
+  `MailLogTool::countLogFiles($path)` (cheap — stats only).
+
+**Implementation.**
+
+* `MailLogTool::tail($path, $lookbackBytes, $limit, $search='')` —
+  signature unchanged from DD-41 (backward-compatible).  Live-tail
+  factored out of the body into private `_tailPlainFseek()`; same
+  fseek-tail semantics, now reusable by the rotated `.1` path.
+
+* After the live-tail returns, if `$search !== ''` AND
+  `count($rows) < $limit`, iterate over `_findRotated($path)` in
+  age order (rank 1 first), filling remaining slots.  Plain
+  companions go through `_tailPlainFseek()`; `.gz` companions go
+  through `_scanForward($path, $isGzip=true, $remaining, $search)`
+  which streams `gzopen`+`gzgets` chronologically, collects
+  matching rows, then reverses to newest-first within the file.
+  Each file's contribution is appended to the result list in age
+  order; the final cap to `$limit` catches any per-file overshoot.
+
+* `_findRotated()` enumerates `glob($path . '.*')` results,
+  filtering to `[ctype_digit][.gz]?` suffixes only — sibling files
+  like `mail.log.foo` or `mail.log.bak` are dropped (not just
+  "ignored at read time" — they never enter the candidate list at
+  all).
+
+* `_isReadableAllowedFile()` bundles the four per-file safety
+  checks: allow-list regex, `is_file()`, post-existence
+  `realpath()` re-validation against the allow-list, `is_readable
+  ()`.  Silent on failure (rotated files are best-effort fill —
+  missing or rejected companions are skipped, not fatal).  This is
+  the load-bearing security check: a `mail.log.99` symlink
+  targeting `/etc/passwd` IS discovered by `_findRotated()` (the
+  symlink itself sits in `/tmp/` or `/var/log/` so passes the
+  allow-list regex) but is dropped before any content is read
+  because `realpath()` resolves to `/etc/passwd`, which the regex
+  rejects.
+
+* `countLogFiles()` reuses `_findRotated()` + `_isReadableAllowed
+  File()` for the empty-state header (1 = live only, N>1 = live +
+  N−1 readable rotations).  Used by `MispMailLogWidget` only when
+  `$search !== ''` AND zero rows came back, so the cost is
+  amortised against the search itself.
+
+**Threat model — what changed, what didn't.** DD-41's three-layer
+path safety (regex → `..`/NUL reject → realpath re-check) is
+applied verbatim to every rotated companion before opening.  No
+new file-handling path bypasses the safety bundle.  The widest new
+attack surface is the gz reader, which decompresses arbitrary
+operator-readable bytes — but the parser still requires per-line
+match against the postfix-format regex, so a gz file packed with
+non-postfix garbage parses to zero rows (verified during fixture
+testing — the `.foo`/`.bak` companions never reach the parser
+because the suffix filter excludes them, but the parser's
+behaviour on non-postfix input is well-tested).
+
+**Backward compatibility.** Without `$search`, behaviour is byte-
+identical to DD-41.  With `$search` and no rotated companions
+(empty `glob('<path>.*')` result), behaviour is also byte-identical
+to DD-41 — the loop exits after zero iterations and the result is
+just the live-file matches.  Existing widget configs need no
+changes; the rotated-traversal capability is automatic.
+
+**Verification (24 PHPUnit tests, 54 assertions in
+`app/Test/MailLogToolTest.php`).**
+* Path safety: 5 tests covering `/var/log` accept, `/tmp` accept,
+  `..` traversal reject, NUL byte reject, `/etc/passwd` reject.
+* DD-41 baseline (live tail): 6 tests covering parsed-rows-newest-
+  first, all-statuses-normalised, limit-cap, search filter,
+  case-insensitivity, search-against-message-field.
+* DD-43 rotated traversal: 7 tests covering search-fills-from-all-
+  three-files, limit-respect, live-only-fills-limit (no rotated
+  scan when limit met from live), gz-only-match (`r2-alice`),
+  no-search-skips-rotated, bogus-suffix-ignored (`.foo`/`.bak`),
+  symlink-outside-allow-list-rejected.
+* `countLogFiles()` helper: 4 tests covering 3-file count, live-only
+  count, unreadable-live (returns 0), symlink-companion-ignored
+  (returns 3, not 4).
+
+**Open follow-up (deferred).** The `.gz` reader currently
+decompresses each rotated file linearly — for a giant
+`mail.log.2.gz` on a chatty mail relay (rare on MISP boxes, which
+typically only send their own outgoing mail), that's a few hundred
+ms per render when the search filter is active.  Acceptable in
+v1: caching is on (`$cache_duration=30`), autoRefreshDelay is 60s,
+the alternative (some kind of gz block-tail seek) is materially
+more code.  If a chatty relay surfaces as a real complaint, the
+fix is a bounded-decompress-from-end approach using `gzseek()`
+with a backwards-binary-search for the last `$lookbackBytes`
+worth of decompressed content.  Not v1.
+
+**Scope-tight reversibility.** Reverse = revert
+`app/Lib/Tools/MailLogTool.php` + `app/Lib/Dashboard/
+MispMailLogWidget.php` + delete `app/Test/MailLogToolTest.php`.
+Behaviour falls back to DD-41 / DD-41 search-filter sub-note
+exactly. No view template / CSS / JS / model / controller touched.
