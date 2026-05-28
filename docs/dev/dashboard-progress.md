@@ -1574,6 +1574,39 @@ gate (the user still does the merge).
   and glyphs. Pure addition; reverse = delete widget + renderer + CSS
   block + thumb entry.
 
+- [ ] **`MispCacheStatusWidget` + NetworkGraph extension — sync-server
+  & feed cache freshness via hub-and-spoke — opened 2026-05-28 (DD-40).**
+  Sibling to DD-33's `MispAdminSyncTestWidget`: **same hub-and-spoke
+  front end, different dimension** — cache freshness across (a) sync
+  servers with `caching_enabled=1` and (b) feeds with
+  `caching_enabled=1`. Each spoke coloured by cache age: **info (< 1d,
+  blue), warning (≥ 1d, amber), danger (no cache yet, red)** —
+  user-spec thresholds. **NetworkGraph extended in-place** (user
+  explicit sign-off to touch the existing renderer): (a) per-node
+  optional `kind` field (`'server'|'feed'`, default `'server'`,
+  backward-compat for the existing sync widget); (b) new `info` status
+  tier resolving to `--misp-dash-info`; (c) new `feedSymbol(colour)`
+  builder — **RSS-waves glyph** (2 concentric arcs + dot, user-chosen
+  via AskUserQuestion fork). `symbolFor` becomes nested
+  `{kind}{status}` (2×5=10 cached symbols); hub uses
+  `symbolFor.server.self`. **Pure consumer** of existing model
+  helpers: `Server::attachServerCacheTimestamps()` +
+  `Feed::attachFeedCacheTimestamps()` hydrate `cache_timestamp`
+  (Unix sec, null = never); no Redis key read directly, no diagnostic
+  logic re-implemented. Humanised age (`5h 30m` style, lifted shape
+  from `IndexTable/Fields/caching.ctp`) embedded in the node label —
+  age IS the load-bearing signal, stays visible not tooltip-only.
+  Tooltip carries URL + status sentence.
+  `MispAdminSyncTestWidget` renders byte-identically after the
+  renderer change (defaults preserve the old code path). Site-admin
+  gated; `$autoRefreshDelay=false` (manual refresh like sync test);
+  `$cacheLifetime=1`; default size 4×5. To verify: `php -l` widget +
+  `node --check` charts.module.mjs; live REST render (HTTP 200, hub +
+  filtered spokes); headless-Chrome screenshot exercising mixed cache
+  states; **regression check on MispAdminSyncTestWidget** — same JSON
+  payload pre/post must render identically. Pure addition for the
+  widget; surgical reversible extension for the renderer.
+
 ---
 
 ## Phase 6 — Merge to `develop`

@@ -2993,3 +2993,113 @@ both `warning` and `danger` chips/glyphs visually distinct.
 **Pure addition, fully reversible.** No existing widget / model /
 controller touched. Reverse = delete the widget + the renderer + the
 CSS block + the thumb registry entry.
+
+## DD-40 — `MispCacheStatusWidget` + NetworkGraph extension (per-node `kind`, `info` status, feed icon)
+
+**Date.** 2026-05-28
+**Phase context.** Post-5.5 / DD-33 family. The Sync Test widget
+(`MispAdminSyncTestWidget`, DD-33) renders connected sync instances
+as a hub-and-spoke NetworkGraph diagram. User asked for a sibling
+widget that uses **the same front end** to surface a different
+dimension: **cache freshness** across (a) sync servers with
+`caching_enabled=1` and (b) feeds with `caching_enabled=1`. Each
+spoke coloured by cache age: `< 1 day` info (blue), `≥ 1 day` warning
+(amber), no cache yet danger (red).
+
+**Decision — extend NetworkGraph in-place, don't fork.** User explicit:
+"Use the same front end as the sync connections one, but update it
+with the additional functionalities you need for this." That's
+explicit sign-off for the in-place extension (otherwise
+`feedback_additive_only_posture` would block a touch to the existing
+renderer). Two surgical changes to `charts.module.mjs`:
+
+1. **Per-node `kind` field** — optional `'server'|'feed'`, default
+   `'server'`. Discriminates which icon to use. The hub keeps using
+   `status='self'` for its self-coloured rendering — no `kind` needed
+   on the hub (the existing `self` status path handles it).
+2. **New `info` status** — extends the existing
+   `{self, ok, warn, error}` status set with `info` for the "fresh
+   cache" tier. Resolves to `--misp-dash-info` (the cyan token already
+   in `dashboard.default.css`).
+
+**Backward compat held.** `MispAdminSyncTestWidget` emits no `kind`
+field; the renderer defaults to `'server'`, preserving its existing
+rendering exactly. The `info` status is also a new tier; existing
+ok/warn/error renderings unchanged. The existing widget renders
+byte-identically after the extension.
+
+**New `feedSymbol(colour)` builder.** Inline SVG with the
+**universally-recognised RSS-waves glyph** (two concentric arcs + a
+dot in the lower-left). User-chosen via AskUserQuestion fork — the
+alternatives surfaced were "stacked chevrons" (less obvious as
+"feed") and "document-with-arrow" (more literal but visually busy);
+user picked RSS-waves. Built from the resolved theme-token colour at
+render time, same `image://data:image/svg+xml;base64,...` pipeline as
+`serverSymbol()` (DD-33).
+
+**`symbolFor` becomes a nested map.** Before: `symbolFor[status]` flat
+on 4 statuses. After: `symbolFor[kind][status]` with 2 kinds × 5
+statuses = 10 cached symbols. The hub uses `symbolFor.server.self`
+(its symbol is still the server-rack — the hub *is* a server).
+
+**Cache-age thresholds (user-specified).**
+* `cache_timestamp === null` → status `error` (no cache yet); label
+  carries `· never`.
+* `time() - cache_timestamp > 86400` → status `warn`; label carries
+  the humanised age (`· 2d 4h`).
+* otherwise → status `info`; label carries the humanised age
+  (`· 5h`).
+
+**Humanisation.** A short helper (`_humanizeAge($seconds)`) emits the
+two-largest-units form (e.g. `2d 4h`, `5h 30m`, `45m 12s`). Lifted
+shape from `IndexTable/Fields/caching.ctp` — same format an admin
+already sees on the Server / Feed list pages, so the diagram reads
+consistently with the existing UI.
+
+**Data source — pure consumers of existing model helpers.**
+`Server::attachServerCacheTimestamps($servers)` and
+`Feed::attachFeedCacheTimestamps($feeds)` are the canonical
+hydrators — they read `misp:server_cache_timestamp:{id}` /
+`misp:feed_cache_timestamp:{id}` from Redis and attach the result as
+`cache_timestamp` (integer Unix seconds or `null`). The widget filters
+on `caching_enabled=1` and calls these hydrators directly. **No
+diagnostic logic re-implemented; no Redis key read directly.**
+
+**Label format.** `#{server_id} {server_name} · {age}` for sync
+servers; `{feed_name} · {age}` for feeds. Age embedded in the visible
+node label (not just the tooltip) because age IS the load-bearing
+signal for this widget — without it the diagram is just shapes.
+
+**Tooltip.** Carries the URL (from `Server.url`) or
+`provider`/`source_format` (from `Feed`), plus a one-line message
+("Cached 5h ago" / "Caching enabled — never cached" / "Cached 2d 4h
+ago — stale"). Same `_url`/`_message` slots NetworkGraph already
+supports (DD-33).
+
+**Conventions upheld.**
+* Hub-and-spoke ring layout via `layout:'none'` with deterministic
+  per-node coordinates (DD-33) — diagram doesn't reshuffle on
+  refresh.
+* Token-driven theming: every colour resolves through
+  `--misp-dash-{accent|info|warning|danger|success}` via `tokenOn()`;
+  themes that only redefine the tokens retone for free.
+* Site-admin gated (mirrors `MispAdminSyncTestWidget`).
+* `$autoRefreshDelay = false` — admin manually refreshes when they
+  want a fresh probe (the cache-timestamp read is cheap, but the
+  per-render Redis fetches × N rows + a list-of-servers/feeds query
+  doesn't need to run on a 60s scheduler with no user looking).
+* `$cacheLifetime = 1` (1-second v1-style cache, effectively no
+  cache — but kept non-`false` to avoid hammering Redis if the user
+  hits refresh repeatedly within the same tick).
+* No new render kind → no `thumbCacheStatus`; the widget reuses the
+  existing `thumbNetworkGraph`. Gallery thumbnail wins anyway since
+  NetworkGraph is already registered.
+* No ECharts series-type change → **no bundle rebuild** (GraphChart
+  is already in the bundle since DD-33).
+
+**Pure addition for the widget; surgical extension for the renderer.**
+The renderer change is bounded and backward-compat-safe:
+`MispAdminSyncTestWidget` renders identically after the diff. Reverse
+the widget by deleting the file. Reverse the renderer extension by
+removing `feedSymbol()` + the `info` map entry + collapsing
+`symbolFor` back to a single layer.
