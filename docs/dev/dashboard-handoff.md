@@ -140,6 +140,13 @@ in 3 places or it degrades to `night`:** the `$schema` `skin` enum +
 Arc/ring/atmosphere stay token-driven across all skins. Verified
 night/day/dark live + headless-Chrome screenshots of day + dark.
 Adding a skin = vendor an image + 3 registrations (VENDORING.md recipe).
+**Gotcha hit + fixed this session (commit `1703c6d5e`):** the
+`PewPewMap.ctp` shim hand-picks payload keys — it does NOT pass `$data`
+through wholesale — so a new `handler()` key (`skin`) was dropped and the
+globe always rendered `night`. Any new payload key must be added to the
+shim's `$payload` array too. And verify visual features through the REAL
+handler→.ctp→JS path (a hand-built test payload bypasses the shim and
+hides exactly this class of bug).
 NB: the widget's `$cache_duration` is currently **`false`** (a user
 working-tree change, preserved) — caching is OFF, so every render
 recomputes with the correct mode/skin.

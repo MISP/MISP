@@ -4383,6 +4383,20 @@ still pop, verified by screenshot.
 back to `night` for an invalid value; headless-Chrome screenshots of the
 day (bright Blue Marble) + dark skins render correctly with the arcs.
 
+**Follow-up bug + fix (commit `1703c6d5e`).** First cut always rendered
+`night` regardless of selection: the `PewPewMap.ctp` shim built the
+`data-misp-chart-payload` from only `{mode, flows}` and **dropped
+`skin`**, so the JS saw `payload.skin === undefined` →
+`GLOBE_TEXTURES[undefined] || night`. The skin screenshots above had set
+the payload directly in the test page, *bypassing the shim*, so the gap
+wasn't caught. Fixed by passing `skin` through the shim, and re-verified
+through the REAL path (renderWidget HTML emits `skin:day`; a screenshot
+built from the `.ctp`-produced payload renders the Blue Marble globe).
+**Reusable lesson:** any new `handler()` payload key must ALSO be
+threaded through the `.ctp` shim — the shim hand-picks keys, it does not
+pass `$data` through wholesale. Verify visual features through the real
+handler→.ctp→JS path, not a hand-built payload.
+
 **Reversibility.** Drop the `skin` enum/param + `resolveSkin()` + the
 `GLOBE_TEXTURES` extra entries + the two new textures; the night skin
 (DD-47) stands alone.
