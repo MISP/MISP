@@ -2177,7 +2177,7 @@ gate (the user still does the merge).
       4096×2048 → **2048×1024 q85 = 205 KB** (in target). Serves
       over HTTP (200, image/jpeg). VENDORING row + provenance +
       downscale recipe added; no licence sidecar (NASA PD).
-    - [ ] **G3.** `initWebglGlobe(hostEl, payload)` glue (static in
+    - [x] **G3.** `initWebglGlobe(hostEl, payload)` glue (static in
       `charts.module.mjs`): lazy `import('./vendor/globe.bundle.
       mjs')` (the heavy code stays lazy; the glue stays static),
       instantiate `Globe()(hostEl)`, map `flows[]` → `arcsData`
@@ -2185,22 +2185,52 @@ gate (the user still does the merge).
       `ringsData` (destination pulses), set `globeImageUrl` to the
       G2 texture.  Loading-state placeholder while the import
       resolves.  Token colours via `tokenOn(hostEl, ...)`.
-    - [ ] **G4.** Async dispatch: restructure ONLY the `pewpew` +
+      **DONE** (commit `15b7c886c`). `initWebglGlobe` + memoised
+      `loadGlobeBundle()` + `withAlpha()` (hex/rgb→rgba for the arc
+      gradient + ring fade) + `GLOBE_TEXTURE_URL` (import.meta.url
+      relative, baseurl-safe). Arcs: value→stroke (log), animated
+      dash tracer; rings: one per victim centroid, sized by incoming
+      value. North-Atlantic `pointOfView`. Self-contained inline
+      loading placeholder (no CSS dep). **Non-blocking** (see G4).
+      node --check clean.
+    - [x] **G4.** Async dispatch: restructure ONLY the `pewpew` +
       `mode==='webgl-globe'` branch of `initChart` to `await` the
       lazy import before init (ECharts modes — 2d / 3d-globe —
       stay sync).  Wire globe.gl-aware dispose (`liveCharts`
       WeakMap teardown via globe.gl's destructor, distinct from
       ECharts `dispose()`) + ResizeObserver (`.width()/.height()`).
-    - [ ] **G5.** Mode enum + label: add `'webgl-globe'` to the
+      **DONE** (commit `8bf91d8bf`). **Deviation from "await":** the
+      branch returns the `{teardown}` handle SYNCHRONOUSLY and the
+      import resolves in the background behind the loading
+      placeholder — so a multi-widget board doesn't stall its whole
+      `Promise.all(initChart)` on the ≈508 KB download. Better UX,
+      and it still satisfies DD-47 approach-pt-3 ("loading placeholder
+      while the import resolves"). `teardown()` flips a `disposed`
+      flag so a dispose racing a slow import is honoured. Dispose +
+      resize needed NO new code: `disposeChart` already calls
+      `handle.teardown()` (monitor-chart path) + globe.gl
+      `_destructor()`; the ResizeObserver (`.width()/.height()`)
+      lives inside the glue.
+    - [x] **G5.** Mode enum + label: add `'webgl-globe'` to the
       `PewPewMapWidget` `$schema` `mode` enum (stored value
       stable, DD-44/46 principle) + `enum_labels` friendly text
       (e.g. `2d`→"2D map", `3d-globe`→"Globe (lightweight)",
       `webgl-globe`→"Globe (3D)").  Default `'2d'`.  Refresh
       `$params`/`$description`/help.
-    - [ ] **G6.** Live retheme bridge: a small `data-theme`
+      **DONE** (commit `a87f48b6c`). **Gotcha caught:** the widget's
+      `resolveMode()` whitelist (`['2d','3d-globe']`) had to be
+      widened too — an enum value missing from it silently degrades
+      to `'2d'`. Live `renderWidget?mode=webgl-globe` now returns
+      mode `webgl-globe` (was the proof). 15/15 tests still green.
+    - [x] **G6.** Live retheme bridge: a small `data-theme`
       observer that re-applies arc/ring/material colours from the
       tokens without re-init (the zero-JS retheme the other modes
       get free is NOT automatic for globe.gl).  May fold into G3.
+      **DONE — folded into G3** (commit `15b7c886c`). `applyColours()`
+      reads `--misp-dash-danger`/`-warning` via `tokenOn`; a
+      `MutationObserver` on `<html data-theme>` re-invokes it on
+      light↔dark with no re-init. Visual light/dark confirm is part
+      of G7.
     - [ ] **G7.** Visual verification — headless Chrome (WebGL may
       need `--enable-unsafe-swiftshader` / `--use-angle=swiftshader`;
       fall back to a real-browser shot if the GL context won't
