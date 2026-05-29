@@ -2009,8 +2009,10 @@ gate (the user still does the merge).
           id) confirms `cache_scope='global'`.
       Temp webroot files deleted after; 302 confirms removal.
 
-  - [ ] **Phase D — Front-end "globe" mode (d3-geo orthographic
-    2.5D).**  **DD-46 supersedes the original echarts-gl Phase D**
+  - [x] **Phase D — Front-end "globe" mode (d3-geo orthographic
+    2.5D).**  **CLOSED** (D1, D3, D4, D5 done; D2 void per DD-46).
+    The pew-pew widget now ships a working orthographic globe mode
+    alongside the 2D map, no echarts-gl / WebGL / new dependency.  **DD-46 supersedes the original echarts-gl Phase D**
     (echarts-gl unmaintained + echarts@6-incompatible without a
     build patch + 247 KB gz + WebGL).  The globe is now the SAME
     Phase C arc engine (`geo`+`lines`+`effectScatter`+`tokenOn`)
@@ -2070,12 +2072,36 @@ gate (the user still does the merge).
       the widget's `$description`/`$params`/`$schema` help +
       class doc-comment.  `php -l` + `node --check` clean.  The
       rendered "Globe" `<select>` label is eye-checked in D5.
-    - [ ] **D5.** Visual verification — both modes, headless
+    - [x] **D5.** Visual verification — both modes, headless
       Chrome (C5 recipe).  Confirm: globe renders the real-pipeline
       arc (IR→US) on the orthographic disc; synthetic multi-arc
       page shows clean limb + culled back face; light/dark both
       retheme via `tokenOn`; the MAIN bundle is untouched and NO
       GL/WebGL asset loads; mode switch flips 2D↔globe live.
+      **DONE** (verification-only, no code commit).  Results:
+        * **Real pipeline** — `renderWidget` (mode=3d-globe)
+          returns `payload.mode='3d-globe'` + the single IR→US
+          arc; on the orthographic disc the US glow sits near the
+          top-left limb, Iran on the right, arc flying between.
+        * **Synthetic 6-arc** globe (test page) — clean circular
+          limb, back hemisphere culled (no folding), log-scaled
+          arc widths, multiple ripple glows; reads as a proper
+          from-space attack globe.
+        * **Light + dark** — full CSS stack (dashboard.default +
+          midnight); the midnight overlay retones the arcs
+          (danger #dc2626→#f87171) and glows (warning→amber) via
+          `tokenOn` at render time, ZERO JS change (PRD §8.1).
+        * **Main bundle untouched** — `echarts.bundle.mjs` clean
+          in git; charts.module.mjs imports only the main bundle
+          + d3-geo (no echarts-gl, no WebGL, no dynamic import) —
+          so NO GL asset can load (static-confirmed, stronger than
+          a network sniff).
+        * **"Globe" label** — `enum_labels` survives
+          `getSchema` (wholesale) + `json_encode` into
+          `data-widget-schema`; `configure.module.mjs` renders it.
+          Data path verified; live modal eye-check is a trivial
+          user browser confirm.
+      Temp webroot files deleted after (302 confirms removal).
 
   - [ ] **Phase E — Polish + handoff refresh.** Final commit:
     - [ ] **E1.** `cache_duration` and `cache_scope` tuned
