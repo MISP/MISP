@@ -1843,7 +1843,7 @@ gate (the user still does the merge).
     covering the four `.md` files.  No code touched.
 
   - [ ] **Phase B — Backend.** One commit per sub-task:
-    - [ ] **B1.** `app/files/scripts/build_iso_centroids.py` —
+    - [x] **B1.** `app/files/scripts/build_iso_centroids.py` —
       one-off build script that reads
       `app/webroot/js/dashboard/charts/vendor/world-110m.geojson`,
       computes polygon centroids with antimeridian handling
@@ -1851,7 +1851,18 @@ gate (the user still does the merge).
       writes
       `app/webroot/js/dashboard/charts/vendor/iso-centroids.json`.
       Run once locally, output committed.  Documented in
-      `VENDORING.md`.
+      `VENDORING.md`.  **Landed 2026-05-29.**  175 ISO entries
+      (only `N. Cyprus` and `Somaliland` skipped — no ISO codes).
+      Cartesian shoelace centroid, area-weighted across
+      MultiPolygon parts, with the antimeridian-unwrap pass
+      verified against Fiji (centroid lands at 178.6, -17.3 not
+      in the Atlantic).  Build-time dep `pycountry` (not
+      vendored).  Sanity-checked: US/RU/TR/BN/FJ/FR/GB/DE/IN/CN/
+      ZA/AU/JP/BR/CA/IL/NZ centroids all land inside the right
+      country (a few overseas-territory countries like FR/US
+      drift west by ~5° due to French Polynesia / Hawaii area
+      pull — acceptable for arc-endpoint visualisation).
+      Gzipped output 2 KB.
     - [ ] **B2.** `AttributeFlowMapWidget.php` — wait,
       `app/Lib/Dashboard/AttackFlowMapWidget.php`.  Implements
       the resolution path (see DD-45): event_tags JOIN tags

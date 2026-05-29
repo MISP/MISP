@@ -16,6 +16,7 @@ GeoJSON for the OrganisationMap widget and similar geo-typed widgets.
 | `LICENSE.world-atlas` | The world-atlas package's upstream LICENSE file (ISC, by Mike Bostock + Natural Earth public-domain data). | 1 KB / — |
 | `d3-geo.bundle.mjs` | Built locally with esbuild from `d3-geo@3.1.1` + `d3-geo-projection@4.0.0`. Exports `geoNaturalEarth1` (d3-geo core), `geoRobinson` and `geoCylindricalEqualArea` (d3-geo-projection) for the WorldMap projection option (DD-15, DD-16). ESM, minified. | 17.4 KB / 7.4 KB |
 | `LICENSE.d3-geo`, `LICENSE.d3-geo-projection` | Upstream LICENSE files (ISC, Mike Bostock). The esbuild `--legal-comments=external` sidecar was empty (no inline notices survive minification), so these LICENSE files are the attribution. | 2 KB / — |
+| `iso-centroids.json` | Per-country polygon centroids keyed by ISO alpha-2 — `{"ISO_A2": [lon, lat], ...}`. Built from `world-110m.geojson` by `app/files/scripts/build_iso_centroids.py` (DD-45 Phase B1). Consumed by `AttackFlowMapWidget` (DD-45) to resolve attacker/victim country codes to arc endpoints. Run the script again any time `world-110m.geojson` is re-vendored. | 4 KB / 2 KB |
 | `VENDORING.md` | This file. | — |
 
 **Combined wire weight for a dashboard with a geo widget:**
@@ -197,6 +198,48 @@ ECharts integration (in `charts.module.mjs`): a d3 projection object is
 north-up in y-down space, so no sign handling is needed (contrast the
 hand-rolled Mercator). Always re-check round-trip **and** north-up when
 adding a projection — the inverse is iterative for these two.
+
+## Reproducing `iso-centroids.json` (DD-45 Phase B1)
+
+Per-country centroids for the PewPewMap render kind (DD-45). Computed
+from the vendored `world-110m.geojson` so the centroid landmarks are
+consistent with the same simplified country polygons the WorldMap
+already draws.
+
+```bash
+pip install pycountry  # build-time only; not vendored
+python3 app/files/scripts/build_iso_centroids.py
+```
+
+Implementation notes:
+
+- **Centroid math is Cartesian shoelace on `[lon, lat]` pairs**,
+  area-weighted across MultiPolygon parts. Outer rings only (holes
+  ignored — South Africa / Lesotho-style enclaves at this scale shift
+  the centroid by ~10-30 km, invisible at arc-endpoint resolution).
+- **Antimeridian unwrap.** Features with polygons on both sides of
+  ±180° (Fiji, Russia's Chukotka, US Aleutians) get their *western*
+  polygons shifted +360° into a continuous longitude space before the
+  centroid is computed; the result is wrapped back into [-180, 180].
+  Without this, Fiji's two half-polygons would average to a centroid
+  in the Atlantic.
+- **Name → ISO resolution** via `pycountry`: exact `lookup()` first
+  (catches Russia → Russian Federation, Brunei → Brunei Darussalam),
+  then `search_fuzzy()` for the remainder. A small `NAME_OVERRIDES`
+  table in the script handles the dozen-ish Natural Earth
+  abbreviations that don't match (`W. Sahara` → EH, `Bosnia and Herz.`
+  → BA, `Dem. Rep. Congo` → CD, etc.). De-facto entities without ISO
+  codes (Somaliland, N. Cyprus) map to `None` and are silently
+  dropped.
+- **Output:** sorted-key JSON, ~4 KB on disk. Format
+  `{"ISO_A2": [lon, lat], ...}`. The widget reads it server-side via
+  `json_decode(file_get_contents(...))`; it's not exposed to the
+  browser (the rendered `flows[]` payload carries pre-resolved
+  centroids).
+
+Run the script again whenever `world-110m.geojson` is re-vendored, so
+the centroids stay aligned with the polygons they correspond to. The
+script + output are checked in; the script is not invoked at runtime.
 
 ## Usage from dashboard v2
 
