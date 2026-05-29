@@ -727,6 +727,7 @@ const GLOBE_TEXTURES = {
   day:   new URL('./vendor/earth-day-2k.jpg',   import.meta.url).href,
   dark:  new URL('./vendor/earth-dark-2k.jpg',  import.meta.url).href,
   char:  new URL('./vendor/char.png',           import.meta.url).href, // easter egg (DD-49)
+  nacre: new URL('./vendor/planet_nacre.png',   import.meta.url).href, // easter egg (DD-49)
 };
 
 // Memoised lazy import so a second webgl-globe widget on the same page

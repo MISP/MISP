@@ -107,16 +107,17 @@ class PewPewMapWidget
         ],
         'skin' => [
             'type' => 'enum',
-            'enum' => ['night', 'day', 'dark', 'char'],
+            'enum' => ['night', 'day', 'dark', 'char', 'nacre'],
             // Texture skin for the "Globe (3D)" mode only (DD-49); the
             // 2D / lightweight-globe modes ignore it. Only the selected
-            // skin's image is fetched (lazy, per instance). 'char' is an
-            // easter-egg skin (custom char.png texture).
+            // skin's image is fetched (lazy, per instance). 'char' +
+            // 'nacre' are easter-egg skins (custom textures).
             'enum_labels' => [
                 'night' => 'Night (city lights)',
                 'day' => 'Day (Blue Marble)',
                 'dark' => 'Dark (minimal)',
                 'char' => 'Char',
+                'nacre' => 'Planet Nacre',
             ],
             'default' => 'night',
             'help' => 'Surface texture for the "Globe (3D)" mode only (ignored by the 2D / lightweight-globe modes): "Night" city-lights (default, dramatic — arcs pop), "Day" NASA Blue Marble (bright daytime earth), or "Dark" minimal grey silhouette.',
@@ -234,7 +235,7 @@ class PewPewMapWidget
     private function resolveSkin($options)
     {
         $skin = isset($options['skin']) ? (string)$options['skin'] : 'night';
-        return in_array($skin, ['night', 'day', 'dark', 'char'], true) ? $skin : 'night';
+        return in_array($skin, ['night', 'day', 'dark', 'char', 'nacre'], true) ? $skin : 'night';
     }
 
     /**
