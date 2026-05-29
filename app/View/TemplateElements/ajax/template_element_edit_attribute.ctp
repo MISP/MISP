@@ -103,8 +103,8 @@
     var typeGroupCategoryMapping = <?php echo json_encode($typeGroupCategoryMapping); ?>;
     var complexTypes = <?php echo json_encode($validTypeGroups); ?>;
     var currentTypes = new Array();
-    if (<?php echo ($initialValues['complex'] == true ? 1 : 0); ?> == 1) {
-        currentTypes = complexTypes["<?php echo $initialValues['type']; ?>"]['types'];
+    if (<?php echo $initialValues['complex'] ? 'true' : 'false'; ?>) {
+        currentTypes = complexTypes[<?php echo json_encode($initialValues['type']); ?>]['types'];
     }
     var fieldsArray = new Array('TemplateElementAttributeName', 'TemplateElementAttributeDescription', 'TemplateElementAttributeCategory', 'TemplateElementAttributeToIds', 'TemplateElementAttributeMandatory', 'TemplateElementAttributeBatch', 'TemplateElementAttributeType', 'TemplateElementAttributeComplex');
 

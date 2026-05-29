@@ -229,6 +229,7 @@ class ShadowAttributesController extends AppController
                 $this->Flash->error(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
                 $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
             }
+            unset($this->request->data['ShadowAttribute']['id']);
             $this->request->data['ShadowAttribute']['event_id'] = $event['Event']['id'];
             //
             // multiple attributes in batch import
@@ -887,12 +888,15 @@ class ShadowAttributesController extends AppController
             }
         }
         if (isset($this->request['named']['sort'])) {
-            $params['order'] = 'ShadowAttribute.' . $this->request['named']['sort'];
-            if (!empty($this->request['named']['direction'])) {
-                $direction = trim(strtolower($this->request['named']['direction']));
-                $params['order'] .= ' ' . ($direction === 'asc' ? 'ASC' : 'DESC');
-            } else {
-                $params['order'] .= ' ASC';
+            $sortField = $this->request['named']['sort'];
+            $schema = $this->ShadowAttribute->schema();
+            if (isset($schema[$sortField])) {
+                $sortDirection = 'ASC';
+                if (!empty($this->request['named']['direction'])) {
+                    $direction = trim(strtolower($this->request['named']['direction']));
+                    $sortDirection = ($direction === 'asc' ? 'ASC' : 'DESC');
+                }
+                $params['order'] = array('ShadowAttribute.' . $sortField => $sortDirection);
             }
         }
         if ($this->_isRest()) {

@@ -227,6 +227,37 @@ function submitDeletion(context_id, action, type, id) {
     });
 }
 
+// No-arg wrapper so the index-page top-bar action and the side menu
+// can both trigger the same popover without inlining getPopup args.
+function openEventTemplateLibraryUpdatePopup() {
+    getPopup('', 'event_templates', 'update');
+}
+
+function submitEventTemplatesLibraryUpdate() {
+    xhr({
+        url: '/event_templates/update',
+        type: 'post',
+        dataType: 'json',
+        headers: {'Accept': 'application/json'},
+        success: function (summary) {
+            cancelPrompt();
+            var counts = {
+                installed: (summary.installed || []).length,
+                updated: (summary.updated || []).length,
+                skipped_current: (summary.skipped_current || []).length,
+                skipped_forked: (summary.skipped_forked || []).length,
+                failed: (summary.failed || []).length
+            };
+            var msg = 'Library update — installed ' + counts.installed
+                + ', updated ' + counts.updated
+                + ', skipped ' + (counts.skipped_current + counts.skipped_forked)
+                + ', failed ' + counts.failed + '.';
+            showMessage(counts.failed > 0 ? 'fail' : 'success', msg);
+            setTimeout(function () { window.location.reload(); }, 800);
+        }
+    });
+}
+
 function removeSighting(caller) {
     var id = $(caller).data('id');
     var rawid = $(caller).data('rawid');

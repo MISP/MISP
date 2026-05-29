@@ -236,10 +236,6 @@ if (!empty($me)) {
                     'html' => '<i class="fas fa-file-code fa-fw"></i> ' . __('Templates'),
                     'children' => array(
                         array(
-                            'html' => '<i class="fas fa-file-code fa-fw"></i> ' . __('List Templates'),
-                            'url' => $baseurl . '/templates/index'
-                        ),
-                        array(
                             'html' => '<i class="fas fa-cubes fa-fw"></i> ' . __('List Object Templates'),
                             'url' => $baseurl . '/objectTemplates/index'
                         ),

@@ -50,13 +50,7 @@ $divider = '<li class="divider"></li>';
                     $mayModify = $mayModify ?? $this->Acl->canModifyEvent($event);
                     $mayPublish = $mayPublish ?? ($mayModify && $this->Acl->canPublishEvent($event));
 
-                    if ($menuItem === 'template_populate_results') {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'template_populate_results',
-                            'url' => $baseurl . '/templates/index',
-                            'text' => __('Populate From Template')
-                        ));
-                    } else if ($menuItem === 'enrichmentResults') {
+                    if ($menuItem === 'enrichmentResults') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'enrichmentResults',
                             'text' => __('Enrichment Module Result')
@@ -119,7 +113,7 @@ $divider = '<li class="divider"></li>';
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
-                            'url' => '/eventReports/add/' . $eventId,
+                            'url' => $baseurl . '/eventReports/add/' . $eventId,
                             'text' => __('Add Event Report')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -130,13 +124,6 @@ $divider = '<li class="divider"></li>';
                             ),
                             'text' => __('Populate from…')
                         ));
-                        if ($menuItem === 'populateFromtemplate') {
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'element_id' => 'populateFromtemplate',
-                                'url' => $baseurl . '/templates/populateEventFromTemplate/' . $template_id . '/' . $eventId,
-                                'text' => __('Populate From Template')
-                            ));
-                        }
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'onClick' => array(
                                 'function' => 'genericPopup',
@@ -494,7 +481,7 @@ $divider = '<li class="divider"></li>';
                 case 'eventReports':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'index',
-                        'url' => '/eventReports/index',
+                        'url' => $baseurl . '/eventReports/index',
                         'text' => __('List Event Reports')
                     ));
                     if ($this->Acl->canAccess('eventReports', 'add')) {
@@ -511,26 +498,26 @@ $divider = '<li class="divider"></li>';
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'managed_imported_pictures',
-                            'url' => '/eventReports/managedImportedPictures',
+                            'url' => $baseurl . '/eventReports/managedImportedPictures',
                             'text' => __('Managed Imported Pictures')
                         ));
                     }
                     if ($menuItem === 'view' || $menuItem === 'edit') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
-                            'url' => '/eventReports/view/' . h($id),
+                            'url' => $baseurl . '/eventReports/view/' . h($id),
                             'text' => __('View Event Report')
                         ));
                         if ($canEdit) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit',
-                                'url' => '/eventReports/edit/' . h($id),
+                                'url' => $baseurl . '/eventReports/edit/' . h($id),
                                 'text' => __('Edit Event Report'),
                             ));
                         }
                         if (Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index')) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'url' => '/admin/audit_logs/index/model:EventReport/model_id:' . h($id),
+                                'url' => $baseurl . '/admin/audit_logs/index/model:EventReport/model_id:' . h($id),
                                 'text' => __('View report history'),
                             ));
                         }
@@ -538,19 +525,19 @@ $divider = '<li class="divider"></li>';
                     echo $divider;
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'template_variable_index',
-                        'url' => '/EventReportTemplateVariables/index',
+                        'url' => $baseurl . '/EventReportTemplateVariables/index',
                         'text' => __('List Template Variables')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'template_variable_add',
-                            'url' => '/EventReportTemplateVariables/add',
+                            'url' => $baseurl . '/EventReportTemplateVariables/add',
                             'text' => __('Add Template Variable')
                         ));
                         if ($menuItem === 'edit') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'template_variable_edit',
-                                'url' => '/EventReportTemplateVariables/edit',
+                                'url' => $baseurl . '/EventReportTemplateVariables/edit',
                                 'text' => __('Edit Template Variable')
                             ));
                         }
@@ -975,7 +962,7 @@ $divider = '<li class="divider"></li>';
                     if ($menuItem === 'id_translator') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'text' => __('Event ID translator'),
-                            'url' => '/servers/idTranslator',
+                            'url' => $baseurl . '/servers/idTranslator',
                             'element_id' => 'id_translator'
                         ));
                     }
@@ -1386,6 +1373,62 @@ $divider = '<li class="divider"></li>';
                         }
                     }
                     break;
+
+                case 'eventTemplates':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => $baseurl . '/event_templates/index',
+                        'text' => __('List Event Templates'),
+                    ));
+                    if ($this->Acl->canAccess('eventTemplates', 'add')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'add',
+                            'url' => $baseurl . '/event_templates/add',
+                            'text' => __('Add Event Template'),
+                        ));
+                    }
+                    if ($this->Acl->canAccess('eventTemplates', 'import')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'import',
+                            'url' => $baseurl . '/event_templates/import',
+                            'text' => __('Import Event Template'),
+                        ));
+                    }
+                    if ($this->Acl->canAccess('eventTemplates', 'update')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'update',
+                            'onClick' => array(
+                                'function' => 'getPopup',
+                                'params' => array('', 'event_templates', 'update'),
+                            ),
+                            'text' => __('Update from library'),
+                        ));
+                    }
+                    if (in_array($menuItem, array('view', 'edit', 'preview', 'instantiate'), true) && !empty($id)) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => $baseurl . '/event_templates/view/' . h($id),
+                            'text' => __('View Event Template'),
+                        ));
+                        if ($this->Acl->canAccess('eventTemplates', 'edit')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'edit',
+                                'url' => $baseurl . '/event_templates/edit/' . h($id),
+                                'text' => __('Edit Event Template'),
+                            ));
+                        }
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => $baseurl . '/event_templates/export/' . h($id),
+                            'text' => __('Export'),
+                        ));
+                        if ($this->Acl->canAccess('eventTemplates', 'instantiate')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'url' => $baseurl . '/event_templates/instantiate/' . h($id),
+                                'text' => __('Create event from template'),
+                            ));
+                        }
+                    }
+                    break;
                 case 'decayingModel':
                     if ($isAdmin) {
                         if ($isSiteAdmin && ($menuItem === 'view' || $menuItem === 'index')) {
@@ -1546,7 +1589,7 @@ $divider = '<li class="divider"></li>';
                         'url' => $baseurl . '/galaxy_cluster_relations/index',
                         'text' => __('List Relationships')
                     ));
-                    if ($this->Acl->canAccess('galaxy_cluster_blocklists', 'index')) {
+                    if ($this->Acl->canAccess('galaxies', 'add')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'galaxy_add',
                             'url' => $baseurl . '/galaxies/add',
@@ -1822,7 +1865,7 @@ $divider = '<li class="divider"></li>';
             case 'workflowBlueprints':
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index',
-                    'url' => '/workflowBlueprints/index',
+                    'url' => $baseurl . '/workflowBlueprints/index',
                     'text' => __('List Workflow Blueprints')
                 ));
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -1842,19 +1885,19 @@ $divider = '<li class="divider"></li>';
                 if ($menuItem === 'view' || $menuItem === 'edit') {
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'view',
-                        'url' => '/workflowBlueprints/view/' . h($id),
+                        'url' => $baseurl . '/workflowBlueprints/view/' . h($id),
                         'text' => __('View Workflow Blueprint')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'edit',
-                            'url' => '/workflowBlueprints/edit/' . h($id),
+                            'url' => $baseurl . '/workflowBlueprints/edit/' . h($id),
                             'text' => __('Edit Workflow Blueprint')
                         ));
                     }
                     if (Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/admin/audit_logs/index/model:WorkflowBlueprint/model_id:' . h($id),
+                            'url' => $baseurl . '/admin/audit_logs/index/model:WorkflowBlueprint/model_id:' . h($id),
                             'text' => __('View workflow blueprint history'),
                         ));
                     }
@@ -1862,17 +1905,17 @@ $divider = '<li class="divider"></li>';
                 echo $divider;
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index_trigger',
-                    'url' => '/workflows/triggers',
+                    'url' => $baseurl . '/workflows/triggers',
                     'text' => __('List Triggers')
                 ));
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index_adhoc',
-                    'url' => '/workflows/adhoc',
+                    'url' => $baseurl . '/workflows/adhoc',
                     'text' => __('Ad-Hoc Workflows')
                 ));
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index_module',
-                    'url' => '/workflows/moduleIndex',
+                    'url' => $baseurl . '/workflows/moduleIndex',
                     'text' => __('List Modules')
                 ));
                 break;
@@ -1880,41 +1923,41 @@ $divider = '<li class="divider"></li>';
             case 'workflows':
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index_trigger',
-                    'url' => '/workflows/triggers',
+                    'url' => $baseurl . '/workflows/triggers',
                     'text' => __('List Triggers')
                 ));
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index_adhoc',
-                    'url' => '/workflows/adhoc',
+                    'url' => $baseurl . '/workflows/adhoc',
                     'text' => __('Ad-Hoc Workflows')
                 ));
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index_module',
-                    'url' => '/workflows/moduleIndex',
+                    'url' => $baseurl . '/workflows/moduleIndex',
                     'text' => __('List Modules')
                 ));
                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                     'element_id' => 'index',
-                    'url' => '/workflowBlueprints/index',
+                    'url' => $baseurl . '/workflowBlueprints/index',
                     'text' => __('List Workflow Blueprints')
                 ));
                 if ($menuItem === 'view' || $menuItem === 'edit') {
                     echo $divider;
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'view',
-                        'url' => '/workflows/view/' . h($id),
+                        'url' => $baseurl . '/workflows/view/' . h($id),
                         'text' => __('View Workflow')
                     ));
                     if ($isSiteAdmin) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'edit',
-                            'url' => '/workflows/edit/' . h($id),
+                            'url' => $baseurl . '/workflows/edit/' . h($id),
                             'text' => __('Edit Workflow')
                         ));
                     }
                     if (Configure::read('MISP.log_new_audit') && $this->Acl->canAccess('auditLogs', 'admin_index')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => '/admin/audit_logs/index/model:Workflow/model_id:' . h($id),
+                            'url' => $baseurl . '/admin/audit_logs/index/model:Workflow/model_id:' . h($id),
                             'text' => __('View workflow history'),
                         ));
                     }
@@ -1924,7 +1967,7 @@ $divider = '<li class="divider"></li>';
                 case 'analyst_data':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'index',
-                        'url' => '/analystData/index',
+                        'url' => $baseurl . '/analystData/index',
                         'text' => __('List Analyst Data')
                     ));
                     if ($this->Acl->canAccess('analyst_data_blocklists', 'index')) {
@@ -1938,17 +1981,17 @@ $divider = '<li class="divider"></li>';
                         echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add_note',
-                            'url' => sprintf('/analystData/add/Note'),
+                            'url' => sprintf('%s/analystData/add/Note', $baseurl),
                             'text' => __('Add Analyst Note')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add_opinion',
-                            'url' => sprintf('/analystData/add/Opinion'),
+                            'url' => sprintf('%s/analystData/add/Opinion', $baseurl),
                             'text' => __('Add Analyst Opinion')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add_relationship',
-                            'url' => sprintf('/analystData/add/Relationship'),
+                            'url' => sprintf('%s/analystData/add/Relationship', $baseurl),
                             'text' => __('Add Analyst Relationship')
                         ));
                     }
@@ -1956,13 +1999,13 @@ $divider = '<li class="divider"></li>';
                         echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
-                            'url' => sprintf('/analystData/view/%s/%s', h($modelSelection), h($id)),
+                            'url' => sprintf('%s/analystData/view/%s/%s', $baseurl, h($modelSelection), h($id)),
                             'text' => __('View Analyst Data')
                         ));
                         if ($isSiteAdmin) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit',
-                                'url' => sprintf('/analystData/edit/%s/%s', h($modelSelection), h($id)),
+                                'url' => sprintf('%s/analystData/edit/%s/%s', $baseurl, h($modelSelection), h($id)),
                                 'text' => __('Edit Analyst Data')
                             ));
                         }
@@ -1972,14 +2015,14 @@ $divider = '<li class="divider"></li>';
                 case 'bookmarks':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'index',
-                        'url' => '/bookmarks/index',
+                        'url' => $baseurl . '/bookmarks/index',
                         'text' => __('List Bookmarks')
                     ));
                     if ($this->Acl->canAccess('bookmarks', 'add')) {
                         echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'add',
-                            'url' => sprintf('/bookmarks/add'),
+                            'url' => sprintf('%s/bookmarks/add', $baseurl),
                             'text' => __('Add Bookmark')
                         ));
                     }
@@ -1987,13 +2030,13 @@ $divider = '<li class="divider"></li>';
                         echo $divider;
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'view',
-                            'url' => sprintf('/bookmarks/view/%s', h($id)),
+                            'url' => sprintf('%s/bookmarks/view/%s', $baseurl, h($id)),
                             'text' => __('View Bookmark')
                         ));
                         if ($isSiteAdmin) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit',
-                                'url' => sprintf('/bookmarks/edit/%s', h($id)),
+                                'url' => sprintf('%s/bookmarks/edit/%s', $baseurl, h($id)),
                                 'text' => __('Edit Bookmark')
                             ));
                         }

@@ -3214,6 +3214,208 @@
                 "extra": ""
             }
         ],
+        "event_templates": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11) unsigned",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "uuid",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "varchar(40)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "name",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "description",
+                "is_nullable": "YES",
+                "data_type": "text",
+                "character_maximum_length": "65535",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "text",
+                "column_default": "NULL",
+                "extra": ""
+            },
+            {
+                "column_name": "org_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11) unsigned",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "creator_user_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11) unsigned",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "distribution",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(4)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "active",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "1",
+                "extra": ""
+            },
+            {
+                "column_name": "misp_default",
+                "is_nullable": "NO",
+                "data_type": "tinyint",
+                "character_maximum_length": null,
+                "numeric_precision": "3",
+                "collation_name": null,
+                "column_type": "tinyint(1)",
+                "column_default": "0",
+                "extra": ""
+            },
+            {
+                "column_name": "version",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11) unsigned",
+                "column_default": "1",
+                "extra": ""
+            },
+            {
+                "column_name": "definition",
+                "is_nullable": "NO",
+                "data_type": "mediumtext",
+                "character_maximum_length": "16777215",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "mediumtext",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "created",
+                "is_nullable": "NO",
+                "data_type": "datetime",
+                "character_maximum_length": null,
+                "numeric_precision": null,
+                "collation_name": null,
+                "column_type": "datetime",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "modified",
+                "is_nullable": "NO",
+                "data_type": "datetime",
+                "character_maximum_length": null,
+                "numeric_precision": null,
+                "collation_name": null,
+                "column_type": "datetime",
+                "column_default": null,
+                "extra": ""
+            }
+        ],
+        "event_template_object_dependencies": [
+            {
+                "column_name": "id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11) unsigned",
+                "column_default": null,
+                "extra": "auto_increment"
+            },
+            {
+                "column_name": "event_template_id",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11) unsigned",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "object_template_uuid",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "40",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "varchar(40)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "object_template_name",
+                "is_nullable": "NO",
+                "data_type": "varchar",
+                "character_maximum_length": "255",
+                "numeric_precision": null,
+                "collation_name": "utf8mb4_unicode_ci",
+                "column_type": "varchar(255)",
+                "column_default": null,
+                "extra": ""
+            },
+            {
+                "column_name": "minimum_version",
+                "is_nullable": "NO",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11) unsigned",
+                "column_default": null,
+                "extra": ""
+            }
+        ],
         "favourite_tags": [
             {
                 "column_name": "id",
@@ -3830,13 +4032,13 @@
             },
             {
                 "column_name": "description",
-                "is_nullable": "NO",
+                "is_nullable": "YES",
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
+                "collation_name": "utf8mb4_unicode_ci",
                 "column_type": "text",
-                "column_default": null,
+                "column_default": "NULL",
                 "extra": ""
             },
             {
@@ -8825,25 +9027,25 @@
                 "extra": ""
             },
             {
-                "column_name": "baseurl",
-                "is_nullable": "NO",
+                "column_name": "discovery_url",
+                "is_nullable": "YES",
                 "data_type": "varchar",
-                "character_maximum_length": "191",
+                "character_maximum_length": "512",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
-                "column_type": "varchar(191)",
-                "column_default": null,
+                "column_type": "varchar(512)",
+                "column_default": "NULL",
                 "extra": ""
             },
             {
                 "column_name": "api_root",
-                "is_nullable": "NO",
+                "is_nullable": "YES",
                 "data_type": "varchar",
-                "character_maximum_length": "191",
+                "character_maximum_length": "1024",
                 "numeric_precision": null,
                 "collation_name": "utf8mb4_unicode_ci",
-                "column_type": "varchar(191)",
-                "column_default": "'0'",
+                "column_type": "varchar(1024)",
+                "column_default": "NULL",
                 "extra": ""
             },
             {
@@ -10830,6 +11032,18 @@
             "id": true,
             "tag_id": false
         },
+        "event_templates": {
+            "active": false,
+            "id": true,
+            "name": false,
+            "org_id": false,
+            "uuid": true
+        },
+        "event_template_object_dependencies": {
+            "event_template_id": false,
+            "id": true,
+            "object_template_uuid": false
+        },
         "favourite_tags": {
             "id": true,
             "tag_id": false,
@@ -11147,7 +11361,7 @@
             "id": true
         },
         "taxii_servers": {
-            "baseurl": false,
+            "discovery_url": false,
             "id": true,
             "name": false,
             "uuid": false
@@ -11237,5 +11451,5 @@
             "uuid": false
         }
     },
-    "db_version": "146"
+    "db_version": "150"
 }

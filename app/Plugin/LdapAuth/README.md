@@ -170,6 +170,12 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 - **Default**: `""`
 - **Example**: `" "`
 
+### `ldapUseMemberOf`
+- **Description**: When enabled, group membership is resolved by reading the `memberOf` attribute directly from the user entry instead of searching for groups whose `member` attribute contains the user DN. Recommended for Microsoft Active Directory. When enabled, keys in `ldapDefaultRoleId` must be the full group DN (e.g. `CN=MISP Admins,OU=Groups,DC=example,DC=com`) rather than the group CN.
+- **Type**: `boolean`
+- **Default**: `false`
+- **Example**: `true`
+
 
 ## Example Usage
 

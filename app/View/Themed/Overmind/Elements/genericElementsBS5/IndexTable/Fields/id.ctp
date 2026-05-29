@@ -1,10 +1,20 @@
 <?php
-$value = Hash::get($row, $field['data_path']);
-$url = $field['url'] ?? [];
-$url = str_replace('%id%', $value, $url);
+$values = Hash::get($row, $field['data_path']);
+
+if (empty($values)) {
+    return;
+}
+
+$values = is_array($values) ? $values : [$values];
+$urlTemplate = $field['url'] ?? '';
 ?>
 
-
-<a class="text-decoration-underline fw-semibold mb-0 text-dark" href="<?= h($url) ?>">
-    <?= sprintf('#%s', h($value)) ?>
-</a>
+<div class="d-flex flex-wrap gap-2">
+    <?php foreach ($values as $id):
+        $currentUrl = str_replace('%id%', $id, $urlTemplate);
+    ?>
+        <a class="text-decoration-underline fw-semibold mb-0 text-dark" href="<?= h($currentUrl) ?>">
+            <?= sprintf('#%s', h($id)) ?>
+        </a>
+    <?php endforeach; ?>
+</div>

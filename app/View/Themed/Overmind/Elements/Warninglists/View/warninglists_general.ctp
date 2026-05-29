@@ -107,9 +107,9 @@ $warninglist = $data['Warninglist'] ?? $data;
                     <?= __('Enabled') ?>
                 </div>
 
-                <?= $this->element('genericElementsBS5/Badges/enabled',
+                <?= $this->element('genericElementsBS5/Badges/boolean',
                     [
-                        'enabled' => $warninglist['enabled'],
+                        'boolean' => $warninglist['enabled'],
                         'full' => false
                     ]
                 ); ?>

@@ -132,12 +132,12 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'name' => __('Restrictions'),
                 'sort' => 'restricted_to_domain',
                 'data_path' => 'Organisation.restricted_to_domain',
-                'array_implode_glue' => '<br>',
+                'array_implode_glue' => "\n",
             ],
         ],
         'actions' => [
             [
-                'url' => '/organisations/view',
+                'url' => $baseurl . '/organisations/view',
                 'url_params_data_paths' => [
                     'Organisation.id'
                 ],
@@ -146,7 +146,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'dbclickAction' => true,
             ],
             [
-                'url' => '/admin/organisations/edit',
+                'url' => $baseurl . '/admin/organisations/edit',
                 'url_params_data_paths' => [
                     'Organisation.id'
                 ],
@@ -157,7 +157,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
             [
                 'title' => __('Delete'),
                 'icon' => 'trash',
-                'url' => '/admin/organisations/delete',
+                'url' => $baseurl . '/admin/organisations/delete',
                 'url_params_data_paths' => array('Organisation.id'),
                 'postLink' => true,
                 'postLinkConfirm' => __('Are you sure you want to delete the Organisation?'),

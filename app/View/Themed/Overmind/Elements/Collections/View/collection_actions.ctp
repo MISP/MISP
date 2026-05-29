@@ -22,7 +22,7 @@ if ($isSiteAdmin || $mayModify) {
 
     $actions[] = [
         'url' => "$baseurl/collections/delete/$collectiontId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/collections/delete2/$collectiontId');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/collections/deleteSelection/$collectiontId');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete Collection'),
         'danger' => true

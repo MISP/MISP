@@ -9,22 +9,22 @@ abstract class StixExport
     const SCRIPTS_DIR = APP . 'files/scripts/',
         FRAMING_SCRIPT = APP . 'files/scripts/misp_framing.py';
 
-    public $additional_params = array(
+    public $additional_params = [
         'includeEventTags' => 1,
         'includeGalaxy' => 1
-    );
+    ];
     protected $__return_format = 'json';
     protected $__return_type = null;
 
     /** @var array Full paths to files to convert */
-    protected $__filenames = array();
+    protected $__filenames = [];
     protected $__version = null;
     protected $__scope = null;
     protected $stixFile = null;
 
-    private $__cluster_uuids = array();
+    private $__cluster_uuids = [];
     private $__empty_file = null;
-    private $__event_galaxies = array();
+    private $__event_galaxies = [];
     /** @var File */
     private $__tmp_file = null;
     private $__n_attributes = 0;
@@ -37,32 +37,31 @@ abstract class StixExport
         $this->__version = $sane_version ? $filters['stix-version'] : $this->__default_version;
     }
 
-    public function handler($data, $options = array())
+    public function handler($data, $options = [])
     {
-        if ($this->__scope === 'Attribute') {
-            return $this->__attributesHandler($data);
-        }
-        if ($this->__scope === 'Event') {
-            return $this->__eventsHandler($data);
-        }
-        return '';
+        return match ($this->__scope) {
+            'Attribute' => $this->__attributesHandler($data),
+            'Event' => $this->__eventsHandler($data),
+            'Object' => $this->__objectsHandler($data),
+            default => ''
+        };
     }
 
     public function modify_params($user, $params)
     {
         if (empty($params['contain'])) {
-            $params['contain'] = array();
+            $params['contain'] = [];
         }
-        $params['contain'] = array_merge($params['contain'], array(
-            'AttributeTag' => array('Tag'),
-            'Event' => array('fields' => array('Event.timestamp'), 'Org.name', 'Org.uuid', 'Orgc.name', 'Orgc.uuid')
-        ));
+        $params['contain'] = array_merge($params['contain'], [
+            'AttributeTag' => ['Tag'],
+            'Event' => ['fields' => ['Event.timestamp'], 'Org.name', 'Org.uuid', 'Orgc.name', 'Orgc.uuid']
+        ]);
         unset($params['fields']);
         $params['includeContext'] = 0;
         return $params;
     }
 
-    public function header($options = array())
+    public function header($options = [])
     {
         $this->__scope = $options['scope'];
         $this->__return_type = $options['returnFormat'];
@@ -141,12 +140,12 @@ abstract class StixExport
         unset($attribute['value1']);
         unset($attribute['value2']);
         if (!empty($raw_attribute['Galaxy'])) {
-            $galaxies = array(
-                'Attribute' => array(),
-                'Event' => array()
-            );
+            $galaxies = [
+                'Attribute' => [],
+                'Event' => []
+            ];
             if (!empty($raw_attribute['AttributeTag'])) {
-                $tags = array();
+                $tags = [];
                 foreach($raw_attribute['AttributeTag'] as $tag) {
                     $tag_name = $tag['Tag']['name'];
                     if (str_starts_with($tag_name, 'misp-galaxy:')) {
@@ -168,7 +167,7 @@ abstract class StixExport
                 }
             }
             if (!empty($galaxies['Attribute'])) {
-                $attribute['Galaxy'] = array();
+                $attribute['Galaxy'] = [];
             }
             $timestamp = $raw_attribute['Event']['timestamp'];
             foreach($raw_attribute['Galaxy'] as $galaxy) {
@@ -179,8 +178,8 @@ abstract class StixExport
                         unset($galaxies['Attribute'][$galaxy_type]);
                         continue;
                     }
-                    $in_attribute = array();
-                    $in_event = array();
+                    $in_attribute = [];
+                    $in_event = [];
                     foreach($galaxy['GalaxyCluster'] as $cluster) {
                         $cluster_value = $cluster['value'];
                         $in_attribute[] = in_array($cluster_value, $galaxies['Attribute'][$galaxy_type]);
@@ -203,7 +202,7 @@ abstract class StixExport
             }
         } else {
             if (!empty($raw_attribute['AttributeTag'])) {
-                $attribute['Tag'] = array();
+                $attribute['Tag'] = [];
                 foreach($raw_attribute['AttributeTag'] as $tag) {
                     $attribute['Tag'][] = $tag['Tag'];
                 }
@@ -216,7 +215,7 @@ abstract class StixExport
 
     private function __arrange_cluster($cluster, $timestamp)
     {
-        $arranged_cluster = array(
+        $arranged_cluster = [
             'collection_uuid' => $cluster['collection_uuid'],
             'type' => $cluster['type'],
             'value' => $cluster['value'],
@@ -226,20 +225,20 @@ abstract class StixExport
             'authors' => $cluster['authors'],
             'uuid' => $cluster['uuid'],
             'timestamp' => $timestamp
-        );
+        ];
         return $arranged_cluster;
     }
 
     private function __arrange_galaxy($galaxy, $timestamp)
     {
-        $arranged_galaxy = array(
+        $arranged_galaxy = [
             'uuid' => $galaxy['uuid'],
             'name' => $galaxy['name'],
             'type' => $galaxy['type'],
             'description' => $galaxy['description'],
             'namespace' => $galaxy['namespace'],
-            'GalaxyCluster' => array()
-        );
+            'GalaxyCluster' => []
+        ];
         foreach($galaxy['GalaxyCluster'] as $cluster) {
             $arranged_galaxy['GalaxyCluster'][] = $this->__arrange_cluster($cluster, $timestamp);
         }
@@ -271,18 +270,27 @@ abstract class StixExport
                 $attributes_count += count($_object['Attribute']);
             }
         }
-        $event = JsonTool::encode(JSONConverterTool::convert($event, false, true)); // we don't need pretty printed JSON
-        if ($this->__n_attributes + $attributes_count <= $this->__attributes_limit) {
-            $this->__tmp_file->append($this->__n_attributes == 0 ? $event : ', ' . $event);
-            $this->__n_attributes += $attributes_count;
-            $this->__empty_file = false;
-        } elseif ($attributes_count > $this->__attributes_limit) {
-            $filePath = FileAccessTool::writeToTempFile($event);
-            $this->__filenames[] = $filePath;
-        } else {
-            $this->__terminate_misp_file($event);
-            $this->__n_attributes = $attributes_count;
+        $this->__write_misp_content(
+            JsonTool::encode(JSONConverterTool::convert($event, false, true)), // we don't need pretty printed JSON
+            $attributes_count
+        );
+        return '';
+    }
+
+    private function __objectsHandler($object)
+    {
+        $attributes = $object['Attribute'] ?? [];
+        $attributes_count = count($attributes);
+        unset($object['Attribute']);
+        $object['Object']['Attribute'] = $attributes;
+        if (!empty($object['Event'])) {
+            $object['Object']['Event'] = $object['Event'];
+            unset($object['Event']);
         }
+        $this->__write_misp_content(
+            JsonTool::encode(JSONConverterTool::convertObject($object, false, true)),
+            $attributes_count
+        );
         return '';
     }
 
@@ -353,7 +361,7 @@ abstract class StixExport
         list($galaxy_type, $value) = explode('=', explode(':', $tag_name)[1]);
         $value = substr($value, 1, -1);
         if (empty($galaxies[$galaxy_type])) {
-            $galaxies[$galaxy_type] = array($value);
+            $galaxies[$galaxy_type] = [$value];
         } else {
             $galaxies[$galaxy_type][] = $value;
         }
@@ -371,12 +379,27 @@ abstract class StixExport
     private function __write_event_galaxies()
     {
         $this->__tmp_file->append('], "Galaxy": [');
-        $galaxies = array();
+        $galaxies = [];
         foreach($this->__event_galaxies as $type => $galaxy) {
             $galaxies[] = json_encode($galaxy);
         }
         $this->__tmp_file->append(implode(', ', $galaxies));
-        $this->__event_galaxies = array();
+        $this->__event_galaxies = [];
+    }
+
+    private function __write_misp_content($json_content, $attributes_count)
+    {
+        if ($this->__n_attributes + $attributes_count <= $this->__attributes_limit) {
+            $this->__tmp_file->append($this->__n_attributes == 0 ? $json_content : ', ' . $json_content);
+            $this->__n_attributes += $attributes_count;
+            $this->__empty_file = false;
+        } elseif ($attributes_count > $this->__attributes_limit) {
+            $filePath = FileAccessTool::writeToTempFile($json_content);
+            $this->__filenames[] = $filePath;
+        } else {
+            $this->__terminate_misp_file($json_content);
+            $this->__n_attributes = $attributes_count;
+        }
     }
 
     private function __write_stix_content($filename, $separator)

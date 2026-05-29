@@ -88,6 +88,19 @@ class Module_misp_module extends WorkflowBaseActionModule
             $errors[] = $query['error'];
             return false;
         }
+        if (isset($query['data'])) {
+            $updatedRData = $rData;
+            if (empty($updatedRData['_env']['misp_module_results'])) {
+                $updatedRData['_env']['misp_module_results'] = [];
+            }
+            $returnedData = $query['data'];
+            if (!empty($query['result_key'])) {
+                $updatedRData['_env']['misp_module_results'][$query['result_key']] = $returnedData;
+            } else {
+                $updatedRData['_env']['misp_module_results'][] = $returnedData;
+            }
+            $roamingData->setData($updatedRData);
+        }
         return true;
     }
 

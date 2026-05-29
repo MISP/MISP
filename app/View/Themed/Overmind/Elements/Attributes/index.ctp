@@ -152,7 +152,7 @@ $fields = array_merge($fields, [
     [
         'name' => __('Tags'),
         'data_path' => $path('AttributeTag'),
-        'element' => 'tag',
+        'element' => 'tag_list',
         'card_section' => 'tag',
         'display_in' => ['table', 'card']
     ],
