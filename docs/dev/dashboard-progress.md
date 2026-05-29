@@ -2143,7 +2143,7 @@ gate (the user still does the merge).
     Spec: `dashboard-design-decisions.md` DD-47 + PRD §15.  Built
     in a LATER session (planned now while context is fresh; this
     session shipped DD-45 + DD-46).  One commit per sub-task:
-    - [ ] **G1.** Build the lazy `globe.bundle.mjs` — new build
+    - [x] **G1.** Build the lazy `globe.bundle.mjs` — new build
       dir `/tmp/globegl-bundle/`, `npm install globe.gl three`
       (globe.gl pulls three-globe + three as deps), `entry.mjs`
       re-exporting the `Globe` factory, esbuild tree-shaken ESM →
@@ -2152,6 +2152,19 @@ gate (the user still does the merge).
       three-globe, globe.gl + transitive d3-*/h3-js/tinycolor2).
       **Do NOT merge into `echarts.bundle.mjs`.**  Measure raw/gz
       size; add a `VENDORING.md` row + reproduce recipe.
+      **DONE** (commit `d6e572b8d`). Resolved versions
+      globe.gl@2.46.1 / three@0.184.0 / three-globe@2.45.2 (= DD-47
+      planning versions). **1.76 MB raw / 508 KB gzipped** — heavier
+      than DD-47's "several hundred KB" estimate but in range, and
+      lazy so first-load weight is unchanged (VENDORING wire-weight
+      note updated). Bundle exports `Globe` as `default` + named;
+      `node --check` clean. **License decision:** the dep tree is 42
+      packages (all MIT / ISC / Apache-2.0 / Unlicense — verified, no
+      copyleft, DD-07 holds), so instead of 42 `LICENSE.*` sidecars
+      we ship ONE consolidated `globe.bundle.LICENSES.txt` (every
+      package's full license text) + the esbuild `globe.bundle.LEGAL.
+      txt` banner sidecar. VENDORING.md carries the build recipe + a
+      license-walk regen script + a copyleft-on-bump warning.
     - [ ] **G2.** Vendor the earth texture (~100–250 KB).
       **AskUserQuestion sub-fork:** NASA Blue Marble (public
       domain) / night-lights / flat political render from
