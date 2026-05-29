@@ -1928,11 +1928,20 @@ gate (the user still does the merge).
       series-type registration verified new (old bundle 0 →
       new 3 occurrences); delta +15 KB raw / +4 KB gzipped
       (717 KB / 243 KB total).
-    - [ ] **C2.** `app/View/Elements/dashboard/Widgets/PewPewMap.ctp`
+    - [x] **C2.** `app/View/Elements/dashboard/Widgets/PewPewMap.ctp`
       — render kind shim.  Reads `payload.mode`, calls
       `chartsModule.buildPewPewOption2D` or `...3D` accordingly.
       Lets `.misp-widget-body` own scrolling.  Token-aware
       colour resolution via the existing `tokenOn` helper.
+      **DONE** (commit `8d43e89f4`).  **Refinement:** kept the
+      .ctp a dumb host shim emitting `data-misp-chart="pewpew"`
+      + `{mode, flows[]}` payload — the chart builders aren't
+      exported and every other render kind dispatches via
+      `initChart` on the data-attribute, so the mode-dispatch
+      (and "3d-globe degrades to 2D until Phase D") lives in the
+      JS module (C3), NOT the template.  Empty flows → "No data.";
+      aggregate-only (no drilldown / no per-arc click); colour
+      resolution deferred to client-side `tokenOn`.
     - [ ] **C3.** `buildPewPewOption2D(payload, hostEl)` in
       `app/webroot/js/dashboard/charts/charts.module.mjs` —
       ECharts geo + lines series; background static arcs + a
