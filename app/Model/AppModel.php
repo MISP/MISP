@@ -3080,7 +3080,7 @@ class AppModel extends Model
         }
     }
 
-    public function runUpdates($verbose = false, $useWorker = true, $processId = false)
+    public function runUpdates($verbose = false, $useWorker = true, $processId = false, $avoidSilentFail = false)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $this->Job = ClassRegistry::init('Job');
@@ -3124,6 +3124,9 @@ class AppModel extends Model
                 // get played multiple time. The purpose of this lightweight lock
                 // is only to limit the load.
                 if ($this->isUpdateLocked()) { // prevent creation of useless workers
+                    if ($avoidSilentFail) {
+                        throw new Exception(__('Database updates are locked. Make sure that you have an update worker running. If you do, it might be related to an update\'s execution repeatedly failing or still being in progress.'));
+                    }
                     $this->Log->create();
                     $this->Log->saveOrFailSilently(array(
                         'org' => 'SYSTEM',
