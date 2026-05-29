@@ -4160,13 +4160,20 @@ shipped Phase C; no existing behaviour altered.
 
 **Date.** 2026-05-29
 
-**Status.** Binding (spec). Implementation deferred to a phased plan in
-`dashboard-progress.md` ("Post-5.5 — New features", DD-47 G1..G7), to be
-built in a later session. Purely **additive**: a third value on the
-existing `mode` enum; the 2D flat map (Phase C) and orthographic 2.5D
-globe (Phase D / DD-46) are untouched. The shared `flows[]` payload and
-the entire server side (`AttackFlowMapWidget::handler()`, caching) are
-unchanged — this is a front-end-only render path.
+**Status.** Binding — **IMPLEMENTED + verified (2026-05-29), DD-47
+CLOSED.** All of G1..G7 shipped (see `dashboard-progress.md` "Post-5.5 —
+New features"): lazy `globe.bundle.mjs` (globe.gl@2.46.1 / three@0.184 /
+three-globe@2.45.2, 1.76 MB raw / 508 KB gz), the NASA Black Marble
+night texture (`earth-night-2k.jpg`, 205 KB), `initWebglGlobe` glue +
+async dispatch + the `webgl-globe` mode enum/labels + the bespoke
+`data-theme` retheme bridge. Headless-Chrome+SwiftShader verified the
+globe renders (light + dark) and a DOM probe confirmed the lazy bundle
+loads ONLY on `webgl-globe` (not 2d/3d-globe). Purely **additive**: a
+third value on the existing `mode` enum; the 2D flat map (Phase C) and
+orthographic 2.5D globe (Phase D / DD-46) are untouched. The shared
+`flows[]` payload and the entire server side
+(`PewPewMapWidget::handler()` — renamed from `AttackFlowMapWidget` in
+DD-48; caching) are unchanged — this is a front-end-only render path.
 
 **Problem.** The widget ships two map modes (flat 2D + orthographic
 "2.5D" globe). DD-46 deliberately picked the orthographic disc over a
