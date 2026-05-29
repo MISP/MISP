@@ -1,31 +1,35 @@
-# Dashboard v2 — Session handoff (2026-05-29 — UsageDataWidget audit + DD-45 Pew-pew map planning landed; next: DD-45 Phase B (backend))
+# Dashboard v2 — Session handoff (2026-05-29 — UsageDataWidget cleanup + DD-45 Pew-pew map Phases A+B landed; next: Phase C (front-end 2D))
 
 Twenty-fifth session. Authoritative state lives in:
 
 - `dashboard-prd.md` — spec (binding decisions table §15, now incl.
-  DD-16..DD-45).
+  DD-16..DD-45 with the Phase B2 category correction).
 - `dashboard-progress.md` — task state. **Phase 5 + 5.5 closed; Phase 6
-  (merge) is the only tracked phase left.** Three entries in
-  "Post-5.5 — New features" carried from prior sessions (`MailLogTool
-  rotated-file traversal (DD-43)`, `Shipped admin dashboard template
-  (DD-44)`) plus this session's new entry: **`AttackFlowMapWidget` +
-  `PewPewMap` render kind (DD-45)** — Phase A landed (planning docs
-  only), Phases B-E queued as sequential checklist sub-tasks.
-- `dashboard-design-decisions.md` — DD-01..DD-45 (DD-45 this
-  session, spec-only).
+  (merge) is the only tracked phase left.** Post-5.5 "New features"
+  carries DD-43, DD-44 + this session's DD-45 (Pew-pew attack flow
+  map) — **Phases A + B all closed this session**; Phases C / D / E
+  queued as sequential checklist sub-tasks.
+- `dashboard-design-decisions.md` — DD-01..DD-45.  DD-45 carries a
+  Phase B2 sub-note about the category correction
+  (`'system'` → `'events'`) and the dev-DB arc-inventory reality
+  (1 visible arc, 3 self-loops).
 
 This file is the bridge: ephemeral session context. Replace as work
 progresses.
 
-## TL;DR — this session (2 signed commits, `%G?`=U, not merged)
+## TL;DR — this session (5 signed commits, `%G?`=U, not merged)
 
 ```
+205d97dce new DD-45 B3 — PHPUnit coverage for AttackFlowMapWidget (15 tests / 30 assertions)
+32b2333ab new DD-45 B2 — AttackFlowMapWidget: galaxy-derived attacker→victim resolution
+daafa0035 new DD-45 B1 — iso-centroids.json from world-110m.geojson + build script
+3d5c60703 new DD-45 — pew pew attack flow map: planning docs (Phase A)
 ae2c8a980 chg UsageDataWidget — drop dead /* checkPermissions */ block
-<DD-45 Phase A planning-docs commit + handoff refresh>
+<final handoff-refresh commit>
 ```
 
-Sanity-check session followed by a planning-only session for the
-next feature. Two pieces:
+Audit + planning + full backend phase, all in one session. Four
+pieces:
 
 1. **Admin-template widget-access audit + UsageDataWidget cleanup.**
    User asked "every widget in the admin template should require
@@ -54,14 +58,57 @@ next feature. Two pieces:
    No code change. Decision saved as
    [[project-misp-dark-theme-sequencing]] memory.
 
-3. **DD-45 — Pew-pew attack flow map (planning only).** New
+3. **DD-45 — Pew-pew attack flow map (Phase A planning).** New
    widget scoped: `AttackFlowMapWidget` + new `PewPewMap` render
    kind, animated attacker→victim arcs in two modes (2D lines-
    airline + 3D echarts-gl globe), data sourced from threat-
    actor galaxy cluster `country` element → country-galaxy tag
    on event. Forks resolved (see DD-45 in design-decisions);
-   phased plan written into progress.md. This session = Phase A
-   (docs only); next session = Phase B (backend).
+   phased plan written into progress.md.
+
+4. **DD-45 Phase B (backend) — closed in this session.** Three
+   commits, one per sub-task:
+   * **B1 (`daafa0035`)** — `app/files/scripts/build_iso_centroids.
+     py` (one-off Python build script using pycountry + the
+     vendored `world-110m.geojson`); output
+     `app/webroot/js/dashboard/charts/vendor/iso-centroids.json`
+     (175 ISO entries, 4 KB raw / 2 KB gzipped, antimeridian
+     unwrap verified against Fiji). `VENDORING.md` updated with
+     row + reproduction recipe.
+   * **B2 (`32b2333ab`)** — `app/Lib/Dashboard/AttackFlowMapWidget.
+     php`. Resolves attacker country from threat-actor cluster's
+     `country` element; victim from country-galaxy cluster's
+     `ISO`; per-event cross-product; self-loops skipped;
+     aggregate by (src_iso, dst_iso); `arsort` + `array_slice`
+     at `max_arcs` (default 500); centroids loaded from
+     iso-centroids.json. Two spec deviations resolved during
+     implementation (DD-45 + PRD §15 + progress.md updated):
+     `$category='events'` not `'system'` (matches
+     AttributeGeoMapWidget) and params simplified to
+     `time_window` / `mode` / `max_arcs` (org filter +
+     date_range dropped per AttributeGeoMapWidget parity).
+   * **B3 (`205d97dce`)** — `app/Test/AttackFlowMapWidgetTest.
+     php`. 15 tests / 30 assertions / all green. Pure PHPUnit;
+     stubs `ClassRegistry::init` + a fake `EventTag` model
+     with response queue at the top of the file; `WWW_ROOT`
+     pointed at a per-test temp dir for the centroids fixture.
+     Coverage: empty paths, single-event arc, self-loop skip
+     (including the "doesn't poison siblings" path), repeated-
+     pair aggregation, cross-product (4 arcs from 2×2),
+     within-event ISO dedupe, max_arcs truncation, invalid-ISO
+     drop, missing-centroid drop, mode normalisation.
+
+   **Dev-DB arc reality (carried for next session):** the
+   Phase A scope-decision question estimated "~35 arcs". Real
+   measurement after B2 landed: **1 visible arc only** —
+   IR → US from event 1421's Charming Kitten / APT33 / APT35
+   actor cluster. The other 3 dual-tagged events resolve to
+   self-loops (Russia → Russia from Sofacy, Iran → Iran ×2
+   from MuddyWater) and are correctly skipped per spec. The
+   widget IS correct; the dev box just has thin data.
+   Production instances will be richer; if Phase C visual
+   verification needs more arcs to be meaningful, the user-
+   rejected fixture-tagging fork can be revisited.
 
 1. **DD-43 — `MailLogTool` rotated-file traversal.** Closes the
    explicit bounded-scan caveat carried in the DD-41 search-filter
@@ -435,44 +482,74 @@ to any other aliased aggregate.
 
 ## Open follow-ups (active work + carried)
 
-### NEXT SESSION'S TASK — DD-45 Phase B (backend)
+### NEXT SESSION'S TASK — DD-45 Phase C (front-end 2D)
 
-Sequential, one commit per sub-task (per
-`feedback_commit_per_task`):
+Phase B is closed.  Phase C is the 2D animated arcs: rebuild
+the ECharts bundle, ship the render-kind template, build the
+chart option, add the gallery glyph, screenshot-verify.  One
+commit per sub-task (per `feedback_commit_per_task`):
 
-- **B1.** `app/files/scripts/build_iso_centroids.py` — one-off
-  build script. Reads
-  `app/webroot/js/dashboard/charts/vendor/world-110m.geojson`,
-  computes per-country polygon centroids with antimeridian
-  handling (Fiji / Russia / Kiribati shouldn't end up in the
-  Atlantic). Output `iso-centroids.json` (~3 KB) committed
-  alongside `world-110m.geojson`. Document in
-  `VENDORING.md`. Run locally, output checked in.
-- **B2.** `app/Lib/Dashboard/AttackFlowMapWidget.php`.  Resolves
-  per-event `(actor_country, victim_country)` triples via
-  galaxy-element joins (see DD-45 "Data resolution path");
-  aggregates by `(src_iso, dst_iso)` pair; caps at `max_arcs`
-  value-desc; reads `iso-centroids.json` (PHP `json_decode` of
-  the vendor file); emits the `flows[]` payload. `$render=
-  'PewPewMap'`, `$cache_duration=3600`, `$cache_scope=
-  'global'`, no checkPermissions (open to all, matches
-  AttributeGeoMapWidget posture).
-- **B3.** `app/Test/AttackFlowMapWidgetTest.php` — PHPUnit
-  coverage. Fixture-driven (small in-memory galaxy/tag graph);
-  asserts the resolution-path output for: no actors, no
-  countries, multi-actor-multi-victim cross product, missing
-  cluster.country drop, max_arcs truncation. MISP test
-  convention per [[project-misp-test-convention]] — bare
-  `app/Test/*.php`, stub framework classes at top.
+- **C1.** Rebuild `app/webroot/js/dashboard/charts/vendor/
+  echarts.bundle.mjs` with `LinesChart` added.  Recipe from
+  `vendor/VENDORING.md` "Reproducing the bundle" section:
+  edit `/tmp/echarts-bundle/entry.mjs` to add `LinesChart` to
+  both the `import { ... } from 'echarts/charts';` and the
+  `echarts.use([...])` call; re-run esbuild; copy the new
+  `echarts.bundle.mjs` + `.LEGAL.txt` into
+  `app/webroot/js/dashboard/charts/vendor/`.  Note the
+  bundle-size delta in `VENDORING.md` (expected +15-20 KB
+  gzipped; `LinesChart` is a small series type).  Per
+  [[project-misp-echarts-bundle-treeshaken]] — without the
+  `use()` registration, `type:'lines'` silently renders
+  nothing.  `/tmp/echarts-bundle/` already has `node_modules`
+  from prior session (per Apr 6 timestamps); a fresh
+  `npm install` is probably needed (~30s).
+- **C2.** `app/View/Elements/dashboard/Widgets/PewPewMap.ctp`
+  — render kind shim.  Reads `payload.mode` from the data
+  passed in; calls `chartsModule.buildPewPewOption2D(payload,
+  hostEl)` (Phase C path) or `...3D(...)` (Phase D path; for
+  now wires only the 2D call, with a "3D pending Phase D"
+  placeholder for the 3d-globe branch).  Per
+  [[feedback_dashboard_chrome_icons]] — render-kind chrome
+  stays inline SVG, not FA.  `.misp-widget-body` owns
+  scrolling (body-filling render kinds let it).
+- **C3.** `buildPewPewOption2D(payload, hostEl)` in
+  `app/webroot/js/dashboard/charts/charts.module.mjs`.
+  ECharts geo + lines series.  Two layers per the DD-45
+  spec: background static arcs (`lineStyle: { type:
+  'solid', opacity: 0.4 }`) + foreground animated trail
+  (`effect: { show: true, trailLength, symbol: 'arrow' }`).
+  Width scales by `Math.log(value+1)`; opacity by normalised
+  value.  Colours resolve via the existing `tokenOn(hostEl,
+  '--misp-dash-danger', '#dc2626')` (arc body) +
+  `'--misp-dash-warning'` (destination glow).  Re-uses the
+  same `world-110m.geojson` map registration as
+  `buildGeoOption`.
+- **C4.** `thumbPewPewMap()` builder in
+  `app/webroot/js/dashboard/gallery/render-thumbs.mjs`.
+  Single-colour SVG glyph at 80×45 viewBox, currentColor.
+  Schematic: a small world outline (3-4 country blobs) + two
+  diagonal arcs converging on a centre point.  Registered in
+  the bottom `REGISTRY` object under key `'PewPewMap'`.
+  CLAUDE.md render-kind glyph rule.
+- **C5.** Visual verification (DD-41 recipe).  Pre-render
+  the widget HTML via curl against `/dashboards/renderWidget/
+  test1` (use API key auth — see [[reference-misp-test-instance]]
+  — since the cookie jar `/tmp/cj_stat.txt` may need re-
+  minting via [[reference-misp-login-dance]] if it 302s).
+  Inline the rendered HTML into a static page under
+  `app/webroot/_test_pewpew.html` referencing the FULL CSS
+  stack (bootstrap5-custom + mainOvermind + fontawesome7 +
+  dashboard.default + dashboard.midnight + Overmind theme).
+  Headless Chrome screenshot.  Read the PNG.  **Delete the
+  temp webroot file after.**  Per
+  [[feedback_verify_visible_outcome_not_property]] — verify
+  the computed/visible outcome (arc rendered, trail
+  animating), not just the property you set.
 
-### After Phase B — Phases C/D/E
+### Carried for Phase D / E
 
-Full sequential plan in `dashboard-progress.md`. Headline:
-* **Phase C** (front-end 2D): rebuild ECharts bundle with
-  `LinesChart`; new `PewPewMap.ctp` render kind shim;
-  `buildPewPewOption2D` in `charts.module.mjs`;
-  `thumbPewPewMap()` glyph in `render-thumbs.mjs` (CLAUDE.md
-  rule); visual verification.
+Full sequential plan in `dashboard-progress.md`.
 * **Phase D** (front-end 3D, lazy-loaded): build separate
   `echarts-gl.bundle.mjs`; vendor `world-texture-2k.jpg`;
   `buildPewPewOption3D` with dynamic `import()`; mode-switch
@@ -650,32 +727,42 @@ supervisorctl -c /etc/supervisor/supervisord.conf start misp-workers:misp-worker
    -o /dev/null -w "%{http_code}\n"` → 302 (or 200 with the cookie
    jar — re-mint `/tmp/cj_stat.txt` via `reference_misp_login_dance`
    if it 302s).
-3. **Next session's task: DD-45 Phase B (B1 first).**  Build the
-   `iso-centroids.json` from `world-110m.geojson` via the new
-   `app/files/scripts/build_iso_centroids.py`.  Commit the
-   script + the JSON together; document in `VENDORING.md`.
-   Then proceed to B2 (widget class) and B3 (PHPUnit) — one
-   commit each.  Do NOT start Phase C until Phase B is fully
-   green (php -l + PHPUnit + live REST render returning a sane
-   `flows[]` shape).
+3. **Next session's task: DD-45 Phase C (C1 first).**  Rebuild
+   the ECharts vendor bundle with `LinesChart` added (see
+   `vendor/VENDORING.md` recipe).  Then C2 (PewPewMap.ctp),
+   C3 (buildPewPewOption2D), C4 (thumbPewPewMap glyph), C5
+   (visual verification).  One commit per sub-task.  Do NOT
+   start Phase D until Phase C is fully green.
 4. **DD-45-specific gotchas to carry:**
-   * **Centroid antimeridian handling** — Fiji / Russia /
-     Kiribati polygons span the date line in the source
-     GeoJSON.  Naive `mean(coords)` will put their centroids
-     in the Atlantic.  The `world-110m.geojson` we vendor was
-     ALREADY antimeridian-split at build time (see
-     `vendor/VENDORING.md`), so a feature's `geometry.
-     coordinates` is now a clean MultiPolygon — the centroid
-     can be computed per ring + area-weighted.
-   * **Galaxy element resolution path** — threat-actor cluster's
-     `country` element is alpha-2 already; country galaxy's
-     `ISO` element is also alpha-2 (DD-12 / AttributeGeoMapWidget
-     established this).  SQL:
-     `galaxies → galaxy_clusters → galaxy_elements`, JOIN on
-     `key='country'` (TA side) and `key='ISO'` (country side).
+   * **Tree-shaken ECharts bundle gotcha** (well-trodden):
+     adding `LinesChart` to the imports list only is NOT
+     enough — `echarts.use([..., LinesChart, ...])` also has
+     to register it. Otherwise `type:'lines'` silently
+     renders nothing. Same trap as PieChart / GraphChart hit
+     in prior sessions per
+     [[project-misp-echarts-bundle-treeshaken]].
+   * **Cookie jar may need re-minting** — the dev box's
+     `/tmp/cj_stat.txt` 302'd this session; for headless-
+     Chrome screenshot of a logged-in page, re-mint via the
+     login-dance recipe or use the API key + Accept JSON
+     for REST endpoints.
+   * **Centroid antimeridian handling** — already solved in
+     Phase B1.  Centroids landed correctly for Fiji
+     (178.6, -17.3) and Russia (99.7, 61.9); the
+     `iso-centroids.json` is committed and ready for Phase C3
+     to consume on the JS side (although it's already read
+     server-side by the widget — Phase C only needs the
+     `flows[]` payload as-rendered).
+   * **Dev-DB renders thin** — only 1 arc visible (IR → US);
+     the visual verification will see a sparse map. Don't
+     interpret the sparsity as a bug; production data will be
+     richer.  If the verification *needs* more arcs to be
+     meaningful, revisit the user-rejected fixture-tagging
+     fork (offer via AskUserQuestion).
    * **Aggregate-only posture** — no per-user variation, no
-     drilldown URL, cache_scope `'global'`.  Matches
-     AttributeGeoMapWidget (DD-11).
+     drilldown URL, cache_scope `'global'`. Matches
+     AttributeGeoMapWidget (DD-11). Phase C5 shouldn't add
+     per-arc click handlers.
    * **max_arcs cap** — default 500; truncation is value-desc
      so the strongest signals stay visible.
 5. **General gotchas to carry:**
