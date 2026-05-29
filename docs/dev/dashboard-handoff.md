@@ -1,4 +1,4 @@
-# Dashboard v2 — Session handoff (2026-05-29 — DD-45 CLOSED: pew-pew map ships 2D + orthographic globe; DD-46 pivoted the globe off echarts-gl)
+# Dashboard v2 — Session handoff (2026-05-29 — DD-45 CLOSED: pew-pew map ships 2D + orthographic globe; DD-46 pivoted off echarts-gl; DD-47 planned: globe.gl real-3D third mode, build next session)
 
 Twenty-seventh session. Authoritative state lives in:
 
@@ -144,10 +144,41 @@ QueueList (DD-38), HealthList (DD-39), PewPewMap (DD-45/46). Every new
 
 ## Open follow-ups (active + carried)
 
-### NEXT SESSION — no DD-45 work left. Pick from carried follow-ups or Phase 6.
-DD-45 is closed. The remaining tracked phase is **Phase 6 (merge to
-`develop`) — the USER does this, not us.** If continuing dashboard
-polish, the candidates are below.
+### NEXT SESSION — DD-47: build the globe.gl real-3D third mode (plan ready: G1..G7).
+DD-45 is closed (2D + orthographic shipped). The user opted to add a
+**third, opt-in render mode** (`mode='webgl-globe'`): a real WebGL
+textured globe via **globe.gl** (Three.js) — the echarts-gl *look*,
+on a maintained MIT library (globe.gl 2.46.1, published 2026-05-16; vs
+echarts-gl's 2022 + echarts@6 incompatibility, the DD-46 reason we
+dropped it). **DD-47** holds the full spec + the resolved forks;
+`dashboard-progress.md` has the phased plan **G1..G7**. This session
+*planned* it (DD-47 + plan, no code); next session *builds* it.
+
+Key facts for the build (all in DD-47):
+- **Front-end only** — the server `handler()`, caching, and `flows[]`
+  payload are unchanged; this is a parallel render path.
+- **Separate lazy bundle** `globe.bundle.mjs` (esbuild tree-shaken,
+  NOT in the main bundle), dynamic-`import()`ed on first `webgl-globe`
+  render only. This re-introduces the lazy-bundle + async-dispatch
+  machinery DD-46 removed — now justified (real weight ≈ several hundred
+  KB gz; genuinely-different output).
+- **globe.gl owns its own WebGL canvas** — it is NOT an ECharts option
+  builder. So it gets a dedicated `initWebglGlobe(hostEl, payload)`
+  (static glue) that lazy-imports the bundle + maps `flows[]` →
+  `arcsData` + `ringsData`. Only the `pewpew`+`webgl-globe` dispatch
+  branch goes async; the 2d/3d-globe ECharts modes stay sync.
+- **Theming is bespoke** — globe.gl won't read `--misp-dash-*`; bridge
+  via `tokenOn` at init + a `data-theme` observer for live retheme (the
+  zero-JS retheme the other two modes get free is NOT automatic here).
+- **Texture** — G2 vendors an earth image; AskUserQuestion sub-fork
+  (Blue Marble PD / night-lights / flat political).
+- **Mode enum** — add `'webgl-globe'` (value stable) + `enum_labels`
+  friendly text; default stays `'2d'`.
+- **Verify caveat** — headless-Chrome WebGL may need
+  `--enable-unsafe-swiftshader` / `--use-angle=swiftshader`.
+
+The remaining tracked phase after DD-47 is **Phase 6 (merge to
+`develop`) — the USER does this, not us.** Other carried polish below.
 
 ### Pew-pew globe polish (surfaced in Phase E, deferred — DD-46)
 - **Auto-centre the globe on the flows' centroid** (busiest region
@@ -269,15 +300,18 @@ redis-cli -n 13 --scan --pattern 'misp:attack_flow_map_cache*' | xargs -r redis-
   asserted; the look premise re-open led to DD-46).
 
 ## Quick-start for the next session
-1. Read this file + `dashboard-prd.md` §15 rows DD-45 + DD-46 +
-   `dashboard-design-decisions.md` DD-45/DD-46. The DD-31..DD-44 family
-   is still load-bearing for any widget work.
+1. Read this file + `dashboard-prd.md` §15 rows DD-45 + DD-46 + **DD-47**
+   + `dashboard-design-decisions.md` DD-45/DD-46/DD-47. The DD-31..DD-44
+   family is still load-bearing for any widget work.
 2. Verify instance: `curl -s http://localhost:5007/dashboards -o /dev/null
    -w "%{http_code}\n"` → 302 (or 200 with the cookie jar; re-mint
    `/tmp/cj_stat.txt` via `reference_misp_login_dance` if it 302s).
-3. **DD-45 is CLOSED — no pew-pew work left.** Either pick a carried
-   follow-up (pew-pew globe polish; another template refresh; widget
-   polish) or note that **Phase 6 merge is user-owned.** Confirm
-   direction with the user before starting new work.
+3. **DD-47 G1 first** — build the lazy `globe.bundle.mjs` (globe.gl +
+   three, esbuild tree-shaken; per the G1 plan + the `VENDORING.md`
+   recipe pattern). Then G2 (texture, AskUserQuestion sub-fork) → G3
+   (`initWebglGlobe`) → G4 (async dispatch) → G5 (mode enum/label) →
+   G6 (live retheme) → G7 (verify). One commit per sub-task.
+   **DD-47 is opt-in polish** — defer if priorities shift; the two
+   shipped modes stand alone.
 4. Do NOT start the merge — the user does that. Watch context; refresh
    this handoff before wrapping.

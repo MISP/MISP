@@ -2136,6 +2136,61 @@ gate (the user still does the merge).
       pointer set to the carried follow-ups / Phase 6 (user-owned
       merge).
 
+  - [ ] **DD-47 — Pew-pew real-3D mode (globe.gl, lazy-loaded).**
+    Opt-in THIRD render mode (`mode='webgl-globe'`) alongside the
+    shipped 2D flat map + orthographic 2.5D globe.  **Front-end
+    only** — server `handler()` / caching / `flows[]` unchanged.
+    Spec: `dashboard-design-decisions.md` DD-47 + PRD §15.  Built
+    in a LATER session (planned now while context is fresh; this
+    session shipped DD-45 + DD-46).  One commit per sub-task:
+    - [ ] **G1.** Build the lazy `globe.bundle.mjs` — new build
+      dir `/tmp/globegl-bundle/`, `npm install globe.gl three`
+      (globe.gl pulls three-globe + three as deps), `entry.mjs`
+      re-exporting the `Globe` factory, esbuild tree-shaken ESM →
+      `app/webroot/js/dashboard/charts/vendor/globe.bundle.mjs` +
+      `.LEGAL.txt` + the MIT `LICENSE.*` sidecars (three,
+      three-globe, globe.gl + transitive d3-*/h3-js/tinycolor2).
+      **Do NOT merge into `echarts.bundle.mjs`.**  Measure raw/gz
+      size; add a `VENDORING.md` row + reproduce recipe.
+    - [ ] **G2.** Vendor the earth texture (~100–250 KB).
+      **AskUserQuestion sub-fork:** NASA Blue Marble (public
+      domain) / night-lights / flat political render from
+      `world-110m.geojson`.  Note source + licence + size in
+      `VENDORING.md`.
+    - [ ] **G3.** `initWebglGlobe(hostEl, payload)` glue (static in
+      `charts.module.mjs`): lazy `import('./vendor/globe.bundle.
+      mjs')` (the heavy code stays lazy; the glue stays static),
+      instantiate `Globe()(hostEl)`, map `flows[]` → `arcsData`
+      (start/end lat-lng, width/colour by value, dash animation) +
+      `ringsData` (destination pulses), set `globeImageUrl` to the
+      G2 texture.  Loading-state placeholder while the import
+      resolves.  Token colours via `tokenOn(hostEl, ...)`.
+    - [ ] **G4.** Async dispatch: restructure ONLY the `pewpew` +
+      `mode==='webgl-globe'` branch of `initChart` to `await` the
+      lazy import before init (ECharts modes — 2d / 3d-globe —
+      stay sync).  Wire globe.gl-aware dispose (`liveCharts`
+      WeakMap teardown via globe.gl's destructor, distinct from
+      ECharts `dispose()`) + ResizeObserver (`.width()/.height()`).
+    - [ ] **G5.** Mode enum + label: add `'webgl-globe'` to the
+      `AttackFlowMapWidget` `$schema` `mode` enum (stored value
+      stable, DD-44/46 principle) + `enum_labels` friendly text
+      (e.g. `2d`→"2D map", `3d-globe`→"Globe (lightweight)",
+      `webgl-globe`→"Globe (3D)").  Default `'2d'`.  Refresh
+      `$params`/`$description`/help.
+    - [ ] **G6.** Live retheme bridge: a small `data-theme`
+      observer that re-applies arc/ring/material colours from the
+      tokens without re-init (the zero-JS retheme the other modes
+      get free is NOT automatic for globe.gl).  May fold into G3.
+    - [ ] **G7.** Visual verification — headless Chrome (WebGL may
+      need `--enable-unsafe-swiftshader` / `--use-angle=swiftshader`;
+      fall back to a real-browser shot if the GL context won't
+      cooperate).  Confirm: globe renders real arc (IR→US) +
+      synthetic multi-arc; the lazy bundle loads ONLY on a
+      `webgl-globe` widget (main bundle + 2d/3d-globe modes
+      untouched); a second 3D render hits the import cache (no
+      re-fetch); light/dark theming; the other two modes
+      unaffected.
+
 ---
 
 ## Phase 6 — Merge to `develop`

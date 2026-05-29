@@ -4155,3 +4155,114 @@ d3-geo recipe in `VENDORING.md` (just add `geoOrthographic` to the
 `buildPewPewOption*` + drop `geoOrthographic` from the bundle export +
 rebuild. The 2D mode is wholly independent. Pure addition over the
 shipped Phase C; no existing behaviour altered.
+
+## DD-47 — Pew-pew real-3D mode: **globe.gl (Three.js), lazy-loaded as an opt-in third render mode**
+
+**Date.** 2026-05-29
+
+**Status.** Binding (spec). Implementation deferred to a phased plan in
+`dashboard-progress.md` ("Post-5.5 — New features", DD-47 G1..G7), to be
+built in a later session. Purely **additive**: a third value on the
+existing `mode` enum; the 2D flat map (Phase C) and orthographic 2.5D
+globe (Phase D / DD-46) are untouched. The shared `flows[]` payload and
+the entire server side (`AttackFlowMapWidget::handler()`, caching) are
+unchanged — this is a front-end-only render path.
+
+**Problem.** The widget ships two map modes (flat 2D + orthographic
+"2.5D" globe). DD-46 deliberately picked the orthographic disc over a
+true WebGL globe because echarts-gl — the 3D path DD-45 originally
+specced — is unmaintained and echarts@6-incompatible. The user still
+wants the *premium textured-3D-globe* look (the "Norse/Kaspersky"
+attack globe) as an **opt-in** third option, provided it's built on a
+maintained library rather than echarts-gl.
+
+**Forks considered (this session, AskUserQuestion + npm re-verification).**
+
+* **globe.gl 2.46.1 (Three.js / `three-globe`) — PICKED.** MIT,
+  **actively maintained** (published 2026-05-16, vs echarts-gl's 2022),
+  purpose-built for exactly this: `arcsData` with animated dash-arcs,
+  `ringsData` pulsing destination rings, `globeImageUrl` earth texture.
+  Resolves the *sole* reason DD-46 dropped echarts-gl (maintenance +
+  echarts@6 friction) while delivering the same — arguably better —
+  aesthetic. MIT throughout (three 0.184, three-globe 2.45, globe.gl
+  2.46, transitive d3-*/h3-js/tinycolor2) → AGPL-compatible, no new
+  copyleft review (DD-07 lineage holds).
+* **deck.gl 9.3.2 (`ArcLayer` + `_GlobeView`).** Also real WebGL 3D,
+  maintained, MIT. Rejected for v1: its globe view is still flagged
+  experimental (underscore-prefixed `_GlobeView`), and the integration
+  glue is heavier than globe.gl's turnkey globe. Revisit only if
+  globe.gl proves limiting.
+* **echarts-gl.** Already rejected in DD-46 (unmaintained, echarts@6
+  build patch, 247 KB gz). Not reconsidered.
+* **Stay at two modes.** Viable; the flat + orthographic modes cover the
+  functional need and add zero weight. Rejected by the user in favour of
+  shipping the premium globe as an explicit opt-in.
+
+**Why this is justified now when DD-46 avoided exactly this machinery.**
+DD-46 removed the lazy-bundle + async-dispatch complexity because, for
+the orthographic disc, it bought nothing (d3-geo is already vendored,
++0.1 KB). DD-47 *re-introduces* that machinery — but here it is
+warranted: globe.gl is genuinely heavy (Three core + three-globe +
+wrapper ≈ several hundred KB gzipped) and genuinely different in output
+(true textured/lit 3D). The complexity now pays for a premium result,
+not a marginal one. The default mode stays `'2d'`, and the orthographic
+globe remains the lightweight "globe" for deployments that won't pay the
+WebGL download.
+
+**Approach (front-end only).**
+
+1. **Separate lazy vendor bundle.** A new
+   `app/webroot/js/dashboard/charts/vendor/globe.bundle.mjs` (esbuild,
+   tree-shaken ESM) exporting the globe.gl factory + its Three deps.
+   **NOT** merged into `echarts.bundle.mjs`. Dynamic-`import()`ed on the
+   first `webgl-globe` render only (browser-cached thereafter) — the
+   95% of deployments on 2D/orthographic never fetch it. Ship
+   `.LEGAL.txt` + the MIT `LICENSE.*` sidecars; add a `VENDORING.md`
+   row + reproduce recipe. (Mirrors DD-45's original lazy-bundle intent,
+   now on a maintained lib.)
+2. **Earth texture asset.** Vendor one globe surface image (~100–250 KB).
+   Source is a build-time sub-fork (NASA Blue Marble *public domain* /
+   night-lights / a flat political render from `world-110m.geojson`) —
+   resolve via AskUserQuestion at build time. Note licence + size in
+   `VENDORING.md`.
+3. **Init path, not an ECharts option.** globe.gl owns its own WebGL
+   canvas — it is NOT an ECharts `setOption` builder. So the renderer
+   gets a dedicated `initWebglGlobe(hostEl, payload)` (static glue in
+   `charts.module.mjs`) that lazy-imports `globe.bundle.mjs`,
+   instantiates `Globe()(hostEl)`, and maps `flows[]` →
+   `arcsData` (start/end lat-lng, width/colour by value) +
+   `ringsData` (destination pulses). Shows a loading-state placeholder
+   while the import resolves.
+4. **Async dispatch.** `initChart`'s `pewpew` branch is sync today (it
+   degrades cleanly: ECharts modes stay sync; only `mode ===
+   'webgl-globe'` awaits the lazy import). Restructure that one branch
+   to `await` the import before init. Dispose (`liveCharts` WeakMap) and
+   the ResizeObserver get globe.gl-aware teardown/resize hooks
+   (`globe.gl` exposes `.width()/.height()` + a destructor) distinct
+   from ECharts' `dispose()`.
+5. **Theming bridge (bespoke — the cost called out up front).** globe.gl
+   doesn't read `--misp-dash-*`. Read the tokens via the existing
+   `tokenOn(hostEl, ...)` at init and push them as arc/ring colours +
+   globe material. **Live light↔dark retheme** (the zero-JS property the
+   other two modes get free) needs a manual hook: a small observer on
+   the `data-theme` attribute that re-applies colours without re-init.
+6. **Mode enum + label.** Add `'webgl-globe'` to the widget `$schema`
+   `mode` enum (stored value stable, DD-44/DD-46 principle); the
+   `enum_labels` map (DD-46 D4) carries the friendly `<select>` text
+   (e.g. `2d` → "2D map", `3d-globe` → "Globe (lightweight)",
+   `webgl-globe` → "Globe (3D)"). Default `'2d'`.
+
+**Posture (unchanged).** Aggregate-only (DD-11/DD-45) — no per-arc
+click/drilldown. `cache_*` unchanged (server payload identical across
+modes). Open to all users.
+
+**Verification note (carry to G7).** Headless-Chrome WebGL may need
+flags (`--enable-unsafe-swiftshader` / `--use-angle=swiftshader`); if
+the headless GL context won't cooperate, fall back to a real-browser
+screenshot. Confirm the lazy bundle loads ONLY on a `webgl-globe`
+widget (main bundle + the 2D/orthographic modes untouched) and a second
+3D render hits the import cache.
+
+**Reversibility.** Delete the `webgl-globe` enum value + `initWebglGlobe`
++ the lazy bundle + texture. The other two modes are wholly independent.
+Pure addition; no existing behaviour altered.
