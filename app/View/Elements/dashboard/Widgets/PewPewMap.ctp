@@ -6,15 +6,18 @@
  * Dumb shim, consistent with the other ECharts render kinds (WorldMap,
  * BarChart, PieChart, NetworkGraph): it emits a `data-misp-chart`
  * host div whose JSON payload is dispatched client-side by
- * `charts.module.mjs`. The module's `buildPewPewOption` reads
- * `payload.mode`: `'2d'` (default) draws the flat-map arcs, while
- * `'3d-globe'` swaps the geo projection to a hemisphere-culling
- * orthographic for a from-space "2.5D" globe (DD-46, d3-geo — no
- * echarts-gl / WebGL). Same payload, same arc layers in both modes.
+ * `charts.module.mjs`, which dispatches on `payload.mode`: `'2d'`
+ * (default) draws the flat-map arcs and `'3d-globe'` swaps the geo
+ * projection to a hemisphere-culling orthographic "2.5D" globe (DD-46,
+ * d3-geo — no WebGL) via `buildPewPewOption`; `'webgl-globe'` (DD-47)
+ * is a real WebGL globe via `initWebglGlobe` (globe.gl, lazy-loaded),
+ * whose surface texture is chosen by `payload.skin` (DD-49). Same
+ * `flows[]` payload across all modes.
  *
  * Expected $data shape (from PewPewMapWidget::handler()):
  *   [
- *     'mode'  => '2d' | '3d-globe',
+ *     'mode'  => '2d' | '3d-globe' | 'webgl-globe',
+ *     'skin'  => 'night' | 'day' | 'dark',   // webgl-globe only (DD-49)
  *     'flows' => [
  *       ['src' => [lon, lat], 'dst' => [lon, lat], 'value' => int,
  *        'src_iso' => 'XX', 'dst_iso' => 'YY'],
@@ -42,9 +45,14 @@ if (empty($flows)) {
     return;
 }
 $mode = (isset($data['mode']) && is_string($data['mode'])) ? $data['mode'] : '2d';
+// `skin` (DD-49) selects the webgl-globe surface texture; the 2d/
+// 3d-globe modes ignore it. Must be passed through here or the JS
+// always falls back to the default 'night' skin.
+$skin = (isset($data['skin']) && is_string($data['skin'])) ? $data['skin'] : 'night';
 
 $payload = array(
     'mode'  => $mode,
+    'skin'  => $skin,
     'flows' => $flows,
 );
 ?>
