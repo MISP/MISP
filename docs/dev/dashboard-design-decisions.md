@@ -4266,3 +4266,65 @@ widget (main bundle + the 2D/orthographic modes untouched) and a second
 **Reversibility.** Delete the `webgl-globe` enum value + `initWebglGlobe`
 + the lazy bundle + texture. The other two modes are wholly independent.
 Pure addition; no existing behaviour altered.
+
+## DD-48 — Rename `AttackFlowMapWidget` → `PewPewMapWidget` ("Pew-pew map")
+
+**Date.** 2026-05-29
+
+**Status.** Binding.
+
+**Decision.** The widget DD-45 shipped as `AttackFlowMapWidget` /
+`$title = 'Attack flow map'` is renamed to **`PewPewMapWidget`** /
+`$title = 'Pew-pew map'`. The user wants the widget to *actually be
+called* "Pew-pew map" everywhere it surfaces — the Add-Widget gallery
+selector, the class, the file on disk — because the name is the joke: a
+deliberate, affectionate jab at the much-memed (and now-defunct) Norse
+attack map that every TI vendor's marketing globe descends from.
+
+**Why this is small.** Most of the widget was *already* pew-pew-named:
+the render kind is `PewPewMap` (`$render = 'PewPewMap'`, template
+`Widgets/PewPewMap.ctp`) and the JS chart registry key is `pewpew`
+(`buildPewPewOption`, `thumbPewPewMap`). Only the PHP class, its
+filename, `$title`, the `$cache_path` prefix, and the unit test carried
+the older "Attack flow" descriptive name. So the rename is a tidy-up to
+make the *widget identity* match the *render identity*, not a
+cross-cutting change.
+
+**What changed.**
+- `app/Lib/Dashboard/AttackFlowMapWidget.php` → `PewPewMapWidget.php`
+  (`git mv`); `class AttackFlowMapWidget` → `class PewPewMapWidget`;
+  `$title` "Attack flow map" → "Pew-pew map"; `$cache_path`
+  `misp:attack_flow_map_cache` → `misp:pew_pew_map_cache`; doc-comment.
+- `app/Test/AttackFlowMapWidgetTest.php` → `PewPewMapWidgetTest.php`
+  (`git mv`); test class, the `…FakeModel` stub, the `…_TEST_WWW_ROOT`
+  define, the require path, doc-comments.
+- Stale comment references in `PewPewMap.ctp` and `charts.module.mjs`.
+
+**The one load-bearing safety point.** A dashboard widget is identified
+in saved layout blobs by its **class name** (`Dashboard::loadWidget()`
+does `App::uses($name, 'Dashboard')` then `new $name()`; the blob stores
+`{"widget":"AttackFlowMapWidget", …}`). Renaming the class therefore
+*orphans any saved instance that still names the old class* — normally a
+migration hazard. It is safe **only because the `dashboards` branch is
+unmerged**: the widget has never shipped under the old name to any real
+deployment, so no production config holds it. The single dev-box saved
+instance (`user_settings` id 34, widget `w_6`) was SQL-migrated
+(`REPLACE(value,'AttackFlowMapWidget','PewPewMapWidget')`) and the Cake
+class-map cache + redis widget cache purged, so the dev dashboard keeps
+rendering. **If this widget had already shipped, the right move would be
+a back-compat alias, not a hard rename** — noted here so a future
+post-merge rename isn't done the same cheap way.
+
+**Unchanged.** The `PewPewMap` render kind, the `.ctp` shim, the
+`flows[]` payload contract, the data-resolution path, caching semantics
+(only the key *prefix* string changed), and the aggregate-only posture
+(DD-11) are all untouched. DD-47's in-flight globe work simply targets
+the renamed class.
+
+**Verification.** `php -l` clean on both renamed files; 15/15 PHPUnit
+green (`PewPewMapWidgetTest`); `node --check` clean; live
+`renderWidget?widget=PewPewMapWidget` returns the dev-DB IR→US arc.
+
+**Reversibility.** `git mv` the two files back and revert the
+string swaps; re-migrate `user_settings` id 34 the other way. No data
+model or contract change to undo.

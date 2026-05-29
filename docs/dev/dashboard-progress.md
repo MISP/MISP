@@ -2185,7 +2185,7 @@ gate (the user still does the merge).
       WeakMap teardown via globe.gl's destructor, distinct from
       ECharts `dispose()`) + ResizeObserver (`.width()/.height()`).
     - [ ] **G5.** Mode enum + label: add `'webgl-globe'` to the
-      `AttackFlowMapWidget` `$schema` `mode` enum (stored value
+      `PewPewMapWidget` `$schema` `mode` enum (stored value
       stable, DD-44/46 principle) + `enum_labels` friendly text
       (e.g. `2d`→"2D map", `3d-globe`→"Globe (lightweight)",
       `webgl-globe`→"Globe (3D)").  Default `'2d'`.  Refresh
