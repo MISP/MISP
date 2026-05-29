@@ -1,4 +1,4 @@
-# Dashboard v2 — Session handoff (2026-05-29 — DD-47 CLOSED: globe.gl real-3D "Globe (3D)" pew-pew mode ships + verified; DD-48: widget renamed AttackFlowMap → PewPewMap)
+# Dashboard v2 — Session handoff (2026-05-29 — DD-47 CLOSED: globe.gl real-3D "Globe (3D)" pew-pew mode ships + verified; DD-48: widget renamed AttackFlowMap → PewPewMap; DD-49: selectable globe skins night/day/dark)
 
 Twenty-eighth session. Authoritative state lives in:
 
@@ -125,6 +125,25 @@ retones to #f87171 + dark card. **DOM probe proved lazy-only-on-3D:**
 616×420`; `2d` → both `false`. Import-cache on 2nd render guaranteed by
 the memoised promise.
 
+## DD-49 — globe skins (reuse these facts)
+
+The `webgl-globe` mode has a per-widget **`skin`** config (the night
+texture is dark by design; the user wanted a daytime option):
+**`night`** (default, city lights), **`day`** (NASA Blue Marble), **`dark`**
+(minimal grey). Front-end only — a different `globeImageUrl`; `flows[]`
+now carries a `skin` hint; the 2d/3d-globe modes ignore it. **Only the
+selected skin's image downloads** (lazy, per instance). **A skin must be
+in 3 places or it degrades to `night`:** the `$schema` `skin` enum +
+`resolveSkin()` whitelist (`PewPewMapWidget.php`) AND the
+`GLOBE_TEXTURES` map (`charts.module.mjs`). Textures: NASA PD,
+2048×1024, `vendor/earth-{night,day,dark}-2k.jpg` (205/279/81 KB).
+Arc/ring/atmosphere stay token-driven across all skins. Verified
+night/day/dark live + headless-Chrome screenshots of day + dark.
+Adding a skin = vendor an image + 3 registrations (VENDORING.md recipe).
+NB: the widget's `$cache_duration` is currently **`false`** (a user
+working-tree change, preserved) — caching is OFF, so every render
+recomputes with the correct mode/skin.
+
 ## DD-45 family — render-kind & widget facts (still load-bearing)
 
 ### Pew-pew widget shape (DD-45/46/47/48)
@@ -218,7 +237,7 @@ node --check app/webroot/js/dashboard/charts/charts.module.mjs
 curl -s -b /tmp/cj_stat.txt -X POST -H "Accept: application/json" \
   "http://localhost:5007/dashboards/renderWidget/test1" \
   --data-urlencode "widget=PewPewMapWidget" \
-  --data-urlencode 'config={"time_window":"-1","mode":"webgl-globe","max_arcs":500}'
+  --data-urlencode 'config={"time_window":"-1","mode":"webgl-globe","skin":"day","max_arcs":500}'
 
 # Cached widgets serve stale — purge first (NOTE the renamed key):
 redis-cli -n 13 --scan --pattern 'misp:pew_pew_map_cache*' | xargs -r redis-cli -n 13 DEL
@@ -279,8 +298,8 @@ redis-cli -n 13 --scan --pattern 'misp:pew_pew_map_cache*' | xargs -r redis-cli 
   defend** when a premise is questioned.
 
 ## Quick-start for the next session
-1. Read this file + `dashboard-prd.md` §15 rows **DD-45..DD-48** +
-   `dashboard-design-decisions.md` DD-45/46/47/48. The DD-31..DD-44
+1. Read this file + `dashboard-prd.md` §15 rows **DD-45..DD-49** +
+   `dashboard-design-decisions.md` DD-45/46/47/48/49. The DD-31..DD-44
    family is still load-bearing for any widget work.
 2. Verify instance: `curl -s http://localhost:5007/dashboards -o /dev/null
    -w "%{http_code}\n"` → 302 (or 200 with the cookie jar; re-mint

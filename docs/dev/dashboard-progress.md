@@ -2261,6 +2261,22 @@ gate (the user still does the merge).
       frame may catch them mid-cycle (small radius) — they animate
       live. **DD-47 CLOSED — all of G1..G7 shipped + verified.**
 
+  - [x] **DD-49 — Selectable globe skins (night/day/dark).** CLOSED.
+    User: the night texture is "pretty dark", wants a daytime version.
+    Per-widget `skin` config on the `webgl-globe` mode (DD-47):
+    `night` (default, city lights) / `day` (NASA Blue Marble) / `dark`
+    (minimal grey). Front-end only — texture-swap (`globeImageUrl`);
+    `handler()`/`flows[]`(+`skin` hint)/caching + the 2d/3d-globe modes
+    unchanged. Two NASA-PD textures vendored (`earth-{day,dark}-2k.jpg`,
+    279/81 KB), `skin` enum + `enum_labels` + `resolveSkin()` whitelist
+    in `PewPewMapWidget`, `GLOBE_TEXTURES` map in `charts.module.mjs`
+    (only the chosen skin's image downloads, lazy/per-instance).
+    **Gotcha (= DD-47 G5):** a skin lives in 3 places — `$schema` enum,
+    `resolveSkin()`, `GLOBE_TEXTURES` — or it degrades to `night`.
+    Verified: 15/15 tests; live night/day/dark (+ bogus→night);
+    headless-Chrome shots of day (bright Blue Marble) + dark render
+    correctly. Spec: DD-49 + PRD §15. Commit `8e5f7e814`.
+
 ---
 
 ## Phase 6 — Merge to `develop`

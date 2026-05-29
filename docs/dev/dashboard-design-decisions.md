@@ -4335,3 +4335,54 @@ green (`PewPewMapWidgetTest`); `node --check` clean; live
 **Reversibility.** `git mv` the two files back and revert the
 string swaps; re-migrate `user_settings` id 34 the other way. No data
 model or contract change to undo.
+
+## DD-49 — Selectable globe skins (night / day / dark) for the WebGL globe
+
+**Date.** 2026-05-29
+
+**Status.** Binding — IMPLEMENTED + verified.
+
+**Decision.** The `webgl-globe` mode (DD-47) ships a per-widget **`skin`**
+config choosing the globe surface texture: **`night`** (default — the
+city-lights Black Marble), **`day`** (NASA Blue Marble daytime earth),
+or **`dark`** (a minimal near-black grey globe). The user noted the
+default night texture is "pretty dark" and asked for a daytime version;
+this generalises that to a small skin set.
+
+**Why / scope.** Purely front-end and purely additive — the texture is
+just a different `globeImageUrl`; the server `handler()`, the `flows[]`
+payload (now carrying a `skin` hint alongside `mode`), caching, and the
+2D / lightweight-globe modes are all unchanged. The skin is **only**
+meaningful in `webgl-globe`; the ECharts modes draw a flat-shaded
+political map with no surface texture and ignore it. **Only the selected
+skin's image is fetched** (lazy, per widget instance) — adding skins
+costs nothing for instances that don't use them.
+
+**Textures.** All three are NASA public-domain images that ship in
+`three-globe`'s MIT example dir, downscaled to 2048×1024:
+`earth-night-2k.jpg` (205 KB, DD-47 G2), `earth-day-2k.jpg` (Blue
+Marble, 279 KB), `earth-dark-2k.jpg` (81 KB). No licence sidecar (NASA
+PD). See `vendor/VENDORING.md`.
+
+**The one gotcha (same shape as DD-47 G5's mode whitelist).** A skin
+must be listed in THREE places or it silently degrades to `night`: the
+`$schema` `skin` enum, the `resolveSkin()` PHP whitelist, AND the
+`GLOBE_TEXTURES` map in `charts.module.mjs`. The reproduce note in
+VENDORING.md spells this out.
+
+**Forks not taken.** Could have shipped more skins (topographic, water,
+hi-res Blue Marble) — three freely-available textures cover the dark /
+bright / minimal spectrum; more are a one-line add (a vendored image +
+the three registrations above) if asked. The arc/ring/atmosphere colours
+stay token-driven (danger/warning) across all skins — a red atmosphere
+on the bright day globe reads as an "under attack" alert and the arcs
+still pop, verified by screenshot.
+
+**Verification.** `php -l` + `node --check` clean; 15/15 PHPUnit; live
+`renderWidget` returns the right `skin` for night/day/dark and falls
+back to `night` for an invalid value; headless-Chrome screenshots of the
+day (bright Blue Marble) + dark skins render correctly with the arcs.
+
+**Reversibility.** Drop the `skin` enum/param + `resolveSkin()` + the
+`GLOBE_TEXTURES` extra entries + the two new textures; the night skin
+(DD-47) stands alone.
