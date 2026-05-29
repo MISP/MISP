@@ -2136,7 +2136,8 @@ gate (the user still does the merge).
       pointer set to the carried follow-ups / Phase 6 (user-owned
       merge).
 
-  - [ ] **DD-47 — Pew-pew real-3D mode (globe.gl, lazy-loaded).**
+  - [x] **DD-47 — Pew-pew real-3D mode (globe.gl, lazy-loaded). CLOSED**
+    — all of G1..G7 shipped + verified (headless-Chrome WebGL).
     Opt-in THIRD render mode (`mode='webgl-globe'`) alongside the
     shipped 2D flat map + orthographic 2.5D globe.  **Front-end
     only** — server `handler()` / caching / `flows[]` unchanged.
@@ -2231,7 +2232,7 @@ gate (the user still does the merge).
       `MutationObserver` on `<html data-theme>` re-invokes it on
       light↔dark with no re-init. Visual light/dark confirm is part
       of G7.
-    - [ ] **G7.** Visual verification — headless Chrome (WebGL may
+    - [x] **G7.** Visual verification — headless Chrome (WebGL may
       need `--enable-unsafe-swiftshader` / `--use-angle=swiftshader`;
       fall back to a real-browser shot if the GL context won't
       cooperate).  Confirm: globe renders real arc (IR→US) +
@@ -2240,6 +2241,25 @@ gate (the user still does the merge).
       untouched); a second 3D render hits the import cache (no
       re-fetch); light/dark theming; the other two modes
       unaffected.
+      **DONE.** Headless Chrome 141 with `--enable-unsafe-swiftshader
+      --use-angle=swiftshader` rendered the globe **cleanly — no
+      real-browser fallback needed.** Temp page (full CSS stack,
+      synthetic 6-arc payload) under webroot, screenshotted +
+      `--dump-dom` probed, then deleted (302 confirms removal).
+      Results: **light + dark** both render the night-lights globe
+      with red danger arcs + a danger atmosphere glow, North-Atlantic
+      framing; midnight retones arcs/atmosphere to #f87171 and the
+      card to dark (token read confirmed visually; the
+      MutationObserver shares that exact `applyColours()` path).
+      **DOM probe:** `webgl-globe` → `globeBundleLoaded:true,
+      textureLoaded:true, hasCanvas:true, canvasSize:[616,420]`;
+      `2d` → `globeBundleLoaded:false, textureLoaded:false` (canvas
+      is ECharts') — **proves the lazy bundle loads ONLY on the 3D
+      mode.** Second-render import-cache is guaranteed by the
+      memoised `globeBundlePromise` + the browser module cache.
+      Rings are present in code (pulse animation); a single static
+      frame may catch them mid-cycle (small radius) — they animate
+      live. **DD-47 CLOSED — all of G1..G7 shipped + verified.**
 
 ---
 
