@@ -2165,11 +2165,18 @@ gate (the user still does the merge).
       package's full license text) + the esbuild `globe.bundle.LEGAL.
       txt` banner sidecar. VENDORING.md carries the build recipe + a
       license-walk regen script + a copyleft-on-bump warning.
-    - [ ] **G2.** Vendor the earth texture (~100–250 KB).
+    - [x] **G2.** Vendor the earth texture (~100–250 KB).
       **AskUserQuestion sub-fork:** NASA Blue Marble (public
       domain) / night-lights / flat political render from
       `world-110m.geojson`.  Note source + licence + size in
       `VENDORING.md`.
+      **DONE** (commit `2e9ffe919`). User picked **night-lights**
+      (the playful Norse pew-pew-map riff — confirmed intent).
+      Vendored `earth-night-2k.jpg`: NASA Black Marble (public
+      domain), from three-globe's MIT example dir, downscaled
+      4096×2048 → **2048×1024 q85 = 205 KB** (in target). Serves
+      over HTTP (200, image/jpeg). VENDORING row + provenance +
+      downscale recipe added; no licence sidecar (NASA PD).
     - [ ] **G3.** `initWebglGlobe(hostEl, payload)` glue (static in
       `charts.module.mjs`): lazy `import('./vendor/globe.bundle.
       mjs')` (the heavy code stays lazy; the glue stays static),
