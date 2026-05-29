@@ -1,9 +1,10 @@
 <?php
 
 /**
- * AttackFlowMapWidget (dashboard v2, DD-45) — animated "pew pew"
- * attacker→victim arcs derived from MISP galaxy attributions on
- * events.
+ * PewPewMapWidget (dashboard v2, DD-45; named DD-48) — animated
+ * "pew-pew" attacker→victim arcs derived from MISP galaxy
+ * attributions on events. The name is a deliberate, playful nod to
+ * the much-memed Norse attack map (DD-48).
  *
  * Renders the `PewPewMap` render kind (new with DD-45). One arc per
  * `(event, threat-actor's country, country-galaxy's ISO)` triple;
@@ -53,9 +54,9 @@
  * a 1-hour aggregate cache is generous and a config-keyed global
  * payload is correct.
  */
-class AttackFlowMapWidget
+class PewPewMapWidget
 {
-    public $title = 'Attack flow map';
+    public $title = 'Pew-pew map';
     public $category = 'events';
     public $render = 'PewPewMap';
     public $description = 'Animated arcs between threat-actor origin country and victim country, derived from misp-galaxy:threat-actor and misp-galaxy:country tags on events. Renders as a 2D flat map (default, animated great-circle lines) or an orthographic "globe" view of the same arcs.';
@@ -66,7 +67,7 @@ class AttackFlowMapWidget
     // $cache_duration + $cache_path below.
     public $cacheLifetime = false;
     public $autoRefreshDelay = false;
-    public $cache_path = 'misp:attack_flow_map_cache';
+    public $cache_path = 'misp:pew_pew_map_cache';
     public $cache_duration = 3600;
     public $params = [
         'time_window' => 'The time window, going back in seconds, that should be included (also accepts "30d" day form, or -1 for all historic data).',

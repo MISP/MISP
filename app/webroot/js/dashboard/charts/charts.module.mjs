@@ -527,7 +527,7 @@ function buildNetworkOption(payload, hostEl) {
   };
 }
 
-// ---- pew-pew attack flow map (DD-45) ----
+// ---- pew-pew map (DD-45) ----
 
 // Default view centre for the orthographic "globe" mode, as d3's
 // [lambda, phi] rotation (the visible centre is [-lambda, -phi]). [10,
@@ -573,7 +573,7 @@ function orthographicProjection(rotate) {
 
 /**
  * Animated attacker→victim arcs over a world map (the "pew pew" map).
- * Payload from AttackFlowMapWidget::handler():
+ * Payload from PewPewMapWidget::handler():
  *   { mode, flows: [{ src:[lon,lat], dst:[lon,lat], value,
  *                     src_iso, dst_iso }] }
  * Centroids are resolved server-side (DD-45 Phase B1) so we just plot

@@ -1,9 +1,9 @@
 <?php
 /**
- * AttackFlowMapWidget unit tests (DD-45 Phase B3).
+ * PewPewMapWidget unit tests (DD-45 Phase B3).
  *
  * Pure PHPUnit per the MISP test convention (no CakePHP bootstrap,
- * no DB).  AttackFlowMapWidget uses `ClassRegistry::init('EventTag')
+ * no DB).  PewPewMapWidget uses `ClassRegistry::init('EventTag')
  * ->find('all', ...)` and reads `WWW_ROOT . js/dashboard/charts/
  * vendor/iso-centroids.json` server-side — both stubbed at the top
  * of this file before the widget class is loaded.
@@ -31,7 +31,7 @@ if (!class_exists('ClassRegistry', false)) {
         public static function init($name)
         {
             if (!isset(self::$instances[$name])) {
-                self::$instances[$name] = new AttackFlowFakeModel();
+                self::$instances[$name] = new PewPewFakeModel();
             }
             return self::$instances[$name];
         }
@@ -42,7 +42,7 @@ if (!class_exists('ClassRegistry', false)) {
     }
 }
 
-class AttackFlowFakeModel
+class PewPewFakeModel
 {
     /** @var array<int,array> queue of responses to return from find() */
     public $responses = [];
@@ -65,21 +65,21 @@ class AttackFlowFakeModel
 if (!defined('DS')) {
     define('DS', '/');
 }
-if (!defined('AFM_TEST_WWW_ROOT')) {
-    define('AFM_TEST_WWW_ROOT', sys_get_temp_dir() . '/afm-test-' . uniqid() . '/');
-    @mkdir(AFM_TEST_WWW_ROOT . 'js/dashboard/charts/vendor', 0700, true);
-    define('WWW_ROOT', AFM_TEST_WWW_ROOT);
+if (!defined('PPM_TEST_WWW_ROOT')) {
+    define('PPM_TEST_WWW_ROOT', sys_get_temp_dir() . '/ppm-test-' . uniqid() . '/');
+    @mkdir(PPM_TEST_WWW_ROOT . 'js/dashboard/charts/vendor', 0700, true);
+    define('WWW_ROOT', PPM_TEST_WWW_ROOT);
 }
 
-require_once __DIR__ . '/../Lib/Dashboard/AttackFlowMapWidget.php';
+require_once __DIR__ . '/../Lib/Dashboard/PewPewMapWidget.php';
 
 
-class AttackFlowMapWidgetTest extends TestCase
+class PewPewMapWidgetTest extends TestCase
 {
-    /** @var AttackFlowFakeModel */
+    /** @var PewPewFakeModel */
     private $eventTag;
 
-    /** @var AttackFlowMapWidget */
+    /** @var PewPewMapWidget */
     private $w;
 
     protected function setUp(): void
@@ -102,7 +102,7 @@ class AttackFlowMapWidgetTest extends TestCase
             WWW_ROOT . 'js/dashboard/charts/vendor/iso-centroids.json',
             json_encode($centroids)
         );
-        $this->w = new AttackFlowMapWidget();
+        $this->w = new PewPewMapWidget();
     }
 
     /**

@@ -12,7 +12,7 @@
  * orthographic for a from-space "2.5D" globe (DD-46, d3-geo — no
  * echarts-gl / WebGL). Same payload, same arc layers in both modes.
  *
- * Expected $data shape (from AttackFlowMapWidget::handler()):
+ * Expected $data shape (from PewPewMapWidget::handler()):
  *   [
  *     'mode'  => '2d' | '3d-globe',
  *     'flows' => [
