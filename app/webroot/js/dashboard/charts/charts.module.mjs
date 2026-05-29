@@ -965,6 +965,18 @@ async function initChart(el) {
     return;
   }
 
+  // WebGL globe (DD-47): the opt-in 3D pew-pew mode. globe.gl owns its
+  // own canvas + a lazy Three.js bundle, so it is NOT an ECharts builder
+  // — branch before the ECharts path (and before ensureWorldMap, which
+  // it doesn't need). initWebglGlobe returns a { teardown } handle
+  // synchronously; the import resolves in the background behind a
+  // loading placeholder, so only THIS mode is async-heavy — the 2d /
+  // 3d-globe ECharts modes stay on the synchronous path below.
+  if (kind === 'pewpew' && payload && payload.mode === 'webgl-globe') {
+    liveCharts.set(el, initWebglGlobe(el, payload));
+    return;
+  }
+
   const builder = builders[kind];
   if (!builder) {
     console.warn(`[misp-dashboard] unknown chart kind "${kind}"`);
