@@ -1842,7 +1842,7 @@ gate (the user still does the merge).
     point at Phase B as next session's task.  Single commit
     covering the four `.md` files.  No code touched.
 
-  - [ ] **Phase B — Backend.** One commit per sub-task:
+  - [x] **Phase B — Backend (closed 2026-05-29).** One commit per sub-task:
     - [x] **B1.** `app/files/scripts/build_iso_centroids.py` —
       one-off build script that reads
       `app/webroot/js/dashboard/charts/vendor/world-110m.geojson`,
@@ -1896,15 +1896,27 @@ gate (the user still does the merge).
       (RU→RU from Sofacy, IR→IR ×2 from MuddyWater) and are
       correctly skipped.  Phase C visual verification will see
       a sparse map; production data is expected richer.
-    - [ ] **B3.** PHPUnit coverage —
-      `app/Test/AttackFlowMapWidgetTest.php`.  Fixture-driven:
-      mock a small in-memory galaxy/tag graph, verify the
-      resolution path emits the expected `flows[]` for each
-      shape (no actors, no countries, multi-actor multi-victim
-      cross product, missing cluster.country drop, max_arcs
-      truncation).  Mirrors `MailLogToolTest` convention
-      (bare `app/Test/*.php`, stub framework classes at file
-      top, per [[project-misp-test-convention]]).
+    - [x] **B3.** PHPUnit coverage —
+      `app/Test/AttackFlowMapWidgetTest.php`.  **Landed
+      2026-05-29.**  15 tests, 30 assertions, all green
+      (~52 ms).  Stubs `ClassRegistry::init` + a fake
+      `EventTag` model with a controllable `find()` response
+      queue at the top of the file, defines `WWW_ROOT` to a
+      per-test temp dir where `setUp()` drops a small
+      iso-centroids fixture (US, RU, IR, GB, DE, FR, CN, JP,
+      KR).  Coverage: empty victims path, victims-no-attackers
+      path, single-event single-arc, self-loop skip, self-loop
+      doesn't poison sibling arcs, repeated-pair aggregation,
+      multi-attacker × multi-victim cross product (4 arcs),
+      within-event ISO dedupe, `max_arcs` value-desc
+      truncation, `max_arcs=0` default fallback, invalid-ISO
+      (XYZ / empty / lowercase) handling, missing-centroid
+      drop, default mode, bogus mode falls back to 2d,
+      `3d-globe` preserved.  Conventions: pure PHPUnit (no
+      Cake bootstrap) per [[project-misp-test-convention]];
+      assertions use `assertEquals` not `assertSame` for
+      centroid arrays since `json_encode([54.0])` →
+      `"[54]"` so decode yields int not float.
 
   - [ ] **Phase C — Front-end 2D.** One commit per sub-task:
     - [ ] **C1.** Rebuild ECharts main bundle with `LinesChart`
