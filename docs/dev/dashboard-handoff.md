@@ -1,4 +1,4 @@
-# Dashboard v2 — Session handoff (2026-05-29 — DD-47 CLOSED: globe.gl real-3D "Globe (3D)" pew-pew mode ships + verified; DD-48: widget renamed AttackFlowMap → PewPewMap; DD-49: selectable globe skins night/day/dark)
+# Dashboard v2 — Session handoff (2026-05-29 — DD-47 CLOSED: globe.gl real-3D "Globe (3D)" pew-pew mode ships + verified; DD-48: widget renamed AttackFlowMap → PewPewMap; DD-49: 5 selectable globe skins — night/day/dark + char & planet-nacre easter eggs)
 
 Twenty-eighth session. Authoritative state lives in:
 
@@ -14,9 +14,18 @@ Twenty-eighth session. Authoritative state lives in:
 This file is the bridge: ephemeral session context. Replace as work
 progresses.
 
-## TL;DR — this session (12 signed commits, `%G?`=U, not merged)
+## TL;DR — this session (22 signed commits incl. this refresh, `%G?`=U, not merged)
 
 ```
+59e2c290b chg DD-49 — record 'Planet Nacre' skin (5th)
+902d09cbc new DD-49 — add 'Planet Nacre' easter-egg skin
+7ae07d99a chg DD-49 — record 'Char' skin (4th)
+8cc4dfe4d new DD-49 — add 'Char' easter-egg skin
+e1414be1a chg DD-49 — record the .ctp skin-passthrough bug + lesson
+1703c6d5e fix DD-49 — pass skin through the PewPewMap .ctp shim
+2bfc21abf chg DD-49 — record globe skins (design-decisions + PRD + tracker)
+8e5f7e814 new DD-49 — selectable globe skins (night/day/dark)
+711396528 chg refresh handoff — DD-47 CLOSED + DD-48 rename
 9cb63877c chg DD-47 — mark CLOSED + implemented in design-decisions status
 8fa051f36 chg DD-47 G7 + CLOSE — tick progress tracker
 7da1df6a0 chg DD-47 G3-G6 — tick progress tracker
