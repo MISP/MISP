@@ -24,8 +24,10 @@
  *   - `webgl-globe` (DD-47) — a real textured/lit WebGL globe via
  *     globe.gl (Three.js), lazy-loaded on first use. The premium
  *     Norse-style attack-globe; opt-in, heavier (a separate ≈508 KB
- *     gzipped bundle + a night-lights texture, fetched only when this
- *     mode actually renders). All front-end: same `flows[]` payload.
+ *     gzipped bundle + a surface texture, fetched only when this mode
+ *     actually renders). All front-end: same `flows[]` payload. The
+ *     surface texture is selectable via `skin` (night / day / dark,
+ *     DD-49) — only the chosen skin's image downloads.
  *
  * The same `flows[]` payload feeds both modes; the renderer
  * (`buildPewPewOption` in charts.module.mjs) dispatches by
@@ -65,7 +67,7 @@ class PewPewMapWidget
     public $title = 'Pew-pew map';
     public $category = 'events';
     public $render = 'PewPewMap';
-    public $description = 'Animated arcs between threat-actor origin country and victim country, derived from misp-galaxy:threat-actor and misp-galaxy:country tags on events. Renders as a 2D flat map (default, animated great-circle lines), a lightweight orthographic "globe" view of the same arcs, or an opt-in real WebGL 3D globe (globe.gl, lazy-loaded).';
+    public $description = 'Pew pew map threat-actor origin country and victim country, derived from misp-galaxy:threat-actor and misp-galaxy:country tags on events. Renders as a 2D flat map (default, animated great-circle lines), a lightweight orthographic "globe" view of the same arcs, or an opt-in real WebGL 3D globe (globe.gl, lazy-loaded).';
     public $width = 6;
     public $height = 5;
     // cacheLifetime + autoRefreshDelay are inert in dashboard v2 —
@@ -78,6 +80,7 @@ class PewPewMapWidget
     public $params = [
         'time_window' => 'The time window, going back in seconds, that should be included (also accepts "30d" day form, or -1 for all historic data).',
         'mode' => 'Render mode: "2d" (default, animated lines-airline arcs on a flat map), "3d-globe" (the same arcs on a lightweight orthographic from-space globe), or "webgl-globe" (a real textured 3D globe via globe.gl/Three.js, lazy-loaded on first use — opt-in, heavier).',
+        'skin' => 'Surface texture for the "webgl-globe" mode only: "night" (default, city lights), "day" (NASA Blue Marble daytime earth), or "dark" (minimal grey). Ignored by the 2d/3d-globe modes.',
         'max_arcs' => 'Maximum number of arcs rendered. Truncation is value-desc so the strongest signals always render. Default 500.',
     ];
     public $schema = [
@@ -102,6 +105,20 @@ class PewPewMapWidget
             'default' => '2d',
             'help' => 'Render mode. 2D flat-map animated arcs (default); "Globe (lightweight)" — an orthographic from-space view of the same arcs, no extra download; or "Globe (3D)" — a real textured WebGL globe (globe.gl), lazy-loaded on first use (heavier, opt-in).',
         ],
+        'skin' => [
+            'type' => 'enum',
+            'enum' => ['night', 'day', 'dark'],
+            // Texture skin for the "Globe (3D)" mode only (DD-49); the
+            // 2D / lightweight-globe modes ignore it. Only the selected
+            // skin's image is fetched (lazy, per instance).
+            'enum_labels' => [
+                'night' => 'Night (city lights)',
+                'day' => 'Day (Blue Marble)',
+                'dark' => 'Dark (minimal)',
+            ],
+            'default' => 'night',
+            'help' => 'Surface texture for the "Globe (3D)" mode only (ignored by the 2D / lightweight-globe modes): "Night" city-lights (default, dramatic — arcs pop), "Day" NASA Blue Marble (bright daytime earth), or "Dark" minimal grey silhouette.',
+        ],
         'max_arcs' => [
             'type' => 'int',
             'default' => 500,
@@ -112,6 +129,7 @@ class PewPewMapWidget
 '{
     "time_window": "30d",
     "mode": "2d",
+    "skin": "night",
     "max_arcs": 500
 }';
 
@@ -126,6 +144,7 @@ class PewPewMapWidget
     {
         $since = $this->resolveSince($options);
         $mode = $this->resolveMode($options);
+        $skin = $this->resolveSkin($options);
         $maxArcs = (!empty($options['max_arcs']) && (int)$options['max_arcs'] > 0)
             ? (int)$options['max_arcs'] : 500;
 
@@ -133,14 +152,14 @@ class PewPewMapWidget
         // country galaxy can't yield an arc).
         $victims = $this->collectIsoByEvent('country', 'ISO', $since, null);
         if (empty($victims)) {
-            return ['mode' => $mode, 'flows' => []];
+            return ['mode' => $mode, 'skin' => $skin, 'flows' => []];
         }
         // Attackers restricted to the same event id set — saves the
         // join the cost of scanning threat-actor tags on events
         // that can't yield an arc anyway.
         $attackers = $this->collectIsoByEvent('threat-actor', 'country', $since, array_keys($victims));
         if (empty($attackers)) {
-            return ['mode' => $mode, 'flows' => []];
+            return ['mode' => $mode, 'skin' => $skin, 'flows' => []];
         }
 
         // Per-event cross product; aggregate by (src, dst) pair.
@@ -162,7 +181,7 @@ class PewPewMapWidget
             }
         }
         if (empty($pairCounts)) {
-            return ['mode' => $mode, 'flows' => []];
+            return ['mode' => $mode, 'skin' => $skin, 'flows' => []];
         }
 
         // value-desc, cap at max_arcs.
@@ -189,6 +208,7 @@ class PewPewMapWidget
 
         return [
             'mode' => $mode,
+            'skin' => $skin,
             'flows' => $flows,
         ];
     }
@@ -200,6 +220,19 @@ class PewPewMapWidget
         // 'webgl-globe') — an unlisted stored value silently degrades
         // to '2d'.
         return in_array($mode, ['2d', '3d-globe', 'webgl-globe'], true) ? $mode : '2d';
+    }
+
+    /**
+     * Resolve the WebGL globe skin (DD-49). Only meaningful in the
+     * `webgl-globe` mode — the 2d/3d-globe ECharts modes draw a
+     * flat-shaded political map with no surface texture and ignore it.
+     * Whitelist must track the $schema 'skin' enum; an unlisted value
+     * degrades to 'night' (the default attack-globe look).
+     */
+    private function resolveSkin($options)
+    {
+        $skin = isset($options['skin']) ? (string)$options['skin'] : 'night';
+        return in_array($skin, ['night', 'day', 'dark'], true) ? $skin : 'night';
     }
 
     /**

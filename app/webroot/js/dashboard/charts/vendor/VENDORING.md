@@ -20,7 +20,9 @@ GeoJSON for the OrganisationMap widget and similar geo-typed widgets.
 | `globe.bundle.mjs` | Built locally with esbuild from `globe.gl@2.46.1` (Three.js — `three-globe@2.45.2` / `three@0.184.0`). ESM, minified, tree-shaken. The **lazy** vendor bundle for the `AttackFlowMapWidget` "Globe (3D)" `webgl-globe` mode (DD-47) — a real WebGL textured/lit globe. **NOT** part of `echarts.bundle.mjs`; dynamic-`import()`ed by `charts.module.mjs` only on the first `webgl-globe` render, so the ~95% of deployments on the 2D / orthographic modes never fetch it. globe.gl owns its own WebGL canvas (it is not an ECharts `setOption` builder; cf. the d3-geo orthographic mode which is). | 1.76 MB / 508 KB |
 | `globe.bundle.LEGAL.txt` | esbuild-extracted inline `@license` banners that survive minification (the Three.js MIT banner + a regenerator-runtime note). | 1 KB / — |
 | `globe.bundle.LICENSES.txt` | Consolidated third-party notice: the **full LICENSE text of all 42 bundled packages** (globe.gl + three + three-globe + the transitive d3-\* / h3-js / @turf/\* / tinycolor2 / preact / lodash-es / … tree). Every one is **MIT / ISC / Apache-2.0 / Unlicense** — permissive, no copyleft, AGPL-compatible (DD-07 lineage holds; no new copyleft review). One consolidated NOTICE file rather than 42 `LICENSE.*` sidecars, to keep the dir legible — the small bundles above keep their per-lib `LICENSE.*`. | 62 KB / — |
-| `earth-night-2k.jpg` | Earth-at-night "city lights" surface texture for the `globe.bundle.mjs` `webgl-globe` mode (DD-47 G2). **NASA Visible Earth *Black Marble*** imagery — **public domain** (a US-Government work; not copyrightable, no licence sidecar needed). Sourced from the `earth-night.jpg` example shipped in the MIT `three-globe` package (native 4096×2048), downscaled to 2048×1024 at JPEG q85. Night surface chosen deliberately: attacker→victim arcs + destination rings pop against the dark field, it pre-aligns with the incoming dark MISP theme, and it leans into the playful Norse-attack-map riff the widget *is* (DD-48). Already a compressed JPEG, so no further gzip benefit. | 205 KB / — |
+| `earth-night-2k.jpg` | **"Night" skin** (default) for the `webgl-globe` mode (DD-47 G2). Earth-at-night "city lights" — **NASA Visible Earth *Black Marble***, **public domain** (a US-Government work; not copyrightable, no licence sidecar needed). Sourced from the `earth-night.jpg` example in the MIT `three-globe` package (native 4096×2048), downscaled to 2048×1024 at JPEG q85. Night surface chosen deliberately: arcs + rings pop against the dark field, it pre-aligns with the incoming dark MISP theme, and it leans into the playful Norse-attack-map riff the widget *is* (DD-48). | 205 KB / — |
+| `earth-day-2k.jpg` | **"Day" skin** for the `webgl-globe` mode (DD-49). NASA **Blue Marble** daytime earth (blue oceans, green/tan land, clouds) — public domain. From `three-globe`'s `earth-blue-marble.jpg` example (native 4096×2048), downscaled to 2048×1024 at JPEG q80. The brighter alternate to the (dark) night skin. | 279 KB / — |
+| `earth-dark-2k.jpg` | **"Dark" skin** for the `webgl-globe` mode (DD-49). Minimal near-black globe with dark-grey landmasses — public domain. From `three-globe`'s `earth-dark.jpg` example (native 2048×1024), re-encoded q85. A moody, low-detail surface where the arcs dominate. | 81 KB / — |
 | `VENDORING.md` | This file. | — |
 
 **Combined wire weight for a dashboard with a geo widget:**
@@ -293,17 +295,24 @@ Unlicense). If a future `globe.gl`/`three` bump pulls a copyleft
 (GPL/LGPL/AGPL) transitive dep, the AGPL-compatibility assumption breaks
 — re-run the license walk above and review before shipping.
 
-The earth texture (DD-47 G2) is the NASA Black Marble night image that
-ships in `three-globe`'s example dir, downscaled to hit the size target:
+The earth textures (the `webgl-globe` skins, DD-47 G2 + DD-49) are NASA
+public-domain images that ship in `three-globe`'s example dir,
+downscaled to 2048×1024:
 
 ```bash
-convert /tmp/globegl-bundle/node_modules/three-globe/example/img/earth-night.jpg \
-  -resize 2048x1024 -quality 85 \
-  /var/www/MISP7/app/webroot/js/dashboard/charts/vendor/earth-night-2k.jpg
+T=/tmp/globegl-bundle/node_modules/three-globe/example/img
+V=/var/www/MISP7/app/webroot/js/dashboard/charts/vendor
+convert $T/earth-night.jpg       -resize 2048x1024 -quality 85 $V/earth-night-2k.jpg  # night (default)
+convert $T/earth-blue-marble.jpg -resize 2048x1024 -quality 80 $V/earth-day-2k.jpg    # day (Blue Marble)
+convert $T/earth-dark.jpg        -resize 2048x1024 -quality 85 $V/earth-dark-2k.jpg   # dark (minimal)
 ```
 
 NASA imagery is public domain (a US-Government work), so no licence
-sidecar is required for the image — but keep this provenance note.
+sidecar is required for the images — but keep this provenance note. To
+add another skin: vendor a texture here, add it to the `GLOBE_TEXTURES`
+map in `charts.module.mjs` AND the `skin` enum + `resolveSkin()`
+whitelist in `PewPewMapWidget.php` (both must list it, or a stored value
+silently degrades to `night`).
 
 ## Reproducing `iso-centroids.json` (DD-45 Phase B1)
 

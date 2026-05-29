@@ -718,11 +718,15 @@ function buildPewPewOption(payload, hostEl) {
 
 // ---- pew-pew WebGL globe (DD-47) ----
 
-// Texture + lazy bundle are resolved relative to THIS module (the same
-// import.meta.url pattern ensureWorldMap uses) so a MISP baseurl
-// subpath still works.
-const GLOBE_TEXTURE_URL =
-  new URL('./vendor/earth-night-2k.jpg', import.meta.url).href;
+// Texture skins + lazy bundle are resolved relative to THIS module (the
+// same import.meta.url pattern ensureWorldMap uses) so a MISP baseurl
+// subpath still works. The skin is chosen per widget instance (DD-49,
+// payload.skin); only the selected skin's image is fetched.
+const GLOBE_TEXTURES = {
+  night: new URL('./vendor/earth-night-2k.jpg', import.meta.url).href,
+  day:   new URL('./vendor/earth-day-2k.jpg',   import.meta.url).href,
+  dark:  new URL('./vendor/earth-dark-2k.jpg',  import.meta.url).href,
+};
 
 // Memoised lazy import so a second webgl-globe widget on the same page
 // reuses the first fetch of the heavy (≈508 KB gz) Three.js bundle. The
@@ -789,6 +793,7 @@ function withAlpha(colour, alpha) {
  */
 function initWebglGlobe(hostEl, payload) {
   const flows = Array.isArray(payload.flows) ? payload.flows : [];
+  const textureUrl = GLOBE_TEXTURES[payload.skin] || GLOBE_TEXTURES.night;
 
   // One arc per flow; value drives stroke (log scale). Endpoints are
   // [lon, lat] server-resolved centroids (DD-45 B1).
@@ -846,7 +851,7 @@ function initWebglGlobe(hostEl, payload) {
         .width(hostEl.clientWidth || 600)
         .height(hostEl.clientHeight || 400)
         .backgroundColor('rgba(0, 0, 0, 0)')   // blend with the card
-        .globeImageUrl(GLOBE_TEXTURE_URL)
+        .globeImageUrl(textureUrl)
         .showAtmosphere(true)
         .atmosphereAltitude(0.18)
         .arcsData(arcs)
