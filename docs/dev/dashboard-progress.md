@@ -1919,12 +1919,15 @@ gate (the user still does the merge).
       `"[54]"` so decode yields int not float.
 
   - [ ] **Phase C — Front-end 2D.** One commit per sub-task:
-    - [ ] **C1.** Rebuild ECharts main bundle with `LinesChart`
+    - [x] **C1.** Rebuild ECharts main bundle with `LinesChart`
       added to `entry.mjs` + `use([...])`.  Bundle-size delta
       noted in `VENDORING.md`.  Per
       [[project-misp-echarts-bundle-treeshaken]] — without the
       `use()` registration, `type:'lines'` silently renders
-      nothing.
+      nothing.  **DONE** (commit `72428eae5`): `"lines"`
+      series-type registration verified new (old bundle 0 →
+      new 3 occurrences); delta +15 KB raw / +4 KB gzipped
+      (717 KB / 243 KB total).
     - [ ] **C2.** `app/View/Elements/dashboard/Widgets/PewPewMap.ctp`
       — render kind shim.  Reads `payload.mode`, calls
       `chartsModule.buildPewPewOption2D` or `...3D` accordingly.
