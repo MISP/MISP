@@ -2009,39 +2009,54 @@ gate (the user still does the merge).
           id) confirms `cache_scope='global'`.
       Temp webroot files deleted after; 302 confirms removal.
 
-  - [ ] **Phase D — Front-end 3D (lazy-loaded).** One commit
-    per sub-task:
-    - [ ] **D1.** Build `echarts-gl.bundle.mjs` — new
-      `entry.mjs` in `/tmp/echartsgl-bundle/`, install
-      `echarts-gl@2`, `use([Lines3DChart, GlobeComponent])`,
-      esbuild with the same recipe as the main bundle.  Output
-      to `app/webroot/js/dashboard/charts/vendor/
-      echarts-gl.bundle.mjs` + `.LEGAL.txt` sidecar +
-      `LICENSE.echarts-gl`.  Documented in `VENDORING.md`.
-    - [ ] **D2.** Vendor `world-texture-2k.jpg` — source
-      decided in Phase D (NASA Blue Marble PD candidate, or
-      SVG-rendered from `world-110m.geojson` for a flat
-      political look).  Build procedure + size noted in
-      `VENDORING.md`.  Token-tinted at render time via globe
-      shading; the texture itself is theme-neutral.
-    - [ ] **D3.** `buildPewPewOption3D(payload, hostEl)` in
-      `charts.module.mjs` — dynamically imports
-      `echarts-gl.bundle.mjs` on first call (cached
-      thereafter); ECharts globe + lines3D series; same
-      `flows[]` payload mapped to `[lng, lat]` triples.  Globe
-      shading + tint resolve from tokens; lines3D colours
-      mirror the 2D path.  Loading state UI while the lazy
-      import resolves.
-    - [ ] **D4.** Mode-switch wiring: widget `$schema['mode']`
-      surfaces a `<select>` in the configure form with
-      `2d`/`3d-globe`; handler reads from config; renderer
-      branches on `payload.mode`.  Default `'2d'` preserved.
+  - [ ] **Phase D — Front-end "globe" mode (d3-geo orthographic
+    2.5D).**  **DD-46 supersedes the original echarts-gl Phase D**
+    (echarts-gl unmaintained + echarts@6-incompatible without a
+    build patch + 247 KB gz + WebGL).  The globe is now the SAME
+    Phase C arc engine (`geo`+`lines`+`effectScatter`+`tokenOn`)
+    with the `geo.projection` swapped to a hemisphere-culling
+    orthographic projection — no new dependency, no WebGL, no
+    texture, +0.1 KB gz.  One commit per sub-task:
+    - [ ] **D1.** Add `geoOrthographic` to `d3-geo.bundle.mjs`'s
+      export barrel (`entry.mjs`: `export { geoNaturalEarth1,
+      geoOrthographic } from 'd3-geo';`) + rebuild via the
+      `VENDORING.md` d3-geo recipe + add the `VENDORING.md` note.
+      `geoOrthographic` is in d3-geo CORE (no new package).
+      **DONE** (this session): bundle 17.4 → 18.1 KB raw /
+      7.4 → 7.5 KB gzipped (+0.1 KB gz — shares d3-geo core).
+      Smoke-tested: loads + exports; confirmed it folds
+      back-hemisphere points as a point fn (drives the D3 culling
+      wrapper).  Validated end-to-end by a throwaway 6-arc spike
+      page (deleted) — crisp attack globe, clean limb, no folding.
+    - [ ] **D2.** ~~Vendor `world-texture-2k.jpg`~~ **VOID (DD-46).**
+      The orthographic disc draws the existing `world-110m.geojson`
+      polygons (same as WorldMap) — no texture to vendor.
+    - [ ] **D3.** Add the globe branch to the pew-pew builder in
+      `charts.module.mjs`.  Import `geoOrthographic` from the
+      d3-geo bundle (statically — already imported for WorldMap;
+      **no lazy `import()`, dispatch stays SYNC**, voiding the
+      DD-45 async-restructure gotcha).  When `payload.mode ===
+      '3d-globe'`, set `geo.projection` to a **hemisphere-culling
+      orthographic wrapper**: `{ project, unproject }` where
+      `project([lon,lat])` returns `[NaN,NaN]` when the
+      great-circle cosine to the view centre is `< 0` (back
+      hemisphere — ECharts geo tolerates the NaN sentinel: bbox
+      fit ignores NaNs, canvas skips NaN segments), else the d3
+      orthographic point.  Same `flows[]`, same danger/warning
+      tokens, same three z-stacked series.  Pick a default
+      `rotate` (e.g. `[ -10, -25 ]` — Atlantic-centred so US+EU+
+      attacker arcs read).  2D path unchanged (no projection).
+    - [ ] **D4.** Mode-switch wiring: confirm the B2-shipped
+      `$schema['mode']` `2d`/`3d-globe` `<select>` round-trips
+      handler → payload → renderer end-to-end.  Default `'2d'`
+      preserved.  Refine the `<select>` label for `3d-globe` to
+      read "Globe" (value unchanged for schema stability, DD-46).
     - [ ] **D5.** Visual verification — both modes, headless
-      Chrome.  Bundle-size measured: confirm main bundle
-      didn't grow on Phase C; confirm `echarts-gl.bundle.mjs`
-      only loads on a 3D-mode widget; confirm cache hit on
-      second 3D render (no second fetch).  Light/dark theme
-      tested for both modes.
+      Chrome (C5 recipe).  Confirm: globe renders the real-pipeline
+      arc (IR→US) on the orthographic disc; synthetic multi-arc
+      page shows clean limb + culled back face; light/dark both
+      retheme via `tokenOn`; the MAIN bundle is untouched and NO
+      GL/WebGL asset loads; mode switch flips 2D↔globe live.
 
   - [ ] **Phase E — Polish + handoff refresh.** Final commit:
     - [ ] **E1.** `cache_duration` and `cache_scope` tuned

@@ -4053,3 +4053,105 @@ fixture-tagging fork could be reconsidered in Phase C if the
 2D visual verification needs more arcs to be meaningful, but
 the widget's correctness is independent of the data volume.
 
+## DD-46 — Pew-pew 3D mode: **d3-geo orthographic "2.5D" globe**, superseding DD-45's echarts-gl lazy-load plan
+
+**Date.** 2026-05-29
+
+**Status.** Binding. Supersedes the Phase D vendoring approach inside
+DD-45 (the "3D bundle: lazy-load echarts-gl" fork and the
+`echarts-gl.bundle.mjs` + `world-texture-2k.jpg` vendoring section).
+The DD-45 widget shape, data-resolution contract, `flows[]` payload,
+mode config switch, caching, and 2D render path (Phase C, shipped) are
+all unchanged. Only *how the "globe" mode is drawn* changes.
+
+**Problem.** DD-45 Phase D specified the 3D globe as ECharts `globe` +
+`lines3D` from `echarts-gl`, lazy-loaded from a separate bundle. While
+implementing D1 (building that bundle) three liabilities surfaced that
+DD-45 hadn't weighed, and the user re-opened the look-and-feel premise
+("the echarts-gl look is roughly what I want, not set in stone"):
+
+1. **`echarts-gl` is effectively unmaintained** — last real release
+   2022; `2.1.0` (the only version that even *claims* echarts@6
+   support, via a peer-range bump) still ships echarts@5-era
+   *extensionless* deep imports (`echarts/lib/coord/geo/fix/textCoord`).
+   echarts@6's package `exports` map (`"./*": "./*"`) refuses to
+   auto-append `.js`, so the bundle won't build without a hand-written
+   esbuild resolver plugin (19 such import errors). That plugin is a
+   standing maintenance liability: an echarts@7 bump could break the
+   extension outright with no upstream fix forthcoming.
+2. **Weight.** The self-contained GL bundle measured **814 KB raw /
+   247 KB gzipped** — it can't cleanly share the main bundle's echarts
+   instance (per-instance series registration), so it duplicates
+   echarts core. Plus `claygl` + a hard WebGL requirement (won't render
+   on GPU-less VMs / headless without flags).
+3. **All-new surface.** `lines3D`/`globe` reuse *none* of the Phase C
+   arc engine; the globe texture (D2) adds a ~250 KB asset to vendor +
+   licence-review.
+
+**Forks considered (this session, AskUserQuestion).**
+
+* **echarts-gl (the DD-45 plan).** True WebGL textured globe, same
+  `flows[]` data + `tokenOn` theming. Bundle already built this session.
+  Rejected: the unmaintained-dependency liability + 247 KB + WebGL
+  requirement are a heavy, fragile price for *optional* polish on a
+  dev DB that renders **1 arc**.
+* **globe.gl / three-globe.** Best modern "attack-globe" aesthetic,
+  actively maintained, arcs+rings built in. Rejected: a large new
+  Three.js vendor family (~600 KB+ gz), entirely separate from echarts
+  (own theming — no `tokenOn` reuse), reuses none of Phase C, biggest
+  integration + a fresh AGPL licence review (DD-07 lineage).
+* **Stay 2D, skip 3D.** The flat arc map (Phase C) is shipped and is
+  arguably the clearer ops view (many real threat maps are flat).
+  Viable fallback, but the user does want a globe look.
+* **d3-geo orthographic "2.5D" — PICKED.** Reuse 100% of the Phase C
+  arc engine (`geo` + `lines` + `effectScatter` + `tokenOn`) and only
+  swap the `geo.projection` to an orthographic (from-space) projection.
+  `geoOrthographic` lives in **d3-geo core, which the dashboard already
+  vendors** (DD-15/16); adding it to `d3-geo.bundle.mjs` cost **+0.1 KB
+  gzipped** (7.4 → 7.5 KB). No WebGL, no new dependency, no texture,
+  themeable for free, renders in plain headless Chrome. Tradeoff
+  accepted: a globe *silhouette* (flat-shaded political disc), not a
+  photo-textured lit sphere, and any auto-rotation is manual
+  (re-render on a timer with an incremented `rotate` λ).
+
+**Key technical finding (de-risked via a spike before committing).**
+d3's `geoOrthographic`, when called as a *point function*
+`p([lon,lat])`, does **not** apply `clipAngle` — back-hemisphere points
+fold onto the front face (verified: `p([100,0])` returns a valid folded
+point, not null). The fix is a **hemisphere-culling wrapper**: compute
+the great-circle cosine between the point and the view centre
+(`cos d = sin φc sin φ + cos φc cos φ cos(λ−λc)`); return `[NaN, NaN]`
+when `cos d < 0`. ECharts' `geo` coordinate system tolerates the NaN
+sentinel cleanly — its bounding-box fit ignores NaNs and canvas skips
+NaN path segments, so the limb renders clean with no folding. A
+synthetic 6-arc spike (CN/RU/IR → US/EU) rendered a crisp, recognisable
+attack globe: front-face continents correct, back face hidden, arcs +
+pulsing destination glows intact, animated arrowheads mid-flight. This
+validated the "drop-in projection swap + culling wrapper" claim before
+any plan rewrite.
+
+**Implications for the DD-45 vendoring section (now void).**
+- **No `echarts-gl.bundle.mjs`** — not built, not vendored. The
+  `/tmp/echartsgl-bundle/` scratch work is abandoned (never touched the
+  repo). The main `echarts.bundle.mjs` is untouched by Phase D.
+- **No `world-texture-2k.jpg`** — the orthographic disc draws the same
+  `world-110m.geojson` polygons the WorldMap already uses.
+- **No lazy `import()` / async dispatch restructure** — d3-geo is
+  already statically imported by `charts.module.mjs` for WorldMap, so
+  the globe path is fully synchronous like the 2D path. The DD-45
+  "pewpew dispatch must go async" gotcha no longer applies.
+- **Mode value unchanged.** The B2-shipped config enum keeps its
+  `'3d-globe'` value (avoids touching the shipped schema/handler
+  round-trip, DD-44-style stability); only the user-facing `<select>`
+  label is refined to read "Globe" rather than implying WebGL 3D.
+
+**Vendoring (revised Phase D).** `d3-geo.bundle.mjs` rebuilt to add
+`geoOrthographic` to its export barrel (`entry.mjs`): 17.4 → 18.1 KB
+raw / 7.4 → 7.5 KB gzipped. No other vendor change. Reproduce per the
+d3-geo recipe in `VENDORING.md` (just add `geoOrthographic` to the
+`d3-geo` export line).
+
+**Reversibility.** Remove the `orthographic`/`globe` branch from
+`buildPewPewOption*` + drop `geoOrthographic` from the bundle export +
+rebuild. The 2D mode is wholly independent. Pure addition over the
+shipped Phase C; no existing behaviour altered.
