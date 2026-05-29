@@ -12,7 +12,7 @@
 // markup + a post-render scan is the simplest pattern that works.
 
 import echarts from './vendor/echarts.bundle.mjs';
-import { geoNaturalEarth1, geoRobinson, geoCylindricalEqualArea } from './vendor/d3-geo.bundle.mjs';
+import { geoNaturalEarth1, geoRobinson, geoCylindricalEqualArea, geoOrthographic } from './vendor/d3-geo.bundle.mjs';
 import { registerMispTheme, MISP_THEME_NAME } from './echarts-theme.mjs';
 import { initMonitorChart } from './monitor-chart.mjs';
 
@@ -529,17 +529,68 @@ function buildNetworkOption(payload, hostEl) {
 
 // ---- pew-pew attack flow map (DD-45) ----
 
+// Default view centre for the orthographic "globe" mode, as d3's
+// [lambda, phi] rotation (the visible centre is [-lambda, -phi]). [10,
+// -30] => centre near [-10, 30]: a North-Atlantic framing showing the
+// Americas, Europe/Africa, and the Middle East/Asia attacker side
+// together, validated in the DD-46 spike. Rotation is static in v1
+// (DD-46: auto-rotate deferred to polish).
+const PEWPEW_GLOBE_ROTATE = [10, -30];
+
+/**
+ * Hemisphere-culling orthographic projection for the pew-pew "globe"
+ * mode (DD-46, superseding DD-45's echarts-gl plan). d3's
+ * geoOrthographic, called as a point function `p([lon,lat])`, does NOT
+ * apply clipAngle — back-hemisphere points fold onto the front face.
+ * So we cull explicitly: return [NaN, NaN] for any point whose
+ * great-circle angle from the view centre exceeds 90° (cosine < 0).
+ * ECharts' `geo` coordinate system tolerates the NaN sentinel — its
+ * bounding-box fit ignores NaNs and the canvas renderer skips NaN path
+ * segments — so the limb renders clean with no folding (spike-verified).
+ * `rotate` is d3's [lambda, phi]; the view centre is [-lambda, -phi].
+ */
+function orthographicProjection(rotate) {
+  const p = geoOrthographic().rotate(rotate);
+  const DEG = Math.PI / 180;
+  const lon0 = -rotate[0] * DEG;
+  const lat0 = -rotate[1] * DEG;
+  const sinLat0 = Math.sin(lat0);
+  const cosLat0 = Math.cos(lat0);
+  return {
+    project: (pt) => {
+      const lon = pt[0] * DEG;
+      const lat = pt[1] * DEG;
+      // Cosine of the great-circle angle between the point and the
+      // view centre; < 0 means the far (back) hemisphere — cull it.
+      const cosc = sinLat0 * Math.sin(lat)
+        + cosLat0 * Math.cos(lat) * Math.cos(lon - lon0);
+      if (cosc < 0) return [NaN, NaN];
+      return p(pt);
+    },
+    unproject: (xy) => p.invert(xy),
+  };
+}
+
 /**
  * Animated attacker→victim arcs over a world map (the "pew pew" map).
  * Payload from AttackFlowMapWidget::handler():
  *   { mode, flows: [{ src:[lon,lat], dst:[lon,lat], value,
  *                     src_iso, dst_iso }] }
  * Centroids are resolved server-side (DD-45 Phase B1) so we just plot
- * raw lon/lat through the `geo` coordinate system (native
- * equirectangular — no custom projection, so the arcs read as the
- * classic flat-map pew-pew).
+ * raw lon/lat through the `geo` coordinate system.
  *
- * Three z-stacked layers over a static `geo` world map:
+ * Two modes share one builder (DD-45 single-widget mode switch,
+ * dispatch stays SYNC per DD-46):
+ *   - `mode !== '3d-globe'` (default '2d'): native equirectangular —
+ *     no custom projection, so the arcs read as the classic flat-map
+ *     pew-pew.
+ *   - `mode === '3d-globe'`: a hemisphere-culling orthographic
+ *     projection (DD-46) turns the same `geo` into a from-space "2.5D"
+ *     globe (d3-geo `geoOrthographic`, already vendored — no echarts-gl,
+ *     no WebGL). Back-hemisphere arcs/countries cull to a clean limb.
+ *
+ * Three z-stacked layers over the `geo` world map (identical in both
+ * modes — only the projection differs):
  *   1. `lines` static arc bodies — per-arc width scales by
  *      log(value), opacity by normalised value; danger token.
  *   2. `lines` animated trail — a moving arrowhead riding each arc
@@ -551,13 +602,8 @@ function buildNetworkOption(payload, hostEl) {
  * Colours resolve via tokenOn() so a retoned/dark theme (PRD §8.1)
  * recolours the arcs and glow without touching JS. Aggregate-only
  * (DD-11/DD-45): no drilldown, no per-arc click handler.
- *
- * `payload.mode === '3d-globe'` is Phase D (lazy-loaded echarts-gl
- * globe). Until that bundle ships, the registry maps `pewpew` straight
- * to this 2D builder, so a 3D config opt-in degrades to the 2D arcs
- * rather than rendering blank.
  */
-function buildPewPewOption2D(payload, hostEl) {
+function buildPewPewOption(payload, hostEl) {
   const flows = Array.isArray(payload.flows) ? payload.flows : [];
 
   const danger  = tokenOn(hostEl, '--misp-dash-danger',        '#dc2626');
@@ -619,6 +665,12 @@ function buildPewPewOption2D(payload, hostEl) {
       map: 'world',
       roam: true,
       silent: true,
+      // 'globe' mode (DD-46): swap the projection to a hemisphere-
+      // culling orthographic so the same arcs read as a from-space
+      // 2.5D globe. '2d' (default) uses ECharts' native flat lon/lat.
+      ...(payload.mode === '3d-globe'
+        ? { projection: orthographicProjection(PEWPEW_GLOBE_ROTATE) }
+        : {}),
       itemStyle: {
         areaColor: countryFill,
         borderColor: countryStroke,
@@ -670,9 +722,9 @@ const builders = {
   geo: buildGeoOption,
   pie: buildPieOption,
   network: buildNetworkOption,
-  // 3d-globe mode degrades to 2D until the Phase D echarts-gl bundle
-  // ships (see buildPewPewOption2D doc-comment).
-  pewpew: buildPewPewOption2D,
+  // One builder, two modes (DD-45 mode switch): '2d' flat map or
+  // '3d-globe' orthographic globe (DD-46) — see buildPewPewOption.
+  pewpew: buildPewPewOption,
 };
 
 // ---- public API ----

@@ -6,9 +6,11 @@
  * Dumb shim, consistent with the other ECharts render kinds (WorldMap,
  * BarChart, PieChart, NetworkGraph): it emits a `data-misp-chart`
  * host div whose JSON payload is dispatched client-side by
- * `charts.module.mjs`. The module reads `payload.mode` and builds the
- * 2D option (`buildPewPewOption2D`); the `3d-globe` mode is Phase D
- * (lazy-loaded echarts-gl) and degrades to the 2D arcs until then.
+ * `charts.module.mjs`. The module's `buildPewPewOption` reads
+ * `payload.mode`: `'2d'` (default) draws the flat-map arcs, while
+ * `'3d-globe'` swaps the geo projection to a hemisphere-culling
+ * orthographic for a from-space "2.5D" globe (DD-46, d3-geo — no
+ * echarts-gl / WebGL). Same payload, same arc layers in both modes.
  *
  * Expected $data shape (from AttackFlowMapWidget::handler()):
  *   [
