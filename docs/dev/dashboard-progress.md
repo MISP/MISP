@@ -2031,7 +2031,7 @@ gate (the user still does the merge).
     - [ ] **D2.** ~~Vendor `world-texture-2k.jpg`~~ **VOID (DD-46).**
       The orthographic disc draws the existing `world-110m.geojson`
       polygons (same as WorldMap) — no texture to vendor.
-    - [ ] **D3.** Add the globe branch to the pew-pew builder in
+    - [x] **D3.** Add the globe branch to the pew-pew builder in
       `charts.module.mjs`.  Import `geoOrthographic` from the
       d3-geo bundle (statically — already imported for WorldMap;
       **no lazy `import()`, dispatch stays SYNC**, voiding the
@@ -2043,9 +2043,18 @@ gate (the user still does the merge).
       hemisphere — ECharts geo tolerates the NaN sentinel: bbox
       fit ignores NaNs, canvas skips NaN segments), else the d3
       orthographic point.  Same `flows[]`, same danger/warning
-      tokens, same three z-stacked series.  Pick a default
-      `rotate` (e.g. `[ -10, -25 ]` — Atlantic-centred so US+EU+
-      attacker arcs read).  2D path unchanged (no projection).
+      tokens, same three z-stacked series.  2D path unchanged.
+      **DONE** (commit `2cc853a57`): new `orthographicProjection
+      (rotate)` helper + `PEWPEW_GLOBE_ROTATE = [10,-30]` default
+      (North-Atlantic framing — US+EU+attacker arcs read);
+      renamed `buildPewPewOption2D` → `buildPewPewOption` (draws
+      both modes now); updated registry + `PewPewMap.ctp`
+      doc-comment.  `node --check` + `php -l` clean.  Verified
+      both modes via the real `initChartsIn` dispatch path
+      (synthetic 6-arc page, deleted after): flat map + a clean
+      orthographic globe (continents form the disc, back face
+      culled, clean limb, arcs/glows/animated arrowheads intact).
+      Full light/dark + real-pipeline (IR→US) check is D5.
     - [ ] **D4.** Mode-switch wiring: confirm the B2-shipped
       `$schema['mode']` `2d`/`3d-globe` `<select>` round-trips
       handler → payload → renderer end-to-end.  Default `'2d'`
