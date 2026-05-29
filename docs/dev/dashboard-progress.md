@@ -1824,6 +1824,139 @@ gate (the user still does the merge).
   HEAD~ -- app/files/dashboard-templates/admin/template.json` +
   re-run `importDefaultTemplates`.
 
+- [ ] **`AttackFlowMapWidget` + `PewPewMap` render kind — "pew pew"
+  attacker→victim attribution arcs, 2D + 3D (DD-45, started
+  2026-05-29).**  User-requested new render kind: animated arcs
+  between attacker country (resolved from the threat-actor
+  galaxy cluster's `country` element, 937 clusters carry it) and
+  victim country (resolved from country-galaxy tags on the same
+  event).  2D mode = `lines-airline`-style great-circle arcs
+  with animated trails; 3D mode = ECharts-gl globe with
+  `lines3D` series, lazy-loaded.  Spec, data shape, vendoring
+  approach all locked in DD-45.  Phased plan below; one task per
+  commit (per `feedback_commit_per_task`):
+
+  - [x] **Phase A — Planning docs (this session).**
+    DD-45 entered in `dashboard-design-decisions.md`; PRD §15
+    row added; this task list entered; handoff refreshed to
+    point at Phase B as next session's task.  Single commit
+    covering the four `.md` files.  No code touched.
+
+  - [ ] **Phase B — Backend.** One commit per sub-task:
+    - [ ] **B1.** `app/files/scripts/build_iso_centroids.py` —
+      one-off build script that reads
+      `app/webroot/js/dashboard/charts/vendor/world-110m.geojson`,
+      computes polygon centroids with antimeridian handling
+      (Fiji / Russia / Kiribati must land in the right hemisphere),
+      writes
+      `app/webroot/js/dashboard/charts/vendor/iso-centroids.json`.
+      Run once locally, output committed.  Documented in
+      `VENDORING.md`.
+    - [ ] **B2.** `AttributeFlowMapWidget.php` — wait,
+      `app/Lib/Dashboard/AttackFlowMapWidget.php`.  Implements
+      the resolution path (see DD-45): event_tags JOIN tags
+      LIKE `misp-galaxy:country=%` → victim ISO via
+      galaxy_clusters → galaxy_elements.key='ISO'; same event's
+      threat-actor tags → cluster `country` element; cross-
+      product into `(src_iso, dst_iso)` pairs; aggregate by
+      pair → value count; cap at `max_arcs` value-desc; resolve
+      centroids via `iso-centroids.json` read by the handler;
+      return the `flows[]` shape.  `$render='PewPewMap'`,
+      `$category='system'`, `$cache_duration=3600`,
+      `$cache_scope='global'`, params + schema per DD-45.
+    - [ ] **B3.** PHPUnit coverage —
+      `app/Test/AttackFlowMapWidgetTest.php`.  Fixture-driven:
+      mock a small in-memory galaxy/tag graph, verify the
+      resolution path emits the expected `flows[]` for each
+      shape (no actors, no countries, multi-actor multi-victim
+      cross product, missing cluster.country drop, max_arcs
+      truncation).  Mirrors `MailLogToolTest` convention
+      (bare `app/Test/*.php`, stub framework classes at file
+      top, per [[project-misp-test-convention]]).
+
+  - [ ] **Phase C — Front-end 2D.** One commit per sub-task:
+    - [ ] **C1.** Rebuild ECharts main bundle with `LinesChart`
+      added to `entry.mjs` + `use([...])`.  Bundle-size delta
+      noted in `VENDORING.md`.  Per
+      [[project-misp-echarts-bundle-treeshaken]] — without the
+      `use()` registration, `type:'lines'` silently renders
+      nothing.
+    - [ ] **C2.** `app/View/Elements/dashboard/Widgets/PewPewMap.ctp`
+      — render kind shim.  Reads `payload.mode`, calls
+      `chartsModule.buildPewPewOption2D` or `...3D` accordingly.
+      Lets `.misp-widget-body` own scrolling.  Token-aware
+      colour resolution via the existing `tokenOn` helper.
+    - [ ] **C3.** `buildPewPewOption2D(payload, hostEl)` in
+      `app/webroot/js/dashboard/charts/charts.module.mjs` —
+      ECharts geo + lines series; background static arcs + a
+      foreground animated-trail layer with `effect:{show:true,
+      trailLength,symbol:'arrow'}`; width scales by
+      `Math.log(value+1)`; opacity by normalised value.
+      Colours resolve via `tokenOn(hostEl,
+      '--misp-dash-danger', ...)` etc.  Re-uses the existing
+      `world-110m.geojson` map registration (same path as
+      `buildGeoOption`).
+    - [ ] **C4.** `thumbPewPewMap()` builder in
+      `app/webroot/js/dashboard/gallery/render-thumbs.mjs` —
+      single-colour SVG glyph at 80×45 viewBox: schematic world
+      outline + two diagonal arcs converging on a centre point.
+      Registered in the `REGISTRY` object under key
+      `'PewPewMap'`.  Per CLAUDE.md render-kind glyph rule.
+    - [ ] **C5.** Visual verification (DD-41 recipe): inline
+      the rendered widget HTML into a static page under
+      `app/webroot/`, screenshot via headless Chrome with the
+      full CSS stack loaded, READ the PNG, delete the temp
+      file.  Confirm arcs render against the dev DB's ~35
+      country-galaxy-tagged events; confirm light/dark theme
+      both work; confirm `cache_duration=3600` round-trip via
+      Redis purge + re-render.
+
+  - [ ] **Phase D — Front-end 3D (lazy-loaded).** One commit
+    per sub-task:
+    - [ ] **D1.** Build `echarts-gl.bundle.mjs` — new
+      `entry.mjs` in `/tmp/echartsgl-bundle/`, install
+      `echarts-gl@2`, `use([Lines3DChart, GlobeComponent])`,
+      esbuild with the same recipe as the main bundle.  Output
+      to `app/webroot/js/dashboard/charts/vendor/
+      echarts-gl.bundle.mjs` + `.LEGAL.txt` sidecar +
+      `LICENSE.echarts-gl`.  Documented in `VENDORING.md`.
+    - [ ] **D2.** Vendor `world-texture-2k.jpg` — source
+      decided in Phase D (NASA Blue Marble PD candidate, or
+      SVG-rendered from `world-110m.geojson` for a flat
+      political look).  Build procedure + size noted in
+      `VENDORING.md`.  Token-tinted at render time via globe
+      shading; the texture itself is theme-neutral.
+    - [ ] **D3.** `buildPewPewOption3D(payload, hostEl)` in
+      `charts.module.mjs` — dynamically imports
+      `echarts-gl.bundle.mjs` on first call (cached
+      thereafter); ECharts globe + lines3D series; same
+      `flows[]` payload mapped to `[lng, lat]` triples.  Globe
+      shading + tint resolve from tokens; lines3D colours
+      mirror the 2D path.  Loading state UI while the lazy
+      import resolves.
+    - [ ] **D4.** Mode-switch wiring: widget `$schema['mode']`
+      surfaces a `<select>` in the configure form with
+      `2d`/`3d-globe`; handler reads from config; renderer
+      branches on `payload.mode`.  Default `'2d'` preserved.
+    - [ ] **D5.** Visual verification — both modes, headless
+      Chrome.  Bundle-size measured: confirm main bundle
+      didn't grow on Phase C; confirm `echarts-gl.bundle.mjs`
+      only loads on a 3D-mode widget; confirm cache hit on
+      second 3D render (no second fetch).  Light/dark theme
+      tested for both modes.
+
+  - [ ] **Phase E — Polish + handoff refresh.** Final commit:
+    - [ ] **E1.** `cache_duration` and `cache_scope` tuned
+      against real render cost (default 3600 + global is the
+      starting hypothesis from DD-45; adjust if profiling
+      shows otherwise).
+    - [ ] **E2.** Open follow-ups recorded (if any: tooltip
+      detail per arc, click-to-filter-by-country, etc.) — none
+      planned in v1, but Phase E logs whatever surfaces during
+      C+D verification.
+    - [ ] **E3.** Handoff refreshed to reflect DD-45 closed,
+      next-session TBD.
+
 ---
 
 ## Phase 6 — Merge to `develop`

@@ -1,34 +1,67 @@
-# Dashboard v2 — Session handoff (2026-05-28 — DD-43 rotated-file + DD-44 admin-template snapshot landed; next: TBD)
+# Dashboard v2 — Session handoff (2026-05-29 — UsageDataWidget audit + DD-45 Pew-pew map planning landed; next: DD-45 Phase B (backend))
 
-Twenty-fourth session. Authoritative state lives in:
+Twenty-fifth session. Authoritative state lives in:
 
 - `dashboard-prd.md` — spec (binding decisions table §15, now incl.
-  DD-16..DD-44).
+  DD-16..DD-45).
 - `dashboard-progress.md` — task state. **Phase 5 + 5.5 closed; Phase 6
-  (merge) is the only tracked phase left.** Two new entries this
-  session in "Post-5.5 — New features": the `MailLogTool rotated-file
-  traversal (DD-43)` bullet and the `Shipped admin dashboard template
-  — full snapshot replace (DD-44)` bullet.
-- `dashboard-design-decisions.md` — DD-01..DD-44 (DD-43 + DD-44 this
-  session).
+  (merge) is the only tracked phase left.** Three entries in
+  "Post-5.5 — New features" carried from prior sessions (`MailLogTool
+  rotated-file traversal (DD-43)`, `Shipped admin dashboard template
+  (DD-44)`) plus this session's new entry: **`AttackFlowMapWidget` +
+  `PewPewMap` render kind (DD-45)** — Phase A landed (planning docs
+  only), Phases B-E queued as sequential checklist sub-tasks.
+- `dashboard-design-decisions.md` — DD-01..DD-45 (DD-45 this
+  session, spec-only).
 
 This file is the bridge: ephemeral session context. Replace as work
 progresses.
 
-## TL;DR — this session (3 signed commits, `%G?`=U, not merged)
+## TL;DR — this session (2 signed commits, `%G?`=U, not merged)
 
 ```
-47f3ccb41 chg DD-44 — shipped admin dashboard template: v2 snapshot
-721b69163 new DD-43 — MailLogTool rotated-file traversal
-<handoff refresh commit>
+ae2c8a980 chg UsageDataWidget — drop dead /* checkPermissions */ block
+<DD-45 Phase A planning-docs commit + handoff refresh>
 ```
 
-Plus the in-tree settings.local.json fix from the `/doctor` prompt
-at the start of the session (replaced a broken `:*` mid-pattern
-permission rule with a prefix-matching `--scan:*` form) — that was
-the harness's local-config; not a dashboard-v2 change.
+Sanity-check session followed by a planning-only session for the
+next feature. Two pieces:
 
-Two pieces of work, both landed and verified:
+1. **Admin-template widget-access audit + UsageDataWidget cleanup.**
+   User asked "every widget in the admin template should require
+   admin privileges — is that the case?". Audit: **12/14 widgets
+   actively gate on `perm_site_admin` via `checkPermissions()`**;
+   2 are deliberately open — `UsageDataWidget` (aggregate
+   statistics, no admin-only data; commented gate carried a
+   "There is nothing sensitive in here" note) and `NewUsersWidget`
+   (handler self-redacts emails + id-drilldown for non-admins).
+   First audit was wrong on UsageDataWidget — `awk` matched the
+   commented-out method body and I missed the `/*` wrapper.
+   Self-corrected; the dead comment block (lines 422-431 of
+   `app/Lib/Dashboard/UsageDataWidget.php`) was removed so it
+   doesn't trip the next audit. Commit `ae2c8a980`.
+
+2. **Dark-theme readiness check.** User asked "how prepared is
+   the CSS for a light/dark toggle?". Audit: **dashboard side
+   is fully ready** — 46 `--misp-dash-*` tokens defined on
+   `:root`, 887 `var(--...)` usages, `dashboard.midnight.css`
+   exists as a dormant overlay activated by `:root[data-theme=
+   "midnight"]`, `charts.module.mjs::tokenOn()` makes ECharts
+   theme-aware. PRD §8.1 explicitly anticipated this. **User
+   agreed with my pushback** that a dashboard-local toggle is
+   architecturally wrong — dark mode should ship as a global
+   MISP `/Themed/<DarkTheme>/` overlay, not a per-page toggle.
+   No code change. Decision saved as
+   [[project-misp-dark-theme-sequencing]] memory.
+
+3. **DD-45 — Pew-pew attack flow map (planning only).** New
+   widget scoped: `AttackFlowMapWidget` + new `PewPewMap` render
+   kind, animated attacker→victim arcs in two modes (2D lines-
+   airline + 3D echarts-gl globe), data sourced from threat-
+   actor galaxy cluster `country` element → country-galaxy tag
+   on event. Forks resolved (see DD-45 in design-decisions);
+   phased plan written into progress.md. This session = Phase A
+   (docs only); next session = Phase B (backend).
 
 1. **DD-43 — `MailLogTool` rotated-file traversal.** Closes the
    explicit bounded-scan caveat carried in the DD-41 search-filter
@@ -52,6 +85,132 @@ Two pieces of work, both landed and verified:
    MispAdminHealth cover MispStatus's slot).
 
 ## What landed (reuse these facts)
+
+### UsageDataWidget — dead checkPermissions comment removed
+
+- `app/Lib/Dashboard/UsageDataWidget.php` lines 422-431 carried
+  a `/* There is nothing sensitive in here. ...checkPermissions
+  body... */` block. PHP never parsed it; widget was always open
+  to all users (matches its presence in both `admin/template.
+  json` and `community/template.json`). Removed so it doesn't
+  trip the next reader.
+- Commit `ae2c8a980`. Pure cleanup; behaviour byte-identical.
+
+### Admin template widget-access audit (informational, no DD)
+
+- **Audit method:** for each of the 14 widgets in `app/files/
+  dashboard-templates/admin/template.json`, run PHP-reflection
+  + grep-after-comment-strip against
+  `app/Lib/Dashboard/<Name>.php` looking for an active
+  `checkPermissions()` method.
+- **Result (post-cleanup):** 12 / 14 actively gate on
+  `perm_site_admin` (LoginsWidget, APIActivityWidget,
+  BenchmarkTopListWidget, MispAdminSyncTestWidget,
+  MispAdminWorkerWidget, CpuLoadMonitorWidget,
+  MemoryUsageMonitorWidget, DiskUsageMonitorWidget,
+  LoggedInUsersWidget, MispAdminHealthWidget,
+  MispCacheStatusWidget, MispMailLogWidget). 2 open by design:
+  UsageDataWidget (aggregate-only) and NewUsersWidget (handler
+  self-redacts emails + drilldown for non-admins,
+  `cache_scope='user'` prevents cross-viewer leak).
+- **First-audit landmine to remember:** the bash awk pattern
+  `awk '/function checkPermissions/,/^    }/'` will happily
+  match a function body that lives inside a `/* ... */` block.
+  PHP reflection (`ReflectionClass::hasMethod`) or grep with
+  pre-stripped comments is the correct audit.
+- **Bonus finding (corrected):** my first audit pass claimed
+  Community template silently drops UsageDataWidget for non-
+  admins via `Dashboard::import()`'s `loadWidget(..., true)`
+  filter. **Wrong** — the gate was commented out; widget loads
+  normally. Both audits + the commit message document the
+  self-correction so it doesn't recur.
+
+### Dark-theme readiness check (informational, no DD)
+
+- Quantified the dashboard's token surface: **46
+  `--misp-dash-*` tokens** defined on `:root` of
+  `app/webroot/css/dashboard/dashboard.default.css`, **887
+  `var(--misp-dash-*)` usages** across the file.
+- `dashboard.midnight.css` (49 lines) is a complete dark
+  overlay activated by `:root[data-theme="midnight"]`. Loaded
+  alongside `dashboard.default.css` in both
+  `app/View/Layouts/dashboard.ctp:31-32` AND
+  `app/View/Themed/Overmind/Layouts/dashboard.ctp:48-49`.
+- `charts.module.mjs::tokenOn(hostEl, name, fallback)` reads
+  `getPropertyValue` from the host element at render time —
+  ECharts repaints follow the cascade automatically.
+- **8 hardcoded colour rules remain outside `:root`** —
+  mostly translucent `rgba(0,0,0,0.x)` borders/scrims that
+  work on both backgrounds; the one `rgba(220, 38, 38, 0.10)`
+  at `dashboard.default.css:544` is the real candidate for a
+  token if dark mode is rolled out.
+- **Gap in `dashboard.midnight.css`:** does NOT redefine
+  `--misp-dash-{success,danger,warning,info}-muted` — the
+  WorldMap choropleth low-stops would render with their
+  light-theme translucent values on a dark base.  Visual check
+  needed if/when a dark theme ships.
+- **Decision:** dark mode is parked until a global MISP dark
+  theme exists.  Per PRD §8.1 ("Activation is owned by MISP's
+  theme system, not the dashboard"), the right path is a
+  `Themed/<DarkTheme>/` overlay covering the whole MISP UI; the
+  dashboard inherits via tokens for free. Memory note
+  [[project-misp-dark-theme-sequencing]] saved.
+
+### DD-45 — `AttackFlowMapWidget` + `PewPewMap` render kind (planning only)
+
+- **New v2 render kind** with two modes: 2D `lines-airline`-
+  style great-circle arcs (ECharts `geo` + `lines` series, with
+  animated trail effect) and 3D `lines3D` on `globe` (echarts-
+  gl extension, lazy-loaded). Same `flows[]` payload feeds both.
+- **Data source (forks resolved against IP-pair option):**
+  attacker country = threat-actor galaxy cluster's `country`
+  galaxy element (ISO alpha-2, 937 clusters carry this on the
+  dev DB); victim country = country-galaxy tag on the same
+  event (cluster's `ISO` element). One arc per `(event, actor,
+  victim)` triple; aggregate across events by `(src_iso,
+  dst_iso)` into a `value` count; cap at `max_arcs` (default
+  500).
+- **Centroid resolution:** build-time `iso-centroids.json`
+  (~3 KB, generated from the existing `world-110m.geojson`
+  vendor file by a new `app/files/scripts/
+  build_iso_centroids.py`). Polygon centroids with
+  antimeridian handling so Fiji / Russia / Kiribati land
+  correctly.
+- **3D bundle: lazy-load.** Forks resolved against eager-
+  vendoring (~500 KB-1 MB extra on first paint for the 95% of
+  deployments that don't use 3D). Approach: build a separate
+  `app/webroot/js/dashboard/charts/vendor/echarts-gl.bundle.
+  mjs` + world-texture asset; `charts.module.mjs::
+  buildPewPewOption3D` dynamic-imports on first 3D-mode render
+  (browser-cached thereafter).
+- **Default mode = 2D.** Conservative; avoids ~1-2s GL fetch
+  on first-render of a freshly-placed widget. User opts into
+  3D via config dropdown.
+- **Widget shape:** `$render='PewPewMap'`, `$category=
+  'system'`, `$cache_duration=3600`, `$cache_scope='global'`,
+  open to all users (no admin gate — aggregate-only, mirrors
+  AttributeGeoMapWidget DD-11 posture), default size 6×5.
+- **Theming:** arc body uses `--misp-dash-danger`; destination
+  glow uses `--misp-dash-warning`. Tokens resolve via existing
+  `tokenOn()` helper; light/dark transparent.
+- **CLAUDE.md glyph rule applies:** Phase C-4 adds
+  `thumbPewPewMap()` to `render-thumbs.mjs`.
+- **Dev DB verification surface:** ~35 events with both
+  signals → realistic dozens of arcs visible. Sparse but not
+  zero; visual verification feasible without fixture seeding.
+- Full spec: `dashboard-design-decisions.md` DD-45. Phased
+  implementation checklist: `dashboard-progress.md` under
+  "Post-5.5 — New features".
+
+### (Carried prior-session detail — still load-bearing)
+
+The detailed `DD-43 — MailLogTool rotated-file traversal` and
+`DD-44 — Shipped admin dashboard template snapshot` blocks
+from the previous handoff still describe live shipped
+behaviour. Trimmed from this handoff to keep it focused on
+the live next-session pointer; consult the previous handoff
+in git (`git show 296449fdd:docs/dev/dashboard-handoff.md`)
+if you need the full DD-43 / DD-44 narratives.
 
 ### DD-43 — `MailLogTool` rotated-file traversal
 
@@ -274,55 +433,90 @@ to any other aliased aggregate.
   ($value)` — anything malformed throws and is reported in the
   shell's `[FAIL]` summary.
 
-## Open follow-ups (none blocking)
+## Open follow-ups (active work + carried)
 
-- **In-browser verification of DD-43 + DD-44 (deferred to user —
-  hard-refresh Ctrl-Shift-R):**
-  * MispMailLogWidget with `search` config set hits rotated `.1` /
-    `.gz` companions when the live tail is too short (test against
-    `/tmp/test-mail-rotated.log` fixture or live `/var/log/mail.log`
-    with rotations present).
-  * Template gallery (`/dashboards/listTemplates`) shows the new
-    Administrator template (14 widgets); "Use this" loads the
-    full v2 layout.
-- **NEXT SESSION'S TASK: TBD — user-flagged.** Natural extensions
-  worth surfacing (offer the user a quick fork via AskUserQuestion
-  if none is pre-flagged):
-    * **`MispMailLogWidget` polish (carried)** — the remaining
-      sub-options from this session's mail-widget fork: (b) inline
-      header search-box (Tier 3 from the DD-41 fork — transient
-      search-param protocol extension); (c) slide-in side panel for
-      the setup help (current `<details>` is the v1 cut); (d) per-
-      row drilldown (no clean MISP-internal target — would need a
-      postqueue-output bridge); (e) filter chips (Sent / Deferred /
-      Bounced / Expired) in the header to pre-narrow the row list;
-      (g) ship `/etc/rsyslog.d/misp-mail.conf` as a packaged
-      INSTALL helper.
-    * **Other shipped dashboard templates** — DD-44 only refreshed
-      `admin/template.json`. `analyst/template.json` and
-      `community/template.json` may also be due for a v2-era
-      refresh (check whether either references v2 render kinds; if
-      not, ship a similar snapshot from a curated reference layout).
-    * **`HealthList` polish** (carried) — per-row anchor drilldown
-      into the diagnostics page tab.
-    * **`MispCacheStatusWidget` polish** (carried) — per-node click
-      drilldown.
-    * **Cache-status thresholds configurable** (carried).
-    * **`MispAdminSyncTestWidget` flip to `info` for caching-only
-      servers** (carried).
-    * **Roll StatGrid out** to the remaining key/value admin widgets.
-    * **Audit other legacy widgets** for SimpleList → typed-row-
-      contract rework (DD-42 hit two; there may be more on the
-      gallery — `MispAdminResourceWidget`, `MispSystemResourceWidget`
-      if they still emit raw HTML).
-    * **`MailLogTool` gz-tail optimisation** (DD-43 deferred) — if a
-      chatty mail relay surfaces a render-cost complaint, replace
-      the full-file gz forward scan with a bounded `gzseek`+
-      backwards-binary-search for the last `$lookbackBytes` of
-      decompressed content.
-- Pre-existing (carried): **DD-11 ACL-enforced switchable geo widget
-  path**; **org/COVID maps palette opt-in**; default-templates **live
-  non-admin ACL check**.
+### NEXT SESSION'S TASK — DD-45 Phase B (backend)
+
+Sequential, one commit per sub-task (per
+`feedback_commit_per_task`):
+
+- **B1.** `app/files/scripts/build_iso_centroids.py` — one-off
+  build script. Reads
+  `app/webroot/js/dashboard/charts/vendor/world-110m.geojson`,
+  computes per-country polygon centroids with antimeridian
+  handling (Fiji / Russia / Kiribati shouldn't end up in the
+  Atlantic). Output `iso-centroids.json` (~3 KB) committed
+  alongside `world-110m.geojson`. Document in
+  `VENDORING.md`. Run locally, output checked in.
+- **B2.** `app/Lib/Dashboard/AttackFlowMapWidget.php`.  Resolves
+  per-event `(actor_country, victim_country)` triples via
+  galaxy-element joins (see DD-45 "Data resolution path");
+  aggregates by `(src_iso, dst_iso)` pair; caps at `max_arcs`
+  value-desc; reads `iso-centroids.json` (PHP `json_decode` of
+  the vendor file); emits the `flows[]` payload. `$render=
+  'PewPewMap'`, `$cache_duration=3600`, `$cache_scope=
+  'global'`, no checkPermissions (open to all, matches
+  AttributeGeoMapWidget posture).
+- **B3.** `app/Test/AttackFlowMapWidgetTest.php` — PHPUnit
+  coverage. Fixture-driven (small in-memory galaxy/tag graph);
+  asserts the resolution-path output for: no actors, no
+  countries, multi-actor-multi-victim cross product, missing
+  cluster.country drop, max_arcs truncation. MISP test
+  convention per [[project-misp-test-convention]] — bare
+  `app/Test/*.php`, stub framework classes at top.
+
+### After Phase B — Phases C/D/E
+
+Full sequential plan in `dashboard-progress.md`. Headline:
+* **Phase C** (front-end 2D): rebuild ECharts bundle with
+  `LinesChart`; new `PewPewMap.ctp` render kind shim;
+  `buildPewPewOption2D` in `charts.module.mjs`;
+  `thumbPewPewMap()` glyph in `render-thumbs.mjs` (CLAUDE.md
+  rule); visual verification.
+* **Phase D** (front-end 3D, lazy-loaded): build separate
+  `echarts-gl.bundle.mjs`; vendor `world-texture-2k.jpg`;
+  `buildPewPewOption3D` with dynamic `import()`; mode-switch
+  config wiring; visual verification.
+* **Phase E** (polish): cache tuning, follow-ups recorded,
+  handoff refresh.
+
+### Carried follow-ups (not active)
+
+- **In-browser verification of DD-43 + DD-44** (deferred to user
+  — hard-refresh Ctrl-Shift-R): MispMailLogWidget rotated-file
+  scan against live `/var/log/mail.log` with rotations; template
+  gallery shows the new Administrator template (14 widgets).
+- **`MispMailLogWidget` polish (carried from DD-41)** — (b)
+  inline header search-box; (c) slide-in side panel for setup
+  help; (d) per-row drilldown (no clean MISP-internal target);
+  (e) filter chips (Sent/Deferred/Bounced/Expired); (g) ship
+  `/etc/rsyslog.d/misp-mail.conf` as a packaged INSTALL helper.
+- **Other shipped dashboard templates** — `analyst/template.
+  json` and `community/template.json` may be due for a v2-era
+  refresh similar to DD-44.
+- **HealthList polish** — per-row anchor drilldown into
+  diagnostics page tab.
+- **MispCacheStatusWidget polish** — per-node click drilldown.
+- **Cache-status thresholds configurable.**
+- **MispAdminSyncTestWidget — flip to `info` for caching-only
+  servers.**
+- **Roll StatGrid out** to remaining key/value admin widgets.
+- **Audit other legacy widgets for SimpleList → typed-row
+  rework** — `MispAdminResourceWidget`, `MispSystemResourceWidget`
+  if they still emit raw HTML.
+- **MailLogTool gz-tail optimisation (DD-43 deferred)** —
+  bounded `gzseek`+backwards-binary-search if a chatty mail
+  relay surfaces render-cost complaint.
+- **Dark MISP theme work** — when the global MISP dark theme
+  initiative starts, the dashboard's small carryover is: (a)
+  audit the 8 hardcoded `rgba(...)` rules in `dashboard.default.
+  css` (one `rgba(220, 38, 38, 0.10)` at line 544 worth
+  token-ifying); (b) ensure the dark overlay redefines
+  `--misp-dash-{success,danger,warning,info}-muted`. See
+  [[project-misp-dark-theme-sequencing]].
+- Pre-existing: **DD-11 ACL-enforced switchable geo widget
+  path**; **org/COVID maps palette opt-in**; default-templates
+  **live non-admin ACL check**.
 - **Phase 6 merge — the USER does this, not us.**
 
 ## Live test instance
@@ -446,19 +640,45 @@ supervisorctl -c /etc/supervisor/supervisord.conf start misp-workers:misp-worker
 
 ## Quick-start for the next session
 
-1. Read `dashboard-prd.md` §15 (DD-31..44) +
-   `dashboard-design-decisions.md` DD-43 + DD-44 (+ DD-31..42 for
-   prior sessions' render kinds + the mutation/action pattern from
-   DD-36) + this file.
+1. Read `dashboard-prd.md` §15 row DD-45 +
+   `dashboard-design-decisions.md` DD-45 (full spec, forks
+   resolved, data shape, vendoring approach) + this file. The
+   prior DD-31..DD-44 family is still load-bearing for any
+   widget work; consult their PRD rows if a sub-task touches a
+   pre-existing render kind / convention.
 2. Verify instance: `curl -s http://localhost:5007/dashboards
    -o /dev/null -w "%{http_code}\n"` → 302 (or 200 with the cookie
    jar — re-mint `/tmp/cj_stat.txt` via `reference_misp_login_dance`
    if it 302s).
-3. **Next session's task: TBD — user-flagged.** Wait for the user
-   to name the work. Natural extensions are listed in "Open
-   follow-ups" above — surface them via AskUserQuestion if the user
-   opens with "what next?" rather than a directive.
-4. **Gotchas to carry:**
+3. **Next session's task: DD-45 Phase B (B1 first).**  Build the
+   `iso-centroids.json` from `world-110m.geojson` via the new
+   `app/files/scripts/build_iso_centroids.py`.  Commit the
+   script + the JSON together; document in `VENDORING.md`.
+   Then proceed to B2 (widget class) and B3 (PHPUnit) — one
+   commit each.  Do NOT start Phase C until Phase B is fully
+   green (php -l + PHPUnit + live REST render returning a sane
+   `flows[]` shape).
+4. **DD-45-specific gotchas to carry:**
+   * **Centroid antimeridian handling** — Fiji / Russia /
+     Kiribati polygons span the date line in the source
+     GeoJSON.  Naive `mean(coords)` will put their centroids
+     in the Atlantic.  The `world-110m.geojson` we vendor was
+     ALREADY antimeridian-split at build time (see
+     `vendor/VENDORING.md`), so a feature's `geometry.
+     coordinates` is now a clean MultiPolygon — the centroid
+     can be computed per ring + area-weighted.
+   * **Galaxy element resolution path** — threat-actor cluster's
+     `country` element is alpha-2 already; country galaxy's
+     `ISO` element is also alpha-2 (DD-12 / AttributeGeoMapWidget
+     established this).  SQL:
+     `galaxies → galaxy_clusters → galaxy_elements`, JOIN on
+     `key='country'` (TA side) and `key='ISO'` (country side).
+   * **Aggregate-only posture** — no per-user variation, no
+     drilldown URL, cache_scope `'global'`.  Matches
+     AttributeGeoMapWidget (DD-11).
+   * **max_arcs cap** — default 500; truncation is value-desc
+     so the strongest signals stay visible.
+5. **General gotchas to carry:**
    (a) new ECharts series type → rebuild the bundle's `use([...])`;
    (b) ESM imports ignore the `?v=185` buster → hard-refresh after
    a vendored-bundle/JS change;
@@ -503,6 +723,10 @@ supervisorctl -c /etc/supervisor/supervisord.conf start misp-workers:misp-worker
    (s) **DD-44 admin template uuid changed** — old
    `1bf983ac-...` pruned, new `5000487b-...` is the shipped
    default; `user_settings.dashboard` is unaffected (resolved
-   widget array, not a template reference).
-5. Do NOT start the merge — the user does that. Watch context;
+   widget array, not a template reference);
+   (t) **DD-45 lazy-loaded GL bundle** — `echarts-gl.bundle.
+   mjs` is a SEPARATE vendor file fetched via dynamic
+   `import()` on first 3D render, NOT included in the main
+   `echarts.bundle.mjs`. Don't merge them.
+6. Do NOT start the merge — the user does that. Watch context;
    refresh this handoff before wrapping.

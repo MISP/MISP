@@ -3771,3 +3771,255 @@ file restores the old uuid + the old description + the old 6-
 widget value; the explicit ingest re-inserts the old uuid as a
 fresh row (id changes; the row is functionally equivalent) and
 prunes the new one as orphaned.
+
+## DD-45 — `AttackFlowMapWidget` + `PewPewMap` render kind: animated attacker→victim arcs in 2D and 3D from galaxy tags
+
+**Date.** 2026-05-29
+
+**Status.** Spec drafted; implementation deferred to a multi-phase
+plan tracked in `dashboard-progress.md` (Phase A = this entry,
+Phase B = backend, Phases C/D = 2D/3D front-ends, Phase E =
+polish + handoff). DD entered as binding now because the data
+shape, signal sources, mode contract, and vendoring approach
+constrain every downstream phase.
+
+**Problem.** The v2 dashboard has a choropleth geo widget
+(`AttributeGeoMapWidget`, DD-12) and a country-count surface
+(`OrganisationMapWidget`, `ThreatActorCountryMapWidget`), but no
+*flow* visualisation — no way to see "who is attacking whom"
+across the corpus.  Threat intel boards traditionally feature
+animated attacker→victim arcs ("pew pew" maps) as their headline
+signal; MISP has the underlying data (threat-actor galaxy
+clusters with `country` elements + country-galaxy tags on
+events) but no widget surfaces it.
+
+**Forks considered.**
+
+* **Data source: ip-src + ip-dst pairs vs. galaxy-derived.**  The
+  IP-pair option would draw geometric attack lines from src to
+  dst country centroid — more data (~17.5k ip-src + ~81.4k ip-dst
+  on the dev DB) but **conflates indicator location with
+  attribution** (an ip-dst is often the *victim's infrastructure*
+  not the attacker's source, and ip-src may be an attacker proxy
+  in a third country).  User-rejected in favour of the
+  **galaxy-derived attribution path**: the threat-actor cluster
+  *itself* declares an origin country (cluster's `country` galaxy
+  element, ISO alpha-2), and the country-galaxy tag on the event
+  declares the targeted country (cluster's `ISO` galaxy element).
+  Cleaner semantics: every arc represents a *curator's stated
+  attribution*, not an IP-header guess.
+
+* **Strict tag pairing vs. cluster-country fallback for the
+  attacker side.**  On the dev DB only **5 events** carry both a
+  threat-actor tag AND a country-galaxy tag explicitly — too thin
+  for visual verification.  Forks: (a) ship strict and accept
+  thin demo, (b) build a fixture-tagging script, (c) **resolve
+  attacker country from the threat-actor cluster's own `country`
+  element** (937 clusters carry it).  **Picked (c).**  Semantics
+  preserved (still attacker→victim per event); coverage lifts
+  from 5 → ~35 events (every event with a country-galaxy tag +
+  at least one threat-actor tag whose cluster has a country).
+
+* **Render-kind scope: one widget two modes vs. two widgets.**
+  Two widgets (`AttackFlowMapWidget` for 2D, `AttackGlobeWidget`
+  for 3D) keeps each widget tight but duplicates ~80% of the
+  handler (same data resolution, same arc shape, same caching).
+  **Picked single widget with `mode: '2d' | '3d-globe'` config
+  switch** (mirrors `WorldMap`'s projection switch, DD-13).
+  Renderer dispatches to `buildPewPewOption2D` /
+  `buildPewPewOption3D` based on `mode`; payload is mode-agnostic
+  (same `flows[]` array).
+
+* **3D bundle: vendor eagerly, lazy-load, or skip 3D for v1.**
+  `echarts-gl` (the 3D extension) + a world texture adds
+  **~500 KB–1 MB to first-load weight**, doubling the current
+  bundle for one widget mode.  Forks: (a) eager vendoring
+  (simple but heavy for the 95% of deployments not using 3D),
+  (b) **lazy-load via dynamic `import()` on first 3D render**
+  (default bundle stays 216 KB gzipped; the 3D path pays its
+  cost only when a user actually places a 3D-mode widget),
+  (c) 2D-only v1.  **Picked (b)** — same widget gets both modes,
+  cost gates on actual use.
+
+* **Default mode for newly-placed widget: 2D vs. 3D.**  3D is
+  the "wow" baseline; 2D is the cheap-render baseline.  Picked
+  **2D** — conservative default avoids a ~1-2s GL fetch on the
+  first render of a fresh widget; users opt into 3D via the
+  config dropdown.
+
+**Data resolution path (Phase B contract).**
+
+1. Find events tagged with at least one `misp-galaxy:country=...`
+   tag (the "victim" side).  Per event, collect the list of
+   country-cluster ISO codes via `tags → galaxy_clusters →
+   galaxy_elements.key='ISO'`.
+2. For the same event, collect all `misp-galaxy:threat-actor=...`
+   tags.  Per actor tag, look up the actor cluster's `country`
+   galaxy element (ISO alpha-2).  Actors without a country
+   element are dropped silently.
+3. Emit one arc per `(event, actor, victim_country)` triple.
+4. Aggregate arcs across events by `(src_iso, dst_iso)`; `value`
+   = arc-occurrence count.
+5. Resolve `src_iso → [lon, lat]` and `dst_iso → [lon, lat]` via
+   **build-time-generated `iso-centroids.json`** (computed once
+   from `world-110m.geojson`'s polygon centroids; small file
+   ~3 KB, shipped alongside the existing geo vendor bundle).
+6. Cap output at `max_arcs` (default 500, config-overridable) to
+   keep render cost predictable; truncation is value-desc so the
+   strongest signals always render.
+
+**Data shape contract (renderer-agnostic).**
+
+```php
+return [
+    'mode' => '2d',  // or '3d-globe', from widget config
+    'flows' => [
+        [
+            'src' => [37.6,  55.7],   // [lon, lat] centroid
+            'dst' => [-77.0, 38.9],
+            'value' => 12,             // aggregated arc count
+            'src_iso' => 'RU',
+            'dst_iso' => 'US',
+        ],
+        // ... up to `max_arcs`
+    ],
+    // No 'drilldown' — same posture as AttributeGeoMapWidget
+    // (DD-11): aggregate-only, no stable region→events mapping
+    // since the resolution is computed transiently per render.
+];
+```
+
+**Render kind details.**
+
+* **`PewPewMap.ctp`** (new render kind, glyph needed per CLAUDE.md
+  rule):  thin shim that selects between 2D and 3D builders based
+  on `payload.mode`.  3D path dynamic-imports
+  `vendor/echarts-gl.bundle.mjs` on first call; 2D path uses the
+  existing `vendor/echarts.bundle.mjs` extended with the `Lines`
+  chart series (Phase C rebuild).
+* **`buildPewPewOption2D(payload, hostEl)`** — ECharts geo +
+  lines series.  `coordinateSystem: 'geo'`.  Two lines layers:
+  background `lineStyle: { type: 'solid', opacity: 0.4 }` for the
+  static arcs, foreground `effect: { show: true, trailLength,
+  symbol: 'arrow' }` for the animated trail.  Token-resolved
+  colours via the existing `tokenOn()` helper.  Width scales by
+  `Math.log(value + 1)`; opacity by normalised value.
+* **`buildPewPewOption3D(payload, hostEl)`** — ECharts-gl `globe`
+  base layer + `lines3D` series.  Globe takes a world texture
+  (`vendor/world-texture-2k.jpg`, ~300 KB raw / ~250 KB on the
+  wire after JPEG compression).  Same `flows[]` payload, mapped
+  to `[lng, lat]` triples (lines3D doesn't need altitude — the
+  series auto-arcs over the globe surface).  Token-resolved
+  globe surface tint via `globe.environment` / `globe.shading`.
+* **Glyph in `render-thumbs.mjs`:** `thumbPewPewMap()` —
+  schematic world outline + two diagonal arcs converging on a
+  centre point.  Single-colour SVG per CLAUDE.md convention.
+
+**Widget shape.**
+
+* `class AttackFlowMapWidget`:
+  * `$title = 'Attack flow map'`
+  * `$category = 'system'` (TI-attribution surface)
+  * `$render = 'PewPewMap'`
+  * `$width = 6`, `$height = 5` (wider than choropleth — arcs
+    need room to breathe)
+  * `$cache_duration = 3600` (galaxies + their `country`
+    elements change rarely; 1-hour cache is generous)
+  * `$cache_scope = 'global'` (no per-user variation; widget is
+    aggregate-only)
+  * `$params`:
+    * `mode` — `'2d'` (default) or `'3d-globe'`
+    * `max_arcs` — integer, default 500
+    * `filter` — org-meta filter dictionary, mirrors
+      `AttributeGeoMapWidget`'s pattern
+    * `start_date` / `end_date` / `days` — same date-range
+      vocabulary as the existing widgets
+  * `$schema` — `mode` (select), `max_arcs` (number),
+    `org_meta_filter`, `date_range`
+  * `checkPermissions($user)`: open to all (no admin gate; the
+    data is aggregate, no per-user variation, matches
+    `AttributeGeoMapWidget`'s posture)
+
+**Vendoring (Phase C/D).**
+
+* **Phase C — `Lines` chart in the main bundle.**  `echarts/
+  charts → LinesChart` added to `entry.mjs` and `use([...])`;
+  rebuild per `VENDORING.md` recipe.  Estimated +15-20 KB
+  gzipped on the main bundle (`Lines` is a small series type).
+  No new licence files needed (already Apache 2.0).
+* **Phase D — separate `echarts-gl.bundle.mjs`.**  New entry
+  file pulling `Lines3DChart` + `GlobeComponent` from
+  `echarts-gl@2.x`.  Built with the same esbuild recipe;
+  estimated ~250-400 KB gzipped.  Loaded via `import('/js/
+  dashboard/charts/vendor/echarts-gl.bundle.mjs')` on first 3D
+  render; cached by the browser thereafter.  Licence: Apache
+  2.0 (same as ECharts core); ship `LICENSE.echarts-gl` + the
+  `.LEGAL.txt` sidecar.
+* **Phase D — world texture asset.**  `vendor/world-texture-2k.jpg`
+  — a 2048×1024 equirectangular natural-earth or political-map
+  rendering.  Source candidates: NASA Blue Marble (PD,
+  ~250 KB), Natural Earth raster derivatives (PD, ~200 KB), or
+  a SVG-rendered country-fill PNG built from the same
+  `world-110m.geojson` we already vendor (~150 KB).  Build
+  procedure documented in the updated `VENDORING.md`.
+  Token-tinted at render time via globe shading — the texture
+  itself is theme-neutral.
+* **Phase B — `iso-centroids.json`.**  Build-time-generated from
+  `world-110m.geojson` via `app/files/scripts/
+  build_iso_centroids.py` (added in Phase B); polygon centroids
+  with antimeridian handling (Fiji / Russia / Kiribati shouldn't
+  land in the Atlantic).  Output ~3 KB, shipped at
+  `app/webroot/js/dashboard/charts/vendor/iso-centroids.json`,
+  consumed server-side by the widget handler (PHP read at
+  render).
+
+**Theming.**
+
+Arc colours resolve via the existing `tokenOn(hostEl, ...)`
+helper — `--misp-dash-danger` (attack red) for the arc body,
+`--misp-dash-warning` (target amber) for the destination glow.
+Globe surface colour via `--misp-dash-text-muted` shading.
+Light/dark theme switching is transparent — both modes
+re-resolve tokens on render.  No new tokens needed.
+
+**Performance / safety.**
+
+* `max_arcs` cap (default 500) prevents pathological events
+  (e.g. an event tagged with 50 countries × 20 actors → 1000
+  arc candidates) from blowing the render budget.
+* SQL path uses indexed `event_tags.tag_id` + `tags.name`
+  prefix lookups; no full-table scan.  Worst-case query plan:
+  one filtered `event_tags` join per signal type, aggregated
+  in PHP (not SQL) because the cluster-element lookup is a
+  cross-product expansion.
+* Per-render cache key includes the `filter` config + the date
+  window + `max_arcs` (default cache machinery, DD-20).  1-hour
+  TTL is appropriate — operators don't add countries to
+  threat-actor clusters often.
+* No `drilldown` URLs — aggregate-only.  Matches
+  `AttributeGeoMapWidget` (DD-11).
+
+**Verification plan (Phases C/D).**
+
+* php -l clean on the widget + tool.
+* PHPUnit coverage for the resolution path (mock galaxy fixture
+  → expected `flows[]`).
+* Live REST render via `/dashboards/renderWidget/test1` with
+  both `mode=2d` and `mode=3d-globe` configs; payload shape
+  validated; arcs > 0.
+* Headless-Chrome screenshot of both modes — verify the visible
+  arcs and animated trail (DD-41 / DD-44 recipe).
+* Bundle size check: main bundle stays under 250 KB gzipped
+  after `Lines` add; `echarts-gl.bundle.mjs` weighed and noted
+  in `VENDORING.md`.
+
+**Reversibility.**
+
+Pure addition.  Reverse = delete `AttackFlowMapWidget.php`,
+`PewPewMap.ctp`, the two builder functions in
+`charts.module.mjs`, the `thumbPewPewMap` registry entry, the
+`iso-centroids.json` + `echarts-gl.bundle.mjs` + world-texture
+vendor files, the `LinesChart` line from `entry.mjs`, and
+rebuild the main bundle.  No model / controller / migration /
+shipped-template touched.
+
