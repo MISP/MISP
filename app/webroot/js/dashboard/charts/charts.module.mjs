@@ -527,12 +527,152 @@ function buildNetworkOption(payload, hostEl) {
   };
 }
 
+// ---- pew-pew attack flow map (DD-45) ----
+
+/**
+ * Animated attacker→victim arcs over a world map (the "pew pew" map).
+ * Payload from AttackFlowMapWidget::handler():
+ *   { mode, flows: [{ src:[lon,lat], dst:[lon,lat], value,
+ *                     src_iso, dst_iso }] }
+ * Centroids are resolved server-side (DD-45 Phase B1) so we just plot
+ * raw lon/lat through the `geo` coordinate system (native
+ * equirectangular — no custom projection, so the arcs read as the
+ * classic flat-map pew-pew).
+ *
+ * Three z-stacked layers over a static `geo` world map:
+ *   1. `lines` static arc bodies — per-arc width scales by
+ *      log(value), opacity by normalised value; danger token.
+ *   2. `lines` animated trail — a moving arrowhead riding each arc
+ *      (effect.show), same danger colour, zero-width base line so the
+ *      static layer owns the body.
+ *   3. `effectScatter` destination glow — a pulsing ripple at each
+ *      victim centroid, sized by total incoming value; warning token.
+ *
+ * Colours resolve via tokenOn() so a retoned/dark theme (PRD §8.1)
+ * recolours the arcs and glow without touching JS. Aggregate-only
+ * (DD-11/DD-45): no drilldown, no per-arc click handler.
+ *
+ * `payload.mode === '3d-globe'` is Phase D (lazy-loaded echarts-gl
+ * globe). Until that bundle ships, the registry maps `pewpew` straight
+ * to this 2D builder, so a 3D config opt-in degrades to the 2D arcs
+ * rather than rendering blank.
+ */
+function buildPewPewOption2D(payload, hostEl) {
+  const flows = Array.isArray(payload.flows) ? payload.flows : [];
+
+  const danger  = tokenOn(hostEl, '--misp-dash-danger',        '#dc2626');
+  const warning = tokenOn(hostEl, '--misp-dash-warning',       '#d97706');
+  const countryFill   = tokenOn(hostEl, '--misp-dash-border',        '#d8dde4');
+  const countryStroke = tokenOn(hostEl, '--misp-dash-border-strong', '#b6bdc7');
+
+  const maxV = flows.reduce((m, f) => Math.max(m, Number(f.value) || 0), 0) || 1;
+  const logMax = Math.log(maxV + 1) || 1;
+  // Arc thickness: 0.6..3.2px on a log scale so a single-event arc is
+  // still visible and a high-count arc reads heavier without dominating.
+  const widthOf = (v) => 0.6 + 2.6 * (Math.log((Number(v) || 0) + 1) / logMax);
+  // Static-body opacity: 0.25..0.85 by normalised value.
+  const opacityOf = (v) => 0.25 + 0.6 * ((Number(v) || 0) / maxV);
+
+  const linesData = flows.map((f) => ({
+    coords: [f.src, f.dst],
+    value: Number(f.value) || 0,
+    src_iso: f.src_iso,
+    dst_iso: f.dst_iso,
+    lineStyle: { width: widthOf(f.value), opacity: opacityOf(f.value) },
+  }));
+
+  // Aggregate incoming value per victim centroid for the glow size.
+  const dstAgg = {};
+  for (const f of flows) {
+    const key = f.dst_iso || `${f.dst[0]},${f.dst[1]}`;
+    if (!dstAgg[key]) dstAgg[key] = { coord: f.dst, iso: f.dst_iso, value: 0 };
+    dstAgg[key].value += Number(f.value) || 0;
+  }
+  const dstValues = Object.values(dstAgg).map((d) => d.value);
+  const maxDst = dstValues.length ? Math.max(...dstValues) : 1;
+  const scatterData = Object.values(dstAgg).map((d) => ({
+    name: d.iso || '',
+    value: [d.coord[0], d.coord[1], d.value],
+  }));
+  // Glow radius: 4..14px by normalised incoming value.
+  const glowSize = (val) => {
+    const v = Array.isArray(val) ? val[2] : val;
+    return 4 + 10 * ((Number(v) || 0) / maxDst);
+  };
+
+  return {
+    tooltip: {
+      trigger: 'item',
+      formatter: (p) => {
+        if (p.seriesType === 'lines') {
+          const d = p.data || {};
+          return `${d.src_iso || '?'} &rarr; ${d.dst_iso || '?'}<br/>${d.value ?? ''}`;
+        }
+        if (p.seriesType === 'effectScatter') {
+          const v = Array.isArray(p.value) ? p.value[2] : '';
+          return `${p.name || ''}<br/>${v}`;
+        }
+        return '';
+      },
+    },
+    geo: {
+      map: 'world',
+      roam: true,
+      silent: true,
+      itemStyle: {
+        areaColor: countryFill,
+        borderColor: countryStroke,
+        borderWidth: 0.4,
+      },
+      emphasis: { disabled: true },
+    },
+    series: [
+      {
+        type: 'lines',
+        coordinateSystem: 'geo',
+        zlevel: 1,
+        lineStyle: { color: danger, curveness: 0.2 },
+        data: linesData,
+      },
+      {
+        type: 'lines',
+        coordinateSystem: 'geo',
+        zlevel: 2,
+        effect: {
+          show: true,
+          period: 6,
+          trailLength: 0.3,
+          symbol: 'arrow',
+          symbolSize: 5,
+          color: danger,
+        },
+        // Zero-width base line: only the moving arrowhead shows here;
+        // the static layer (zlevel 1) draws the visible arc body.
+        lineStyle: { color: danger, width: 0, opacity: 0, curveness: 0.2 },
+        data: linesData,
+      },
+      {
+        type: 'effectScatter',
+        coordinateSystem: 'geo',
+        zlevel: 2,
+        rippleEffect: { brushType: 'stroke', scale: 3 },
+        symbolSize: glowSize,
+        itemStyle: { color: warning },
+        data: scatterData,
+      },
+    ],
+  };
+}
+
 const builders = {
   bar: buildBarOption,
   line: buildLineOption,
   geo: buildGeoOption,
   pie: buildPieOption,
   network: buildNetworkOption,
+  // 3d-globe mode degrades to 2D until the Phase D echarts-gl bundle
+  // ships (see buildPewPewOption2D doc-comment).
+  pewpew: buildPewPewOption2D,
 };
 
 // ---- public API ----
@@ -593,7 +733,7 @@ async function initChart(el) {
     console.warn(`[misp-dashboard] unknown chart kind "${kind}"`);
     return;
   }
-  if (kind === 'geo') {
+  if (kind === 'geo' || kind === 'pewpew') {
     await ensureWorldMap();
   }
   const chart = echarts.init(el, MISP_THEME_NAME, { renderer: 'canvas' });
