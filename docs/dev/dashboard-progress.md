@@ -1942,7 +1942,7 @@ gate (the user still does the merge).
       JS module (C3), NOT the template.  Empty flows → "No data.";
       aggregate-only (no drilldown / no per-arc click); colour
       resolution deferred to client-side `tokenOn`.
-    - [ ] **C3.** `buildPewPewOption2D(payload, hostEl)` in
+    - [x] **C3.** `buildPewPewOption2D(payload, hostEl)` in
       `app/webroot/js/dashboard/charts/charts.module.mjs` —
       ECharts geo + lines series; background static arcs + a
       foreground animated-trail layer with `effect:{show:true,
@@ -1951,7 +1951,18 @@ gate (the user still does the merge).
       Colours resolve via `tokenOn(hostEl,
       '--misp-dash-danger', ...)` etc.  Re-uses the existing
       `world-110m.geojson` map registration (same path as
-      `buildGeoOption`).
+      `buildGeoOption`).  **DONE** (commit `c770992b6`).
+      Three z-stacked layers: static `lines` arc bodies +
+      animated `lines` trail (zero-width base) + `effectScatter`
+      destination glow (warning token).  `pewpew` added to the
+      `builders` registry and the `ensureWorldMap()` branch.
+      `payload.mode==='3d-globe'` degrades to 2D until Phase D.
+      **C3a prereq** (commit `4a3c86422`): the destination glow
+      needs the `effectScatter` series type, NOT covered by C1's
+      LinesChart-only rebuild — bundle rebuilt adding
+      `EffectScatterChart` (+4 KB raw / +1.2 KB gz over the C1
+      bundle; 721 KB / 245 KB total).  User chose the spec-faithful
+      glow over a lines-only arrival cue (DD-45 fork, this session).
     - [ ] **C4.** `thumbPewPewMap()` builder in
       `app/webroot/js/dashboard/gallery/render-thumbs.mjs` —
       single-colour SVG glyph at 80×45 viewBox: schematic world
