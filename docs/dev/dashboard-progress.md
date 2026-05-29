@@ -1918,7 +1918,11 @@ gate (the user still does the merge).
       centroid arrays since `json_encode([54.0])` →
       `"[54]"` so decode yields int not float.
 
-  - [ ] **Phase C — Front-end 2D.** One commit per sub-task:
+  - [x] **Phase C — Front-end 2D.** One commit per sub-task.
+    **ALL CLOSED** this session (commits 72428eae5 / 8d43e89f4 /
+    4a3c86422 / c770992b6 / ef8a00bc6 + tracker ticks).  2D
+    pew-pew arcs render, retheme, and cache correctly; verified
+    live.  Phase D (3D globe) is next.
     - [x] **C1.** Rebuild ECharts main bundle with `LinesChart`
       added to `entry.mjs` + `use([...])`.  Bundle-size delta
       noted in `VENDORING.md`.  Per
@@ -1973,14 +1977,37 @@ gate (the user still does the merge).
       converging arcs + destination core/ripple ring (evokes the
       effectScatter glow).  node --check clean; glyph eye-check
       folded into C5's screenshot batch.
-    - [ ] **C5.** Visual verification (DD-41 recipe): inline
+    - [x] **C5.** Visual verification (DD-41 recipe): inline
       the rendered widget HTML into a static page under
       `app/webroot/`, screenshot via headless Chrome with the
       full CSS stack loaded, READ the PNG, delete the temp
       file.  Confirm arcs render against the dev DB's ~35
       country-galaxy-tagged events; confirm light/dark theme
       both work; confirm `cache_duration=3600` round-trip via
-      Redis purge + re-render.
+      Redis purge + re-render.  **DONE** (verification-only, no
+      code commit).  Results:
+        * **Real pipeline** renders the dev DB's single arc
+          (IR→US, value 1) + its US destination glow — the
+          renderWidget JSON returned exactly one flow, as the
+          Phase B2 measurement predicted (the ~35-events
+          estimate resolved to 1 visible arc + 3 self-loops).
+        * **Synthetic 13-arc payload** (test-page only, no DB
+          seeding) confirmed log-scaled arc widths, normalised
+          opacity, animated trail arrowheads (caught mid-flight
+          in the static PNG), and multiple `effectScatter`
+          glows sized by incoming value (US largest).
+        * **Light + dark both work** — the midnight overlay
+          retones danger→#f87171, warning→#fbbf24, border,
+          surface, text; `tokenOn()` reads them at render time
+          so the arcs/glow recolour with ZERO JS change
+          (PRD §8.1 Level-1 retheme confirmed visibly).
+        * **Gallery glyph** (`thumbPewPewMap`) renders correctly
+          at card scale (blobs + 2 arcs + dest core/ripple).
+        * **Cache round-trip** — purge → render created a single
+          config-keyed key `misp:attack_flow_map_cache:<hash>`
+          with TTL 3551 (≈3600); the config-hash suffix (no user
+          id) confirms `cache_scope='global'`.
+      Temp webroot files deleted after; 302 confirms removal.
 
   - [ ] **Phase D — Front-end 3D (lazy-loaded).** One commit
     per sub-task:
