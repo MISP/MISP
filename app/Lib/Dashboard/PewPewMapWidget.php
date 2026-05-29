@@ -11,7 +11,8 @@
  * aggregated across events into `(src_iso, dst_iso)` pairs with a
  * `value` count. Capped at `max_arcs` (default 500, value-desc).
  *
- * Two render modes via config (DD-45 mode switch; DD-46 globe impl):
+ * Three render modes via config (DD-45 mode switch; DD-46 globe impl;
+ * DD-47 WebGL globe):
  *   - `2d` (default) — ECharts geo + animated `lines` series
  *     (lines-airline style: great-circle arcs with trail effect).
  *   - `3d-globe` — the SAME ECharts geo + lines, with the geo
@@ -19,7 +20,12 @@
  *     from-space "2.5D" globe (d3-geo `geoOrthographic`, already
  *     vendored — no echarts-gl, no WebGL; DD-46 superseded DD-45's
  *     echarts-gl plan after it proved unmaintained + echarts@6-
- *     incompatible).
+ *     incompatible). The lightweight globe.
+ *   - `webgl-globe` (DD-47) — a real textured/lit WebGL globe via
+ *     globe.gl (Three.js), lazy-loaded on first use. The premium
+ *     Norse-style attack-globe; opt-in, heavier (a separate ≈508 KB
+ *     gzipped bundle + a night-lights texture, fetched only when this
+ *     mode actually renders). All front-end: same `flows[]` payload.
  *
  * The same `flows[]` payload feeds both modes; the renderer
  * (`buildPewPewOption` in charts.module.mjs) dispatches by
@@ -59,7 +65,7 @@ class PewPewMapWidget
     public $title = 'Pew-pew map';
     public $category = 'events';
     public $render = 'PewPewMap';
-    public $description = 'Animated arcs between threat-actor origin country and victim country, derived from misp-galaxy:threat-actor and misp-galaxy:country tags on events. Renders as a 2D flat map (default, animated great-circle lines) or an orthographic "globe" view of the same arcs.';
+    public $description = 'Animated arcs between threat-actor origin country and victim country, derived from misp-galaxy:threat-actor and misp-galaxy:country tags on events. Renders as a 2D flat map (default, animated great-circle lines), a lightweight orthographic "globe" view of the same arcs, or an opt-in real WebGL 3D globe (globe.gl, lazy-loaded).';
     public $width = 6;
     public $height = 5;
     // cacheLifetime + autoRefreshDelay are inert in dashboard v2 —
@@ -71,7 +77,7 @@ class PewPewMapWidget
     public $cache_duration = 3600;
     public $params = [
         'time_window' => 'The time window, going back in seconds, that should be included (also accepts "30d" day form, or -1 for all historic data).',
-        'mode' => 'Render mode: "2d" (default, animated lines-airline arcs on a flat map) or "3d-globe" (the same arcs on an orthographic from-space globe).',
+        'mode' => 'Render mode: "2d" (default, animated lines-airline arcs on a flat map), "3d-globe" (the same arcs on a lightweight orthographic from-space globe), or "webgl-globe" (a real textured 3D globe via globe.gl/Three.js, lazy-loaded on first use — opt-in, heavier).',
         'max_arcs' => 'Maximum number of arcs rendered. Truncation is value-desc so the strongest signals always render. Default 500.',
     ];
     public $schema = [
@@ -82,12 +88,19 @@ class PewPewMapWidget
         ],
         'mode' => [
             'type' => 'enum',
-            'enum' => ['2d', '3d-globe'],
-            // Stored values stay '2d'/'3d-globe' (schema stability,
-            // DD-46); the configure-form <select> shows these labels.
-            'enum_labels' => ['2d' => '2D map', '3d-globe' => 'Globe'],
+            'enum' => ['2d', '3d-globe', 'webgl-globe'],
+            // Stored values stay '2d'/'3d-globe'/'webgl-globe' (schema
+            // stability, DD-44/DD-46/DD-47); the configure-form <select>
+            // shows these friendly labels. Two distinct "globe" labels
+            // so the lightweight (orthographic) vs. real-3D (WebGL)
+            // distinction is explicit at the point of choice.
+            'enum_labels' => [
+                '2d' => '2D map',
+                '3d-globe' => 'Globe (lightweight)',
+                'webgl-globe' => 'Globe (3D)',
+            ],
             'default' => '2d',
-            'help' => 'Render mode. 2D flat-map animated arcs (default), or an orthographic "globe" view of the same arcs.',
+            'help' => 'Render mode. 2D flat-map animated arcs (default); "Globe (lightweight)" — an orthographic from-space view of the same arcs, no extra download; or "Globe (3D)" — a real textured WebGL globe (globe.gl), lazy-loaded on first use (heavier, opt-in).',
         ],
         'max_arcs' => [
             'type' => 'int',
@@ -183,7 +196,10 @@ class PewPewMapWidget
     private function resolveMode($options)
     {
         $mode = isset($options['mode']) ? (string)$options['mode'] : '2d';
-        return in_array($mode, ['2d', '3d-globe'], true) ? $mode : '2d';
+        // Whitelist must track the $schema 'mode' enum (DD-47 added
+        // 'webgl-globe') — an unlisted stored value silently degrades
+        // to '2d'.
+        return in_array($mode, ['2d', '3d-globe', 'webgl-globe'], true) ? $mode : '2d';
     }
 
     /**
