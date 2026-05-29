@@ -1,221 +1,192 @@
-# Dashboard v2 — Session handoff (2026-05-29 — DD-45 CLOSED: pew-pew map ships 2D + orthographic globe; DD-46 pivoted off echarts-gl; DD-47 planned: globe.gl real-3D third mode, build next session)
+# Dashboard v2 — Session handoff (2026-05-29 — DD-47 CLOSED: globe.gl real-3D "Globe (3D)" pew-pew mode ships + verified; DD-48: widget renamed AttackFlowMap → PewPewMap)
 
-Twenty-seventh session. Authoritative state lives in:
+Twenty-eighth session. Authoritative state lives in:
 
 - `dashboard-prd.md` — spec (binding decisions table §15, now incl.
-  DD-16..DD-46). **DD-46** is the newest row.
+  DD-16..**DD-48**). DD-48 (widget rename) is the newest row.
 - `dashboard-progress.md` — task state. **Phase 5 + 5.5 closed; Phase 6
   (merge) is the only tracked phase left.** Post-5.5 "New features"
-  carries DD-43, DD-44 + DD-45 (Pew-pew attack flow map) —
-  **Phases A + B + C + D + E ALL closed**.  DD-45 is DONE.
-- `dashboard-design-decisions.md` — DD-01..DD-46.  **DD-46** records the
-  globe-tech pivot (echarts-gl → d3-geo orthographic 2.5D).
+  carried DD-43, DD-44, DD-45, **DD-47 — all now CLOSED.** DD-47's
+  G1..G7 are all ticked.
+- `dashboard-design-decisions.md` — DD-01..**DD-48**. DD-47 status is
+  now "IMPLEMENTED + verified, CLOSED"; DD-48 records the rename.
 
 This file is the bridge: ephemeral session context. Replace as work
 progresses.
 
-## TL;DR — this session (DD-45 Phase D via DD-46; 11 signed commits, `%G?`=U, not merged)
+## TL;DR — this session (12 signed commits, `%G?`=U, not merged)
 
 ```
-02b03e772 chg DD-45 D5 + Phase D — tick progress tracker
-f6c62c170 chg DD-45 D4 — tick progress tracker
-40f3452ac new DD-45 D4 — mode-switch label + stale-text refresh (DD-46)
-e7862f4e9 chg DD-45 D3 — tick progress tracker
-2cc853a57 new DD-45 D3 — orthographic globe branch in pew-pew builder (DD-46)
-6c9234a29 chg DD-45 D1 — tick progress tracker
-069f5ddd0 new DD-45 D1 — geoOrthographic in d3-geo bundle (DD-46 globe path)
-1d39578df chg DD-46 — pew-pew globe via d3-geo orthographic, supersedes echarts-gl Phase D
-b91802375 chg DD-45 handoff refreshed — Phase C landed; next: Phase D   (prev session)
+9cb63877c chg DD-47 — mark CLOSED + implemented in design-decisions status
+8fa051f36 chg DD-47 G7 + CLOSE — tick progress tracker
+7da1df6a0 chg DD-47 G3-G6 — tick progress tracker
+a87f48b6c new DD-47 G5 — webgl-globe mode enum + labels
+8bf91d8bf new DD-47 G4 — async dispatch for webgl-globe in initChart
+15b7c886c new DD-47 G3 — initWebglGlobe glue (globe.gl arcs + rings)
+a531ef2bd chg DD-47 G2 — tick progress tracker
+2e9ffe919 new DD-47 G2 — vendor night-lights earth texture (earth-night-2k.jpg)
+29d822ad8 chg DD-48 — record widget rename (PRD §15 + design-decisions)
+84ad96d19 chg DD-48 — rename AttackFlowMapWidget → PewPewMapWidget
+0903cae05 chg DD-47 G1 — tick progress tracker
+d6e572b8d new DD-47 G1 — lazy globe.bundle.mjs (globe.gl + three, tree-shaken)
 ```
 
-**DD-45 is fully landed and verified live.** The pew-pew attack-flow
-map ships TWO modes from one `flows[]` payload: a 2D flat-map (Phase C,
-prior session) and a **from-space orthographic "globe"** (Phase D, this
-session). Both render attacker→victim great-circle arcs with an
-animated trail + pulsing destination glow, retheme light/dark via
-tokens, and cache globally.
+**Two headlines:** (1) the pew-pew widget now ships a **third, opt-in
+render mode** — a real WebGL textured globe (globe.gl/Three.js),
+lazy-loaded; (2) the widget was **renamed to "Pew-pew map"** everywhere
+(class/file/title), per the user — the name is the joke (a jab at the
+Norse attack map). All three modes (2D flat / lightweight orthographic /
+real-3D WebGL) share ONE `flows[]` payload + ONE unchanged server side.
 
-## The DD-46 pivot (the headline of this session)
+## DD-48 — the rename (do not re-litigate)
 
-Phase D was specced (DD-45) as a lazy-loaded **echarts-gl** WebGL globe
-(`globe` + `lines3D`). Implementing D1 surfaced that echarts-gl is a
-**liability**:
-- **Unmaintained** (last release 2022). `2.1.0` claims echarts@6 but
-  still ships echarts@5-era *extensionless* deep imports
-  (`echarts/lib/coord/geo/fix/textCoord`) that break echarts@6's strict
-  `exports` map (`"./*":"./*"`). It only built with a hand-written
-  esbuild resolver plugin — a standing liability (echarts@7 could break
-  it with no upstream fix).
-- **Heavy + fragile**: the self-contained GL bundle was **247 KB
-  gzipped** (duplicates echarts core; can't share the main instance) +
-  a hard WebGL requirement + `claygl`.
+`AttackFlowMapWidget` → **`PewPewMapWidget`** / `$title` "Attack flow
+map" → **"Pew-pew map"**. The render kind (`PewPewMap.ctp`,
+`$render='PewPewMap'`) + JS registry (`pewpew`, `buildPewPewOption`,
+`thumbPewPewMap`) were ALREADY pew-pew; only the class, file, `$title`,
+`$cache_path` (`misp:attack_flow_map_cache` → `misp:pew_pew_map_cache`)
+and the test lagged. **Load-bearing safety point:** a widget's class
+name is the identifier stored in saved dashboard blobs — a hard rename
+orphans saved instances. Safe HERE only because the branch is unmerged;
+the one dev-box instance (`user_settings` id 34, widget `w_6`) was
+SQL-migrated + caches purged. **If this ships and is later renamed, use
+a back-compat alias, not a hard rename.** See DD-48.
 
-The user re-opened the look premise; an AskUserQuestion fork picked
-**d3-geo orthographic "2.5D"** over echarts-gl / globe.gl / stay-2D.
-**DD-46** records it. The globe is now the SAME Phase C arc engine
-(`geo` + `lines` + `effectScatter` + `tokenOn`) with `geo.projection`
-swapped to a hemisphere-culling orthographic. `geoOrthographic` is in
-**d3-geo core, already vendored** — net cost **+0.1 KB gzipped**. No
-WebGL, no new dependency, no globe texture. Tradeoff accepted: a globe
-*silhouette* (flat-shaded political disc), not a photo-textured lit
-sphere; auto-rotation is manual (deferred).
+## DD-47 — the WebGL globe (reuse these facts)
 
-### The one load-bearing technical fact (reuse this)
+### The opt-in third mode
+`mode='webgl-globe'` → friendly label **"Globe (3D)"**. Enum is now
+`['2d','3d-globe','webgl-globe']` with `enum_labels`
+`{2d:'2D map', 3d-globe:'Globe (lightweight)', webgl-globe:'Globe (3D)'}`.
+Default stays `'2d'`. **Gotcha (caught + fixed):** `resolveMode()`'s
+PHP whitelist must track the enum — a value missing there silently
+degrades to `'2d'`.
 
-**d3's `geoOrthographic`, called as a POINT FUNCTION `p([lon,lat])`,
-does NOT apply `clipAngle`** — back-hemisphere points fold onto the
-front face. The fix (in `charts.module.mjs::orthographicProjection`):
-return `[NaN, NaN]` for any point whose great-circle cosine to the view
-centre is `< 0`. **ECharts' `geo` coordinate system tolerates the NaN
-sentinel cleanly** — its bbox auto-fit ignores NaNs and the canvas
-renderer skips NaN path segments — so the limb renders crisp with no
-folding. Verified by spike + the D5 screenshots.
+### `globe.bundle.mjs` — the lazy vendor bundle (G1)
+- `app/webroot/js/dashboard/charts/vendor/globe.bundle.mjs`: esbuild
+  tree-shaken ESM of **globe.gl@2.46.1** (three@0.184.0 /
+  three-globe@2.45.2). **1.76 MB raw / 508 KB gzipped.** Exports the
+  `Globe` factory as `default` + named. **NOT** in `echarts.bundle.mjs`.
+- 42 bundled packages, all permissive (MIT/ISC/Apache-2.0/Unlicense) —
+  AGPL-OK, no new copyleft review (DD-07). Ships `globe.bundle.LEGAL.txt`
+  (esbuild banners) + **one consolidated `globe.bundle.LICENSES.txt`**
+  (every package's full license) rather than 42 sidecars. VENDORING.md
+  has the build recipe + a license-walk regen script + a
+  copyleft-on-bump warning.
 
-## What landed this session (reuse these facts)
+### `earth-night-2k.jpg` — the texture (G2, user-picked: night lights)
+- NASA Black Marble city-lights night image (public domain), from
+  three-globe's MIT example dir, downscaled 4096×2048 → **2048×1024 q85
+  = 205 KB**. No license sidecar (NASA PD). Night surface deliberately:
+  arcs pop, pre-aligns with the incoming dark theme, leans into the
+  Norse riff. Verified live: 200 / image/jpeg.
 
-### `charts.module.mjs` — pew-pew builder now draws both modes
-- `buildPewPewOption2D` **renamed → `buildPewPewOption`** (it draws both
-  modes now). Registry: `pewpew: buildPewPewOption`.
-- New module-scope helper **`orthographicProjection(rotate)`** (the
-  culling wrapper above) + const **`PEWPEW_GLOBE_ROTATE = [10, -30]`**
-  (North-Atlantic framing: view centre ≈ [-10, 30], so US + EU +
-  attacker arcs read together).
-- The `geo` block gets `projection: orthographicProjection(...)` ONLY
-  when `payload.mode === '3d-globe'`; `'2d'` keeps native flat lon/lat.
-  Everything else (3 z-stacked arc layers, danger/warning tokens) is
-  identical between modes. **Dispatch stays SYNC** — d3-geo is a static
-  import; no lazy `import()`, voiding the DD-45 async-restructure gotcha.
-- `geoOrthographic` added to the import from `./vendor/d3-geo.bundle.mjs`.
+### `charts.module.mjs` — `initWebglGlobe` glue (G3/G4/G6)
+- **`initWebglGlobe(hostEl, payload)`** — globe.gl owns its own WebGL
+  canvas, so it is NOT an ECharts builder. Maps `flows[]` →
+  `arcsData` (value→stroke log scale, animated dash tracer) + `ringsData`
+  (one pulsing ring per victim centroid, sized by incoming value), sets
+  `globeImageUrl` + atmosphere + a North-Atlantic `pointOfView`
+  (`{lat:30,lng:-10,altitude:2.2}`).
+- **The integration pattern (REUSE):** returns a **`{ teardown }`
+  handle** — the SAME shape `initMonitorChart` uses, which
+  `disposeChart()` already supports (`typeof live.teardown ===
+  'function'`). So dispose needed zero new code. teardown disconnects
+  the ResizeObserver + the theme MutationObserver, calls globe.gl's
+  `_destructor()`, and empties the host.
+- **Non-blocking (deviation from G4's "await" wording, deliberate):**
+  the handle returns SYNC; the lazy `import()` resolves in the
+  background behind a self-contained inline loading placeholder. So a
+  multi-widget board doesn't stall `Promise.all(initChart)` on the
+  508 KB download. `teardown()` flips a `disposed` flag so a dispose
+  racing a slow import is honoured. Still satisfies DD-47 approach-pt-3
+  (loading placeholder).
+- **`loadGlobeBundle()`** memoises the import promise → a second
+  webgl-globe widget reuses the first fetch (+ browser module cache).
+- **Dispatch (G4):** in `initChart`, a branch
+  `if (kind==='pewpew' && payload.mode==='webgl-globe')` BEFORE the
+  ECharts path + `ensureWorldMap()` (the globe uses the texture, not the
+  echarts world map). The 2d / 3d-globe ECharts modes are untouched.
+- **Theming bridge (G6, folded into G3):** globe.gl won't read
+  `--misp-dash-*`. `applyColours()` reads `--misp-dash-danger` (arc
+  gradient via `withAlpha()` hex/rgb→rgba) + `--misp-dash-warning` (ring
+  fade) + atmosphere; a `MutationObserver` on `<html data-theme>`
+  re-invokes it on light↔dark with NO re-init. `withAlpha()` is a new
+  module-scope helper (handles `#rgb`/`#rrggbb`/`rgb()`/`rgba()`).
 
-### `d3-geo.bundle.mjs` — geoOrthographic added (D1)
-- Export barrel `entry.mjs`: `export { geoNaturalEarth1,
-  geoOrthographic } from 'd3-geo';`. Rebuilt per the `VENDORING.md`
-  d3-geo recipe. **17.4 → 18.1 KB raw / 7.4 → 7.5 KB gz** (+0.1 KB gz —
-  shares d3-geo core). VENDORING.md size row + exports + recipe updated.
-
-### `configure.module.mjs` + `WidgetSchema.php` — `enum_labels` (D4)
-- New **optional** schema key `enum_labels: {value: label}` for `enum`
-  fields. The configure-form `<select>` shows the label, falling back
-  to the raw value when unmapped — so all existing enum fields are
-  unchanged. Documented in the `WidgetSchema.php` contract doc-comment;
-  `getSchema()` passes it through wholesale (no key-strip) and
-  `json_encode` keeps it, so it reaches `data-widget-schema`.
-- `AttackFlowMapWidget` maps `{2d:'2D map', 3d-globe:'Globe'}`. The
-  **stored value stays `'3d-globe'`** (schema stability, DD-44-style) —
-  only the label is friendly. Stale echarts-gl text in the widget's
-  `$description`/`$params`/`$schema` help + class doc-comment refreshed.
-
-### Verification (D5, no code commit)
-Headless-Chrome screenshots (C5 recipe, full CSS stack): the **real
-pipeline** renders the dev-DB single arc (IR→US, value 1) on the
-orthographic disc; a **synthetic 6-arc** test page shows clean limb +
-culled back face + scaled arcs/glows; **light + dark** both retheme via
-`tokenOn` (midnight retones danger→#f87171, warning→amber) with ZERO JS
-change; the **main bundle is untouched** (git-clean) and
-charts.module.mjs's import graph has **no echarts-gl / WebGL / dynamic
-import** — so no GL asset can load (static-confirmed). Temp webroot
-files deleted (302 confirms).
+### Verification (G7 — no real-browser fallback needed)
+Headless Chrome 141 + `--enable-unsafe-swiftshader
+--use-angle=swiftshader` rendered the globe cleanly. Temp page (full CSS
+stack, synthetic 6-arc payload) under webroot, screenshotted + DOM
+probed, then deleted (302 confirms). **Light + dark** both render the
+night globe with red danger arcs + a danger atmosphere glow; midnight
+retones to #f87171 + dark card. **DOM probe proved lazy-only-on-3D:**
+`webgl-globe` → `globeBundleLoaded:true, textureLoaded:true, canvas
+616×420`; `2d` → both `false`. Import-cache on 2nd render guaranteed by
+the memoised promise.
 
 ## DD-45 family — render-kind & widget facts (still load-bearing)
 
-### Pew-pew widget shape (DD-45 + DD-46)
-- `AttackFlowMapWidget` → `$render='PewPewMap'`, `$category='events'`,
-  `$cache_duration=3600`, `$cache_scope='global'`, open to all users
-  (aggregate-only, mirrors `AttributeGeoMapWidget` DD-11), default 6×5.
-- Config params: `time_window`, `mode` (`2d`|`3d-globe`, default `2d`),
-  `max_arcs` (default 500, value-desc truncation).
-- Data: one arc per `(event, threat-actor cluster's `country`, victim
-  country-galaxy `ISO`)` triple; aggregated by `(src_iso, dst_iso)`;
-  centroids resolved server-side via `iso-centroids.json` (DD-45 B1).
-- **Dev-DB reality**: ONE visible arc (IR→US, event 1421 Charming
-  Kitten/APT33/APT35). The other dual-tagged events are self-loops
-  (RU→RU, IR→IR×2), correctly skipped. Production is richer; the dev
-  box is thin by nature, NOT a bug. For a richer demo use the synthetic
-  multi-arc test-page approach (D5/C5) or revisit the user-rejected
-  fixture-tagging fork (offer via AskUserQuestion).
+### Pew-pew widget shape (DD-45/46/47/48)
+- **`PewPewMapWidget`** (renamed DD-48) → `$render='PewPewMap'`,
+  `$category='events'`, `$cache_duration=3600`,
+  `$cache_path='misp:pew_pew_map_cache'`, `$cache_scope='global'`, open
+  to all users (aggregate-only, mirrors `AttributeGeoMapWidget` DD-11),
+  default 6×5.
+- Config params: `time_window`, `mode` (`2d`|`3d-globe`|`webgl-globe`,
+  default `2d`), `max_arcs` (default 500).
+- Data: one arc per `(event, threat-actor cluster's country, victim
+  country-galaxy ISO)` triple; aggregated by `(src_iso, dst_iso)`;
+  centroids server-side via `iso-centroids.json`.
+- **Dev-DB reality**: ONE visible arc (IR→US, event 1421). Production is
+  richer; the dev box is thin by nature, NOT a bug. For a richer demo
+  use a synthetic multi-arc test page (G7/C5/D5 recipe).
 - `.ctp` is a dumb shim emitting `data-misp-chart="pewpew"` +
-  `{mode, flows[]}`; all mode dispatch lives in `charts.module.mjs`.
+  `{mode, flows[]}`; ALL mode dispatch lives in `charts.module.mjs`
+  (2d/3d-globe in `buildPewPewOption`; webgl-globe in `initWebglGlobe`).
 
 ### Prior render-kind family (DD-31..DD-43) — unchanged, still live
-StatGrid (DD-31), NetworkGraph (DD-33/40), UserList (DD-35/36/41),
-QueueList (DD-38), HealthList (DD-39), PewPewMap (DD-45/46). Every new
-`$render` needs a glyph in `render-thumbs.mjs` (CLAUDE.md) — PewPewMap's
-`thumbPewPewMap` shipped in Phase C.
+StatGrid, NetworkGraph, UserList, QueueList, HealthList, PewPewMap. Every
+new `$render` needs a glyph in `render-thumbs.mjs` (CLAUDE.md).
+`thumbPewPewMap` already shipped (Phase C); webgl-globe is the SAME
+render kind (`PewPewMap`), so no new glyph was needed.
 
 ## Open follow-ups (active + carried)
 
-### NEXT SESSION — DD-47: build the globe.gl real-3D third mode (plan ready: G1..G7).
-DD-45 is closed (2D + orthographic shipped). The user opted to add a
-**third, opt-in render mode** (`mode='webgl-globe'`): a real WebGL
-textured globe via **globe.gl** (Three.js) — the echarts-gl *look*,
-on a maintained MIT library (globe.gl 2.46.1, published 2026-05-16; vs
-echarts-gl's 2022 + echarts@6 incompatibility, the DD-46 reason we
-dropped it). **DD-47** holds the full spec + the resolved forks;
-`dashboard-progress.md` has the phased plan **G1..G7**. This session
-*planned* it (DD-47 + plan, no code); next session *builds* it.
+### NEXT — the only tracked phase left is Phase 6 (merge to `develop`) — the USER does this, not us.
+The dashboard feature set is complete: 2D map, lightweight orthographic
+globe, and real WebGL globe all ship. Carried polish below is optional.
 
-Key facts for the build (all in DD-47):
-- **Front-end only** — the server `handler()`, caching, and `flows[]`
-  payload are unchanged; this is a parallel render path.
-- **Separate lazy bundle** `globe.bundle.mjs` (esbuild tree-shaken,
-  NOT in the main bundle), dynamic-`import()`ed on first `webgl-globe`
-  render only. This re-introduces the lazy-bundle + async-dispatch
-  machinery DD-46 removed — now justified (real weight ≈ several hundred
-  KB gz; genuinely-different output).
-- **globe.gl owns its own WebGL canvas** — it is NOT an ECharts option
-  builder. So it gets a dedicated `initWebglGlobe(hostEl, payload)`
-  (static glue) that lazy-imports the bundle + maps `flows[]` →
-  `arcsData` + `ringsData`. Only the `pewpew`+`webgl-globe` dispatch
-  branch goes async; the 2d/3d-globe ECharts modes stay sync.
-- **Theming is bespoke** — globe.gl won't read `--misp-dash-*`; bridge
-  via `tokenOn` at init + a `data-theme` observer for live retheme (the
-  zero-JS retheme the other two modes get free is NOT automatic here).
-- **Texture** — G2 vendors an earth image; AskUserQuestion sub-fork
-  (Blue Marble PD / night-lights / flat political).
-- **Mode enum** — add `'webgl-globe'` (value stable) + `enum_labels`
-  friendly text; default stays `'2d'`.
-- **Verify caveat** — headless-Chrome WebGL may need
-  `--enable-unsafe-swiftshader` / `--use-angle=swiftshader`.
-
-The remaining tracked phase after DD-47 is **Phase 6 (merge to
-`develop`) — the USER does this, not us.** Other carried polish below.
-
-### Pew-pew globe polish (surfaced in Phase E, deferred — DD-46)
-- **Auto-centre the globe on the flows' centroid** (busiest region
-  faces front) and/or expose `rotate` as a config knob. With the dev-DB
-  single arc the US glow lands near the top-left limb (visible but
-  edge-ish); a data-driven default centre would frame it better.
-- **Globe auto-rotation** (slow spin) — deferred to keep render cheap +
-  the canvas still for screenshots.
-- **Optional sphere/ocean backing fill** behind the geo — the political
-  disc reads fine on both themes already; low priority.
+### Globe (3D) polish (DD-47, deferred — all optional)
+- **Auto-rotate** (`globe.controls().autoRotate = true`) — trivial; left
+  off in v1 for screenshot stability (same call DD-46 deferred for the
+  orthographic mode). A slow spin would suit the playful vibe.
+- **Ring visibility** — rings pulse; tune `ringMaxRadius` /
+  `ringRepeatPeriod` / a brighter warning if they read too subtle.
+- **In-browser confirm of the "Globe (3D)" / "Globe (lightweight)"
+  `<select>` labels** in the real configure modal (data path verified;
+  `enum_labels` passthrough established DD-46 D4).
+- Optional **starfield/space backdrop** instead of the transparent
+  canvas — premium but heavier; transparent blends with both themes.
 
 ### Carried (not active)
-- **In-browser confirm of the "Globe" `<select>` label** (trivial —
-  open the pew-pew widget's configure modal; data path already
-  verified).
-- **In-browser verification of DD-43 + DD-44** (hard-refresh
-  Ctrl-Shift-R): MispMailLogWidget rotated-file scan; new Administrator
-  template (14 widgets) in the gallery.
+- **In-browser verification of DD-43 + DD-44** (hard-refresh): rotated
+  mail-log scan; Administrator template (14 widgets) in the gallery.
 - **Other shipped templates** — `analyst/` + `community/template.json`
   may be due a v2-era refresh like DD-44.
-- **MispMailLogWidget polish** (DD-41): inline header search-box;
-  slide-in setup-help panel; filter chips; package
-  `/etc/rsyslog.d/misp-mail.conf` INSTALL helper.
-- **MailLogTool gz-tail optimisation** (DD-43 deferred): bounded
-  `gzseek`+backwards-binary-search if a chatty relay surfaces a cost
-  complaint.
-- **HealthList / MispCacheStatusWidget per-row drilldown**;
-  **cache-status thresholds configurable**; **MispAdminSyncTestWidget
-  `info` for caching-only servers**.
+- **MispMailLogWidget polish** (DD-41); **MailLogTool gz-tail
+  optimisation** (DD-43 deferred); **HealthList / MispCacheStatusWidget
+  per-row drilldown**; **cache-status thresholds configurable**;
+  **MispAdminSyncTestWidget `info` for caching-only servers**.
 - **Roll StatGrid out** to remaining key/value admin widgets; **audit
-  legacy SimpleList widgets** (`MispAdminResourceWidget`,
-  `MispSystemResourceWidget`) for typed-row rework.
-- **Dark MISP theme work** — when the global initiative starts, the
-  dashboard carryover is: audit the 8 hardcoded `rgba(...)` rules in
-  `dashboard.default.css` (esp. `rgba(220,38,38,0.10)` at line 544); the
-  dark overlay should redefine `--misp-dash-{success,danger,warning,
-  info}-muted`. See [[project-misp-dark-theme-sequencing]].
+  legacy SimpleList widgets** for typed-row rework.
+- **Dark MISP theme work** — when the global initiative starts: audit
+  the 8 hardcoded `rgba(...)` rules in `dashboard.default.css` (esp.
+  `rgba(220,38,38,0.10)` ~line 544); the dark overlay should redefine
+  `--misp-dash-{success,danger,warning,info}-muted`. NB the globe's
+  retheme bridge (DD-47 G6) ALREADY reads tokens live, so dark mode will
+  retone its arcs/atmosphere for free. See
+  [[project_misp_dark_theme_sequencing]].
 - Pre-existing: **DD-11 ACL-enforced switchable geo widget path**;
   **org/COVID maps palette opt-in**; default-templates **live non-admin
   ACL check**.
@@ -226,44 +197,48 @@ The remaining tracked phase after DD-47 is **Phase 6 (merge to
 - URL `http://localhost:5007/dashboards` (302 without a session; 200
   with). Admin user 1 (`admin@admin.test`, pw `Password12345`), Overmind
   theme. Cookie jar `/tmp/cj_stat.txt` was **valid this session** (200);
-  re-mint via [[reference-misp-login-dance]] if it 302s next session.
+  re-mint via [[reference_misp_login_dance]] if it 302s next session.
 - DB: `mysql -u misp -pPassword1234 misp`. MISP Redis: `redis-cli -n 13`.
   **SESSIONS in Redis db0** (`PHPREDIS_SESSION:*`); MISP data + caches in
   **db13**.
 - Pew-pew dev-DB render: **1 arc (IR→US)** — see DD-45 family notes.
 - State: `db_version=151`; branch `dashboards`. Build dirs reusable:
-  `/tmp/echarts-bundle` (main), `/tmp/d3geo-bundle` (d3-geo — now exports
-  geoOrthographic). The abandoned `/tmp/echartsgl-bundle/` (DD-46) can be
-  deleted; it never touched the repo.
+  `/tmp/echarts-bundle`, `/tmp/d3geo-bundle`, **`/tmp/globegl-bundle`**
+  (globe.gl + three + three-globe + esbuild; entry.mjs re-exports Globe).
 
 ### Reusable verification recipes
 ```bash
 # Lint
-php -l app/Lib/Dashboard/<Widget>.php
+php -l app/Lib/Dashboard/PewPewMapWidget.php
 node --check app/webroot/js/dashboard/charts/charts.module.mjs
+./app/Vendor/bin/phpunit app/Test/PewPewMapWidgetTest.php   # 15 tests
 
-# Render a widget body (JSON wrapper) — pew-pew returns {mode,flows[]}:
+# Render a widget body (JSON wrapper) — pew-pew returns {mode,flows[]}.
+# NOTE the renamed class + the new webgl-globe mode:
 curl -s -b /tmp/cj_stat.txt -X POST -H "Accept: application/json" \
   "http://localhost:5007/dashboards/renderWidget/test1" \
-  --data-urlencode "widget=AttackFlowMapWidget" \
-  --data-urlencode 'config={"time_window":"-1","mode":"3d-globe","max_arcs":500}'
+  --data-urlencode "widget=PewPewMapWidget" \
+  --data-urlencode 'config={"time_window":"-1","mode":"webgl-globe","max_arcs":500}'
 
-# Cached widgets serve stale — purge first:
-redis-cli -n 13 --scan --pattern 'misp:attack_flow_map_cache*' | xargs -r redis-cli -n 13 DEL
+# Cached widgets serve stale — purge first (NOTE the renamed key):
+redis-cli -n 13 --scan --pattern 'misp:pew_pew_map_cache*' | xargs -r redis-cli -n 13 DEL
 
-# Eye-check a render kind visually (DD-41/C5/D5 recipe): build a static
-# page under app/webroot loading the FULL CSS stack (dashboard.default +
-# dashboard.midnight at minimum for token theming), inline the
-# data-misp-chart div with a {mode,flows[]} payload, `import
-# {initChartsIn} from '/js/dashboard/charts/charts.module.mjs'` and call
-# initChartsIn(document.body). For dark: set data-theme="midnight" on
-# <html> (drive via location.hash and screenshot URL#midnight). Screenshot
-# with headless Chrome, READ the png, DELETE the temp file (publicly served).
+# Eye-check the WebGL globe (G7 recipe): build a temp page under
+# app/webroot loading the FULL CSS stack (dashboard.default +
+# dashboard.midnight), inline a <div data-misp-chart="pewpew"
+# data-misp-chart-payload='{"mode":"webgl-globe","flows":[...]}'>, import
+# {initChartsIn} from '/js/dashboard/charts/charts.module.mjs' and call
+# initChartsIn(document.body). Tokens cascade from :root so no wrapper
+# class is needed; set <html data-theme="midnight"> for dark. Screenshot
+# with: google-chrome --headless=new --no-sandbox
+#   --enable-unsafe-swiftshader --use-angle=swiftshader
+#   --virtual-time-budget=9000 --screenshot=out.png URL
+# A --dump-dom of performance.getEntriesByType('resource') asserts the
+# lazy bundle/texture loaded (and NOT on a 2d-mode page). READ the png,
+# DELETE the temp file (publicly served — 302 confirms removal).
 
-# Rebuild d3-geo bundle (add a projection): edit /tmp/d3geo-bundle/
-# entry.mjs export line, esbuild per VENDORING.md. geoOrthographic +
-# geoNaturalEarth1 are in d3-geo CORE; geoRobinson/geoCylindricalEqualArea
-# in d3-geo-projection.
+# Rebuild the globe bundle / re-vendor the texture: VENDORING.md
+# "Reproducing the globe.gl 3D bundle (DD-47)".
 ```
 
 ## Convention reminders (carry)
@@ -277,41 +252,43 @@ redis-cli -n 13 --scan --pattern 'misp:attack_flow_map_cache*' | xargs -r redis-
   `! echo test | gpg --clearsign` to cache the passphrase, then retry.
 - **Edit/Write flips a file's group to `iglocska:iglocska`** —
   `chgrp www-data` every edited web-served/app file (incl. docs).
-- **Record meaningful decisions as DD-NN + a PRD §15 row.** A material
-  reversal of a prior DD = a NEW DD (DD-46 superseded DD-45's Phase D).
+- **Record meaningful decisions as DD-NN + a PRD §15 row.** DD-48 (the
+  rename) was recorded as such this session.
 - **Render-kind glyph rule** (CLAUDE.md): new `$render` → glyph in
-  `render-thumbs.mjs`.
+  `render-thumbs.mjs`. (webgl-globe reused the PewPewMap kind — no new
+  glyph.)
 - **Widget `handler()`s emit RAW strings; the renderer owns escaping**
-  (DD-34). **Colour decisions live in the widget; renderer maps an
-  allow-listed token to a token-pair / SVG** (DD-31/38..42).
-- **Tree-shaken ECharts bundle** ([[project-misp-echarts-bundle-treeshaken]]):
-  a new series type needs BOTH the `echarts/charts` import AND the
-  `echarts.use([...])` call. Main bundle carries `Bar, Line, Map, Pie,
-  Graph, Lines, EffectScatter` (721 KB / 245 KB) — **untouched by Phase D**.
+  (DD-34). **Colour decisions: renderer maps an allow-listed token to a
+  token-pair / SVG** (DD-31/38..42). The globe extends this: it reads
+  the SAME `--misp-dash-danger`/`-warning` tokens via `tokenOn`.
+- **Two vendoring patterns now coexist:** the tree-shaken ECharts main
+  bundle (a new series type needs BOTH the import AND `echarts.use()` —
+  [[project_misp_echarts_bundle_treeshaken]]) AND the **lazy
+  globe.bundle.mjs** (dynamic-`import()`, NOT in the main bundle,
+  fetched only on webgl-globe). Don't merge them.
 - **ESM imports ignore the `?v=185` buster → hard-refresh after a
   vendored-bundle / JS change.**
-- **CSS verification must load the FULL stack** + assert the
-  computed/visible outcome (not the property you set) —
+- **CSS/visual verification must load the FULL stack** + assert the
+  computed/visible outcome (screenshot, not the property you set) —
   [[feedback_verify_visible_outcome_not_property]].
-- User wants **rigorous pushback + genuine forks via AskUserQuestion**,
-  and to **re-verify rather than defend** when a premise is questioned —
-  both paid off this session (the echarts-gl@6 incompat + the
-  orthographic-folding behaviour were both verified by build/spike, not
-  asserted; the look premise re-open led to DD-46).
+- **A `{teardown}` handle is the way to put a non-ECharts widget into
+  `liveCharts`** (monitor charts + now the globe) — `disposeChart`
+  branches on it.
+- User wants **rigorous pushback + genuine forks via AskUserQuestion**
+  (the texture fork this session), and to **re-verify rather than
+  defend** when a premise is questioned.
 
 ## Quick-start for the next session
-1. Read this file + `dashboard-prd.md` §15 rows DD-45 + DD-46 + **DD-47**
-   + `dashboard-design-decisions.md` DD-45/DD-46/DD-47. The DD-31..DD-44
+1. Read this file + `dashboard-prd.md` §15 rows **DD-45..DD-48** +
+   `dashboard-design-decisions.md` DD-45/46/47/48. The DD-31..DD-44
    family is still load-bearing for any widget work.
 2. Verify instance: `curl -s http://localhost:5007/dashboards -o /dev/null
    -w "%{http_code}\n"` → 302 (or 200 with the cookie jar; re-mint
    `/tmp/cj_stat.txt` via `reference_misp_login_dance` if it 302s).
-3. **DD-47 G1 first** — build the lazy `globe.bundle.mjs` (globe.gl +
-   three, esbuild tree-shaken; per the G1 plan + the `VENDORING.md`
-   recipe pattern). Then G2 (texture, AskUserQuestion sub-fork) → G3
-   (`initWebglGlobe`) → G4 (async dispatch) → G5 (mode enum/label) →
-   G6 (live retheme) → G7 (verify). One commit per sub-task.
-   **DD-47 is opt-in polish** — defer if priorities shift; the two
-   shipped modes stand alone.
-4. Do NOT start the merge — the user does that. Watch context; refresh
-   this handoff before wrapping.
+3. **Dashboard v2 is feature-complete** (three pew-pew modes shipped +
+   verified; all phases except merge closed). The only tracked phase
+   left is **Phase 6 (merge to `develop`) — the USER does this, not
+   us.** Do NOT start the merge. If asked for more, the optional polish
+   list above (globe auto-rotate, in-browser select-label confirm,
+   DD-43/44 in-browser checks, template refreshes) is the menu.
+4. Watch context; refresh this handoff before wrapping.
