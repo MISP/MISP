@@ -2103,17 +2103,38 @@ gate (the user still does the merge).
           user browser confirm.
       Temp webroot files deleted after (302 confirms removal).
 
-  - [ ] **Phase E — Polish + handoff refresh.** Final commit:
-    - [ ] **E1.** `cache_duration` and `cache_scope` tuned
-      against real render cost (default 3600 + global is the
-      starting hypothesis from DD-45; adjust if profiling
-      shows otherwise).
-    - [ ] **E2.** Open follow-ups recorded (if any: tooltip
-      detail per arc, click-to-filter-by-country, etc.) — none
-      planned in v1, but Phase E logs whatever surfaces during
-      C+D verification.
-    - [ ] **E3.** Handoff refreshed to reflect DD-45 closed,
-      next-session TBD.
+  - [x] **Phase E — Polish + handoff refresh.** **CLOSED** —
+    DD-45 complete (2D shipped Phase C, globe shipped Phase D).
+    - [x] **E1.** `cache_duration` / `cache_scope` confirmed
+      unchanged at `3600` / `'global'`.  **Rationale:** Phase D
+      (DD-46) added ZERO server-side cost — the globe is a pure
+      client-side projection swap (`geo.projection` orthographic
+      + a per-vertex culling check, all in the browser).  The
+      PHP `handler()` + the cached payload are byte-identical
+      between `mode:'2d'` and `mode:'3d-globe'` (the cache key is
+      config-hashed, so the two modes key separately but cost the
+      same to produce).  No profiling change warranted.
+    - [x] **E2.** Follow-ups surfaced in C+D, logged below under
+      "Carried follow-ups" / handoff:
+        * **Globe view-centre is static** (`PEWPEW_GLOBE_ROTATE
+          = [10,-30]`).  With the dev-DB single arc the US glow
+          lands near the top-left limb (visible but edge-ish).  A
+          nicer default would auto-centre the rotation on the
+          flows' centroid (busiest region faces front), and/or
+          expose `rotate` as a config knob — deferred polish, not
+          v1 (DD-46 specified a static default).
+        * **Globe auto-rotation** deferred (DD-46) — a slow spin
+          (re-render on a timer with incremented λ) is a possible
+          future flourish; intentionally omitted to keep the
+          render cheap + the canvas still for screenshots.
+        * **Optional sphere/ocean backing fill** — the political
+          disc reads fine as a globe on both themes (D5), but a
+          faint filled circle behind the geo would strengthen the
+          sphere read on very sparse data.  Low priority.
+    - [x] **E3.** Handoff refreshed (`dashboard-handoff.md`) —
+      DD-45 marked closed; both modes shipped; next-session
+      pointer set to the carried follow-ups / Phase 6 (user-owned
+      merge).
 
 ---
 
