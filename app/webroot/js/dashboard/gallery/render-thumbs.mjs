@@ -258,6 +258,30 @@ function thumbHealthList() {
   ]);
 }
 
+function thumbPewPewMap() {
+  // A schematic world (soft continent blobs) with two arcs sweeping in
+  // to a glowing destination — evokes the attacker→victim "pew pew"
+  // arcs + the pulsing victim glow, independent of the data domain.
+  const land = (cx, cy, rx, ry) => shape('ellipse', {
+    cx, cy, rx, ry, fill: 'currentColor', stroke: 'none', opacity: 0.22,
+  });
+  return svg([
+    land(18, 17, 7, 4),
+    land(39, 13, 9, 4.5),
+    land(59, 19, 7, 4),
+    land(29, 33, 8, 4),
+    // two arcs converging on the destination
+    shape('path', { d: 'M18,32 Q30,8 44,25' }),
+    shape('path', { d: 'M62,29 Q52,7 44,25' }),
+    // origin dots
+    shape('circle', { cx: 18, cy: 32, r: 2, fill: 'currentColor', stroke: 'none', opacity: 0.6 }),
+    shape('circle', { cx: 62, cy: 29, r: 2, fill: 'currentColor', stroke: 'none', opacity: 0.6 }),
+    // destination glow: filled core + ripple ring
+    shape('circle', { cx: 44, cy: 25, r: 2.4, fill: 'currentColor', stroke: 'none' }),
+    shape('circle', { cx: 44, cy: 25, r: 5, opacity: 0.5 }),
+  ]);
+}
+
 function thumbGeneric() {
   return svg([
     shape('rect', { x: 22, y: 14, width: 36, height: 17, rx: 2 }),
@@ -283,6 +307,7 @@ const REGISTRY = {
   UserList:       thumbUserList,
   QueueList:      thumbQueueList,
   HealthList:     thumbHealthList,
+  PewPewMap:      thumbPewPewMap,
 };
 
 /**
