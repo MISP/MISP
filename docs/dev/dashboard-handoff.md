@@ -130,7 +130,9 @@ the memoised promise.
 The `webgl-globe` mode has a per-widget **`skin`** config (the night
 texture is dark by design; the user wanted a daytime option):
 **`night`** (default, city lights), **`day`** (NASA Blue Marble), **`dark`**
-(minimal grey). Front-end only — a different `globeImageUrl`; `flows[]`
+(minimal grey), **`char`** (easter egg — a user-supplied charred/molten
+`char.png`, 2.9 MB, lazy so only its pickers pay). Front-end only — a
+different `globeImageUrl`; `flows[]`
 now carries a `skin` hint; the 2d/3d-globe modes ignore it. **Only the
 selected skin's image downloads** (lazy, per instance). **A skin must be
 in 3 places or it degrades to `night`:** the `$schema` `skin` enum +
