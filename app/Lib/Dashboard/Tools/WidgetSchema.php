@@ -24,6 +24,9 @@
  *           'help'     => '<string>',    // optional
  *           'required' => <bool>,        // optional
  *           'enum'     => [...],         // required when type === 'enum'
+ *           'enum_labels' => [v=>label],// optional, enum only: human-
+ *                                       // readable <select> labels;
+ *                                       // unmapped values show verbatim
  *       ],
  *       ...
  *   ];

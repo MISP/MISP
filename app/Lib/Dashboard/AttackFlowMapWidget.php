@@ -10,14 +10,19 @@
  * aggregated across events into `(src_iso, dst_iso)` pairs with a
  * `value` count. Capped at `max_arcs` (default 500, value-desc).
  *
- * Two render modes via config:
+ * Two render modes via config (DD-45 mode switch; DD-46 globe impl):
  *   - `2d` (default) — ECharts geo + animated `lines` series
  *     (lines-airline style: great-circle arcs with trail effect).
- *   - `3d-globe` — ECharts-gl `globe` + `lines3D`, lazy-loaded on
- *     first render from a separate vendor bundle (per DD-45).
+ *   - `3d-globe` — the SAME ECharts geo + lines, with the geo
+ *     projection swapped to a hemisphere-culling orthographic for a
+ *     from-space "2.5D" globe (d3-geo `geoOrthographic`, already
+ *     vendored — no echarts-gl, no WebGL; DD-46 superseded DD-45's
+ *     echarts-gl plan after it proved unmaintained + echarts@6-
+ *     incompatible).
  *
  * The same `flows[]` payload feeds both modes; the renderer
- * dispatches by `payload.mode`.
+ * (`buildPewPewOption` in charts.module.mjs) dispatches by
+ * `payload.mode` (synchronously — no lazy bundle load).
  *
  * Data resolution path (DD-45):
  *   1. Per event tagged with a `misp-galaxy:country=...` cluster
@@ -53,7 +58,7 @@ class AttackFlowMapWidget
     public $title = 'Attack flow map';
     public $category = 'events';
     public $render = 'PewPewMap';
-    public $description = 'Animated arcs between threat-actor origin country and victim country, derived from misp-galaxy:threat-actor and misp-galaxy:country tags on events. Renders in 2D (default, animated great-circle lines) or 3D (echarts-gl globe, lazy-loaded).';
+    public $description = 'Animated arcs between threat-actor origin country and victim country, derived from misp-galaxy:threat-actor and misp-galaxy:country tags on events. Renders as a 2D flat map (default, animated great-circle lines) or an orthographic "globe" view of the same arcs.';
     public $width = 6;
     public $height = 5;
     // cacheLifetime + autoRefreshDelay are inert in dashboard v2 —
@@ -65,7 +70,7 @@ class AttackFlowMapWidget
     public $cache_duration = 3600;
     public $params = [
         'time_window' => 'The time window, going back in seconds, that should be included (also accepts "30d" day form, or -1 for all historic data).',
-        'mode' => 'Render mode: "2d" (default, animated lines-airline arcs) or "3d-globe" (echarts-gl globe + lines3D, lazy-loaded).',
+        'mode' => 'Render mode: "2d" (default, animated lines-airline arcs on a flat map) or "3d-globe" (the same arcs on an orthographic from-space globe).',
         'max_arcs' => 'Maximum number of arcs rendered. Truncation is value-desc so the strongest signals always render. Default 500.',
     ];
     public $schema = [
@@ -77,8 +82,11 @@ class AttackFlowMapWidget
         'mode' => [
             'type' => 'enum',
             'enum' => ['2d', '3d-globe'],
+            // Stored values stay '2d'/'3d-globe' (schema stability,
+            // DD-46); the configure-form <select> shows these labels.
+            'enum_labels' => ['2d' => '2D map', '3d-globe' => 'Globe'],
             'default' => '2d',
-            'help' => 'Render mode. 2D animated lines (default) or 3D globe (lazy-loads echarts-gl).',
+            'help' => 'Render mode. 2D flat-map animated arcs (default), or an orthographic "globe" view of the same arcs.',
         ],
         'max_arcs' => [
             'type' => 'int',

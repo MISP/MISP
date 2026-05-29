@@ -170,8 +170,15 @@ function buildScalarField(key, entry, currentValue) {
       const cur = currentValue !== undefined
         ? String(currentValue)
         : (entry.default !== undefined ? String(entry.default) : '');
+      // Optional human-readable labels (schema `enum_labels: {value:
+      // label}`); falls back to the raw value when unmapped, so
+      // existing enum fields without labels are unchanged.
+      const enumLabels = (entry.enum_labels && typeof entry.enum_labels === 'object')
+        ? entry.enum_labels : {};
       for (const o of opts) {
-        const opt = el('option', { value: String(o), text: String(o) });
+        const label = Object.prototype.hasOwnProperty.call(enumLabels, o)
+          ? String(enumLabels[o]) : String(o);
+        const opt = el('option', { value: String(o), text: label });
         if (String(o) === cur) opt.setAttribute('selected', '');
         control.appendChild(opt);
       }
