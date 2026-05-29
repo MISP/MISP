@@ -3919,7 +3919,12 @@ return [
 
 * `class AttackFlowMapWidget`:
   * `$title = 'Attack flow map'`
-  * `$category = 'system'` (TI-attribution surface)
+  * `$category = 'events'` (event-derived data; matches
+    `AttributeGeoMapWidget` and `ThreatActorCountryMapWidget`).
+    Phase B implementation corrected this from the original spec
+    draft's `'system'` value, which was a defensive guess —
+    `'events'` is the correct gallery category since the widget
+    consumes event tags, not server-internal data.
   * `$render = 'PewPewMap'`
   * `$width = 6`, `$height = 5` (wider than choropleth — arcs
     need room to breathe)
@@ -3928,14 +3933,19 @@ return [
   * `$cache_scope = 'global'` (no per-user variation; widget is
     aggregate-only)
   * `$params`:
+    * `time_window` — recency window, canonical form (P30D
+      schema default, "30d" day form, or -1 for all-time);
+      same parsing as `AttributeGeoMapWidget` (DD-12)
     * `mode` — `'2d'` (default) or `'3d-globe'`
     * `max_arcs` — integer, default 500
-    * `filter` — org-meta filter dictionary, mirrors
-      `AttributeGeoMapWidget`'s pattern
-    * `start_date` / `end_date` / `days` — same date-range
-      vocabulary as the existing widgets
-  * `$schema` — `mode` (select), `max_arcs` (number),
-    `org_meta_filter`, `date_range`
+  * `$schema` — `time_window` (canonical-type, toolbar-
+    reachable), `mode` (enum), `max_arcs` (int).  Note: the
+    Phase A spec draft mentioned `filter` (org-meta) +
+    `date_range`; Phase B2 simplified to `time_window` only
+    for parity with `AttributeGeoMapWidget` (which doesn't
+    carry an org filter either).  If a per-org or
+    `start_date`/`end_date` cut becomes load-bearing, add
+    them via the canonical-type machinery, not as new params.
   * `checkPermissions($user)`: open to all (no admin gate; the
     data is aggregate, no per-user variation, matches
     `AttributeGeoMapWidget`'s posture)
@@ -4022,4 +4032,24 @@ Pure addition.  Reverse = delete `AttackFlowMapWidget.php`,
 vendor files, the `LinesChart` line from `entry.mjs`, and
 rebuild the main bundle.  No model / controller / migration /
 shipped-template touched.
+
+**Sub-note (Phase B2 implementation — 2026-05-29): actual
+dev-DB arc inventory.**
+
+The Phase A scope-decision question put the dev coverage at
+"~35 arcs" — that was wrong.  Real measurement on the dev DB
+after Phase B2 landed: the cluster.country attacker path
+opens up coverage from 5 dual-tagged events to **4 events
+where the resolution path completes** (one of the 5 dual-
+tagged events has a country galaxy whose cluster lacks an
+`ISO` element, dropping it).  Of those 4 events, **3 are
+self-loops** (Russia → Russia from a Sofacy event; Iran →
+Iran from two MuddyWater events) — skipped per spec, leaving
+**1 visible arc: Iran → United States** (event 1421, Charming
+Kitten + APT33 + APT35 actors all resolving to IR).  Production
+instances are expected to be richer; the dev-box thin demo is
+a verification surface, not the headline.  The user-rejected
+fixture-tagging fork could be reconsidered in Phase C if the
+2D visual verification needs more arcs to be meaningful, but
+the widget's correctness is independent of the data volume.
 

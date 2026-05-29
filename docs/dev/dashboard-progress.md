@@ -1863,18 +1863,39 @@ gate (the user still does the merge).
       drift west by ~5° due to French Polynesia / Hawaii area
       pull — acceptable for arc-endpoint visualisation).
       Gzipped output 2 KB.
-    - [ ] **B2.** `AttributeFlowMapWidget.php` — wait,
-      `app/Lib/Dashboard/AttackFlowMapWidget.php`.  Implements
-      the resolution path (see DD-45): event_tags JOIN tags
-      LIKE `misp-galaxy:country=%` → victim ISO via
-      galaxy_clusters → galaxy_elements.key='ISO'; same event's
-      threat-actor tags → cluster `country` element; cross-
-      product into `(src_iso, dst_iso)` pairs; aggregate by
-      pair → value count; cap at `max_arcs` value-desc; resolve
-      centroids via `iso-centroids.json` read by the handler;
-      return the `flows[]` shape.  `$render='PewPewMap'`,
-      `$category='system'`, `$cache_duration=3600`,
-      `$cache_scope='global'`, params + schema per DD-45.
+    - [x] **B2.** `app/Lib/Dashboard/AttackFlowMapWidget.php` —
+      implements the DD-45 resolution path: `event_tags` JOIN
+      `tags` → `galaxy_clusters` → `galaxies` (filter type =
+      `country` for victims / `threat-actor` for attackers) →
+      `galaxy_elements` (filter key = `ISO` / `country`).
+      Per-event victim ISO list collected first; attacker query
+      restricted to the same event id set (cheap optimisation —
+      skips the threat-actor scan on events that can't yield an
+      arc).  Cross-product within each event, self-loops
+      skipped, aggregate by `(src_iso, dst_iso)` → value count;
+      `arsort` + `array_slice` at `max_arcs`.  Centroids loaded
+      once per request from
+      `js/dashboard/charts/vendor/iso-centroids.json`; ISO
+      codes without a centroid (de-facto entities) silently
+      dropped from the output.  **Landed 2026-05-29.**
+      `$category='events'` (DD-45 spec corrected from `'system'`
+      — see the DD entry's category sub-note).  Params
+      simplified to `time_window` + `mode` + `max_arcs` (DD-45
+      Phase A spec mentioned org-meta `filter` + date-range
+      vocabulary; B2 simplified to `time_window` for parity
+      with `AttributeGeoMapWidget`).  Verified: `php -l` clean;
+      live REST renders against the dev DB return correct
+      payload (`mode='2d'`, `flows=[{src_iso:'IR', dst_iso:
+      'US', value:1, ...}]`); invalid-mode falls back to 2D;
+      empty time window returns `flows=[]`; cache key seen in
+      Redis db13 (`misp:attack_flow_map_cache:<sha>`).
+      **Dev-DB arc inventory (recorded for next session): only
+      1 visible arc** (IR→US from event 1421's Charming
+      Kitten / APT33 / APT35 attribution).  The other 3 dual-
+      tagged events on the dev DB resolve to self-loops
+      (RU→RU from Sofacy, IR→IR ×2 from MuddyWater) and are
+      correctly skipped.  Phase C visual verification will see
+      a sparse map; production data is expected richer.
     - [ ] **B3.** PHPUnit coverage —
       `app/Test/AttackFlowMapWidgetTest.php`.  Fixture-driven:
       mock a small in-memory galaxy/tag graph, verify the
