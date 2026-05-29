@@ -1963,12 +1963,16 @@ gate (the user still does the merge).
       `EffectScatterChart` (+4 KB raw / +1.2 KB gz over the C1
       bundle; 721 KB / 245 KB total).  User chose the spec-faithful
       glow over a lines-only arrival cue (DD-45 fork, this session).
-    - [ ] **C4.** `thumbPewPewMap()` builder in
+    - [x] **C4.** `thumbPewPewMap()` builder in
       `app/webroot/js/dashboard/gallery/render-thumbs.mjs` —
       single-colour SVG glyph at 80×45 viewBox: schematic world
       outline + two diagonal arcs converging on a centre point.
       Registered in the `REGISTRY` object under key
       `'PewPewMap'`.  Per CLAUDE.md render-kind glyph rule.
+      **DONE** (commit `ef8a00bc6`): continent blobs + two
+      converging arcs + destination core/ripple ring (evokes the
+      effectScatter glow).  node --check clean; glyph eye-check
+      folded into C5's screenshot batch.
     - [ ] **C5.** Visual verification (DD-41 recipe): inline
       the rendered widget HTML into a static page under
       `app/webroot/`, screenshot via headless Chrome with the
