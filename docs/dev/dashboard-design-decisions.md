@@ -4373,12 +4373,12 @@ VENDORING.md spells this out.
 **Forks not taken.** Could have shipped more skins (topographic, water,
 hi-res Blue Marble) — three freely-available textures cover the dark /
 bright / minimal spectrum; more are a one-line add (a vendored image +
-the three registrations above) if asked. *(Proven shortly after: a
-fourth **`char`** easter-egg skin — a user-supplied charred/molten-planet
-`char.png` — was added exactly this way, commit `8cc4dfe4d`. Caveat:
-that PNG is 2.9 MB, far larger than the 81–279 KB others; lazy-loaded so
-it only costs the people who pick it, but a downscale-to-JPEG is on
-offer.)* The arc/ring/atmosphere colours
+the three registrations above) if asked. *(Proven shortly after: two
+user-supplied easter-egg skins were added exactly this way — **`char`**
+(charred/molten planet, commit `8cc4dfe4d`) and **`nacre`** ("Planet
+Nacre", pearlescent stylised planet, commit `902d09cbc`). Caveat: both
+are big PNGs (2.9 / 2.7 MB) vs the 81–279 KB NASA skins; lazy-loaded so
+only their pickers pay, but a downscale-to-JPEG is on offer.)* The arc/ring/atmosphere colours
 stay token-driven (danger/warning) across all skins — a red atmosphere
 on the bright day globe reads as an "under attack" alert and the arcs
 still pop, verified by screenshot.
