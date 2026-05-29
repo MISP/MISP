@@ -716,6 +716,191 @@ function buildPewPewOption(payload, hostEl) {
   };
 }
 
+// ---- pew-pew WebGL globe (DD-47) ----
+
+// Texture + lazy bundle are resolved relative to THIS module (the same
+// import.meta.url pattern ensureWorldMap uses) so a MISP baseurl
+// subpath still works.
+const GLOBE_TEXTURE_URL =
+  new URL('./vendor/earth-night-2k.jpg', import.meta.url).href;
+
+// Memoised lazy import so a second webgl-globe widget on the same page
+// reuses the first fetch of the heavy (≈508 KB gz) Three.js bundle. The
+// bundle is fetched ONLY here — never by the 2d / 3d-globe modes, never
+// by the main echarts bundle (DD-47).
+let globeBundlePromise = null;
+function loadGlobeBundle() {
+  if (!globeBundlePromise) {
+    globeBundlePromise = import('./vendor/globe.bundle.mjs');
+  }
+  return globeBundlePromise;
+}
+
+// Add an alpha channel to a CSS colour token. Handles #rgb / #rrggbb
+// and rgb()/rgba(); anything else is returned solid. The --misp-dash-*
+// tokens are hex, so the arc gradient + ring fade resolve correctly; an
+// exotic theme value just degrades to a solid colour.
+function withAlpha(colour, alpha) {
+  const c = (colour || '').trim();
+  let m = c.match(/^#([0-9a-f]{3})$/i);
+  if (m) {
+    const h = m[1];
+    const r = parseInt(h[0] + h[0], 16);
+    const g = parseInt(h[1] + h[1], 16);
+    const b = parseInt(h[2] + h[2], 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  m = c.match(/^#([0-9a-f]{6})$/i);
+  if (m) {
+    const h = m[1];
+    return `rgba(${parseInt(h.slice(0, 2), 16)}, `
+      + `${parseInt(h.slice(2, 4), 16)}, `
+      + `${parseInt(h.slice(4, 6), 16)}, ${alpha})`;
+  }
+  m = c.match(/^rgba?\(([^)]+)\)$/i);
+  if (m) {
+    const [r, g, b] = m[1].split(',').map((s) => s.trim());
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  return c || `rgba(0, 0, 0, ${alpha})`;
+}
+
+/**
+ * WebGL globe mode (DD-47) — the opt-in "Globe (3D)" pew-pew render.
+ * Unlike the 2d / 3d-globe ECharts modes (one buildPewPewOption that
+ * returns an option object), globe.gl owns its own WebGL <canvas>, so
+ * this is a dedicated init path, NOT a builder. It lazy-imports the
+ * heavy globe.bundle.mjs (Three.js) on first use only, maps the shared
+ * flows[] payload to globe.gl arcs + pulsing destination rings, and
+ * returns a { teardown } handle so disposeChart()'s teardown branch
+ * (the same one the monitor charts use) tears it down cleanly.
+ *
+ * Non-blocking: the handle is returned synchronously and the import
+ * resolves in the background behind a loading placeholder, so a board
+ * with several widgets doesn't stall its whole init promise on the
+ * Three.js download. teardown() flips `disposed` so a dispose that
+ * races ahead of a slow import is honoured.
+ *
+ * Theming is bespoke (DD-47 G6): globe.gl won't read --misp-dash-*, so
+ * applyColours() reads the tokens via tokenOn() and a MutationObserver
+ * on <html data-theme> re-applies arc / ring / atmosphere colours on
+ * light<->dark with no re-init (the zero-JS retheme the ECharts modes
+ * get for free is not automatic here).
+ */
+function initWebglGlobe(hostEl, payload) {
+  const flows = Array.isArray(payload.flows) ? payload.flows : [];
+
+  // One arc per flow; value drives stroke (log scale). Endpoints are
+  // [lon, lat] server-resolved centroids (DD-45 B1).
+  const maxV = flows.reduce((m, f) => Math.max(m, Number(f.value) || 0), 0) || 1;
+  const logMax = Math.log(maxV + 1) || 1;
+  const strokeOf = (v) => 0.3 + 1.1 * (Math.log((Number(v) || 0) + 1) / logMax);
+  const arcs = flows.map((f) => ({
+    startLat: f.src[1], startLng: f.src[0],
+    endLat: f.dst[1], endLng: f.dst[0],
+    value: Number(f.value) || 0,
+    src_iso: f.src_iso, dst_iso: f.dst_iso,
+    stroke: strokeOf(f.value),
+  }));
+
+  // One pulsing ring per victim centroid, sized by total incoming value
+  // (mirrors the 2d/3d-globe effectScatter glow aggregation).
+  const dstAgg = {};
+  for (const f of flows) {
+    const key = f.dst_iso || `${f.dst[0]},${f.dst[1]}`;
+    if (!dstAgg[key]) dstAgg[key] = { lat: f.dst[1], lng: f.dst[0], value: 0 };
+    dstAgg[key].value += Number(f.value) || 0;
+  }
+  const rings = Object.values(dstAgg);
+  const maxDst = rings.reduce((m, r) => Math.max(m, r.value), 0) || 1;
+  const radiusOf = (v) => 2 + 4 * ((Number(v) || 0) / maxDst);
+
+  // Loading placeholder (self-contained inline style — no CSS dep)
+  // while the heavy Three.js bundle downloads.
+  const placeholder = (text) =>
+    `<div style="display:flex;align-items:center;justify-content:center;`
+    + `height:100%;width:100%;color:var(--misp-dash-text-muted,#6b7280);`
+    + `font-size:0.9em;">${text}</div>`;
+  hostEl.innerHTML = placeholder('Loading 3D globe…');
+
+  let globe = null;
+  let resizeObs = null;
+  let themeObs = null;
+  let disposed = false;
+
+  const applyColours = () => {
+    if (!globe) return;
+    const danger = tokenOn(hostEl, '--misp-dash-danger', '#dc2626');
+    const warning = tokenOn(hostEl, '--misp-dash-warning', '#d97706');
+    globe
+      .arcColor(() => [withAlpha(danger, 0.15), withAlpha(danger, 0.95)])
+      .ringColor(() => (t) => withAlpha(warning, 1 - t))
+      .atmosphereColor(danger);
+  };
+
+  loadGlobeBundle()
+    .then(({ default: Globe }) => {
+      if (disposed) return;          // disposed before the import resolved
+      hostEl.innerHTML = '';
+      globe = Globe()(hostEl)
+        .width(hostEl.clientWidth || 600)
+        .height(hostEl.clientHeight || 400)
+        .backgroundColor('rgba(0, 0, 0, 0)')   // blend with the card
+        .globeImageUrl(GLOBE_TEXTURE_URL)
+        .showAtmosphere(true)
+        .atmosphereAltitude(0.18)
+        .arcsData(arcs)
+        .arcStartLat((d) => d.startLat)
+        .arcStartLng((d) => d.startLng)
+        .arcEndLat((d) => d.endLat)
+        .arcEndLng((d) => d.endLng)
+        .arcStroke((d) => d.stroke)
+        .arcDashLength(0.4)
+        .arcDashGap(0.2)
+        .arcDashInitialGap(() => Math.random())
+        .arcDashAnimateTime(1500)
+        .ringsData(rings)
+        .ringLat((d) => d.lat)
+        .ringLng((d) => d.lng)
+        .ringMaxRadius((d) => radiusOf(d.value))
+        .ringPropagationSpeed(2)
+        .ringRepeatPeriod(1200);
+      applyColours();
+      // North-Atlantic framing (mirrors PEWPEW_GLOBE_ROTATE's intent):
+      // view centre near [-10, 30] so US + EU + the attacker side read
+      // together; altitude 2.2 frames the disc with margin.
+      globe.pointOfView({ lat: 30, lng: -10, altitude: 2.2 }, 0);
+
+      resizeObs = new ResizeObserver(() => {
+        if (!globe) return;
+        globe.width(hostEl.clientWidth || 600)
+          .height(hostEl.clientHeight || 400);
+      });
+      resizeObs.observe(hostEl);
+
+      themeObs = new MutationObserver(applyColours);
+      themeObs.observe(document.documentElement, {
+        attributes: true, attributeFilter: ['data-theme'],
+      });
+    })
+    .catch((err) => {
+      console.warn('[misp-dashboard] globe.bundle load failed', err);
+      if (!disposed) hostEl.innerHTML = placeholder('3D globe unavailable');
+    });
+
+  return {
+    teardown() {
+      disposed = true;
+      if (themeObs) themeObs.disconnect();
+      if (resizeObs) resizeObs.disconnect();
+      if (globe && typeof globe._destructor === 'function') {
+        globe._destructor();
+      }
+      hostEl.innerHTML = '';
+    },
+  };
+}
+
 const builders = {
   bar: buildBarOption,
   line: buildLineOption,
