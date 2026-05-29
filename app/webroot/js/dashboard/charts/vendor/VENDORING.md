@@ -14,7 +14,7 @@ GeoJSON for the OrganisationMap widget and similar geo-typed widgets.
 | `LICENSE.echarts` | The ECharts package's upstream `LICENSE` file (Apache 2.0, with NOTICE-style attributions to upstream contributors). Required by the licence. | 12 KB / — |
 | `world-110m.geojson` | World countries GeoJSON at 1:110,000,000 resolution (177 country features), converted from TopoJSON in `world-atlas@2.0.2` via `topojson-client.feature()`, then **antimeridian-split** so polygons spanning the date line (Russia, Fiji, Antarctica…) render correctly under ECharts. | 437 KB / 146 KB |
 | `LICENSE.world-atlas` | The world-atlas package's upstream LICENSE file (ISC, by Mike Bostock + Natural Earth public-domain data). | 1 KB / — |
-| `d3-geo.bundle.mjs` | Built locally with esbuild from `d3-geo@3.1.1` + `d3-geo-projection@4.0.0`. Exports `geoNaturalEarth1` (d3-geo core), `geoRobinson` and `geoCylindricalEqualArea` (d3-geo-projection) for the WorldMap projection option (DD-15, DD-16). ESM, minified. | 17.4 KB / 7.4 KB |
+| `d3-geo.bundle.mjs` | Built locally with esbuild from `d3-geo@3.1.1` + `d3-geo-projection@4.0.0`. Exports `geoNaturalEarth1` + `geoOrthographic` (d3-geo core), `geoRobinson` and `geoCylindricalEqualArea` (d3-geo-projection) for the WorldMap projection option (DD-15, DD-16) and the AttackFlowMap "globe" mode (DD-46). `geoOrthographic` powers the pew-pew 2.5D globe (DD-46, superseding DD-45's echarts-gl plan) — added to the bundle for +0.1 KB gzipped since it shares d3-geo core machinery. ESM, minified. | 18.1 KB / 7.5 KB |
 | `LICENSE.d3-geo`, `LICENSE.d3-geo-projection` | Upstream LICENSE files (ISC, Mike Bostock). The esbuild `--legal-comments=external` sidecar was empty (no inline notices survive minification), so these LICENSE files are the attribution. | 2 KB / — |
 | `iso-centroids.json` | Per-country polygon centroids keyed by ISO alpha-2 — `{"ISO_A2": [lon, lat], ...}`. Built from `world-110m.geojson` by `app/files/scripts/build_iso_centroids.py` (DD-45 Phase B1). Consumed by `AttackFlowMapWidget` (DD-45) to resolve attacker/victim country codes to arc endpoints. Run the script again any time `world-110m.geojson` is re-vendored. | 4 KB / 2 KB |
 | `VENDORING.md` | This file. | — |
@@ -173,7 +173,7 @@ npm install --silent --no-audit --no-fund \
   d3-geo@3 d3-geo-projection@4 esbuild@0.24.0
 
 cat > entry.mjs <<'EOF'
-export { geoNaturalEarth1 } from 'd3-geo';
+export { geoNaturalEarth1, geoOrthographic } from 'd3-geo';
 export { geoRobinson, geoCylindricalEqualArea } from 'd3-geo-projection';
 EOF
 
