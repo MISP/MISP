@@ -2017,7 +2017,7 @@ gate (the user still does the merge).
     with the `geo.projection` swapped to a hemisphere-culling
     orthographic projection — no new dependency, no WebGL, no
     texture, +0.1 KB gz.  One commit per sub-task:
-    - [ ] **D1.** Add `geoOrthographic` to `d3-geo.bundle.mjs`'s
+    - [x] **D1.** Add `geoOrthographic` to `d3-geo.bundle.mjs`'s
       export barrel (`entry.mjs`: `export { geoNaturalEarth1,
       geoOrthographic } from 'd3-geo';`) + rebuild via the
       `VENDORING.md` d3-geo recipe + add the `VENDORING.md` note.
