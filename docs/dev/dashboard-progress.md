@@ -2055,11 +2055,21 @@ gate (the user still does the merge).
       orthographic globe (continents form the disc, back face
       culled, clean limb, arcs/glows/animated arrowheads intact).
       Full light/dark + real-pipeline (IR→US) check is D5.
-    - [ ] **D4.** Mode-switch wiring: confirm the B2-shipped
+    - [x] **D4.** Mode-switch wiring: confirm the B2-shipped
       `$schema['mode']` `2d`/`3d-globe` `<select>` round-trips
       handler → payload → renderer end-to-end.  Default `'2d'`
       preserved.  Refine the `<select>` label for `3d-globe` to
       read "Globe" (value unchanged for schema stability, DD-46).
+      **DONE** (commit `40f3452ac`): round-trip verified live —
+      `renderWidget` with `config.mode='3d-globe'` returns
+      `payload.mode='3d-globe'` + the dev-DB IR→US arc.  Added a
+      generic optional `enum_labels` map to the schema contract +
+      `configure.module.mjs` enum renderer (falls back to the raw
+      value, so other enums unchanged); widget maps `{2d:'2D map',
+      3d-globe:'Globe'}`.  Refreshed the stale echarts-gl text in
+      the widget's `$description`/`$params`/`$schema` help +
+      class doc-comment.  `php -l` + `node --check` clean.  The
+      rendered "Globe" `<select>` label is eye-checked in D5.
     - [ ] **D5.** Visual verification — both modes, headless
       Chrome (C5 recipe).  Confirm: globe renders the real-pipeline
       arc (IR→US) on the orthographic disc; synthetic multi-arc
