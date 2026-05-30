@@ -2293,6 +2293,48 @@ gate (the user still does the merge).
     AE 0 (static); DOM probe canvas 600×420, lazy bundle + night texture,
     no fallback. Spec: DD-50 + PRD §15. Commit `9dc8cf75c`.
 
+  - [x] **DD-51 — Stopgap dashboard-local light/dark toggle.** CLOSED.
+    A per-user toggle on the dashboard until a global MISP dark theme
+    ships (user asked for it "for the meanwhile"). Knowingly supersedes,
+    for the interim, the §8.1 / `project-misp-dark-theme-sequencing`
+    "global theme, not a local toggle" stance — the conflict risk is
+    empty while no global dark theme exists, and the half-measure is
+    accepted as a stopgap; built to retire cleanly. User forks
+    (AskUserQuestion): persistence = **server-side** (`UserSetting:
+    dashboard_theme`, `auto`/`light`/`dark`), first-visit = **follow OS
+    `prefers-color-scheme`**, interaction = **live, no reload**.
+    - **Task A — persistence + no-FOUC boot** (commit `82d5c4759`):
+      `dashboard_theme` key + `validate_dashboard_theme`;
+      `DashboardsController::index()` reads the pref + `updateTheme()`
+      POST endpoint (in `unlockedActions` like `updateSettings`);
+      `theme_boot.ctp` inline `<head>` script seeds `data-theme`
+      pre-paint (resolves `auto` via `matchMedia`), included by all 3
+      dashboard layouts (default + Themed/Overmind + Themed/UiBeta).
+    - **Task B — toggle + live retheme** (commit `27b7e508f`): sun/moon
+      icon button in `index.ctp` (beside the refresh toggle, two glyphs
+      CSS-swapped on `aria-pressed`) + `data-misp-board-theme-url`;
+      `registerMispTheme(el, force)` re-register; `rethemeChartsIn()`
+      (force re-register + re-init each ECharts container from its DOM
+      payload, skip the self-rethemeing webgl-globe);
+      `board.module.mjs` `toggle-theme` action → `_toggleTheme`
+      (flip `data-theme`, retheme charts, `_saveThemePref` POST) +
+      `_init` seeds the button's `aria-pressed`.
+    - **Task C — complete the dark overlay** (commit `80d4e034a`):
+      `dashboard.midnight.css` redefines the semantic `-muted` tokens for
+      dark + scoped fixups for the two black overlays that vanish on dark
+      (org-filter chip-remove hover, attack-matrix hit-cell border;
+      configure scrim left as-is); `dashboard.default.css` tokenises the
+      two red washes (→ `var(--misp-dash-danger-muted)`) + a card shadow.
+    - **Verified:** curl round-trip (persist dark↔light, boot-script
+      `var pref` reflects it, `theme=purple` → HTTP 400); headless
+      Chrome (swiftshader) on a temp page using the real CSS stack +
+      `charts.module.mjs` — light shows the sun glyph + light bars, the
+      `?dark=1` path applies midnight, swaps to the moon glyph, and
+      `rethemeChartsIn()` retones the already-rendered chart live
+      (dark-accent bars, readable light labels). `php -l` +
+      `parallel-lint` 7/7 + `node --check` 3/3 clean; existing dashboard
+      PHPUnit (4 files, 77 tests) green. Spec: DD-51 + PRD §15.
+
 ---
 
 ## Phase 6 — Merge to `develop`

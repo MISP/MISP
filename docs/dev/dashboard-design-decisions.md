@@ -4455,3 +4455,102 @@ gap barely moves — the large gap makes the effect unambiguous.
 **Reversibility.** Drop the `autoRotate`/`autoRotateSpeed` lines + the
 `prefers-reduced-motion` guard in `initWebglGlobe`; the globe returns to
 the static-but-draggable v1 behaviour. Nothing else references it.
+
+## DD-51 — Stopgap dashboard-local light/dark toggle
+
+**Date.** 2026-05-30
+
+**Status.** Binding — IMPLEMENTED + verified. **Supersedes, for the
+interim, the "no dashboard-local toggle" stance** of PRD §8.1 / the
+`project-misp-dark-theme-sequencing` decision (see Supersession below).
+
+**Decision.** Ship a per-user light/dark toggle **on the dashboard
+itself**, as a stopgap until a global MISP dark theme lands. The user
+asked for it explicitly, framed as a "for the meanwhile" measure: MISP has
+no global dark theme yet (it's being built), so users get a dark dashboard
+now rather than waiting on the larger initiative. The dashboard was
+already "dark-ready" — `dashboard.midnight.css` ships on every dashboard
+page and keys off `:root[data-theme="midnight"]`, the WebGL globe
+self-rethemes, and ECharts/CSS read `--misp-dash-*` tokens — but nothing
+ever *set* `data-theme` outside the old `?theme=` prototype hint. DD-51 is
+the activation + persistence + completeness work that turns that latent
+capability into a usable toggle.
+
+**Supersession (the pushback, recorded).** PRD §8.1 and the prior decision
+(`project-misp-dark-theme-sequencing`) deliberately said dashboard dark
+mode should arrive as a *global* MISP theme, not a per-page toggle — the
+stated risks being (a) precedence conflicts with the user's global theme
+choice and (b) a half-measure that re-skins one page. This was put back to
+the user as dissent. It does not bind here because: there **is no global
+dark theme yet**, so risk (a) is empty (nothing to conflict with), and the
+half-measure (b) is explicitly accepted as interim. The design is built to
+be retired cleanly (see Reversibility), so the global-theme path stays
+fully open.
+
+**User decisions (genuine forks, via AskUserQuestion).**
+- *Persistence* → **server-side per-user setting** (follows the account
+  across devices), not browser `localStorage`. The user signed off on
+  touching the UserSetting backend that this requires.
+- *First-visit default* → **follow the OS `prefers-color-scheme`** (until
+  the user makes an explicit choice), not "always start light".
+- *Interaction* (recommended, not asked) → **live retheme, no reload** —
+  matches the globe's existing live-retheme design and is the better UX.
+
+**Implementation.**
+- *Persistence (Task A).* New `UserSetting` key `dashboard_theme` with
+  tri-state `auto | light | dark` (+ `validate_dashboard_theme`). `auto`
+  (default / no row) means follow-OS and is the *absence* of an explicit
+  choice — never written back. `DashboardsController::index()` reads the
+  pref (after the REST early-return) and hands it to the view; a new
+  POST-only `updateTheme()` (REST-style, added to `beforeFilter`'s
+  `unlockedActions` like `updateSettings`) persists explicit light/dark.
+- *No-FOUC boot (Task A).* `View/Elements/dashboard/theme_boot.ctp` — an
+  inline `<head>` script seeded with the server-resolved pref — sets
+  `data-theme` on `<html>` **before first paint** (resolving `auto` via
+  `matchMedia`). Included by **all three** dashboard layouts (default +
+  Themed/Overmind + Themed/UiBeta — the latter two override the layout, so
+  a single shared element keeps them in lockstep).
+- *Toggle + live retheme (Task B).* A sun/moon icon button in
+  `index.ctp`'s `.misp-dashboard-modecontrols` (beside the refresh-pause
+  toggle; inline SVG, two glyphs CSS-swapped on `aria-pressed`).
+  `board.module.mjs`'s `_toggleTheme` flips `data-theme` live and persists
+  via `_saveThemePref`. The CSS chrome and the globe retheme themselves,
+  but ECharts captures its theme at `init` time, so `charts.module.mjs`
+  gains `rethemeChartsIn()` — it force-re-registers the "misp" theme
+  (`registerMispTheme(el, force)`) from the now-current tokens and re-inits
+  each ECharts container from its unchanged DOM payload; the webgl-globe is
+  skipped (self-rethemes, and a re-init would refetch its 508 KB bundle).
+- *Dark-overlay completeness (Task C).* `dashboard.midnight.css` now
+  redefines the semantic `-muted` tokens for dark (they were tuned for a
+  white surface and read as near-nothing on dark) and retones two
+  hardcoded black overlays that vanish on dark (org-filter chip-remove
+  hover, attack-matrix hit-cell border), scoped to the midnight overlay.
+  `dashboard.default.css` tokenises the two red washes
+  (`rgba(220,38,38,0.10)` → `var(--misp-dash-danger-muted)`) and a
+  hardcoded card shadow so the dark overrides reach them. The configure
+  backdrop's `rgba(0,0,0,0.30)` scrim is intentionally left (a black scrim
+  dims correctly on either theme).
+
+**Verification (visible outcome, not the property).** Server round-trip via
+curl with a real session: `updateTheme` persists dark→light, `index()`'s
+boot script reflects the stored pref (`var pref = "dark"` / `"light"`), and
+an invalid value (`theme=purple`) returns HTTP 400. Headless Chrome
+(swiftshader) on a temp page loading the **real** CSS stack + the **real**
+`charts.module.mjs`: light render shows the sun glyph + a light bar chart;
+the `?dark=1` path applies `data-theme=midnight`, flips the button to the
+moon glyph (accent-pressed), and calls the real `rethemeChartsIn()` — the
+screenshot shows the chart **retoned live** (dark-accent bars, readable
+light axis/value labels on the dark card), proving the re-register +
+re-init path actually rethemes an already-rendered chart. `php -l` +
+`parallel-lint` (7/7) + `node --check` (3 modules) clean; the existing
+dashboard PHPUnit suite (4 files, 77 tests) stays green.
+
+**Reversibility / forward-compat.** The toggle is an isolated override
+layer: a single `data-theme="midnight"` attribute + token redefinitions,
+orthogonal to MISP's themed-view mechanism (Overmind/UiBeta select `.ctp`
+files, not `data-theme`). When a global MISP dark theme ships, revisit
+whether the dashboard defers to it or keeps the local override — nothing
+here blocks that. To retire: drop the button + `theme_boot.ctp` include +
+`_toggleTheme`/`_saveThemePref` + `updateTheme` + the `dashboard_theme`
+key; the midnight overlay (now token-complete) is exactly what such a
+global theme would reuse, so Task C's completeness work is not wasted.

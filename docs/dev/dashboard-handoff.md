@@ -1,14 +1,15 @@
-# Dashboard v2 — Session handoff (2026-05-30 — DD-50 CLOSED: WebGL globe slow idle auto-rotate ships + browser-confirmed; carries DD-47 globe.gl real-3D mode, DD-48 rename → PewPewMap, DD-49 5 globe skins)
+# Dashboard v2 — Session handoff (2026-05-30 — DD-51 CLOSED: stopgap dashboard-local light/dark toggle ships + browser-confirmed; carries DD-50 globe auto-rotate, DD-47/48/49 the WebGL globe family)
 
-Twenty-ninth session. Authoritative state lives in:
+Thirtieth session. Authoritative state lives in:
 
 - `dashboard-prd.md` — spec (binding decisions table §15, now incl.
-  DD-16..**DD-50**). DD-50 (globe auto-rotate) is the newest row.
+  DD-16..**DD-51**). DD-51 (light/dark toggle) is the newest row, at the
+  top of the §15 table.
 - `dashboard-progress.md` — task state. **Phase 5 + 5.5 closed; Phase 6
   (merge) is the only tracked phase left.** Post-5.5 "New features"
-  carried DD-43, DD-44, DD-45, DD-47, DD-49, **DD-50 — all now CLOSED.**
-- `dashboard-design-decisions.md` — DD-01..**DD-50**. DD-47/49/50 are all
-  "IMPLEMENTED + verified, CLOSED"; DD-48 records the rename.
+  carried DD-43..DD-50, **+ DD-51 — all now CLOSED.**
+- `dashboard-design-decisions.md` — DD-01..**DD-51**. DD-51 is the last
+  entry (full rationale + the recorded supersession of §8.1).
 
 This file is the bridge: ephemeral session context. Replace as work
 progresses.
@@ -16,255 +17,185 @@ progresses.
 ## TL;DR — this session (3 signed commits, `%G?`=U, not merged)
 
 ```
-2587ceba4 chg PewPewMapWidget — tighten the $description wording
-398369937 chg DD-50 — record globe auto-rotate (design-decisions + PRD + progress + handoff)
-9dc8cf75c new DD-50 — slow idle auto-rotate for the WebGL globe
+80d4e034a new DD-51 Task C — complete the dark overlay
+27b7e508f new DD-51 Task B — light/dark toggle button + live retheme
+82d5c4759 new DD-51 Task A — server-side light/dark persistence + no-FOUC boot
 ```
 
-(Prior 28th-session run shipped DD-47/48/49: globe.gl 3D mode, the
-rename, and the 5 skins — see git log / the DD entries for that trail.)
+**Headline:** the dashboard now has a **per-user light/dark toggle**
+(DD-51) — a sun/moon button beside the refresh-pause toggle. It's a
+**stopgap** until a global MISP dark theme ships: the user asked for it
+"for the meanwhile". It **knowingly supersedes, for the interim**, the
+§8.1 / `project-misp-dark-theme-sequencing` "global theme, not a local
+toggle" decision — that risk (precedence conflict) is empty while no
+global dark theme exists, and the half-measure is accepted as a stopgap.
+Built to retire cleanly.
 
-**Headline:** the opt-in "Globe (3D)" pew-pew mode now **slow-spins when
-idle** (DD-50) — a gentle attract-mode rotation, the auto-rotate DD-47
-deliberately deferred for v1 screenshot stability. It's a two-line
-property set on globe.gl's OrbitControls (no extra ticker), gated on
-`prefers-reduced-motion`. **User confirmed it looks good live in the
-browser.** The dashboard feature set is otherwise unchanged: all three
-pew-pew modes (2D flat / lightweight orthographic / real-3D WebGL) share
-ONE `flows[]` payload + ONE unchanged server side.
+## DD-51 — the toggle (reuse these facts)
 
-## DD-48 — the rename (do not re-litigate)
+### User decisions (genuine forks)
+- **Persistence = server-side** per-user `UserSetting:dashboard_theme`
+  (`auto`|`light`|`dark`), NOT localStorage. `auto` (default / no row) =
+  follow OS `prefers-color-scheme`, and is the *absence* of an explicit
+  choice — the toggle only ever writes `light`/`dark`, never `auto`.
+- **First-visit = follow OS** `prefers-color-scheme`.
+- **Interaction = live retheme, no reload** (matches the globe's design).
 
-`AttackFlowMapWidget` → **`PewPewMapWidget`** / `$title` "Attack flow
-map" → **"Pew-pew map"**. The render kind (`PewPewMap.ctp`,
-`$render='PewPewMap'`) + JS registry (`pewpew`, `buildPewPewOption`,
-`thumbPewPewMap`) were ALREADY pew-pew; only the class, file, `$title`,
-`$cache_path` (`misp:attack_flow_map_cache` → `misp:pew_pew_map_cache`)
-and the test lagged. **Load-bearing safety point:** a widget's class
-name is the identifier stored in saved dashboard blobs — a hard rename
-orphans saved instances. Safe HERE only because the branch is unmerged;
-the one dev-box instance (`user_settings` id 34, widget `w_6`) was
-SQL-migrated + caches purged. **If this ships and is later renamed, use
-a back-compat alias, not a hard rename.** See DD-48.
+### How it's wired (3 layers)
+- **Persistence (Task A).** `UserSetting::VALID_SETTINGS['dashboard_theme']`
+  + `validate_dashboard_theme`. `DashboardsController::index()` reads the
+  pref (after the REST early-return) → `$dashboardThemePref`; new
+  `updateTheme()` POST endpoint persists explicit light/dark. **Gotcha
+  (handled):** `updateTheme` must be in `beforeFilter`'s `$bodyPostActions`
+  (= `unlockedActions`) like `updateSettings`, or the Security component's
+  body-tampering check blocks the token-less POST. The value round-trips
+  as a bare scalar: `beforeValidate` json-encodes `'dark'`→`"dark"`,
+  `afterFind` decodes it back (same path as `ui_theme`). The `dashboard`
+  setting is a **bare array** (DD-05) so the theme could NOT live in it —
+  it needs its own key.
+- **No-FOUC boot (Task A).** `View/Elements/dashboard/theme_boot.ctp` — an
+  inline `<head>` script seeded with `$dashboardThemePref` — sets
+  `data-theme="midnight"` on `<html>` **before first paint** (resolves
+  `auto` via `matchMedia`). **Included by ALL THREE dashboard layouts**:
+  `Layouts/dashboard.ctp` + `Themed/Overmind/Layouts/dashboard.ctp` +
+  `Themed/UiBeta/Layouts/dashboard.ctp` (the latter two override the
+  layout — `Dashboards/index.ctp` is NOT themed-overridden, so the button
+  itself lives in one place).
+- **Toggle + live retheme (Task B).** Sun/moon icon button in
+  `index.ctp`'s `.misp-dashboard-modecontrols` (inline SVG, two glyphs
+  CSS-swapped on `aria-pressed`, mirrors the refresh toggle). Board root
+  carries `data-misp-board-theme-url`. `board.module.mjs::_toggleTheme`
+  flips `data-theme` live, calls `rethemeChartsIn(this.root)`, and POSTs
+  the choice via `_saveThemePref` (mirrors the per-widget save fetch —
+  urlencoded body, `Accept: application/json` disables CSRF). `_init`
+  seeds the button's `aria-pressed` from whatever the boot script set.
+- **The ECharts retheme (the load-bearing bit).** CSS chrome + the WebGL
+  globe retheme themselves (globe via its own `MutationObserver` on
+  `<html data-theme>` — DD-47 G6). **ECharts does NOT** — it captures its
+  theme at `init` time and bakes token colours into the option at build
+  time. So `charts.module.mjs` gained **`rethemeChartsIn()`**:
+  `registerMispTheme(el, force)` re-registers from the now-current tokens
+  (the `registered` latch is bypassed on `force`), then `initChart(el)`
+  (idempotent — disposes + rebuilds from the unchanged DOM payload) for
+  every chart **except the webgl-globe** (self-rethemes; a re-init would
+  refetch its 508 KB bundle/texture). Monitor charts re-init → a brief
+  buffer reset, accepted for a rare toggle.
+- **Dark-overlay completeness (Task C).** `dashboard.midnight.css` now
+  redefines the semantic `-muted` tokens for dark (success/danger/warning/
+  info, 0.16 alpha like accent-muted — the light washes read as nothing on
+  dark) + a scoped "light-assumption fixups" block for two hardcoded black
+  overlays that vanish on dark (`.misp-org-filter-chip-remove:hover`,
+  `.misp-attack-cell--hit` border). `dashboard.default.css` tokenises the
+  two red washes (`rgba(220,38,38,0.10)` → `var(--misp-dash-danger-muted)`)
+  and a hardcoded card shadow (→ `var(--misp-dash-shadow-sm)`) so the dark
+  overrides reach them. The configure backdrop scrim `rgba(0,0,0,0.30)` is
+  intentionally LEFT (a black scrim dims correctly on either theme).
 
-## DD-47 — the WebGL globe (reuse these facts)
+### Verification (done this session)
+- **Server round-trip** (curl + real session): `updateTheme` persists
+  dark→light; `index()`'s boot script reflects it (`var pref = "dark"` /
+  `"light"`); `theme=purple` → **HTTP 400**.
+- **Headless Chrome** (swiftshader) on a temp page loading the REAL CSS
+  stack + REAL `charts.module.mjs`: light → sun glyph + light bar chart;
+  `?dark=1` → `data-theme=midnight`, moon glyph (accent-pressed), and the
+  real `rethemeChartsIn()` **retones the already-rendered chart live**
+  (dark-accent bars, readable light axis/value labels on the dark card).
+  Temp page deleted (404).
+- `php -l` + `parallel-lint` (7/7) + `node --check` (3 modules) clean;
+  existing dashboard PHPUnit (4 files, 77 tests) green.
 
-### The opt-in third mode
-`mode='webgl-globe'` → friendly label **"Globe (3D)"**. Enum is now
-`['2d','3d-globe','webgl-globe']` with `enum_labels`
-`{2d:'2D map', 3d-globe:'Globe (lightweight)', webgl-globe:'Globe (3D)'}`.
-Default stays `'2d'`. **Gotcha (caught + fixed):** `resolveMode()`'s
-PHP whitelist must track the enum — a value missing there silently
-degrades to `'2d'`.
+## Prior DD families (still load-bearing)
 
-### `globe.bundle.mjs` — the lazy vendor bundle (G1)
-- `app/webroot/js/dashboard/charts/vendor/globe.bundle.mjs`: esbuild
-  tree-shaken ESM of **globe.gl@2.46.1** (three@0.184.0 /
-  three-globe@2.45.2). **1.76 MB raw / 508 KB gzipped.** Exports the
-  `Globe` factory as `default` + named. **NOT** in `echarts.bundle.mjs`.
-- 42 bundled packages, all permissive (MIT/ISC/Apache-2.0/Unlicense) —
-  AGPL-OK, no new copyleft review (DD-07). Ships `globe.bundle.LEGAL.txt`
-  (esbuild banners) + **one consolidated `globe.bundle.LICENSES.txt`**
-  (every package's full license) rather than 42 sidecars. VENDORING.md
-  has the build recipe + a license-walk regen script + a
-  copyleft-on-bump warning.
-
-### `earth-night-2k.jpg` — the texture (G2, user-picked: night lights)
-- NASA Black Marble city-lights night image (public domain), from
-  three-globe's MIT example dir, downscaled 4096×2048 → **2048×1024 q85
-  = 205 KB**. No license sidecar (NASA PD). Night surface deliberately:
-  arcs pop, pre-aligns with the incoming dark theme, leans into the
-  Norse riff. Verified live: 200 / image/jpeg.
-
-### `charts.module.mjs` — `initWebglGlobe` glue (G3/G4/G6)
-- **`initWebglGlobe(hostEl, payload)`** — globe.gl owns its own WebGL
-  canvas, so it is NOT an ECharts builder. Maps `flows[]` →
-  `arcsData` (value→stroke log scale, animated dash tracer) + `ringsData`
-  (one pulsing ring per victim centroid, sized by incoming value), sets
-  `globeImageUrl` + atmosphere + a North-Atlantic `pointOfView`
-  (`{lat:30,lng:-10,altitude:2.2}`).
-- **The integration pattern (REUSE):** returns a **`{ teardown }`
-  handle** — the SAME shape `initMonitorChart` uses, which
-  `disposeChart()` already supports (`typeof live.teardown ===
-  'function'`). So dispose needed zero new code. teardown disconnects
-  the ResizeObserver + the theme MutationObserver, calls globe.gl's
-  `_destructor()`, and empties the host.
-- **Non-blocking (deviation from G4's "await" wording, deliberate):**
-  the handle returns SYNC; the lazy `import()` resolves in the
-  background behind a self-contained inline loading placeholder. So a
-  multi-widget board doesn't stall `Promise.all(initChart)` on the
-  508 KB download. `teardown()` flips a `disposed` flag so a dispose
-  racing a slow import is honoured. Still satisfies DD-47 approach-pt-3
-  (loading placeholder).
-- **`loadGlobeBundle()`** memoises the import promise → a second
-  webgl-globe widget reuses the first fetch (+ browser module cache).
-- **Dispatch (G4):** in `initChart`, a branch
-  `if (kind==='pewpew' && payload.mode==='webgl-globe')` BEFORE the
-  ECharts path + `ensureWorldMap()` (the globe uses the texture, not the
-  echarts world map). The 2d / 3d-globe ECharts modes are untouched.
-- **Theming bridge (G6, folded into G3):** globe.gl won't read
-  `--misp-dash-*`. `applyColours()` reads `--misp-dash-danger` (arc
-  gradient via `withAlpha()` hex/rgb→rgba) + `--misp-dash-warning` (ring
-  fade) + atmosphere; a `MutationObserver` on `<html data-theme>`
-  re-invokes it on light↔dark with NO re-init. `withAlpha()` is a new
-  module-scope helper (handles `#rgb`/`#rrggbb`/`rgb()`/`rgba()`).
-
-### Verification (G7 — no real-browser fallback needed)
-Headless Chrome 141 + `--enable-unsafe-swiftshader
---use-angle=swiftshader` rendered the globe cleanly. Temp page (full CSS
-stack, synthetic 6-arc payload) under webroot, screenshotted + DOM
-probed, then deleted (302 confirms). **Light + dark** both render the
-night globe with red danger arcs + a danger atmosphere glow; midnight
-retones to #f87171 + dark card. **DOM probe proved lazy-only-on-3D:**
-`webgl-globe` → `globeBundleLoaded:true, textureLoaded:true, canvas
-616×420`; `2d` → both `false`. Import-cache on 2nd render guaranteed by
-the memoised promise.
-
-## DD-49 — globe skins (reuse these facts)
-
-The `webgl-globe` mode has a per-widget **`skin`** config (the night
-texture is dark by design; the user wanted a daytime option):
-**`night`** (default, city lights), **`day`** (NASA Blue Marble), **`dark`**
-(minimal grey), plus two user-supplied easter eggs **`char`**
-(charred/molten `char.png`) + **`nacre`** ("Planet Nacre", pearlescent
-`planet_nacre.png`) — both ~2.7–2.9 MB PNGs, lazy so only their pickers
-pay (downscale-to-JPEG on offer). Front-end only — a different
-`globeImageUrl`; `flows[]`
-now carries a `skin` hint; the 2d/3d-globe modes ignore it. **Only the
-selected skin's image downloads** (lazy, per instance). **A skin must be
-in 3 places or it degrades to `night`:** the `$schema` `skin` enum +
-`resolveSkin()` whitelist (`PewPewMapWidget.php`) AND the
-`GLOBE_TEXTURES` map (`charts.module.mjs`). Textures: NASA PD,
-2048×1024, `vendor/earth-{night,day,dark}-2k.jpg` (205/279/81 KB).
-Arc/ring/atmosphere stay token-driven across all skins. Verified
-night/day/dark live + headless-Chrome screenshots of day + dark.
-Adding a skin = vendor an image + 3 registrations (VENDORING.md recipe).
-**Gotcha hit + fixed this session (commit `1703c6d5e`):** the
-`PewPewMap.ctp` shim hand-picks payload keys — it does NOT pass `$data`
-through wholesale — so a new `handler()` key (`skin`) was dropped and the
-globe always rendered `night`. Any new payload key must be added to the
-shim's `$payload` array too. And verify visual features through the REAL
-handler→.ctp→JS path (a hand-built test payload bypasses the shim and
-hides exactly this class of bug).
-NB: the widget's `$cache_duration` is **`3600`** (the DD-20 default); the
-working tree's only PewPewMapWidget change is a one-line `$description`
-wording tweak (still unstaged, pending a keep/drop call).
-
-## DD-45 family — render-kind & widget facts (still load-bearing)
-
-### Pew-pew widget shape (DD-45/46/47/48)
-- **`PewPewMapWidget`** (renamed DD-48) → `$render='PewPewMap'`,
-  `$category='events'`, `$cache_duration=3600`,
-  `$cache_path='misp:pew_pew_map_cache'`, `$cache_scope='global'`, open
-  to all users (aggregate-only, mirrors `AttributeGeoMapWidget` DD-11),
-  default 6×5.
-- Config params: `time_window`, `mode` (`2d`|`3d-globe`|`webgl-globe`,
-  default `2d`), `max_arcs` (default 500).
-- Data: one arc per `(event, threat-actor cluster's country, victim
-  country-galaxy ISO)` triple; aggregated by `(src_iso, dst_iso)`;
-  centroids server-side via `iso-centroids.json`.
-- **Dev-DB reality**: ONE visible arc (IR→US, event 1421). Production is
-  richer; the dev box is thin by nature, NOT a bug. For a richer demo
-  use a synthetic multi-arc test page (G7/C5/D5 recipe).
-- `.ctp` is a dumb shim emitting `data-misp-chart="pewpew"` +
-  `{mode, flows[]}`; ALL mode dispatch lives in `charts.module.mjs`
-  (2d/3d-globe in `buildPewPewOption`; webgl-globe in `initWebglGlobe`).
-
-### Prior render-kind family (DD-31..DD-43) — unchanged, still live
-StatGrid, NetworkGraph, UserList, QueueList, HealthList, PewPewMap. Every
-new `$render` needs a glyph in `render-thumbs.mjs` (CLAUDE.md).
-`thumbPewPewMap` already shipped (Phase C); webgl-globe is the SAME
-render kind (`PewPewMap`), so no new glyph was needed.
+- **DD-47/48/49/50 — the WebGL globe** ("Pew-pew map", `webgl-globe`
+  mode): lazy `globe.bundle.mjs` (globe.gl 2.46.1), 5 skins, slow idle
+  auto-rotate. The globe's token-driven retheme bridge (DD-47 G6) is what
+  DD-51 reuses for free — it already retones live on `data-theme`.
+- **DD-45 family — render kinds** (StatGrid, NetworkGraph, UserList,
+  QueueList, HealthList, PewPewMap). Every new `$render` needs a glyph in
+  `render-thumbs.mjs` (CLAUDE.md). DD-51 added no render kind.
+- **DD-05** — top-level dashboard blob is a **bare array** (why the theme
+  pref needed its own UserSetting key, not a field in `dashboard`).
 
 ## Open follow-ups (active + carried)
 
 ### NEXT — the only tracked phase left is Phase 6 (merge to `develop`) — the USER does this, not us.
-The dashboard feature set is complete: 2D map, lightweight orthographic
-globe, and real WebGL globe all ship. Carried polish below is optional.
+Dashboard v2 is feature-complete: all widgets, three pew-pew modes, and
+now a light/dark toggle. Carried polish below is optional.
 
-### Globe (3D) polish (DD-47, deferred — all optional)
-- **Auto-rotate** — ✅ DONE (DD-50, commit `9dc8cf75c`): `webgl-globe`
-  now slow-spins when idle (`controls().autoRotate=true` +
-  `autoRotateSpeed=0.6`, ~100 s/rev), gated on `prefers-reduced-motion`.
-  Verified headless (empty-flows AE 41790 vs reduced-motion control AE 0).
-- **Ring visibility** — rings pulse; tune `ringMaxRadius` /
-  `ringRepeatPeriod` / a brighter warning if they read too subtle.
-- **In-browser confirm of the "Globe (3D)" / "Globe (lightweight)"
-  `<select>` labels** in the real configure modal (data path verified;
-  `enum_labels` passthrough established DD-46 D4).
-- Optional **starfield/space backdrop** instead of the transparent
-  canvas — premium but heavier; transparent blends with both themes.
+### DD-51 polish (optional)
+- **In-browser confirm of the toggle on the REAL `/dashboards` page** (not
+  the temp page) under each theme (Overmind/UiBeta/default) — needs a
+  session cookie in a real browser; headless can't carry it easily. The
+  server path + the retheme path are both verified; this is a final
+  eyeball of placement under the live chrome.
+- **Toggle keyboard/focus** affordance is the plain `<button>` default;
+  could add a tooltip refinement.
+- **`prefers-color-scheme` change listener** — if the OS theme flips while
+  the page is open and the user is on `auto`, we don't live-update (only
+  on next load). A `matchMedia(...).addEventListener('change', …)` in
+  `theme_boot`/board would close that; low value (rare).
+
+### Globe (3D) polish (DD-47/50, deferred — all optional)
+- Ring-visibility tuning; in-browser confirm of the "Globe (3D)" /
+  "Globe (lightweight)" `<select>` labels; optional starfield backdrop.
 
 ### Carried (not active)
-- **In-browser verification of DD-43 + DD-44** (hard-refresh): rotated
-  mail-log scan; Administrator template (14 widgets) in the gallery.
-- **Other shipped templates** — `analyst/` + `community/template.json`
-  may be due a v2-era refresh like DD-44.
-- **MispMailLogWidget polish** (DD-41); **MailLogTool gz-tail
-  optimisation** (DD-43 deferred); **HealthList / MispCacheStatusWidget
-  per-row drilldown**; **cache-status thresholds configurable**;
-  **MispAdminSyncTestWidget `info` for caching-only servers**.
-- **Roll StatGrid out** to remaining key/value admin widgets; **audit
-  legacy SimpleList widgets** for typed-row rework.
-- **Dark MISP theme work** — when the global initiative starts: audit
-  the 8 hardcoded `rgba(...)` rules in `dashboard.default.css` (esp.
-  `rgba(220,38,38,0.10)` ~line 544); the dark overlay should redefine
-  `--misp-dash-{success,danger,warning,info}-muted`. NB the globe's
-  retheme bridge (DD-47 G6) ALREADY reads tokens live, so dark mode will
-  retone its arcs/atmosphere for free. See
-  [[project_misp_dark_theme_sequencing]].
-- Pre-existing: **DD-11 ACL-enforced switchable geo widget path**;
-  **org/COVID maps palette opt-in**; default-templates **live non-admin
-  ACL check**.
+- In-browser verification of DD-43 + DD-44 (rotated mail-log scan;
+  Administrator template). Other shipped templates (`analyst/`,
+  `community/`) may want a v2-era refresh. MispMailLogWidget polish;
+  MailLogTool gz-tail; HealthList/MispCacheStatus per-row drilldown.
+- Roll StatGrid out to remaining key/value admin widgets; audit legacy
+  SimpleList widgets.
+- **Global MISP dark theme** — when it starts: the midnight overlay is now
+  **token-complete** (DD-51 Task C did the `-muted` + hardcoded-rule
+  audit the old handoff flagged), so a global dark theme can largely
+  reuse it. Decide then whether the dashboard defers to the global choice
+  or keeps the DD-51 local override. See [[project-misp-dark-theme-sequencing]]
+  (now updated to record that the stopgap toggle exists).
+- Pre-existing: DD-11 ACL-enforced switchable geo widget; org/COVID maps
+  palette opt-in; default-templates live non-admin ACL check.
 - **Phase 6 merge — the USER does this, not us.**
 
 ## Live test instance
 
 - URL `http://localhost:5007/dashboards` (302 without a session; 200
   with). Admin user 1 (`admin@admin.test`, pw `Password12345`), Overmind
-  theme. Cookie jar `/tmp/cj_stat.txt` was **valid this session** (200);
-  re-mint via [[reference_misp_login_dance]] if it 302s next session.
+  theme. Cookie jar `/tmp/cj_stat.txt` was **re-minted + valid this
+  session** (200); re-mint via [[reference-misp-login-dance]] if it 302s.
 - DB: `mysql -u misp -pPassword1234 misp`. MISP Redis: `redis-cli -n 13`.
-  **SESSIONS in Redis db0** (`PHPREDIS_SESSION:*`); MISP data + caches in
-  **db13**.
-- Pew-pew dev-DB render: **1 arc (IR→US)** — see DD-45 family notes.
-- State: `db_version=151`; branch `dashboards`. Build dirs reusable:
-  `/tmp/echarts-bundle`, `/tmp/d3geo-bundle`, **`/tmp/globegl-bundle`**
-  (globe.gl + three + three-globe + esbuild; entry.mjs re-exports Globe).
+  SESSIONS in Redis db0; MISP data + caches in db13.
+- State: branch `dashboards`. Build dirs reusable: `/tmp/echarts-bundle`,
+  `/tmp/d3geo-bundle`, `/tmp/globegl-bundle`.
 
 ### Reusable verification recipes
 ```bash
 # Lint
-php -l app/Lib/Dashboard/PewPewMapWidget.php
+php -l app/Controller/DashboardsController.php
+php -l app/Model/UserSetting.php
+node --check app/webroot/js/dashboard/board.module.mjs
 node --check app/webroot/js/dashboard/charts/charts.module.mjs
-./app/Vendor/bin/phpunit app/Test/PewPewMapWidgetTest.php   # 15 tests
+./app/Vendor/bin/parallel-lint -e php,ctp app/View/Dashboards app/View/Elements/dashboard
 
-# Render a widget body (JSON wrapper) — pew-pew returns {mode,flows[]}.
-# NOTE the renamed class + the new webgl-globe mode:
-curl -s -b /tmp/cj_stat.txt -X POST -H "Accept: application/json" \
-  "http://localhost:5007/dashboards/renderWidget/test1" \
-  --data-urlencode "widget=PewPewMapWidget" \
-  --data-urlencode 'config={"time_window":"-1","mode":"webgl-globe","skin":"day","max_arcs":500}'
+# DD-51 server round-trip (needs a session cookie — see login dance):
+#   POST theme, read it back in the boot script, reject bad values.
+CJ=/tmp/cj_stat.txt
+curl -s -b "$CJ" -X POST -H "Accept: application/json" \
+  --data-urlencode "theme=dark" http://localhost:5007/dashboards/updateTheme
+curl -s -b "$CJ" http://localhost:5007/dashboards | grep -oE 'var pref = "[a-z]+"'
+curl -s -b "$CJ" -X POST -H "Accept: application/json" \
+  --data-urlencode "theme=purple" http://localhost:5007/dashboards/updateTheme  # → 400
 
-# Cached widgets serve stale — purge first (NOTE the renamed key):
-redis-cli -n 13 --scan --pattern 'misp:pew_pew_map_cache*' | xargs -r redis-cli -n 13 DEL
-
-# Eye-check the WebGL globe (G7 recipe): build a temp page under
-# app/webroot loading the FULL CSS stack (dashboard.default +
-# dashboard.midnight), inline a <div data-misp-chart="pewpew"
-# data-misp-chart-payload='{"mode":"webgl-globe","flows":[...]}'>, import
-# {initChartsIn} from '/js/dashboard/charts/charts.module.mjs' and call
-# initChartsIn(document.body). Tokens cascade from :root so no wrapper
-# class is needed; set <html data-theme="midnight"> for dark. Screenshot
-# with: google-chrome --headless=new --no-sandbox
-#   --enable-unsafe-swiftshader --use-angle=swiftshader
-#   --virtual-time-budget=9000 --screenshot=out.png URL
-# A --dump-dom of performance.getEntriesByType('resource') asserts the
-# lazy bundle/texture loaded (and NOT on a 2d-mode page). READ the png,
-# DELETE the temp file (publicly served — 302 confirms removal).
-
-# Rebuild the globe bundle / re-vendor the texture: VENDORING.md
-# "Reproducing the globe.gl 3D bundle (DD-47)".
+# Eye-check the toggle + live ECharts retheme (DD-51): build a temp .html
+# under app/webroot loading /css/dashboard/dashboard.{default,midnight}.css,
+# the toggle button markup from index.ctp, and a <div data-misp-chart="bar"
+# data-misp-chart-payload='{"data":{...}}'>; import {initChartsIn,
+# rethemeChartsIn} from '/js/dashboard/charts/charts.module.mjs', call
+# initChartsIn(document.body), and behind ?dark=1 set <html
+# data-theme="midnight"> + the button aria-pressed=true + await
+# rethemeChartsIn(document.body). Screenshot light + ?dark=1 with:
+#   google-chrome --headless=new --no-sandbox --enable-unsafe-swiftshader
+#     --use-angle=swiftshader --virtual-time-budget=6000 --screenshot=out.png URL
+# READ the png, DELETE the temp file (publicly served — 302/404 confirms).
 ```
 
 ## Convention reminders (carry)
@@ -272,50 +203,37 @@ redis-cli -n 13 --scan --pattern 'misp:pew_pew_map_cache*' | xargs -r redis-cli 
   to ~40% for UI work. Warn aggressively near the boundary + at task
   boundaries.
 - **Commit per progress-tracker task; never `git add -A`; explicit
-  `git add` + `git status --short`; sign (`%G?`=U).** Rhythm: one code
-  commit + one tracker-tick commit per sub-task. **GPG agent may need
-  unlocking** — if `gpg: signing failed: Timeout`, ask the user to run
-  `! echo test | gpg --clearsign` to cache the passphrase, then retry.
+  `git add` + `git status --short`; sign (`%G?`=U).** Docs (DD/PRD/
+  progress/handoff) were batched into one cohesive feature this session;
+  code committed per task (A/B/C).
 - **Edit/Write flips a file's group to `iglocska:iglocska`** —
   `chgrp www-data` every edited web-served/app file (incl. docs).
-- **Record meaningful decisions as DD-NN + a PRD §15 row.** DD-48 (the
-  rename) was recorded as such this session.
-- **Render-kind glyph rule** (CLAUDE.md): new `$render` → glyph in
-  `render-thumbs.mjs`. (webgl-globe reused the PewPewMap kind — no new
-  glyph.)
-- **Widget `handler()`s emit RAW strings; the renderer owns escaping**
-  (DD-34). **Colour decisions: renderer maps an allow-listed token to a
-  token-pair / SVG** (DD-31/38..42). The globe extends this: it reads
-  the SAME `--misp-dash-danger`/`-warning` tokens via `tokenOn`.
-- **Two vendoring patterns now coexist:** the tree-shaken ECharts main
-  bundle (a new series type needs BOTH the import AND `echarts.use()` —
-  [[project_misp_echarts_bundle_treeshaken]]) AND the **lazy
-  globe.bundle.mjs** (dynamic-`import()`, NOT in the main bundle,
-  fetched only on webgl-globe). Don't merge them.
-- **ESM imports ignore the `?v=185` buster → hard-refresh after a
-  vendored-bundle / JS change.**
+- **Record meaningful decisions as DD-NN + a PRD §15 row.** DD-51 done.
+- **A widget's class name is the identifier in saved blobs** (DD-48) — not
+  relevant to DD-51 (no widget added), but the `dashboard_theme`
+  UserSetting key is now part of the contract: renaming it orphans saved
+  prefs.
+- **Two vendoring patterns coexist** (tree-shaken ECharts main bundle +
+  lazy globe.bundle); a new ECharts series type needs BOTH import AND
+  `echarts.use()` ([[project-misp-echarts-bundle-treeshaken]]).
+- **ESM imports ignore `?v=185` → hard-refresh after a JS/bundle change.**
 - **CSS/visual verification must load the FULL stack** + assert the
-  computed/visible outcome (screenshot, not the property you set) —
-  [[feedback_verify_visible_outcome_not_property]].
-- **A `{teardown}` handle is the way to put a non-ECharts widget into
-  `liveCharts`** (monitor charts + now the globe) — `disposeChart`
-  branches on it.
+  computed/visible outcome ([[feedback-verify-visible-outcome-not-property]]).
 - User wants **rigorous pushback + genuine forks via AskUserQuestion**
-  (the texture fork this session), and to **re-verify rather than
-  defend** when a premise is questioned.
+  (DD-51 surfaced the §8.1 supersession + asked the persistence/default
+  forks), and to **re-verify rather than defend** when a premise is
+  questioned.
 
 ## Quick-start for the next session
-1. Read this file + `dashboard-prd.md` §15 rows **DD-45..DD-49** +
-   `dashboard-design-decisions.md` DD-45/46/47/48/49. The DD-31..DD-44
-   family is still load-bearing for any widget work.
+1. Read this file + `dashboard-prd.md` §15 row **DD-51** +
+   `dashboard-design-decisions.md` DD-51. DD-45/47 families stay
+   load-bearing for widget/globe work.
 2. Verify instance: `curl -s http://localhost:5007/dashboards -o /dev/null
-   -w "%{http_code}\n"` → 302 (or 200 with the cookie jar; re-mint
-   `/tmp/cj_stat.txt` via `reference_misp_login_dance` if it 302s).
-3. **Dashboard v2 is feature-complete** (three pew-pew modes shipped +
-   verified, globe auto-rotate live; all phases except merge closed). The
-   only tracked phase left is **Phase 6 (merge to `develop`) — the USER
-   does this, not us.** Do NOT start the merge. If asked for more, the
-   optional polish list above (ring-visibility tuning, in-browser
-   select-label confirm, starfield backdrop, DD-43/44 in-browser checks,
-   template refreshes) is the menu.
+   -w "%{http_code}\n"` → 302 (200 with the cookie jar; re-mint via
+   `reference-misp-login-dance` if it 302s).
+3. **Dashboard v2 is feature-complete** (all widgets, three pew-pew modes,
+   the globe family, and now the DD-51 light/dark toggle — all verified).
+   The only tracked phase left is **Phase 6 (merge to `develop`) — the
+   USER does this, not us.** Do NOT start the merge. If asked for more,
+   the optional polish list above is the menu.
 4. Watch context; refresh this handoff before wrapping.
