@@ -1,51 +1,37 @@
-# Dashboard v2 — Session handoff (2026-05-29 — DD-47 CLOSED: globe.gl real-3D "Globe (3D)" pew-pew mode ships + verified; DD-48: widget renamed AttackFlowMap → PewPewMap; DD-49: 5 selectable globe skins — night/day/dark + char & planet-nacre easter eggs)
+# Dashboard v2 — Session handoff (2026-05-30 — DD-50 CLOSED: WebGL globe slow idle auto-rotate ships + browser-confirmed; carries DD-47 globe.gl real-3D mode, DD-48 rename → PewPewMap, DD-49 5 globe skins)
 
-Twenty-eighth session. Authoritative state lives in:
+Twenty-ninth session. Authoritative state lives in:
 
 - `dashboard-prd.md` — spec (binding decisions table §15, now incl.
-  DD-16..**DD-48**). DD-48 (widget rename) is the newest row.
+  DD-16..**DD-50**). DD-50 (globe auto-rotate) is the newest row.
 - `dashboard-progress.md` — task state. **Phase 5 + 5.5 closed; Phase 6
   (merge) is the only tracked phase left.** Post-5.5 "New features"
-  carried DD-43, DD-44, DD-45, **DD-47 — all now CLOSED.** DD-47's
-  G1..G7 are all ticked.
-- `dashboard-design-decisions.md` — DD-01..**DD-48**. DD-47 status is
-  now "IMPLEMENTED + verified, CLOSED"; DD-48 records the rename.
+  carried DD-43, DD-44, DD-45, DD-47, DD-49, **DD-50 — all now CLOSED.**
+- `dashboard-design-decisions.md` — DD-01..**DD-50**. DD-47/49/50 are all
+  "IMPLEMENTED + verified, CLOSED"; DD-48 records the rename.
 
 This file is the bridge: ephemeral session context. Replace as work
 progresses.
 
-## TL;DR — this session (22 signed commits incl. this refresh, `%G?`=U, not merged)
+## TL;DR — this session (3 signed commits, `%G?`=U, not merged)
 
 ```
-59e2c290b chg DD-49 — record 'Planet Nacre' skin (5th)
-902d09cbc new DD-49 — add 'Planet Nacre' easter-egg skin
-7ae07d99a chg DD-49 — record 'Char' skin (4th)
-8cc4dfe4d new DD-49 — add 'Char' easter-egg skin
-e1414be1a chg DD-49 — record the .ctp skin-passthrough bug + lesson
-1703c6d5e fix DD-49 — pass skin through the PewPewMap .ctp shim
-2bfc21abf chg DD-49 — record globe skins (design-decisions + PRD + tracker)
-8e5f7e814 new DD-49 — selectable globe skins (night/day/dark)
-711396528 chg refresh handoff — DD-47 CLOSED + DD-48 rename
-9cb63877c chg DD-47 — mark CLOSED + implemented in design-decisions status
-8fa051f36 chg DD-47 G7 + CLOSE — tick progress tracker
-7da1df6a0 chg DD-47 G3-G6 — tick progress tracker
-a87f48b6c new DD-47 G5 — webgl-globe mode enum + labels
-8bf91d8bf new DD-47 G4 — async dispatch for webgl-globe in initChart
-15b7c886c new DD-47 G3 — initWebglGlobe glue (globe.gl arcs + rings)
-a531ef2bd chg DD-47 G2 — tick progress tracker
-2e9ffe919 new DD-47 G2 — vendor night-lights earth texture (earth-night-2k.jpg)
-29d822ad8 chg DD-48 — record widget rename (PRD §15 + design-decisions)
-84ad96d19 chg DD-48 — rename AttackFlowMapWidget → PewPewMapWidget
-0903cae05 chg DD-47 G1 — tick progress tracker
-d6e572b8d new DD-47 G1 — lazy globe.bundle.mjs (globe.gl + three, tree-shaken)
+2587ceba4 chg PewPewMapWidget — tighten the $description wording
+398369937 chg DD-50 — record globe auto-rotate (design-decisions + PRD + progress + handoff)
+9dc8cf75c new DD-50 — slow idle auto-rotate for the WebGL globe
 ```
 
-**Two headlines:** (1) the pew-pew widget now ships a **third, opt-in
-render mode** — a real WebGL textured globe (globe.gl/Three.js),
-lazy-loaded; (2) the widget was **renamed to "Pew-pew map"** everywhere
-(class/file/title), per the user — the name is the joke (a jab at the
-Norse attack map). All three modes (2D flat / lightweight orthographic /
-real-3D WebGL) share ONE `flows[]` payload + ONE unchanged server side.
+(Prior 28th-session run shipped DD-47/48/49: globe.gl 3D mode, the
+rename, and the 5 skins — see git log / the DD entries for that trail.)
+
+**Headline:** the opt-in "Globe (3D)" pew-pew mode now **slow-spins when
+idle** (DD-50) — a gentle attract-mode rotation, the auto-rotate DD-47
+deliberately deferred for v1 screenshot stability. It's a two-line
+property set on globe.gl's OrbitControls (no extra ticker), gated on
+`prefers-reduced-motion`. **User confirmed it looks good live in the
+browser.** The dashboard feature set is otherwise unchanged: all three
+pew-pew modes (2D flat / lightweight orthographic / real-3D WebGL) share
+ONE `flows[]` payload + ONE unchanged server side.
 
 ## DD-48 — the rename (do not re-litigate)
 
@@ -326,9 +312,10 @@ redis-cli -n 13 --scan --pattern 'misp:pew_pew_map_cache*' | xargs -r redis-cli 
    -w "%{http_code}\n"` → 302 (or 200 with the cookie jar; re-mint
    `/tmp/cj_stat.txt` via `reference_misp_login_dance` if it 302s).
 3. **Dashboard v2 is feature-complete** (three pew-pew modes shipped +
-   verified; all phases except merge closed). The only tracked phase
-   left is **Phase 6 (merge to `develop`) — the USER does this, not
-   us.** Do NOT start the merge. If asked for more, the optional polish
-   list above (globe auto-rotate, in-browser select-label confirm,
-   DD-43/44 in-browser checks, template refreshes) is the menu.
+   verified, globe auto-rotate live; all phases except merge closed). The
+   only tracked phase left is **Phase 6 (merge to `develop`) — the USER
+   does this, not us.** Do NOT start the merge. If asked for more, the
+   optional polish list above (ring-visibility tuning, in-browser
+   select-label confirm, starfield backdrop, DD-43/44 in-browser checks,
+   template refreshes) is the menu.
 4. Watch context; refresh this handoff before wrapping.
