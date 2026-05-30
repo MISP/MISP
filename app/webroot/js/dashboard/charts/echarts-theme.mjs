@@ -22,9 +22,17 @@ let registered = false;
  * `scopeEl` defaults to `document.documentElement` since v2 tokens are
  * declared on `:root`; passing a more specific element only matters
  * when a wrapper class redefines tokens locally (PRD §8.1).
+ *
+ * `force` re-reads the tokens and re-registers even if already done —
+ * used by the DD-51 light/dark toggle, which flips `data-theme` on
+ * `<html>` and then needs the theme rebuilt from the new token values.
+ * `echarts.registerTheme` overwrites a same-named theme, but existing
+ * chart instances keep the palette captured at their own `init` time —
+ * so a force-register must be paired with a re-init of live charts
+ * (see charts.module.mjs::rethemeChartsIn).
  */
-export function registerMispTheme(scopeEl) {
-  if (registered) return MISP_THEME_NAME;
+export function registerMispTheme(scopeEl, force) {
+  if (registered && !force) return MISP_THEME_NAME;
   const cs = getComputedStyle(scopeEl || document.documentElement);
   const tok = (name, fallback) => {
     const v = cs.getPropertyValue(name).trim();

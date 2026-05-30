@@ -44,7 +44,7 @@
 //     misp-board:add-widget-failed   detail: { error }
 
 import { Grid } from './grid/grid.module.mjs';
-import { initChartsIn, disposeChartsIn } from './charts/charts.module.mjs';
+import { initChartsIn, disposeChartsIn, rethemeChartsIn } from './charts/charts.module.mjs';
 import { openConfigure } from './configure.module.mjs';
 import { openGallery }   from './gallery.module.mjs';
 import { openExportConfig, openImportConfig } from './config-io.module.mjs';
@@ -380,6 +380,22 @@ class Board {
       );
       if (el) this._renderWidget(el);
     });
+
+    // DD-51 — sync the theme toggle's aria-pressed to whatever the
+    // <head> boot script resolved: data-theme may already be 'midnight'
+    // from the persisted pref or from prefers-color-scheme. The button
+    // markup ships aria-pressed="false"; correct it here so its glyph
+    // and a11y state match the actual theme on first paint. The button
+    // lives in the header (a sibling of the board root), so query the
+    // document, not this.root.
+    const themeBtn = this.root.ownerDocument.querySelector(
+      `[${ATTR_BOARD_ACTION}="toggle-theme"]`
+    );
+    if (themeBtn) {
+      const dark =
+        document.documentElement.getAttribute('data-theme') === 'midnight';
+      themeBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+    }
   }
 
   // ---- mode ----
@@ -443,6 +459,61 @@ class Board {
       this.scheduler.resume();
     }
     triggerBtn.setAttribute('aria-pressed', nextPaused ? 'true' : 'false');
+  }
+
+  /**
+   * DD-51 light/dark toggle. Flips `data-theme` on <html> live (no
+   * reload): the CSS chrome rethemes via the cascade and the WebGL globe
+   * via its own MutationObserver, while rethemeChartsIn() rebuilds the
+   * ECharts charts (which capture their theme at init time). The choice
+   * is persisted server-side as an explicit 'light'/'dark' so it sticks
+   * across reloads and devices; 'auto' (follow-OS) is only ever the
+   * unset state and is never written back. aria-pressed mirrors
+   * dark-active so the button's two glyphs (CSS-swapped) and a screen
+   * reader stay in sync.
+   */
+  _toggleTheme(triggerBtn) {
+    const root = document.documentElement;
+    const isDark = root.getAttribute('data-theme') === 'midnight';
+    const nextDark = !isDark;
+    if (nextDark) {
+      root.setAttribute('data-theme', 'midnight');
+    } else {
+      root.removeAttribute('data-theme');
+    }
+    triggerBtn.setAttribute('aria-pressed', nextDark ? 'true' : 'false');
+    // Rebuild the ECharts charts under the new tokens. Fire-and-forget:
+    // the chrome/globe have already retoned; chart rebuild resolves on
+    // the next frames.
+    rethemeChartsIn(this.root);
+    this._saveThemePref(nextDark ? 'dark' : 'light');
+  }
+
+  /**
+   * POST the explicit light/dark choice to /dashboards/updateTheme.
+   * Mirrors the per-widget save fetch (urlencoded body, JSON Accept so
+   * the REST path disables CSRF, same-origin credentials). Best-effort:
+   * a failed persist leaves the live flip intact for this page-load and
+   * only loses the cross-reload memory, so it warns rather than reverts.
+   */
+  async _saveThemePref(theme) {
+    const url = this.root.getAttribute('data-misp-board-theme-url');
+    if (!url) return;
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: new URLSearchParams({ theme }),
+        credentials: 'same-origin',
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    } catch (err) {
+      console.warn('[misp-dashboard] theme preference save failed', err);
+    }
   }
 
   /**
@@ -653,6 +724,10 @@ class Board {
         case 'toggle-refresh':
           e.preventDefault();
           this._toggleRefresh(trigger);
+          break;
+        case 'toggle-theme':
+          e.preventDefault();
+          this._toggleTheme(trigger);
           break;
         case 'save':
           e.preventDefault();

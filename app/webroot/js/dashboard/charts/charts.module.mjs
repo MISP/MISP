@@ -1068,3 +1068,35 @@ export function disposeChartsIn(containerEl) {
   const els = containerEl.querySelectorAll(`[${ATTR_CHART}]`);
   for (const el of els) disposeChart(el);
 }
+
+/**
+ * Re-theme every live chart inside `containerEl` after a light/dark
+ * flip (DD-51). The CSS chrome and the WebGL globe retheme themselves —
+ * the chrome via the cascade, the globe via its own MutationObserver on
+ * <html data-theme> — but ECharts captures its theme palette at init
+ * time and bakes token colours into the option at build time, so a
+ * token change after boot is invisible until the chart is rebuilt.
+ *
+ * Approach: force-re-register the "misp" theme from the now-current
+ * tokens, then re-init each ECharts container (initChart is idempotent —
+ * it disposes the old instance and rebuilds from the unchanged DOM
+ * payload under the new theme). The webgl-globe is skipped: it owns its
+ * own canvas and self-rethemes live, so a re-init would needlessly tear
+ * it down and refetch the 508 KB bundle/texture. Monitor charts do
+ * re-init, resetting their short rolling buffer — an acceptable cost for
+ * a rare, user-initiated toggle.
+ */
+export function rethemeChartsIn(containerEl) {
+  if (!containerEl) return Promise.resolve();
+  registerMispTheme(document.documentElement, true);
+  const els = [...containerEl.querySelectorAll(`[${ATTR_CHART}]`)];
+  const targets = els.filter((el) => {
+    if (el.getAttribute(ATTR_CHART) !== 'pewpew') return true;
+    let payload = {};
+    try {
+      payload = JSON.parse(el.getAttribute(ATTR_CHART_PAYLOAD) || '{}');
+    } catch (_) { /* malformed → treat as a non-globe ECharts chart */ }
+    return payload.mode !== 'webgl-globe';
+  });
+  return Promise.all(targets.map(initChart));
+}

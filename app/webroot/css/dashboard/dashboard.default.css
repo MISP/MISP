@@ -258,6 +258,25 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
   display: inline-flex;
 }
 
+/* Light/dark toggle (DD-51). Mirrors the refresh-toggle's two-glyph
+ * pattern: a sun (light active) and a moon (dark active) share the
+ * button; aria-pressed (= dark-active) controls which is visible. */
+.misp-dashboard-btn-theme-toggle .misp-dashboard-btn-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.misp-dashboard-btn-theme-toggle .misp-dashboard-btn-glyph-dark {
+  display: none;
+}
+.misp-dashboard-btn-theme-toggle[aria-pressed="true"] .misp-dashboard-btn-glyph-light {
+  display: none;
+}
+.misp-dashboard-btn-theme-toggle[aria-pressed="true"] .misp-dashboard-btn-glyph-dark {
+  display: inline-flex;
+}
+
 .misp-dashboard-menubutton-glyph {
   font-size: var(--misp-dash-fs-xl);
   line-height: 0.4;

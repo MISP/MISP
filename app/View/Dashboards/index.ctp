@@ -57,6 +57,41 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
                 </svg>
             </span>
         </button>
+        <!-- Light/dark toggle (DD-51). A stopgap dashboard-local
+             appearance switch until a global MISP dark theme ships.
+             Persistent in both view and edit mode, like the refresh-pause
+             toggle beside it. aria-pressed mirrors dark-active; the two
+             glyphs (sun = light active, moon = dark active) are CSS-
+             swapped on that state. theme_boot.ctp sets data-theme before
+             first paint (no FOUC); board.module.mjs flips it live and
+             persists the explicit choice via /dashboards/updateTheme.
+             Icon style (16×16 viewBox, stroke=currentColor, sw 1.5, round
+             caps/joins) matches the pause/play toggle + the More menu. -->
+        <button type="button"
+                class="misp-dashboard-btn misp-dashboard-btn-icon misp-dashboard-btn-theme-toggle"
+                data-misp-board-action="toggle-theme"
+                aria-pressed="false"
+                aria-label="<?= __('Toggle dark mode for this dashboard') ?>"
+                title="<?= __('Toggle dark mode for this dashboard') ?>">
+            <span class="misp-dashboard-btn-glyph misp-dashboard-btn-glyph-light" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="8" cy="8" r="3.25" />
+                    <line x1="8" y1="1.5" x2="8" y2="3" />
+                    <line x1="8" y1="13" x2="8" y2="14.5" />
+                    <line x1="1.5" y1="8" x2="3" y2="8" />
+                    <line x1="13" y1="8" x2="14.5" y2="8" />
+                    <line x1="3.6" y1="3.6" x2="4.6" y2="4.6" />
+                    <line x1="11.4" y1="11.4" x2="12.4" y2="12.4" />
+                    <line x1="3.6" y1="12.4" x2="4.6" y2="11.4" />
+                    <line x1="11.4" y1="4.6" x2="12.4" y2="3.6" />
+                </svg>
+            </span>
+            <span class="misp-dashboard-btn-glyph misp-dashboard-btn-glyph-dark" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M13.5 9.7A5.5 5.5 0 1 1 6.3 2.5a4.3 4.3 0 0 0 7.2 7.2z" />
+                </svg>
+            </span>
+        </button>
         <!-- Edit-mode toggle (shown in view mode). Toggling to edit
              takes a snapshot of the current layout; the Save / Discard
              buttons below are the only ways to leave edit mode without
@@ -189,7 +224,8 @@ $baseurl = Configure::read('MISP.baseurl') ?: '';
       data-misp-board-widgets-url="<?= h($baseurl) ?>/dashboards/widgets"
       data-misp-board-wrapper-url="<?= h($baseurl) ?>/dashboards/renderWrapper"
       data-misp-board-export-url="<?= h($baseurl) ?>/dashboards/export"
-      data-misp-board-session-action-url="<?= h($baseurl) ?>/dashboards/invalidateUserSessions">
+      data-misp-board-session-action-url="<?= h($baseurl) ?>/dashboards/invalidateUserSessions"
+      data-misp-board-theme-url="<?= h($baseurl) ?>/dashboards/updateTheme">
 
     <?php
     if (empty($widgets)) {
