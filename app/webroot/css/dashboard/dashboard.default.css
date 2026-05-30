@@ -627,7 +627,7 @@ body[data-misp-board-mode="edit"] .misp-dashboard-modecontrols-view { display: n
 }
 .dgrid-ghost.dgrid-ghost-invalid {
   border-color: var(--misp-dash-danger);
-  background: rgba(220, 38, 38, 0.10);
+  background: var(--misp-dash-danger-muted);
 }
 
 /* ============================================================
@@ -2878,7 +2878,7 @@ a.misp-stat-card:hover .misp-stat-glyph {
   background: var(--misp-dash-surface-raised);
   border: 1px solid var(--misp-dash-border);
   border-radius: var(--misp-dash-radius-sm);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--misp-dash-shadow-sm);
   opacity: 0;
   transform: translateY(-2px);
   pointer-events: none;
@@ -2916,7 +2916,7 @@ a.misp-stat-card:hover .misp-stat-glyph {
 }
 .misp-template-card-action-danger:hover,
 .misp-template-card-action-danger:focus-visible {
-  background: rgba(220, 38, 38, 0.10);
+  background: var(--misp-dash-danger-muted);
   color: var(--misp-dash-danger);
   border-color: var(--misp-dash-danger);
 }

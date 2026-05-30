@@ -6,15 +6,17 @@
  * nothing else. No JS, no `.ctp` overrides, no markup surgery.
  *
  * Activation: this file is always loaded alongside `dashboard.default.css`;
- * its rules only apply when an ancestor carries `data-theme="midnight"`.
- * The prototype index view sets that attribute server-side from the
- * `?theme=midnight` query param.
+ * its rules only apply when `<html>` carries `data-theme="midnight"`.
+ * Two things set that attribute (DD-51): the inline boot script in
+ * `theme_boot.ctp` seeds it before first paint from the per-user
+ * `dashboard_theme` preference (or prefers-color-scheme), and the
+ * dashboard's light/dark toggle (`board.module.mjs`) flips it live.
  *
- * In production a MISP theme that wants a dark dashboard ships an
- * overlay like this one at `app/View/Themed/<Name>/webroot/css/...`
- * and the host page loads it via the active-theme CSS chain — no
- * dashboard-specific toggle exists. The attribute selector is a
- * convenience for the prototype, not a stable theme-activation API.
+ * This is a stopgap dashboard-local dark mode until a global MISP dark
+ * theme ships. When one does, that theme ships an overlay like this at
+ * `app/View/Themed/<Name>/webroot/css/...` loaded via the active-theme
+ * CSS chain; the local toggle stays an isolated `data-theme` override,
+ * trivial to gate or retire then. PRD §8.1 / DD-51.
  */
 
 :root[data-theme="midnight"] {
@@ -40,9 +42,38 @@
   --misp-dash-danger:         #f87171;
   --misp-dash-warning:        #fbbf24;
   --misp-dash-info:           #38bdf8;
+  /* Dark-tuned translucent low-ends (DD-51). The light :root set
+     (rgba(220,38,38,0.12) etc.) is tuned for a white surface and reads
+     as near-nothing on dark, so redefine each keyed off its dark status
+     hue, mirroring accent-muted's 0.16 alpha. Consumed as WorldMap
+     choropleth low-stops (DD-13) and by the tokenised danger washes in
+     dashboard.default.css (.dgrid-ghost-invalid, the danger template-
+     card action). */
+  --misp-dash-success-muted:  rgba(74, 222, 128, 0.16);
+  --misp-dash-danger-muted:   rgba(248, 113, 113, 0.16);
+  --misp-dash-warning-muted:  rgba(251, 191, 36, 0.16);
+  --misp-dash-info-muted:     rgba(56, 189, 248, 0.16);
 
   /* ---- Shadows tuned for dark surfaces (subtler than the light set) ---- */
   --misp-dash-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30);
   --misp-dash-shadow-md: 0 1px 6px rgba(0, 0, 0, 0.45);
   --misp-dash-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.55);
+}
+
+/*
+ * Light-assumption fixups (DD-51). A few dashboard.default.css rules
+ * hardcode black overlays/borders that assume a light surface and vanish
+ * on dark; retone them here, scoped to the midnight overlay so the light
+ * theme is untouched. (The configure backdrop's rgba(0,0,0,0.30) scrim
+ * is deliberately left alone — a black scrim dims the page behind the
+ * panel correctly on either theme.)
+ */
+:root[data-theme="midnight"] .misp-org-filter-chip-remove:hover,
+:root[data-theme="midnight"] .misp-org-filter-chip-remove:focus-visible {
+  /* Light overlay instead of the light theme's rgba(0, 0, 0, 0.20). */
+  background: rgba(255, 255, 255, 0.16);
+}
+:root[data-theme="midnight"] .misp-attack-cell--hit {
+  /* Subtle light border instead of the light theme's rgba(0, 0, 0, 0.12). */
+  border-color: rgba(255, 255, 255, 0.14);
 }
