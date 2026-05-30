@@ -878,6 +878,23 @@ function initWebglGlobe(hostEl, payload) {
       // together; altitude 2.2 frames the disc with margin.
       globe.pointOfView({ lat: 30, lng: -10, altitude: 2.2 }, 0);
 
+      // Slow idle auto-rotate (DD-50): a gentle spin for the playful
+      // pew-pew vibe. globe.gl's default controls are OrbitControls
+      // (controlType 'orbit') and its render loop ticks controls.update()
+      // each frame, so setting autoRotate is enough — no extra ticker.
+      // Honour prefers-reduced-motion: a user who asks for less motion
+      // gets a static (still draggable) globe. A user drag transiently
+      // overrides the spin; OrbitControls resumes it on release. Left off
+      // in v1 (DD-47) for screenshot stability — a one-shot
+      // --virtual-time-budget capture still renders a single frame.
+      const reduceMotion = typeof window.matchMedia === 'function'
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!reduceMotion) {
+        const controls = globe.controls();
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.6;   // ~100 s/revolution — gentle
+      }
+
       resizeObs = new ResizeObserver(() => {
         if (!globe) return;
         globe.width(hostEl.clientWidth || 600)
