@@ -160,9 +160,9 @@ globe always rendered `night`. Any new payload key must be added to the
 shim's `$payload` array too. And verify visual features through the REAL
 handler→.ctp→JS path (a hand-built test payload bypasses the shim and
 hides exactly this class of bug).
-NB: the widget's `$cache_duration` is currently **`false`** (a user
-working-tree change, preserved) — caching is OFF, so every render
-recomputes with the correct mode/skin.
+NB: the widget's `$cache_duration` is **`3600`** (the DD-20 default); the
+working tree's only PewPewMapWidget change is a one-line `$description`
+wording tweak (still unstaged, pending a keep/drop call).
 
 ## DD-45 family — render-kind & widget facts (still load-bearing)
 
@@ -197,9 +197,10 @@ The dashboard feature set is complete: 2D map, lightweight orthographic
 globe, and real WebGL globe all ship. Carried polish below is optional.
 
 ### Globe (3D) polish (DD-47, deferred — all optional)
-- **Auto-rotate** (`globe.controls().autoRotate = true`) — trivial; left
-  off in v1 for screenshot stability (same call DD-46 deferred for the
-  orthographic mode). A slow spin would suit the playful vibe.
+- **Auto-rotate** — ✅ DONE (DD-50, commit `9dc8cf75c`): `webgl-globe`
+  now slow-spins when idle (`controls().autoRotate=true` +
+  `autoRotateSpeed=0.6`, ~100 s/rev), gated on `prefers-reduced-motion`.
+  Verified headless (empty-flows AE 41790 vs reduced-motion control AE 0).
 - **Ring visibility** — rings pulse; tune `ringMaxRadius` /
   `ringRepeatPeriod` / a brighter warning if they read too subtle.
 - **In-browser confirm of the "Globe (3D)" / "Globe (lightweight)"

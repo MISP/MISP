@@ -2277,6 +2277,22 @@ gate (the user still does the merge).
     headless-Chrome shots of day (bright Blue Marble) + dark render
     correctly. Spec: DD-49 + PRD §15. Commit `8e5f7e814`.
 
+  - [x] **DD-50 — Slow idle auto-rotate for the WebGL globe.** CLOSED.
+    Polish (DD-47 deferred auto-rotate for screenshot stability): the
+    `webgl-globe` mode now spins gently when idle — a slow attract-mode
+    rotation for the playful pew-pew vibe. Two-line set in
+    `initWebglGlobe` (`charts.module.mjs`): `controls().autoRotate = true`
+    + `autoRotateSpeed = 0.6` (~100 s/rev). No extra ticker — globe.gl's
+    controls are OrbitControls (`controlType:'orbit'`) and its render loop
+    already ticks `controls.update()`. Gated on `prefers-reduced-motion`
+    (static, still draggable; a drag transiently overrides + resumes).
+    Front-end only; `handler()`/`flows[]`/caching + the 2d/3d-globe modes
+    unchanged; no new config field. Verified headless (swiftshader,
+    empty-flows so only rotation animates): large virtual-time gap →
+    AE 41790 px (rotates); `--force-prefers-reduced-motion` control →
+    AE 0 (static); DOM probe canvas 600×420, lazy bundle + night texture,
+    no fallback. Spec: DD-50 + PRD §15. Commit `9dc8cf75c`.
+
 ---
 
 ## Phase 6 — Merge to `develop`

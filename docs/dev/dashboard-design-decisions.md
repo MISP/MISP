@@ -4405,3 +4405,53 @@ handler→.ctp→JS path, not a hand-built payload.
 **Reversibility.** Drop the `skin` enum/param + `resolveSkin()` + the
 `GLOBE_TEXTURES` extra entries + the two new textures; the night skin
 (DD-47) stands alone.
+
+## DD-50 — Slow idle auto-rotate for the WebGL globe ("Globe (3D)")
+
+**Date.** 2026-05-30
+
+**Status.** Binding — IMPLEMENTED + verified.
+
+**Decision.** The `webgl-globe` mode (DD-47) now spins slowly when idle —
+a gentle attract-mode rotation that suits the playful pew-pew vibe. This
+lifts the auto-rotate DD-47 deliberately deferred ("left off in v1 for
+screenshot stability", the same call DD-46 made for the orthographic
+mode).
+
+**Implementation.** A two-line property set inside `initWebglGlobe`
+(`charts.module.mjs`), applied right after the initial `pointOfView`:
+`globe.controls().autoRotate = true` + `.autoRotateSpeed = 0.6`
+(~100 s/revolution — gentle). No extra animation ticker is needed:
+globe.gl's default controls are OrbitControls (`controlType:'orbit'`,
+confirmed in the vendored tree-shaken `globe.bundle.mjs`) and its render
+loop already calls `controls.update()` every frame, which is what makes
+`autoRotate` advance. A user drag transiently overrides the spin and
+OrbitControls resumes it on release.
+
+**Accessibility.** Gated on `prefers-reduced-motion: reduce` — a user who
+asks for less motion gets a static (still draggable) globe. A continuous
+full-globe spin is exactly the kind of motion that preference exists to
+suppress; the arc dash + ring pulse already animate regardless, so only
+the new whole-scene rotation is gated.
+
+**Scope.** Front-end only and additive — no new config field, no server
+change: `handler()`, the `flows[]` payload, caching, and the 2d /
+3d-globe modes are all untouched. Always-on (no per-widget toggle) keeps
+it trivial; a toggle is a one-line follow-up if the spin is ever unwanted
+per instance.
+
+**Verification (visible outcome, not the property).** Headless Chrome
+(swiftshader). An **empty-flows** globe was used so the ONLY thing that
+can animate is the rotation itself (no arcs/dash/rings): two captures at
+a large virtual-time gap differed by **AE 41790 px** (clearly rotated),
+while the **control** run with `--force-prefers-reduced-motion` was
+**byte-identical (AE 0)** — proving both that the spin is the auto-rotate
+(not render noise) and that the reduced-motion guard fully suppresses it.
+A DOM probe confirmed the real WebGL path (canvas 600×420, lazy
+`globe.bundle.mjs` + night texture fetched, no "unavailable" fallback).
+OrbitControls' auto-rotate is frame-count based, so a small virtual-time
+gap barely moves — the large gap makes the effect unambiguous.
+
+**Reversibility.** Drop the `autoRotate`/`autoRotateSpeed` lines + the
+`prefers-reduced-motion` guard in `initWebglGlobe`; the globe returns to
+the static-but-draggable v1 behaviour. Nothing else references it.
