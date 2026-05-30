@@ -67,7 +67,7 @@ class PewPewMapWidget
     public $title = 'Pew-pew map';
     public $category = 'events';
     public $render = 'PewPewMap';
-    public $description = 'Pew pew map threat-actor origin country and victim country, derived from misp-galaxy:threat-actor and misp-galaxy:country tags on events. Renders as a 2D flat map (default, animated great-circle lines), a lightweight orthographic "globe" view of the same arcs, or an opt-in real WebGL 3D globe (globe.gl, lazy-loaded).';
+    public $description = 'Pew-pew map, derived from misp-galaxy:threat-actor and misp-galaxy:country tags on events. Renders as a 2D flat map (default, animated great-circle lines), a lightweight orthographic "globe" view of the same arcs, or an opt-in real WebGL 3D globe (globe.gl, lazy-loaded).';
     public $width = 6;
     public $height = 5;
     // cacheLifetime + autoRefreshDelay are inert in dashboard v2 —
