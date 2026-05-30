@@ -18,7 +18,7 @@ class DashboardsController extends AppController
         parent::beforeFilter();
         // POSTs carry widget data in their body — same CSRF posture
         // as the v1 dashboards endpoints.
-        $bodyPostActions = array('renderWidget', 'renderWrapper', 'updateSettings', 'updateWidgetSettings');
+        $bodyPostActions = array('renderWidget', 'renderWrapper', 'updateSettings', 'updateWidgetSettings', 'updateTheme');
         foreach ($bodyPostActions as $a) {
             $this->Security->unlockedActions[] = $a;
         }
@@ -156,9 +156,23 @@ class DashboardsController extends AppController
         }
         unset($w);
 
+        // DD-51 — light/dark appearance preference (a stopgap
+        // dashboard-local toggle until a global MISP dark theme ships).
+        // Read the per-user setting and hand it to the view so
+        // theme_boot.ctp can seed data-theme before first paint (no FOUC).
+        // Values: 'auto' (follow the browser's prefers-color-scheme),
+        // 'light', 'dark'. No row / a legacy or empty value normalises to
+        // 'auto'. Resolved here (after the REST early-return) so REST
+        // clients don't pay for the extra read.
+        $themePref = $this->User->UserSetting->getValueForUser($user['id'], 'dashboard_theme');
+        if (!in_array($themePref, array('auto', 'light', 'dark'), true)) {
+            $themePref = 'auto';
+        }
+
         $this->layout = 'dashboard';
         $this->set('title_for_layout', __('Dashboard'));
         $this->set('widgets', $widgets);
+        $this->set('dashboardThemePref', $themePref);
     }
 
     /**
@@ -211,6 +225,60 @@ class DashboardsController extends AppController
         return $this->RestResponse->saveFailResponse(
             'Dashboard',
             'updateSettings',
+            false,
+            $this->User->UserSetting->validationErrors,
+            $this->response->type()
+        );
+    }
+
+    /**
+     * Persist the user's dashboard light/dark appearance preference
+     * (DD-51). POST-only, REST-style like updateSettings — the client
+     * posts with `Accept: application/json`, so AppController disables
+     * csrfCheck, and `updateTheme` is in beforeFilter's unlockedActions
+     * so the Security component's body-tampering check is skipped (the
+     * POST carries no `_Token` fields, mirroring updateSettings).
+     *
+     * The toggle button only ever commits an explicit 'light' or 'dark';
+     * 'auto' is the *absence* of an explicit choice (resolved client-side
+     * from prefers-color-scheme at boot), so it is never written back
+     * here. UserSetting::validate_dashboard_theme is the final gate.
+     */
+    public function updateTheme()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('POST only.'));
+        }
+        $theme = isset($this->request->data['theme'])
+            ? $this->request->data['theme']
+            : null;
+        if (!in_array($theme, array('light', 'dark'), true)) {
+            throw new BadRequestException(
+                __('Invalid theme; expected "light" or "dark".')
+            );
+        }
+        $data = array(
+            'UserSetting' => array(
+                'setting' => 'dashboard_theme',
+                'value'   => $theme,
+            ),
+        );
+        $result = $this->User->UserSetting->setSetting(
+            $this->Auth->user(),
+            $data
+        );
+        if ($result) {
+            return $this->RestResponse->saveSuccessResponse(
+                'Dashboard',
+                'updateTheme',
+                false,
+                false,
+                __('Dashboard theme updated.')
+            );
+        }
+        return $this->RestResponse->saveFailResponse(
+            'Dashboard',
+            'updateTheme',
             false,
             $this->User->UserSetting->validationErrors,
             $this->response->type()

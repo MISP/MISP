@@ -132,6 +132,17 @@ class UserSetting extends AppModel
             'options' => ['all', 'wizard'],
             'validation' => 'validate_event_template_user_form_mode',
         ],
+        // Dashboard v2 light/dark appearance (DD-51). Stopgap per-user
+        // toggle until a global MISP dark theme ships: 'auto' (default —
+        // follow the browser's prefers-color-scheme), 'light', or 'dark'.
+        // The dashboard reads this server-side to seed data-theme before
+        // first paint; DashboardsController::updateTheme persists explicit
+        // light/dark choices. Stored as a bare scalar string (not JSON).
+        'dashboard_theme' => [
+            'placeholder' => 'auto',
+            'options' => ['auto', 'light', 'dark'],
+            'validation' => 'validate_dashboard_theme',
+        ],
     );
 
     public static function validate_homepage($value, $user)
@@ -160,6 +171,14 @@ class UserSetting extends AppModel
             return true;
         }
         return in_array($value, self::VALID_SETTINGS['event_template_user_form_mode']['options'], true);
+    }
+
+    public static function validate_dashboard_theme($value, $user)
+    {
+        if (empty($value)) {
+            return true;
+        }
+        return in_array($value, self::VALID_SETTINGS['dashboard_theme']['options'], true);
     }
 
     public static function validate_json($value, $user)

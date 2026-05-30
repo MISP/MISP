@@ -20,6 +20,7 @@
     <meta name="viewport" content="width=device-width">
     <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
     <title><?= h($title_for_layout), ' - ', h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
+    <?php echo $this->element('dashboard/theme_boot'); /* DD-51 no-FOUC light/dark boot */ ?>
     <?php
         $css = [
             ['bootstrap', ['preload' => true]],
