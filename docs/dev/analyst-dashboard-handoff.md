@@ -1,4 +1,4 @@
-# Analyst Dashboard — Session handoff (2026-05-31 — TRACK KICK-OFF: mini-PRD created; AD-W1 trending engine fully DECIDED, AD-01..04)
+# Analyst Dashboard — Session handoff (2026-05-31 — AD-W7 new-data stats DECIDED (AD-05..07); progress tracker split out; next spec target = W6)
 
 **This is a NEW, SEPARATE track** from the main dashboard work (whose bridge
 is `dashboard-handoff.md`). Main dashboard v2 is feature-complete; this track
@@ -7,12 +7,20 @@ builds the **analyst widget surface**. Authoritative state lives in:
 - `analyst-dashboard-prd.md` — the mini-PRD (deviation/companion to
   `dashboard-prd.md`). §3 = 9-widget roster (status per widget); §5 =
   per-widget detail; §6 = **AD-NN** decision log.
+- `analyst-dashboard-progress.md` — the task tracker (split out 2026-05-31;
+  mirrors the parent PRD+progress split). Spec status + build backlog.
 - This file — ephemeral session bridge; replace as work progresses.
 
-## TL;DR — this session (planning; no code; PRD+handoff committed as kick-off)
-- Created `analyst-dashboard-prd.md` (skeleton + roster + three-jobs framing).
-- **AD-W1 (the trending engine) fully decided — AD-01..04.**
-- Build order: **W1 → W7 → W6 → (W2/W3/W4) → W5 → W8 → W9**. **Next = W7.**
+## TL;DR — this session (planning; no code; spec-first by user's choice)
+- **AD-W7 (new-data stats) fully decided — AD-05/06/07.** Stayed in spec
+  mode (user chose to spec W7 before building W1).
+- **AD-05** window anchor = `Event.timestamp` track-wide (resolves AD-W1's
+  deferred anchor; `publish_timestamp` rejected — tracks sync-propagation to
+  this instance, not newness). **AD-06** aggregate count metrics may skip ACL
+  (global counts OK; refines AD-04). **AD-07** = the W7 spec.
+- **Split out `analyst-dashboard-progress.md`** (meta-Q2 resolved).
+- Build order confirmed: **W1 → W7 → W6 → (W2/W3/W4) → W5 → W8 → W9**.
+  **Next spec target = W6.** First *build* unit (when building starts) = W1.
 
 ## Why this track (three analyst jobs)
 The analyst board today is 5 v1-era widgets (TrendingAttributes/Tags, two
@@ -60,12 +68,25 @@ single shared blob, never per-user (org is the atom), site-admins bucketed
 separately, lazy-loaded not background-precomputed. Freshness per-widget
 (trending 15–30 min/org; event-stream near-live).
 
+## AD-W7 — new-data stats (DECIDED this session; full spec PRD §5)
+- **4 `StatGrid` metrics**, each `value` = current-window count, `change` =
+  delta vs the immediately-preceding equal window (AD-03 baseline):
+  1. new events (`Event.timestamp` in window, **global, no ACL**);
+  2. new attributes (`Attribute.timestamp` in window, `deleted=0`, global);
+  3. events targeting my org's country/sector (distinct events with
+     `misp-galaxy:country=` ∪ `misp-galaxy:sector=`, via the **waterfall**);
+  4. new events published by my org (`orgc_id`=me, `published=1`,
+     `publish_timestamp` in window — the one place publish_timestamp is OK,
+     since own-org events weren't sync-imported).
+- **Targeting waterfall** (country & sector resolved independently, first hit):
+  explicit widget config → org `nationality`/`sector` (case-folded to galaxy
+  cluster `value`) → org **name's ccTLD** (country only; `post.lu`→`.lu`) →
+  N/A. ccTLD→country is self-contained in `country.json` (`meta.tld`/`ISO`,
+  252 clusters). **Widget option to set country/sector overrides everything.**
+- **Cache (AD-06):** metrics 1–2 global-cached, metric 3 by `(country,sector)`,
+  metric 4 by `orgc_id`; nothing ACL-filtered ⇒ site-admin bucket moot.
+
 ## Open per-widget circle-backs (carry — first-pass answers in PRD §5)
-- **W7 (new-data stats) — NEXT.** `StatGrid` + per-org-cached deltas vs prior
-  equal window. Starter metrics (user): new events, attribute count, events
-  targeting my org's country/sector, new events published by my org. **Pin:**
-  "new" = created (`timestamp`) vs published vs first-seen; exact targeting
-  match (country and/or sector).
 - **W2 (CVEs):** counting beyond event-tags is "trickier than it sounds" —
   user has ideas + **existing APIs**; **grill at W2**. Link-out via
   **`MISP.cveurl`** (default `https://cve.circl.lu`, ID embedded, e.g.
@@ -112,11 +133,15 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
   widgets/defaults together in the next release).
 
 ## Quick-start for next session
-1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1, §6 AD-01..04).
-2. **W1 is fully decided.** Next tracked widget is **W7 (new-data stats)** —
-   pin the 4 metrics + the "new" definition, spec the per-org-cached deltas.
-   (Or start *building* W1 engine-first if the user prefers — confirm.)
-3. **Housekeeping (resolved 2026-05-31):** PRD + this handoff committed as the
-   track kick-off; **no separate branch** — both tracks ride `dashboards` and
-   ship together in the next release.
+1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1+AD-W7, §6
+   AD-01..07) + `analyst-dashboard-progress.md` (spec status + build backlog).
+2. **W1 and W7 are both fully decided.** Next **spec** target is **W6
+   (event-stream rework)** — grouped-digest vs ticker; detailed cards; inline
+   filter/scope/exclude controls; near-live refresh (data layer is good, rework
+   the visual only). *(Or, if the user flips to build mode, the first build
+   unit is **W1** engine-first — see progress §"Phase B1".)*
+3. **Standing decisions:** AD-NN numbering; per-org cache for ACL-scoped
+   aggregates (AD-04) but global no-ACL counts for pure scale metrics (AD-06);
+   `Event.timestamp` window anchor (AD-05); both tracks ride `dashboards`,
+   ship together, no separate branch.
 4. Watch context; refresh this handoff before wrapping.
