@@ -92,6 +92,10 @@ Built to retire cleanly.
   intentionally LEFT (a black scrim dims correctly on either theme).
 
 ### Verification (done this session)
+- **USER-CONFIRMED LIVE IN THE REAL BROWSER (2026-05-31):** the user
+  tried the toggle on the actual `/dashboards` page and reports it "works
+  well". This closes the only verification gap the headless path couldn't
+  cover (a real session under the live chrome).
 - **Server round-trip** (curl + real session): `updateTheme` persists
   dark→light; `index()`'s boot script reflects it (`var pref = "dark"` /
   `"light"`); `theme=purple` → **HTTP 400**.
@@ -123,11 +127,11 @@ Dashboard v2 is feature-complete: all widgets, three pew-pew modes, and
 now a light/dark toggle. Carried polish below is optional.
 
 ### DD-51 polish (optional)
-- **In-browser confirm of the toggle on the REAL `/dashboards` page** (not
-  the temp page) under each theme (Overmind/UiBeta/default) — needs a
-  session cookie in a real browser; headless can't carry it easily. The
-  server path + the retheme path are both verified; this is a final
-  eyeball of placement under the live chrome.
+- ~~In-browser confirm on the REAL `/dashboards` page~~ — **DONE
+  (2026-05-31): user confirmed live, "works well".** Was Overmind theme;
+  a quick eyeball under default/UiBeta is still nice-to-have but not
+  blocking (the button lives in the non-themed `index.ctp`, so it's the
+  same markup on all three).
 - **Toggle keyboard/focus** affordance is the plain `<button>` default;
   could add a tooltip refinement.
 - **`prefers-color-scheme` change listener** — if the OS theme flips while
