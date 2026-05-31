@@ -54,7 +54,7 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | AD-W3 | Trending threat actors (dim of W1) | `DISCUSSING` | — |
 | AD-W4 | Trending attack techniques (dim of W1) | `DISCUSSING` | — |
 | AD-W5 | ATT&CK matrix heatmap (existing) | `DISCUSSING` | — |
-| AD-W6 | Event-stream rework | `DISCUSSING` | — **next spec target** |
+| AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[ ]` not started |
 | AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[ ]` not started |
 | AD-W8 | Overlap-with-my-org | `DISCUSSING` | — |
 | AD-W9 | Sightings rework | `DEFERRED` | — |
@@ -66,8 +66,13 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 - [x] **AD-W7 spec → DECIDED** — anchor (AD-05), aggregate-count ACL
   relaxation (AD-06), full W7 spec (AD-07). Resolved AD-W1's deferred window
   anchor en route. Split this progress tracker out.
-- [ ] **AD-W6 spec** — event-stream rework: grouped-digest vs ticker; detailed
-  cards; inline filter/scope/exclude; near-live refresh. (Next spec target.)
+- [x] **AD-W6 spec → DECIDED** — flat detailed cards (Fork A); read-only,
+  filters via existing toolbar bulk-edit (Fork B); additive subclass
+  `EventStreamCardsWidget` + new `EventCards` render kind. (AD-08.)
+- [ ] **AD-W2/W3/W4 spec** — the trending-engine dimensions (CVEs / threat
+  actors / attack techniques). Per-dimension hooks on the W1 engine: counting
+  strategy, label resolver, drill-down link builder. (Next spec target — these
+  are dimensions of W1, so spec them as a cluster.)
 
 ## Build backlog (ordered by confirmed build order)
 
@@ -105,7 +110,23 @@ task starts until the user moves the track out of spec-first mode.
 - [ ] Cache split (AD-06): global / `(country,sector)` / `orgc_id` keys.
 - [ ] Visual verification on the live instance.
 
-*(Phases B3+ — W6, W2/W3/W4, W5, W8 — broken down when each reaches `DECIDED`
+### Phase B3 — AD-W6 Event-stream rework (DECIDED; build-deferred)
+
+- [ ] New render kind **`EventCards`** — `EventCards.ctp` flat reverse-chron
+  cards (threat dot · org · relative time · #id · info · tag chips · attr
+  count) from the `fetchEvent` payload. Token-driven CSS, no inline styles;
+  reuse `Index.ctp`'s tag-chip colour + contrast helper.
+- [ ] Glyph for `EventCards` in `render-thumbs.mjs` (stacked-cards shape;
+  **CLAUDE.md rule**): `thumbEventCards()` + REGISTRY entry.
+- [ ] `EventStreamCardsWidget extends EventStreamWidget` — override `$render` =
+  `EventCards`, `$title`, `$description`; inherit the canonical-filter data
+  layer + `$schema` verbatim (toolbar-bulk-editable). `handler()` untouched.
+- [ ] Read-only confirm: no in-body controls; filters via toolbar bulk-edit.
+  Near-live (`autoRefreshDelay = 5` inherited); no cache (per-user ACL'd
+  `fetchEvent`).
+- [ ] Visual verification on the live instance (real render path).
+
+*(Phases B4+ — W2/W3/W4, W5, W8 — broken down when each reaches `DECIDED`
 and the track enters build mode.)*
 
 ## Discovered work

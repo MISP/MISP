@@ -56,7 +56,7 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 | AD-W3 | Trending threat actors (dim of W1) | rising | DISCUSSING | attribute/object-level galaxy tags; cluster resolution |
 | AD-W4 | Trending attack techniques (dim of W1) | rising | DISCUSSING | distinctness from the ATT&CK heatmap |
 | AD-W5 | ATT&CK matrix heatmap (existing `AttackWidget`) | rising | DISCUSSING | wire to global `time_window`? else keep as-is |
-| AD-W6 | **Event-stream rework** | new | DISCUSSING | cards vs ticker vs grouped digest; data layer kept |
+| AD-W6 | **Event-stream rework** | new | DECIDED | spec locked (AD-08): additive subclass + new read-only `EventCards` render; flat cards; toolbar-driven filters |
 | AD-W7 | **New-data stats** (StatGrid + deltas) | new | DECIDED | spec locked (AD-05..07): `timestamp` anchor · 4 metrics · targeting waterfall · global-count ACL relaxation |
 | AD-W8 | Overlap-with-my-org (correlation) | affects-me | DISCUSSING | feasibility/cost; what "overlap" means |
 | AD-W9 | Sightings rework (`RecentSightingsWidget`) | affects-me | DEFERRED | look-and-feel only? (sighting engine is slow / unused by some) |
@@ -141,11 +141,55 @@ instance and users may run their own, not CIRCL's. **Circle back (user
 flagged):** counting CVEs beyond event-tags is "trickier than it sounds" —
 user has ideas + *existing APIs* for this use-case; **grill at W2 time.**
 
-### AD-W6 — Event-stream rework
-First-pass (user): keep the (good) canonical filters; rework the *visual* —
-"a few more detailed **cards**", easy inline controls for filtering / scope /
-exclusions, **visually easy to read and eye-catching**. Undecided between
-**grouped digest** and **ticker**; explore both at W6 time.
+### AD-W6 — Event-stream rework  `DECIDED`
+
+**Locked (2026-05-31):** A **new widget** + a **new read-only render kind**,
+both pure additions — `EventStreamWidget` is left untouched
+([[feedback_additive_only_posture]]).
+
+- **Approach (additive):** `EventStreamCardsWidget extends EventStreamWidget`
+  (subclassing is an in-tree pattern — `OrgsUsing*` / `OrgsContributorLastMonth`
+  extend `OrgsContributorsGeneric`; `Dashboard::loadWidget` loads by filename).
+  It inherits the **entire proven data layer** verbatim: all canonical filters
+  (`tags`, `orgs` w/ `match_via` + per-entry negate, `published`,
+  `threat_level`, `analysis`, `sharing_group`, `galaxy_cluster`) and their
+  `$schema` → **toolbar-bulk-editable for free**. Overrides only `$title`,
+  `$render`, `$description`; `handler()` unchanged.
+- **Layout = flat detailed cards** (Fork A: flat chosen over grouped-digest
+  and ticker). Reverse-chronological; near-live (`autoRefreshDelay = 5`
+  inherited). *Ticker rejected* — motion/accessibility, least detail per card,
+  and the 5 s auto-refresh already reads as "live". *Grouped-digest deferred*
+  — flat is the first cut; recency bucketing can come later.
+- **New render kind = `EventCards`** (event-specific, like `UserList` /
+  `QueueList`). Consumes the inherited `{data}` payload (full `fetchEvent`
+  records) directly; the `fields` column list is an `Index`-render concept and
+  is **ignored** by the card template (cards have a curated anatomy). **Needs a
+  glyph** in `render-thumbs.mjs` — stacked-cards shape (CLAUDE.md rule).
+- **Card anatomy** (per the accepted mockup): row 1 = threat-level dot
+  (coloured by `threat_level_id`: High / Med / Low / Undefined) + threat label
+  · `Orgc.name` · **relative time** (from `Event.timestamp`, consistent with
+  AD-05's "what changed" anchor) · `#id` (link to `/events/view/<id>`); row 2
+  = `Event.info` (truncated); row 3 = tag chips (coloured, capped + "+N more")
+  + attribute-count badge (`Event.attribute_count` — confirmed present in
+  `fetchEvent` metadata, no extra query). Token-driven CSS, no inline styles
+  (mirror `Index.ctp` / `StatGrid.ctp`); reuse `Index.ctp`'s tag-chip colour +
+  contrast helper.
+- **Inline controls = reuse the toolbar bulk-edit** (Fork B): cards stay
+  **read-only**, preserving the platform's deliberate read-only render posture
+  (`Index.ctp`: "read-only widget surface"). Filter / scope / exclude is driven
+  by the existing dashboard toolbar canonical bulk-edit — no in-body
+  interactivity, so W6 stays inside the analyst-track charter (add widgets, not
+  platform changes). In-body click-to-filter chips were considered and held
+  back as a parent-PRD platform change.
+- **Cache/ACL = none / near-live.** Unlike the aggregate widgets (AD-04), this
+  is a **per-user ACL'd** view — `fetchEvent($user, …)` enforces ACL per caller
+  — so it is neither per-org-cached nor a global count; it re-fetches live
+  every `autoRefreshDelay`. (The one analyst widget that is genuinely per-user,
+  not aggregate.)
+
+**Open at build (not blocking spec):** final widget / render-kind names;
+tag-chip cap N; info truncation length; relative-time formatting; the
+stacked-cards glyph.
 
 ### AD-W7 — New-data stats  `DECIDED`
 
@@ -310,6 +354,23 @@ from `country.json` `meta.tld`/`ISO`), (4) new events published by my org
 to set country/sector overrides all targeting heuristics. Cache split per
 AD-06. Full spec in §5. Build is deferred — the track stays in spec mode; next
 spec target is W6, while the first *build* unit remains W1 (engine-first).
+
+**AD-08 — 2026-05-31 — AD-W6 (event-stream rework) DECIDED.** Refs: AD-04
+(cache contrast), the parent read-only render posture (`Index.ctp`), user
+Fork A (flat cards) + Fork B (toolbar bulk-edit). A pure-additive
+`EventStreamCardsWidget extends EventStreamWidget` (in-tree subclassing
+precedent: `OrgsUsing*` extend `OrgsContributorsGeneric`) inherits the whole
+canonical-filter data layer (toolbar-bulk-editable) and overrides only
+`$render` / `$title` / `$description`. New **read-only** render kind
+`EventCards` (+ glyph) lays out flat reverse-chron cards straight from the
+`fetchEvent` payload: threat dot · `Orgc.name` · relative time (`Event.timestamp`,
+per AD-05) · `#id` · `Event.info` · tag chips · attr count (`Event.attribute_count`,
+confirmed in `fetchEvent` metadata). Filter / scope / exclude stays on the
+existing toolbar bulk-edit — cards are read-only, preserving the platform
+posture and the analyst-track "add widgets, not platform changes" charter. No
+cache: `fetchEvent` is per-user ACL'd and near-live (5 s), so AD-04's per-org
+aggregate cache does not apply. Ticker rejected (motion/accessibility;
+redundant with auto-refresh); grouped-digest deferred (flat is the first cut).
 
 ## 7. Open meta-questions (resolve early)
 

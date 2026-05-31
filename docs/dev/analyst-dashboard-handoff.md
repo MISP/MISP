@@ -1,4 +1,4 @@
-# Analyst Dashboard — Session handoff (2026-05-31 — AD-W7 new-data stats DECIDED (AD-05..07); progress tracker split out; next spec target = W6)
+# Analyst Dashboard — Session handoff (2026-05-31 — AD-W7 (AD-05..07) + AD-W6 (AD-08) DECIDED; progress tracker split out; next spec target = W2/W3/W4 dimensions)
 
 **This is a NEW, SEPARATE track** from the main dashboard work (whose bridge
 is `dashboard-handoff.md`). Main dashboard v2 is feature-complete; this track
@@ -12,15 +12,19 @@ builds the **analyst widget surface**. Authoritative state lives in:
 - This file — ephemeral session bridge; replace as work progresses.
 
 ## TL;DR — this session (planning; no code; spec-first by user's choice)
-- **AD-W7 (new-data stats) fully decided — AD-05/06/07.** Stayed in spec
-  mode (user chose to spec W7 before building W1).
+- **AD-W7 (AD-05/06/07) and AD-W6 (AD-08) both fully decided.** Stayed in
+  spec mode (user chose to spec ahead of building).
 - **AD-05** window anchor = `Event.timestamp` track-wide (resolves AD-W1's
   deferred anchor; `publish_timestamp` rejected — tracks sync-propagation to
   this instance, not newness). **AD-06** aggregate count metrics may skip ACL
   (global counts OK; refines AD-04). **AD-07** = the W7 spec.
+- **AD-08** = the W6 spec: flat detailed cards, read-only (filters via the
+  existing toolbar bulk-edit), additive `EventStreamCardsWidget extends
+  EventStreamWidget` + new `EventCards` render kind.
 - **Split out `analyst-dashboard-progress.md`** (meta-Q2 resolved).
 - Build order confirmed: **W1 → W7 → W6 → (W2/W3/W4) → W5 → W8 → W9**.
-  **Next spec target = W6.** First *build* unit (when building starts) = W1.
+  Spec done: W1, W7, W6. **Next spec target = W2/W3/W4 (trending dimensions).**
+  First *build* unit (when building starts) = W1.
 
 ## Why this track (three analyst jobs)
 The analyst board today is 5 v1-era widgets (TrendingAttributes/Tags, two
@@ -99,10 +103,9 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
 - **W5 (ATT&CK heatmap):** existing `AttackWidget` (`render=Attack`,
   `restSearch 'attack'`); filters are manual — decide whether to wire it to
   the global `time_window`.
-- **W6 (event stream):** data layer is good (rich canonical filters,
-  toolbar-bulk-editable); rework the **visual** only — detailed **cards**,
-  inline filter/scope/exclude controls, eye-catching. Undecided: **grouped
-  digest vs ticker** — explore at W6. Near-live refresh (cheap).
+- **W6 (event stream): DECIDED (AD-08)** — see PRD §5. Flat read-only cards,
+  additive subclass + `EventCards` render; filters via the existing toolbar
+  bulk-edit; near-live, no cache (per-user ACL'd `fetchEvent`).
 - **W8 (overlap-with-my-org):** define "overlap" (correlations vs
   attribute-value intersection), cost, ACL. High value, tricky.
 - **W9 (sightings):** likely **look-and-feel rework only** — sighting engine
@@ -133,13 +136,14 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
   widgets/defaults together in the next release).
 
 ## Quick-start for next session
-1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1+AD-W7, §6
-   AD-01..07) + `analyst-dashboard-progress.md` (spec status + build backlog).
-2. **W1 and W7 are both fully decided.** Next **spec** target is **W6
-   (event-stream rework)** — grouped-digest vs ticker; detailed cards; inline
-   filter/scope/exclude controls; near-live refresh (data layer is good, rework
-   the visual only). *(Or, if the user flips to build mode, the first build
-   unit is **W1** engine-first — see progress §"Phase B1".)*
+1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1+AD-W6+AD-W7, §6
+   AD-01..08) + `analyst-dashboard-progress.md` (spec status + build backlog).
+2. **W1, W7, W6 are all fully decided.** Next **spec** target is the
+   **W2/W3/W4 trending dimensions** (CVEs / threat actors / attack techniques)
+   — spec as a cluster since they're per-dimension hooks on the W1 engine
+   (counting strategy, label resolver, drill-down link builder). Carry the
+   per-widget circle-backs below. *(Or, if the user flips to build mode, the
+   first build unit is **W1** engine-first — see progress §"Phase B1".)*
 3. **Standing decisions:** AD-NN numbering; per-org cache for ACL-scoped
    aggregates (AD-04) but global no-ACL counts for pure scale metrics (AD-06);
    `Event.timestamp` window anchor (AD-05); both tracks ride `dashboards`,
