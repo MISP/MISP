@@ -57,7 +57,7 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 | AD-W4 | Trending attack techniques (dim of W1) | rising | DISCUSSING | distinctness from the ATT&CK heatmap |
 | AD-W5 | ATT&CK matrix heatmap (existing `AttackWidget`) | rising | DISCUSSING | wire to global `time_window`? else keep as-is |
 | AD-W6 | **Event-stream rework** | new | DISCUSSING | cards vs ticker vs grouped digest; data layer kept |
-| AD-W7 | **New-data stats** (StatGrid + deltas) | new | DISCUSSING | "new" definition; the four metrics; delta baseline |
+| AD-W7 | **New-data stats** (StatGrid + deltas) | new | DECIDED | spec locked (AD-05..07): `timestamp` anchor · 4 metrics · targeting waterfall · global-count ACL relaxation |
 | AD-W8 | Overlap-with-my-org (correlation) | affects-me | DISCUSSING | feasibility/cost; what "overlap" means |
 | AD-W9 | Sightings rework (`RecentSightingsWidget`) | affects-me | DEFERRED | look-and-feel only? (sighting engine is slow / unused by some) |
 
@@ -126,8 +126,10 @@ the explicit "circle back" flags from 2026-05-31.)*
   to `Attribute`.
 
 **Deferred to per-dimension specs (W2/W3):**
-- **Window anchor** — which timestamp puts an event "in the window"
-  (`Event.timestamp` vs `Attribute.timestamp` vs `publish_timestamp`).
+- **Window anchor** — **RESOLVED by AD-05**: `Event.timestamp` (last-modified),
+  track-wide. Attribute-level sources (attribute-tag / attribute-value) test
+  `Attribute.timestamp` analogously. (`publish_timestamp` rejected — tracks
+  propagation-to-this-instance, not newness; see AD-05.)
 - **CVE counting specifics** (W2) + galaxy attribute-level specifics (W3).
 
 ### AD-W2 — Trending CVEs
@@ -145,12 +147,64 @@ First-pass (user): keep the (good) canonical filters; rework the *visual* —
 exclusions, **visually easy to read and eye-catching**. Undecided between
 **grouped digest** and **ticker**; explore both at W6 time.
 
-### AD-W7 — New-data stats
-First-pass (user) — the four starter metrics: **new events**, **attribute
-count**, **events targeting your org's country/sector**, **new events
-published by your org**. Render: `StatGrid`. **Deltas vs previous equivalent
-window** (user: "GREAT"). **Open:** "new" = created (`timestamp`) vs
-published vs first-seen; exact targeting match (country and/or sector).
+### AD-W7 — New-data stats  `DECIDED`
+
+**Locked (2026-05-31):** Render = `StatGrid` (data contract from
+`UsageDataWidget`: rows of `title`/`icon`/`value`/`change`/`drilldown`;
+`change` is an int → `▲/▼` badge). Each card's `value` = the metric's count
+in the **current window**; `change` = **delta vs the immediately-preceding
+equal-length window** (`current − prior`; negative ⇒ ▼) — shares AD-W1's
+prior-window baseline (AD-03). Window anchor = **`Event.timestamp`** (AD-05).
+
+**The four metrics:**
+1. **New events** — `COUNT(Event)` with `Event.timestamp` in window. *Global
+   count, no ACL filter* (AD-06).
+2. **New attributes** — `COUNT(Attribute)` with `Attribute.timestamp` in
+   window, `deleted = 0`. Global count, no ACL filter (AD-06). (Metric 2 is
+   *new attributes in window*, not corpus size.)
+3. **Events targeting my org's country/sector** — distinct events in window
+   carrying `misp-galaxy:country="<c>"` ∪ `misp-galaxy:sector="<s>"`, with
+   `<c>`/`<s>` resolved by the **targeting waterfall** (below). Shows **N/A**
+   (not `0`) when neither resolves. Cached by the resolved `(country, sector)`
+   tuple + window.
+4. **New events published by my org** — `Event.orgc_id = <my org>` AND
+   `published = 1` AND `publish_timestamp` in window. Anchored on
+   `publish_timestamp` **here only**: for an org's *own* events that stamp is
+   a genuine local publish act, so the sync-propagation unreliability that
+   rules `publish_timestamp` out elsewhere (AD-05) does not apply. Cached
+   per-`orgc_id` + window.
+
+**Targeting waterfall (metric 3) — resolve country `<c>` and sector `<s>`
+independently; first hit wins:**
+- **Country `<c>`:** (1) explicit widget config → (2) `org.nationality`
+  case-folded to a `country.json` cluster `value` (fallback: `meta.ISO`/
+  `ISO3`) → (3) the org **name's ccTLD** matched to `country.json`
+  `meta.tld` (e.g. `post.lu` → `.lu` → cluster `value` "luxembourg") →
+  (4) none.
+- **Sector `<s>`:** (1) explicit widget config → (2) `org.sector` case-folded
+  to a `sector.json` cluster `value` → (3) none. (No TLD path — a TLD yields
+  a country, never a sector.)
+- ccTLD→country is **self-contained**: `country.json`'s 252 clusters each
+  carry `meta.tld` + `meta.ISO`/`ISO3` + a lowercase `value`; no external
+  list needed.
+- A **widget config option** to set country/sector explicitly **overrides all
+  heuristics** (some communities enforce org meta; many don't set it — don't
+  take the dev instance, where most orgs are blank, as ground truth).
+
+**Cache/ACL (AD-06 applied):** metrics 1–2 = global counts (no ACL filter),
+global+window cache key; metric 3 = `(country, sector)`+window key; metric 4 =
+`orgc_id`+window key. Nothing is ACL-filtered, so AD-04's site-admin no-ACL
+bucket is **moot** here. Lazy-loaded on render; freshness modest (counts are
+cheap — propose ~5 min, confirm at build).
+
+**Window source:** widget takes a `time_window` param (the proven
+`start_date`/`end_date` `date_range` pattern from `UsageDataWidget`); if/when
+the platform exposes a global `time_window` control, inherit it. Default
+window length **flagged for build** (propose 7d).
+
+**Open at build (not blocking spec):** exact default window; `~5 min`
+freshness; metric drilldown URLs (events-index filtered by window + metric);
+whether the `country.json` lookup is a build-time prebuilt map or read live.
 
 ### AD-W8 — Overlap-with-my-org
 First-pass (user): "REALLY good but a bit tricky" — explore. Intent: intel
@@ -215,12 +269,58 @@ sync, so trending must not be blind to pre-publication data. Confirmed:
 counting at attribute-tag level is a single narrow indexed lookup, no join to
 `Attribute`.
 
+**AD-05 — 2026-05-31 — Window anchor = `Event.timestamp` (last-modified),
+track-wide.** Refs: AD-W1 deferred anchor, AD-W7, parent PRD J1, user domain
+note. The timestamp that puts an event "in the window" is `Event.timestamp`
+(last change), **not** `publish_timestamp`: (a) any edit forces a republish so
+the two move together for locally-edited events, but (b) `publish_timestamp`
+records propagation **to this instance** — a fresh sync connection pulling a
+peer's historic dataset stamps the whole batch at sync time, so it is
+unreliable as a "newness" signal; (c) `Event.timestamp` is indexed, matches
+"what changed since I was last here" (J1), and includes unpublished events
+(AD-04). Attribute-level sources test `Attribute.timestamp` analogously.
+*Exception:* AD-W7 metric 4 ("published by my org") uses `publish_timestamp`,
+because for an org's **own** events that stamp is a genuine local publish act,
+not a sync import. (`first_seen` rejected — sparse attribute-level nanosecond
+field, not an event anchor.)
+
+**AD-06 — 2026-05-31 — Aggregate count metrics may skip ACL filtering (global
+counts acceptable); only org-contextual metrics are org-scoped.** Refs:
+refines AD-04; user ("generally for aggregate information we're ok with
+that"). A pure scale-count ("N new attributes this window") exposes no
+specific intel, so it need not be ACL-filtered — query it globally
+(`timestamp > x`) and cache under a global+window key. This **refines AD-04**:
+"ACL-scoped aggregate widgets cache per-org" still holds for genuinely
+ACL-scoped aggregates, but pure counts aren't ACL-scoped at all → for them
+both the per-org cache **and** the site-admin no-ACL bucket are moot.
+Org-**contextual** metrics (targeting my org, published by my org) stay keyed
+by their org context (resolved country/sector tuple; `orgc_id`), not by ACL.
+
+**AD-07 — 2026-05-31 — AD-W7 (new-data stats) DECIDED.** Refs: AD-05/06, AD-03
+(shared prior-window delta baseline), `UsageDataWidget` (StatGrid contract).
+Four `StatGrid` metrics; each `value` = current-window count, `change` = delta
+vs the prior equal window: (1) new events (`Event.timestamp` in window,
+global), (2) new attributes (`Attribute.timestamp` in window, `deleted=0`,
+global), (3) events targeting my org's country/sector (distinct events
+carrying `misp-galaxy:country=` ∪ `misp-galaxy:sector=`, resolved via the
+**targeting waterfall**: explicit widget config → org `nationality`/`sector` →
+org-name ccTLD (country only) → N/A; ccTLD→country resolved self-contained
+from `country.json` `meta.tld`/`ISO`), (4) new events published by my org
+(`orgc_id`=me, `published=1`, `publish_timestamp` in window). A widget option
+to set country/sector overrides all targeting heuristics. Cache split per
+AD-06. Full spec in §5. Build is deferred — the track stays in spec mode; next
+spec target is W6, while the first *build* unit remains W1 (engine-first).
+
 ## 7. Open meta-questions (resolve early)
 
-1. `AD-NN` numbering vs continuing parent `DD-NN`? *(proposed: AD-NN.)*
-2. Split an `analyst-dashboard-progress.md` now, or keep roster-as-tracker
-   in §3 until implementation starts?
-3. Build order — proposed: **W1 → W7 → W6 → (W2/W3/W4) → W5 → W8 → W9**
-   (engine first since W2/W3/W4 are its dimensions; stats next as the
-   cheapest standalone win; event-stream; then dimensions; heatmap wiring;
-   the two hard/soft ones last). *(confirm.)*
+1. ~~`AD-NN` numbering vs continuing parent `DD-NN`?~~ **RESOLVED**
+   (2026-05-31): `AD-NN`, in use through AD-07, cross-linked to parent
+   `DD-NN`.
+2. ~~Split an `analyst-dashboard-progress.md` now?~~ **RESOLVED**
+   (2026-05-31): split now → [`analyst-dashboard-progress.md`](analyst-dashboard-progress.md)
+   is the task tracker (mirrors the parent PRD+progress split).
+3. ~~Build order — confirm.~~ **RESOLVED** (2026-05-31): confirmed
+   **W1 → W7 → W6 → (W2/W3/W4) → W5 → W8 → W9**. Note we are **speccing
+   ahead of building** (user chose to keep planning): spec order has run
+   W1 then W7; next spec target = **W6**. The first *build* unit remains
+   **W1** (engine-first, since W2/W3/W4 are its dimensions).
