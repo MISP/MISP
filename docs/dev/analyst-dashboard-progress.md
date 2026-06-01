@@ -154,8 +154,15 @@ task starts until the user moves the track out of spec-first mode.
   `delta = floor((cur-prior)/prior*100)` → ▲/▼ (0 → no badge). All-time
   (`-1`) → no prior window → no momentum. Added `min_count` to params/schema.
   Lint clean.
-- [ ] Cache/ACL (AD-04): per-org `cache_scope`, site-admin no-ACL bucket,
+- [x] Cache/ACL (AD-04): per-org `cache_scope`, site-admin no-ACL bucket,
   lazy-load on render, ~15–30 min/org, source = all events incl. unpublished.
+  *Done (user signed off Option A, 2026-06-01):* added an `'org'` scope to
+  `WidgetCache` (additive — `user`/`global` untouched): key segment
+  `o<org_id>:`, site admins → shared `sa:` no-ACL bucket, `remember()` fails
+  safe to a live compute without a bucket. `TrendingWidget` declares
+  `cache_scope='org'` + `cache_duration=1200` (20 min). Extended
+  `WidgetCacheTest` with 6 org-scope cases (per-org sharing, org isolation,
+  `sa:` separation, fail-safe) — **19 tests / 31 assertions green**.
 - [ ] Visual verification on the live instance (real render path, not a
   hand-built payload — see `project_dashboard_ctp_payload_passthrough`).
 
@@ -263,8 +270,11 @@ render kinds land.)*
 
 ## Discovered work
 
-- **`WidgetCache` has no `'org'` scope — AD-04 per-org cache needs a 2nd
-  additive-only touch of existing code (SIGN-OFF, lands at B1.6).**
+- **[RESOLVED — B1.6, Option A, user signed off 2026-06-01]** `WidgetCache`
+  gained an additive `'org'` scope; `TrendingWidget` uses it. *(Original
+  finding below kept for the audit trail.)* **`WidgetCache` has no `'org'`
+  scope — AD-04 per-org cache needs a 2nd additive-only touch of existing
+  code (SIGN-OFF, lands at B1.6).**
   *Introduces:* `WidgetCache::scope()`/`key()` recognise only `'user'`
   (keys `u<id>:`) and `'global'` (config-only) — see
   `app/Lib/Dashboard/Tools/WidgetCache.php:162`. *Why it matters:* AD-04

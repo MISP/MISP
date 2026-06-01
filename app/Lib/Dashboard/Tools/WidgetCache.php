@@ -45,6 +45,15 @@ App::uses('Inflector', 'Utility');
  * (remember() falls back to a live compute) — failing safe rather than
  * risking a cross-user leak.
  *
+ * Scope `org` (AD-04, analyst track). For an ACL-scoped *aggregate* — the
+ * same payload for every user in an org, since MISP's ACL atom is the
+ * organisation — declare `public $cache_scope = 'org'`. The key then carries
+ * an `o<org_id>:` segment so same-org users share one entry (one compute per
+ * org per TTL) while different orgs stay isolated. Site admins see all events
+ * with no ACL filter, so they share a single `sa:` no-ACL bucket distinct
+ * from every org bucket. Like `user`, an org-scoped widget rendered without a
+ * usable org bucket (no org_id and not a site admin) is NOT cached.
+ *
  * NB: within the TTL even a manual refresh serves the cached payload
  * (renderWidget can't distinguish a refresh from a page load) — the
  * accepted "simple, 1h" behaviour from DD-19.
@@ -76,10 +85,17 @@ class WidgetCache
         if ($ttl <= 0) {
             return $compute();
         }
-        // A user-scoped widget must key by user (DD-21). Without a usable
-        // user id we can't isolate viewers, so skip caching rather than
-        // share an ACL-scoped payload across users.
-        if (self::scope($widget) === 'user' && empty($user['id'])) {
+        // A user-scoped widget must key by user (DD-21); an org-scoped widget
+        // must key by org bucket (AD-04). Without a usable id/bucket we can't
+        // isolate viewers, so skip caching rather than share an ACL-scoped
+        // payload across the wrong audience.
+        $scope = self::scope($widget);
+        if ($scope === 'user' && empty($user['id'])) {
+            return $compute();
+        }
+        if ($scope === 'org'
+            && empty($user['org_id'])
+            && empty($user['Role']['perm_site_admin'])) {
             return $compute();
         }
         $redis = self::redis();
@@ -125,8 +141,11 @@ class WidgetCache
         }
         ksort($config);
         $prefix = self::path($widget) . ':';
-        if (self::scope($widget) === 'user' && !empty($user['id'])) {
+        $scope = self::scope($widget);
+        if ($scope === 'user' && !empty($user['id'])) {
             $prefix .= 'u' . (int)$user['id'] . ':';
+        } elseif ($scope === 'org') {
+            $prefix .= self::orgSegment($user);
         }
         return $prefix . hash('sha256', (string)json_encode($config));
     }
@@ -161,9 +180,27 @@ class WidgetCache
      */
     private static function scope($widget)
     {
-        return (isset($widget->cache_scope) && $widget->cache_scope === 'user')
-            ? 'user'
-            : 'global';
+        if (isset($widget->cache_scope)
+            && in_array($widget->cache_scope, array('user', 'org'), true)) {
+            return $widget->cache_scope;
+        }
+        return 'global';
+    }
+
+    /**
+     * The per-org key segment for an `org`-scoped widget (AD-04, analyst
+     * track): MISP's ACL atom is the organisation, so same-org users share
+     * one cache entry. Site admins see every event with NO ACL filter, so
+     * they get a single shared no-ACL bucket (`sa:`) distinct from any org
+     * bucket — their all-events payload must never be served to a
+     * regular user and vice versa.
+     */
+    private static function orgSegment($user)
+    {
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return 'sa:';
+        }
+        return 'o' . (int)$user['org_id'] . ':';
     }
 
     /**

@@ -29,8 +29,11 @@
  * "NEW". All-time (time_window = -1) has no prior window → no momentum. No
  * spike detection (deferred — AD-03).
  *
- * The per-org cache (AD-04) lands in B1.6 — until then the widget computes
- * live on every render.
+ * Cache (AD-04): lazy-loaded on render and cached PER-ORG (MISP's ACL atom)
+ * for ~20 min via the WidgetCache `org` scope — same-org users share one
+ * entry, site admins get a separate no-ACL bucket. Because the counts are
+ * ACL-scoped (AD-09), a per-org key is both correct and shared; the source
+ * is all events incl. unpublished (orgs collaborate pre-publication).
  */
 class TrendingWidget
 {
@@ -84,6 +87,13 @@ class TrendingWidget
     public $description = 'Parametrised trending widget: ranks the values '
         . 'rising fastest in a dimension (vulnerabilities, …) by '
         . 'distinct-event count over a time window.';
+
+    // Cache (AD-04): lazy-load on render, cache PER-ORG (the ACL atom) for
+    // ~20 min — same-org users share one entry, site admins get the no-ACL
+    // `sa:` bucket (WidgetCache 'org' scope, DD-20/21). Counts are
+    // ACL-scoped (AD-09), so a per-org key is both correct and shared.
+    public $cache_duration = 1200;
+    public $cache_scope = 'org';
 
     /**
      * Per-dimension hook registry. Each new dimension (build phases

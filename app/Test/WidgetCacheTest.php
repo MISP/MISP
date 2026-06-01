@@ -78,6 +78,14 @@ class WcUserScopedWidget
     public $cache_scope = 'user';
 }
 
+// Org-scoped (AD-04): output is an ACL-scoped aggregate shared by all users
+// in an org, so the key carries a per-org segment (site admins → `sa:`).
+class WcOrgScopedWidget
+{
+    public $cache_duration = 1200;
+    public $cache_scope = 'org';
+}
+
 use PHPUnit\Framework\TestCase;
 
 class WidgetCacheTest extends TestCase
@@ -210,5 +218,60 @@ class WidgetCacheTest extends TestCase
         }, null);
         $this->assertSame(['data' => 'live'], $out);
         $this->assertSame(1, $called, 'compute must run live when a user-scoped widget lacks a user id');
+    }
+
+    // --- AD-04: per-org scope ---------------------------------------------
+
+    public function testOrgScopeAddsOrgSegmentToKey()
+    {
+        $w = new WcOrgScopedWidget();
+        $key = WidgetCache::key($w, ['time_window' => '30d'], ['id' => 7, 'org_id' => 5]);
+        // misp:wc_org_scoped_cache:o5:<sha256>
+        $this->assertStringStartsWith('misp:wc_org_scoped_cache:o5:', $key);
+        $hash = substr($key, strlen('misp:wc_org_scoped_cache:o5:'));
+        $this->assertRegExp('/^[0-9a-f]{64}$/', $hash);
+    }
+
+    public function testOrgScopeSameOrgSharesKeyAcrossUsers()
+    {
+        // The point of per-org caching: two different users in the same org
+        // share one cache entry (one compute per org per TTL).
+        $w = new WcOrgScopedWidget();
+        $a = WidgetCache::key($w, ['time_window' => '30d'], ['id' => 7, 'org_id' => 5]);
+        $b = WidgetCache::key($w, ['time_window' => '30d'], ['id' => 8, 'org_id' => 5]);
+        $this->assertSame($a, $b);
+    }
+
+    public function testOrgScopeDifferentOrgsGetDifferentKeys()
+    {
+        $w = new WcOrgScopedWidget();
+        $a = WidgetCache::key($w, ['time_window' => '30d'], ['id' => 7, 'org_id' => 5]);
+        $b = WidgetCache::key($w, ['time_window' => '30d'], ['id' => 7, 'org_id' => 6]);
+        $this->assertNotSame($a, $b, 'different orgs must not share an ACL-scoped cache entry');
+    }
+
+    public function testOrgScopeSiteAdminGetsSeparateNoAclBucket()
+    {
+        // Site admins see all events with no ACL filter, so their payload
+        // goes to a single `sa:` bucket that no org user is ever served.
+        $w = new WcOrgScopedWidget();
+        $admin = WidgetCache::key($w, ['time_window' => '30d'],
+            ['id' => 1, 'org_id' => 5, 'Role' => ['perm_site_admin' => 1]]);
+        $this->assertStringStartsWith('misp:wc_org_scoped_cache:sa:', $admin);
+        $orgUser = WidgetCache::key($w, ['time_window' => '30d'], ['id' => 7, 'org_id' => 5]);
+        $this->assertNotSame($admin, $orgUser, 'site-admin no-ACL payload must not share an org key');
+    }
+
+    public function testRememberOrgScopedWithoutBucketRunsLive()
+    {
+        // No org_id and not a site admin -> can't isolate a bucket -> fail
+        // safe: skip the cache and compute live.
+        $called = 0;
+        $out = WidgetCache::remember(new WcOrgScopedWidget(), ['x' => 1], function () use (&$called) {
+            $called++;
+            return ['data' => 'live'];
+        }, ['id' => 7]);
+        $this->assertSame(['data' => 'live'], $out);
+        $this->assertSame(1, $called, 'compute must run live when an org-scoped widget lacks an org bucket');
     }
 }
