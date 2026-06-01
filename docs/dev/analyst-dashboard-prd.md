@@ -52,7 +52,7 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 | ID | Widget | Job | Status | Headline open question |
 |----|--------|-----|--------|------------------------|
 | AD-W1 | **Trending engine** (parametrised) | rising | DECIDED | engine/counting/momentum/cache locked (AD-01..04); per-dimension specifics → W2/W3 |
-| AD-W2 | Trending CVEs (dimension of W1) | rising | DISCUSSING | counting beyond event-tags; `MISP.cveurl` link-out |
+| AD-W2 | Trending vulnerabilities (dim of W1) | rising | DECIDED | spec locked (AD-09): vuln-attr distinct-event count, **ACL-scoped**; cveurl link-out; all CVE/GCVE/GHSA |
 | AD-W3 | Trending threat actors (dim of W1) | rising | DISCUSSING | attribute/object-level galaxy tags; cluster resolution |
 | AD-W4 | Trending attack techniques (dim of W1) | rising | DISCUSSING | distinctness from the ATT&CK heatmap |
 | AD-W5 | ATT&CK matrix heatmap (existing `AttackWidget`) | rising | DISCUSSING | wire to global `time_window`? else keep as-is |
@@ -132,14 +132,52 @@ the explicit "circle back" flags from 2026-05-31.)*
   propagation-to-this-instance, not newness; see AD-05.)
 - **CVE counting specifics** (W2) + galaxy attribute-level specifics (W3).
 
-### AD-W2 — Trending CVEs
-First-pass (user): a **focused** widget; each CVE / GCVE / GitHub-advisory
-identifier links out to the canonical vulnerability-lookup URL via
-**`MISP.cveurl`** (default `https://cve.circl.lu`, identifier embedded, e.g.
-`https://cve.circl.lu/vuln/CVE-2026-10186`) — it is a vulnerability-lookup
-instance and users may run their own, not CIRCL's. **Circle back (user
-flagged):** counting CVEs beyond event-tags is "trickier than it sounds" —
-user has ideas + *existing APIs* for this use-case; **grill at W2 time.**
+### AD-W2 — Trending Vulnerabilities  `DECIDED`
+
+**Locked (2026-05-31):** The first concrete **dimension** of the W1 engine.
+Scope = **all `vulnerability` attribute identifiers** (CVE / GCVE / GHSA — one
+identifier-agnostic attribute type; Fork: "all vulnerability IDs"). Title
+"Trending Vulnerabilities".
+
+- **Counting strategy hook** = `COUNT(DISTINCT event_id)` over
+  `attributes WHERE type='vulnerability' AND deleted=0`, grouped by `value1`.
+  For this dimension the AD-02 union collapses to the **attribute-value arm
+  only** — CVEs are *not* tags/taxonomy (research: stored exclusively as
+  `vulnerability` values; the `branded-vulnerability` galaxy is not a CVE
+  index), so the event-tag / attribute-tag arms are empty. Cheaply indexable:
+  `attributes` has indexes on `type`, `value1(255)`, `event_id`.
+- **⚠ ACL is the watch-out (user, 2026-05-31).** Trending ranks *which values*
+  are rising — that reveals content, so the count **must be ACL-scoped to the
+  viewer's org's visible events** (per AD-04: trending is per-org-cached *and*
+  ACL-scoped). This is the boundary with AD-06: AD-06's "skip ACL" covers
+  *scale*-counts (how many — W7) which leak nothing; a *value-ranking* (which
+  ones) must NOT be a global count. So the AD-02 narrow-table "cheat" still
+  applies, but the count is constrained to the org's visible event set (event +
+  attribute distribution / sharing-group ACL), then cached per-org.
+  **Primary build risk** = a lightweight ACL-correct count path (reuse MISP's
+  attribute ACL condition builder; avoid full event hydration). Site-admins =
+  the no-ACL bucket (AD-04).
+- **Window anchor** = `Attribute.timestamp` (AD-05, attribute-level source): a
+  value is "in window" if a `vulnerability` attribute carrying it has
+  `Attribute.timestamp` in window; distinct events among those = the count.
+- **Momentum** = AD-03 (floored-% delta vs prior equal window; configurable
+  min current-window distinct-event count before "rising" flags).
+- **Label resolver hook** = the identifier verbatim (`CVE-…` / `GCVE-…` /
+  `GHSA-…`); no cluster resolution needed (these are attribute values, not
+  galaxy clusters — contrast W3).
+- **Drill-down link builder hook** = `Configure::read('MISP.cveurl')` then the
+  identifier appended **directly, no separator** (`{cveurl}{value}` —
+  `value_field.ctp:93`). **Correction to the first-pass note:** the in-tree
+  default is `https://vulnerability.circl.lu/vuln/` (`Server.php:5859`,
+  `config.default.php:41`) — *not* `cve.circl.lu` — and `cveurl` already
+  includes the trailing path, so the URL is e.g.
+  `https://vulnerability.circl.lu/vuln/CVE-2026-10186`. Users run their own
+  lookup instance (this dev box overrides to `cve.circl.lu/cve/`). A sibling
+  `MISP.cweurl` exists for `weakness`/CWE — out of scope for W2.
+
+**Open at build (not blocking spec):** the exact lightweight ACL-count query
+(reuse `Attribute` ACL conditions vs a per-org visible-event-id set); whether
+to segment the label by identifier prefix (CVE vs GCVE vs GHSA).
 
 ### AD-W6 — Event-stream rework  `DECIDED`
 
@@ -371,6 +409,25 @@ posture and the analyst-track "add widgets, not platform changes" charter. No
 cache: `fetchEvent` is per-user ACL'd and near-live (5 s), so AD-04's per-org
 aggregate cache does not apply. Ticker rejected (motion/accessibility;
 redundant with auto-refresh); grouped-digest deferred (flat is the first cut).
+
+**AD-09 — 2026-05-31 — AD-W2 (Trending Vulnerabilities) DECIDED; trending
+counts are ACL-scoped, not global.** Refs: AD-01/02/03/04 (engine), AD-05
+(anchor), AD-06 (the contrast), user ACL watch-out + "all vulnerability IDs".
+The first W1 dimension. Scope = all `vulnerability` attribute identifiers
+(CVE/GCVE/GHSA — one identifier-agnostic type; research confirmed no separate
+gcve/ghsa type). Counting = `COUNT(DISTINCT event_id)` over
+`type='vulnerability' AND deleted=0` grouped by `value1` — the AD-02 union
+collapses to the attribute-value arm (CVEs aren't tags). **Key clarification
+the user flagged: trending value-rankings MUST be ACL-scoped** to the org's
+visible events (AD-04 per-org cache), unlike AD-06's global scale-counts —
+surfacing *which* values are rising reveals content. The narrow-table count
+still applies but is constrained to the visible event set; primary build risk =
+a lightweight ACL-correct count path (reuse `Attribute` ACL conditions, no
+event hydration). Window anchor `Attribute.timestamp` (AD-05); momentum AD-03;
+label = identifier verbatim; link-out = `MISP.cveurl` + value (`{cveurl}{value}`,
+default corrected to `https://vulnerability.circl.lu/vuln/`, sibling `cweurl`
+out of scope). Generalises to the engine: **AD-06 (skip ACL) applies only to
+scale-counts, never to value-rankings (AD-04).**
 
 ## 7. Open meta-questions (resolve early)
 

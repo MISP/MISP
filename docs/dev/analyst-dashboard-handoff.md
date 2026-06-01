@@ -1,4 +1,4 @@
-# Analyst Dashboard — Session handoff (2026-05-31 — AD-W7 (AD-05..07) + AD-W6 (AD-08) DECIDED; progress tracker split out; next spec target = W2/W3/W4 dimensions)
+# Analyst Dashboard — Session handoff (2026-05-31 — AD-W7 (AD-05..07) + AD-W6 (AD-08) + AD-W2 (AD-09) DECIDED; progress tracker split out; next spec target = W3)
 
 **This is a NEW, SEPARATE track** from the main dashboard work (whose bridge
 is `dashboard-handoff.md`). Main dashboard v2 is feature-complete; this track
@@ -21,9 +21,13 @@ builds the **analyst widget surface**. Authoritative state lives in:
 - **AD-08** = the W6 spec: flat detailed cards, read-only (filters via the
   existing toolbar bulk-edit), additive `EventStreamCardsWidget extends
   EventStreamWidget` + new `EventCards` render kind.
+- **AD-09** = the W2 spec (first W1 dimension): all `vulnerability` IDs
+  (CVE/GCVE/GHSA), distinct-event count, cveurl link-out. **Big clarification:
+  trending value-rankings MUST be ACL-scoped** (AD-04 per-org) — AD-06's
+  skip-ACL is only for *scale*-counts (W7), never value-rankings.
 - **Split out `analyst-dashboard-progress.md`** (meta-Q2 resolved).
 - Build order confirmed: **W1 → W7 → W6 → (W2/W3/W4) → W5 → W8 → W9**.
-  Spec done: W1, W7, W6. **Next spec target = W2/W3/W4 (trending dimensions).**
+  Spec done: W1, W7, W6, W2. **Next spec target = W3 (trending threat actors).**
   First *build* unit (when building starts) = W1.
 
 ## Why this track (three analyst jobs)
@@ -91,11 +95,10 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
   metric 4 by `orgc_id`; nothing ACL-filtered ⇒ site-admin bucket moot.
 
 ## Open per-widget circle-backs (carry — first-pass answers in PRD §5)
-- **W2 (CVEs):** counting beyond event-tags is "trickier than it sounds" —
-  user has ideas + **existing APIs**; **grill at W2**. Link-out via
-  **`MISP.cveurl`** (default `https://cve.circl.lu`, ID embedded, e.g.
-  `…/vuln/CVE-2026-10186`); covers CVE / GCVE / GitHub advisory. CVEs appear
-  as tags **and** (much more prevalent) `vulnerability` attribute values.
+- **W2 (vulnerabilities): DECIDED (AD-09)** — see PRD §5. Grilled: plain
+  distinct-event count on `vulnerability` values is right (CVEs aren't tags),
+  ACL-scoped. All CVE/GCVE/GHSA. cveurl default corrected to
+  `https://vulnerability.circl.lu/vuln/`, format `{cveurl}{value}`.
 - **W3 (threat actors):** attribute/object-level galaxy tags (not just
   EventTag); cluster resolution (name/synonyms/icon vs raw tag string).
 - **W4 (techniques):** keep DISTINCT from the heatmap — ranked list + momentum
@@ -136,13 +139,14 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
   widgets/defaults together in the next release).
 
 ## Quick-start for next session
-1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1+AD-W6+AD-W7, §6
-   AD-01..08) + `analyst-dashboard-progress.md` (spec status + build backlog).
-2. **W1, W7, W6 are all fully decided.** Next **spec** target is the
-   **W2/W3/W4 trending dimensions** (CVEs / threat actors / attack techniques)
-   — spec as a cluster since they're per-dimension hooks on the W1 engine
-   (counting strategy, label resolver, drill-down link builder). Carry the
-   per-widget circle-backs below. *(Or, if the user flips to build mode, the
+1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1/W2/W6/W7, §6
+   AD-01..09) + `analyst-dashboard-progress.md` (spec status + build backlog).
+2. **W1, W7, W6, W2 are all fully decided.** Next **spec** target is **W3
+   (trending threat actors)** — the second W1 dimension. Circle-backs:
+   attribute/object-level galaxy tags (not just EventTag); cluster resolution
+   (cluster name / synonyms / icon vs raw `misp-galaxy:…=` tag string). It's a
+   galaxy-cluster dimension (contrast W2's plain attribute values), so the
+   label resolver hook is the crux. *(Or, if the user flips to build mode, the
    first build unit is **W1** engine-first — see progress §"Phase B1".)*
 3. **Standing decisions:** AD-NN numbering; per-org cache for ACL-scoped
    aggregates (AD-04) but global no-ACL counts for pure scale metrics (AD-06);

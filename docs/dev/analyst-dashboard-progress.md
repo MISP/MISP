@@ -50,8 +50,8 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | ID | Widget | Spec | Build |
 |----|--------|------|-------|
 | AD-W1 | Trending engine (parametrised) | `DECIDED` (AD-01..04) | `[ ]` not started — **first build unit** |
-| AD-W2 | Trending CVEs (dim of W1) | `DISCUSSING` | — |
-| AD-W3 | Trending threat actors (dim of W1) | `DISCUSSING` | — |
+| AD-W2 | Trending vulnerabilities (dim of W1) | `DECIDED` (AD-09) | `[ ]` not started |
+| AD-W3 | Trending threat actors (dim of W1) | `DISCUSSING` | — **next spec target** |
 | AD-W4 | Trending attack techniques (dim of W1) | `DISCUSSING` | — |
 | AD-W5 | ATT&CK matrix heatmap (existing) | `DISCUSSING` | — |
 | AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[ ]` not started |
@@ -69,10 +69,15 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 - [x] **AD-W6 spec → DECIDED** — flat detailed cards (Fork A); read-only,
   filters via existing toolbar bulk-edit (Fork B); additive subclass
   `EventStreamCardsWidget` + new `EventCards` render kind. (AD-08.)
-- [ ] **AD-W2/W3/W4 spec** — the trending-engine dimensions (CVEs / threat
-  actors / attack techniques). Per-dimension hooks on the W1 engine: counting
-  strategy, label resolver, drill-down link builder. (Next spec target — these
-  are dimensions of W1, so spec them as a cluster.)
+- [x] **AD-W2 spec → DECIDED** — Trending Vulnerabilities: all `vulnerability`
+  IDs (CVE/GCVE/GHSA), distinct-event count **ACL-scoped** (the watch-out;
+  AD-06 skip-ACL applies only to scale-counts, never value-rankings), cveurl
+  link-out (default corrected to `vulnerability.circl.lu/vuln/`). (AD-09.)
+- [ ] **AD-W3 spec** — Trending threat actors: attribute/object-level galaxy
+  tags (not just EventTag); cluster resolution (name/synonyms/icon vs raw tag
+  string). (Next spec target.)
+- [ ] **AD-W4 spec** — Trending attack techniques: keep DISTINCT from the
+  ATT&CK heatmap (W5) — ranked list + momentum vs spatial matrix.
 
 ## Build backlog (ordered by confirmed build order)
 
@@ -126,8 +131,23 @@ task starts until the user moves the track out of spec-first mode.
   `fetchEvent`).
 - [ ] Visual verification on the live instance (real render path).
 
-*(Phases B4+ — W2/W3/W4, W5, W8 — broken down when each reaches `DECIDED`
-and the track enters build mode.)*
+### Phase B4 — AD-W2 Trending Vulnerabilities dimension (DECIDED; needs B1 engine)
+
+*A `dimension` config + per-dimension hooks on the built W1 engine — not a new
+widget. Depends on Phase B1.*
+
+- [ ] `vulnerability` dimension config: counting = `COUNT(DISTINCT event_id)`
+  over `type='vulnerability' AND deleted=0` grouped by `value1` (attribute-value
+  arm only; tag arms empty for CVEs).
+- [ ] **ACL-correct count** (primary risk): constrain to the org's visible
+  event set (reuse `Attribute` ACL conditions; no event hydration); cache
+  per-org (AD-04); site-admin no-ACL bucket.
+- [ ] Window anchor `Attribute.timestamp` (AD-05); momentum AD-03.
+- [ ] Label resolver = identifier verbatim; link builder = `MISP.cveurl` +
+  value (`{cveurl}{value}`).
+- [ ] Visual verification on the live instance.
+
+*(Phases B5+ — W3/W4, W5, W8 — broken down when each reaches `DECIDED`.)*
 
 ## Discovered work
 
