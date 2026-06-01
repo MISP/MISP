@@ -49,7 +49,7 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 
 | ID | Widget | Spec | Build |
 |----|--------|------|-------|
-| AD-W1 | Trending engine (parametrised) | `DECIDED` (AD-01..04) | `[ ]` not started — **first build unit** |
+| AD-W1 | Trending engine (parametrised) | `DECIDED` (AD-01..04) | `[x]` **BUILT** (Phase B1; vulnerability dim live) |
 | AD-W2 | Trending vulnerabilities (dim of W1) | `DECIDED` (AD-09) | `[ ]` not started |
 | AD-W3 | Trending threat actors (dim of W1) | `DECIDED` (AD-10) | `[ ]` not started |
 | AD-W4 | Trending attack techniques (dim of W1) | `DECIDED` (AD-11) | `[ ]` not started |
@@ -163,8 +163,18 @@ task starts until the user moves the track out of spec-first mode.
   `cache_scope='org'` + `cache_duration=1200` (20 min). Extended
   `WidgetCacheTest` with 6 org-scope cases (per-org sharing, org isolation,
   `sa:` separation, fail-safe) — **19 tests / 31 assertions green**.
-- [ ] Visual verification on the live instance (real render path, not a
+- [x] Visual verification on the live instance (real render path, not a
   hand-built payload — see `project_dashboard_ctp_payload_passthrough`).
+  *Done:* rendered `TrendingWidget` through the **real pipeline**
+  (renderWidget → CanonicalTypeAdapter → WidgetCache `org`/`sa:` bucket →
+  handler → render_widget.ctp → Trending.ctp). REST path (`time_window=-1`)
+  matched the SQL exactly (CVE-2017-11882=13, …). A 4y split window
+  (`1460d`, min_count=3) exercised momentum: CVE-2015-5465 ▲500% (6 vs 1),
+  CVE-2017-11882 ▼58% (3 vs 7), CVE-2022-30190/42475 `NEW` (3 vs 0),
+  count≤2 rows correctly badge-less. Web-UI HTML render produced correct
+  `.misp-trending-*` markup (bar widths 100/50/33/17%); headless screenshot
+  against the real CSS confirmed the styled visual (coloured ▲/▼/NEW badges,
+  fill bars). **Phase B1 (W1 trending engine) COMPLETE.**
 
 ### Phase B2 — AD-W7 New-data stats (DECIDED; build-deferred)
 
