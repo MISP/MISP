@@ -58,7 +58,7 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 | AD-W5 | ATT&CK matrix heatmap (existing `AttackWidget`) | rising | DECIDED | spec locked (AD-12): wire `time_window` canonical **in-place** (additive sign-off granted) |
 | AD-W6 | **Event-stream rework** | new | DECIDED | spec locked (AD-08): additive subclass + new read-only `EventCards` render; flat cards; toolbar-driven filters |
 | AD-W7 | **New-data stats** (StatGrid + deltas) | new | DECIDED | spec locked (AD-05..07): `timestamp` anchor · 4 metrics · targeting waterfall · global-count ACL relaxation |
-| AD-W8 | Overlap-with-my-org (correlation) | affects-me | DISCUSSING | feasibility/cost; what "overlap" means |
+| AD-W8 | Overlap-with-my-org (correlation) | affects-me | DECIDED | spec locked (AD-13): correlation-based (reuse `getRelatedEventIds`), my-org-created ref set, window-anchored |
 | AD-W9 | Sightings rework (`RecentSightingsWidget`) | affects-me | DEFERRED | look-and-feel only? (sighting engine is slow / unused by some) |
 
 ## 4. Cross-cutting decisions (first-pass; detail to follow)
@@ -395,11 +395,45 @@ window length **flagged for build** (propose 7d).
 freshness; metric drilldown URLs (events-index filtered by window + metric);
 whether the `country.json` lookup is a build-time prebuilt map or read live.
 
-### AD-W8 — Overlap-with-my-org
-First-pass (user): "REALLY good but a bit tricky" — explore. Intent: intel
-in the window that **correlates with the viewer's own org data**. The real
-answer to "what's new that I should *care* about". **Open:** definition of
-overlap (correlations? attribute-value intersection?), cost, ACL.
+### AD-W8 — Overlap-with-my-org  `DECIDED`
+
+**Locked (2026-06-01):** The "affects me" payoff widget — "what's new that I
+should *care* about". Surfaces NEW window events (`Event.timestamp` in window,
+ACL-visible) that **correlate with events my org created**.
+
+- **Overlap definition = correlation-based** (Fork: over raw attribute-value
+  intersection). Reuse `Correlation->getRelatedEventIds($user, $eventId,
+  $sgids)` — it is **ACL-correct AND engine-agnostic** (works under
+  Default / NoAcl / OnDemand engines), and inherits correlation's denoising
+  (over-correlating values + correlation_exclusions already stripped) and its
+  fuzzy matches (ssdeep / CIDR). Rejected raw value-intersection: expensive
+  (value joins, no reusable index), redundant (correlations *are* value matches
+  + more), and would force re-implementing ACL + denoising.
+- **Reference set = events my org created** (`Event.orgc_id` = my org) (Fork:
+  over "events my org can see" — the broader set is close to "has any
+  correlation at all", which dilutes the "affects ME" signal).
+- **⚠ Build approach (forced by research, not a fork).** Do NOT scan
+  `default_correlations` by `org_id`: it has **no `org_id`/timestamp index**,
+  its `org_id` is the *visibility* org **not the creator** (`orgc_id` isn't on
+  correlations), and the OnDemand engine has no table at all. Instead **anchor
+  on the bounded window-event set** (what the analyst cares about anyway): for
+  each window event, call `getRelatedEventIds`, keep it iff a related event's
+  `orgc_id` = my org. Cost scales with the window, not the correlation table;
+  no schema change; engine-safe; correlation lookups are `event_id`/`1_event_id`
+  indexed.
+- **Render = reuse the W6 `EventCards` kind** with an **"overlaps N of your
+  events" badge** (overlap strength = # of my-org events the candidate
+  correlates to). Ranked by overlap strength desc, then recency. (Confirm at
+  build.)
+- **ACL / cache:** ACL inherited from `getRelatedEventIds` + the per-`$user`
+  window-event fetch; **per-org cache** (AD-04). **Cost guard:** cap the
+  candidate window-event set (top-N most recent) before the per-event related
+  lookups; **`log()` if capped** (no silent truncation).
+- **Window anchor** = `Event.timestamp` (AD-05) on the candidate (new) events.
+
+**Open at build (not blocking spec):** overlap-strength metric (distinct
+my-org events vs # correlating attributes); candidate cap N; whether to
+drill-down to *which* of my events overlap; the badge's exact text.
 
 ### AD-W9 — Sightings rework
 First-pass (user): "definitely rework, but **maybe just a look-and-feel
@@ -583,6 +617,23 @@ config/schema-class change, not a rewrite.** Existing manual `filters`
 by `time_window`; cache key includes the window (automatic as config). Only
 `time_window` wired this pass (orgs/tags out of scope). Confirms the global
 window = the `time_window` canonical → W1 and W7 should also declare it.
+
+**AD-13 — 2026-06-01 — AD-W8 (Overlap-with-my-org) DECIDED.** Refs: AD-04
+(cache), AD-05 (anchor), AD-09 (ACL pattern), correlation-engine research, user
+Forks (correlation-based; my-org-created). The "affects me" payoff widget:
+surfaces NEW window events (`Event.timestamp` in window, ACL-visible) that
+correlate with events my org **created** (`orgc_id`). Definition =
+correlation-based — reuse `Correlation->getRelatedEventIds($user, …)`, which is
+ACL-correct AND engine-agnostic (Default/NoAcl/OnDemand) and inherits
+correlation denoising + fuzzy matches. Reference set = `Event.orgc_id` = my org.
+**Build approach (forced by research): anchor on the bounded window-event set +
+per-event `getRelatedEventIds`, keep those whose related events are
+my-org-created** — sidesteps `default_correlations`' missing `org_id`/timestamp
+index, the `org_id`=visibility-not-creator gap, and the OnDemand no-table case;
+no schema change. Render = reuse the W6 `EventCards` kind with an "overlaps N of
+your events" badge, ranked by overlap strength. Per-org cache (AD-04). Cost
+guard = cap candidate window events (top-N recent), `log()` if capped. Rejected
+raw attribute-value intersection (expensive, redundant, re-implements ACL).
 
 ## 7. Open meta-questions (resolve early)
 

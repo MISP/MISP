@@ -1,4 +1,4 @@
-# Analyst Dashboard — Session handoff (2026-05-31..06-01 — AD-W2/W3/W4/W5/W6/W7 DECIDED (AD-05..12); only W8 left to spec (W9 deferred); next spec target = W8)
+# Analyst Dashboard — Session handoff (2026-05-31..06-01 — SPEC PHASE COMPLETE: W1–W8 all DECIDED (AD-01..13), W9 deferred; ready for build, first unit = W1)
 
 **This is a NEW, SEPARATE track** from the main dashboard work (whose bridge
 is `dashboard-handoff.md`). Main dashboard v2 is feature-complete; this track
@@ -42,11 +42,18 @@ builds the **analyst widget surface**. Authoritative state lives in:
   of existing code — user signed off** (small schema/config change, not a
   rewrite). Confirms global window = the `time_window` canonical → W1 & W7
   should declare it too.
+- **AD-13** = the W8 spec (the "affects me" payoff): correlation-based overlap
+  — reuse `Correlation->getRelatedEventIds` (ACL-correct + engine-agnostic),
+  reference set = events my org **created** (`orgc_id`). Build is **window-
+  anchored** (per-event related lookups over the bounded window set; NO org_id
+  scan, no schema change — `default_correlations` has no org_id/timestamp index
+  and `org_id`≠creator). Render = reuse W6 `EventCards` + "overlaps N of your
+  events" badge.
 - **Split out `analyst-dashboard-progress.md`** (meta-Q2 resolved).
-- Build order confirmed: **W1 → W7 → W6 → (W2/W3/W4) → W5 → W8 → W9**.
-  Spec done: W1, W7, W6, W2, W3, W4, W5. **Next spec target = W8
-  (overlap-with-my-org) — the last real spec (W9 deferred).** First *build*
-  unit (when building starts) = W1.
+- **SPEC PHASE COMPLETE.** Build order: **W1 → W7 → W6 → (W2/W3/W4) → W5 → W8 →
+  W9**. **All of W1–W8 are DECIDED (AD-01..13); W9 stays DEFERRED**
+  (look-and-feel-only reskin of `RecentSightingsWidget`, after the render kinds
+  land). The track is **ready for build — first unit = W1** (engine-first).
 
 ## Why this track (three analyst jobs)
 The analyst board today is 5 v1-era widgets (TrendingAttributes/Tags, two
@@ -128,8 +135,9 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
 - **W6 (event stream): DECIDED (AD-08)** — see PRD §5. Flat read-only cards,
   additive subclass + `EventCards` render; filters via the existing toolbar
   bulk-edit; near-live, no cache (per-user ACL'd `fetchEvent`).
-- **W8 (overlap-with-my-org):** define "overlap" (correlations vs
-  attribute-value intersection), cost, ACL. High value, tricky.
+- **W8 (overlap-with-my-org): DECIDED (AD-13)** — see PRD §5. Correlation-based
+  (reuse `getRelatedEventIds`); my-org-created reference set; window-anchored
+  build; render = W6 EventCards + overlap badge.
 - **W9 (sightings):** likely **look-and-feel rework only** — sighting engine
   is slow and unused by some communities, so don't over-invest in a live "are
   my IOCs sighted?" engine.
@@ -158,16 +166,25 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
   widgets/defaults together in the next release).
 
 ## Quick-start for next session
-1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1..W7, §6
-   AD-01..12) + `analyst-dashboard-progress.md` (spec status + build backlog).
-2. **W1, W2, W3, W4, W5, W6, W7 are all fully decided.** Next — and **last
-   real** — spec target is **W8 (overlap-with-my-org)**, the "what's new that I
-   should *care* about" widget (affects-me job). It's the hard/tricky one;
-   circle-backs: define "overlap" (event correlations vs raw attribute-value
-   intersection between window-events and the org's own corpus), cost, and ACL
-   (likely the AD-09 ACL-scoped pattern again). After W8 the roster is fully
-   spec'd except **W9 (sightings, DEFERRED — likely look-and-feel only)**.
-   *(Or flip to build mode — first build unit is **W1**, progress §"Phase B1".)*
+1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1..W8, §6
+   AD-01..13) + `analyst-dashboard-progress.md` (spec status + the B1–B8 build
+   backlog).
+2. **SPEC PHASE IS DONE** — W1–W8 all DECIDED; W9 deferred. **The work now is
+   BUILD**, sequentially, starting at **Phase B1 (the W1 trending engine)**:
+   the new `Trending` render kind + `Trending.ctp` + glyph in
+   `render-thumbs.mjs` (CLAUDE.md), then `TrendingWidget` (dimension config +
+   counting/momentum/per-org-ACL-cache). Build order: **W1 → W7 → W6 →
+   W2/W3/W4 → W5 → W8** (then W9 if revisited). One task = one commit;
+   chgrp www-data; sign; verify on the live instance via the real render path.
+3. **Cross-cutting reminders for build:** trending value-rankings are
+   ACL-scoped per-org (AD-09), NOT global like W7's scale-counts (AD-06);
+   `Event.timestamp` is the window anchor (AD-05); the global window IS the
+   `time_window` canonical (declare it on W1/W7 per AD-12); `AttributeTag::
+   countForTags` skips ACL — don't reuse it (AD-10). New render kinds (Trending,
+   EventCards) each need a glyph. W5 touches existing code (signed off, AD-12);
+   everything else is additive.
+4. **Confirm with the user before starting build** (they may want to recompose
+   the analyst `template.json` themselves first — that's their job).
 3. **Standing decisions:** AD-NN numbering; per-org cache for ACL-scoped
    aggregates (AD-04) but global no-ACL counts for pure scale metrics (AD-06);
    `Event.timestamp` window anchor (AD-05); both tracks ride `dashboards`,

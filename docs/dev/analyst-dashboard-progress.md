@@ -56,8 +56,8 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | AD-W5 | ATT&CK matrix heatmap (existing) | `DECIDED` (AD-12) | `[ ]` not started |
 | AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[ ]` not started |
 | AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[ ]` not started |
-| AD-W8 | Overlap-with-my-org | `DISCUSSING` | — **next spec target** |
-| AD-W9 | Sightings rework | `DEFERRED` | — |
+| AD-W8 | Overlap-with-my-org | `DECIDED` (AD-13) | `[ ]` not started |
+| AD-W9 | Sightings rework | `DEFERRED` | — look-and-feel only; revisit post-build |
 
 ## Spec log (this track's planning tasks)
 
@@ -85,9 +85,17 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 - [x] **AD-W5 spec → DECIDED** — wire AttackWidget to the global `time_window`
   canonical **in-place** (first additive-only sign-off granted); map it into
   the restSearch 'attack' timestamp filter; manual filters preserved. (AD-12.)
-- [ ] **AD-W8 spec** — Overlap-with-my-org: define "overlap" (correlations vs
-  attribute-value intersection), cost, ACL. The last real spec (hard/tricky).
-  (Next spec target.)
+- [x] **AD-W8 spec → DECIDED** — Overlap-with-my-org: correlation-based (reuse
+  `getRelatedEventIds` — ACL-correct + engine-agnostic), reference set =
+  events my org created (`orgc_id`); window-anchored build (no org_id scan, no
+  schema change); render = reuse W6 EventCards + overlap badge. (AD-13.)
+- [ ] **AD-W9** — DEFERRED (look-and-feel-only rework of `RecentSightingsWidget`;
+  sighting engine slow/unused by some — revisit after the render kinds exist).
+  No spec needed now; the roster is otherwise fully DECIDED.
+
+**✅ SPEC PHASE COMPLETE (2026-06-01)** — W1–W8 all DECIDED (AD-01..13); W9
+deferred. The work is now BUILD, starting at Phase B1 (W1 engine). Confirm with
+the user before starting (they may recompose the analyst `template.json` first).
 
 ## Build backlog (ordered by confirmed build order)
 
@@ -199,7 +207,23 @@ on B1 (and shares B5's ACL-correct union-distinct count).*
 - [ ] Confirm cache key includes the window; verify toolbar bulk-edit drives it.
 - [ ] Visual verification on the live instance (heatmap re-scopes with board).
 
-*(Phase B8 — W8 — broken down when it reaches `DECIDED`. W9 deferred.)*
+### Phase B8 — AD-W8 Overlap-with-my-org (DECIDED; needs B1 + B3 EventCards)
+
+*New widget; reuses the W6 `EventCards` render. Depends on B3 (EventCards).*
+
+- [ ] `OverlapWithMyOrgWidget` (`render = 'EventCards'`): candidate set =
+  ACL-visible window events (`Event.timestamp` in window), capped top-N recent
+  (`log()` if capped).
+- [ ] For each candidate, `Correlation->getRelatedEventIds($user, id, sgids)`;
+  keep iff a related event's `orgc_id` = my org. Overlap strength = # of my-org
+  events it correlates to; rank desc then recency.
+- [ ] EventCards + "overlaps N of your events" badge; per-org cache (AD-04).
+- [ ] Verify across correlation engines (Default at minimum; note OnDemand path
+  is reused for free via getRelatedEventIds).
+- [ ] Visual verification on the live instance.
+
+*(W9 deferred — look-and-feel-only reskin of RecentSightingsWidget, after the
+render kinds land.)*
 
 ## Discovered work
 
