@@ -54,7 +54,7 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 | AD-W1 | **Trending engine** (parametrised) | rising | DECIDED | engine/counting/momentum/cache locked (AD-01..04); per-dimension specifics → W2/W3 |
 | AD-W2 | Trending vulnerabilities (dim of W1) | rising | DECIDED | spec locked (AD-09): vuln-attr distinct-event count, **ACL-scoped**; cveurl link-out; all CVE/GCVE/GHSA |
 | AD-W3 | Trending threat actors (dim of W1) | rising | DECIDED | spec locked (AD-10): `threat-actor` galaxy only; event∪attr-tag distinct-event count, **ACL-scoped**; per-cluster label |
-| AD-W4 | Trending attack techniques (dim of W1) | rising | DISCUSSING | distinctness from the ATT&CK heatmap |
+| AD-W4 | Trending attack techniques (dim of W1) | rising | DECIDED | spec locked (AD-11): `mitre-attack-pattern`, parent roll-up; reuses W3 ACL count; distinct from W5 |
 | AD-W5 | ATT&CK matrix heatmap (existing `AttackWidget`) | rising | DISCUSSING | wire to global `time_window`? else keep as-is |
 | AD-W6 | **Event-stream rework** | new | DECIDED | spec locked (AD-08): additive subclass + new read-only `EventCards` render; flat cards; toolbar-driven filters |
 | AD-W7 | **New-data stats** (StatGrid + deltas) | new | DECIDED | spec locked (AD-05..07): `timestamp` anchor · 4 metrics · targeting waterfall · global-count ACL relaxation |
@@ -217,6 +217,41 @@ no-canonical-UUID cross-galaxy identity-merge problem).
 
 **Open at build (not blocking spec):** the exact ACL-correct union-distinct
 count query; the bulk label-resolution query shape.
+
+### AD-W4 — Trending Attack Techniques  `DECIDED`
+
+**Locked (2026-06-01):** The third **dimension** of the W1 engine; reuses W3's
+galaxy machinery (a different galaxy type). Scope = **`mitre-attack-pattern`
+(Enterprise) only** (mirrors W3's "native galaxy only"; mobile / ICS / ATLAS /
+cmtmf excluded — say so to widen).
+
+- **Counting strategy hook** = **engine-native, reusing W3's ACL-correct
+  `COUNT(DISTINCT event_id)`** over `EventTag` ∪ `AttributeTag` for the
+  technique tag-id set, cached per-org — but the tag-id set is **grouped by
+  parent technique**: each sub-technique (`external_id` `T1566.001`) folds into
+  its parent (`T1566`, ".NNN" stripped). Distinct-event is taken at the parent
+  level (an event tagged with both `T1566` and `T1566.001` counts once, per
+  AD-02). A parent bucket exists even if only sub-techniques are tagged.
+- **Sub-technique roll-up** (Fork chosen over counting them separately):
+  fewer rows, aggregated signal, cleaner "which technique is trending".
+- **Window anchor** AD-05 (event-tag→`Event.timestamp`,
+  attribute-tag→`Attribute.timestamp`); **momentum** AD-03.
+- **Label resolver hook** = the **parent** cluster `value` + `external_id`
+  (e.g. "Phishing (T1566)") + `Galaxy.icon` (`map`); bulk-resolved (avoid N+1).
+- **Drill-down link builder hook** = `/galaxy_clusters/view/<parent_cluster_id>`.
+- **DISTINCT from W5** (the heatmap): W4 = a ranked top-N list + momentum badges
+  wired to the global window; W5 = the spatial ATT&CK **matrix** heatmap
+  (`AttackWidget`, `render=Attack`, `restSearch 'attack'`, manual filters). Two
+  different views of the same data — confirmed distinct, no overlap to resolve.
+- **Counting-path note:** engine-native chosen for consistency with W2/W3. The
+  `attack` restSearch returnFormat that W5 uses is ACL-correct and was
+  considered, but it's a *parallel* counting path and would need verifying it
+  counts distinct events (AD-02) — held as a build-time alternative, not the
+  default.
+
+**Open at build (not blocking spec):** the parent roll-up mapping (sub-technique
+tag_ids → parent `external_id`/cluster); confirm the parent label resolves from
+the parent cluster record even when only sub-techniques are tagged.
 
 ### AD-W6 — Event-stream rework  `DECIDED`
 
@@ -483,6 +518,22 @@ attribute-tag→`Attribute.timestamp`); momentum AD-03. Label resolver =
 `GalaxyCluster.value` + `Galaxy.icon` + synonyms-on-hover (per-cluster, no
 merge; merge deferred), resolved bulk to avoid N+1. Link-out =
 `/galaxy_clusters/view/<id>`.
+
+**AD-11 — 2026-06-01 — AD-W4 (Trending Attack Techniques) DECIDED.** Refs:
+AD-10 (reuses W3 galaxy machinery), AD-01/02/03/04/05, AD-09 (ACL), W5
+distinctness, user Fork (roll up sub-techniques). Third W1 dimension. Scope =
+`mitre-attack-pattern` (Enterprise) only (mirrors W3's native-galaxy-only).
+Counting = engine-native reuse of W3's ACL-correct distinct-event count over
+`EventTag` ∪ `AttributeTag`, with the tag-id set **grouped by parent
+technique**: each sub-technique (`T1566.001`) folds into its parent (`T1566`,
+".NNN" stripped); distinct-event taken at parent level. Anchors AD-05; momentum
+AD-03. Label = parent cluster `value` + `external_id` + `Galaxy.icon` (`map`);
+link = `/galaxy_clusters/view/<parent_id>`; bulk-resolved. **DISTINCT from W5:**
+W4 = ranked top-N + momentum wired to the global window; W5 = the spatial ATT&CK
+matrix heatmap (`AttackWidget`, `restSearch 'attack'`, manual filters).
+Counting-path: engine-native chosen for consistency; the `attack` restSearch
+returnFormat (what W5 uses) noted as a build-time alternative (ACL-correct but a
+parallel path needing AD-02 distinct-event verification).
 
 ## 7. Open meta-questions (resolve early)
 

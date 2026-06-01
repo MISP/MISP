@@ -52,8 +52,8 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | AD-W1 | Trending engine (parametrised) | `DECIDED` (AD-01..04) | `[ ]` not started — **first build unit** |
 | AD-W2 | Trending vulnerabilities (dim of W1) | `DECIDED` (AD-09) | `[ ]` not started |
 | AD-W3 | Trending threat actors (dim of W1) | `DECIDED` (AD-10) | `[ ]` not started |
-| AD-W4 | Trending attack techniques (dim of W1) | `DISCUSSING` | — **next spec target** |
-| AD-W5 | ATT&CK matrix heatmap (existing) | `DISCUSSING` | — |
+| AD-W4 | Trending attack techniques (dim of W1) | `DECIDED` (AD-11) | `[ ]` not started |
+| AD-W5 | ATT&CK matrix heatmap (existing) | `DISCUSSING` | — **next spec target** |
 | AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[ ]` not started |
 | AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[ ]` not started |
 | AD-W8 | Overlap-with-my-org | `DISCUSSING` | — |
@@ -78,9 +78,12 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
   EventTag ∪ AttributeTag, **ACL-scoped** (note: `AttributeTag::countForTags`
   skips ACL — unusable as-is); per-cluster resolved label (value+icon+synonyms),
   link to /galaxy_clusters/view/<id>. (AD-10.)
-- [ ] **AD-W4 spec** — Trending attack techniques: keep DISTINCT from the
-  ATT&CK heatmap (W5) — ranked list + momentum vs spatial matrix. (Next spec
-  target.)
+- [x] **AD-W4 spec → DECIDED** — Trending attack techniques: `mitre-attack-
+  pattern` (Enterprise) only; reuses W3's ACL-correct count with the tag-id set
+  grouped by **parent technique** (sub-techniques roll up); DISTINCT from W5
+  (ranked list + momentum vs spatial matrix). (AD-11.)
+- [ ] **AD-W5 spec** — ATT&CK heatmap (existing `AttackWidget`): wire to the
+  global `time_window` or keep manual-filters as-is? (Next spec target.)
 
 ## Build backlog (ordered by confirmed build order)
 
@@ -166,7 +169,22 @@ widget. Depends on Phase B1.*
   synonyms (avoid N+1). Link builder = /galaxy_clusters/view/<id>.
 - [ ] Visual verification on the live instance.
 
-*(Phases B6+ — W4, W5, W8 — broken down when each reaches `DECIDED`.)*
+### Phase B6 — AD-W4 Trending Attack Techniques dimension (DECIDED; needs B1 engine)
+
+*A `dimension` config on the W1 engine, reusing W3's count machinery. Depends
+on B1 (and shares B5's ACL-correct union-distinct count).*
+
+- [ ] `mitre-attack-pattern` dimension config: tag-id set = Enterprise
+  attack-pattern cluster tags, **grouped by parent technique** (sub-technique
+  external_id `T1566.001` → parent `T1566`, ".NNN" stripped).
+- [ ] ACL-correct distinct-event count at the parent-technique level (reuse the
+  B5 union-distinct count); cache per-org.
+- [ ] Anchors AD-05; momentum AD-03.
+- [ ] Label resolver: parent cluster `value` + `external_id` + Galaxy.icon
+  (`map`), bulk-resolved; link = /galaxy_clusters/view/<parent_id>.
+- [ ] Visual verification + confirm DISTINCT from the W5 heatmap on the board.
+
+*(Phases B7+ — W5, W8 — broken down when each reaches `DECIDED`.)*
 
 ## Discovered work
 

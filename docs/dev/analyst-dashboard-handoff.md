@@ -1,4 +1,4 @@
-# Analyst Dashboard — Session handoff (2026-05-31..06-01 — AD-W7 (AD-05..07) + AD-W6 (AD-08) + AD-W2 (AD-09) + AD-W3 (AD-10) DECIDED; progress tracker split out; next spec target = W4)
+# Analyst Dashboard — Session handoff (2026-05-31..06-01 — AD-W2/W3/W4/W6/W7 DECIDED (AD-05..11); trending dimensions complete; progress tracker split out; next spec target = W5)
 
 **This is a NEW, SEPARATE track** from the main dashboard work (whose bridge
 is `dashboard-handoff.md`). Main dashboard v2 is feature-complete; this track
@@ -31,10 +31,15 @@ builds the **analyst widget surface**. Authoritative state lives in:
   link to `/galaxy_clusters/view/<id>`. **Gotcha:** `AttributeTag::countForTags`
   skips ACL + counts occurrences → unusable as-is; needs custom ACL-correct
   union-distinct count.
+- **AD-11** = the W4 spec (third W1 dimension): `mitre-attack-pattern`
+  (Enterprise) only; reuses W3's ACL-correct count with the tag-id set grouped
+  by **parent technique** (sub-techniques roll up: T1566.001 → T1566); label =
+  parent value + external_id + icon; DISTINCT from W5 (ranked list+momentum vs
+  spatial matrix). **The W2/W3/W4 trending dimensions are now all DECIDED.**
 - **Split out `analyst-dashboard-progress.md`** (meta-Q2 resolved).
 - Build order confirmed: **W1 → W7 → W6 → (W2/W3/W4) → W5 → W8 → W9**.
-  Spec done: W1, W7, W6, W2, W3. **Next spec target = W4 (trending attack
-  techniques).** First *build* unit (when building starts) = W1.
+  Spec done: W1, W7, W6, W2, W3, W4. **Next spec target = W5 (ATT&CK heatmap
+  wiring).** First *build* unit (when building starts) = W1.
 
 ## Why this track (three analyst jobs)
 The analyst board today is 5 v1-era widgets (TrendingAttributes/Tags, two
@@ -108,8 +113,8 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
 - **W3 (threat actors): DECIDED (AD-10)** — see PRD §5. `threat-actor` galaxy
   only; EventTag ∪ AttributeTag distinct-event count, ACL-scoped; per-cluster
   label (value+icon+synonyms); `/galaxy_clusters/view/<id>`.
-- **W4 (techniques):** keep DISTINCT from the heatmap — ranked list + momentum
-  vs the spatial matrix view.
+- **W4 (techniques): DECIDED (AD-11)** — see PRD §5. `mitre-attack-pattern`
+  only; parent-technique roll-up; reuses W3's ACL count; distinct from W5.
 - **W5 (ATT&CK heatmap):** existing `AttackWidget` (`render=Attack`,
   `restSearch 'attack'`); filters are manual — decide whether to wire it to
   the global `time_window`.
@@ -146,17 +151,18 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
   widgets/defaults together in the next release).
 
 ## Quick-start for next session
-1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1/W2/W3/W6/W7, §6
-   AD-01..10) + `analyst-dashboard-progress.md` (spec status + build backlog).
-2. **W1, W7, W6, W2, W3 are all fully decided.** Next **spec** target is **W4
-   (trending attack techniques)** — the third W1 dimension. Circle-back: keep
-   it DISTINCT from the W5 ATT&CK heatmap (ranked list + momentum vs the
-   spatial matrix). Likely an `attack-pattern` / `mitre-attack-pattern` galaxy
-   dimension — reuses W3's galaxy plumbing (EventTag ∪ AttributeTag, ACL-scoped
-   count, per-cluster label, `/galaxy_clusters/view/<id>`); the live fork is
-   scope (which ATT&CK galaxies) + how it differs from W5. *(Or, if the user
-   flips to build mode, the first build unit is **W1** — see progress
-   §"Phase B1".)*
+1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1/W2/W3/W4/W6/W7,
+   §6 AD-01..11) + `analyst-dashboard-progress.md` (spec status + build backlog).
+2. **W1, W2, W3, W4, W6, W7 are all fully decided** (the trending engine +
+   all three dimensions, the event stream, the new-data stats). Next **spec**
+   target is **W5 (ATT&CK heatmap)** — the existing `AttackWidget`
+   (`render=Attack`, `restSearch 'attack'`, manual filters, cache 1200). The
+   one live fork: **wire it to the global `time_window`** (and the analyst
+   board) **or keep it manual-filter as-is?** It's an *existing* widget, so
+   touching it engages [[feedback_additive_only_posture]] — wiring = a config/
+   default change, not a rewrite. After W5: **W8 (overlap-with-my-org)** is the
+   last real spec (hard/tricky); **W9 (sightings)** is DEFERRED. *(Or flip to
+   build mode — first build unit is **W1**, progress §"Phase B1".)*
 3. **Standing decisions:** AD-NN numbering; per-org cache for ACL-scoped
    aggregates (AD-04) but global no-ACL counts for pure scale metrics (AD-06);
    `Event.timestamp` window anchor (AD-05); both tracks ride `dashboards`,
