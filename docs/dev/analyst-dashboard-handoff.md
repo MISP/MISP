@@ -17,7 +17,7 @@ builds the **analyst widget surface**. Authoritative state lives in:
   - `50c371bcb` B2.1–B2.4 — new **`NewDataStatsWidget`** (`render='StatGrid'`,
     reuses the existing render kind → no new glyph). 4 metrics, prior-window
     deltas, targeting waterfall, per-metric Redis cache.
-  - (verification commit) B2.5 — live verification; AD-W7 marked **BUILT**.
+  - `4547427c2` B2.5 — live verification; AD-W7 marked **BUILT**.
 - **Build order (unchanged):** W1 ✅ → W7 ✅ → **W6 (next)** → (W2/W3/W4) → W5
   → W8 → (W9 deferred). The next build unit is **Phase B3 = AD-W6 event-stream
   rework** — a new **`EventStreamCardsWidget`** subclass **+ a new `EventCards`
@@ -26,9 +26,9 @@ builds the **analyst widget surface**. Authoritative state lives in:
 ## What now exists in the tree (reuse it; don't re-derive)
 - **`TrendingWidget`** + **`Trending` render kind** (Phase B1, W1) — the
   parametrised "what's rising" engine; vulnerability dimension live. Dimensions
-  W2/W3/W4 are additive `dimensions()` entries on it (Phase B4/B5/B6). See the
-  prior handoff in git history (`b3d5715de`) for its full contract if you build
-  those next; W6 does NOT depend on it.
+  W2/W3/W4 are additive `dimensions()` entries on it (Phase B4/B5/B6). See
+  `TrendingWidget.php`'s docblock (or the W1 handoff at `4128a3b4f`) for its
+  full contract if you build those next; W6 does NOT depend on it.
 - **`NewDataStatsWidget`** (`app/Lib/Dashboard/NewDataStatsWidget.php`, W7).
   Standalone `StatGrid` widget — 4 cards, each `value`=current-window count,
   `change`=delta vs prior equal window (StatGrid renders >0 ▲, <0 ▼, 0 = none):
