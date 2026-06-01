@@ -106,9 +106,17 @@ task starts until the user moves the track out of spec-first mode.
 
 ### Phase B1 — AD-W1 Trending engine (on deck; fully DECIDED)
 
-- [ ] New render kind **`Trending`** — `Trending.ctp` ranked-row list (label ·
+- [x] New render kind **`Trending`** — `Trending.ctp` ranked-row list (label ·
   inline volume bar · count · `▲/▼` delta badge). Token-driven CSS, no inline
   styles (mirror `StatGrid.ctp`).
+  *Done:* added `app/View/Elements/dashboard/Widgets/Trending.ctp` (flat
+  row-list contract: `label`/`count`/`delta`/`badge`/`drilldown`/`title` —
+  bare handler return is the row list, no `{data:}` wrapper, like StatGrid)
+  + a token-driven `.misp-trending-*` block in `dashboard.default.css`. Bar
+  width is the only inline value, carried as the `--misp-trending-fill`
+  custom property (data-driven, same posture as `Index.ctp`'s tag chips);
+  delta badge mirrors `.misp-stat-delta`. Galaxy-icon slot deferred to W3/W4
+  (additive). Verified: `parallel-lint` clean, CSS braces balance.
 - [ ] Glyph for `Trending` in `render-thumbs.mjs` (**CLAUDE.md rule** — new
   render kind ⇒ glyph): `thumbTrending()` + REGISTRY entry.
 - [ ] `TrendingWidget` class — `dimension` config + per-dimension hooks

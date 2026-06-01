@@ -850,6 +850,107 @@ a.misp-stat-card:hover .misp-stat-glyph {
 }
 
 /* ============================================================
+ * Trending renderer (analyst track — AD-W1 / AD-01) — a ranked-row
+ * list for "what is rising" widgets. Each row: a left-anchored volume
+ * fill bar (width = the data, carried inline as --misp-trending-fill)
+ * behind the label, then the count + a ▲/▼ momentum delta badge. The
+ * badge style mirrors .misp-stat-delta (DD-31); token-driven so the
+ * midnight theme retones by only redefining --misp-dash-* tokens.
+ * ============================================================ */
+.misp-trending-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--misp-dash-space-1);
+  align-content: start;
+}
+.misp-trending-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+  padding: var(--misp-dash-space-2) var(--misp-dash-space-3);
+  border-radius: var(--misp-dash-radius-md);
+  background: var(--misp-dash-surface-raised);
+  border: 1px solid var(--misp-dash-border);
+  color: var(--misp-dash-text);
+  text-decoration: none;
+  /* clip the fill bar to the row's rounded corners. */
+  overflow: hidden;
+  transition: border-color var(--misp-dash-transition-fast),
+              box-shadow var(--misp-dash-transition-fast);
+}
+a.misp-trending-row:hover,
+a.misp-trending-row:focus-visible {
+  border-color: var(--misp-dash-accent);
+  box-shadow: var(--misp-dash-shadow-sm);
+  text-decoration: none;
+  color: var(--misp-dash-text);
+}
+a.misp-trending-row:focus-visible {
+  outline: 2px solid var(--misp-dash-accent);
+  outline-offset: 2px;
+}
+/* The volume fill: width is the data (--misp-trending-fill), set inline
+   per row; everything else (colour, position) lives here. Behind the
+   text via z-index, and non-interactive so it never eats row clicks. */
+.misp-trending-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--misp-trending-fill, 0);
+  background: var(--misp-dash-accent-muted);
+  z-index: 0;
+  pointer-events: none;
+}
+.misp-trending-label {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-medium);
+}
+.misp-trending-meta {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--misp-dash-space-2);
+}
+.misp-trending-count {
+  font-size: var(--misp-dash-fs-sm);
+  font-weight: var(--misp-dash-fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+.misp-trending-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px var(--misp-dash-space-1);
+  font-size: var(--misp-dash-fs-xs);
+  font-weight: var(--misp-dash-fw-medium);
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--misp-dash-radius-sm);
+}
+.misp-trending-delta-up {
+  color: var(--misp-dash-success);
+  background: var(--misp-dash-success-muted);
+}
+.misp-trending-delta-down {
+  color: var(--misp-dash-danger);
+  background: var(--misp-dash-danger-muted);
+}
+.misp-trending-arrow {
+  font-size: 9px;
+  line-height: 1;
+}
+
+/* ============================================================
  * Index renderer — tabular records emitted by widgets that declare
  * `$render = 'Index'`. Body scrolls vertically; sticky header keeps
  * column names visible. Cell padding stays compact for dense data.
