@@ -282,6 +282,19 @@ function thumbPewPewMap() {
   ]);
 }
 
+function thumbTrending() {
+  // Ranked-row list (analyst track, AD-W1): horizontal volume bars of
+  // decreasing length (the rank / volume) with a small up-arrow evoking
+  // the ▲/▼ momentum delta badge — reads as "ranked + rising", distinct
+  // from SimpleList's equal rows and BarChart's vertical bars.
+  return svg([
+    shape('rect', { x: 20, y: 13, width: 30, height: 5, rx: 2, fill: 'currentColor', stroke: 'none' }),
+    shape('rect', { x: 20, y: 22, width: 22, height: 5, rx: 2, fill: 'currentColor', stroke: 'none', opacity: 0.7 }),
+    shape('rect', { x: 20, y: 31, width: 14, height: 5, rx: 2, fill: 'currentColor', stroke: 'none', opacity: 0.45 }),
+    shape('polygon', { points: '58,11 62,17 54,17', fill: 'currentColor', stroke: 'none' }),
+  ]);
+}
+
 function thumbGeneric() {
   return svg([
     shape('rect', { x: 22, y: 14, width: 36, height: 17, rx: 2 }),
@@ -303,6 +316,7 @@ const REGISTRY = {
   PieChart:       thumbPieChart,
   MonitorLineChart: thumbMonitorLineChart,
   StatGrid:       thumbStatGrid,
+  Trending:       thumbTrending,
   NetworkGraph:   thumbNetworkGraph,
   UserList:       thumbUserList,
   QueueList:      thumbQueueList,

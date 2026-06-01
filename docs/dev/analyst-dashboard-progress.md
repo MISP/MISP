@@ -117,8 +117,11 @@ task starts until the user moves the track out of spec-first mode.
   custom property (data-driven, same posture as `Index.ctp`'s tag chips);
   delta badge mirrors `.misp-stat-delta`. Galaxy-icon slot deferred to W3/W4
   (additive). Verified: `parallel-lint` clean, CSS braces balance.
-- [ ] Glyph for `Trending` in `render-thumbs.mjs` (**CLAUDE.md rule** — new
+- [x] Glyph for `Trending` in `render-thumbs.mjs` (**CLAUDE.md rule** — new
   render kind ⇒ glyph): `thumbTrending()` + REGISTRY entry.
+  *Done:* added `thumbTrending()` (decreasing-width horizontal bars + a small
+  up-arrow = "ranked + rising", distinct from SimpleList/BarChart) and
+  registered it under `Trending:` in `REGISTRY`. `node --check` clean.
 - [ ] `TrendingWidget` class — `dimension` config + per-dimension hooks
   (counting strategy, label resolver, drill-down link builder).
 - [ ] Counting (AD-02): `COUNT(DISTINCT event_id)` over event-tag ∪
