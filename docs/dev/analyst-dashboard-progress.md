@@ -250,8 +250,13 @@ meaningful), mirroring the B1.3+B1.4 combination. Four done-notes below.*
   standalone). Only inline value = data-driven chip colours (same posture as
   Index chips). `php -l` clean, CSS braces balance (498/498). All consumed
   paths confirmed against a live `EventStreamWidget` payload.
-- [ ] Glyph for `EventCards` in `render-thumbs.mjs` (stacked-cards shape;
+- [x] Glyph for `EventCards` in `render-thumbs.mjs` (stacked-cards shape;
   **CLAUDE.md rule**): `thumbEventCards()` + REGISTRY entry.
+  *Done:* added `thumbEventCards()` — a vertical stack of 3 receding
+  rounded cards, each with a small threat-dot + a short info line (evokes
+  the flat card stream; distinct from SimpleList's bare rows and StatGrid's
+  2×2 grid) — and registered it under `EventCards:` in `REGISTRY`.
+  `node --check` clean.
 - [ ] `EventStreamCardsWidget extends EventStreamWidget` — override `$render` =
   `EventCards`, `$title`, `$description`; inherit the canonical-filter data
   layer + `$schema` verbatim (toolbar-bulk-editable). `handler()` untouched.

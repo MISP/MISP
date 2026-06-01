@@ -295,6 +295,23 @@ function thumbTrending() {
   ]);
 }
 
+function thumbEventCards() {
+  // Stacked event cards (analyst track, AD-W6): a vertical stack of
+  // rounded "cards", each with a small threat-dot on the left and a
+  // short info line — evokes the flat reverse-chron card stream, distinct
+  // from SimpleList's bare rows and StatGrid's 2x2 KPI grid.
+  const card = (y, op) => [
+    shape('rect', { x: 18, y, width: 44, height: 9, rx: 2, opacity: op }),
+    shape('circle', { cx: 23, cy: y + 4.5, r: 1.7, fill: 'currentColor', stroke: 'none', opacity: op }),
+    shape('rect', { x: 28, y: y + 3, width: 24, height: 3, rx: 1.5, fill: 'currentColor', stroke: 'none', opacity: op }),
+  ];
+  return svg([
+    ...card(8, 1),
+    ...card(19, 0.7),
+    ...card(30, 0.45),
+  ]);
+}
+
 function thumbGeneric() {
   return svg([
     shape('rect', { x: 22, y: 14, width: 36, height: 17, rx: 2 }),
@@ -317,6 +334,7 @@ const REGISTRY = {
   MonitorLineChart: thumbMonitorLineChart,
   StatGrid:       thumbStatGrid,
   Trending:       thumbTrending,
+  EventCards:     thumbEventCards,
   NetworkGraph:   thumbNetworkGraph,
   UserList:       thumbUserList,
   QueueList:      thumbQueueList,
