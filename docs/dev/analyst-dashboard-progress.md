@@ -122,11 +122,29 @@ task starts until the user moves the track out of spec-first mode.
   *Done:* added `thumbTrending()` (decreasing-width horizontal bars + a small
   up-arrow = "ranked + rising", distinct from SimpleList/BarChart) and
   registered it under `Trending:` in `REGISTRY`. `node --check` clean.
-- [ ] `TrendingWidget` class — `dimension` config + per-dimension hooks
+- [x] `TrendingWidget` class — `dimension` config + per-dimension hooks
   (counting strategy, label resolver, drill-down link builder).
-- [ ] Counting (AD-02): `COUNT(DISTINCT event_id)` over event-tag ∪
+  *Done (with B1.4 — one commit; a class without its count is
+  non-functional):* `app/Lib/Dashboard/TrendingWidget.php`. `render='Trending'`,
+  `dimension` is a plain config key (no `select` canonical type exists; one
+  would touch the adapter → deferred), defaulted in `handler()`. `dimensions()`
+  registry → per-dimension `count`/`labels` hook methods (a new dimension =
+  additive entry + methods). Orchestration: parse window → count → arsort →
+  top-N → resolve labels → flat rows for `Trending.ctp`. Runs **live/uncached**
+  (cache is B1.6).
+- [x] Counting (AD-02): `COUNT(DISTINCT event_id)` over event-tag ∪
   attribute-tag ∪ attribute-value, off `EventTag`/`AttributeTag`/`Attribute`
   (no event hydration; `AttributeTag.event_id` confirmed present).
+  *Done:* built the ACL-correct distinct-event **mechanism** + the first arm
+  (attribute-value, for the `vulnerability` dimension): candidate event ids
+  from in-window rows → `aclVisibleEventIds()` (reuses
+  `Event::createEventConditions($user)`; site-admin → all) → `COUNT(DISTINCT
+  Attribute.event_id)` grouped by `value1`. Window-bounded both ends so no
+  unbounded IN list. SQL validated on the dev DB (270 vuln attrs / 138
+  distinct events; CVE-2017-11882 tops at 13). The **tag arms** (EventTag ∪
+  AttributeTag) arrive with their galaxy dimensions in B5/B6 — additive count
+  hooks on the same mechanism; do NOT reuse `*Tag::countForTags` (occurrence
+  count + AttributeTag skips ACL — AD-10).
 - [ ] Momentum (AD-03): floored-% delta vs prior equal window; configurable
   min current-window count before "rising" is flagged.
 - [ ] Cache/ACL (AD-04): per-org `cache_scope`, site-admin no-ACL bucket,
@@ -238,4 +256,17 @@ render kinds land.)*
 
 ## Discovered work
 
-*(none yet — file here with introduces-what / why / where-it-goes notes.)*
+- **`WidgetCache` has no `'org'` scope — AD-04 per-org cache needs a 2nd
+  additive-only touch of existing code (SIGN-OFF, lands at B1.6).**
+  *Introduces:* `WidgetCache::scope()`/`key()` recognise only `'user'`
+  (keys `u<id>:`) and `'global'` (config-only) — see
+  `app/Lib/Dashboard/Tools/WidgetCache.php:162`. *Why it matters:* AD-04
+  locks the trending cache **per-org** ("never per-user; org is the atom;
+  site-admins a separate no-ACL bucket"). The faithful implementation adds
+  an `'org'` scope (key segment `o<org_id>:`, site-admin → `sa:` bucket) —
+  a small additive branch in existing platform code, parallel to the AD-12
+  AttackWidget sign-off; it improves caching for all widgets. The fallback
+  is `cache_scope='user'` (ACL-correct, fully additive, but duplicates
+  compute/storage for same-org users — contradicts AD-04's letter). *Where:*
+  decide at **B1.6**; B1.3–B1.5 run the engine live (uncached) so this never
+  blocks them.
