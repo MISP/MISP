@@ -55,7 +55,7 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | AD-W4 | Trending attack techniques (dim of W1) | `DECIDED` (AD-11) | `[ ]` not started |
 | AD-W5 | ATT&CK matrix heatmap (existing) | `DECIDED` (AD-12) | `[ ]` not started |
 | AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[ ]` not started |
-| AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[ ]` not started |
+| AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[x]` **BUILT** (Phase B2; 4 metrics live) |
 | AD-W8 | Overlap-with-my-org | `DECIDED` (AD-13) | `[ ]` not started |
 | AD-W9 | Sightings rework | `DEFERRED` | — look-and-feel only; revisit post-build |
 
@@ -217,7 +217,20 @@ meaningful), mirroring the B1.3+B1.4 combination. Four done-notes below.*
   shared across orgs), m3 by `(country,sector)`, m4 by `o<orgc_id>`; keys
   carry the window **length** not the drifting `now`, so hits work within the
   ~5 min TTL (DD-19 posture). Degrades to live when Redis is absent.
-- [ ] Visual verification on the live instance.
+- [x] Visual verification on the live instance.
+  *Done:* rendered through the **real pipeline** (renderWidget →
+  CanonicalTypeAdapter → handler → render_widget.ctp → StatGrid.ctp). REST
+  path matched the DB **exactly** for all four metrics: all-time events=6088,
+  attributes(deleted=0)=1,919,285, published-by-org1=51, targeting (config
+  `luxembourg`/`Bank`)=6 (= DB union distinct). A 4y split window (`1460d`)
+  exercised the prior-window delta — events ▼660 (2243 vs 2903), attributes
+  ▲22,185 (875,378 vs 853,193, exact once `now` synchronised), published ▲41
+  (46 vs 5), targeting ▲4 (5 vs 1). Org-1 has no nationality/sector →
+  metric 3 correctly **N/A** without overrides. Web-UI HTML produced correct
+  `.misp-stat-*` markup (calendar/tag/shield/building glyphs, ▲/▼ badges,
+  relative DD-03-safe drilldowns). Redis held the expected per-metric keys:
+  `events`/`attributes` global, `published:…:o1`, windowed by length not
+  `now`. **Phase B2 (W7 new-data stats) COMPLETE.**
 
 ### Phase B3 — AD-W6 Event-stream rework (DECIDED; build-deferred)
 
