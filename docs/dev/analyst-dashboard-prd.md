@@ -55,7 +55,7 @@ Status: `DISCUSSING` (forks open) · `DECIDED` (spec locked, ready to build) ·
 | AD-W2 | Trending vulnerabilities (dim of W1) | rising | DECIDED | spec locked (AD-09): vuln-attr distinct-event count, **ACL-scoped**; cveurl link-out; all CVE/GCVE/GHSA |
 | AD-W3 | Trending threat actors (dim of W1) | rising | DECIDED | spec locked (AD-10): `threat-actor` galaxy only; event∪attr-tag distinct-event count, **ACL-scoped**; per-cluster label |
 | AD-W4 | Trending attack techniques (dim of W1) | rising | DECIDED | spec locked (AD-11): `mitre-attack-pattern`, parent roll-up; reuses W3 ACL count; distinct from W5 |
-| AD-W5 | ATT&CK matrix heatmap (existing `AttackWidget`) | rising | DISCUSSING | wire to global `time_window`? else keep as-is |
+| AD-W5 | ATT&CK matrix heatmap (existing `AttackWidget`) | rising | DECIDED | spec locked (AD-12): wire `time_window` canonical **in-place** (additive sign-off granted) |
 | AD-W6 | **Event-stream rework** | new | DECIDED | spec locked (AD-08): additive subclass + new read-only `EventCards` render; flat cards; toolbar-driven filters |
 | AD-W7 | **New-data stats** (StatGrid + deltas) | new | DECIDED | spec locked (AD-05..07): `timestamp` anchor · 4 metrics · targeting waterfall · global-count ACL relaxation |
 | AD-W8 | Overlap-with-my-org (correlation) | affects-me | DISCUSSING | feasibility/cost; what "overlap" means |
@@ -252,6 +252,39 @@ cmtmf excluded — say so to widen).
 **Open at build (not blocking spec):** the parent roll-up mapping (sub-technique
 tag_ids → parent `external_id`/cluster); confirm the parent label resolves from
 the parent cluster record even when only sub-techniques are tagged.
+
+### AD-W5 — ATT&CK matrix heatmap  `DECIDED`
+
+**Locked (2026-06-01):** The existing `AttackWidget` (`render=Attack`,
+`restSearch 'attack'`, manual `filters`, `cacheLifetime=1200`). It is the only
+analyst widget **not** on the `time_window` canonical (`$schema=[]`).
+
+- **Decision = wire to the global `time_window`, in-place** (Fork: over a thin
+  subclass or keep-as-is). Add a `time_window` canonical to AttackWidget's
+  `$schema` and map it into the restSearch 'attack' `timestamp` filter (~a few
+  lines), so the heatmap re-scopes with the board and becomes
+  toolbar-bulk-editable like every other analyst widget — and AttackWidget
+  improves for **all** dashboards, not just the analyst board.
+- **⚠ Additive-only sign-off (user, 2026-06-01).** This is the track's **first
+  change that touches existing code** beyond ACL/routes/composer
+  ([[feedback_additive_only_posture]]). The user explicitly signed off: it's a
+  small config/schema-class addition (one `$schema` entry + a few lines of
+  filter mapping), **not** a rewrite. `handler()`'s existing manual `filters`
+  (`attackGalaxy`, `published`) are preserved; only the `timestamp` portion is
+  driven by `time_window`.
+- **Mapping**: `time_window` ("30d" / seconds / `-1`=all) → the restSearch
+  `timestamp` filter (reuse the in-tree translation —
+  `TrendingAttributesWidget` / `CanonicalTypeAdapter`); `-1` ⇒ no timestamp
+  bound. Cache key must include the window value (automatic once it's config).
+- **Scope**: only `time_window` wired this pass. The orgs / tags / etc.
+  canonicals could be wired into the restSearch filters later — out of scope here.
+- **Confirms** the global window = the `time_window` canonical: W1 (trending
+  engine) and W7 (new-data stats) should likewise declare `time_window` so the
+  toolbar drives the whole board uniformly.
+
+**Open at build (not blocking spec):** exact `time_window`→restSearch timestamp
+mapping (does `attack` accept the relative "30d" form directly?); confirm the
+manual `filters` + `time_window` merge doesn't clobber `attackGalaxy`.
 
 ### AD-W6 — Event-stream rework  `DECIDED`
 
@@ -534,6 +567,22 @@ matrix heatmap (`AttackWidget`, `restSearch 'attack'`, manual filters).
 Counting-path: engine-native chosen for consistency; the `attack` restSearch
 returnFormat (what W5 uses) noted as a build-time alternative (ACL-correct but a
 parallel path needing AD-02 distinct-event verification).
+
+**AD-12 — 2026-06-01 — AD-W5 (ATT&CK heatmap) DECIDED: wire to global
+`time_window` in-place; first additive-only sign-off.** Refs: existing
+`AttackWidget`, the `time_window` canonical (PewPew / GeoMap / Trending*
+precedent), user sign-off. AttackWidget is the only analyst widget not on the
+`time_window` canonical (`$schema=[]`). Decision: add the `time_window`
+canonical to its `$schema` and map it into the restSearch 'attack' `timestamp`
+filter (~a few lines), so the heatmap re-scopes with the board and becomes
+toolbar-bulk-editable like every other analyst widget. **This touches existing
+code beyond ACL/routes/composer — the track's FIRST such change — and the user
+explicitly signed off ([[feedback_additive_only_posture]]); it's a small
+config/schema-class change, not a rewrite.** Existing manual `filters`
+(`attackGalaxy` / `published`) preserved; only the timestamp portion is driven
+by `time_window`; cache key includes the window (automatic as config). Only
+`time_window` wired this pass (orgs/tags out of scope). Confirms the global
+window = the `time_window` canonical → W1 and W7 should also declare it.
 
 ## 7. Open meta-questions (resolve early)
 

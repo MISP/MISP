@@ -1,4 +1,4 @@
-# Analyst Dashboard — Session handoff (2026-05-31..06-01 — AD-W2/W3/W4/W6/W7 DECIDED (AD-05..11); trending dimensions complete; progress tracker split out; next spec target = W5)
+# Analyst Dashboard — Session handoff (2026-05-31..06-01 — AD-W2/W3/W4/W5/W6/W7 DECIDED (AD-05..12); only W8 left to spec (W9 deferred); next spec target = W8)
 
 **This is a NEW, SEPARATE track** from the main dashboard work (whose bridge
 is `dashboard-handoff.md`). Main dashboard v2 is feature-complete; this track
@@ -36,10 +36,17 @@ builds the **analyst widget surface**. Authoritative state lives in:
   by **parent technique** (sub-techniques roll up: T1566.001 → T1566); label =
   parent value + external_id + icon; DISTINCT from W5 (ranked list+momentum vs
   spatial matrix). **The W2/W3/W4 trending dimensions are now all DECIDED.**
+- **AD-12** = the W5 spec: wire the existing `AttackWidget` to the global
+  `time_window` canonical **in-place** (map it into the restSearch 'attack'
+  timestamp filter; manual filters preserved). ⚠ **First additive-only touch
+  of existing code — user signed off** (small schema/config change, not a
+  rewrite). Confirms global window = the `time_window` canonical → W1 & W7
+  should declare it too.
 - **Split out `analyst-dashboard-progress.md`** (meta-Q2 resolved).
 - Build order confirmed: **W1 → W7 → W6 → (W2/W3/W4) → W5 → W8 → W9**.
-  Spec done: W1, W7, W6, W2, W3, W4. **Next spec target = W5 (ATT&CK heatmap
-  wiring).** First *build* unit (when building starts) = W1.
+  Spec done: W1, W7, W6, W2, W3, W4, W5. **Next spec target = W8
+  (overlap-with-my-org) — the last real spec (W9 deferred).** First *build*
+  unit (when building starts) = W1.
 
 ## Why this track (three analyst jobs)
 The analyst board today is 5 v1-era widgets (TrendingAttributes/Tags, two
@@ -115,9 +122,9 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
   label (value+icon+synonyms); `/galaxy_clusters/view/<id>`.
 - **W4 (techniques): DECIDED (AD-11)** — see PRD §5. `mitre-attack-pattern`
   only; parent-technique roll-up; reuses W3's ACL count; distinct from W5.
-- **W5 (ATT&CK heatmap):** existing `AttackWidget` (`render=Attack`,
-  `restSearch 'attack'`); filters are manual — decide whether to wire it to
-  the global `time_window`.
+- **W5 (ATT&CK heatmap): DECIDED (AD-12)** — see PRD §5. Wire `time_window`
+  canonical into AttackWidget in-place (additive sign-off granted); restSearch
+  'attack' timestamp filter; manual filters preserved.
 - **W6 (event stream): DECIDED (AD-08)** — see PRD §5. Flat read-only cards,
   additive subclass + `EventCards` render; filters via the existing toolbar
   bulk-edit; near-live, no cache (per-user ACL'd `fetchEvent`).
@@ -151,18 +158,16 @@ separately, lazy-loaded not background-precomputed. Freshness per-widget
   widgets/defaults together in the next release).
 
 ## Quick-start for next session
-1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1/W2/W3/W4/W6/W7,
-   §6 AD-01..11) + `analyst-dashboard-progress.md` (spec status + build backlog).
-2. **W1, W2, W3, W4, W6, W7 are all fully decided** (the trending engine +
-   all three dimensions, the event stream, the new-data stats). Next **spec**
-   target is **W5 (ATT&CK heatmap)** — the existing `AttackWidget`
-   (`render=Attack`, `restSearch 'attack'`, manual filters, cache 1200). The
-   one live fork: **wire it to the global `time_window`** (and the analyst
-   board) **or keep it manual-filter as-is?** It's an *existing* widget, so
-   touching it engages [[feedback_additive_only_posture]] — wiring = a config/
-   default change, not a rewrite. After W5: **W8 (overlap-with-my-org)** is the
-   last real spec (hard/tricky); **W9 (sightings)** is DEFERRED. *(Or flip to
-   build mode — first build unit is **W1**, progress §"Phase B1".)*
+1. Read this + `analyst-dashboard-prd.md` (§3 roster, §5 AD-W1..W7, §6
+   AD-01..12) + `analyst-dashboard-progress.md` (spec status + build backlog).
+2. **W1, W2, W3, W4, W5, W6, W7 are all fully decided.** Next — and **last
+   real** — spec target is **W8 (overlap-with-my-org)**, the "what's new that I
+   should *care* about" widget (affects-me job). It's the hard/tricky one;
+   circle-backs: define "overlap" (event correlations vs raw attribute-value
+   intersection between window-events and the org's own corpus), cost, and ACL
+   (likely the AD-09 ACL-scoped pattern again). After W8 the roster is fully
+   spec'd except **W9 (sightings, DEFERRED — likely look-and-feel only)**.
+   *(Or flip to build mode — first build unit is **W1**, progress §"Phase B1".)*
 3. **Standing decisions:** AD-NN numbering; per-org cache for ACL-scoped
    aggregates (AD-04) but global no-ACL counts for pure scale metrics (AD-06);
    `Event.timestamp` window anchor (AD-05); both tracks ride `dashboards`,

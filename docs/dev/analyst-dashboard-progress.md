@@ -53,10 +53,10 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
 | AD-W2 | Trending vulnerabilities (dim of W1) | `DECIDED` (AD-09) | `[ ]` not started |
 | AD-W3 | Trending threat actors (dim of W1) | `DECIDED` (AD-10) | `[ ]` not started |
 | AD-W4 | Trending attack techniques (dim of W1) | `DECIDED` (AD-11) | `[ ]` not started |
-| AD-W5 | ATT&CK matrix heatmap (existing) | `DISCUSSING` | — **next spec target** |
+| AD-W5 | ATT&CK matrix heatmap (existing) | `DECIDED` (AD-12) | `[ ]` not started |
 | AD-W6 | Event-stream rework | `DECIDED` (AD-08) | `[ ]` not started |
 | AD-W7 | New-data stats (StatGrid + deltas) | `DECIDED` (AD-05..07) | `[ ]` not started |
-| AD-W8 | Overlap-with-my-org | `DISCUSSING` | — |
+| AD-W8 | Overlap-with-my-org | `DISCUSSING` | — **next spec target** |
 | AD-W9 | Sightings rework | `DEFERRED` | — |
 
 ## Spec log (this track's planning tasks)
@@ -82,8 +82,12 @@ Redis `redis-cli -n 13` (data), db0 sessions. Full recipe in the handoff.
   pattern` (Enterprise) only; reuses W3's ACL-correct count with the tag-id set
   grouped by **parent technique** (sub-techniques roll up); DISTINCT from W5
   (ranked list + momentum vs spatial matrix). (AD-11.)
-- [ ] **AD-W5 spec** — ATT&CK heatmap (existing `AttackWidget`): wire to the
-  global `time_window` or keep manual-filters as-is? (Next spec target.)
+- [x] **AD-W5 spec → DECIDED** — wire AttackWidget to the global `time_window`
+  canonical **in-place** (first additive-only sign-off granted); map it into
+  the restSearch 'attack' timestamp filter; manual filters preserved. (AD-12.)
+- [ ] **AD-W8 spec** — Overlap-with-my-org: define "overlap" (correlations vs
+  attribute-value intersection), cost, ACL. The last real spec (hard/tricky).
+  (Next spec target.)
 
 ## Build backlog (ordered by confirmed build order)
 
@@ -184,7 +188,18 @@ on B1 (and shares B5's ACL-correct union-distinct count).*
   (`map`), bulk-resolved; link = /galaxy_clusters/view/<parent_id>.
 - [ ] Visual verification + confirm DISTINCT from the W5 heatmap on the board.
 
-*(Phases B7+ — W5, W8 — broken down when each reaches `DECIDED`.)*
+### Phase B7 — AD-W5 ATT&CK heatmap time_window wiring (DECIDED; in-place edit)
+
+*Touches existing `AttackWidget` — additive-only sign-off granted (AD-12).*
+
+- [ ] Add `time_window` canonical to `AttackWidget::$schema` (currently `[]`).
+- [ ] In `handler()`, map `time_window` → restSearch 'attack' `timestamp`
+  filter (reuse the in-tree translation; `-1` ⇒ no bound); merge without
+  clobbering manual `attackGalaxy`/`published`.
+- [ ] Confirm cache key includes the window; verify toolbar bulk-edit drives it.
+- [ ] Visual verification on the live instance (heatmap re-scopes with board).
+
+*(Phase B8 — W8 — broken down when it reaches `DECIDED`. W9 deferred.)*
 
 ## Discovered work
 
